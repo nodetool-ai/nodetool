@@ -5,10 +5,12 @@ import NodeTool.UiPrimitives as Ui
 
 Rectangle {
     id: root
+    objectName: "dockTabStrip"
     required property var dock
     required property var groupView
     required property var panels
     required property string activeId
+    readonly property alias optionsButton: options
     implicitHeight: Math.max(Ui.Metrics.compact,
         Ui.Typography.pixelSize(Ui.Typography.SansLabel) * Ui.Typography.lineHeight(Ui.Typography.SansLabel) + 2 * Ui.Metrics.md)
     color: Ui.Theme.surfaceCanvas
@@ -23,12 +25,35 @@ Rectangle {
         }
         return index
     }
+    // The tabs that are cut off or scrolled out of the strip, in tab order.
+    readonly property var hiddenIds: {
+        const left = tabViewport.contentX, right = left + tabViewport.width
+        const ids = []
+        for (let i = 0; i < tabs.count; ++i) {
+            const tab = tabs.itemAt(i)
+            if (tab && (tab.x < left - 0.5 || tab.x + tab.width > right + 0.5)) ids.push(tab.panelId)
+        }
+        return ids
+    }
+    function revealTab(panelId) {
+        for (let i = 0; i < tabs.count; ++i) {
+            const tab = tabs.itemAt(i)
+            if (!tab || tab.panelId !== panelId) continue
+            const room = Math.max(0, tabViewport.contentWidth - tabViewport.width)
+            if (tab.x < tabViewport.contentX) tabViewport.contentX = Math.min(room, tab.x)
+            else if (tab.x + tab.width > tabViewport.contentX + tabViewport.width) tabViewport.contentX = Math.min(room, tab.x + tab.width - tabViewport.width)
+            return
+        }
+    }
+    // A tab can become active before the strip has laid out, so reveal it once the layout settles.
+    onActiveIdChanged: Qt.callLater(() => revealTab(activeId))
+    onWidthChanged: Qt.callLater(() => revealTab(activeId))
     function focusTab(index) {
         const tab = tabs.itemAt((index + tabs.count) % tabs.count)
         if (!tab) return
         root.dock.store.dispatch({type: "activate", panelId: tab.panelId})
         tab.forceActiveFocus()
-        tabViewport.contentX = Math.max(0, Math.min(tab.x, tabViewport.contentWidth - tabViewport.width))
+        revealTab(tab.panelId)
     }
     Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: Ui.Metrics.border; color: Ui.Theme.borderSubtle }
     Flickable {

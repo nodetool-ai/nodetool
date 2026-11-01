@@ -15,6 +15,7 @@
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QTemporaryDir>
+#include <QDir>
 #include <QtTest>
 #include <array>
 #include <memory>
@@ -222,6 +223,91 @@ private slots:
         render();
         QVERIFY(storyboardPanel->isVisible());
         QVERIFY(!entitiesPanel->isVisible());
+        // At the default left width the Entities tab does not fit, so the group menu lists it and reaches it.
+        auto* entitiesTab = named(root, "dockTab_entities");
+        QVERIFY(entitiesTab);
+        QQuickItem* strip = entitiesTab;
+        while (strip && strip->objectName() != "dockTabStrip") strip = strip->parentItem();
+        QVERIFY(strip);
+        QQuickItem* group = strip;
+        while (group && !group->objectName().startsWith("dockGroup_")) group = group->parentItem();
+        QVERIFY(group);
+        QVERIFY2(strip->property("hiddenIds").toStringList().contains("entities"), "Entities must overflow the default left dock");
+        // A window driven by a render control is never shown, so give its popup layer the window's size before a menu opens in it.
+        auto sizePopupLayer = [&] {
+            for (auto* child : group->findChildren<QObject*>()) {
+                if (!QByteArray(child->metaObject()->className()).contains("ContextMenu")) continue;
+                if (auto* overlay = qobject_cast<QQuickItem*>(qvariant_cast<QObject*>(child->property("parent")))) { overlay->setPosition(QPointF(0, 0)); overlay->setSize(window.size()); }
+            }
+        };
+        auto showMenu = [&] {
+            sizePopupLayer();
+            QVERIFY(QMetaObject::invokeMethod(group, "openMenu", Q_ARG(QVariant, QVariant(QStringLiteral("storyboard"))),
+                Q_ARG(QVariant, strip->property("optionsButton")), Q_ARG(QVariant, QVariant(true))));
+            render();
+        };
+        showMenu();
+        auto* hiddenEntry = named(window.contentItem(), "dockHiddenTab_entities");
+        QVERIFY(hiddenEntry);
+        render();
+        for (int attempt = 0; attempt < 20 && (hiddenEntry->width() <= 0 || hiddenEntry->height() <= 0); ++attempt) { QTest::qWait(20); render(); }
+        QVERIFY2(hiddenEntry->width() > 0 && hiddenEntry->height() > 0, "The hidden-tab entry must be laid out");
+        QCOMPARE(hiddenEntry->property("text").toString(), QString("Entities"));
+        const auto capture = qEnvironmentVariable("NT_ENTITY_CAPTURE_DIR");
+        if (!capture.isEmpty()) {
+            QDir().mkpath(capture);
+            auto* theme = engine.singletonInstance<QObject*>("NodeTool.UiPrimitives", "Theme");
+            QVERIFY(theme);
+            for (const auto& [name, preference] : {std::pair{QString("dark"), 2}, std::pair{QString("light"), 3}}) {
+                theme->setProperty("preference", preference);
+                for (int pass = 0; pass < 4; ++pass) { QTest::qWait(30); render(); }
+                QVERIFY(image.copy(0, 0, 700, 520).save(QDir(capture).filePath(name + "-dock-overflow-menu.png")));
+            }
+            theme->setProperty("preference", 2);
+            render();
+        }
+        click(hiddenEntry);
+        render();
+        QVERIFY(entitiesPanel->isVisible());
+        QVERIFY(!strip->property("hiddenIds").toStringList().contains("entities"));
+        // Revealing a tab scrolls it into view, as the layout menu does.
+        QVERIFY(store->dispatch({{"type", "reveal"}, {"panelId", "storyboard"}}));
+        render();
+        QVERIFY(store->dispatch({{"type", "reveal"}, {"panelId", "entities"}}));
+        render();
+        QVERIFY(!strip->property("hiddenIds").toStringList().contains("entities"));
+        // The Library hands an image to the Entities panel through the editor.
+        QVERIFY(QMetaObject::invokeMethod(root, "openEntityEditor", Q_ARG(QVariant, QVariant(QStringLiteral("asset-1"))), Q_ARG(QVariant, QVariant(false))));
+        render();
+        auto* entityEditor = entitiesPanel->findChild<QObject*>("entityEditorDialog");
+        QVERIFY(entityEditor);
+        QTRY_VERIFY(entityEditor->property("opened").toBool());
+        QCOMPARE(entityEditor->property("title").toString(), QString("New entity"));
+        QCOMPARE(entityEditor->property("referenceAssetId").toString(), QString("asset-1"));
+        QVERIFY(entitiesPanel->isVisible());
+        QVERIFY(QMetaObject::invokeMethod(entityEditor, "close"));
+        render();
+        // After an entity changes, the editor reloads the Library so its menu names the right action.
+        auto* explorer = named(root, "assetExplorer");
+        QVERIFY(explorer);
+        QObject* libraryBrowser = nullptr;
+        for (auto* child : explorer->findChildren<QObject*>()) {
+            if (child->metaObject()->indexOfSignal("assetsChanged()") >= 0) { libraryBrowser = child; break; }
+        }
+        QVERIFY(libraryBrowser && libraryBrowser->metaObject()->indexOfSignal("assetsChanged()") >= 0);
+        QSignalSpy refreshed(libraryBrowser, SIGNAL(assetsChanged()));
+        QVERIFY(QMetaObject::invokeMethod(root, "refreshLibrary"));
+        QVERIFY2(refreshed.count() >= 1, "refreshLibrary must reload the Library");
+        QVERIFY(store->dispatch({{"type", "reveal"}, {"panelId", "storyboard"}}));
+        render();
+        QVERIFY(!entitiesPanel->isVisible());
+        QVERIFY(QMetaObject::invokeMethod(root, "openEntityEditor", Q_ARG(QVariant, QVariant(QStringLiteral("asset-2"))), Q_ARG(QVariant, QVariant(true))));
+        render();
+        QVERIFY(entitiesPanel->isVisible());
+        QVERIFY(QMetaObject::invokeMethod(entityEditor, "close"));
+        render();
+        QVERIFY(store->dispatch({{"type", "reveal"}, {"panelId", "storyboard"}}));
+        render();
         QVERIFY(scriptDrafts->property("dirty").toBool());
         auto* storyboardEditor = named(storyboardPanel, "storyWorkspaceEditor");
         QVERIFY(storyboardEditor);
@@ -290,6 +376,51 @@ private slots:
         QCOMPARE(store->layout().value("sizes").toMap().value("left").toInt(), 480);
         store->switchWorkspace(0);
         store->resetWorkspace();
+        render();
+        // The menu of a group on the right opens inside that group, from the options button and from a right-clicked tab.
+        {
+            auto* inspectorTab = named(root, "dockTab_inspector");
+            QVERIFY(inspectorTab);
+            QQuickItem* rightGroup = inspectorTab;
+            while (rightGroup && !rightGroup->objectName().startsWith("dockGroup_")) rightGroup = rightGroup->parentItem();
+            QVERIFY(rightGroup);
+            const double groupLeft = rightGroup->mapToScene({0, 0}).x(), groupRight = groupLeft + rightGroup->width();
+            QVERIFY2(groupLeft > dock->width() / 2, "The inspector group must be on the right");
+            QObject* groupMenu = nullptr;
+            for (auto* child : rightGroup->findChildren<QObject*>()) {
+                if (QByteArray(child->metaObject()->className()).contains("ContextMenu")) { groupMenu = child; break; }
+            }
+            QVERIFY(groupMenu);
+            // A window driven by a render control is never shown, so give its popup layer the window's size first.
+            if (auto* overlay = qobject_cast<QQuickItem*>(qvariant_cast<QObject*>(groupMenu->property("parent")))) {
+                overlay->setPosition(QPointF(0, 0));
+                overlay->setSize(window.size());
+            }
+            auto checkMenu = [&](const char* how, QQuickItem* anchor) {
+                QTRY_VERIFY2(groupMenu->property("opened").toBool(), how);
+                render();
+                const double menuLeft = groupMenu->property("x").toDouble(), menuRight = menuLeft + groupMenu->property("width").toDouble();
+                QVERIFY2(menuLeft >= groupLeft - 0.5 && menuRight <= groupRight + 0.5,
+                    qPrintable(QString("%1: menu %2..%3 is outside the group %4..%5").arg(how).arg(menuLeft).arg(menuRight).arg(groupLeft).arg(groupRight)));
+                // It hangs from the anchor rather than from the group's corner.
+                const double anchorBottom = anchor->mapToScene({0, anchor->height()}).y();
+                QVERIFY2(std::abs(groupMenu->property("y").toDouble() - anchorBottom) <= 1, how);
+                QVERIFY(QMetaObject::invokeMethod(groupMenu, "close"));
+                render();
+                QTRY_VERIFY(!groupMenu->property("visible").toBool());
+            };
+            QVERIFY(QMetaObject::invokeMethod(rightGroup, "openMenu", Q_ARG(QVariant, QVariant(QStringLiteral("inspector"))),
+                Q_ARG(QVariant, strip->property("optionsButton")), Q_ARG(QVariant, QVariant(true))));
+            render();
+            QQuickItem* strip = inspectorTab;
+            while (strip && strip->objectName() != "dockTabStrip") strip = strip->parentItem();
+            QVERIFY(strip);
+            checkMenu("options button", qobject_cast<QQuickItem*>(qvariant_cast<QObject*>(strip->property("optionsButton"))));
+            mouse(QEvent::MouseButtonPress, inspectorTab->mapToScene({inspectorTab->width() / 2, inspectorTab->height() / 2}).toPoint(), Qt::RightButton, Qt::RightButton);
+            mouse(QEvent::MouseButtonRelease, inspectorTab->mapToScene({inspectorTab->width() / 2, inspectorTab->height() / 2}).toPoint(), Qt::RightButton, Qt::NoButton);
+            render();
+            checkMenu("right-clicked tab", inspectorTab);
+        }
         auto* sourceState = engine.singletonInstance<SourceViewerState*>("NodeTool.Timeline", "SourceViewerState");
         QVERIFY(sourceState);
         sourceState->setAsset({{"id", "source-fixture"}, {"name", "Still"}, {"content_type", "image/png"}});

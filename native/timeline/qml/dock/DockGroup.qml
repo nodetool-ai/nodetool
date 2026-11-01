@@ -16,8 +16,23 @@ Rectangle {
     objectName: "dockGroup_" + group.id
     color: Ui.Theme.surfacePanel
     clip: true
+    property var hiddenEntries: []
+    // Lists the tabs that do not fit in the strip first, so each one stays reachable.
     function openMenu(id, anchor, alignRight) {
         menuPanel = id
+        for (const entry of hiddenEntries) { menu.removeItem(entry); entry.destroy() }
+        hiddenEntries = []
+        const ids = tabs.hiddenIds
+        for (let index = 0; index < ids.length; ++index) {
+            const entry = hiddenEntry.createObject(null, {panelId: ids[index]})
+            menu.insertItem(index, entry)
+            hiddenEntries.push(entry)
+        }
+        if (ids.length > 0) {
+            const divider = hiddenDivider.createObject(null)
+            menu.insertItem(ids.length, divider)
+            hiddenEntries.push(divider)
+        }
         menu.openAt(anchor || tabs)
         if (alignRight && anchor) menu.x = Math.max(0, anchor.mapToItem(menu.parent, anchor.width, 0).x - menu.width)
     }
@@ -49,6 +64,19 @@ Rectangle {
         Accessible.name: root.dock.title(root.activePanelId)
         DockPanelHeader { title: root.dock.title(root.activePanelId); width: parent.width; height: implicitHeight }
     }
+    Component {
+        id: hiddenEntry
+        Ui.MenuItem {
+            required property string panelId
+            objectName: "dockHiddenTab_" + panelId
+            text: root.dock.title(panelId)
+            onTriggered: {
+                root.dock.store.dispatch({type: "activate", panelId: panelId})
+                tabs.revealTab(panelId)
+            }
+        }
+    }
+    Component { id: hiddenDivider; Controls.MenuSeparator { contentItem: Ui.Separator {} } }
     Ui.ContextMenu {
         id: menu
         width: Math.min(root.Window.window ? root.Window.window.width : TimelineMetrics.dockMenuWidth, TimelineMetrics.dockMenuWidth)
