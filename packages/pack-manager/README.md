@@ -41,6 +41,9 @@ A pack's own `node_modules` can hold copies of core packages such as
 - An import from inside the pack project of an `@nodetool-ai/*` package that is
   not a catalog pack, or of a catalog shared-identity library, resolves from
   the CLI when the CLI has that package.
+- The same applies to a project package whose install script npm skipped
+  because no catalog pack allowlists it. Its native addon is unbuilt in the
+  project, so the CLI's built copy (for example `better-sqlite3`) is used.
 - A bare import from host code that the CLI's tree cannot satisfy resolves from
   the pack project, so core code reaches runtime libraries installed as packs.
 

@@ -52,6 +52,30 @@ export interface InstalledPackSnapshot {
 
 const installedManifestSchema = z.object({ name: z.string(), version: z.string().min(1) });
 
+const hiddenLockSchema = z.object({ packages: z.record(z.string(), z.object({ hasInstallScript: z.boolean().optional() })) });
+
+/**
+ * Packages whose install script the installer skipped, so a native addon in
+ * the project is unbuilt. Treating them as host-shared loads the CLI's built
+ * copy when the CLI has one, which is the copy npm reused when packs shared the
+ * CLI's tree.
+ */
+function skippedInstallScripts(lockFile: string, catalog: NodeCatalogIndex): string[] {
+  let raw: string;
+  try { raw = readFileSync(lockFile, "utf8"); }
+  catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") { return []; }
+    throw error;
+  }
+  const allowed = new Set(catalog.packs.flatMap((pack) => pack.scriptAllowlist.map((pin) => pin.name)));
+  const names = new Set<string>();
+  for (const [path, entry] of Object.entries(hiddenLockSchema.parse(JSON.parse(raw)).packages)) {
+    const name = path.slice(path.lastIndexOf("node_modules/") + "node_modules/".length);
+    if (entry.hasInstallScript && !allowed.has(name)) { names.add(name); }
+  }
+  return [...names].sort();
+}
+
 /**
  * Read the scoped tree once. Hosts retain this snapshot until an explicit
  * reload. Global and local installs read the active pack project, or
@@ -75,7 +99,10 @@ export function readInstalledPacks(
   const resolution: PackResolution | null = projectRoot ? {
     cliRoot: mode.cliRoot, projectRoot,
     packNames: catalog.packs.flatMap((pack) => [pack.npm.name, ...pack.provides]),
-    sharedNames: (catalog.installPins ?? []).filter((pin) => pin.shared).map((pin) => pin.name)
+    sharedNames: [
+      ...(catalog.installPins ?? []).filter((pin) => pin.shared).map((pin) => pin.name),
+      ...skippedInstallScripts(paths.join(projectRoot, "node_modules", ".package-lock.json"), catalog)
+    ]
   } : null;
   const empty = (): InstalledPackSnapshot => ({ mode, projectRoot, resolution, packs, wrongVersions, invalidPackages });
   if (!nodeModulesRoot) {
