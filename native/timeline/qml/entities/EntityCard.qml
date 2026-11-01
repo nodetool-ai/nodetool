@@ -167,8 +167,6 @@ Rectangle {
             Ui.Icon {
                 id: kindIcon
                 anchors.verticalCenter: parent.verticalCenter
-                // Proportional line height leaves the text's slack below its glyphs, so lift the icon to match.
-                anchors.verticalCenterOffset: -Ui.Metrics.micro
                 name: Kind.icon(card.kind)
                 size: Ui.Metrics.iconXs
                 tone: card.kindTone

@@ -2,6 +2,11 @@
 #include "ai/catalog/ModelCatalog.h"
 #include "server/ServerClient.h"
 #include "server/ServerSource.h"
+#include "assets/AssetImport.h"
+#include <QFileInfo>
+#include <QMimeDatabase>
+#include <QRegularExpression>
+#include <QJsonDocument>
 #include <QJsonArray>
 #include <QPointer>
 #include <QThread>
@@ -64,6 +69,10 @@ void EntityLibrary::reset() {
     m_removed.clear();
     m_removing.clear();
     m_saving = false;
+    m_uploading = false;
+    m_uploadError.clear();
+    m_uploadRefreshPending = false;
+    m_uploadedIds.clear();
     m_error.clear();
     m_imagesError.clear();
     m_saveError.clear();
@@ -93,7 +102,7 @@ void EntityLibrary::load(bool images) {
     loading = !target.server.isEmpty();
     if (!loading) error = QStringLiteral("Open a server timeline to use entities.");
     emit changed();
-    if (!loading) return;
+    if (!loading) { if (images) finishUpload(); return; }
     const auto project = m_projectId;
     const QPointer<EntityLibrary> guard(this);
     auto* worker = QThread::create([guard, target, project, revision, images] {
@@ -147,11 +156,12 @@ void EntityLibrary::load(bool images) {
                     guard->m_listedMarkers = markers;
                     if (guard->m_entities != rows) { guard->m_entities = rows; emit guard->entitiesChanged(); }
                 }
-                auto nextUrls = images ? guard->m_imageUrls : QVariantMap{};
+                auto nextUrls = guard->m_imageUrls;
                 for (auto it = urls.begin(); it != urls.end(); ++it) nextUrls.insert(it.key(), it.value());
                 if (guard->m_imageUrls != nextUrls) { guard->m_imageUrls = nextUrls; emit guard->imageUrlsChanged(); }
             }
             emit guard->changed();
+            if (images) guard->finishUpload();
         }, Qt::QueuedConnection);
     });
     connect(worker, &QThread::finished, worker, &QObject::deleteLater);
@@ -291,6 +301,102 @@ void EntityLibrary::write(const QVariantMap& draft, Write mode) {
                 else if (mode == Write::Save) emit guard->saved(entity);
                 guard->reload();
             }
+        }, Qt::QueuedConnection);
+    });
+    connect(worker, &QThread::finished, worker, &QObject::deleteLater);
+    worker->start();
+}
+
+void EntityLibrary::finishUpload() {
+    if (!m_uploadRefreshPending) return;
+    const auto ids = m_uploadedIds;
+    m_uploadedIds.clear(); m_uploadRefreshPending = false; m_uploading = false;
+    emit changed();
+    emit imagesUploaded(ids);
+}
+void EntityLibrary::uploadImages(const QList<QUrl>& files) {
+    if (m_uploading) return;
+    m_uploadError.clear();
+    const auto target = targetFor(m_server, m_token);
+    if (target.server.isEmpty()) { m_uploadError = "Open a server timeline to upload images."; emit changed(); return; }
+    m_uploading = true;
+    emit changed();
+    const auto epoch = m_scopeEpoch;
+    const auto project = m_projectId;
+    const QPointer<EntityLibrary> guard(this);
+    auto* worker = QThread::create([guard, target, project, epoch, files] {
+        nt::server::ServerClient client(target.server, target.token);
+        client.setExpectedInstance(target.expectedInstance);
+        QString scopeError;
+        const auto scope = projectFor(client, project, target.timelineId, scopeError);
+        QStringList ids, errors;
+        for (const auto& url : files) {
+            const auto file = url.toLocalFile();
+            const auto name = url.fileName();
+            if (!url.isLocalFile() || !QMimeDatabase().mimeTypeForFile(file, QMimeDatabase::MatchContent).name().startsWith("image/")) {
+                errors.append(QStringLiteral("“%1” is not an image.").arg(name));
+                continue;
+            }
+            auto error = scopeError;
+            if (error.isEmpty()) {
+                const auto result = nt::assets::importFile(client, file, {{"project_id", scope}});
+                if (result.ok()) { ids.append(result.asset.value("id").toString()); continue; }
+                error = result.error;
+                // importFile uses QueryResult::describe(), whose last suffix is a diagnostic code.
+                const auto http = QRegularExpression(QStringLiteral("^upload: HTTP [0-9]+: ([\\s\\S]*) \\([A-Z_]+\\)$")).match(error);
+                if (http.hasMatch()) {
+                    const auto body = QJsonDocument::fromJson(http.captured(1).toUtf8()).object();
+                    error = body.value("detail").toString();
+                    if (error.isEmpty()) error = body.value("message").toString();
+                    if (error.isEmpty()) error = body.value("error").toObject().value("message").toString();
+                    if (error.isEmpty()) error = QStringLiteral("The server could not upload this image.");
+                }
+                error.remove(QRegularExpression(QStringLiteral(" \\([A-Z][A-Z0-9_]*\\)$")));
+            }
+            errors.append(QStringLiteral("Could not upload “%1”. %2").arg(name, error));
+        }
+        if (!guard) return;
+        QMetaObject::invokeMethod(guard, [guard, epoch, ids, errors] {
+            if (!guard || guard->m_scopeEpoch != epoch) return;
+            guard->m_uploadError = errors.join('\n');
+            emit guard->changed();
+            guard->m_uploadedIds = ids;
+            guard->m_uploadRefreshPending = true;
+            guard->loadImages();
+        }, Qt::QueuedConnection);
+    });
+    connect(worker, &QThread::finished, worker, &QObject::deleteLater);
+    worker->start();
+}
+void EntityLibrary::resolveImages(const QStringList& ids) {
+    QStringList wanted;
+    for (const auto& id : ids) {
+        if (!id.isEmpty() && !m_imageUrls.contains(id) && !wanted.contains(id)) wanted.append(id);
+    }
+    const auto target = targetFor(m_server, m_token);
+    if (wanted.isEmpty() || target.server.isEmpty()) return;
+    const auto epoch = m_scopeEpoch;
+    const QPointer<EntityLibrary> guard(this);
+    auto* worker = QThread::create([guard, target, epoch, wanted] {
+        nt::server::ServerClient client(target.server, target.token);
+        std::vector<std::pair<QString, QJsonObject>> calls;
+        for (const auto& id : wanted) calls.emplace_back("assets.get", QJsonObject{{"id", id}});
+        QVariantMap urls;
+        for (const auto& result : client.queryAll(calls)) {
+            if (!result.ok()) continue;
+            const auto asset = result.data.toObject();
+            urls.insert(asset.value("id").toString(), imageUrl(client, asset));
+        }
+        if (!guard) return;
+        QMetaObject::invokeMethod(guard, [guard, epoch, urls] {
+            if (!guard || guard->m_scopeEpoch != epoch) return;
+            bool changed = false;
+            for (auto it = urls.begin(); it != urls.end(); ++it) {
+                if (guard->m_imageUrls.value(it.key()) == it.value() && guard->m_imageUrls.contains(it.key())) continue;
+                guard->m_imageUrls.insert(it.key(), it.value());
+                changed = true;
+            }
+            if (changed) emit guard->imageUrlsChanged();
         }, Qt::QueuedConnection);
     });
     connect(worker, &QThread::finished, worker, &QObject::deleteLater);

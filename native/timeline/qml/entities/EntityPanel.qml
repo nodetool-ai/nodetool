@@ -4,12 +4,14 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
+import "../assets/AssetContext.js" as Context
 
 Ui.Surface {
     id: panel
     variant: Ui.Surface.Canvas
     objectName: "timelineEntitiesPanel"
     property alias library: store
+    property alias assist: assistService
     property string selectedId: ""
     // The saved entity to scroll into view once the reloaded list contains it.
     property string revealId: ""
@@ -19,6 +21,11 @@ Ui.Surface {
     property string restoreId: ""
     // True while the picker changes the image of the entity in the open editor.
     property bool changingImage: false
+    // The Library image whose entity the editor should open on once the list has loaded.
+    property string pendingEditId: ""
+    property var referenceDialog: null
+    // True when the Library asked to edit an entity that the loaded list does not contain.
+    property bool entityMissing: false
     readonly property bool configured: store.configured
     readonly property bool failed: configured && !store.loading && store.error !== ""
     readonly property bool listEmpty: store.entities.length === 0
@@ -27,6 +34,7 @@ Ui.Surface {
     activeFocusOnTab: false
 
     EntityLibrary { id: store }
+    EntityAssist { id: assistService; objectName: "entityAssist" }
 
     function cardOf(item) {
         for (let ancestor = item; ancestor; ancestor = ancestor.parent) {
@@ -77,6 +85,51 @@ Ui.Surface {
         editor.returnFocusTo = focusedItem()
         editor.openEdit(row)
     }
+    function entityFor(assetId) {
+        for (const row of store.entities) if (row.id === assetId) return row
+        return null
+    }
+    // Asks the Library to reload, so its menu names the right action after an entity is saved or removed.
+    function refreshLibrary() {
+        const host = Context.editorFor(panel)
+        if (host && host.refreshLibrary) host.refreshLibrary()
+    }
+    // Opens the editor on an image that is not an entity yet, such as one picked in the Library.
+    // The Library may be stale, so an image that already is an entity opens as an edit.
+    function useAsEntity(assetId) {
+        entityMissing = false
+        const existing = entityFor(assetId)
+        if (existing) { edit(existing); return }
+        store.resolveImages([assetId])
+        editor.returnFocusTo = focusedItem()
+        editor.openNew(assetId)
+    }
+    // Opens the editor on the entity an image carries. The list may still be loading, so wait for it.
+    function editEntity(assetId) {
+        entityMissing = false
+        const row = entityFor(assetId)
+        if (row) { edit(row); return }
+        pendingEditId = assetId
+        if (!store.loading) store.reload()
+    }
+    function finishPendingEdit() {
+        if (pendingEditId === "" || store.loading) return
+        const id = pendingEditId
+        pendingEditId = ""
+        const row = entityFor(id)
+        if (row) edit(row)
+        // An entity outside the loaded list is never reopened as a blank form. A failed load already shows its error.
+        else entityMissing = store.error === ""
+    }
+    function openReference() {
+        if (!referenceDialog) referenceDialog = referenceComponent.createObject(panel)
+        referenceDialog.returnFocusTo = editor.newPictureButton
+        referenceDialog.openFor(editor.kind, editor.nameText.text, editor.descriptorText.text, editor.referenceAssetId)
+    }
+    function useReference(id) {
+        store.resolveImages([id])
+        editor.referenceAssetId = id
+    }
     function removeEntity(row) {
         if (selectedId === row.id) selectedId = ""
         store.remove(row.id)
@@ -101,15 +154,18 @@ Ui.Surface {
         function onEntitiesChanged() {
             Qt.callLater(() => { panel.reveal(); panel.restoreFocus() })
         }
+        function onChanged() { panel.finishPendingEdit() }
         function onSaved(entity) {
             panel.selectedId = entity.id || ""
             panel.revealId = panel.selectedId
             panel.reveal()
+            panel.refreshLibrary()
         }
         function onRemoved() {
             panel.focusedId = ""
             panel.restoreId = ""
             panel.forceActiveFocus()
+            panel.refreshLibrary()
         }
     }
 
@@ -179,6 +235,15 @@ Ui.Surface {
             actionText: "Dismiss"
             onActionTriggered: store.clearActionError()
         }
+        Ui.Banner {
+            objectName: "entityMissingBanner"
+            visible: panel.entityMissing
+            Layout.fillWidth: true
+            status: Ui.Status.Warning
+            message: "That entity is not in this list, so it cannot be edited here. Refresh and try again."
+            actionText: "Dismiss"
+            onActionTriggered: panel.entityMissing = false
+        }
         RowLayout {
             Layout.fillWidth: true
             visible: store.canUndo
@@ -206,7 +271,7 @@ Ui.Surface {
             Layout.topMargin: Ui.Metrics.xl
             maxTextWidth: panel.width - 2 * Ui.Metrics.md
             title: "No entities yet"
-            message: "Tag an image as a character, location, style, or prop to reuse it across shots."
+            message: "Tag an image as a character, location, style, or prop with the + button above, or right-click an image in the Library and choose Use as entity."
             actionText: "New entity"
             onActionTriggered: panel.startCreate()
         }
@@ -267,7 +332,17 @@ Ui.Surface {
     EntityEditorDialog {
         id: editor
         library: store
+        assist: assistService
         onChangeImageRequested: panel.startChangeImage()
+        onNewPictureRequested: panel.openReference()
+    }
+    Component {
+        id: referenceComponent
+        EntityReferenceDialog {
+            assist: assistService
+            library: store
+            onPicked: id => panel.useReference(id)
+        }
     }
     EntityImagePickerDialog {
         id: picker

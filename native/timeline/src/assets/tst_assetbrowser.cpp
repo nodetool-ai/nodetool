@@ -14,6 +14,7 @@
 #include "server/ServerSource.h"
 #include "../../tests/TestHttpServer.h"
 #include "../../tests/TrickleHttpServer.h"
+#include <QDir>
 #include <QEventLoop>
 #include <QFileInfo>
 #include <QJsonDocument>
@@ -1350,6 +1351,82 @@ Item {
         }
     }
 
+    void libraryOffersEntityActions() {
+        QQmlEngine engine;
+        // A stand-in for the editor, which is what the Library menu hands an image to.
+        QQmlComponent hostComponent(&engine);
+        hostComponent.setData("import QtQuick\nItem { property var timeline: null; property var clock: ({}); property var calls: []\n"
+            "function openEntityEditor(id, existing) { calls = calls.concat([[id, existing]]) } }", QUrl());
+        std::unique_ptr<QObject> hostObject(hostComponent.create());
+        QVERIFY2(hostObject, qPrintable(hostComponent.errorString()));
+        auto* host = qobject_cast<QQuickItem*>(hostObject.get());
+        QQmlComponent component(&engine, QUrl::fromLocalFile(QFINDTESTDATA("../../qml/assets/AssetExplorer.qml")));
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        std::unique_ptr<QObject> object(component.createWithInitialProperties({{"width", 320}, {"height", 640}}));
+        QVERIFY2(object, qPrintable(component.errorString()));
+        auto* explorer = qobject_cast<QQuickItem*>(object.get());
+        explorer->setParentItem(host);
+        QQuickWindow window;
+        window.resize(480, 640);
+        host->setSize(QSizeF(480, 640));
+        host->setParentItem(window.contentItem());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        auto* browser = explorer->findChild<AssetBrowser*>();
+        QVERIFY(browser);
+        QTest::qWait(100);
+        const QJsonObject entity{{"kind", "character"}, {"name", "Mara"}, {"descriptor", "A captain."}};
+        browser->m_assets = QJsonArray{
+            QJsonObject{{"id", "plain"}, {"name", "Plain image"}, {"content_type", "image/png"}},
+            QJsonObject{{"id", "tagged"}, {"name", "Mara"}, {"content_type", "image/png"}, {"metadata", QJsonObject{{"nodetool_entity", entity}}}},
+            QJsonObject{{"id", "broken"}, {"name", "Odd tag"}, {"content_type", "image/png"}, {"metadata", QJsonObject{{"nodetool_entity", QJsonObject{{"kind", "monster"}}}}}},
+            QJsonObject{{"id", "sound"}, {"name", "Voice"}, {"content_type", "audio/wav"}}};
+        emit browser->assetsChanged();
+        auto* item = explorer->findChild<QObject*>("libraryEntityAction");
+        QVERIFY(item);
+        auto select = [&](const char* id) {
+            explorer->setProperty("selectedId", QString::fromLatin1(id));
+            QTRY_COMPARE(explorer->property("selectedId").toString(), QString::fromLatin1(id));
+        };
+        select("plain");
+        QCOMPARE(item->property("text").toString(), QString("Use as entity…"));
+        QVERIFY(item->property("enabled").toBool());
+        select("tagged");
+        QCOMPARE(item->property("text").toString(), QString("Edit entity…"));
+        QVERIFY(item->property("enabled").toBool());
+        select("broken");
+        QCOMPARE(item->property("text").toString(), QString("Use as entity…"));
+        select("sound");
+        QCOMPARE(item->property("text").toString(), QString("Use as entity…"));
+        QVERIFY(!item->property("enabled").toBool());
+        select("plain");
+        QVERIFY(QMetaObject::invokeMethod(item, "triggered"));
+        select("tagged");
+        QVERIFY(QMetaObject::invokeMethod(item, "triggered"));
+        // The editor opens after the menu has had its turn to close.
+        QCOMPARE(host->property("calls").toList().size(), 0);
+        QTRY_COMPARE(host->property("calls").toList().size(), 2);
+        const auto calls = host->property("calls").toList();
+        QCOMPARE(calls[0].toList(), QVariantList({"plain", false}));
+        QCOMPARE(calls[1].toList(), QVariantList({"tagged", true}));
+        const auto capture = qEnvironmentVariable("NT_ENTITY_CAPTURE_DIR");
+        if (capture.isEmpty()) return;
+        QDir().mkpath(capture);
+        auto* theme = engine.singletonInstance<QObject*>("NodeTool.UiPrimitives", "Theme");
+        QVERIFY(theme);
+        auto* grid = explorer->findChild<QObject*>("libraryGrid");
+        QVERIFY(grid);
+        select("plain");
+        for (const auto& [name, preference] : {std::pair{QString("dark"), 2}, std::pair{QString("light"), 3}}) {
+            theme->setProperty("preference", preference);
+            QVERIFY(QMetaObject::invokeMethod(grid, "actionsRequested", Q_ARG(QVariant, browser->assets().first())));
+            QTest::qWait(300);
+            QVERIFY(window.grabWindow().save(QDir(capture).filePath(name + "-library-menu-use-as-entity.png")));
+            QTest::keyClick(&window, Qt::Key_Escape);
+            QTest::qWait(100);
+        }
+        theme->setProperty("preference", 2);
+    }
 };
 int main(int argc, char** argv) {
     const bool probeLibrary = argc > 1 && QByteArray(argv[1]) == "--probe-library";

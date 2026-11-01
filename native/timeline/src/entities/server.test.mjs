@@ -38,13 +38,17 @@ try {
     await session.mutate(server.base, 'assets.update', { id: first.id, metadata: { keep: 1 } });
     await session.mutate(server.base, 'assets.update', { id: third.id, metadata: { nodetool_entity: { kind: 'prop', name: 'Web entity', descriptor: 'Web image', tags: ['web'] } } });
     await session.mutate(server.base, 'projects.assignDocument', { projectId: project.id, type: 'entity', ref: third.id });
+    const uploadReport = path.join(work, 'uploaded-id');
     const { stdout } = await promisify(execFile)(process.argv[2], ['realServer'], {
       env: { ...process.env, QT_QPA_PLATFORM: 'offscreen', NT_ENTITY_SERVER: server.base, NT_ENTITY_PROJECT: project.id,
-        NT_ENTITY_FIRST: first.id, NT_ENTITY_SECOND: second.id, NT_ENTITY_THIRD: third.id },
+        NT_ENTITY_PNG: file, NT_ENTITY_UPLOAD_REPORT: uploadReport, NT_ENTITY_FIRST: first.id, NT_ENTITY_SECOND: second.id, NT_ENTITY_THIRD: third.id },
       timeout: 120000
     });
     console.log(stdout.trimEnd());
     assert.match(stdout, /PASS {3}: EntityLibraryTest::realServer\(\)/, stdout);
+    const uploaded = await session.query(server.base, 'assets.get', { id: fs.readFileSync(uploadReport, 'utf8') });
+    assert.equal(uploaded.project_id, project.id, 'uploadImages files the image under project_id');
+    assert.equal(uploaded.content_type, 'image/png');
     const final = await session.query(server.base, 'assets.get', { id: first.id });
     assert.equal(final.project_id, project.id, 'a created entity is filed under the project');
     assert.equal(final.metadata.keep, 1, 'unrelated metadata survives');
@@ -53,7 +57,8 @@ try {
     assert.equal(final.metadata.nodetool_entity.lora.id, 'kept');
     const web = await session.query(server.base, 'assets.get', { id: third.id });
     assert.equal(web.metadata.nodetool_entity, undefined, 'web-created entity was removed');
-    console.log('PASS: EntityLibrary create, edit, remove and undo on a real server');
+    console.log('PASS: EntityLibrary upload, create, edit, remove and undo on a real server');
+    console.log('Totals: 1 passed, 0 failed, 0 skipped');
     passed = true;
   }
 } finally {

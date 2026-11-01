@@ -1,6 +1,7 @@
 #include "entities/EntityLibrary.h"
 #include "TestHttpServer.h"
 #include "server/ServerClient.h"
+#include "server/ServerSource.h"
 #include <QJsonArray>
 #include <QEventLoop>
 #include <QTimer>
@@ -9,8 +10,11 @@
 #include <QSignalSpy>
 #include <QTest>
 #include <QUrlQuery>
+#include <QFile>
+#include <QTemporaryDir>
 
 namespace {
+const auto pngBytes = QByteArray::fromBase64("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAEBgIApD5fRAAAAABJRU5ErkJggg==");
 QByteArray answer(const QJsonValue& value) {
     return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", value}}}}).toJson();
 }
@@ -92,6 +96,98 @@ struct Fake {
 class EntityLibraryTest : public QObject {
     Q_OBJECT
 private slots:
+    void resolveImages() {
+        Fake f; EntityLibrary lib; f.open(lib);
+        QTRY_VERIFY(!lib.loading());
+        QSignalSpy changed(&lib, &EntityLibrary::imageUrlsChanged);
+        const auto before = f.gets;
+        // Listed images and empty ids need no request. Duplicates ask once.
+        lib.resolveImages({"a", "", "outside", "outside"});
+        QTRY_COMPARE(changed.size(), 1);
+        QCOMPARE(lib.imageUrls().value("outside").toString(), f.server.base().resolved(QUrl("/outside")).toString());
+        QCOMPARE(f.gets, before + 1);
+        // A resolved image is not asked for again, and nothing changes.
+        lib.resolveImages({"outside"});
+        QTest::qWait(100);
+        QCOMPARE(f.gets, before + 1);
+        QCOMPARE(changed.size(), 1);
+        // A missing image leaves the map alone.
+        f.getFails = true;
+        lib.resolveImages({"missing"});
+        QTRY_COMPARE(f.gets, before + 2);
+        QTest::qWait(50);
+        QVERIFY(!lib.imageUrls().contains("missing"));
+        QCOMPARE(changed.size(), 1);
+    }
+    void resolvedImagesSurviveReload() {
+        Fake f; f.tagged(); EntityLibrary lib; f.open(lib);
+        QTRY_VERIFY(!lib.loading());
+        lib.resolveImages({"outside"});
+        QTRY_VERIFY(lib.imageUrls().contains("outside"));
+        const auto urls = lib.imageUrls();
+        QSignalSpy changed(&lib, &EntityLibrary::imageUrlsChanged);
+        lib.reload(); QTRY_VERIFY(!lib.loading());
+        QCOMPARE(lib.imageUrls(), urls); QCOMPARE(changed.size(), 0);
+        lib.loadImages(); QTRY_VERIFY(!lib.imagesLoading());
+        QCOMPARE(lib.imageUrls(), urls); QCOMPARE(changed.size(), 0);
+        lib.configure({});
+        QVERIFY(lib.imageUrls().isEmpty()); QCOMPARE(changed.size(), 1);
+    }
+    void upload() {
+        Fake f; EntityLibrary lib; f.open(lib);
+        QTRY_VERIFY(!lib.loading());
+        QTemporaryDir dir;
+        const auto png = dir.filePath("picture.png");
+        QFile file(png); QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(pngBytes); file.close();
+        const auto text = dir.filePath("notes.txt");
+        QFile notes(text); QVERIFY(notes.open(QIODevice::WriteOnly)); notes.write("notes"); notes.close();
+        const auto disguised = dir.filePath("text.png");
+        QFile disguisedFile(disguised); QVERIFY(disguisedFile.open(QIODevice::WriteOnly)); disguisedFile.write("plain text"); disguisedFile.close();
+        int uploads = 0;
+        bool projectSeen = false;
+        f.server.setPost([&](const QByteArray&, const QByteArray& body) {
+            ++uploads;
+            projectSeen = body.contains("\"project_id\":\"p\"");
+            f.extraAsset = QJsonObject{{"id", "uploaded"}, {"name", "picture.png"}, {"content_type", "image/png"}};
+            return QJsonDocument(f.extraAsset).toJson();
+        });
+        QSignalSpy uploaded(&lib, &EntityLibrary::imagesUploaded);
+        const auto searches = f.searches.size();
+        lib.uploadImages({QUrl::fromLocalFile(text), QUrl::fromLocalFile(disguised), QUrl::fromLocalFile(png), QUrl::fromLocalFile(dir.filePath("missing.png"))});
+        lib.uploadImages({QUrl::fromLocalFile(png)});
+        QVERIFY(lib.uploading());
+        QTRY_COMPARE(uploaded.size(), 1);
+        QVERIFY(!lib.uploading());
+        QCOMPARE(uploads, 1);
+        QCOMPARE(uploaded[0][0].toStringList(), QStringList{"uploaded"});
+        QCOMPARE(lib.uploadError(), QString("“notes.txt” is not an image.\n“text.png” is not an image.\n“missing.png” is not an image."));
+        QVERIFY(f.searches.size() > searches);
+        QCOMPARE(lib.images().size(), 2);
+        QVERIFY(projectSeen);
+    }
+    void uploadServerFailureAndReset() {
+        TestHttpServer server;
+        server.setJson([](const QByteArray&, const QUrl&) { return answer(QJsonObject{{"assets", QJsonArray{}}}); });
+        ServedFile failureFile(R"({"detail":"The image was refused.","code":"SECRET_CODE"})"); failureFile.status = 400;
+        server.setFile("/api/assets", failureFile);
+        EntityLibrary lib; lib.configure(server.base());
+        QTemporaryDir dir; const auto png = dir.filePath("image.png");
+        QFile file(png); QVERIFY(file.open(QIODevice::WriteOnly)); file.write(pngBytes); file.close();
+        QSignalSpy uploaded(&lib, &EntityLibrary::imagesUploaded);
+        lib.uploadImages({QUrl::fromLocalFile(png)});
+        QTRY_COMPARE(uploaded.size(), 1);
+        QCOMPARE(lib.uploadError(), QString("Could not upload “image.png”. The image was refused."));
+        QVERIFY(uploaded[0][0].toStringList().isEmpty());
+        server.setPost([&](const QByteArray&, const QByteArray&) {
+            lib.setProjectId("new");
+            return QJsonDocument(QJsonObject{{"id", "late"}}).toJson();
+        });
+        lib.uploadImages({QUrl::fromLocalFile(png)});
+        QTRY_COMPARE(lib.projectId(), QString("new"));
+        QTRY_VERIFY(!lib.loading()); QTest::qWait(30);
+        QCOMPARE(uploaded.size(), 1); QVERIFY(!lib.uploading()); QVERIFY(lib.uploadError().isEmpty());
+    }
     void listAndImages() {
         Fake f;
         f.marker.insert("reference_asset_id", "outside");
@@ -510,6 +606,15 @@ private slots:
 
         lib.setProjectId(project);
         QTRY_VERIFY_WITH_TIMEOUT(!lib.loading(), 10000);
+        QSignalSpy uploaded(&lib, &EntityLibrary::imagesUploaded);
+        lib.uploadImages({QUrl::fromLocalFile(qEnvironmentVariable("NT_ENTITY_PNG"))});
+        QTRY_COMPARE_WITH_TIMEOUT(uploaded.size(), 1, 10000);
+        QVERIFY2(lib.uploadError().isEmpty(), qPrintable(lib.uploadError()));
+        const auto ids = uploaded[0][0].toStringList(); QCOMPARE(ids.size(), 1);
+        QCOMPARE(client.getAsset(ids.first()).data.toObject().value("project_id").toString(), project);
+        QVERIFY(!rowFor(lib.images(), ids.first()).isEmpty());
+        QFile report(qEnvironmentVariable("NT_ENTITY_UPLOAD_REPORT"));
+        QVERIFY(report.open(QIODevice::WriteOnly)); report.write(ids.first().toUtf8()); report.close();
         QSignalSpy saved(&lib, &EntityLibrary::saved);
         lib.save({{"referenceAssetId", first}, {"kind", "character"}, {"name", "Mara"}, {"descriptor", "Red coat"},
             {"voiceId", "voice"}, {"tags", QStringList{"lead"}}});
@@ -567,6 +672,34 @@ private slots:
         QVERIFY2(lib.actionError().isEmpty(), qPrintable(lib.actionError()));
         QTRY_VERIFY_WITH_TIMEOUT(!rowFor(lib.entities(), first).isEmpty(), 10000);
     }
+    void uploadTargetDisappears() {
+        Fake f;
+        QList<QByteArray> args{"test", "--server", f.server.base().toString().toUtf8(), "--timeline", "entities"};
+        QList<char*> argv;
+        for (auto& arg : args) argv.append(arg.data());
+        argv.append(nullptr); int argc = args.size();
+        QCOMPARE(nt::server::takeServerArgs(argc, argv.data()), 0);
+        EntityLibrary lib; lib.setProjectId("p"); lib.configure({});
+        QTRY_VERIFY(!lib.loading());
+        QTemporaryDir dir; const auto png = dir.filePath("image.png");
+        QFile file(png); QVERIFY(file.open(QIODevice::WriteOnly)); file.write(pngBytes); file.close();
+        bool disappeared = false;
+        f.server.setPost([&](const QByteArray&, const QByteArray&) {
+            QByteArray program("test"), list("--list-timelines");
+            char* argv[]{program.data(), list.data(), nullptr}; int argc = 2;
+            disappeared = nt::server::takeServerArgs(argc, argv) == 0;
+            return QJsonDocument(QJsonObject{{"id", "uploaded"}}).toJson();
+        });
+        QSignalSpy uploaded(&lib, &EntityLibrary::imagesUploaded);
+        lib.uploadImages({QUrl::fromLocalFile(png)});
+        QTRY_VERIFY(disappeared);
+        QTRY_VERIFY(!lib.uploading());
+        QVERIFY(!lib.imagesLoading());
+        QCOMPARE(uploaded.size(), 1);
+        QCOMPARE(uploaded[0][0].toStringList(), QStringList{"uploaded"});
+        QVERIFY(!lib.imagesError().isEmpty());
+    }
+
 };
 QTEST_GUILESS_MAIN(EntityLibraryTest)
 #include "tst_entitylibrary.moc"

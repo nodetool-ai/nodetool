@@ -82,6 +82,19 @@ Ui.Surface {
         const contents = row.content_type === "folder" ? " All assets inside this folder will also be deleted." : ""
         ask("Delete", "Permanently delete “" + row.name + "” from the server?" + contents + " This cannot be undone.", "", () => browserModel.deleteAsset(row.id), true, false)
     }
+    function isEntityAsset(row) {
+        const marker = row && row.metadata ? row.metadata.nodetool_entity : null
+        return !!marker && ["character", "location", "style", "prop"].indexOf(marker.kind) >= 0
+    }
+    // Hands an image to the Entities panel, which edits it when it already is an entity.
+    function useAsEntity() {
+        const row = selectedAsset
+        const editor = row ? Context.editorFor(explorer) : null
+        if (!editor) return
+        const id = row.id, existing = isEntityAsset(row)
+        // The menu is still closing. Opening the editor now would let the menu's focus return take focus from the name field.
+        Qt.callLater(() => editor.openEntityEditor(id, existing))
+    }
     function showPreview(row) {
         preview.openAsset(row)
         detailsExpanded = false
@@ -352,6 +365,12 @@ Ui.Surface {
     }
     Ui.ContextMenu {
         id: assetMenu
+        Ui.MenuItem {
+            objectName: "libraryEntityAction"
+            text: explorer.isEntityAsset(explorer.selectedAsset) ? "Edit entity…" : "Use as entity…"
+            enabled: !!explorer.selectedAsset && String(explorer.selectedAsset.content_type || "").startsWith("image/") && !browserModel.busy
+            onTriggered: explorer.useAsEntity()
+        }
         Ui.MenuItem { text: "Rename"; enabled: !!explorer.selectedAsset && !browserModel.busy; onTriggered: explorer.renameSelected() }
         Ui.MenuItem { text: "Move to folder…"; enabled: !!explorer.selectedAsset && !browserModel.busy; onTriggered: moveDialog.open() }
 

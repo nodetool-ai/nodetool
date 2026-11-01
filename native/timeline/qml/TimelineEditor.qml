@@ -59,6 +59,20 @@ Controls.Control {
         const panel = Context.itemNamed(root, panelId === "script" ? "timelineScriptPanel" : "timelineStoryboardPanel")
         if (panel) panel.openResource(id)
     }
+    // Reveals the Entities panel and opens its editor on a Library image: a new entity, or an edit when it is one.
+    function openEntityEditor(assetId, existing) {
+        if (!assetId) return
+        layoutStore.dispatch({type: "reveal", panelId: "entities"})
+        const panel = Context.itemNamed(root, "timelineEntitiesPanel")
+        if (!panel) return
+        if (existing) panel.editEntity(assetId)
+        else panel.useAsEntity(assetId)
+    }
+    // Reloads the Library after the Entities panel changes an entity, so its menu names the right action.
+    function refreshLibrary() {
+        const explorer = Context.itemNamed(root, "assetExplorer")
+        if (explorer) explorer.browser.refresh()
+    }
     Component.onCompleted: {
         layoutStore.registerPanels(dockPanels)
         if (chatInitiallyOpen) layoutStore.dispatch({type: "reveal", panelId: "assistant"})

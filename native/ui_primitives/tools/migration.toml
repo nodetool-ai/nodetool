@@ -1220,7 +1220,7 @@ category = "chrome"
 controls = ["Rectangle", "DockPanelHeader", "Ui.ContextMenu", "Ui.MenuItem", "Controls.MenuSeparator", "Ui.Separator"]
 signals = []
 test_host = "tst_dockui"
-test_scope = "build/import"
+test_scope = "interaction"
 qml_callers = ["native/timeline/qml/dock/DockRegionView.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.ContextMenu, Ui.MenuItem, Ui.Separator"
 
@@ -1307,7 +1307,7 @@ replacement = "NodeTool.UiPrimitives: Ui.Icon, Ui.Text, Ui.ToolbarIconButton, Ui
 [[file]]
 path = "native/timeline/qml/entities/EntityEditorDialog.qml"
 category = "chrome"
-controls = ["Ui.Dialog", "Ui.Banner", "Flickable", "Ui.ScrollBar", "GridLayout", "Ui.Text", "Ui.EditorButton", "Ui.TextField", "Ui.TextArea", "Rectangle", "Image"]
+controls = ["Ui.Dialog", "Ui.Banner", "Flickable", "Ui.ScrollBar", "GridLayout", "Ui.Text", "Ui.EditorButton", "Ui.ToolbarIconButton", "Ui.TextField", "Ui.TextArea", "Rectangle", "Image"]
 signals = ["changeImageRequested"]
 test_host = "tst_entitypanel"
 test_scope = "interaction"
@@ -1317,7 +1317,7 @@ replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Banner, Ui.ScrollBar, Ui.Tex
 [[file]]
 path = "native/timeline/qml/entities/EntityImagePickerDialog.qml"
 category = "chrome"
-controls = ["Ui.Dialog", "Ui.BusyIndicator", "Ui.Banner", "Ui.EmptyState", "GridView", "Ui.ScrollBar", "Rectangle", "HoverHandler", "MouseArea", "Image", "Ui.Text", "Ui.EditorButton"]
+controls = ["Ui.Dialog", "Ui.BusyIndicator", "Ui.Banner", "Ui.EmptyState", "GridView", "Ui.ScrollBar", "Rectangle", "HoverHandler", "MouseArea", "Image", "Ui.Text", "Ui.EditorButton", "FileDialog"]
 signals = ["picked"]
 test_host = "tst_entitypanel"
 test_scope = "interaction"
@@ -1333,6 +1333,26 @@ test_host = "tst_entitypanel"
 test_scope = "interaction"
 qml_callers = []
 replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.Text, Ui.BusyIndicator, Ui.Banner, Ui.ToolbarIconButton, Ui.EmptyState, Ui.ScrollBar"
+
+[[file]]
+path = "native/timeline/qml/entities/EntityAssistPopover.qml"
+category = "chrome"
+controls = ["Ui.Popover", "ModelCatalogController", "ColumnLayout", "Ui.Icon", "Ui.Text", "Ui.ToolbarIconButton", "Flickable", "Ui.ScrollBar", "Ui.TextArea", "Ui.EditorButton", "Ui.BusyIndicator", "Flow", "Ui.TextField", "Ui.Banner", "ModelPickerButton"]
+signals = ["applied"]
+test_host = "tst_entitypanel"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/entities/EntityEditorDialog.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Popover, Ui.Icon, Ui.Text, Ui.ToolbarIconButton, Ui.ScrollBar, Ui.TextArea, Ui.EditorButton, Ui.BusyIndicator, Ui.TextField, Ui.Banner"
+
+[[file]]
+path = "native/timeline/qml/entities/EntityReferenceDialog.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "ModelCatalogController", "Ui.Banner", "Flickable", "Ui.ScrollBar", "Ui.Text", "Ui.EditorButton", "Ui.TextArea", "Rectangle", "Image", "Ui.Toggle", "ModelPickerButton", "GridLayout", "HoverHandler", "MouseArea", "Ui.BusyIndicator"]
+signals = ["picked"]
+test_host = "tst_entitypanel"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/entities/EntityPanel.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Banner, Ui.ScrollBar, Ui.Text, Ui.EditorButton, Ui.TextArea, Ui.Toggle, Ui.BusyIndicator"
 
 [[file]]
 path = "native/timeline/qml/fx/FxKnob.qml"

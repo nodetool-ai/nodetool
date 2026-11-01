@@ -1,5 +1,8 @@
-nt_qml_sources(src/entities/EntityLibrary.h src/entities/EntityLibrary.cpp)
+nt_qml_sources(src/entities/EntityAssist.h src/entities/EntityAssist.cpp src/entities/EntityLibrary.h src/entities/EntityLibrary.cpp)
 function(nt_entities_tests)
+    qt_add_executable(tst_entityassist src/entities/tst_entityassist.cpp src/entities/EntityAssist.h src/entities/EntityAssist.cpp)
+    target_link_libraries(tst_entityassist PRIVATE timeline_server Qt6::Qml Qt6::WebSockets Qt6::Test)
+    add_test(NAME tst_entityassist COMMAND tst_entityassist)
     qt_add_executable(tst_entitylibrary src/entities/tst_entitylibrary.cpp
         src/entities/EntityLibrary.h src/entities/EntityLibrary.cpp)
     target_include_directories(tst_entitylibrary PRIVATE tests)

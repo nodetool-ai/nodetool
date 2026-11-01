@@ -18,6 +18,8 @@ class EntityLibrary : public QObject {
     Q_PROPERTY(QVariantList images READ images NOTIFY imagesChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY changed)
     Q_PROPERTY(bool imagesLoading READ imagesLoading NOTIFY changed)
+    Q_PROPERTY(bool uploading READ uploading NOTIFY changed)
+    Q_PROPERTY(QString uploadError READ uploadError NOTIFY changed)
     Q_PROPERTY(bool saving READ saving NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
     Q_PROPERTY(QString imagesError READ imagesError NOTIFY changed)
@@ -35,6 +37,11 @@ public:
     QVariantList images() const { return m_images; }
     bool loading() const { return m_loading; }
     bool imagesLoading() const { return m_imagesLoading; }
+    bool uploading() const { return m_uploading; }
+    QString uploadError() const { return m_uploadError; }
+    Q_INVOKABLE void uploadImages(const QList<QUrl>& files);
+    // Fetches the thumbnails of images outside the listed scope, such as new pictures, into imageUrls.
+    Q_INVOKABLE void resolveImages(const QStringList& ids);
     bool saving() const { return m_saving; }
     QString error() const { return m_error; }
     QString imagesError() const { return m_imagesError; }
@@ -56,14 +63,19 @@ signals:
     void entitiesChanged();
     void imagesChanged();
     void imageUrlsChanged();
+    void imagesUploaded(const QStringList& ids);
     void saved(const QVariantMap& entity);
     void removed(const QString& id);
 private:
     void reset();
     void load(bool images);
+    void finishUpload();
     enum class Write { Save, Remove, Restore };
     void write(const QVariantMap& draft, Write mode);
     QString m_projectId, m_token, m_error, m_imagesError, m_saveError, m_actionError;
+    QString m_uploadError;
+    bool m_uploading = false, m_uploadRefreshPending = false;
+    QStringList m_uploadedIds;
     QUrl m_server;
     QVariantList m_entities, m_images;
     QVariantMap m_imageUrls;

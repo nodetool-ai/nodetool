@@ -8,6 +8,8 @@ Ui.Dialog {
     id: dialog
     objectName: "entityEditorDialog"
     property var library: null
+    // The shared generation and writing-assistant service of the panel.
+    property var assist: null
     // The entity being edited, or null while creating one from an image.
     property var entity: null
     property string referenceAssetId: ""
@@ -22,6 +24,25 @@ Ui.Dialog {
     readonly property string saveReason: "Add a name and a descriptor to save."
     readonly property real previewSize: 96 * Ui.Theme.uiScale
     signal changeImageRequested()
+    signal newPictureRequested()
+    readonly property alias descriptorText: descriptorField
+    readonly property alias nameText: nameField
+    readonly property alias assistButton: assistTrigger
+    readonly property alias newPictureButton: newPicture
+    function openAssist() {
+        if (!assistPopover) assistPopover = assistComponent.createObject(dialog)
+        assistPopover.openBeside(dialog, assistTrigger)
+    }
+    // The assistant belongs to the entity being edited, so it never outlives this form or moves to another.
+    function closeAssist() {
+        if (assistPopover) assistPopover.dismiss()
+    }
+    function setDescriptor(text) {
+        descriptorField.cancelEdit()
+        descriptorField.value = text
+        descriptorField.text = text
+        errorVisible = false
+    }
     function loadFields(source) {
         const fields = [[nameField, source ? source.name || "" : ""], [descriptorField, source ? source.descriptor || "" : ""],
             [voiceField, source ? source.voice_id || "" : ""], [tagsField, source && source.tags ? source.tags.join(", ") : ""]]
@@ -35,12 +56,14 @@ Ui.Dialog {
         errorVisible = false
     }
     function openNew(imageId) {
+        closeAssist()
         entity = null
         referenceAssetId = imageId
         loadFields(null)
         open()
     }
     function openEdit(row) {
+        closeAssist()
         entity = row
         referenceAssetId = row.referenceAssetId || row.id
         loadFields(row)
@@ -68,6 +91,7 @@ Ui.Dialog {
     // A save in flight cannot be abandoned, or its result would land on a later edit.
     closePolicy: saving ? Popup.NoAutoClose : Popup.CloseOnEscape
     onOpened: { nameField.forceActiveFocus(); nameField.selectAll() }
+    onClosed: closeAssist()
     onReferenceAssetIdChanged: errorVisible = false
 
     property bool wasSaving: false
@@ -81,6 +105,19 @@ Ui.Dialog {
         }
     }
 
+    // Built on first use, so the writing model list is not fetched until someone asks for the assistant.
+    property var assistPopover: null
+    Component {
+        id: assistComponent
+        EntityAssistPopover {
+            assist: dialog.assist
+            kind: dialog.kind
+            entityName: dialog.nameText.text
+            // The fields are read live, so text typed behind the popover is what a rewrite uses and what Replace overwrites.
+            fieldText: dialog.descriptorText.text
+            onApplied: text => dialog.setDescriptor(text)
+        }
+    }
     component FieldLabel: Ui.Text {
         Layout.fillWidth: true
         role: Ui.Typography.SansLabel
@@ -100,6 +137,7 @@ Ui.Dialog {
         }
         Flickable {
             id: scroll
+            objectName: "entityEditorScroll"
             Layout.fillWidth: true
             Layout.fillHeight: true
             implicitHeight: body.implicitHeight
@@ -129,7 +167,7 @@ Ui.Dialog {
             ColumnLayout {
                 id: body
                 // A scrollbar gutter appears only while the form is taller than the dialog.
-                width: scroll.width - (scroll.height < body.implicitHeight ? Ui.Metrics.md : 0)
+                width: scroll.width - (scroll.height + 2 < body.implicitHeight ? Ui.Metrics.md : 0)
                 spacing: Ui.Metrics.lg
                 GridLayout {
                     id: topRow
@@ -180,6 +218,17 @@ Ui.Dialog {
                             density: Ui.EditorButton.Compact
                             text: "Change image"
                             onClicked: dialog.changeImageRequested()
+                        }
+                        Ui.EditorButton {
+                            id: newPicture
+                            objectName: "entityNewPicture"
+                            Layout.fillWidth: true
+                            density: Ui.EditorButton.Compact
+                            iconName: "autoAwesome"
+                            text: "New picture"
+                            accessibleName: "Create a new picture with AI"
+                            enabled: !!dialog.assist
+                            onClicked: dialog.newPictureRequested()
                         }
                     }
                     ColumnLayout {
@@ -232,7 +281,19 @@ Ui.Dialog {
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: Ui.Metrics.xs
-                    FieldLabel { text: "Descriptor (required)" }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Ui.Metrics.xs
+                        FieldLabel { text: "Descriptor (required)"; Layout.alignment: Qt.AlignVCenter }
+                        Ui.ToolbarIconButton {
+                            id: assistTrigger
+                            objectName: "entityAssistButton"
+                            iconName: "autoAwesome"
+                            accessibleName: "Writing assistant"
+                            enabled: !!dialog.assist
+                            onClicked: dialog.openAssist()
+                        }
+                    }
                     Ui.TextArea {
                         id: descriptorField
                         objectName: "entityDescriptorField"

@@ -32,7 +32,16 @@ marker actions. The chat connection owns their tool results and server history.
 The Entities left dock panel lists the project's characters, locations, styles
 and props. A card edits or removes its entity, and a removal offers Undo. New
 entity picks an image first, then asks for a kind, name and descriptor. The
-panel reads the project of the open server timeline.
+picker uploads images, and the editor creates a new picture with an image model
+or rewrites the descriptor with the writing assistant. The Library menu
+offers Use as entity for an image, or Edit entity when it already is one, and
+the Library reloads after an entity is saved or removed. The writing assistant
+opens beside the editor when the window has room and closes with the editor. The
+panel reads the project of the open server timeline and loads when first shown.
+
+A dock group lists tabs that do not fit in its strip at the top of the group
+menu, and it scrolls the active tab into view. The menu opens under the group's
+options button or the tab that was right-clicked.
 
 From `native/timeline/`, `ctest --test-dir build -R tst_chathost --output-on-failure` checks that a host
 tool edit is undoable, survives save/reload and preserves unknown document
