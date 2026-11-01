@@ -18,7 +18,18 @@ export const LOOK_PRESETS = presetCatalog.filter({ kind: "look" });
 export const EFFECT_PRESETS = presetCatalog.filter({ kind: "effect" }).filter(preset => preset.inputs.includes("image") && !preset.modes.includes("video_edit"));
 
 /** Composer presets share one stack across camera, look and effect kinds. */
-export const MEDIA_PRESETS = presetCatalog.presets;
+export const MEDIA_PRESETS = [...presetCatalog.presets];
 
 /** Every studio, in catalogue order: the start page's outcome tiles. */
-export const STUDIOS = presetCatalog.studios;
+export const STUDIOS = [...presetCatalog.studios];
+
+/** Replace the shared exports before workspace surfaces mount. */
+export function setPresetCatalog(data: unknown): void {
+  const next = createCatalog(data);
+  Object.assign(presetCatalog, next);
+  CAMERA_PRESETS.splice(0, CAMERA_PRESETS.length, ...next.filter({ kind: "camera" }));
+  LOOK_PRESETS.splice(0, LOOK_PRESETS.length, ...next.filter({ kind: "look" }));
+  EFFECT_PRESETS.splice(0, EFFECT_PRESETS.length, ...next.filter({ kind: "effect" }).filter(preset => preset.inputs.includes("image") && !preset.modes.includes("video_edit")));
+  MEDIA_PRESETS.splice(0, MEDIA_PRESETS.length, ...next.presets);
+  STUDIOS.splice(0, STUDIOS.length, ...next.studios);
+}

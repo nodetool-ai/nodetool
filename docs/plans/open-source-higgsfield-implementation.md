@@ -613,6 +613,8 @@ P27 Shared projects (needs the multiplayer design reviewed)
 
 ### P21: Preset packs
 
+Status: done.
+
 - A preset pack is a directory of preset files plus a manifest, installed
   through the pack manager as a new pack kind. It holds data only: installing
   one runs no scripts, and a pack preset cannot name a `workflow` graph.

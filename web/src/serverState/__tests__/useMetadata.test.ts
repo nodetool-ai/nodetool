@@ -5,6 +5,10 @@
 import { stub } from "../../test-utils/doubles";
 import { loadMetadata, prefetchMetadata, WORKFLOW_NODE_TYPE } from "../useMetadata";
 
+jest.mock("../../lib/presets/loadRuntimeCatalog", () => ({
+  loadRuntimePresetCatalog: jest.fn().mockResolvedValue(undefined)
+}));
+
 jest.mock("../../lib/rest-fetch", () => ({
   restFetch: jest.fn()
 }));

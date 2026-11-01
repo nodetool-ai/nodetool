@@ -18966,6 +18966,7 @@
     "fallbackWarning": "此模型没有适配的措辞：{{names}}。将改用默认措辞。"
   },
   "preset_picker": {
+    "author": "作者：{{author}}",
     "searchPlaceholder": "搜索预设",
     "searchLabel": "搜索预设",
     "kindLabel": "预设类型",

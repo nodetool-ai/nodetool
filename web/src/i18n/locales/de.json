@@ -18966,6 +18966,7 @@
     "fallbackWarning": "Keine angepasste Formulierung für dieses Modell: {{names}}. Stattdessen gilt die Standardformulierung."
   },
   "preset_picker": {
+    "author": "Von {{author}}",
     "searchPlaceholder": "Presets durchsuchen",
     "searchLabel": "Presets durchsuchen",
     "kindLabel": "Preset-Art",

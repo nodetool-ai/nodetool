@@ -70,7 +70,8 @@
     "@nodetool-ai/workflow-services": "*",
     "@nodetool-ai/pack-host": "*",
     "@nodetool-ai/project-services": "*",
-    "@nodetool-ai/error-trace-services": "*"
+    "@nodetool-ai/error-trace-services": "*",
+    "@nodetool-ai/pack-core": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
