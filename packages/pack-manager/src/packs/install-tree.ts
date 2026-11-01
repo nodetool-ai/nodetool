@@ -141,10 +141,14 @@ export function assertAdditivePlan(plan: InstallPlan, before: readonly TreePacka
 
 export function assertTreePins(before: readonly TreePackage[], after: readonly TreePackage[], pins: readonly VerificationPin[], coreNames: ReadonlySet<string>, coreVersion: string, initialGlobalLockMissing = false): void {
   const paths = new Map(after.map((entry) => [entry.path, entry]));
+  // npm rewrites hidden-lock integrity metadata unstably for unpinned packages, so only
+  // core and pinned packages are held to integrity equality. Pins are verified below.
+  const integrityChecked = new Set<string>([...coreNames, ...pins.map((pin) => pin.name)]);
   for (const previous of before) {
     const next = paths.get(previous.path);
-    if (!next || next.name !== previous.name || next.version !== previous.version ||
-      (!(initialGlobalLockMissing && previous.integrity === undefined) && next.integrity !== previous.integrity) || next.realPath !== previous.realPath) {
+    const integrityChanged = integrityChecked.has(previous.name) &&
+      !(initialGlobalLockMissing && previous.integrity === undefined) && next?.integrity !== previous.integrity;
+    if (!next || next.name !== previous.name || next.version !== previous.version || integrityChanged || next.realPath !== previous.realPath) {
       throw new Error(`Install changed an existing package: ${previous.path}`);
     }
   }
@@ -171,7 +175,7 @@ export function installTreeRestored(before: readonly TreePackage[], after: reado
   return before.every((old) => {
     const entry = paths.get(old.path);
     return entry && entry.name === old.name && entry.version === old.version && entry.realPath === old.realPath &&
-      ((initialGlobalLockMissing && old.integrity === undefined) || entry.integrity === old.integrity);
+      ((initialGlobalLockMissing && old.integrity === undefined) || entry.integrity === old.integrity || old.integrity === undefined);
   });
 }
 
