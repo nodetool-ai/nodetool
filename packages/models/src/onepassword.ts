@@ -24,6 +24,7 @@
  */
 
 import { execFile } from "node:child_process";
+import type { Client as SdkClient } from "@1password/sdk";
 import { createLogger, isAuthEnforced } from "@nodetool-ai/config";
 import { Setting } from "./setting.js";
 
@@ -304,28 +305,6 @@ function selectBackend(account: string): Backend {
   }
 }
 
-interface SdkClient {
-  secrets: { resolve(reference: string): Promise<string> };
-  vaults: { list(): Promise<{ id: string; title: string }[]> };
-  items: {
-    list(vaultId: string): Promise<{ id: string; title: string }[]>;
-    get(
-      vaultId: string,
-      itemId: string
-    ): Promise<{
-      id: string;
-      title: string;
-      fields: {
-        id: string;
-        title: string;
-        sectionId?: string;
-        fieldType: string;
-      }[];
-      sections: { id: string; title: string }[];
-    }>;
-  };
-}
-
 /** One SDK client per auth configuration, reused across reads. */
 let sdkClient: { key: string; client: Promise<SdkClient> } | null = null;
 
@@ -346,14 +325,14 @@ function sdkClientFor(
     // Loaded on first use: the SDK carries a WebAssembly core that nobody
     // without a 1Password reference should pay for at startup.
     const sdk = await import("@1password/sdk");
-    return (await sdk.createClient({
+    return sdk.createClient({
       auth:
         backend === "sdk-service-account"
           ? token
           : new sdk.DesktopAuth(account),
       integrationName: SDK_INTEGRATION_NAME,
       integrationVersion: SDK_INTEGRATION_VERSION
-    })) as unknown as SdkClient;
+    });
   })();
   sdkClient = { key, client };
   return client;
