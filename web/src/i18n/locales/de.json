@@ -13284,8 +13284,6 @@
       "actions": {
         "copyMarkdown": "Unterhaltung als Markdown kopieren",
         "newChat": "Neuer Chat",
-        "showSidebar": "Seitenleiste einblenden",
-        "hideSidebar": "Seitenleiste ausblenden",
         "scrollToBottom": "Zum Ende scrollen"
       },
       "errors": {
@@ -13297,12 +13295,6 @@
       "notifications": {
         "copiedMessages_one": "{{count}} Nachricht als Markdown kopiert.",
         "copiedMessages_other": "{{count}} Nachrichten als Markdown kopiert."
-      },
-      "mobileRails": {
-        "ariaLabel": "Unterhaltungsbereich",
-        "chat": "Chat",
-        "tasks": "Aufgaben",
-        "task": "Aufgabe"
       },
       "welcome": {
         "suggestions": {
@@ -13322,6 +13314,12 @@
         "connectProviderButton": "Anbieter verbinden",
         "title": "Wie kann ich dir heute helfen?",
         "subtitle": "Frag einfach, füge Dateien hinzu oder starte mit einem dieser Vorschläge:"
+      },
+      "taskDock": {
+        "label": "Aufgaben",
+        "expand": "Alle Aufgaben anzeigen",
+        "collapse": "Aufgabenliste ausblenden",
+        "allDone": "Alle Aufgaben erledigt"
       }
     }
   },
@@ -18173,11 +18171,6 @@
       "thought": "Nachgedacht",
       "thoughtFor": "{{seconds}} s nachgedacht"
     },
-    "sidebar": {
-      "activeTask": "Aktive Agent-Aufgabe",
-      "noTasks": "Noch keine Aufgaben",
-      "noTasksDescription": "Der Agent zeigt hier seinen Plan, während er arbeitet."
-    },
     "thread": {
       "conversation": "Unterhaltung",
       "responding": "Antwortet…",
@@ -18561,11 +18554,6 @@
       "notNow": "Nicht jetzt",
       "saving": "Wird gespeichert…",
       "saveKey": "Schlüssel speichern"
-    },
-    "todoSidebar": {
-      "tasks": "Aufgaben",
-      "noTasks": "Noch keine Aufgaben",
-      "noTasksDescription": "Der Agent zeigt hier seinen Plan, während er arbeitet."
     },
     "codeBlock": {
       "insertIntoEditor": "In den Editor einfügen"

@@ -129,7 +129,7 @@ export function computeChatStateAt(
 
 /**
  * Mirror the replay state into the real `GlobalChatStore` singleton: some
- * chat components (e.g. `MessageView`'s tool-call spinner, `TodoSidebar`)
+ * chat components (e.g. `MessageView`'s tool-call spinner, `TaskDock`)
  * read a handful of fields directly off the global store instead of props.
  * Same "seed the shared store" pattern as `seedCastMetadata`/`seedDemoAuth`
  * in the workflow demo engine.

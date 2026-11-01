@@ -13284,8 +13284,6 @@
       "actions": {
         "copyMarkdown": "Kopioi keskustelu Markdownina",
         "newChat": "Uusi keskustelu",
-        "showSidebar": "Näytä sivupaneeli",
-        "hideSidebar": "Piilota sivupaneeli",
         "scrollToBottom": "Vieritä loppuun"
       },
       "errors": {
@@ -13297,12 +13295,6 @@
       "notifications": {
         "copiedMessages_one": "Kopioitiin {{count}} viesti Markdownina.",
         "copiedMessages_other": "Kopioitiin {{count}} viestiä Markdownina."
-      },
-      "mobileRails": {
-        "ariaLabel": "Keskustelupaneeli",
-        "chat": "Keskustelu",
-        "tasks": "Tehtävät",
-        "task": "Tehtävä"
       },
       "welcome": {
         "suggestions": {
@@ -13322,6 +13314,12 @@
         "connectProviderButton": "Yhdistä palveluntarjoaja",
         "title": "Miten voin auttaa tänään?",
         "subtitle": "Kysy mitä tahansa, pudota tiedostoja tai aloita jollakin näistä:"
+      },
+      "taskDock": {
+        "label": "Tehtävät",
+        "expand": "Näytä kaikki tehtävät",
+        "collapse": "Piilota tehtävälista",
+        "allDone": "Kaikki tehtävät valmiina"
       }
     }
   },
@@ -18173,11 +18171,6 @@
       "thought": "Ajatus",
       "thoughtFor": "Ajateltiin {{seconds}} s"
     },
-    "sidebar": {
-      "activeTask": "Aktiivinen agentin tehtävä",
-      "noTasks": "Ei vielä tehtäviä",
-      "noTasksDescription": "Agentti listaa suunnitelmansa tähän työskennellessään."
-    },
     "thread": {
       "conversation": "Keskustelu",
       "responding": "Vastataan…",
@@ -18561,11 +18554,6 @@
       "notNow": "Ei nyt",
       "saving": "Tallennetaan…",
       "saveKey": "Tallenna avain"
-    },
-    "todoSidebar": {
-      "tasks": "Tehtävät",
-      "noTasks": "Ei vielä tehtäviä",
-      "noTasksDescription": "Agentti listaa suunnitelmansa tähän työskennellessään."
     },
     "codeBlock": {
       "insertIntoEditor": "Lisää editoriin"

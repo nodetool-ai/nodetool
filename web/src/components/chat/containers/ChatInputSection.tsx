@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useMemo } from "react";
+import { memo, useMemo, type ReactNode } from "react";
 import { CONTROL } from "../../ui_primitives";
 import MediaChatComposer from "../composer/MediaChatComposer";
 import { LanguageModel, MessageContent } from "../../../stores/ApiTypes";
@@ -62,6 +62,8 @@ type ChatInputSectionProps = {
   threadId?: string | null;
   /** When set, scopes the composer to a single media generation category. */
   mediaCategory?: MediaGenerationCategory | null;
+  /** Docked on the composer's top edge, such as the task list. */
+  aboveComposer?: ReactNode;
 };
 
 const ChatInputSection = ({
@@ -77,7 +79,8 @@ const ChatInputSection = ({
   hideModePicker,
   hideModelPicker,
   threadId,
-  mediaCategory
+  mediaCategory,
+  aboveComposer
 }: ChatInputSectionProps) => {
   const isLoading = status === "loading";
   const isStreaming = status === "streaming";
@@ -85,6 +88,7 @@ const ChatInputSection = ({
   const cssStyles = useMemo(() => styles(theme), [theme]);
   return (
     <div className="chat-input-section" css={cssStyles}>
+      {aboveComposer}
       <div className="chat-composer-wrapper">
         <MediaChatComposer
           isLoading={isLoading}
