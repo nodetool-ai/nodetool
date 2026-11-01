@@ -114,7 +114,8 @@ describe("pack installer", () => {
     const f = await fixture();
     const installPins = [
       { name: "sharp", version: "0.35.5", integrity: "sha512-root-sharp" },
-      { name: "@napi-rs/canvas", version: "0.1.100", integrity: "sha512-canvas" }
+      { name: "@napi-rs/canvas", version: "0.1.100", integrity: "sha512-canvas" },
+      { name: "@hyzyla/pdfium", version: "2.1.13", integrity: "sha512-pdfium" }
     ];
     const request = { ...f.request, packs: [], runtimeLibraries: ["imaging"], catalog: { ...f.request.catalog, installPins } };
     const selection = await prepareInstallSelection(request);
@@ -124,9 +125,9 @@ describe("pack installer", () => {
       path: "node_modules/@huggingface/transformers/node_modules/sharp", realPath: join(f.root, "node_modules/@huggingface/transformers/node_modules/sharp") };
     expect(() => assertTreePins([], [...roots, nested], pins, coreNames, "1.0.0")).not.toThrow();
     for (const change of [{ version: "0.34.5" }, { integrity: "sha512-corrupt" }]) {
-      expect(() => assertTreePins([], [{ ...roots[0], ...change }, roots[1], nested], pins, coreNames, "1.0.0")).toThrow(/pin/);
+      expect(() => assertTreePins([], [{ ...roots[0], ...change }, roots[1], roots[2], nested], pins, coreNames, "1.0.0")).toThrow(/pin/);
     }
-    expect(() => assertTreePins([], [roots[1], { ...nested, version: roots[0].version, integrity: roots[0].integrity }], pins, coreNames, "1.0.0")).toThrow(/pin/);
+    expect(() => assertTreePins([], [roots[1], roots[2], { ...nested, version: roots[0].version, integrity: roots[0].integrity }], pins, coreNames, "1.0.0")).toThrow(/pin/);
     expect(() => assertTreePins([], [...roots, nested], [{ ...installPins[0], shared: true }], coreNames, "1.0.0")).toThrow(/pin/);
     expect(() => assertTreePins([nested], [...roots, { ...nested, integrity: "sha512-tampered" }], pins, coreNames, "1.0.0")).toThrow(/changed/);
     for (const initialGlobalLockMissing of [false, true]) {
