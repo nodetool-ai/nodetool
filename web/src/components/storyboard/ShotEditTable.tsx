@@ -13,6 +13,7 @@
 
 import React, { memo, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import type { Entity } from "@nodetool-ai/protocol";
 import {
   Box,
   Chip,
@@ -25,8 +26,10 @@ import {
   TextArea,
   TextInput,
   SPACING,
-  Tooltip
+  Tooltip,
+  type TextAreaProps
 } from "../ui_primitives";
+import EntityMentionTextArea from "../entities/EntityMentionTextArea";
 import {
   ANGLE_OPTIONS,
   EQUIPMENT_OPTIONS,
@@ -60,6 +63,11 @@ interface ShotEditTableProps {
   /** The model the clip renders with, so the preset picker marks its family. */
   videoModelId?: string | null;
   boardLookIds?: readonly string[];
+  /**
+   * Attach an entity the person picks with `@` in a prompt field. Without it
+   * the fields are plain text boxes.
+   */
+  onMentionEntity?: (entity: Entity) => void;
 }
 
 /** Two fields to a row, as the specs read in pairs. */
@@ -78,6 +86,16 @@ const RENDER_MODE_OPTIONS = [
 
 const chipSx = { alignSelf: "flex-start" } as const;
 
+/** A prompt field: `@` picks an entity when the editor can attach one. */
+const ShotPromptField: React.FC<
+  TextAreaProps & { onMentionEntity?: (entity: Entity) => void }
+> = ({ onMentionEntity, ...props }) =>
+  onMentionEntity && !props.disabled ? (
+    <EntityMentionTextArea {...props} onMentionEntity={onMentionEntity} />
+  ) : (
+    <TextArea {...props} />
+  );
+
 const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
   draft,
   onChange,
@@ -88,7 +106,8 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
   focusDialogue,
   onEditInScript,
   videoModelId,
-  boardLookIds
+  boardLookIds,
+  onMentionEntity
 }) => {
   const { t, i18n } = useTranslation();
   const set = useCallback(
@@ -157,7 +176,8 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
   return (
     <FlexColumn gap={SPACING.xl} data-testid="shot-edit-table">
       <FormSection>
-        <TextArea
+        <ShotPromptField
+          onMentionEntity={onMentionEntity}
           compact
           size="small"
           minRows={1}
@@ -167,7 +187,8 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
           value={draft.action}
           onChange={(value) => set({ action: value })}
         />
-        <TextArea
+        <ShotPromptField
+          onMentionEntity={onMentionEntity}
           compact
           size="small"
           minRows={1}
@@ -177,7 +198,8 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
           value={draft.motion}
           onChange={(value) => set({ motion: value })}
         />
-        <TextArea
+        <ShotPromptField
+          onMentionEntity={onMentionEntity}
           compact
           size="small"
           minRows={1}

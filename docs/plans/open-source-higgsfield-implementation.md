@@ -547,6 +547,14 @@ Component test for the tiles.
 
 ### P17: @ entities in prompt boxes
 
+Status: done. Prompt boxes that keep their own entity list take the entity
+there: the storyboard shot's **Description**, **Motion** and **End** fields add
+it to the shot's cast, and the timeline Generate dialog adds it to a video
+clip's reference entities. Boxes with no entity field (the sketch prompts and
+the timeline inspector's image and video prompts) write the `entity://<id>`
+token the chat composer writes, which `generate_media` expands. Sound prompts
+have no picker.
+
 - Reuse `useTextareaAssetMention.tsx` in the storyboard shot prompt fields,
   the sketch generation brief and the timeline generation prompt boxes.
 - A mentioned entity is attached the same way the chat composer attaches it.

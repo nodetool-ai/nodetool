@@ -8,16 +8,49 @@
  */
 
 import { render, fireEvent, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 
 import { ConnectedGeneratePopover } from "../editor-shell/ConnectedGeneratePopover";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 
+// The prompt box offers `@` entities from the library, which reads TanStack
+// Query; these tests mount no QueryClientProvider.
+jest.mock("../../../serverState/useEntities", () => ({
+  useEntities: () => ({ data: [] })
+}));
+
 // Heavy model picker — stub to keep model-fetching deps out of jsdom.
 jest.mock("../../properties/ImageModelSelect", () => ({
   __esModule: true,
   default: () => null
+}));
+
+// The `@` picker lists one entity; its menu is a single button.
+jest.mock(
+  "../../node_types/editing/promptComposer/useAssetMentionSearch",
+  () => ({
+    useAssetMentionSearch: (query: string | null) => ({
+      activeTab: "saved",
+      setActiveTab: jest.fn(),
+      entities:
+        query === null
+          ? []
+          : [{ type: "entity", id: "e1", kind: "character", name: "Marta" }],
+      displayedAssets: [],
+      hasMoreSaved: false,
+      loadMoreSaved: jest.fn(),
+      handleRename: jest.fn()
+    })
+  })
+);
+jest.mock("../../node_types/editing/promptComposer/AssetMentionMenu", () => ({
+  AssetMentionMenu: ({ onSelect }: { onSelect: (index: number) => void }) => (
+    <button type="button" data-testid="pick-entity" onClick={() => onSelect(0)}>
+      Marta
+    </button>
+  )
 }));
 
 const mockStart = jest.fn();
@@ -106,5 +139,24 @@ describe("<ConnectedGeneratePopover />", () => {
     });
     fireEvent.click(getByTestId("sketch-gen-submit"));
     await waitFor(() => expect(mockStart).toHaveBeenCalledTimes(1));
+  });
+
+  it("writes a picked @ entity into the prompt as its entity:// token", async () => {
+    useSketchSessionStore.setState({ documentId: "doc-1" });
+    seedModel();
+    const user = userEvent.setup();
+    const { getByTestId, getByPlaceholderText, findByTestId } = renderForm();
+    const prompt = getByPlaceholderText("Describe the image…");
+
+    await user.type(prompt, "a portrait of @mar");
+    await user.click(await findByTestId("pick-entity"));
+    expect(prompt).toHaveValue("a portrait of entity://e1 ");
+
+    fireEvent.click(getByTestId("sketch-gen-submit"));
+    await waitFor(() => expect(mockStart).toHaveBeenCalledTimes(1));
+    const bindings = Object.values(useSketchSessionStore.getState().bindings);
+    expect(bindings.map((binding) => binding.prompt)).toContain(
+      "a portrait of entity://e1"
+    );
   });
 });

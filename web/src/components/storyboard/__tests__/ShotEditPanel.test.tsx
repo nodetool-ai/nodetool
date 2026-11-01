@@ -79,8 +79,37 @@ jest.mock("../../../trpc/client", () => ({
   trpcClient: {}
 }));
 
+const MARTA = {
+  type: "entity",
+  id: "e1",
+  kind: "character",
+  name: "Marta",
+  descriptor: "detective"
+};
 jest.mock("../../../serverState/useEntities", () => ({
-  useEntities: () => ({ data: [] })
+  useEntities: () => ({ data: [MARTA] })
+}));
+// The `@` picker lists the library's entity; its menu is a single button.
+jest.mock(
+  "../../node_types/editing/promptComposer/useAssetMentionSearch",
+  () => ({
+    useAssetMentionSearch: (query: string | null) => ({
+      activeTab: "saved",
+      setActiveTab: jest.fn(),
+      entities: query === null ? [] : [MARTA],
+      displayedAssets: [],
+      hasMoreSaved: false,
+      loadMoreSaved: jest.fn(),
+      handleRename: jest.fn()
+    })
+  })
+);
+jest.mock("../../node_types/editing/promptComposer/AssetMentionMenu", () => ({
+  AssetMentionMenu: ({ onSelect }: { onSelect: (index: number) => void }) => (
+    <button type="button" data-testid="pick-entity" onClick={() => onSelect(0)}>
+      Marta
+    </button>
+  )
 }));
 
 // Pricing reaches the provider catalogs; the cost line has no bearing here.
@@ -720,5 +749,25 @@ describe("ShotEditPanel placement (it is a row of the board, not a dialog)", () 
     expect(
       screen.queryByRole("button", { name: "Next shot" })
     ).not.toBeInTheDocument();
+  });
+
+  it("attaches an entity picked with @ in the description to the shot", async () => {
+    seed([baseShot()]);
+    useStoryboardStore.getState().setEntityIds(BOARD, []);
+    renderPanel();
+
+    const description = screen.getByLabelText("Description");
+    await userEvent.clear(description);
+    await userEvent.type(description, "Close on @mar");
+    await userEvent.click(await screen.findByTestId("pick-entity"));
+
+    // The name reads in the draft. The entity joins the board and the shot.
+    expect(description).toHaveValue("Close on Marta ");
+    expect(storedShot().entity_ids).toEqual(["e1"]);
+    expect(
+      useStoryboardStore.getState().boards[BOARD]?.entityIds
+    ).toEqual(["e1"]);
+    // The text is still a draft until Save.
+    expect(storedShot().action).toBe("A lighthouse at dusk");
   });
 });

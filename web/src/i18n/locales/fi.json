@@ -13993,6 +13993,7 @@
       "noRecentAssets": "Ei vielä tiedostoja. Liitä tai vedä tiedosto tähän.",
       "noAssetsMatch": "Mikään aineisto ei vastaa.",
       "noSavedAssets": "Ei vielä tallennettuja aineistoja.",
+      "noEntitiesMatch": "Ei vastaavia entiteettejä.",
       "entities": "Entiteetit",
       "assetSource": "Aineiston lähde",
       "rename": "Nimeä {{name}} uudelleen",

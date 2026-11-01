@@ -13993,6 +13993,7 @@
       "noRecentAssets": "No files yet. Attach or drag one in.",
       "noAssetsMatch": "No assets match.",
       "noSavedAssets": "No saved assets yet.",
+      "noEntitiesMatch": "No entities match.",
       "entities": "Entities",
       "assetSource": "Asset source",
       "rename": "Rename {{name}}",
