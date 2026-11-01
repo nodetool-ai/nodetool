@@ -89,6 +89,7 @@ int hardwareBarcode(const DecodedFrame& f) {
 // A test that decodes in hardware, or a data row that does ("hw", "auto").
 bool needsHardware() {
     static const QSet<QByteArray> functions{"hardwareSeekBetweenFrames", "twelveHardwareSessions", "hardwareFallback",
+                                            "autoSeekDecodesInSoftwareThenPlaysInHardware",
                                             "importFailureFallsBackInAuto", "importFailureFailsTheClipInHardware",
                                             "sendErrorBeforeFirstFrameFallsBack", "hardwareSetupFailurePolicy",
                                             "hardwareDecodeIsNotStarvedByHeldFrames",
