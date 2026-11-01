@@ -21,6 +21,9 @@
       "path": "../protocol"
     },
     {
+      "path": "../presets"
+    },
+    {
       "path": "../runtime"
     },
     {
