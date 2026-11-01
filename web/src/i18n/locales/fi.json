@@ -9364,18 +9364,13 @@
         "title": "Hallitse työkoneprofiileja",
         "create": "Luo profiili",
         "existingHeading": "Olemassa olevat profiilit",
-        "emptyTitle": "Ei vielä profiileja",
-        "emptyDescription": "Luo profiili alla.",
         "deleteAria": "Poista profiili {{name}}",
         "createSection": "Luo profiili",
         "intro": "Profiili on tallennettu pohja. Sen käyttöönotto vuokraa yhden GPU-koneen ja yhdistää tämän sovelluksen siihen.",
         "nameLabel": "Nimi",
-        "nameHelp": "Nimi, josta tunnistat tämän pohjan, esim. ”A40-kuvatyökone”.",
+        "nameHelp": "Valinnainen. Jätä tyhjäksi, niin nimeksi tulee ”{{name}}”.",
         "providerLabel": "Palveluntarjoaja",
         "providerHelp": "Mistä GPU vuokrataan. RunPod käyttää omaa podia. Vast valitsee halvimman sopivan tarjouksen markkinapaikaltaan.",
-        "keySeparator": " ja ",
-        "missingApiKeyTitle": "{{key}} ei ole määritetty",
-        "missingApiKeyDescription": "Lisää se kohdassa Asetukset → Mallit ja palveluntarjoajat ennen {{provider}}-työkoneen käyttöönottoa. Käyttöönotto epäonnistuu ilman sitä.",
         "gpuLabel": "GPU",
         "runpodGpuHelp": "Mikä kone vuokrataan. Valitse GPU mallien päättelyyn tai ”Vain CPU” halvempaa CPU-podia varten (esim. data- ja tekstisolmut). Enemmän VRAM-muistia ajaa suurempia malleja.",
         "gpuHelp": "Mikä GPU vuokrataan. Enemmän VRAM-muistia ajaa suurempia malleja. Säästä rahaa valitsemalla pienin sopiva.",
@@ -9415,7 +9410,10 @@
         "maxLifetimeLabel": "Enimmäiselinikä (minuuttia)",
         "maxLifetimeHelp": "Ehdoton yläraja: tämän ikäisenä työkone LOPETETAAN, eli podi ja taltio tuhotaan (mallit menetetään), jotta kaikki laskutus loppuu. Tyhjä = ei ylärajaa.",
         "createError": "Profiilia ei voitu luoda: {{message}}",
-        "deleteError": "Profiilia ei voitu poistaa: {{message}}"
+        "deleteError": "Profiilia ei voitu poistaa: {{message}}",
+        "setupTitle": "Määritä työkone",
+        "createAndStart": "Luo ja käynnistä",
+        "startError": "Profiili tallennettiin, mutta työkone ei käynnistynyt: {{message}}"
       },
       "status": {
         "workerLabel": "Työkone: {{name}}",
@@ -9431,13 +9429,18 @@
         "booting": "Käynnistyy",
         "bootingEllipsis": "Käynnistyy…",
         "bootingHint": "GPU on käynnissä, työkone latautuu vielä",
-        "readyHint": "Työkone vastaa, liittäminen on turvallista"
+        "readyHint": "Työkone vastaa, liittäminen on turvallista",
+        "provisioningHint": "GPU:ta vuokrataan. Tämä voi kestää muutaman minuutin.",
+        "bootingAutoAttachHint": "GPU on käynnissä. Työkone latautuu ja yhdistyy, kun se on valmis.",
+        "attachingHint": "Työkone on valmis. Yhdistetään…"
       },
       "provision": {
         "title": "Käynnistä työkone",
-        "confirm": "Ota käyttöön",
-        "noProfiles": "Ei vielä työkoneprofiileja. Luo profiili avaamalla Hallitse profiileja.",
-        "profileLabel": "Profiili"
+        "confirm": "Käynnistä",
+        "profileLabel": "Profiili",
+        "idleSummary_one": "Se yhdistyy NodeTooliin, kun se on valmis, ja keskeytyy {{count}} minuutin joutoajan jälkeen.",
+        "idleSummary_other": "Se yhdistyy NodeTooliin, kun se on valmis, ja keskeytyy {{count}} minuutin joutoajan jälkeen.",
+        "noIdleSummary": "Se yhdistyy NodeTooliin, kun se on valmis. Tällä profiililla ei ole joutoajan aikakatkaisua, joten pysäytä työkone, kun olet valmis."
       },
       "instance": {
         "uptime": "Käyntiaika: {{value}}",
@@ -9466,7 +9469,8 @@
       },
       "empty": {
         "title": "Ei käynnissä olevia työkoneita",
-        "description": "Käynnistä työkone vuokrataksesi GPU:n graafeillesi."
+        "description": "Käynnistä työkone vuokrataksesi GPU:n graafeillesi.",
+        "start": "Käynnistä työkone"
       },
       "terminate": {
         "title": "Lopetetaanko työkone?",
@@ -9487,7 +9491,18 @@
         "action": "Työkoneen toiminto epäonnistui: {{message}}",
         "reconcile": "Työkoneita ei voitu täsmäyttää: {{message}}"
       },
-      "panelTitle": "Työkoneet"
+      "panelTitle": "Työkoneet",
+      "apiKey": {
+        "title": "Lisää {{provider}}-API-avain",
+        "description": "Työkoneet toimivat {{provider}}-tililläsi ja laskutetaan siellä. NodeTool tarkistaa avaimen ja tallentaa sen salattuna.",
+        "settingsDescription": "{{provider}} kirjautuu asiakastunnuksella ja salaisuudella. Lisää molemmat kohdassa Asetukset → Mallit ja palveluntarjoajat.",
+        "openSettings": "Avaa asetukset"
+      },
+      "setup": {
+        "title": "Suorita graafeja vuokratulla GPU:lla",
+        "description": "Yhdistä RunPod kerran ja valitse GPU. NodeTool suorittaa sitten Python-solmusi sillä, ja joutilaat työkoneet keskeytyvät itsestään.",
+        "action": "Määritä työkone"
+      }
     }
   },
   "screens4_9": {
