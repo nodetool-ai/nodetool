@@ -13708,8 +13708,6 @@
       "actions": {
         "copyMarkdown": "Копировать диалог в формате Markdown",
         "newChat": "Новый чат",
-        "showSidebar": "Показать боковую панель",
-        "hideSidebar": "Скрыть боковую панель",
         "scrollToBottom": "Прокрутить вниз"
       },
       "errors": {
@@ -13723,12 +13721,6 @@
         "copiedMessages_few": "Скопировано {{count}} сообщения в формате Markdown.",
         "copiedMessages_many": "Скопировано {{count}} сообщений в формате Markdown.",
         "copiedMessages_other": "Скопировано {{count}} сообщения в формате Markdown."
-      },
-      "mobileRails": {
-        "ariaLabel": "Панель диалога",
-        "chat": "Чат",
-        "tasks": "Задачи",
-        "task": "Задача"
       },
       "welcome": {
         "suggestions": {
@@ -13748,6 +13740,12 @@
         "connectProviderButton": "Подключить провайдера",
         "title": "Чем я могу помочь сегодня?",
         "subtitle": "Спросите что угодно, перетащите файлы или начните с одного из вариантов:"
+      },
+      "taskDock": {
+        "label": "Задачи",
+        "expand": "Показать все задачи",
+        "collapse": "Скрыть список задач",
+        "allDone": "Все задачи выполнены"
       }
     }
   },
@@ -18781,11 +18779,6 @@
       "thought": "Размышления",
       "thoughtFor": "Размышлял {{seconds}} с"
     },
-    "sidebar": {
-      "activeTask": "Активная задача агента",
-      "noTasks": "Задач пока нет",
-      "noTasksDescription": "Агент будет показывать здесь свой план по ходу работы."
-    },
     "thread": {
       "conversation": "Диалог",
       "responding": "Отвечает…",
@@ -19175,11 +19168,6 @@
       "notNow": "Не сейчас",
       "saving": "Сохранение…",
       "saveKey": "Сохранить ключ"
-    },
-    "todoSidebar": {
-      "tasks": "Задачи",
-      "noTasks": "Задач пока нет",
-      "noTasksDescription": "Агент будет показывать здесь свой план по ходу работы."
     },
     "codeBlock": {
       "insertIntoEditor": "Вставить в редактор"

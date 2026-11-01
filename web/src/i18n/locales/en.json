@@ -13284,8 +13284,6 @@
       "actions": {
         "copyMarkdown": "Copy conversation as Markdown",
         "newChat": "New chat",
-        "showSidebar": "Show side panel",
-        "hideSidebar": "Hide side panel",
         "scrollToBottom": "Scroll to bottom"
       },
       "errors": {
@@ -13297,12 +13295,6 @@
       "notifications": {
         "copiedMessages_one": "Copied {{count}} message as Markdown.",
         "copiedMessages_other": "Copied {{count}} messages as Markdown."
-      },
-      "mobileRails": {
-        "ariaLabel": "Conversation panel",
-        "chat": "Chat",
-        "tasks": "Tasks",
-        "task": "Task"
       },
       "welcome": {
         "suggestions": {
@@ -13322,6 +13314,12 @@
         "connectProviderButton": "Connect a provider",
         "title": "How can I help you today?",
         "subtitle": "Ask anything, drop in files, or start with one of these:"
+      },
+      "taskDock": {
+        "label": "Tasks",
+        "expand": "Show all tasks",
+        "collapse": "Hide task list",
+        "allDone": "All tasks done"
       }
     }
   },
@@ -18173,11 +18171,6 @@
       "thought": "Thought",
       "thoughtFor": "Thought for {{seconds}}s"
     },
-    "sidebar": {
-      "activeTask": "Active agent task",
-      "noTasks": "No tasks yet",
-      "noTasksDescription": "The agent will list its plan here as it works."
-    },
     "thread": {
       "conversation": "Conversation",
       "responding": "Responding…",
@@ -18561,11 +18554,6 @@
       "notNow": "Not now",
       "saving": "Saving…",
       "saveKey": "Save key"
-    },
-    "todoSidebar": {
-      "tasks": "Tasks",
-      "noTasks": "No tasks yet",
-      "noTasksDescription": "The agent will list its plan here as it works."
     },
     "codeBlock": {
       "insertIntoEditor": "Insert into editor"

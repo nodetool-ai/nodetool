@@ -181,7 +181,7 @@ docs deploy.
 `ChatDemoPlayer` skips the "engine" machinery entirely — `computeChatStateAt`
 is a plain fold over `ChatCastEvent[]` (message arrives, token streams in, tool
 call starts/finishes, status changes) recomputed fresh on every frame. A couple
-of chat components (the tool-call spinner, the todo sidebar) read a few fields
+of chat components (the tool-call spinner, the task dock) read a few fields
 straight off the global `GlobalChatStore` instead of props; `seedChatGlobalState`
 mirrors the replay state into that store each frame, the same "seed the shared
 store" trick `seedCastMetadata`/`seedDemoAuth` use for the graph editor.
