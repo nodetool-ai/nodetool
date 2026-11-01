@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/pack-core",
-  "version": "0.8.4",
+  "version": "0.8.10",
   "description": "Lean installed pack metadata and admitted package loaders",
   "type": "module",
   "engines": {

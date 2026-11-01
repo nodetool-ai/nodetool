@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/cli-script",
-  "version": "0.8.4",
+  "version": "0.8.10",
   "description": "Independent script command feature for NodeTool",
   "type": "module",
   "engines": {

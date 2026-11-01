@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/server-feature-packs",
-  "version": "0.8.4",
+  "version": "0.8.10",
   "description": "Explicit installed legacy node pack adapter for the lean server",
   "type": "module",
   "engines": {
