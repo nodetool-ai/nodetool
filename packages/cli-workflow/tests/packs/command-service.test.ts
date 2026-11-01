@@ -138,10 +138,14 @@ describe("managed runtime diagnostics", () => {
   }, 30_000);
 
   it("rejects an npm install that rewrites a synthetic compiler integrity pin", async () => {
-    const f = await compilerFixture("0.28.2");
+    const f = await compilerFixture("0.28.1");
     vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    // Integrity is enforced only for pinned packages, so pin the compiler as a shared identity.
+    const catalog = { ...f.catalog, installPins: f.catalog.installPins.map(pin => ({ ...pin, shared: true })) };
+    const service = await createPackCommandServices({ snapshot: readInstalledPacks(f.request.mode, catalog), catalog,
+      stateFile: f.request.stateFile, operations: f.operations });
     await utimes(join(f.root, "node_modules/.package-lock.json"), 0, 0);
-    await expect((await f.service()).add(["fixture"], { yes: true })).rejects.toMatchObject({
+    await expect(service.add(["fixture"], { yes: true })).rejects.toMatchObject({
       message: expect.stringContaining("rollback did not restore the tree"),
       cause: expect.objectContaining({ message: "Install changed an existing package: node_modules/esbuild" })
     });
