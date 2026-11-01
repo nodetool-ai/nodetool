@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { dirname, isAbsolute, join, relative, sep } from "node:path";
+import { dirname, join } from "node:path";
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
 import { readCatalogIndex } from "@nodetool-ai/pack-core/catalog-data";
@@ -10,7 +10,7 @@ import { readInstalledPacks, type InstalledPackSnapshot } from "./installed.js";
 import { loaderContextForSnapshot } from "./host.js";
 import type { NodeCatalogIndex } from "@nodetool-ai/pack-core/types";
 import { readInstallTree } from "./install-tree.js";
-import { findPackageRoot, resolvePackDependency } from "./resolution.js";
+import { findPackageRoot, resolvePackDependency, within } from "./resolution.js";
 
 const NODE_SDK_PACKAGE = "@nodetool-ai/node-sdk";
 const packageDependencies = z.object({
@@ -74,11 +74,6 @@ export async function verifyPackLoads(snapshot: InstalledPackSnapshot, catalog: 
       verifier.verifyNodePackRegistration(pack.id, registrar, typesByPack.get(pack.id) ?? []);
     }
   }
-}
-
-function within(root: string, path: string): boolean {
-  const inside = relative(root, path);
-  return inside !== "" && inside !== ".." && !inside.startsWith(`..${sep}`) && !isAbsolute(inside);
 }
 
 async function main(): Promise<void> {
