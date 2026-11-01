@@ -30,6 +30,10 @@ jest.mock("../../../hooks/useSecrets", () => ({
   })
 }));
 
+jest.mock("../../../hooks/useProviders", () => ({
+  useProviders: () => ({ providers: [], isLoading: false })
+}));
+
 const renderLibrary = () =>
   render(
     <ThemeProvider theme={mockTheme}>

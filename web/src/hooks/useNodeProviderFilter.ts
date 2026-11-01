@@ -3,7 +3,7 @@ import useMetadataStore from "../stores/MetadataStore";
 import { useSettingsStore } from "../stores/SettingsStore";
 import type { NodeMetadata } from "../stores/ApiTypes";
 import { namespaceNeedsMissingKey } from "../utils/providerPacks";
-import { useSecrets } from "./useSecrets";
+import { useCredentialCheck } from "./useCredentialCheck";
 
 export interface NodeProviderFilter {
   /** True when the node's provider needs an API key that is not set. */
@@ -21,7 +21,7 @@ export interface NodeProviderFilter {
  * turns on `showNodesWithoutKey`, so a fresh install lists what can run.
  */
 export const useNodeProviderFilter = (): NodeProviderFilter => {
-  const { isApiKeySet } = useSecrets();
+  const { isCredentialSet } = useCredentialCheck();
   const metadata = useMetadataStore((state) => state.metadata);
   const showNodesWithoutKey = useSettingsStore(
     (state) => state.settings.showNodesWithoutKey
@@ -29,8 +29,8 @@ export const useNodeProviderFilter = (): NodeProviderFilter => {
   const updateSettings = useSettingsStore((state) => state.updateSettings);
 
   const needsMissingKey = useCallback(
-    (node: NodeMetadata) => namespaceNeedsMissingKey(node.namespace, isApiKeySet),
-    [isApiKeySet]
+    (node: NodeMetadata) => namespaceNeedsMissingKey(node.namespace, isCredentialSet),
+    [isCredentialSet]
   );
 
   const missingKeyCount = useMemo(() => {

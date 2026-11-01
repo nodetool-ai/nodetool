@@ -83,7 +83,27 @@ const ModelProperty = (props: PropertyProps) => {
   // picker to that provider so it doesn't offer models the node can't run.
   // Generic nodes (agents, generators, …) default to the `empty` sentinel (or
   // no provider) → no constraint, all providers shown.
+  // A node can also name its providers outright in
+  // `json_schema_extra.allowed_providers`. Media pickers honor only that,
+  // because generic image and video nodes default to a concrete provider.
+  const declaredProviders = useMemo(() => {
+    const extra = props.property.json_schema_extra as
+      | { allowed_providers?: unknown }
+      | undefined;
+    const allowed = extra?.allowed_providers;
+    if (!Array.isArray(allowed)) {
+      return undefined;
+    }
+    const ids = allowed.filter(
+      (p): p is string => typeof p === "string" && p.length > 0
+    );
+    return ids.length > 0 ? ids : undefined;
+  }, [props.property.json_schema_extra]);
+
   const lockedProviders = useMemo(() => {
+    if (declaredProviders) {
+      return declaredProviders;
+    }
     const def = props.property.default;
     const provider =
       def && isObjectLike(def)
@@ -93,7 +113,7 @@ const ModelProperty = (props: PropertyProps) => {
       return undefined;
     }
     return [provider];
-  }, [props.property.default]);
+  }, [declaredProviders, props.property.default]);
 
   const modelClass = useMemo(
     () => `model-type-${modelType.replace(/\./g, "-")}`,
@@ -139,6 +159,7 @@ const ModelProperty = (props: PropertyProps) => {
       return (
         <ImageModelSelect
           onChange={props.onChange}
+          allowedProviders={declaredProviders}
           value={props.value?.id || ""}
           provider={props.value?.provider}
           task={imageTask}
@@ -150,6 +171,7 @@ const ModelProperty = (props: PropertyProps) => {
       return (
         <TTSModelSelect
           onChange={props.onChange}
+          allowedProviders={declaredProviders}
           value={props.value || ""}
           recommendedModels={recommendedModels}
           modelPacks={modelPacks}
@@ -177,6 +199,7 @@ const ModelProperty = (props: PropertyProps) => {
       return (
         <ASRModelSelect
           onChange={props.onChange}
+          allowedProviders={declaredProviders}
           value={props.value?.id || ""}
           provider={props.value?.provider}
           recommendedModels={recommendedModels}
@@ -187,6 +210,7 @@ const ModelProperty = (props: PropertyProps) => {
       return (
         <VideoModelSelect
           onChange={props.onChange}
+          allowedProviders={declaredProviders}
           value={props.value?.id || ""}
           provider={props.value?.provider}
           task={videoTask}
@@ -238,7 +262,7 @@ const ModelProperty = (props: PropertyProps) => {
       );
     }
     return null;
-  }, [modelType, props.nodeType, props.onChange, props.value, imageTask, videoTask, model3dTask, recommendedModels, modelPacks, lockedProviders]);
+  }, [modelType, props.nodeType, props.onChange, props.value, imageTask, videoTask, model3dTask, recommendedModels, modelPacks, lockedProviders, declaredProviders]);
 
   if (isConnected) {
     return (
