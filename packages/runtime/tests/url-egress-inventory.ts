@@ -354,7 +354,7 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     inputSource: "chat-client"
   },
   guardedMedia(
-    "packages/websocket/src/session/asset-autosave.ts",
+    "packages/project-services/src/asset-autosave.ts",
     "workflow output auto-save",
     "Reads the uri a workflow output named before storing the bytes as an asset."
   ),

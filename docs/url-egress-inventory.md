@@ -98,7 +98,7 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | Model3DRef / ImageRef → bytes | `packages/video-nodes/src/nodes/model3d/utils.ts` | workflow |
 | Model bytes → bytes (shared resolution) | `packages/nodes-utils/src/model-bytes.ts` | workflow |
 | chat source images | `packages/websocket/src/websocket-client-session.ts` | chat client |
-| workflow output auto-save | `packages/websocket/src/session/asset-autosave.ts` | workflow |
+| workflow output auto-save | `packages/project-services/src/asset-autosave.ts` | workflow |
 | asset ref → bytes on export | `packages/websocket/src/lib/asset-export.ts` | chat client |
 | Openverse import → asset | `packages/websocket/src/lib/openverse.ts` | provider response |
 | `save_asset` / `view_image` | `packages/agents/src/capabilities/assets.ts` | model |
