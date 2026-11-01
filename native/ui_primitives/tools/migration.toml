@@ -1295,6 +1295,46 @@ qml_callers = ["native/timeline/qml/TimelineEditor.qml"]
 replacement = "Timeline viewport composition; hosted controls use Ui primitives"
 
 [[file]]
+path = "native/timeline/qml/entities/EntityCard.qml"
+category = "chrome"
+controls = ["Rectangle", "HoverHandler", "Image", "Column", "Ui.Icon", "Ui.Text", "Ui.ToolbarIconButton", "MouseArea", "NumberAnimation", "Ui.ContextMenu", "Ui.MenuItem"]
+signals = ["editRequested", "removeRequested"]
+test_host = "tst_entitypanel"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/entities/EntityPanel.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Icon, Ui.Text, Ui.ToolbarIconButton, Ui.ContextMenu, Ui.MenuItem"
+
+[[file]]
+path = "native/timeline/qml/entities/EntityEditorDialog.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "Ui.Banner", "Flickable", "Ui.ScrollBar", "GridLayout", "Ui.Text", "Ui.EditorButton", "Ui.TextField", "Ui.TextArea", "Rectangle", "Image"]
+signals = ["changeImageRequested"]
+test_host = "tst_entitypanel"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/entities/EntityPanel.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Banner, Ui.ScrollBar, Ui.Text, Ui.EditorButton, Ui.TextField, Ui.TextArea"
+
+[[file]]
+path = "native/timeline/qml/entities/EntityImagePickerDialog.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "Ui.BusyIndicator", "Ui.Banner", "Ui.EmptyState", "GridView", "Ui.ScrollBar", "Rectangle", "HoverHandler", "MouseArea", "Image", "Ui.Text", "Ui.EditorButton"]
+signals = ["picked"]
+test_host = "tst_entitypanel"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/entities/EntityPanel.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.BusyIndicator, Ui.Banner, Ui.EmptyState, Ui.ScrollBar, Ui.Text, Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/entities/EntityPanel.qml"
+category = "chrome"
+controls = ["Ui.Surface", "LibraryButton", "Ui.Text", "Ui.BusyIndicator", "Ui.Banner", "Ui.ToolbarIconButton", "Ui.EmptyState", "GridView", "Ui.ScrollBar", "EntityCard", "EntityEditorDialog", "EntityImagePickerDialog"]
+signals = []
+test_host = "tst_entitypanel"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.Text, Ui.BusyIndicator, Ui.Banner, Ui.ToolbarIconButton, Ui.EmptyState, Ui.ScrollBar"
+
+[[file]]
 path = "native/timeline/qml/fx/FxKnob.qml"
 category = "domain"
 controls = ["Rectangle", "Canvas", "Ui.Text", "MouseArea"]

@@ -29,6 +29,11 @@ panel while preserving the current one. The Assistant advertises the existing
 undoable timeline edit and reviewed generation tools along with seek and
 marker actions. The chat connection owns their tool results and server history.
 
+The Entities left dock panel lists the project's characters, locations, styles
+and props. A card edits or removes its entity, and a removal offers Undo. New
+entity picks an image first, then asks for a kind, name and descriptor. The
+panel reads the project of the open server timeline.
+
 From `native/timeline/`, `ctest --test-dir build -R tst_chathost --output-on-failure` checks that a host
 tool edit is undoable, survives save/reload and preserves unknown document
 fields.

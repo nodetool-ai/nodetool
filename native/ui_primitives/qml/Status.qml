@@ -6,6 +6,8 @@ Item {
     enum State { Success, Warning, Error, Info }
     property int status: Ui.Status.Info
     property string message: ""
+    // Wraps a long message over several lines instead of eliding it.
+    property bool wrap: false
     implicitWidth: glyph.width + Metrics.sm + label.implicitWidth
     implicitHeight: Math.max(glyph.height, label.implicitHeight)
     onStatusChanged: if (status < 0 || status > 3) { console.warn("Invalid status"); status = Ui.Status.Info }
@@ -27,5 +29,6 @@ Item {
         text: root.message
         role: Typography.SansBody
         elide: Text.ElideRight
+        wrapMode: root.wrap ? Text.Wrap : Text.NoWrap
     }
 }

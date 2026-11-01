@@ -18,7 +18,7 @@ Rectangle {
         anchors.fill: parent
         anchors.margins: Metrics.md
         spacing: Metrics.md
-        Ui.Status { id: statusView; width: Math.max(0, row.width - (action.visible ? action.width + row.spacing : 0)); anchors.verticalCenter: parent.verticalCenter; status: root.status; message: root.message }
+        Ui.Status { id: statusView; width: Math.max(0, row.width - (action.visible ? action.width + row.spacing : 0)); anchors.verticalCenter: parent.verticalCenter; status: root.status; message: root.message; wrap: true }
         Ui.EditorButton { id: action; objectName: "bannerActionButton"; anchors.verticalCenter: parent.verticalCenter; visible: root.actionText !== ""; text: root.actionText; onClicked: root.actionTriggered() }
     }
 }

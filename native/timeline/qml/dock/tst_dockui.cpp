@@ -141,6 +141,7 @@ private slots:
         QVERIFY(storyboardPanel);
         QVERIFY(scriptPanel != storyboardPanel);
         QVERIFY(named(root, "timelineAssistantPanel"));
+        QVERIFY(named(root, "timelineEntitiesPanel"));
         auto* chatLoader = named(root, "nativeChatPanel");
         QVERIFY(chatLoader);
         QCOMPARE(chatLoader->property("status").toInt(), 1);
@@ -209,6 +210,18 @@ private slots:
         QVERIFY(store->dispatch({{"type", "reveal"}, {"panelId", "storyboard"}}));
         render();
         QVERIFY(storyboardPanel->isVisible());
+        // The Entities panel is visible only while its tab is selected, which is what lets it load on first show.
+        auto* entitiesPanel = named(root, "timelineEntitiesPanel");
+        QVERIFY(entitiesPanel);
+        QVERIFY(!entitiesPanel->isVisible());
+        QVERIFY(store->dispatch({{"type", "reveal"}, {"panelId", "entities"}}));
+        render();
+        QVERIFY(entitiesPanel->isVisible());
+        QVERIFY(!storyboardPanel->isVisible());
+        QVERIFY(store->dispatch({{"type", "reveal"}, {"panelId", "storyboard"}}));
+        render();
+        QVERIFY(storyboardPanel->isVisible());
+        QVERIFY(!entitiesPanel->isVisible());
         QVERIFY(scriptDrafts->property("dirty").toBool());
         auto* storyboardEditor = named(storyboardPanel, "storyWorkspaceEditor");
         QVERIFY(storyboardEditor);

@@ -98,8 +98,10 @@ orientation, and policy.
 
 `Status` and `Banner` take `status` (`Status.Success`, `Warning`, `Error`,
 `Info`) and `message`. `Banner` also accepts optional `actionText` and emits
-`actionTriggered()`. `EmptyState` exposes `title`, `message`, optional
-`actionText` and `actionTriggered()`. `Progress` reports determinate progress;
+`actionTriggered()`, and wraps a long message. `Status.wrap` does the same for a
+standalone status; without it the message elides on one line. `EmptyState`
+exposes `title`, `message`, optional `actionText` and `actionTriggered()`. A
+positive `maxTextWidth` wraps and centers its text and action. `Progress` reports determinate progress;
 `BusyIndicator` handles indeterminate work and respects reduced motion and
 visibility.
 
