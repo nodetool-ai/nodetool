@@ -644,9 +644,11 @@ work against a local fixture index.
 - Map real Wan2GP model ids to the `local-wan` family. The current pattern only
   matches ids that start with `local-wan`, and no Wan2GP model has such an id.
   The [nodetool-wan2gp](https://github.com/nodetool-ai/nodetool-wan2gp) provider
-  adapter reports provider `wangp` and uses `model_type` as the id: `t2v`, `i2v`,
-  `t2v_2_2`, `i2v_2_2`, `ti2v_2_2`. A Wan2GP server also offers models outside
-  the Wan line, so match only Wan model types.
+  adapter reports provider `wangp` and uses `model_type` as the id, which is the
+  stem of a file in Wan2GP's `defaults/` directory: `t2v`, `i2v`, `t2v_2_2`,
+  `i2v_2_2`, `ti2v_2_2`, `ti2v_2_2_fastwan`, `t2v_1.3B`, `fun_inp_1.3B`,
+  `fun_camera_1.3B` and others. A Wan2GP server also offers models outside the Wan
+  line, such as `ltx2_*` and `hunyuan_*`, so match only Wan model types.
 - Write a `local-wan` fragment for every camera and effect preset, following the
   `wan-2-6-prompting` skill. Do not add `local-wan` to a preset's `families`
   until P24 has tested it.
@@ -658,6 +660,12 @@ id.
 
 Needs a running Wan2GP server. Tune the P23 fragments, render previews on the
 local runtime and add `local-wan` to `families` for each preset that passes.
+
+Tested on an RTX 3060 with 12 GB of VRAM through the pack nodes:
+`ti2v_2_2_fastwan` at 832x480, 49 frames and 3 steps takes about 49 s for text to
+video and 73 s for image to video. Wan2GP must be at commit `362c3467`, the one
+the pack's `Dockerfile.combined` pins. Current upstream restructured its MCP tools
+and the pack cannot generate against it.
 This also answers Q3: which Wan2GP model, if any, becomes the local default.
 NodeTool may connect to a Wan2GP server the user runs, but WanGP's license does
 not allow embedding it in a paid product without a separate license, so check
