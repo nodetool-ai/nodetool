@@ -16,6 +16,20 @@ const bool registered = [] {
                 return false;
             }});
     }
+    const struct { const char* id; const char* title; const char* keys; const char* side; } sides[] = {
+        {"toggleLeftPanels", "Show or hide the left panels", "Ctrl+B", "left"},
+        {"toggleRightPanels", "Show or hide the right panels", "Ctrl+Alt+B", "right"}};
+    for (const auto& entry : sides) {
+        const QString side = entry.side;
+        nt::wiring::registerKeyAction({entry.id, entry.title, {QKeySequence::fromString(entry.keys, QKeySequence::PortableText)},
+            [side](ClipGestureController& gestures, const QVariantMap&) {
+                for (QQuickItem* item = &gestures; item; item = item->parentItem()) {
+                    auto* canvas = item->property("dockCanvas").value<QObject*>();
+                    if (canvas) { return QMetaObject::invokeMethod(canvas, "toggleSide", Q_ARG(QString, side)); }
+                }
+                return false;
+            }});
+    }
     return true;
 }();
 }

@@ -18,12 +18,13 @@ Item {
         return null
     }
     readonly property bool filtered: browser.searchText !== "" || browser.typeFilter !== "" || browser.tagFilter !== "" || browser.favoritesOnly
+    property real tileSize: 84
     // AssetGridContent uses calculateGridDimensions with assetItemSize=2.
     readonly property int itemSpacing: Ui.Metrics.xs
     // The view sits inside a margin of itemSpacing, so columns divide its inner width.
     readonly property real innerWidth: Math.max(0, width - 2 * itemSpacing)
-    readonly property int columns: Math.max(1, Math.min(100, Math.floor((innerWidth + itemSpacing) / (84 + itemSpacing))))
-    readonly property real itemSize: Math.min(Math.floor(innerWidth / columns - itemSpacing), 84 * 1.1)
+    readonly property int columns: Math.max(1, Math.min(100, Math.floor((innerWidth + itemSpacing) / (tileSize + itemSpacing))))
+    readonly property real itemSize: Math.min(Math.floor(innerWidth / columns - itemSpacing), tileSize * 1.1)
 
     GridView {
         id: tiles

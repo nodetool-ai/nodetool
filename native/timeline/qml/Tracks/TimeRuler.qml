@@ -16,6 +16,8 @@ Rectangle {
     // The document's markers ({id, timeMs, label, color?}).
     property var markers: []
     signal seekRequested(real ms)
+    // A press or drag on the ruler: the transport plays a short burst of audio.
+    signal scrubRequested(real ms)
     signal deleteMarkerRequested(string markerId)
 
     objectName: "timeRuler"
@@ -62,7 +64,7 @@ Rectangle {
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         preventStealing: true
         function seekTo(mx) {
-            ruler.seekRequested(Math.max(0, mx * ruler.viewState.msPerPx + ruler.viewState.scrollLeftPx * ruler.viewState.msPerPx))
+            ruler.scrubRequested(Math.max(0, mx * ruler.viewState.msPerPx + ruler.viewState.scrollLeftPx * ruler.viewState.msPerPx))
         }
         onPressed: mouse => {
             if (mouse.button === Qt.RightButton) {

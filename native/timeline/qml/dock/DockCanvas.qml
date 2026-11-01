@@ -17,8 +17,13 @@ Item {
     property string dragPanel: ""
     property var dragTarget: null
     property int layoutEpoch: store.layoutEpoch
-    readonly property real leftExtent: groups("left").length ? sizes.left : 0
-    readonly property real rightExtent: groups("right").length ? sizes.right : 0
+    // Session-only: a layout change, such as revealing a panel, shows the sides again.
+    property bool leftCollapsed: false
+    property bool rightCollapsed: false
+    readonly property bool hasLeft: groups("left").length > 0
+    readonly property bool hasRight: groups("right").length > 0
+    readonly property real leftExtent: hasLeft && !leftCollapsed ? sizes.left : 0
+    readonly property real rightExtent: hasRight && !rightCollapsed ? sizes.right : 0
     readonly property real bottomExtent: groups("bottom").length ? sizes.bottom : 0
     readonly property real leftGap: leftExtent ? Ui.Metrics.sm : 0
     readonly property real rightGap: rightExtent ? Ui.Metrics.sm : 0
@@ -27,7 +32,7 @@ Item {
         .map(group => activePanel(group)).filter(id => !!id)
     objectName: "dockCanvas"
     clip: true
-    onLayoutEpochChanged: maximizedGroup = ""
+    onLayoutEpochChanged: { maximizedGroup = ""; leftCollapsed = false; rightCollapsed = false }
     onLayoutChanged: restoreMissingMaximizedGroup()
     onAvailableIdsChanged: restoreMissingMaximizedGroup()
     onXChanged: noteGeometry()
@@ -67,6 +72,7 @@ Item {
     function restoreMissingMaximizedGroup() {
         if (maximizedGroup && !Model.allGroups(layout).some(group => group.id === maximizedGroup && !!activePanel(group))) maximizedGroup = ""
     }
+    function toggleSide(side) { if (side === "left") leftCollapsed = !leftCollapsed; else if (side === "right") rightCollapsed = !rightCollapsed }
     function toggleMaximize(id) { maximizedGroup = maximizedGroup ? "" : id }
     function moveToRegion(id, region) { store.dispatch(Model.dockMoveToRegion(layout, id, region)) }
     function dropPanel(id, target) {

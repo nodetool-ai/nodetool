@@ -96,6 +96,9 @@ struct TransportCommand {
     std::uint64_t seekSeq = 0;
     double seekMs = 0.0;
     std::int64_t seekIssuedNs = 0;  // monotonic time of the seek
+    // A paused seek made by dragging the playhead: the device plays a short
+    // burst of the mix at `seekMs` so the drag is audible.
+    bool scrub = false;
 };
 
 // The mapping the callback renders with: device frame `frame` carries

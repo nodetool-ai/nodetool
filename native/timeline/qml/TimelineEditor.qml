@@ -17,6 +17,7 @@ Controls.Control {
     readonly property bool chatInitiallyOpen: typeof nativeChatInitiallyOpen !== "undefined" && nativeChatInitiallyOpen
     readonly property bool chatOpen: chatSession !== null && dockCanvas.visiblePanels.indexOf("assistant") >= 0
     readonly property alias dockStore: layoutStore
+    readonly property alias dockCanvas: dockCanvas
     readonly property var dockPanels: {
         const panels = [{id: "program", title: "Program", defaultRegion: "viewport"},
                         {id: "tracks", title: "Timeline", defaultRegion: "bottom"}]
@@ -87,6 +88,18 @@ Controls.Control {
         RowLayout {
             Layout.fillWidth: true
             spacing: Ui.Metrics.md
+            ToolButton {
+                objectName: "toggleLeftPanels"
+                visible: dockCanvas.hasLeft
+                label: dockCanvas.leftCollapsed ? qsTr("Show left panels") : qsTr("Hide left panels")
+                shortcut: "Ctrl+B"
+                iconOnly: true
+                iconName: "panelLeft"
+                active: !dockCanvas.leftCollapsed
+                activeFocusOnTab: true
+                Layout.leftMargin: Ui.Metrics.md
+                onClicked: dockCanvas.leftCollapsed = !dockCanvas.leftCollapsed
+            }
             DocumentBar {
                 Layout.fillWidth: true
                 timeline: root.timeline
@@ -98,12 +111,16 @@ Controls.Control {
                 }
             }
             ToolButton {
-                visible: root.chatSession !== null
-                label: root.chatOpen ? qsTr("Close chat") : qsTr("Chat")
+                objectName: "toggleRightPanels"
+                visible: dockCanvas.hasRight
+                label: dockCanvas.rightCollapsed ? qsTr("Show right panels") : qsTr("Hide right panels")
+                shortcut: "Ctrl+Alt+B"
                 iconOnly: true
-                iconName: "forum"
+                iconName: "panelRight"
+                active: !dockCanvas.rightCollapsed
                 activeFocusOnTab: true
-                onClicked: root.toggleChat()
+                Layout.rightMargin: Ui.Metrics.md
+                onClicked: dockCanvas.rightCollapsed = !dockCanvas.rightCollapsed
             }
         }
         SaveBanners { Layout.fillWidth: true; autosave: root.saver }

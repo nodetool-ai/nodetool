@@ -35,6 +35,12 @@ constexpr double kRingSeconds = 2.0;
 // A play or seek starts once every voice near the position holds this much.
 constexpr double kPrimeMs = 250.0;
 constexpr std::int64_t kChunkFrames = 4096;
+// The audible burst of a scrub seek, within the primed span, with short ramps
+// at both ends so a burst does not click.
+// While a drag scrubs, a new burst starts only after the last one ends, so
+// each burst is long enough to hear.
+constexpr double kScrubMs = 70.0;
+constexpr double kScrubRampMs = 5.0;
 
 std::string voiceKey(const VoicePlan& voice) {
     return voice.segmentId.empty() ? voice.clipId : voice.clipId + '\x1f' + voice.segmentId;
@@ -82,6 +88,11 @@ struct AudioEngine::Impl {
     std::atomic<std::int64_t> lateStarts{0};
     std::atomic<double> lastPlayStartMs{-1.0};
     std::int64_t seenStartNs = 0;
+    // Scrub burst. The worker publishes the seek to audition. Only the
+    // callback touches its own progress.
+    std::atomic<std::uint64_t> scrubRequest{0};
+    std::uint64_t scrubSeq = 0;
+    std::int64_t scrubPos = 0;
     std::vector<float> record;
     std::atomic<std::int64_t> recordedFrames{0};
 
@@ -174,6 +185,7 @@ struct AudioEngine::Impl {
         const auto silence = [&]() { std::fill(out, out + static_cast<std::size_t>(frames) * 2, 0.0f); };
         if (!anchor.playing) {
             silence();
+            renderScrub(s, out, frames);
         } else if (driver->seekPending() || !s || s->seekSeq.load(std::memory_order_acquire) != anchor.seekSeq) {
             silence();
             waitBlocks.fetch_add(1, std::memory_order_relaxed);
@@ -206,6 +218,39 @@ struct AudioEngine::Impl {
         }
         callbacks.fetch_add(1, std::memory_order_relaxed);
         framesRendered.store(driver->framesRendered(), std::memory_order_relaxed);
+    }
+
+    // While paused, plays kScrubMs of the mix from the start of the primed session.
+    void renderScrub(Session* s, float* out, std::uint32_t frames) {
+        const std::uint64_t request = scrubRequest.load(std::memory_order_acquire);
+        if (request != scrubSeq) {
+            scrubSeq = request;
+            scrubPos = 0;
+        }
+        const auto total = static_cast<std::int64_t>(kScrubMs * sampleRate / 1000.0);
+        if (!s || scrubSeq == 0 || scrubPos >= total || s->seekSeq.load(std::memory_order_acquire) != scrubSeq ||
+            !s->primed.load(std::memory_order_acquire)) {
+            return;
+        }
+        const double msPerFrame = 1000.0 / sampleRate;
+        const double t0 = s->startMs + msPerFrame * static_cast<double>(scrubPos);
+        const double tEnd = t0 + msPerFrame * frames;
+        const MixPlan& plan = *s->plan;
+        for (std::size_t i = 0; i < plan.voices.size(); ++i) {
+            const VoicePlan& v = plan.voices[i];
+            const bool overlaps = !v.silent && tEnd > v.startMs && t0 < v.startMs + v.durationMs;
+            s->pcm[i].ring = overlaps ? s->live[i].load(std::memory_order_acquire) : nullptr;
+        }
+        MixStats st;
+        mixBlock(plan, s->pcm.data(), sampleRate, t0, msPerFrame, static_cast<int>(frames), out, st);
+        const double ramp = std::max(1.0, kScrubRampMs * sampleRate / 1000.0);
+        for (std::uint32_t i = 0; i < frames; ++i) {
+            const double at = static_cast<double>(scrubPos + i);
+            const double gain = at >= total ? 0.0 : std::min({1.0, (at + 1.0) / ramp, (static_cast<double>(total) - at) / ramp});
+            out[2 * i] = static_cast<float>(out[2 * i] * gain);
+            out[2 * i + 1] = static_cast<float>(out[2 * i + 1] * gain);
+        }
+        scrubPos += frames;
     }
 
     static void dataCallback(ma_device* dev, void* output, const void*, ma_uint32 frames) {
@@ -423,6 +468,9 @@ struct AudioEngine::Impl {
         });
     }
 
+    std::uint64_t lastScrubArmed = 0;
+    std::chrono::steady_clock::time_point lastScrubBuild{};
+
     void workerLoop() {
         for (;;) {
             {
@@ -432,7 +480,11 @@ struct AudioEngine::Impl {
             }
             const playback::TransportCommand cmd = feed.command.load();
             Session* current = published.load();
-            if (cmd.seekSeq != 0 && (!current || current->seekSeq.load() != cmd.seekSeq)) {
+            const auto now = std::chrono::steady_clock::now();
+            const bool scrubWait = cmd.scrub && !cmd.playing && current &&
+                std::chrono::duration<double, std::milli>(now - lastScrubBuild).count() < kScrubMs;
+            if (cmd.seekSeq != 0 && !scrubWait && (!current || current->seekSeq.load() != cmd.seekSeq)) {
+                if (cmd.scrub && !cmd.playing) lastScrubBuild = now;
                 std::uint64_t version = 0;
                 {
                     std::lock_guard lock(mutex);
@@ -472,6 +524,11 @@ struct AudioEngine::Impl {
             if (current) {
                 const bool primed = fill(*current, cmd.playing);
                 if (primed) current->primed.store(true, std::memory_order_release);
+            }
+            if (current && cmd.scrub && !cmd.playing && cmd.seekSeq == current->seekSeq.load() && cmd.seekSeq != lastScrubArmed &&
+                current->primed.load(std::memory_order_acquire)) {
+                lastScrubArmed = cmd.seekSeq;
+                scrubRequest.store(cmd.seekSeq, std::memory_order_release);
             }
             evictSources(current);
             retire();

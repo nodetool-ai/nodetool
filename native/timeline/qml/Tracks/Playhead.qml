@@ -109,7 +109,7 @@ Item {
             if (!pressed) return
             const deltaMs = (mapToItem(null, mouse.x, 0).x - startSceneX) * playhead.viewState.msPerPx
             const cap = playhead.endMs > 0 ? playhead.endMs : Number.MAX_SAFE_INTEGER
-            playhead.clock.seek(Math.max(0, Math.min(cap, startMs + deltaMs)))
+            playhead.clock.scrub(Math.max(0, Math.min(cap, startMs + deltaMs)))
         }
         onCanceled: playhead.clock.seek(startMs)
     }

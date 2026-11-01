@@ -27,8 +27,9 @@ Ui.Surface {
     })
     readonly property var selectedAsset: grid.selectedAsset
     implicitWidth: TimelineMetrics.trackHeaderWidth
-    width: implicitWidth
-    height: parent && parent.parent ? parent.parent.height : TimelineMetrics.trackHeight * 9
+    readonly property bool docked: !!parent && !!parent.dock
+    width: docked ? parent.width : implicitWidth
+    height: docked ? parent.height : parent && parent.parent ? parent.parent.height : TimelineMetrics.trackHeight * 9
     clip: true
 
     AssetGallery {
@@ -203,6 +204,18 @@ Ui.Surface {
             RowLayout {
                 Layout.fillWidth: true
                 LibraryLabel { Layout.fillWidth: true; text: browserModel.assets.length + " assets" }
+                Ui.Slider {
+                    objectName: "libraryTileSize"
+                    Layout.preferredWidth: Ui.Metrics.comfortable * 4
+                    from: 56
+                    to: 200
+                    stepSize: 4
+                    value: grid.tileSize
+                    onValuePreviewed: next => grid.tileSize = next
+                    onValueCommitted: next => grid.tileSize = next
+                    accessibleName: "Tile size"
+                    density: Ui.EditorButton.Compact
+                }
                 LibraryButton { visible: grid.filtered; text: "Clear filters"; onClicked: explorer.clearFilters() }
             }
             AssetGrid {

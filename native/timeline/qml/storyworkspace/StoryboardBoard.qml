@@ -268,6 +268,14 @@ Item {
                     onClicked: board.openRender("video", board.pendingClips.map(shot => shot.id))
                 }
                 Ui.EditorButton {
+                    objectName: "storyboardSendToTimeline"
+                    visible: !board.readOnly && board.shots.length > 0
+                    iconName: "movieOutlined"
+                    text: "Send to timeline"
+                    enabled: !board.workspace.dirty && !board.controller.busy && !!board.resource.id
+                    onClicked: board.controller.assembleStoryboard(board.resource)
+                }
+                Ui.EditorButton {
                     objectName: "storyboardStopRenders"
                     visible: board.renderQueue.length > 0 || board.renders.busy
                     iconName: "stop"

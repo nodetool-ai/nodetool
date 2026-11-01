@@ -178,6 +178,7 @@ void PlaybackClock::sendCommandLocked(bool seek, double seekMs, std::int64_t now
         m_command.seekSeq += 1;
         m_command.seekMs = seekMs;
         m_command.seekIssuedNs = nowNs;
+        m_command.scrub = m_scrubNext && !m_playing;
     }
     m_feed->command.store(m_command);
 }
@@ -371,6 +372,12 @@ void PlaybackClock::seek(double ms) {
     }
     emit timeChanged();
     if (sourceChanged) emit audioMasterChanged();
+}
+
+void PlaybackClock::scrub(double ms) {
+    m_scrubNext = true;
+    seek(ms);
+    m_scrubNext = false;
 }
 
 void PlaybackClock::setRate(double rate) {

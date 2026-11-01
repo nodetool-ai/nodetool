@@ -235,6 +235,7 @@ Rectangle {
         fps: region.timeline.fps
         markers: region.timeline.markers
         onSeekRequested: ms => region.clock.seek(ms)
+        onScrubRequested: ms => region.clock.scrub(ms)
         onDeleteMarkerRequested: id => region.timeline.deleteMarker(id)
     }
 

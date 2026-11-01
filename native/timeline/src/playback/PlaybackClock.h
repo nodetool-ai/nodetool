@@ -77,6 +77,8 @@ public slots:
     void setRangeOut(double ms);
     void clearRange();
     void seek(double ms);
+    // A seek made while dragging the playhead. While paused it also plays a short burst of audio.
+    Q_INVOKABLE void scrub(double ms);
     // Samples the clock into `time` and applies clock switches. Call once
     // per frame.
     void tick();
@@ -118,6 +120,7 @@ private:
     double m_monoAnchorMs = 0.0;
     std::int64_t m_monoAnchorNs = 0;
     std::uint64_t m_seekSerial = 0;
+    bool m_scrubNext = false;
     double m_timeMs = 0.0;
     double m_durationMs = 0.0;
     double m_rate = 1.0;

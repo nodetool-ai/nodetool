@@ -522,6 +522,43 @@ Ui.Surface {
                     text: voicing.error
                     tone: Ui.Text.Error
                 }
+                Column {
+                    id: speakersSection
+                    objectName: "workspaceSpeakers"
+                    width: parent.width
+                    spacing: Ui.Metrics.sm
+                    visible: panel.hasDocument && document.cast !== undefined
+                    WorkspaceLabel { width: parent.width; text: "SPEAKERS"; role: Ui.Typography.SansCaption }
+                    WorkspaceLabel { width: parent.width; visible: (document.cast || []).length === 0; text: "Add a speaker to the script to give it a voice."; tone: Ui.Text.Secondary; wrapMode: Text.Wrap }
+                    Repeater {
+                        model: document.cast || []
+                        delegate: Ui.Surface {
+                            id: castMember
+                            required property var modelData
+                            width: parent.width
+                            variant: Ui.Surface.Panel
+                            implicitHeight: castColumn.implicitHeight + 2 * Ui.Metrics.md
+                            Column {
+                                id: castColumn
+                                x: Ui.Metrics.md
+                                y: Ui.Metrics.md
+                                width: parent.width - 2 * Ui.Metrics.md
+                                spacing: Ui.Metrics.sm
+                                WorkspaceField { width: parent.width; value: castMember.modelData.name || ""; placeholderText: "Speaker name"; Accessible.name: "Speaker name"; enabled: !controller.busy && !controller.scriptDirty; onTextEdited: workspace.patchSpeaker(castMember.modelData.id, "name", text) }
+                                WorkspaceLabel { text: "Voice"; role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary }
+                                Loader {
+                                    width: parent.width
+                                    source: "ScriptVoicePicker.qml"
+                                    onLoaded: {
+                                        item.binding = Qt.binding(() => castMember.modelData.voice || null)
+                                        item.editable = Qt.binding(() => !controller.busy && !controller.scriptDirty)
+                                        item.changed.connect(binding => workspace.patchSpeaker(castMember.modelData.id, "voice", binding))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 Repeater {
                     model: document.sections ? controller.scriptRows : []
                     delegate: Item {
@@ -615,63 +652,36 @@ Ui.Surface {
                                     onClicked: voicing.recover(controller.result, line.modelData.id)
                                 }
                             }
-                            Repeater {
-                                model: line.isSection ? [] : (line.modelData.takes || [])
-                                delegate: RowLayout {
-                                    id: take
-                                    required property var modelData
-                                    required property int index
-                                    readonly property bool current: modelData.id === line.modelData.currentTakeId
-                                    width: lineContent.width
-                                    spacing: Ui.Metrics.sm
-                                    readonly property bool playing: panel.playingTakeId === modelData.id && takePlayer.previewClock.playing
-                                    Ui.ToolbarIconButton {
-                                        objectName: "workspacePlayTake_" + take.modelData.id
-                                        variant: Ui.EditorButton.Flat
-                                        iconName: take.playing ? "pause" : "playArrow"
-                                        text: take.playing ? "Pause take" : "Play take"
-                                        loading: panel.playingTakeId === take.modelData.id && takePlayer.busy
-                                        enabled: !!take.modelData.assetId
-                                        onClicked: panel.playTake(take.modelData)
-                                    }
-                                    Ui.Icon { visible: take.current; name: "check"; size: Ui.Metrics.iconSm; tone: Ui.Text.Success }
-                                    WorkspaceLabel {
-                                        Layout.fillWidth: true
-                                        role: Ui.Typography.SansCaption
-                                        elide: Text.ElideRight
-                                        wrapMode: Text.NoWrap
-                                        text: "Take " + (take.index + 1) + (take.modelData.durationMs ? " · " + panel.seconds(take.modelData.durationMs) : "")
-                                            + (take.modelData.textSnapshot && take.modelData.textSnapshot !== line.modelData.text ? " · older text" : "")
-                                        tone: take.current ? Ui.Text.Primary : Ui.Text.Secondary
-                                    }
-                                    WorkspaceButton {
-                                        objectName: "workspaceUseTake_" + take.modelData.id
-                                        quiet: true
-                                        visible: !take.current
-                                        text: "Use"
-                                        enabled: !controller.busy && !workspace.dirty
-                                        onClicked: controller.updateScriptLine(line.modelData.id, {currentTakeId: take.modelData.id})
-                                    }
-                                    Ui.ToolbarIconButton {
-                                        variant: Ui.EditorButton.Flat
-                                        iconName: take.modelData.favorite ? "star" : "starBorder"
-                                        text: take.modelData.favorite ? "Remove favorite" : "Favorite"
-                                        enabled: !controller.busy && !workspace.dirty
-                                        onClicked: controller.updateScriptLine(line.modelData.id, {takes: line.modelData.takes.map(item => item.id === take.modelData.id ? Object.assign({}, item, {favorite: !item.favorite}) : item)})
-                                    }
-                                    Ui.ToolbarIconButton {
-                                        objectName: "workspaceDeleteTake_" + take.modelData.id
-                                        variant: Ui.EditorButton.Flat
-                                        iconName: "deleteOutline"
-                                        text: "Delete take"
-                                        enabled: !controller.busy && !workspace.dirty
-                                        onClicked: {
-                                            const rest = line.modelData.takes.filter(item => item.id !== take.modelData.id)
-                                            const fields = {takes: rest}
-                                            if (take.current) fields.currentTakeId = rest.length > 0 ? rest[rest.length - 1].id : null
-                                            controller.updateScriptLine(line.modelData.id, fields)
-                                        }
-                                    }
+                            RowLayout {
+                                id: currentTake
+                                width: lineContent.width
+                                visible: !line.isSection && !line.modelData.draftOrphan && (line.modelData.takes || []).length > 0
+                                spacing: Ui.Metrics.sm
+                                readonly property var take: (line.modelData.takes || []).find(item => item.id === line.modelData.currentTakeId) || null
+                                readonly property bool playing: !!take && panel.playingTakeId === take.id && takePlayer.previewClock.playing
+                                Ui.ToolbarIconButton {
+                                    objectName: "workspacePlayCurrentTake_" + line.modelData.id
+                                    variant: Ui.EditorButton.Flat
+                                    iconName: currentTake.playing ? "pause" : "playArrow"
+                                    text: currentTake.playing ? "Pause take" : "Play take"
+                                    loading: !!currentTake.take && panel.playingTakeId === currentTake.take.id && takePlayer.busy
+                                    enabled: !!currentTake.take && !!currentTake.take.assetId
+                                    onClicked: panel.playTake(currentTake.take)
+                                }
+                                WorkspaceLabel {
+                                    Layout.fillWidth: true
+                                    role: Ui.Typography.SansCaption
+                                    elide: Text.ElideRight
+                                    wrapMode: Text.NoWrap
+                                    text: !currentTake.take ? "No take selected"
+                                        : "Take " + ((line.modelData.takes || []).indexOf(currentTake.take) + 1) + (currentTake.take.durationMs ? " · " + panel.seconds(currentTake.take.durationMs) : "")
+                                            + (currentTake.take.textSnapshot && currentTake.take.textSnapshot !== line.modelData.text ? " · older text" : "")
+                                }
+                                WorkspaceButton {
+                                    objectName: "workspaceOpenTakes_" + line.modelData.id
+                                    quiet: true
+                                    text: "Takes (" + (line.modelData.takes || []).length + ")"
+                                    onClicked: { takesDialog.lineId = line.modelData.id; takesDialog.open() }
                                 }
                             }
                             WorkspaceLabel { width: parent.width; visible: !!line.modelData.draftOrphan; text: "This line was removed remotely. Copy its text before discarding the draft."; tone: Ui.Text.Warning }
@@ -717,32 +727,6 @@ Ui.Surface {
                         }
                     }
                 }
-                WorkspaceCheckBox { id: castVoices; objectName: "workspaceCastVoices"; text: "Cast voices"; visible: panel.hasDocument && document.cast !== undefined }
-                Column {
-                    width: parent.width
-                    spacing: Ui.Metrics.md
-                    visible: castVoices.visible && castVoices.checked
-                    WorkspaceLabel { width: parent.width; visible: (document.cast || []).length === 0; text: "Add a speaker to the script to give it a voice."; tone: Ui.Text.Secondary; wrapMode: Text.Wrap }
-                    Repeater {
-                        model: castVoices.checked ? document.cast || [] : []
-                        delegate: Column {
-                            id: castMember
-                            required property var modelData
-                            width: parent.width
-                            spacing: Ui.Metrics.xs
-                            WorkspaceLabel { text: castMember.modelData.name || "Unnamed" }
-                            Loader {
-                                width: parent.width
-                                source: "ScriptVoicePicker.qml"
-                                onLoaded: {
-                                    item.binding = Qt.binding(() => castMember.modelData.voice || null)
-                                    item.editable = Qt.binding(() => !controller.busy && !controller.scriptDirty)
-                                    item.changed.connect(binding => workspace.patchSpeaker(castMember.modelData.id, "voice", binding))
-                                }
-                            }
-                        }
-                    }
-                }
                 WorkspaceCheckBox { id: metadata; text: "Document details"; visible: panel.hasDocument }
                 Column {
                     width: parent.width
@@ -756,7 +740,6 @@ Ui.Surface {
                             required property var modelData
                             width: parent.width
                             spacing: Ui.Metrics.sm
-                            WorkspaceField { width: parent.width; value: speaker.modelData.name || ""; placeholderText: "Character name"; Accessible.name: "Character name"; enabled: !controller.busy && !controller.scriptDirty; onTextEdited: workspace.patchSpeaker(speaker.modelData.id, "name", text) }
                             WorkspaceField { width: parent.width; value: speaker.modelData.entityId || ""; placeholderText: "Character entity ID"; Accessible.name: "Character entity ID"; enabled: !controller.busy && !controller.scriptDirty; onTextEdited: workspace.patchSpeaker(speaker.modelData.id, "entityId", text === "" ? null : text) }
                         }
                     }
@@ -813,6 +796,94 @@ Ui.Surface {
             onCloseRequested: panel.selectedShotId = ""
             onShotChangeRequested: id => panel.selectedShotId = id
             onScriptRequested: (scriptId, lineId) => { if (scriptId !== "") panel.openResource(scriptId, "scripts") }
+        }
+    }
+    Ui.Dialog {
+        id: takesDialog
+        objectName: "scriptTakesDialog"
+        property string lineId: ""
+        readonly property var line: controller.scriptRows.find(row => row.id === lineId) || null
+        title: "Takes"
+        width: Math.min(Ui.Metrics.dialogWidth, parent ? parent.width - Ui.Metrics.xl * 2 : Ui.Metrics.dialogWidth)
+        onClosed: { takePlayer.close(); panel.playingTakeId = "" }
+        footer: RowLayout {
+            spacing: Ui.Metrics.sm
+            Item { Layout.fillWidth: true }
+            Ui.EditorButton {
+                objectName: "scriptTakesClose"
+                Layout.bottomMargin: Ui.Metrics.xl
+                Layout.rightMargin: Ui.Metrics.xl
+                variant: Ui.EditorButton.Primary
+                text: "Close"
+                onClicked: takesDialog.close()
+            }
+        }
+        contentItem: ColumnLayout {
+            spacing: Ui.Metrics.sm
+            WorkspaceLabel { Layout.fillWidth: true; wrapMode: Text.Wrap; text: takesDialog.line ? takesDialog.line.text || "" : ""; tone: Ui.Text.Secondary }
+            Column {
+                Layout.fillWidth: true
+                spacing: Ui.Metrics.xs
+                            Repeater {
+                                model: takesDialog.line ? (takesDialog.line.takes || []) : []
+                                delegate: RowLayout {
+                                    id: take
+                                    required property var modelData
+                                    required property int index
+                                    readonly property bool current: modelData.id === takesDialog.line.currentTakeId
+                                    width: parent.width
+                                    spacing: Ui.Metrics.sm
+                                    readonly property bool playing: panel.playingTakeId === modelData.id && takePlayer.previewClock.playing
+                                    Ui.ToolbarIconButton {
+                                        objectName: "workspacePlayTake_" + take.modelData.id
+                                        variant: Ui.EditorButton.Flat
+                                        iconName: take.playing ? "pause" : "playArrow"
+                                        text: take.playing ? "Pause take" : "Play take"
+                                        loading: panel.playingTakeId === take.modelData.id && takePlayer.busy
+                                        enabled: !!take.modelData.assetId
+                                        onClicked: panel.playTake(take.modelData)
+                                    }
+                                    Ui.Icon { visible: take.current; name: "check"; size: Ui.Metrics.iconSm; tone: Ui.Text.Success }
+                                    WorkspaceLabel {
+                                        Layout.fillWidth: true
+                                        role: Ui.Typography.SansCaption
+                                        elide: Text.ElideRight
+                                        wrapMode: Text.NoWrap
+                                        text: "Take " + (take.index + 1) + (take.modelData.durationMs ? " · " + panel.seconds(take.modelData.durationMs) : "")
+                                            + (take.modelData.textSnapshot && take.modelData.textSnapshot !== takesDialog.line.text ? " · older text" : "")
+                                        tone: take.current ? Ui.Text.Primary : Ui.Text.Secondary
+                                    }
+                                    WorkspaceButton {
+                                        objectName: "workspaceUseTake_" + take.modelData.id
+                                        quiet: true
+                                        visible: !take.current
+                                        text: "Use"
+                                        enabled: !controller.busy && !workspace.dirty
+                                        onClicked: controller.updateScriptLine(takesDialog.line.id, {currentTakeId: take.modelData.id})
+                                    }
+                                    Ui.ToolbarIconButton {
+                                        variant: Ui.EditorButton.Flat
+                                        iconName: take.modelData.favorite ? "star" : "starBorder"
+                                        text: take.modelData.favorite ? "Remove favorite" : "Favorite"
+                                        enabled: !controller.busy && !workspace.dirty
+                                        onClicked: controller.updateScriptLine(takesDialog.line.id, {takes: takesDialog.line.takes.map(item => item.id === take.modelData.id ? Object.assign({}, item, {favorite: !item.favorite}) : item)})
+                                    }
+                                    Ui.ToolbarIconButton {
+                                        objectName: "workspaceDeleteTake_" + take.modelData.id
+                                        variant: Ui.EditorButton.Flat
+                                        iconName: "deleteOutline"
+                                        text: "Delete take"
+                                        enabled: !controller.busy && !workspace.dirty
+                                        onClicked: {
+                                            const rest = takesDialog.line.takes.filter(item => item.id !== take.modelData.id)
+                                            const fields = {takes: rest}
+                                            if (take.current) fields.currentTakeId = rest.length > 0 ? rest[rest.length - 1].id : null
+                                            controller.updateScriptLine(takesDialog.line.id, fields)
+                                        }
+                                    }
+                                }
+                            }
+            }
         }
     }
     Ui.Dialog {
