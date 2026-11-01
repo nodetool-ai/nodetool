@@ -546,7 +546,10 @@ project and global consumers, each with an empty HOME.
       });
       const workflowArgs = ["feature", "cli-workflow"];
       // The workflow feature's DSL dependency lives in the pack project, never in the app.
-      run(process.execPath, ["--input-type=module", "-e", 'await import("@nodetool-ai/dsl");'], { cwd: activePackProject(env), env, timeout: 120_000 });
+      // It loads only through the CLI's resolution hook, which the TypeScript workflow run below exercises.
+      if (!existsSync(join(activePackProject(env), "node_modules", "@nodetool-ai", "dsl", "package.json"))) {
+        throw new Error("The workflow feature did not install @nodetool-ai/dsl into the pack project");
+      }
       const coreWorkflow = JSON.parse(readFileSync(join(ROOT, NO_MODEL_WORKFLOW), "utf8")).graph;
       const tools = await probeMcp(bin, env, appDir, coreWorkflow);
       if (tools === 0) throw new Error("nodetool mcp serve listed no tools");
