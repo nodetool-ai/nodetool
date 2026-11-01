@@ -50,8 +50,20 @@ export function findListenerPids(port, platform = process.platform) {
     return [...new Set(out.split(/\s+/).filter(Boolean).map(Number))].filter(
       (pid) => Number.isInteger(pid) && pid > 0
     );
+  } catch (error) {
+    // lsof exits non-zero when nothing listens. A Linux without lsof has ss.
+    return error.code === "ENOENT" ? findListenerPidsWithSs(port) : [];
+  }
+}
+
+function findListenerPidsWithSs(port) {
+  try {
+    const out = execFileSync("ss", ["-H", "-ltnp", `sport = :${port}`], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"]
+    });
+    return [...new Set([...out.matchAll(/pid=(\d+)/g)].map((match) => Number(match[1])))];
   } catch {
-    // lsof exits non-zero when nothing listens.
     return [];
   }
 }
