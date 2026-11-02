@@ -45,6 +45,7 @@ QString Preferences::keyboardLayout() const {
     const QString value = m_settings->value("keyboardLayout", "nodetool").toString();
     return validLayout(value) ? value : QStringLiteral("nodetool");
 }
+bool Preferences::keyboardLayoutChosen() const { return m_settings->contains("keyboardLayout"); }
 QString Preferences::cacheFolder() const { return m_settings->value("cacheFolder").toString(); }
 qint64 Preferences::cacheBudgetMb() const {
     return readCacheBudgetMb(*m_settings);

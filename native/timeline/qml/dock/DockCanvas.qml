@@ -72,6 +72,40 @@ Item {
     function restoreMissingMaximizedGroup() {
         if (maximizedGroup && !Model.allGroups(layout).some(group => group.id === maximizedGroup && !!activePanel(group))) maximizedGroup = ""
     }
+    function groupIdOfPanel(id) { const group = Model.groupOfPanel(layout, id); return group ? group.id : "" }
+    function activePanelOfGroup(id) {
+        const group = Model.allGroups(layout).find(entry => entry.id === id)
+        return group ? activePanel(group) : ""
+    }
+    // The group that holds an item, found by place, because the Program and
+    // Timeline panels are not visual children of their groups.
+    function groupIdAt(item) {
+        if (!item) return ""
+        const center = item.mapToItem(root, item.width / 2, item.height / 2)
+        for (const id of Object.keys(slots)) {
+            const group = slots[id] ? slots[id].groupView : null
+            if (!group || !Model.regionOfGroup(layout, id)) continue
+            const local = group.mapFromItem(root, center.x, center.y)
+            if (local.x >= 0 && local.y >= 0 && local.x <= group.width && local.y <= group.height) return id
+        }
+        return ""
+    }
+    // Shows a panel, and shows its side again or leaves a maximized group when
+    // either would hide it. False for a panel with nothing to show.
+    function revealPanel(id) {
+        if (availableIds.indexOf(id) < 0) return false
+        store.dispatch({type: "reveal", panelId: id})
+        const groupId = groupIdOfPanel(id)
+        const region = Model.regionOfGroup(layout, groupId)
+        if (region === "left") leftCollapsed = false
+        if (region === "right") rightCollapsed = false
+        if (maximizedGroup && groupId !== maximizedGroup) maximizedGroup = ""
+        return true
+    }
+    function focusPanelTab(id) {
+        const slot = slots[groupIdOfPanel(id)]
+        if (slot && slot.groupView) slot.groupView.focusTabOf(id)
+    }
     function toggleSide(side) { if (side === "left") leftCollapsed = !leftCollapsed; else if (side === "right") rightCollapsed = !rightCollapsed }
     function toggleMaximize(id) { maximizedGroup = maximizedGroup ? "" : id }
     function moveToRegion(id, region) { store.dispatch(Model.dockMoveToRegion(layout, id, region)) }
@@ -113,7 +147,10 @@ Item {
             return
         }
     }
-    Keys.onEscapePressed: if (dragPanel) cancelDrag()
+    Keys.onEscapePressed: event => {
+        if (dragPanel) cancelDrag()
+        else event.accepted = false
+    }
     DockRegionView {
         dock: root; region: "left"
         width: root.maximizedGroup && root.groups("left").length ? root.width : root.leftExtent

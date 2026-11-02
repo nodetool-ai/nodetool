@@ -44,10 +44,15 @@ is discovered automatically. Other QML needs `nt_qml_files(...)`.
   `gestures.runAction(action, context)`. Make an undoable `run` one `applyEdit` call.
 - Key actions: `nt::wiring::registerKeyAction({name, label, defaultKeys, handler, group})`
   from `KeyActions.h`. Keys are single-chord `QKeySequence`s. The handler is
-  `bool(ClipGestureController&, const QVariantMap&)`. Existing preset bindings
-  take priority. Unhandled keys try the registered defaults. Menus call the same
-  `gestures.runAction(name, context)` dispatcher. Actions appear in the shortcut sheet,
-  in the sheet group named `group`, or in Extensions when it is empty.
+  `bool(ClipGestureController&, const QVariantMap&)`. A key the preset binds means that
+  action alone, even when it refuses. A default key applies only where the preset uses
+  neither that key nor another key for the action, and `shortcutFor` and the sheet follow the same
+  rule. Keys for one preset go in `edit/KeymapOverlay.h`, which changes the generated table
+  without editing `web/`, and need no default. Menus call the same
+  `gestures.runAction(name, context)` dispatcher. Actions with a key appear in the shortcut
+  sheet, in the sheet group named `group`, or in Extensions when it is empty. A handler that
+  returns false must have changed nothing, because a key the Timeline refuses is offered again as
+  it bubbles. `tst_keyboardpresets` fails on a binding with no handler and on a key bound twice.
 - Snap: `nt::wiring::registerSnapProvider(id, provider)` from `SnapProviders.h`.
   Return millisecond candidates from a `SnapRequest` containing the document,
   visible range (scroll position plus viewport width), scale, grid division,

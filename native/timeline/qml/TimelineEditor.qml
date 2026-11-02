@@ -48,7 +48,20 @@ Controls.Control {
     palette.dark: Ui.Theme.borderSubtle
     background: Rectangle { color: Ui.Theme.surfaceCanvas }
     focus: true
-    Keys.onSpacePressed: root.clock.toggle()
+    // Keys.forwardTo below skips a hidden item, and the Timeline is hidden behind another tab
+    // or a maximized group, which is when its panel keys are needed most.
+    Keys.onPressed: event => {
+        const panel = tracksHost.item
+        if (panel && !panel.visible && panel.gestures.handleKey(event.key, event.text, event.modifiers, event.isAutoRepeat)) event.accepted = true
+    }
+    Keys.onSpacePressed: event => {
+        if (event.modifiers === Qt.NoModifier) root.clock.toggle()
+        else event.accepted = false
+    }
+    Keys.onEscapePressed: event => {
+        if (programFullscreen) toggleProgramFullscreen()
+        else event.accepted = false
+    }
     Keys.forwardTo: tracksHost.item ? [tracksHost.item] : []
     Binding { target: root.clock; property: "durationMs"; value: root.timeline.contentEndMs }
     DockLayoutStore { id: layoutStore; objectName: "dockLayoutStore" }
@@ -71,6 +84,68 @@ Controls.Control {
         if (existing) panel.editEntity(assetId)
         else panel.useAsEntity(assetId)
     }
+    // The key of an action under the preset, for a tooltip. A preset can use the key itself.
+    function keyFor(action) {
+        const gestures = tracksHost.item ? tracksHost.item.gestures : null
+        return gestures && gestures.keyboardPreset !== "" ? gestures.shortcutFor(action) : ""
+    }
+    // The panel keys. The two monitors take the focus themselves, because focus on a
+    // tab would give Left and Right to the tab strip.
+    function focusedPanel() {
+        const item = root.Window.activeFocusItem
+        if (!item || item === root) return ""
+        return dockCanvas.activePanelOfGroup(dockCanvas.groupIdAt(item))
+    }
+    function focusPanel(id) {
+        if (!dockCanvas.revealPanel(id)) return false
+        Qt.callLater(() => {
+            const host = id === "tracks" ? tracksHost : id === "program" ? programHost : null
+            if (host && host.item) host.item.forceActiveFocus()
+            else dockCanvas.focusPanelTab(id)
+        })
+        return true
+    }
+    function cyclePanel(step) {
+        const panels = dockCanvas.visiblePanels
+        if (panels.length === 0) return false
+        const at = panels.indexOf(focusedPanel() || "tracks")
+        return focusPanel(panels[(Math.max(0, at) + step + panels.length) % panels.length])
+    }
+    function toggleFocusedGroup() {
+        if (dockCanvas.maximizedGroup) { dockCanvas.maximizedGroup = ""; return true }
+        const groupId = dockCanvas.groupIdAt(root.Window.activeFocusItem === root ? null : root.Window.activeFocusItem)
+        dockCanvas.maximizedGroup = groupId || dockCanvas.groupIdOfPanel("tracks")
+        return true
+    }
+    property bool programFullscreen: false
+    property int visibilityBeforeFullscreen: Window.Windowed
+    function toggleProgramFullscreen() {
+        const window = root.Window.window
+        if (!window) return false
+        if (programFullscreen) {
+            programFullscreen = false
+            dockCanvas.maximizedGroup = ""
+            window.visibility = visibilityBeforeFullscreen
+            if (tracksHost.item) tracksHost.item.forceActiveFocus()
+            return true
+        }
+        if (!dockCanvas.revealPanel("program")) return false
+        visibilityBeforeFullscreen = window.visibility
+        dockCanvas.maximizedGroup = dockCanvas.groupIdOfPanel("program")
+        programFullscreen = true
+        window.visibility = Window.FullScreen
+        // The Timeline had the keys, and it is hidden now.
+        if (programHost.item) programHost.item.forceActiveFocus()
+        return true
+    }
+    // Match Frame and Reveal: the asset in the Library, and for Match Frame the Source tab too.
+    function revealAsset(assetId, showSource) {
+        if (!dockCanvas.revealPanel("assets")) return false
+        const explorer = Context.itemNamed(root, "assetExplorer")
+        if (explorer) explorer.revealAsset(assetId)
+        if (showSource) dockCanvas.revealPanel("source")
+        return true
+    }
     // Reloads the Library after the Entities panel changes an entity, so its menu names the right action.
     function refreshLibrary() {
         const explorer = Context.itemNamed(root, "assetExplorer")
@@ -90,11 +165,12 @@ Controls.Control {
         RowLayout {
             Layout.fillWidth: true
             spacing: Ui.Metrics.md
+            visible: !root.programFullscreen
             ToolButton {
                 objectName: "toggleLeftPanels"
                 visible: dockCanvas.hasLeft
                 label: dockCanvas.leftCollapsed ? qsTr("Show left panels") : qsTr("Hide left panels")
-                shortcut: "Ctrl+B"
+                shortcut: root.keyFor("toggleLeftPanels")
                 iconOnly: true
                 iconName: "panelLeft"
                 active: !dockCanvas.leftCollapsed
@@ -116,7 +192,7 @@ Controls.Control {
                 objectName: "toggleRightPanels"
                 visible: dockCanvas.hasRight
                 label: dockCanvas.rightCollapsed ? qsTr("Show right panels") : qsTr("Hide right panels")
-                shortcut: "Ctrl+Alt+B"
+                shortcut: root.keyFor("toggleRightPanels")
                 iconOnly: true
                 iconName: "panelRight"
                 active: !dockCanvas.rightCollapsed
@@ -134,6 +210,7 @@ Controls.Control {
             registry: root.dockPanels
             availableIds: root.availablePanels
             StablePanelHost {
+                id: programHost
                 dock: dockCanvas
                 panelId: "program"
                 sourceComponent: Component {

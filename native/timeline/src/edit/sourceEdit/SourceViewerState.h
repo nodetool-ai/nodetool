@@ -16,6 +16,8 @@ class SourceViewerState : public QObject {
     Q_PROPERTY(double inMs READ inMs NOTIFY changed)
     Q_PROPERTY(double outMs READ outMs NOTIFY changed)
     Q_PROPERTY(double durationMs READ durationMs NOTIFY changed)
+    // Where Match Frame parked the asset, or 0.
+    Q_PROPERTY(double cueMs READ cueMs NOTIFY cued)
 public:
     explicit SourceViewerState(QObject* parent = nullptr) : QObject(parent) {}
     QVariantMap asset() const { return m_asset; }
@@ -27,6 +29,9 @@ public:
     double inMs() const;
     double outMs() const;
     double durationMs() const;
+    double cueMs() const { return m_cueMs; }
+    // Shows `asset` parked on the source time `timeMs`.
+    void cue(const QVariantMap& asset, double timeMs);
     Q_INVOKABLE void markIn(double timeMs);
     Q_INVOKABLE void markOut(double timeMs);
     Q_INVOKABLE void setIn(const QString& seconds);
@@ -35,9 +40,12 @@ public:
     Q_INVOKABLE QString shortcut(const QString& kind, const QString& preset) const;
 signals:
     void changed();
+    void cued();
 private:
     void setMarks(double inMs, double outMs);
     QPointer<AssetBrowser> m_mediaBrowser;
     QVariantMap m_asset;
     QVariantMap m_marks;
+    QString m_cueAssetId;
+    double m_cueMs = 0;
 };

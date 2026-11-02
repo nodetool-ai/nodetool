@@ -47,6 +47,8 @@ public:
     QVariantMap originals() const { return m_originals; }
     QVariantMap details() const { return m_details; }
     Q_INVOKABLE void requestThumbnail(const QString& assetId);
+    // Asks the server for one asset. assetLocated follows when it exists.
+    Q_INVOKABLE void locateAsset(const QString& assetId);
     QVariantList assets() const { return m_assets.toVariantList(); }
     QString searchText() const { return m_searchText; }
     QString typeFilter() const { return m_typeFilter; }
@@ -91,6 +93,7 @@ signals:
     void assetsChanged();
     void timelineChanged();
     void folderChanged();
+    void assetLocated(const QVariantMap& asset);
 private:
     friend class TestAssetBrowser;
     friend class TestLibraryData;

@@ -45,6 +45,8 @@ class ClipInspectorController : public QObject {
   signals:
     void changed();
     void playheadChanged();
+    // The user changed this row: the keyframe key now keys it.
+    void rowEdited(const QString& row);
 
   private:
     QJsonObject selected() const;

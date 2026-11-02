@@ -243,7 +243,7 @@ QJsonValue call(const QString& fn, const QJsonArray& a) {
             ev.metaKey = e.value(u"metaKey").toBool();
             ev.shiftKey = e.value(u"shiftKey").toBool();
             ev.altKey = e.value(u"altKey").toBool();
-            const QString action = resolveTimelineAction(ev, a.at(1).toString());
+            const QString action = resolveWebTimelineAction(ev, a.at(1).toString());
             out.append(action.isEmpty() ? QJsonValue(QJsonValue::Null) : QJsonValue(action));
         }
         return out;

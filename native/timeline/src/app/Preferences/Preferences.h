@@ -16,6 +16,8 @@ class Preferences : public QObject {
     Q_OBJECT
     QML_ELEMENT
     Q_PROPERTY(QString keyboardLayout READ keyboardLayout WRITE setKeyboardLayout NOTIFY changed)
+    // False until a layout is chosen, so the first launch can offer the choice.
+    Q_PROPERTY(bool keyboardLayoutChosen READ keyboardLayoutChosen NOTIFY changed)
     Q_PROPERTY(QString cacheFolder READ cacheFolder WRITE setCacheFolder NOTIFY changed)
     Q_PROPERTY(qint64 cacheBudgetMb READ cacheBudgetMb WRITE setCacheBudgetMb NOTIFY changed)
     Q_PROPERTY(QString decoderMode READ decoderMode WRITE setDecoderMode NOTIFY changed)
@@ -32,6 +34,7 @@ class Preferences : public QObject {
 public:
     explicit Preferences(QObject* parent = nullptr);
     QString keyboardLayout() const;
+    bool keyboardLayoutChosen() const;
     QString cacheFolder() const;
     qint64 cacheBudgetMb() const;
     QString decoderMode() const;

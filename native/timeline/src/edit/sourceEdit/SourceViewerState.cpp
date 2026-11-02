@@ -36,7 +36,17 @@ void SourceViewerState::setAsset(const QVariantMap& value) {
     m_asset = value;
     const auto id = value.value("id").toString();
     if (!id.isEmpty() && m_marks.value("assetId").toString() != id) { m_marks.clear(); }
+    if (!id.isEmpty() && id != m_cueAssetId) {
+        m_cueAssetId.clear();
+        m_cueMs = 0;
+    }
     emit changed();
+}
+void SourceViewerState::cue(const QVariantMap& asset, double timeMs) {
+    m_cueAssetId = asset.value("id").toString();
+    m_cueMs = timeMs;
+    setAsset(asset);
+    emit cued();
 }
 QString SourceViewerState::mediaType() const {
     return nt::assets::assetMediaType(QJsonObject{{"content_type", QJsonValue::fromVariant(m_asset.value("content_type"))}});

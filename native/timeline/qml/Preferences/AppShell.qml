@@ -41,6 +41,16 @@ Item {
         enabled: !providerDialog.visible
         onActivated: preferencesDialog.open()
     }
+    // Set by main only for a person at the app: no bench, screenshot or test sees it.
+    KeyboardLayoutPrompt {
+        objectName: "keyboardLayoutPrompt"
+        anchors.top: parent.top
+        anchors.topMargin: TimelineMetrics.toolbarHeight + TimelineMetrics.rulerHeight + Ui.Metrics.lg
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: Math.min(Ui.Metrics.dialogCompactWidth, parent.width - 2 * Ui.Metrics.dialogNarrowInset)
+        visible: typeof nativeInteractiveRun !== "undefined" && nativeInteractiveRun && !settingsStore.keyboardLayoutChosen
+        onChosen: layout => settingsStore.keyboardLayout = layout
+    }
     PreferencesDialog {
         id: preferencesDialog
         preferences: settingsStore
