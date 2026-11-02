@@ -1416,6 +1416,29 @@ export const customClipAnimation = z.object({
 export type CustomClipAnimation = z.infer<typeof customClipAnimation>;
 
 /**
+ * What a fixed effect held when the native Effect Controls panel switched it
+ * off. The clip's own fields stay at their identity meanwhile, so every renderer
+ * draws the bypass without knowing about this field. Switching the effect on
+ * writes these values back.
+ */
+export const clipBypassedFixedEffects = z.object({
+  motion: z
+    .object({
+      transform: clipTransform.optional(),
+      curves: z.array(animationPropertyCurve).max(16).optional()
+    })
+    .optional(),
+  opacity: z
+    .object({
+      opacity: z.number().optional(),
+      curves: z.array(animationPropertyCurve).max(16).optional()
+    })
+    .optional(),
+  volume: z.object({ volumeDb: z.number().optional() }).optional()
+});
+export type ClipBypassedFixedEffects = z.infer<typeof clipBypassedFixedEffects>;
+
+/**
  * `POST /api/timelines/animations/bake` — run a custom animation's JS body once
  * and get back the keyframes to store on the clip. Exactly one of `code` and
  * `script_id` names the body; the rest is the context the body reads off
@@ -1982,6 +2005,9 @@ export const timelineClip = z.object({
   /** Without this field Zod strips a clip's audio effects on every PATCH. */
   audioEffects: z.array(clipAudioEffect).optional(),
   audioRole: clipAudioRole.optional(),
+  /** Without this field Zod strips it on every PATCH and a switched-off effect
+   * loses the values it would come back with. */
+  bypassedFixedEffects: clipBypassedFixedEffects.optional(),
   transform: clipTransform.optional(),
   layout: clipLayout.optional(),
   flexItem: clipFlexItem.optional(),

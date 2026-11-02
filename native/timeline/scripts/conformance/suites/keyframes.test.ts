@@ -346,6 +346,126 @@ compare(
   [largeClip, ["offsetX"], 0, 30000],
   keys.moveKeyframes(largeClip, ["offsetX"], 0, 30000)
 );
+// Effect Controls: a selection moved together lands where the web's single move
+// puts each key, taken in the order that keeps keys from overwriting each other,
+// and the graph plots the numbers the web's rows read.
+const panelClip: TimelineClip = {
+  ...clips[9],
+  durationMs: 10000,
+  animations: [
+    {
+      id: "existing-custom",
+      role: "emphasis",
+      preset: "custom",
+      durationMs: 10000,
+      delayMs: 0,
+      params: { keyframed: true },
+      custom: {
+        curves: [
+          {
+            property: "offsetX",
+            keyframes: [
+              { t: 0, value: 0 },
+              { t: 0.25, value: 4, easing: "easeIn" },
+              { t: 0.5, value: 5, easing: "cubic-bezier(0.25,0.1,0.25,1)" },
+              { t: 0.75, value: 9, easing: "hold" },
+              { t: 1, value: 3, easing: "cubic-bezier(0.5,-0.4,0.5,1.4)" }
+            ]
+          },
+          {
+            property: "offsetY",
+            keyframes: [
+              { t: 0, value: 1 },
+              { t: 0.5, value: 2, easing: "easeOut" },
+              { t: 1, value: 8 }
+            ]
+          },
+          {
+            property: "opacity",
+            keyframes: [
+              { t: 0, value: 0.25 },
+              { t: 0.5, value: 1 }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+};
+for (const [selection, deltaMs] of [
+  [[2500, 5000], 1000],
+  [[2500, 5000], 2500],
+  [[2500, 5000], -500],
+  [[5000, 7500], 2500],
+  [[0, 2500, 5000], 1250],
+  [[7500], -7500]
+] as [number[], number][]) {
+  const order = [...selection].sort((a, b) => (deltaMs > 0 ? b - a : a - b));
+  let web: TimelineClip = panelClip;
+  for (const ms of order) {
+    web = {
+      ...web,
+      animations: keys.moveKeyframes(
+        web,
+        ["offsetX", "offsetY"],
+        ms,
+        ms + deltaMs
+      )
+    };
+  }
+  compare(
+    "moveKeyframeSet",
+    [
+      panelClip,
+      {
+        keys: selection.map((atMs) => ({ row: "position", atMs })),
+        deltaMs
+      }
+    ],
+    web.animations
+  );
+}
+for (const easing of ["hold", "cubic-bezier(0.1,0.9,0.2,1)"]) {
+  let web: TimelineClip = panelClip;
+  for (const ms of [2500, 5000]) {
+    web = {
+      ...web,
+      animations: keys.setKeyframeEasing(
+        web,
+        ["offsetX", "offsetY"],
+        ms,
+        easing
+      )
+    };
+  }
+  compare(
+    "easeKeyframeSet",
+    [
+      panelClip,
+      {
+        keys: [2500, 5000].map((atMs) => ({ row: "position", atMs })),
+        easing
+      }
+    ],
+    web.animations
+  );
+}
+for (const row of rowSpecs) {
+  const samples = 40;
+  compare(
+    "rowGraphValues",
+    [panelClip, row.id, 0, 10000, samples],
+    row.inputs.map((input) => ({
+      values: Array.from(
+        { length: samples + 1 },
+        (_, i) =>
+          rows.inputValueAt(panelClip, input, (10000 * i) / samples) *
+          (input.displayScale ?? 1)
+      )
+    }))
+  );
+}
+
 it("compares random and edge-case keyframe helpers and every inspector row exactly", () => {
   const binary = process.env.NT_KEYFRAME_HELPERS;
   if (!binary) throw new Error("NT_KEYFRAME_HELPERS is required");

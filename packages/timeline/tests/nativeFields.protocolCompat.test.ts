@@ -9,11 +9,13 @@
 import { describe, expect, it } from "vitest";
 import {
   clipAudioRole,
+  clipBypassedFixedEffects,
   timelineMarker,
+  type ClipBypassedFixedEffects as ProtocolClipBypassedFixedEffects,
   type ClipAudioRole as ProtocolClipAudioRole,
   type TimelineMarker as ProtocolTimelineMarker
 } from "@nodetool-ai/protocol/api-schemas/timeline.js";
-import type { ClipAudioRole, TimelineMarker } from "../src/types.js";
+import type { ClipAudioRole, ClipBypassedFixedEffects, TimelineMarker } from "../src/types.js";
 
 describe("native editor fields match the protocol", () => {
   it("keeps every marker field through the schema", () => {
@@ -29,6 +31,20 @@ describe("native editor fields match the protocol", () => {
     const protocol: ProtocolTimelineMarker = marker;
     const back: TimelineMarker = protocol;
     expect(timelineMarker.parse(back)).toEqual(marker);
+  });
+
+  it("keeps a switched-off fixed effect through the schema", () => {
+    const stash: ClipBypassedFixedEffects = {
+      motion: {
+        transform: { position: { x: 4, y: 0 }, scale: { x: 1, y: 1 }, rotation: 0, anchor: { x: 0.5, y: 0.5 } },
+        curves: [{ property: "rotation", keyframes: [{ t: 0, value: 1, easing: "hold" }] }]
+      },
+      opacity: { opacity: 0.5, curves: [] },
+      volume: { volumeDb: -6 }
+    };
+    const protocol: ProtocolClipBypassedFixedEffects = stash;
+    const back: ClipBypassedFixedEffects = protocol;
+    expect(clipBypassedFixedEffects.parse(back)).toEqual(stash);
   });
 
   it("lists the same audio roles", () => {

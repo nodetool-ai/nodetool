@@ -1,4 +1,5 @@
 #include "DockLayoutStore.h"
+#include "app/MenuRegistry.h"
 #include "edit/ClipGestureController.h"
 #include "wiring/KeyActions.h"
 
@@ -81,13 +82,15 @@ const bool registered = [] {
         {"panelAssets", "Go to the Library", "assets"}, {"panelSource", "Go to Source", "source"},
         {"panelTimeline", "Go to the Timeline", "tracks"}, {"panelProgram", "Go to Program", "program"},
         {"panelInspector", "Go to the Inspector", "inspector"}, {"panelMixer", "Go to the Mixer", "mixer"},
-        {"panelScript", "Go to Scripts", "script"}, {"panelStoryboard", "Go to Storyboards", "storyboard"}};
+        {"panelScript", "Go to Scripts", "script"}, {"panelStoryboard", "Go to Storyboards", "storyboard"},
+        {"panelEffectControls", "Go to Effect Controls", "effectControls"}};
     for (const auto& entry : panels) {
         const QString panel = entry.panel;
         nt::wiring::registerKeyAction({entry.action, entry.title, {}, [panel](C gestures, V) {
             return callEditor(gestures, "focusPanel", panel);
         }, workspaces});
     }
+    nt::app::registerShellMenuItem({"Window", "panelEffectControls", "Effect Controls"});
     nt::wiring::registerKeyAction({"nextPanel", "Go to the next panel", {}, [](C gestures, V) {
         return callEditor(gestures, "cyclePanel", 1);
     }, workspaces});
