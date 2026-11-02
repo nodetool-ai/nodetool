@@ -1,11 +1,11 @@
 import QtQuick
-import QtQuick.Controls.Basic as Basic
+import QtQuick.Controls.Basic
 import NodeTool.UiPrimitives as Ui
 
-Basic.ToolTip {
+ToolTip {
     id: root
     property Item trigger: null
-    parent: Basic.Overlay.overlay
+    parent: trigger ? trigger.Overlay.overlay : Overlay.overlay
     delay: Metrics.tooltipDelay
     padding: Metrics.sm
     margins: 0

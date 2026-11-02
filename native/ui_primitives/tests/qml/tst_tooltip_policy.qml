@@ -9,6 +9,7 @@ TestCase {
     width: 400
     height: 240
     Item { id: scrollContent; width: parent.width; height: parent.height }
+    Component { id: secondWindow; Window { width: 400; height: 240; visible: true } }
 
     Ui.ToolbarIconButton {
         id: action
@@ -36,6 +37,7 @@ TestCase {
         action.x = 40
         scrollContent.y = 0
         action.visible = true
+        action.parent = scrollContent
     }
 
     function test_anchorRefreshesBeforeShow_data() {
@@ -81,5 +83,17 @@ TestCase {
         compare(tip.y, action.mapToItem(tip.parent, 0, action.height).y)
         action.visible = false
         tryVerify(() => !tip.visible)
+    }
+    function test_reparentingUsesTheNewWindow() {
+        const window = createTemporaryObject(secondWindow, null)
+        verify(window)
+        const tip = findChild(action, "nativeButtonTooltip")
+        action.parent = window.contentItem
+        tip.open()
+        tryVerify(() => tip.visible, 1500)
+        compare(tip.parent.Window.window, window)
+        compare(tip.x, action.mapToItem(tip.parent, 0, action.height).x)
+        tip.close()
+        action.parent = scrollContent
     }
 }
