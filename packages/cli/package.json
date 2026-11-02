@@ -19,6 +19,7 @@
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
+    "@nodetool-ai/config": "*",
     "commander": "^12.1.0",
     "@nodetool-ai/server-minimal": "*",
     "@nodetool-ai/nodes-core": "*",

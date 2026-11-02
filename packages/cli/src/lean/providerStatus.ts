@@ -1,5 +1,6 @@
 import { accessSync, constants, statSync } from "node:fs";
 import { delimiter, join } from "node:path";
+import { runtimeLocations, sdServerPath } from "@nodetool-ai/config";
 
 /**
  * Credential requirements of the remote providers the runtime registers
@@ -69,12 +70,12 @@ const PACK_PROVIDERS: readonly { readonly id: string; readonly name: string; rea
   { id: "whisper_cpp", name: "whisper.cpp (local)", pack: "whisper-cpp" }
 ];
 
-export type CredentialSource = "env" | "stored" | "claude CLI" | "pack";
+export type CredentialSource = "env" | "stored" | "claude CLI" | "pack" | "runtime";
 
 export interface ProviderState {
   readonly id: string;
   readonly name: string;
-  /** Credential names (never values), or the executable or pack that enables the provider. */
+  /** Credential names (never values), or the executable, pack or runtime that enables the provider. */
   readonly requires: string;
   readonly usable: boolean;
   readonly source: CredentialSource | null;
@@ -117,6 +118,18 @@ function credentialSource(name: string, input: ProviderStateInput): CredentialSo
   return [name, ...CREDENTIAL_ALIASES[name] ?? []].some(candidate => input.env[candidate]) ? "env" : null;
 }
 
+/** Check the same binary locations as the runtime provider, without loading it or starting sd-server. */
+function hasSdCppRuntime(env: NodeJS.ProcessEnv): boolean {
+  const directories = [runtimeLocations(env).sdCpp, runtimeLocations({ ...env, NODETOOL_HOST: "cli" }).sdCpp];
+  const executable = process.platform === "win32" ? "sd-server.exe" : "sd-server";
+  const candidates = [
+    env.SD_CPP_SERVER_PATH?.trim(),
+    ...directories.filter((directory): directory is string => directory !== null).map(directory => sdServerPath(directory, process.platform)),
+    ...(env.PATH ?? "").split(delimiter).filter(Boolean).map(directory => join(directory, executable))
+  ];
+  return candidates.some(candidate => candidate !== undefined && isExecutable(candidate));
+}
+
 /** Credential state of every known provider, without reading any secret value. */
 export function providerStates(input: ProviderStateInput): ProviderState[] {
   const keyed = KEYED_PROVIDERS.map(provider => {
@@ -125,8 +138,10 @@ export function providerStates(input: ProviderStateInput): ProviderState[] {
     return { id: provider.id, name: provider.name, requires: provider.credentials.join(" + "), usable, source: usable ? sources.includes("stored") ? "stored" as const : "env" as const : null };
   });
   const claude = findClaudeCli(input.env) !== null;
+  const sdCpp = hasSdCppRuntime(input.env);
   const local: ProviderState[] = [
     { id: "claude_agent_sdk", name: "Claude (claude CLI login)", requires: "claude CLI", usable: claude, source: claude ? "claude CLI" : null },
+    { id: "stable_diffusion_cpp", name: "stable-diffusion.cpp (local images)", requires: "runtime sd-cpp (`nodetool runtime add sd-cpp`) or SD_CPP_SERVER_PATH", usable: sdCpp, source: sdCpp ? "runtime" : null },
     ...PACK_PROVIDERS.map(provider => {
       const installed = input.installedPacks.has(provider.pack);
       return { id: provider.id, name: provider.name, requires: `pack ${provider.pack}`, usable: installed, source: installed ? "pack" as const : null };

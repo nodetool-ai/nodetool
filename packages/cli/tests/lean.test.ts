@@ -53,6 +53,31 @@ describe("lean execution CLI", () => {
       expect(output.join("")).not.toContain("private-fal");
     } finally { await rm(bin, { recursive: true, force: true }); }
   });
+  it("exposes stable-diffusion.cpp installation requirements without loading a feature", async () => {
+    const home = await mkdtemp(join(tmpdir(), "nodetool-sdcpp-missing-"));
+    try {
+      for (const command of [["providers", "list", "--all"], ["providers", "info", "stable_diffusion_cpp"], ["info", "--json"]]) {
+        const output: string[] = [];
+        await createProgram({ env: { HOME: home, PATH: "" }, stdout: value => output.push(value) })
+          .parseAsync(["node", "nodetool", ...command]);
+        expect(output.join("")).toContain("stable_diffusion_cpp");
+        expect(output.join("")).toContain("nodetool runtime add sd-cpp");
+      }
+    } finally { await rm(home, { recursive: true, force: true }); }
+  });
+  it.each([["providers", "list"], ["models", "providers"]])("lists the installed image provider with %s %s", async (...command) => {
+    const home = await mkdtemp(join(tmpdir(), "nodetool-sdcpp-installed-"));
+    try {
+      const binary = join(home, process.platform === "win32" ? "sd-server.exe" : "sd-server");
+      await writeFile(binary, "fixture", { mode: 0o755 });
+      const output: string[] = [];
+      await createProgram({ env: { HOME: home, PATH: "", SD_CPP_SERVER_PATH: binary }, stdout: value => output.push(value) })
+        .parseAsync(["node", "nodetool", ...command]);
+      expect(JSON.parse(output.join(""))).toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: "stable_diffusion_cpp", usable: true, source: "runtime" })
+      ]));
+    } finally { await rm(home, { recursive: true, force: true }); }
+  });
   it("selects one admitted feature for overlapping optional command flags", async () => {
     const run = vi.fn(async (_argv: readonly string[]) => {});
     vi.mocked(loadInstalledCommandFeature).mockResolvedValueOnce({ run });
