@@ -192,6 +192,10 @@ describe("timeline zip routes", () => {
     expect(strFromU8(entries["export-report.txt"])).toContain(
       "choose File > Import and pick My_Cut.xml"
     );
+    // The report also rides in a header, so a client need not open the zip.
+    expect(
+      JSON.parse(decodeURIComponent(String(res.headers["x-nodetool-export-report"])))
+    ).toMatchObject({ clipsExported: 1, omitted: 0 });
   });
 
   it("exports a media zip with each clip's file and a clip list", async () => {
