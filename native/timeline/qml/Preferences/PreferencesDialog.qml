@@ -172,10 +172,17 @@ Ui.Dialog {
                 checked: sheet.preferences.shuttleKeepsPitch
                 onChange: next => sheet.preferences.shuttleKeepsPitch = next
             }
+            InspectorToggleRow {
+                objectName: "libraryHoverScrub"
+                label: "Scrub clips in the Library"
+                width: parent.width
+                checked: LibraryScrub.enabled
+                onChange: next => LibraryScrub.enabled = next
+            }
         }
         Ui.Text {
             width: parent.width
-            text: "System motion follows the device setting where available. Otherwise, full motion is used.\nCache folder, cache budget, decoder and audio device apply on the next launch. Shift+S toggles audio while scrubbing. A cache budget of 0 or less disables eviction."
+            text: "System motion follows the device setting where available. Otherwise, full motion is used.\nCache folder, cache budget, decoder and audio device apply on the next launch. Shift+S toggles audio while scrubbing. Shift+H toggles scrubbing clips in the Library. A cache budget of 0 or less disables eviction."
             wrapMode: Text.WordWrap
             tone: Ui.Text.Secondary
             role: Ui.Typography.SansLabel
