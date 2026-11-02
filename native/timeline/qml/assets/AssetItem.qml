@@ -21,6 +21,11 @@ Rectangle {
     readonly property bool isFolder: asset.content_type === "folder"
     readonly property string poster: asset.thumb_url || (mediaType === "image" ? asset.get_url || "" : "")
     readonly property bool showCaption: hover.hovered || activeFocus
+    // The pointer scrubs this video tile (the Library hover scrub).
+    readonly property bool scrubbing: mediaType === "video" && LibraryScrub.enabled && LibraryScrub.hoveredId === (asset.id || "-")
+    function scrubTo(x) {
+        if (mediaType === "video" && !isFolder && width > 0 && !dragging) LibraryScrub.hover(asset, x / width)
+    }
     readonly property bool dragging: dragPoint.Drag.active
     readonly property bool dropAllowed: !!dragPoint.Drag.target && dragPoint.Drag.target.dropAllowed !== false
     readonly property int dragAction: dragPoint.Drag.target && dragPoint.Drag.target.dropAction === Qt.MoveAction ? Qt.MoveAction : Qt.CopyAction
@@ -66,6 +71,29 @@ Rectangle {
         name: tile.mediaType === "audio" ? "audiotrack" : tile.mediaType === "video" ? "videocam" : "layers"
         domainColor: TimelineVisuals.clipAccent(tile.mediaType)
     }
+    // Built only for the tile under the pointer, so a long Library carries no scrub items.
+    Loader {
+        anchors.fill: parent
+        active: tile.scrubbing
+        sourceComponent: Item {
+            LibraryScrubFrame {
+                objectName: "libraryScrubFrame"
+                x: Ui.Metrics.border
+                y: Ui.Metrics.border
+                width: parent.width - 2 * Ui.Metrics.border
+                height: parent.height - 2 * Ui.Metrics.border
+                visible: LibraryScrub.frameReady
+                scrub: LibraryScrub
+            }
+            Rectangle {
+                objectName: "libraryScrubPlayhead"
+                x: Math.round(LibraryScrub.fraction * (parent.width - width))
+                width: Ui.Metrics.focus
+                height: parent.height
+                color: TimelineVisuals.overlay
+            }
+        }
+    }
     Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
@@ -100,7 +128,15 @@ Rectangle {
             }
         }
     }
-    HoverHandler { id: hover; cursorShape: mouse.cursorShape }
+    HoverHandler {
+        id: hover
+        cursorShape: mouse.cursorShape
+        onPointChanged: { if (hovered) tile.scrubTo(point.position.x) }
+        onHoveredChanged: {
+            if (hovered) tile.scrubTo(point.position.x)
+            else LibraryScrub.leave(tile.asset.id || "")
+        }
+    }
     Loader {
         parent: tile.Window.window ? tile.Window.window.contentItem : tile
         anchors.fill: parent
@@ -192,6 +228,8 @@ Rectangle {
         onDoubleClicked: { if (tile.isFolder) tile.openFolder(); else tile.previewRequested() }
         onPressed: event => {
             tile.forceActiveFocus()
+            // Source opens at the hovered time, so the cue goes in before the selection reaches it.
+            if (event.button === Qt.LeftButton && tile.scrubbing) LibraryScrub.cue(tile.asset)
             tile.selectedByUser()
             if (event.button === Qt.RightButton) tile.actionsRequested()
             dragPoint.x = event.x

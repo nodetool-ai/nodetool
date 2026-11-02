@@ -61,6 +61,10 @@ public:
     void cue(const QVariantMap& asset, double timeMs);
     Q_INVOKABLE void markIn(double timeMs);
     Q_INVOKABLE void markOut(double timeMs);
+    // Marks `edge` ("in" or "out") of any video asset at `timeMs`, without opening it in Source.
+    Q_INVOKABLE bool markAsset(const QVariantMap& asset, const QString& edge, double timeMs);
+    // The saved marks of an asset (tests and the Library).
+    QJsonObject savedMarks(const QString& assetId);
     Q_INVOKABLE void setIn(const QString& seconds);
     Q_INVOKABLE void setOut(const QString& seconds);
     Q_INVOKABLE bool perform(const QString& kind, ClipGestureController* gestures);
@@ -72,6 +76,7 @@ signals:
     void errorChanged();
 private:
     void writeMarks(const QVariantMap& marks);
+    void persistMarks(const QString& id, const QJsonObject& stored);
     void loadMarks();
     void setError(const QString& error);
     bool applyPlacement(nt::sourceedit::Placement placement, ClipGestureController* gestures);
