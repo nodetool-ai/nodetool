@@ -84,7 +84,7 @@ export default function AgentsPage() {
               id="agents-hero-title"
               className="mt-4 text-balance text-4xl font-semibold leading-[1.08] tracking-tight text-slate-50 sm:text-5xl xl:text-[3.5rem]"
             >
-              The open-source creative harness for your agent.
+              Give Claude Code a creative harness.
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-slate-300">
               {AGENTS_LEAD}
@@ -265,10 +265,11 @@ export default function AgentsPage() {
               Put the agent you already use in the harness.
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-slate-300">
-              MCP is the standard way AI agents connect to outside tools. One
-              command gives your coding agent NodeTool&apos;s workflows, image,
-              video, and audio generation, and your saved media. You do not need
-              Studio installed.
+              One command adds NodeTool to Claude Code, Codex, or OpenCode over
+              MCP, the standard way agents connect to outside tools. Your coding
+              agent can then generate images, video, and audio, wire workflows,
+              and cut timelines you open later in Studio. You do not need Studio
+              installed to start.
             </p>
           </header>
           <div className="min-w-0 lg:col-span-7">

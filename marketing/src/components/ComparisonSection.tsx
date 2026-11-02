@@ -77,7 +77,7 @@ export default function ComparisonSection({
             transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
-            How NodeTool differs from hosted AI apps.
+            Hosted AI apps keep the project. NodeTool gives it to you.
           </motion.h2>
           <motion.p
             initial={false}
@@ -87,8 +87,9 @@ export default function ComparisonSection({
             className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl"
           >
             Most AI video apps run only on their own servers. They choose which
-            models you get, charge you in their own credits, and keep your
-            project inside their app. NodeTool leaves those choices with you.
+            models you get, sell you credits for each try, and hand back an
+            exported video while the project stays in their app. NodeTool leaves
+            those choices, and the project, with you.
           </motion.p>
         </header>
 
@@ -196,13 +197,14 @@ export default function ComparisonSection({
                 Where NodeTool fits
               </div>
               <h3 className="text-2xl md:text-3xl font-semibold text-white mb-5 tracking-tight">
-                Pick the model. Pick the price.
+                Same model, several providers. Pick the cheapest.
               </h3>
               <p className="text-slate-300 leading-relaxed mb-4 text-[1.025rem]">
                 Seedance is one of today&apos;s best video models. fal.ai,
                 Replicate, and Kie.ai each sell access to it at a different
-                price, and NodeTool lets you pick the cheapest. When a better
-                model arrives, you switch to it in one click.
+                price, and NodeTool lets you pick the cheapest for each run. When
+                a better model arrives, you switch to it in one click and the
+                wires in your graph stay where they are.
               </p>
               <p className="text-slate-400 leading-relaxed text-[1.025rem]">
                 Because the accounts are yours, you can use the best model at the

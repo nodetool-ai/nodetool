@@ -8,29 +8,26 @@ export default function NodeToolHero() {
   return (
     <div className="relative w-full text-slate-200">
       <div className="hero-rise mx-auto flex max-w-4xl flex-col items-center text-center">
-        <span className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-300">
-          <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
-          Agents build. You edit.
-        </span>
+        {/* The category line stays visible above the contrast, and the
+            metadata stays category-led (NARRATIVE.md § Positioning line). */}
+        <p className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-300">
+          <span className="h-1.5 w-1.5 rounded-full bg-blue-400" aria-hidden="true" />
+          Open-source agent-first creative workspace
+        </p>
 
-        {/* Each phrase stays on one line so the headline never splits
-            "agent-first" at its hyphen. */}
         <h1
           id="hero-title"
           className="mt-6 text-balance text-4xl font-bold leading-[1.05] tracking-tight text-slate-50 sm:text-6xl lg:text-7xl"
         >
-          <span className="whitespace-nowrap">Open-source</span>{" "}
-          <span className="whitespace-nowrap">agent-first</span>{" "}
-          <span className="text-sky-200">
-            creative workspace
-          </span>
+          Stop prompting slot machines.{" "}
+          <span className="text-sky-200">Direct the agent.</span>
         </h1>
 
         <p className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-slate-300 sm:text-xl">
-          NodeTool is a free app for making media with AI. Tell the built-in
-          agent what you want. It writes the script, plans the shots, generates
-          them with the AI models you choose, and edits them together. You get
-          a project you can open and change, not just a finished file.
+          Most AI video apps charge you to roll the dice, then hand back a flat
+          MP4 you can&apos;t edit. In NodeTool the agent writes the script,
+          boards the shots, and cuts a multi-track timeline. Every shot, voice
+          line, and node stays open for you to change by hand.
         </p>
 
         <div className="mt-8 flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row">
@@ -87,7 +84,7 @@ export default function NodeToolHero() {
             className="flex h-full items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-emerald-100 transition-colors hover:border-emerald-400 focus-ring"
           >
             <KeyRound className="h-4 w-4 shrink-0 text-emerald-400" aria-hidden />
-            Your ChatGPT, Claude, or Gemini plan, or your own API keys
+            Your $20 ChatGPT, Claude, or Gemini plan, or your own API keys
           </a>
         </li>
         <li className="flex items-center justify-center gap-2 rounded-xl border border-slate-800/80 bg-slate-900/40 px-4 py-3">

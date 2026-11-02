@@ -13,7 +13,7 @@ const routes = [
   },
   {
     path: "/agents",
-    heading: "The open-source creative harness for your agent.",
+    heading: "Give Claude Code a creative harness.",
     primary: /Download Studio/,
   },
 ];
