@@ -16,13 +16,12 @@ const maxWorkers = configuredWorkers
 
 export default {
   preset: "ts-jest",
-  testEnvironment: "jsdom",
+  // jsdom with a resource loader that decodes `data:` URLs and fetches
+  // nothing else. `resources: "usable"` fetched real remote images rendered by
+  // UI suites, including Supabase preset previews. See jest.environment.cjs.
+  testEnvironment: "<rootDir>/jest.environment.cjs",
   testEnvironmentOptions: {
     customExportConditions: ["node", "node-addons"],
-    // Keep jsdom subresource loading disabled in unit tests. Enabling
-    // `resources: "usable"` fetches real remote images rendered by UI suites,
-    // including Supabase preset previews, and can incur substantial egress.
-    // Tests requiring network resources must use explicit local mocks.
     pretendToBeVisual: true
   },
   testTimeout: 10000,
