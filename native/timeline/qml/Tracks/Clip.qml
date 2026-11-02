@@ -176,7 +176,7 @@ Item {
         return null
     }
     function cursorFor(part, pressed, area) {
-        if (part !== "body") {
+        if (part !== "body" && area.containsMouse) {
             const owner = slotHit(area, area.mouseX, area.mouseY, Qt.LeftButton)
             if (owner) return owner.cursorShape
         }
