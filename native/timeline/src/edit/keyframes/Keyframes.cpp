@@ -1,9 +1,12 @@
 #include "Keyframes.h"
 #include "scene/Animation.h"
 
+#include <QHash>
+#include <QRegularExpression>
 #include <QSet>
 #include <QUuid>
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <functional>
 #include <limits>
@@ -482,6 +485,344 @@ QJsonObject gizmo(const QJsonObject& clip, const QJsonObject& next, const QJsonV
     return entries.isEmpty() ? QJsonObject{{"transform", next}}
                              : QJsonObject{{"transform", t}, {"animations", setMany(clip, entries, ms)}};
 }
+// A set of keyframes named by row and clip time, per curve property, with the lookups a
+// large selection needs: one sort, then a binary search per stored keyframe.
+struct KeyRequest {
+    double t = 0;
+    double ms = 0;
+};
+using KeySet = QHash<QString, std::vector<KeyRequest>>;
+std::optional<KeySet> keySet(const QJsonObject& clip, const QJsonValue& value) {
+    const auto list = value.toArray();
+    if (list.isEmpty()) {
+        return std::nullopt;
+    }
+    KeySet result;
+    for (const auto& item : list) {
+        const auto key = item.toObject();
+        const auto ps = properties(key["row"].toString());
+        if (ps.isEmpty() || !key["atMs"].isDouble()) {
+            return std::nullopt;
+        }
+        const double ms = key["atMs"].toDouble();
+        for (const auto& p : ps) {
+            result[p].push_back({toT(clip, ms), ms});
+        }
+    }
+    for (auto& requests : result) {
+        std::sort(requests.begin(), requests.end(), [](const auto& a, const auto& b) { return a.t < b.t; });
+    }
+    return result;
+}
+const KeyRequest* findRequest(const std::vector<KeyRequest>& requests, double t) {
+    const auto hit = std::lower_bound(requests.begin(), requests.end(), t - epsilon,
+                                      [](const KeyRequest& a, double b) { return a.t <= b; });
+    return hit != requests.end() && std::abs(hit->t - t) < epsilon ? &*hit : nullptr;
+}
+bool nearSorted(const std::vector<double>& sortedTimes, double t) {
+    const auto hit = std::upper_bound(sortedTimes.begin(), sortedTimes.end(), t - epsilon);
+    return hit != sortedTimes.end() && std::abs(*hit - t) < epsilon;
+}
+// Moves a selection by one delta, clamped so that every key stays on the clip. Ported
+// from FilmCraft crates/engine/src/keyframe_move.rs (licenses/FilmCraft-MIT.txt): all the
+// originals leave before any key lands, so keys can move into each other's old positions.
+// A key that lands on an unselected one replaces it, as the single move does.
+QJsonValue moveMany(const QJsonObject& clip, const QJsonObject& payload) {
+    const auto selection = keySet(clip, payload["keys"]);
+    const double duration = clip["durationMs"].toDouble();
+    if (!selection || duration <= 0) {
+        return QJsonValue::Null;
+    }
+    double low = -std::numeric_limits<double>::infinity();
+    double high = std::numeric_limits<double>::infinity();
+    for (const auto& requests : *selection) {
+        for (const auto& request : requests) {
+            low = std::max(low, -request.ms);
+            high = std::min(high, duration - request.ms);
+        }
+    }
+    if (low > high) {
+        return QJsonValue::Null;
+    }
+    const double delta = std::clamp(payload["deltaMs"].toDouble(), low, high);
+    if (delta == 0) {
+        return QJsonValue::Null;
+    }
+    QJsonArray result;
+    for (const auto& value : curves(clip)) {
+        auto curve = value.toObject();
+        const auto requests = selection->constFind(curve["property"].toString());
+        if (requests == selection->constEnd()) {
+            result.append(curve);
+            continue;
+        }
+        const auto kfs = curve["keyframes"].toArray();
+        std::vector<QJsonObject> moved;
+        std::vector<double> targets;
+        QSet<const KeyRequest*> used;
+        std::vector<bool> leaving(static_cast<size_t>(kfs.size()), false);
+        for (qsizetype i = 0; i < kfs.size(); ++i) {
+            auto k = kfs[i].toObject();
+            const auto* request = findRequest(*requests, k["t"].toDouble());
+            if (!request || used.contains(request)) {
+                continue;
+            }
+            used.insert(request);
+            leaving[static_cast<size_t>(i)] = true;
+            const double target = toT(clip, request->ms + delta);
+            k.insert("t", target);
+            moved.push_back(k);
+            targets.push_back(target);
+        }
+        std::sort(targets.begin(), targets.end());
+        QJsonArray kept;
+        for (qsizetype i = 0; i < kfs.size(); ++i) {
+            const auto k = kfs[i].toObject();
+            if (!leaving[static_cast<size_t>(i)] && !nearSorted(targets, k["t"].toDouble())) {
+                kept.append(k);
+            }
+        }
+        for (const auto& k : moved) {
+            kept.append(k);
+        }
+        curve.insert("keyframes", moved.empty() ? kept : sorted(kept));
+        result.append(curve);
+    }
+    return QJsonObject{{"animations", withCurves(clip, result)}};
+}
+QJsonValue easingMany(const QJsonObject& clip, const QJsonObject& payload) {
+    const auto selection = keySet(clip, payload["keys"]);
+    auto a = animation(clip);
+    if (!selection || !a["custom"].isObject() || !payload["easing"].isString()) {
+        return QJsonValue::Null;
+    }
+    const auto easing = payload["easing"].toString();
+    QJsonArray result;
+    for (const auto& value : curves(clip)) {
+        auto c = value.toObject();
+        const auto requests = selection->constFind(c["property"].toString());
+        QJsonArray kfs;
+        for (const auto& item : c["keyframes"].toArray()) {
+            auto k = item.toObject();
+            if (requests != selection->constEnd() && findRequest(*requests, k["t"].toDouble())) {
+                k.insert("easing", easing);
+            } else if (a.contains("easing")) {
+                k.insert("easing", a["easing"]);
+            }
+            kfs.append(k);
+        }
+        c.insert("keyframes", kfs);
+        result.append(c);
+    }
+    a.remove("easing");
+    a.insert("custom", merged(a["custom"].toObject(), {{"curves", result}}));
+    auto animations = clip["animations"].toArray();
+    animations[animationIndex(clip)] = a;
+    return QJsonObject{{"animations", animations}};
+}
+// Deletes per row, as toggling each key off would: a row left with no key stops animating
+// at the value of its last key.
+QJsonValue deleteMany(const QJsonObject& clip, const QJsonObject& payload) {
+    const auto list = payload["keys"].toArray();
+    const auto selection = keySet(clip, payload["keys"]);
+    if (!selection) {
+        return QJsonValue::Null;
+    }
+    QHash<QString, std::vector<double>> rows;
+    for (const auto& item : list) {
+        const auto key = item.toObject();
+        rows[key["row"].toString()].push_back(key["atMs"].toDouble());
+    }
+    auto working = clip;
+    QJsonObject patch;
+    for (auto row = rows.begin(); row != rows.end(); ++row) {
+        const auto ps = properties(row.key());
+        auto& removing = row.value();
+        std::sort(removing.begin(), removing.end());
+        bool remaining = false;
+        for (const auto& t : times(working, ps)) {
+            const auto hit = std::lower_bound(removing.begin(), removing.end(), t.toDouble() - 0.5);
+            remaining = remaining || hit == removing.end() || std::abs(*hit - t.toDouble()) > 0.5;
+        }
+        QJsonObject step;
+        if (remaining) {
+            QJsonArray result;
+            for (const auto& value : curves(working)) {
+                auto curve = value.toObject();
+                const auto property = curve["property"].toString();
+                if (ps.contains(property)) {
+                    const auto& requests = selection->find(property).value();
+                    QJsonArray kept;
+                    for (const auto& k : curve["keyframes"].toArray()) {
+                        if (!findRequest(requests, k.toObject()["t"].toDouble())) {
+                            kept.append(k);
+                        }
+                    }
+                    curve.insert("keyframes", kept);
+                }
+                result.append(curve);
+            }
+            step = {{"animations", withCurves(working, result)}};
+        } else {
+            const auto stopped = stopwatch(working, row.key(), removing.back());
+            if (!stopped.isObject()) {
+                return QJsonValue::Null;
+            }
+            step = stopped.toObject();
+        }
+        working = merged(working, step);
+        patch = merged(patch, step);
+    }
+    return patch;
+}
+// The enable switch of a fixed effect. A switched-off group moves its values aside and
+// leaves the document at the identity, so every renderer draws the bypass with no change of
+// its own. The group's fields stay in `bypassedFixedEffects` until it is switched back on.
+struct FixedGroup {
+    QStringList fields;
+    QStringList curveProperties;
+};
+std::optional<FixedGroup> fixedGroup(const QString& group) {
+    if (group == "motion") {
+        return FixedGroup{{"transform"}, {"offsetX", "offsetY", "scale", "rotation"}};
+    }
+    if (group == "opacity") {
+        return FixedGroup{{"opacity"}, {"opacity"}};
+    }
+    if (group == "volume") {
+        return FixedGroup{{"volumeDb"}, {}};
+    }
+    return std::nullopt;
+}
+QJsonObject restoredGroup(QJsonObject clip, const QJsonObject& stash) {
+    for (auto i = stash.begin(); i != stash.end(); ++i) {
+        if (i.key() != "curves") {
+            clip.insert(i.key(), i.value());
+        }
+    }
+    const auto saved = stash["curves"].toArray();
+    if (!saved.isEmpty()) {
+        auto all = curves(clip);
+        for (const auto& curve : saved) {
+            all.append(curve);
+        }
+        clip.insert("animations", withCurves(clip, all));
+    }
+    return clip;
+}
+std::optional<QJsonObject> bypass(QJsonObject clip, const QJsonObject& payload) {
+    const auto group = payload["group"].toString();
+    const auto spec = fixedGroup(group);
+    if (!spec || !payload["enabled"].isBool()) {
+        return std::nullopt;
+    }
+    auto stash = clip["bypassedFixedEffects"].toObject();
+    const bool off = stash.contains(group);
+    if (payload["enabled"].toBool()) {
+        if (!off) {
+            return std::nullopt;
+        }
+        clip = restoredGroup(clip, stash[group].toObject());
+        stash.remove(group);
+    } else {
+        if (off) {
+            return std::nullopt;
+        }
+        QJsonObject saved;
+        for (const auto& field : spec->fields) {
+            if (clip.contains(field)) {
+                saved.insert(field, clip[field]);
+                clip.remove(field);
+            }
+        }
+        // An animation-wide easing stays on the animation, so each saved key takes it along.
+        const QJsonValue override = animation(clip).value("easing");
+        QJsonArray savedCurves;
+        for (const auto& value : curves(clip)) {
+            auto curve = value.toObject();
+            if (!spec->curveProperties.contains(curve["property"].toString())) {
+                continue;
+            }
+            if (!override.isUndefined()) {
+                QJsonArray kfs;
+                for (const auto& k : curve["keyframes"].toArray()) {
+                    auto next = k.toObject();
+                    next.insert("easing", override);
+                    kfs.append(next);
+                }
+                curve.insert("keyframes", kfs);
+            }
+            savedCurves.append(curve);
+        }
+        if (!savedCurves.isEmpty()) {
+            saved.insert("curves", savedCurves);
+            clip.insert("animations", update(clip, spec->curveProperties, "clear", 0));
+        }
+        stash.insert(group, saved);
+    }
+    if (stash.isEmpty()) {
+        clip.remove("bypassedFixedEffects");
+    } else {
+        clip.insert("bypassedFixedEffects", stash);
+    }
+    return clip;
+}
+// One input's composed curve in display units. It parses the keys once, so a graph costs one
+// pass per sample instead of one sort per sample, and folds them as curveValue does.
+class SampledCurve {
+  public:
+    SampledCurve(const QJsonObject& clip, const Input& input, double scale)
+        : m_property(input.property), m_base(base(clip, input)), m_scale(scale) {
+        const auto kfs = sorted(keys(clip, input.property));
+        const QJsonValue override = animation(clip).value("easing");
+        m_points.reserve(static_cast<size_t>(kfs.size()));
+        for (const auto& value : kfs) {
+            const auto k = value.toObject();
+            const auto easing = override.isUndefined() ? k["easing"].toString("linear") : override.toString();
+            m_points.push_back({k["t"].toDouble(), k["value"].toDouble(), easing.toStdString()});
+        }
+    }
+    double at(double t) const {
+        return (m_points.empty() ? m_base : compose(m_property, m_base, keyed(t))) * m_scale;
+    }
+
+  private:
+    struct Point {
+        double t;
+        double value;
+        std::string easing;
+    };
+    double keyed(double t) const {
+        if (t <= m_points.front().t) {
+            return m_points.front().value;
+        }
+        if (t >= m_points.back().t) {
+            return m_points.back().value;
+        }
+        const auto b = std::lower_bound(m_points.begin(), m_points.end(), t,
+                                        [](const Point& point, double value) { return point.t < value; });
+        const auto a = std::prev(b);
+        const double span = b->t - a->t;
+        const double f = span > 0 ? nt::scene::ease(b->easing, (t - a->t) / span) : 1;
+        return a->value + (b->value - a->value) * f;
+    }
+    QString m_property;
+    double m_base;
+    double m_scale;
+    std::vector<Point> m_points;
+};
+std::vector<double> displayScales(const QString& row) {
+    std::vector<double> result;
+    for (const auto& value : rowSpecs()) {
+        const auto spec = value.toObject();
+        if (spec["id"] == row) {
+            for (const auto& input : spec["inputs"].toArray()) {
+                result.push_back(input.toObject()["displayScale"].toDouble(1));
+            }
+        }
+    }
+    return result;
+}
 } // namespace
 QJsonObject transform(const QJsonObject& clip) {
     if (clip["transform"].isObject()) {
@@ -491,6 +832,156 @@ QJsonObject transform(const QJsonObject& clip) {
             {"scale", QJsonObject{{"x", 1}, {"y", 1}}},
             {"rotation", 0},
             {"anchor", QJsonObject{{"x", 0.5}, {"y", 0.5}}}};
+}
+QJsonObject withBypassRestored(const QJsonObject& clip) {
+    if (!clip.contains("bypassedFixedEffects")) {
+        return clip;
+    }
+    auto shown = clip;
+    const auto stash = clip["bypassedFixedEffects"].toObject();
+    for (auto i = stash.begin(); i != stash.end(); ++i) {
+        shown = restoredGroup(shown, i.value().toObject());
+    }
+    shown.remove("bypassedFixedEffects");
+    return shown;
+}
+QJsonObject rowGraphSamples(const QJsonObject& clip, const QString& row, double fromMs, double toMs, int samples) {
+    const int count = std::max(1, samples);
+    const auto specs = inputs(row);
+    const auto scales = displayScales(row);
+    const double span = std::max(toMs - fromMs, 1e-6);
+    QJsonArray curvesOut;
+    std::vector<std::vector<double>> plotted;
+    for (size_t input = 0; input < specs.size(); ++input) {
+        const SampledCurve curve(clip, specs[input], scales[input]);
+        QJsonArray values;
+        std::vector<double> plot;
+        plot.reserve(static_cast<size_t>(count) + 1);
+        for (int i = 0; i <= count; ++i) {
+            const double value = curve.at(toT(clip, fromMs + span * i / count));
+            plot.push_back(value);
+            values.append(value);
+        }
+        curvesOut.append(QJsonObject{{"values", values}});
+        plotted.push_back(std::move(plot));
+    }
+    QJsonArray velocity;
+    double vmax = 0;
+    const double seconds = span / count / 1000;
+    for (size_t i = 0; i < static_cast<size_t>(count) && !plotted.empty(); ++i) {
+        double value = 0;
+        if (plotted.size() == 1) {
+            value = (plotted[0][i + 1] - plotted[0][i]) / seconds;
+        } else {
+            for (const auto& plot : plotted) {
+                const double d = (plot[i + 1] - plot[i]) / seconds;
+                value += d * d;
+            }
+            value = std::sqrt(value);
+        }
+        velocity.append(value);
+        vmax = std::max(vmax, std::abs(value));
+    }
+    return {{"curves", curvesOut}, {"velocity", velocity}, {"vmax", vmax}};
+}
+QJsonObject rowGraphKeys(const QJsonObject& clip, const QString& row) {
+    const auto specs = inputs(row);
+    const auto scales = displayScales(row);
+    // The vertical range reads the whole clip, so scrolling does not rescale the graph.
+    constexpr int fitSamples = 256;
+    double lo = std::numeric_limits<double>::max();
+    double hi = std::numeric_limits<double>::lowest();
+    std::vector<SampledCurve> sampled;
+    sampled.reserve(specs.size());
+    for (size_t input = 0; input < specs.size(); ++input) {
+        sampled.emplace_back(clip, specs[input], scales[input]);
+        for (int i = 0; i <= fitSamples; ++i) {
+            const double value = sampled[input].at(static_cast<double>(i) / fitSamples);
+            lo = std::min(lo, value);
+            hi = std::max(hi, value);
+        }
+    }
+    QJsonArray keyed;
+    const auto ps = properties(row);
+    double previous = 0;
+    bool first = true;
+    for (const auto& time : times(clip, ps)) {
+        const double ms = time.toDouble();
+        QJsonArray values;
+        for (const auto& curve : sampled) {
+            values.append(curve.at(toT(clip, ms)));
+        }
+        QString easing = "linear";
+        for (const auto& property : ps) {
+            const auto found = helper("keyframeEasingAt", {clip, property, ms});
+            if (found.isString()) {
+                easing = found.toString();
+                break;
+            }
+        }
+        QJsonValue handles = QJsonValue::Null;
+        if (!first) {
+            const auto shape = bezierHandles(easing);
+            if (!shape.isEmpty()) {
+                handles = shape;
+            }
+        }
+        keyed.append(QJsonObject{{"ms", ms}, {"values", values}, {"easing", easing}, {"handles", handles},
+                                 {"previousMs", first ? QJsonValue(QJsonValue::Null) : QJsonValue(previous)}});
+        previous = ms;
+        first = false;
+    }
+    if (lo > hi) {
+        lo = 0;
+        hi = 0;
+    }
+    if (hi - lo < 1e-6) {
+        lo -= 1;
+        hi += 1;
+    }
+    const double pad = (hi - lo) * 0.12;
+    return {{"lo", lo - pad}, {"hi", hi + pad}, {"keys", keyed}};
+}
+QJsonObject rowGraph(const QJsonObject& clip, const QString& row, double fromMs, double toMs, int samples) {
+    return merged(rowGraphSamples(clip, row, fromMs, toMs, samples), rowGraphKeys(clip, row));
+}
+QJsonObject bezierHandles(const QString& easing) {
+    const auto text = easing.trimmed();
+    const auto form = [](double x1, double y1, double x2, double y2, bool exact = true) {
+        return QJsonObject{{"x1", x1}, {"y1", y1}, {"x2", x2}, {"y2", y2}, {"exact", exact}};
+    };
+    if (text == "hold") {
+        return {};
+    }
+    // y = t, t^3 and 1 - (1 - t)^3 are exact cubics with x = t.
+    if (text == "easeIn") {
+        return form(1.0 / 3, 0, 2.0 / 3, 0);
+    }
+    if (text == "easeOut") {
+        return form(1.0 / 3, 1, 2.0 / 3, 1);
+    }
+    if (text == "easeInOut") {
+        return form(0.65, 0, 0.35, 1, false);
+    }
+    static const QRegularExpression bezier(QStringLiteral(R"(^cubic-bezier\(([^,]+),([^,]+),([^,]+),([^,)]+)\)$)"));
+    if (const auto match = bezier.match(text); match.hasMatch()) {
+        std::array<double, 4> values{};
+        bool valid = true;
+        for (size_t i = 0; i < values.size(); ++i) {
+            bool ok = false;
+            values[i] = match.captured(static_cast<int>(i) + 1).trimmed().toDouble(&ok);
+            valid = valid && ok;
+        }
+        if (valid) {
+            return form(std::clamp(values[0], 0.0, 1.0), values[1], std::clamp(values[2], 0.0, 1.0), values[3]);
+        }
+    }
+    return form(1.0 / 3, 1.0 / 3, 2.0 / 3, 2.0 / 3, text == "linear" || text.isEmpty());
+}
+QString bezierEasing(double x1, double y1, double x2, double y2) {
+    const auto number = [](double value) { return QString::number(std::round(value * 10000) / 10000, 'g', 6); };
+    return QStringLiteral("cubic-bezier(%1,%2,%3,%4)")
+        .arg(number(std::clamp(x1, 0.0, 1.0)), number(y1), number(std::clamp(x2, 0.0, 1.0)), number(y2));
 }
 QStringList properties(const QString& row) {
     QStringList result;
@@ -608,6 +1099,15 @@ QJsonValue helper(const QString& name, const QJsonArray& a) {
         }
         return QJsonValue::Null;
     }
+    if (name == "moveKeyframeSet") {
+        return moveMany(c, a[1].toObject()).toObject()["animations"];
+    }
+    if (name == "easeKeyframeSet") {
+        return easingMany(c, a[1].toObject()).toObject()["animations"];
+    }
+    if (name == "rowGraphValues") {
+        return rowGraph(c, p, ms, a[3].toDouble(), a[4].toInt())["curves"];
+    }
     if (name == "keyframeEasingAt") {
         const auto anim = animation(c);
         for (const auto& k : keys(c, p)) {
@@ -717,6 +1217,18 @@ QJsonObject edit(QJsonObject document, const QJsonObject& payload) {
             patch = QJsonObject{{"transform", t}};
         } else if (action == "animations") {
             patch = QJsonObject{{"animations", payload["animations"]}};
+        } else if (action == "moveMany") {
+            patch = moveMany(c, payload);
+        } else if (action == "easingMany") {
+            patch = easingMany(c, payload);
+        } else if (action == "deleteMany") {
+            patch = deleteMany(c, payload);
+        } else if (action == "bypass") {
+            if (const auto next = bypass(c, payload)) {
+                clips[i] = *next;
+                document.insert("clips", clips);
+            }
+            return document;
         }
         if (patch.isObject()) {
             clips[i] = merged(c, patch.toObject());

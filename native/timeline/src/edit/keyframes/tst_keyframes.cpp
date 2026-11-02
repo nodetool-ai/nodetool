@@ -4,7 +4,9 @@
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
 #include "preview/SceneEval.h"
+#include "scene/Animation.h"
 #include <QCoreApplication>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QJsonDocument>
 #include <QSignalSpy>
@@ -198,6 +200,231 @@ class TestKeyframes : public QObject {
         QVERIFY(frame.layers[0].transform);
         QCOMPARE(frame.layers[0].transform->position.x, 73.0);
         QVERIFY(old != model.snapshot());
+    }
+    // Backlog B13: past the clip's end the row reads the endpoint and Previous works.
+    void pastEndShowsEndpointAndPrevious() {
+        auto timeline = fixture();
+        TimelineModel model;
+        model.setTimeline(std::move(timeline));
+        PlaybackClock clock;
+        clock.setDurationMs(5000);
+        ClipInspectorController controller;
+        controller.setTimeline(&model);
+        controller.setClock(&clock);
+        controller.setClipId("c");
+        QVERIFY(controller.write({{"action", "stopwatch"}, {"row", "rotation"}}));
+        clock.seek(1000);
+        QVERIFY(controller.write({{"action", "input"}, {"row", "rotation"}, {"input", 0}, {"value", 2.5}}));
+        clock.seek(4000);
+        QCOMPARE(controller.playheadMs(), -1.0);
+        const auto state = controller.rowState("rotation");
+        QCOMPARE(state["values"].toList().first().toDouble(), 2.5);
+        QVERIFY(state["hasPrev"].toBool());
+        QVERIFY(!state["hasNext"].toBool());
+        QVERIFY(!state["here"].toBool());
+        controller.step("rotation", -1);
+        QCOMPARE(clock.time(), 1000.0);
+    }
+    // keyframe_move.rs: every key keeps its offset, and a group can move into its old positions.
+    void moveManyKeepsOffsets() {
+        TimelineModel model;
+        model.setTimeline(fixture());
+        const auto at = [&](double ms, double value) {
+            QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "rotation"}, {"input", 0}, {"value", value}, {"atMs", ms}}));
+        };
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "rotation"}, {"atMs", 0}}));
+        at(500, 5);
+        at(1000, 10);
+        at(1500, 15);
+        const auto before = model.documentJson();
+        const auto count = model.undoStack()->count();
+        const auto keys = [](std::initializer_list<double> values) {
+            QJsonArray result;
+            for (double value : values) { result.append(QJsonObject{{"row", "rotation"}, {"atMs", value}}); }
+            return result;
+        };
+        const auto clip = [&] { return model.clipsJson()[0].toObject(); };
+        QVERIFY(model.applyEdit("keyframes.moveMany", {{"clipId", "c"}, {"keys", keys({500, 1000})}, {"deltaMs", 500}}));
+        QCOMPARE(model.undoStack()->count(), count + 1);
+        // 1500 was not selected, so the key landing there replaces it, as a single move does.
+        QCOMPARE(nt::keyframes::times(clip()), (QJsonArray{0, 1000, 1500}));
+        QCOMPARE(nt::keyframes::inputValue(clip(), "rotation", 0, 1000), 5.0);
+        QCOMPARE(nt::keyframes::inputValue(clip(), "rotation", 0, 1500), 10.0);
+        model.undoStack()->undo();
+        QCOMPARE(model.documentJson(), before);
+        // The common delta stops at the clip's end: the group keeps its shape.
+        QVERIFY(model.applyEdit("keyframes.moveMany", {{"clipId", "c"}, {"keys", keys({1000, 1500})}, {"deltaMs", 900}}));
+        QCOMPARE(nt::keyframes::times(clip()), (QJsonArray{0, 500, 1500, 2000}));
+        model.undoStack()->undo();
+        QVERIFY(model.applyEdit("keyframes.moveMany", {{"clipId", "c"}, {"keys", keys({0, 500})}, {"deltaMs", -100}}) == false);
+        QCOMPARE(model.documentJson(), before);
+        QVERIFY(!model.applyEdit("keyframes.moveMany", {{"clipId", "c"}, {"keys", QJsonArray{}}, {"deltaMs", 100}}));
+        QVERIFY(!model.applyEdit("keyframes.moveMany", {{"clipId", "c"}, {"keys", QJsonArray{QJsonObject{{"row", "nope"}, {"atMs", 0}}}}, {"deltaMs", 100}}));
+        QCOMPARE(model.undoStack()->index(), count);
+    }
+    void deleteAndEaseMany() {
+        TimelineModel model;
+        model.setTimeline(fixture());
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "rotation"}, {"atMs", 0}}));
+        for (const auto ms : {500.0, 1000.0}) {
+            QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "rotation"}, {"input", 0}, {"value", ms / 100}, {"atMs", ms}}));
+        }
+        const auto count = model.undoStack()->count();
+        const auto clip = [&] { return model.clipsJson()[0].toObject(); };
+        const QJsonArray two{QJsonObject{{"row", "rotation"}, {"atMs", 500}}, QJsonObject{{"row", "rotation"}, {"atMs", 1000}}};
+        QVERIFY(model.applyEdit("keyframes.easingMany", {{"clipId", "c"}, {"keys", two}, {"easing", "hold"}}));
+        QCOMPARE(model.undoStack()->count(), count + 1);
+        QCOMPARE(nt::keyframes::helper("keyframeEasingAt", {clip(), "rotation", 500}).toString(), QString("hold"));
+        QCOMPARE(nt::keyframes::helper("keyframeEasingAt", {clip(), "rotation", 1000}).toString(), QString("hold"));
+        QCOMPARE(nt::keyframes::helper("keyframeEasingAt", {clip(), "rotation", 0}).toString(), QString("linear"));
+        QVERIFY(model.applyEdit("keyframes.deleteMany", {{"clipId", "c"}, {"keys", two}}));
+        QCOMPARE(model.undoStack()->count(), count + 2);
+        QCOMPARE(nt::keyframes::times(clip()), QJsonArray{0});
+        // Deleting a row's every key leaves it unanimated at the value of its last key, as one at a time does.
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "rotation"}, {"input", 0}, {"value", 3}, {"atMs", 700}}));
+        QVERIFY(model.applyEdit("keyframes.deleteMany", {{"clipId", "c"}, {"keys", QJsonArray{QJsonObject{{"row", "rotation"}, {"atMs", 0}}, QJsonObject{{"row", "rotation"}, {"atMs", 700}}}}}));
+        QVERIFY(!nt::keyframes::helper("isRowKeyframed", {clip(), "rotation"}).toBool());
+        QCOMPARE(nt::keyframes::inputValue(clip(), "rotation", 0, 0), 3.0);
+    }
+    // A selection of many keys must not cost one document pass per key.
+    void manyKeysScale() {
+        QJsonArray kfs;
+        QJsonArray selection;
+        for (int i = 0; i < 4096; ++i) {
+            kfs.append(QJsonObject{{"t", i / 4096.0}, {"value", i}});
+            if (i % 2 == 0) { selection.append(QJsonObject{{"row", "rotation"}, {"atMs", std::floor(i / 4096.0 * 100000 + 0.5)}}); }
+        }
+        QJsonObject clip{{"id", "c"}, {"trackId", "v"}, {"durationMs", 100000},
+            {"animations", QJsonArray{QJsonObject{{"id", "a"}, {"preset", "custom"}, {"role", "emphasis"}, {"durationMs", 100000},
+                {"delayMs", 0}, {"params", QJsonObject{{"keyframed", true}}},
+                {"custom", QJsonObject{{"curves", QJsonArray{QJsonObject{{"property", "rotation"}, {"keyframes", kfs}}}}}}}}}};
+        QJsonObject document{{"tracks", QJsonArray{}}, {"clips", QJsonArray{clip}}};
+        QElapsedTimer timer;
+        timer.start();
+        for (const auto* action : {"moveMany", "easingMany", "deleteMany"}) {
+            const auto next = nt::keyframes::edit(document, {{"action", action}, {"clipId", "c"}, {"keys", selection}, {"deltaMs", 12}, {"easing", "hold"}});
+            QVERIFY(next != document);
+        }
+        QVERIFY2(timer.elapsed() < 5000, qPrintable(QString::number(timer.elapsed())));
+    }
+    // Rows the graph draws: the same numbers the fields show, with handles for the arriving segment.
+    void rowGraph() {
+        TimelineModel model;
+        model.setTimeline(fixture());
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "position"}, {"atMs", 0}}));
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "position"}, {"input", 0}, {"value", 100}, {"atMs", 1000}}));
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "position"}, {"input", 1}, {"value", 50}, {"atMs", 2000}}));
+        QVERIFY(model.applyEdit("keyframes.easing", {{"clipId", "c"}, {"row", "position"}, {"atMs", 2000}, {"easing", "cubic-bezier(0.25,0.1,0.75,0.9)"}}));
+        const auto clip = model.clipsJson()[0].toObject();
+        const auto graph = nt::keyframes::rowGraph(clip, "position", 0, 2000, 20);
+        const auto curves = graph["curves"].toArray();
+        QCOMPARE(curves.size(), 2);
+        for (int input = 0; input < 2; ++input) {
+            const auto values = curves[input].toObject()["values"].toArray();
+            QCOMPARE(values.size(), 21);
+            for (int i = 0; i <= 20; ++i) {
+                QCOMPARE(values[i].toDouble(), nt::keyframes::inputValue(clip, "position", input, i * 100.0));
+            }
+        }
+        const auto keyed = graph["keys"].toArray();
+        QCOMPARE(keyed.size(), 3);
+        QCOMPARE(keyed[1].toObject()["ms"].toDouble(), 1000.0);
+        QCOMPARE(keyed[2].toObject()["handles"].toObject()["x1"].toDouble(), 0.25);
+        QCOMPARE(keyed[2].toObject()["handles"].toObject()["y2"].toDouble(), 0.9);
+        QVERIFY(graph["hi"].toDouble() >= 100);
+        QCOMPARE(graph["velocity"].toArray().size(), 20);
+        // X moves 100 px in the first second, so the speed there is at least 100 px/s.
+        QVERIFY(std::abs(graph["velocity"].toArray()[5].toDouble() - 100) < 40);
+        QVERIFY(graph["vmax"].toDouble() > 0);
+        // No handles on the first key, which has no arriving segment.
+        QVERIFY(keyed[0].toObject()["handles"].isNull());
+    }
+    void bezierHandles_data() {
+        QTest::addColumn<QString>("easing");
+        QTest::addColumn<double>("x1");
+        QTest::addColumn<double>("y1");
+        QTest::addColumn<double>("x2");
+        QTest::addColumn<double>("y2");
+        QTest::newRow("linear") << "linear" << 1.0 / 3 << 1.0 / 3 << 2.0 / 3 << 2.0 / 3;
+        QTest::newRow("easeIn") << "easeIn" << 1.0 / 3 << 0.0 << 2.0 / 3 << 0.0;
+        QTest::newRow("easeOut") << "easeOut" << 1.0 / 3 << 1.0 << 2.0 / 3 << 1.0;
+        QTest::newRow("bezier") << "cubic-bezier(0.1, 0.2, 0.3, 0.4)" << 0.1 << 0.2 << 0.3 << 0.4;
+    }
+    void bezierHandles() {
+        QFETCH(QString, easing);
+        QFETCH(double, x1);
+        QFETCH(double, y1);
+        QFETCH(double, x2);
+        QFETCH(double, y2);
+        const auto handles = nt::keyframes::bezierHandles(easing);
+        QCOMPARE(handles["x1"].toDouble(), x1);
+        QCOMPARE(handles["y1"].toDouble(), y1);
+        QCOMPARE(handles["x2"].toDouble(), x2);
+        QCOMPARE(handles["y2"].toDouble(), y2);
+        // The two exact forms sample like the named easing they replace.
+        if (easing == "easeIn" || easing == "easeOut" || easing == "linear") {
+            const auto text = nt::keyframes::bezierEasing(x1, y1, x2, y2).toStdString();
+            for (double t = 0; t <= 1; t += 0.05) {
+                QVERIFY(std::abs(nt::scene::ease(text, t) - nt::scene::ease(easing.toStdString(), t)) < 2e-3);
+            }
+        }
+    }
+    void holdHasNoHandles() { QVERIFY(nt::keyframes::bezierHandles("hold").isEmpty()); }
+    // The enable switch: off draws the identity everywhere with no evaluator change,
+    // and on brings back every value. One undo step each way.
+    void bypassFixedEffects() {
+        TimelineModel model;
+        model.setTimeline(fixture());
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "position"}, {"input", 0}, {"value", 40}, {"atMs", QJsonValue::Null}}));
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "rotation"}, {"atMs", 0}}));
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "rotation"}, {"input", 0}, {"value", 1}, {"atMs", 1000}}));
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "opacity"}, {"atMs", 0}}));
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "opacity"}, {"input", 0}, {"value", 0.5}, {"atMs", 1000}}));
+        const auto before = model.clipsJson()[0].toObject();
+        const auto doc = model.documentJson();
+        const auto count = model.undoStack()->count();
+        const auto clip = [&] { return model.clipsJson()[0].toObject(); };
+        QVERIFY(model.applyEdit("keyframes.bypass", {{"clipId", "c"}, {"group", "motion"}, {"enabled", false}}));
+        QCOMPARE(model.undoStack()->count(), count + 1);
+        QVERIFY(!clip().contains("transform"));
+        QVERIFY(!nt::keyframes::helper("isRowKeyframed", {clip(), "rotation"}).toBool());
+        QVERIFY(nt::keyframes::helper("isRowKeyframed", {clip(), "opacity"}).toBool());
+        QCOMPARE(nt::evaluateScene(*model.snapshot(), 1000).layers[0].opacity, 0.5);
+        // A read-only view still shows what the row holds.
+        const auto shown = nt::keyframes::withBypassRestored(clip());
+        QCOMPARE(nt::keyframes::times(shown, nt::keyframes::properties("rotation")), (QJsonArray{0, 1000}));
+        QCOMPARE(nt::keyframes::inputValue(shown, "position", 0, 0), 40.0);
+        // Off a second time changes nothing.
+        QVERIFY(!model.applyEdit("keyframes.bypass", {{"clipId", "c"}, {"group", "motion"}, {"enabled", false}}));
+        QVERIFY(model.applyEdit("keyframes.bypass", {{"clipId", "c"}, {"group", "opacity"}, {"enabled", false}}));
+        QVERIFY(!clip().contains("opacity"));
+        QCOMPARE(nt::evaluateScene(*model.snapshot(), 1000).layers[0].opacity, 1.0);
+        QVERIFY(model.applyEdit("keyframes.bypass", {{"clipId", "c"}, {"group", "motion"}, {"enabled", true}}));
+        QVERIFY(model.applyEdit("keyframes.bypass", {{"clipId", "c"}, {"group", "opacity"}, {"enabled", true}}));
+        QVERIFY(!clip().contains("bypassedFixedEffects"));
+        const auto restored = clip();
+        QCOMPARE(restored["transform"], before["transform"]);
+        QCOMPARE(restored["opacity"], before["opacity"]);
+        QCOMPARE(nt::keyframes::times(restored, nt::keyframes::properties("rotation")), (QJsonArray{0, 1000}));
+        QCOMPARE(nt::keyframes::inputValue(restored, "rotation", 0, 1000), 1.0);
+        QCOMPARE(nt::keyframes::inputValue(restored, "opacity", 0, 1000), 0.5);
+        for (int i = 0; i < 4; ++i) { model.undoStack()->undo(); }
+        QCOMPARE(model.documentJson(), doc);
+    }
+    void bypassVolumeOnSoundOnly() {
+        auto parsed = nt::parseTimelineJson(
+            R"({"name":"Sound","width":640,"height":360,"fps":30,"durationMs":2000,"tracks":[{"id":"a","type":"audio","name":"Audio"}],"clips":[{"id":"c","trackId":"a","mediaType":"audio","name":"Voice","startMs":0,"durationMs":2000,"volumeDb":-6}]})");
+        TimelineModel model;
+        model.setTimeline(std::move(*parsed.timeline));
+        ClipInspectorController controller;
+        controller.setTimeline(&model);
+        controller.setClipId("c");
+        QVERIFY(controller.groupEnabled("volume"));
+        QVERIFY(controller.write({{"action", "bypass"}, {"group", "volume"}, {"enabled", false}}));
+        QVERIFY(!controller.groupEnabled("volume"));
+        QVERIFY(!model.clipsJson()[0].toObject().contains("volumeDb"));
+        QVERIFY(controller.write({{"action", "bypass"}, {"group", "volume"}, {"enabled", true}}));
+        QCOMPARE(model.clipsJson()[0].toObject()["volumeDb"].toDouble(), -6.0);
     }
     void previewKeyframeNextFrame() {
         nt::app::registerEdit("keyframes.input", nt::keyframes::edit);
