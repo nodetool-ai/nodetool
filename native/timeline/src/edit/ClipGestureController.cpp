@@ -1847,7 +1847,7 @@ void ClipGestureController::probeSources() {
 std::optional<double> ClipGestureController::sourceCap(const QJsonObject& clip) {
     // useClipSourceDuration getSourceCapMs: the resolved length, else
     // fallbackSourceDurationMs (the furthest out-point seen on the asset).
-    if (!hasFiniteSource(clip) || !m_timeline) return std::nullopt;
+    if (isHoldRemap(clip) || !hasFiniteSource(clip) || !m_timeline) return std::nullopt;
     const QString id = clipId(clip);
     for (const auto& c : m_timeline->timeline().clips) {
         if (QString::fromStdString(c.id) != id) continue;

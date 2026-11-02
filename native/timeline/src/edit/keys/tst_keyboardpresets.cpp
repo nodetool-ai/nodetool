@@ -205,7 +205,7 @@ private slots:
         QCOMPARE(dockCanvas->property("leftCollapsed").toBool(), !collapsed);
         press(Qt::Key_B, Qt::ControlModifier);
         // An action with its own key in the preset gives up its default: in the
-        // Premiere preset Ctrl+Shift+E appends the source and never disables a clip.
+        // Premiere preset Ctrl+Shift+E exports a frame and never disables a clip.
         gestures()->setSelection({"c"});
         const auto before = doc();
         press(Qt::Key_E, Qt::ControlModifier | Qt::ShiftModifier);

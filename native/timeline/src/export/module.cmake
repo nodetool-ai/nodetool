@@ -103,3 +103,43 @@ function(nt_export_queue_tests)
         "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endfunction()
 nt_tests(nt_export_queue_tests)
+nt_qml_sources(src/export/FrameExporter.h src/export/FrameExporter.cpp)
+function(nt_frameexport_tests)
+    qt_add_executable(tst_frameexport src/export/tst_frameexport.cpp src/playback/PlaybackClock.h src/playback/PlaybackClock.cpp
+        src/export/FrameExporter.h src/export/FrameExporter.cpp src/export/FrameCapture.h src/export/FrameCapture.cpp
+        src/export/ExportController.h src/export/ExportController.cpp
+        src/export/ExportSettings.h src/export/ExportSettings.cpp
+        src/model/TimelineModel.h src/model/TimelineModel.cpp src/model/TrackListModel.h src/model/TrackListModel.cpp)
+    target_link_libraries(tst_frameexport PRIVATE timeline_core timeline_decode timeline_server
+        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::Test ${NT_APP_PLATFORM_LIBS})
+    target_compile_definitions(tst_frameexport PRIVATE NT_EXPORT_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+        NT_EXPORT_BINARY="$<TARGET_FILE:nodetool-timeline>")
+    add_test(NAME tst_frameexport COMMAND tst_frameexport)
+    set_tests_properties(tst_frameexport PROPERTIES LABELS render FIXTURES_REQUIRED media)
+endfunction()
+nt_tests(nt_frameexport_tests)
+function(nt_frameexport_integration_tests)
+    add_test(NAME frameexport_stills COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/src/export/check-frameexport-stills.mjs
+        --bin $<TARGET_FILE:nodetool-timeline>)
+    set_tests_properties(frameexport_stills PROPERTIES LABELS render FIXTURES_REQUIRED media RUN_SERIAL TRUE)
+    add_test(NAME frameexport_server COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/src/export/frameexport-server.test.mjs
+        $<TARGET_FILE:nodetool-timeline> $<TARGET_FILE:tst_frameexportui>)
+    set_tests_properties(frameexport_server PROPERTIES LABELS render FIXTURES_REQUIRED media RUN_SERIAL TRUE
+        SKIP_RETURN_CODE 77 TIMEOUT 360)
+endfunction()
+nt_tests(nt_frameexport_integration_tests)
+nt_sources(app src/export/FrameExportCli.cpp)
+nt_sources(app src/export/FrameExportActions.cpp)
+function(nt_frameexport_ui_tests)
+    qt_add_executable(tst_frameexportui src/export/tst_frameexportui.cpp ${NT_app})
+    set_target_properties(tst_frameexportui PROPERTIES MACOSX_BUNDLE FALSE)
+    target_compile_definitions(tst_frameexportui PRIVATE NT_EXPORT_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+        NT_EXPORT_BINARY="$<TARGET_FILE:nodetool-timeline>")
+    target_link_libraries(tst_frameexportui PRIVATE timeline_core timeline_decode timeline_audio timeline_server
+        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
+    nt_add_timeline_qml(tst_frameexportui OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_frameexportui_qml/NodeTool/Timeline)
+    add_test(NAME tst_frameexportui COMMAND tst_frameexportui)
+    # The editor draws in software. The capture helper it starts drops that and needs the platform RHI.
+    set_tests_properties(tst_frameexportui PROPERTIES LABELS render FIXTURES_REQUIRED media ENVIRONMENT "QT_QUICK_BACKEND=software")
+endfunction()
+nt_tests(nt_frameexport_ui_tests)

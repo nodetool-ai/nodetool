@@ -178,11 +178,9 @@ describe("split and trim refuse a remapped clip (D13)", () => {
     expect(() => trimClip(plain, "end", -100)).not.toThrow();
   });
 
-  it("refuses a one-keyframe freeze too — the window still normalizes it", () => {
+  it("allows a one-keyframe hold", () => {
     const frozen = remapped([{ t: 0, sourceMs: 400 }]);
-    expect(() => assertNotTimeRemapped(frozen, "splitClip")).toThrow(
-      /bake_time_remap/
-    );
+    expect(() => assertNotTimeRemapped(frozen, "splitClip")).not.toThrow();
   });
 });
 

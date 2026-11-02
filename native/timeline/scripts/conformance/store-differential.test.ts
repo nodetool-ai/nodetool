@@ -206,6 +206,22 @@ function webCall(doc: any, call: Call): any {
 }
 
 describe("native clip actions against the web store", () => {
+  it("hold trims ignore source bounds in both stores", () => {
+    const clip = { id: "hold", trackId: "v1", name: "Hold", mediaType: "video", sourceType: "imported",
+      status: "generated", versions: [], locked: false, startMs: 1000, durationMs: 400, inPointMs: 200, outPointMs: 600,
+      timeRemap: { keyframes: [{ t: 0, sourceMs: 333 }, { t: 1, sourceMs: 333 }] } };
+    const doc = { clips: [clip], tracks: [{ id: "v1", type: "video", index: 0, locked: false }], linkedSelection: false };
+    for (const action of ["trimClipEnd", "rippleTrimClipEnd"]) {
+      const call = { action, params: ["hold", 5000, 600] };
+      const expected = [{ ...clip, durationMs: 5400 }];
+      expect(webCall(doc, call)).toEqual(expected);
+      expect(native(doc, call.action, ...call.params)).toEqual(expected);
+    }
+    const head = { action: "trimClipStart", params: ["hold", 1000] };
+    const expected = [{ ...clip, startMs: 0, durationMs: 1400 }];
+    expect(webCall(doc, head)).toEqual(expected);
+    expect(native(doc, head.action, ...head.params)).toEqual(expected);
+  });
   for (const name of Object.keys(ACTIONS)) {
     it(`${name}: ${CASES} random cases agree`, () => {
       const r = rng(name.length * 104729 + 3);
