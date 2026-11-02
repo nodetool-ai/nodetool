@@ -127,19 +127,12 @@ preset has for `local-wan` yet (P24). No preset has an `ltx` or `minimax`
 fragment, so those models compile with the `default` fragment and the
 fallback warning below.
 
-Presets reach a Wan2GP model through the provider named `wangp`. A NodeTool
-Python worker advertises it when `NODETOOL_PROVIDER_ADAPTER_COMMAND_WANGP` names
-an adapter command. Two adapters exist:
-
-- `nodetool-wan2gp-provider`, installed with the Wan2GP pack, talks to the
-  Wan2GP server you run yourself over MCP. [Wan2GP](wan2gp.md#use-presets-with-your-server)
-  lists the variables.
-- The [combined image](https://github.com/nodetool-ai/nodetool-wan2gp/blob/main/docs/combined-worker.md)
-  runs Wan2GP inside the worker.
-
-The server then registers `wangp`, its models appear in the model lists, and
-media requests compile presets for them before the prompt reaches the
-adapter. The pack's Wan2GP nodes take a plain prompt and no `preset_ids`.
+Presets reach a Wan2GP model through the built-in `wangp` provider, which
+calls the Wan2GP server named by `WAN2GP_MCP_URL` over MCP.
+[Wan2GP](wan2gp.md#use-presets-with-your-server) lists what it sends for each
+task. The provider lists the server's models, and media requests compile
+presets for them before the prompt reaches the server. The `lib.wan2gp` nodes
+take a plain prompt and no `preset_ids`.
 
 ### Fallback warning
 

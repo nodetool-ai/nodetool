@@ -143,6 +143,11 @@
         "file": "sandbox/generated/lib.video.download.js"
       },
       {
+        "name": "lib.wan2gp",
+        "kind": "js",
+        "file": "sandbox/generated/lib.wan2gp.js"
+      },
+      {
         "name": "messaging.discord",
         "kind": "js",
         "file": "sandbox/generated/messaging.discord.js"

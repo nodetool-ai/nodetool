@@ -49617,6 +49617,824 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     replaced_by: undefined
   },
   {
+    title: 'Text To Video (Wan2GP)',
+    description: 'Generate a video from a prompt with a Wan video model on your own Wan2GP server.\n' +
+      '    video, generation, text-to-video, Wan, Wan2GP, local\n' +
+      '\n' +
+      '    Use cases:\n' +
+      '    - Turn a written scene description into a short clip\n' +
+      '    - Produce b-roll and background footage for an edit\n' +
+      '    - Run prompt variations on local hardware without an API bill',
+    namespace: 'lib.wan2gp',
+    node_type: 'lib.wan2gp.TextToVideo',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'server_url',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Server URL',
+        description: 'MCP endpoint of your own Wan2GP server, for example http://127.0.0.1:7866/mcp. Leave blank to use the WAN2GP_MCP_URL setting, then localhost.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'timeout_seconds',
+        type: { type: 'int', type_args: [] },
+        required: false,
+        title: 'Timeout',
+        description: 'How long to wait for one generation, in seconds. The job is cancelled on the server when it runs out.',
+        min: 1,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 1800
+      },
+      {
+        name: 'max_media_bytes',
+        type: { type: 'int', type_args: [] },
+        required: false,
+        title: 'Max Media Bytes',
+        description: 'Largest upload or download in bytes. Defaults to 512 MiB, at most 8 GiB.',
+        min: 1,
+        max: 8589934592,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 536870912
+      },
+      {
+        name: 'seed',
+        type: { type: 'int', type_args: [] },
+        required: false,
+        title: 'Seed',
+        description: 'Random seed. Use -1 to let Wan2GP pick a new seed for every run.',
+        min: -1,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: -1
+      },
+      {
+        name: 'negative_prompt',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Negative Prompt',
+        description: 'What to keep out of the video. Leave empty to use the model default.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'width',
+        type: { type: 'int', type_args: [] },
+        required: false,
+        title: 'Width',
+        description: 'Output width in pixels. Must be a multiple of 16.',
+        min: 16,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 832
+      },
+      {
+        name: 'height',
+        type: { type: 'int', type_args: [] },
+        required: false,
+        title: 'Height',
+        description: 'Output height in pixels. Must be a multiple of 16.',
+        min: 16,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 480
+      },
+      {
+        name: 'num_frames',
+        type: { type: 'int', type_args: [] },
+        required: false,
+        title: 'Frames',
+        description: 'Number of frames. Wan2GP rounds this to the nearest count the model allows.',
+        min: 1,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 81
+      },
+      {
+        name: 'fps',
+        type: { type: 'int', type_args: [] },
+        required: false,
+        title: 'FPS',
+        description: 'Frames per second of the output video.',
+        min: 1,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 16
+      },
+      {
+        name: 'num_inference_steps',
+        type: { type: 'int', type_args: [] },
+        required: false,
+        title: 'Steps',
+        description: 'Denoising steps. More steps give more detail and take longer.',
+        min: 1,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 30
+      },
+      {
+        name: 'loras',
+        type: { type: 'list', type_args: [ { type: 'str', type_args: [] } ] },
+        required: false,
+        title: 'LoRAs',
+        description: 'LoRA identifiers to activate, as the server lists them.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: []
+      },
+      {
+        name: 'lora_multipliers',
+        type: { type: 'list', type_args: [ { type: 'float', type_args: [] } ] },
+        required: false,
+        title: 'LoRA Multipliers',
+        description: 'Weight for each LoRA, in the same order. Leave empty for a weight of 1 each.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: []
+      },
+      {
+        name: 'prompt',
+        type: { type: 'str', type_args: [] },
+        required: true,
+        title: 'Prompt',
+        description: 'Description of the video to generate.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'model_type',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Model',
+        description: 'Wan2GP model id, for example t2v_2_2. The List Models node shows the ids your server offers.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 't2v_2_2'
+      }
+    ],
+    outputs: [ { name: 'output', type: { type: 'video', type_args: [] } } ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [ 'prompt' ],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: true,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [ 'node', 'workers', 'edge' ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Image To Video (Wan2GP)',
+    description: 'Animate a still image with a Wan image-to-video model on your own Wan2GP server.\n' +
+      '    video, generation, image-to-video, animation, Wan, Wan2GP, local\n' +
+      '\n' +
+      '    Use cases:\n' +
+      '    - Animate a photograph or a piece of artwork\n' +
+      '    - Add camera movement to a product shot\n' +
+      '    - Test motion prompts against one fixed first frame',
+    namespace: 'lib.wan2gp',
+    node_type: 'lib.wan2gp.ImageToVideo',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'server_url',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Server URL',
+        description: 'MCP endpoint of your own Wan2GP server, for example http://127.0.0.1:7866/mcp. Leave blank to use the WAN2GP_MCP_URL setting, then localhost.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'timeout_seconds',
+        type: { type: 'int', type_args: [] },
+        required: false,
+        title: 'Timeout',
+        description: 'How long to wait for one generation, in seconds. The job is cancelled on the server when it runs out.',
+        min: 1,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 1800
+      },
+      {
+        name: 'max_media_bytes',
+        type: { type: 'int', type_args: [] },
+        required: false,
+        title: 'Max Media Bytes',
+        description: 'Largest upload or download in bytes. Defaults to 512 MiB, at most 8 GiB.',
+        min: 1,
+        max: 8589934592,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 536870912
+      },
+      {
+        name: 'seed',
+        type: { type: 'int', type_args: [] },
+        required: false,
+        title: 'Seed',
+        description: 'Random seed. Use -1 to let Wan2GP pick a new seed for every run.',
+        min: -1,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: -1
+      },
+      {
+        name: 'negative_prompt',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Negative Prompt',
+        description: 'What to keep out of the video. Leave empty to use the model default.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'width',
+        type: { type: 'int', type_args: [] },
+        required: false,
+        title: 'Width',
+        description: 'Output width in pixels. Must be a multiple of 16.',
+        min: 16,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 832
+      },
+      {
+        name: 'height',
+        type: { type: 'int', type_args: [] },
+        required: false,
+        title: 'Height',
+        description: 'Output height in pixels. Must be a multiple of 16.',
+        min: 16,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 480
+      },
+      {
+        name: 'num_frames',
+        type: { type: 'int', type_args: [] },
+        required: false,
+        title: 'Frames',
+        description: 'Number of frames. Wan2GP rounds this to the nearest count the model allows.',
+        min: 1,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 81
+      },
+      {
+        name: 'fps',
+        type: { type: 'int', type_args: [] },
+        required: false,
+        title: 'FPS',
+        description: 'Frames per second of the output video.',
+        min: 1,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 16
+      },
+      {
+        name: 'num_inference_steps',
+        type: { type: 'int', type_args: [] },
+        required: false,
+        title: 'Steps',
+        description: 'Denoising steps. More steps give more detail and take longer.',
+        min: 1,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 30
+      },
+      {
+        name: 'loras',
+        type: { type: 'list', type_args: [ { type: 'str', type_args: [] } ] },
+        required: false,
+        title: 'LoRAs',
+        description: 'LoRA identifiers to activate, as the server lists them.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: []
+      },
+      {
+        name: 'lora_multipliers',
+        type: { type: 'list', type_args: [ { type: 'float', type_args: [] } ] },
+        required: false,
+        title: 'LoRA Multipliers',
+        description: 'Weight for each LoRA, in the same order. Leave empty for a weight of 1 each.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: []
+      },
+      {
+        name: 'image',
+        type: { type: 'image', type_args: [] },
+        required: true,
+        title: 'Image',
+        description: 'The first frame of the video.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: null
+      },
+      {
+        name: 'prompt',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Prompt',
+        description: 'How the image should move.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'model_type',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Model',
+        description: 'Wan2GP model id, for example i2v_2_2. The List Models node shows the ids your server offers.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 'i2v_2_2'
+      }
+    ],
+    outputs: [ { name: 'output', type: { type: 'video', type_args: [] } } ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [ 'image', 'prompt' ],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: true,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [ 'node', 'workers', 'edge' ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Generate (Wan2GP)',
+    description: 'Run any model on your own Wan2GP server with the settings you supply, and return its image, video, audio or 3D model.\n' +
+      '    generation, video, image, audio, 3d, Wan, Wan2GP, advanced, local\n' +
+      '\n' +
+      `    The node starts from the model's own defaults and applies your settings on top. Each connected media input is uploaded and sent under the Wan2GP setting its description names. Wan2GP turns on the matching start, end, reference and audio modes itself. Control and mask videos also need a video_prompt_type in settings, such as "VA", unless the model's defaults enable them.\n` +
+      '\n' +
+      '    Use cases:\n' +
+      '    - Drive a model the other Wan2GP nodes do not cover\n' +
+      '    - Set guidance, flow shift, sliding windows or other expert settings\n' +
+      '    - Run a control-guided or video-to-video generation\n' +
+      '    - Feed a model its extra input file, such as a trajectory or a score',
+    namespace: 'lib.wan2gp',
+    node_type: 'lib.wan2gp.Generate',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'server_url',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Server URL',
+        description: 'MCP endpoint of your own Wan2GP server, for example http://127.0.0.1:7866/mcp. Leave blank to use the WAN2GP_MCP_URL setting, then localhost.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'timeout_seconds',
+        type: { type: 'int', type_args: [] },
+        required: false,
+        title: 'Timeout',
+        description: 'How long to wait for one generation, in seconds. The job is cancelled on the server when it runs out.',
+        min: 1,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 1800
+      },
+      {
+        name: 'max_media_bytes',
+        type: { type: 'int', type_args: [] },
+        required: false,
+        title: 'Max Media Bytes',
+        description: 'Largest upload or download in bytes. Defaults to 512 MiB, at most 8 GiB.',
+        min: 1,
+        max: 8589934592,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 536870912
+      },
+      {
+        name: 'seed',
+        type: { type: 'int', type_args: [] },
+        required: false,
+        title: 'Seed',
+        description: 'Random seed. Use -1 to let Wan2GP pick a new seed for every run.',
+        min: -1,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: -1
+      },
+      {
+        name: 'model_type',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Model',
+        description: 'Wan2GP model id. The List Models node shows the ids your server offers.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 't2v_2_2'
+      },
+      {
+        name: 'settings',
+        type: {
+          type: 'dict',
+          type_args: [
+            { type: 'str', type_args: [] },
+            { type: 'any', type_args: [] }
+          ]
+        },
+        required: false,
+        title: 'Settings',
+        description: 'Wan2GP generation settings applied on top of the model defaults, such as prompt, resolution, video_length, num_inference_steps and guidance_scale. The reserved _api key is removed.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {}
+      },
+      {
+        name: 'image',
+        type: { type: 'image', type_args: [] },
+        required: false,
+        title: 'Start Image',
+        description: 'Sent as image_start.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: null
+      },
+      {
+        name: 'image_end',
+        type: { type: 'image', type_args: [] },
+        required: false,
+        title: 'End Image',
+        description: 'Sent as image_end, for models that take a last frame.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: null
+      },
+      {
+        name: 'reference_images',
+        type: { type: 'list', type_args: [ { type: 'image', type_args: [] } ] },
+        required: false,
+        title: 'Reference Images',
+        description: 'Sent in order as image_refs, for models that take a subject, style or background reference.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: []
+      },
+      {
+        name: 'video',
+        type: { type: 'video', type_args: [] },
+        required: false,
+        title: 'Control Video',
+        description: 'Sent as video_guide.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: null
+      },
+      {
+        name: 'video_mask',
+        type: { type: 'video', type_args: [] },
+        required: false,
+        title: 'Mask Video',
+        description: 'Sent as video_mask. Needs a control video and a video_prompt_type with A.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: null
+      },
+      {
+        name: 'source_video',
+        type: { type: 'video', type_args: [] },
+        required: false,
+        title: 'Source Video',
+        description: 'Sent as video_source, the video to continue from.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: null
+      },
+      {
+        name: 'audio',
+        type: { type: 'audio', type_args: [] },
+        required: false,
+        title: 'Audio',
+        description: 'Sent as audio_guide, such as speech for lip sync.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: null
+      },
+      {
+        name: 'custom_file',
+        type: { type: 'asset', type_args: [] },
+        required: false,
+        title: 'Custom File',
+        description: 'Sent as custom_guide: the extra input file some models require, such as a trajectory (.npy) for wanmove or a score (.abc) for yue2.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: null
+      },
+      {
+        name: 'custom_file_name',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Custom File Name',
+        description: "File name of the custom file with its extension, for example trajectory.npy. Leave blank to take it from the file's URI.",
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      }
+    ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'union',
+          type_args: [
+            { type: 'image', type_args: [] },
+            { type: 'video', type_args: [] },
+            { type: 'audio', type_args: [] },
+            { type: 'model_3d', type_args: [] }
+          ]
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [
+      'image',
+      'image_end',
+      'reference_images',
+      'video',
+      'video_mask',
+      'source_video',
+      'audio',
+      'custom_file'
+    ],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: true,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [ 'node', 'workers', 'edge' ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'List Models (Wan2GP)',
+    description: 'List the models your own Wan2GP server offers, with the media each one accepts.\n' +
+      '    models, list, search, Wan, Wan2GP, local\n' +
+      '\n' +
+      '    Each row carries the model_type for the other Wan2GP nodes, the name and family, the outputs, and media_inputs: the image, video and audio roles the model accepts and any custom file it needs. The list comes from the running server, so it includes finetunes and models added after this release.\n' +
+      '\n' +
+      '    Use cases:\n' +
+      '    - Find the model_type for a model you know by name\n' +
+      '    - List the video models that take a start or reference image\n' +
+      '    - Check which models need a custom file before you build a graph',
+    namespace: 'lib.wan2gp',
+    node_type: 'lib.wan2gp.ListModels',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'server_url',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Server URL',
+        description: 'MCP endpoint of your own Wan2GP server. Leave blank to use the WAN2GP_MCP_URL setting, then http://127.0.0.1:7866/mcp.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'query',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Query',
+        description: "Text to look for in the model's name, id, family or description. Leave blank to list every model.",
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'main_output',
+        type: {
+          type: 'enum',
+          type_args: [],
+          values: [ '', 'video', 'image', 'audio', '3d' ]
+        },
+        required: false,
+        title: 'Main Output',
+        description: 'Keep only models whose main output is this kind. Empty keeps every kind.',
+        min: undefined,
+        max: undefined,
+        values: [ '', 'video', 'image', 'audio', '3d' ],
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'media_input',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Media Input',
+        description: 'Keep only models that accept this input kind: image, video, audio, 3d or world.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'capability',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Capability',
+        description: 'Keep only models with this Wan2GP capability, for example image_to_video, reference_images or control_video.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'limit',
+        type: { type: 'int', type_args: [] },
+        required: false,
+        title: 'Limit',
+        description: 'Most models to return.',
+        min: 1,
+        max: 500,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 50
+      }
+    ],
+    outputs: [
+      {
+        name: 'output',
+        type: { type: 'list', type_args: [ { type: 'dict', type_args: [] } ] }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [ 'query' ],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [ 'node', 'workers', 'edge' ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
     title: 'Discord Bot Trigger',
     description: 'Listen for Discord messages from a bot account and emit them as events.\n' +
       '    discord, trigger, bot, messages, chat, events, listen',

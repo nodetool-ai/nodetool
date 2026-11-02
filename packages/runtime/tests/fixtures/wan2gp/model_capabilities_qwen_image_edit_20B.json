@@ -1,0 +1,97 @@
+{
+  "metadata": {
+    "model_type": "qwen_image_edit_20B",
+    "name": "Qwen Image Edit 20B",
+    "family": "qwen",
+    "family_label": "Qwen Image",
+    "base_model_type": "qwen_image_edit_20B",
+    "finetune": false,
+    "main_output": [
+      "image"
+    ],
+    "outputs": [
+      "image"
+    ],
+    "inputs": [
+      "text",
+      "image"
+    ],
+    "capabilities": [
+      "text_to_image",
+      "image_to_image",
+      "inpainting",
+      "outpainting",
+      "reference_images",
+      "background_image",
+      "lora"
+    ],
+    "specialities": [
+      {
+        "name": "text rendering",
+        "aliases": [
+          "typography",
+          "lettering",
+          "text writing"
+        ]
+      },
+      {
+        "name": "image inpainting",
+        "aliases": [
+          "masked image editing"
+        ]
+      },
+      {
+        "name": "image outpainting",
+        "aliases": [
+          "extend image canvas"
+        ]
+      },
+      {
+        "name": "image editing",
+        "aliases": [
+          "edit image",
+          "instruction image editing"
+        ]
+      },
+      {
+        "name": "identity preservation",
+        "aliases": [
+          "character consistency",
+          "identity-preserving edits",
+          "subject consistency"
+        ]
+      },
+      {
+        "name": "style transfer",
+        "aliases": [
+          "restyling",
+          "stylization"
+        ]
+      }
+    ],
+    "resolution_budget": 2088960,
+    "vae_block_size": 16,
+    "media_inputs": {
+      "image": [
+        "reference",
+        "multiple_references",
+        "background",
+        "mask"
+      ]
+    },
+    "description": "Qwen Image Edit is a generative model that can generate very high quality images with long texts in it. Best results will be at 720p. Use it to edit a Subject or combine multiple Subjects. ",
+    "accelerated": "profiles"
+  },
+  "input_guidance": {
+    "action": "definition",
+    "arguments": {
+      "property": "infos"
+    }
+  },
+  "prompt_guidance": {
+    "action": "definition",
+    "arguments": {
+      "property": "prompt_infos"
+    }
+  }
+}

@@ -26,6 +26,7 @@ export * as libSqlite from "./lib.sqlite.js";
 export * as libStable_diffusion_cpp from "./lib.stable_diffusion_cpp.js";
 export * as libSvg from "./lib.svg.js";
 export * as libVideoDownload from "./lib.video.download.js";
+export * as libWan2gp from "./lib.wan2gp.js";
 export * as messagingDiscord from "./messaging.discord.js";
 export * as messagingTelegram from "./messaging.telegram.js";
 export * as mistralEmbeddings from "./mistral.embeddings.js";

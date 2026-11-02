@@ -1,0 +1,80 @@
+{
+  "metadata": {
+    "model_type": "wanmove",
+    "name": "Wan2.1 Wan-Move 480p 14B",
+    "family": "wan",
+    "family_label": "Wan2.1",
+    "base_model_type": "wanmove",
+    "finetune": false,
+    "main_output": [
+      "video"
+    ],
+    "outputs": [
+      "video"
+    ],
+    "inputs": [
+      "text",
+      "image",
+      "video",
+      "file"
+    ],
+    "capabilities": [
+      "text_to_video",
+      "image_to_video",
+      "video_to_video",
+      "video_continuation",
+      "sliding_window",
+      "lora"
+    ],
+    "specialities": [
+      {
+        "name": "trajectory control",
+        "aliases": [
+          "point tracking",
+          "object motion control",
+          "motion path"
+        ]
+      }
+    ],
+    "resolution_budget": 2088960,
+    "vae_block_size": 16,
+    "media_inputs": {
+      "custom_file": {
+        "name": "Trajectory",
+        "kinds": [
+          "file"
+        ],
+        "file_types": [
+          ".npy"
+        ],
+        "required": true
+      },
+      "image": [
+        "start",
+        "end"
+      ],
+      "video": [
+        "continue",
+        "last"
+      ]
+    },
+    "description": "High-Quality 5s 480p Motion Control: Through scaled training, Wan-Move can generate 5-second, 480p videos with SOTA motion controllability on par with commercial systems such as Kling 1.5 Pro\u2019s Motion Brush, as verified via user studies.",
+    "fps": 16,
+    "frames_minimum": 5,
+    "frames_steps": 4,
+    "frames_maximum": 97,
+    "accelerated": "profiles"
+  },
+  "input_guidance": {
+    "action": "definition",
+    "arguments": {
+      "property": "infos"
+    }
+  },
+  "prompt_guidance": {
+    "action": "definition",
+    "arguments": {
+      "property": "prompt_infos"
+    }
+  }
+}

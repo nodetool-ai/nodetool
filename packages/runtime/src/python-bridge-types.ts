@@ -478,9 +478,9 @@ export interface PythonBridgeOptions {
   /**
    * Extra environment for a spawned local worker, resolved each time the
    * worker starts (stdio bridge only). The host supplies settings the worker
-   * reads from its environment at start, such as `NODETOOL_TORCH_DEVICE` and
-   * `WAN2GP_MCP_URL`, so a value saved in Settings reaches a worker the user
-   * never exported it to. Merged over the inherited environment.
+   * reads from its environment at start, such as `NODETOOL_TORCH_DEVICE`, so a
+   * value saved in Settings reaches a worker the user never exported it to.
+   * Merged over the inherited environment.
    */
   workerEnv?: () => Promise<Record<string, string>>;
 }

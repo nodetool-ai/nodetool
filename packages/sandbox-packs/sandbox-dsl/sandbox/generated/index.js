@@ -25,6 +25,7 @@ import * as libSqlite from "./lib.sqlite.js";
 import * as libStable_diffusion_cpp from "./lib.stable_diffusion_cpp.js";
 import * as libSvg from "./lib.svg.js";
 import * as libVideoDownload from "./lib.video.download.js";
+import * as libWan2gp from "./lib.wan2gp.js";
 import * as messagingDiscord from "./messaging.discord.js";
 import * as messagingTelegram from "./messaging.telegram.js";
 import * as mistralEmbeddings from "./mistral.embeddings.js";
@@ -117,6 +118,7 @@ export {
   libStable_diffusion_cpp,
   libSvg,
   libVideoDownload,
+  libWan2gp,
   manimgx,
   messagingDiscord,
   messagingTelegram,

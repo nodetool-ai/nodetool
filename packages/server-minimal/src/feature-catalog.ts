@@ -2424,6 +2424,10 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
       "lib.comfy.RunWorkflowOnCloud",
       "lib.comfy.RunWorkflowOnWorker",
       "lib.stable_diffusion_cpp.GenerateImage",
+      "lib.wan2gp.Generate",
+      "lib.wan2gp.ImageToVideo",
+      "lib.wan2gp.ListModels",
+      "lib.wan2gp.TextToVideo",
       "messaging.discord.DiscordBotTrigger",
       "messaging.telegram.TelegramBotTrigger"
     ]

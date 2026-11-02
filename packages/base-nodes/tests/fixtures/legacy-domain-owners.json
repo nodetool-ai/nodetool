@@ -473,6 +473,10 @@
     "lib.comfy.RunWorkflowOnWorker",
     "lib.comfy.RunWorkflowOnCloud",
     "lib.stable_diffusion_cpp.GenerateImage",
+    "lib.wan2gp.TextToVideo",
+    "lib.wan2gp.ImageToVideo",
+    "lib.wan2gp.Generate",
+    "lib.wan2gp.ListModels",
     "messaging.discord.DiscordBotTrigger",
     "messaging.telegram.TelegramBotTrigger"
   ]

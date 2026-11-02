@@ -3,7 +3,8 @@
 External-API integration nodes for [NodeTool](https://nodetool.ai).
 
 Connect visual AI workflows to the outside world: email, Discord and Telegram
-triggers, ComfyUI workflows, and stable-diffusion.cpp image generation.
+triggers, ComfyUI workflows, stable-diffusion.cpp image generation, and a
+Wan2GP server you run.
 
 Services that are one authenticated HTTP call — S3, Supabase, Notion, Twilio,
 Discord and Telegram sends — no longer ship as nodes. They are written as
@@ -76,6 +77,17 @@ job. The server cancels queued jobs, but returns HTTP 409 for active generation,
 which continues on the server. The node reports a cancellation failure in that
 case. Redirects are rejected. Local and LAN servers are supported on local
 installs. The cloud profile excludes this node by default.
+
+## Wan2GP
+
+`lib.wan2gp.TextToVideo`, `ImageToVideo`, `Generate` and `ListModels` call a
+[Wan2GP](https://github.com/deepbeepmeep/Wan2GP) server over MCP. Start it with
+`python wgp.py --mcp --mcp-async --mcp-transport streamable-http`. The MCP
+client is `Wan2GPClient` in `@nodetool-ai/runtime`, which the `wangp` provider
+also uses. The server URL comes from the node's `server_url`, then the
+`WAN2GP_MCP_URL` setting, then `http://127.0.0.1:7866/mcp`. A timeout or a
+cancelled run cancels the remote job. The cloud profile excludes these nodes.
+See [Wan2GP](../../docs/wan2gp.md).
 
 Mail is not a node package any more. `lib.mail.GmailSearch`, `AddLabel` and
 `MoveToArchive` were removed: the same three operations ship as the

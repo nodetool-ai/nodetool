@@ -1,0 +1,29 @@
+{
+  "job_id": "3d9a1c0e5b7f4a2d8c6e0f1a2b3c4d5e",
+  "done": true,
+  "cancel_requested": false,
+  "webui_submission_ready": false,
+  "webui_load_queue_token": "",
+  "created_at": 1710000000.0,
+  "updated_at": 1710000012.0,
+  "events": [],
+  "result": {
+    "success": false,
+    "cancelled": false,
+    "generated_files": [],
+    "errors": [
+      {
+        "message": "CUDA out of memory",
+        "task_index": 0,
+        "task_id": 1,
+        "stage": "denoising",
+        "cancelled": false
+      }
+    ],
+    "total_tasks": 1,
+    "successful_tasks": 0,
+    "failed_tasks": 1,
+    "artifacts": [],
+    "gallery_items": []
+  }
+}

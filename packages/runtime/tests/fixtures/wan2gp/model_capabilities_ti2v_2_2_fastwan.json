@@ -1,0 +1,59 @@
+{
+  "metadata": {
+    "model_type": "ti2v_2_2_fastwan",
+    "name": "Wan2.2 TextImage2video FastWan 5B",
+    "family": "wan2_2",
+    "family_label": "Wan2.2",
+    "base_model_type": "ti2v_2_2",
+    "finetune": false,
+    "main_output": [
+      "video"
+    ],
+    "outputs": [
+      "video"
+    ],
+    "inputs": [
+      "text",
+      "image",
+      "video"
+    ],
+    "capabilities": [
+      "text_to_video",
+      "image_to_video",
+      "video_to_video",
+      "video_continuation",
+      "sliding_window",
+      "lora"
+    ],
+    "specialities": [],
+    "resolution_budget": 2088960,
+    "vae_block_size": 32,
+    "media_inputs": {
+      "image": [
+        "start"
+      ],
+      "video": [
+        "continue",
+        "last"
+      ]
+    },
+    "description": "FastWan2.2-TI2V-5B-Full-Diffusers is built upon Wan-AI/Wan2.2-TI2V-5B-Diffusers. It supports efficient 3-step inference and produces high-quality videos at 121\u00d7704\u00d71280 resolution",
+    "fps": 24,
+    "frames_minimum": 5,
+    "frames_steps": 4,
+    "frames_maximum": 121,
+    "accelerated": "profiles"
+  },
+  "input_guidance": {
+    "action": "definition",
+    "arguments": {
+      "property": "infos"
+    }
+  },
+  "prompt_guidance": {
+    "action": "definition",
+    "arguments": {
+      "property": "prompt_infos"
+    }
+  }
+}

@@ -539,7 +539,7 @@ describe('concurrent installs', () => {
 
     const results = await Promise.all([
       installPackage('nodetool-ai/nodetool-huggingface'),
-      installPackage('nodetool-ai/nodetool-wan2gp'),
+      installPackage('nodetool-ai/nodetool-core'),
     ]);
 
     expect(results.map((result) => result.success)).toEqual([true, true]);

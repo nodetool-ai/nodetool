@@ -68,7 +68,6 @@ describe('checkExpectedPackageVersions', () => {
       { name: 'nodetool-core', version: '0.8.2' },
       { name: 'nodetool-huggingface', version: '0.8.1' },
       { name: 'nodetool-mlx', version: '0.7.2' },
-      { name: 'nodetool-wan2gp', version: '0.1.0' },
     ]);
 
     expect(await checkExpectedPackageVersions()).toEqual([]);
