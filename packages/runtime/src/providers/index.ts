@@ -261,6 +261,8 @@ export { LlamaProvider };
 export { NodeLlamaCppProvider };
 export { StableDiffusionCppProvider };
 export { Wan2GPProvider, wan2gpBaseSettings, wan2gpResolution } from "./wan2gp-provider.js";
+export { stopWan2GPServer, withWan2GPClient } from "./wan2gp-server.js";
+export type { Wan2GPConnection } from "./wan2gp-server.js";
 export {
   WAN2GP_CANCEL_TIMEOUT_MS,
   WAN2GP_DEFAULT_MAX_MEDIA_BYTES,

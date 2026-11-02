@@ -40,7 +40,7 @@ The engines below run on your machine. The Model Manager's **Get Started** tab l
 
 ### Wan2GP
 
-**Wan2GP** runs Wan, LTX-2, MiniMax H3 and other models in a server you start yourself. The built-in `lib.wan2gp` nodes and the `wangp` provider call it over MCP, so no model loads inside NodeTool. See [Wan2GP](wan2gp.md).
+**Wan2GP** runs Wan, LTX-2, MiniMax H3 and other models in its own server. Install it from the Package Manager, or run your own. The built-in `lib.wan2gp` nodes and the `wangp` provider call it over MCP, so no model loads inside NodeTool. See [Wan2GP](wan2gp.md).
 
 ### Comparison Matrix
 

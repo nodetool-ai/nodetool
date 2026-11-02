@@ -53,8 +53,8 @@ describe("registration", () => {
     expect((await authed.getAvailableImageModels()).map((model) => model.id)).toEqual(["flux"]);
   });
 
-  it("defaults to the local Wan2GP port", () => {
-    expect(new Wan2GPProvider({ WAN2GP_MCP_URL: "" }).serverUrl).toBe("http://127.0.0.1:7866/mcp");
+  it("leaves the server to the installed Wan2GP when no URL is set", () => {
+    expect(new Wan2GPProvider({ WAN2GP_MCP_URL: " " }).serverUrl).toBe("");
   });
 });
 

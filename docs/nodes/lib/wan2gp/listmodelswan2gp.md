@@ -25,7 +25,7 @@ List the models your own Wan2GP server offers, with the media each one accepts.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| server_url | `str` | MCP endpoint of your own Wan2GP server. Leave blank to use the WAN2GP_MCP_URL setting, then http://127.0.0.1:7866/mcp. | `` |
+| server_url | `str` | MCP endpoint of a Wan2GP server. Leave blank to use the WAN2GP_MCP_URL setting, then the Wan2GP installed in the Package Manager, then http://127.0.0.1:7866/mcp. | `` |
 | query | `str` | Text to look for in the model's name, id, family or description. Leave blank to list every model. | `` |
 | main_output | `enum` | Keep only models whose main output is this kind. Empty keeps every kind. | `` |
 | media_input | `str` | Keep only models that accept this input kind: image, video, audio, 3d or world. | `` |

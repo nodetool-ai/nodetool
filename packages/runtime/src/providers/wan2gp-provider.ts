@@ -1,23 +1,21 @@
 /**
- * Wan2GP provider: the `wangp` provider id, served by a Wan2GP server the
- * user runs themselves.
+ * Wan2GP provider: the `wangp` provider id.
  *
  * Every call goes over MCP through {@link Wan2GPClient}. The composer, the
  * Create view and presets list the server's models and generate with them.
- * NodeTool never runs Wan2GP itself, because WanGP's license forbids
- * embedding it in a paid product.
  *
- * The server address is `WAN2GP_MCP_URL`, default `http://127.0.0.1:7866/mcp`.
+ * `WAN2GP_MCP_URL` names a Wan2GP server to use. Without it, the Wan2GP the
+ * Package Manager installed is started on demand (`wan2gp-server.ts`), and
+ * without an install the default `http://127.0.0.1:7866/mcp` is tried.
  * `WAN2GP_MCP_TOKEN` is the bearer token for a server behind an
  * authenticating proxy, such as the nodetool-wan2gp combined image.
- * Start the server with `python wgp.py --mcp --mcp-async`.
  */
 
 import { createLogger } from "@nodetool-ai/config";
 import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
+import { withWan2GPClient } from "./wan2gp-server.js";
 import {
-  WAN2GP_DEFAULT_SERVER_URL,
   WAN2GP_MAX_MEDIA_BYTES,
   Wan2GPClient,
   Wan2GPError,
@@ -137,16 +135,14 @@ export function wan2gpBaseSettings(
 }
 
 export class Wan2GPProvider extends BaseProvider {
+  /** The configured server, or empty for the installed Wan2GP. */
   readonly serverUrl: string;
   private readonly token: string;
 
   constructor(kwargs: Record<string, unknown> = {}) {
     super(PROVIDER_IDS.WANGP);
     const configured = kwargs["WAN2GP_MCP_URL"];
-    this.serverUrl =
-      typeof configured === "string" && configured.trim()
-        ? configured.trim()
-        : WAN2GP_DEFAULT_SERVER_URL;
+    this.serverUrl = typeof configured === "string" ? configured.trim() : "";
     const token = kwargs["WAN2GP_MCP_TOKEN"];
     this.token = typeof token === "string" ? token.trim() : "";
   }
@@ -166,21 +162,11 @@ export class Wan2GPProvider extends BaseProvider {
     throw new Error("wangp does not support chat generation");
   }
 
-  private connect(signal?: AbortSignal): Promise<Wan2GPClient> {
-    return Wan2GPClient.connect(this.serverUrl, {
-      maxTransferBytes: WAN2GP_MAX_MEDIA_BYTES,
-      signal,
-      ...(this.token && { token: this.token })
-    });
-  }
-
-  private async withClient<T>(signal: AbortSignal | undefined, fn: (client: Wan2GPClient) => Promise<T>): Promise<T> {
-    const client = await this.connect(signal);
-    try {
-      return await fn(client);
-    } finally {
-      await client.close();
-    }
+  private withClient<T>(signal: AbortSignal | undefined, fn: (client: Wan2GPClient) => Promise<T>): Promise<T> {
+    return withWan2GPClient(
+      { serverUrl: this.serverUrl, token: this.token, maxTransferBytes: WAN2GP_MAX_MEDIA_BYTES, signal },
+      fn
+    );
   }
 
   /** Models of one main output, with the tasks their capabilities enable. */

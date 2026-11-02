@@ -78,6 +78,17 @@ export {
 } from "./sd-cpp-runtime.js";
 
 export {
+  WAN2GP_COMMIT,
+  WAN2GP_VERSION,
+  installWan2GP,
+  uninstallWan2GP,
+  wan2gpInstallStatus,
+  type Wan2GPInstallEvent,
+  type Wan2GPInstallOptions,
+  type Wan2GPInstallStatus
+} from "./wan2gp-runtime.js";
+
+export {
   PACKAGE_RUNTIME_ASSETS,
   PACKAGE_RUNTIME_ASSET_DIRS,
   SHIPPED_SANDBOX_PACKS_SOURCE_DIR,

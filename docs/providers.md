@@ -274,12 +274,12 @@ It requires no native package. Local only.
 
 ## Wan2GP
 
-Wan2GP (provider id `wangp`) generates video and images on a
-[Wan2GP](wan2gp.md) server you run yourself, over MCP: text-to-video,
-image-to-video, reference-to-video, text-to-image and image-to-image.
-`WAN2GP_MCP_URL` names the server, default `http://127.0.0.1:7866/mcp`. The
-model list is the server's own, read on each request, and is empty while no
-server answers. Local only.
+Wan2GP (provider id `wangp`) generates video and images with
+[Wan2GP](wan2gp.md) over MCP: text-to-video, image-to-video,
+reference-to-video, text-to-image and image-to-image. Install it in
+**Settings › Packages**, or run `nodetool runtime add wan2gp`. NodeTool then
+starts its server on demand. `WAN2GP_MCP_URL` names a server you run instead.
+The model list is the server's own. Local only.
 
 ## stable-diffusion.cpp
 

@@ -231,6 +231,10 @@ at 24 hours.
   transfer ticket from the server must be a relative URL under `/wangp_api/`
   that resolves to the configured origin. The cloud profile excludes the
   `wangp` provider and the `lib.wan2gp` nodes.
+- `packages/runtime/src/providers/wan2gp-server.ts` — polls only the Wan2GP
+  server it started on `127.0.0.1`, at a port it picked, until that server
+  answers. The cloud profile excludes the `wangp` provider and the
+  `lib.wan2gp` nodes that start it.
 - `packages/runtime/src/comfy-executor.ts` — a ComfyUI server, normally
   localhost or the LAN, so screening private addresses would refuse the ordinary
   case. The address is the node's `endpoint` property, so the graph author picks

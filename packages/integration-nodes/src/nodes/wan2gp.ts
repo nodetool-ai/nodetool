@@ -1,19 +1,19 @@
 /**
- * Nodes for a Wan2GP server the user runs themselves.
+ * Nodes for a Wan2GP server: the one the Package Manager installs, which
+ * NodeTool starts on demand, or one the user runs and names in
+ * WAN2GP_MCP_URL.
  *
- * Every call goes over MCP through `Wan2GPClient` in the runtime, which the
- * `wangp` provider also uses. NodeTool never runs Wan2GP: WanGP's license
- * forbids embedding it in a paid product, so the network is the boundary.
- * Start the server with `python wgp.py --mcp --mcp-async`.
+ * Every call goes over MCP through `withWan2GPClient` in the runtime, which
+ * the `wangp` provider also uses.
  */
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import {
   WAN2GP_DEFAULT_MAX_MEDIA_BYTES,
-  WAN2GP_DEFAULT_SERVER_URL,
   WAN2GP_MAX_MEDIA_BYTES,
   Wan2GPClient,
   loadMediaRefBytes,
+  withWan2GPClient,
   wan2gpAudioFilename,
   wan2gpImageFilename,
   wan2gpVideoFilename,
@@ -52,8 +52,9 @@ const MIME_TYPES: Record<string, string> = {
 };
 
 /**
- * Resolve the node's own URL, then the WAN2GP_MCP_URL setting (which falls
- * back to the run's environment), then localhost.
+ * The node's own URL, then the WAN2GP_MCP_URL setting (which falls back to
+ * the run's environment). Empty means the Wan2GP the Package Manager
+ * installed, then the default local server.
  */
 export async function resolveWan2GPServerUrl(
   serverUrl: string | null | undefined,
@@ -64,7 +65,7 @@ export async function resolveWan2GPServerUrl(
   const configured = context
     ? await context.getSetting("WAN2GP_MCP_URL")
     : process.env["WAN2GP_MCP_URL"];
-  return configured?.trim() || WAN2GP_DEFAULT_SERVER_URL;
+  return configured?.trim() ?? "";
 }
 
 /** Return Wan2GP's `WxH` string. Each side must be a positive multiple of 16. */
@@ -176,7 +177,7 @@ abstract class Wan2GPNodeBase extends BaseNode {
     default: "",
     title: "Server URL",
     description:
-      "MCP endpoint of your own Wan2GP server, for example http://127.0.0.1:7866/mcp. Leave blank to use the WAN2GP_MCP_URL setting, then localhost."
+      "MCP endpoint of a Wan2GP server, for example http://127.0.0.1:7866/mcp. Leave blank to use the WAN2GP_MCP_URL setting, then the Wan2GP installed in the Package Manager, then localhost."
   })
   declare server_url: string;
 
@@ -238,12 +239,13 @@ abstract class Wan2GPNodeBase extends BaseNode {
     expected?: OutputKind
   ): Promise<{ kind: OutputKind; ref: Record<string, unknown> }> {
     const signal = context?.signal;
-    const client = await Wan2GPClient.connect(await resolveWan2GPServerUrl(this.server_url, context), {
+    const connection = {
+      serverUrl: await resolveWan2GPServerUrl(this.server_url, context),
       maxTransferBytes: this.max_media_bytes,
       signal,
       token: await resolveWan2GPToken(context)
-    });
-    try {
+    };
+    return withWan2GPClient(connection, async (client) => {
       const settings = await buildSettings(client);
       signal?.throwIfAborted();
       const jobId = await client.submit(settings);
@@ -258,9 +260,7 @@ abstract class Wan2GPNodeBase extends BaseNode {
       );
       const kind = item.media_type as OutputKind;
       return { kind, ref: outputRef(kind, data, item.filename) };
-    } finally {
-      await client.close();
-    }
+    });
   }
 }
 
@@ -501,7 +501,7 @@ export class Wan2GPListModelsNode extends BaseNode {
     type: "str",
     default: "",
     title: "Server URL",
-    description: "MCP endpoint of your own Wan2GP server. Leave blank to use the WAN2GP_MCP_URL setting, then http://127.0.0.1:7866/mcp."
+    description: "MCP endpoint of a Wan2GP server. Leave blank to use the WAN2GP_MCP_URL setting, then the Wan2GP installed in the Package Manager, then http://127.0.0.1:7866/mcp."
   })
   declare server_url: string;
 
@@ -535,18 +535,17 @@ export class Wan2GPListModelsNode extends BaseNode {
   }
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const client = await Wan2GPClient.connect(await resolveWan2GPServerUrl(this.server_url, context), {
+    const connection = {
+      serverUrl: await resolveWan2GPServerUrl(this.server_url, context),
       signal: context?.signal,
       token: await resolveWan2GPToken(context)
-    });
-    try {
+    };
+    return withWan2GPClient(connection, async (client) => {
       const models = await client.searchAllModels(this.query ?? "", this.filters(), this.limit);
       return {
         output: models.map((model) => Object.fromEntries(ROW_KEYS.filter((key) => key in model).map((key) => [key, model[key]])))
       };
-    } finally {
-      await client.close();
-    }
+    });
   }
 }
 

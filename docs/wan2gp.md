@@ -1,19 +1,17 @@
 ---
 layout: page
 title: "Wan2GP"
-description: "Generate video, images, audio and 3D models in NodeTool with a Wan2GP server you run yourself: start the server, point NodeTool at it, and use the lib.wan2gp nodes or the wangp provider."
+description: "Generate video, images, audio and 3D models in NodeTool with Wan2GP: install it from the Package Manager, or point NodeTool at a Wan2GP server you run, and use the lib.wan2gp nodes or the wangp provider."
 ---
 
-NodeTool calls a [Wan2GP](https://github.com/deepbeepmeep/Wan2GP) server you
-run yourself, over MCP. The models run in Wan2GP's own process and Python
-environment, never inside NodeTool, so NodeTool installs no PyTorch for them.
-Two parts use the server:
+[Wan2GP](https://github.com/deepbeepmeep/Wan2GP) runs Wan, LTX-2, MiniMax
+H3, Flux, Qwen and many other models on consumer GPUs. NodeTool talks to its
+MCP server. The models run in Wan2GP's own process and Python environment,
+never inside NodeTool. Two parts use it:
 
 - the `lib.wan2gp` nodes, for workflows;
-- the `wangp` provider, which lists the server's models in the chat composer,
+- the `wangp` provider, which lists Wan2GP's models in the chat composer,
   the Create view and ejected preset workflows.
-
-Both are built in. No Python pack is needed.
 
 | Node | What it does |
 |---|---|
@@ -24,15 +22,41 @@ Both are built in. No Python pack is needed.
 
 The nodes and the provider are local only. The cloud profile excludes them.
 
-## 1. Run a Wan2GP server
+## 1. Install Wan2GP
 
-Wan2GP needs its own conda environment and its own PyTorch build. Do not
-install it into NodeTool's Python environment. Follow Wan2GP's
-[installation guide](https://github.com/deepbeepmeep/Wan2GP/blob/main/docs/INSTALLATION.md).
-It gives one PyTorch build for RTX 20xx to RTX 50xx cards and an older one for
-GTX 10xx cards.
+- **Desktop app:** open **Tools → Package Manager → Engines & tools** and
+  install **Wan2GP**, or pick a Wan2GP model in the model menu and install it
+  there. It needs the Python runtime, which installs first.
+- **CLI:** `nodetool runtime add wan2gp`. It needs a Python 3.10 or newer and
+  [uv](https://docs.astral.sh/uv/), from the NodeTool conda environment or
+  PATH. `--python` and `--uv` name others, and `--profile RTX_40` picks a
+  hardware profile instead of the detected one.
 
-Start it with its MCP server on streamable HTTP and asynchronous jobs:
+The install downloads Wan2GP v19.02 from GitHub and runs Wan2GP's own
+unattended installer (`setup.py install --env uv --auto`). That installer
+reads the GPU and picks the Python, PyTorch and attention kernels for it:
+
+| Hardware | Python and PyTorch |
+|---|---|
+| NVIDIA RTX 20xx to 50xx, Windows or Linux | Python 3.11, PyTorch 2.10 with CUDA 13.0 |
+| NVIDIA GTX 10xx, Windows or Linux | Python 3.10, PyTorch 2.7.1 with CUDA 12.8 |
+| AMD, Windows or Linux | Python 3.12, PyTorch 2.13 with ROCm 10 |
+| Apple Silicon | Python 3.11, PyTorch with MPS |
+
+Other hardware fails the install with Wan2GP's message naming the GPU it
+found. Allow about 12 GB before any model. Each model's weights download the
+first time it runs, into `wan2gp/ckpts`, which an update keeps.
+
+NodeTool starts the installed server the first time a node or the provider
+needs it, on a free port on `127.0.0.1`. It stops the server after 15 minutes
+without calls, which frees the GPU memory Wan2GP holds, and when NodeTool
+exits.
+
+### Run Wan2GP yourself instead
+
+Follow Wan2GP's
+[installation guide](https://github.com/deepbeepmeep/Wan2GP/blob/main/docs/INSTALLATION.md)
+in its own environment, then start its MCP server:
 
 ```bash
 python wgp.py --mcp --mcp-async --mcp-transport streamable-http --mcp-host 127.0.0.1 --mcp-port 7866
@@ -45,15 +69,17 @@ server with a message that says so.
 
 ## 2. Point NodeTool at the server
 
-The nodes resolve the server URL when they run, in this order:
+The nodes pick the server when they run, in this order:
 
 1. The node's `server_url` field, when it is not blank.
 2. `WAN2GP_MCP_URL`, set in **Settings → Integrations** or in the environment.
-3. `http://127.0.0.1:7866/mcp`.
+3. The Wan2GP the Package Manager installed, started on demand.
+4. `http://127.0.0.1:7866/mcp`, for a server you run.
 
-The `wangp` provider uses `WAN2GP_MCP_URL`, then the default. A server on the
-same machine at the default port needs no setting. A changed setting applies
-to the next call, without a restart.
+The `wangp` provider uses the same order without the first step. With
+nothing installed and nothing answering at the default address, a generation
+fails with an error that offers the install. A changed setting applies to the
+next call, without a restart.
 
 `WAN2GP_MCP_TOKEN` is a bearer token for a server behind an authenticating
 proxy, such as the combined GPU image below. The nodes and the provider send
@@ -96,9 +122,11 @@ Build and run instructions are in the
 
 ## Licensing
 
-Wan2GP has its own license, which limits commercial use and forbids embedding
-it in a paid product without a separate license. NodeTool reaches it only over
-the network and ships none of it. Each model has a separate license. MiniMax
+Wan2GP is under the WanGP Community License 2.0. You may use it for free,
+including for client work. Selling it, white-labelling it, embedding it in a
+paid product, or offering paid hosted access to it needs a separate license
+from its author. NodeTool does not ship Wan2GP: the Package Manager downloads
+it from its GitHub repository when you install it. Each model has a separate license. MiniMax
 H3's license excludes the European Union, the United Kingdom, South Korea and
 the United States, and LTX-2's requires a paid license above 10 million US
 dollars in annual revenue. The nodetool-wan2gp

@@ -5,6 +5,7 @@ import { NpmRuntimePackage } from "./NpmRuntimePackage";
 import { ElectronRuntimePackage } from "./ElectronRuntimePackage";
 import { UvToolRuntimePackage } from "./UvToolRuntimePackage";
 import { SdCppRuntimePackage } from "./SdCppRuntimePackage";
+import { Wan2GPRuntimePackage } from "./Wan2GPRuntimePackage";
 import type { RuntimePackage } from "./types";
 import {
   RUNTIME_NPM_PACKAGES,
@@ -133,6 +134,8 @@ export const RUNTIME_PACKAGES = {
   }),
 
   "sd-cpp": new SdCppRuntimePackage(),
+
+  wan2gp: new Wan2GPRuntimePackage(),
 
   "transformers-js": new NpmRuntimePackage({
     id: "transformers-js",

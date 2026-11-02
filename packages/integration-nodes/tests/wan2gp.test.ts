@@ -145,7 +145,7 @@ describe("settings helpers", () => {
   });
 
   it("resolves the server URL from the node, the setting, then localhost", async () => {
-    expect(await resolveWan2GPServerUrl("")).toBe("http://127.0.0.1:7866/mcp");
+    expect(await resolveWan2GPServerUrl("")).toBe("");
     process.env["WAN2GP_MCP_URL"] = "http://gpu-box:7866/mcp";
     expect(await resolveWan2GPServerUrl(" ")).toBe("http://gpu-box:7866/mcp");
     const context = { getSetting: async (key: string) => (key === "WAN2GP_MCP_URL" ? "http://saved:7866/mcp" : null) };

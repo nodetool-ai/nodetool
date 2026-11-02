@@ -277,7 +277,7 @@ s("WHISPER_CPP_GPU_BACKEND", "WhisperCpp", "Backend for in-process whisper.cpp i
 s(
   "WAN2GP_MCP_URL",
   "Wan2GP",
-  "MCP endpoint of the Wan2GP server the lib.wan2gp nodes and the wangp provider call (default: http://127.0.0.1:7866/mcp). A node's own server URL field overrides it."
+  "MCP endpoint of a Wan2GP server you run, for the lib.wan2gp nodes and the wangp provider. Leave empty to use the Wan2GP installed in the Package Manager, then http://127.0.0.1:7866/mcp. A node's own server URL field overrides it."
 );
 sec(
   "WAN2GP_MCP_TOKEN",
