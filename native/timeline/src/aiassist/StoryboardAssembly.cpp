@@ -151,7 +151,7 @@ StoryboardAssemblyResult assembleStoryboard(const QJsonObject& existing, const Q
                 const auto speaker = cast.value(line.value("speakerId").toString());
                 const auto voice = line.value("voiceOverride").isObject() ? line.value("voiceOverride").toObject() : speaker.value("voice").toObject();
                 auto audio = clip({{"trackId", voiceTrack.value("id")}, {"name", line.value("text").toString().left(40).isEmpty() ? "Line" : line.value("text").toString().left(40)},
-                    {"startMs", cursor + offset}, {"durationMs", *ms - std::max(0.0, line.value("pauseAfterMs").toDouble())}, {"mediaType", "audio"}, {"sourceType", "generated"}, {"bindingKind", "text-to-audio"}, {"audioRole", "dialogue"},
+                    {"startMs", cursor + offset}, {"durationMs", *ms - std::max(0.0, line.value("pauseAfterMs").toDouble())}, {"mediaType", "audio"}, {"sourceType", "generated"}, {"bindingKind", "text-to-audio"},
                     {"status", "generated"}, {"currentAssetId", take.value("assetId")}, {"prompt", line.value("text")}, {"scriptId", scriptId}, {"scriptLineId", line.value("id")}, {"storyboardBoardId", boardId}, {"storyboardShotId", shotId}});
                 for (const auto& key : {"provider", "model", "voice"}) { if (voice.contains(key)) { audio.insert(key, voice.value(key)); } }
                 if (!speaker.value("name").toString().isEmpty()) { audio.insert("speaker", speaker.value("name")); }

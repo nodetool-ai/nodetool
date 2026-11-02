@@ -553,20 +553,6 @@ private slots:
                                  "audioRole.ambience", "audioRole.none"}) {
             QVERIFY2(keys.contains(name), name);
         }
-        QStringList clipMenu;
-        for (const auto& item : MenuRegistry().query("clip", {{"editable", true}, {"mediaType", "audio"}, {"clip", QVariantMap{{"audioRole", "music"}}}})) {
-            clipMenu.append(item.toMap().value("action").toString());
-        }
-        QVERIFY(clipMenu.contains("matchLoudness"));
-        QVERIFY(clipMenu.contains("audioRole.music"));
-        const auto roleItem = [&](const QString& action) {
-            for (const auto& item : MenuRegistry().query("clip", {{"editable", true}, {"mediaType", "audio"}, {"clip", QVariantMap{{"audioRole", "music"}}}})) {
-                if (item.toMap().value("action").toString() == action) return item.toMap();
-            }
-            return QVariantMap{};
-        };
-        QVERIFY(roleItem("audioRole.music").value("checked").toBool());
-        QVERIFY(!roleItem("audioRole.sfx").value("checked").toBool());
         QStringList shell;
         for (const auto& entry : nt::app::shellMenuEntries("Clip")) shell.append(entry.action);
         QVERIFY(shell.contains("matchLoudness") && shell.contains("duckMusic") && shell.contains("audioRole.sfx"));

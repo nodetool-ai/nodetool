@@ -36,7 +36,7 @@ QJsonObject lineClip(const QString& scriptId, const QJsonObject& line, const QJs
     const auto duration = take.value("durationMs").toDouble();
     QJsonObject clip{{"id", freshId()}, {"trackId", trackId}, {"name", text.isEmpty() ? "Line" : text.left(40)},
         {"startMs", start}, {"durationMs", duration > 0 ? duration : 3000}, {"mediaType", "audio"},
-        {"sourceType", "generated"}, {"bindingKind", "text-to-audio"}, {"audioRole", "dialogue"}, {"status", "generated"},
+        {"sourceType", "generated"}, {"bindingKind", "text-to-audio"}, {"status", "generated"},
         {"locked", false}, {"versions", QJsonArray{}}, {"currentAssetId", take.value("assetId")},
         {"prompt", text}, {"scriptId", scriptId}, {"scriptLineId", line.value("id")}};
     for (const auto& key : {"provider", "model", "voice"}) {

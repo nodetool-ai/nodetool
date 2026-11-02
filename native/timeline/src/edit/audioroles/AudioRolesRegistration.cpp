@@ -29,6 +29,9 @@ bool roleChecked(const QVariantMap& context, const QString& role) {
     return controller && gestures && controller->roleSummary(gestures->selection()).value("role").toString() == role;
 }
 
+// The Clip menu shows the built-in items first, then these as one group.
+constexpr int kMenuOrder = 100;
+
 const bool registered = [] {
     auto setRole = [](const QString& role) {
         return [role](ClipGestureController& gestures, const QVariantMap&) {
@@ -39,17 +42,12 @@ const bool registered = [] {
     int order = 0;
     for (const auto& role : roles()) {
         nt::wiring::registerKeyAction({"audioRole." + role, "Set audio role to " + roleLabel(role), {}, setRole(role), "Audio"});
-        nt::app::registerShellMenuItem({"Clip", "audioRole." + role, roleLabel(role), {}, "Audio role", "audio", order,
+        nt::app::registerShellMenuItem({"Clip", "audioRole." + role, roleLabel(role), {}, "Audio role", "audio", kMenuOrder + order++,
             [](const QVariantMap& context) { return soundingSelected(context) > 0; },
             [role](const QVariantMap& context) { return roleChecked(context, role); }});
-        nt::app::registerMenuItem({"clip", "audioRole." + role, "Audio role: " + roleLabel(role), {},
-            [](const QVariantMap& context) {
-                return context.value("editable", true).toBool() && nt::audioroles::soundingType(context.value("mediaType").toString());
-            }, "audioRole", order++,
-            [role](const QVariantMap& context) { return context.value("clip").toMap().value("audioRole").toString() == role; }});
     }
     nt::wiring::registerKeyAction({"audioRole.none", "Clear the audio role", {}, setRole({}), "Audio"});
-    nt::app::registerShellMenuItem({"Clip", "audioRole.none", "No role", {}, "Audio role", "audio", order,
+    nt::app::registerShellMenuItem({"Clip", "audioRole.none", "No role", {}, "Audio role", "audio", kMenuOrder + order,
         [](const QVariantMap& context) { return soundingSelected(context) > 0; }});
 
     nt::wiring::registerKeyAction({"matchLoudness", "Match loudness to the role targets", {},
@@ -70,12 +68,8 @@ const bool registered = [] {
         auto* controller = controllerOf(context);
         return controller && !controller->busy();
     };
-    nt::app::registerShellMenuItem({"Clip", "matchLoudness", "Match loudness", {}, {}, "audio", 10, idle});
-    nt::app::registerShellMenuItem({"Clip", "duckMusic", "Duck music under dialogue", {}, {}, "audio", 11, idle});
-    nt::app::registerMenuItem({"clip", "matchLoudness", "Match loudness", {},
-        [](const QVariantMap& context) {
-            return context.value("editable", true).toBool() && nt::audioroles::soundingType(context.value("mediaType").toString());
-        }, "audioRole", 10});
+    nt::app::registerShellMenuItem({"Clip", "matchLoudness", "Match loudness", {}, {}, "audio", kMenuOrder + 10, idle});
+    nt::app::registerShellMenuItem({"Clip", "duckMusic", "Duck music under dialogue", {}, {}, "audio", kMenuOrder + 11, idle});
     return true;
 }();
 
