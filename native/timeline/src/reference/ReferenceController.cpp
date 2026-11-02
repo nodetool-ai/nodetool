@@ -188,7 +188,9 @@ void ReferenceController::setGanged(bool ganged) {
     m_ganged = ganged;
     if (ganged) {
         m_stale = false;
-    } else if (m_clock) {
+        // Always a fresh capture: the frame showing may be a take at this same time.
+        m_doneTime = -1;
+    } else {
         // Parks on the frame it shows.
         m_timer.stop();
         m_dirty = false;
@@ -212,7 +214,6 @@ void ReferenceController::followPlayhead() {
     if (!m_following || !m_dirty || m_inFlight || !m_clock || !model()) return;
     m_dirty = false;
     const double rate = fps();
-    if (!hasContent()) return;
     const double end = model()->contentEndMs();
     double time = std::max(0.0, m_clock->currentTimeMs());
     if (rate > 0) time = std::clamp(frameFloor(time, rate), 0.0, std::max(0.0, frameCeil(end, rate) - 1)) * 1000 / rate;
@@ -234,6 +235,7 @@ void ReferenceController::setTarget(Target target) {
     m_dirty = false;
     syncFollowing();
     m_target = std::move(target);
+    emit stateChanged();
     emit takesChanged();
     requestCapture();
 }
@@ -345,9 +347,12 @@ void ReferenceController::requestCapture() {
         return;
     }
     if (!hasContent()) {
+        m_stale = false;
+        emit stateChanged();
         if (!m_image.isNull()) {
             m_image = {};
             m_imageTimeMs = -1;
+            m_imageTakeId.clear();
             emit imageChanged();
         }
         return;

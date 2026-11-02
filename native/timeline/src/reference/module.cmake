@@ -7,8 +7,9 @@ function(nt_reference_tests)
         src/app/BuiltinEdits.cpp src/edit/groups/GroupRegistrations.cpp
         src/edit/transitions/TransitionRegistrations.cpp src/edit/tracks/TrackEditRegistrations.cpp)
     set_target_properties(tst_reference PROPERTIES MACOSX_BUNDLE FALSE)
+    target_include_directories(tst_reference PRIVATE tests)
     target_link_libraries(tst_reference PRIVATE timeline_core timeline_decode timeline_audio timeline_server
-        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test Qt6::QuickTest PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
+        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::Test Qt6::QuickTest PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
     nt_add_timeline_qml(tst_reference OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_reference_qml/NodeTool/Timeline)
     if(UNIX AND NOT APPLE)
         target_sources(tst_reference PRIVATE src/preview/hw/HwWindow.h src/preview/hw/HwWindow.cpp)

@@ -151,6 +151,8 @@ Item {
         }
         Ui.Text {
             id: currentLabel
+            // A narrow monitor keeps the controls, which do the work.
+            visible: bar.width > controls.width + implicitWidth + Ui.Metrics.md * 3
             anchors.right: parent.right
             anchors.rightMargin: Ui.Metrics.md
             anchors.verticalCenter: parent.verticalCenter

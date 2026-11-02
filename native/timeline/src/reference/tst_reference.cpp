@@ -7,6 +7,8 @@
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
 #include "reference/ReferenceController.h"
+#include "server/ServerSource.h"
+#include "TestHttpServer.h"
 #include "ui/MonitorViewState.h"
 #include <QDir>
 #include <QFile>
@@ -52,6 +54,20 @@ QJsonObject successfulTake(const QString& id, const QString& asset, const QStrin
 QString flatPng(const QString& path, const QColor& color) {
     QImage image(320, 180, QImage::Format_RGB888);
     image.fill(color);
+    return image.save(path) ? path : QString();
+}
+// A horizontal ramp, so a scaled or shifted frame does not pass as the same picture.
+QString rampPng(const QString& path, int red, int green, int blue) {
+    QImage image(320, 180, QImage::Format_RGB888);
+    for (int y = 0; y < image.height(); ++y) {
+        auto* row = image.scanLine(y);
+        for (int x = 0; x < image.width(); ++x) {
+            const double t = double(x) / (image.width() - 1);
+            row[x * 3] = uchar(red * t);
+            row[x * 3 + 1] = uchar(green * t);
+            row[x * 3 + 2] = uchar(blue * t);
+        }
+    }
     return image.save(path) ? path : QString();
 }
 QColor centre(const QImage& image) { return image.pixelColor(image.width() / 2, image.height() / 2); }
@@ -192,18 +208,31 @@ private slots:
         QCOMPARE(e.capture()->processId(), qint64(0));
     }
     void parkedFrameMatchesStills() {
-        Editor e(twoShots());
+        // One clip per frame, so a capture a frame off shows another picture.
+        const double frame = 1000.0 / 30;
+        const auto document = documentOf({
+            clipJson("before", 0, 45 * frame, rampPng(m_dir.filePath("ramp-r.png"), 255, 40, 40)),
+            clipJson("exact", 45 * frame, frame, rampPng(m_dir.filePath("ramp-g.png"), 40, 255, 40)),
+            clipJson("after", 46 * frame, 44 * frame, rampPng(m_dir.filePath("ramp-b.png"), 40, 40, 255))});
+        Editor e(document);
         QVERIFY2(e.object, qPrintable(e.error));
         auto* r = e.reference();
         r->parkAt(1500);
         QVERIFY(e.settled());
         QVERIFY2(r->hasImage(), qPrintable(r->error()));
-        const auto reference = still(twoShots(), 45);
+        const auto reference = still(document, 45);
         QVERIFY(!reference.isNull());
         const double db = psnr(r->image(), reference);
         qInfo() << "parked frame against --stills:" << db << "dB";
         QVERIFY2(db > 50, qPrintable(QString::number(db)));
         QCOMPARE(r->imageTimeMs(), 1500.0);
+        // It would fail against a neighbour: the check can tell frames apart.
+        QVERIFY(psnr(r->image(), still(document, 46)) < 30);
+        QVERIFY(psnr(r->image(), still(document, 44)) < 30);
+        // Stepping shows the neighbours' stills.
+        r->stepFrames(1);
+        QVERIFY(e.settled());
+        QVERIFY(psnr(r->image(), still(document, 46)) > 50);
     }
     void parkedFrameIgnoresThePlayhead() {
         Editor e(twoShots());
@@ -313,6 +342,39 @@ private slots:
         QTest::qWait(100);
         QCOMPARE(r->timeMs(), parked);
         QCOMPARE(r->capturesForTest(), captures);
+    }
+    // What a ganged reference costs at a delivery size, reported rather than held to a number
+    // because the machine running this test is not idle. It holds the GUI thread to a loose limit.
+    void gangedCostAtFullHd() {
+        auto document = documentOf({clipJson("a", 0, 3000, m_red)});
+        document.insert("width", 1920);
+        document.insert("height", 1080);
+        Editor e(document);
+        QVERIFY2(e.object, qPrintable(e.error));
+        QVERIFY(e.openPanel());
+        auto* r = e.reference();
+        QVERIFY(e.settled());
+        r->setGanged(true);
+        QTRY_VERIFY_WITH_TIMEOUT(r->hasImage(), 60000);
+        QVERIFY(e.settled());
+        const int before = r->capturesForTest();
+        e.clock.seek(0);
+        e.clock.play();
+        QElapsedTimer played;
+        played.start();
+        qint64 last = 0, largest = 0;
+        while (played.elapsed() < 2000) {
+            QTest::qWait(5);
+            e.clock.tick();
+            const auto now = played.elapsed();
+            largest = std::max(largest, now - last);
+            last = now;
+        }
+        e.clock.pause();
+        const int taken = r->capturesForTest() - before;
+        qInfo() << "ganged at 1920x1080:" << taken << "captures in" << played.elapsed() << "ms, largest GUI gap" << largest << "ms";
+        QVERIFY(taken >= 1);
+        QVERIFY2(largest < 500, qPrintable(QString::number(largest)));
     }
     void stepsAndClampsToFrames() {
         Editor e(twoShots());
@@ -449,6 +511,16 @@ private slots:
         QCOMPARE(r->takeId(), QString());
         QVERIFY(e.settled());
         QVERIFY(near(centre(r->image()), QColor(200, 40, 40)));
+        // Ganging from a take shows the timeline at that same time, not the take's picture.
+        QVERIFY(r->useTake("a", "t2"));
+        QVERIFY(e.settled());
+        QVERIFY(near(centre(r->image()), QColor(40, 190, 70)));
+        QVERIFY(e.openPanel());
+        r->setGanged(true);
+        QCOMPARE(r->takeId(), QString());
+        QTRY_VERIFY_WITH_TIMEOUT(near(centre(r->image()), QColor(200, 40, 40)), 60000);
+        QVERIFY(e.settled());
+        r->setGanged(false);
     }
     void panelDrivenWithRealEvents() {
         Editor e(twoShots());
@@ -678,6 +750,43 @@ private slots:
         e.model.commitEdit("Add", e.model.clipsJson(), clips);
         QTRY_VERIFY_WITH_TIMEOUT(r->hasImage(), 60000);
         QVERIFY(!r->stale());
+        QVERIFY(e.settled());
+        // Removing it leaves a stale note, and Refresh shows the empty state again.
+        e.model.commitEdit("Remove", e.model.clipsJson(), QJsonArray{});
+        QVERIFY(r->stale());
+        r->refresh();
+        QVERIFY(!r->stale());
+        QVERIFY(!r->hasImage());
+        QVERIFY(!r->hasContent());
+    }
+    // Last, because it leaves the process in server mode.
+    void takeMediaComesFromTheServer() {
+        TestHttpServer server;
+        QFile green(m_green);
+        QVERIFY(green.open(QIODevice::ReadOnly));
+        const auto bytes = green.readAll();
+        server.setFile("/storage/take.png", ServedFile(bytes));
+        server.setJson([&](const QByteArray&, const QUrl&) {
+            const QJsonObject asset{{"id", "asset-b"}, {"name", "take.png"}, {"content_type", "image/png"}, {"size", bytes.size()},
+                {"get_url", "/storage/take.png"}, {"updated_at", "2026-01-01T00:00:00Z"}};
+            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", asset}}}}).toJson(QJsonDocument::Compact);
+        });
+        QByteArray program("tst"), serverFlag("--server"), url(server.base().toString().toUtf8()), timelineFlag("--timeline"), timeline("t"),
+            cacheFlag("--cache-dir"), cache(m_dir.filePath("cache").toUtf8());
+        char* argv[] = {program.data(), serverFlag.data(), url.data(), timelineFlag.data(), timeline.data(), cacheFlag.data(), cache.data(), nullptr};
+        int argc = 7;
+        QCOMPARE(nt::server::takeServerArgs(argc, argv), 0);
+        auto shot = clipJson("a", 0, 1000, m_red, QJsonArray{successfulTake("t1", "asset-a"), successfulTake("t2", "asset-b", "Close-up")});
+        shot.insert("activeTakeId", "t1");
+        Editor e(documentOf({shot}));
+        QVERIFY2(e.object, qPrintable(e.error));
+        auto* r = e.reference();
+        e.clock.seek(500);
+        QVERIFY(r->useTake("a", "t2"));
+        QVERIFY(e.settled());
+        QVERIFY2(r->hasImage(), qPrintable(r->error()));
+        QVERIFY2(near(centre(r->image()), QColor(40, 190, 70)), qPrintable(centre(r->image()).name()));
+        QVERIFY(r->error().isEmpty());
     }
 };
 
