@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=22.0.0"
   },
-  "version": "0.8.4",
+  "version": "0.8.10",
   "description": "Local whisper.cpp speech recognition providers and streaming transcription",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

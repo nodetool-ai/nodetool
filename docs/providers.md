@@ -113,7 +113,7 @@ The provider uses the first credential it finds:
 2. `GOOGLE_VERTEX_API_KEY`, a Vertex AI API key from express mode, or a Google Cloud API key bound to a service account. Key requests use the project-less publisher paths.
 3. On a local or self-hosted install, the machine's Application Default Credentials: the file in `GOOGLE_APPLICATION_CREDENTIALS`, or the one `gcloud auth application-default login` writes. The cloud profile never reads these, because they would be the server's own identity.
 
-Chat models are listed from Vertex's `publishers/google/models`. The image, video, TTS, and music lists are the Gemini provider's. Vertex has no Files API, so video or audio larger than 19 MB cannot be sent and fails with a message that says so.
+Chat models are listed from Vertex's `publishers/google/models`. The image, video, TTS, and music lists are the Gemini provider's. Vertex has no Files API, so video or audio larger than 19 MB cannot be sent and fails with a message that says so. The `vertex` node namespace (shown as **Vertex AI**) has the same seven nodes as `gemini`, sent through this provider. Their model fields list this provider's models.
 
 ## xAI (Grok)
 
@@ -182,11 +182,11 @@ Meta AI serves the Muse family at `https://api.meta.ai/v1`. Cloud only, keyed by
 
 ## Codex (OpenAI OAuth)
 
-Codex reaches GPT chat models and GPT Image generation (GPT Image 2 and 1.5) through your ChatGPT/Codex OAuth session instead of an API key, and usage bills against that subscription. Sign in with the **Codex** card in Settings → Models & Providers. The provider reads the stored `CODEX_ACCESS_TOKEN`, so no `OPENAI_API_KEY` is needed.
+Codex reaches GPT chat models and GPT Image generation (GPT Image 2 and 1.5) through your ChatGPT/Codex OAuth session instead of an API key, and usage bills against that subscription. Sign in with the **Codex** card in Settings → Models & Providers. The provider reads the stored `CODEX_ACCESS_TOKEN`, so no `OPENAI_API_KEY` is needed. The Codex backend serves only the Responses API, so the `codex` node namespace has Web Search and Create Image. Embeddings, moderation, speech, transcription, translation, and realtime nodes need an API key and stay in `openai`.
 
 ## Claude Agent SDK
 
-Claude Agent SDK reaches Claude by running your local, logged-in `claude` CLI in headless mode instead of calling the Anthropic API directly, billing against your Claude subscription rather than per-token API spend. Install [Claude Code](https://claude.com/claude-code) first. NodeTool finds `claude` on your PATH or in the usual install locations, or set **CLAUDE_CLI_PATH** in Settings → Integrations to point at it. It supports tool calls, which run inside NodeTool while the CLI drives the loop. Images in the prompt are forwarded when they are inline PNG, JPEG, GIF, or WebP data. A remote image URL is rejected, so resolve media references before the call. There is no API key. Sign in with the **Claude Code** card in Settings → Models & Providers or run `nodetool auth claude login` (add `--manual` on a headless host). The provider is not available in NodeTool's hosted cloud because it needs a local executable. See the [Anthropic provider guide](developer/providers/anthropic.md).
+Claude Agent SDK reaches Claude by running your local, logged-in `claude` CLI in headless mode instead of calling the Anthropic API directly, billing against your Claude subscription rather than per-token API spend. Install [Claude Code](https://claude.com/claude-code) first. NodeTool finds `claude` on your PATH or in the usual install locations, or set **CLAUDE_CLI_PATH** in Settings → Integrations to point at it. It supports tool calls, which run inside NodeTool while the CLI drives the loop. Images in the prompt are forwarded when they are inline PNG, JPEG, GIF, or WebP data. A remote image URL is rejected, so resolve media references before the call. There is no API key. Sign in with the **Claude Code** card in Settings → Models & Providers or run `nodetool auth claude login` (add `--manual` on a headless host). The provider is not available in NodeTool's hosted cloud because it needs a local executable. The `claude_code` node namespace has Web Search, which uses the CLI's own web search. The `anthropic` namespace has the same node on an API key. See the [Anthropic provider guide](developer/providers/anthropic.md).
 
 ## Antigravity
 

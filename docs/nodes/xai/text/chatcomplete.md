@@ -27,7 +27,6 @@ Generate text using xAI's Grok chat completion models.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| model | `str` | The Grok model to use (e.g. grok-4, grok-4.3, grok-3, grok-3-mini). | `grok-4` |
 | prompt | `str` | The prompt for text generation | `` |
 | system_prompt | `str` | Optional system prompt to guide the model's behavior | `` |
 | temperature | `float` | Sampling temperature. Higher values make output more random. | `0.7` |

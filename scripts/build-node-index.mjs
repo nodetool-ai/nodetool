@@ -101,6 +101,10 @@ const NAMESPACE_GROUPS = {
   "openai.text": "Text and LLMs",
   "xai.text": "Text and LLMs",
   "gemini.text": "Text and LLMs",
+  "vertex.text": "Text and LLMs",
+  "codex.text": "Text and LLMs",
+  "anthropic.text": "Text and LLMs",
+  "claude_code.text": "Text and LLMs",
   "transformers": "Text and LLMs",
   "huggingface": "Text and LLMs",
 
@@ -114,6 +118,8 @@ const NAMESPACE_GROUPS = {
   "nodetool.sketch": "Images",
   "openai.image": "Images",
   "gemini.image": "Images",
+  "vertex.image": "Images",
+  "codex.image": "Images",
   "xai.image": "Images",
   "xai.vision": "Images",
   "mistral.vision": "Images",
@@ -126,11 +132,13 @@ const NAMESPACE_GROUPS = {
   "nodetool.manimgx": "Video",
   "lib.video": "Video",
   "gemini.video": "Video",
+  "vertex.video": "Video",
 
   "nodetool.audio": "Audio",
   "lib.audio": "Audio",
   "openai.audio": "Audio",
   "gemini.audio": "Audio",
+  "vertex.audio": "Audio",
   "elevenlabs": "Audio",
   "whisper_cpp": "Audio",
 
@@ -169,6 +177,10 @@ const NAMESPACE_GROUPS = {
 
 // One line per leaf namespace, written from the node titles in each directory.
 const DESCRIPTIONS = {
+  "anthropic.text": "Web search with Claude on an Anthropic API key.",
+  "claude_code.text": "Web search with Claude Code on a Claude subscription.",
+  "codex.image": "GPT Image generation on a ChatGPT sign-in.",
+  "codex.text": "Web search on a ChatGPT sign-in.",
   "elevenlabs": "ElevenLabs text to speech, speech to text, realtime streaming and voice selection.",
   "fal.dynamic": "Run any FAL model by endpoint, with a schema-driven or raw request.",
   "gemini.audio": "Gemini text to speech and transcription.",
@@ -244,6 +256,10 @@ const DESCRIPTIONS = {
   "xai.image": "xAI image generation.",
   "xai.text": "xAI chat completion and web search.",
   "xai.vision": "xAI image to text.",
+  "vertex.audio": "Gemini text to speech and transcription on Vertex AI.",
+  "vertex.image": "Gemini and Imagen image generation on Vertex AI.",
+  "vertex.text": "Gemini embeddings and search-grounded answers on Vertex AI.",
+  "vertex.video": "Veo text to video and image to video on Vertex AI."
 };
 
 // --- Root index: every leaf namespace, grouped by what you work with -----------------

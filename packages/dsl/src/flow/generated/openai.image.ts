@@ -8,7 +8,7 @@ import type { ImageRef } from "../../types.js";
 // Create Image — openai.image.CreateImage
 export type CreateImageInputs = {
   prompt?: string;
-  model?: "gpt-image-1";
+  model?: unknown;
   size?: "1024x1024" | "1536x1024" | "1024x1536";
   background?: "transparent" | "opaque" | "auto";
   quality?: "high" | "medium" | "low";
@@ -27,7 +27,7 @@ export type EditImageInputs = {
   image?: ImageRef;
   mask?: ImageRef;
   prompt?: string;
-  model?: "gpt-image-1";
+  model?: unknown;
   size?: "1024x1024" | "1536x1024" | "1024x1536";
   quality?: "high" | "medium" | "low";
 };

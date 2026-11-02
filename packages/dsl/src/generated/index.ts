@@ -1,5 +1,9 @@
 // Auto-generated — do not edit manually
 
+export * as anthropicText from "./anthropic.text.js";
+export * as claude_codeText from "./claude_code.text.js";
+export * as codexImage from "./codex.image.js";
+export * as codexText from "./codex.text.js";
 export * as geminiAudio from "./gemini.audio.js";
 export * as geminiImage from "./gemini.image.js";
 export * as geminiText from "./gemini.text.js";
@@ -70,6 +74,10 @@ export * as openaiAudio from "./openai.audio.js";
 export * as openaiImage from "./openai.image.js";
 export * as openaiText from "./openai.text.js";
 export * as vector from "./vector.js";
+export * as vertexAudio from "./vertex.audio.js";
+export * as vertexImage from "./vertex.image.js";
+export * as vertexText from "./vertex.text.js";
+export * as vertexVideo from "./vertex.video.js";
 export * as whisper_cpp from "./whisper_cpp.js";
 export * as xaiImage from "./xai.image.js";
 export * as xaiText from "./xai.text.js";

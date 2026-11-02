@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/cli",
-  "version": "0.8.4",
+  "version": "0.8.10",
   "description": "Lean NodeTool command line client and execution server",
   "type": "module",
   "engines": {

@@ -6,6 +6,9 @@ const namespaceToSecretKey: Record<string, string> = {
   mistral: "MISTRAL_API_KEY",
   google: "GEMINI_API_KEY",
   gemini: "GEMINI_API_KEY",
+  vertex: "GOOGLE_CLOUD_PROJECT",
+  codex: "CODEX_ACCESS_TOKEN",
+  claude_code: "CLAUDE_SUBSCRIPTION",
   meshy: "MESHY_API_KEY",
   rodin: "RODIN_API_KEY",
   trellis: "TRELLIS_API_KEY",
@@ -44,6 +47,9 @@ const secretKeyToDisplayName: Record<string, string> = {
   ANTHROPIC_API_KEY: "Anthropic API Key",
   MISTRAL_API_KEY: "Mistral API Key",
   GEMINI_API_KEY: "Gemini API Key",
+  GOOGLE_CLOUD_PROJECT: "Google Cloud Project",
+  CODEX_ACCESS_TOKEN: "ChatGPT Sign-in",
+  CLAUDE_SUBSCRIPTION: "Claude Code Sign-in",
   MESHY_API_KEY: "Meshy API Key",
   RODIN_API_KEY: "Rodin API Key",
   TRELLIS_API_KEY: "Trellis API Key",
@@ -71,6 +77,42 @@ const secretKeyToDisplayName: Record<string, string> = {
   TOGETHER_API_KEY: "Together API Key",
   MINIMAX_API_KEY: "MiniMax API Key"
 };
+
+/**
+ * Gates that are not a stored secret. A sign-in (Codex, Claude Code) or
+ * machine credentials (Vertex AI through `gcloud`) leave nothing in the
+ * secrets list, so these count as set when the server offers their provider.
+ */
+const gateKeyToProviderId: Record<string, string> = {
+  GOOGLE_CLOUD_PROJECT: "gemini_vertex",
+  CODEX_ACCESS_TOKEN: "codex",
+  CLAUDE_SUBSCRIPTION: "claude_agent_sdk"
+};
+
+/** The registry provider whose availability satisfies a gate key, if any. */
+export const getProviderIdForGateKey = (key: string): string | null =>
+  gateKeyToProviderId[key] ?? null;
+
+/**
+ * The settings card that sets up a gate key. The ChatGPT sign-in lives on the
+ * OpenAI card.
+ */
+export const getSettingsKeyForGateKey = (key: string): string =>
+  key === "CODEX_ACCESS_TOKEN" ? "OPENAI_API_KEY" : key;
+
+/**
+ * Names the node library uses for a provider namespace when the secret's
+ * name does not fit: the namespaces that share a vendor with another one.
+ */
+const providerNames: Record<string, string> = {
+  vertex: "Vertex AI",
+  codex: "Codex",
+  claude_code: "Claude Code"
+};
+
+/** The display name of a root namespace that has one, e.g. "Vertex AI". */
+export const getNamespaceDisplayName = (namespace: string): string | null =>
+  providerNames[namespace] ?? null;
 
 const getRootNamespace = (namespace: string): string =>
   namespace.split(".")[0].toLowerCase();
@@ -113,6 +155,8 @@ export const getNodeProviderId = (namespace: string): string =>
  * "API Key" suffix, so "fal" reads "FAL" and "xai" reads "xAI".
  */
 export const getNodeProviderName = (providerId: string): string => {
+  const name = providerNames[providerId];
+  if (name) return name;
   const secretKey = namespaceToSecretKey[providerId];
   const secretName = secretKey ? secretKeyToDisplayName[secretKey] : undefined;
   if (secretName) {

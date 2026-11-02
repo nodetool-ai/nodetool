@@ -125,7 +125,7 @@ function packsHome(env) {
 }
 
 /** The active generation of the one pack project under `<data dir>/nodetool/packs`. */
-function activePackProject(env) {
+export function activePackProject(env) {
   const projects = readdirSync(packsHome(env)).filter(name => existsSync(join(packsHome(env), name, "current.json")));
   if (projects.length !== 1) { throw new Error(`Expected one pack project, found ${projects.length}`); }
   const root = join(packsHome(env), projects[0]);

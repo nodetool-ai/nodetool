@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-stats",
-  "version": "0.8.4",
+  "version": "0.8.10",
   "description": "Descriptive statistics and simple regression inside the NodeTool sandbox, from simple-statistics",
   "license": "MIT",
   "dependencies": {

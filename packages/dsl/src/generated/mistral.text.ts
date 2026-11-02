@@ -4,7 +4,7 @@ import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.j
 
 // Chat Complete — mistral.text.ChatComplete
 export type ChatCompleteInputs = {
-  model?: Connectable<"mistral-large-latest" | "mistral-medium-latest" | "mistral-small-latest" | "pixtral-large-latest" | "codestral-latest" | "ministral-8b-latest" | "ministral-3b-latest">;
+  model?: Connectable<unknown>;
   prompt?: Connectable<string>;
   system_prompt?: Connectable<string>;
   temperature?: Connectable<number>;

@@ -2,7 +2,10 @@ import React, { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Text, EditorButton, getSpacingPx, SPACING } from "../ui_primitives";
 import { useApiKeyValidation } from "../../hooks/useApiKeyValidation";
-import { getRequiredSecretKeyForNamespace } from "../../utils/nodeProvider";
+import {
+  getRequiredSecretKeyForNamespace,
+  getSettingsKeyForGateKey
+} from "../../utils/nodeProvider";
 import { openProviderOnboarding } from "../../stores/ProviderOnboardingStore";
 import { isString } from "../../utils/typePredicates";
 
@@ -16,9 +19,11 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
     const missingAPIKey = useApiKeyValidation(nodeNamespace);
 
     const handleConnectProvider = useCallback(() => {
+      const gateKey = getRequiredSecretKeyForNamespace(nodeNamespace);
       openProviderOnboarding({
-        highlightSecretKey:
-          getRequiredSecretKeyForNamespace(nodeNamespace) ?? undefined,
+        highlightSecretKey: gateKey
+          ? getSettingsKeyForGateKey(gateKey)
+          : undefined,
         reason: t("i18n-next61.apiKeyValidation.connectReason")
       });
     }, [nodeNamespace, t]);

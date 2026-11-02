@@ -391,7 +391,9 @@ describe("ShotEditPanel fields (criterion 14)", () => {
       movement: "dolly in, handheld",
       preset_ids: ["camera.dolly-in", "camera.handheld"]
     });
-  });
+    // The picker lists every camera preset, and role queries over its cards
+    // take most of the 10 s default on CI.
+  }, 30_000);
 
   it("puts every edited field back with a single undo", async () => {
     seed([baseShot()]);

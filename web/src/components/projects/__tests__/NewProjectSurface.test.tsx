@@ -11,6 +11,11 @@ import mockTheme from "../../../__mocks__/themeMock";
 import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
 import { useBugReportStore } from "../../../stores/BugReportStore";
 
+// Each test renders the whole start page, studios row included, and drives it
+// with userEvent, so a test takes several seconds and slower CI runners pass
+// the 10 s default.
+jest.setTimeout(30_000);
+
 jest.mock("../CurrentProjectDocuments", () => ({
   __esModule: true,
   default: () => <div data-testid="current-project-documents" />

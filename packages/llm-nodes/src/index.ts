@@ -7,6 +7,8 @@ import { GEMINI_NODES } from "./nodes/gemini.js";
 import { MISTRAL_NODES } from "./nodes/mistral.js";
 import { OPENAI_NODES } from "./nodes/openai.js";
 import { XAI_NODES } from "./nodes/xai.js";
+import { CODEX_NODES } from "./nodes/codex.js";
+import { ANTHROPIC_NODES, CLAUDE_CODE_NODES } from "./nodes/anthropic.js";
 
 /**
  * @nodetool-ai/llm-nodes — LLM provider + agent node bundle.
@@ -23,6 +25,8 @@ export * from "./nodes/agents.js";
 export * from "./nodes/agent-tool-hydration.js";
 export * from "./nodes/generators.js";
 export * from "./nodes/mistral.js";
+export * from "./nodes/codex.js";
+export * from "./nodes/anthropic.js";
 
 // `openai.ts`, `gemini.ts` and `xai.ts` reuse class names (`EmbeddingNode`,
 // `ChatComplete`, `ImageToText`); barrel callers get only the registration
@@ -41,6 +45,9 @@ export const ALL_LLM_NODES: readonly NodeClass[] = [
   ...MISTRAL_NODES,
   ...OPENAI_NODES,
   ...XAI_NODES,
+  ...CODEX_NODES,
+  ...ANTHROPIC_NODES,
+  ...CLAUDE_CODE_NODES,
 ];
 
 export function registerLlmNodes(registry: NodeRegistry): void {

@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/server-minimal",
-  "version": "0.8.4",
+  "version": "0.8.10",
   "description": "Authenticated lean NodeTool execution server",
   "type": "module",
   "engines": {

@@ -23,7 +23,6 @@ Generate images from text using xAI's Grok image models.
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | prompt | `str` | The prompt describing the image to generate. | `` |
-| model | `str` | The Grok image model to use (e.g. grok-2-image, grok-imagine-image). | `grok-2-image` |
 
 ## Outputs
 

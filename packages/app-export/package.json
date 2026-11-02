@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/app-export",
-  "version": "0.8.4",
+  "version": "0.8.10",
   "description": "Export a NodeTool mini app as a standalone JavaScript project: a Vite UI plus a local Node server that runs the app's workflows in process",
   "type": "module",
   "engines": {

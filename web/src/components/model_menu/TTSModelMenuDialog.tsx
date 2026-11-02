@@ -1,6 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
+import { useAllowedProviderModels } from "../../hooks/useAllowedProviderModels";
 import type { ModelPack, TTSModel, UnifiedModel } from "../../stores/ApiTypes";
 import {
   useTTSModelMenuStore
@@ -11,6 +12,8 @@ import { useTTSModelsByProvider } from "../../hooks/useModelsByProvider";
 const LOCAL_CAPABILITIES = ["text_to_speech"];
 
 interface TTSModelMenuDialogProps {
+  /** Only these providers' models are listed. */
+  allowedProviders?: string[];
   open: boolean;
   onClose: () => void;
   onModelChange?: (model: TTSModel) => void;
@@ -20,6 +23,7 @@ interface TTSModelMenuDialogProps {
 }
 
 function TTSModelMenuDialog({
+  allowedProviders,
   open,
   onClose,
   onModelChange,
@@ -28,7 +32,10 @@ function TTSModelMenuDialog({
   modelPacks
 }: TTSModelMenuDialogProps) {
   const { t } = useTranslation();
-  const modelData = useTTSModelsByProvider();
+  const modelData = useAllowedProviderModels(
+    useTTSModelsByProvider(),
+    allowedProviders
+  );
   return (
     <ModelMenuDialogBase<TTSModel>
       open={open}

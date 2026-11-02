@@ -26,7 +26,7 @@ const registrars = {
 };
 
 const secrets = {
-  llm: ["GEMINI_API_KEY", "MISTRAL_API_KEY", "OPENAI_API_KEY", "XAI_API_KEY"],
+  llm: ["ANTHROPIC_API_KEY", "GEMINI_API_KEY", "GOOGLE_CLOUD_PROJECT", "MISTRAL_API_KEY", "OPENAI_API_KEY", "XAI_API_KEY"],
   integration: ["KIE_API_KEY", "COMFY_API_KEY", "DISCORD_BOT_TOKEN", "TELEGRAM_BOT_TOKEN"],
   elevenlabs: ["ELEVENLABS_API_KEY"],
   minimax: ["MINIMAX_API_KEY"],

@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/pack-manager",
-  "version": "0.8.4",
+  "version": "0.8.10",
   "description": "Authorized npm pack management and installed CLI feature loading",
   "type": "module",
   "engines": {

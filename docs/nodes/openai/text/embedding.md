@@ -28,7 +28,6 @@ Generate vector representations of text for semantic analysis.
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | input | `str` |  | `` |
-| model | `enum` |  | `text-embedding-3-small` |
 | chunk_size | `int` |  | `4096` |
 
 ## Outputs
