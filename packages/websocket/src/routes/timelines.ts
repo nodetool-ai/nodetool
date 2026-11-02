@@ -217,8 +217,21 @@ async function readImportUpload(
   if (!(file instanceof File)) {
     return jsonError(400, "A timeline bundle file is required");
   }
-  const projectId = form.get("project_id");
-  const name = form.get("name");
+  // The native editor sends these two in a `json` field, as its asset upload does.
+  let fields: Record<string, unknown> = {};
+  const meta = form.get("json");
+  if (typeof meta === "string") {
+    try {
+      const parsed: unknown = JSON.parse(meta);
+      if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
+        fields = parsed as Record<string, unknown>;
+      }
+    } catch {
+      // Not JSON: the plain form fields still apply.
+    }
+  }
+  const projectId = form.get("project_id") ?? fields.project_id;
+  const name = form.get("name") ?? fields.name;
   const upload: ImportUpload = {
     zipBytes: new Uint8Array(await file.arrayBuffer()),
     projectId:

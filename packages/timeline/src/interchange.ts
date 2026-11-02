@@ -420,7 +420,19 @@ function renderPremiereXml(
     if (out.some((key) => key.interpolation === "curve")) {
       warn(placed.item.clip, "keyframe easing was written as smooth curves, without its handles.");
     }
-    return { out, ts };
+    if (!placed.span.reverse) return { out, ts };
+    // A reversed clip reads its source backwards, so its keys run from the later frame to the
+    // earlier. Premiere lists them by frame, and each one's interpolation leaves toward the later frame.
+    // A hold keeps the key it leaves, which on a reversed clip is the later one in time: Premiere cannot say that.
+    if (out.some((key) => key.interpolation === "hold")) {
+      warn(placed.item.clip, "hold keyframes on a reversed clip were written as straight segments.");
+    }
+    const count = out.length;
+    const leaving = (index: number) => (index < count - 1 && out[count - 2 - index]!.interpolation !== "hold" ? out[count - 2 - index]!.interpolation : "linear");
+    return {
+      out: out.map((_, index) => ({ frame: out[count - 1 - index]!.frame, interpolation: leaving(index) })),
+      ts: [...ts].reverse()
+    };
   };
 
   const basicMotion = (placed: PremiereEntry): string => {
@@ -536,6 +548,10 @@ function renderPremiereXml(
       values.push(point.gain);
     }
     const usable = keys.length >= 2;
+    if (placed.span.reverse) {
+      keys.reverse();
+      values.reverse();
+    }
     if (gain > MAX_AUDIO_LEVEL) warn(clip, "volume above +12 dB was limited to +12 dB, the most Premiere's Audio Levels holds.");
     const level = (index: number): number => Math.min(MAX_AUDIO_LEVEL, gain * (usable ? (values[index] ?? 1) : 1));
     return premiereEffect("Audio Levels", "audiolevels", "audiolevels", "audio",

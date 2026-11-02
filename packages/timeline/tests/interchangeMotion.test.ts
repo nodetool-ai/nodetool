@@ -164,6 +164,24 @@ describe("Time Remap export", () => {
     expect(block(result.xml, "reverse")).toContain("<value>FALSE</value>");
   });
 
+  it("lists the keyframes of a reversed clip by source frame", () => {
+    const remap = { keyframes: [{ t: 0, sourceMs: 3000 }, { t: 1, sourceMs: 1000 }] };
+    const { xml, report } = run([keyed(clip({ timeRemap: remap }), { opacity: [[0, 0], [2000, 1]] })]);
+    // The clip starts at source frame 90 and ends at 30: opacity 0 at 90 and 100 at 30, listed from 30.
+    expect(block(xml, "opacity")).toContain("<keyframe><when>30</when><value>100</value></keyframe><keyframe><when>90</when><value>0</value></keyframe>");
+    expect(report.warnings).toEqual([]);
+    // A curved segment keeps its interpolation on the key that leaves toward the later frame.
+    const eased = run([keyed(clip({ timeRemap: remap }), { opacity: [[0, 0], [1000, 0.5, "easeIn"], [2000, 1]] })]);
+    expect(block(eased.xml, "opacity")).toContain("<keyframe><when>30</when><value>100</value></keyframe><keyframe><when>60</when><value>50</value><interpolation><name>FCPCurve</name></interpolation></keyframe><keyframe><when>90</when><value>0</value></keyframe>");
+  });
+
+  it("writes a hold on a reversed clip as straight segments and says so", () => {
+    const remap = { keyframes: [{ t: 0, sourceMs: 3000 }, { t: 1, sourceMs: 1000 }] };
+    const result = run([keyed(clip({ timeRemap: remap }), { opacity: [[0, 0], [2000, 1, "hold"]] })]);
+    expect(block(result.xml, "opacity")).not.toContain("hold");
+    expect(messages(result)).toEqual(["Shot: hold keyframes on a reversed clip were written as straight segments."]);
+  });
+
   it("still reports ramps and freezes, which Premiere rebuilds by hand", () => {
     const ramp = run([clip({ timeRemap: { keyframes: [{ t: 0, sourceMs: 0 }, { t: 0.5, sourceMs: 500 }, { t: 1, sourceMs: 4000 }] } })]);
     const freeze = run([clip({ timeRemap: { keyframes: [{ t: 0, sourceMs: 700 }] } })]);
@@ -365,6 +383,19 @@ describe("round trip", () => {
     expect(reversed.warnings).toEqual([]);
     const fast = roundTrip([clip({ speedMultiplier: 2, inPointMs: 500 })]).imported;
     expect(fast.clips[0]).toMatchObject({ speedMultiplier: 2, inPointMs: 500 });
+  });
+
+  it("returns the keyframes of a reversed clip", () => {
+    const original = keyed(clip({ timeRemap: { keyframes: [{ t: 0, sourceMs: 3000 }, { t: 1, sourceMs: 1000 }] } }), {
+      opacity: [[0, 0], [1000, 0.5], [2000, 1]]
+    });
+    const { imported } = roundTrip([original]);
+    const back = imported.clips[0]!;
+    expect(back.timeRemap).toEqual(original.timeRemap);
+    for (const t of [0, 0.25, 0.49, 0.5, 0.75, 1]) {
+      const sample = (target: TimelineClip) => curveValueAtT(findKeyframeAnimation(target)!.custom!.curves[0]!.keyframes, t);
+      expect(sample(back), `at ${t}`).toBeCloseTo(sample(original), 4);
+    }
   });
 
   it("returns the source in point exactly through the ticks", () => {

@@ -3,8 +3,10 @@
  * parameter markup Premiere reads for Basic Motion, Opacity, Time Remap and
  * Audio Levels. Pure helpers for `interchange.ts` and `interchangeImport.ts`.
  *
- * Conventions follow the FilmCraft FCP7 writer (MIT OR Apache-2.0,
- * storytold/filmcraft `crates/interchange/src/fcp7.rs`):
+ * Conventions follow the FilmCraft FCP7 writer, storytold/filmcraft
+ * `crates/interchange/src/fcp7.rs`, commit 8c171a0. Copyright (c) 2026 ArtCraft
+ * Team and the FilmCraft contributors, used under the MIT License. The full
+ * notice is in native/timeline/licenses/FilmCraft-MIT.txt. The conventions:
  * - Basic Motion `center` is a fraction of the sequence frame, (0, 0) at the
  *   centre. `centerOffset` is the anchor, a fraction of the source picture.
  * - Keyframe `when` values are source frames, like `in` and `out`.

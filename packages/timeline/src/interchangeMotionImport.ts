@@ -2,7 +2,9 @@
  * Premiere XML import, motion half: turns the Basic Motion, Opacity and Audio
  * Levels parameters of one clipitem into transform, opacity, keyframe and fade
  * fields. The inverse of the writer in `interchangeMotion.ts`, so the same
- * conventions apply (FilmCraft `fcp7.rs`, MIT OR Apache-2.0).
+ * conventions apply. They come from FilmCraft `fcp7.rs` (commit 8c171a0,
+ * Copyright (c) 2026 ArtCraft Team and the FilmCraft contributors, MIT License,
+ * see native/timeline/licenses/FilmCraft-MIT.txt).
  *
  * Pure data in, clip fields out: the XML reading stays in `interchangeImport.ts`.
  */
