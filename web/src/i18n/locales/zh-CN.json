@@ -11712,6 +11712,23 @@
         "properties": "属性",
         "noProperties": "无属性",
         "noPropertiesDescription": "选择矢量图层或生成的图层，即可在此编辑其属性。"
+      },
+      "simple": {
+        "modeLabel": "编辑器模式",
+        "simple": "简单",
+        "expert": "专家",
+        "layerCount_one": "{{count}} 个图层",
+        "layerCount_other": "{{count}} 个图层",
+        "canvasSize": "{{width}} × {{height}}",
+        "newLayer": "新建图层",
+        "showLayer": "显示 {{name}}",
+        "hideLayer": "隐藏 {{name}}",
+        "generatedLayer": "生成的图层",
+        "layerPrompt": "图层提示词",
+        "regenerateLayer": "重新生成图层",
+        "generateLayer": "生成图层",
+        "workflowLayer": "{{name}} 来自工作流。其输入位于专家模式中。",
+        "openInExpert": "在专家模式中打开"
       }
     }
   },

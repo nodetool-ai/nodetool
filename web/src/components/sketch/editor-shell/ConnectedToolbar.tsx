@@ -6,8 +6,16 @@ import { memo } from "react";
 import SketchToolbar from "../SketchToolbar";
 import { useSketchStore } from "../state";
 import { useColorIntentRouter } from "../hooks";
+import { SIMPLE_TOOLBAR_TOOL_GROUPS } from "../toolDefinitions";
 
-export const ConnectedToolbar = memo(function ConnectedToolbar() {
+interface ConnectedToolbarProps {
+  /** Show only Simple mode's short tool list. */
+  simple?: boolean;
+}
+
+export const ConnectedToolbar = memo(function ConnectedToolbar({
+  simple = false
+}: ConnectedToolbarProps) {
   const activeTool = useSketchStore((s) => s.activeTool);
   const selectMode = useSketchStore((s) => s.toolSettings.select.mode);
   const foregroundColor = useSketchStore((s) => s.foregroundColor) || "#ffffff";
@@ -37,6 +45,7 @@ export const ConnectedToolbar = memo(function ConnectedToolbar() {
       onBackgroundColorChange={setBackgroundColor}
       onSwapColors={swapColors}
       onResetColors={resetColors}
+      toolGroups={simple ? SIMPLE_TOOLBAR_TOOL_GROUPS : undefined}
     />
   );
 });

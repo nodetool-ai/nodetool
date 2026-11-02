@@ -11712,6 +11712,23 @@
         "properties": "Ominaisuudet",
         "noProperties": "Ei ominaisuuksia",
         "noPropertiesDescription": "Valitse vektoritaso tai luotu taso muokataksesi sen ominaisuuksia tässä."
+      },
+      "simple": {
+        "modeLabel": "Editorin tila",
+        "simple": "Yksinkertainen",
+        "expert": "Asiantuntija",
+        "layerCount_one": "{{count}} taso",
+        "layerCount_other": "{{count}} tasoa",
+        "canvasSize": "{{width}} × {{height}}",
+        "newLayer": "Uusi taso",
+        "showLayer": "Näytä {{name}}",
+        "hideLayer": "Piilota {{name}}",
+        "generatedLayer": "Generoitu taso",
+        "layerPrompt": "Tason kehote",
+        "regenerateLayer": "Generoi taso uudelleen",
+        "generateLayer": "Generoi taso",
+        "workflowLayer": "{{name}} tulee työnkulusta. Sen syötteet ovat asiantuntijatilassa.",
+        "openInExpert": "Avaa asiantuntijatilassa"
       }
     }
   },
