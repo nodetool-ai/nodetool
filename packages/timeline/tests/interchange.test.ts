@@ -134,7 +134,7 @@ describe("exportInterchange", () => {
     expect(result.xml).toContain("<start>30</start><end>90</end><in>0</in><out>120</out>");
     expect(result.xml).toContain("<parameterid>opacity</parameterid><name>opacity</name><valuemin>0</valuemin><valuemax>100</valuemax><value>50</value>");
     expect(result.xml).toContain("<parameterid>speed</parameterid><name>speed</name><valuemin>-100000</valuemin><valuemax>100000</valuemax><value>200</value>");
-    expect(result.xml).toContain("<parameterid>level</parameterid><name>level</name><valuemin>0</valuemin><valuemax>3.98109</valuemax><value>0.5012</value>");
+    expect(result.xml).toContain("<parameterid>level</parameterid><name>level</name><valuemin>0</valuemin><valuemax>3.98109</valuemax><value>0.501187</value>");
     expect(result.xml).toMatch(/<clipitem id="clipitem-3"><name>Music<\/name><enabled>FALSE<\/enabled>/);
   });
 

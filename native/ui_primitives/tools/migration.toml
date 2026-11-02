@@ -125,6 +125,16 @@ qml_callers = []
 replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.EditorButton, Ui.Progress"
 
 [[file]]
+path = "native/timeline/qml/interchange/PremierePanel.qml"
+category = "chrome"
+controls = ["PremiereTransfer", "FileDialog", "Ui.Dialog", "Ui.Text", "Ui.Status", "ScrollView", "Repeater", "Ui.EditorButton", "Rectangle", "Ui.Progress", "Ui.BusyIndicator"]
+signals = []
+test_host = "tst_premiere"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.Status, Ui.EditorButton, Ui.Progress, Ui.BusyIndicator"
+
+[[file]]
 path = "native/timeline/qml/Inspector/AudioEffects.qml"
 category = "chrome"
 controls = ["InspectorSection", "Ui.EditorButton", "Ui.ContextMenu", "Ui.MenuItem", "Ui.Text", "AudioEffectsRow"]
