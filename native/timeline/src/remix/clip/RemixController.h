@@ -176,7 +176,7 @@ private:
     QString m_phase, m_error, m_refusal;
     double m_progress = 0;
     nt::remix::SourceWindow m_window;
-    double m_currentMs = 0;
+    double m_currentMs = 0, m_currentIn = 0;
     bool m_isRemix = false;
     bool m_reverting = false;
     QString m_sourcePath;

@@ -517,6 +517,23 @@ private slots:
         QCOMPARE(clip("m").value("currentAssetId").toString(), QString("asset-other"));
         QVERIFY(backend->uploads.isEmpty());
     }
+    void aTrimWhileTheDialogIsOpenIsNotOverwritten() {
+        openMusic(false);
+        openDialogReady();
+        typeTarget("14");
+        QTRY_COMPARE(controller()->targetMs(), 14000.0);
+        QTRY_VERIFY(item("remixApply")->property("enabled").toBool());
+        auto clips = model.clipsJson();
+        for (int i = 0; i < clips.size(); ++i) {
+            auto edited = clips.at(i).toObject();
+            if (edited.value("id") != "m") { continue; }
+            edited.insert("durationMs", 15000.0);
+            clips.replace(i, edited);
+        }
+        model.replaceClips(clips);
+        QTRY_VERIFY(!item("remixApply")->property("enabled").toBool());
+        QVERIFY(controller()->refusal().contains("changed"));
+    }
     void theClipContextMenuOpensRemixAndRevertsIt() {
         openMusic(false);
         QVERIFY(item("clip-m"));

@@ -113,6 +113,7 @@ QString RemixController::staleReason() const {
     const auto clip = clipRaw(m_clipId);
     const auto now = nt::remix::sourceWindow(clip);
     if (clip.isEmpty() || !now || clip.value("currentAssetId").toString() != m_currentAsset || now->assetId != m_window.assetId ||
+        std::abs(clip.value("durationMs").toDouble() - m_currentMs) > 0.5 || std::abs(clip.value("inPointMs").toDouble(0) - m_currentIn) > 0.5 ||
         std::abs(now->startMs - m_window.startMs) > 0.5 || std::abs(now->durationMs - m_window.durationMs) > 0.5) {
         return QStringLiteral("The clip changed after Remix opened. Close this window and open Remix again.");
     }
@@ -211,6 +212,7 @@ bool RemixController::begin(const QString& clipId) {
     m_window = *window;
     m_currentAsset = clip.value("currentAssetId").toString();
     m_currentMs = clip.value("durationMs").toDouble();
+    m_currentIn = clip.value("inPointMs").toDouble(0);
     m_generation = m_timeline->documentGeneration();
     const auto meta = nt::remix::activeRemix(clip);
     m_isRemix = !meta.isEmpty();
