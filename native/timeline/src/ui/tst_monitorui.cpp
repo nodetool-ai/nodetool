@@ -591,6 +591,22 @@ private slots:
         QCOMPARE(source->property("playerTimeMs").toDouble(), 1500.0);
         QCOMPARE(clock.time(), clockBefore);
         QCOMPARE(field->property("text").toString(), QString("00:00:01:15"));
+        QVERIFY(named(source, "sourceRateNote")->isVisible());
+        // A source that reports its rate counts frames at that rate, not the sequence's.
+        state->setAsset(QJsonObject{{"id", "source-2"}, {"name", "Source"}, {"content_type", "video/mp4"}, {"duration", 20}, {"fps", 25}}.toVariantMap());
+        settle();
+        QTRY_VERIFY(!named(source, "sourceRateNote")->isVisible());
+        typeInto(field, "00:00:00:24");
+        QTest::keyClick(view.get(), Qt::Key_Return);
+        settle();
+        QCOMPARE(source->property("playerTimeMs").toDouble(), 960.0);
+        QCOMPARE(field->property("fps").toDouble(), 25.0);
+        if (const QString dir = qEnvironmentVariable("NT_MONITOR_SHOT_DIR"); !dir.isEmpty()) {
+            state->setAsset(QJsonObject{{"id", "source-3"}, {"name", "Source"}, {"content_type", "video/mp4"}, {"duration", 20}}.toVariantMap());
+            settle();
+            QTest::qWait(200);
+            view->grabWindow().save(dir + "/source.png");
+        }
         state->setAsset({});
     }
     void playbackUpdatesNoViewState() {

@@ -504,6 +504,12 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, QSize size, const Q
             renderFrame(false);
             QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
         }
+        // The capture ran with the monitor's defaults. Wait for the picture its view options show.
+        if (!monitorState.isEmpty()) {
+            renderFrame(false);
+            renderFrame(false);
+            for (int i = 0; i < 256 && !compositor->frameSettled(); ++i) { renderFrame(false); }
+        }
         renderFrame(true);
         QImage img(reinterpret_cast<const uchar*>(readback.data.constData()), readback.pixelSize.width(),
                    readback.pixelSize.height(), QImage::Format_RGBA8888_Premultiplied);

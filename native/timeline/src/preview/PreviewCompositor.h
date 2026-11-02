@@ -121,6 +121,10 @@ public:
     void setTransparencyGrid(bool on);
     // Last rendered size, delivered by synchronize() with the frame stats.
     QSize lastCanvasSize() const { return m_lastCanvasSize; }
+    // The last frame delivered by synchronize() was complete: every layer exact and any motion
+    // blur accumulated. Restoring view options after a capture restarts it, so a caller that
+    // wants the shown picture renders a frame or two before trusting this.
+    bool frameSettled() const { return m_frameSettled; }
 
     // Per-frame stats are kept only while collection is on (the bench), so
     // normal playback does not grow memory. GUI thread.
@@ -183,6 +187,7 @@ private:
     bool m_alphaDisplay = false;
     bool m_transparencyGrid = false;
     QSize m_lastCanvasSize;
+    bool m_frameSettled = false;
     bool m_monitorPipelineCreated = false;
     TimelineModel* m_timeline = nullptr;
     PlaybackClock* m_clock = nullptr;

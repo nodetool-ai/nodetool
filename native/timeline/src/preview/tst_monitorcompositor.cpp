@@ -379,6 +379,26 @@ private slots:
         for (int i = 0; i < 6; ++i) { monitor.frame(); }
         QCOMPARE(monitor.frame(), before);
     }
+    // What --screenshot --monitor-state relies on after its capture restores the view options.
+    void viewOptionsSettleAfterACapture() {
+        Monitor monitor;
+        auto clips = monitor.model.clipsJson();
+        for (int i = 0; i < clips.size(); ++i) {
+            auto clip = clips[i].toObject();
+            clip.insert("motionBlur", QJsonObject{{"samplesPerFrame", 4}, {"shutterAngle", 180}});
+            clips[i] = clip;
+        }
+        QVERIFY(monitor.model.replaceClips(clips));
+        monitor.item->setAlphaDisplay(true);
+        QVERIFY(!monitor.capture().isNull());
+        monitor.frame();
+        const auto restarted = monitor.frame();
+        QVERIFY2(!monitor.item->frameSettled(), "The restored view restarts the accumulation");
+        QCOMPARE(restarted.pixelColor(80, 45), QColor(Qt::black));
+        for (int i = 0; i < 32 && !monitor.item->frameSettled(); ++i) { monitor.frame(); }
+        QVERIFY(monitor.item->frameSettled());
+        QCOMPARE(monitor.frame().pixelColor(80, 45), QColor(Qt::white));
+    }
     void benchCanvasMeasurement() {
         nt::bench::BenchData data;
         QCOMPARE(nt::bench::buildReport(data, std::nullopt).json.value("canvasPixels").toInteger(-1), 0);

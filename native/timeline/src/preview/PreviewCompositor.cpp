@@ -307,6 +307,7 @@ private:
     bool m_alphaDisplay = false;
     bool m_transparencyGrid = false;
     bool m_transparentCanvas = false;
+    bool m_lastFrameSettled = false;
     // The scene has a group effect or a backdrop treatment (see render()).
     bool m_sceneNeedsFullCanvas = false;
     double m_fullCanvasFrameTime = -1;
@@ -475,6 +476,7 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
     m_canvasRegion = item->m_canvasRegion;
     m_itemSize = item->size();
     item->m_lastCanvasSize = m_canvasSize;
+    item->m_frameSettled = m_lastFrameSettled;
     item->m_monitorPipelineCreated = bool(m_monitorPipeline);
     // Hand the frames rendered since the last sync to the GUI side.
     item->m_framesRendered = m_frame;
@@ -1594,6 +1596,7 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     // An immediate capture takes this frame as it is (the first picture at a
     // cut during playback); a settled one waits for every exact frame.
     const bool settled = blurred ? m_blurComplete : tapReady;
+    m_lastFrameSettled = settled;
     m_waitingForFrames = m_captureWanted && !m_captureImmediate && !settled;
     if (m_captureWanted && !m_captureInFlight && ((m_captureImmediate && !blurred) || settled)) {
         m_captureWanted = false;

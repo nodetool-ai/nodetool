@@ -24,6 +24,9 @@ Rectangle {
     property real scrubBaselineMs: 0
     readonly property var asset: SourceViewerState.asset
     readonly property string mediaType: SourceViewerState.mediaType
+    // The asset's own rate when it reports one. Most assets do not, and finding it means downloading the original.
+    readonly property real sourceFrameRate: asset.fps > 0 ? asset.fps : asset.frame_rate > 0 ? asset.frame_rate : 0
+    readonly property real sequenceFrameRate: editor && editor.timeline ? editor.timeline.fps : 30
     readonly property var selectedAsset: {
         if (!sourceGrid || !sourceGrid.browser || !sourceGrid.selectedId) return null
         const assets = sourceGrid.browser.assets || []
@@ -158,17 +161,26 @@ Rectangle {
                         accessibleName: "Source time"
                         density: Ui.EditorButton.Compact
                     }
-                    TimecodeField {
-                        objectName: "sourceTimecode"
+                    Row {
                         visible: root.mediaType === "video" || root.mediaType === "audio"
-                        height: visible ? implicitHeight : 0
-                        width: implicitWidth
-                        timeMs: root.playerTimeMs
-                        fps: root.editor && root.editor.timeline ? root.editor.timeline.fps : 30
-                        dropFrame: root.editor && root.editor.timeline ? root.editor.timeline.dropFrame : false
-                        maxMs: SourceViewerState.durationMs
-                        accessibleName: "Source timecode"
-                        onSeekRequested: ms => root.playerTimeMs = ms
+                        spacing: Ui.Metrics.sm
+                        TimecodeField {
+                            objectName: "sourceTimecode"
+                            timeMs: root.playerTimeMs
+                            fps: root.sourceFrameRate > 0 ? root.sourceFrameRate : root.sequenceFrameRate
+                            dropFrame: false
+                            maxMs: SourceViewerState.durationMs
+                            accessibleName: "Source timecode"
+                            onSeekRequested: ms => root.playerTimeMs = ms
+                        }
+                        Ui.Text {
+                            objectName: "sourceRateNote"
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: root.sourceFrameRate <= 0
+                            text: "Counted at the sequence's " + root.sequenceFrameRate + " fps"
+                            role: Ui.Typography.SansCaption
+                            tone: Ui.Text.Secondary
+                        }
                     }
                     Ui.Text {
                         width: parent.width
