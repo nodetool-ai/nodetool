@@ -345,6 +345,31 @@ private slots:
         QCOMPARE(clips(), before);
     }
 
+    void aRollKeepsWorkingAfterTheTransition() {
+        press(Qt::Key_B, Qt::ShiftModifier);
+        clickEdge("l", "end");
+        QTRY_VERIFY(item("trimMonitorApplyTransition"));
+        QTRY_VERIFY(item("trimMonitorApplyTransition")->width() > 0);
+        click("trimMonitorApplyTransition");
+        const double outgoing = endOf("l");
+        const double incoming = startOf("r");
+        QVERIFY2(outgoing > incoming, "the transition overlaps the clips");
+        QCOMPARE(textOf("trimMonitorIncomingTitle"), QString("In: r"));
+        QCOMPARE(textOf("trimMonitorOutgoingTitle"), QString("Out: l"));
+        const int entries = history()->index();
+        click("trimMonitorForward");
+        QVERIFY(std::abs(endOf("l") - (outgoing + FRAME_MS)) <= 1);
+        QVERIFY(std::abs(startOf("r") - (incoming + FRAME_MS)) <= 1);
+        QCOMPARE(history()->index(), entries + 1);
+        click("trimMonitorBackward");
+        QCOMPARE(endOf("l"), outgoing);
+        QCOMPARE(startOf("r"), incoming);
+        // Asking again changes nothing about the audio's fades.
+        const auto again = clip("ar").value("fadeInMs").toDouble();
+        click("trimMonitorApplyTransition");
+        QCOMPARE(clip("ar").value("fadeInMs").toDouble(), again);
+    }
+
     void dragInAPictureTrimsThatSide() {
         press(Qt::Key_B, Qt::ShiftModifier);
         clickEdge("l", "end");

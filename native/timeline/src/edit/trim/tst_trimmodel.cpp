@@ -406,6 +406,36 @@ private slots:
         const double first = std::ceil(clipStartMs(b) / frame(1) - 1e-9);
         QVERIFY2(first * frame(1) < clipEndMs(b), "the shifted clip holds no frame");
     }
+    void a_roll_still_moves_a_cut_under_a_transition() {
+        // A transition extended v0 and a0 by 500 ms under v1 and a1.
+        auto doc = fixture();
+        doc.clips[0].insert("durationMs", 2500);
+        doc.clips[0].insert("outPointMs", 4500);
+        doc.clips[1].insert("durationMs", 2500);
+        doc.clips[1].insert("outPointMs", 4500);
+        const auto env = environment();
+        for (const EditPoint point : {EditPoint{"v0", true, Kind::Roll}, EditPoint{"v1", false, Kind::Roll}}) {
+            QVERIFY(rollPair(doc, point).has_value());
+            QCOMPARE(rollPair(doc, point)->first, QString("v0"));
+            QCOMPARE(rollPair(doc, point)->second, QString("v1"));
+            const auto info = monitorInfo(doc, point, FPS);
+            QCOMPARE(info.outgoing->clipId, QString("v0"));
+            QCOMPARE(info.incoming->clipId, QString("v1"));
+            for (const int frames : {-3, 3}) {
+                const auto r = nudgeFrames(doc, {point}, frames, env);
+                QCOMPARE(r.appliedFrames, frames);
+                QVERIFY(!r.atLimit);
+                const double overlap = clipEndMs(get(r.clips, "v0")) - clipStartMs(get(r.clips, "v1"));
+                QVERIFY2(std::abs(overlap - 500) <= 1, "the overlap stays");
+                // The linked audio cut moves with it, and the total length stays.
+                QCOMPARE(clipStartMs(get(r.clips, "a1")), clipStartMs(get(r.clips, "v1")));
+                QCOMPARE(clipEndMs(get(r.clips, "a0")), clipEndMs(get(r.clips, "v0")));
+                QCOMPARE(clipEndMs(get(r.clips, "v1")), 4000.0);
+            }
+        }
+        // Clips that only sit on one track with a real gap are still not a cut.
+        QVERIFY(!rollPair(fixture(), {"v0", false, Kind::Roll}).has_value());
+    }
     void a_trim_keeps_a_frame_on_screen() {
         // At 24 fps 41 ms from 2042 holds no frame: 49 is at 2041.67 and 50 at 2083.33.
         auto doc = fixture();

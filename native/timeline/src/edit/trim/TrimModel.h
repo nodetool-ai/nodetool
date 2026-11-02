@@ -78,7 +78,7 @@ ClipList plainEdgeEdit(const EditDoc& doc, const EdgeRequest& request, const nt:
 // The time of the edge in the sequence, or nullopt with no such clip.
 std::optional<double> editTimeMs(const EditDoc& doc, const EditPoint& point);
 // The (left, right) clips of the cut at this edge: another clip on the track
-// abuts it (findRollNeighbour).
+// abuts it (findRollNeighbour), or, as after a transition, overlaps it.
 std::optional<std::pair<QString, QString>> rollPair(const EditDoc& doc, const EditPoint& point);
 // The same edge of the same clip, or, for two rolls, either side of one cut.
 bool sameEdge(const EditDoc& doc, const EditPoint& a, const EditPoint& b);

@@ -134,6 +134,17 @@ EdgeRequest requestFor(const EditDoc& doc, EditPoint point, double deltaMs, bool
     }
     return request;
 }
+// One edit, except for a roll of an overlapped cut, which rollClipEdge refuses because the
+// clips do not abut: there each side trims by the same movement, and the overlap stays.
+std::vector<EdgeRequest> requestsFor(const EditDoc& doc, const EditPoint& point, double deltaMs, bool linked, const Env& env) {
+    const auto* clip = findClip(doc, point.clipId);
+    const auto pair = point.kind == Kind::Roll ? rollPair(doc, point) : std::nullopt;
+    if (!clip || !pair || findRollNeighbour(doc.clips, *clip, edgeName(point.out)) >= 0) {
+        return {requestFor(doc, point, deltaMs, linked, env)};
+    }
+    return {requestFor(doc, {pair->first, true, Kind::Trim}, deltaMs, linked, env),
+            requestFor(doc, {pair->second, false, Kind::Trim}, deltaMs, linked, env)};
+}
 bool canFollowLinks(const EditDoc& doc, const EditPoint& point, const Env& env) {
     if (!env.linked) { return false; }
     IdSet links;
@@ -211,10 +222,26 @@ std::optional<std::pair<QString, QString>> rollPair(const EditDoc& doc, const Ed
     const auto* clip = findClip(doc, point.clipId);
     if (!clip || isGroupClip(*clip)) { return std::nullopt; }
     const int index = findRollNeighbour(doc.clips, *clip, edgeName(point.out));
-    if (index < 0) { return std::nullopt; }
-    const auto& neighbour = doc.clips[static_cast<size_t>(index)];
-    if (isGroupClip(neighbour)) { return std::nullopt; }
-    return point.out ? std::pair{point.clipId, clipId(neighbour)} : std::pair{clipId(neighbour), point.clipId};
+    if (index >= 0) {
+        const auto& neighbour = doc.clips[static_cast<size_t>(index)];
+        if (isGroupClip(neighbour)) { return std::nullopt; }
+        return point.out ? std::pair{point.clipId, clipId(neighbour)} : std::pair{clipId(neighbour), point.clipId};
+    }
+    // A transition lengthens the outgoing clip under the incoming one, and it is still that cut.
+    const double start = clipStartMs(*clip);
+    const double end = clipEndMs(*clip);
+    for (const auto& other : doc.clips) {
+        if (clipId(other) == point.clipId || isGroupClip(other) || clipTrackId(other) != clipTrackId(*clip)) { continue; }
+        const double otherStart = clipStartMs(other);
+        const double otherEnd = clipEndMs(other);
+        if (point.out && start < otherStart && otherStart < end && end <= otherEnd) {
+            return std::pair{point.clipId, clipId(other)};
+        }
+        if (!point.out && otherStart < start && start < otherEnd && otherEnd <= end) {
+            return std::pair{clipId(other), point.clipId};
+        }
+    }
+    return std::nullopt;
 }
 bool sameEdge(const EditDoc& doc, const EditPoint& a, const EditPoint& b) {
     if (a.clipId == b.clipId && a.out == b.out) { return true; }
@@ -362,9 +389,10 @@ TrimResult trimBy(const EditDoc& doc, const EditPoints& points,
             try {
                 for (size_t j = 0; j < count; ++j) {
                     const auto& p = group[j];
-                    const auto request = requestFor(candidate, p, deltaMs, follow, env);
                     auto next = candidate;
-                    next.clips = env.edit ? env.edit(candidate, request) : plainEdgeEdit(candidate, request, env.targeting);
+                    for (const auto& request : requestsFor(candidate, p, deltaMs, follow, env)) {
+                        next.clips = env.edit ? env.edit(next, request) : plainEdgeEdit(next, request, env.targeting);
+                    }
                     if (std::abs(movement(candidate, next, p) - deltaMs) > EPSILON_MS) { return std::nullopt; }
                     candidate = std::move(next);
                 }

@@ -16,6 +16,7 @@
 #include <QUndoStack>
 
 #include <algorithm>
+#include <cmath>
 
 using namespace nt::edit;
 using namespace nt::edit::trim;
@@ -294,6 +295,9 @@ bool TrimMode::applyDefaultTransition() {
                     {"durationMs", DEFAULT_TRANSITION_MS}, {"sourceCaps", caps}});
                 continue;
             }
+            // Clips that overlapped already have their cross-fade, and a second would only
+            // change its fades. A picture's transition above may have just extended these.
+            if (std::abs(clipEndMs(clipIn(doc.clips, cut->first)) - clipStartMs(clipIn(doc.clips, cut->second))) > 1) continue;
             // Only this cut: on these two clips alone, and each keeps its other edge.
             AudioCrossfadeOptions options;
             options.sourceDurationMs = [&caps](const QJsonObject& c) -> std::optional<double> {
