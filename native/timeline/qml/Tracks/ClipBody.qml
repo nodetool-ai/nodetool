@@ -45,6 +45,8 @@ Item {
     property double visibleToPx: width
 
     readonly property color accent: TimelineVisuals.clipAccent(mediaType)
+    // The clip's colour label: a CSS colour, or empty.
+    readonly property string clipLabel: clipData.labelColor ?? ""
     readonly property int radius: Ui.Metrics.radiusControl
     // COMPACT_THRESHOLD_PX, MIN_TRIM_HANDLE_CLIP_WIDTH_PX (8 * 2 + 12)
     readonly property bool showDuration: width >= 96
@@ -77,9 +79,10 @@ Item {
         color: Ui.Theme.surfacePanel
     }
     Rectangle {
+        objectName: "clipTint"
         anchors.fill: parent
         radius: body.radius
-        color: TimelineVisuals.clipSurfaceTint(body.mediaType)
+        color: body.clipLabel !== "" ? Qt.alpha(body.clipLabel, 0.35) : TimelineVisuals.clipSurfaceTint(body.mediaType)
     }
 
     // The filmstrip (video) or the picture (image): inset 6 px, under the

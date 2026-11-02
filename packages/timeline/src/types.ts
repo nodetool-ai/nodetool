@@ -1231,6 +1231,8 @@ export interface TimelineClip {
    * reading as one paragraph while distinct authored beats stay separate.
    */
   paragraphId?: string;
+  /** CSS colour of the clip's label. Organizes clips and has no effect on the picture. */
+  labelColor?: string;
   /** Source clip for image-to-image and image-to-video. Reads the source clip's currentAssetId at submit time. */
   sourceClipId?: string | null;
   /**

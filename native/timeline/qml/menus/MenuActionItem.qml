@@ -11,5 +11,6 @@ Ui.MenuItem {
     property bool destructive: false
     iconTone: destructive ? Ui.Text.Error : Ui.Text.Secondary
     textTone: destructive ? Ui.Text.Error : Ui.Text.Primary
+    shortcutText: gestures && gestures.keyboardPreset !== "" ? gestures.shortcutFor(actionName) : ""
     onTriggered: if (gestures) gestures.runAction(actionName, actionContext)
 }

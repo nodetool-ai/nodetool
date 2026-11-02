@@ -61,7 +61,9 @@ Presentation types:
 - `Ui.Popover.openAt(item)` and `Ui.ContextMenu.openAt(item)` anchor to an item
   and return focus to it on close. Popup content and menu items are supplied by
   the caller. `Ui.Popover.contentItem` is its explicit body layout slot.
-  `Ui.MenuItem` inherits native menu-item and Action semantics.
+  `Ui.ContextMenu.popupAt(item, x, y)` opens at a point of an item and keeps the menu in the window.
+  `Ui.MenuItem` inherits native menu-item and Action semantics. Its `reasonText` shows under the
+  label while the item is disabled.
 - `Ui.Dialog.contentItem` is its explicit body layout slot. The module owns the
   header, background, and focus behavior. `returnFocusTo` supplies the focus
   target on close.

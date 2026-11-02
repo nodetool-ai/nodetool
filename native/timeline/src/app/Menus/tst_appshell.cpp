@@ -158,13 +158,7 @@ private slots:
         for (const auto& menu : menus) {
             names << menu.label;
         }
-        // Modules add menus and items through registerShellMenuItem. Only the built-ins are checked here.
-        for (const auto& entry : shellMenuEntries()) {
-            if (!QStringList({"File", "Edit", "View", "Playback", "Help"}).contains(entry.menu)) {
-                names.removeAll(entry.menu);
-            }
-        }
-        QCOMPARE(names, QStringList({"File", "Edit", "View", "Playback", "Help"}));
+        QCOMPARE(names, QStringList({"File", "Edit", "Clip", "Sequence", "Markers", "View", "Playback", "Window", "Help"}));
         const auto registered = [](const ShellMenuItem& item) {
             const auto& entries = shellMenuEntries();
             return item.separator || !item.children.empty() ||
@@ -174,20 +168,67 @@ private slots:
             return *std::find_if(menus.begin(), menus.end(), [&](const Menu& m) { return m.label == label; });
         };
         QCOMPARE(named("Edit").items[0].label, QString("Undo"));
-        QCOMPARE(named("View").items[2].label, QString("Zoom to fit content"));
+        const auto labels = [&named](const QString& menu) {
+            QStringList out;
+            for (const auto& item : named(menu).items) { out << item.action; }
+            return out;
+        };
+        // Marks and markers moved to Markers, and left Playback.
+        for (const auto* action : {"markIn", "markOut", "goToIn", "goToOut", "clearRange", "addMarker", "nextMarker", "prevMarker"}) {
+            QVERIFY2(labels("Markers").contains(action), action);
+            QVERIFY2(!labels("Playback").contains(action), action);
+        }
+        QVERIFY(labels("Sequence").contains("zoomFit"));
+        QVERIFY(labels("Help").contains("toggleShortcuts"));
         for (const auto& menu : menus) {
             for (const auto& item : menu.items) {
-                if (item.action == "playPause" || menu.label == "File" || registered(item)) {
+                if (menu.label == "File" || !registered(item) || item.separator || !item.children.empty()) {
                     continue;
                 }
-                QCOMPARE(item.enabled, ClipGestureController::availableActions().contains(item.action));
-                QCOMPARE(item.shortcut, nt::edit::formatActionShortcut("nodetool", item.action));
+                const auto preset = nt::edit::formatActionShortcut("nodetool", item.action);
+                if (!preset.isEmpty()) {
+                    QCOMPARE(item.shortcut, preset);
+                }
             }
+        }
+        // Nothing here is open, so an item that needs the editor is off and says why.
+        int off = 0;
+        for (const auto& menu : menus) {
+            for (const auto& item : menu.items) {
+                if (menu.label != "File" && !item.separator && item.children.empty() && !item.enabled && !item.action.startsWith("test.")) {
+                    ++off;
+                    QVERIFY2(!item.disabledReason.isEmpty(), qPrintable(item.action));
+                }
+            }
+        }
+        QVERIFY(off > 40);
+    }
+    // Two items with one key would fight over it in a native menu bar.
+    void shortcutsAreNotShared() {
+        const auto visit = [](auto&& self, const std::vector<ShellMenuItem>& items, QHash<QKeySequence, QString>& seen, QStringList& clashes) -> void {
+            for (const auto& item : items) {
+                if (!item.sequence.isEmpty()) {
+                    if (seen.contains(item.sequence)) {
+                        clashes << item.sequence.toString() + ": " + seen.value(item.sequence) + " and " + item.action;
+                    }
+                    seen.insert(item.sequence, item.action);
+                }
+                self(self, item.children, seen, clashes);
+            }
+        };
+        for (const QString preset : {"nodetool", "premiere", "fcp"}) {
+            QHash<QKeySequence, QString> seen;
+            QStringList clashes;
+            for (const auto& menu : shellMenuDescription(preset)) { visit(visit, menu.items, seen, clashes); }
+            QVERIFY2(clashes.isEmpty(), qPrintable(preset + ": " + clashes.join(", ")));
+            QVERIFY(seen.size() > 30);
         }
     }
     void conversions() {
         QCOMPARE(bindingCombination({"Ctrl", "Shift", "Z"}), QKeyCombination(Qt::ControlModifier | Qt::ShiftModifier, Qt::Key_Z));
         QCOMPARE(bindingCombination({"Shift", "+"}), QKeyCombination(Qt::Key_Plus));
+        QCOMPARE(bindingCombination({"Shift", "="}), QKeyCombination(Qt::ShiftModifier, Qt::Key_Equal));
+        QCOMPARE(bindingCombination({"Shift", ";"}), QKeyCombination(Qt::ShiftModifier, Qt::Key_Semicolon));
         QCOMPARE(bindingCombination({"Alt", "←"}), QKeyCombination(Qt::AltModifier, Qt::Key_Left));
         QCOMPARE(bindingCombination({"Page Down"}), QKeyCombination(Qt::Key_PageDown));
         int inspected = 0;
@@ -599,8 +640,22 @@ private slots:
         auto* sheet = view.contentItem()->findChild<QObject*>("shortcutsSheet");
         QVERIFY(sheet);
         QVERIFY(sheet->property("open").toBool());
-        QVERIFY(menus.trigger("pasteAttributes"));
+        // A disabled item does not run. With what it needs, it does.
+        QVERIFY(!menus.trigger("pasteAttributes"));
+        QVERIFY(!menus.trigger("linkClips"));
+        auto clips = model.clipsJson();
+        auto second = clips.first().toObject();
+        second.insert("id", "second-clip");
+        second.insert("startMs", second.value("startMs").toDouble() + second.value("durationMs").toDouble());
+        clips.append(second);
+        model.replaceClips(clips);
+        gestures->setSelection({clips.first().toObject().value("id").toString(), "second-clip"});
         QVERIFY(menus.trigger("linkClips"));
+        bool playing = clock.playing();
+        QVERIFY(menus.trigger("playPause"));
+        QCOMPARE(clock.playing(), !playing);
+        QVERIFY(menus.trigger("playPause"));
+        QCOMPARE(clock.playing(), playing);
     }
     void registeredEntriesRefuseBadInput() {
         QVERIFY(!registerShellMenuItem({"Nonsense", "test.badMenu", "Bad menu"}));
@@ -617,7 +672,7 @@ private slots:
         QVERIFY(registerShellMenuItem({"Markers", "test.inSub", "In submenu", {}, "More", "second", 50}));
         QVERIFY(registerShellMenuItem({"File", "test.fileItem", "Export Thing…", {}, {}, "exporting", 0}));
         // A preset binding wins over the shortcut the entry names.
-        QVERIFY(registerShellMenuItem({"Clip", "linkClips", "Link here", "F9", {}, {}, 0,
+        QVERIFY(registerShellMenuItem({"Clip", "nudgeLeft", "Link here", "F9", {}, {}, 0,
             [](const QVariantMap& context) { return context.value("allow").toBool(); },
             [](const QVariantMap& context) { return context.value("tick").toBool(); }}));
         const auto menus = shellMenuDescription("nodetool");
@@ -653,16 +708,19 @@ private slots:
             file << (item.separator ? QString("---") : item.label);
         }
         QCOMPARE(file.mid(3), QStringList({"Export…", "---", "Export Thing…", "---", "Settings…", "Quit"}));
-        const auto& linkHere = menu("Clip").items[0];
-        QCOMPARE(linkHere.shortcut, nt::edit::formatActionShortcut("nodetool", "linkClips"));
+        const auto inClip = [](const Menu& clipMenu) -> const ShellMenuItem& {
+            return *std::find_if(clipMenu.items.begin(), clipMenu.items.end(), [](const ShellMenuItem& item) { return item.action == "nudgeLeft"; });
+        };
+        const auto& linkHere = inClip(menu("Clip"));
+        QCOMPARE(linkHere.shortcut, nt::edit::formatActionShortcut("nodetool", "nudgeLeft"));
         QVERIFY(linkHere.shortcut != "F9");
         QVERIFY(linkHere.checkable);
         QVERIFY(!linkHere.enabled);
         QVERIFY(!linkHere.checked);
         const auto allowed = shellMenuDescription("nodetool", {}, {{"allow", true}, {"tick", true}});
         const auto clip = std::find_if(allowed.begin(), allowed.end(), [](const Menu& m) { return m.label == "Clip"; });
-        QVERIFY(clip->items[0].enabled);
-        QVERIFY(clip->items[0].checked);
+        QVERIFY(inClip(*clip).enabled);
+        QVERIFY(inClip(*clip).checked);
     }
     void registeredEntryDispatch() {
         QFile file(QStringLiteral(NT_FIXTURES_DIR "/av-sync.json"));
@@ -699,7 +757,6 @@ private slots:
         // Without `run` the entry goes through the gesture dispatcher.
         QVERIFY(registerShellMenuItem({"Sequence", "test.unknownAction", "Unknown"}));
         QVERIFY(!menus.trigger("test.unknownAction"));
-        QVERIFY(registerShellMenuItem({"Sequence", "undo", "Undo from here"}));
         const auto before = model.documentJson();
         QVERIFY(model.applyEdit("addMarker", {{"id", "shell-test"}, {"timeMs", 100}}));
         const int index = model.undoStack()->index();

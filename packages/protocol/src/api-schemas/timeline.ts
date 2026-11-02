@@ -1947,6 +1947,9 @@ export const timelineClip = z.object({
   /** Paragraph grouping id for transcript clips. Without this field Zod strips
    * it on every PATCH, so autosave silently breaks paragraph grouping. */
   paragraphId: z.string().optional(),
+  /** CSS colour of the clip's label, set in the native timeline. Without this
+   * field Zod strips it on every PATCH, so autosave erases the label. */
+  labelColor: z.string().optional(),
   /** Motion-design animations. Without this field Zod strips it on every
    * PATCH, so autosave erases animations. */
   animations: z.array(clipAnimation).optional(),
