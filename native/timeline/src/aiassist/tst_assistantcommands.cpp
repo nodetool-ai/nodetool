@@ -3,7 +3,9 @@
 #include "aiassist/AssistantSession.h"
 #include "app/EditRegistry.h"
 #include "app/MenuRegistry.h"
+#include "edit/trim/TrimMode.h"
 #include "export/FrameCapture.h"
+#include "takes/TakeSwitcher.h"
 #include "wiring/KeyActions.h"
 #include "wiring/WiringFixture.h"
 #include <QJsonArray>
@@ -277,7 +279,7 @@ private slots:
         const auto before = doc();
         for (const auto& patch : {QVariantMap{{"currentAssetId", "other"}}, QVariantMap{{"mediaUrl", "http://example.com/a.mp4"}},
                                   QVariantMap{{"textStyle", QVariantMap{{"fontUrl", "file:///etc/passwd"}}}},
-                                  QVariantMap{{"textStyle", QVariantMap{{"font", "/etc/passwd"}}}}, QVariantMap{{"effects", QVariantList{QVariantMap{{"lut", "https://example.com/a.cube"}}}}}}) {
+                                  QVariantMap{{"textStyle", QVariantMap{{"fontFamily", "/etc/passwd"}}}}, QVariantMap{{"effects", QVariantList{QVariantMap{{"lut", "https://example.com/a.cube"}}}}}}) {
             const auto result = run("patchClip", {{"clip_id", CLIP_A}, {"patch", patch}});
             QVERIFY(!result.value("ok").toBool());
         }
@@ -288,6 +290,111 @@ private slots:
         QVERIFY(run("markers.add", {{"timeMs", 100}, {"note", "From https://example.com/brief"}}).value("ok").toBool());
     }
 
+    // A patch must leave a document the server accepts on save.
+    void patchesKeepTheDocumentValid_data() {
+        QTest::addColumn<QVariantMap>("patch");
+        QTest::newRow("partial transform") << QVariantMap{{"transform", QVariantMap{{"rotation", 45}}}};
+        QTest::newRow("effects") << QVariantMap{{"effects", QVariantMap{}}};
+        QTest::newRow("bad blend") << QVariantMap{{"blendMode", "bogus"}};
+        QTest::newRow("opacity text") << QVariantMap{{"opacity", "half"}};
+        QTest::newRow("opacity range") << QVariantMap{{"opacity", 2}};
+        QTest::newRow("name number") << QVariantMap{{"name", 5}};
+        QTest::newRow("name null") << QVariantMap{{"name", QVariant::fromValue(nullptr)}};
+        QTest::newRow("hidden text") << QVariantMap{{"hidden", "yes"}};
+        QTest::newRow("unlocks") << QVariantMap{{"locked", false}};
+    }
+    void patchesKeepTheDocumentValid() {
+        QFETCH(QVariantMap, patch);
+        const auto before = doc();
+        QVERIFY(!run("patchClip", {{"clip_id", CLIP_A}, {"patch", patch}}).value("ok").toBool());
+        QCOMPARE(doc(), before);
+    }
+    void textStyleChangesKeepTheOtherFields() {
+        QVERIFY(run("addText", {{"track_id", TRACK_V}, {"timeMs", 16000}}).value("ok").toBool());
+        const auto textId = gestures()->selection().first();
+        const auto result = run("patchClip", {{"clip_id", textId}, {"patch", QVariantMap{{"textStyle", QVariantMap{{"text", "Visit https://example.com"}}}}}});
+        QVERIFY2(result.value("ok").toBool(), qPrintable(result.value("error").toString()));
+        const auto style = clip(textId).value("textStyle").toObject();
+        QCOMPARE(style.value("text").toString(), QString("Visit https://example.com"));
+        QCOMPARE(style.value("fontSizePx").toDouble(), 96.0);
+        QCOMPARE(style.value("color").toString(), QString("#FFFFFF"));
+        const auto before = doc();
+        QVERIFY(!run("patchClip", {{"clip_id", textId}, {"patch", QVariantMap{{"textStyle", QVariantMap{{"fontFamily", "/etc/passwd"}}}}}}).value("ok").toBool());
+        QVERIFY(!run("patchClip", {{"clip_id", textId}, {"patch", QVariantMap{{"textStyle", QVariantMap{{"path", "x"}}}}}}).value("ok").toBool());
+        QVERIFY(!run("patchClip", {{"clip_id", textId}, {"patch", QVariantMap{{"textStyle", QVariantMap{{"fontSizePx", "big"}}}}}}).value("ok").toBool());
+        QVERIFY(!run("patchClip", {{"clip_id", CLIP_A}, {"patch", QVariantMap{{"textStyle", QVariantMap{{"text", "Hi"}}}}}}).value("ok").toBool());
+        QCOMPARE(doc(), before);
+    }
+    void locksHold() {
+        QVERIFY(run("toggleClipLock", {{"clip_ids", QStringList{CLIP_A}}}).value("ok").toBool());
+        const auto lockedClip = doc();
+        for (const auto& call : {std::pair<QString, QVariantMap>{"patchClip", {{"clip_id", CLIP_A}, {"patch", QVariantMap{{"opacity", 0.5}}}}},
+                                 {"setClipSpeed", {{"clip_id", CLIP_A}, {"speed", 2.0}}},
+                                 {"keyframes.toggle", {{"clip_id", CLIP_A}, {"row", "opacity"}, {"atMs", 100}}}}) {
+            const auto result = run(call.first, call.second);
+            QVERIFY2(!result.value("ok").toBool(), qPrintable(call.first));
+            QVERIFY(result.value("error").toString().contains("locked"));
+        }
+        QCOMPARE(doc(), lockedClip);
+        QVERIFY(run("setTrackLocked", {{"track_id", TRACK_A}, {"locked", true}}).value("ok").toBool());
+        const auto lockedTrack = doc();
+        QVERIFY(!run("setClipAudio", {{"clip_id", CLIP_AUDIO}, {"field", "fadeInMs"}, {"value", 100}}).value("ok").toBool());
+        QVERIFY(!run("addClipAudioEffect", {{"clip_id", CLIP_AUDIO}, {"type", "eq3"}}).value("ok").toBool());
+        QVERIFY(!run("setClipsGain", {{"clip_ids", QStringList{CLIP_AUDIO}}, {"db", -6.0}}).value("ok").toBool());
+        QCOMPARE(doc(), lockedTrack);
+    }
+    // The person's work comes first, and an Assistant call never folds into it.
+    void trimModeRefuses() {
+        clock.seek(2000);
+        QVERIFY(gestures()->trimMode()->selectNearest());
+        QVERIFY(gestures()->trimMode()->active());
+        const auto before = doc();
+        QVERIFY(!run("setTrackName", {{"track_id", TRACK_V}, {"name", "X"}}).value("ok").toBool());
+        QVERIFY(!run("trimEditRight", {{"clip_id", CLIP_C}, {"edge", "end"}}).value("ok").toBool());
+        QVERIFY(gestures()->trimMode()->active());
+        QCOMPARE(doc(), before);
+        QCOMPARE(model.undoStack()->count(), 0);
+    }
+    void recordingRefuses() {
+        auto* takes = TakeSwitcher::forTimeline(&model);
+        QVERIFY(takes);
+        takes->toggleRecording(*gestures());
+        QVERIFY(takes->recording());
+        const auto before = doc();
+        const auto result = run("takeSwitch2", {{"clip_ids", QStringList{CLIP_A}}});
+        QVERIFY(!result.value("ok").toBool());
+        QVERIFY(result.value("error").toString().contains("recording"));
+        QCOMPARE(doc(), before);
+        takes->toggleRecording(*gestures());
+        clock.pause();
+    }
+    void refusedTakeIsAnError() {
+        const auto before = doc();
+        const auto result = run("takeSwitch9", {{"clip_ids", QStringList{CLIP_A}}, });
+        QVERIFY(!result.value("ok").toBool());
+        QVERIFY(!result.value("error").toString().isEmpty());
+        QCOMPARE(doc(), before);
+    }
+    void effectIdsAndFields() {
+        QVERIFY(run("addTrackEffect", {{"track_id", TRACK_A}, {"effect", "eq3"}}).value("ok").toBool());
+        const auto effect = track(TRACK_A).value("effects").toArray().first().toObject();
+        const auto id = effect.value("id").toString();
+        QString numeric;
+        for (auto it = effect.begin(); it != effect.end(); ++it) {
+            if (it.value().isDouble()) { numeric = it.key(); }
+        }
+        QVERIFY(!numeric.isEmpty());
+        const auto changed = run("updateTrackEffect", {{"track_id", TRACK_A}, {"effect_id", id.left(12)}, {"patch", QVariantMap{{numeric, effect.value(numeric).toDouble() + 0.25}}}});
+        QVERIFY2(changed.value("ok").toBool(), qPrintable(changed.value("error").toString()));
+        const auto before = doc();
+        QVERIFY(!run("updateTrackEffect", {{"track_id", TRACK_A}, {"effect_id", "ffffffffffff"}, {"patch", QVariantMap{{numeric, 1.0}}}}).value("ok").toBool());
+        QVERIFY(!run("updateTrackEffect", {{"track_id", TRACK_A}, {"effect_id", id}, {"patch", QVariantMap{{"type", 1}}}}).value("ok").toBool());
+        QVERIFY(!run("updateTrackEffect", {{"track_id", TRACK_A}, {"effect_id", id}, {"patch", QVariantMap{{"nope", 1}}}}).value("ok").toBool());
+        QVERIFY(!run("updateTrackEffect", {{"track_id", TRACK_A}, {"effect_id", id}, {"patch", QVariantMap{{numeric, true}}}}).value("ok").toBool());
+        QCOMPARE(doc(), before);
+        QVERIFY(run("removeTrackEffect", {{"track_id", TRACK_A}, {"effect_id", id.left(12)}}).value("ok").toBool());
+        QVERIFY(track(TRACK_A).value("effects").toArray().isEmpty());
+    }
     void rangeCommands() {
         const auto extract = run("extractRange", {{"inMs", 2000.0}, {"outMs", 4000.0}});
         QVERIFY2(extract.value("ok").toBool(), qPrintable(extract.value("error").toString()));
@@ -517,6 +624,15 @@ private slots:
         QCOMPARE(entry.value("timelineTimeMs").toDouble(), 1000.0);
         QCOMPARE(doc(), before);
         QCOMPARE(model.undoStack()->count(), 0);
+        // Never larger than the frame.
+        QVERIFY(commands->execute("ui_timeline_capture_frame", {{"timeline_id", TIMELINE}, {"atMs", 1000.0}, {"width", 1920}}, "large").value("deferred").toBool());
+        QTRY_VERIFY_WITH_TIMEOUT(done.size() == 3, 60000);
+        QCOMPARE(done[2][1].toMap().value("frames").toList().value(0).toMap().value("width").toInt(), 640);
+        // A very tall sequence stays within the height limit.
+        QVERIFY(run("setProjectSettings", {{"width", 16}, {"height", 7680}, {"fps", 30}}).value("ok").toBool());
+        QVERIFY(commands->execute("ui_timeline_capture_frame", {{"timeline_id", TIMELINE}, {"atMs", 1000.0}, {"width", 1920}}, "tall").value("deferred").toBool());
+        QTRY_VERIFY_WITH_TIMEOUT(done.size() == 4, 60000);
+        QVERIFY(done[3][1].toMap().value("frames").toList().value(0).toMap().value("height").toInt() <= 1920);
     }
     // Last, because the registry has no way to remove an entry: a real registration fails the audit.
     void aRealNewRegistrationFailsTheAudit() {

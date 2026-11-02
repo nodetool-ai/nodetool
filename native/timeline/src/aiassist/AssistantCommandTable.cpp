@@ -112,6 +112,9 @@ QList<Command> buildAllowed() {
     // Takes that exist already. Generating a take goes through its own review step.
     actions(numbered("takeSwitch", 9), clips);
     actions(numbered("takeCut", 9), clipsAtTime);
+    for (auto& command : out) {
+        if (command.id.startsWith("takeSwitch") || command.id.startsWith("takeCut")) { command.mustChange = true; }
+    }
     action("takeGrid");
     // The Source monitor.
     actions({"sourceInsert", "sourceOverwrite", "sourceAppend"}, seek);
@@ -173,9 +176,8 @@ QList<Command> buildAllowed() {
     edit("setClipAudio", "Set a clip's volume or fade", {clip, P{"field", ParamKind::Choice, true, "The field.", {"volumeDb", "fadeInMs", "fadeOutMs"}},
                                                          P{"value", ParamKind::Number, true, "dB for volumeDb, otherwise ms."}});
     edit("patchClip", "Set clip properties",
-         {clip, P{"patch", ParamKind::Patch, true, "Fields to set. Null clears one.",
-                  {"name", "labelColor", "speaker", "opacity", "blendMode", "hidden", "muted", "locked", "borderRadius", "transform", "layout", "flexItem",
-                   "motionBlur", "steppedTime", "temporalEcho", "textStyle", "shapeStyle", "effects", "crop"}}});
+         {clip, P{"patch", ParamKind::Patch, true, "Fields to set. textStyle changes only the fields it names. For position, scale and rotation use keyframes.input.",
+                  {"name", "labelColor", "speaker", "opacity", "blendMode", "hidden", "muted", "borderRadius", "textStyle"}}});
     // Tracks.
     edit("addTrack", "Add a track", {P{"type", ParamKind::Choice, true, "The kind of track.", {"video", "audio", "overlay"}}, P{"name", ParamKind::Text, false, "Its name."},
                                      P{"atIndex", ParamKind::Number, false, "Where it goes among the tracks.", {}, {}, 0}});
@@ -194,8 +196,8 @@ QList<Command> buildAllowed() {
     edit("setMasterVolume", "Set the master volume", {db});
     // Effects by name, and their numbers.
     const P effect{"effect", ParamKind::Text, true, "The effect's name, such as eq3."};
-    const P effectId{"effect_id", ParamKind::Text, true, "The effect's id from the document.", {}, "effectId"};
-    const P numbers{"patch", ParamKind::NumberPatch, true, "Fields to set, as numbers or booleans."};
+    const P effectId{"effect_id", ParamKind::EffectId, true, "The effect's id from the document.", {}, "effectId"};
+    const P numbers{"patch", ParamKind::EffectPatch, true, "Fields of the effect to change, as numbers or booleans."};
     edit("addTrackEffect", "Add a track effect", {track, effect});
     edit("updateTrackEffect", "Change a track effect", {track, effectId, numbers});
     edit("removeTrackEffect", "Remove a track effect", {track, effectId});

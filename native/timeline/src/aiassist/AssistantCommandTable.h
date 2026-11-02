@@ -35,12 +35,13 @@ enum class ParamKind {
     TrackId,
     TrackIds,
     MarkerIds,
+    EffectId,     // resolved in the effects of the track or clip before it, else the master's
     Number,
     Boolean,
     Text,
     Choice,
-    Patch,        // an object limited to `choices` fields, holding no file or URL
-    NumberPatch,  // an object of numbers and booleans
+    Patch,        // an object limited to `choices` fields, each of the type the document needs
+    EffectPatch,  // an object changing fields the effect has, keeping their types
 };
 struct Param {
     QString name;
@@ -66,6 +67,7 @@ struct Command {
     bool sourceLimit = false; // pass how long the clip's source is
     bool sourceLimits = false;
     bool background = false;  // finishes later, so its edit arrives after the result
+    bool mustChange = false;  // the handler reports a refusal to the person and returns true
 };
 const QList<Command>& allowedCommands();
 // id -> why the Assistant can't run it.

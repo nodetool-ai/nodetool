@@ -6,7 +6,10 @@
 #include "color/ScopeNumbers.h"
 #include "colorpanel/ScopesController.h"
 #include "edit/ClipGestureController.h"
+#include "edit/clipboard/RawDocument.h"
+#include "edit/trim/TrimMode.h"
 #include "export/FrameCapture.h"
+#include "takes/TakeSwitcher.h"
 #include "ui/TimelineViewState.h"
 #include "wiring/KeyActions.h"
 #include "wiring/SourceDurations.h"
@@ -30,6 +33,7 @@ using commands::Runs;
 constexpr int DEFAULT_FRAME_WIDTH = 640;
 constexpr int MIN_FRAME_WIDTH = 16;
 constexpr int MAX_FRAME_WIDTH = 1920;
+constexpr int MAX_FRAME_HEIGHT = 1920;
 constexpr int FRAME_JPEG_QUALITY = 85;
 
 // One undo entry for a command that pushed several.
@@ -105,7 +109,7 @@ QJsonObject parameterSchema(const Param& param) {
         schema = {{"type", "boolean"}};
         break;
     case ParamKind::Patch:
-    case ParamKind::NumberPatch:
+    case ParamKind::EffectPatch:
         schema = {{"type", "object"}};
         if (!param.choices.isEmpty()) { schema.insert("fields", QJsonArray::fromStringList(param.choices)); }
         break;
@@ -178,8 +182,47 @@ bool namesLocation(const QJsonValue& value) {
     return false;
 }
 
-// Patch fields that show as words, so a URL in one reaches nothing.
-const QStringList plainTextFields{"name", "speaker", "label", "note", "color", "labelColor"};
+// A patched field must fit the shared document schema, or the server refuses the document on save.
+QString patchFieldError(const QString& field, const QJsonValue& value) {
+    static const QStringList words{"name", "label", "note", "color"};
+    static const QStringList clearableWords{"labelColor", "speaker"};
+    static const QStringList flags{"hidden", "muted"};
+    static const QStringList blends{"normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light",
+                                    "difference", "exclusion", "add"};
+    if (words.contains(field) && !value.isString()) { return QStringLiteral("must be text"); }
+    if (clearableWords.contains(field) && !value.isString() && !value.isNull()) { return QStringLiteral("must be text, or null to clear it"); }
+    if (flags.contains(field) && !value.isBool()) { return QStringLiteral("must be true or false"); }
+    if (field == u"blendMode" && !blends.contains(value.toString())) { return QStringLiteral("must be one of %1").arg(blends.join(", ")); }
+    if (field == u"opacity" && (!value.isDouble() || value.toDouble() < 0 || value.toDouble() > 1)) { return QStringLiteral("must be a number from 0 to 1"); }
+    if ((field == u"borderRadius" || field == u"timeMs" || field == u"durationMs") && (!value.isDouble() || value.toDouble() < 0)) {
+        return QStringLiteral("must be a number of at least 0");
+    }
+    return {};
+}
+QString textStyleError(const QJsonObject& style) {
+    static const QStringList words{"text", "fontFamily", "color"};
+    static const QStringList numbers{"fontSizePx", "fontWeight", "lineHeight", "letterSpacingPx"};
+    static const QStringList aligns{"left", "center", "right"};
+    for (auto it = style.begin(); it != style.end(); ++it) {
+        if (words.contains(it.key()) ? !it.value().isString() : numbers.contains(it.key()) ? !it.value().isDouble() : it.key() != u"align") {
+            return QStringLiteral("textStyle.%1 is not a field it can set, or has the wrong type. It can set %2.").arg(it.key(), (words + numbers + QStringList{"align"}).join(", "));
+        }
+        if (it.key() == u"align" && !aligns.contains(it.value().toString())) { return QStringLiteral("textStyle.align must be one of %1.").arg(aligns.join(", ")); }
+    }
+    return namesLocation(style) ? QStringLiteral("textStyle can't name a file or URL.") : QString{};
+}
+// The effects an effect id can name: of the track or clip the payload names, else the master's.
+QJsonArray effectsIn(const QJsonObject& raw, const QJsonObject& payload) {
+    const auto rowEffects = [](const QJsonArray& rows, const QString& id, const char* field) {
+        for (const auto& row : rows) {
+            if (row.toObject().value("id").toString() == id) { return row.toObject().value(QLatin1String(field)).toArray(); }
+        }
+        return QJsonArray{};
+    };
+    if (payload.contains("trackId")) { return rowEffects(raw.value("tracks").toArray(), payload.value("trackId").toString(), "effects"); }
+    if (payload.contains("clipId")) { return rowEffects(raw.value("clips").toArray(), payload.value("clipId").toString(), "audioEffects"); }
+    return raw.value("master").toObject().value("effects").toArray();
+}
 
 // The parameters of one call, checked before anything changes.
 struct Prepared {
@@ -301,24 +344,50 @@ Prepared prepare(const Command& command, const QJsonObject& params, const QJsonO
             if (!param.choices.contains(value.toString())) { out.error = QStringLiteral("%1 must be one of %2.").arg(param.name, param.choices.join(", ")); }
             out.payload.insert(key, value);
             break;
+        case ParamKind::EffectId: {
+            const auto id = oneId(value, idsIn(effectsIn(raw, out.payload)), "Effect", param.name);
+            out.payload.insert(key, id);
+            break;
+        }
         case ParamKind::Patch: {
-            const auto patch = value.toObject();
+            auto patch = value.toObject();
             if (!value.isObject() || patch.isEmpty()) { out.error = param.name + " must be an object with fields to set."; }
             for (auto it = patch.begin(); it != patch.end() && out.error.isEmpty(); ++it) {
                 if (!param.choices.contains(it.key())) {
                     out.error = QStringLiteral("%1 can't set %2. It can set %3.").arg(param.name, it.key(), param.choices.join(", "));
-                } else if (!plainTextFields.contains(it.key()) && namesLocation(it.value())) {
-                    out.error = QStringLiteral("%1.%2 can't name a file or URL.").arg(param.name, it.key());
+                } else if (const auto problem = patchFieldError(it.key(), it.value()); !problem.isEmpty()) {
+                    out.error = QStringLiteral("%1.%2 %3.").arg(param.name, it.key(), problem);
                 }
             }
-            out.payload.insert(key, value);
+            if (patch.contains("textStyle") && out.error.isEmpty()) {
+                // The document needs a whole style, so a change keeps the fields it doesn't name.
+                const auto changes = patch.value("textStyle").toObject();
+                out.error = textStyleError(changes);
+                QJsonObject style;
+                for (const auto& row : raw.value("clips").toArray()) {
+                    if (row.toObject().value("id") == out.payload.value("clipId")) { style = row.toObject().value("textStyle").toObject(); }
+                }
+                if (style.isEmpty() && out.error.isEmpty()) { out.error = "Only a text clip has a textStyle."; }
+                for (auto it = changes.begin(); it != changes.end(); ++it) { style.insert(it.key(), it.value()); }
+                patch.insert("textStyle", style);
+            }
+            out.payload.insert(key, patch);
             break;
         }
-        case ParamKind::NumberPatch: {
+        case ParamKind::EffectPatch: {
             const auto patch = value.toObject();
             if (!value.isObject() || patch.isEmpty()) { out.error = param.name + " must be an object with fields to set."; }
+            QJsonObject effect;
+            for (const auto& row : effectsIn(raw, out.payload)) {
+                if (row.toObject().value("id") == out.payload.value("effectId")) { effect = row.toObject(); }
+            }
             for (auto it = patch.begin(); it != patch.end() && out.error.isEmpty(); ++it) {
-                if (!it.value().isDouble() && !it.value().isBool()) { out.error = QStringLiteral("%1.%2 must be a number or boolean.").arg(param.name, it.key()); }
+                const auto current = effect.value(it.key());
+                if (it.key() == u"id" || it.key() == u"type" || current.isUndefined()) {
+                    out.error = QStringLiteral("%1.%2 is not a field this effect can change.").arg(param.name, it.key());
+                } else if ((!it.value().isDouble() && !it.value().isBool()) || it.value().type() != current.type()) {
+                    out.error = QStringLiteral("%1.%2 must keep its type.").arg(param.name, it.key());
+                }
             }
             out.payload.insert(key, value);
             break;
@@ -603,9 +672,28 @@ QJsonObject AssistantCommands::runCommand(const QJsonObject& args) {
     if (!command) { return failure(QStringLiteral("There is no command %1. Read ui_timeline_list_commands.").arg(id)); }
     if (args.contains("params") && !args.value("params").isObject()) { return failure("params must be an object."); }
     if (!editor->gestureKind().isEmpty()) { return failure("The person is dragging in the timeline. Try again when the drag ends."); }
+    // A trim in progress would take the command as its own, and commit itself first.
+    if (editor->trimMode()->active()) { return failure("The person is in trim mode. Try again when they leave it."); }
+    // A recording pass amends one undo entry with every take switch.
+    if (auto* takes = TakeSwitcher::forTimeline(&m_model); takes && takes->recording()) { return failure("The person is recording take switches. Try again when they stop."); }
     const auto before = m_model.timeline().raw;
     const auto prepared = prepare(*command, args.value("params").toObject(), before, m_model.markersJson());
     if (!prepared.error.isEmpty()) { return failure(prepared.error); }
+    if (command->runs == Runs::Edit) {
+        // A raw edit doesn't know about locks. The inspector checks them before calling it.
+        const auto locked = nt::edit::lockedUserTargetIds(nt::edit::structure::editDocument(before));
+        QStringList targets;
+        if (const auto clip = prepared.payload.value("clipId"); clip.isString()) { targets.append(clip.toString()); }
+        for (const auto* key : {"clipIds", "selectedIds"}) {
+            for (const auto& clip : prepared.payload.value(QLatin1String(key)).toArray()) { targets.append(clip.toString()); }
+        }
+        if (std::ranges::any_of(targets, [&](const QString& clip) { return locked.contains(clip); })) {
+            auto refused = failure("That clip or its track is locked. Unlock it first.");
+            refused.insert("disabled", true);
+            refused.insert("command", id);
+            return refused;
+        }
+    }
 
     ViewSetup setup(*editor, m_clock);
     const auto disabled = [&](const QString& reason) {
@@ -636,9 +724,9 @@ QJsonObject AssistantCommands::runCommand(const QJsonObject& args) {
         editor->setSelection(selection);
     }
     const int added = stack->index() - indexBefore;
-    if (!ran && !changed && added == 0) {
+    if ((!ran || command->mustChange) && !changed && added == 0) {
         setup.restore();
-        return failure(command->runs == Runs::Edit ? QStringLiteral("%1 changed nothing. Check clip locks, the ids and the values.").arg(id)
+        return failure(command->runs == Runs::Edit || command->mustChange ? QStringLiteral("%1 changed nothing. Check clip locks, the ids and the values.").arg(id)
                                                    : QStringLiteral("%1 could not run on the current state. Check the selection, the playhead and clip locks.").arg(id));
     }
     QJsonObject undo{{"added", added > 0}, {"canUndo", stack->canUndo()}, {"canRedo", stack->canRedo()}, {"undoCount", stack->index()}};
@@ -704,7 +792,9 @@ QJsonObject AssistantCommands::captureFrame(const QJsonObject& args, const QStri
         }
         // Encoding a large frame would stall the interface.
         self->m_encoder.start([owner = self.data(), callId, image = frame.image, timeMs = frame.timeMs, width] {
-            const auto scaled = image.scaledToWidth(width, Qt::SmoothTransformation).convertToFormat(QImage::Format_RGB888);
+            // Never larger than the frame, and a very tall sequence stays small too.
+            const QSize box(std::min(width, image.width()), MAX_FRAME_HEIGHT);
+            const auto scaled = image.scaled(box, Qt::KeepAspectRatio, Qt::SmoothTransformation).convertToFormat(QImage::Format_RGB888);
             QByteArray bytes;
             QBuffer buffer(&bytes);
             buffer.open(QIODevice::WriteOnly);
