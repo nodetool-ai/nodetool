@@ -395,6 +395,69 @@ private slots:
         QVERIFY(menus->trigger("settings"));
         QTRY_VERIFY(dialog->property("visible").toBool());
     }
+    // Issue #7086: audio while scrubbing and pitch kept while shuttling. Both default to on.
+    void playbackAudioSwitches() {
+        QVERIFY(Preferences().scrubAudio());
+        QVERIFY(Preferences().shuttleKeepsPitch());
+        TimelineModel model;
+        PlaybackClock clock;
+        QQuickView view;
+        loadEditor(view, model, clock);
+        auto* shell = shellItem(view.contentItem());
+        QVERIFY(shell);
+        auto* preferences = shell->findChild<Preferences*>("shellPreferences");
+        auto* gestures = view.contentItem()->findChild<ClipGestureController*>();
+        QVERIFY(preferences && gestures);
+        QTRY_VERIFY(clock.scrubAudio() && clock.keepShuttlePitch());
+        // Shift+S toggles the clock, and the store keeps it.
+        QTest::keyClick(&view, Qt::Key_S, Qt::ShiftModifier);
+        QVERIFY(!clock.scrubAudio());
+        QVERIFY(!preferences->scrubAudio());
+        QVERIFY(!Preferences().scrubAudio());
+        QTest::keyClick(&view, Qt::Key_S, Qt::ShiftModifier);
+        QVERIFY(clock.scrubAudio());
+        QVERIFY(Preferences().scrubAudio());
+        // The menu shows the state and runs the same action.
+        ShellMenus menus;
+        menus.setAnchor(view.rootObject());
+        const auto find = [&](const QString& action) -> ShellMenuItem {
+            QVariantMap context{{"gestures", QVariant::fromValue<QObject*>(gestures)}, {"timeline", QVariant::fromValue<QObject*>(&model)}};
+            for (const auto& menu : shellMenuDescription("nodetool", {}, context)) {
+                for (const auto& item : menu.items) {
+                    if (item.action == action) { return item; }
+                }
+            }
+            return {};
+        };
+        auto scrub = find("toggleScrubAudio");
+        QCOMPARE(scrub.action, QString("toggleScrubAudio"));
+        QVERIFY(scrub.checkable && scrub.checked);
+        QCOMPARE(scrub.shortcut, QKeySequence(Qt::SHIFT | Qt::Key_S).toString(QKeySequence::NativeText));
+        QVERIFY(menus.trigger("toggleScrubAudio"));
+        QVERIFY(!clock.scrubAudio());
+        QVERIFY(!find("toggleScrubAudio").checked);
+        QVERIFY(menus.trigger("toggleShuttleKeepsPitch"));
+        QVERIFY(!clock.keepShuttlePitch());
+        QVERIFY(!Preferences().shuttleKeepsPitch());
+        QVERIFY(!find("toggleShuttleKeepsPitch").checked);
+        // The transport button is the visible state.
+        auto* button = view.contentItem()->findChild<QQuickItem*>("transportScrubAudio");
+        QVERIFY(button);
+        QCOMPARE(button->property("active").toBool(), false);
+        QTest::mouseClick(&view, Qt::LeftButton, {}, button->mapToScene(QPointF(button->width() / 2, button->height() / 2)).toPoint());
+        QVERIFY(clock.scrubAudio());
+        QCOMPARE(button->property("active").toBool(), true);
+        QVERIFY(Preferences().scrubAudio());
+        // The settings dialog writes through the store to the clock.
+        auto* dialog = shell->findChild<QObject*>("preferencesDialog");
+        QVERIFY(dialog);
+        QVERIFY(QMetaObject::invokeMethod(dialog->findChild<QObject*>("scrubAudio"), "change", Q_ARG(bool, false)));
+        QVERIFY(!clock.scrubAudio());
+        QVERIFY(QMetaObject::invokeMethod(dialog->findChild<QObject*>("shuttleKeepsPitch"), "change", Q_ARG(bool, true)));
+        QVERIFY(clock.keepShuttlePitch());
+        QVERIFY(Preferences().shuttleKeepsPitch());
+        menus.setAnchor(nullptr);
+    }
     void decoderLabels() {
         TimelineModel model;
         PlaybackClock clock;

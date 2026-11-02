@@ -158,10 +158,24 @@ Ui.Dialog {
                     onChange: value => sheet.preferences.audioDevice = value
                 }
             }
+            InspectorToggleRow {
+                objectName: "scrubAudio"
+                label: "Play audio while scrubbing"
+                width: parent.width
+                checked: sheet.preferences.scrubAudio
+                onChange: next => sheet.preferences.scrubAudio = next
+            }
+            InspectorToggleRow {
+                objectName: "shuttleKeepsPitch"
+                label: "Keep pitch while shuttling"
+                width: parent.width
+                checked: sheet.preferences.shuttleKeepsPitch
+                onChange: next => sheet.preferences.shuttleKeepsPitch = next
+            }
         }
         Ui.Text {
             width: parent.width
-            text: "System motion follows the device setting where available. Otherwise, full motion is used.\nCache folder, cache budget, decoder and audio device apply on the next launch. A cache budget of 0 or less disables eviction."
+            text: "System motion follows the device setting where available. Otherwise, full motion is used.\nCache folder, cache budget, decoder and audio device apply on the next launch. Shift+S toggles audio while scrubbing. A cache budget of 0 or less disables eviction."
             wrapMode: Text.WordWrap
             tone: Ui.Text.Secondary
             role: Ui.Typography.SansLabel

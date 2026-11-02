@@ -1,12 +1,14 @@
 #pragma once
 
 // Audio playback on miniaudio (DESIGN.md D21 to D26). Three threads:
-//   - the device callback (real time) mixes the PCM rings with `mixBlock`
+//   - the device callback (real time) copies the shuttle ring or mixes
+//     the normal-rate PCM rings with `mixBlock`
 //     and runs the callback half of the audio-master clock
 //     (`CallbackClockDriver`). It never locks, allocates or decodes.
 //   - the audio decode worker publishes mix snapshots for seeks and edits.
 //     It owns the PCM rings, retaining unchanged mappings across edits,
-//     and fills them from AudioSource while the clips play.
+//     and fills them from AudioSource while the clips play. Pitch-kept
+//     shuttle runs mixBlock and ShuttleStretcher on this worker.
 //   - the caller (GUI thread) starts and stops the device and hands in
 //     timeline snapshots.
 // PlaybackClock talks to the engine only through `feed()`.
@@ -44,6 +46,8 @@ public:
         double recordSeconds = 0.0;
     };
     struct Stats {
+        std::int64_t shuttleFrames = 0;
+        std::int64_t shuttleSkipped = 0;
         std::int64_t callbacks = 0;
         std::int64_t framesRendered = 0;
         // Blocks in which a playing voice needed PCM its ring did not hold.

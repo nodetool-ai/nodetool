@@ -1,4 +1,4 @@
-nt_qml_sources(src/edit/keys/KeyboardActions.cpp src/edit/keys/AudioCrossfade.h src/edit/keys/AudioCrossfade.cpp)
+nt_qml_sources(src/edit/keys/KeyboardActions.cpp src/edit/keys/PlaybackAudioActions.cpp src/edit/keys/AudioCrossfade.h src/edit/keys/AudioCrossfade.cpp)
 nt_sources(app src/edit/keys/KeyPanels.cpp)
 function(nt_keyboard_tests)
     qt_add_executable(tst_keyboardpresets src/edit/keys/tst_keyboardpresets.cpp
