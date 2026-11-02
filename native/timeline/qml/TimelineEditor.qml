@@ -214,7 +214,11 @@ Controls.Control {
                 dock: dockCanvas
                 panelId: "program"
                 sourceComponent: Component {
-                    PreviewArea { timeline: root.timeline; clock: root.clock }
+                    PreviewArea {
+                        timeline: root.timeline
+                        clock: root.clock
+                        gestures: tracksHost.item ? tracksHost.item.gestures : null
+                    }
                 }
             }
             StablePanelHost {

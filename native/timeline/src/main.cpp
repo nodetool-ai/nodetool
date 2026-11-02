@@ -21,6 +21,7 @@
 #include "motion/mattes/MatteResolver.h"
 #include "playback/PlaybackClock.h"
 #include "preview/PreviewCompositor.h"
+#include "ui/MonitorViewState.h"
 #include "app/startup/DecodeDefault.h"
 #include "app/startup/LocalDocumentSaver.h"
 #include "preview/FfmpegSource.h"
@@ -200,6 +201,7 @@ nt::bench::BenchData benchData(const std::vector<FrameStat>& stats, BenchRun& ru
     }
     for (size_t i = first; i < last; ++i) {
         const FrameStat& f = stats[i];
+        d.canvasPixels = qint64(f.canvasWidth) * f.canvasHeight;
         d.cpuMs.push_back(f.renderCpuMs);
         // An interval starts at the previous render. The first measured one
         // starts in the warm-up, so it is left out.
@@ -371,7 +373,7 @@ int dumpPlan(int argc, char** argv) {
 int runOffscreen(TimelineModel& model, PlaybackClock& clock, QSize size, const QString& shotPath,
                  const QString& stillsDir, const QString& playDir, const std::vector<long long>& frames,
                  const QString& scrubScript = {}, const QString& scrubOut = {}, const QString& fixture = {},
-                 const QString& decodeName = {}) {
+                 const QString& decodeName = {}, const QByteArray& monitorState = {}) {
     QQuickRenderControl control;
     QQuickWindow window(&control);
     nt::hw::prepareWindow(&window);
@@ -397,6 +399,19 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, QSize size, const Q
         root->setParentItem(window.contentItem());
         root->setSize(QSizeF(size));
         compositor = root->findChild<PreviewCompositor*>(QStringLiteral("previewCompositor"));
+        if (!monitorState.isEmpty()) {
+            auto* monitor = root->findChild<MonitorViewState*>(QStringLiteral("monitorViewState"));
+            const QJsonDocument state = QJsonDocument::fromJson(monitorState);
+            if (!monitor || !state.isObject()) {
+                std::fprintf(stderr, "error: --monitor-state needs a JSON object and the Program monitor\n");
+                return 2;
+            }
+            const QStringList unknown = monitor->applyState(state.object().toVariantMap());
+            if (!unknown.isEmpty()) {
+                std::fprintf(stderr, "error: unknown --monitor-state keys: %s\n", qPrintable(unknown.join(", ")));
+                return 2;
+            }
+        }
     } else {
         auto* item = new PreviewCompositor();
         rootObject.reset(item);
@@ -488,6 +503,12 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, QSize size, const Q
         while (nt::ui::MediaPreviewCache::instance().pendingCount() > 0 && timer.elapsed() < 30000) {
             renderFrame(false);
             QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
+        }
+        // The capture ran with the monitor's defaults. Wait for the picture its view options show.
+        if (!monitorState.isEmpty()) {
+            renderFrame(false);
+            renderFrame(false);
+            for (int i = 0; i < 256 && !compositor->frameSettled(); ++i) { renderFrame(false); }
         }
         renderFrame(true);
         QImage img(reinterpret_cast<const uchar*>(readback.data.constData()), readback.pixelSize.width(),
@@ -685,6 +706,15 @@ int main(int argc, char** argv) {
     parser.addHelpOption();
     parser.addPositionalArgument(QStringLiteral("fixture"), QStringLiteral("Timeline JSON file"));
     const QCommandLineOption benchOpt(QStringLiteral("bench"), QStringLiteral("Render N frames and print timings"));
+    const QCommandLineOption previewResolutionOpt(QStringLiteral("preview-resolution"),
+        QStringLiteral("Bench canvas resolution: full, half, quarter or eighth"),
+        QStringLiteral("RESOLUTION"), QStringLiteral("full"));
+    parser.addOption(previewResolutionOpt);
+    const QCommandLineOption monitorStateOpt(QStringLiteral("monitor-state"),
+        QStringLiteral("Program monitor view options for --screenshot, as JSON: zoomPercent, safeMargins, rulers, guides, "
+                       "transparencyGrid, displayMode, showControls, pausedResolution"),
+        QStringLiteral("JSON"));
+    parser.addOption(monitorStateOpt);
     const QCommandLineOption framesOpt(QStringLiteral("frames"), QStringLiteral("Bench frame count"),
                                        QStringLiteral("N"), QStringLiteral("600"));
     const QCommandLineOption sizeOpt(QStringLiteral("size"), QStringLiteral("Window size"), QStringLiteral("WxH"),
@@ -773,6 +803,14 @@ int main(int argc, char** argv) {
     const QCommandLineOption chatOpt(QStringLiteral("chat"), QStringLiteral("Open the native chat panel"));
     parser.addOption(chatOpt);
     parser.process(app);
+    const QStringList previewResolutions{QStringLiteral("full"), QStringLiteral("half"),
+                                         QStringLiteral("quarter"), QStringLiteral("eighth")};
+    const auto resolutionIndex = previewResolutions.indexOf(parser.value(previewResolutionOpt));
+    if (resolutionIndex < 0) {
+        std::fprintf(stderr, "error: --preview-resolution must be full, half, quarter or eighth\n");
+        return 2;
+    }
+    const int previewResolution = 1 << resolutionIndex;
     bool captureChat = false;
     captureChat = parser.isSet(chatOpt) && parser.isSet(shotOpt);
 
@@ -907,6 +945,7 @@ int main(int argc, char** argv) {
         options.size = QSize(winW, winH);
         if (parser.isSet(framesOpt)) options.frames = benchFrames;
         options.windowed = parser.isSet(uiWindowOpt);
+        options.previewResolution = previewResolution;
         options.guiP95BudgetMs = parser.value(uiBudgetOpt).toDouble();
         return nt::ui::runUiBench(model, clock, options);
     }
@@ -936,7 +975,7 @@ int main(int argc, char** argv) {
             }
         }
         return runOffscreen(model, clock, QSize(winW, winH), parser.value(shotOpt), parser.value(stillsOpt),
-                            parser.value(playStillsOpt), frames);
+                            parser.value(playStillsOpt), frames, {}, {}, {}, {}, parser.value(monitorStateOpt).toUtf8());
     }
 
     QQuickView view;
@@ -1140,6 +1179,8 @@ int main(int argc, char** argv) {
         // compile) stays out of the measurement. Step mode then moves one
         // sequence frame per rendered frame; --realtime plays the clock for
         // --seconds and then closes the timeline to time the decoder shutdown.
+        compositor->setPlaybackResolution(previewResolution);
+        compositor->setPausedResolution(previewResolution);
         compositor->setCollectFrameStats(true);
         auto run = std::make_shared<BenchRun>();
         run->completed = completed;

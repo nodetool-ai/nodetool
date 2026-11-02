@@ -140,6 +140,7 @@ struct Timeline {
     std::string id;
     std::string name;
     double fps = 30.0;
+    bool dropFrame = false;
     int width = 1920;
     int height = 1080;
     double durationMs = 0.0;

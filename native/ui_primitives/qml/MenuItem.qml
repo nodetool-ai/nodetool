@@ -14,9 +14,10 @@ Basic.MenuItem {
     readonly property real checkWidth: checkable ? Metrics.iconSm + Metrics.sm : 0
     indicator: null
     implicitWidth: checkWidth + label.implicitWidth + (itemIcon.visible ? itemIcon.width + Metrics.sm : 0) + (shortcut.visible ? shortcut.implicitWidth + Metrics.lg : 0) + leftPadding + rightPadding
+    arrow: Ui.Icon { objectName: "menuItemArrow"; x: root.mirrored ? Metrics.xs : root.width - width - Metrics.xs; y: (root.height - height) / 2; size: Metrics.iconSm; name: "navigateNext"; rotation: root.mirrored ? 180 : 0; visible: root.subMenu !== null; tone: root.enabled ? Ui.Text.Secondary : Ui.Text.Disabled }
     implicitHeight: Math.max(Metrics.compact, label.implicitHeight + Metrics.md)
     leftPadding: Metrics.md
-    rightPadding: Metrics.md
+    rightPadding: subMenu !== null ? Metrics.md + Metrics.iconSm : Metrics.md
     contentItem: Item {
         Row {
             anchors.fill: parent

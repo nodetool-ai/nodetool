@@ -34,6 +34,7 @@ struct WarmupInfo {
 struct BenchData {
     QString fixture;
     int frames = 0;  // measured frames
+    qint64 canvasPixels = 0;  // last measured canvas width times height
     WarmupInfo warmup;
     bool vsync = true;
     double refreshHz = 0.0;

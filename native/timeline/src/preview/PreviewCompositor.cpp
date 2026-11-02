@@ -226,13 +226,16 @@ private:
     void resolveBlur(QRhiCommandBuffer* cb);
     SourceEntry& entryFor(const nt::ActiveLayer& layer);
     void retireSource(SourceEntry& entry);
-    std::unique_ptr<QRhiGraphicsPipeline> makePipeline(QRhiRenderPassDescriptor* rp, bool blend, bool fallible = false);
+    std::unique_ptr<QRhiGraphicsPipeline> makePipeline(QRhiRenderPassDescriptor* rp, bool blend, bool fallible = false,
+                                                        const QShader* fragment = nullptr);
     struct TapResult {
         int layerDraws, drawnSurfaces, frameError, missing, cutMisses, mediaLayers;
         int cpuCopies, hardwareLayers, resourceFailures, missingMedia;
         bool held, allExact;
     };
     TapResult renderSceneTap(QRhiCommandBuffer* cb);
+    void evaluateTap();
+    bool decideCanvas();
 
 
     QRhi* m_rhi = nullptr;
@@ -265,6 +268,7 @@ private:
     std::unique_ptr<QRhiBuffer> m_blitUbuf;
     std::unique_ptr<QRhiShaderResourceBindings> m_blitSrb;
     std::unique_ptr<QRhiGraphicsPipeline> m_blitPipeline;
+    std::unique_ptr<QRhiGraphicsPipeline> m_monitorPipeline;
 
     // Declared before the sources and the pool, so it is destroyed after
     // them: their last hardware frames retire into it.
@@ -297,6 +301,17 @@ private:
     std::vector<nt::PrecompositeLayer> m_precomposites;  // innermost first
     std::string m_resourceError;  // the first GPU resource failure, for the GUI side
     bool m_warnedOverBudget = false;
+    QRectF m_canvasRegion{0, 0, 1, 1};
+    QSizeF m_itemSize;
+    QSize m_documentSize{1920, 1080};
+    bool m_alphaDisplay = false;
+    bool m_transparencyGrid = false;
+    bool m_transparentCanvas = false;
+    bool m_lastFrameSettled = false;
+    // The scene has a group effect or a backdrop treatment (see render()).
+    bool m_sceneNeedsFullCanvas = false;
+    double m_fullCanvasFrameTime = -1;
+    std::uint64_t m_fullCanvasRevision = 0;
     QSize m_wantedCanvas{1920, 1080};
     double m_fps = 30.0;
     bool m_playing = false;
@@ -324,6 +339,51 @@ private:
 };
 
 PreviewCompositor::PreviewCompositor(QQuickItem* parent) : QQuickRhiItem(parent) {}
+
+void PreviewCompositor::setCanvasRegion(const QRectF& region) {
+    if (!std::isfinite(region.x()) || !std::isfinite(region.y()) ||
+        !std::isfinite(region.width()) || !std::isfinite(region.height()) ||
+        region.width() <= 0 || region.height() <= 0 || region == m_canvasRegion) {
+        return;
+    }
+    m_canvasRegion = region;
+    emit canvasRegionChanged();
+    update();
+}
+
+void PreviewCompositor::setPlaybackResolution(int denominator) {
+    if ((denominator != 1 && denominator != 2 && denominator != 4 && denominator != 8) ||
+        denominator == m_playbackResolution) {
+        return;
+    }
+    m_playbackResolution = denominator;
+    emit playbackResolutionChanged();
+    update();
+}
+
+void PreviewCompositor::setPausedResolution(int denominator) {
+    if ((denominator != 1 && denominator != 2 && denominator != 4 && denominator != 8) ||
+        denominator == m_pausedResolution) {
+        return;
+    }
+    m_pausedResolution = denominator;
+    emit pausedResolutionChanged();
+    update();
+}
+
+void PreviewCompositor::setAlphaDisplay(bool on) {
+    if (on == m_alphaDisplay) { return; }
+    m_alphaDisplay = on;
+    emit alphaDisplayChanged();
+    update();
+}
+
+void PreviewCompositor::setTransparencyGrid(bool on) {
+    if (on == m_transparencyGrid) { return; }
+    m_transparencyGrid = on;
+    emit transparencyGridChanged();
+    update();
+}
 
 void PreviewCompositor::setTimeline(TimelineModel* timeline) {
     if (timeline == m_timeline) {
@@ -377,6 +437,7 @@ void PreviewCompositorRenderer::initialize(QRhiCommandBuffer*) {
         m_interop.reset();
         m_layerPipeline.reset();
         m_blitPipeline.reset();
+        m_monitorPipeline.reset();
         m_blitSrb.reset();
         m_blitUbuf.reset();
         m_canvasRt.reset();
@@ -412,6 +473,11 @@ void PreviewCompositorRenderer::initialize(QRhiCommandBuffer*) {
 
 void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
     auto* item = static_cast<PreviewCompositor*>(rhiItem);
+    m_canvasRegion = item->m_canvasRegion;
+    m_itemSize = item->size();
+    item->m_lastCanvasSize = m_canvasSize;
+    item->m_frameSettled = m_lastFrameSettled;
+    item->m_monitorPipelineCreated = bool(m_monitorPipeline);
     // Hand the frames rendered since the last sync to the GUI side.
     item->m_framesRendered = m_frame;
     if (item->m_collectStats) {
@@ -483,16 +549,27 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
         m_sourceGeneration = item->m_timeline->documentGeneration();
     }
     m_timeline = item->m_timeline->snapshot();
-    m_wantedCanvas = QSize(m_timeline->width, m_timeline->height);
+    m_documentSize = QSize(m_timeline->width, m_timeline->height);
     m_fps = m_timeline->fps;
     const double clockTime = item->m_clock ? item->m_clock->currentTimeMs() : 0.0;
     m_playing = item->m_clock && item->m_clock->playing();
+    const bool capturePending = m_captureWanted || m_captureInFlight;
+    const int denominator = capturePending || m_sceneNeedsFullCanvas ? 1 : m_playing ? item->m_playbackResolution : item->m_pausedResolution;
+    m_wantedCanvas = QSize(std::max(1, qRound(double(m_documentSize.width()) / denominator)),
+                           std::max(1, qRound(double(m_documentSize.height()) / denominator)));
+    m_alphaDisplay = item->m_alphaDisplay && !capturePending;
+    m_transparencyGrid = item->m_transparencyGrid && !capturePending;
+    const bool transparentCanvas = m_alphaDisplay || m_transparencyGrid;
+    const bool clearChanged = transparentCanvas != m_transparentCanvas;
+    m_transparentCanvas = transparentCanvas;
+    // The canvas holds the other clear's pixels, so a held frame must not reuse it.
+    if (clearChanged) { m_previousValid = false; m_hasCompletedCanvas = false; m_canvasDrawn = false; }
     const auto seekSerial = item->m_clock ? item->m_clock->seekSerial() : 0;
     const double rate = item->m_clock ? item->m_clock->rate() : 1;
     const double frameMs = m_fps > 0 ? 1000.0 / m_fps : 1000.0 / 30.0;
     const bool transportChanged = seekSerial != m_blurSeekSerial || m_playing != m_blurPlaying || rate != m_blurRate;
     const bool nextTime = clockTime != m_blurFrameTime && (!m_playing || m_blurComplete || m_tapTimes.size() <= 1);
-    if (transportChanged || nextTime || m_blurRevision != m_timeline->revision || m_canvasSize != m_wantedCanvas) {
+    if (clearChanged || transportChanged || nextTime || m_blurRevision != m_timeline->revision || m_canvasSize != m_wantedCanvas) {
         m_blurFrameTime = clockTime;
         m_blurRevision = m_timeline->revision;
         m_blurSeekSerial = seekSerial;
@@ -504,6 +581,10 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
         m_tapTimes = nt::motion::shutterTimes(m_blurFrameTime, frameMs, m_shutter);
     }
     m_timeMs = m_blurFrameTime;
+    evaluateTap();
+}
+
+void PreviewCompositorRenderer::evaluateTap() {
     m_tapTimeMs = m_tapTimes[static_cast<size_t>(m_blurIndex)];
     nt::SceneFrame scene = nt::evaluateSceneTap(*m_timeline, m_tapTimeMs, m_timeMs, m_blurIndex, m_shutter.samples);
     m_adjustments = std::move(scene.adjustments);
@@ -512,8 +593,39 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
     m_precomposites = std::move(scene.precomposites);
 }
 
+// Group effects and backdrop treatments take sizes in document pixels and work on canvas-sized
+// surfaces, so a reduced canvas would change their look. A scene with one composites at full size.
+// One shutter sample can have the stage and the next not, so the decision holds for the whole frame.
+bool PreviewCompositorRenderer::decideCanvas() {
+    const bool stageNow =
+        std::ranges::any_of(m_precomposites, [this](const auto& group) {
+            return std::ranges::any_of(m_effectStages, [&](const auto& stage) { return stage->applies(group.ext); });
+        }) ||
+        std::ranges::any_of(m_adjustments, [this](const auto& adjustment) {
+            return std::ranges::any_of(m_backdropStages, [&](const auto& stage) { return stage->applies(adjustment.ext); });
+        });
+    const bool sameFrame = m_sceneNeedsFullCanvas && m_tapTimes.size() > 1 && m_fullCanvasFrameTime == m_blurFrameTime &&
+                           m_fullCanvasRevision == m_blurRevision;
+    const bool needsFull = stageNow || sameFrame;
+    const bool changed = needsFull != m_sceneNeedsFullCanvas;
+    m_sceneNeedsFullCanvas = needsFull;
+    m_fullCanvasFrameTime = m_blurFrameTime;
+    m_fullCanvasRevision = m_blurRevision;
+    if (needsFull && m_wantedCanvas != m_documentSize) {
+        m_wantedCanvas = m_documentSize;
+        if (m_canvasSize != m_wantedCanvas && m_tapTimes.size() > 1 && m_timeline) {
+            // The accumulation restarts on the new surfaces, from its first sample.
+            m_blurIndex = 0;
+            m_blurComplete = false;
+            evaluateTap();
+        }
+    }
+    return changed;
+}
+
 std::unique_ptr<QRhiGraphicsPipeline> PreviewCompositorRenderer::makePipeline(QRhiRenderPassDescriptor* rp,
-                                                                              bool blend, bool fallible) {
+                                                                              bool blend, bool fallible,
+                                                                              const QShader* fragment) {
     std::unique_ptr<QRhiGraphicsPipeline> ps(m_rhi->newGraphicsPipeline());
     if (blend) {
         // Premultiplied alpha "over".
@@ -526,7 +638,7 @@ std::unique_ptr<QRhiGraphicsPipeline> PreviewCompositorRenderer::makePipeline(QR
         ps->setTargetBlends({b});
     }
     ps->setTopology(QRhiGraphicsPipeline::TriangleStrip);
-    ps->setShaderStages({{QRhiShaderStage::Vertex, m_vs}, {QRhiShaderStage::Fragment, m_fs}});
+    ps->setShaderStages({{QRhiShaderStage::Vertex, m_vs}, {QRhiShaderStage::Fragment, fragment ? *fragment : m_fs}});
     QRhiVertexInputLayout layout;
     layout.setBindings({{4 * sizeof(float)}});
     layout.setAttributes({{0, 0, QRhiVertexInputAttribute::Float2, 0},
@@ -615,6 +727,10 @@ std::unique_ptr<PreviewCompositorRenderer::Surface> PreviewCompositorRenderer::m
 }
 
 void PreviewCompositorRenderer::ensureBlitPipeline() {
+    if ((m_alphaDisplay || m_transparencyGrid) && !m_monitorPipeline) {
+        const auto shader = loadShader(QStringLiteral(":/shaders/monitorview.frag.qsb"));
+        m_monitorPipeline = makePipeline(renderTarget()->renderPassDescriptor(), false, false, &shader);
+    }
     if (!m_blitPipeline) {
         m_blitPipeline = makePipeline(renderTarget()->renderPassDescriptor(), false);
     }
@@ -1139,8 +1255,8 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
         if (!bindFrame(e, frame, layer.clipId)) { continue; }
         // The cut geometry and the group's matrix included (DESIGN.md D35).
         const auto [sourceWidth, sourceHeight] = nt::croppedSourceSize(layer.sourceRect, originalSize.width(), originalSize.height());
-        const auto m = nt::layerDrawMatrix(layer, sourceWidth, sourceHeight, m_canvasSize.width(),
-                                           m_canvasSize.height());
+        const auto m = nt::layerDrawMatrix(layer, sourceWidth, sourceHeight, m_documentSize.width(),
+                                           m_documentSize.height());
         QMatrix4x4 model;
         std::copy(m.begin(), m.end(), model.data());
         if (!outset.isNull()) {
@@ -1242,8 +1358,8 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
         // rode into each child.
         nt::ActiveLayer placement;
         placement.transition = pc.transition;
-        const auto m = nt::layerDrawMatrix(placement, m_canvasSize.width(), m_canvasSize.height(),
-                                           m_canvasSize.width(), m_canvasSize.height());
+        const auto m = nt::layerDrawMatrix(placement, m_documentSize.width(), m_documentSize.height(),
+                                           m_documentSize.width(), m_documentSize.height());
         QMatrix4x4 model;
         std::copy(m.begin(), m.end(), model.data());
         if (!outset.isNull()) {
@@ -1413,7 +1529,8 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
             batch = nullptr;
             renderEffects(sp.effects);
         }
-        drawContainer(m_canvasRt.get(), m_canvas.get(), QColor(0, 0, 0, 255), std::string(), batch);
+        drawContainer(m_canvasRt.get(), m_canvas.get(), m_transparentCanvas ? QColor(Qt::transparent) : QColor(0, 0, 0, 255),
+                      std::string(), batch);
         m_canvasDrawn = true;
     }
     int drawnSurfaces = held ? 0 : static_cast<int>(surfacePasses.size() + layerEffects.size() + sourceConversions.size() + 3 * mattePasses.size()) + blendSurfaces;
@@ -1430,6 +1547,8 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     const qint64 startNs = m_clock.nsecsElapsed();
     ++m_frame;
 
+    const bool canvasDecisionChanged = decideCanvas();
+
     ensureCanvas();
     ensureBlitPipeline();
 
@@ -1441,7 +1560,7 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
             copy->copyTexture(m_previousCanvas.get(), m_canvas.get());
             cb->resourceUpdate(copy);
         } else {
-            cb->beginPass(m_previousRt.get(), QColor(0, 0, 0, 255), {1.0f, 0});
+            cb->beginPass(m_previousRt.get(), m_transparentCanvas ? QColor(Qt::transparent) : QColor(0, 0, 0, 255), {1.0f, 0});
             cb->endPass();
         }
         m_previousValid = true;
@@ -1480,6 +1599,7 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     // An immediate capture takes this frame as it is (the first picture at a
     // cut during playback); a settled one waits for every exact frame.
     const bool settled = blurred ? m_blurComplete : tapReady;
+    m_lastFrameSettled = settled;
     m_waitingForFrames = m_captureWanted && !m_captureImmediate && !settled;
     if (m_captureWanted && !m_captureInFlight && ((m_captureImmediate && !blurred) || settled)) {
         m_captureWanted = false;
@@ -1506,7 +1626,12 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     const double canvasAspect = double(m_canvasSize.width()) / m_canvasSize.height();
     const double targetAspect = target.height() > 0 ? double(target.width()) / target.height() : canvasAspect;
     QMatrix4x4 fit;
-    if (targetAspect > canvasAspect) {
+    if (m_canvasRegion != QRectF(0, 0, 1, 1)) {
+        // Picture (u,v) is (2u-1,1-2v) before framebuffer correction.
+        fit.translate(float((1 - 2 * m_canvasRegion.center().x()) / m_canvasRegion.width()),
+                      float((2 * m_canvasRegion.center().y() - 1) / m_canvasRegion.height()));
+        fit.scale(float(1 / m_canvasRegion.width()), float(1 / m_canvasRegion.height()));
+    } else if (targetAspect > canvasAspect) {
         fit.scale(float(canvasAspect / targetAspect), 1.0f);
     } else {
         fit.scale(1.0f, float(targetAspect / canvasAspect));
@@ -1516,10 +1641,18 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     blit.opacity = 1.0f;
     // A Y-up framebuffer (OpenGL) stores the canvas bottom row first.
     blit.flipV = m_rhi->isYUpInFramebuffer() ? 1.0f : 0.0f;
+    if (m_alphaDisplay || m_transparencyGrid) {
+        const float pictureLeft = (1 - fit(0, 0) + fit(0, 3)) * target.width() * 0.5f;
+        const float pictureTop = (1 - fit(1, 1) - fit(1, 3)) * target.height() * 0.5f;
+        const bool yUp = m_rhi->isYUpInFramebuffer();
+        const float dpr = m_itemSize.width() > 0 ? float(target.width() / m_itemSize.width()) : 1.f;
+        blit.border = {m_alphaDisplay ? 1.f : 0.f, m_transparencyGrid ? 1.f : 0.f, 8.f * dpr, 0};
+        blit.borderBounds = {pictureLeft, yUp ? target.height() - pictureTop : pictureTop, yUp ? -1.f : 1.f, 0};
+    }
     QRhiResourceUpdateBatch* blitUpdates = m_rhi->nextResourceUpdateBatch();
     blitUpdates->updateDynamicBuffer(m_blitUbuf.get(), 0, sizeof(blit), &blit);
     cb->beginPass(renderTarget(), QColor(10, 10, 12, 255), {1.0f, 0}, blitUpdates);
-    cb->setGraphicsPipeline(m_blitPipeline.get());
+    cb->setGraphicsPipeline(m_alphaDisplay || m_transparencyGrid ? m_monitorPipeline.get() : m_blitPipeline.get());
     cb->setViewport({0, 0, float(target.width()), float(target.height())});
     cb->setShaderResources(blurred && blurReady && !m_blurComplete && m_previousValid ? m_previousSrb.get() : m_blitSrb.get());
     cb->setVertexInput(0, 1, &vin);
@@ -1542,6 +1675,8 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     stat.renderCpuMs = double(m_clock.nsecsElapsed() - startNs) / 1.0e6;
     const double gpuSec = cb->lastCompletedGpuTime();
     stat.windowGpuObservationMs = gpuSec > 0.0 ? gpuSec * 1000.0 : -1.0;
+    stat.canvasWidth = m_canvasSize.width();
+    stat.canvasHeight = m_canvasSize.height();
     stat.layers = layerDraws;
     stat.surfaces = drawnSurfaces;
     stat.surfaceTargets = m_surfaces.size();
@@ -1572,7 +1707,7 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     }
     m_lastRenderNs = startNs;
 
-    if (m_playing || (blurred && !m_blurComplete) || m_waitingForFrames || m_captureInFlight || missing > 0 || (!blurred && !allExact) || !m_retire.empty()) {
+    if (canvasDecisionChanged || m_playing || (blurred && !m_blurComplete) || m_waitingForFrames || m_captureInFlight || missing > 0 || (!blurred && !allExact) || !m_retire.empty()) {
         update();  // next frame at vsync; also while decoders catch up
     }
 }

@@ -64,6 +64,8 @@ export function timelineDocumentDurationMs(doc: TimelineDocument): number {
 }
 
 export interface TimelineDocument {
+  /** Show timecode as drop-frame at 29.97, 59.94 and 119.88 fps. Display only. */
+  dropFrame?: boolean;
   tracks: TimelineTrack[];
   trackFolders?: TimelineSequenceDoc["trackFolders"];
   clips: TimelineClip[];
@@ -158,6 +160,7 @@ export class TimelineSequence extends DBModel {
       width: this.width,
       height: this.height,
       durationMs: this.duration_ms,
+      dropFrame: doc.dropFrame,
       tracks: doc.tracks,
       trackFolders: doc.trackFolders,
       clips: doc.clips,
@@ -182,6 +185,7 @@ export class TimelineSequence extends DBModel {
     seq: TimelineSequenceDoc
   ): TimelineSequence {
     const doc: TimelineDocument = {
+      dropFrame: seq.dropFrame,
       tracks: seq.tracks,
       trackFolders: seq.trackFolders,
       clips: seq.clips,
