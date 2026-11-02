@@ -2834,6 +2834,14 @@ test_scope = "build/import"
 qml_callers = []
 replacement = "Synthetic timeline hit-testing fixture; no product chrome"
 [[exception]]
+path = "native/timeline/qml/takes/TakeGridView.qml"
+object = "view/panel/cells/Repeater[0]/cell/press"
+binding = "onClicked"
+rule = "manual-control"
+owner = "Program monitor take grid"
+reason = "A take cell is a picture with a frame, name and key number. Left, Ctrl and right clicks choose switch, cut or the menu, and the cell exposes itself as an accessible button."
+
+[[exception]]
 path = "native/timeline/qml/TimelineVisuals.qml"
 object = "QtObject[0]"
 binding = "overlay"
@@ -3410,3 +3418,33 @@ binding = "onDoubleClicked"
 rule = "manual-control"
 owner = "Native color grading"
 reason = "A grading wheel resets on double click. No primitive draws a two-axis puck, and the dial also takes arrow keys and Delete."
+
+[[file]]
+path = "native/timeline/qml/takes/TakeBadge.qml"
+category = "chrome"
+controls = ["Rectangle", "Ui.Text"]
+signals = []
+test_host = "tst_takeswitchui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Clip body slot item: a small chip with Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/takes/TakeGridView.qml"
+category = "chrome"
+controls = ["Ui.EmptyState", "Ui.ToolbarIconButton", "Ui.EditorButton", "Ui.ContextMenu", "Ui.MenuItem", "Ui.Icon", "Ui.Text", "FrameImage", "MouseArea"]
+signals = []
+test_host = "tst_takeswitchui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives for chrome. FrameImage for the frames"
+
+[[file]]
+path = "native/timeline/qml/takes/TakeStatus.qml"
+category = "chrome"
+controls = ["Rectangle", "Ui.Status", "Ui.Text"]
+signals = []
+test_host = "tst_takeswitchui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Status, Ui.Text"
