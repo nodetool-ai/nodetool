@@ -125,6 +125,24 @@ qml_callers = []
 replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.EditorButton, Ui.Progress"
 
 [[file]]
+path = "native/timeline/qml/export/ExportFramePanel.qml"
+category = "chrome"
+controls = ["FrameExporter", "AssetBrowser", "FolderDialog", "Ui.Dialog", "Ui.Text", "Ui.TextField", "Ui.Select", "Ui.Banner", "ScrollView", "FrameImage", "Rectangle", "Ui.EditorButton"]
+signals = []
+test_host = "tst_frameexportui"
+test_scope = "interaction"
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.TextField, Ui.Select, Ui.Banner, Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/framehold/FrameHoldHost.qml"
+category = "chrome"
+controls = ["FrameHoldController", "Ui.Dialog", "Ui.Text", "Ui.NumberField", "Ui.CheckBox", "Ui.Select", "Ui.TextField", "Ui.EditorButton"]
+signals = []
+test_host = "tst_frameexportui"
+test_scope = "interaction"
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.NumberField, Ui.CheckBox, Ui.Select, Ui.TextField, Ui.EditorButton"
+
+[[file]]
 path = "native/timeline/qml/interchange/PremierePanel.qml"
 category = "chrome"
 controls = ["PremiereTransfer", "FileDialog", "Ui.Dialog", "Ui.Text", "Ui.Status", "ScrollView", "Repeater", "Ui.EditorButton", "Rectangle", "Ui.Progress", "Ui.BusyIndicator"]

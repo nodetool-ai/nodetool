@@ -35,7 +35,7 @@ bool hasTimeRemap(const QJsonObject& c) {
 }
 
 void assertNotTimeRemapped(const QJsonObject& c, const char* op) {
-    if (!hasTimeRemap(c)) return;
+    if (!hasTimeRemap(c) || isHoldRemap(c)) return;
     throw OpError(std::string(op) +
                   " cannot edit a clip that carries a time remap — the curve is normalized over the clip's "
                   "window, so changing the window would retime every frame. Bake the remap into the media first "
@@ -477,6 +477,18 @@ double sourceRate(const QJsonObject& c) {
     return std::max(0.0001, numberOr(c, "speedMultiplier", 1.0));
 }
 
+bool isHoldRemap(const QJsonObject& clip) {
+    const auto frames = clip.value("timeRemap").toObject().value("keyframes").toArray();
+    if (frames.isEmpty()) { return false; }
+    const auto first = frames.first().toObject().value("sourceMs");
+    if (!first.isDouble()) { return false; }
+    const double source = first.toDouble();
+    return std::all_of(frames.begin(), frames.end(), [source](const auto& value) {
+        const auto ms = value.toObject().value("sourceMs");
+        return ms.isDouble() && std::abs(ms.toDouble() - source) <= 1e-6;
+    });
+}
+
 QJsonObject retimeCaption(const QJsonObject& caption, double offsetMs, double scale) {
     if (offsetMs == 0.0 && scale == 1.0) return caption;
     QJsonObject out = caption;
@@ -499,7 +511,9 @@ QJsonObject trimClip(const QJsonObject& clip, const QString& edge, double deltaM
     const double outPointMs = numberOr(clip, "outPointMs", inPointMs + clipDurationMs(clip) * rate);
     const bool start = edge == u"start";
 
-    const double sourceDeltaMs = deltaMs * rate;
+    const bool hold = isHoldRemap(clip);
+    const double sourceDeltaMs = hold ? 0 : deltaMs * rate;
+    if (hold) { maxDurationMs.reset(); }
     const double nextStartMs = start ? clipStartMs(clip) - deltaMs : clipStartMs(clip);
     const double nextDurationMs = clipDurationMs(clip) + deltaMs;
     const double rawInPointMs = start ? inPointMs - sourceDeltaMs : inPointMs;
@@ -512,7 +526,7 @@ QJsonObject trimClip(const QJsonObject& clip, const QString& edge, double deltaM
                                       : calculatedOutPointMs;
 
     if (nextDurationMs <= 0) throw OpError("trimClip would result in a non-positive duration");
-    if (nextInPointMs < 0) throw OpError("trimClip cannot extend before source start");
+    if (!hold && nextInPointMs < 0) throw OpError("trimClip cannot extend before source start");
     if (nextStartMs < 0) throw OpError("trimClip cannot start before zero on the timeline");
     if (maxDurationMs && sourceDeltaMs > 0 && nextOutPointMs > *maxDurationMs) {
         throw OpError("trimClip cannot extend beyond source out-point");
@@ -521,8 +535,10 @@ QJsonObject trimClip(const QJsonObject& clip, const QString& edge, double deltaM
     QJsonObject next = clip;
     next.insert(QStringLiteral("startMs"), nextStartMs);
     next.insert(QStringLiteral("durationMs"), nextDurationMs);
-    next.insert(QStringLiteral("inPointMs"), nextInPointMs);
-    next.insert(QStringLiteral("outPointMs"), nextOutPointMs);
+    if (!hold) {
+        next.insert(QStringLiteral("inPointMs"), nextInPointMs);
+        next.insert(QStringLiteral("outPointMs"), nextOutPointMs);
+    }
     if (present(clip, "caption") && start) {
         next.insert(QStringLiteral("caption"),
                     retimeCaption(clip.value(u"caption").toObject(), clipStartMs(clip) - nextStartMs));
@@ -567,8 +583,10 @@ std::pair<QJsonObject, QJsonObject> splitClip(const QJsonObject& clip, double at
     QJsonObject left = clip;
     left.insert(QStringLiteral("id"), newId());
     left.insert(QStringLiteral("durationMs"), leftDurationMs);
-    left.insert(QStringLiteral("inPointMs"), inPointMs);
-    left.insert(QStringLiteral("outPointMs"), cutPointMs);
+    if (!isHoldRemap(clip)) {
+        left.insert(QStringLiteral("inPointMs"), inPointMs);
+        left.insert(QStringLiteral("outPointMs"), cutPointMs);
+    }
     left.remove(QStringLiteral("fadeOutMs"));
     left.remove(QStringLiteral("fadeOutShape"));
     if (captions) {
@@ -582,8 +600,10 @@ std::pair<QJsonObject, QJsonObject> splitClip(const QJsonObject& clip, double at
     right.insert(QStringLiteral("id"), newId());
     right.insert(QStringLiteral("startMs"), atMs);
     right.insert(QStringLiteral("durationMs"), rightDurationMs);
-    right.insert(QStringLiteral("inPointMs"), cutPointMs);
-    right.insert(QStringLiteral("outPointMs"), outPointMs);
+    if (!isHoldRemap(clip)) {
+        right.insert(QStringLiteral("inPointMs"), cutPointMs);
+        right.insert(QStringLiteral("outPointMs"), outPointMs);
+    }
     right.remove(QStringLiteral("fadeInMs"));
     right.remove(QStringLiteral("fadeInShape"));
     right.remove(QStringLiteral("transitionIn"));

@@ -106,7 +106,9 @@ private slots:
         auto* menu = popup("clip", "clip-c"); QVERIFY(menu);
         QStringList expected{"clipMenu-splitAtPlayhead:Split at playhead", "clipMenu-duplicate:Duplicate"};
         for (const auto& value : middle) { expected.append("clipMenu-" + value); }
-        expected.append({"registryMenu-clip-speedDuration:Speed / Duration…", "clipMenu-deleteDivider:", "clipMenu-deleteSelected:Delete"});
+        expected.append({"registryMenu-clip-speedDuration:Speed / Duration…", "registryMenuGroup-clip-frameHold:",
+            "registryMenu-clip-frameHoldOptions:Frame Hold Options…", "registryMenu-clip-frameHoldAdd:Add Frame Hold",
+            "registryMenu-clip-frameHoldInsert:Insert Frame Hold Segment…", "clipMenu-deleteDivider:", "clipMenu-deleteSelected:Delete"});
         QCOMPARE(entries(menu), expected);
     }
     void shortcutParity_data() {

@@ -14,7 +14,7 @@ namespace {
 constexpr double TOUCH_MS = 1;
 
 double tailHandleMs(const QJsonObject& clip, std::optional<double> sourceDurationMs) {
-    if (!sourceDurationMs) return std::numeric_limits<double>::infinity();
+    if (isHoldRemap(clip) || !sourceDurationMs) return std::numeric_limits<double>::infinity();
     const double rate = sourceRate(clip);
     const double in = clip.value("inPointMs").toDouble(0);
     const double out = clip.contains("outPointMs") ? clip.value("outPointMs").toDouble() : in + clipDurationMs(clip) * rate;
@@ -62,7 +62,7 @@ ClipList applyAudioCrossfades(const ClipList& clips, const IdSet& clipIds, doubl
             try {
                 extended = trimClip(a, "end", overlapMs);
             } catch (const std::exception&) {
-                continue;  // A time-remapped clip cannot be trimmed: leave this cut alone.
+                continue;  // A remap curve cannot be trimmed.
             }
             extended.insert("fadeOutMs", overlapMs);
             extended.insert("fadeOutShape", "plus3dB");

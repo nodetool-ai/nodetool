@@ -34,6 +34,16 @@ function makeBaseClip(): TimelineClip {
 }
 
 describe("splitClip", () => {
+  it("splits a hold without consuming its source window", () => {
+    const clip = makeBaseClip();
+    clip.timeRemap = { keyframes: [{ t: 0, sourceMs: 123 }, { t: 1, sourceMs: 123 }] };
+    for (const piece of splitClip(clip, 250)) {
+      expect(piece.timeRemap).toEqual(clip.timeRemap);
+      expect(piece.inPointMs).toBe(50);
+      expect(piece.outPointMs).toBe(450);
+    }
+  });
+
   it("preserves clip metadata and source references across both halves", () => {
     const clip = makeBaseClip();
     const [left, right] = splitClip(clip, 250);

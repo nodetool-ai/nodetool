@@ -12,6 +12,8 @@ namespace nt::edit {
 
 inline constexpr const char* KEYMAP_OVERLAY_JSON = R"overlay({"premiere":[
 ["splitAtPlayhead",[{"key":"k","ctrl":true}]],
+["exportFrame",[{"key":"e","ctrl":true,"shift":true}]],
+["sourceAppend",[{"key":"e","ctrl":true,"alt":true}]],
 ["toggleLoop",[{"key":"l","ctrl":true,"shift":true}]],
 ["toggleDawMode",[]],
 ["nudgeLeft",[{"key":"ArrowLeft","alt":true},{"key":"ArrowLeft","ctrl":true}]],

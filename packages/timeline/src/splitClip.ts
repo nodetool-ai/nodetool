@@ -6,7 +6,7 @@ import {
 } from "./animation/sourceCurves.js";
 import { sourceRate } from "./sourceRate.js";
 import { isKeyframeAnimation, sliceKeyframeAnimation } from "./keyframes.js";
-import { assertNotTimeRemapped } from "./timeRemap.js";
+import { assertNotTimeRemapped, isHoldRemap } from "./timeRemap.js";
 import type { ClipAnimation } from "./animation/types.js";
 import type { CaptionWord, TimelineClip } from "./types.js";
 
@@ -161,7 +161,7 @@ export function splitClip(clip: TimelineClip, atMs: number): [TimelineClip, Time
     );
   }
 
-  // A remap is a curve over this clip's window; two windows would resample it
+  // A nonconstant remap is a curve over this window; two windows resample it
   // and move every frame both halves show (D13).
   assertNotTimeRemapped(clip, "splitClip");
 
@@ -204,8 +204,7 @@ export function splitClip(clip: TimelineClip, atMs: number): [TimelineClip, Time
     ...clip,
     id: createTimeOrderedUuid(),
     durationMs: leftDurationMs,
-    inPointMs,
-    outPointMs: cutPointMs,
+    ...(isHoldRemap(clip) ? {} : { inPointMs, outPointMs: cutPointMs }),
     versions: sharedVersions
   };
   // The left half's end is now an interior cut — drop the outgoing fade.
@@ -223,8 +222,7 @@ export function splitClip(clip: TimelineClip, atMs: number): [TimelineClip, Time
     id: createTimeOrderedUuid(),
     startMs: atMs,
     durationMs: rightDurationMs,
-    inPointMs: cutPointMs,
-    outPointMs,
+    ...(isHoldRemap(clip) ? {} : { inPointMs: cutPointMs, outPointMs }),
     versions: sharedVersions
   };
   // The right half's start is now an interior cut — drop the incoming fade and

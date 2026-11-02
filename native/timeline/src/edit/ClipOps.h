@@ -49,6 +49,7 @@ double clipEndMs(const QJsonObject& c);
 QString clipLinkId(const QJsonObject& c);
 bool isGroupClip(const QJsonObject& c);
 double sourceRate(const QJsonObject& c);
+bool isHoldRemap(const QJsonObject& clip);
 
 // ── trimClip.ts ──
 QJsonObject retimeCaption(const QJsonObject& caption, double offsetMs, double scale = 1.0);
