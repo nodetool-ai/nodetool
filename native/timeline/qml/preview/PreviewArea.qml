@@ -327,6 +327,15 @@ Rectangle {
                 monitor: viewState
             }
             Ui.ToolbarIconButton {
+                objectName: "exportFrameButton"
+                anchors.verticalCenter: parent.verticalCenter
+                iconName: "photoCamera"
+                accessibleName: "Export frame"
+                description: "Export frame"
+                enabled: area.gestures !== null
+                onClicked: area.gestures.runAction("exportFrame", {monitor: "program"})
+            }
+            Ui.ToolbarIconButton {
                 id: settingsButton
                 objectName: "monitorSettingsButton"
                 anchors.verticalCenter: parent.verticalCenter

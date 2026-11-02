@@ -43,6 +43,10 @@ function makeClips(r: () => number) {
     if (r() < 0.5) c.outPointMs = (c.inPointMs ?? 0) + durationMs + Math.round(r() * 4) * 125;
     if (r() < 0.2) c.speedMultiplier = r() < 0.5 ? 2 : 0.5;
     if (r() < 0.1) c.speedBaked = true;
+    if (r() < 0.15) {
+      const sourceMs = Math.round(r() * 8000);
+      c.timeRemap = { keyframes: [{ t: 0, sourceMs }, { t: 1, sourceMs }] };
+    }
     if (r() < 0.2) c.fadeInMs = 200;
     if (r() < 0.2) {
       c.fadeOutMs = 300;

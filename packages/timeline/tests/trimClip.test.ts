@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { applyAudioCrossfades } from "../src/audioCrossfade.js";
 import { trimClip } from "../src/trimClip.js";
 import type { TimelineClip } from "../src/types.js";
 
@@ -23,6 +24,33 @@ function makeBaseClip(): TimelineClip {
 }
 
 describe("trimClip", () => {
+  it("lets a hold extend through the audio crossfade source clamp", () => {
+    const clip = makeBaseClip();
+    clip.mediaType = "audio";
+    clip.timeRemap = { keyframes: [{ t: 0, sourceMs: 333 }, { t: 1, sourceMs: 333 }] };
+    const next = { ...clip, id: "next", startMs: 1400 };
+    const result = applyAudioCrossfades([clip, next], new Set([clip.id, next.id]), 100,
+      { sourceDurationMs: () => 600 });
+    expect(result[0]?.durationMs).toBe(500);
+    expect(result[0]?.outPointMs).toBe(600);
+  });
+  it("extends a hold past both source bounds without changing its source window", () => {
+    const clip = makeBaseClip();
+    clip.timeRemap = { keyframes: [{ t: 0, sourceMs: 333 }, { t: 1, sourceMs: 333 }] };
+    const head = trimClip(clip, "start", 1000, 600);
+    const tail = trimClip(clip, "end", 5000, 600);
+    expect(head.startMs).toBe(0);
+    expect(head.durationMs).toBe(1400);
+    expect(tail.durationMs).toBe(5400);
+    for (const piece of [head, tail]) {
+      expect(piece.inPointMs).toBe(200);
+      expect(piece.outPointMs).toBe(600);
+      expect(piece.timeRemap).toEqual(clip.timeRemap);
+    }
+    expect(() => trimClip(clip, "start", 1001)).toThrow(/before zero/);
+    expect(() => trimClip(clip, "end", -400)).toThrow(/non-positive/);
+  });
+
   it("shrinks and grows from the start edge", () => {
     const clip = makeBaseClip();
 

@@ -30,6 +30,8 @@ private:
     std::map<QString, Lease> m_fetched;
     quint64 m_generation = 0;
 };
+nt::server::FetchResult resolveOriginalMedia(nt::server::ServerClient& client, const QString& cacheRoot,
+                                              const QString& assetId, MediaProtection& protection);
 nt::Clip resolveDroppedMedia(nt::server::ServerClient& client, const QString& cacheRoot,
                              const QJsonObject& asset, const QJsonObject& clip, MediaProtection& protection,
                              quint64 generation);

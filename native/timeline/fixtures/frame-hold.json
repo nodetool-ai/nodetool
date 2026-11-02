@@ -1,0 +1,197 @@
+{
+  "id": "seq-frame-hold",
+  "projectId": "native-prototype",
+  "name": "Frame holds",
+  "fps": 30,
+  "width": 640,
+  "height": 360,
+  "durationMs": 2000,
+  "tracks": [
+    {
+      "id": "track-cuts",
+      "name": "Cuts",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "motion",
+      "trackId": "track-cuts",
+      "name": "motion",
+      "startMs": 0,
+      "durationMs": 500,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 640,
+      "height": 360,
+      "opacity": 1.0,
+      "mediaPath": "media/seek-360p30.mp4",
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "outPointMs": 3000,
+      "speedMultiplier": 1
+    },
+    {
+      "id": "split-hold",
+      "trackId": "track-cuts",
+      "name": "split-hold",
+      "startMs": 500,
+      "durationMs": 500,
+      "inPointMs": 500,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 640,
+      "height": 360,
+      "opacity": 1.0,
+      "mediaPath": "media/seek-360p30.mp4",
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "outPointMs": 3000,
+      "speedMultiplier": 1,
+      "timeRemap": {
+        "keyframes": [
+          {
+            "t": 0,
+            "sourceMs": 500
+          },
+          {
+            "t": 1,
+            "sourceMs": 500
+          }
+        ]
+      }
+    },
+    {
+      "id": "inserted-hold",
+      "trackId": "track-cuts",
+      "name": "inserted-hold",
+      "startMs": 1000,
+      "durationMs": 500,
+      "inPointMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 640,
+      "height": 360,
+      "opacity": 1.0,
+      "mediaPath": "media/seek-360p30.mp4",
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "outPointMs": 3000,
+      "speedMultiplier": 1,
+      "timeRemap": {
+        "keyframes": [
+          {
+            "t": 0,
+            "sourceMs": 1000
+          },
+          {
+            "t": 1,
+            "sourceMs": 1000
+          }
+        ]
+      }
+    },
+    {
+      "id": "speed-hold",
+      "trackId": "track-cuts",
+      "name": "speed-hold",
+      "startMs": 1500,
+      "durationMs": 500,
+      "inPointMs": 200,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 640,
+      "height": 360,
+      "opacity": 1.0,
+      "mediaPath": "media/seek-360p30.mp4",
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "outPointMs": 3000,
+      "speedMultiplier": 2,
+      "timeRemap": {
+        "keyframes": [
+          {
+            "t": 0,
+            "sourceMs": 1200
+          },
+          {
+            "t": 1,
+            "sourceMs": 1200
+          }
+        ]
+      }
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z"
+}
