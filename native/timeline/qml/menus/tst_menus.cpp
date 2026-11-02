@@ -566,9 +566,9 @@ private slots:
         QVERIFY(!frame.isEmpty() || frame.wait(1000));
         QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(item("clipLabelMenu-clipLabel.red")));
         QCoreApplication::processEvents();
-        // The clip menu names its clip, as its other items do. One edit, one undo entry.
+        // The clip menu acts on the selection, as its other items do. One edit, one undo entry.
         QCOMPARE(clip("c").value("labelColor").toString(), QString("#E5484D"));
-        QVERIFY(!clip("e").contains("labelColor"));
+        QCOMPARE(clip("e").value("labelColor").toString(), QString("#E5484D"));
         QCOMPARE(model.undoStack()->count(), 1);
         auto* tint = named(item("clip-c"), "clipTint"); QVERIFY(tint);
         QTRY_COMPARE(tint->property("color").value<QColor>().rgb(), QColor("#E5484D").rgb());
