@@ -203,7 +203,7 @@ private slots:
         QCOMPARE(e.model.undoStack()->count(), 2);
         QTRY_VERIFY(e.item("audioMessage")->property("message").toString().contains("Ducked 1 clip"));
         const auto track = e.model.timeline().raw.value("tracks").toArray()[1].toObject();
-        QCOMPARE(track.value("automation").toArray()[0].toObject().value("points").toArray().size(), 8);
+        QCOMPARE(track.value("automation").toArray()[0].toObject().value("points").toArray().size(), 10);
     }
 
     void aTargetIsEditedWithTheKeyboard() {
