@@ -161,8 +161,21 @@ std::optional<QJsonArray> replaceRange(const QJsonArray& old, const QJsonObject&
             if (to - kSamePointMs > from) add.append({std::max(from, to - kEdgeMs), base});
         }
     } else {
-        if (differs(add.first().second) && from >= kEdgeMs) soft.append({from - kEdgeMs, base});
-        if (differs(add.last().second)) soft.append({to, base});
+        // Beside a neighbour's point the lane already holds the level, so an anchor goes in only where the line to the
+        // next point would otherwise cross the clips next to this one, and it holds what that neighbour's level is.
+        const QJsonObject* before = nullptr;
+        const QJsonObject* after = nullptr;
+        for (const auto& k : kept) {
+            if (k.first < from) before = &k.second;
+            else { after = &k.second; break; }
+        }
+        const auto valueOf = [](const QJsonObject* p) { return p->value("value").toDouble(); };
+        if (differs(add.first().second) && from >= kEdgeMs && (!before || std::abs(valueOf(before) - add.first().second) > 1e-9)) {
+            soft.append({from - kEdgeMs, before ? valueOf(before) : base});
+        }
+        if (differs(add.last().second) && (!after || std::abs(valueOf(after) - add.last().second) > 1e-9)) {
+            soft.append({to, after ? valueOf(after) : base});
+        }
     }
     const auto near = [&kept](double t) {
         return std::any_of(kept.begin(), kept.end(), [t](const auto& k) { return std::abs(k.first - t) < kSamePointMs; });

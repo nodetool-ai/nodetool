@@ -48,7 +48,12 @@ const bool registered = [] {
     }
     nt::wiring::registerKeyAction({"audioRole.none", "Clear the audio role", {}, setRole({}), "Audio"});
     nt::app::registerShellMenuItem({"Clip", "audioRole.none", "No role", {}, "Audio role", "audio", kMenuOrder + order,
-        [](const QVariantMap& context) { return soundingSelected(context) > 0; }});
+        [](const QVariantMap& context) {
+            // A generated voice or music clip keeps the role it was made with.
+            auto* controller = controllerOf(context);
+            auto* gestures = gesturesOf(context);
+            return controller && gestures && controller->roleSummary(gestures->selection()).value("explicitCount").toInt() > 0;
+        }});
 
     nt::wiring::registerKeyAction({"matchLoudness", "Match loudness to the role targets", {},
         [](ClipGestureController& gestures, const QVariantMap&) {

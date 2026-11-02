@@ -20,6 +20,7 @@ public:
 private:
     friend class LiveLoudness;
     static constexpr double kNone = -std::numeric_limits<double>::infinity();
+    void clear() noexcept;
     std::atomic<double> momentary_{kNone}, shortTerm_{kNone}, integrated_{kNone}, maxMomentary_{kNone},
         maxShortTerm_{kNone}, truePeakDb_{kNone}, loudnessRange_{kNone};
     std::atomic<std::uint64_t> blocks_{0}, resets_{0};

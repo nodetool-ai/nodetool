@@ -169,7 +169,12 @@ Rectangle {
                             enabled: root.hasSound && !root.busy
                             disabledReason: root.busy ? "Wait for the measurement to finish." : "Select an audio clip to give it a role."
                             accessibleName: modelData.label + (active ? ", selected" : "")
-                            onClicked: root.roles.setRole(root.selection, active ? "" : modelData.role)
+                            // A role that only comes from how a clip was made (generated voice, generated music) has
+                            // no field to clear, so clicking it does nothing.
+                            onClicked: {
+                                if (active && root.summary.explicitCount === 0) return
+                                root.roles.setRole(root.selection, active ? "" : modelData.role)
+                            }
                         }
                     }
                 }
@@ -181,7 +186,8 @@ Rectangle {
                     tone: Ui.Text.Secondary
                     text: !root.hasSound ? "Select an audio clip to give it a role."
                         : root.summary.role === "mixed" ? "The selected clips have different roles. Choose one to give them all the same role."
-                        : root.summary.role === "" ? "Generated voice reads as Dialogue and generated music as Music. Choose a role for this clip."
+                        : root.summary.role === "" ? "Choose a role for this clip."
+                        : root.summary.explicitCount === 0 ? "Generated voice reads as Dialogue and generated music as Music. Choose another role to change it."
                         : "Click the chosen role again to clear it."
                 }
             }

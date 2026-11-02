@@ -774,6 +774,77 @@ private slots:
         QVERIFY(plans[0].problem.contains("lanes"));
     }
 
+    void sustainedDialogueKeepsAShortClipInsideALongOneDucked_data() {
+        QTest::addColumn<bool>("together");
+        QTest::newRow("planned together") << true;
+        QTest::newRow("one run after the other") << false;
+    }
+    void sustainedDialogueKeepsAShortClipInsideALongOneDucked() {
+        // Music A runs 0 to 10 s and music B sits inside it from 4 to 6 s, with dialogue the whole time.
+        const auto voice = wav("voice-nested.wav", speech(10, 0.4f, [](double) { return true; }));
+        const auto bed = wav("bed-nested.wav", tone(10, 220, 0.2f));
+        auto model = load(document({audioTrack("voice", 0), audioTrack("music", 1)},
+            {audioClip("dlg", "voice", voice, 0, 10000, "dialogue"), audioClip("a", "music", bed, 0, 10000, "music"),
+             audioClip("b", "music", bed, 4000, 2000, "music")}, 10000));
+        QFETCH(bool, together);
+        auto* roles = AudioRoles::forTimeline(model.get());
+        roles->setDuckReduceDb(15);
+        QSignalSpy finished(roles, &AudioRoles::finished);
+        if (together) {
+            roles->duck({});
+            QTRY_COMPARE_WITH_TIMEOUT(finished.count(), 1, 30000);
+        } else {
+            for (const char* id : {"a", "b"}) {
+                roles->duck({id});
+                QTRY_VERIFY_WITH_TIMEOUT(!roles->busy(), 30000);
+            }
+        }
+        const auto lane = lanePoints(trackOf(model->timeline().raw, "music"));
+        // Dialogue never stops, so the track never comes up before the end of the longer clip.
+        for (const auto& value : lane) {
+            if (value.toObject().value("timeMs").toDouble() < 10000) QCOMPARE(value.toObject().value("value").toDouble(), -15.0);
+        }
+    }
+
+    void aLoudnessTrialBelowTheGateStillFindsTheVolume() {
+        // A hard-clipping distortion in front of the output: at low volume nothing reaches the output, and a
+        // volume search that stops at a silent trial would never see that a higher one reaches the target.
+        std::vector<float> square(kRate * 4);
+        for (std::size_t i = 0; i < square.size(); ++i) square[i] = (i / 50) % 2 ? 0.8f : -0.8f;
+        const auto path = wav("hot.wav", square);
+        auto raw = QJsonDocument::fromJson(document({audioTrack("a", 0)}, {audioClip("c", "a", path, 0, 4000, "dialogue")}, 4000)).object();
+        auto clips = raw.value("clips").toArray();
+        auto clip = clips[0].toObject();
+        clip.insert("audioEffects", QJsonArray{QJsonObject{{"id", "d"}, {"type", "distortion"}, {"enabled", true}, {"driveDb", 40}, {"outputDb", -20}}});
+        clips[0] = clip;
+        raw.insert("clips", clips);
+        auto model = load(QJsonDocument(raw).toJson());
+        auto* roles = AudioRoles::forTimeline(model.get());
+        QSignalSpy finished(roles, &AudioRoles::finished);
+        roles->normalize({"c"}, "loudness", -30);
+        QTRY_COMPARE_WITH_TIMEOUT(finished.count(), 1, 60000);
+        QVERIFY2(finished.first().at(1).toBool(), qPrintable(roles->message()));
+        const auto rendered = nt::audio::renderOffline(parse(QJsonDocument(model->timeline().raw).toJson()), kRate, 0, 4000);
+        QVERIFY2(std::abs(lufsOf(rendered) + 30) <= 0.5, qPrintable(QString::number(lufsOf(rendered)) + " LUFS, wanted -30"));
+    }
+
+    void aLoudnessMatchIsCheckedAfterTheGainBecausePassagesCrossTheGate() {
+        // Two long passages, one at about -65 LUFS and one at about -71: the quieter one is under the absolute gate
+        // until the gain lifts it, so the gain that a first reading suggests misses by about 2 LU.
+        std::vector<float> sig;
+        for (float s : tone(8, 440, 0.00063f)) sig.push_back(s);   // about -65 LUFS stereo
+        for (float s : tone(8, 440, 0.00032f)) sig.push_back(s);   // about -71 LUFS stereo
+        const auto path = wav("gate.wav", sig);
+        auto model = load(document({audioTrack("a", 0)}, {audioClip("c", "a", path, 0, 16000)}, 16000));
+        auto* roles = AudioRoles::forTimeline(model.get());
+        QSignalSpy finished(roles, &AudioRoles::finished);
+        roles->normalize({"c"}, "loudness", -45);
+        QTRY_COMPARE_WITH_TIMEOUT(finished.count(), 1, 60000);
+        QVERIFY2(finished.first().at(1).toBool(), qPrintable(roles->message()));
+        const auto rendered = nt::audio::renderOffline(parse(QJsonDocument(model->timeline().raw).toJson()), kRate, 0, 16000);
+        QVERIFY2(std::abs(lufsOf(rendered) + 45) <= 0.3, qPrintable(QString::number(lufsOf(rendered)) + " LUFS, wanted -45"));
+    }
+
     void actionsAreRegistered() {
         QStringList keys;
         for (const auto& action : nt::wiring::keyActions()) keys.append(action.name);

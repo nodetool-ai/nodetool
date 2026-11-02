@@ -155,18 +155,20 @@ QString AudioRoles::roleOf(const QString& clipId) const {
 
 QVariantMap AudioRoles::roleSummary(const QStringList& ids) const {
     QString shared;
-    int count = 0;
+    int count = 0, explicitCount = 0;
     bool mixed = false;
     for (const auto& id : ids) {
         if (!m_timeline) break;
         const auto* clip = m_timeline->timeline().findClip(id.toStdString());
         if (!clip || !soundingType(clip->raw.value("mediaType").toString())) continue;
         const auto role = effectiveRole(clip->raw);
+        if (isRole(clip->raw.value("audioRole").toString())) ++explicitCount;
         if (count == 0) shared = role;
         else if (role != shared) mixed = true;
         ++count;
     }
-    return {{"role", mixed ? QStringLiteral("mixed") : shared}, {"count", count}};
+    // `explicitCount`: how many of them have the role as a field. The others read it from how they were made.
+    return {{"role", mixed ? QStringLiteral("mixed") : shared}, {"count", count}, {"explicitCount", explicitCount}};
 }
 
 bool AudioRoles::setRole(const QStringList& ids, const QString& role) {
@@ -365,7 +367,7 @@ void AudioRoles::duck(const QStringList& ids) {
             std::size_t passages = 0;
             for (const auto& plan : m_plans) {
                 if (!plan.problem.isEmpty()) { ++problems; if (firstProblem.isEmpty()) firstProblem = plan.problem; continue; }
-                if (!plan.points.empty()) ++dipped;
+                if (!plan.points.empty()) dipped += plan.clips;
                 passages += plan.regionsMs.size();
             }
             const auto payload = duckingPayload(m_plans);

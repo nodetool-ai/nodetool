@@ -69,7 +69,8 @@ struct DuckSettings {
 };
 
 struct DuckPlan {
-    std::string clipId;
+    std::string clipId;  // the first clip of the range
+    int clips = 1;       // clips the range covers: those that overlap on one track are planned together
     std::string trackId;
     QString problem;  // set: the clip is skipped
     double fromMs = 0;

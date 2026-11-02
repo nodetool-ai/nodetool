@@ -14,7 +14,12 @@ LoudnessReading LoudnessReadout::read() const noexcept {
 void LoudnessReadout::requestReset() noexcept {
     resets_.fetch_add(1, std::memory_order_relaxed);
     // The audio thread applies the reset at its next block, but it runs only while playing. Clear the readings
-    // here too, so that Reset works when paused. (While playing, a block in flight may publish an old value once.)
+    // here too, so that Reset works when paused. A block already in flight does not publish over this: see
+    // LiveLoudness::publish.
+    clear();
+}
+
+void LoudnessReadout::clear() noexcept {
     momentary_.store(kNone, std::memory_order_relaxed);
     shortTerm_.store(kNone, std::memory_order_relaxed);
     integrated_.store(kNone, std::memory_order_relaxed);
@@ -70,6 +75,10 @@ void LiveLoudness::discontinuity() noexcept {
 }
 
 void LiveLoudness::publish() noexcept {
+    // A reset asked for and not yet applied: these readings are the ones it clears.
+    if (out_.resets_.load(std::memory_order_relaxed) != appliedReset_) {
+        return;
+    }
     out_.momentary_.store(meter_->momentary(), std::memory_order_relaxed);
     out_.shortTerm_.store(meter_->shortTerm(), std::memory_order_relaxed);
     out_.integrated_.store(meter_->integrated(), std::memory_order_relaxed);
@@ -78,5 +87,10 @@ void LiveLoudness::publish() noexcept {
     out_.truePeakDb_.store(meter_->truePeakDb(), std::memory_order_relaxed);
     out_.loudnessRange_.store(meter_->loudnessRange(), std::memory_order_relaxed);
     out_.blocks_.store(blocks_, std::memory_order_relaxed);
+    // The request comes in before it clears, so one that came in while this stored is either seen here, and cleared
+    // again, or clears after these stores.
+    if (out_.resets_.load(std::memory_order_relaxed) != appliedReset_) {
+        out_.clear();
+    }
 }
 } // namespace nt::audio

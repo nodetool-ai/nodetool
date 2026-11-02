@@ -22,8 +22,10 @@ namespace {
 constexpr int kRate = 48000;
 constexpr std::int64_t kBlock = 4096;
 constexpr double kEdgeMs = 1.0;
+constexpr double kBelowGate = -200;   // the level given to a trial that is silent or under the absolute gate
 constexpr double kSamePointMs = 0.5;  // the web editor's SAME_POINT_MS
 constexpr int kMaxLanes = 256;         // MAX_AUTOMATION_LANES_PER_TRACK
+constexpr int kMaxCheckPasses = 4;     // renders of a clip without effects when its loudness is checked
 constexpr int kMaxPasses = 8;          // renders of a clip with effects: the first and up to seven corrections
 constexpr int kMaxLanePoints = 10000;  // MAX_AUTOMATION_POINTS_PER_LANE in the protocol schema
 
@@ -285,8 +287,12 @@ std::vector<Measurement> measureClips(const Timeline& timeline, const std::vecto
             results.push_back(std::move(m));
             continue;
         }
-        // A clip with effects is rendered up to six times, so each render gets its share of the clip's time.
-        const int budget = hasEffects(*clip) ? kMaxPasses : 1;
+        // Each render gets its share of the clip's time.
+        // Effects can bend the level, and the absolute gate of the loudness measure moves with the gain (a quiet
+        // passage can rise past it), so a loudness match is checked at the volume it found. A peak without effects
+        // is exact.
+        const bool search = hasEffects(*clip) || !goal.peak;
+        const int budget = hasEffects(*clip) ? kMaxPasses : search ? kMaxCheckPasses : 1;
         int pass = 0;
         const auto step = [&](double volumeDb) {
             const double from = static_cast<double>(k) + static_cast<double>(pass++) / budget;
@@ -322,7 +328,7 @@ std::vector<Measurement> measureClips(const Timeline& timeline, const std::vecto
         m.target = goal.target ? goal.target(*clip) : 0.0;
         double volume = std::clamp(m.target - level(first), -120.0, 24.0);
         m.volumeDb = volume;
-        if (hasEffects(*clip)) {
+        if (search) {
             // The volume feeds the clip's effects, so with a compressor in the chain the level moves less than the
             // volume does, and by a different amount either side of its threshold. The level never falls as the
             // volume rises, so search for the volume that reaches the target: keep a bracket around it, step by
@@ -333,7 +339,7 @@ std::vector<Measurement> measureClips(const Timeline& timeline, const std::vecto
             double bestError = m.target - level(first);
             m.volumeDb = 0;
             if (std::abs(bestError) >= 0.05) {
-                for (int i = 1; i < kMaxPasses; ++i) {
+                for (int i = 1; i < budget; ++i) {
                     double next = volume;
                     if (i > 1) {
                         const Point* below = nullptr;
@@ -343,7 +349,8 @@ std::vector<Measurement> measureClips(const Timeline& timeline, const std::vecto
                             if (p.level > m.target && (!above || p.level < above->level)) above = &p;
                         }
                         if (below && above) {
-                            next = i % 3 == 0 ? 0.5 * (below->volume + above->volume)
+                            // A trial below the gate (no level at all) tells only that the volume is too low.
+                            next = i % 3 == 0 || below->level <= kBelowGate + 1 ? 0.5 * (below->volume + above->volume)
                                               : below->volume + (m.target - below->level) * (above->volume - below->volume) / (above->level - below->level);
                         } else {
                             const auto& a = measured[measured.size() - 2];
@@ -359,15 +366,19 @@ std::vector<Measurement> measureClips(const Timeline& timeline, const std::vecto
                     const auto again = step(next);
                     if (!again.finished) { m.ok = false; break; }
                     ++m.passes;
-                    const double reached = level(again);
-                    if (!std::isfinite(reached)) break;
+                    if (again.damaged) {
+                        m.ok = false;
+                        m.problem = QStringLiteral("The sound file could not be read to the end.");
+                        break;
+                    }
+                    const double reached = std::isfinite(level(again)) ? level(again) : kBelowGate;
                     measured.push_back({next, reached});
                     volume = next;
                     const double missing = m.target - reached;
                     if (std::abs(missing) < std::abs(bestError)) { bestError = missing; m.volumeDb = next; }
                     if (std::abs(missing) < 0.05) break;
                 }
-                if (!m.ok) break;
+                if (!m.ok && m.problem.isEmpty()) break;  // cancelled
             }
             m.missedBy = bestError;
         }
@@ -399,26 +410,53 @@ VolumePlan volumesFor(const std::vector<Measurement>& measurements) {
 std::vector<DuckPlan> planDucking(const Timeline& timeline, const std::vector<std::string>& clipIds,
                                   const DuckSettings& settings, const CancelFn& cancelled, const ProgressFn& progress) {
     std::vector<DuckPlan> plans;
-    const double count = static_cast<double>(std::max<std::size_t>(1, clipIds.size()));
-    for (std::size_t k = 0; k < clipIds.size(); ++k) {
-        if (cancelled && cancelled()) break;
-        DuckPlan plan;
-        plan.clipId = clipIds[k];
-        const Clip* clip = timeline.findClip(clipIds[k]);
-        if (!clip) {
-            plan.problem = QStringLiteral("The clip is no longer on the timeline.");
-            plans.push_back(std::move(plan));
+    // Clips that overlap on one track (a cross-fade) share one lane and hear the same dialogue, so they are planned
+    // as one range. Clips that only meet stay separate, each owning the points up to its end.
+    struct Group {
+        std::vector<std::string> ids;
+        const Clip* first = nullptr;
+        double from = 0, to = 0;
+    };
+    std::vector<const Clip*> found;
+    for (const auto& id : clipIds) {
+        if (const Clip* clip = timeline.findClip(id)) {
+            found.push_back(clip);
             continue;
         }
+        DuckPlan missing;
+        missing.clipId = id;
+        missing.problem = QStringLiteral("The clip is no longer on the timeline.");
+        plans.push_back(std::move(missing));
+    }
+    std::stable_sort(found.begin(), found.end(), [](const Clip* a, const Clip* b) {
+        return a->trackId != b->trackId ? a->trackId < b->trackId : a->startMs < b->startMs;
+    });
+    std::vector<Group> groups;
+    for (const Clip* clip : found) {
+        if (!groups.empty() && groups.back().first->trackId == clip->trackId && clip->startMs < groups.back().to) {
+            groups.back().ids.push_back(clip->id);
+            groups.back().to = std::max(groups.back().to, clip->endMs());
+        } else {
+            groups.push_back({{clip->id}, clip, clip->startMs, clip->endMs()});
+        }
+    }
+    const double count = static_cast<double>(std::max<std::size_t>(1, groups.size()));
+    for (std::size_t k = 0; k < groups.size(); ++k) {
+        if (cancelled && cancelled()) break;
+        const Group& group = groups[k];
+        const Clip* clip = group.first;
+        DuckPlan plan;
+        plan.clipId = clip->id;
+        plan.clips = static_cast<int>(group.ids.size());
         plan.trackId = clip->trackId;
-        plan.fromMs = clip->startMs;
-        plan.toMs = clip->endMs();
+        plan.fromMs = group.from;
+        plan.toMs = group.to;
         const Track* track = trackOf(timeline, *clip);
         if (!track || (track->type != TrackType::Audio && track->type != TrackType::Midi)) {
             plan.problem = QStringLiteral("Ducking needs the clip on an audio track.");
         } else if (track->locked) {
             plan.problem = QStringLiteral("The track is locked.");
-        } else if (clip->durationMs <= 0) {
+        } else if (group.to - group.from <= 0) {
             plan.problem = QStringLiteral("The clip has no length.");
         }
         if (!plan.problem.isEmpty()) {
@@ -456,7 +494,7 @@ std::vector<DuckPlan> planDucking(const Timeline& timeline, const std::vector<st
         }
         std::vector<const Clip*> triggers;
         for (const Clip& other : timeline.clips) {
-            if (other.id == clip->id || other.muted || other.durationMs <= 0) continue;
+            if (std::find(group.ids.begin(), group.ids.end(), other.id) != group.ids.end() || other.muted || other.durationMs <= 0) continue;
             if (!settings.against.contains(roleOf(other), Qt::CaseSensitive) || roleOf(other).isEmpty()) continue;
             if (other.startMs >= plan.toMs || other.endMs() <= plan.fromMs) continue;
             const Track* otherTrack = trackOf(timeline, other);
