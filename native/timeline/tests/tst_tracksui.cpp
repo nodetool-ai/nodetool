@@ -2184,7 +2184,7 @@ private slots:
         QCOMPARE(combos(cut), (QList<QStringList>{{"C"}}));
         int rows = 0;
         for (const QVariant& gv : groups) rows += gv.toMap().value("rows").toList().size();
-        QCOMPARE(rows, 111);
+        QCOMPARE(rows, 112);
         if (qEnvironmentVariableIsSet("NT_SHOT_DIR")) {
             view->resize(1600, 1000);
             sheetItem->setSize(region->size());
@@ -2584,10 +2584,10 @@ private slots:
         for (const QVariant& gv : sheet.value("groups").toList())
             for (const QVariant& rv : gv.toMap().value("rows").toList())
                 available.insert(rv.toMap().value("id").toString(), rv.toMap().value("available").toBool());
-        QCOMPARE(available.size(), 111);
+        QCOMPARE(available.size(), 112);
         for (const char* yes : {"markClip", "cutTool", "markIn", "addMarker", "splitAtPlayhead", "undo", "playPause",
                                 "rollCut", "insertOnDrop", "disableSnapping", "toggleLoop", "playInToOut", "copy", "groupClips",
-                                "matchFrame", "selectEditPoint"})
+                                "matchFrame", "selectEditPoint", "toggleScrubAudio"})
             QVERIFY2(available.value(yes), yes);
         for (const char* no : {"goToStart"})
             QVERIFY2(!available.value(no, true), no);
