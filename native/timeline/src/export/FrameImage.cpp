@@ -14,7 +14,6 @@ void FrameImage::setImage(const QImage& image) {
 QSGNode* FrameImage::updatePaintNode(QSGNode* old, UpdatePaintNodeData*) {
     if (m_image.isNull() || width() <= 0 || height() <= 0) {
         delete old;
-        m_imageChanged = true;
         return nullptr;
     }
     auto* node = static_cast<QSGImageNode*>(old);
@@ -22,6 +21,7 @@ QSGNode* FrameImage::updatePaintNode(QSGNode* old, UpdatePaintNodeData*) {
         node = window()->createImageNode();
         node->setOwnsTexture(true);
         node->setFiltering(QSGTexture::Linear);
+        m_imageChanged = true;
     }
     if (m_imageChanged) {
         node->setTexture(window()->createTextureFromImage(m_image));

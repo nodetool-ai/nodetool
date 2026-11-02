@@ -1,5 +1,6 @@
 #include "export/FrameCapture.h"
 #include "export/FrameImage.h"
+#include "export/OffscreenFrames.h"
 #include "model/TimelineJson.h"
 #include "preview/FfmpegSource.h"
 #include "preview/hw/HwWindow.h"
@@ -484,6 +485,52 @@ private slots:
         QVERIFY2(second < 1, qPrintable(QString::number(second)));
         QTRY_COMPARE_WITH_TIMEOUT(ready.size(), 2, 65000);
     }
+#ifdef Q_OS_UNIX
+    void stuckHelperIsKilled() {
+        const auto script = m_dir.filePath("stuck.sh");
+        QFile file(script);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("#!/bin/sh\nexec sleep 300\n");
+        file.close();
+        QVERIFY(file.setPermissions(file.permissions() | QFileDevice::ExeOwner));
+        FrameCapture capture;
+        capture.setExecutable(script);
+        capture.setWatchdogInterval(300);
+        QSignalSpy failures(&capture, &FrameCapture::frameFailed);
+        capture.captureSource(media("seek-360p30.mp4"), 0);
+        QTRY_COMPARE_WITH_TIMEOUT(failures.size(), 1, 10000);
+        QVERIFY2(failures[0][1].toString().contains("stopped responding"), qPrintable(failures[0][1].toString()));
+        QCOMPARE(capture.pending(), 0);
+        QTRY_COMPARE(capture.processId(), 0);
+        // The next request starts a new helper.
+        QSignalSpy ready(&capture, &FrameCapture::frameReady);
+        configure(capture);
+        capture.setWatchdogInterval(60000);
+        capture.captureSource(media("seek-360p30.mp4"), 0);
+        QTRY_COMPARE_WITH_TIMEOUT(ready.size(), 1, 65000);
+    }
+#endif
+    // A capture abandoned after its read-back must not answer the next request.
+    void cancelledReadbackDoesNotAnswerNextCapture() {
+        TimelineModel model;
+        const auto raw = fixture();
+        QVERIFY(load(model, raw));
+        const auto reference = stills(raw, "90");
+        QVERIFY(!reference.isEmpty());
+        nt::exporting::OffscreenFrames frames(model);
+        const auto never = [] { return false; };
+        const double first = 3 * 1000.0 / model.fps();
+        QVERIFY(!frames.captureAt(first, never).isNull());
+        // Decoders are warm at this time, so the first render reads back. Cancel right after it.
+        int checks = 0;
+        const auto image = frames.captureAt(first, [&] { return ++checks > 1; });
+        QVERIFY(image.isNull());
+        QVERIFY(checks > 1);
+        const auto next = frames.captureAt(90 * 1000.0 / model.fps(), never);
+        const auto score = psnr(next, still(reference, 90));
+        qInfo() << "after an abandoned read-back PSNR dB" << score;
+        QVERIFY(score >= 60);
+    }
     void asynchronousErrors() {
         FrameCapture capture;
         configure(capture);
@@ -550,6 +597,10 @@ Item {
         QCOMPARE(rendered.pixelColor(50, 0).alpha(), 0);
         QCOMPARE(rendered.pixelColor(150, 50).alpha(), 0);
         QCOMPARE(rendered.pixelColor(50, 110).alpha(), 0);
+        // A new scene graph, as when the item moves to another window, still shows the frame.
+        const auto again = render(*qobject_cast<QQuickItem*>(item.get()));
+        QVERIFY(!again.isNull());
+        QCOMPARE(again.pixelColor(50, 50), rendered.pixelColor(50, 50));
     }
 };
 QTEST_MAIN(FrameCaptureTest)

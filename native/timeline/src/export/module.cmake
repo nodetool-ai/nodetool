@@ -45,7 +45,7 @@ function(nt_export_tests)
         snapshotKeepsRelativeMatte refusesUnavailableServerOriginal audioOnlyExportAllowsMissingPictureOriginal
         cancelExportDuringAudio cancelBlockedAudio cancelOfflineMix stuckChildTeardownCleansStaging)
     set_tests_properties(tst_exportdialog PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
-    qt_add_executable(tst_framecapture src/export/tst_framecapture.cpp src/preview/hw/HwWindow.cpp)
+    qt_add_executable(tst_framecapture src/export/tst_framecapture.cpp src/export/OffscreenFrames.cpp src/preview/hw/HwWindow.cpp)
     set_target_properties(tst_framecapture PROPERTIES MACOSX_BUNDLE FALSE)
     target_compile_definitions(tst_framecapture PRIVATE
         NT_EXPORT_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"

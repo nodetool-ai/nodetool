@@ -11,6 +11,7 @@
 #include <QSaveFile>
 #include <cmath>
 #include <limits>
+#include <utility>
 
 struct FrameCapture::Snapshot {
     QString path;
@@ -31,6 +32,14 @@ FrameCapture::FrameCapture(QObject* parent) : QObject(parent) {
             QTimer::singleShot(5000, &m_process, [this] { if (m_closing) m_process.kill(); });
         }
     });
+    // A render times out by itself in 60 s. This covers a helper blocked in a
+    // decoder or a driver call, which would hold back every later request.
+    m_watchdog.setSingleShot(true);
+    m_watchdog.setInterval(90000);
+    connect(&m_watchdog, &QTimer::timeout, this, [this] {
+        m_stalled = true;
+        m_process.kill();
+    });
     connect(&m_process, &QProcess::started, this, &FrameCapture::sendRequests);
     connect(&m_process, &QProcess::readyReadStandardOutput, this, &FrameCapture::readResponses);
     connect(&m_process, &QProcess::readyReadStandardError, this, [this] {
@@ -43,9 +52,14 @@ FrameCapture::FrameCapture(QObject* parent) : QObject(parent) {
     connect(&m_process, &QProcess::finished, this, [this](int, QProcess::ExitStatus) {
         if (m_destroying) return;
         readResponses();
+        m_watchdog.stop();
+        m_awaiting = 0;
+        const bool stalled = std::exchange(m_stalled, false);
         if (m_closing) {
             m_closing = false;
             sendRequests();
+        } else if (stalled) {
+            childFailed(QStringLiteral("Frame capture stopped responding."));
         } else {
             childFailed(QStringLiteral("Frame capture process stopped. %1").arg(QString::fromUtf8(m_stderr).trimmed()));
         }
@@ -54,6 +68,7 @@ FrameCapture::FrameCapture(QObject* parent) : QObject(parent) {
 FrameCapture::~FrameCapture() {
     m_destroying = true;
     m_idle.stop();
+    m_watchdog.stop();
     m_process.disconnect(this);
     if (m_process.state() != QProcess::NotRunning) {
         m_process.closeWriteChannel();
@@ -178,6 +193,7 @@ void FrameCapture::sendRequests() {
         json.insert(entry.sequence ? "snapshot" : "path", entry.sequence ? entry.snapshot->path : entry.path);
         entry.sent = true;
         send(json);
+        if (m_awaiting++ == 0) m_watchdog.start();
     }
     if (waiting && m_process.state() == QProcess::NotRunning) {
         m_stdout.clear();
@@ -231,6 +247,10 @@ void FrameCapture::readResponses() {
         const auto json = QJsonDocument::fromJson(m_stdout.left(end)).object();
         m_stdout.remove(0, end + 1);
         const int id = json.value("id").toInt();
+        if (id > 0) {
+            if (--m_awaiting > 0) m_watchdog.start();
+            else m_watchdog.stop();
+        }
         const auto it = m_requests.constFind(id);
         const auto path = json.value("file").toString();
         const bool discard = it == m_requests.cend() || it->ending;

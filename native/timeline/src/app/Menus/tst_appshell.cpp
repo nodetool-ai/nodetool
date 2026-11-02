@@ -604,20 +604,21 @@ private slots:
         loadEditor(view, model, clock);
         ShellMenus menus;
         menus.setAnchor(view.rootObject());
+        // The registry outlives this test, so what its entries capture must too.
         // `run` receives the editor's objects.
-        QVariantMap seen;
+        static QVariantMap seen;
         QVERIFY(registerShellMenuItem({"Clip", "test.run", "Run", {}, {}, {}, 0, {}, {},
-            [&seen](const QVariantMap& context) { seen = context; return true; }}));
+            [](const QVariantMap& context) { seen = context; return true; }}));
         QVERIFY(menus.trigger("test.run"));
         QCOMPARE(seen.value("kind").toString(), QString("shell"));
         QCOMPARE(seen.value("timeline").value<QObject*>(), &model);
         QVERIFY(qobject_cast<ClipGestureController*>(seen.value("gestures").value<QObject*>()));
         // A disabled entry does not run.
-        int runs = 0;
-        bool allowed = false;
+        static int runs = 0;
+        static bool allowed = false;
         QVERIFY(registerShellMenuItem({"Clip", "test.guarded", "Guarded", {}, {}, {}, 0,
-            [&allowed](const QVariantMap&) { return allowed; }, {},
-            [&runs](const QVariantMap&) { ++runs; return true; }}));
+            [](const QVariantMap&) { return allowed; }, {},
+            [](const QVariantMap&) { ++runs; return true; }}));
         QVERIFY(!menus.trigger("test.guarded"));
         QCOMPARE(runs, 0);
         allowed = true;
@@ -648,11 +649,11 @@ private slots:
         auto* original = QGuiApplicationPrivate::platform_theme;
         QGuiApplicationPrivate::platform_theme = &theme;
         const auto restore = qScopeGuard([original] { QGuiApplicationPrivate::platform_theme = original; });
-        bool on = false;
-        int runs = 0;
+        static bool on = false;
+        static int runs = 0;
         QVERIFY(registerShellMenuItem({"Window", "test.toggle", "Toggle thing", {}, {}, {}, 0,
-            [&on](const QVariantMap&) { return on; }, [&on](const QVariantMap&) { return on; },
-            [&runs](const QVariantMap&) { ++runs; return true; }}));
+            [](const QVariantMap&) { return on; }, [](const QVariantMap&) { return on; },
+            [](const QVariantMap&) { ++runs; return true; }}));
         ShellMenus menus;
         menus.setAnchor(view.rootObject());
         auto bar = RecordingBar::last;

@@ -34,6 +34,7 @@ public:
     int pending() const { return m_requests.size(); }
     void setExecutable(const QString& path) { m_executable = path; }
     void setIdleInterval(int ms) { m_idle.setInterval(ms); }
+    void setWatchdogInterval(int ms) { m_watchdog.setInterval(ms); }
     Q_INVOKABLE int captureSequence(double timeMs);
     Q_INVOKABLE int captureSource(const QString& path, double sourceTimeMs);
     int captureSequence(double timeMs, Callback callback);
@@ -70,6 +71,7 @@ private:
     QPointer<TimelineModel> m_timeline;
     QProcess m_process;
     QTimer m_idle;
+    QTimer m_watchdog;
     QThreadPool m_pool;
     QTemporaryDir m_directory;
     QMap<int, Request> m_requests;
@@ -79,6 +81,8 @@ private:
     QByteArray m_stderr;
     int m_nextId = 0;
     int m_snapshotSerial = 0;
+    int m_awaiting = 0;  // requests sent to this helper with no response yet
     bool m_closing = false;
+    bool m_stalled = false;
     bool m_destroying = false;
 };

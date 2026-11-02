@@ -126,9 +126,11 @@ public:
     // exact frame for the current time. takeCapture() returns it once ready.
     // With `immediate`, the next rendered frame is read back as it is, exact
     // or not (the first picture at a cut during playback).
+    // A new request replaces the last one, whose read-back is then dropped.
     void requestCapture(bool immediate = false) {
         m_captureRequested = true;
         m_captureImmediate = immediate;
+        ++m_captureRequest;
         m_capture = QImage();
     }
     bool captureReady() const { return !m_capture.isNull(); }
@@ -160,6 +162,7 @@ private:
     long long m_mediaReportVersion = -1;
     bool m_captureRequested = false;
     bool m_captureImmediate = false;
+    quint64 m_captureRequest = 0;
     double m_captureTimeMs = 0.0;
     QImage m_capture;
 };
