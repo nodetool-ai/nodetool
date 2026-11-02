@@ -1745,6 +1745,26 @@ qml_callers = ["native/timeline/qml/Preferences/AppShell.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.BusyIndicator, Ui.Text, Ui.EditorButton, Ui.Select, Ui.TextField"
 
 [[file]]
+path = "native/timeline/qml/scenedetect/SceneEditDialog.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "SceneEditController", "ColumnLayout", "RowLayout", "Ui.Text", "Ui.Progress", "Ui.Slider", "Ui.NumberField", "Ui.EditorButton"]
+signals = []
+test_host = "tst_sceneedit"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/scenedetect/SceneEditHost.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.Progress, Ui.Slider, Ui.NumberField, Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/scenedetect/SceneEditHost.qml"
+category = "chrome"
+controls = ["SceneEditDialog", "Connections"]
+signals = []
+test_host = "tst_sceneedit"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Dialog"
+
+[[file]]
 path = "native/timeline/qml/storyworkspace/StoryWorkspaceEditor.qml"
 category = "chrome"
 controls = ["Ui.Surface", "Ui.Icon", "Ui.EditorButton", "Ui.Text", "Ui.TextField", "Ui.TextArea", "Ui.Toggle", "Ui.Select", "WorkspaceButton", "WorkspaceField", "Ui.Separator", "ScrollView", "Ui.ScrollBar", "Rectangle", "Image", "Ui.Dialog"]
