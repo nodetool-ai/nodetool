@@ -28,7 +28,7 @@ export default function RecipeShowcase({ compact = false }: RecipeShowcaseProps)
     <section
       id="jobs"
       aria-labelledby="jobs-title"
-      className="relative overflow-clip-safe py-24"
+      className="relative overflow-clip-safe py-16 sm:py-24"
     >
       <div className="relative mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mb-12 max-w-3xl">
