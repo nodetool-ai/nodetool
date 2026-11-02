@@ -529,7 +529,9 @@ bool AssetBrowser::drop(const QVariantMap& asset, const QString& trackId, double
     return applied;
 }
 
-bool AssetBrowser::applyDrop(const QJsonObject& payload) {
+bool AssetBrowser::placeSource(const QJsonObject& payload) { return applyDrop(payload, "source.place"); }
+
+bool AssetBrowser::applyDrop(const QJsonObject& payload, const QString& editName) {
     const auto model = m_timeline;
     if (!model) { return false; }
     const auto generation = model->documentGeneration();
@@ -539,7 +541,7 @@ bool AssetBrowser::applyDrop(const QJsonObject& payload) {
     for (const auto& value : model->timeline().raw.value("tracks").toArray()) {
         existingTracks.insert(value.toObject().value("id").toString());
     }
-    const auto token = model->applyEdit("assets.dropAsset", payload);
+    const auto token = model->applyEdit(editName, payload);
     if (!token) { return false; }
     const auto capturedResult = model->timeline().raw;
     const auto clips = model->clipsJson();

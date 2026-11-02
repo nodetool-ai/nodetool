@@ -697,12 +697,32 @@ replacement = "NodeTool.UiPrimitives: Ui.BusyIndicator, Ui.Text"
 [[file]]
 path = "native/timeline/qml/SourceViewerPanel.qml"
 category = "chrome"
-controls = ["Rectangle", "Flickable", "Ui.ScrollBar", "Ui.Text", "Ui.Tooltip", "Image", "Ui.Slider", "InspectorRow", "InspectorPillInput", "Sections.InspectorActionButton"]
+controls = ["Rectangle", "Flickable", "Ui.ScrollBar", "Ui.Text", "Ui.Tooltip", "Image", "PreviewCompositor", "WaveformItem", "SourceRangeBar", "SourceDragArea", "Ui.BusyIndicator", "Ui.ToolbarIconButton", "Ui.Icon", "InspectorRow", "InspectorPillInput", "Sections.InspectorActionButton"]
 signals = []
 test_host = "tst_sourceviewer"
 test_scope = "build/import"
 qml_callers = []
-replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.Tooltip, Ui.Slider"
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.Tooltip, Ui.ToolbarIconButton"
+
+[[file]]
+path = "native/timeline/qml/SourceRangeBar.qml"
+category = "domain"
+controls = ["Rectangle", "MouseArea"]
+signals = ["scrubbed"]
+test_host = "tst_sourceviewer"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/SourceViewerPanel.qml"]
+replacement = "Ui.Theme and Ui.Metrics for the Source time ruler and its marked range"
+
+[[file]]
+path = "native/timeline/qml/SourceDragArea.qml"
+category = "domain"
+controls = ["MouseArea"]
+signals = ["scrubbed", "tapped"]
+test_host = "tst_sourceviewer"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/SourceViewerPanel.qml"]
+replacement = "Pointer gesture only: lifts the marked Source range onto a track"
 
 [[file]]
 path = "native/timeline/qml/TimelineDocumentActions.qml"

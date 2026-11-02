@@ -45,7 +45,7 @@ QJsonObject settleLinkedAudio(QJsonObject raw, const QJsonObject& payload) {
             const auto asset = payload.value("asset").toObject();
             clip.insert("currentAssetId", asset.value("id"));
             const auto duration = asset.value("duration");
-            if (duration.isDouble()) { clip.insert("durationMs", std::floor(duration.toDouble() * 1000 + 0.5)); }
+            if (duration.isDouble() && !clip.contains("outPointMs")) { clip.insert("durationMs", std::floor(duration.toDouble() * 1000 + 0.5)); }
             clip.insert("status", "generated");
             clips[i] = clip;
         } else if (outcome == "failed") {

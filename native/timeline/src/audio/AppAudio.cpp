@@ -17,6 +17,7 @@ bool AppAudio::start(const QString& mode, double latencyMs, TimelineModel& model
     m_mode = mode;
     if (mode == u"none") return true;
     AudioEngine::Options options;
+    options.recordSeconds = m_recordSeconds;
     if (mode == u"null") {
         options.backend = AudioEngine::Backend::Null;
         options.sampleRate = 48000;

@@ -34,11 +34,13 @@ public:
     // open. `latencyMs` sets the null device's reported output latency.
     bool start(const QString& mode, double latencyMs, TimelineModel& model, PlaybackClock& clock, QString* error);
     void setReportPath(const QString& path) { m_reportPath = path; }
+    void setRecordSeconds(double seconds) { m_recordSeconds = seconds; }
     AudioEngine* engine() { return m_engine.get(); }
 
 private:
     std::unique_ptr<AudioEngine> m_engine;
     PlaybackClock* m_clock = nullptr;
+    double m_recordSeconds = 0;
     QString m_mode;
     QString m_reportPath;
     QMetaObject::Connection m_connections[3];

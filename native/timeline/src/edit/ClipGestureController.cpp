@@ -1074,6 +1074,10 @@ bool ClipGestureController::trimEditPoint(double edgeTargetMs, bool merge) {
     return true;
 }
 
+QString ClipGestureController::resolveKeyAction(int key, const QString& text, int modifiers) const {
+    return resolveTimelineAction(domKey(key, text, modifiers), m_preset);
+}
+
 bool ClipGestureController::handleKey(int key, const QString& text, int modifiers, bool autoRepeat) {
     if (!m_timeline) { return false; }
     const QVariantMap context{{"autoRepeat", autoRepeat}};
