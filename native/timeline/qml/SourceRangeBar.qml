@@ -105,8 +105,11 @@ Item {
         }
         onReleased: mouse => {
             if (mode === "") return
-            if (moved && SourceViewerState.rangeDragging) SourceViewerState.commitRangeDrag()
-            else if (mode !== "scrub") bar.scrubbed(bar.timeAt(pressX))
+            if (moved) {
+                if (SourceViewerState.rangeDragging) SourceViewerState.commitRangeDrag()
+            } else if (mode !== "scrub") {
+                bar.scrubbed(bar.timeAt(pressX))
+            }
             mode = ""
         }
         onCanceled: {

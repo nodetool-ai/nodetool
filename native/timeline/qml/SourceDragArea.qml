@@ -13,10 +13,11 @@ MouseArea {
     signal tapped(real x)
 
     readonly property bool lifting: point.Drag.active
-    // Read by AssetDropOverlay through Drag.source.
-    readonly property var asset: SourceViewerState.asset
-    readonly property var sourceStreams: ({ video: area.video, audio: area.audio })
+    // Read by AssetDropOverlay through Drag.source. A lift keeps what it took,
+    // whatever Source shows by the time it lands.
+    property var sourceStreams: ({ video: false, audio: false })
     property var sourceRange: ({})
+    // "", "lift", "scrub", or "canceled" until the press ends.
     property string gesture: ""
     property real pressX: 0
     property real pressY: 0
@@ -25,7 +26,7 @@ MouseArea {
         if (!point.Drag.active) return false
         point.Drag.cancel()
         point.Drag.active = false
-        gesture = ""
+        gesture = "canceled"
         return true
     }
 
@@ -57,6 +58,7 @@ MouseArea {
             if (Math.max(dx, dy) < Qt.styleHints.startDragDistance) return
             gesture = horizontalScrub && dx >= dy ? "scrub" : "lift"
             if (gesture === "lift") {
+                sourceStreams = { video: area.video, audio: area.audio }
                 sourceRange = SourceViewerState.captureRange()
                 point.Drag.active = true
             }
@@ -73,5 +75,8 @@ MouseArea {
         }
         gesture = ""
     }
-    onCanceled: cancelLift()
+    onCanceled: {
+        cancelLift()
+        gesture = ""
+    }
 }

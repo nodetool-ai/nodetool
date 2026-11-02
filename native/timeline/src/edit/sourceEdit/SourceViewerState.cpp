@@ -192,7 +192,7 @@ void SourceViewerState::commitRangeDrag() {
 }
 void SourceViewerState::cancelRangeDrag() { if (m_drag) { m_drag.reset(); emit changed(); } }
 QVariantMap SourceViewerState::captureRange() const {
-    m_monitor->pause(); return {{"inMs", inMs()}, {"outMs", outMs()}};
+    m_monitor->pause(); return {{"asset", m_asset}, {"inMs", inMs()}, {"outMs", outMs()}};
 }
 bool SourceViewerState::canPlace(const QString& trackId, bool video, bool audio, ClipGestureController* gestures) const {
     return gestures && gestures->timeline() && !m_asset.isEmpty() &&
@@ -222,9 +222,12 @@ bool SourceViewerState::place(const QString& mode, const QString& trackId, doubl
     const auto destinations = nt::sourceedit::sourceDropDestinations(gestures->timeline()->timeline().raw, trackId, video, audio);
     if (!destinations.error.isEmpty()) { setError(destinations.error); return false; }
     const auto range = QJsonObject::fromVariantMap(capturedRange);
-    if (!range.value("inMs").isDouble() || !range.value("outMs").isDouble()) { setError("Mark a non-empty source range."); return false; }
+    if (!range.value("asset").isObject() || !range.value("inMs").isDouble() || !range.value("outMs").isDouble()) {
+        setError("Mark a non-empty source range.");
+        return false;
+    }
     nt::sourceedit::Placement p;
-    p.asset = QJsonObject::fromVariantMap(m_asset); p.inMs = range.value("inMs").toDouble(); p.outMs = range.value("outMs").toDouble();
+    p.asset = range.value("asset").toObject(); p.inMs = range.value("inMs").toDouble(); p.outMs = range.value("outMs").toDouble();
     p.videoTrackId = destinations.videoTrackId; p.audioTrackId = destinations.audioTrackId;
     p.newVideoTrack = destinations.newVideoTrack; p.newAudioTrack = destinations.newAudioTrack;
     p.mode = mode; p.startMs = startMs; p.snapMs = snapMs;
@@ -277,7 +280,11 @@ bool SourceViewerState::perform(const QString& kind, ClipGestureController* gest
     for (auto* patch : {&m_videoPatch, &m_audioPatch}) {
         if (!patch->isEmpty() && !tracks.contains(*patch)) { patch->clear(); pruned = true; }
     }
-    if (pruned) { emit patchChanged(); }
+    if (pruned) {
+        emit patchChanged();
+        setError("The patched track is no longer in this timeline. Patch another track.");
+        return false;
+    }
     if (!m_videoPatch.isEmpty() || !m_audioPatch.isEmpty()) {
         nt::sourceedit::Placement p;
         p.asset = QJsonObject::fromVariantMap(m_asset); p.inMs = inMs(); p.outMs = outMs();

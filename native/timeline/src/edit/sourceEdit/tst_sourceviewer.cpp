@@ -149,6 +149,20 @@ private slots:
         QCOMPARE(gestures()->selection().size(), 1); QCOMPARE(clip(gestures()->selection().first()).value("mediaType").toString(), QString("audio"));
         QVERIFY(!model.applyEdit("source.place", QJsonObject{{"asset", asset}, {"inMs", "bad"}}));
     }
+    void aLiftKeepsItsAssetWhenSourceChanges() {
+        state->setMediaBrowser(nullptr);
+        state->markIn(1000); state->markOut(3000);
+        const auto lifted = state->captureRange();
+        auto other = asset; other.insert("id", "another"); other.insert("name", "Another");
+        state->setAsset(other.toVariantMap());
+        QVERIFY(state->place("overwrite", "v", 8000, 0, true, false, lifted, gestures()));
+        const auto placed = clip(gestures()->selection().first());
+        QCOMPARE(placed.value("currentAssetId").toString(), QString("source"));
+        QCOMPARE(placed.value("inPointMs").toDouble(), 1000.0);
+        model.undoStack()->undo();
+        QVERIFY(!state->place("overwrite", "v", 8000, 0, true, false, {{"inMs", 0}, {"outMs", 1000}}, gestures()));
+        QCOMPARE(model.undoStack()->count(), 1);
+    }
     void lockedDestinationPlacesNothing() {
         auto raw = doc(); auto tracks = raw.value("tracks").toArray();
         auto a = tracks[2].toObject(); a.insert("locked", true); tracks[2] = a; raw.insert("tracks", tracks);
@@ -179,7 +193,15 @@ private slots:
         const auto expected = nt::sourceedit::performSourceEdit("insert", before, nt::targeting::TrackTargeting::current().state(), {}, clock.time(), asset);
         QVERIFY(expected); QVERIFY(state->perform("insert", gestures())); QCOMPARE(normalize(doc(), before), normalize(expected->doc, before));
         model.undoStack()->undo();
-        state->togglePatch("video", "removed"); QVERIFY(state->perform("insert", gestures())); QVERIFY(state->patchedVideoTrackId().isEmpty());
+        // A patched track that went away reports once and places nothing, rather than landing elsewhere.
+        const auto unpatched = doc();
+        const auto entries = model.undoStack()->count();
+        state->togglePatch("video", "removed");
+        QVERIFY(!state->perform("insert", gestures()));
+        QVERIFY(state->lastError().contains("no longer"));
+        QCOMPARE(doc(), unpatched); QCOMPARE(model.undoStack()->count(), entries);
+        QVERIFY(state->patchedVideoTrackId().isEmpty());
+        QVERIFY(state->perform("insert", gestures())); QVERIFY(state->lastError().isEmpty());
         model.undoStack()->undo();
         tracks = raw.value("tracks").toArray(); auto v = tracks[1].toObject(); v.insert("locked", true); tracks[1] = v; raw.insert("tracks", tracks);
         parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson()); QVERIFY(parsed.timeline); model.setTimeline(*parsed.timeline);
@@ -202,12 +224,20 @@ private slots:
         QTest::mouseMove(view.get(), at(1500)); QTest::mouseMove(view.get(), at(2000));
         QVERIFY(state->rangeDragging());
         QVERIFY(std::abs(state->inMs() - 2000) < 40);
+        const double parked = item("sourceViewer")->property("playerTimeMs").toDouble();
         QTest::keyClick(view.get(), Qt::Key_Escape);
         QVERIFY(!state->rangeDragging()); QCOMPARE(state->inMs(), 1000.0);
+        QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, at(2000));
+        QCOMPARE(state->inMs(), 1000.0); QCOMPARE(state->outMs(), 3000.0);
+        QCOMPARE(item("sourceViewer")->property("playerTimeMs").toDouble(), parked);
+        QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, at(1000));
+        QTest::mouseMove(view.get(), at(1500));
+        QTest::keyClick(view.get(), Qt::Key_Escape);
         QTest::mouseMove(view.get(), at(2500));
         QCOMPARE(state->inMs(), 1000.0);
         QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, at(2500));
         QCOMPARE(state->inMs(), 1000.0); QCOMPARE(state->outMs(), 3000.0);
+        QCOMPARE(item("sourceViewer")->property("playerTimeMs").toDouble(), parked);
 
         QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, at(3000));
         QTest::mouseMove(view.get(), at(3500)); QTest::mouseMove(view.get(), at(5000));
@@ -292,8 +322,10 @@ private slots:
         QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, from);
         for (int i = 1; i <= 6; ++i) { QTest::mouseMove(view.get(), from + (to - from) * i / 6); QCoreApplication::processEvents(); }
         QVERIFY(!state->monitor()->clock()->playing());
-        // Escape puts it back.
+        // Escape puts it back, and the rest of that press cannot lift it again.
         QTest::keyClick(view.get(), Qt::Key_Escape);
+        QTest::mouseMove(view.get(), to - QPoint(8, 0)); QCoreApplication::processEvents();
+        QTest::mouseMove(view.get(), to); QCoreApplication::processEvents();
         QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, to);
         QCOMPARE(doc(), before); QCOMPARE(model.undoStack()->count(), 0);
         // The range is captured when the lift starts.
