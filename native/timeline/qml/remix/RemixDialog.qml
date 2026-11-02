@@ -12,7 +12,7 @@ Ui.Dialog {
     required property RemixController controller
     readonly property bool refused: controller.state === "refused"
     readonly property bool working: controller.state === "analyzing" || controller.state === "applying" || controller.state === "rendering"
-    readonly property bool targetValid: Number.isFinite(Number(targetField.text)) && Number(targetField.text) >= 1 && Number(targetField.text) <= 3600
+    readonly property bool targetValid: targetField.text.trim() !== "" && Number.isFinite(Number(targetField.text)) && Number(targetField.text) >= 1 && Number(targetField.text) <= 3600
     readonly property alias targetText: targetField
     readonly property alias segmentsSlider: segments
     readonly property alias variationsSlider: variations
@@ -26,21 +26,23 @@ Ui.Dialog {
         return minutes + ":" + (seconds < 10 ? "0" : "") + seconds.toFixed(2)
     }
     function plural(count, one, many) { return count + " " + (count === 1 ? one : many) }
+    // What the sliders held when the last edit ended: Escape during a drag goes back to it.
+    property real committedSegments: 50
+    property real committedVariations: 50
+
     function openFor(clipId) {
         controller.begin(clipId)
-        targetField.value = String(controller.targetMs / 1000)
-        segments.value = controller.segments
-        variations.value = controller.variations
+        committedSegments = controller.segments
+        committedVariations = controller.variations
         open()
     }
-    function pushSettings() {
-        if (!targetValid) return
-        controller.setSettings(Math.round(Number(targetField.text) * 1000), segments.value, variations.value)
+    // The settings the dialog shows, with any of them replaced by what a field is about to hold.
+    function push(targetMs, segmentsValue, variationsValue) {
+        controller.setSettings(targetMs ?? controller.targetMs, segmentsValue ?? controller.segments, variationsValue ?? controller.variations)
     }
-    function useTarget(ms) {
-        targetField.value = String(Math.round(ms) / 1000)
-        targetField.text = targetField.value
-        pushSettings()
+    function commitTarget(text) {
+        const seconds = Number(text)
+        if (text.trim() !== "" && Number.isFinite(seconds) && seconds >= 1 && seconds <= 3600) push(Math.round(seconds * 1000))
     }
 
     title: "Remix"
@@ -128,24 +130,24 @@ Ui.Dialog {
                             accessibleName: "Target length in seconds"
                             suffix: "s"
                             selectByMouse: true
+                            // The field shows what the plan uses. A cancelled or invalid edit goes back to it.
+                            value: dialog.controller.state === "closed" ? "" : String(dialog.controller.targetMs / 1000)
                             valid: dialog.targetValid
                             errorText: "Enter a length from 1 to 3600 seconds."
-                            onValuePreviewed: dialog.pushSettings()
-                            onValueCommitted: dialog.pushSettings()
-                            onAccepted: dialog.pushSettings()
+                            onValueCommitted: text => dialog.commitTarget(text)
                         }
                         Ui.EditorButton {
                             objectName: "remixUseClipLength"
                             text: "Clip length " + dialog.clock(dialog.controller.currentMs)
                             density: Ui.EditorButton.Compact
-                            onClicked: dialog.useTarget(dialog.controller.currentMs)
+                            onClicked: dialog.push(Math.round(dialog.controller.currentMs))
                         }
                         Ui.EditorButton {
                             objectName: "remixFitGap"
                             visible: dialog.controller.gapMs > 0
                             text: "Fit the gap " + dialog.clock(dialog.controller.gapMs)
                             density: Ui.EditorButton.Compact
-                            onClicked: dialog.useTarget(dialog.controller.gapMs)
+                            onClicked: dialog.push(Math.round(dialog.controller.gapMs))
                         }
                     }
                 }
@@ -168,8 +170,10 @@ Ui.Dialog {
                             to: 100
                             stepSize: 1
                             accessibleName: "Segments"
-                            onValuePreviewed: v => { value = v; dialog.pushSettings() }
-                            onValueCommitted: v => { value = v; dialog.pushSettings() }
+                            value: dialog.controller.segments
+                            onValuePreviewed: v => dialog.push(undefined, v, undefined)
+                            onValueCommitted: v => { dialog.committedSegments = v; dialog.push(undefined, v, undefined) }
+                            onEditCanceled: dialog.push(undefined, dialog.committedSegments, undefined)
                         }
                         Ui.Text { text: "More"; role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary }
                     }
@@ -186,8 +190,10 @@ Ui.Dialog {
                             to: 100
                             stepSize: 1
                             accessibleName: "Variations"
-                            onValuePreviewed: v => { value = v; dialog.pushSettings() }
-                            onValueCommitted: v => { value = v; dialog.pushSettings() }
+                            value: dialog.controller.variations
+                            onValuePreviewed: v => dialog.push(undefined, undefined, v)
+                            onValueCommitted: v => { dialog.committedVariations = v; dialog.push(undefined, undefined, v) }
+                            onEditCanceled: dialog.push(undefined, undefined, dialog.committedVariations)
                         }
                         Ui.Text { text: "More"; role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary }
                     }

@@ -140,7 +140,7 @@ private:
     struct Job;
     void setState(const QString& state);
     void cancelWork();
-    void joinWorker();
+    void retireWorker();
     void replan();
     void startAnalysis(std::string path);
     void startBake(bool thenListen, bool thenApply);

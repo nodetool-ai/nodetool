@@ -148,6 +148,14 @@ QJsonObject applyRemix(QJsonObject raw, const QJsonObject& payload) {
     const auto previous = activeRemix(clip);
     const auto createdAt = payload.value("createdAt").toString();
     QString sourceTake = window->takeId;
+    // Where the source plays when a take switch puts it back: the web only applies a take's window
+    // when its span is the clip's length, so the span follows the remix.
+    const auto remixedMapping = [&](QJsonObject mapping) {
+        const double rate = mapping.value("speedBaked").toBool() ? 1.0 : mapping.value("speedMultiplier").toDouble(1.0);
+        mapping.insert("inPointMs", window->startMs);
+        mapping.insert("outPointMs", window->startMs + duration * (rate > 0 ? rate : 1.0));
+        return mapping;
+    };
     if (sourceTake.isEmpty()) {
         sourceTake = baselineId(clipId, window->assetId);
         QJsonObject mapping;
@@ -157,10 +165,18 @@ QJsonObject applyRemix(QJsonObject raw, const QJsonObject& payload) {
         QJsonObject baseline{{"id", sourceTake}, {"assetId", window->assetId}, {"status", "success"}, {"createdAt", createdAt},
                              {"workflowUpdatedAt", createdAt}, {"jobId", ""}, {"dependencyHash", clip.value("dependencyHash").toString()},
                              {"paramOverridesSnapshot", clip.value("paramOverrides").toObject()}, {"source", sourceKind(clip)},
-                             {"sourceMapping", mapping}};
+                             {"sourceMapping", remixedMapping(mapping)}};
         const double sourceDuration = payload.value("sourceDurationMs").toDouble();
         if (std::isfinite(sourceDuration) && sourceDuration > 0) { baseline.insert("durationMs", sourceDuration); }
         versions.append(baseline);
+    } else {
+        for (int i = 0; i < versions.size(); ++i) {
+            auto version = versions.at(i).toObject();
+            if (version.value("id").toString() != sourceTake) { continue; }
+            version.insert("sourceMapping", remixedMapping(version.value("sourceMapping").toObject()));
+            versions.replace(i, version);
+            break;
+        }
     }
 
     auto meta = payload.value("remix").toObject();
@@ -177,9 +193,12 @@ QJsonObject applyRemix(QJsonObject raw, const QJsonObject& payload) {
             meta.insert(key, fromRemix ? original.value(key) : original.value(clipKey));
         }
     }
+    // The web copies a take's snapshot onto the clip when the take is chosen, so it keeps the clip's own overrides.
+    auto snapshot = clip.value("paramOverrides").toObject();
+    snapshot.insert("remix", meta);
     QJsonObject take{{"id", takeId}, {"assetId", assetId}, {"status", "success"}, {"createdAt", createdAt}, {"workflowUpdatedAt", createdAt},
                      {"jobId", ""}, {"dependencyHash", clip.value("dependencyHash").toString()},
-                     {"paramOverridesSnapshot", QJsonObject{{"remix", meta}}}, {"durationMs", duration}, {"source", "imported"},
+                     {"paramOverridesSnapshot", snapshot}, {"durationMs", duration}, {"source", "imported"},
                      {"label", takeLabel(duration)}, {"parentTakeId", sourceTake},
                      {"sourceMapping", QJsonObject{{"inPointMs", 0}, {"outPointMs", duration}}}};
     versions.append(take);
@@ -204,6 +223,11 @@ QJsonObject revertRemix(QJsonObject raw, const QJsonObject& payload) {
     const auto meta = activeRemix(clip);
     clip.insert("currentAssetId", meta.value("sourceAssetId"));
     clip.insert("durationMs", meta.value("originalDurationMs"));
+    if (clip.value("paramOverrides").toObject().contains("remix")) {
+        auto overrides = clip.value("paramOverrides").toObject();
+        overrides.remove("remix");
+        clip.insert("paramOverrides", overrides);
+    }
     if (!meta.value("sourceTakeId").toString().isEmpty()) { clip.insert("activeTakeId", meta.value("sourceTakeId")); }
     else { clip.remove("activeTakeId"); }
     for (const auto* field : {"InPointMs", "OutPointMs"}) {

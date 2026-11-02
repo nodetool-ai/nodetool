@@ -29,9 +29,11 @@ RemixController::RemixController(QObject* parent)
 RemixController::~RemixController() {
     m_audio.reset();
     ++m_serial;
+    // A worker stops at its next check. One stuck in a network call or a cache lock is left to finish by
+    // itself: it holds no pointer to this object, and its thread is not a child of it.
     if (m_worker) {
         m_worker->requestInterruption();
-        m_worker->wait();
+        m_worker->wait(3000);
     }
 }
 
@@ -155,7 +157,7 @@ QString RemixController::bakeKey() const {
 
 void RemixController::cancelWork() {
     ++m_serial;
-    if (m_worker) { m_worker->requestInterruption(); }
+    retireWorker();
 }
 
 void RemixController::close() {
@@ -221,7 +223,7 @@ bool RemixController::begin(const QString& clipId) {
 }
 
 void RemixController::startAnalysis(std::string path) {
-    joinWorker();
+    retireWorker();
     setState(QStringLiteral("analyzing"));
     emit progressChanged();
     const auto serial = ++m_serial;
@@ -275,7 +277,6 @@ void RemixController::startAnalysis(std::string path) {
             emit self->progressChanged();
         }, Qt::QueuedConnection);
     });
-    thread->setParent(this);
     m_worker = thread;
     connect(thread, &QThread::finished, this, [this, thread] {
         if (m_worker == thread) { m_worker = nullptr; }
@@ -306,17 +307,18 @@ void RemixController::replan() {
     emit changed();
 }
 
-void RemixController::joinWorker() {
-    // A job that was cancelled stops at its next check, and one that delivered its result is about to return.
+void RemixController::retireWorker() {
+    // The editor never waits for a worker: a cancelled one stops at its next check, or when the
+    // call it is in returns, and its result is dropped because the serial no longer matches.
+    m_reverting = false;
     if (!m_worker) { return; }
     m_worker->requestInterruption();
-    m_worker->wait();
     m_worker = nullptr;
 }
 
 void RemixController::startBake(bool thenListen, bool thenApply) {
     if (!m_plan || !m_analysis || m_sourcePath.isEmpty()) { return; }
-    joinWorker();
+    retireWorker();
     const auto key = bakeKey();
     const auto frames = std::llround(m_targetMs * nt::remix::kOutputRate / 1000.0);
     const auto serial = ++m_serial;
@@ -400,7 +402,6 @@ void RemixController::startBake(bool thenListen, bool thenApply) {
             self->finishApply(media, asset, wavPath, generation, serial);
         }, Qt::QueuedConnection);
     });
-    thread->setParent(this);
     m_worker = thread;
     connect(thread, &QThread::finished, this, [this, thread] {
         if (m_worker == thread) { m_worker = nullptr; }
@@ -514,7 +515,7 @@ QString RemixController::revert(const QString& clipId) {
         emit reverted(clipId, why);
         return why;
     }
-    joinWorker();
+    retireWorker();
     m_reverting = true;
     const QPointer<RemixController> self(this);
     const auto serial = ++m_serial;
@@ -535,7 +536,6 @@ QString RemixController::revert(const QString& clipId) {
             commit(&resolved.media);
         }, Qt::QueuedConnection);
     });
-    thread->setParent(this);
     m_worker = thread;
     connect(thread, &QThread::finished, this, [this, thread] { if (m_worker == thread) { m_worker = nullptr; m_reverting = false; } });
     connect(thread, &QThread::finished, thread, &QObject::deleteLater);

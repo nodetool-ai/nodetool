@@ -45,7 +45,7 @@ describe('native remix edits against the web document rules', () => {
   });
 
   it('lets the web switch back to the source take and delete the remix take', () => {
-    const [{ raw }] = run([{ op: 'remix', raw: doc(music()), payload: payload(30000) }]);
+    const [{ raw }] = run([{ op: 'remix', raw: doc(music({ inPointMs: 5000, outPointMs: 45000 })), payload: payload(30000) }]);
     const clip = raw.clips[0];
     const baseline = clip.versions[0];
     expect(baseline.assetId).toBe('asset-src');
@@ -53,6 +53,15 @@ describe('native remix edits against the web document rules', () => {
     expect(back.error).toBeFalsy();
     expect(back.clip.currentAssetId).toBe('asset-src');
     expect(back.clip.activeTakeId).toBe(baseline.id);
+    // The web restores the window the music played from, not the remix's own.
+    expect(back.clip.inPointMs).toBe(5000);
+    expect(back.clip.outPointMs).toBe(35000);
+    // The clip keeps its generation settings through the take switch.
+    expect(back.clip.paramOverrides).toEqual({ prompt: 'upbeat' });
+    const forward = applyTakeToClip(back.clip, 'take-1');
+    expect(forward.clip.inPointMs).toBe(0);
+    expect(forward.clip.outPointMs).toBe(30000);
+    expect(forward.clip.paramOverrides.prompt).toBe('upbeat');
     // The remix take can go once the source is the active one.
     expect(deleteTake(back.clip, 'take-1').error).toBeFalsy();
     // The active take cannot be deleted from under the clip.

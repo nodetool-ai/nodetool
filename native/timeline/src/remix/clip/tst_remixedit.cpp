@@ -59,8 +59,9 @@ private slots:
         const auto take = versions.at(1).toObject();
         QCOMPARE(baseline.value("assetId").toString(), QString("asset-src"));
         QCOMPARE(baseline.value("status").toString(), QString("success"));
+        // The source's window has the length of the remix, which is what lets the web put it back with its start.
         QCOMPARE(baseline.value("sourceMapping").toObject().value("inPointMs").toDouble(), 5000.0);
-        QCOMPARE(baseline.value("sourceMapping").toObject().value("outPointMs").toDouble(), 45000.0);
+        QCOMPARE(baseline.value("sourceMapping").toObject().value("outPointMs").toDouble(), 35000.0);
         QCOMPARE(baseline.value("durationMs").toDouble(), 40000.0);
         QCOMPARE(baseline.value("id").toString().size(), 32);
         QCOMPARE(take.value("id").toString(), QString("take-1"));
@@ -73,6 +74,9 @@ private slots:
         for (const auto* field : {"id", "createdAt", "jobId", "assetId", "workflowUpdatedAt", "dependencyHash", "paramOverridesSnapshot", "status"}) {
             QVERIFY2(take.contains(field) && baseline.contains(field), field);
         }
+        // The snapshot keeps the clip's own overrides: choosing the take copies it onto the clip.
+        QCOMPARE(take.value("paramOverridesSnapshot").toObject().value("prompt").toString(), QString("x"));
+        QCOMPARE(baseline.value("paramOverridesSnapshot").toObject(), prompt());
         const auto meta = take.value("paramOverridesSnapshot").toObject().value("remix").toObject();
         QCOMPARE(meta.value("sourceAssetId").toString(), QString("asset-src"));
         QCOMPARE(meta.value("sourceTakeId").toString(), baseline.value("id").toString());
@@ -92,7 +96,10 @@ private slots:
         const auto clip = clipOf(applyRemix(raw, payload("m", 20000)), "m");
         const auto versions = clip.value("versions").toArray();
         QCOMPARE(versions.size(), 2);
-        QCOMPARE(versions.at(0).toObject(), generated);
+        // Its window is now the remix's length, so the web puts it back with the clip's own start.
+        auto source = versions.at(0).toObject();
+        QCOMPARE(source.take("sourceMapping").toObject(), (QJsonObject{{"inPointMs", 0.0}, {"outPointMs", 20000.0}}));
+        QCOMPARE(source, generated);
         QCOMPARE(versions.at(1).toObject().value("parentTakeId").toString(), QString("gen-take"));
         QCOMPARE(activeRemix(clip).value("sourceTakeId").toString(), QString("gen-take"));
         QVERIFY(!clip.contains("inPointMs") || clip.value("inPointMs").toDouble() == 0.0);
@@ -142,6 +149,18 @@ private slots:
         QVERIFY(!revertRefusal(reverted, "m").isEmpty());
         QCOMPARE(revertRemix(reverted, ofClip("m")), reverted);
     }
+    void aTakeSwitchOnTheWebLeavesNoRemixKeyAfterRevert() {
+        const auto raw = doc({audioClip("m", 0, 40000, {{"paramOverrides", prompt()}})});
+        auto remixed = applyRemix(raw, payload("m", 30000));
+        // The web copied the remix take's snapshot onto the clip.
+        auto clips = remixed.value("clips").toArray();
+        auto clip = clips.at(0).toObject();
+        clip.insert("paramOverrides", clip.value("versions").toArray().at(1).toObject().value("paramOverridesSnapshot"));
+        clips.replace(0, clip);
+        remixed.insert("clips", clips);
+        const auto reverted = clipOf(revertRemix(remixed, ofClip("m")), "m");
+        QCOMPARE(reverted.value("paramOverrides").toObject(), prompt());
+    }
     void revertRemovesPointsThatWereNotThere() {
         const auto raw = doc({audioClip("m", 0, 40000)});
         const auto reverted = revertRemix(applyRemix(raw, payload("m", 30000)), ofClip("m"));
@@ -162,6 +181,7 @@ private slots:
         QVERIFY(refusal(single, "m", 90000).isEmpty());
         // A clip that already overlaps may shrink or stay.
         const auto tight = doc({audioClip("m", 0, 30000), audioClip("n", 20000, 5000)});
+        // The overlap was there before, so a remix that does not grow it makes nothing worse.
         QVERIFY(refusal(tight, "m", 25000).isEmpty());
         QVERIFY(!refusal(tight, "m", 35000).isEmpty());
     }

@@ -12,6 +12,8 @@
 #include "wiring/WiringFixture.h"
 
 #include <QFile>
+#include <QSemaphore>
+#include <atomic>
 #include <QQmlEngine>
 #include <QTemporaryDir>
 #include <cmath>
@@ -61,8 +63,15 @@ public:
     explicit FakeBackend(QString dir) : m_dir(std::move(dir)) {}
     QHash<QString, QString> files;
     QStringList uploads;
+    // A test holds resolve() here to keep a download pending.
+    QSemaphore gate{1000000};
+    std::atomic<int> waiting{0};
     nt::remix::ResolvedAudio resolve(const QString& assetId, nt::assets::MediaProtection&, quint64) override {
         nt::remix::ResolvedAudio out;
+        ++waiting;
+        gate.acquire();
+        gate.release();
+        --waiting;
         if (!files.contains(assetId)) { out.error = "No such asset."; return out; }
         out.asset = QJsonObject{{"id", assetId}};
         out.media.raw = QJsonObject{{"mediaType", "audio"}, {"currentAssetId", assetId}};
@@ -146,6 +155,7 @@ class TestRemixUi : public WiringFixture {
         QTRY_VERIFY(field->hasActiveFocus());
         QTest::keyClick(view.get(), Qt::Key_A, Qt::ControlModifier);
         for (const QChar c : text) { QTest::keyClick(view.get(), c.toLatin1()); }
+        QTest::keyClick(view.get(), Qt::Key_Return);
         settle();
     }
 
@@ -407,6 +417,78 @@ private slots:
         QTRY_VERIFY(dialog()->property("visible").toBool());
         QTRY_COMPARE_WITH_TIMEOUT(controller()->state(), QString("ready"), 20000);
         QCOMPARE(controller()->clipId(), QString("m"));
+    }
+    void aCancelledOrInvalidTargetEditGoesBackToWhatThePlanUses() {
+        openMusic(false);
+        openDialogReady();
+        typeTarget("14");
+        QTRY_COMPARE(controller()->targetMs(), 14000.0);
+        // Typing something that is not a length and leaving the field cancels the edit.
+        auto* field = item("remixTarget");
+        QTest::keyClick(view.get(), Qt::Key_A, Qt::ControlModifier);
+        for (const char c : QByteArray("abc")) { QTest::keyClick(view.get(), c); }
+        QTest::keyClick(view.get(), Qt::Key_Tab);
+        settle();
+        QCOMPARE(field->property("text").toString(), QString("14"));
+        QCOMPARE(controller()->targetMs(), 14000.0);
+        // What is shown is what Remix makes.
+        const int base = model.undoStack()->count();
+        QTRY_VERIFY(item("remixApply")->property("enabled").toBool());
+        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(item("remixApply")));
+        QTRY_VERIFY_WITH_TIMEOUT(!dialog()->property("visible").toBool(), 30000);
+        QCOMPARE(clip("m").value("durationMs").toDouble(), 14000.0);
+        QCOMPARE(model.undoStack()->count(), base + 1);
+    }
+    void escapeDuringASliderDragGoesBackToTheCommittedValue() {
+        openMusic(false);
+        openDialogReady();
+        typeTarget("35");
+        QTRY_COMPARE(controller()->targetMs(), 35000.0);
+        const double before = controller()->segments();
+        auto* slider = item("remixSegments");
+        const auto right = slider->mapToScene(QPointF(slider->width() - 2, slider->height() / 2)).toPoint();
+        QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, center(slider));
+        QTest::mouseMove(view.get(), right, 20);
+        QTRY_COMPARE(controller()->segments(), 100.0);
+        QTest::keyClick(view.get(), Qt::Key_Escape);
+        settle();
+        QCOMPARE(controller()->segments(), before);
+        QVERIFY(dialog()->property("visible").toBool());  // Escape ended the drag, not the dialog
+        // The pointer comes back over the handle, which is where the cancelled value put it.
+        QTest::mouseMove(view.get(), center(slider), 20);
+        QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, center(slider));
+        settle();
+        QCOMPARE(controller()->segments(), before);
+        QVERIFY(dialog()->property("visible").toBool());
+    }
+    void reopeningWhileARevertWaitsForTheDownloadDoesNotBlockLaterReverts() {
+        openMusic(false);
+        // A saved remix opened in a new session: only the remix is on disk.
+        openDialogReady();
+        typeTarget("14");
+        QTRY_COMPARE(controller()->targetMs(), 14000.0);
+        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(item("remixApply")));
+        QTRY_VERIFY_WITH_TIMEOUT(!dialog()->property("visible").toBool(), 30000);
+        const auto remixed = clip("m");
+        // The original is fetched from the server: hold that call.
+        backend->gate.acquire(1000000);
+        QElapsedTimer timer;
+        timer.start();
+        QVERIFY(gestures()->runAction("revertRemix", {{"clipId", "m"}}));
+        QTRY_VERIFY(backend->waiting.load() == 1);
+        // Opening the dialog again cancels the pending revert and never waits for it.
+        QVERIFY(gestures()->runAction("remixClip", {{"clipId", "m"}}));
+        QVERIFY2(timer.elapsed() < 3000, "the GUI thread waited for the held download");
+        backend->gate.release(1000000);
+        QTRY_COMPARE_WITH_TIMEOUT(controller()->state(), QString("ready"), 20000);
+        QCOMPARE(clip("m"), remixed);  // the cancelled revert changed nothing
+        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(item("remixCancel")));
+        QTRY_VERIFY(!dialog()->property("visible").toBool());
+        // A later revert is not blocked.
+        const int base = model.undoStack()->count();
+        QVERIFY(gestures()->runAction("revertRemix", {{"clipId", "m"}}));
+        QTRY_COMPARE(model.undoStack()->count(), base + 1);
+        QCOMPARE(clip("m").value("currentAssetId").toString(), QString("asset-src"));
     }
     void theClipContextMenuOpensRemixAndRevertsIt() {
         openMusic(false);
