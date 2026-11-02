@@ -36,7 +36,14 @@ QJsonObject nt::colorpanel::isolatedClipDocument(const QJsonObject& snapshot, co
         if (track.value("id").toString() != clip.value("trackId").toString()) continue;
         track.insert("visible", true);
         track.remove("automation");
-        if (!trackEffects) track.remove("effects");
+        if (!trackEffects) {
+            // A track's key runs first, on pixels nothing has graded, so it stays in the picture.
+            QJsonArray keys;
+            for (const auto& effect : track.value("effects").toArray()) {
+                if (effect.toObject().value("type") == "chromaKey") keys.append(effect);
+            }
+            track.insert("effects", keys);
+        }
         tracks.append(track);
     }
     document.insert("tracks", tracks);

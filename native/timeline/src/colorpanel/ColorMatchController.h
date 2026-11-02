@@ -14,7 +14,8 @@ namespace nt::color { struct MatchResult; }
 namespace nt::colorpanel {
 // A document with one clip on its own: no other clips, no placement, opacity, transition, caption
 // or animation, and the given effects. What Match compares is the shot's own picture. The solver
-// runs the track's effects itself after the correction, so a probe leaves them out.
+// runs the track's effects itself after the correction, so a probe leaves them out, except a
+// key, which the renderer runs before anything is graded.
 QJsonObject isolatedClipDocument(const QJsonObject& snapshot, const QString& clipId, const QJsonArray& effects, bool trackEffects = true);
 }
 

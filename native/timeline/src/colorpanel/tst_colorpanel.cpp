@@ -699,6 +699,54 @@ private slots:
         QCOMPARE(effects[1].toObject().value("type").toString(), QString("vignette"));
     }
 
+    void aTrackKeyStaysInThePicture() {
+        // Two identical shots on a keyed track already match. Keying only one of them would read
+        // the green as part of the picture and grade the subject for nothing.
+        QImage keyed(640, 360, QImage::Format_RGB888);
+        keyed.fill(QColor(0, 255, 0));
+        QPainter(&keyed).drawImage(QRect(160, 0, 320, 360), scene());
+        const auto path = image("keyed", keyed);
+        auto a = clipJson("a", 0, 1000, path);
+        auto r = clipJson("r", 1000, 1000, path);
+        auto raw = documentOf({a, r});
+        const QJsonObject key{{"id", "key"}, {"type", "chromaKey"}, {"enabled", true}, {"keyColor", "#00ff00"}, {"tolerance", 0.2}, {"softness", 0.1}, {"spill", 0.5}};
+        auto tracks = raw.value("tracks").toArray();
+        auto track = tracks[0].toObject();
+        track.insert("effects", QJsonArray{key, QJsonObject{{"id", "cc"}, {"type", "colorCorrection"}, {"enabled", true}, {"brightness", 0.05}}});
+        tracks[0] = track;
+        raw.insert("tracks", tracks);
+        const auto probe = nt::colorpanel::isolatedClipDocument(raw, "a", QJsonArray{}, false);
+        QCOMPARE(probe.value("tracks").toArray()[0].toObject().value("effects").toArray(), QJsonArray{key});
+        TimelineModel model;
+        auto parsed = nt::parseTimeline(raw);
+        QVERIFY2(parsed.timeline, qPrintable(parsed.error));
+        model.setTimeline(std::move(*parsed.timeline));
+        PlaybackClock clock;
+        clock.setFps(30);
+        FrameCapture capture;
+        capture.setExecutable(QStringLiteral(NT_TIMELINE_BINARY));
+        capture.setTimeline(&model);
+        ColorMatchController matcher;
+        matcher.setCapture(&capture);
+        matcher.setClock(&clock);
+        matcher.setProtectSkin(false);
+        matcher.setClipId("r");
+        matcher.useSelectedShot();
+        QTRY_VERIFY_WITH_TIMEOUT(matcher.hasReference(), 60000);
+        matcher.setClipId("a");
+        QSignalSpy matched(&matcher, &ColorMatchController::matched);
+        matcher.match();
+        QTRY_VERIFY_WITH_TIMEOUT(matched.count() == 1, 120000);
+        qInfo().noquote() << "Matching a keyed shot to itself:" << matcher.lastDifferenceBefore() << matcher.lastDifferenceAfter()
+                          << QJsonDocument(model.clipsJson()[0].toObject().value("effects").toArray()).toJson(QJsonDocument::Compact);
+        QVERIFY2(matcher.lastDifferenceBefore() < 0.003, qPrintable(QString::number(matcher.lastDifferenceBefore())));
+        const auto wheels = model.clipsJson()[0].toObject().value("effects").toArray()[0].toObject();
+        for (int c = 0; c < 3; ++c) {
+            QVERIFY2(std::abs(wheels.value("gain").toArray()[c].toDouble() - 1) < 0.05, "A matching keyed shot was graded");
+            QVERIFY2(std::abs(wheels.value("gamma").toArray()[c].toDouble() - 1) < 0.05, "A matching keyed shot was graded");
+        }
+    }
+
     void unrelatedMissingMediaDoesNotStopAMatch() {
         const auto reference = image("missing-reference", scene());
         const auto current = image("missing-current", scene(10, -5));
