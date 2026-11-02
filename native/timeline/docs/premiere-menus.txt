@@ -169,7 +169,7 @@ Window > Audio Meters
 Window > Effect Controls
 Window > Effects
 Window > Essential Graphics
-Window > Essential Sound
+Window > Essential Sound = Audio
 Window > Events = Activity
 Window > History
 Window > Info
@@ -181,7 +181,7 @@ Window > Metadata
 Window > Program Monitor = Program
 Window > Progress
 Window > Project = Library
-Window > Reference Monitor
+Window > Reference Monitor = Reference
 Window > Source Monitor = Source
 Window > Text
 Window > Timecode

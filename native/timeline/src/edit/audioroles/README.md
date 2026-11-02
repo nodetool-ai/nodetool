@@ -30,14 +30,14 @@ would not be heard, and so is a lane that would pass 10000 points, the web schem
 be read leaves the existing ducking as it is.
 
 An unset role reads as Dialogue or Music for a generated voice or music clip, so there is nothing to clear on such a
-clip: the panel ignores a click on that role and the Clip menu's "No role" is off until a clip has the field. Choose
+clip: the panel ignores a click on that role and the Clip menu's "No Role" is off until a clip has the field. Choose
 another role to change it.
 
 ## Measuring
 
 `RoleAnalysis` takes an immutable `Timeline` snapshot and runs on a worker thread (`AudioRoles` owns it). It
-renders the clips through the same `buildMixPlan` and `mixBlock` as playback, in blocks, so clip effects, speed and
-time remaps count and a long recording is not held in memory. For a measurement the clip stands alone on a neutral
+renders the clips through the same `buildMixPlan` and `mixBlock` as playback, in blocks, so clip effects and speed
+count and a long recording is not held in memory. The mix does not apply time remaps, so neither does the measurement. For a measurement the clip stands alone on a neutral
 track with no fades, no track fader, pan or track effects and no master gain, at a clip volume of its own. The volume
 comes first, then the clip's effects, so a clip with effects (a compressor reacts to the level) is rendered again
 at the volume found and searched for (secant and bisection steps, up to seven more renders), keeping the closest. A mono file is measured

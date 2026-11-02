@@ -22,9 +22,11 @@ struct MenuItem {
     int order = 0;
     MenuPredicate checked = {};  // set: the item shows a checkmark
     QString disabledReason = {};  // what the menu says while `enabled` is false
-    QString submenu = {};  // set: a host menu that has this submenu shows the item there
+    QString submenu = {};  // set: the menu shows the item in this submenu, if the host supports submenus
+    MenuPredicate applies = {};  // set: false leaves the item out, for a target it can never work on
 };
 bool registerMenuItem(MenuItem item);
+const std::vector<MenuItem>& menuItems();
 
 // One item of the application menu bar. The predicates and `run` receive the
 // context from ShellMenus: `kind` is "shell", and `gestures` and `timeline`

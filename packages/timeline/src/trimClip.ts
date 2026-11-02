@@ -106,9 +106,12 @@ export function trimClip(
   const next: TimelineClip = {
     ...clip,
     startMs: nextStartMs,
-    durationMs: nextDurationMs,
-    ...(hold ? {} : { inPointMs: nextInPointMs, outPointMs: nextOutPointMs })
+    durationMs: nextDurationMs
   };
+  if (!hold) {
+    next.inPointMs = nextInPointMs;
+    next.outPointMs = nextOutPointMs;
+  }
   // A head trim moves the clip's start over still media, so each word keeps
   // its timeline instant: its clip-local time grows by what the head gained.
   // Words that fall outside the window stay stored and are not shown.

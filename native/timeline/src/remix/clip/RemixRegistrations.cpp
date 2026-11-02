@@ -88,12 +88,13 @@ const bool registered = [] {
         }, group});
 
     // The context menu of a clip. The context holds clipId and clip.
-    nt::app::registerMenuItem({"clip", "remixClip", "Remix…", {}, canRemix, "remix", 10});
-    nt::app::registerMenuItem({"clip", "revertRemix", "Revert remix", {}, canRevert, "remix", 11});
+    const auto audioClip = [](const QVariantMap& context) { return clipOf(context).value("mediaType").toString() == QStringLiteral("audio"); };
+    nt::app::registerMenuItem({"clip", "remixClip", "Remix…", {}, canRemix, "remix", 10, {}, QStringLiteral("Unlock the clip first."), {}, audioClip});
+    nt::app::registerMenuItem({"clip", "revertRemix", "Revert remix", {}, canRevert, "remix", 11, {}, QStringLiteral("This clip has no remix to revert."), {}, audioClip});
     // The Clip menu of the menu bar.
-    nt::app::registerShellMenuItem({"Clip", "remixClip", "Remix…", {}, {}, "remix", 10, canRemix, {}, {},
+    nt::app::registerShellMenuItem({"Clip", "remixClip", "Remix…", {}, {}, "remix", 30, canRemix, {}, {},
         QStringLiteral("Select an audio clip first.")});
-    nt::app::registerShellMenuItem({"Clip", "revertRemix", "Revert Remix", {}, {}, "remix", 11, canRevert, {}, {},
+    nt::app::registerShellMenuItem({"Clip", "revertRemix", "Revert Remix", {}, {}, "remix", 31, canRevert, {}, {},
         QStringLiteral("Select a remixed clip first.")});
     return true;
 }();

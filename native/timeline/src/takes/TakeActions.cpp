@@ -48,18 +48,18 @@ const bool registered = [] {
             return true;
         }, GROUP});
     const auto hasEditor = [](const QVariantMap& context) { return gesturesIn(context) != nullptr; };
-    nt::app::registerShellMenuItem({QStringLiteral("Clip"), QStringLiteral("takeRecord"), QStringLiteral("Record take switches"), {},
-        GROUP, {}, 2, hasEditor, [](const QVariantMap& context) {
+    nt::app::registerShellMenuItem({QStringLiteral("Clip"), QStringLiteral("takeRecord"), QStringLiteral("Record Take Switches"), {},
+        GROUP, QStringLiteral("takes"), 61, hasEditor, [](const QVariantMap& context) {
             auto* gestures = gesturesIn(context);
             auto* switcher = gestures ? switcherOf(*gestures) : nullptr;
             return switcher && switcher->recording();
-        }, {}});
-    nt::app::registerShellMenuItem({QStringLiteral("Clip"), QStringLiteral("takeGrid"), QStringLiteral("Show takes in the Program monitor"), {},
-        GROUP, {}, 1, hasEditor, [](const QVariantMap& context) {
+        }, {}, QStringLiteral("Open a timeline first.")});
+    nt::app::registerShellMenuItem({QStringLiteral("Clip"), QStringLiteral("takeGrid"), QStringLiteral("Show Takes in the Program Monitor"), {},
+        GROUP, QStringLiteral("takes"), 60, hasEditor, [](const QVariantMap& context) {
             auto* gestures = gesturesIn(context);
             auto* monitor = gestures ? MonitorViewState::forOwner(gestures) : nullptr;
             return monitor && monitor->displayMode() == VIEW_ID;
-        }, {}});
+        }, {}, QStringLiteral("Open a timeline first.")});
     return true;
 }();
 }
