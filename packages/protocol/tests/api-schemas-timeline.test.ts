@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  patchTimelineInput,
   clipGrainEffect,
   clipVersion,
   timelineClip,
@@ -58,6 +59,20 @@ const beat = {
 };
 
 describe("native editor fields", () => {
+  it("preserves optional drop-frame display through root sequence schemas", () => {
+    for (const dropFrame of [true, false]) {
+      const sequence = { ...legacySequence, dropFrame };
+      expect(timelineDocument.parse(sequence)).toHaveProperty("dropFrame", dropFrame);
+      expect(timelineSequenceResponse.parse(sequence)).toHaveProperty("dropFrame", dropFrame);
+      expect(patchTimelineInput.parse({ document: sequence }).document).toHaveProperty("dropFrame", dropFrame);
+    }
+    for (const schema of [timelineDocument, timelineSequenceResponse]) {
+      expect(schema.parse(legacySequence)).not.toHaveProperty("dropFrame");
+      expect(schema.safeParse({ ...legacySequence, dropFrame: 1 }).success).toBe(false);
+    }
+    expect(patchTimelineInput.safeParse({ document: { ...legacySequence, dropFrame: "true" } }).success).toBe(false);
+  });
+
   const base = { id: "m1", timeMs: 1000, label: "Beat" };
 
   it("keeps a marker's duration and author through the document and sequence schemas", () => {

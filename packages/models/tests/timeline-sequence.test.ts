@@ -53,6 +53,15 @@ async function createSeq(
 describe("TimelineSequence model", () => {
   beforeEach(setup);
 
+  it("round-trips drop-frame display and leaves it absent when unset", async () => {
+    const dropFrame = await createSeq("u1", "p1", "Drop", makeDocument({ dropFrame: true }));
+    expect(dropFrame.toTimelineSequence().dropFrame).toBe(true);
+    const legacy = await createSeq("u1", "p1", "Legacy", makeDocument());
+    const sequence = legacy.toTimelineSequence();
+    expect(sequence.dropFrame).toBeUndefined();
+    expect(JSON.parse(TimelineSequence.fromTimelineSequence("u1", sequence).document)).not.toHaveProperty("dropFrame");
+  });
+
   it("round-trips the moving camera and an explicit camera clear", async () => {
     const camera2d = {
       position: { x: 10, y: 20 }, depthPx: 50, focalLengthPx: 1000,

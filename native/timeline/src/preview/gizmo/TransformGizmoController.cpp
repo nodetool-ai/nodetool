@@ -43,6 +43,8 @@ TransformGizmoController::TransformGizmoController(QQuickItem* parent) : QQuickP
     setAntialiasing(true);
     connect(this, &QQuickItem::widthChanged, this, &TransformGizmoController::refresh);
     connect(this, &QQuickItem::heightChanged, this, &TransformGizmoController::refresh);
+    connect(this, &QQuickItem::xChanged, this, &TransformGizmoController::refresh);
+    connect(this, &QQuickItem::yChanged, this, &TransformGizmoController::refresh);
     connect(this, &QQuickItem::activeFocusChanged, this, [this]() { update(); });
 }
 TransformGizmoController::~TransformGizmoController() { end(); }
@@ -102,9 +104,14 @@ void TransformGizmoController::discover() {
     m_monitorConnections.clear();
     QList<QQuickItem*> pending{root};
     QPointer<ClipGestureController> gestures;
+    bool frameFound = false;
     while (!pending.isEmpty()) {
         auto* item = pending.takeLast();
-        if (item->objectName() == "previewCompositor") { m_monitor = item; }
+        // The frame is the whole picture. The compositor covers only the part on screen when zoomed.
+        if (item->objectName() == "previewFrame" || (item->objectName() == "previewCompositor" && !frameFound)) {
+            frameFound = frameFound || item->objectName() == "previewFrame";
+            m_monitor = item;
+        }
         if (auto* controller = qobject_cast<ClipGestureController*>(item)) { gestures = controller; }
         pending.append(item->childItems());
     }

@@ -56,6 +56,20 @@ const QByteArray kFlexDoc = R"({"id":"s","name":"flex","fps":30,"width":400,"hei
 class TestFlexLayout : public QObject {
     Q_OBJECT
 private slots:
+    void dropFrameDocument() {
+        TimelineModel model;
+        for (const auto& value : {QJsonValue(true), QJsonValue(false), QJsonValue(QJsonValue::Undefined)}) {
+            QJsonObject root{{"fps", 29.97}, {"width", 1920}, {"height", 1080},
+                             {"tracks", QJsonArray{}}, {"clips", QJsonArray{}}};
+            if (!value.isUndefined()) { root.insert("dropFrame", value); }
+            const auto parsed = parseTimeline(root);
+            QVERIFY(parsed.timeline);
+            QCOMPARE(parsed.timeline->dropFrame, value.toBool());
+            model.setTimeline(*parsed.timeline);
+            QCOMPARE(model.property("dropFrame"), QVariant(value.toBool()));
+            QCOMPARE(QJsonDocument::fromJson(model.documentJson()).object(), root);
+        }
+    }
     void toFixedMatchesJavaScript() {
         // (x).toFixed(f) in Node.
         QCOMPARE(jsToFixed(2.5, 0), QStringLiteral("3"));

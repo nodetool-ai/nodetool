@@ -52,6 +52,13 @@ function(nt_preview_tests)
     endif()
     target_link_libraries(tst_sourcepool PRIVATE Qt6::Network)
 
+    nt_qt_test(tst_monitorcompositor
+        SOURCES src/preview/tst_monitorcompositor.cpp src/preview/hw/HwWindow.cpp
+        LIBS timeline_core timeline_decode timeline_server Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::Test)
+    nt_add_timeline_qml(tst_monitorcompositor)
+    set_tests_properties(tst_monitorcompositor PROPERTIES LABELS render
+        ENVIRONMENT_MODIFICATION "QT_QUICK_BACKEND=unset:")
+
     # M4 exit 3: an edit reaches the preview on the next frame. Renders with
     # QQuickRenderControl on the platform QRhi (no window), so it links the
     # compositor and the model directly instead of the QML module.
@@ -70,7 +77,7 @@ function(nt_preview_tests)
     qt_add_shaders(tst_editpreview "tst_editpreview_shaders"
         PREFIX "/shaders"
         BASE shaders
-        FILES shaders/composite.vert shaders/composite.frag)
+        FILES shaders/composite.vert shaders/composite.frag shaders/monitorview.frag)
     add_test(NAME tst_editpreview COMMAND tst_editpreview)
     # The label `render` marks the tests that need the platform QRhi: no
     # QT_QPA_PLATFORM=offscreen (that platform has no QRhi, so Qt Quick falls back

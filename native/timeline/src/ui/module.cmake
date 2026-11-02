@@ -1,4 +1,8 @@
 nt_sources(core
+    src/ui/MonitorViewMath.h
+    src/ui/MonitorViewMath.cpp
+    src/ui/Timecode.h
+    src/ui/Timecode.cpp
     src/ui/TimelineWheel.h
     src/ui/TimelineWheel.cpp
     src/ui/TimelineFormat.h
@@ -25,6 +29,12 @@ nt_qml_files(qml/Tracks/ToolbarDivider.qml)
 nt_qml_files(qml/Tracks/ToolToggle.qml)
 nt_qml_files(qml/Tracks/ShortcutsSheet.qml)
 nt_sources(qml
+    src/ui/MonitorViewState.h
+    src/ui/MonitorViewState.cpp
+    src/ui/MonitorRulerCanvas.h
+    src/ui/MonitorRulerCanvas.cpp
+    src/ui/MonitorViewRegistry.h
+    src/ui/MonitorMenus.cpp
     src/ui/TimelineViewState.h
     src/ui/TimelineViewState.cpp
     src/ui/TimelineGestureArea.h
@@ -42,6 +52,22 @@ nt_sources(qml
 )
 
 function(nt_ui_tests)
+    qt_add_executable(tst_monitorui src/ui/tst_monitorui.cpp ${NT_app})
+    set_target_properties(tst_monitorui PROPERTIES MACOSX_BUNDLE FALSE)
+    target_include_directories(tst_monitorui PRIVATE src/wiring)
+    target_link_libraries(tst_monitorui PRIVATE timeline_core timeline_decode timeline_audio timeline_server
+        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
+    nt_add_timeline_qml(tst_monitorui OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_monitorui_qml/NodeTool/Timeline)
+    qt_add_resources(tst_monitorui monitor_test_views PREFIX /monitor-test BASE src/ui
+        FILES src/ui/tests_qml/TestMonitorView.qml src/ui/tests_qml/TestMonitorPictureView.qml)
+    add_test(NAME tst_monitorui COMMAND tst_monitorui)
+    set_tests_properties(tst_monitorui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    nt_qt_test(tst_monitorview SOURCES src/ui/tst_monitorview.cpp
+        src/ui/MonitorViewState.cpp src/ui/MonitorViewState.h
+        LIBS timeline_core Qt6::Qml Qt6::Test)
+    nt_qt_test(tst_timecode SOURCES src/ui/tst_timecode.cpp src/wiring/RulerProviders.cpp
+        src/ui/TimelineViewState.cpp src/ui/TimelineViewState.h src/ui/TimelineFormatQml.h
+        LIBS timeline_core Qt6::Qml Qt6::Test)
     qt_add_executable(tst_thumbnailcache tests/tst_thumbnailcache.cpp
         src/ui/ThumbnailDiskCache.cpp src/ui/MediaPreviews.cpp src/ui/MediaPreviews.h
         src/ui/TimelineViewState.cpp src/ui/TimelineViewState.h)
