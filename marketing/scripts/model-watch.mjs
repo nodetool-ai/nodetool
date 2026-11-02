@@ -8,7 +8,9 @@
  *   1. `marketing/src/data/modelProviderCoverage.generated.ts` — the launch
  *      model slugs (seedance, flux, imagen, …). An id that contains a launch
  *      slug is already covered by a page.
- *   2. `model-watch.watchlist.json` — ids a maintainer has decided NOT to page.
+ *   2. `model-watch.watchlist.json` — ids a maintainer has decided NOT to page,
+ *      and `aliases`, extra names a covered page answers to (an id the page
+ *      slug does not appear in, such as `gemini-25-flash-image` for Nano Banana).
  * Anything left over is a **new** model: a signal (not content) that a page
  * might be worth writing. The report is machine-readable and consumed by OPS-2
  * (`.github/workflows/model-watch.yml`), which opens one issue per provider
@@ -95,7 +97,8 @@ export function loadWatchlist(json) {
   for (const [prov, ids] of Object.entries(json?.providers ?? {})) {
     byProvider.set(prov, new Set((ids ?? []).map((s) => String(s).toLowerCase())));
   }
-  return { all, byProvider };
+  const aliases = (json?.aliases ?? []).map((s) => String(s).toLowerCase());
+  return { all, byProvider, aliases };
 }
 
 function isIgnored(providerId, modelId, watchlist) {
@@ -232,6 +235,8 @@ function main() {
       ? JSON.parse(readFileSync(WATCHLIST_FILE, "utf8"))
       : {}
   );
+
+  knownSlugs.push(...watchlist.aliases);
 
   const providerIds = opts.providers ?? PROVIDERS;
 

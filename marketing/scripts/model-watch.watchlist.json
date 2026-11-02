@@ -1,5 +1,12 @@
 {
-  "note": "Model ids the watcher should stay quiet about. A provider constantly ships models NodeTool has no /models page for; once a maintainer decides an id does NOT warrant a page, list it here and it stops showing up as 'new'. `all` is applied to every provider; `providers.<id>` scopes an id to one provider. Matching is exact (case-insensitive) against the model id returned by `generate <provider> --list-models --json`.",
+  "note": "Model ids the watcher should stay quiet about. A provider constantly ships models NodeTool has no /models page for; once a maintainer decides an id does NOT warrant a page, list it here and it stops showing up as 'new'. `aliases` lists extra names that a covered /models page answers to, so ids carrying them count as covered. `all` is applied to every provider; `providers.<id>` scopes an id to one provider. Matching is exact (case-insensitive) against the model id returned by `generate <provider> --list-models --json`.",
+  "aliases": [
+    "gemini-25-flash-image",
+    "gemini-3-pro-image-preview",
+    "gemini-3.1-flash-image-preview",
+    "imagen3",
+    "imagen4"
+  ],
   "all": [],
   "providers": {
     "fal_ai": [
@@ -36,7 +43,13 @@
       "fal-ai/dreamshaper",
       "fal-ai/playground-v25",
       "fal-ai/pixart-sigma",
-      "fal-ai/aura-flow"
+      "fal-ai/aura-flow",
+      "fal-ai/arbiter/image",
+      "fal-ai/arbiter/image/image",
+      "fal-ai/arbiter/image/text",
+      "fal-ai/marlin",
+      "fal-ai/marlin/find",
+      "fal-ai/scene-finder"
     ],
     "replicate": [],
     "kie": [],
