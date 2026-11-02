@@ -13,7 +13,7 @@ bool hasFillers(const QVariantMap& context) {
 }
 const bool registered = [] {
     const QString noFillers = QStringLiteral("No filler words in the captions.");
-    nt::app::registerMenuItem({"ruler", "assist.removeFillers", "Remove filler words", {}, hasFillers, {}, 0, {}, noFillers, {}, hasFillers});
+    nt::app::registerMenuItem({"ruler", "assist.removeFillers", "Remove filler words", {}, {}, {}, 0, {}, {}, {}, hasFillers});
     nt::app::registerShellMenuItem({"Sequence", "assist.removeFillers", "Remove Filler Words", {}, {}, "assist", 35, hasFillers, {}, {}, noFillers});
     nt::wiring::registerKeyAction({"assist.removeFillers", "Remove filler words", {},
         [](ClipGestureController& gestures, const QVariantMap&) {
