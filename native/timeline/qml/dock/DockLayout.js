@@ -2,11 +2,48 @@
 
 var regions = ["left", "right", "bottom", "viewport"];
 var workspaces = ["Editing", "Script", "Assistant", "Review"];
+// Presets only this editor has, so they stay out of the port below. The web list
+// above must match TIMELINE_WORKSPACES, which dock-conformance.mjs checks.
+var nativeWorkspaces = ["Color", "Audio"];
 var sidePanels = ["inspector", "shot", "instruments", "assistant", "history", "code"];
 var requiredPanels = ["program", "tracks"];
 
 // Field-for-field port of TimelineDockLayout.ts, checked by dock-conformance.mjs.
 function createLayout(name) {
+    var layout = createWebLayout(name);
+    if (nativeWorkspaces.indexOf(name) >= 0) { applyNativePreset(layout, name); }
+    return layout;
+}
+function workspaceNames() { return workspaces.concat(nativeWorkspaces); }
+function webWorkspaceNames() { return workspaces; }
+// A panel that is not built yet is simply not shown: the group falls back to its
+// next panel, and an empty group takes no room. Listing the left panels makes
+// them part of the preset, so they can be hidden. "color", "scopes" and "audio"
+// are the ids of the panels the two workspaces are for.
+function applyNativePreset(layout, name) {
+    var leftPanels = ["transcript", "storyboard", "script", "entities", "assets"];
+    var workArea = name === "Color" ? "scopes" : "mixer";
+    var controls = name === "Color" ? "color" : "audio";
+    layout.regions.left[0].panels = leftPanels;
+    layout.regions.left[0].activePanelId = leftPanels[0];
+    layout.regions.right[0].panels = [controls].concat(sidePanels);
+    layout.regions.right[0].activePanelId = controls;
+    layout.regions.viewport[1].panels = ["source", workArea];
+    layout.regions.viewport[1].activePanelId = workArea;
+    layout.sizes = {left: 320, right: 400, bottom: 280};
+    layout.hidden = leftPanels.concat(["source"]);
+}
+// What a native preset hides is its own choice. Leaving it would hide those
+// panels in the next workspace too, the first time that one opens.
+function presetFromWorkspace(layout, from, name) {
+    if (nativeWorkspaces.indexOf(from) < 0) { return presetWithExtensions(layout, name); }
+    var next = clone(layout);
+    var own = createLayout(from).hidden;
+    next.hidden = next.hidden.filter(function(id) { return own.indexOf(id) < 0; });
+    return presetWithExtensions(next, name);
+}
+
+function createWebLayout(name) {
     var layout = {
         version: 1,
         regions: {

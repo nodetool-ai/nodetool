@@ -5,6 +5,7 @@ import {
   timelineClip,
   timelineDocument,
   timelineSequenceResponse,
+  timelineMarker,
   timelineSetup,
   timelineSetupStage,
   type ClipModel3DStyle,
@@ -55,6 +56,34 @@ const beat = {
   voiceover: "It starts before the light does.",
   music: true
 };
+
+describe("native editor fields", () => {
+  const base = { id: "m1", timeMs: 1000, label: "Beat" };
+
+  it("keeps a marker's duration and author through the document and sequence schemas", () => {
+    const marker = { ...base, durationMs: 2500, author: "Ana" };
+    expect(timelineMarker.parse(marker)).toEqual(marker);
+    expect(timelineDocument.parse({ ...legacySequence, markers: [marker] }).markers).toEqual([marker]);
+    expect(timelineSequenceResponse.parse({ ...legacySequence, markers: [marker] }).markers).toEqual([marker]);
+  });
+
+  it("still accepts a marker without the new fields", () => {
+    expect(timelineMarker.parse(base)).toEqual(base);
+  });
+
+  it("refuses a negative marker duration", () => {
+    expect(timelineMarker.safeParse({ ...base, durationMs: -1 }).success).toBe(false);
+  });
+
+  it("keeps a clip's audio role and refuses an unknown one", () => {
+    const clip = model3dClip;
+    expect(timelineClip.parse(clip).audioRole).toBeUndefined();
+    for (const audioRole of ["dialogue", "music", "sfx", "ambience"]) {
+      expect(timelineClip.parse({ ...clip, audioRole }).audioRole).toBe(audioRole);
+    }
+    expect(timelineClip.safeParse({ ...clip, audioRole: "narration" }).success).toBe(false);
+  });
+});
 
 describe("track folders", () => {
   it("preserves folder membership through document and sequence schemas", () => {

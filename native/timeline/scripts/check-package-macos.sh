@@ -82,7 +82,7 @@ done
 
 # Full licence texts and the source information (review F8).
 lic="$app/Contents/Resources/licenses"
-for name in Qt-LGPL-3.0 Qt-GPL-3.0 FFmpeg-LGPL-2.1 miniaudio Inter-OFL-1.1 JetBrainsMono-OFL-1.1 MUI-MIT Material-Icons-Apache-2.0 Yoga-MIT; do
+for name in Qt-LGPL-3.0 Qt-GPL-3.0 FFmpeg-LGPL-2.1 miniaudio Inter-OFL-1.1 JetBrainsMono-OFL-1.1 MUI-MIT Material-Icons-Apache-2.0 Yoga-MIT FilmCraft-MIT; do
     f="$lic/$name.txt"
     if [[ ! -s "$f" ]] || [[ $(wc -l < "$f") -lt 10 ]]; then fail+=("licence text $name is missing or not the full text"); fi
 done
@@ -92,6 +92,9 @@ done
 grep -q "Permission is hereby granted" "$lic/Yoga-MIT.txt" 2> /dev/null || fail+=("Yoga licence is not the MIT text")
 grep -q "^Yoga 3.2.1 (MIT), compiled in" "$app/Contents/Resources/source/SOURCES.txt" 2> /dev/null ||
     fail+=("SOURCES.txt does not name Yoga")
+grep -q "Permission is hereby granted" "$lic/FilmCraft-MIT.txt" 2> /dev/null || fail+=("FilmCraft licence is not the MIT text")
+grep -q "^FilmCraft (MIT)" "$app/Contents/Resources/source/SOURCES.txt" 2> /dev/null ||
+    fail+=("SOURCES.txt does not name FilmCraft")
 grep -q "GNU LESSER GENERAL PUBLIC LICENSE" "$lic/Qt-LGPL-3.0.txt" 2> /dev/null || fail+=("Qt LGPL text is not the licence")
 grep -q "Version 2.1, February 1999" "$lic/FFmpeg-LGPL-2.1.txt" 2> /dev/null || fail+=("FFmpeg LGPL text is not the licence")
 srcdir="$app/Contents/Resources/source"

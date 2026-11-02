@@ -37,6 +37,29 @@ QJsonObject nt::exporting::exportSnapshot(const TimelineModel& model) {
     return raw;
 }
 
+QString nt::exporting::unavailableOriginalMedia(const nt::Timeline& timeline, bool videoOutput) {
+    for (const auto& clip : timeline.clips) {
+        const auto label = QString::fromStdString(clip.name.empty() ? clip.id : clip.name);
+        if (videoOutput && (clip.mediaType == nt::MediaType::Video || clip.mediaType == nt::MediaType::Image)) {
+            const auto assetId = clip.raw.value("currentAssetId").toString();
+            if (!assetId.isEmpty() && clip.originalMediaPath.empty()) {
+                return QStringLiteral("The original media for %1 is unavailable. Reconnect and reload the timeline before exporting.").arg(label);
+            }
+            if (!clip.originalMediaPath.empty() && !QFileInfo::exists(QString::fromStdString(clip.originalMediaPath))) {
+                return QStringLiteral("The original media for %1 is missing from the cache. Reconnect and reload the timeline before exporting.").arg(label);
+            }
+        }
+        const auto matte = clip.raw.value("generatedMatte").toObject();
+        if (videoOutput && !matte.value("assetId").toString().isEmpty() && matte.value("mediaPath").toString().isEmpty() &&
+            matte.value("status").toString("ready") == "ready") {
+            if (clip.generatedMattePath.empty() || !QFileInfo::exists(QString::fromStdString(clip.generatedMattePath))) {
+                return QStringLiteral("The original generated matte for %1 is unavailable. Reconnect and reload the timeline before exporting.").arg(label);
+            }
+        }
+    }
+    return {};
+}
+
 ExportController::ExportController(QObject* parent) : QObject(parent) {
     connect(&m_process, &QProcess::stateChanged, this, &ExportController::runningChanged);
     connect(&m_process, &QProcess::readyReadStandardError, this, &ExportController::readProgress);
@@ -97,28 +120,8 @@ void ExportController::start(const QString& output, const QString& format, bool 
     if (running()) return;
     if (!m_timeline) { fail(QStringLiteral("Open a timeline before exporting.")); return; }
     const bool videoOutput = format != u"wav" && format != u"mp3";
-    for (const auto& clip : m_timeline->timeline().clips) {
-        const auto label = QString::fromStdString(clip.name.empty() ? clip.id : clip.name);
-        if (videoOutput && (clip.mediaType == nt::MediaType::Video || clip.mediaType == nt::MediaType::Image)) {
-            const auto assetId = clip.raw.value("currentAssetId").toString();
-            if (!assetId.isEmpty() && clip.originalMediaPath.empty()) {
-                fail(QStringLiteral("The original media for %1 is unavailable. Reconnect and reload the timeline before exporting.").arg(label));
-                return;
-            }
-            if (!clip.originalMediaPath.empty() && !QFileInfo::exists(QString::fromStdString(clip.originalMediaPath))) {
-                fail(QStringLiteral("The original media for %1 is missing from the cache. Reconnect and reload the timeline before exporting.").arg(label));
-                return;
-            }
-        }
-        const auto matte = clip.raw.value("generatedMatte").toObject();
-        if (videoOutput && !matte.value("assetId").toString().isEmpty() && matte.value("mediaPath").toString().isEmpty() &&
-            matte.value("status").toString("ready") == "ready") {
-            if (clip.generatedMattePath.empty() || !QFileInfo::exists(QString::fromStdString(clip.generatedMattePath))) {
-                fail(QStringLiteral("The original generated matte for %1 is unavailable. Reconnect and reload the timeline before exporting.").arg(label));
-                return;
-            }
-        }
-    }
+    const auto unavailable = nt::exporting::unavailableOriginalMedia(m_timeline->timeline(), videoOutput);
+    if (!unavailable.isEmpty()) { fail(unavailable); return; }
     m_mediaLeases = nt::assets::MediaProtection::leasePaths(m_timeline->resolvedMediaPaths());
     m_activityId = nt::activity::LocalActivityStore::instance().begin(
         nt::activity::localScope(m_timeline->timeline().raw), QStringLiteral("Export %1").arg(m_timeline->name()), this, output);

@@ -39,7 +39,7 @@ const Fields kClipInert = {
     QStringLiteral("storyboardElementRole"), QStringLiteral("storyboardMaterializationBaseline"),
     QStringLiteral("scriptId"), QStringLiteral("scriptLineId"), QStringLiteral("beatId"), QStringLiteral("locked"),
     QStringLiteral("versions"), QStringLiteral("speaker"), QStringLiteral("paragraphId"),
-    QStringLiteral("sourceScene"), QStringLiteral("outPointMs"),
+    QStringLiteral("sourceScene"), QStringLiteral("outPointMs"), QStringLiteral("audioRole"),
 };
 // Read by SceneEval (M1e): groups, animations, repeats, stepped time, the
 // whole transform and transition, the camera. `animations` entries are
@@ -87,6 +87,12 @@ const Fields kSequenceInert = {
     QStringLiteral("updatedAt"), QStringLiteral("markers"), QStringLiteral("trackFolders"),
     QStringLiteral("storyboardMaterializations"), QStringLiteral("transcript"), QStringLiteral("scriptEnabled"),
     QStringLiteral("setup"), QStringLiteral("templateId"), QStringLiteral("source"), QStringLiteral("mediaTracks"),
+};
+// Annotations on the ruler: no field reaches picture or sound. The list matches
+// `timelineMarker` in the protocol schema, which strips any other field on save.
+const Fields kMarkerFields = {
+    QStringLiteral("id"), QStringLiteral("timeMs"), QStringLiteral("label"), QStringLiteral("color"),
+    QStringLiteral("note"), QStringLiteral("durationMs"), QStringLiteral("author"),
 };
 const Fields kSequenceAudio = {QStringLiteral("tempo")};
 const Fields kSequenceScene = {QStringLiteral("camera2d")};  // read by SceneEval
@@ -272,6 +278,14 @@ QJsonObject auditTimelineFields(const QJsonObject& sequence) {
         seq.add(key, kSequenceAudio.contains(key) ? "audio" : "unknown");
     }
     tally(QStringLiteral("sequence"), seq.entries);
+    for (const QJsonValue& mv : sequence.value(u"markers").toArray()) {
+        const QJsonObject marker = mv.toObject();
+        Collector c;
+        for (auto it = marker.begin(); it != marker.end(); ++it) {
+            if (!kMarkerFields.contains(it.key())) c.add(it.key(), "unknown");
+        }
+        tally(QStringLiteral("marker"), c.entries);
+    }
 
     QJsonArray tracks;
     for (const QJsonValue& tv : sequence.value(u"tracks").toArray()) {

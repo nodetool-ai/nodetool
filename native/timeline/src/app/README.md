@@ -64,9 +64,10 @@ linker. Register extensions at startup, before dispatch or QML engine creation.
   panels horizontally, and overlays fill the editor. The QML component owns
   its natural dimensions. Equal orders preserve registration order.
   `PanelRegistry.forSlot(slot)` returns the descriptors.
-- `registerMenuItem({kind, action, label, shortcut, enabled})` adds a context
-  item. `MenuRegistry.query(kind, context)` evaluates its enabled predicate.
-  An omitted predicate enables the item. Menu rendering belongs to package G.
+- `registerMenuItem({kind, action, label, shortcut, enabled, group, order, checked})`
+  adds a context item. `MenuRegistry.query(kind, context)` evaluates its predicates
+  and returns the items in display order. An omitted `enabled` enables the item.
+  `registerShellMenuItem` adds a menu bar item. See `src/wiring/README.md` for both.
 
 Builtin edit names follow `EditActions.h`: `moveClip`, `moveSelectedClips`,
 `splitClipAtTime`, `splitSelectedAtPlayhead`, `deleteSelected`,

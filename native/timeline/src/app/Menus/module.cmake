@@ -11,7 +11,8 @@ function(nt_shell_tests)
     if(UNIX AND NOT APPLE)
         target_sources(tst_appshell PRIVATE src/preview/hw/HwWindow.h src/preview/hw/HwWindow.cpp)
     endif()
-    add_test(NAME tst_appshell_menus COMMAND tst_appshell shellRegistration menus conversions dispatch)
+    add_test(NAME tst_appshell_menus COMMAND tst_appshell shellRegistration menus conversions dispatch
+        registeredEntriesRefuseBadInput registeredEntriesInDescription registeredEntryDispatch registeredEntriesInPlatformMenus)
     set_tests_properties(tst_appshell_menus PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;NODETOOL_TIMELINE_PREFERENCES=${CMAKE_CURRENT_BINARY_DIR}/shell-test-startup.ini")
     qt_add_executable(tst_appshell_isolation src/app/Menus/tst_appshell_isolation.cpp
         src/app/PanelRegistry.cpp "${CMAKE_CURRENT_BINARY_DIR}/nt_qml_panels.cpp")

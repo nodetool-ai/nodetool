@@ -22,6 +22,25 @@ for (const name of workspaces) { compare('createLayout', [name], web.createLayou
 assert.ok(comparisons >= 4, 'Oracle must compare all workspaces');
 console.log(`Dock oracle: ${comparisons} comparisons passed`);
 
+// Native-only presets stay out of the ported list, and a name the web model
+// does not know keeps its default layout there.
+function native(method, args = []) {
+  const run = spawnSync(process.argv[2], [], { input: JSON.stringify({ method, args }) + '\n', encoding: 'utf8', timeout: 10000 });
+  assert.equal(run.status, 0, run.stderr);
+  const result = JSON.parse(run.stdout);
+  assert.ok(!result.error, result.error);
+  return result.value;
+}
+compare('webWorkspaceNames', [], workspaces);
+const nativeOnly = native('workspaceNames').filter(name => !workspaces.includes(name));
+assert.ok(nativeOnly.length >= 2, 'Native-only workspaces must be inspected');
+for (const name of nativeOnly) {
+  assert.ok(native('valid', [native('createLayout', [name])]), `${name} must be a valid layout`);
+  assert.notDeepEqual(native('createLayout', [name]), native('createLayout'), `${name} must differ from the default`);
+  assert.deepEqual(web.createLayout(name), web.createLayout(), `The web model has no ${name} workspace`);
+  comparisons += 2;
+}
+
 let layout = web.createLayout();
 const extensions = [
   { id: 'assets', title: 'Library', icon: null, defaultRegion: 'left' },

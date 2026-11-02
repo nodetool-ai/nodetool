@@ -18,6 +18,8 @@ Controls.Control {
     readonly property bool chatOpen: chatSession !== null && dockCanvas.visiblePanels.indexOf("assistant") >= 0
     readonly property alias dockStore: layoutStore
     readonly property alias dockCanvas: dockCanvas
+    // One per editor, because each runs a helper process while in use.
+    readonly property FrameCapture frameCapture: FrameCapture { timeline: root.timeline }
     readonly property var dockPanels: {
         const panels = [{id: "program", title: "Program", defaultRegion: "viewport"},
                         {id: "tracks", title: "Timeline", defaultRegion: "bottom"}]
