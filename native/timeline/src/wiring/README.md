@@ -80,8 +80,9 @@ is discovered automatically. Other QML needs `nt_qml_files(...)`.
   `workspaces`. Each preset names the panels it is for, so a new panel with the id `color` or
   `scopes` (Color), or `audio` (Audio), appears in place when it registers with
   `registerPanel`. No workspace needs editing. A preset's hidden list applies only to
-  that preset, through `presetFromWorkspace`. `DockLayoutStore.workspaces` lists both, and
-  `Alt+Shift+N` follows that order.
+  that preset, through `presetFromWorkspace`. `nativeHidden` lists a native panel that a ported
+  preset would otherwise show, as Review does for `color`. `DockLayoutStore.workspaces` lists
+  both, and `Alt+Shift+N` follows that order.
 - Licences: an algorithm ported from FilmCraft keeps its notice in
   `licenses/FilmCraft-MIT.txt`. The Linux and Windows packages copy `licenses/*.txt`. The macOS
   package copies named files, so a new file also goes in `scripts/package-macos.sh` and
@@ -97,5 +98,12 @@ is discovered automatically. Other QML needs `nt_qml_files(...)`.
   `frameCancelled` follows later on the GUI thread. `cancel(id)` drops a frame nobody needs,
   so a scrubbing view cancels its previous request. Sequence frames read the document as it was
   at the request, so an edit made afterwards shows only in later requests. A source time past the end
-  gives the last frame. Capture changes no model, clock or undo stack. Show a frame with
-  `FrameImage { image: frame }`, which draws it aspect-fit and nothing else.
+  gives the last frame. `captureDocument(raw, timeMs, callback)` renders a document other than the
+  timeline's, built from `exportSnapshot`, such as one clip on its own. Capture changes no model,
+  clock or undo stack. Show a frame with `FrameImage { image: frame }`, which draws it aspect-fit
+  and nothing else, or set `stretch` to fill the item.
+- Scopes: `ScopesController` (`colorpanel/ScopesController.h`) keeps trace images of the frame at the
+  playhead while `active`, one capture at a time, on its own worker thread. For numbers, call
+  `readNumbers(timeMs, options, callback)`, or `nt::scopes::readNumbers(signal, options)` on a frame
+  you already hold. A reader needs only `capture` set. The maths is in `src/color`, and takes no Qt
+  GUI thread.

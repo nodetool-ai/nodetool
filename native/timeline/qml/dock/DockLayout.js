@@ -7,8 +7,9 @@ var workspaces = ["Editing", "Script", "Assistant", "Review"];
 var nativeWorkspaces = ["Color", "Audio"];
 var sidePanels = ["inspector", "shot", "instruments", "assistant", "history", "code"];
 var requiredPanels = ["program", "tracks"];
-// Registered native panels that the Review preset hides with the other side panels.
-var nativeSidePanels = ["effectControls"];
+// Panels only this editor has, which a ported preset would otherwise show. Review leaves the
+// right side empty for the picture, and the port above keeps its own list of what it hides.
+var nativeHidden = {Review: ["effectControls", "color"]};
 
 // Field-for-field port of TimelineDockLayout.ts, checked by dock-conformance.mjs.
 function createLayout(name) {
@@ -38,14 +39,8 @@ function applyNativePreset(layout, name) {
 // What a native preset hides is its own choice. Leaving it would hide those
 // panels in the next workspace too, the first time that one opens.
 function presetFromWorkspace(layout, from, name) {
-    if (from === "Review") {
-        var shown = clone(layout);
-        shown.hidden = shown.hidden.filter(function(id) { return nativeSidePanels.indexOf(id) < 0; });
-        return presetWithExtensions(shown, name);
-    }
-    if (nativeWorkspaces.indexOf(from) < 0) { return presetWithExtensions(layout, name); }
     var next = clone(layout);
-    var own = createLayout(from).hidden;
+    var own = nativeWorkspaces.indexOf(from) >= 0 ? createLayout(from).hidden : (nativeHidden[from] || []);
     next.hidden = next.hidden.filter(function(id) { return own.indexOf(id) < 0; });
     return presetWithExtensions(next, name);
 }
@@ -134,7 +129,7 @@ function checked(layout) {
     return layout;
 }
 function hydrate(value) { return valid(value) ? clone(value) : createLayout(); }
-function registerMissingPanels(layout, panels) {
+function registerMissingPanels(layout, panels, workspace) {
     var next = clone(layout);
     var placed = new Set(allGroups(next).reduce(function(ids, group) { return ids.concat(group.panels); }, []));
     var ids = new Set(allGroups(next).map(function(group) { return group.id; }));
@@ -148,6 +143,8 @@ function registerMissingPanels(layout, panels) {
         if (entries.length) { entries[0].panels.push(panel.id); }
         else { entries.push({id: id, panels: [panel.id], activePanelId: panel.id}); }
         placed.add(panel.id);
+        // A saved workspace gets the same answer its preset would give.
+        if ((nativeHidden[workspace] || []).indexOf(panel.id) >= 0) { next.hidden.push(panel.id); }
     });
     return checked(next);
 }
@@ -170,12 +167,9 @@ function presetWithExtensions(layout, name) {
         });
     });
     preset.hidden = preset.hidden.concat(layout.hidden.filter(function(id) { return !builtIn.has(id); }));
-    if (name === "Review") {
-        var placed = allGroups(preset).reduce(function(ids, group) { return ids.concat(group.panels); }, []);
-        nativeSidePanels.forEach(function(id) {
-            if (placed.indexOf(id) >= 0 && preset.hidden.indexOf(id) < 0) { preset.hidden.push(id); }
-        });
-    }
+    (nativeHidden[name] || []).forEach(function(id) {
+        if (groupOfPanel(preset, id) && preset.hidden.indexOf(id) < 0) { preset.hidden.push(id); }
+    });
     return checked(preset);
 }
 function applyTransition(layout, action) {

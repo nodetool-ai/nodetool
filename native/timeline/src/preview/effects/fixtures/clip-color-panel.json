@@ -1,0 +1,299 @@
+{
+  "id": "seq-clip-color-panel",
+  "projectId": "native-prototype",
+  "name": "clip-color-panel",
+  "fps": 30,
+  "width": 1280,
+  "height": 720,
+  "durationMs": 2000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t1",
+      "name": "t1",
+      "type": "video",
+      "index": 1,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t2",
+      "name": "t2",
+      "type": "video",
+      "index": 2,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t3",
+      "name": "t3",
+      "type": "video",
+      "index": 3,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t4",
+      "name": "t4",
+      "type": "video",
+      "index": 4,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "panel-all-sections",
+      "trackId": "t0",
+      "name": "panel-all-sections",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "source-pattern.png",
+      "effects": [
+        {
+          "id": "panel-wheels",
+          "type": "liftGammaGain",
+          "enabled": true,
+          "lift": [
+            0.03,
+            -0.02,
+            0.01
+          ],
+          "gamma": [
+            1.2,
+            0.9,
+            1.1
+          ],
+          "gain": [
+            0.9,
+            1.05,
+            1.1
+          ]
+        },
+        {
+          "id": "panel-curves",
+          "type": "curves",
+          "enabled": true,
+          "master": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0.5,
+              "y": 0.56
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ],
+          "r": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0.5,
+              "y": 0.52
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ],
+          "g": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0.5,
+              "y": 0.5
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ],
+          "b": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0.5,
+              "y": 0.47
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ]
+        },
+        {
+          "id": "panel-vignette",
+          "type": "vignette",
+          "enabled": true,
+          "amount": 0.5,
+          "radius": 0.9,
+          "softness": 0.5
+        },
+        {
+          "id": "inspector:color",
+          "type": "color",
+          "enabled": true,
+          "brightness": 0.02,
+          "contrast": 1.05,
+          "saturation": 1.2,
+          "hue": 4,
+          "temperature": 0.1,
+          "tint": -0.05,
+          "shadows": 0.1,
+          "highlights": -0.1
+        }
+      ]
+    },
+    {
+      "id": "panel-after-match",
+      "trackId": "t0",
+      "name": "panel-after-match",
+      "startMs": 1000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "source-pattern.png",
+      "effects": [
+        {
+          "id": "panel-wheels-match",
+          "type": "liftGammaGain",
+          "enabled": true,
+          "lift": [
+            -0.0072,
+            -0.0004,
+            -0.02
+          ],
+          "gamma": [
+            0.9085,
+            0.8942,
+            0.9515
+          ],
+          "gain": [
+            1.1607,
+            1.1556,
+            1.1559
+          ]
+        },
+        {
+          "id": "panel-curves-off",
+          "type": "curves",
+          "enabled": false,
+          "master": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0.5,
+              "y": 0.56
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ],
+          "r": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0.5,
+              "y": 0.52
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ],
+          "g": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0.5,
+              "y": 0.5
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ],
+          "b": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0.5,
+              "y": 0.47
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ]
+        },
+        {
+          "id": "panel-vignette-off",
+          "type": "vignette",
+          "enabled": false,
+          "amount": 0.5,
+          "radius": 0.9,
+          "softness": 0.5
+        },
+        {
+          "id": "inspector:color",
+          "type": "color",
+          "enabled": true,
+          "saturation": 1.15
+        }
+      ]
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z",
+  "goldenFrames": [
+    {
+      "frame": 0,
+      "criterion": "J1 color panel grade: wheels, curves, vignette and basic correction, PSNR >= 40 dB"
+    },
+    {
+      "frame": 30,
+      "criterion": "J1 color panel grade: wheels, curves, vignette and basic correction, PSNR >= 40 dB"
+    }
+  ]
+}

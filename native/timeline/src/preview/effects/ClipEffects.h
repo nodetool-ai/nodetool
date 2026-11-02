@@ -61,6 +61,8 @@ std::optional<Cube> parseCube(const QString &text);
 CurveKnobs fitCurve(const QJsonArray &points);
 double channelMidtones(const QJsonArray &points);
 std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEffects = {});
+// A track's document effects in the form planChain takes, without the disabled ones.
+QJsonArray convertTrackEffects(const QJsonArray &effects);
 QMargins chainOutset(const QJsonArray &effects);
 QRect cropPixels(const QJsonObject &ext, QSize inputSize);
 void decorateEffects(QJsonObject &ext, const Clip &clip, double timeMs = 0);

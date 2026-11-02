@@ -38,6 +38,9 @@ public:
     Q_INVOKABLE int captureSequence(double timeMs);
     Q_INVOKABLE int captureSource(const QString& path, double sourceTimeMs);
     int captureSequence(double timeMs, Callback callback);
+    // A frame of a document other than the timeline's, such as one clip on its own. The
+    // document is a raw snapshot with resolved media paths, as from exportSnapshot.
+    int captureDocument(const QJsonObject& document, double timeMs, Callback callback);
     int captureSource(const QString& path, double sourceTimeMs, Callback callback);
     Q_INVOKABLE void cancel(int requestId);
     qint64 processId() const { return m_process.processId(); }
@@ -60,8 +63,8 @@ private:
         bool sent = false;
         bool ending = false;
     };
-    int request(bool sequence, const QString& path, double timeMs, Callback callback);
-    void prepareSnapshot();
+    int request(bool sequence, const QString& path, double timeMs, Callback callback, const QJsonObject* document = nullptr);
+    std::shared_ptr<Snapshot> prepareSnapshot(const QJsonObject& raw);
     void sendRequests();
     void readResponses();
     void send(const QJsonObject& object);
