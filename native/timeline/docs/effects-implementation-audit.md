@@ -21,7 +21,7 @@ Check an item only after its implementation and relevant verification pass. Each
 - [x] F41: Apply glow color to the bloom contribution. Native D3D11, shared GPU and CPU halo tests pass. White/absent tint preserves source-colored glow, and the source image remains unchanged. GPU alpha checks pass.
 - [ ] F42: Render authored tone curves faithfully.
 - [ ] F43: Remove gaps from large-radius blur kernels.
-- [ ] F44: Make processing order explicit and consistent.
+- [x] F44: Make processing order explicit and consistent. Fixed color/blur and video-track stages are displayed in processing order with explanations. Reordering is limited to ordered stages. Native row/reorder tests and independent ordering tests pass, including duplicate precedence and a large chain.
 - [x] F45: Give clip effect controls explicit reset defaults. Every slider has an in-range reset value. Intensity controls can reset to neutral while new effects retain visible defaults. Catalogue regressions passed.
 - [x] F46: Provide controls or specific explanations for imported effects. Pixelate, Posterize, Directional Blur and Lens Distortion have controls and Add entries. LUT, Stylize and Generator explain their editing limits. Catalogue and native add/edit tests pass.
 - [x] F47: Edit imported Color effect instances. Inline controls target the authored ID and preserve other instances and unknown fields. Catalogue and native edit/undo/redo tests pass.

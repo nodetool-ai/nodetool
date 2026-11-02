@@ -124,13 +124,20 @@ QtObject {
     function remove(id) {
         write(effects.filter(effect => effect.id !== id));
     }
+    function processingStage(effect) { return effect.type === "color" ? 1 : effect.type === "blur" ? 2 : 0 }
+    function orderedEffects() {
+        return effects.filter(effect => effect.id !== "inspector:color")
+            .map((effect, index) => ({effect: effect, index: index}))
+            .sort((a, b) => processingStage(a.effect) - processingStage(b.effect) || a.index - b.index)
+            .map(entry => entry.effect)
+    }
     function move(id, delta) {
         const next = effects.slice();
         const from = next.findIndex(effect => effect.id === id);
-        if (from < 0 || id === "inspector:color")
+        if (from < 0 || processingStage(next[from]) !== 0)
             return;
         let to = from + delta;
-        while (to >= 0 && to < next.length && next[to].id === "inspector:color")
+        while (to >= 0 && to < next.length && processingStage(next[to]) !== 0)
             to += delta;
         if (to < 0 || to >= next.length)
             return;
@@ -138,7 +145,7 @@ QtObject {
         write(next);
     }
     function drop(fromId, toId) {
-        const visible = effects.filter(effect => effect.id !== "inspector:color");
+        const visible = effects.filter(effect => processingStage(effect) === 0);
         const from = visible.findIndex(effect => effect.id === fromId);
         const to = visible.findIndex(effect => effect.id === toId);
         if (from < 0 || to < 0 || from === to)
@@ -146,6 +153,6 @@ QtObject {
         const moved = visible.splice(from, 1)[0];
         visible.splice(to, 0, moved);
         let index = 0;
-        write(effects.map(effect => effect.id === "inspector:color" ? effect : visible[index++]));
+        write(effects.map(effect => processingStage(effect) !== 0 ? effect : visible[index++]));
     }
 }

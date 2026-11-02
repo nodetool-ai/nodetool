@@ -86,7 +86,7 @@ test("effects shared with the web retain the same creation defaults", () => {
 
 test("reordering a large chain preserves the Color slot and opaque fields", () => {
   const source = fs.readFileSync(new URL("./ClipEffectsEdits.qml",import.meta.url),"utf8");
-  const methods = ["move","drop"].map(name => {
+  const methods = ["processingStage","move","drop"].map(name => {
     const match = source.match(new RegExp(`    function ${name}\\([^]*?\\n    }`));
     assert.ok(match,`Missing ${name} method`);
     return match[0];

@@ -184,6 +184,7 @@ private slots:
     void parameterFields_data();
     void parameterFields();
     void importedColorInstance();
+    void fixedProcessingStages();
     void invalidNumbersAndGestureCancellation();
     void curvePointEditing();
     void cancellationLocksAndPlayhead();
@@ -297,7 +298,7 @@ void TestClipEffects::listActionsAndParameterGesture() {
             QCOMPARE(scrollBar->width(), qreal(scrollBarWidth));
         }
         e.patch({{"effects",QJsonArray{
-            QJsonObject{{"id","a"},{"type","blur"},{"enabled",true},{"radius",8},{"sigma",2}},
+            QJsonObject{{"id","a"},{"type","directionalBlur"},{"enabled",true},{"radius",8},{"angle",0},{"sigma",2}},
             QJsonObject{{"id","inspector:color"},{"type","color"},{"enabled",true},{"contrast",1.3}},
             QJsonObject{{"id","future"},{"type","futureEffect"},{"enabled",true},{"opaque",QJsonObject{{"x",7}}}},
             QJsonObject{{"id","b"},{"type","vignette"},{"enabled",false},{"amount",0.4},{"softness",0.5}}}}});
@@ -404,6 +405,24 @@ void TestClipEffects::invalidNumbersAndGestureCancellation() {
         if (pending) { QVERIFY(text(pending,"commit","4")); }
         QCOMPARE(e.model.documentJson(),before);
     }
+
+void TestClipEffects::fixedProcessingStages() {
+    Editor e; QVERIFY2(e.object,qPrintable(e.error));
+    e.patch({{"effects",QJsonArray{
+        QJsonObject{{"id","blur"},{"type","blur"},{"enabled",true},{"radius",8}},
+        QJsonObject{{"id","color"},{"type","color"},{"enabled",true},{"brightness",0.2}},
+        QJsonObject{{"id","v"},{"type","vignette"},{"enabled",true},{"amount",0.5}}
+    }}});
+    const auto before=e.model.documentJson();
+    QVERIFY(QMetaObject::invokeMethod(e.item("clipEffectsList"),"toggled",Q_ARG(bool,true)));
+    auto* v=e.item("effectRow_v"); auto* color=e.item("effectRow_color"); auto* blur=e.item("effectRow_blur");
+    QVERIFY(v && color && blur);
+    QVERIFY(v->y()<color->y()); QVERIFY(color->y()<blur->y());
+    QVERIFY(e.item("effectsReorder_v")->isVisible());
+    QVERIFY(!e.item("effectsReorder_color")->isVisible());
+    QVERIFY(!e.item("effectsReorder_blur")->isVisible());
+    QCOMPARE(e.model.documentJson(),before);
+}
 
 void TestClipEffects::curvePointEditing() {
         Editor e; QVERIFY2(e.object,qPrintable(e.error)); QVERIFY(e.add("curves"));
@@ -575,7 +594,7 @@ void TestClipEffects::dragReorder() {
     Editor e; QVERIFY2(e.object,qPrintable(e.error));
     const QJsonObject owned{{"id","inspector:color"},{"type","color"},{"enabled",true},{"hue",12}};
     e.patch({{"effects",QJsonArray{
-        QJsonObject{{"id","a"},{"type","blur"},{"enabled",true},{"radius",8}},owned,
+        QJsonObject{{"id","a"},{"type","glow"},{"enabled",true},{"radius",8},{"intensity",1}},owned,
         QJsonObject{{"id","b"},{"type","vignette"},{"enabled",true},{"amount",0.4},{"softness",0.5}},
         QJsonObject{{"id","c"},{"type","grain"},{"enabled",true},{"amount",0.25}}}}});
     auto* section = e.item("clipEffectsList"); QVERIFY(section); section->setProperty("open",true);

@@ -10,13 +10,21 @@ Ui.Surface {
     required property TimelineModel timeline
     readonly property var reference: TrackEffectsReference.data
     readonly property var strings: reference.strings
-    readonly property var effects: track.effects ?? []
+    readonly property var effects: orderedEffects()
     readonly property bool isVideo: track.type === "video"
     property int draggingIndex: -1
     property int dropIndex: -1
     objectName: "track-effects-panel-" + track.id
     implicitHeight: 280
     variant: Ui.Surface.Canvas
+    function orderedEffects() {
+        const authored = track.effects ?? []
+        if (!isVideo) return authored
+        const stages = {chromaKey: 0, colorCorrection: 1, videoBlur: 2, sharpen: 3, vignette: 4}
+        return authored.map((effect, index) => ({effect: effect, index: index}))
+            .sort((a, b) => (stages[a.effect.type] ?? 5) - (stages[b.effect.type] ?? 5) || a.index - b.index)
+            .map(entry => entry.effect)
+    }
     function dropPosition(x) {
         for (let i = 0; i < cards.count; ++i) {
             const card = cards.itemAt(i)
@@ -24,8 +32,9 @@ Ui.Surface {
         }
         return -1
     }
-    function dragOver(x) { dropIndex = dropPosition(x) }
+    function dragOver(x) { dropIndex = isVideo ? -1 : dropPosition(x) }
     function drop(from, x) {
+        if (isVideo) { draggingIndex = -1; dropIndex = -1; return }
         let to = dropPosition(x)
         draggingIndex = -1
         dropIndex = -1
@@ -46,7 +55,7 @@ Ui.Surface {
             width: Math.max(0, add.x - x - Ui.Metrics.sm)
             elide: Text.ElideRight
             anchors.verticalCenter: parent.verticalCenter
-            text: (effectsPanel.isVideo ? effectsPanel.strings.fxChain : effectsPanel.strings.dspChain) + " - " + effectsPanel.track.name
+            text: (effectsPanel.isVideo ? "Video effects (fixed order)" : effectsPanel.strings.dspChain) + " - " + effectsPanel.track.name
             role: Ui.Typography.SansLabel; tone: Ui.Text.Primary
         }
         Ui.EditorButton {

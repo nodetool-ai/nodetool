@@ -12,6 +12,9 @@ Ui.Surface {
     property var draft: ({})
     readonly property var edited: Object.assign({}, effect, draft)
     readonly property string effectLabel: panel.strings.labels[effect.type === "fable" ? effect.kind : effect.type]
+    readonly property bool ignoredDuplicate: panel.isVideo && effect.enabled
+        && ["chromaKey", "sharpen", "vignette"].includes(effect.type)
+        && panel.effects.find(candidate => candidate.type === effect.type && candidate.enabled)?.id !== effect.id
     objectName: "effect-" + effect.id
     width: effect.type === "fable" ? panel.reference.fableWidths[effect.kind] : panel.reference.widths[effect.type]
     opacity: panel.draggingIndex === effectIndex ? 0.4 : 1
@@ -47,12 +50,14 @@ Ui.Surface {
         Item {
             id: grip
             objectName: "fx-grip-" + card.effect.id
-            width: 16; height: parent.height
-            activeFocusOnTab: true
+            visible: !card.panel.isVideo
+            width: visible ? Ui.Metrics.iconSm : 0; height: parent.height
+            activeFocusOnTab: visible
             Accessible.role: Accessible.Button
             Accessible.name: card.panel.strings.reorder.replace("{{label}}", card.effectLabel)
             Accessible.description: card.panel.strings.reorderHelp
             Keys.onPressed: event => {
+                if (card.panel.isVideo) return
                 if (!(event.modifiers & Qt.AltModifier)) return
                 const delta = event.key === Qt.Key_Left || event.key === Qt.Key_Up ? -1
                     : event.key === Qt.Key_Right || event.key === Qt.Key_Down ? 1 : 0
@@ -109,9 +114,27 @@ Ui.Surface {
             onClicked: card.panel.timeline.applyEdit("removeTrackEffect", {trackId: card.panel.track.id, effectId: card.effect.id})
         }
     }
-    Flickable {
+    Ui.Text {
+        id: stageNote
+        objectName: "fx-stage-" + card.effect.id
         x: Ui.Metrics.md
         y: header.y + header.height + Ui.Metrics.xs
+        width: parent.width - 2 * Ui.Metrics.md
+        visible: card.panel.isVideo
+        height: visible ? implicitHeight : 0
+        wrapMode: Text.WordWrap
+        role: Ui.Typography.SansCaption
+        tone: Ui.Text.Secondary
+        text: card.ignoredDuplicate ? "Not applied. An earlier instance is enabled."
+            : ({chromaKey: "Before clip effects. First enabled instance applies.",
+                colorCorrection: "After clip effects. Combined color grade.",
+                videoBlur: "After color grade. Blur radii are combined.",
+                sharpen: "After blur. First enabled instance applies.",
+                vignette: "After sharpen. First enabled instance applies."})[card.effect.type] ?? "Unsupported in this build."
+    }
+    Flickable {
+        x: Ui.Metrics.md
+        y: card.panel.isVideo ? stageNote.y + stageNote.height + Ui.Metrics.xs : header.y + header.height + Ui.Metrics.xs
         width: parent.width - 2 * Ui.Metrics.md
         height: parent.height - y - Ui.Metrics.md
         contentWidth: width

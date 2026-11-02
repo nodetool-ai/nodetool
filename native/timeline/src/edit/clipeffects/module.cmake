@@ -21,6 +21,7 @@ function(nt_clipeffects_tests)
     set_tests_properties(tst_clipeffects PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
     add_test(NAME clipeffects_golden_script COMMAND node --test --test-isolation=none
         ${CMAKE_CURRENT_SOURCE_DIR}/src/edit/clipeffects/check-inspector.test.mjs
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/edit/clipeffects/catalogue.test.mjs)
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/edit/clipeffects/catalogue.test.mjs
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/edit/clipeffects/processing-order.test.mjs)
 endfunction()
 nt_tests(nt_clipeffects_tests)
