@@ -74,6 +74,13 @@ Ui.ContextMenu {
             }
         }
     }
+    Ui.MenuItem {
+        objectName: "monitorSetReference"
+        text: "Set reference frame"
+        enabled: root.monitor.owner !== null
+        onTriggered: root.monitor.owner.runAction("setReferenceFrame", {})
+    }
+    Divider {}
     ResolutionMenu {
         objectName: "monitorPlaybackResolutionMenu"
         title: "Playback resolution"

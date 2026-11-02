@@ -1381,13 +1381,13 @@ controls = ["Rectangle", "Canvas", "FrameImage", "Ui.Text"]
 signals = []
 test_host = "tst_colorpanel"
 test_scope = "interaction"
-qml_callers = ["native/timeline/qml/color/ScopesPanel.qml"]
+qml_callers = ["native/timeline/qml/color/ScopeGrid.qml"]
 replacement = "A scope plate that stays dark in both schemes, as media does"
 
 [[file]]
 path = "native/timeline/qml/color/ScopesPanel.qml"
 category = "chrome"
-controls = ["Rectangle", "Row", "Grid", "Ui.EditorButton", "Ui.Text", "ScopeTile"]
+controls = ["Rectangle", "Row", "Ui.EditorButton", "Ui.Text", "ScopeGrid"]
 signals = []
 test_host = "tst_colorpanel"
 test_scope = "interaction"
@@ -1921,7 +1921,7 @@ controls = ["Rectangle", "MouseArea", "Ui.Text", "Ui.TextField", "Ui.Tooltip"]
 signals = []
 test_host = "tst_monitorui"
 test_scope = "interaction"
-qml_callers = ["native/timeline/qml/SourceViewerPanel.qml", "native/timeline/qml/preview/PreviewArea.qml"]
+qml_callers = ["native/timeline/qml/SourceViewerPanel.qml", "native/timeline/qml/preview/PreviewArea.qml", "native/timeline/qml/reference/ComparisonView.qml", "native/timeline/qml/reference/ReferencePanel.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.TextField, Ui.Tooltip"
 
 [[file]]
@@ -3448,3 +3448,33 @@ test_host = "tst_takeswitchui"
 test_scope = "interaction"
 qml_callers = []
 replacement = "NodeTool.UiPrimitives: Ui.Status, Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/color/ScopeGrid.qml"
+category = "chrome"
+controls = ["Grid", "Repeater", "ScopeTile"]
+signals = []
+test_host = "tst_colorpanel"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/color/ScopesPanel.qml", "native/timeline/qml/reference/ReferencePanel.qml"]
+replacement = "Scope tiles that share one area"
+
+[[file]]
+path = "native/timeline/qml/reference/ComparisonView.qml"
+category = "chrome"
+controls = ["Item", "Rectangle", "Row", "FrameImage", "TimecodeField", "Ui.ToolbarIconButton", "Ui.EditorButton", "Ui.Text"]
+signals = []
+test_host = "tst_reference"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/reference/ReferencePanel.qml"
+category = "chrome"
+controls = ["Rectangle", "Flow", "Row", "Repeater", "FrameImage", "ScopeGrid", "TimecodeField", "Ui.ToolbarIconButton", "Ui.EditorButton", "Ui.Select", "Ui.Text"]
+signals = []
+test_host = "tst_reference"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"

@@ -153,7 +153,10 @@ private slots:
         }
         expected.append({"clipMenu-labelDivider:", "clipMenu-label:Label", "clipMenu-afterLabelDivider:",
                          "registryMenu-clip-addMarker:Add marker", "registryMenuGroup-clip-:",
-                         "registryMenu-clip-speedDuration:Speed / Duration…", "registryMenuGroup-clip-frame:",
+                         "registryMenu-clip-speedDuration:Speed / Duration…", "registryMenuGroup-clip-reference:",
+                         "registryMenu-clip-referenceClipFirstFrame:Use first frame as reference",
+                         "registryMenu-clip-referenceClipLastFrame:Use last frame as reference",
+                         "registryMenu-clip-referenceClipTake:Compare another take", "registryMenuGroup-clip-frame:",
                          "registryMenu-clip-fitToFrame:Fit to frame", "registryMenu-clip-fillFrame:Fill frame",
                          "registryMenuGroup-clip-reveal:", "registryMenu-clip-revealInProject:Reveal in Library",
                          "clipMenu-deleteDivider:", "clipMenu-deleteSelected:Delete"});

@@ -20,6 +20,13 @@ Controls.Control {
     readonly property alias dockCanvas: dockCanvas
     // One per editor, because each runs a helper process while in use.
     readonly property FrameCapture frameCapture: FrameCapture { timeline: root.timeline }
+    // The frame the Reference panel and the comparison view share.
+    readonly property ReferenceController referenceMonitor: ReferenceController {
+        capture: root.frameCapture
+        clock: root.clock
+        owner: tracksHost.item ? tracksHost.item.gestures : null
+        onRevealRequested: if (!shownInView) layoutStore.dispatch({type: "reveal", panelId: "reference"})
+    }
     readonly property var dockPanels: {
         const panels = [{id: "program", title: "Program", defaultRegion: "viewport"},
                         {id: "tracks", title: "Timeline", defaultRegion: "bottom"}]

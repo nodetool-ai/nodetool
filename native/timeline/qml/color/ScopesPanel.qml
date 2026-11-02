@@ -94,30 +94,14 @@ Rectangle {
         role: Ui.Typography.SansLabel
         tone: Ui.Text.Error
     }
-    Grid {
-        id: grid
+    ScopeGrid {
         objectName: "scopesGrid"
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: toolbar.bottom
         anchors.bottom: parent.bottom
         anchors.margins: Ui.Metrics.xs
-        spacing: Ui.Metrics.xs
-        readonly property int count: root.shown.length
-        // Two rows only once a row of four would make each scope narrow.
-        columns: count === 4 && width < height * 2.4 ? 2 : Math.max(1, count)
-        readonly property int rowCount: Math.ceil(count / columns)
-        readonly property real tileWidth: (width - (columns - 1) * spacing) / columns
-        readonly property real tileHeight: (height - (rowCount - 1) * spacing) / rowCount
-        Repeater {
-            model: root.shown
-            delegate: ScopeTile {
-                required property string modelData
-                width: grid.tileWidth
-                height: grid.tileHeight
-                kind: modelData
-                controller: scopes
-            }
-        }
+        shown: root.shown
+        controller: scopes
     }
 }
