@@ -91,6 +91,7 @@ cp ../ui_primitives/resources/licenses/LICENSE-Material-Icons.txt "$lic/Material
 cp ../ui_primitives/resources/licenses/MATERIAL-ICONS.md "$lic/Material-Icons-notice.md"
 cp ../ui_primitives/resources/icons/providers/README.md "$lic/Provider-Icons-notice.md"
 cp third_party/yoga/LICENSE "$lic/Yoga-MIT.txt"
+cp licenses/FilmCraft-MIT.txt "$lic/FilmCraft-MIT.txt"
 for f in "$lic"/*.txt; do [[ -s "$f" ]] || { echo "error: empty licence $f" >&2; exit 1; }; done
 # The corresponding source of the LGPL libraries. FFmpeg: the exact source
 # tarball and configure line, in the bundle. Qt comes from the selected SDK
@@ -149,6 +150,7 @@ python3 scripts/macho-deps.py notices "$app" --brew-prefix "$(brew --prefix)" "$
     echo
     echo "miniaudio 0.11.22 (public domain or MIT No Attribution, licenses/miniaudio.txt), compiled in."
     echo "Yoga 3.2.1 (MIT), compiled in (licenses/Yoga-MIT.txt)."
+    echo "FilmCraft (MIT), algorithms ported to this editor (licenses/FilmCraft-MIT.txt)."
     echo "Inter and JetBrains Mono (SIL Open Font License 1.1), embedded."
     echo "MUI icons (MIT), Material Icons (Apache 2.0), and provider icons: see licenses/."
 } > "$src/SOURCES.txt"

@@ -145,7 +145,11 @@ export const timelineMarker = z.object({
   timeMs: z.number(),
   label: z.string(),
   color: z.string().optional(),
-  note: z.string().optional()
+  note: z.string().optional(),
+  /** Length of a range marker. Absent or 0 is a point marker. */
+  durationMs: z.number().min(0).optional(),
+  /** Who placed the marker, as free text. */
+  author: z.string().optional()
 });
 export type TimelineMarker = z.infer<typeof timelineMarker>;
 
@@ -1779,6 +1783,13 @@ export const clipTimeRemap = z.object({
 });
 export type ClipTimeRemap = z.infer<typeof clipTimeRemap>;
 
+/**
+ * What a clip's sound is, so loudness targets and ducking can treat it by kind.
+ * It does not change playback by itself.
+ */
+export const clipAudioRole = z.enum(["dialogue", "music", "sfx", "ambience"]);
+export type ClipAudioRole = z.infer<typeof clipAudioRole>;
+
 export const timelineClip = z.object({
   id: z.string(),
   trackId: z.string(),
@@ -1881,6 +1892,7 @@ export const timelineClip = z.object({
   fadeOutShape: clipFadeShapeEnum.optional(),
   /** Without this field Zod strips a clip's audio effects on every PATCH. */
   audioEffects: z.array(clipAudioEffect).optional(),
+  audioRole: clipAudioRole.optional(),
   transform: clipTransform.optional(),
   layout: clipLayout.optional(),
   flexItem: clipFlexItem.optional(),

@@ -14,6 +14,7 @@ DockLayoutStore::DockLayoutStore(QObject* parent) : QObject(parent) {
     if (!script.open(QIODevice::ReadOnly)) { qFatal("Cannot load timeline dock model"); }
     const auto loaded = m_engine.evaluate(QString::fromUtf8(script.readAll()).replace(".pragma library", ""), script.fileName());
     if (loaded.isError()) { qFatal("Cannot evaluate timeline dock model: %s", qPrintable(loaded.toString())); }
+    m_workspaceNames = m_engine.globalObject().property("workspaceNames").call().toVariant().toStringList();
     const auto saved = QJsonDocument::fromJson(nt::app::openTimelinePreferences()->value(preferencesKey).toByteArray()).object();
     const auto name = saved.value("workspace").toString();
     if (workspaces().contains(name)) { m_workspace = name; }
@@ -72,7 +73,7 @@ void DockLayoutStore::switchWorkspace(int index) {
     const auto name = workspaces()[index];
     const bool saved = m_workspaces.contains(name);
     const auto next = saved ? call("hydrate", {m_workspaces.value(name)})
-        : call("presetWithExtensions", {m_layout, name});
+        : call("presetFromWorkspace", {m_layout, m_workspace, name});
     m_workspace = name;
     m_layout = call("registerMissingPanels", {next, m_panels});
     if (name == "Script" && !saved) m_layout = withScriptPanelSelected(m_layout);

@@ -12,6 +12,7 @@ struct KeyAction {
     QString label;
     QList<QKeySequence> defaultKeys;
     std::function<bool(ClipGestureController&, const QVariantMap&)> handler;
+    QString group = {};  // shortcut sheet group; empty means "Extensions"
 };
 bool registerKeyAction(KeyAction action);
 const std::vector<KeyAction>& keyActions();

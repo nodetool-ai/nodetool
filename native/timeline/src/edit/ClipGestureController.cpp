@@ -1502,17 +1502,23 @@ QVariantMap ClipGestureController::shortcutSheet() const {
         group.insert(QStringLiteral("rows"), rows);
         groups.append(group);
     }
-    QJsonArray extensions;
     for (const auto& action : nt::wiring::keyActions()) {
         if (listed.contains(action.name) || action.defaultKeys.isEmpty()) { continue; }
         QJsonArray combos;
         for (const auto& key : action.defaultKeys) {
             combos.append(QJsonArray::fromStringList(key.toString(QKeySequence::NativeText).split('+')));
         }
-        extensions.append(QJsonObject{{"id", action.name}, {"label", action.label},
-                                      {"combos", combos}, {"available", true}});
+        const QJsonObject row{{"id", action.name}, {"label", action.label}, {"combos", combos}, {"available", true}};
+        const QString title = action.group.isEmpty() ? QStringLiteral("Extensions") : action.group;
+        qsizetype index = 0;
+        while (index < groups.size() && groups[index].toObject().value(u"title").toString() != title) { ++index; }
+        if (index == groups.size()) { groups.append(QJsonObject{{"title", title}, {"rows", QJsonArray{}}}); }
+        auto group = groups[index].toObject();
+        auto rows = group.value(u"rows").toArray();
+        rows.append(row);
+        group.insert(QStringLiteral("rows"), rows);
+        groups[index] = group;
     }
-    if (!extensions.isEmpty()) { groups.append(QJsonObject{{"title", "Extensions"}, {"rows", extensions}}); }
     sheet.insert(QStringLiteral("groups"), groups);
     return sheet.toVariantMap();
 }

@@ -306,6 +306,8 @@ private:
     // Stills: a read-back of the canvas, requested in synchronize().
     bool m_captureWanted = false;
     bool m_captureImmediate = false;
+    quint64 m_captureRequest = 0;
+    quint64 m_capturedRequest = 0;
     double m_capturedTimeMs = 0.0;
     bool m_captureInFlight = false;
     QRhiReadbackResult m_readback;
@@ -439,13 +441,16 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
     if (item->m_captureRequested) {
         m_captureWanted = true;
         m_captureImmediate = item->m_captureImmediate;
+        m_captureRequest = item->m_captureRequest;
         item->m_captureRequested = false;
     }
     {
         std::lock_guard lock(m_captureMutex);
         if (!m_captured.isNull()) {
-            item->m_capture = m_captured;
-            item->m_captureTimeMs = m_capturedTimeMs;
+            if (m_capturedRequest == item->m_captureRequest) {
+                item->m_capture = m_captured;
+                item->m_captureTimeMs = m_capturedTimeMs;
+            }
             m_captured = QImage();
         }
     }
@@ -1479,12 +1484,13 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
         m_captureInFlight = true;
         m_readback = QRhiReadbackResult();
         // OpenGL (the Linux default) reads a texture back bottom row first.
-        m_readback.completed = [this, captureTime, flip = m_rhi->isYUpInFramebuffer()] {
+        m_readback.completed = [this, captureTime, request = m_captureRequest, flip = m_rhi->isYUpInFramebuffer()] {
             const QImage img(reinterpret_cast<const uchar*>(m_readback.data.constData()), m_readback.pixelSize.width(),
                              m_readback.pixelSize.height(), QImage::Format_RGBA8888_Premultiplied);
             std::lock_guard lock(m_captureMutex);
             m_captured = flip ? img.flipped(Qt::Vertical) : img.copy();
             m_capturedTimeMs = captureTime;
+            m_capturedRequest = request;
             m_captureInFlight = false;
         };
         QRhiResourceUpdateBatch* rb = m_rhi->nextResourceUpdateBatch();
