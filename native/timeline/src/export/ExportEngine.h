@@ -2,10 +2,14 @@
 #include "model/TimelineTypes.h"
 #include <QImage>
 #include <QString>
+#include <QSize>
 #include <functional>
 #include <stop_token>
 
 namespace nt::exporting {
+// After a cancel request the export process exits within this time.
+inline constexpr int kCancelStopBudgetMs = 3000;
+QImage fitFrame(const QImage& frame, QSize target, const QString& scaleMode);
 struct Options {
     QString output;
     QString format = QStringLiteral("mp4");
@@ -13,6 +17,13 @@ struct Options {
     QString videoEncoder;
     QString audioEncoder;
     QString stagingDirectory;  // editor-owned, retained until the child exits
+    double startMs = 0;
+    double endMs = -1;
+    int width = 0;
+    int height = 0;
+    double fps = 0;
+    int videoBitrateKbps = 0;
+    QString scaleMode = QStringLiteral("fit");
 };
 struct Progress {
     QString phase;
@@ -28,6 +39,10 @@ struct Result {
     double fps = 0;
     QString videoEncoder;
     QString audioEncoder;
+    int width = 0;
+    int height = 0;
+    double startMs = 0;
+    double endMs = 0;
     bool ok() const { return error.isEmpty() && !cancelled; }
 };
 using ProgressCallback = std::function<void(const Progress&)>;
