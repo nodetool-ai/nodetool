@@ -37,11 +37,13 @@ public:
     // Whether the engine fills the window's loudness meter (audio/loudness/AppReadout.h). Set it before
     // start(). Only the engine of the open timeline should, not a preview of a candidate.
     void setPublishLoudness(bool publish) { m_publishLoudness = publish; }
+    void setRecordSeconds(double seconds) { m_recordSeconds = seconds; }
     AudioEngine* engine() { return m_engine.get(); }
 
 private:
     std::unique_ptr<AudioEngine> m_engine;
     PlaybackClock* m_clock = nullptr;
+    double m_recordSeconds = 0;
     QString m_mode;
     QString m_reportPath;
     bool m_publishLoudness = false;

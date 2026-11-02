@@ -32,6 +32,22 @@ std::optional<quint64> writeFromReader(const QString& path, const nt::assets::St
 class TestAssets : public QObject {
     Q_OBJECT
 private slots:
+    void rangedAudioSettlementKeepsDuration() {
+        const QJsonObject clip{{"id", "audio"}, {"trackId", "a"}, {"durationMs", 2000},
+            {"inPointMs", 1000}, {"outPointMs", 3000}, {"status", "generating"}};
+        const QJsonObject payload{{"audioClipId", "audio"}, {"outcome", "audio"},
+            {"asset", QJsonObject{{"id", "extracted"}, {"duration", 20}}}};
+        auto settled = nt::assets::settleLinkedAudio(QJsonObject{{"clips", QJsonArray{clip}}}, payload);
+        const auto ranged = settled.value("clips").toArray().first().toObject();
+        QCOMPARE(ranged.value("durationMs").toDouble(), 2000.0);
+        QCOMPARE(ranged.value("inPointMs").toDouble(), 1000.0);
+        QCOMPARE(ranged.value("outPointMs").toDouble(), 3000.0);
+        QCOMPARE(ranged.value("currentAssetId").toString(), QString("extracted"));
+        auto unmarked = clip; unmarked.remove("outPointMs");
+        settled = nt::assets::settleLinkedAudio(QJsonObject{{"clips", QJsonArray{unmarked}}}, payload);
+        QCOMPARE(settled.value("clips").toArray().first().toObject().value("durationMs").toDouble(), 20000.0);
+    }
+
     void linkedAudioSkipsLockedTrack_data() {
         QTest::addColumn<bool>("freeTrack");
         QTest::newRow("reuse-unlocked") << true;

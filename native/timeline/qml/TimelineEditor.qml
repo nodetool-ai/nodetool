@@ -31,7 +31,7 @@ Controls.Control {
         }
         return panels
     }
-    readonly property var availablePanels: dockPanels.filter(panel => panel.id !== "source" || !!SourceViewerState.asset.id).map(panel => panel.id)
+    readonly property var availablePanels: dockPanels.map(panel => panel.id)
     padding: 0
     font: Ui.Typography.font(Ui.Typography.SansBody)
     palette.window: Ui.Theme.surfacePanel

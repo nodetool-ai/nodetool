@@ -121,6 +121,7 @@ public:
     int liveRevision() const { return m_liveUpdates; }
     // The place of a clip a move shows before the document has it. -1: the
     // clip is not in the live list, so the document has its place.
+    Q_INVOKABLE QString resolveKeyAction(int key, const QString& text, int modifiers) const;
     Q_INVOKABLE double liveStartMs(const QString& clipId) const;
     Q_INVOKABLE double liveDurationMs(const QString& clipId) const;
     double trackDropY() const { return m_trackDropY; }

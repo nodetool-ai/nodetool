@@ -432,6 +432,7 @@ void PlaybackClock::seek(double ms) {
 }
 
 void PlaybackClock::scrub(double ms) {
+    emit scrubRequested();
     m_scrubNext = true;
     seek(ms);
     m_scrubNext = false;
