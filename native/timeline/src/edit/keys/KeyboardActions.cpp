@@ -298,7 +298,8 @@ bool stepKeyframe(ClipGestureController& gestures, bool forward) {
     const auto clip = singleSelectedClip(gestures);
     if (!clip) return false;
     std::vector<double> times;
-    for (const auto& t : nt::keyframes::times(*clip)) times.push_back(clipStartMs(*clip) + t.toDouble());
+    const auto properties = gestures.keyframeRowOnly() ? nt::keyframes::properties(gestures.keyframeRow()) : QStringList{};
+    for (const auto& t : nt::keyframes::times(*clip, properties)) times.push_back(clipStartMs(*clip) + t.toDouble());
     seekToNeighbour(gestures, times, forward);
     return true;
 }

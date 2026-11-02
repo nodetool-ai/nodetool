@@ -40,6 +40,8 @@ const Fields kClipInert = {
     QStringLiteral("scriptId"), QStringLiteral("scriptLineId"), QStringLiteral("beatId"), QStringLiteral("locked"),
     QStringLiteral("versions"), QStringLiteral("speaker"), QStringLiteral("paragraphId"),
     QStringLiteral("sourceScene"), QStringLiteral("outPointMs"), QStringLiteral("audioRole"),
+    // Values set aside by the Effect Controls switches. The clip's own fields hold the identity.
+    QStringLiteral("bypassedFixedEffects"),
 };
 // Read by SceneEval (M1e): groups, animations, repeats, stepped time, the
 // whole transform and transition, the camera. `animations` entries are

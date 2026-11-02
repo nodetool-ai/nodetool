@@ -93,30 +93,52 @@ double ClipInspectorController::playheadMs() const {
     return relative < 0 || relative > c["durationMs"].toDouble() ? -1 : relative;
 }
 QVariantList ClipInspectorController::rows() const { return nt::keyframes::rowSpecs().toVariantList(); }
-QVariantMap ClipInspectorController::rowState(const QString& row) const {
-    const auto c = selected();
-    const double ms = playheadMs();
-    const auto ts = nt::keyframes::times(c, nt::keyframes::properties(row));
+namespace {
+// The clip-relative time a row reads: the playhead held to the clip, as the web's does.
+double heldMs(const QJsonObject& clip, double relative) {
+    return std::clamp(relative, 0.0, std::max(0.0, clip["durationMs"].toDouble()));
+}
+QVariantMap liveState(const QJsonObject& c, const QString& row, double relative) {
+    const double ms = heldMs(c, relative);
+    const bool inside = relative >= 0 && relative <= c["durationMs"].toDouble();
     QVariantList values;
     for (const auto& value : nt::keyframes::rowSpecs()) {
         const auto spec = value.toObject();
         if (spec["id"] == row) {
             for (int i = 0; i < spec["inputs"].toArray().size(); ++i) {
-                values.append(nt::keyframes::inputValue(c, row, i, std::max(0.0, ms)));
+                values.append(nt::keyframes::inputValue(c, row, i, ms));
             }
         }
     }
-    const auto helper = [&](const QString& name, const QJsonArray& args) { return nt::keyframes::helper(name, args); };
-    return {{"keyframed", helper("isRowKeyframed", {c, row}).toBool()},
-            {"times", ts.toVariantList()},
-            {"values", values},
-            {"here", ms >= 0 && helper("rowHasKeyframeAt", {c, row, ms}).toBool()},
-            {"hasPrev", !helper("adjacentKeyframeMs",
-                                {c, QJsonArray::fromStringList(nt::keyframes::properties(row)), std::max(0.0, ms), -1})
-                             .isNull()},
-            {"hasNext", !helper("adjacentKeyframeMs",
-                                {c, QJsonArray::fromStringList(nt::keyframes::properties(row)), std::max(0.0, ms), 1})
-                             .isNull()}};
+    const auto ps = QJsonArray::fromStringList(nt::keyframes::properties(row));
+    const auto helper = [](const QString& name, const QJsonArray& args) { return nt::keyframes::helper(name, args); };
+    return {{"values", values},
+            {"here", inside && helper("rowHasKeyframeAt", {c, row, ms}).toBool()},
+            {"hasPrev", !helper("adjacentKeyframeMs", {c, ps, ms, -1}).isNull()},
+            {"hasNext", !helper("adjacentKeyframeMs", {c, ps, ms, 1}).isNull()}};
+}
+}
+QVariantMap ClipInspectorController::rowState(const QString& row) const {
+    const auto c = selected();
+    auto state = liveState(c, row, m_clock && !c.isEmpty() ? m_clock->currentTimeMs() - c["startMs"].toDouble() : -1);
+    state.insert("keyframed", nt::keyframes::helper("isRowKeyframed", {c, row}).toBool());
+    state.insert("times", nt::keyframes::times(c, nt::keyframes::properties(row)).toVariantList());
+    return state;
+}
+QVariantMap ClipInspectorController::rowDocument(const QString& row) const {
+    const auto c = nt::keyframes::withBypassRestored(selected());
+    return {{"keyframed", nt::keyframes::helper("isRowKeyframed", {c, row}).toBool()},
+            {"times", nt::keyframes::times(c, nt::keyframes::properties(row)).toVariantList()}};
+}
+QVariantMap ClipInspectorController::rowLive(const QString& row) const {
+    const auto c = nt::keyframes::withBypassRestored(selected());
+    return liveState(c, row, m_clock && !c.isEmpty() ? m_clock->currentTimeMs() - c["startMs"].toDouble() : -1);
+}
+QVariantMap ClipInspectorController::rowGraph(const QString& row, double fromMs, double toMs, int samples) const {
+    return nt::keyframes::rowGraphSamples(nt::keyframes::withBypassRestored(selected()), row, fromMs, toMs, samples).toVariantMap();
+}
+QVariantMap ClipInspectorController::rowGraphKeys(const QString& row) const {
+    return nt::keyframes::rowGraphKeys(nt::keyframes::withBypassRestored(selected()), row).toVariantMap();
 }
 double ClipInspectorController::fieldValue(const QString& field) const {
     const auto t = nt::keyframes::transform(selected());
@@ -218,6 +240,12 @@ void ClipInspectorController::step(const QString& row, int direction) {
     if (!result.isNull()) {
         seek(result.toDouble());
     }
+}
+QString ClipInspectorController::bezierEasing(double x1, double y1, double x2, double y2) const {
+    return nt::keyframes::bezierEasing(x1, y1, x2, y2);
+}
+bool ClipInspectorController::groupEnabled(const QString& group) const {
+    return !selected()["bypassedFixedEffects"].toObject().contains(group);
 }
 bool ClipInspectorController::validEasing(const QString& easing) const {
     return easing.isEmpty() || nt::scene::isKnownEasing(easing.toStdString());

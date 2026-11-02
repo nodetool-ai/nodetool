@@ -670,6 +670,7 @@ private slots:
     void auditKnowsNativeEditorFields() {
         QJsonObject clip = clipJson(QStringLiteral("c1"), QStringLiteral("audio"), 0, kReady);
         clip.insert(QStringLiteral("audioRole"), QStringLiteral("dialogue"));
+        clip.insert(QStringLiteral("bypassedFixedEffects"), QJsonObject{{QStringLiteral("volume"), QJsonObject{{QStringLiteral("volumeDb"), -6}}}});
         const QJsonObject marker{{QStringLiteral("id"), QStringLiteral("m1")}, {QStringLiteral("timeMs"), 1000},
                                  {QStringLiteral("label"), QStringLiteral("Beat")}, {QStringLiteral("color"), QStringLiteral("#ff0000")},
                                  {QStringLiteral("note"), QStringLiteral("Hold")}, {QStringLiteral("durationMs"), 2500},

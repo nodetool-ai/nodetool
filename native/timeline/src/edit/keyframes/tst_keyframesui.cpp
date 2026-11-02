@@ -3,9 +3,15 @@
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
 #include <QFile>
+#include <QJSValue>
 #include <QQmlContext>
 #include <QQmlEngine>
+#include <QQuickItem>
+#include <QQuickWindow>
 #include <QTemporaryDir>
+#include <algorithm>
+#include <ctime>
+#include <vector>
 #include <QtQuickTest/quicktest.h>
 
 class KeyframeUiSetup : public QObject {
@@ -38,6 +44,21 @@ class KeyframeUiSetup : public QObject {
         }
         m_model.undoStack()->clear();
         m_clock.seek(0);
+    }
+    // The median CPU time of `count` steps, each followed by a full frame: bindings, polish,
+    // sync and a render into a read-back image, which is more than a frame on screen costs.
+    // CPU time, because agents and CI share the machine, and wall time follows their load.
+    Q_INVOKABLE double medianFrameMs(QQuickItem* item, QJSValue step, int count) {
+        std::vector<double> samples;
+        for (int i = 0; i < count; ++i) {
+            const auto start = std::clock();
+            step.call({i});
+            QCoreApplication::processEvents();
+            item->window()->grabWindow();
+            samples.push_back(1000.0 * static_cast<double>(std::clock() - start) / CLOCKS_PER_SEC);
+        }
+        std::nth_element(samples.begin(), samples.begin() + count / 2, samples.end());
+        return samples[static_cast<size_t>(count) / 2];
     }
     Q_INVOKABLE int undoCount() const { return m_model.undoStack()->count(); }
     Q_INVOKABLE QString documentJson() const { return QString::fromUtf8(m_model.documentJson()); }

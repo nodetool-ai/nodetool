@@ -1374,6 +1374,12 @@ export interface TimelineClip {
    */
   audioRole?: ClipAudioRole;
   /**
+   * What a fixed effect held when the native Effect Controls panel switched it
+   * off. The clip's own fields stay at their identity meanwhile, so every
+   * renderer draws the bypass without knowing about this field.
+   */
+  bypassedFixedEffects?: ClipBypassedFixedEffects;
+  /**
    * GPU effects applied to this clip in order. On an `adjustment` clip they
    * run on the composite of the layers beneath it instead of on its own
    * pixels.
@@ -1850,6 +1856,15 @@ export interface ClipLightLeakTransition {
  * - `rotation` is in radians.
  * - `anchor` is the rotation/scale pivot in normalized [0,1] coords (0.5 = center).
  */
+/** A property curve as it is stored on a custom clip animation. */
+export type ClipBypassedCurve = { property: string; keyframes: { t: number; value: number; easing?: string; sourceMs?: number }[] };
+/** See {@link TimelineClip.bypassedFixedEffects}. */
+export interface ClipBypassedFixedEffects {
+  motion?: { transform?: ClipTransform; curves?: ClipBypassedCurve[] };
+  opacity?: { opacity?: number; curves?: ClipBypassedCurve[] };
+  volume?: { volumeDb?: number };
+}
+
 export interface ClipTransform {
   position: { x: number; y: number };
   scale: { x: number; y: number };
