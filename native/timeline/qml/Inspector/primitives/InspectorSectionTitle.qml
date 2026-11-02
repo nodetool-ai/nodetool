@@ -56,6 +56,7 @@ Item {
                 id: actionButton
                 anchors.fill: parent
                 enabled: !!root.action && !root.action.disabled
+                disabledReason: root.action ? root.action.disabledReason || "" : ""
                 iconName: root.action ? root.action.icon || "" : ""
                 accessibleName: root.action ? root.action.label : ""
                 description: root.action ? root.action.description || "" : ""

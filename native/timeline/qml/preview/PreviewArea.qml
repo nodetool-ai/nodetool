@@ -73,6 +73,7 @@ Rectangle {
                 iconName: "navigateBefore"
                 accessibleName: "Previous frame"
                 enabled: !area.clock.playing
+                disabledReason: "Pause playback to step one frame"
                 onClicked: area.clock.seek(Math.max(0, area.clock.time - area.frameMs))
             }
             Ui.ToolbarIconButton {
@@ -102,6 +103,7 @@ Rectangle {
                 iconName: "navigateNext"
                 accessibleName: "Next frame"
                 enabled: !area.clock.playing
+                disabledReason: "Pause playback to step one frame"
                 onClicked: area.clock.seek(Math.min(area.timeline.contentEndMs, area.clock.time + area.frameMs))
             }
             Ui.ToolbarIconButton {

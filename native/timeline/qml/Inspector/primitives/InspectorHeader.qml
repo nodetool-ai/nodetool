@@ -28,6 +28,7 @@ Item {
                     required property var modelData
                     iconName: modelData.icon || ""
                     enabled: !modelData.disabled
+                    disabledReason: modelData.disabledReason || ""
                     accessibleName: modelData.label
                     description: modelData.description || ""
                     iconTone: modelData.variant === "danger" ? Ui.Text.Error : Ui.Text.Secondary

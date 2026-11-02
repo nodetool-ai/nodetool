@@ -23,6 +23,7 @@ InspectorSection {
             icon: "refresh",
             label: "Reset color",
             disabled: !editor.color || editor.locked,
+            disabledReason: editor.locked ? "Unlock the clip or track to reset color" : "Add a color adjustment before resetting it",
             onClick: () => editor.resetColor()
         })
     onCheckedChangedByUser: next => editor.updateColor({

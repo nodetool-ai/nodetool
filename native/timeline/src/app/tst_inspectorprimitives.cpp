@@ -235,6 +235,50 @@ InspectorPillInput { width: 200; value: "10"; scrub: ({step:1,min:0,max:1000}) }
             QCOMPARE(commits[0][0].toDouble(), 141.0);
         }
     }
+    void disabledInspectorActionExplainsItsReason_data() {
+        QTest::addColumn<QString>("type");
+        QTest::newRow("header") << QString("InspectorHeader { actions: [{label:'Delete', icon:'deleteOutline', disabled:true, disabledReason:'Unlock the track'}] }");
+        QTest::newRow("section") << QString("InspectorSectionTitle { action: ({label:'Delete', icon:'deleteOutline', disabled:true, disabledReason:'Unlock the track'}) }");
+    }
+    void disabledInspectorActionExplainsItsReason() {
+        QFETCH(QString, type);
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData(("import QtQuick\nimport NodeTool.Timeline\n" + type).toUtf8(), QUrl());
+        std::unique_ptr<QObject> object(component.create());
+        QVERIFY2(object, qPrintable(component.errorString()));
+        QQuickItem* action = nullptr;
+        auto* root = qobject_cast<QQuickItem*>(object.get());
+        QVERIFY(root);
+        QList<QQuickItem*> pending{root};
+        while (!pending.isEmpty()) {
+            auto* child = pending.takeLast();
+            if (child->property("accessibleName").toString() == "Delete") { action = child; break; }
+            pending.append(child->childItems());
+        }
+        QVERIFY(action);
+        QVERIFY(!action->isEnabled());
+        QCOMPARE(action->property("disabledReason").toString(), QString("Unlock the track"));
+        root->setWidth(300);
+        QQuickWindow window;
+        window.resize(300, 100);
+        root->setParentItem(window.contentItem());
+        QSignalSpy frames(&window, &QQuickWindow::frameSwapped);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QTRY_VERIFY(frames.count() > 0);
+        QSignalSpy clicks(action, SIGNAL(clicked()));
+        QVERIFY(clicks.isValid());
+        auto* tooltip = action->findChild<QObject*>("nativeButtonTooltip");
+        QVERIFY(tooltip);
+        const auto point = action->mapToScene(QPointF(action->width() / 2, action->height() / 2)).toPoint();
+        QTest::mouseMove(&window, point);
+        QTRY_VERIFY(tooltip->property("visible").toBool());
+        QCOMPARE(tooltip->property("text").toString(), QString("Unlock the track"));
+        QTest::mouseClick(&window, Qt::LeftButton, {}, point);
+        QTest::keyClick(&window, Qt::Key_Space);
+        QCOMPARE(clicks.count(), 0);
+    }
     void documentEditsUseIncrementalPaths() {
         TimelineModel model;
         auto parsed = nt::parseTimelineJson(R"({"name":"Before","width":640,"height":360,"fps":30,"durationMs":5000,"tracks":[{"id":"v","type":"video","name":"Video","index":0}],"clips":[{"id":"c","trackId":"v","startMs":0,"durationMs":1000,"mediaType":"video"}]})");
