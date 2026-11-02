@@ -66,7 +66,10 @@ Presentation types:
   header, background, and focus behavior. `returnFocusTo` supplies the focus
   target on close.
 - `Ui.Tooltip.trigger` identifies the anchor. Its inherited `text`, `visible`,
-  and `delay` control the message and timing. `Ui.ShortcutHint` renders its
+  and `delay` control the message and timing. One tooltip is visible at a time.
+  Movement of the trigger or its ancestors dismisses it. Pointer presses,
+  scrolling, key presses, and focus changes dismiss stale help. Use this
+  primitive instead of attached Qt tooltips. `Ui.ShortcutHint` renders its
   inherited text in the mono caption role.
 
 `Ui.Slider` takes `value`, `from`, `to`, `stepSize`, `origin`, `resetValue`,

@@ -3,7 +3,6 @@
 // this later. No clock binding: seeks and moves leave through separate hooks.
 pragma ComponentBehavior: Bound
 import QtQuick
-import QtQuick.Controls
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
 Item {
@@ -70,8 +69,7 @@ Item {
                 onCanceled: root.drag = null
                 hoverEnabled: true
             }
-            ToolTip.visible: pointer.containsMouse && !root.locked
-            ToolTip.text: "Drag to move keyframe"
+            Ui.Tooltip { trigger: mark; visible: pointer.containsMouse && !pointer.pressed && !root.locked; text: "Drag to move keyframe" }
         }
     }
 }

@@ -179,8 +179,7 @@ Rectangle {
                     visible: root.mediaType === "video"
                     text: "Mark in"
                     outlined: false
-                    ToolTip.visible: hovered
-                    ToolTip.text: "I"
+                    shortcutText: "I"
                     onClicked: root.mark("in")
                 }
             }
@@ -199,8 +198,7 @@ Rectangle {
                     visible: root.mediaType === "video"
                     text: "Mark out"
                     outlined: false
-                    ToolTip.visible: hovered
-                    ToolTip.text: "O"
+                    shortcutText: "O"
                     onClicked: root.mark("out")
                 }
             }
@@ -224,8 +222,7 @@ Rectangle {
                         text: modelData
                         iconName: modelData === "Append" ? "playlistAdd" : modelData === "Insert" ? "keyboardTab" : "flipToFront"
                         enabled: !!root.mediaType
-                        ToolTip.visible: hovered
-                        ToolTip.text: SourceViewerState.shortcut(modelData.toLowerCase(), root.gestures ? root.gestures.keyboardPreset : "nodetool")
+                        shortcutText: SourceViewerState.shortcut(modelData.toLowerCase(), root.gestures ? root.gestures.keyboardPreset : "nodetool")
                         onClicked: SourceViewerState.perform(modelData.toLowerCase(), root.gestures)
                     }
                 }

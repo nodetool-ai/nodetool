@@ -22,6 +22,7 @@ Basic.Button {
     property string disabledReason: ""
     property string shortcutText: ""
     property string description: ""
+    property bool tooltipSuppressed: false
     property int textRole: Typography.SansLabel
     Accessible.role: Accessible.Button
     Accessible.name: accessibleName
@@ -33,6 +34,9 @@ Basic.Button {
     onVariantChanged: if (variant < 0 || variant > 3) { console.warn("Invalid button variant"); variant = 0 }
     onTextRoleChanged: if (!Number.isInteger(textRole) || textRole < Typography.SansTitle || textRole > Typography.MonoCaption) { console.warn("Invalid button text role"); textRole = Typography.SansLabel }
     onLoadingChanged: if (loading && down) pressCancel.cancel(root)
+    onPressed: tooltipSuppressed = true
+    onHoveredChanged: if (hovered) tooltipSuppressed = false
+    onVisualFocusChanged: if (visualFocus) tooltipSuppressed = false
     implicitHeight: Math.max(density === 0 ? Metrics.compact :
         density === 2 ? Metrics.comfortable : Metrics.standard,
         (label.visible ? label.implicitHeight : Math.max(buttonIcon.visible ? buttonIcon.height : 0, provider.visible ? provider.height : 0, spinner.visible ? spinner.height : 0)) + Metrics.md)
@@ -88,14 +92,14 @@ Basic.Button {
         parent: root.parent
         x: root.x; y: root.y; width: root.width; height: root.height
         z: root.z + Metrics.layerOverlay
-        visible: !root.enabled && root.disabledReason !== ""
-        HoverHandler { id: disabledHover }
+        visible: root.visible && !root.enabled && root.disabledReason !== ""
+        HoverHandler { id: disabledHover; onHoveredChanged: if (hovered) root.tooltipSuppressed = false }
     }
     Ui.Tooltip {
         id: tooltip
         objectName: "nativeButtonTooltip"
         trigger: root
-        visible: (root.hovered || root.visualFocus || disabledHover.hovered) && (root.description !== "" || root.disabledReason !== "" || root.shortcutText !== "" || root.display === Basic.AbstractButton.IconOnly)
+        visible: root.visible && !root.tooltipSuppressed && !root.down && !root.menuExpanded && !root.loading && (root.hovered || root.visualFocus || disabledHover.hovered) && (root.description !== "" || root.disabledReason !== "" || root.shortcutText !== "" || root.display === Basic.AbstractButton.IconOnly)
         text: !root.enabled && root.disabledReason !== "" ? root.disabledReason : root.accessibleName + (root.shortcutText !== "" ? " (" + root.shortcutText + ")" : "") + (root.description !== "" && root.description.trim() !== root.accessibleName.trim() ? "\n" + root.description : "")
     }
 }

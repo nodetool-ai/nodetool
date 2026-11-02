@@ -269,8 +269,7 @@ Item {
                 cursorShape: Qt.SizeHorCursor
                 Accessible.role: Accessible.Slider
                 Accessible.name: label
-                ToolTip.visible: containsMouse
-                ToolTip.text: label
+                Ui.Tooltip { trigger: transitionGrip; visible: transitionGrip.containsMouse && !transitionGrip.pressed; text: transitionGrip.label }
                 onPressed: mouse => {
                     startX = mapToItem(body, mouse.x, mouse.y).x
                     startMs = body.transitionMs

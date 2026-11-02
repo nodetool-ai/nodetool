@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Controls as Controls
 import NodeTool.Timeline
 import "../Inspector/AudioFadeShapes.js" as FadeShapes
 import NodeTool.UiPrimitives as Ui
@@ -23,13 +22,13 @@ Ui.ContextMenu {
     Instantiator {
         model: FadeShapes.options
         delegate: Ui.MenuItem {
+            id: shapeItem
             required property var modelData
             objectName: "fadeShape_" + modelData.value
             text: modelData.label
             checkable: true
             checked: root.current === modelData.value
-            Controls.ToolTip.text: FadeShapes.hints[modelData.value]
-            Controls.ToolTip.visible: hovered
+            Ui.Tooltip { trigger: shapeItem; visible: shapeItem.hovered && !shapeItem.down; text: FadeShapes.hints[shapeItem.modelData.value] }
             onTriggered: root.choose(modelData.value)
         }
         onObjectAdded: (index, object) => root.insertItem(index, object)
