@@ -127,11 +127,22 @@ private slots:
     }
     void menuEnabledRule() {
         MenuRegistry menus;
-        const auto disabled = menus.query("clip", {{"editable", false}});
+        // The editor registers its own clip items (src/remix/clip/RemixRegistrations.cpp), so look up the example's by action.
+        const auto exampleItems = [&menus](const QVariantMap& context) {
+            QVariantList found;
+            for (const auto& item : menus.query("clip", context)) {
+                if (item.toMap().value("action").toString() == "example.rename") {
+                    found.append(item);
+                }
+            }
+            return found;
+        };
+        const auto disabled = exampleItems({{"editable", false}});
         QCOMPARE(disabled.size(), 1);
-        QCOMPARE(disabled[0].toMap().value("action").toString(), QString("example.rename"));
         QVERIFY(!disabled[0].toMap().value("enabled").toBool());
-        QVERIFY(menus.query("clip", {{"editable", true}})[0].toMap().value("enabled").toBool());
+        const auto enabled = exampleItems({{"editable", true}});
+        QCOMPARE(enabled.size(), 1);
+        QVERIFY(enabled[0].toMap().value("enabled").toBool());
         // The example adds nothing to the ruler menu. The editor's own items (src/ui/MonitorMenus.cpp) are there.
         for (const auto& item : menus.query("ruler", {})) {
             QVERIFY(!item.toMap().value("action").toString().startsWith("example."));
