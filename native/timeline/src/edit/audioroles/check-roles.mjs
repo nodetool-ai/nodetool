@@ -78,13 +78,14 @@ try {
   check(r.code === 0, "duck exits 0: " + r.err);
   const report = JSON.parse(r.out);
   const row = report.clips[0];
-  const want = [[1200, 0], [2000, -15], [4000, -15], [4800, 0], [5200, 0], [6000, -15], [7500, -15], [8300, 0]];
-  check(row.points.length === want.length, `eight keyframes, got ${row.points.length}`);
+  // FilmCraft's eight keyframes, between a flat point at the start of the clip and one just before its end.
+  const want = [[0, 0], [1200, 0], [2000, -15], [4000, -15], [4800, 0], [5200, 0], [6000, -15], [7500, -15], [8300, 0], [9999, 0]];
+  check(row.points.length === want.length, `ten points, got ${row.points.length}`);
   check(want.every(([t, v], i) => row.points[i] && Math.abs(row.points[i].timeMs - t) <= 130 && row.points[i].value === v), "keyframes at the speech edges");
   check(row.triggers.length === 1 && row.triggers[0] === "dlg", "dialogue is the trigger");
   const ducked = JSON.parse(readFileSync(join(dir, "ducked.json"), "utf8"));
   const lane = ducked.tracks.find((t) => t.id === "music").automation?.[0];
-  check(lane?.target.kind === "mixer" && lane.target.param === "volumeDb" && lane.points.length === 8, "a mixer volume lane on the music track");
+  check(lane?.target.kind === "mixer" && lane.target.param === "volumeDb" && lane.points.length === 10, "a mixer volume lane on the music track");
   check(!ducked.tracks.find((t) => t.id === "voice").automation, "the dialogue track has no lane");
   // Render the music alone.
   ducked.tracks.find((t) => t.id === "voice").muted = true;

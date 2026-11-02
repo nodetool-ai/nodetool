@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <optional>
 
 namespace nt::audioroles {
 
@@ -39,8 +40,7 @@ bool soundingType(const QString& mediaType) { return mediaType == u"audio" || me
 QJsonObject duckPayload(const QList<DuckEntry>& entries) {
     QJsonArray list;
     for (const auto& e : entries) {
-        list.append(QJsonObject{{"trackId", e.trackId}, {"fromMs", e.fromMs}, {"toMs", e.toMs}, {"baseDb", e.baseDb},
-                                {"points", e.points}});
+        list.append(QJsonObject{{"trackId", e.trackId}, {"fromMs", e.fromMs}, {"toMs", e.toMs}, {"points", e.points}});
     }
     return {{"entries", list}};
 }
@@ -112,51 +112,41 @@ QJsonObject setClipsVolumeDb(QJsonObject raw, const QJsonObject& payload) {
     return raw;
 }
 
-constexpr double kSamePointMs = 0.5;  // the web editor's SAME_POINT_MS
-constexpr double kAnchorMs = 1.0;
+constexpr double kSamePointMs = 0.5;   // the web editor's SAME_POINT_MS
+constexpr int kMaxLanePoints = 10000;  // MAX_AUTOMATION_POINTS_PER_LANE in the protocol schema
 
 bool isVolumeLane(const QJsonObject& lane) {
     const auto target = lane.value("target").toObject();
     return target.value("kind").toString() == u"mixer" && target.value("param").toString() == u"volumeDb";
 }
 
-// Replaces the points of the track's volume lane inside [fromMs, toMs] with the
-// entry's. Dips never leak into the neighbours: a flat anchor at the base level
-// is added one millisecond outside a dip that touches the edge of the range.
-QJsonArray replaceRange(const QJsonArray& old, const QJsonObject& entry) {
+// The lane's points with those in [fromMs, toMs) replaced by the entry's, which RoleAnalysis keeps inside
+// [fromMs, toMs - 1 ms]. Empty optional: the result would be more points than the web editor's schema accepts.
+std::optional<QJsonArray> replaceRange(const QJsonArray& old, const QJsonObject& entry) {
     const double from = entry.value("fromMs").toDouble();
     const double to = entry.value("toMs").toDouble();
-    const double base = entry.value("baseDb").toDouble();
     QList<QPair<double, QJsonObject>> kept;
     for (const auto& v : old) {
         const auto p = v.toObject();
         const double t = p.value("timeMs").toDouble();
-        if (t >= from && t <= to) continue;
+        if (t >= from && t < to) continue;
         kept.append({t, p});
     }
-    QList<QPair<double, double>> add;
     for (const auto& v : entry.value("points").toArray()) {
         const auto p = v.toObject();
-        add.append({p.value("timeMs").toDouble(), p.value("value").toDouble()});
-    }
-    if (!add.isEmpty()) {
-        if (std::abs(add.first().second - base) > 1e-9) {
-            add.prepend({std::max(0.0, add.first().first - kAnchorMs), base});
-        }
-        if (std::abs(add.last().second - base) > 1e-9) add.append({add.last().first + kAnchorMs, base});
-    }
-    for (const auto& added : add) {
-        const double t = added.first;
+        const double t = p.value("timeMs").toDouble();
+        if (!std::isfinite(t) || !std::isfinite(p.value("value").toDouble()) || t < 0) continue;
         kept.removeIf([t](const auto& k) { return std::abs(k.first - t) < kSamePointMs; });
-        kept.append({t, QJsonObject{{"timeMs", t}, {"value", added.second}}});
+        kept.append({t, QJsonObject{{"timeMs", t}, {"value", p.value("value").toDouble()}}});
     }
+    if (kept.size() > kMaxLanePoints) return std::nullopt;
     std::stable_sort(kept.begin(), kept.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
     QJsonArray out;
     for (const auto& k : kept) out.append(k.second);
     return out;
 }
 
-// {entries: [{trackId, fromMs, toMs, baseDb, points}]}
+// {entries: [{trackId, fromMs, toMs, points}]}. A lane that is switched off is left alone: its points would not be heard.
 QJsonObject applyDucking(QJsonObject raw, const QJsonObject& payload) {
     auto tracks = raw.value("tracks").toArray();
     bool changed = false;
@@ -175,16 +165,17 @@ QJsonObject applyDucking(QJsonObject raw, const QJsonObject& payload) {
             for (qsizetype i = 0; i < lanes.size(); ++i) {
                 if (isVolumeLane(lanes[i].toObject())) { lane = i; break; }
             }
+            if (lane >= 0 && !lanes[lane].toObject().value("enabled").toBool(true)) break;
             auto laneObject = lane >= 0 ? lanes[lane].toObject()
                 : QJsonObject{{"id", QUuid::createUuid().toString(QUuid::Id128)},
                               {"target", QJsonObject{{"kind", "mixer"}, {"param", "volumeDb"}}},
                               {"points", QJsonArray{}}};
             const auto points = replaceRange(laneObject.value("points").toArray(), entry);
-            if (points == laneObject.value("points").toArray()) break;
-            if (points.isEmpty()) {
+            if (!points || *points == laneObject.value("points").toArray()) break;
+            if (points->isEmpty()) {
                 if (lane >= 0) lanes.removeAt(lane);
             } else {
-                laneObject.insert("points", points);
+                laneObject.insert("points", *points);
                 if (lane >= 0) lanes[lane] = laneObject; else lanes.append(laneObject);
             }
             if (lanes.isEmpty()) track.remove("automation"); else track.insert("automation", lanes);

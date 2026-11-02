@@ -71,7 +71,10 @@ private slots:
             out.requestReset();
         });
         requester.join();
-        QCOMPARE(out.read().integrated, before.integrated);
+        // The readings clear at once, so Reset works while paused, when the audio thread processes nothing.
+        QCOMPARE(out.read().integrated, none);
+        QCOMPARE(out.read().truePeakDb, none);
+        QCOMPARE(out.read().blocks, before.blocks + 10);
         std::array<float, 960> silence{};
         live.process(silence.data(), 480);
         const auto cleared = out.read();

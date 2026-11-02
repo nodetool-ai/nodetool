@@ -16,24 +16,33 @@ An unset role reads as Dialogue on a clip whose `bindingKind` is `text-to-audio`
 (`effectiveRole`). New generated voice and music clips also get the field.
 
 The web editor has no clip-level volume keyframes, so ducking uses the track's volume lane, which both editors play.
-It lowers the whole track. Keep Music and Ambience on tracks of their own. The lane replaces the track fader while
-it has points, so a dip starts and ends at the fader's level (or at the lane's value outside the clip when the lane
-already has points). Running Duck again replaces the points inside the clip's range and leaves the rest of the lane
-alone. A flat point one millisecond outside a dip that touches the edge of the range keeps it from ramping in from
-the neighbouring points.
+It lowers the whole track. Keep Music and Ambience on tracks of their own. While a lane has points it replaces the
+track fader, so the dips go down from the fader's level, and whatever the lane held inside the clip is replaced.
+A clip owns the points in `[start, end)`. `RoleAnalysis` keeps its points inside `[start, end - 1 ms]` and adds a
+flat point at the base level at the start and one at the end, so a dip never ramps into the clips next to it, and
+two clips that meet on one track do not touch each other's points. Running Duck again replaces the points of the
+clip's range and leaves the rest of the lane alone. A lane that is switched off is refused, because its points
+would not be heard, and so is a lane that would pass 10000 points, the web schema's limit. A sound file that cannot
+be read leaves the existing ducking as it is.
+
+An unset role reads as Dialogue or Music for a generated voice or music clip, so "No role" on such a clip
+has no effect. Choose another role for it.
 
 ## Measuring
 
 `RoleAnalysis` takes an immutable `Timeline` snapshot and runs on a worker thread (`AudioRoles` owns it). It
 renders the clips through the same `buildMixPlan` and `mixBlock` as playback, in blocks, so clip effects, speed and
 time remaps count and a long recording is not held in memory. For a measurement the clip stands alone on a neutral
-track with no clip volume, no fades, no track fader, pan or effects and no master gain. A mono file is measured
+track with no fades, no track fader, pan or track effects and no master gain, at a clip volume of its own. The volume
+comes first, then the clip's effects, so a clip with effects (a compressor reacts to the level) is rendered again
+at the volume found, up to three more times, and corrected by what is missing. A mono file is measured
 as one channel, as ffmpeg's `ebur128` does. For ducking, the trigger clips (default Dialogue, optionally SFX) are
 rendered with their own volume and fades and summed, and their 10 ms level envelope sets the regions to duck
 (`audio/loudness/Ducking.h`, ported from FilmCraft's `ducking.rs` and `trigger_envelope`).
 
 The result becomes one `applyEdit`, so one undo entry. It is applied only if the clips and tracks the analysis read
-are unchanged (`analysisKey`). Cancel drops the result. Analysis plans attach no mixer meter taps
+are unchanged (`analysisKey`: matching and normalizing ignore every volume, ducking keeps the volumes of the trigger
+clips and the track faders). Cancel drops the result. Analysis plans attach no mixer meter taps
 (`automation::ScopedNoMeters`), so they never replace the live meters' readings.
 
 ## The live meter

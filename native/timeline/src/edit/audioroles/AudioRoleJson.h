@@ -37,14 +37,13 @@ double defaultTargetLufs(const QString& role);
 // Whether a clip carries sound that a role or a gain applies to.
 bool soundingType(const QString& mediaType);
 
-// One ducking edit: the points that replace the track's volume lane inside
-// [fromMs, toMs]. `base` is the level outside the dips.
+// One ducking edit: the points that replace the track's volume lane in [fromMs, toMs). The points are
+// [{timeMs, value}] in document time, sorted, inside [fromMs, toMs - 1 ms].
 struct DuckEntry {
     QString trackId;
     double fromMs = 0;
     double toMs = 0;
-    double baseDb = 0;
-    QJsonArray points;  // [{timeMs, value}] in document time, sorted
+    QJsonArray points;
 };
 QJsonObject duckPayload(const QList<DuckEntry>& entries);
 

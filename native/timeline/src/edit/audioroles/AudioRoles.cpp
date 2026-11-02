@@ -21,13 +21,18 @@ QString plural(int n, const char* one, const char* many) { return QStringLiteral
 
 QString db(double value) { return QString::number(value, 'f', 1); }
 
-// What a measurement depends on: every clip as the mix reads it, and the tracks, but not the clip volumes
-// and the volume lanes the actions write. A result is applied only to a document with the same key.
-QJsonObject analysisKey(const nt::Timeline& timeline) {
+bool ducked(const QString& role) { return role == u"music" || role == u"ambience"; }
+
+// What an analysis depends on: every clip as the mix reads it, and the tracks, but not what the action writes.
+// Matching and normalizing ignore every volume, since they render the clip at a volume of their own. Ducking
+// hears the trigger clips with their volume and dips from the track fader, so it keeps both, except for the
+// volume of the clips it ducks. The volume lanes are left out: a switched-off lane is checked when the edit is made.
+// A result is applied only to a document with the same key.
+QJsonObject analysisKey(const nt::Timeline& timeline, bool keepVolumes, const QSet<QString>& ignoreVolumeOf) {
     QJsonArray clips;
     for (const auto& clip : timeline.clips) {
         auto raw = clip.raw;
-        raw.remove("volumeDb");
+        if (!keepVolumes || ignoreVolumeOf.contains(QString::fromStdString(clip.id))) raw.remove("volumeDb");
         clips.append(QJsonObject{{"clip", raw}, {"media", QString::fromStdString(clip.mediaPath)},
                                  {"audio", QString::fromStdString(clip.audioPath)}});
     }
@@ -35,12 +40,11 @@ QJsonObject analysisKey(const nt::Timeline& timeline) {
     for (const auto& track : timeline.tracks) {
         auto raw = track.raw;
         raw.remove("automation");
+        if (!keepVolumes) raw.remove("volumeDb");
         tracks.append(raw);
     }
-    return {{"clips", clips}, {"tracks", tracks}, {"master", timeline.masterVolumeDb}};
+    return {{"clips", clips}, {"tracks", tracks}};
 }
-
-bool ducked(const QString& role) { return role == u"music" || role == u"ambience"; }
 
 }  // namespace
 
@@ -200,11 +204,12 @@ void AudioRoles::cancel() {
     if (m_cancel) m_cancel->store(true);
 }
 
-void AudioRoles::start(const QString& task,
+void AudioRoles::start(const QString& task, std::function<QJsonObject(const nt::Timeline&)> keyOf,
                        std::function<void(const CancelFn&, const ProgressFn&)> work, std::function<bool()> apply) {
     m_cancel = std::make_shared<std::atomic_bool>(false);
     m_generation = m_timeline->documentGeneration();
-    m_key = analysisKey(m_timeline->timeline());
+    m_keyOf = std::move(keyOf);
+    m_key = m_keyOf(m_timeline->timeline());
     m_task = task;
     m_progress = 0;
     const auto cancelFlag = m_cancel;
@@ -234,7 +239,7 @@ void AudioRoles::start(const QString& task,
         if (cancelFlag->load()) {
             report(QStringLiteral("Cancelled. Nothing was changed."), false);
         } else if (!m_timeline || m_timeline->documentGeneration() != m_generation ||
-                   analysisKey(m_timeline->timeline()) != m_key) {
+                   m_keyOf(m_timeline->timeline()) != m_key) {
             report(QStringLiteral("The timeline changed while measuring, so nothing was changed. Run it again."), true);
         } else {
             applied = apply();
@@ -266,15 +271,15 @@ void AudioRoles::matchLoudness(const QStringList& ids) {
     const auto snapshot = m_timeline->snapshot();
     const auto settingsTargets = m_targets;
     m_measurements.clear();
-    start(QStringLiteral("match"),
-        [this, snapshot, list](const CancelFn& cancelled, const ProgressFn& progress) {
-            m_measurements = measureClips(*snapshot, list, cancelled, progress);
+    start(QStringLiteral("match"), [](const nt::Timeline& t) { return analysisKey(t, false, {}); },
+        [this, snapshot, list, settingsTargets](const CancelFn& cancelled, const ProgressFn& progress) {
+            const Goal goal{[settingsTargets](const nt::Clip& clip) {
+                return settingsTargets.value(effectiveRole(clip.raw), defaultTargetLufs({})).toDouble();
+            }, false};
+            m_measurements = measureClips(*snapshot, list, goal, cancelled, progress);
         },
-        [this, settingsTargets, skipped = noRole + locked] {
-            const auto plan = volumesFor(m_measurements, [&](const Measurement& m) {
-                const auto* clip = m_timeline->timeline().findClip(m.clipId);
-                return clip ? settingsTargets.value(effectiveRole(clip->raw)).toDouble() : defaultTargetLufs({});
-            }, false);
+        [this, skipped = noRole + locked] {
+            const auto plan = volumesFor(m_measurements);
             const auto volumes = plan.volumes;
             const int silent = plan.silent, clamped = plan.clamped;
             if (volumes.isEmpty()) {
@@ -284,7 +289,7 @@ void AudioRoles::matchLoudness(const QStringList& ids) {
             const bool applied = m_timeline->applyEdit("setClipsVolumeDb", {{"volumes", volumes}}) != 0;
             QString text = applied ? QStringLiteral("Matched %1 to their role targets.").arg(plural(int(volumes.size()), "clip", "clips"))
                                    : QStringLiteral("The clips already match their role targets.");
-            if (silent > 0) text += QStringLiteral(" %1 silent.").arg(plural(silent, "clip is", "clips are"));
+            if (silent > 0) text += QStringLiteral(" %1 not measured. %2").arg(plural(silent, "clip was", "clips were"), plan.firstProblem);
             if (skipped > 0) text += QStringLiteral(" %1 skipped for having no role or being locked.").arg(plural(skipped, "clip", "clips"));
             if (clamped > 0) text += QStringLiteral(" %1 limited to the volume range.").arg(plural(clamped, "clip", "clips"));
             report(text, false);
@@ -307,12 +312,13 @@ void AudioRoles::normalize(const QStringList& ids, const QString& mode, double t
     for (const auto& id : chosen) list.push_back(id.toStdString());
     const auto snapshot = m_timeline->snapshot();
     m_measurements.clear();
-    start(QStringLiteral("normalize"),
-        [this, snapshot, list](const CancelFn& cancelled, const ProgressFn& progress) {
-            m_measurements = measureClips(*snapshot, list, cancelled, progress);
+    start(QStringLiteral("normalize"), [](const nt::Timeline& t) { return analysisKey(t, false, {}); },
+        [this, snapshot, list, peak, target](const CancelFn& cancelled, const ProgressFn& progress) {
+            const Goal goal{[target](const nt::Clip&) { return target; }, peak};
+            m_measurements = measureClips(*snapshot, list, goal, cancelled, progress);
         },
         [this, peak, target] {
-            const auto plan = volumesFor(m_measurements, [target](const Measurement&) { return target; }, peak);
+            const auto plan = volumesFor(m_measurements);
             const auto volumes = plan.volumes;
             const int silent = plan.silent, clamped = plan.clamped;
             if (volumes.isEmpty()) {
@@ -323,7 +329,7 @@ void AudioRoles::normalize(const QStringList& ids, const QString& mode, double t
             QString text = applied ? QStringLiteral("Normalized %1 to %2 %3.").arg(plural(int(volumes.size()), "clip", "clips"), db(target),
                                                                                      peak ? QStringLiteral("dBFS") : QStringLiteral("LUFS"))
                                    : QStringLiteral("The clips already sit at %1 %2.").arg(db(target), peak ? QStringLiteral("dBFS") : QStringLiteral("LUFS"));
-            if (silent > 0) text += QStringLiteral(" %1 silent.").arg(plural(silent, "clip is", "clips are"));
+            if (silent > 0) text += QStringLiteral(" %1 not measured. %2").arg(plural(silent, "clip was", "clips were"), plan.firstProblem);
             if (clamped > 0) text += QStringLiteral(" %1 limited to the volume range.").arg(plural(clamped, "clip", "clips"));
             report(text, false);
             return applied;
@@ -346,7 +352,8 @@ void AudioRoles::duck(const QStringList& ids) {
     const auto snapshot = m_timeline->snapshot();
     const auto settings = m_duck;
     m_plans.clear();
-    start(QStringLiteral("duck"),
+    const QSet<QString> targets(chosen.begin(), chosen.end());
+    start(QStringLiteral("duck"), [targets](const nt::Timeline& t) { return analysisKey(t, true, targets); },
         [this, snapshot, list, settings](const CancelFn& cancelled, const ProgressFn& progress) {
             m_plans = planDucking(*snapshot, list, settings, cancelled, progress);
         },

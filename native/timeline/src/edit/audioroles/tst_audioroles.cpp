@@ -43,6 +43,7 @@ double rmsDb(const std::vector<float>& stereo, double fromMs, double toMs) {
     for (std::size_t i = a; i < b; ++i) sum += static_cast<double>(stereo[i]) * stereo[i];
     return 10 * std::log10(sum / static_cast<double>(b - a) + 1e-20);
 }
+Goal loudness(double target) { return {[target](const nt::Clip&) { return target; }, false}; }
 QJsonObject clipOf(const QJsonObject& doc, const QString& id) {
     for (const auto& v : doc.value("clips").toArray()) {
         if (v.toObject().value("id").toString() == id) return v.toObject();
@@ -96,6 +97,11 @@ class TestAudioRoles : public QObject {
                         {audioClip("dlg", "voice", voice, musicStartMs, 10000, "dialogue"),
                          audioClip("mus", "music", bed, musicStartMs, 10000, musicRole)},
                         musicStartMs + 10000);
+    }
+
+    // The two adjacent music clips alone, with no lane: the level the ducked render is compared with.
+    QByteArray duckingDocumentWithoutDialogueMute(const QString& bed) {
+        return document({audioTrack("music", 0)}, {audioClip("m1", "music", bed, 0, 10000, "music")}, 10000);
     }
 
 private slots:
@@ -164,7 +170,7 @@ private slots:
 
     void duckingEditWritesAndReplacesALane() {
         auto model = load(duckingDocument());
-        const QJsonObject first = duckPayload({{"music", 0, 10000, 0,
+        const QJsonObject first = duckPayload({{"music", 0, 10000,
             QJsonArray{QJsonObject{{"timeMs", 1200}, {"value", 0}}, QJsonObject{{"timeMs", 2000}, {"value", -15}},
                        QJsonObject{{"timeMs", 4000}, {"value", -15}}, QJsonObject{{"timeMs", 4800}, {"value", 0}}}}});
         QVERIFY(model->applyEdit("applyDucking", first));
@@ -173,7 +179,7 @@ private slots:
         QCOMPARE(points.size(), 4);
         QCOMPARE(points[1].toObject().value("value").toDouble(), -15.0);
         // Running it again with other settings replaces the points of the range, it does not stack.
-        const QJsonObject second = duckPayload({{"music", 0, 10000, 0,
+        const QJsonObject second = duckPayload({{"music", 0, 10000,
             QJsonArray{QJsonObject{{"timeMs", 1500}, {"value", 0}}, QJsonObject{{"timeMs", 2000}, {"value", -6}},
                        QJsonObject{{"timeMs", 4000}, {"value", -6}}, QJsonObject{{"timeMs", 4500}, {"value", 0}}}}});
         QVERIFY(model->applyEdit("applyDucking", second));
@@ -187,27 +193,46 @@ private slots:
         model->undoStack()->undo();
         QVERIFY(!trackOf(model->timeline().raw, "music").contains("automation"));
         QCOMPARE(model->undoStack()->count(), 2);
+        // An empty plan clears the range and removes the lane it empties.
+        QVERIFY(model->applyEdit("applyDucking", first));
+        QVERIFY(model->applyEdit("applyDucking", duckPayload({{"music", 0, 10000, QJsonArray{}}})));
+        QVERIFY(!trackOf(model->timeline().raw, "music").contains("automation"));
     }
 
-    void duckingKeepsNeighboursAndDipsAtTheEdge() {
+    void duckingEditReplacesOnlyItsHalfOpenRange() {
         auto model = load(duckingDocument());
-        // A hand-drawn point outside the range survives.
-        const QJsonObject drawn = duckPayload({{"music", 20000, 25000, -3,
-            QJsonArray{QJsonObject{{"timeMs", 21000}, {"value", -3}}, QJsonObject{{"timeMs", 22000}, {"value", -9}}}}});
-        QVERIFY(model->applyEdit("applyDucking", drawn));
-        // A dip that reaches the start of the range gets a flat anchor before it, so it never ramps in from the neighbour.
-        const QJsonObject edge = duckPayload({{"music", 0, 10000, 0,
-            QJsonArray{QJsonObject{{"timeMs", 0}, {"value", -15}}, QJsonObject{{"timeMs", 3000}, {"value", -15}},
-                       QJsonObject{{"timeMs", 3800}, {"value", 0}}}}});
-        QVERIFY(model->applyEdit("applyDucking", edge));
+        // Points outside the range survive, and a point at the end of the range belongs to the next range.
+        QVERIFY(model->applyEdit("applyDucking", duckPayload({
+            {"music", 0, 10000, QJsonArray{QJsonObject{{"timeMs", 0}, {"value", -15}}, QJsonObject{{"timeMs", 9999}, {"value", -15}}}},
+            {"music", 10000, 20000, QJsonArray{QJsonObject{{"timeMs", 10000}, {"value", -9}}, QJsonObject{{"timeMs", 19999}, {"value", -9}}}}})));
+        QCOMPARE(lanePoints(trackOf(model->timeline().raw, "music")).size(), 4);
+        // Running the first range again leaves the second one alone.
+        QVERIFY(model->applyEdit("applyDucking", duckPayload({
+            {"music", 0, 10000, QJsonArray{QJsonObject{{"timeMs", 0}, {"value", -3}}, QJsonObject{{"timeMs", 9999}, {"value", -3}}}}})));
         const auto points = lanePoints(trackOf(model->timeline().raw, "music"));
-        QList<double> times;
-        for (const auto& p : points) times.append(p.toObject().value("timeMs").toDouble());
-        QVERIFY2(std::is_sorted(times.begin(), times.end()), "points stay sorted");
-        QVERIFY(times.contains(21000) && times.contains(22000));
-        QVERIFY(times.contains(0) && times.contains(3000) && times.contains(3800));
-        // The base level also follows a dip that ends fully ducked.
-        QCOMPARE(points.last().toObject().value("timeMs").toDouble(), 22001.0);
+        QCOMPARE(points.size(), 4);
+        QCOMPARE(points[0].toObject().value("value").toDouble(), -3.0);
+        QCOMPARE(points[2].toObject().value("timeMs").toDouble(), 10000.0);
+        QCOMPARE(points[2].toObject().value("value").toDouble(), -9.0);
+    }
+
+    void duckingEditRefusesWhatTheWebSchemaWouldReject() {
+        auto model = load(duckingDocument());
+        QJsonArray many;
+        for (int i = 0; i < 10001; ++i) many.append(QJsonObject{{"timeMs", i + 1.0}, {"value", -3}});
+        QVERIFY(!model->applyEdit("applyDucking", duckPayload({{"music", 0, 10000, many}})));
+        // A lane that is switched off would hide the dips, so the edit leaves it alone.
+        auto raw = QJsonDocument::fromJson(duckingDocument()).object();
+        auto tracks = raw.value("tracks").toArray();
+        auto music = tracks[1].toObject();
+        music.insert("automation", QJsonArray{QJsonObject{{"id", "lane"}, {"enabled", false},
+            {"target", QJsonObject{{"kind", "mixer"}, {"param", "volumeDb"}}}, {"points", QJsonArray{QJsonObject{{"timeMs", 0}, {"value", -2}}}}}});
+        tracks[1] = music;
+        raw.insert("tracks", tracks);
+        auto off = load(QJsonDocument(raw).toJson());
+        QVERIFY(!off->applyEdit("applyDucking", duckPayload({{"music", 0, 10000, QJsonArray{QJsonObject{{"timeMs", 1000}, {"value", -9}}}}})));
+        const auto plans = planDucking(parse(QJsonDocument(raw).toJson()), {"mus"}, {}, {}, {});
+        QVERIFY(plans[0].problem.contains("switched off"));
     }
 
     void duckingRefusesLockedAndVideoTracks() {
@@ -218,7 +243,7 @@ private slots:
         tracks[1] = locked;
         raw.insert("tracks", tracks);
         auto model = load(QJsonDocument(raw).toJson());
-        const QJsonObject payload = duckPayload({{"music", 0, 10000, 0, QJsonArray{QJsonObject{{"timeMs", 1000}, {"value", -9}}}}});
+        const QJsonObject payload = duckPayload({{"music", 0, 10000, QJsonArray{QJsonObject{{"timeMs", 1000}, {"value", -9}}}}});
         QVERIFY(!model->applyEdit("applyDucking", payload));
     }
 
@@ -234,7 +259,7 @@ private slots:
         clips[0] = clip;
         json.insert("clips", clips);
         const auto timeline = parse(QJsonDocument(json).toJson());
-        const auto results = measureClips(timeline, {"c"}, {}, {});
+        const auto results = measureClips(timeline, {"c"}, loudness(-23), {}, {});
         QCOMPARE(results.size(), size_t(1));
         QVERIFY2(results[0].ok, qPrintable(results[0].problem));
         std::vector<float> stereo;
@@ -250,7 +275,7 @@ private slots:
         const auto monoPath = wav("mono.wav", sig, 1);
         const auto timeline = parse(document({audioTrack("a", 0), audioTrack("b", 1)},
             {audioClip("two", "a", stereoPath, 0, 12000), audioClip("one", "b", monoPath, 0, 12000)}, 12000));
-        const auto r = measureClips(timeline, {"two", "one"}, {}, {});
+        const auto r = measureClips(timeline, {"two", "one"}, loudness(-23), {}, {});
         QVERIFY(r[0].ok && r[1].ok);
         QVERIFY(!r[0].mono && r[1].mono);
         // The dual-mono pair carries twice the energy: 3.01 LU more than the mono file.
@@ -265,7 +290,7 @@ private slots:
         const auto silent = wav("silent.wav", std::vector<float>(kRate * 3, 0.0f));
         const auto timeline = parse(document({audioTrack("a", 0)},
             {audioClip("s", "a", silent, 0, 3000, "music"), audioClip("gone", "a", m_dir.filePath("nope.wav"), 0, 3000, "music")}, 3000));
-        const auto r = measureClips(timeline, {"s", "gone", "absent"}, {}, {});
+        const auto r = measureClips(timeline, {"s", "gone", "absent"}, loudness(-23), {}, {});
         QCOMPARE(r.size(), size_t(3));
         for (const auto& m : r) {
             QVERIFY(!m.ok);
@@ -429,7 +454,8 @@ private slots:
         QCOMPARE(plan.regionsMs.size(), size_t(2));
         QVERIFY(std::abs(plan.regionsMs[0].first - 2000) < 120 && std::abs(plan.regionsMs[0].second - 4000) < 120);
         QVERIFY(std::abs(plan.regionsMs[1].first - 6000) < 120 && std::abs(plan.regionsMs[1].second - 7500) < 120);
-        const std::vector<std::pair<double, double>> want{{1200, 0}, {2000, -15}, {4000, -15}, {4800, 0}, {5200, 0}, {6000, -15}, {7500, -15}, {8300, 0}};
+        // FilmCraft's eight keyframes, between a flat point at the start of the clip and one at its end.
+        const std::vector<std::pair<double, double>> want{{0, 0}, {1200, 0}, {2000, -15}, {4000, -15}, {4800, 0}, {5200, 0}, {6000, -15}, {7500, -15}, {8300, 0}, {9999, 0}};
         QCOMPARE(plan.points.size(), want.size());
         for (std::size_t i = 0; i < want.size(); ++i) {
             QVERIFY2(std::abs(plan.points[i].first - want[i].first) <= 130, qPrintable(QString::number(i) + ": " + QString::number(plan.points[i].first)));
@@ -443,10 +469,12 @@ private slots:
         const auto plans = planDucking(timeline, {"mus"}, {}, {}, {});
         QVERIFY(plans[0].problem.isEmpty());
         QCOMPARE(plans[0].baseDb, -6.0);
-        QCOMPARE(plans[0].points.size(), size_t(8));
-        QVERIFY(std::abs(plans[0].points[1].first - 22000) <= 130);
-        QCOMPARE(plans[0].points[1].second, -21.0);
-        QCOMPARE(plans[0].points[0].second, -6.0);
+        QCOMPARE(plans[0].points.size(), size_t(10));
+        QCOMPARE(plans[0].points[0].first, 20000.0);
+        QVERIFY(std::abs(plans[0].points[2].first - 22000) <= 130);
+        QCOMPARE(plans[0].points[2].second, -21.0);
+        QCOMPARE(plans[0].points[1].second, -6.0);
+        QCOMPARE(plans[0].points.back().first, 29999.0);
     }
 
     void planDuckingNeedsAnAudioTrackAndTriggers() {
@@ -495,8 +523,9 @@ private slots:
         roles->setDuckReduceDb(6);
         roles->duck({});
         QTRY_COMPARE_WITH_TIMEOUT(finished.count(), 2, 30000);
-        QCOMPARE(lanePoints(trackOf(model->timeline().raw, "music")).size(), 8);
+        QCOMPARE(lanePoints(trackOf(model->timeline().raw, "music")).size(), 10);
         QCOMPARE(model->undoStack()->count(), 2);
+        roles->setDuckReduceDb(15);
         // A clip that is not Music or Ambience is not ducked.
         QVERIFY(model->applyEdit("setClipsAudioRole", {{"selectedIds", QJsonArray{"mus"}}, {"role", "dialogue"}}));
         roles->duck({"mus"});
@@ -544,6 +573,113 @@ private slots:
         const auto stopped = readout.read();
         QTest::qWait(100);
         QCOMPARE(readout.read().blocks, stopped.blocks);
+    }
+
+    void adjacentMusicClipsDuckIndependentlyAndAgainIdentically() {
+        // Continuous dialogue under two music clips that meet at 10 s on one track.
+        const auto voice = wav("voice-long.wav", speech(20, 0.4f, [](double) { return true; }));
+        const auto bed = wav("bed-long.wav", tone(10, 220, 0.2f));
+        auto model = load(document({audioTrack("voice", 0), audioTrack("music", 1)},
+            {audioClip("dlg", "voice", voice, 0, 20000, "dialogue"), audioClip("m1", "music", bed, 0, 10000, "music"),
+             audioClip("m2", "music", bed, 10000, 10000, "music")}, 20000));
+        auto* roles = AudioRoles::forTimeline(model.get());
+        roles->setDuckReduceDb(15);
+        QSignalSpy finished(roles, &AudioRoles::finished);
+        roles->duck({});
+        QTRY_COMPARE_WITH_TIMEOUT(finished.count(), 1, 30000);
+        QVERIFY2(finished.first().at(1).toBool(), qPrintable(roles->message()));
+        const auto lane = lanePoints(trackOf(model->timeline().raw, "music"));
+        // Each clip keeps a dip that starts at its start and holds to its end, whatever its neighbour does.
+        QVERIFY2(lane.size() >= 4, qPrintable(QString::number(lane.size())));
+        for (const auto& value : lane) QCOMPARE(value.toObject().value("value").toDouble(), -15.0);
+        const double first = lane.first().toObject().value("timeMs").toDouble();
+        QCOMPARE(first, 0.0);
+        // The same, one clip at a time, in any order: nothing accumulates.
+        const auto before = model->timeline().raw;
+        for (const char* id : {"m2", "m1", "m2"}) {
+            roles->duck({id});
+            QTRY_VERIFY_WITH_TIMEOUT(!roles->busy(), 30000);
+        }
+        QCOMPARE(lanePoints(trackOf(model->timeline().raw, "music")), lane);
+        QCOMPARE(model->timeline().raw.value("tracks"), before.value("tracks"));
+        // Rendered, both clips sit 15 dB under their unducked level, right across the cut.
+        auto soloRaw = model->timeline().raw;
+        auto tracks = soloRaw.value("tracks").toArray();
+        auto muted = tracks[0].toObject();
+        muted.insert("muted", true);
+        tracks[0] = muted;
+        soloRaw.insert("tracks", tracks);
+        const auto rendered = nt::audio::renderOffline(parse(QJsonDocument(soloRaw).toJson()), kRate, 0, 20000);
+        const double expected = rmsDb(rendered, 4000, 6000);
+        QVERIFY(std::abs(rmsDb(rendered, 14000, 16000) - expected) < 0.2);
+        QVERIFY(std::abs(rmsDb(rendered, 9000, 9900) - expected) < 0.2);
+        QVERIFY(std::abs(rmsDb(rendered, 10100, 11000) - expected) < 0.2);
+        const auto plain = nt::audio::renderOffline(parse(duckingDocumentWithoutDialogueMute(bed)), kRate, 0, 10000);
+        QVERIFY2(std::abs((expected - rmsDb(plain, 4000, 6000)) + 15) < 0.4, qPrintable(QString::number(expected - rmsDb(plain, 4000, 6000))));
+    }
+
+    void anUnreadableTriggerLeavesTheDuckingAlone() {
+        auto model = load(duckingDocument());
+        auto* roles = AudioRoles::forTimeline(model.get());
+        QSignalSpy finished(roles, &AudioRoles::finished);
+        roles->duck({});
+        QTRY_COMPARE_WITH_TIMEOUT(finished.count(), 1, 30000);
+        const auto ducked = model->timeline().raw;
+        QVERIFY(!lanePoints(trackOf(ducked, "music")).isEmpty());
+        // The dialogue file goes missing: running Duck again must not clear what is there.
+        QFile::remove(m_dir.filePath("voice.wav"));
+        const auto plans = planDucking(parse(QJsonDocument(ducked).toJson()), {"mus"}, {}, {}, {});
+        QVERIFY(!plans[0].problem.isEmpty());
+        QVERIFY(duckingPayload(plans).value("entries").toArray().isEmpty());
+        roles->duck({});
+        QTRY_COMPARE_WITH_TIMEOUT(finished.count(), 2, 30000);
+        QVERIFY(!finished.at(1).at(1).toBool());
+        QVERIFY(roles->messageIsError());
+        QCOMPARE(model->timeline().raw, ducked);
+        writeWav(m_dir.filePath("voice.wav"), speech(10, 0.4f, [](double t) { return (t >= 2 && t < 4) || (t >= 6 && t < 7.5); }), 2);
+    }
+
+    void aShortClipCanStillBePeakNormalized() {
+        // 200 ms is shorter than one 400 ms gating block: no integrated loudness, but a real peak.
+        const auto blip = wav("blip.wav", tone(0.2, 1000, 0.25f));
+        auto model = load(document({audioTrack("a", 0)}, {audioClip("c", "a", blip, 0, 200, "sfx")}, 200));
+        auto* roles = AudioRoles::forTimeline(model.get());
+        QSignalSpy finished(roles, &AudioRoles::finished);
+        roles->normalize({"c"}, "peak", -3);
+        QTRY_COMPARE_WITH_TIMEOUT(finished.count(), 1, 30000);
+        QVERIFY2(finished.first().at(1).toBool(), qPrintable(roles->message()));
+        QVERIFY(std::abs(clipOf(model->timeline().raw, "c").value("volumeDb").toDouble() - (-3 - 20 * std::log10(0.25))) < 0.05);
+        // Loudness cannot be measured on it, and the message says so.
+        roles->normalize({"c"}, "loudness", -16);
+        QTRY_COMPARE_WITH_TIMEOUT(finished.count(), 2, 30000);
+        QVERIFY(!finished.at(1).at(1).toBool());
+        QVERIFY(roles->message().contains("too short"));
+    }
+
+    void effectsThatReactToTheLevelAreAccountedFor() {
+        // A compressor after the clip volume: the gain that reaches the target before it is not the volume that does after.
+        std::vector<float> square(kRate * 5);
+        for (std::size_t i = 0; i < square.size(); ++i) square[i] = (i / 50) % 2 ? 0.1f : -0.1f;
+        const auto path = wav("square.wav", square);
+        auto raw = QJsonDocument::fromJson(document({audioTrack("a", 0)}, {audioClip("c", "a", path, 0, 5000, "dialogue")}, 5000)).object();
+        auto clips = raw.value("clips").toArray();
+        auto clip = clips[0].toObject();
+        clip.insert("audioEffects", QJsonArray{QJsonObject{{"id", "comp"}, {"type", "compressor"}, {"enabled", true}, {"thresholdDb", -24},
+            {"ratio", 3}, {"kneeDb", 0}, {"attackMs", 0}, {"releaseMs", 0}}});
+        clips[0] = clip;
+        raw.insert("clips", clips);
+        auto model = load(QJsonDocument(raw).toJson());
+        auto* roles = AudioRoles::forTimeline(model.get());
+        roles->setTarget("dialogue", -14);
+        QSignalSpy finished(roles, &AudioRoles::finished);
+        roles->matchLoudness({"c"});
+        QTRY_COMPARE_WITH_TIMEOUT(finished.count(), 1, 60000);
+        QVERIFY2(finished.first().at(1).toBool(), qPrintable(roles->message()));
+        roles->setTarget("dialogue", -23);
+        // What plays: the clip with its volume and its effect, through the mixer.
+        const auto rendered = nt::audio::renderOffline(parse(QJsonDocument(model->timeline().raw).toJson()), kRate, 0, 5000);
+        const double loudness = lufsOf(rendered);
+        QVERIFY2(std::abs(loudness + 14) <= 0.3, qPrintable(QString::number(loudness) + " LUFS, wanted -14"));
     }
 
     void actionsAreRegistered() {

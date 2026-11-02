@@ -1,4 +1,6 @@
-// nt-panel: slot=right id=audio order=15 title="Audio"
+// nt-panel: slot=bottom id=audio order=15 title="Audio"
+// Registered in the bottom slot so that only the Audio workspace puts it on the right: a right-slot panel would show in every
+// workspace, including Review, which shows no side panel.
 // PanelSlot supplies no properties. Follow the visual parent chain to the TimelineEditor
 // (timeline + clock), then its TracksRegion (gestures). Outside an editor the panel shows an empty state.
 pragma ComponentBehavior: Bound

@@ -13,6 +13,15 @@ LoudnessReading LoudnessReadout::read() const noexcept {
 
 void LoudnessReadout::requestReset() noexcept {
     resets_.fetch_add(1, std::memory_order_relaxed);
+    // The audio thread applies the reset at its next block, but it runs only while playing. Clear the readings
+    // here too, so that Reset works when paused. (While playing, a block in flight may publish an old value once.)
+    momentary_.store(kNone, std::memory_order_relaxed);
+    shortTerm_.store(kNone, std::memory_order_relaxed);
+    integrated_.store(kNone, std::memory_order_relaxed);
+    maxMomentary_.store(kNone, std::memory_order_relaxed);
+    maxShortTerm_.store(kNone, std::memory_order_relaxed);
+    truePeakDb_.store(kNone, std::memory_order_relaxed);
+    loudnessRange_.store(kNone, std::memory_order_relaxed);
 }
 
 LiveLoudness::LiveLoudness(LoudnessReadout& out) : out_(out) {}

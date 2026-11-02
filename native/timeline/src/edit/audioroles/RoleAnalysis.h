@@ -22,22 +22,34 @@ namespace nt::audioroles {
 using CancelFn = std::function<bool()>;
 using ProgressFn = std::function<void(double)>;  // 0..1, called on the analysis thread
 
+// What a measurement aims for: `target(clip)` in LUFS, or in dBFS of the sample peak when `peak` is set.
+struct Goal {
+    std::function<double(const Clip&)> target;
+    bool peak = false;
+};
+
 struct Measurement {
     std::string clipId;
-    bool ok = false;
+    bool ok = false;            // the clip has what the goal needs: loudness for a loudness goal, any sound for a peak goal
     QString problem;            // user text when !ok
     double integratedLufs = 0;  // BS.1770-4, the clip alone: no clip gain, fades, track fader or master
     double samplePeakDb = 0;
     double truePeakDb = 0;
     bool mono = false;          // measured as one channel, as ffmpeg's ebur128 does
+    double target = 0;
+    double volumeDb = 0;        // the clip volume that reaches the target, limited to the range the mixer takes
+    bool clamped = false;       // the volume had to be limited
+    int passes = 1;             // renders of the clip: more than one when its effects react to the level
 };
 
-// One Measurement per id, in order. A cancelled run returns what it finished.
-std::vector<Measurement> measureClips(const Timeline& timeline, const std::vector<std::string>& clipIds,
+// One Measurement per id, in order. A cancelled run returns what it finished. The clip's own effects count, and
+// since they may not be linear (a compressor), a clip with effects is measured again at the volume found and
+// corrected, up to three times.
+std::vector<Measurement> measureClips(const Timeline& timeline, const std::vector<std::string>& clipIds, const Goal& goal,
                                       const CancelFn& cancelled, const ProgressFn& progress);
 
-// The volume each measured clip needs so its loudness (or, with `peak`, its sample peak) lands on
-// `targetOf(measurement)`. A volume past the range the mixer accepts is limited and counted.
+// The volume each measured clip needs, for the edit and for reports. Clips that could not be measured are
+// counted as silent.
 struct VolumePlan {
     QJsonObject volumes;  // clipId -> volumeDb
     QJsonArray rows;      // clipId, integratedLufs, samplePeakDb, targetDb, volumeDb, for reports
@@ -45,8 +57,7 @@ struct VolumePlan {
     int clamped = 0;
     QString firstProblem;
 };
-VolumePlan volumesFor(const std::vector<Measurement>& measurements,
-                      const std::function<double(const Measurement&)>& targetOf, bool peak);
+VolumePlan volumesFor(const std::vector<Measurement>& measurements);
 
 struct DuckSettings {
     double reduceDb = 15;    // depth in dB, a magnitude

@@ -82,7 +82,8 @@ signals:
 
 private:
     explicit AudioRoles(TimelineModel* timeline);
-    void start(const QString& task, std::function<void(const nt::audioroles::CancelFn&, const nt::audioroles::ProgressFn&)> work,
+    void start(const QString& task, std::function<QJsonObject(const nt::Timeline&)> keyOf,
+               std::function<void(const nt::audioroles::CancelFn&, const nt::audioroles::ProgressFn&)> work,
                std::function<bool()> apply);
     void report(const QString& text, bool error);
     void saveSettings() const;
@@ -104,6 +105,7 @@ private:
     std::vector<nt::audioroles::DuckPlan> m_plans;
     quint64 m_generation = 0;
     QJsonObject m_key;
+    std::function<QJsonObject(const nt::Timeline&)> m_keyOf;
 };
 
 // QML reaches the per-timeline instance through this singleton.

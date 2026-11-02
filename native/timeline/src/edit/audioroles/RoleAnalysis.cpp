@@ -21,11 +21,14 @@ namespace {
 
 constexpr int kRate = 48000;
 constexpr std::int64_t kBlock = 4096;
+constexpr double kEdgeMs = 1.0;
+constexpr double kSamePointMs = 0.5;  // the web editor's SAME_POINT_MS
+constexpr int kMaxLanePoints = 10000;  // MAX_AUTOMATION_POINTS_PER_LANE in the protocol schema
 
 // A copy of the timeline that holds only `clips`, on neutral tracks: no fader, pan, mute, solo, track
-// effects or automation, and no master gain. With `ownGain` false the clip gain and fades are removed
-// too, which is the clip's signal before the gain the match will set.
-Timeline isolate(const Timeline& source, const std::vector<const Clip*>& clips, bool ownGain) {
+// effects or automation, and no master gain. With `ownGain` false the clip gain is `volumeDb` and the fades are
+// removed, which is the clip's signal at the gain a match would set.
+Timeline isolate(const Timeline& source, const std::vector<const Clip*>& clips, bool ownGain, double volumeDb = 0) {
     Timeline t;
     t.id = source.id;
     t.name = source.name;
@@ -50,7 +53,7 @@ Timeline isolate(const Timeline& source, const std::vector<const Clip*>& clips, 
         copy.muted = false;
         copy.linkId.clear();
         if (!ownGain) {
-            copy.volumeDb = 0;
+            copy.volumeDb = volumeDb;
             copy.fadeInMs = 0;
             copy.fadeOutMs = 0;
         }
@@ -169,9 +172,85 @@ const Track* trackOf(const Timeline& timeline, const Clip& clip) { return timeli
 
 QString roleOf(const Clip& clip) { return effectiveRole(clip.raw); }
 
+// A lane is a line between its points, so a dip must not reach into the clips next to it. The points of a clip
+// stay inside [start, end - 1 ms], and a flat point at the base level holds the clip's start and end. A clip that
+// ends where the next begins then owns the points up to its end and the next owns the ones from its start.
+void bounded(DuckPlan& plan) {
+    auto& points = plan.points;
+    if (points.empty()) return;
+    const double first = plan.fromMs, last = std::max(plan.fromMs, plan.toMs - kEdgeMs);
+    if (points.front().first > first + kSamePointMs) points.insert(points.begin(), {first, plan.baseDb});
+    for (auto& p : points) p.first = std::min(p.first, last);
+    // Two points squeezed onto the same time: the later wins.
+    std::vector<std::pair<double, double>> distinct;
+    for (const auto& p : points) {
+        if (!distinct.empty() && p.first - distinct.back().first < kSamePointMs) distinct.back() = {distinct.back().first, p.second};
+        else distinct.push_back(p);
+    }
+    if (distinct.back().first < last - kSamePointMs) distinct.push_back({last, distinct.back().second});
+    points = std::move(distinct);
+}
+
 }  // namespace
 
-std::vector<Measurement> measureClips(const Timeline& timeline, const std::vector<std::string>& clipIds,
+namespace {
+
+struct Reading {
+    bool finished = true;
+    bool hasVoices = false;
+    QString problem;
+    bool mono = false;
+    double lufs = -std::numeric_limits<double>::infinity();
+    double samplePeakDb = -std::numeric_limits<double>::infinity();
+    double truePeakDb = -std::numeric_limits<double>::infinity();
+};
+
+// One render of the clip alone at clip volume `volumeDb`, measured.
+Reading measureOnce(const Timeline& timeline, const Clip& clip, double volumeDb, const CancelFn& cancelled,
+                    const ProgressFn& progress) {
+    Reading r;
+    const Timeline isolated = isolate(timeline, {&clip}, false, volumeDb);
+    Stream stream(isolated, clip.startMs, clip.durationMs, cancelled);
+    stream.open();
+    if (!stream.hasVoices()) {
+        r.problem = stream.problems().empty() ? QStringLiteral("This clip has no sound to measure.")
+                                              : QStringLiteral("The sound file could not be read.");
+        return r;
+    }
+    r.hasVoices = true;
+    r.mono = stream.allMono();
+    // On the heap: the meter holds two histograms, too much for the small stack of a worker thread.
+    const auto meterPtr = std::make_unique<audio::LoudnessMeter>(kRate, r.mono ? 1 : 2);
+    audio::LoudnessMeter& meter = *meterPtr;
+    std::vector<float> folded;
+    r.finished = stream.run(
+        [&](const float* stereo, int frames) {
+            if (!r.mono) {
+                meter.processInterleaved(stereo, frames);
+                return;
+            }
+            folded.resize(static_cast<std::size_t>(frames));
+            for (int i = 0; i < frames; ++i) folded[static_cast<std::size_t>(i)] = 0.5f * (stereo[2 * i] + stereo[2 * i + 1]);
+            meter.processInterleaved(folded.data(), frames);
+        },
+        progress);
+    r.lufs = meter.integrated();
+    r.samplePeakDb = meter.samplePeak() > 0 ? 20 * std::log10(meter.samplePeak()) : -std::numeric_limits<double>::infinity();
+    r.truePeakDb = meter.truePeakDb();
+    return r;
+}
+
+bool hasEffects(const Clip& clip) {
+    for (const auto& value : clip.raw.value("audioEffects").toArray()) {
+        // As the mix reads it: an effect plays only when it says enabled.
+        if (value.toObject().value("enabled").toBool()) return true;
+    }
+    return false;
+}
+
+}  // namespace
+
+std::vector<Measurement> measureClips(const Timeline& timeline, const std::vector<std::string>& clipIds, const Goal& goal,
                                       const CancelFn& cancelled, const ProgressFn& progress) {
     std::vector<Measurement> results;
     const double count = static_cast<double>(std::max<std::size_t>(1, clipIds.size()));
@@ -185,47 +264,60 @@ std::vector<Measurement> measureClips(const Timeline& timeline, const std::vecto
             results.push_back(std::move(m));
             continue;
         }
-        const Timeline isolated = isolate(timeline, {clip}, false);
-        Stream stream(isolated, clip->startMs, clip->durationMs, cancelled);
-        stream.open();
-        if (!stream.hasVoices()) {
-            m.problem = stream.problems().empty() ? QStringLiteral("This clip has no sound to measure.")
-                                                  : QStringLiteral("The sound file could not be read.");
+        // A clip with effects is rendered up to four times, so each render gets a quarter of the clip's share.
+        const double share = hasEffects(*clip) ? 0.25 : 1.0;
+        int pass = 0;
+        const auto step = [&](double volumeDb) {
+            const double from = static_cast<double>(k) + share * pass++;
+            return measureOnce(timeline, *clip, volumeDb, cancelled,
+                               progress ? ProgressFn([&, from](double f) { progress((from + share * f) / count); }) : ProgressFn{});
+        };
+        const auto first = step(0);
+        if (!first.finished) break;
+        if (!first.hasVoices) {
+            m.problem = first.problem;
             results.push_back(std::move(m));
             continue;
         }
-        m.mono = stream.allMono();
-        // On the heap: the meter holds two histograms, too much for the small stack of a worker thread.
-        const auto meterPtr = std::make_unique<audio::LoudnessMeter>(kRate, m.mono ? 1 : 2);
-        audio::LoudnessMeter& meter = *meterPtr;
-        std::vector<float> folded;
-        const bool finished = stream.run(
-            [&](const float* stereo, int frames) {
-                if (!m.mono) {
-                    meter.processInterleaved(stereo, frames);
-                    return;
-                }
-                folded.resize(static_cast<std::size_t>(frames));
-                for (int i = 0; i < frames; ++i) folded[static_cast<std::size_t>(i)] = 0.5f * (stereo[2 * i] + stereo[2 * i + 1]);
-                meter.processInterleaved(folded.data(), frames);
-            },
-            progress ? ProgressFn([&](double f) { progress((static_cast<double>(k) + f) / count); }) : ProgressFn{});
-        if (!finished) break;
-        m.integratedLufs = meter.integrated();
-        m.samplePeakDb = meter.samplePeak() > 0 ? 20 * std::log10(meter.samplePeak()) : -std::numeric_limits<double>::infinity();
-        m.truePeakDb = meter.truePeakDb();
-        if (!std::isfinite(m.integratedLufs)) {
-            m.problem = QStringLiteral("This clip is silent, so there is nothing to match.");
-        } else {
-            m.ok = true;
+        m.mono = first.mono;
+        m.integratedLufs = first.lufs;
+        m.samplePeakDb = first.samplePeakDb;
+        m.truePeakDb = first.truePeakDb;
+        const auto level = [&](const Reading& r) { return goal.peak ? r.samplePeakDb : r.lufs; };
+        if (!std::isfinite(level(first))) {
+            m.problem = goal.peak ? QStringLiteral("This clip is silent, so there is nothing to normalize.")
+                       : std::isfinite(first.samplePeakDb)
+                           ? QStringLiteral("This clip is too short or too quiet to measure its loudness.")
+                           : QStringLiteral("This clip is silent, so there is nothing to match.");
+            results.push_back(std::move(m));
+            continue;
         }
+        m.ok = true;
+        m.target = goal.target ? goal.target(*clip) : 0.0;
+        double volume = std::clamp(m.target - level(first), -120.0, 24.0);
+        // The volume feeds the clip's effects, so with a compressor in the chain the result moves less than the
+        // gain does. Measure at the volume found and correct by what is still missing.
+        bool cancelledInside = false;
+        if (hasEffects(*clip)) {
+            for (int i = 0; i < 3; ++i) {
+                const auto again = step(volume);
+                if (!again.finished) { cancelledInside = true; break; }
+                ++m.passes;
+                if (!std::isfinite(level(again))) break;
+                const double missing = m.target - level(again);
+                if (std::abs(missing) < 0.05) break;
+                volume = std::clamp(volume + missing, -120.0, 24.0);
+            }
+        }
+        if (cancelledInside) break;
+        m.volumeDb = volume;
+        m.clamped = volume <= -120.0 || volume >= 24.0;
         results.push_back(std::move(m));
     }
     return results;
 }
 
-VolumePlan volumesFor(const std::vector<Measurement>& measurements,
-                      const std::function<double(const Measurement&)>& targetOf, bool peak) {
+VolumePlan volumesFor(const std::vector<Measurement>& measurements) {
     VolumePlan plan;
     for (const auto& m : measurements) {
         if (!m.ok) {
@@ -233,14 +325,12 @@ VolumePlan volumesFor(const std::vector<Measurement>& measurements,
             if (plan.firstProblem.isEmpty()) plan.firstProblem = m.problem;
             continue;
         }
-        const double target = targetOf(m);
-        const double wanted = target - (peak ? m.samplePeakDb : m.integratedLufs);
-        const double volume = std::clamp(wanted, -120.0, 24.0);
-        if (volume != wanted) ++plan.clamped;
+        if (m.clamped) ++plan.clamped;
         const auto id = QString::fromStdString(m.clipId);
-        plan.volumes.insert(id, volume);
+        plan.volumes.insert(id, m.volumeDb);
         plan.rows.append(QJsonObject{{"clipId", id}, {"integratedLufs", m.integratedLufs}, {"samplePeakDb", m.samplePeakDb},
-                                     {"truePeakDb", m.truePeakDb}, {"targetDb", target}, {"volumeDb", volume}, {"mono", m.mono}});
+                                     {"truePeakDb", m.truePeakDb}, {"targetDb", m.target}, {"volumeDb", m.volumeDb},
+                                     {"mono", m.mono}, {"passes", m.passes}});
     }
     return plan;
 }
@@ -274,19 +364,26 @@ std::vector<DuckPlan> planDucking(const Timeline& timeline, const std::vector<st
             plans.push_back(std::move(plan));
             continue;
         }
-        // The level outside the dips: the track fader, or a hand-drawn lane as it stands outside this clip.
+        // The dips go down from the track fader, and the lane replaces the fader while it has points. Anything the
+        // lane held inside the clip is replaced. A lane that is switched off would hide the dips, so it is left alone.
         plan.baseDb = track->volumeDb;
+        int outside = 0;
         for (const auto& value : track->raw.value("automation").toArray()) {
             const auto lane = value.toObject();
             const auto target = lane.value("target").toObject();
             if (target.value("kind").toString() != u"mixer" || target.value("param").toString() != u"volumeDb") continue;
-            QJsonArray outside;
+            if (lane.value("enabled").toBool(true) == false) {
+                plan.problem = QStringLiteral("The volume automation of this track is switched off, so ducking would not be heard.");
+            }
             for (const auto& p : lane.value("points").toArray()) {
                 const double t = p.toObject().value("timeMs").toDouble();
-                if (t < plan.fromMs || t > plan.toMs) outside.append(p);
+                if (t < plan.fromMs || t >= plan.toMs) ++outside;
             }
-            if (!outside.isEmpty()) plan.baseDb = automation::automationValueAt(outside, plan.fromMs, plan.baseDb);
             break;
+        }
+        if (!plan.problem.isEmpty()) {
+            plans.push_back(std::move(plan));
+            continue;
         }
         std::vector<const Clip*> triggers;
         for (const Clip& other : timeline.clips) {
@@ -302,7 +399,10 @@ std::vector<DuckPlan> planDucking(const Timeline& timeline, const std::vector<st
             const Timeline isolated = isolate(timeline, triggers, true);
             Stream stream(isolated, plan.fromMs, plan.toMs - plan.fromMs, cancelled);
             stream.open();
-            if (stream.hasVoices()) {
+            if (!stream.problems().empty() || !stream.hasVoices()) {
+                // Leave the ducking as it is: an empty plan would clear it.
+                plan.problem = QStringLiteral("A sound file under this clip could not be read, so its ducking was left as it was.");
+            } else {
                 audio::ducking::EnvelopeBuilder envelope(kRate);
                 const bool finished = stream.run(
                     [&](const float* stereo, int frames) { envelope.feed(stereo, frames); },
@@ -321,7 +421,11 @@ std::vector<DuckPlan> planDucking(const Timeline& timeline, const std::vector<st
                                                                      plan.baseDb, settings.reduceDb, settings.fadeS)) {
                     plan.points.emplace_back(std::round(key.timeS * 1e6) / 1e3, key.valueDb);
                 }
+                bounded(plan);
             }
+        }
+        if (plan.problem.isEmpty() && outside + static_cast<int>(plan.points.size()) > kMaxLanePoints) {
+            plan.problem = QStringLiteral("This would need more automation points than one volume lane can hold.");
         }
         plans.push_back(std::move(plan));
         if (progress) progress(static_cast<double>(k + 1) / count);
@@ -337,7 +441,6 @@ QJsonObject duckingPayload(const std::vector<DuckPlan>& plans) {
         entry.trackId = QString::fromStdString(plan.trackId);
         entry.fromMs = plan.fromMs;
         entry.toMs = plan.toMs;
-        entry.baseDb = plan.baseDb;
         for (const auto& [t, v] : plan.points) entry.points.append(QJsonObject{{"timeMs", t}, {"value", v}});
         entries.append(entry);
     }

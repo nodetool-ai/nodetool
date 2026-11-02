@@ -68,14 +68,10 @@ int audioRolesCli(int argc, char** argv) {
         for (const auto& clip : timeline.clips) {
             if (wants(clip, [&](const QString& role) { return what == u"normalize" || !role.isEmpty(); })) list.push_back(clip.id);
         }
-        const auto measurements = measureClips(timeline, list, never, {});
         const bool peak = parser.value(mode) == u"peak";
         const double wanted = parser.value(target).toDouble();
-        const auto plan = volumesFor(measurements, [&](const Measurement& m) {
-            if (what == u"normalize") return wanted;
-            const auto* clip = timeline.findClip(m.clipId);
-            return defaultTargetLufs(clip ? effectiveRole(clip->raw) : QString());
-        }, peak);
+        const Goal goal{[&](const nt::Clip& clip) { return what == u"normalize" ? wanted : defaultTargetLufs(effectiveRole(clip.raw)); }, peak};
+        const auto plan = volumesFor(measureClips(timeline, list, goal, never, {}));
         report.insert("clips", plan.rows);
         report.insert("silent", plan.silent);
         if (const auto edit = nt::app::findEdit("setClipsVolumeDb")) doc = edit(doc, {{"volumes", plan.volumes}});
