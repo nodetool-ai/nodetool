@@ -94,7 +94,7 @@ function installerEnv(
   pythonDir: string,
   delimiter: string,
   base: Record<string, string | undefined>
-): Record<string, string> {
+) {
   const env: Record<string, string> = {};
   for (const [key, value] of Object.entries(base)) {
     if (value !== undefined) env[key] = value;
