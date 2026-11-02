@@ -20211,5 +20211,12 @@
     "chooseItem": "Выберите элемент, затем поле с ключом.",
     "noFields": "У этого элемента нет полей.",
     "pickedHelp": "Из 1Password: {{path}}. NodeTool считывает его при каждом использовании ключа."
+  },
+  "timelineSimpleMode": {
+    "modeLabel": "Режим редактора",
+    "simple": "Простой",
+    "expert": "Эксперт",
+    "canvasSize": "{{width}} × {{height}}",
+    "frameRate": "{{fps}} к/с"
   }
 }

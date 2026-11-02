@@ -17,6 +17,12 @@
  * transport strip (the preview mounted audio-only), the tracks, and a
  * resizable dock with the mixer, the device chain, the piano roll and harmony.
  *
+ * Simple mode, the default, has no dock: the document bar carries the
+ * format chips and the Simple / Expert switch, the preview sits over the
+ * tracks, and the tracks keep their essential controls. The DAW, the
+ * workspaces, the side panels and the status bar are Expert mode's. The
+ * choice is kept per user (`stores/timeline/TimelineEditorMode`).
+ *
  * On phones there is no room for a dock: the preview takes the full width, so
  * preview and tracks — the two surfaces you need simultaneously to edit — stay
  * stacked and both usable. Inspector / Assistant / History / Script move into
@@ -123,6 +129,11 @@ import {
 } from "../../hooks/timeline/useLinkedScript";
 import { useHasScript } from "../../hooks/timeline/useHasScript";
 import { useTimelineLayoutStore } from "../../stores/timeline/TimelineLayoutStore";
+import {
+  TimelineSimpleModeContext,
+  useTimelineEditorMode
+} from "../../stores/timeline/TimelineEditorMode";
+import { TimelineFormatChips, TimelineModeSwitch } from "./TimelineModeControls";
 import { useTimelineDockLayoutStore } from "../../stores/timeline/useTimelineDockLayoutStore";
 import { TIMELINE_SIDE_PANEL_IDS, type TimelinePanelId } from "../../stores/timeline/TimelineDockLayout";
 import { DockCanvas, type DockMaximizeController } from "../dock/DockCanvas";
@@ -582,6 +593,10 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useTimelineIsMobile();
+  const { mode: editorMode, setMode: setEditorMode } = useTimelineEditorMode();
+  const simpleMode = editorMode === "simple";
+  /** Phones and Simple mode stack the preview over the tracks, with no dock. */
+  const stacked = isMobile || simpleMode;
   const [generateOpen, setGenerateOpen] = useState(false);
   const openGenerate = useCallback(() => setGenerateOpen(true), []);
   const closeGenerate = useCallback(() => setGenerateOpen(false), []);
@@ -804,7 +819,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
     const observer = new ResizeObserver(update);
     observer.observe(column);
     return () => observer.disconnect();
-  }, [isMobile]);
+  }, [stacked]);
   const effectiveTracksHeight = Math.min(tracksHeight, maxTracksHeight);
   /** Apply and remember a height the user chose (drag, keys, reset). */
   const commitTracksHeight = useCallback((height: number) => {
@@ -905,7 +920,11 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   /** Query finished without a usable row (disabled id, error, or empty). */
   const sequenceUnavailable = !isLoading && (isError || !sequence);
   /** Loading and error states keep the video layout, which shows them. */
-  const dawActive = dawMode && !isLoading && !sequenceUnavailable;
+  const dawActive = dawMode && !simpleMode && !isLoading && !sequenceUnavailable;
+  // Simple mode has no DAW, so entering it leaves DAW mode.
+  useEffect(() => {
+    if (simpleMode && dawMode) setDawMode(false);
+  }, [simpleMode, dawMode, setDawMode]);
 
   const { data: userTimelines } = useTimelines(undefined, {
     enabled: sequenceUnavailable
@@ -1007,7 +1026,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   });
   const dock = useMemo<TimelineDockController | null>(
     () =>
-      isMobile
+      stacked
         ? null
         : createTimelineDockController({
             store: dockStore,
@@ -1025,7 +1044,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
                 content: message
               })
           }),
-    [dockStore, isMobile, uiStoreApi]
+    [dockStore, stacked, uiStoreApi]
   );
   useTimelineDockCommands(dock, dockStore);
 
@@ -1073,7 +1092,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   // Video or DAW, then the layouts: one Workspace menu (no phone dock).
   const workspaceMenu = useMemo(
     () =>
-      isMobile ? undefined : (
+      stacked ? undefined : (
         <DockLayoutMenu
           store={dockStore}
           panels={dockRegistrations.filter((entry) =>
@@ -1108,9 +1127,9 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       dockStore,
       dockRegistrations,
       dockPanelIds,
-      isMobile,
       sequenceUnavailable,
       setDawMode,
+      stacked,
       t
     ]
   );
@@ -1121,13 +1140,41 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
     allowInInputs: true
   });
 
-  const documentBar = (
+  // A phone's bar has no room for the switch, so the ⋮ menu carries the mode.
+  const modeControls = isMobile ? undefined : (
+    <>
+      {simpleMode && !sequenceUnavailable && (
+        <TimelineFormatChips onOpenSettings={handleOpenSettings} />
+      )}
+      <TimelineModeSwitch mode={editorMode} onChange={setEditorMode} />
+    </>
+  );
+
+  // Simple mode keeps the title, undo, the save state and Export. The rest
+  // of the bar (workspaces, panel toggles, the ⋮ menu) is Expert mode's.
+  const documentBar = simpleMode ? (
     <TimelineDocumentBar
       tab={tab}
       title={sequence?.name ?? ""}
       sequenceId={sequenceUnavailable ? undefined : sequenceId}
       isSaving={isSaving}
       showHistory={!sequenceUnavailable}
+      modeControls={modeControls}
+      editorMode={editorMode}
+      onSetEditorMode={setEditorMode}
+      onExportVideo={sequenceUnavailable ? undefined : handleExportVideo}
+      isExporting={isExporting}
+    />
+  ) : (
+    <TimelineDocumentBar
+      tab={tab}
+      title={sequence?.name ?? ""}
+      sequenceId={sequenceUnavailable ? undefined : sequenceId}
+      isSaving={isSaving}
+      showHistory={!sequenceUnavailable}
+      modeControls={modeControls}
+      editorMode={editorMode}
+      onSetEditorMode={setEditorMode}
       workspaceMenu={workspaceMenu}
       dawMode={dawMode}
       onSetDawMode={sequenceUnavailable ? undefined : setDawMode}
@@ -1181,6 +1228,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   return (
     <FieldDensityContext.Provider value="compact">
     <TimelineDockContext.Provider value={dock}>
+    <TimelineSimpleModeContext.Provider value={simpleMode}>
     <FlexColumn fullWidth fullHeight css={editorStyles(theme)}>
       {documentBar}
       {conflictBanner}
@@ -1197,7 +1245,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
         onSelectFolder={(folderId) => void saveAsAsset(folderId, sequence?.name)}
       />
 
-      {isMobile ? (
+      {stacked ? (
       <FlexRow fullWidth sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
       <FlexColumn ref={editorColumnRef} sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>
       {dawActive ? (
@@ -1287,6 +1335,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       )}
 
       {/* ── Bottom status bar ─────────────────────────────────────── */}
+      {!simpleMode && (
       <TimelineStatusBar
         actionSlot={
           isMobile ? (
@@ -1304,9 +1353,10 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
           ) : undefined
         }
       />
+      )}
 
       {/* ── Phone panel sheet ─────────────────────────────────────── */}
-      {isMobile && (
+      {isMobile && !simpleMode && (
         <MobilePanelSheet
           open={panelSheetOpen}
           onClose={closePanelSheet}
@@ -1378,6 +1428,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       </Dialog>
 
     </FlexColumn>
+    </TimelineSimpleModeContext.Provider>
     </TimelineDockContext.Provider>
     </FieldDensityContext.Provider>
   );

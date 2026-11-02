@@ -30,6 +30,13 @@ import {
 } from "@nodetool-ai/timeline";
 import { useTimelinePlaybackStoreApi } from "../../../../stores/timeline/TimelinePlaybackStore";
 import { FABLE_FX_LABELS, makeFableEffect } from "../fx/fableFxParams";
+import { TimelineEditor } from "../../TimelineEditor";
+import { trpc } from "../../../../trpc/client";
+import {
+  timelineEditorModeKey,
+  useTimelineEditorModeStore
+} from "../../../../stores/timeline/TimelineEditorMode";
+import { labDocument } from "./labDocument";
 import { FABLE_FX_VIEWS } from "../fx/FableFxDeviceView";
 
 export interface LabView {
@@ -201,6 +208,63 @@ function MixerLabView(): React.JSX.Element {
 
 const noop = (): void => {};
 
+const EDITOR_LAB_ID = "lab-editor";
+const EDITOR_LAB_SECTIONS = ["Setup", "Search", "Reveal", "Twist", "Friends"];
+
+/**
+ * The whole editor over the lab song plus a picture track of five titled
+ * shots, one marker per shot. `&mode=expert` opens Expert mode, otherwise
+ * the editor opens in its default, Simple mode.
+ */
+function EditorLabView(): React.JSX.Element {
+  const utils = trpc.useUtils();
+  const [ready] = useState(() => {
+    const mode = new URLSearchParams(window.location.search).get("mode");
+    useTimelineEditorModeStore.setState({
+      modes: mode === "expert" ? { [timelineEditorModeKey(null)]: "expert" } : {}
+    });
+    const base = labDocument();
+    const shotMs = base.durationMs / EDITOR_LAB_SECTIONS.length;
+    const picture = makeTrack({ type: "video", name: "Picture" });
+    const shots = EDITOR_LAB_SECTIONS.map((name, index) =>
+      makeClip({
+        name,
+        sourceType: "imported",
+        mediaType: "shape",
+        trackId: picture.id,
+        startMs: index * shotMs,
+        durationMs: shotMs,
+        shapeStyle: {
+          kind: "rect",
+          fill: ["#1e3a8a", "#7c3aed", "#0f766e", "#b45309", "#be123c"][index],
+          x: 0,
+          y: 0,
+          width: 1,
+          height: 1,
+          cornerRadius: 0
+        }
+      })
+    );
+    utils.timeline.get.setData(
+      { id: EDITOR_LAB_ID },
+      {
+        ...base,
+        id: EDITOR_LAB_ID,
+        name: "Under the Bed",
+        tracks: [picture, ...base.tracks],
+        clips: [...shots, ...base.clips],
+        markers: EDITOR_LAB_SECTIONS.map((label, index) => ({
+          id: `lab-marker-${index}`,
+          timeMs: index * shotMs,
+          label
+        }))
+      }
+    );
+    return true;
+  });
+  return ready ? <TimelineEditor sequenceId={EDITOR_LAB_ID} /> : <></>;
+}
+
 /**
  * The workspace app bar with a timeline tab open in Edit mode, and the
  * timeline's document bar under it, for checking both rows' alignment.
@@ -237,6 +301,10 @@ function HeaderLabView(): React.JSX.Element {
 }
 
 export const LAB_VIEWS: Record<string, LabView> = {
+  editor: {
+    title: "The whole editor, Simple mode by default (&mode=expert)",
+    render: () => <EditorLabView />
+  },
   header: {
     title: "Workspace app bar and the timeline's document bar",
     render: () => <HeaderLabView />

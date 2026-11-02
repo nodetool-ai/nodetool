@@ -168,6 +168,7 @@ import {
   neighbourEditMs
 } from "./editPoints";
 import { clipEnabledPatch, isClipDisabled } from "./clipEnabled";
+import { useTimelineSimpleMode } from "../../../stores/timeline/TimelineEditorMode";
 import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import { performSourceEdit } from "../sourceEdit";
 import { keyframeRowFor, toggleRowKeyframeAt } from "../Inspector/keyframeRows";
@@ -230,6 +231,9 @@ const containerStyles = (theme: Theme) =>
   });
 
 const TOOLBAR_HEIGHT_PX = 36;
+const NO_TRACK_IDS: readonly string[] = [];
+/** Simple mode's fixed header column: glyph, name, index and one toggle. */
+const SIMPLE_TRACK_HEADER_WIDTH_PX = 176;
 /** Phone toolbar: tall enough for the app-wide 44px touch target. */
 const TOUCH_TOOLBAR_HEIGHT_PX = 44;
 
@@ -329,6 +333,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const theme = useTheme();
     const { t } = useTranslation();
     const isMobile = useTimelineIsMobile();
+    // Simple mode: Generate, Add track and zoom in the toolbar, a narrow
+    // header column, and the pointer tool only.
+    const simpleMode = useTimelineSimpleMode();
     const isActive = useTimelineIsActive();
     // The desktop dock, for the workspace keys. Null on phones and outside the editor.
     const dock = useTimelineDock();
@@ -343,7 +350,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     );
     const headerWidthPx = isMobile
       ? MOBILE_TRACK_HEADER_WIDTH_PX
-      : storedHeaderWidthPx;
+      : simpleMode
+        ? SIMPLE_TRACK_HEADER_WIDTH_PX
+        : storedHeaderWidthPx;
     const handleHeaderResize = useCallback(
       (delta: number) => setTrackHeaderWidthPx(headerWidthPx + delta),
       [headerWidthPx, setTrackHeaderWidthPx]
@@ -398,7 +407,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
     const msPerPx = useTimelineUIStore((s) => s.msPerPx);
     const verticalZoom = useTimelineUIStore((s) => s.verticalZoom);
-    const dawMode = useTimelineLayoutStore((s) => s.dawMode);
+    const dawMode = useTimelineLayoutStore((s) => s.dawMode) && !simpleMode;
     const setScrollLeftPx = useTimelineUIStore((s) => s.setScrollLeftPx);
     const laneCursor = useTimelineUIStore((s) =>
       s.activeTool === "hand"
@@ -409,6 +418,10 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     );
 
     const setActiveTool = useTimelineUIStore((s) => s.setActiveTool);
+    // Simple mode has no tool row, so it starts on the pointer tool.
+    useEffect(() => {
+      if (simpleMode) setActiveTool("select");
+    }, [simpleMode, setActiveTool]);
     const setSelection = useTimelineUIStore((s) => s.setSelection);
     const deleteSelected = useTimelineStore((s) => s.deleteSelected);
     const duplicateSelected = useTimelineStore((s) => s.duplicateSelected);
@@ -1238,7 +1251,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
           case "toggleDawMode":
             e.preventDefault();
-            if (!e.repeat) useTimelineLayoutStore.getState().toggleDawMode();
+            if (!e.repeat && !simpleMode) useTimelineLayoutStore.getState().toggleDawMode();
             return;
 
           case "maximizePanel":
@@ -1839,11 +1852,16 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       arrowNudgeHistory.mark,
       arrowNudgeHistory.end,
       activeExplorer,
-      dock
+      dock,
+      simpleMode
     ]);
 
-    const expandedFxTrackId = useTimelineUIStore((s) => s.expandedFxTrackId);
-    const shownAutomationTrackIds = useTimelineUIStore((s) => s.shownAutomationTrackIds);
+    // Effect chains and automation lanes are Expert mode's. A chain or lane
+    // left open there stays closed in Simple mode.
+    const storedFxTrackId = useTimelineUIStore((s) => s.expandedFxTrackId);
+    const storedAutomationTrackIds = useTimelineUIStore((s) => s.shownAutomationTrackIds);
+    const expandedFxTrackId = simpleMode ? null : storedFxTrackId;
+    const shownAutomationTrackIds = simpleMode ? NO_TRACK_IDS : storedAutomationTrackIds;
 
     const hasClips = useTimelineStore((s) => s.clips.length > 0);
     // Precompute per-type index map (O(n)) to avoid O(n²) per-header lookups.
@@ -1998,7 +2016,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           sx={toolbarSx(toolbarCompact)}
           data-testid="timeline-toolbar"
         >
-          <ToolToggle compact={toolbarCompact} />
+          {!simpleMode && <ToolToggle compact={toolbarCompact} />}
           {onGenerate && (
             <EditorButton
               variant="contained"
@@ -2020,12 +2038,12 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             </EditorButton>
           )}
           <div style={{ flex: "1 1 auto" }} />
-          <AddTextButton compact={toolbarCompact} />
-          <ScriptToggleButton compact={toolbarCompact} />
+          {!simpleMode && <AddTextButton compact={toolbarCompact} />}
+          {!simpleMode && <ScriptToggleButton compact={toolbarCompact} />}
           <AddTrackButton compact={toolbarCompact} />
           {/* The shortcut sheet documents keyboard bindings — nothing a phone
               can act on, and the row has no width to spare. */}
-          {!isMobile && (
+          {!isMobile && !simpleMode && (
             <HelpButton
               onClick={() => setShortcutsOpen(true)}
               iconVariant="helpOutline"
@@ -2041,22 +2059,26 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         {/* ── Sub-header: TRACKS label + ruler ────────────────────────── */}
         <FlexRow align="stretch" fullWidth>
           <div css={tracksSectionHeaderStyles(theme, isMobile)}>
-            <span>{t("i18n-next73.tracks.title")}</span>
-            <TrackHeightSlider />
-            <span
-              css={trackCountChipStyles(theme)}
-              aria-label={t("i18n-next73.tracks.count", { count: tracks.length })}
-            >
-              {tracks.length}
-            </span>
-            <AddTrackButton compact testId="tracks-header-add-track" />
+            {!simpleMode && (
+              <>
+                <span>{t("i18n-next73.tracks.title")}</span>
+                <TrackHeightSlider />
+                <span
+                  css={trackCountChipStyles(theme)}
+                  aria-label={t("i18n-next73.tracks.count", { count: tracks.length })}
+                >
+                  {tracks.length}
+                </span>
+                <AddTrackButton compact testId="tracks-header-add-track" />
+              </>
+            )}
           </div>
           <div style={{ flex: "1 1 auto", minWidth: 0 }}>
             <TimeRuler totalWidthPx={totalWidthPx} headerWidthPx={0} />
           </div>
         </FlexRow>
 
-        {!isMobile && (
+        {!isMobile && !simpleMode && (
           <ResizeHandle
             orientation="vertical"
             value={headerWidthPx}

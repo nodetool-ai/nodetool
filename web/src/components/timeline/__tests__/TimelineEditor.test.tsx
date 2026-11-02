@@ -23,6 +23,11 @@ import {
   type AssetGridStoreApi
 } from "../../../stores/AssetGridStore";
 import type { Asset } from "../../../stores/ApiTypes";
+import {
+  timelineEditorModeKey,
+  useTimelineEditorModeStore
+} from "../../../stores/timeline/TimelineEditorMode";
+import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 
 // ── Router mocks ────────────────────────────────────────────────────────────
 
@@ -178,6 +183,11 @@ const renderEditor = () =>
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // These shell tests cover Expert mode's dock; Simple mode has its own block.
+  localStorage.clear();
+  useTimelineEditorModeStore.setState({
+    modes: { [timelineEditorModeKey(null)]: "expert" }
+  });
   mockRefetch.mockClear();
   mockCreateMutate.mockClear();
   mockCreateReset.mockClear();
@@ -586,6 +596,62 @@ describe("TimelineEditor", () => {
 
       await waitFor(() => expect(mockFlushAutosave).toHaveBeenCalledTimes(1));
       expect(exportTimelineZip).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Simple mode", () => {
+    beforeEach(() => {
+      useTimelineEditorModeStore.setState({ modes: {} });
+      useTimelineStore.setState({ width: 1920, height: 1080, fps: 30 });
+      (useTimeline as jest.Mock).mockReturnValue({
+        data: makeSequence({ id: "seq-1", name: "Under the Bed" }),
+        isLoading: false,
+        isError: false,
+        refetch: mockRefetch
+      });
+    });
+
+    it("is the default: preview over tracks, format chips and Export, no dock or status bar", () => {
+      renderEditor();
+
+      expect(screen.getByTestId("preview-area")).toBeInTheDocument();
+      expect(screen.getByTestId("tracks-region")).toBeInTheDocument();
+      expect(document.querySelector("[data-dock-region]")).not.toBeInTheDocument();
+      expect(screen.queryByRole("tab")).not.toBeInTheDocument();
+      expect(screen.queryByText(/^(Local|Cloud)$/)).not.toBeInTheDocument();
+      expect(screen.getByTestId("timeline-simple-canvas-size")).toHaveTextContent("1920 × 1080");
+      expect(screen.getByTestId("timeline-simple-fps")).toHaveTextContent("30 fps");
+      expect(screen.getByRole("button", { name: /Export/ })).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "More timeline actions" })
+      ).not.toBeInTheDocument();
+    });
+
+    it("opens Project settings from a format chip", async () => {
+      renderEditor();
+      await userEvent.click(screen.getByTestId("timeline-simple-fps"));
+      expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    });
+
+    it("leaves DAW mode, which only Expert mode has", () => {
+      useTimelineLayoutStore.setState({ dawMode: true });
+      renderEditor();
+      expect(useTimelineLayoutStore.getState().dawMode).toBe(false);
+      expect(screen.getByTestId("preview-area")).toBeInTheDocument();
+    });
+
+    it("switches to Expert mode and remembers it", async () => {
+      renderEditor();
+      await userEvent.click(screen.getByRole("button", { name: "Expert" }));
+
+      expect(screen.getByRole("tab", { name: "Inspector" })).toBeInTheDocument();
+      expect(screen.getByText(/^(Local|Cloud)$/)).toBeInTheDocument();
+      expect(screen.queryByTestId("timeline-simple-fps")).not.toBeInTheDocument();
+      expect(localStorage.getItem(timelineEditorModeKey(null))).toBe("expert");
+
+      await userEvent.click(screen.getByRole("button", { name: "Simple" }));
+      expect(screen.queryByRole("tab", { name: "Inspector" })).not.toBeInTheDocument();
+      expect(localStorage.getItem(timelineEditorModeKey(null))).toBe("simple");
     });
   });
 });
