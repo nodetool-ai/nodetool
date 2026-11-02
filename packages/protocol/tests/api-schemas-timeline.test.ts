@@ -75,6 +75,20 @@ describe("native editor fields", () => {
     expect(timelineMarker.safeParse({ ...base, durationMs: -1 }).success).toBe(false);
   });
 
+  it("keeps the values of a switched-off fixed effect", () => {
+    const clip = model3dClip;
+    const bypassedFixedEffects = {
+      motion: {
+        transform: { position: { x: 4, y: 0 }, scale: { x: 1, y: 1 }, rotation: 0, anchor: { x: 0.5, y: 0.5 } },
+        curves: [{ property: "rotation", keyframes: [{ t: 0, value: 1, easing: "cubic-bezier(0.2,0,0.8,1)" }] }]
+      },
+      opacity: { opacity: 0.5 },
+      volume: { volumeDb: -6 }
+    };
+    expect(timelineClip.parse(clip).bypassedFixedEffects).toBeUndefined();
+    expect(timelineClip.parse({ ...clip, bypassedFixedEffects }).bypassedFixedEffects).toEqual(bypassedFixedEffects);
+  });
+
   it("keeps a clip's audio role and refuses an unknown one", () => {
     const clip = model3dClip;
     expect(timelineClip.parse(clip).audioRole).toBeUndefined();

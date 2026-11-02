@@ -227,6 +227,11 @@ void ClipGestureController::setKeyframeRow(const QString& row) {
     m_keyframeRow = row;
     emit optionsChanged();
 }
+void ClipGestureController::setKeyframeRowOnly(bool only) {
+    if (only == m_keyframeRowOnly) return;
+    m_keyframeRowOnly = only;
+    emit optionsChanged();
+}
 void ClipGestureController::setLinkedSelection(bool on) {
     if (on == m_linked) return;
     m_linked = on;

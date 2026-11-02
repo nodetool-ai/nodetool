@@ -245,6 +245,86 @@ qml_callers = ["native/timeline/qml/Tracks/ClipBody.qml", "native/timeline/src/e
 replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
 
 [[file]]
+path = "native/timeline/qml/effectcontrols/EffectControlsDiamond.qml"
+category = "domain"
+controls = ["Rectangle", "MouseArea"]
+signals = []
+test_host = "tst_keyframesui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/effectcontrols/EffectControlsRow.qml"]
+replacement = "Timeline keyframe glyph with its own drag gesture, in Ui.Theme colors"
+
+[[file]]
+path = "native/timeline/qml/effectcontrols/EffectControlsGraph.qml"
+category = "domain"
+controls = ["Canvas", "Repeater", "Ui.Text", "Ui.Separator", "EffectControlsHandle"]
+signals = []
+test_host = "tst_keyframesui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/effectcontrols/EffectControlsRow.qml"]
+replacement = "Painted value and velocity plots in Ui.Theme colors"
+
+[[file]]
+path = "native/timeline/qml/effectcontrols/EffectControlsGroup.qml"
+category = "chrome"
+controls = ["RowLayout", "Rectangle", "Ui.ToolbarIconButton", "Ui.Toggle", "Ui.Text", "Ui.Separator", "Loader", "InspectorRow", "InspectorPillInput", "EffectControlsRow", "EffectFields", "AudioEffectsFields"]
+signals = []
+test_host = "tst_keyframesui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/effectcontrols/EffectControlsPanel.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.ToolbarIconButton, Ui.Toggle, Ui.Text, Ui.Separator"
+
+[[file]]
+path = "native/timeline/qml/effectcontrols/EffectControlsHandle.qml"
+category = "domain"
+controls = ["Rectangle", "MouseArea"]
+signals = []
+test_host = "tst_keyframesui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/effectcontrols/EffectControlsGraph.qml"]
+replacement = "Curve handle with its own drag gesture, in Ui.Theme colors"
+
+[[file]]
+path = "native/timeline/qml/effectcontrols/EffectControlsPanel.qml"
+category = "chrome"
+controls = ["Rectangle", "ClipInspectorController", "ClipEffectsEdits", "Ui.EmptyState", "Ui.Text", "Ui.Separator", "Flickable", "Ui.ScrollBar", "MouseArea", "WheelHandler", "Ui.ToolbarIconButton", "Ui.ContextMenu", "Ui.MenuItem", "EffectControlsRuler", "EffectControlsGroup"]
+signals = []
+test_host = "tst_keyframesui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/src/edit/keyframes/qmltests/tst_effectcontrols.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.EmptyState, Ui.Text, Ui.ScrollBar, Ui.ToolbarIconButton, Ui.ContextMenu, Ui.MenuItem"
+
+[[file]]
+path = "native/timeline/qml/effectcontrols/EffectControlsRow.qml"
+category = "chrome"
+controls = ["RowLayout", "Rectangle", "MouseArea", "Ui.ToolbarIconButton", "KeyframeButton", "Ui.Text", "InspectorPillInput", "Ui.Separator", "EffectControlsDiamond", "EffectControlsGraph"]
+signals = []
+test_host = "tst_keyframesui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/effectcontrols/EffectControlsGroup.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.ToolbarIconButton, Ui.Text, Ui.Separator; Inspector primitives for the values"
+
+[[file]]
+path = "native/timeline/qml/effectcontrols/EffectControlsRuler.qml"
+category = "domain"
+controls = ["Rectangle", "Canvas", "MouseArea"]
+signals = []
+test_host = "tst_keyframesui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/effectcontrols/EffectControlsPanel.qml"]
+replacement = "Painted time ruler in Ui.Theme colors and Ui.Typography.canvasFont"
+
+[[file]]
+path = "native/timeline/src/edit/keyframes/qmltests/tst_effectcontrols.qml"
+category = "domain"
+controls = ["SignalSpy", "TestCase", "EffectControlsPanel", "ClipInspectorController"]
+signals = []
+test_host = "tst_keyframesui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Test host of EffectControlsPanel"
+
+[[file]]
 path = "native/timeline/qml/Inspector/KeyframeLane.qml"
 category = "domain"
 controls = ["Rectangle", "MouseArea", "Ui.ContextMenu", "Ui.MenuItem", "Ui.Separator"]

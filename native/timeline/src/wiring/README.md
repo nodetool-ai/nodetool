@@ -70,7 +70,9 @@ is discovered automatically. Other QML needs `nt_qml_files(...)`.
   save, so a new field goes there, in `packages/timeline/src/types.ts`, and in
   `src/server/FieldAudit.cpp`. All are optional. Marker `durationMs` (absent or 0 is a
   point marker) and `author`, and clip `audioRole` (`dialogue`, `music`, `sfx`, `ambience`)
-  are in place. Native code reads them from the raw document (`TimelineModel::markersJson`,
+  are in place. Clip `bypassedFixedEffects` holds what the Effect Controls switches of Motion,
+  Opacity and Volume set aside, so the clip's own fields can stay at their identity and every
+  renderer draws the bypass unchanged. Native code reads them from the raw document (`TimelineModel::markersJson`,
   `clipData`) and writes them with `applyEdit`, one call per user action.
 - Workspaces: `DockLayout.js` has two lists. `workspaces` is the port of the web editor's
   list, and `dock-conformance.mjs` compares it. `nativeWorkspaces` holds Color and Audio,

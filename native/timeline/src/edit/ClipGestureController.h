@@ -78,6 +78,9 @@ class ClipGestureController : public QQuickItem {
     Q_PROPERTY(QVariantMap selectedEdit READ selectedEdit NOTIFY selectionChanged)
     // The inspector row Add Keyframe keys: the one last changed there.
     Q_PROPERTY(QString keyframeRow READ keyframeRow WRITE setKeyframeRow NOTIFY optionsChanged)
+    // While set, as the open Effect Controls panel sets it, the keyframe navigation keys step
+    // through keyframeRow alone instead of every keyframe of the clip.
+    Q_PROPERTY(bool keyframeRowOnly READ keyframeRowOnly WRITE setKeyframeRowOnly NOTIFY optionsChanged)
 
 public:
     explicit ClipGestureController(QQuickItem* parent = nullptr);
@@ -120,6 +123,8 @@ public:
     QVariantMap selectedGap() const { return m_selectedGap; }
     QVariantMap selectedEdit() const { return m_selectedEdit; }
     QString keyframeRow() const { return m_keyframeRow; }
+    bool keyframeRowOnly() const { return m_keyframeRowOnly; }
+    void setKeyframeRowOnly(bool only);
     void setKeyframeRow(const QString& row);
     Q_INVOKABLE bool pressTrack(const QString& trackId, const QString& kind, double sceneX, double sceneY);
     Q_INVOKABLE void pressEmptyLane(const QString& trackId, double sceneX, double sceneY, int modifiers);
@@ -286,4 +291,5 @@ private:
     QVariantMap m_selectedGap;
     QVariantMap m_selectedEdit;
     QString m_keyframeRow = QStringLiteral("opacity");
+    bool m_keyframeRowOnly = false;
 };
