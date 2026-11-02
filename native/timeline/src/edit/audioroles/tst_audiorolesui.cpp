@@ -117,6 +117,20 @@ private slots:
         QVERIFY(e.item("audioRole-music") && e.item("audioMatch") && e.item("audioDuck"));
     }
 
+    void reviewShowsNoAudioPanelAfterTheAudioWorkspace() {
+        Editor e(m_doc);
+        showPanel(e);
+        auto* dock = e.root()->property("dockCanvas").value<QObject*>();
+        QVERIFY(dock);
+        QVERIFY(dock->property("visiblePanels").toStringList().contains("audio"));
+        // The panel came with the Audio workspace and must not stay when Review shows no side panel.
+        e.store()->switchWorkspace(e.store()->workspaces().indexOf("Review"));
+        QTRY_VERIFY(!dock->property("visiblePanels").toStringList().contains("audio"));
+        QCOMPARE(dock->property("rightExtent").toInt(), 0);
+        e.store()->switchWorkspace(e.store()->workspaces().indexOf("Audio"));
+        QTRY_VERIFY(dock->property("visiblePanels").toStringList().contains("audio"));
+    }
+
     void clickingARoleSetsItInOneUndoEntryAndAgainClearsIt() {
         Editor e(m_doc);
         showPanel(e);

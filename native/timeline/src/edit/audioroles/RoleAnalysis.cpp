@@ -23,6 +23,8 @@ constexpr int kRate = 48000;
 constexpr std::int64_t kBlock = 4096;
 constexpr double kEdgeMs = 1.0;
 constexpr double kSamePointMs = 0.5;  // the web editor's SAME_POINT_MS
+constexpr int kMaxLanes = 256;         // MAX_AUTOMATION_LANES_PER_TRACK
+constexpr int kMaxPasses = 8;          // renders of a clip with effects: the first and up to seven corrections
 constexpr int kMaxLanePoints = 10000;  // MAX_AUTOMATION_POINTS_PER_LANE in the protocol schema
 
 // A copy of the timeline that holds only `clips`, on neutral tracks: no fader, pan, mute, solo, track
@@ -96,6 +98,12 @@ public:
     bool allMono() const { return m_channels == 1; }
     bool hasVoices() const { return std::any_of(m_voices.begin(), m_voices.end(), [](const auto& v) { return v.source != nullptr; }); }
     const std::vector<std::string>& problems() const { return m_problems; }
+    // Packets or frames the decoders rejected while running. Anything but zero means the audio is incomplete.
+    std::int64_t decodeErrors() const {
+        std::int64_t sum = 0;
+        for (const auto& v : m_voices) sum += v.source ? v.source->decodeErrors() : 0;
+        return sum;
+    }
     // False when cancelled.
     bool run(const std::function<void(const float*, int)>& sink, const ProgressFn& progress, double progressFrom = 0,
              double progressSpan = 1) {
@@ -195,9 +203,28 @@ void bounded(DuckPlan& plan) {
 
 namespace {
 
+// Reverb gives each side its own impulse response, so the two channels of a mono clip differ after it.
+bool makesStereo(const Clip& clip) {
+    for (const auto& value : clip.raw.value("audioEffects").toArray()) {
+        const auto effect = value.toObject();
+        if (effect.value("enabled").toBool() && effect.value("type").toString() == u"reverb") return true;
+    }
+    return false;
+}
+
+bool hasEffects(const Clip& clip) {
+    for (const auto& value : clip.raw.value("audioEffects").toArray()) {
+        // As the mix reads it: an effect plays only when it says enabled.
+        if (value.toObject().value("enabled").toBool()) return true;
+    }
+    return false;
+}
+
+
 struct Reading {
     bool finished = true;
     bool hasVoices = false;
+    bool damaged = false;
     QString problem;
     bool mono = false;
     double lufs = -std::numeric_limits<double>::infinity();
@@ -218,7 +245,8 @@ Reading measureOnce(const Timeline& timeline, const Clip& clip, double volumeDb,
         return r;
     }
     r.hasVoices = true;
-    r.mono = stream.allMono();
+    // One channel in the file is measured as one channel, as ebur128 does, unless an effect spreads it over two.
+    r.mono = stream.allMono() && !makesStereo(clip);
     // On the heap: the meter holds two histograms, too much for the small stack of a worker thread.
     const auto meterPtr = std::make_unique<audio::LoudnessMeter>(kRate, r.mono ? 1 : 2);
     audio::LoudnessMeter& meter = *meterPtr;
@@ -234,18 +262,11 @@ Reading measureOnce(const Timeline& timeline, const Clip& clip, double volumeDb,
             meter.processInterleaved(folded.data(), frames);
         },
         progress);
+    r.damaged = stream.decodeErrors() > 0;
     r.lufs = meter.integrated();
     r.samplePeakDb = meter.samplePeak() > 0 ? 20 * std::log10(meter.samplePeak()) : -std::numeric_limits<double>::infinity();
     r.truePeakDb = meter.truePeakDb();
     return r;
-}
-
-bool hasEffects(const Clip& clip) {
-    for (const auto& value : clip.raw.value("audioEffects").toArray()) {
-        // As the mix reads it: an effect plays only when it says enabled.
-        if (value.toObject().value("enabled").toBool()) return true;
-    }
-    return false;
 }
 
 }  // namespace
@@ -264,18 +285,23 @@ std::vector<Measurement> measureClips(const Timeline& timeline, const std::vecto
             results.push_back(std::move(m));
             continue;
         }
-        // A clip with effects is rendered up to four times, so each render gets a quarter of the clip's share.
-        const double share = hasEffects(*clip) ? 0.25 : 1.0;
+        // A clip with effects is rendered up to six times, so each render gets its share of the clip's time.
+        const int budget = hasEffects(*clip) ? kMaxPasses : 1;
         int pass = 0;
         const auto step = [&](double volumeDb) {
-            const double from = static_cast<double>(k) + share * pass++;
+            const double from = static_cast<double>(k) + static_cast<double>(pass++) / budget;
             return measureOnce(timeline, *clip, volumeDb, cancelled,
-                               progress ? ProgressFn([&, from](double f) { progress((from + share * f) / count); }) : ProgressFn{});
+                               progress ? ProgressFn([&, from, budget](double f) { progress((from + f / budget) / count); }) : ProgressFn{});
         };
         const auto first = step(0);
         if (!first.finished) break;
         if (!first.hasVoices) {
             m.problem = first.problem;
+            results.push_back(std::move(m));
+            continue;
+        }
+        if (first.damaged) {
+            m.problem = QStringLiteral("The sound file could not be read to the end.");
             results.push_back(std::move(m));
             continue;
         }
@@ -295,23 +321,57 @@ std::vector<Measurement> measureClips(const Timeline& timeline, const std::vecto
         m.ok = true;
         m.target = goal.target ? goal.target(*clip) : 0.0;
         double volume = std::clamp(m.target - level(first), -120.0, 24.0);
-        // The volume feeds the clip's effects, so with a compressor in the chain the result moves less than the
-        // gain does. Measure at the volume found and correct by what is still missing.
-        bool cancelledInside = false;
-        if (hasEffects(*clip)) {
-            for (int i = 0; i < 3; ++i) {
-                const auto again = step(volume);
-                if (!again.finished) { cancelledInside = true; break; }
-                ++m.passes;
-                if (!std::isfinite(level(again))) break;
-                const double missing = m.target - level(again);
-                if (std::abs(missing) < 0.05) break;
-                volume = std::clamp(volume + missing, -120.0, 24.0);
-            }
-        }
-        if (cancelledInside) break;
         m.volumeDb = volume;
-        m.clamped = volume <= -120.0 || volume >= 24.0;
+        if (hasEffects(*clip)) {
+            // The volume feeds the clip's effects, so with a compressor in the chain the level moves less than the
+            // volume does, and by a different amount either side of its threshold. The level never falls as the
+            // volume rises, so search for the volume that reaches the target: keep a bracket around it, step by
+            // interpolating inside it (and by halving it every third step), extrapolate while there is none, and
+            // keep the closest volume that was measured.
+            struct Point { double volume, level; };
+            std::vector<Point> measured{{0.0, level(first)}};
+            double bestError = m.target - level(first);
+            m.volumeDb = 0;
+            if (std::abs(bestError) >= 0.05) {
+                for (int i = 1; i < kMaxPasses; ++i) {
+                    double next = volume;
+                    if (i > 1) {
+                        const Point* below = nullptr;
+                        const Point* above = nullptr;
+                        for (const auto& p : measured) {
+                            if (p.level <= m.target && (!below || p.level > below->level)) below = &p;
+                            if (p.level > m.target && (!above || p.level < above->level)) above = &p;
+                        }
+                        if (below && above) {
+                            next = i % 3 == 0 ? 0.5 * (below->volume + above->volume)
+                                              : below->volume + (m.target - below->level) * (above->volume - below->volume) / (above->level - below->level);
+                        } else {
+                            const auto& a = measured[measured.size() - 2];
+                            const auto& b = measured.back();
+                            const double slope = std::abs(b.volume - a.volume) > 1e-6
+                                ? std::clamp((b.level - a.level) / (b.volume - a.volume), 0.05, 2.0) : 1.0;
+                            next = b.volume + (m.target - b.level) / slope;
+                        }
+                        next = std::clamp(next, -120.0, 24.0);
+                        const bool seen = std::any_of(measured.begin(), measured.end(), [next](const Point& p) { return std::abs(p.volume - next) < 1e-6; });
+                        if (seen) break;  // pinned at the end of the range, or nothing new to try
+                    }
+                    const auto again = step(next);
+                    if (!again.finished) { m.ok = false; break; }
+                    ++m.passes;
+                    const double reached = level(again);
+                    if (!std::isfinite(reached)) break;
+                    measured.push_back({next, reached});
+                    volume = next;
+                    const double missing = m.target - reached;
+                    if (std::abs(missing) < std::abs(bestError)) { bestError = missing; m.volumeDb = next; }
+                    if (std::abs(missing) < 0.05) break;
+                }
+                if (!m.ok) break;
+            }
+            m.missedBy = bestError;
+        }
+        m.clamped = m.volumeDb <= -120.0 || m.volumeDb >= 24.0;
         results.push_back(std::move(m));
     }
     return results;
@@ -326,6 +386,7 @@ VolumePlan volumesFor(const std::vector<Measurement>& measurements) {
             continue;
         }
         if (m.clamped) ++plan.clamped;
+        if (std::abs(m.missedBy) > 0.5) ++plan.missed;
         const auto id = QString::fromStdString(m.clipId);
         plan.volumes.insert(id, m.volumeDb);
         plan.rows.append(QJsonObject{{"clipId", id}, {"integratedLufs", m.integratedLufs}, {"samplePeakDb", m.samplePeakDb},
@@ -368,6 +429,14 @@ std::vector<DuckPlan> planDucking(const Timeline& timeline, const std::vector<st
         // lane held inside the clip is replaced. A lane that is switched off would hide the dips, so it is left alone.
         plan.baseDb = track->volumeDb;
         int outside = 0;
+        if (track->raw.value("automation").toArray().size() >= kMaxLanes) {
+            bool hasVolumeLane = false;
+            for (const auto& value : track->raw.value("automation").toArray()) {
+                const auto target = value.toObject().value("target").toObject();
+                hasVolumeLane |= target.value("kind").toString() == u"mixer" && target.value("param").toString() == u"volumeDb";
+            }
+            if (!hasVolumeLane) plan.problem = QStringLiteral("This track already has as many automation lanes as it can hold.");
+        }
         for (const auto& value : track->raw.value("automation").toArray()) {
             const auto lane = value.toObject();
             const auto target = lane.value("target").toObject();
@@ -408,6 +477,7 @@ std::vector<DuckPlan> planDucking(const Timeline& timeline, const std::vector<st
                     [&](const float* stereo, int frames) { envelope.feed(stereo, frames); },
                     progress ? ProgressFn([&](double f) { progress((static_cast<double>(k) + f) / count); }) : ProgressFn{});
                 if (!finished) break;
+                if (stream.decodeErrors() > 0) plan.problem = QStringLiteral("A sound file under this clip could not be read to the end, so its ducking was left as it was.");
                 const auto env = envelope.finish();
                 const auto regions = audio::ducking::activity(env, envelope.hopS(),
                     audio::ducking::sensitivityThresholdDb(settings.sensitivity), audio::ducking::kMinOnS,
@@ -424,6 +494,7 @@ std::vector<DuckPlan> planDucking(const Timeline& timeline, const std::vector<st
                 bounded(plan);
             }
         }
+        if (!plan.problem.isEmpty()) plan.points.clear();
         if (plan.problem.isEmpty() && outside + static_cast<int>(plan.points.size()) > kMaxLanePoints) {
             plan.problem = QStringLiteral("This would need more automation points than one volume lane can hold.");
         }
@@ -441,6 +512,7 @@ QJsonObject duckingPayload(const std::vector<DuckPlan>& plans) {
         entry.trackId = QString::fromStdString(plan.trackId);
         entry.fromMs = plan.fromMs;
         entry.toMs = plan.toMs;
+        entry.baseDb = plan.baseDb;
         for (const auto& [t, v] : plan.points) entry.points.append(QJsonObject{{"timeMs", t}, {"value", v}});
         entries.append(entry);
     }

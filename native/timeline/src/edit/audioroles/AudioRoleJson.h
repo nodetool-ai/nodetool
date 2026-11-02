@@ -38,12 +38,13 @@ double defaultTargetLufs(const QString& role);
 bool soundingType(const QString& mediaType);
 
 // One ducking edit: the points that replace the track's volume lane in [fromMs, toMs). The points are
-// [{timeMs, value}] in document time, sorted, inside [fromMs, toMs - 1 ms].
+// [{timeMs, value}] in document time, sorted, inside [fromMs, toMs - 1 ms]. `baseDb` is the level between the dips.
 struct DuckEntry {
     QString trackId;
     double fromMs = 0;
     double toMs = 0;
     QJsonArray points;
+    double baseDb = 0;
 };
 QJsonObject duckPayload(const QList<DuckEntry>& entries);
 

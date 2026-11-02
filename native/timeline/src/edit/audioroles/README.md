@@ -20,8 +20,12 @@ It lowers the whole track. Keep Music and Ambience on tracks of their own. While
 track fader, so the dips go down from the fader's level, and whatever the lane held inside the clip is replaced.
 A clip owns the points in `[start, end)`. `RoleAnalysis` keeps its points inside `[start, end - 1 ms]` and adds a
 flat point at the base level at the start and one at the end, so a dip never ramps into the clips next to it, and
-two clips that meet on one track do not touch each other's points. Running Duck again replaces the points of the
-clip's range and leaves the rest of the lane alone. A lane that is switched off is refused, because its points
+two clips that meet on one track do not touch each other's points. A lane holds its first and last value beyond its
+points, so a dip that reaches the start or the end of the clip gets one more flat point just outside it (`soft`
+in `replaceRange`), added only where no point is already, because a neighbour's own point there says what the level
+is. A clip with nothing to duck next to a dip gets flat points at its ends, so the dip does not run through it.
+Running Duck again replaces the points of the clip's range and leaves the rest of the lane alone. Clips that
+overlap on one track share the dialogue under the overlap, so each plan covers it and the later edit wins there. A lane that is switched off is refused, because its points
 would not be heard, and so is a lane that would pass 10000 points, the web schema's limit. A sound file that cannot
 be read leaves the existing ducking as it is.
 
@@ -35,7 +39,7 @@ renders the clips through the same `buildMixPlan` and `mixBlock` as playback, in
 time remaps count and a long recording is not held in memory. For a measurement the clip stands alone on a neutral
 track with no fades, no track fader, pan or track effects and no master gain, at a clip volume of its own. The volume
 comes first, then the clip's effects, so a clip with effects (a compressor reacts to the level) is rendered again
-at the volume found, up to three more times, and corrected by what is missing. A mono file is measured
+at the volume found and searched for (secant and bisection steps, up to seven more renders), keeping the closest. A mono file is measured
 as one channel, as ffmpeg's `ebur128` does. For ducking, the trigger clips (default Dialogue, optionally SFX) are
 rendered with their own volume and fades and summed, and their 10 ms level envelope sets the regions to duck
 (`audio/loudness/Ducking.h`, ported from FilmCraft's `ducking.rs` and `trigger_envelope`).

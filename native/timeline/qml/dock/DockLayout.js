@@ -6,6 +6,9 @@ var workspaces = ["Editing", "Script", "Assistant", "Review"];
 // above must match TIMELINE_WORKSPACES, which dock-conformance.mjs checks.
 var nativeWorkspaces = ["Color", "Audio"];
 var sidePanels = ["inspector", "shot", "instruments", "assistant", "history", "code"];
+// Side panels only this editor has. A workspace that shows no side panel (Review) hides them too, also when
+// they come along from the workspace before as extension panels.
+var nativeSidePanels = ["audio", "color"];
 var requiredPanels = ["program", "tracks"];
 
 // Field-for-field port of TimelineDockLayout.ts, checked by dock-conformance.mjs.
@@ -163,6 +166,12 @@ function presetWithExtensions(layout, name) {
         });
     });
     preset.hidden = preset.hidden.concat(layout.hidden.filter(function(id) { return !builtIn.has(id); }));
+    if (name === "Review") {
+        var placed = new Set(allGroups(preset).reduce(function(ids, group) { return ids.concat(group.panels); }, []));
+        nativeSidePanels.forEach(function(id) {
+            if (placed.has(id) && preset.hidden.indexOf(id) < 0) { preset.hidden.push(id); }
+        });
+    }
     return checked(preset);
 }
 function applyTransition(layout, action) {

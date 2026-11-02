@@ -40,7 +40,8 @@ bool soundingType(const QString& mediaType) { return mediaType == u"audio" || me
 QJsonObject duckPayload(const QList<DuckEntry>& entries) {
     QJsonArray list;
     for (const auto& e : entries) {
-        list.append(QJsonObject{{"trackId", e.trackId}, {"fromMs", e.fromMs}, {"toMs", e.toMs}, {"points", e.points}});
+        list.append(QJsonObject{{"trackId", e.trackId}, {"fromMs", e.fromMs}, {"toMs", e.toMs}, {"points", e.points},
+                                {"baseDb", e.baseDb}});
     }
     return {{"entries", list}};
 }
@@ -114,6 +115,8 @@ QJsonObject setClipsVolumeDb(QJsonObject raw, const QJsonObject& payload) {
 
 constexpr double kSamePointMs = 0.5;   // the web editor's SAME_POINT_MS
 constexpr int kMaxLanePoints = 10000;  // MAX_AUTOMATION_POINTS_PER_LANE in the protocol schema
+constexpr int kMaxLanes = 256;         // MAX_AUTOMATION_LANES_PER_TRACK
+constexpr double kEdgeMs = 1.0;
 
 bool isVolumeLane(const QJsonObject& lane) {
     const auto target = lane.value("target").toObject();
@@ -121,10 +124,17 @@ bool isVolumeLane(const QJsonObject& lane) {
 }
 
 // The lane's points with those in [fromMs, toMs) replaced by the entry's, which RoleAnalysis keeps inside
-// [fromMs, toMs - 1 ms]. Empty optional: the result would be more points than the web editor's schema accepts.
+// [fromMs, toMs - 1 ms]. A lane is a line between its points and holds its first and last value beyond them, so a
+// dip that touches the start or the end of the range needs a flat point just outside it, or it would reach the
+// clips before and after. Such a point is only added where no other point is, because there the neighbour's own
+// point already says what the level is. A range with nothing to duck must still not let a dip next to it run
+// through it, so then it gets flat points at its ends. Empty optional: the result would be more points than the
+// web editor's schema accepts.
 std::optional<QJsonArray> replaceRange(const QJsonArray& old, const QJsonObject& entry) {
     const double from = entry.value("fromMs").toDouble();
     const double to = entry.value("toMs").toDouble();
+    const double base = entry.value("baseDb").toDouble();
+    const auto differs = [base](double value) { return std::abs(value - base) > 1e-9; };
     QList<QPair<double, QJsonObject>> kept;
     for (const auto& v : old) {
         const auto p = v.toObject();
@@ -132,12 +142,38 @@ std::optional<QJsonArray> replaceRange(const QJsonArray& old, const QJsonObject&
         if (t >= from && t < to) continue;
         kept.append({t, p});
     }
+    std::stable_sort(kept.begin(), kept.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+    QList<QPair<double, double>> add;
     for (const auto& v : entry.value("points").toArray()) {
         const auto p = v.toObject();
         const double t = p.value("timeMs").toDouble();
-        if (!std::isfinite(t) || !std::isfinite(p.value("value").toDouble()) || t < 0) continue;
+        if (std::isfinite(t) && std::isfinite(p.value("value").toDouble()) && t >= 0) add.append({t, p.value("value").toDouble()});
+    }
+    QList<QPair<double, double>> soft;  // added only into a free slot
+    if (add.isEmpty()) {
+        double before = base, after = base;
+        for (const auto& k : kept) {
+            if (k.first < from) before = k.second.value("value").toDouble();
+            else { after = k.second.value("value").toDouble(); break; }
+        }
+        if (!kept.isEmpty() && (differs(before) || differs(after))) {
+            add.append({from, base});
+            if (to - kSamePointMs > from) add.append({std::max(from, to - kEdgeMs), base});
+        }
+    } else {
+        if (differs(add.first().second) && from >= kEdgeMs) soft.append({from - kEdgeMs, base});
+        if (differs(add.last().second)) soft.append({to, base});
+    }
+    const auto near = [&kept](double t) {
+        return std::any_of(kept.begin(), kept.end(), [t](const auto& k) { return std::abs(k.first - t) < kSamePointMs; });
+    };
+    for (const auto& added : add) {
+        const double t = added.first;
         kept.removeIf([t](const auto& k) { return std::abs(k.first - t) < kSamePointMs; });
-        kept.append({t, QJsonObject{{"timeMs", t}, {"value", p.value("value").toDouble()}}});
+        kept.append({t, QJsonObject{{"timeMs", t}, {"value", added.second}}});
+    }
+    for (const auto& added : soft) {
+        if (!near(added.first)) kept.append({added.first, QJsonObject{{"timeMs", added.first}, {"value", added.second}}});
     }
     if (kept.size() > kMaxLanePoints) return std::nullopt;
     std::stable_sort(kept.begin(), kept.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
@@ -166,6 +202,7 @@ QJsonObject applyDucking(QJsonObject raw, const QJsonObject& payload) {
                 if (isVolumeLane(lanes[i].toObject())) { lane = i; break; }
             }
             if (lane >= 0 && !lanes[lane].toObject().value("enabled").toBool(true)) break;
+            if (lane < 0 && lanes.size() >= kMaxLanes) break;
             auto laneObject = lane >= 0 ? lanes[lane].toObject()
                 : QJsonObject{{"id", QUuid::createUuid().toString(QUuid::Id128)},
                               {"target", QJsonObject{{"kind", "mixer"}, {"param", "volumeDb"}}},

@@ -39,12 +39,13 @@ struct Measurement {
     double target = 0;
     double volumeDb = 0;        // the clip volume that reaches the target, limited to the range the mixer takes
     bool clamped = false;       // the volume had to be limited
+    double missedBy = 0;        // dB the closest volume found is off the target, for a clip whose effects react to the level
     int passes = 1;             // renders of the clip: more than one when its effects react to the level
 };
 
 // One Measurement per id, in order. A cancelled run returns what it finished. The clip's own effects count, and
 // since they may not be linear (a compressor), a clip with effects is measured again at the volume found and
-// corrected, up to three times.
+// searched for, up to seven more times, and the closest volume measured is kept.
 std::vector<Measurement> measureClips(const Timeline& timeline, const std::vector<std::string>& clipIds, const Goal& goal,
                                       const CancelFn& cancelled, const ProgressFn& progress);
 
@@ -55,6 +56,7 @@ struct VolumePlan {
     QJsonArray rows;      // clipId, integratedLufs, samplePeakDb, targetDb, volumeDb, for reports
     int silent = 0;
     int clamped = 0;
+    int missed = 0;  // clips whose effects keep them more than 0.5 dB from the target
     QString firstProblem;
 };
 VolumePlan volumesFor(const std::vector<Measurement>& measurements);

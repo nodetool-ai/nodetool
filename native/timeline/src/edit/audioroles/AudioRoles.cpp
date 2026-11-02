@@ -292,6 +292,7 @@ void AudioRoles::matchLoudness(const QStringList& ids) {
             if (silent > 0) text += QStringLiteral(" %1 not measured. %2").arg(plural(silent, "clip was", "clips were"), plan.firstProblem);
             if (skipped > 0) text += QStringLiteral(" %1 skipped for having no role or being locked.").arg(plural(skipped, "clip", "clips"));
             if (clamped > 0) text += QStringLiteral(" %1 limited to the volume range.").arg(plural(clamped, "clip", "clips"));
+            if (plan.missed > 0) text += QStringLiteral(" %1 kept off the target by its effects.").arg(plural(plan.missed, "clip was", "clips were"));
             report(text, false);
             return applied;
         });
@@ -331,6 +332,7 @@ void AudioRoles::normalize(const QStringList& ids, const QString& mode, double t
                                    : QStringLiteral("The clips already sit at %1 %2.").arg(db(target), peak ? QStringLiteral("dBFS") : QStringLiteral("LUFS"));
             if (silent > 0) text += QStringLiteral(" %1 not measured. %2").arg(plural(silent, "clip was", "clips were"), plan.firstProblem);
             if (clamped > 0) text += QStringLiteral(" %1 limited to the volume range.").arg(plural(clamped, "clip", "clips"));
+            if (plan.missed > 0) text += QStringLiteral(" %1 kept off the target by its effects.").arg(plural(plan.missed, "clip was", "clips were"));
             report(text, false);
             return applied;
         });
