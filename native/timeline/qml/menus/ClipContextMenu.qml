@@ -10,8 +10,10 @@ Ui.ContextMenu {
     required property ClipGestureController gestures
     property var context: ({})
     readonly property var actionContext: Object.assign({}, context, { kind: "clip", clipIds: [context.clipId] })
-    readonly property var registeredItems: MenuRegistry.query("clip", actionContext).map(
-        item => Object.assign({}, item, { registered: true }))
+    // Every clip delegate holds this menu. Build its items when a right click sets the context.
+    readonly property var registeredItems: context.clipId
+        ? MenuRegistry.query("clip", actionContext).map(item => Object.assign({}, item, { registered: true }))
+        : []
     readonly property var webItems: {
         const clip = context.clip
         if (!clip) return []
