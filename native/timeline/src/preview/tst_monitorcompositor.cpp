@@ -215,6 +215,54 @@ private slots:
         for (int i = 0; i < 4; ++i) { monitor.frame(); }
         QCOMPARE(monitor.item->lastCanvasSize(), QSize(80, 45));
     }
+    // The group starts inside the shutter of the shown frame, so only later samples have the stage.
+    void canvasDecisionHoldsAcrossAShutter() {
+        class Stage final : public nt::LayerEffectStage {
+        public:
+            bool applies(const QJsonObject& ext) const override { return ext.contains("monitorTestStage"); }
+            bool render(const nt::EffectContext& context, const nt::LayerFrame&, QRhiTextureRenderTarget& output,
+                        const QJsonObject&) override {
+                context.commands->beginPass(&output, Qt::transparent, {1.0f, 0});
+                context.commands->endPass();
+                return true;
+            }
+        };
+        const auto stage = nt::registerEffectStage([] { return std::make_unique<Stage>(); });
+        const auto decorator = nt::registerContextGroupDecorator(
+            [](nt::PrecompositeLayer& layer, const nt::Clip&, const nt::SceneDecorationContext&) {
+                layer.ext.insert("monitorTestStage", true);
+            });
+        const auto cleanup = qScopeGuard([&] {
+            nt::unregisterEffectStage(stage);
+            nt::unregisterSceneHook(decorator);
+        });
+        const QJsonObject blur{{"samplesPerFrame", 4}, {"shutterAngle", 180}};
+        const auto parsed = nt::parseTimeline(QJsonObject{{"width", 640}, {"height", 360}, {"fps", 30}, {"durationMs", 10000},
+            {"tracks", QJsonArray{QJsonObject{{"id", "b"}, {"type", "video"}, {"visible", true}},
+                                  QJsonObject{{"id", "g0"}, {"type", "video"}, {"visible", true}},
+                                  QJsonObject{{"id", "v"}, {"type", "video"}, {"visible", true}}}},
+            {"clips", QJsonArray{QJsonObject{{"id", "red"}, {"trackId", "b"}, {"mediaType", "video"}, {"startMs", 0}, {"durationMs", 10000},
+                                             {"width", 640}, {"height", 360}, {"motionBlur", blur}},
+                                 QJsonObject{{"id", "g"}, {"trackId", "g0"}, {"mediaType", "group"}, {"startMs", 1000}, {"durationMs", 5000},
+                                             {"motionBlur", blur}, {"transitionIn", QJsonObject{{"type", "crossfade"}, {"durationMs", 100}}}},
+                                 QJsonObject{{"id", "green"}, {"trackId", "v"}, {"parentId", "g"}, {"mediaType", "video"}, {"startMs", 1000},
+                                             {"durationMs", 5000}, {"width", 640}, {"height", 360}, {"motionBlur", blur}}}}});
+        QVERIFY(parsed.timeline);
+        Monitor monitor;
+        monitor.model.setTimeline(*parsed.timeline);
+        QVERIFY(monitor.item->setProperty("pausedResolution", 2));
+        monitor.clock.seek(990);
+        for (int i = 0; i < 16; ++i) { monitor.frame(); }
+        const auto settled = monitor.frame();
+        for (int i = 0; i < 8; ++i) {
+            QCOMPARE(monitor.frame(), settled);
+            QCOMPARE(monitor.item->lastCanvasSize(), QSize(640, 360));
+        }
+        // A later frame with no stage goes back to the reduced canvas.
+        monitor.clock.seek(100);
+        for (int i = 0; i < 16; ++i) { monitor.frame(); }
+        QCOMPARE(monitor.item->lastCanvasSize(), QSize(320, 180));
+    }
     void captureIsolation() {
         Monitor defaults;
         const auto reference = defaults.capture();

@@ -234,6 +234,8 @@ private:
         bool held, allExact;
     };
     TapResult renderSceneTap(QRhiCommandBuffer* cb);
+    void evaluateTap();
+    bool decideCanvas();
 
 
     QRhi* m_rhi = nullptr;
@@ -307,6 +309,8 @@ private:
     bool m_transparentCanvas = false;
     // The scene has a group effect or a backdrop treatment (see render()).
     bool m_sceneNeedsFullCanvas = false;
+    double m_fullCanvasFrameTime = -1;
+    std::uint64_t m_fullCanvasRevision = 0;
     QSize m_wantedCanvas{1920, 1080};
     double m_fps = 30.0;
     bool m_playing = false;
@@ -575,12 +579,46 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
         m_tapTimes = nt::motion::shutterTimes(m_blurFrameTime, frameMs, m_shutter);
     }
     m_timeMs = m_blurFrameTime;
+    evaluateTap();
+}
+
+void PreviewCompositorRenderer::evaluateTap() {
     m_tapTimeMs = m_tapTimes[static_cast<size_t>(m_blurIndex)];
     nt::SceneFrame scene = nt::evaluateSceneTap(*m_timeline, m_tapTimeMs, m_timeMs, m_blurIndex, m_shutter.samples);
     m_adjustments = std::move(scene.adjustments);
     m_layers = std::move(scene.layers);
     m_evaluatedClips = std::move(scene.evaluatedClips);
     m_precomposites = std::move(scene.precomposites);
+}
+
+// Group effects and backdrop treatments take sizes in document pixels and work on canvas-sized
+// surfaces, so a reduced canvas would change their look. A scene with one composites at full size.
+// One shutter sample can have the stage and the next not, so the decision holds for the whole frame.
+bool PreviewCompositorRenderer::decideCanvas() {
+    const bool stageNow =
+        std::ranges::any_of(m_precomposites, [this](const auto& group) {
+            return std::ranges::any_of(m_effectStages, [&](const auto& stage) { return stage->applies(group.ext); });
+        }) ||
+        std::ranges::any_of(m_adjustments, [this](const auto& adjustment) {
+            return std::ranges::any_of(m_backdropStages, [&](const auto& stage) { return stage->applies(adjustment.ext); });
+        });
+    const bool sameFrame = m_sceneNeedsFullCanvas && m_tapTimes.size() > 1 && m_fullCanvasFrameTime == m_blurFrameTime &&
+                           m_fullCanvasRevision == m_blurRevision;
+    const bool needsFull = stageNow || sameFrame;
+    const bool changed = needsFull != m_sceneNeedsFullCanvas;
+    m_sceneNeedsFullCanvas = needsFull;
+    m_fullCanvasFrameTime = m_blurFrameTime;
+    m_fullCanvasRevision = m_blurRevision;
+    if (needsFull && m_wantedCanvas != m_documentSize) {
+        m_wantedCanvas = m_documentSize;
+        if (m_canvasSize != m_wantedCanvas && m_tapTimes.size() > 1 && m_timeline) {
+            // The accumulation restarts on the new surfaces, from its first sample.
+            m_blurIndex = 0;
+            m_blurComplete = false;
+            evaluateTap();
+        }
+    }
+    return changed;
 }
 
 std::unique_ptr<QRhiGraphicsPipeline> PreviewCompositorRenderer::makePipeline(QRhiRenderPassDescriptor* rp,
@@ -1504,25 +1542,7 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     const qint64 startNs = m_clock.nsecsElapsed();
     ++m_frame;
 
-    // Group effects and backdrop treatments take sizes in document pixels and work on canvas-sized
-    // surfaces, so a reduced canvas would change their look. A scene with one composites at full size.
-    const bool needsFullCanvas =
-        std::ranges::any_of(m_precomposites, [this](const auto& group) {
-            return std::ranges::any_of(m_effectStages, [&](const auto& stage) { return stage->applies(group.ext); });
-        }) ||
-        std::ranges::any_of(m_adjustments, [this](const auto& adjustment) {
-            return std::ranges::any_of(m_backdropStages, [&](const auto& stage) { return stage->applies(adjustment.ext); });
-        });
-    const bool canvasDecisionChanged = needsFullCanvas != m_sceneNeedsFullCanvas;
-    m_sceneNeedsFullCanvas = needsFullCanvas;
-    if (needsFullCanvas && m_wantedCanvas != m_documentSize) {
-        m_wantedCanvas = m_documentSize;
-        if (m_canvasSize != m_wantedCanvas) {
-            // The accumulation restarts on the new surfaces.
-            m_blurIndex = 0;
-            m_blurComplete = false;
-        }
-    }
+    const bool canvasDecisionChanged = decideCanvas();
 
     ensureCanvas();
     ensureBlitPipeline();
