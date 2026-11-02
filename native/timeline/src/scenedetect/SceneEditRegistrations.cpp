@@ -66,7 +66,8 @@ const bool registered = [] {
             session->requestOpen(ids);
             return true;
         }, QStringLiteral("Editing")});
-    nt::app::registerShellMenuItem({"Clip", "sceneEditDetection", "Scene Edit Detection…", {}, {}, "analyze", 10, hasVideoSelection});
+    nt::app::registerShellMenuItem({"Clip", "sceneEditDetection", "Scene Edit Detection…", {}, {}, "analyze", 10, hasVideoSelection, {}, {},
+        QStringLiteral("Select a video clip first.")});
     return true;
 }();
 }  // namespace
