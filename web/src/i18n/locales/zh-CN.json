@@ -651,6 +651,10 @@
       "details": "查看具体发送内容",
       "noThanks": "不了，谢谢",
       "share": "分享统计信息"
+    },
+    "githubStar": {
+      "message": "喜欢 NodeTool 吗？在 GitHub 上点个星标，能帮助更多人发现它。",
+      "action": "在 GitHub 上加星标"
     }
   },
   "batch2_0": {

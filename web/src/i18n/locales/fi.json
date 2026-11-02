@@ -651,6 +651,10 @@
       "details": "Katso tarkalleen, mitä lähetetään",
       "noThanks": "Ei kiitos",
       "share": "Jaa tilastot"
+    },
+    "githubStar": {
+      "message": "Pidätkö NodeToolista? Tähti GitHubissa auttaa muita löytämään sen.",
+      "action": "Anna tähti GitHubissa"
     }
   },
   "batch2_0": {
