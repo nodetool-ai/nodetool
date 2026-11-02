@@ -96,7 +96,7 @@ test('QML-only packages discover resources, singletons, panels and nested module
     }
     const qml = path.join(directory, 'qml', 'seamProbe');
     mkdirSync(qml);
-    writeFileSync(path.join(qml, 'UnlistedPanel.qml'), '// nt-panel: slot=overlay id=unlisted order=-10 title="Unlisted panel"\nimport QtQuick\nItem {}\n');
+    writeFileSync(path.join(qml, 'UnlistedPanel.qml'), '// nt-panel: slot=seamProbe id=unlisted order=-10 title="Unlisted panel"\nimport QtQuick\nItem {}\n');
     writeFileSync(path.join(qml, 'UnlistedSingleton.qml'), 'pragma Singleton\nimport QtQml\nQtObject {}\n');
     writeFileSync(path.join(qml, 'helper.js'), '.pragma library\nfunction answer() { return 42 }\n');
     writeFileSync(path.join(qml, 'module.cmake'), `
@@ -127,7 +127,7 @@ nt_tests(nt_qml_probe)
 #include <QFile>
 int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
-    const auto panels = PanelRegistry().forSlot("overlay");
+    const auto panels = PanelRegistry().forSlot("seamProbe");
     if (panels.size() != 1) return 1;
     const auto panel = panels[0].toMap();
     if (panel["id"] != "unlisted" || panel["order"] != -10 || panel["title"] != "Unlisted panel") return 2;
