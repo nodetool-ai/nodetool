@@ -64,6 +64,11 @@ export const TOOLBAR_TOOL_GROUPS: readonly ToolDefinition[][] = [
   [shapeDef, segmentDef]
 ];
 
+/** Simple mode's rail: select, paint, erase, draw a shape, move. */
+export const SIMPLE_TOOLBAR_TOOL_GROUPS: readonly ToolDefinition[][] = [
+  [selectDef, brushDef, eraserDef, shapeDef, moveDef]
+];
+
 export const ALL_TOOL_DEFINITIONS: ToolDefinition[] = [
   ...PAINTING_TOOLS,
   ...SHAPE_TOOLS

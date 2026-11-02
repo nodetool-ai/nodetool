@@ -12066,6 +12066,25 @@
         "properties": "Свойства",
         "noProperties": "Нет свойств",
         "noPropertiesDescription": "Выберите векторный или сгенерированный слой, чтобы редактировать его свойства здесь."
+      },
+      "simple": {
+        "modeLabel": "Режим редактора",
+        "simple": "Простой",
+        "expert": "Эксперт",
+        "layerCount_one": "{{count}} слой",
+        "layerCount_few": "{{count}} слоя",
+        "layerCount_many": "{{count}} слоёв",
+        "layerCount_other": "{{count}} слоя",
+        "canvasSize": "{{width}} × {{height}}",
+        "newLayer": "Новый слой",
+        "showLayer": "Показать {{name}}",
+        "hideLayer": "Скрыть {{name}}",
+        "generatedLayer": "Сгенерированный слой",
+        "layerPrompt": "Промпт слоя",
+        "regenerateLayer": "Сгенерировать слой заново",
+        "generateLayer": "Сгенерировать слой",
+        "workflowLayer": "{{name}} создан рабочим процессом. Его входные данные доступны в экспертном режиме.",
+        "openInExpert": "Открыть в экспертном режиме"
       }
     }
   },
