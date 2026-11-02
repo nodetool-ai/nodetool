@@ -17,7 +17,8 @@ using namespace nt::server;
 static_assert(
     std::is_same_v<decltype(&ServerClient::mutate), QueryResult (ServerClient::*)(const QString&, const QJsonObject&)>);
 static_assert(std::is_same_v<decltype(&ServerClient::upload),
-                             QueryResult (ServerClient::*)(const QJsonObject&, const QString&, const QString&)>);
+                             QueryResult (ServerClient::*)(const QJsonObject&, const QString&, const QString&,
+                                                           const QString&)>);
 
 class ProofServer : public QObject {
 public:
