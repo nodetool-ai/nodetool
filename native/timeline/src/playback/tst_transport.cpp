@@ -5,6 +5,45 @@
 class TstTransport : public QObject {
     Q_OBJECT
 private slots:
+    void loopingSpanReturnsToItsStartUntilPaused() {
+        PlaybackClock clock;
+        std::int64_t now = 0;
+        clock.setNowSource([&now] { return now; });
+        clock.setDurationMs(5000);
+        clock.playSpan(1000, 2000, -1, true);
+        QVERIFY(clock.playing());
+        QCOMPARE(clock.time(), 1000.0);
+        now = 900'000'000;
+        clock.tick();
+        QCOMPARE(clock.time(), 1900.0);
+        now = 1100'000'000;
+        clock.tick();
+        QVERIFY(clock.playing());
+        QCOMPARE(clock.time(), 1000.0);
+        QVERIFY(!clock.loop());
+        now = 2000'000'000;
+        clock.tick();
+        QCOMPARE(clock.time(), 1900.0);
+        clock.pause();
+        QVERIFY(!clock.playing());
+        // The pause ended the span: plain playback runs past it.
+        clock.play();
+        now = 3000'000'000;
+        clock.tick();
+        QVERIFY(clock.playing());
+        QCOMPARE(clock.time(), 2900.0);
+    }
+    void aSpanWithoutLoopingStillStopsAtItsEnd() {
+        PlaybackClock clock;
+        std::int64_t now = 0;
+        clock.setNowSource([&now] { return now; });
+        clock.setDurationMs(5000);
+        clock.playSpan(1000, 2000, 1500);
+        now = 1100'000'000;
+        clock.tick();
+        QVERIFY(!clock.playing());
+        QCOMPARE(clock.time(), 1500.0);
+    }
     void durationChangesWithoutRestartingPlayback() {
         PlaybackClock clock;
         std::int64_t now = 0;

@@ -8,6 +8,9 @@ QtObject {
     readonly property color audio: "#50fa7b"
     readonly property color warning: "#ffb86c"
     readonly property color chord: "#ffd591"
+    // Edit points, as an editor expects them: a ripple red, a roll or a regular trim yellow.
+    readonly property color trimRipple: "#e53e3e"
+    readonly property color trimRoll: "#f2c43d"
 
     function trackAccent(type) {
         switch (type) {

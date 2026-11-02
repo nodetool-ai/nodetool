@@ -101,6 +101,18 @@ void Preferences::setKeyboardLayout(const QString& value) {
 }
 void Preferences::setCacheFolder(const QString& value) { write("cacheFolder", value); }
 void Preferences::setCacheBudgetMb(qint64 value) { write("cacheBudgetMb", std::clamp(value, -kMaxCacheBudgetMb, kMaxCacheBudgetMb)); }
+double Preferences::prerollSeconds() const {
+    return std::max(0.0, m_settings->value("playback/prerollMs", kDefaultPrerollMs).toDouble()) / 1000;
+}
+double Preferences::postrollSeconds() const {
+    return std::max(0.0, m_settings->value("playback/postrollMs", kDefaultPostrollMs).toDouble()) / 1000;
+}
+void Preferences::setPrerollSeconds(double value) {
+    if (std::isfinite(value) && value >= 0) write("playback/prerollMs", value * 1000);
+}
+void Preferences::setPostrollSeconds(double value) {
+    if (std::isfinite(value) && value >= 0) write("playback/postrollMs", value * 1000);
+}
 void Preferences::setDecoderMode(const QString& value) {
     if (validDecoder(value)) {
         write("decoderMode", value);

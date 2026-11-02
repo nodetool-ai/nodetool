@@ -78,9 +78,10 @@ public slots:
     void stop();
     void playInToOut();
     // Plays once from `fromMs` to `toMs` at normal speed without touching the
-    // marks, then stops at `restMs`, or at `toMs` when it is negative. Any
-    // pause, shuttle or in-to-out play ends it.
-    void playSpan(double fromMs, double toMs, double restMs = -1.0);
+    // marks, then stops at `restMs`, or at `toMs` when it is negative. With
+    // `looping` it returns to `fromMs` at `toMs` until stopped. Any pause,
+    // shuttle or in-to-out play ends it.
+    void playSpan(double fromMs, double toMs, double restMs = -1.0, bool looping = false);
     void shuttle(int direction);
     void shuttleStop();
     void setRangeIn(double ms);
@@ -149,6 +150,7 @@ private:
     double m_spanFromMs = -1.0;
     double m_spanToMs = -1.0;
     double m_spanRestMs = -1.0;
+    bool m_spanLoops = false;
     double m_fps = 30.0;
     bool m_playingInToOut = false;
     double m_floorMs = 0.0;
