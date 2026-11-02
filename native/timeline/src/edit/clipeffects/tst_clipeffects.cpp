@@ -185,6 +185,7 @@ private slots:
     void parameterFields();
     void importedColorInstance();
     void fixedProcessingStages();
+    void softVignettePreset();
     void invalidNumbersAndGestureCancellation();
     void curvePointEditing();
     void cancellationLocksAndPlayhead();
@@ -405,6 +406,20 @@ void TestClipEffects::invalidNumbersAndGestureCancellation() {
         if (pending) { QVERIFY(text(pending,"commit","4")); }
         QCOMPARE(e.model.documentJson(),before);
     }
+
+void TestClipEffects::softVignettePreset() {
+    Editor e; QVERIFY2(e.object,qPrintable(e.error)); QVERIFY(e.add("vignette"));
+    const auto original=e.effects()[0].toObject();
+    const auto before=e.model.documentJson();
+    auto* preset=e.item("effects_"+original["id"].toString()+"_softPreset"); QVERIFY(preset);
+    e.click(preset);
+    const auto changed=e.effects()[0].toObject();
+    QCOMPARE(changed["radius"].toDouble(),1.5); QCOMPARE(changed["softness"].toDouble(),1.0);
+    QCOMPARE(changed["centerX"].toDouble(),0.5); QCOMPARE(changed["roundness"].toDouble(),0.0);
+    QCOMPARE(changed["amount"],original["amount"]);
+    QCOMPARE(e.model.undoStack()->count(),2);
+    e.model.undoStack()->undo(); QCOMPARE(e.model.documentJson(),before);
+}
 
 void TestClipEffects::fixedProcessingStages() {
     Editor e; QVERIFY2(e.object,qPrintable(e.error));

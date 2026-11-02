@@ -1,5 +1,7 @@
 .pragma library
 
+const softVignette = {radius: 1.5, softness: 1, centerX: 0.5, centerY: 0.5, roundness: 0};
+
 const addableEffects = [
     {value: "blur", label: "Blur"}, {value: "glow", label: "Glow"},
     {value: "dropShadow", label: "Drop shadow"}, {value: "vignette", label: "Vignette"},

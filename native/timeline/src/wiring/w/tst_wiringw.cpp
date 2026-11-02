@@ -362,6 +362,18 @@ private slots:
         QCOMPARE(model.undoStack()->count(), 2);
         click("undoButton"); QCOMPARE(doc(), before);
     }
+    void softVignettePreset() {
+        click("track-fx-v"); click("fx-add-v"); click("fx-add-type-v-vignette");
+        QTRY_COMPARE(effects("v").size(),1);
+        const auto effect=effects("v")[0].toObject();
+        const auto before=doc();
+        click("fx-soft-vignette-"+effect["id"].toString());
+        const auto changed=effects("v")[0].toObject();
+        QCOMPARE(changed["radius"].toDouble(),1.5); QCOMPARE(changed["softness"].toDouble(),1.0);
+        QCOMPARE(changed["intensity"],effect["intensity"]);
+        QCOMPARE(model.undoStack()->count(),2);
+        click("undoButton"); QCOMPARE(doc(),before);
+    }
     void numericParameterEditing() {
         click("track-fx-a"); add("gain");
         const auto id = effectId();

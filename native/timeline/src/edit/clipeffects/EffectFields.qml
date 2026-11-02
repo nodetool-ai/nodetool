@@ -13,6 +13,15 @@ Column {
     readonly property string effectType: effect.type || ""
     readonly property var definitions: Catalog.fields(effectType)
     spacing: Ui.Metrics.micro
+    Ui.EditorButton {
+        objectName: "effects_" + root.effectId + "_softPreset"
+        text: "Soft centered oval"
+        description: "Extend the feather through the corners. Keep the current amount."
+        density: Ui.EditorButton.Compact
+        visible: root.effectType === "vignette"
+        enabled: !root.editor.locked
+        onClicked: root.editor.patch(root.effectId, Catalog.softVignette)
+    }
     Repeater {
         model: root.definitions
         delegate: Loader {

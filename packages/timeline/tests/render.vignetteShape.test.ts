@@ -10,6 +10,16 @@ function red(pixels: ReturnType<typeof white>, x: number, y: number) {
 }
 
 describe("vignette geometry", () => {
+  it("feathers the soft oval through the frame corners", () => {
+    const pixels = white(256, 128);
+    applyCpuLegacyEffects(pixels, [{...vignette, radius: 1.5, softness: 1}]);
+    expect(red(pixels, 128, 64)).toBe(255);
+    expect(red(pixels, 0, 64)).toBeGreaterThan(188);
+    expect(red(pixels, 0, 64)).toBeLessThan(195);
+    expect(red(pixels, 0, 0)).toBeGreaterThan(127);
+    expect(red(pixels, 0, 0)).toBeLessThan(140);
+    expect(red(pixels, 0, 32)).toBeGreaterThan(red(pixels, 0, 0));
+  });
   it("moves the clear center without changing the size of the image", () => {
     const pixels = white(64, 32);
     const shifted = {...vignette, centerX: 0.25, centerY: 0.5};

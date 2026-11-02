@@ -476,6 +476,10 @@ private slots:
     }
     void vignetteGeometry() {
         QImage source(64,32,QImage::Format_RGBA8888_Premultiplied); source.fill(Qt::white);
+        const auto soft=effectStill({effect("vignette",{{"amount",0.5},{"radius",1.5},{"softness",1}})},source);
+        QVERIFY(!soft.isNull());
+        QVERIFY(soft.pixelColor(0,16).red()>188); QVERIFY(soft.pixelColor(0,16).red()<198);
+        QVERIFY(soft.pixelColor(0,0).red()>127); QVERIFY(soft.pixelColor(0,0).red()<140);
         const auto shifted=effectStill({effect("vignette",{{"amount",0.5},{"radius",0.9},{"softness",0.5},{"centerX",0.25}})},source);
         QVERIFY(!shifted.isNull()); QCOMPARE(shifted.pixelColor(16,16).red(),255);
         QVERIFY(shifted.pixelColor(32,16).red()<245);

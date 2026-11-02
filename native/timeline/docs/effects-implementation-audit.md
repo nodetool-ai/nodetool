@@ -13,7 +13,7 @@ This audit covers visual clip/track effects, their controls, and the shared effe
 Check an item only after its implementation and relevant verification pass. Each item is committed separately. F39 precedes F35 so removing the decorative preview retains live feedback.
 
 - [x] F35: Remove the duplicate Canvas effect preview. Vignette and Blur cards now use the live viewer feedback from F39. Native parameter-editor tests pass with the decorative component removed.
-- [ ] F36: Add a compatible gradual vignette falloff.
+- [x] F36: Add a compatible gradual vignette falloff. The Soft centered oval preset extends feathering through the corners without changing existing documents or intensity. Native clip/track preset and undo tests, native pixels and CPU profile checks pass.
 - [x] F37: Expose consistent vignette radius controls and units. The clip inspector now matches the track range/default. Catalogue regression passed after reproducing the missing control. Existing render geometry is unchanged.
 - [x] F38: Add vignette center and roundness controls. Native, shared GPU and CPU tests verify shifted centers, circles at portrait/landscape aspect ratios and legacy defaults. Schema tests cover persistence and tool arguments.
 - [x] F39: Preview track effects live with commit/cancel transactions. Native gesture tests verify model updates before release, cancel restoration and one undo entry. The preview entry-point regression also passes.
