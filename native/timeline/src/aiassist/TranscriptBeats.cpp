@@ -122,7 +122,7 @@ QJsonObject addTranscriptBeat(QJsonObject document, const QJsonObject& payload) 
     const auto text = payload.value("text").toString();
     const auto name = text.left(30).trimmed();
     QJsonObject clip{{"id", clipId}, {"paragraphId", clipId}, {"name", name.isEmpty() ? "Voiceover" : name}, {"trackId", trackId},
-        {"startMs", end}, {"durationMs", 3000}, {"mediaType", "audio"}, {"sourceType", "generated"}, {"bindingKind", "text-to-audio"},
+        {"startMs", end}, {"durationMs", 3000}, {"mediaType", "audio"}, {"sourceType", "generated"}, {"bindingKind", "text-to-audio"}, {"audioRole", "dialogue"},
         {"prompt", text}, {"provider", payload.value("provider").toString("openai")}, {"model", payload.value("model").toString("tts-1")},
         {"voice", payload.value("voice").toString("alloy")}, {"status", "draft"}, {"locked", false}, {"versions", QJsonArray{}}};
     auto next = clips; next.append(clip); document.insert("tracks", tracks); document.insert("clips", next);

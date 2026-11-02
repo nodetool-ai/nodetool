@@ -167,7 +167,7 @@ replacement = "Feature composition through migrated native Ui wrappers"
 [[file]]
 path = "native/timeline/qml/Inspector/AudioGainDialog.qml"
 category = "chrome"
-controls = ["Ui.Dialog", "Ui.Text", "Ui.Select", "Ui.TextField", "Ui.EditorButton"]
+controls = ["Ui.Dialog", "Ui.Text", "Ui.Select", "Ui.TextField", "Ui.EditorButton", "Ui.Progress"]
 signals = []
 test_host = "tst_inspectorsections"
 test_scope = "build/import"
@@ -1223,6 +1223,26 @@ test_host = "tst_assetbrowser"
 test_scope = "build/import"
 qml_callers = ["native/timeline/qml/assets/AssetExplorer.qml", "native/timeline/qml/assets/LibraryActionDialog.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/audio/AudioPanel.qml"
+category = "chrome"
+controls = ["Ui.EmptyState", "Ui.Progress", "Ui.EditorButton", "Ui.Text", "Ui.Banner", "Ui.ScrollBar", "Ui.NumberField", "InspectorSliderRow", "InspectorSection", "InspectorRow", "InspectorToggleRow", "LoudnessMeterView", "Flickable", "Flow", "Repeater", "Rectangle"]
+signals = []
+test_host = "tst_audiorolesui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.EmptyState, Ui.Progress, Ui.EditorButton, Ui.Text, Ui.Banner, Ui.ScrollBar, Ui.NumberField"
+
+[[file]]
+path = "native/timeline/qml/audio/LoudnessMeterView.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.Status", "Ui.Select", "Ui.EditorButton"]
+signals = []
+test_host = "tst_audiorolesui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/audio/AudioPanel.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.Status, Ui.Select, Ui.EditorButton"
 
 [[file]]
 path = "native/timeline/qml/dock/DockCanvas.qml"

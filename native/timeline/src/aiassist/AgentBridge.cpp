@@ -1301,8 +1301,7 @@ QJsonObject assistantPrepareBeatCut(QJsonObject raw,
                         const QString &model, const QString &name, double start,
                         double duration, const QString &beatId) {
     const auto id = nt::edit::newId();
-    clips.append(
-        QJsonObject{{"id", id},
+    QJsonObject draftClip{{"id", id},
                     {"trackId", track},
                     {"name", name},
                     {"mediaType", kind == "text-to-video" ? "video" : "audio"},
@@ -1316,7 +1315,14 @@ QJsonObject assistantPrepareBeatCut(QJsonObject raw,
                     {"beatId", beatId},
                     {"status", "draft"},
                     {"locked", false},
-                    {"versions", QJsonArray{}}});
+                    {"versions", QJsonArray{}}};
+    if (kind == "text-to-audio") {
+      draftClip.insert("audioRole", "dialogue");
+    }
+    if (kind == "text-to-music") {
+      draftClip.insert("audioRole", "music");
+    }
+    clips.append(draftClip);
     return id;
   };
   auto enqueue = [&queue, &requests](const QString &id, const QString &kind,
@@ -1666,6 +1672,9 @@ QJsonObject assistantDraft(QJsonObject raw, const QJsonObject &payload) {
     if (payload.contains(field)) {
       clip.insert(field, payload.value(field));
     }
+  }
+  if (kind == "text-to-audio") {
+    clip.insert("audioRole", "dialogue");
   }
   clips.append(clip);
   raw.insert("clips", clips);

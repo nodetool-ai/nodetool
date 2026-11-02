@@ -653,7 +653,10 @@ AudioGainDialog { clipIds: ["c", "silent"] })", QUrl());
         QVERIFY(changeLabel && modeSelect && valueLabel && rangeError && scope);
         QCOMPARE(changeLabel->property("text").toString(), wording["change"].toString());
         const auto options = modeSelect->property("options").toList();
-        QCOMPARE(options.size(), 2);
+        // The web editor has two modes. The normalize modes are native only.
+        QCOMPARE(options.size(), 4);
+        QCOMPARE(options[2].toMap().value("value").toString(), QString("loudness"));
+        QCOMPARE(options[3].toMap().value("value").toString(), QString("peak"));
         QCOMPARE(options[0].toMap().value("label").toString(), wording["setGainTo"].toString());
         QCOMPARE(options[1].toMap().value("label").toString(), wording["adjustGainBy"].toString());
         auto* input = dialog->findChild<QObject*>("gainInput");
