@@ -11,7 +11,8 @@ Item {
     readonly property bool horizontal: region === "viewport" || region === "bottom"
     readonly property real totalWeight: groups.reduce((sum, group) => sum + (group.weight || 1), 0)
     readonly property real length: Math.max(0, (horizontal ? width : height) - Ui.Metrics.sm * Math.max(0, groups.length - 1))
-    function groupLength(index) { return totalWeight ? length * (groups[index].weight || 1) / totalWeight : 0 }
+    // A delegate can read this before the Repeater drops it for a group that left.
+    function groupLength(index) { return totalWeight && groups[index] ? length * (groups[index].weight || 1) / totalWeight : 0 }
     function offset(index) {
         let result = 0
         for (let i = 0; i < index; ++i) result += groupLength(i) + Ui.Metrics.sm

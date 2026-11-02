@@ -47,6 +47,7 @@ Rectangle {
         timeline: root.editor ? root.editor.timeline : null
         clock: root.editor ? root.editor.clock : null
         clipId: root.selection.length === 1 ? root.selection[0] : ""
+        onRowEdited: row => { if (root.gestures) root.gestures.keyframeRow = row }
     }
     readonly property var timelineModel: inspector.timeline
     readonly property bool groupSelected: inspector.clip.mediaType === "group"

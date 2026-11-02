@@ -155,13 +155,23 @@ qml_callers = ["native/timeline/qml/Inspector/AudioEffects.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Separator, Ui.CheckBox, Ui.EditorButton, Ui.ToolbarIconButton"
 
 [[file]]
+path = "native/timeline/qml/Inspector/AudioGainHost.qml"
+category = "chrome"
+controls = ["AudioGainDialog"]
+signals = []
+test_host = "tst_keyboardpresets"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
 path = "native/timeline/qml/Inspector/AudioGainDialog.qml"
 category = "chrome"
 controls = ["Ui.Dialog", "Ui.Text", "Ui.Select", "Ui.TextField", "Ui.EditorButton"]
 signals = []
 test_host = "tst_inspectorsections"
 test_scope = "build/import"
-qml_callers = []
+qml_callers = ["native/timeline/qml/Inspector/AudioGainHost.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.Select, Ui.TextField, Ui.EditorButton"
 
 [[file]]
@@ -627,12 +637,22 @@ replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.ToolbarIconButton, 
 [[file]]
 path = "native/timeline/qml/Preferences/AppShell.qml"
 category = "chrome"
-controls = ["Shortcut", "PreferencesDialog", "ProviderSettingsDialog"]
+controls = ["Shortcut", "KeyboardLayoutPrompt", "PreferencesDialog", "ProviderSettingsDialog"]
 signals = []
 test_host = "tst_appshell_preferences"
 test_scope = "build/import"
 qml_callers = []
 replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/Preferences/KeyboardLayoutPrompt.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.EditorButton", "Ui.ToolbarIconButton"]
+signals = ["chosen"]
+test_host = "tst_keyboardpresets"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/Preferences/AppShell.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.EditorButton, Ui.ToolbarIconButton"
 
 [[file]]
 path = "native/timeline/qml/Preferences/PreferencesDialog.qml"

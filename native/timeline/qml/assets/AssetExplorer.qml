@@ -45,6 +45,16 @@ Ui.Surface {
         if (editor) explorer.timeline = editor.timeline
         browserModel.refresh()
     })
+    // Opens the asset's folder and selects it, once the server says which folder that is.
+    function revealAsset(id) { browserModel.locateAsset(id) }
+    Connections {
+        target: browserModel
+        function onAssetLocated(asset) {
+            explorer.clearFilters()
+            browserModel.folderId = asset.parent_id || ""
+            grid.selectedId = asset.id
+        }
+    }
     function clearFilters() {
         searchDelay.stop(); tagDelay.stop()
         search.text = ""; tagSearch.text = ""

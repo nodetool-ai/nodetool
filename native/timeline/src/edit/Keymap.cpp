@@ -1,12 +1,14 @@
 #include "edit/Keymap.h"
 
 #include "edit/KeymapData.h"
+#include "edit/KeymapOverlay.h"
 
 #include <QHash>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 
+#include <algorithm>
 #include <vector>
 
 namespace nt::edit {
@@ -25,23 +27,51 @@ struct Entry {
     std::vector<Binding> bindings;
 };
 
-const QHash<QString, std::vector<Entry>>& keymaps() {
-    static const QHash<QString, std::vector<Entry>> maps = [] {
-        QHash<QString, std::vector<Entry>> out;
+using Keymaps = QHash<QString, std::vector<Entry>>;
+
+Entry entryOf(const QJsonValue& pair) {
+    Entry entry;
+    entry.action = pair.toArray().at(0).toString();
+    for (const QJsonValue& b : pair.toArray().at(1).toArray()) {
+        const QJsonObject o = b.toObject();
+        entry.bindings.push_back({o.value(u"key").toString(), o.value(u"ctrl").toBool(),
+                                  o.value(u"shift").toBool(), o.value(u"alt").toBool()});
+    }
+    return entry;
+}
+
+const Keymaps& webKeymaps() {
+    static const Keymaps maps = [] {
+        Keymaps out;
         const QJsonObject presets = QJsonDocument::fromJson(QByteArray(KEYMAP_JSON)).object();
         for (auto it = presets.begin(); it != presets.end(); ++it) {
             std::vector<Entry> entries;
-            for (const QJsonValue& pair : it.value().toArray()) {
-                Entry entry;
-                entry.action = pair.toArray().at(0).toString();
-                for (const QJsonValue& b : pair.toArray().at(1).toArray()) {
-                    const QJsonObject o = b.toObject();
-                    entry.bindings.push_back({o.value(u"key").toString(), o.value(u"ctrl").toBool(),
-                                              o.value(u"shift").toBool(), o.value(u"alt").toBool()});
-                }
-                entries.push_back(std::move(entry));
-            }
+            for (const QJsonValue& pair : it.value().toArray()) { entries.push_back(entryOf(pair)); }
             out.insert(it.key(), std::move(entries));
+        }
+        return out;
+    }();
+    return maps;
+}
+
+const Keymaps& keymaps() {
+    static const Keymaps maps = [] {
+        Keymaps out = webKeymaps();
+        const QJsonObject overlay = QJsonDocument::fromJson(QByteArray(KEYMAP_OVERLAY_JSON)).object();
+        for (auto it = overlay.begin(); it != overlay.end(); ++it) {
+            auto& entries = out[it.key()];
+            for (const QJsonValue& pair : it.value().toArray()) {
+                Entry entry = entryOf(pair);
+                const auto same = [&](const Entry& e) { return e.action == entry.action; };
+                const auto at = std::ranges::find_if(entries, same);
+                if (entry.bindings.empty()) {
+                    if (at != entries.end()) { entries.erase(at); }
+                } else if (at != entries.end()) {
+                    *at = std::move(entry);
+                } else {
+                    entries.push_back(std::move(entry));
+                }
+            }
         }
         return out;
     }();
@@ -91,11 +121,9 @@ bool matches(const Binding& binding, const KeyEventLike& e) {
     return true;
 }
 
-}  // namespace
-
-QString resolveTimelineAction(const KeyEventLike& e, const QString& preset) {
-    const auto it = keymaps().find(preset);
-    if (it == keymaps().end()) return {};
+QString resolveIn(const Keymaps& maps, const KeyEventLike& e, const QString& preset) {
+    const auto it = maps.constFind(preset);
+    if (it == maps.constEnd()) return {};
     QString best;
     int bestWeight = -1;
     for (const Entry& entry : *it) {
@@ -111,6 +139,20 @@ QString resolveTimelineAction(const KeyEventLike& e, const QString& preset) {
     return best;
 }
 
+}  // namespace
+
+QString resolveTimelineAction(const KeyEventLike& e, const QString& preset) { return resolveIn(keymaps(), e, preset); }
+
+QString resolveWebTimelineAction(const KeyEventLike& e, const QString& preset) { return resolveIn(webKeymaps(), e, preset); }
+
+std::vector<PresetBinding> presetBindings(const QString& preset) {
+    std::vector<PresetBinding> out;
+    for (const Entry& entry : keymaps().value(preset)) {
+        for (const Binding& b : entry.bindings) { out.push_back({entry.action, b.key, b.ctrl, b.shift, b.alt}); }
+    }
+    return out;
+}
+
 std::vector<QStringList> actionBindingKeys(const QString& preset, const QString& action) {
     static const QHash<QString, QString> labels{{QStringLiteral("ArrowLeft"), QStringLiteral("\u2190")},
                                                 {QStringLiteral("ArrowRight"), QStringLiteral("\u2192")},
@@ -119,7 +161,9 @@ std::vector<QStringList> actionBindingKeys(const QString& preset, const QString&
                                                 {QStringLiteral(" "), QStringLiteral("Space")},
                                                 {QStringLiteral("Escape"), QStringLiteral("Esc")},
                                                 {QStringLiteral("PageUp"), QStringLiteral("Page Up")},
-                                                {QStringLiteral("PageDown"), QStringLiteral("Page Down")}};
+                                                {QStringLiteral("PageDown"), QStringLiteral("Page Down")},
+                                                {QStringLiteral("Home"), QStringLiteral("Home")},
+                                                {QStringLiteral("End"), QStringLiteral("End")}};
     std::vector<QStringList> out;
     const auto it = keymaps().constFind(preset);
     if (it == keymaps().constEnd()) return out;

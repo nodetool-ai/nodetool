@@ -74,6 +74,10 @@ class ClipGestureController : public QQuickItem {
     Q_PROPERTY(double trackDropY READ trackDropY NOTIFY gestureChanged)
     Q_PROPERTY(QVariantMap rubberBand READ rubberBand NOTIFY gestureChanged)
     Q_PROPERTY(QVariantMap selectedGap READ selectedGap NOTIFY selectionChanged)
+    // The edge E and the keyboard trims act on: {clipId, edge}, or empty.
+    Q_PROPERTY(QVariantMap selectedEdit READ selectedEdit NOTIFY selectionChanged)
+    // The inspector row Add Keyframe keys: the one last changed there.
+    Q_PROPERTY(QString keyframeRow READ keyframeRow WRITE setKeyframeRow NOTIFY optionsChanged)
 
 public:
     explicit ClipGestureController(QQuickItem* parent = nullptr);
@@ -114,6 +118,9 @@ public:
     double trackDropY() const { return m_trackDropY; }
     QVariantMap rubberBand() const { return m_rubberBand; }
     QVariantMap selectedGap() const { return m_selectedGap; }
+    QVariantMap selectedEdit() const { return m_selectedEdit; }
+    QString keyframeRow() const { return m_keyframeRow; }
+    void setKeyframeRow(const QString& row);
     Q_INVOKABLE bool pressTrack(const QString& trackId, const QString& kind, double sceneX, double sceneY);
     Q_INVOKABLE void pressEmptyLane(const QString& trackId, double sceneX, double sceneY, int modifiers);
     Q_INVOKABLE QVariantMap groupSpan(const QString& clipId) const;
@@ -126,6 +133,10 @@ public:
     nt::edit::EditDoc editDoc() const;
 
     Q_INVOKABLE bool runAction(const QString& action, const QVariantMap& context = {});
+    // Moves the selected edit point to `edgeTargetMs` as one undo entry. Ripple
+    // mode decides whether later clips follow. A `merge` folds into the previous
+    // keyboard trim, for a held key. False when no edit point is selected.
+    bool trimEditPoint(double edgeTargetMs, bool merge);
     Q_INVOKABLE QVariantMap clipData(const QString& clipId) const;
     // True when the last clips change touched the clip (TimelineModel::clipTouched).
     Q_INVOKABLE bool clipTouched(const QString& clipId) const { return !m_timeline || m_timeline->clipTouched(clipId); }
@@ -227,6 +238,7 @@ private:
     QJsonObject targetingPayload() const;
     double laneMsAt(double sceneX) const;
     void finishGesture(bool completed, Qt::KeyboardModifiers modifiers);
+    void selectEditPoint(const Gesture& g);
     void clickSelect(const QString& clipId, Qt::KeyboardModifiers modifiers);
     void setSnapGuide(double ms);
     QString trackUnderPointer(double sceneX, double sceneY) const;
@@ -272,4 +284,6 @@ private:
     QStringList m_trackOrder;
     QVariantMap m_rubberBand;
     QVariantMap m_selectedGap;
+    QVariantMap m_selectedEdit;
+    QString m_keyframeRow = QStringLiteral("opacity");
 };

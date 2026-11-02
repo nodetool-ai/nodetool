@@ -25,7 +25,7 @@ QKeyCombination bindingCombination(const QStringList& keys) {
     static const QHash<QString, Qt::Key> special{
         {"←", Qt::Key_Left}, {"→", Qt::Key_Right}, {"↑", Qt::Key_Up}, {"↓", Qt::Key_Down},
         {"Page Up", Qt::Key_PageUp}, {"Page Down", Qt::Key_PageDown}, {"Space", Qt::Key_Space},
-        {"Esc", Qt::Key_Escape}, {"HOME", Qt::Key_Home}, {"END", Qt::Key_End},
+        {"Esc", Qt::Key_Escape}, {"Home", Qt::Key_Home}, {"End", Qt::Key_End},
         {"DELETE", Qt::Key_Delete}, {"BACKSPACE", Qt::Key_Backspace}, {"TAB", Qt::Key_Tab},
         {"ENTER", Qt::Key_Return}};
     const auto key = special.contains(label) ? special.value(label)
