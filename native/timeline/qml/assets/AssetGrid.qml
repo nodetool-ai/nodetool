@@ -35,6 +35,8 @@ Item {
         cellHeight: grid.itemSize + grid.itemSpacing
         model: grid.browser.assets
         ScrollBar.vertical: Ui.ScrollBar {}
+        // Tiles move under a resting pointer, which sends no hover of its own.
+        onContentYChanged: LibraryScrub.clear()
         delegate: AssetItem {
             required property var modelData
             asset: modelData

@@ -70,6 +70,10 @@ void SourceViewerState::writeMarks(const QVariantMap& value) {
     if (m_marks == next) { return; }
     m_marks = next;
     auto stored = QJsonObject::fromVariantMap(next); stored.remove("assetId");
+    persistMarks(id, stored);
+    emit changed();
+}
+void SourceViewerState::persistMarks(const QString& id, const QJsonObject& stored) {
     m_markOrder.removeAll(id);
     if (stored.isEmpty()) { m_savedMarks.remove(id); }
     else { m_savedMarks.insert(id, stored); m_markOrder.append(id); }
@@ -83,7 +87,34 @@ void SourceViewerState::writeMarks(const QVariantMap& value) {
     auto settings = nt::app::openTimelinePreferences();
     settings->setValue("source/marks", QJsonDocument(saved).toJson(QJsonDocument::Compact));
     settings->sync();
-    emit changed();
+}
+QJsonObject SourceViewerState::savedMarks(const QString& assetId) { loadMarks(); return m_savedMarks.value(assetId).toObject(); }
+bool SourceViewerState::markAsset(const QVariantMap& asset, const QString& edge, double timeMs) {
+    const auto id = asset.value("id").toString();
+    const bool in = edge == "in";
+    if (id.isEmpty() || (!in && edge != "out") || !std::isfinite(timeMs)) { return false; }
+    if (nt::assets::assetMediaType(QJsonObject{{"content_type", QJsonValue::fromVariant(asset.value("content_type"))}}) != "video") { return false; }
+    if (id == m_asset.value("id").toString()) {
+        if (in) { markIn(timeMs); } else { markOut(timeMs); }
+        return true;
+    }
+    // An asset the Source monitor does not show: its frame rate is unknown, so the mark is not snapped.
+    loadMarks();
+    const auto json = QJsonObject::fromVariantMap(asset);
+    auto marks = m_savedMarks.value(id).toObject();
+    auto labelled = marks;
+    labelled.insert("assetId", id);
+    const auto range = nt::sourceedit::sourceRangeFor(json, labelled);
+    const double time = std::max(0.0, std::min(timeMs, durationLimit(asset)));
+    if (in) {
+        marks.insert("inMs", time);
+        if (time >= range.outMs) { marks.remove("outMs"); }
+    } else {
+        marks.insert("outMs", time);
+        if (time <= range.inMs) { marks.remove("inMs"); }
+    }
+    persistMarks(id, marks);
+    return true;
 }
 void SourceViewerState::setError(const QString& error) {
     if (m_error == error) { return; } m_error = error; emit errorChanged();
