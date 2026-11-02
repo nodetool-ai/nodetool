@@ -132,7 +132,10 @@ private slots:
         QCOMPARE(disabled[0].toMap().value("action").toString(), QString("example.rename"));
         QVERIFY(!disabled[0].toMap().value("enabled").toBool());
         QVERIFY(menus.query("clip", {{"editable", true}})[0].toMap().value("enabled").toBool());
-        QVERIFY(menus.query("ruler", {}).isEmpty());
+        // The example adds nothing to the ruler menu. The editor's own items (src/ui/MonitorMenus.cpp) are there.
+        for (const auto& item : menus.query("ruler", {})) {
+            QVERIFY(!item.toMap().value("action").toString().startsWith("example."));
+        }
     }
 };
 QTEST_MAIN(TestSeamExample)

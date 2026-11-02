@@ -14,10 +14,32 @@ is discovered automatically. Other QML needs `nt_qml_files(...)`.
 - `documentBar`: receives `timeline`, after Undo and Redo. Set implicit dimensions.
 - `documentBarActions`: receives `timeline`, at the right end with 8 px padding. Set implicit dimensions.
 - `preview`: receives `timeline` and `clock`, fills the preview frame, and is
-  clipped to it. Coordinates start at the frame's top-left corner.
+  clipped to it. Coordinates start at the frame's top-left corner. The frame is the whole
+  picture at its zoomed size, up to 1600% of the canvas, so it can be far larger than the screen.
+  An item that paints (`QQuickPaintedItem`, `Canvas`) must cover only the `visibleItemRect` of the
+  `monitor` property on its `PreviewArea` ancestor, as `TransformGizmoOverlay.qml` does, or it
+  allocates the whole picture.
+  Show controls hides this slot. The Hand tool disables its input.
 - `trackLane`: receives the raw `track` map and `timeline`. Set `implicitHeight`
   in screen pixels. Contributions stack below the base lane and extend the row.
 - Playhead pass-through: add `property bool playheadPassthrough: true` to a pointer target, or define `playheadPassthrough(localPoint)` on a wrapper to hit-test its targets.
+- Monitor views: `nt::ui::registerMonitorView({id, source, order, title})` from
+  `ui/MonitorViewRegistry.h`. The view appears in the Program monitor's wrench menu under
+  Display mode and in View > Monitor display, with no edit to `PreviewArea.qml`. Selecting it sets
+  `monitor.displayMode` to `id`, and `composite` and `alpha` are reserved. The item fills the
+  monitor over the picture and receives `timeline`, `clock`, `gestures` and `monitor`, a
+  `MonitorViewState`, as initial properties, so declare them (`required` is allowed).
+  The live picture is hidden, with no compositing cost, unless the item sets `readonly property bool
+  keepsPicture: true`. It can then set `property rect pictureArea` in its own coordinates, which the
+  picture fits into, as a comparison view does for its current frame. Zoom and pan apply to that
+  picture and are off when the picture is hidden. Leave the view with
+  `monitor.displayMode = "composite"`. C++ reaches the monitor with `MonitorViewState::current()`.
+  A view that fails to load logs a warning and returns the monitor to Composite. Frames other
+  than the live one come from `export/FrameCapture.h` and `OffscreenFrames`.
+  `MonitorViewState` is view state: never write it to the document or undo.
+- Reduced preview resolution: a scene with a group effect or a backdrop treatment (a stage that
+  applies to a canvas-sized surface) composites at full size, because those stages take sizes in
+  document pixels. A new stage on canvas-sized surfaces is covered through the same stage lists.
 - Header actions: reuse
   `nt::tracks::registerHeaderAction({id, url, order})` from
   `edit/tracks/TrackHeaderActions.h`. Set implicit dimensions. This existing
@@ -60,7 +82,7 @@ is discovered automatically. Other QML needs `nt_qml_files(...)`.
   at gesture start. They are skipped while Snap is off or Alt bypasses it.
 - Ruler: `nt::wiring::registerRulerProvider(mode, provider)` from
   `RulerProviders.h`. `src/ui/Tempo` registers `"bars"`, and the view state
-  accepts only `"time"` and `"bars"`. Return `{timeMs, major, label}` ticks from a `RulerRequest`
+  accepts `"time"`, `"bars"` and `"timecode"`. Return `{timeMs, major, label}` ticks from a `RulerRequest`
   containing the document, visible range, scale, rate, and grid division.
   `viewState.rulerMode` defaults to `"time"`, `gridDivision` to `"beat"`.
   The built-in `time` provider preserves the existing ticks. `RulerCanvas.ticks`

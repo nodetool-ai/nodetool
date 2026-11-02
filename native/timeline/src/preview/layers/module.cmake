@@ -12,7 +12,7 @@ function(nt_layer_hook_tests)
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::Test ${NT_APP_PLATFORM_LIBS})
     target_compile_definitions(tst_layerhooks PRIVATE NT_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
     qt_add_shaders(tst_layerhooks "s2_composite_shaders" PREFIX "/shaders" BASE shaders
-        FILES shaders/composite.vert shaders/composite.frag)
+        FILES shaders/composite.vert shaders/composite.frag shaders/monitorview.frag)
     qt_add_shaders(tst_layerhooks "s2_invert_shaders" PREFIX "/s2" BASE src/preview/layers
         FILES src/preview/layers/invert.vert src/preview/layers/invert.frag)
     add_test(NAME tst_layerhooks COMMAND tst_layerhooks decoratorsReachLayersAndGroups

@@ -1,8 +1,11 @@
 #include "wiring/RulerProviders.h"
 #include "ui/TimelineFormat.h"
+#include "ui/Timecode.h"
 #include <QDebug>
 #include <QMap>
+#include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace {
 std::vector<nt::wiring::RulerTick> timeTicks(const nt::wiring::RulerRequest& request) {
@@ -21,8 +24,53 @@ std::vector<nt::wiring::RulerTick> timeTicks(const nt::wiring::RulerRequest& req
     }
     return result;
 }
+std::vector<nt::wiring::RulerTick> timecodeTicks(const nt::wiring::RulerRequest& request) {
+    std::vector<nt::wiring::RulerTick> result;
+    if (!std::isfinite(request.msPerPx) || request.msPerPx <= 0 || !std::isfinite(request.fromMs) ||
+        !std::isfinite(request.toMs) || request.toMs < request.fromMs || !std::isfinite(request.fps) || request.fps <= 0) {
+        return result;
+    }
+    const long long base = nt::ui::timecodeBase(request.fps);
+    std::vector<long long> intervals{1, 2, 5, 10};
+    for (const long long seconds : {1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 1800, 3600}) {
+        intervals.push_back(base * seconds);
+    }
+    std::ranges::sort(intervals);
+    long long major = intervals.back();
+    for (const auto candidate : intervals) {
+        if (nt::ui::msAtFrame(candidate, request.fps) / request.msPerPx >= 90) {
+            major = candidate;
+            break;
+        }
+    }
+    long long minor = 1;
+    if (major % 5 == 0) {
+        minor = major / 5;
+    } else {
+        for (long long divisor = 2; divisor <= major / divisor; ++divisor) {
+            if (major % divisor == 0) {
+                minor = major / divisor;
+                break;
+            }
+        }
+    }
+    const bool dropFrame = request.document.value("dropFrame").toBool();
+    long long frame = nt::ui::frameAtMs(request.fromMs, request.fps) / minor * minor;
+    for (int i = 0; i < 10000; ++i) {
+        const double time = nt::ui::msAtFrame(frame, request.fps);
+        if (time > request.toMs) { break; }
+        if (time >= request.fromMs) {
+            const bool isMajor = frame % major == 0;
+            result.push_back({time, isMajor, isMajor ? nt::ui::formatTimecodeFrame(frame, request.fps, dropFrame) : QString()});
+        }
+        if (frame > std::numeric_limits<long long>::max() - minor) { break; }
+        frame += minor;
+    }
+    return result;
+}
 QMap<QString, nt::wiring::RulerProvider>& providers() {
-    static QMap<QString, nt::wiring::RulerProvider> value{{QStringLiteral("time"), timeTicks}};
+    static QMap<QString, nt::wiring::RulerProvider> value{{QStringLiteral("time"), timeTicks},
+        {QStringLiteral("timecode"), timecodeTicks}};
     return value;
 }
 }

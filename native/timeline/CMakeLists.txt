@@ -134,8 +134,11 @@ function(nt_qml_sources)
     endforeach()
 endfunction()
 function(nt_qt_test name)
-    cmake_parse_arguments(TEST "" "" "LIBS;DEFINES;INCLUDES" ${ARGN})
-    qt_add_executable(${name} tests/${name}.cpp)
+    cmake_parse_arguments(TEST "" "" "LIBS;DEFINES;INCLUDES;SOURCES" ${ARGN})
+    if(NOT TEST_SOURCES)
+        set(TEST_SOURCES tests/${name}.cpp)
+    endif()
+    qt_add_executable(${name} ${TEST_SOURCES})
     set_target_properties(${name} PROPERTIES MACOSX_BUNDLE FALSE)
     target_compile_options(${name} PRIVATE ${NT_WARNINGS})
     if(TEST_DEFINES)
@@ -235,7 +238,7 @@ qt_add_qml_module(timeline_qml
 qt_add_shaders(timeline_qml timeline_compositor_shaders
     PREFIX "/shaders"
     BASE shaders
-    FILES shaders/composite.vert shaders/composite.frag)
+    FILES shaders/composite.vert shaders/composite.frag shaders/monitorview.frag)
 list(REMOVE_DUPLICATES NT_qml_includes)
 target_include_directories(timeline_qml PUBLIC src/model src/playback src/preview src/ui src/edit ${NT_qml_includes})
 target_link_libraries(timeline_qml PUBLIC timeline_core timeline_decode timeline_audio

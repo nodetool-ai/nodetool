@@ -24,6 +24,8 @@ Item {
     property real sequenceHeight: 0
     property real frameWidth: 0
     property real frameHeight: 0
+    // The part of the frame on screen. A zoomed frame can be far larger than the Canvas may allocate.
+    property rect paintArea: Qt.rect(0, 0, width, height)
     readonly property var geometry: ({crop: crop, transform: layerTransform, parentMatrix: parentMatrix, drawMatrix: drawMatrix, sourceWidth: sourceWidth, sourceHeight: sourceHeight, sequenceWidth: sequenceWidth, sequenceHeight: sequenceHeight, frameWidth: frameWidth, frameHeight: frameHeight})
     readonly property var displayed: math.evaluate({op: "sourcePointToReframeViewport", x: focusX, y: focusY, geometry: geometry})
     readonly property real handleRadius: Math.max(Ui.Metrics.md, 0.025 * Math.min(frameWidth, frameHeight))
@@ -90,10 +92,15 @@ Item {
     Component.onDestruction: endDrag()
     Canvas {
         id: handle
-        anchors.fill: parent
+        objectName: "reframeHandleCanvas"
+        x: root.paintArea.x
+        y: root.paintArea.y
+        width: root.paintArea.width
+        height: root.paintArea.height
         onPaint: {
             const ctx = getContext("2d")
             ctx.reset()
+            ctx.translate(-x, -y)
             ctx.strokeStyle = Ui.Theme.accentPrimary
             ctx.lineWidth = Ui.Metrics.micro
             const cx = root.displayed.x, cy = root.displayed.y, r = root.handleRadius
@@ -101,7 +108,7 @@ Item {
             ctx.beginPath(); ctx.moveTo(cx - r * 1.5, cy); ctx.lineTo(cx + r * 1.5, cy)
             ctx.moveTo(cx, cy - r * 1.5); ctx.lineTo(cx, cy + r * 1.5); ctx.stroke()
         }
-        Connections { target: root; function onDisplayedChanged() { handle.requestPaint() } function onHandleRadiusChanged() { handle.requestPaint() } }
+        Connections { target: root; function onDisplayedChanged() { handle.requestPaint() } function onHandleRadiusChanged() { handle.requestPaint() } function onPaintAreaChanged() { handle.requestPaint() } }
     }
     MouseArea {
         anchors.fill: parent

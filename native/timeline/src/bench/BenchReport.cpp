@@ -194,6 +194,7 @@ Report buildReport(const BenchData& data, const std::optional<Budget>& budget) {
     QJsonObject o;
     o[QStringLiteral("fixture")] = data.fixture;
     o[QStringLiteral("frames")] = data.frames;
+    o[QStringLiteral("canvasPixels")] = data.canvasPixels;
     o[QStringLiteral("warmupFrames")] = data.warmup.frames;
     o[QStringLiteral("warmup")] = QJsonObject{
         {QStringLiteral("maxRenderIntervalMs"), round3(data.warmup.maxRenderIntervalMs)},

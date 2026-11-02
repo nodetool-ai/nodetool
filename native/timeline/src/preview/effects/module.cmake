@@ -33,7 +33,7 @@ function(nt_effects_tests)
     target_link_libraries(tst_effectsblend PRIVATE timeline_core timeline_decode
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::Test ${NT_APP_PLATFORM_LIBS})
     qt_add_shaders(tst_effectsblend "effects_compositor_shaders" PREFIX "/shaders" BASE shaders
-        FILES shaders/composite.vert shaders/composite.frag)
+        FILES shaders/composite.vert shaders/composite.frag shaders/monitorview.frag)
     nt_effects_shaders(tst_effectsblend)
     add_test(NAME tst_effectsblend_registry COMMAND tst_effectsblend registeredModes)
     set_tests_properties(tst_effectsblend_registry PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")

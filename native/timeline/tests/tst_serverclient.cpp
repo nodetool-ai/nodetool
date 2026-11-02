@@ -171,6 +171,12 @@ class TestServerClient : public QObject {
     Q_OBJECT
 
 private slots:
+    void auditKnowsDropFrame() {
+        for (const bool dropFrame : {false, true}) {
+            const QJsonObject sequence{{"dropFrame", dropFrame}};
+            QCOMPARE(auditTimelineFields(sequence).value(u"fields").toObject(), QJsonObject{});
+        }
+    }
     void inactivityTimeoutIsTypedAfterAnyHeaders_data() {
         QTest::addColumn<bool>("headers");
         QTest::addColumn<QString>("operation");

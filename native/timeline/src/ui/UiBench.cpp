@@ -266,6 +266,8 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, const UiBenchOption
     }
     Script script{&window, area, options.frames, 0};
     Samples s;
+    compositor->setPlaybackResolution(options.previewResolution);
+    compositor->setPausedResolution(options.previewResolution);
     compositor->setCollectFrameStats(true);
     clock.seek(0.0);
     clock.play();
@@ -338,6 +340,8 @@ int runWindowed(TimelineModel& model, PlaybackClock& clock, const UiBenchOptions
     auto* view = root->findChild<TimelineViewState*>(QStringLiteral("timelineViewState"));
     auto* compositor = root->findChild<PreviewCompositor*>(QStringLiteral("previewCompositor"));
     if (!area || !view || !compositor) return 2;
+    compositor->setPlaybackResolution(options.previewResolution);
+    compositor->setPausedResolution(options.previewResolution);
     compositor->setCollectFrameStats(true);
     QElapsedTimer warmupTimer;
     warmupTimer.start();
