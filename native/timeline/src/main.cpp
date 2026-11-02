@@ -45,6 +45,7 @@
 #include "server/ServerSource.h"
 
 #include "aiassist/AgentBridge.h"
+#include "aiassist/AssistantCommands.h"
 #include "aiassist/AssistantSession.h"
 #include "chat/TimelineChatHost.h"
 #include "runtime/ChatSession.h"
@@ -1022,7 +1023,9 @@ int main(int argc, char** argv) {
     for (const auto& tool : nt::chat::TimelineChatHost::tools()) {
         if (tool.toMap().value("name") != QStringLiteral("ui_timeline_get_state")) hostTools.append(tool);
     }
+    hostTools.append(nt::aiassist::AssistantCommands::tools());
     chatSession.setHostTools(hostTools);
+    nt::aiassist::AssistantCommands assistantCommands(model, clock);
     const auto chatContext = [&chatHost]() -> QVariantMap {
         const auto state = chatHost.context();
         const auto id = state.value("timeline_id").toString();
@@ -1042,7 +1045,12 @@ int main(int argc, char** argv) {
             assistantTools.setProperty("model", chatSession.model());
     });
     QObject::connect(&chatSession, &nt::chat::ChatSession::hostToolRequested, &chatHost,
-                     [&chatSession, &chatHost, &assistantTools, &clock](const QString& id, const QString& name, const QVariantMap& args) {
+                     [&chatSession, &chatHost, &assistantTools, &assistantCommands, &clock](const QString& id, const QString& name, const QVariantMap& args) {
+        if (nt::aiassist::AssistantCommands::handles(name)) {
+            const auto result = assistantCommands.execute(name, args, id);
+            if (!result.value("deferred").toBool()) { chatSession.completeHostTool(id, result, result.value("error").toString()); }
+            return;
+        }
         if (name == QStringLiteral("ui_timeline_seek") || name == QStringLiteral("ui_timeline_add_marker") ||
             name == QStringLiteral("ui_timeline_delete_marker")) {
             const auto result = chatHost.execute(name, args);
@@ -1062,6 +1070,8 @@ int main(int argc, char** argv) {
                      [&chatSession](const QString& id, const QJsonObject& result) {
         chatSession.completeHostTool(id, result.toVariantMap(), result.value("error").toString());
     });
+    QObject::connect(&assistantCommands, &nt::aiassist::AssistantCommands::toolCompleted, &chatSession,
+                     [&chatSession](const QString& id, const QVariantMap& result) { chatSession.completeHostTool(id, result, result.value("error").toString()); });
     assistantTools.setPlanningSend([&chatSession](const QString& command, const QJsonObject& data, const QString& id) {
         return chatSession.sendHostRequest(command, data, id);
     });
@@ -1108,6 +1118,7 @@ int main(int argc, char** argv) {
     if (view.status() != QQuickView::Ready) {
         return 1;
     }
+    assistantCommands.setEditor(view.rootObject());
     view.resize(winW, winH);
     if (background) {
         view.setFlags(view.flags() | Qt::WindowDoesNotAcceptFocus);
