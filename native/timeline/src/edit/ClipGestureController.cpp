@@ -7,6 +7,7 @@
 #include <QJsonDocument>
 #include "edit/Keymap.h"
 #include "edit/targeting/TargetingEdits.h"
+#include "edit/trim/TrimMode.h"
 #include "edit/groups/GroupOps.h"
 #include "ui/MediaVersion.h"
 #include "preview/FfmpegSource.h"
@@ -143,7 +144,7 @@ bool presetBindsSequence(const QString& preset, const QKeySequence& sequence) {
 
 }  // namespace
 
-ClipGestureController::ClipGestureController(QQuickItem* parent) : QQuickItem(parent) {
+ClipGestureController::ClipGestureController(QQuickItem* parent) : QQuickItem(parent), m_trimMode(new TrimMode(*this)) {
     setAcceptedMouseButtons(Qt::LeftButton);
 }
 
@@ -205,7 +206,16 @@ void ClipGestureController::setLanesViewport(QQuickItem* v) {
     m_viewport = v;
     emit changed();
 }
+void ClipGestureController::clearClipSelection() {
+    if (m_selection.isEmpty() && m_selectedGap.isEmpty() && m_selectedEdit.isEmpty()) return;
+    m_selection.clear();
+    m_selectedGap.clear();
+    m_selectedEdit.clear();
+    emit selectionChanged();
+}
 void ClipGestureController::setSelection(const QStringList& ids) {
+    // Selecting clips ends trim mode. An empty list can be the clean-up after an edit.
+    if (!ids.isEmpty()) m_trimMode->leave();
     if (ids == m_selection && m_selectedGap.isEmpty() && m_selectedEdit.isEmpty()) return;
     m_selectedGap.clear();
     m_selectedEdit.clear();
@@ -468,6 +478,7 @@ double ClipGestureController::laneMsAt(double sceneX) const {
 bool ClipGestureController::pressClip(const QString& id, const QString& pressedPart, double sceneX, double sceneY,
                                       int modifiers) {
     if (!m_timeline || !m_view) return false;
+    m_trimMode->settle();
     const EditDoc doc = editDoc();
     const QJsonObject* clip = findClip(doc.clips, id);
     if (!clip) return false;
@@ -480,6 +491,7 @@ bool ClipGestureController::pressClip(const QString& id, const QString& pressedP
     const QString part = bodyTools.contains(m_tool) ? QStringLiteral("body") : pressedPart;
     // Hand and Zoom act on the lanes (TracksRegion.qml).
     if (m_tool == u"hand" || m_tool == u"zoom") return false;
+    if (part == u"body") m_trimMode->leave();
     const bool locked = !editableUserTargets(doc, IdSet{id}, false, false).count(id);
     if (m_tool == u"cut") {
         // Split at the pointer; no-op splits at the clip's edges are refused.
@@ -498,6 +510,7 @@ bool ClipGestureController::pressClip(const QString& id, const QString& pressedP
     g.startX = g.lastX = sceneX;
     g.startY = g.lastY = sceneY;
     g.alt = mods & Qt::AltModifier;
+    g.shiftAtPress = mods & Qt::ShiftModifier;
     g.copyOnDrag = g.alt && part == u"body" && m_tool != u"slip" && m_tool != u"slide" &&
                    static_cast<bool>(nt::app::findEdit("altDragCopy"));
     g.selectionAtStart = m_selection;
@@ -690,6 +703,7 @@ void ClipGestureController::applyTrim() {
 }
 
 bool ClipGestureController::pressLane(const QString& trackId, double atMs, int modifiers) {
+    m_trimMode->leave();
     if (m_tool != u"trackSelect" && m_tool != u"trackSelectBackward") return false;
     const bool shift = static_cast<Qt::KeyboardModifiers>(modifiers) & Qt::ShiftModifier;
     setSelection(trackSelectIds(editDoc().clips, atMs,
@@ -706,6 +720,7 @@ QJsonObject ClipGestureController::targetingPayload() const {
 
 void ClipGestureController::pressEmptyLane(const QString& trackId, double sceneX, double sceneY, int modifiers) {
     if (!m_timeline || !m_rows || !m_view || !m_viewport) { return; }
+    m_trimMode->leave();
     cancelGesture();
     Gesture g;
     g.kind = "marquee";
@@ -1024,6 +1039,12 @@ void ClipGestureController::finishGesture(bool completed, Qt::KeyboardModifiers 
 // for E and the keyboard trims, whether the press dragged it or only clicked.
 void ClipGestureController::selectEditPoint(const Gesture& g) {
     if (g.edge.isEmpty()) return;
+    // The Ripple and Rolling tools select in trim mode. The Selection tool keeps one plain edit point.
+    if (m_tool == u"ripple" || m_tool == u"roll") {
+        m_trimMode->selectEdge(g.clipId, g.edge == u"end", g.mode, g.shiftAtPress, g.dragging);
+        return;
+    }
+    m_trimMode->leave();
     m_selectedEdit = {{"clipId", g.clipId}, {"edge", g.edge}};
     emit selectionChanged();
 }
@@ -1133,6 +1154,7 @@ QString ClipGestureController::resolveKeyAction(int key, const QString& text, in
 
 bool ClipGestureController::handleKey(int key, const QString& text, int modifiers, bool autoRepeat) {
     if (!m_timeline) { return false; }
+    if (m_gesture.kind.isEmpty() && m_trimMode->handleKey(key, modifiers, autoRepeat)) { return true; }
     const QVariantMap context{{"autoRepeat", autoRepeat}};
     const QString action = resolveTimelineAction(domKey(key, text, modifiers), m_preset);
     // A preset's key means that action alone, even when the action refuses.
@@ -1153,6 +1175,7 @@ bool ClipGestureController::handleKey(int key, const QString& text, int modifier
 
 bool ClipGestureController::runAction(const QString& action, const QVariantMap& context) {
     if (!m_timeline || action.isEmpty()) { return false; }
+    if (m_gesture.kind.isEmpty() && m_trimMode->interceptAction(action, context)) { return true; }
     if (runBuiltinAction(action, context.value("autoRepeat").toBool(), context)) { return true; }
     for (const auto& extension : nt::wiring::keyActions()) {
         if (extension.name == action) { return extension.handler(*this, context); }
@@ -1682,10 +1705,12 @@ double ClipGestureController::sourceCapMs(const QString& id) {
 }
 
 void ClipGestureController::undo() {
+    m_trimMode->settle();
     if (m_timeline) m_timeline->undoStack()->undo();
 }
 
 void ClipGestureController::redo() {
+    m_trimMode->settle();
     if (m_timeline) m_timeline->undoStack()->redo();
 }
 
