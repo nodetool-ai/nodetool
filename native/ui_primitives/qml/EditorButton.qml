@@ -96,6 +96,6 @@ Basic.Button {
         objectName: "nativeButtonTooltip"
         trigger: root
         visible: (root.hovered || root.visualFocus || disabledHover.hovered) && (root.description !== "" || root.disabledReason !== "" || root.shortcutText !== "" || root.display === Basic.AbstractButton.IconOnly)
-        text: !root.enabled && root.disabledReason !== "" ? root.disabledReason : root.accessibleName + (root.shortcutText !== "" ? " (" + root.shortcutText + ")" : "") + (root.description !== "" ? "\n" + root.description : "")
+        text: !root.enabled && root.disabledReason !== "" ? root.disabledReason : root.accessibleName + (root.shortcutText !== "" ? " (" + root.shortcutText + ")" : "") + (root.description !== "" && root.description.trim() !== root.accessibleName.trim() ? "\n" + root.description : "")
     }
 }

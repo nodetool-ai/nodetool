@@ -29,7 +29,7 @@ Item {
                     iconName: modelData.icon || ""
                     enabled: !modelData.disabled
                     accessibleName: modelData.label
-                    description: modelData.label
+                    description: modelData.description || ""
                     iconTone: modelData.variant === "danger" ? Ui.Text.Error : Ui.Text.Secondary
                     onClicked: {
                         root.actionTriggered(modelData.label)

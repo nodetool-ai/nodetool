@@ -58,7 +58,7 @@ Item {
                 enabled: !!root.action && !root.action.disabled
                 iconName: root.action ? root.action.icon || "" : ""
                 accessibleName: root.action ? root.action.label : ""
-                description: accessibleName
+                description: root.action ? root.action.description || "" : ""
                 onClicked: {
                     root.actionTriggered()
                     if (root.action.onClick) root.action.onClick()
