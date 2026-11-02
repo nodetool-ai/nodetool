@@ -108,6 +108,7 @@ function(nt_frameexport_tests)
     qt_add_executable(tst_frameexport src/export/tst_frameexport.cpp src/playback/PlaybackClock.h src/playback/PlaybackClock.cpp
         src/export/FrameExporter.h src/export/FrameExporter.cpp src/export/FrameCapture.h src/export/FrameCapture.cpp
         src/export/ExportController.h src/export/ExportController.cpp
+        src/export/ExportSettings.h src/export/ExportSettings.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp src/model/TrackListModel.h src/model/TrackListModel.cpp)
     target_link_libraries(tst_frameexport PRIVATE timeline_core timeline_decode timeline_server
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::Test ${NT_APP_PLATFORM_LIBS})
