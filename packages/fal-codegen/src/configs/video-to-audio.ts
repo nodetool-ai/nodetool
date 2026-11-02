@@ -2,6 +2,20 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "fal-ai/mmaudio-v2": {
+      className: "MmaudioV2",
+      docstring:
+        "MMAudio generates synchronized audio for a video, guided by an optional text prompt.",
+      tags: ["audio", "generation", "video-to-audio", "sound", "foley"]
+    },
+
+    "fal-ai/controlfoley": {
+      className: "ControlFoley",
+      docstring:
+        "ControlFoley generates controllable Foley sound effects synchronized to a video.",
+      tags: ["audio", "generation", "video-to-audio", "sound", "foley"]
+    },
+
     "mirelo-ai/sfx2.0/video-to-audio": {
       className: "Sfx20VideoToAudio",
       docstring: "Mirelo SFX 2.0 generates sound effects that match a video.",

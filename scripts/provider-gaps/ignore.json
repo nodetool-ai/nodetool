@@ -1,7 +1,19 @@
 {
   "$comment": "Upstream ids provider-model-gaps.mjs should not report. `*` matches any run of characters. Say why next to each group, so the next reader can tell a decision from an accident.",
   "fal": {
-    "`/ws` endpoints are WebSocket-only; FalNode calls the queue API": ["*/ws"]
+    "`/ws` endpoints are WebSocket-only; FalNode calls the queue API": ["*/ws"],
+    "interactive world, game and director sessions take a stream of live controls or prompts; a workflow node sends one request": [
+      "alibaba/abot-world-0",
+      "robbyant/lingbot-world-2",
+      "vast/eden-live-*",
+      "minimax/h3-max/director",
+      "minimax/h3-max/reference-director"
+    ],
+    "full-duplex voice and streaming speech endpoints read live microphone audio; FalNode submits one queued request": [
+      "kotoba-technologies/kotoba-streaming-stt/v1/realtime",
+      "kotoba-technologies/kotoba-sts/v1/realtime_voice",
+      "xai/grok-voice/realtime"
+    ]
   },
   "replicate": {
     "legacy chat models superseded by later releases of the same family": [
