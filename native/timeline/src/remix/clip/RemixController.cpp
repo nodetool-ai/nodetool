@@ -22,6 +22,11 @@ double clampPercent(double v) { return std::isfinite(v) ? std::clamp(v, 0.0, 100
 RemixController::RemixController(QObject* parent)
     : QObject(parent), m_protection(std::make_shared<nt::assets::MediaProtection>()),
       m_previewModel(new TimelineModel(this)), m_previewClock(new PlaybackClock(this)) {
+    qRegisterMetaType<RemixRelay::Task>("RemixRelay::Task");
+    // Workers hand their results to the GUI thread through a relay they own a share of. The relay outlives this
+    // controller while a worker still runs, and its connection to this object ends when this object does.
+    m_relay = std::shared_ptr<RemixRelay>(new RemixRelay, [](RemixRelay* relay) { relay->deleteLater(); });
+    connect(m_relay.get(), &RemixRelay::post, this, [](const RemixRelay::Task& task) { task(); });
     connect(m_previewClock, &PlaybackClock::playingChanged, this, &RemixController::listeningChanged);
     connect(m_previewClock, &PlaybackClock::timeChanged, this, [this] { if (m_previewClock->playing()) { emit listeningChanged(); } });
 }
@@ -102,10 +107,22 @@ void RemixController::setState(const QString& state) {
     emit changed();
 }
 
+// Whether the clip still plays the music this dialog analysed: a take applied or a trim made
+// while the dialog was open would make the plan describe other audio.
+QString RemixController::staleReason() const {
+    const auto clip = clipRaw(m_clipId);
+    const auto now = nt::remix::sourceWindow(clip);
+    if (clip.isEmpty() || !now || clip.value("currentAssetId").toString() != m_currentAsset || now->assetId != m_window.assetId ||
+        std::abs(now->startMs - m_window.startMs) > 0.5 || std::abs(now->durationMs - m_window.durationMs) > 0.5) {
+        return QStringLiteral("The clip changed after Remix opened. Close this window and open Remix again.");
+    }
+    return {};
+}
 QString RemixController::refusal() const {
     if (m_state == QLatin1String("closed") || m_state == QLatin1String("refused")) { return m_refusal; }
     if (!m_refusal.isEmpty()) { return m_refusal; }
     if (!m_plan) { return {}; }
+    if (const auto stale = staleReason(); !stale.isEmpty()) { return stale; }
     if (!backend()) { return QStringLiteral("Open the timeline from a server to save the remix."); }
     return nt::remix::refusal(currentRaw(), m_clipId, m_targetMs);
 }
@@ -234,7 +251,8 @@ void RemixController::startAnalysis(std::string path) {
     const auto protection = m_protection;
     protection->reset(protectedPaths());
     const auto mediaGeneration = protection->generation();
-    auto* thread = QThread::create([self, serial, path = std::move(path), assetId, start, duration, backend, protection, mediaGeneration]() mutable {
+    const auto relay = m_relay;
+    auto* thread = QThread::create([self, relay, serial, path = std::move(path), assetId, start, duration, backend, protection, mediaGeneration]() mutable {
         const auto cancelled = [] { return QThread::currentThread()->isInterruptionRequested(); };
         QString error;
         if (path.empty()) {
@@ -249,17 +267,17 @@ void RemixController::startAnalysis(std::string path) {
         nt::remix::AnalysisResult result;
         if (error.isEmpty() && !cancelled()) {
             result = nt::remix::analyzeFile({path, start, duration},
-                [self, serial](double fraction) {
+                [self, relay, serial](double fraction) {
                     if (!self) { return; }
-                    QMetaObject::invokeMethod(self, [self, serial, fraction] {
+                    relay->post([self, serial, fraction] {
                         if (!self || self->m_serial != serial) { return; }
                         self->m_progress = fraction;
                         emit self->progressChanged();
-                    }, Qt::QueuedConnection);
+                    });
                 }, cancelled);
         }
         if (!self || cancelled()) { return; }
-        QMetaObject::invokeMethod(self, [self, serial, result = std::move(result), error, path]() mutable {
+        relay->post([self, serial, result = std::move(result), error, path]() mutable {
             if (!self || self->m_serial != serial) { return; }
             if (!error.isEmpty() || !result.analysis) {
                 self->m_error = !error.isEmpty() ? error : QString::fromLatin1(nt::remix::describe(result.error));
@@ -275,7 +293,7 @@ void RemixController::startAnalysis(std::string path) {
             self->m_state = QStringLiteral("ready");
             self->replan();
             emit self->progressChanged();
-        }, Qt::QueuedConnection);
+        });
     });
     m_worker = thread;
     connect(thread, &QThread::finished, this, [this, thread] {
@@ -339,27 +357,28 @@ void RemixController::startBake(bool thenListen, bool thenApply) {
     const auto generation = m_generation;
     const auto sibling = m_window.assetId;
     const auto name = QStringLiteral("%1 (%2)").arg(m_clipName.isEmpty() ? QStringLiteral("Music") : m_clipName, nt::remix::takeLabel(double(frames) * 1000.0 / nt::remix::kOutputRate).toLower());
+    const auto relay = m_relay;
     auto* thread = QThread::create([=]() mutable {
         const auto cancelled = [] { return QThread::currentThread()->isInterruptionRequested(); };
-        const auto report = [self, serial](double fraction, const QString& phase) {
+        const auto report = [self, relay, serial](double fraction, const QString& phase) {
             if (!self) { return; }
-            QMetaObject::invokeMethod(self, [self, serial, fraction, phase] {
+            relay->post([self, serial, fraction, phase] {
                 if (!self || self->m_serial != serial) { return; }
                 self->m_progress = fraction;
                 if (!phase.isEmpty()) { self->m_phase = phase; }
                 emit self->progressChanged();
-            }, Qt::QueuedConnection);
+            });
         };
-        auto fail = [self, serial](const QString& message) {
+        auto fail = [self, relay, serial](const QString& message) {
             if (!self) { return; }
-            QMetaObject::invokeMethod(self, [self, serial, message] {
+            relay->post([self, serial, message] {
                 if (!self || self->m_serial != serial) { return; }
                 self->m_error = message;
                 self->m_progress = 0;
                 self->m_phase.clear();
                 self->setState(QStringLiteral("ready"));
                 emit self->progressChanged();
-            }, Qt::QueuedConnection);
+            });
         };
         if (!reuse) {
             const auto error = nt::remix::bakeWav(window, plan, frames, wavPath,
@@ -368,20 +387,20 @@ void RemixController::startBake(bool thenListen, bool thenApply) {
             if (error != nt::remix::Error::None) { fail(QString::fromLatin1(nt::remix::describe(error))); return; }
         }
         if (!self) { return; }
-        QMetaObject::invokeMethod(self, [self, serial, wavPath, key] {
+        relay->post([self, serial, wavPath, key] {
             if (!self || self->m_serial != serial) { return; }
             self->m_bakedKey = key;
             self->m_bakedPath = wavPath;
-        }, Qt::QueuedConnection);
+        });
         if (thenListen) {
-            QMetaObject::invokeMethod(self, [self, serial, wavPath] {
+            relay->post([self, serial, wavPath] {
                 if (!self || self->m_serial != serial) { return; }
                 self->m_progress = 1;
                 self->m_phase.clear();
                 self->m_state = QStringLiteral("ready");
                 self->loadListening(wavPath);
                 emit self->progressChanged();
-            }, Qt::QueuedConnection);
+            });
             return;
         }
         if (!thenApply) { return; }
@@ -397,10 +416,10 @@ void RemixController::startBake(bool thenListen, bool thenApply) {
         auto asset = uploaded.asset;
         if (!(asset.value("duration").toDouble() > 0)) { asset.insert("duration", double(frames) / nt::remix::kOutputRate); }
         if (!self) { return; }
-        QMetaObject::invokeMethod(self, [self, serial, media = resolved.media, asset, wavPath, generation] {
+        relay->post([self, serial, media = resolved.media, asset, wavPath, generation] {
             if (!self || self->m_serial != serial) { return; }
             self->finishApply(media, asset, wavPath, generation, serial);
-        }, Qt::QueuedConnection);
+        });
     });
     m_worker = thread;
     connect(thread, &QThread::finished, this, [this, thread] {
@@ -466,6 +485,11 @@ void RemixController::finishApply(const nt::Clip& media, const QJsonObject& asse
         setState(QStringLiteral("ready"));
         return;
     }
+    if (const auto stale = staleReason(); !stale.isEmpty()) {
+        m_error = stale;
+        setState(QStringLiteral("ready"));
+        return;
+    }
     const long long frames = std::llround(m_targetMs * nt::remix::kOutputRate / 1000.0);
     const double duration = double(frames) * 1000.0 / nt::remix::kOutputRate;
     QJsonArray cuts;
@@ -523,10 +547,11 @@ QString RemixController::revert(const QString& clipId) {
     const auto protection = m_protection;
     protection->reset(protectedPaths());
     const auto mediaGeneration = protection->generation();
+    const auto relay = m_relay;
     auto* thread = QThread::create([=] {
         const auto resolved = backend->resolve(sourceAsset, *protection, mediaGeneration);
         if (!self || QThread::currentThread()->isInterruptionRequested()) { return; }
-        QMetaObject::invokeMethod(self, [self, serial, generation, clipId, resolved, commit] {
+        relay->post([self, serial, generation, clipId, resolved, commit] {
             if (!self || self->m_serial != serial || !self->m_timeline || self->m_timeline->documentGeneration() != generation) { return; }
             self->m_reverting = false;
             if (!resolved.ok()) {
@@ -534,7 +559,7 @@ QString RemixController::revert(const QString& clipId) {
                 return;
             }
             commit(&resolved.media);
-        }, Qt::QueuedConnection);
+        });
     });
     m_worker = thread;
     connect(thread, &QThread::finished, this, [this, thread] { if (m_worker == thread) { m_worker = nullptr; m_reverting = false; } });

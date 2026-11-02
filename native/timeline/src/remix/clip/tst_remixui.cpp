@@ -60,7 +60,7 @@ bool writeMusic(const QString& path, double seconds) {
 // A server that keeps every asset in a folder.
 class FakeBackend final : public nt::remix::Backend {
 public:
-    explicit FakeBackend(QString dir) : m_dir(std::move(dir)) {}
+    explicit FakeBackend(QString dir, QString name) : m_dir(std::move(dir)), m_name(std::move(name)) {}
     QHash<QString, QString> files;
     QStringList uploads;
     // A test holds resolve() here to keep a download pending.
@@ -83,8 +83,9 @@ public:
         nt::remix::UploadedAudio out;
         if (failUpload) { out.error = "The server refused the upload."; return out; }
         const QString id = QString("asset-remix-%1").arg(files.size());
-        const QString dest = m_dir + "/" + id + ".wav";
-        QFile::copy(wavPath, dest);
+        const QString dest = m_dir + "/" + m_name + "-" + id + ".wav";
+        QFile::remove(dest);
+        if (!QFile::copy(wavPath, dest)) { out.error = "Could not store " + dest; return out; }
         files.insert(id, dest);
         uploads << name;
         out.asset = QJsonObject{{"id", id}, {"name", name}};
@@ -92,7 +93,7 @@ public:
     }
     bool failUpload = false;
 private:
-    QString m_dir;
+    QString m_dir, m_name;
 };
 }  // namespace
 
@@ -166,7 +167,8 @@ private slots:
         QVERIFY(writeMusic(srcFile, 20));
     }
     void init() {
-        backend = std::make_shared<FakeBackend>(dir.path());
+        // Each test stores its own files: nothing it resolves can be left over from an earlier one.
+        backend = std::make_shared<FakeBackend>(dir.path(), QString(QTest::currentTestFunction()));
     }
     void cleanup() { view.reset(); }
 
@@ -489,6 +491,31 @@ private slots:
         QVERIFY(gestures()->runAction("revertRemix", {{"clipId", "m"}}));
         QTRY_COMPARE(model.undoStack()->count(), base + 1);
         QCOMPARE(clip("m").value("currentAssetId").toString(), QString("asset-src"));
+    }
+    void aClipThatChangesWhileTheDialogIsOpenCannotBeRemixedFromOldAudio() {
+        openMusic(false);
+        openDialogReady();
+        typeTarget("14");
+        QTRY_COMPARE(controller()->targetMs(), 14000.0);
+        QTRY_VERIFY(item("remixApply")->property("enabled").toBool());
+        // Another take is applied to the clip while the dialog analysed the first one.
+        backend->files.insert("asset-other", srcFile);
+        auto clips = model.clipsJson();
+        for (int i = 0; i < clips.size(); ++i) {
+            auto edited = clips.at(i).toObject();
+            if (edited.value("id") != "m") { continue; }
+            edited.insert("currentAssetId", "asset-other");
+            clips.replace(i, edited);
+        }
+        model.replaceClips(clips);
+        QTRY_VERIFY(!item("remixApply")->property("enabled").toBool());
+        QVERIFY(controller()->refusal().contains("changed"));
+        // Applying refuses even when called directly.
+        controller()->apply();
+        QTest::qWait(100);
+        QCOMPARE(controller()->state(), QString("ready"));
+        QCOMPARE(clip("m").value("currentAssetId").toString(), QString("asset-other"));
+        QVERIFY(backend->uploads.isEmpty());
     }
     void theClipContextMenuOpensRemixAndRevertsIt() {
         openMusic(false);

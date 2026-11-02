@@ -19,6 +19,7 @@
 #include <QVariantList>
 #include <QtQmlIntegration/qqmlintegration.h>
 
+#include <functional>
 #include <memory>
 #include <optional>
 
@@ -40,6 +41,16 @@ signals:
     void revertRequested(const QString& clipId);
     void reported(const QString& title, const QString& text);
 };
+
+// Carries a task from a worker thread to the controller's thread.
+class RemixRelay : public QObject {
+    Q_OBJECT
+public:
+    using Task = std::function<void()>;
+signals:
+    void post(const RemixRelay::Task& task);
+};
+Q_DECLARE_METATYPE(RemixRelay::Task)
 
 class RemixController : public QObject {
     Q_OBJECT
@@ -151,6 +162,7 @@ private:
     void loadListening(const QString& wavPath);
     std::shared_ptr<nt::remix::Backend> backend() const;
     QSet<QString> protectedPaths() const;
+    QString staleReason() const;
 
     QPointer<TimelineModel> m_timeline;
     std::shared_ptr<nt::remix::Backend> m_backend;
@@ -158,6 +170,7 @@ private:
     mutable bool m_serverBackendResolved = false;
     bool m_backendSet = false;
     std::shared_ptr<nt::assets::MediaProtection> m_protection;
+    std::shared_ptr<RemixRelay> m_relay;
     QString m_clipId, m_clipName, m_currentAsset;
     QString m_state = QStringLiteral("closed");
     QString m_phase, m_error, m_refusal;
