@@ -91,8 +91,10 @@ const bool registered = [] {
     nt::app::registerMenuItem({"clip", "remixClip", "Remix…", {}, canRemix, "remix", 10});
     nt::app::registerMenuItem({"clip", "revertRemix", "Revert remix", {}, canRevert, "remix", 11});
     // The Clip menu of the menu bar.
-    nt::app::registerShellMenuItem({"Clip", "remixClip", "Remix…", {}, {}, "remix", 10, canRemix});
-    nt::app::registerShellMenuItem({"Clip", "revertRemix", "Revert Remix", {}, {}, "remix", 11, canRevert});
+    nt::app::registerShellMenuItem({"Clip", "remixClip", "Remix…", {}, {}, "remix", 10, canRemix, {}, {},
+        QStringLiteral("Select an audio clip first.")});
+    nt::app::registerShellMenuItem({"Clip", "revertRemix", "Revert Remix", {}, {}, "remix", 11, canRevert, {}, {},
+        QStringLiteral("Select a remixed clip first.")});
     return true;
 }();
 }  // namespace

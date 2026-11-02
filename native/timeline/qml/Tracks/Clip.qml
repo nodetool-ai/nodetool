@@ -95,10 +95,13 @@ Item {
                      ? clipItem.viewState.scrollLeftPx + clipItem.viewState.viewportWidthPx - clipItem.x : width
     }
 
-    ClipContextMenu {
-        id: clipMenu
-        gestures: clipItem.gestures
+    // Built on the first right-click, so a lane's clips stay cheap to create and scroll.
+    property ClipContextMenu clipMenu: null
+    Component {
+        id: clipMenuComponent
+        ClipContextMenu { gestures: clipItem.gestures }
     }
+    signal editPointMenuRequested(string clipId, string edge, Item area, real areaX, real areaY)
     HoverHandler { id: hover }
 
     Loader {
@@ -241,11 +244,14 @@ Item {
             if (mouse.button === Qt.RightButton) {
                 if (clipItem.gestures && clipItem.gestures.parent) clipItem.gestures.parent.forceActiveFocus(Qt.MouseFocusReason)
                 if (clipItem.gestures && !clipItem.selected) clipItem.gestures.selection = [clipItem.clipId]
-                clipMenu.context = { clipId: clipItem.clipId, clip: clipItem.clipData,
+                if (!clipItem.clipMenu) clipItem.clipMenu = clipMenuComponent.createObject(clipItem)
+                const clock = clipItem.gestures ? clipItem.gestures.clock : null
+                clipItem.clipMenu.context = { clipId: clipItem.clipId, clip: clipItem.clipData,
                                      clipIds: clipItem.gestures ? clipItem.gestures.selection.slice() : [clipItem.clipId], mediaType: clipItem.mediaType,
                                      selectedIds: clipItem.gestures ? clipItem.gestures.selection : [],
+                                     playheadMs: clock ? clock.time : 0,
                                      editable: !clipItem.interactionLocked }
-                clipMenu.popup(mouse.x, mouse.y)
+                clipItem.clipMenu.popupAt(this, mouse.x, mouse.y)
             } else clipItem.press("body", mouse, this)
         }
     }
@@ -269,13 +275,16 @@ Item {
         visible: clipItem.trimHandles
         width: 8
         height: parent.height
-        acceptedButtons: Qt.LeftButton
+        acceptedButtons: clipItem.interactionLocked ? Qt.LeftButton : Qt.LeftButton | Qt.RightButton
         hoverEnabled: true
         cursorShape: clipItem.cursorFor("start", pressed, this)
         onEntered: clipItem.updateToolPreview("start", this, 0)
         onPositionChanged: mouse => clipItem.updateToolPreview("start", this, mouse.modifiers)
         onExited: if (clipItem.gestures) clipItem.gestures.clearToolHover(clipItem.clipId)
-        onPressed: mouse => clipItem.press("start", mouse, this)
+        onPressed: mouse => {
+            if (mouse.button === Qt.RightButton) clipItem.editPointMenuRequested(clipItem.clipId, "start", this, mouse.x, mouse.y)
+            else clipItem.press("start", mouse, this)
+        }
     }
     MouseArea {
         id: endArea
@@ -285,12 +294,15 @@ Item {
         x: parent.width - width
         width: 8
         height: parent.height
-        acceptedButtons: Qt.LeftButton
+        acceptedButtons: clipItem.interactionLocked ? Qt.LeftButton : Qt.LeftButton | Qt.RightButton
         hoverEnabled: true
         cursorShape: clipItem.cursorFor("end", pressed, this)
         onEntered: clipItem.updateToolPreview("end", this, 0)
         onPositionChanged: mouse => clipItem.updateToolPreview("end", this, mouse.modifiers)
         onExited: if (clipItem.gestures) clipItem.gestures.clearToolHover(clipItem.clipId)
-        onPressed: mouse => clipItem.press("end", mouse, this)
+        onPressed: mouse => {
+            if (mouse.button === Qt.RightButton) clipItem.editPointMenuRequested(clipItem.clipId, "end", this, mouse.x, mouse.y)
+            else clipItem.press("end", mouse, this)
+        }
     }
 }

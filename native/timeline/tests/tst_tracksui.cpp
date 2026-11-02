@@ -950,9 +950,9 @@ private slots:
         const auto before = model->documentJson();
         auto* clip = itemNamed("clip-c-0-2");
         QVERIFY(clip);
+        QTest::mouseClick(view.get(), Qt::RightButton, {}, first);
         auto* menu = clip->findChild<QObject*>("registryContextMenu-clip");
         QVERIFY(menu);
-        QTest::mouseClick(view.get(), Qt::RightButton, {}, first);
         QTRY_VERIFY(menu->property("opened").toBool());
         QCOMPARE(controller()->selection(), selected);
         QTest::keyClick(view.get(), Qt::Key_Delete);

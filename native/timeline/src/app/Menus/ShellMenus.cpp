@@ -6,11 +6,9 @@
 #include "edit/Keymap.h"
 #include <QCoreApplication>
 #include <QFileInfo>
-#include <QProcess>
-#include <QJsonArray>
 #include <QKeyEvent>
+#include <QProcess>
 #include <QQuickWindow>
-#include <QSet>
 #include <QTimer>
 #include <algorithm>
 #include <private/qguiapplication_p.h>
@@ -18,6 +16,20 @@
 #include <qpa/qplatformtheme.h>
 
 namespace nt::app {
+// The Edit commands a focused text field runs on its own text, by its standard keys.
+const QHash<QString, QKeySequence::StandardKey>& textEditKeys() {
+    static const QHash<QString, QKeySequence::StandardKey> keys{
+        {"cut", QKeySequence::Cut}, {"copy", QKeySequence::Copy}, {"paste", QKeySequence::Paste},
+        {"selectAll", QKeySequence::SelectAll}, {"undo", QKeySequence::Undo}, {"redo", QKeySequence::Redo},
+        {"deleteSelected", QKeySequence::Delete}};
+    return keys;
+}
+bool entryEnabled(const ShellMenuEntry& entry, const QVariantMap& context) {
+    if (context.value("textFocus").toBool() && textEditKeys().contains(entry.action)) {
+        return true;
+    }
+    return !entry.enabled || entry.enabled(context);
+}
 QKeyCombination bindingCombination(const QStringList& keys) {
     if (keys.isEmpty()) {
         return {};
@@ -38,9 +50,11 @@ QKeyCombination bindingCombination(const QStringList& keys) {
     if (keys.contains("Alt")) {
         modifiers |= Qt::AltModifier;
     }
-    // Symbol keys already describe their shifted glyph, as in the web resolver.
-    // Digits do not, so Shift+5 keeps its modifier.
-    if (keys.contains("Shift") && (label.size() != 1 || label.at(0).isLetterOrNumber())) {
+    // A shifted glyph such as "+" or "?" already says Shift, as in the web resolver.
+    // An unshifted key does not: Shift+5 and Shift+= keep the modifier, so Shift+= is
+    // not the same menu shortcut as =.
+    static const QString shiftedGlyphs = QStringLiteral("~!@#$%^&*()_+{}|:\"<>?");
+    if (keys.contains("Shift") && (label.size() != 1 || !shiftedGlyphs.contains(label))) {
         modifiers |= Qt::ShiftModifier;
     }
     return QKeyCombination(modifiers, key);
@@ -56,10 +70,14 @@ void applyEntryShortcut(ShellMenuItem& item, const QString& preset, const ShellM
         return;
     }
     for (const auto& action : nt::wiring::keyActions()) {
-        if (action.name == entry.action && !action.defaultKeys.isEmpty()) {
-            item.sequence = action.defaultKeys.first();
-            item.shortcut = item.sequence.toString(QKeySequence::NativeText);
-            return;
+        if (action.name != entry.action) { continue; }
+        // A default key gives way to the preset's own use of it, as in the Timeline.
+        for (const auto& key : action.defaultKeys) {
+            if (!ClipGestureController::presetUsesKey(preset, key)) {
+                item.sequence = key;
+                item.shortcut = key.toString(QKeySequence::NativeText);
+                return;
+            }
         }
     }
     item.shortcut = entry.shortcut;
@@ -75,7 +93,8 @@ void insertEntries(std::vector<ShellMenuItem>& items, size_t at, const std::vect
     QString group;  // Built-in items have no group.
     QHash<QString, QString> submenuGroups;
     for (const auto& entry : entries) {
-        ShellMenuItem item{entry.label, entry.action, {}, {}, !entry.enabled || entry.enabled(context), {}};
+        ShellMenuItem item{entry.label, entry.action, {}, {}, entryEnabled(entry, context), {}};
+        item.disabledReason = item.enabled ? QString() : entry.disabledReason;
         item.checkable = bool(entry.checked);
         item.checked = entry.checked && entry.checked(context);
         applyEntryShortcut(item, preset, entry);
@@ -107,45 +126,14 @@ void insertEntries(std::vector<ShellMenuItem>& items, size_t at, const std::vect
 }
 
 std::vector<Menu> shellMenuDescription(const QString& preset, const QVariantList& recent, const QVariantMap& context) {
-    QHash<QString, QString> labels;
-    for (const auto& group : nt::edit::shortcutSheet(preset).value("groups").toArray()) {
-        for (const auto& row : group.toObject().value("rows").toArray()) {
-            const auto object = row.toObject();
-            if (object.contains("action")) {
-                labels.insert(object.value("action").toString(), object.value("label").toString());
-            }
-        }
-    }
+    // Every other menu comes from the registry (StandardMenus.cpp).
     std::vector<Menu> menus{
         {"File", {{"Open Recent", "recent", {}, {}, true, {}},
                   {"Open Timeline…", "openTimeline", "Ctrl+O", QKeySequence(Qt::CTRL | Qt::Key_O), true, {}},
                   {"New Timeline", "newTimeline", {}, {}, true, {}},
                   {"Export…", "exportVideo", {}, {}, true, {}},
                   {"Settings…", "settings", "Ctrl+,", QKeySequence(Qt::CTRL | Qt::Key_Comma), true, {}},
-                  {"Quit", "quit", {}, QKeySequence(QKeySequence::Quit), true, {}}}},
-        {"Edit", {}}, {"View", {}}, {"Playback", {}}, {"Help", {}}};
-    const std::vector<QStringList> actions{
-        {"undo", "redo", "cut", "copy", "paste", "pasteInsert", "pasteAttributes", "duplicate", "deleteSelected",
-         "rippleDeleteSelected", "selectAll", "deselectAll", "splitAtPlayhead", "linkClips", "groupClips", "ungroupClips"},
-        {"zoomIn", "zoomOut", "zoomFit", "expandTracks", "shrinkTracks", "toggleSnap"},
-        {"playPause", "playInToOut", "toggleLoop", "shuttleBack", "shuttleStop", "shuttleForward", "stepFrameBack",
-         "stepFrameForward", "markIn", "markOut", "goToIn", "goToOut", "clearRange", "addMarker", "nextMarker", "prevMarker"},
-        {"toggleShortcuts"}};
-    for (size_t index = 0; index < actions.size(); ++index) {
-        for (const QString& action : actions[index]) {
-            if (action == "playPause") {
-                menus[index + 1].items.push_back({"Play / pause", action, "Space", QKeySequence(Qt::Key_Space), true, {}});
-                continue;
-            }
-            const auto bindings = nt::edit::actionBindingKeys(preset, action);
-            if (bindings.empty()) {
-                continue;
-            }
-            const QString label = action == "toggleShortcuts" ? QStringLiteral("Keyboard Shortcuts") : labels.value(action);
-            menus[index + 1].items.push_back({label, action, nt::edit::formatActionShortcut(preset, action),
-                QKeySequence(bindingCombination(bindings.front())), ClipGestureController::availableActions().contains(action), {}});
-        }
-    }
+                  {"Quit", "quit", {}, QKeySequence(QKeySequence::Quit), true, {}}}}};
     auto& recentItems = menus.front().items.front().children;
     for (qsizetype index = 0; index < recent.size(); ++index) {
         const auto entry = recent[index].toMap();
@@ -229,6 +217,8 @@ void ShellMenus::setPreferences(Preferences* preferences) {
 }
 QVariantMap ShellMenus::menuContext() const {
     QVariantMap context{{"kind", "shell"}};
+    const auto* focused = m_anchor && m_anchor->window() ? m_anchor->window()->activeFocusItem() : nullptr;
+    context.insert("textFocus", focused && focused->flags().testFlag(QQuickItem::ItemAcceptsInputMethod));
     if (auto* gestures = qobject_cast<ClipGestureController*>(nt::wiring::w::windowItem(m_anchor, "clipGestures"))) {
         context.insert("gestures", QVariant::fromValue<QObject*>(gestures));
         context.insert("timeline", QVariant::fromValue<QObject*>(gestures->timeline()));
@@ -244,7 +234,7 @@ void ShellMenus::refreshRegisteredItems() {
         }
         for (const auto& entry : shellMenuEntries()) {
             if (entry.action == registered.action) {
-                item->setEnabled(!entry.enabled || entry.enabled(context));
+                item->setEnabled(entryEnabled(entry, context));
                 item->setCheckable(bool(entry.checked));
                 item->setChecked(entry.checked && entry.checked(context));
                 registered.menu->syncMenuItem(item);
@@ -259,8 +249,23 @@ bool ShellMenus::trigger(const QString& action) {
             continue;
         }
         const auto context = menuContext();
-        if (entry.enabled && !entry.enabled(context)) {
+        if (!entryEnabled(entry, context)) {
             return false;
+        }
+        if (context.value("textFocus").toBool() && textEditKeys().contains(action)) {
+            const auto combination = QKeySequence(textEditKeys().value(action))[0];
+            QKeyEvent press(QEvent::KeyPress, combination.key(), combination.keyboardModifiers());
+            QKeyEvent release(QEvent::KeyRelease, combination.key(), combination.keyboardModifiers());
+            QCoreApplication::sendEvent(m_anchor->window(), &press);
+            QCoreApplication::sendEvent(m_anchor->window(), &release);
+            return true;
+        }
+        // Leaving a text field commits what was typed before the command runs.
+        for (auto* root = m_anchor.data(); root; root = root->parentItem()) {
+            if (root->property("timeline").isValid()) {
+                root->forceActiveFocus();
+                break;
+            }
         }
         if (entry.run) {
             return entry.run(context);
@@ -308,31 +313,6 @@ bool ShellMenus::trigger(const QString& action) {
     if (action == "exportVideo") {
         auto* panel = nt::wiring::w::windowItem(m_anchor, "exportPanel");
         return panel && QMetaObject::invokeMethod(panel, "open");
-    }
-    for (const auto& menu : shellMenuDescription(m_preset)) {
-        for (const auto& item : menu.items) {
-            if (item.action != action || !item.enabled || item.sequence.isEmpty()) {
-                continue;
-            }
-            static const QSet<QString> TEXT_EDIT_ACTIONS{"cut", "copy", "paste", "selectAll", "undo", "redo", "deleteSelected"};
-            if (!TEXT_EDIT_ACTIONS.contains(action)) {
-                for (auto* root = m_anchor.data(); root; root = root->parentItem()) {
-                    if (root->property("timeline").isValid()) {
-                        root->forceActiveFocus();
-                        break;
-                    }
-                }
-            }
-            const auto combination = item.sequence[0];
-            const auto key = combination.key();
-            const QString text = key == Qt::Key_Space ? QStringLiteral(" ")
-                : (key >= Qt::Key_Space && key <= Qt::Key_AsciiTilde ? QString(QChar(static_cast<char16_t>(key))).toLower() : QString());
-            QKeyEvent press(QEvent::KeyPress, key, combination.keyboardModifiers(), text);
-            QKeyEvent release(QEvent::KeyRelease, key, combination.keyboardModifiers(), text);
-            QCoreApplication::sendEvent(m_anchor->window(), &press);
-            QCoreApplication::sendEvent(m_anchor->window(), &release);
-            return true;
-        }
     }
     return false;
 }

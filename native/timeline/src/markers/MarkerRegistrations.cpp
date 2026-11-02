@@ -63,7 +63,10 @@ bool addMarker(ClipGestureController& g, double at, double duration, const QVari
 }
 bool setColor(ClipGestureController& g, const QVariantMap& context, const QString& css) {
     const auto ids = targets(g, context);
-    return !ids.isEmpty() && edit(g, "markers.update", {{"ids", QJsonArray::fromStringList(ids)}, {"patch", QJsonObject{{"color", css}}}});
+    if (ids.isEmpty()) { return false; }
+    // The colour a marker already has changes nothing, and is still the colour asked for.
+    edit(g, "markers.update", {{"ids", QJsonArray::fromStringList(ids)}, {"patch", QJsonObject{{"color", css}}}});
+    return true;
 }
 bool hasMarkers(const QVariantMap& context) {
     auto* model = qobject_cast<TimelineModel*>(context.value("timeline").value<QObject*>());
@@ -74,6 +77,20 @@ bool inOutSet(const QVariantMap& context) {
     return gestures && gestures->viewState() && gestures->viewState()->rangeInMs() >= 0 && gestures->viewState()->rangeOutMs() > gestures->viewState()->rangeInMs();
 }
 bool editorOpen(const QVariantMap& context) { return qobject_cast<TimelineModel*>(context.value("timeline").value<QObject*>()) != nullptr; }
+// The menu bar names no marker, so these items need a target the action can find.
+bool markerTargeted(const QVariantMap& context) {
+    auto* gestures = qobject_cast<ClipGestureController*>(context.value("gestures").value<QObject*>());
+    return gestures && gestures->timeline() && !targets(*gestures, context).isEmpty();
+}
+bool markerAtPlayhead(const QVariantMap& context) {
+    auto* gestures = qobject_cast<ClipGestureController*>(context.value("gestures").value<QObject*>());
+    if (!gestures || !gestures->timeline()) { return false; }
+    const double reach = frameMs(*gestures) / 2;
+    const auto markers = gestures->timeline()->markersJson();
+    return std::any_of(markers.begin(), markers.end(), [&](const QJsonValue& m) {
+        return std::abs(m.toObject().value("timeMs").toDouble() - playhead(*gestures)) <= reach;
+    });
+}
 bool currentColor(const QVariantMap& context, const QString& css) {
     return !css.isEmpty() ? context.value("color").toString().compare(css, Qt::CaseInsensitive) == 0 : context.value("color").toString().isEmpty();
 }
@@ -148,19 +165,26 @@ const bool registered = [] {
     nt::app::registerMenuItem({"marker", "clearSelectedMarkers", "Clear selected markers", {}, always, "clear", 40});
     nt::app::registerMenuItem({"marker", "clearAllMarkers", "Clear all markers", {}, always, "clear", 41});
 
-    // The Markers menu of the menu bar. Add Marker and the marker navigation stay in Playback.
-    nt::app::registerShellMenuItem({"Markers", "addRangeMarker", "Add Range Marker", {}, {}, "add", 10, editorOpen});
-    nt::app::registerShellMenuItem({"Markers", "addMarkerInOut", "Add Marker from In to Out", {}, {}, "add", 11, inOutSet});
-    nt::app::registerShellMenuItem({"Markers", "editMarker", "Edit Marker…", {}, {}, "edit", 20, hasMarkers});
-    nt::app::registerShellMenuItem({"Markers", "markerColor.none", "Default Colour", {}, "Marker Colour", "edit", 21, hasMarkers});
+    // The Markers menu of the menu bar. The marks, Add Marker and the marker navigation
+    // are in app/Menus/StandardMenus.cpp, ordered around these.
+    const auto entry = [](const QString& action, const QString& label, const QString& submenu, const QString& entryGroup, int entryOrder,
+                          const nt::app::MenuPredicate& enabled, const QString& reason) {
+        nt::app::registerShellMenuItem({"Markers", action, label, {}, submenu, entryGroup, entryOrder, enabled, {}, {}, reason});
+    };
+    const QString needMarker = QStringLiteral("Add a marker first.");
+    const QString needTarget = QStringLiteral("Select a marker, or move the playhead to one.");
+    entry("addRangeMarker", "Add Range Marker", {}, "add", 10, editorOpen, QStringLiteral("Open a timeline first."));
+    entry("addMarkerInOut", "Add Marker from In to Out", {}, "add", 11, inOutSet, QStringLiteral("Set In and Out points first."));
+    entry("editMarker", "Edit Marker…", {}, "edit", 20, markerTargeted, needTarget);
+    entry("markerColor.none", "Default Colour", "Marker Colour", "edit", 21, markerTargeted, needTarget);
     order = 22;
     for (const auto& color : colors()) {
-        nt::app::registerShellMenuItem({"Markers", "markerColor." + color.id, color.name, {}, "Marker Colour", "edit", order++, hasMarkers});
+        entry("markerColor." + color.id, color.name, "Marker Colour", "edit", order++, markerTargeted, needTarget);
     }
-    nt::app::registerShellMenuItem({"Markers", "clearSelectedMarkers", "Clear Selected Markers", {}, {}, "clear", 40, hasMarkers});
-    nt::app::registerShellMenuItem({"Markers", "clearMarker", "Clear Marker at Playhead", {}, {}, "clear", 41, hasMarkers});
-    nt::app::registerShellMenuItem({"Markers", "clearAllMarkers", "Clear All Markers", {}, {}, "clear", 42, hasMarkers});
-    nt::app::registerShellMenuItem({"Markers", "exportMarkersCsv", "Export Markers as CSV…", {}, {}, "export", 50, hasMarkers});
+    entry("clearSelectedMarkers", "Clear Selected Markers", {}, "clear", 40, markerTargeted, needTarget);
+    entry("clearMarker", "Clear Marker at Playhead", {}, "clear", 41, markerAtPlayhead, QStringLiteral("Move the playhead to a marker first."));
+    entry("clearAllMarkers", "Clear All Markers", {}, "clear", 42, hasMarkers, needMarker);
+    entry("exportMarkersCsv", "Export Markers as CSV…", {}, "export", 50, hasMarkers, needMarker);
     return true;
 }();
 }  // namespace

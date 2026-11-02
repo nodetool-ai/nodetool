@@ -11,7 +11,7 @@ Instantiator {
     required property string kind
     required property var context
     required property ClipGestureController gestures
-    readonly property var actionContext: Object.assign({}, context, { kind: kind })
+    readonly property var actionContext: Object.assign({}, context, { kind: kind, gestures: gestures })
     readonly property Component groupSeparator: Component { MenuSeparator { contentItem: Ui.Separator {} } }
     model: MenuRegistry.query(kind, actionContext)
     delegate: Ui.MenuItem {
@@ -23,7 +23,8 @@ Instantiator {
         enabled: modelData.enabled
         checkable: modelData.checkable
         checked: modelData.checked
-        shortcutText: modelData.shortcut ?? ""
+        shortcutText: (entries.gestures && entries.gestures.keyboardPreset !== "" ? entries.gestures.shortcutFor(modelData.action) : "") || (modelData.shortcut ?? "")
+        reasonText: modelData.reason ?? ""
         onTriggered: if (entries.gestures) entries.gestures.runAction(modelData.action, entries.actionContext)
     }
     onObjectAdded: (index, object) => {

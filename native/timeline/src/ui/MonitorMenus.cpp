@@ -42,9 +42,10 @@ nt::app::MenuPredicate whenMonitor(std::function<bool(const MonitorViewState&)> 
     };
 }
 void addEntry(const QString& submenu, const QString& action, const QString& label, int order,
-              nt::app::MenuPredicate checked, nt::app::MenuPredicate run, nt::app::MenuPredicate enabled = hasMonitor) {
+              nt::app::MenuPredicate checked, nt::app::MenuPredicate run, nt::app::MenuPredicate enabled = hasMonitor,
+              QString reason = QStringLiteral("Open a timeline first.")) {
     nt::app::registerShellMenuItem({QStringLiteral("View"), action, label, {}, submenu, {}, order,
-                                    std::move(enabled), std::move(checked), std::move(run)});
+                                    std::move(enabled), std::move(checked), std::move(run), std::move(reason)});
 }
 void addResolution(const QString& submenu, const QString& prefix, int (MonitorViewState::*get)() const,
                    void (MonitorViewState::*set)(int)) {
@@ -85,7 +86,8 @@ const bool registered = [] {
     addToggle(QStringLiteral("monitorLockGuides"), QStringLiteral("Lock guides"), 6, &MonitorViewState::guidesLocked, &MonitorViewState::setGuidesLocked);
     addEntry(overlayMenu(), QStringLiteral("monitorClearGuides"), QStringLiteral("Clear guides"), 7, {},
              onMonitor([](MonitorViewState& m) { m.clearGuides(); }),
-             whenMonitor([](const MonitorViewState& m) { return !m.guides().isEmpty(); }));
+             whenMonitor([](const MonitorViewState& m) { return !m.guides().isEmpty(); }),
+             QStringLiteral("There are no guides to clear."));
 
     // The timecode ruler belongs to the tracks' view state, with the same toggle on the ruler's own menu.
     nt::wiring::registerKeyAction({QStringLiteral("toggleTimecodeRuler"), QStringLiteral("Timecode ruler"), {},
@@ -104,7 +106,7 @@ const bool registered = [] {
                                [](const Context& context) { return context.value(QStringLiteral("rulerMode")) == QStringLiteral("timecode"); }});
     nt::app::registerShellMenuItem({QStringLiteral("View"), QStringLiteral("toggleTimecodeRuler"), QStringLiteral("Timecode ruler"), {}, {}, {}, 0,
                                     [](const Context& context) { return context.value(QStringLiteral("gestures")).value<QObject*>() != nullptr; },
-                                    rulerChecked, {}});
+                                    rulerChecked, {}, QStringLiteral("Open a timeline first.")});
     return true;
 }();
 }

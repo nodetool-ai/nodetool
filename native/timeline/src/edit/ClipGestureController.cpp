@@ -1259,6 +1259,38 @@ void ClipGestureController::selectEditPoint(const Gesture& g) {
     emit selectionChanged();
 }
 
+bool ClipGestureController::selectGapAt(const QString& trackId, double timeMs) {
+    if (!m_timeline || lockedTrackIds(editDoc()).contains(trackId)) { return false; }
+    const auto gap = findGap(editDoc().clips, trackId, timeMs);
+    if (!gap) { return false; }
+    m_selection.clear();
+    m_selectedEdit.clear();
+    m_selectedGap = {{"trackId", trackId}, {"startMs", gap->startMs}, {"endMs", gap->endMs}};
+    emit selectionChanged();
+    return true;
+}
+
+void ClipGestureController::selectEdit(const QString& clipId, const QString& edge) {
+    m_selectedEdit = {{"clipId", clipId}, {"edge", edge}};
+    emit selectionChanged();
+}
+
+QVariantMap ClipGestureController::editPointAt(const QString& id, const QString& edge) const {
+    const EditDoc doc = editDoc();
+    const QJsonObject* clip = findClip(doc.clips, id);
+    if (!clip) { return {}; }
+    const bool in = edge == u"start";
+    const double cut = in ? clipStartMs(*clip) : clipEndMs(*clip);
+    QString neighbour;
+    for (const auto& c : doc.clips) {
+        if (clipTrackId(c) == clipTrackId(*clip) && !isGroupClip(c) && std::abs((in ? clipEndMs(c) : clipStartMs(c)) - cut) < 1) {
+            neighbour = clipId(c);
+            break;
+        }
+    }
+    return {{"leftId", in ? neighbour : id}, {"rightId", in ? id : neighbour}};
+}
+
 void ClipGestureController::clickSelect(const QString& id, Qt::KeyboardModifiers modifiers) {
     QStringList next = m_selection;
     if (modifiers & Qt::ShiftModifier) {
@@ -1294,17 +1326,33 @@ bool ClipGestureController::trimEditPoint(double edgeTargetMs, bool merge) {
     if (!target) return false;
     const QJsonArray before = m_timeline->clipsJson();
     ClipList next;
+    const bool ripple = m_rippleMode || m_tool == u"ripple";
     if (m_selectedEdit.value("edge").toString() == u"start") {
         const double deltaMs = clipStartMs(*target) - edgeTargetMs;
-        next = resolveEdit(m_rippleMode ? "rippleTrimClipStart" : "trimClipStart", {{"clipId", id}, {"deltaMs", deltaMs}}, [&] {
-            return m_rippleMode ? rippleTrimClipStart(doc, id, deltaMs, m_linked) : trimClipStart(doc, id, deltaMs, m_linked);
-        });
+        if (m_tool == u"roll") {
+            // Rolling the cut later grows the left neighbour's end: its source caps the roll.
+            const int n = findRollNeighbour(doc.clips, *target, QStringLiteral("start"));
+            const auto cap = n >= 0 ? sourceCap(doc.clips[static_cast<size_t>(n)]) : std::nullopt;
+            next = resolveEdit("rollClipEdge", {{"clipId", id}, {"edge", "start"}, {"deltaMs", -deltaMs}}, [&] {
+                return rollClipEdge(doc, id, "start", -deltaMs, cap, m_linked);
+            }, cap);
+        } else {
+            next = resolveEdit(ripple ? "rippleTrimClipStart" : "trimClipStart", {{"clipId", id}, {"deltaMs", deltaMs}}, [&] {
+                return ripple ? rippleTrimClipStart(doc, id, deltaMs, m_linked) : trimClipStart(doc, id, deltaMs, m_linked);
+            });
+        }
     } else {
         const double deltaMs = edgeTargetMs - clipEndMs(*target);
         const auto cap = sourceCap(*target);
-        next = resolveEdit(m_rippleMode ? "rippleTrimClipEnd" : "trimClipEnd", {{"clipId", id}, {"deltaMs", deltaMs}}, [&] {
-            return m_rippleMode ? rippleTrimClipEnd(doc, id, deltaMs, cap, m_linked) : trimClipEnd(doc, id, deltaMs, cap, m_linked);
-        }, cap);
+        if (m_tool == u"roll") {
+            next = resolveEdit("rollClipEdge", {{"clipId", id}, {"edge", "end"}, {"deltaMs", deltaMs}}, [&] {
+                return rollClipEdge(doc, id, "end", deltaMs, cap, m_linked);
+            }, cap);
+        } else {
+            next = resolveEdit(ripple ? "rippleTrimClipEnd" : "trimClipEnd", {{"clipId", id}, {"deltaMs", deltaMs}}, [&] {
+                return ripple ? rippleTrimClipEnd(doc, id, deltaMs, cap, m_linked) : trimClipEnd(doc, id, deltaMs, cap, m_linked);
+            }, cap);
+        }
     }
     m_timeline->commitEdit(QStringLiteral("Trim clip"), before, toArray(next), TRIM_KEY_MERGE_ID, merge);
     return true;
@@ -1807,6 +1855,10 @@ QString ClipGestureController::shortcutFor(const QString& action) const {
     }
     return {};
 
+}
+
+bool ClipGestureController::presetUsesKey(const QString& preset, const QKeySequence& sequence) {
+    return presetBindsSequence(preset, sequence);
 }
 
 QSet<QString> ClipGestureController::availableActions() {
