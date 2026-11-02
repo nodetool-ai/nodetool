@@ -2,6 +2,7 @@
 #include "app/PanelRegistry.h"
 #include "app/Preferences/PreferencesSettings.h"
 #include "edit/ClipGestureController.h"
+#include "export/FrameCapture.h"
 #include "model/TimelineJson.h"
 #include "playback/PlaybackClock.h"
 #include "runtime/ChatSession.h"
@@ -131,6 +132,11 @@ private slots:
         QCOMPARE(store->workspace(), QString("Editing"));
         visible = dock->property("visiblePanels").toStringList();
         QVERIFY2(visible.contains("storyboard") && visible.contains("inspector"), qPrintable(visible.join(',')));
+        // The editor holds the one frame capture that panels and tools share.
+        auto* capture = editor->property("frameCapture").value<FrameCapture*>();
+        QVERIFY(capture);
+        QCOMPARE(capture->timeline(), &model);
+        QCOMPARE(capture->processId(), 0);
         window.setRenderTarget(QQuickRenderTarget{});
     }
     void mountedWorkspacesAndStablePanels() {

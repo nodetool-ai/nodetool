@@ -79,3 +79,16 @@ is discovered automatically. Other QML needs `nt_qml_files(...)`.
   `licenses/FilmCraft-MIT.txt`. The Linux and Windows packages copy `licenses/*.txt`. The macOS
   package copies named files, so a new file also goes in `scripts/package-macos.sh` and
   `scripts/check-package-macos.sh`.
+- Frame capture: `FrameCapture` (`export/FrameCapture.h`) returns a composited frame or a
+  source frame as a `QImage`, full resolution, with the same pixels as `--stills`. The work
+  runs in a helper process (`--frame-server`) that stays open between requests and closes after
+  60 s idle, so a cold capture costs a process start and a warm one a render. Use the
+  editor's instance, the `frameCapture` property of `TimelineEditor`, found by walking
+  `parentItem` as `DockKeyActions.cpp` does for `dockStore`. Calls are
+  `captureSequence(timeMs)` and `captureSource(path, sourceTimeMs)`, with an optional C++
+  callback. They return a request id at once, and exactly one of `frameReady`, `frameFailed` or
+  `frameCancelled` follows later on the GUI thread. `cancel(id)` drops a frame nobody needs,
+  so a scrubbing view cancels its previous request. Sequence frames read the document as it was
+  at the request, so an edit made afterwards shows only in later requests. A source time past the end
+  gives the last frame. Capture changes no model, clock or undo stack. Show a frame with
+  `FrameImage { image: frame }`, which draws it aspect-fit and nothing else.

@@ -483,7 +483,7 @@ private slots:
         Preferences preferences;
         const QString file = QStringLiteral(NT_FIXTURES_DIR "/av-sync.json");
         QVERIFY(!recordOpenedTimeline(preferences, {"timeline", file}, false, "Inactive"));
-        for (const QString mode : {"--dump-plan", "--bench", "--screenshot", "--stills", "--play-stills", "--dump", "--conformance", "--ui-bench", "--probe-media"}) {
+        for (const QString mode : {"--dump-plan", "--bench", "--screenshot", "--stills", "--play-stills", "--dump", "--conformance", "--ui-bench", "--probe-media", "--frame-server"}) {
             for (const auto& option : {mode, mode + "=output"}) {
                 QVERIFY2(!interactiveTimelineRun({"timeline", file, option}), qPrintable(option));
                 QVERIFY(!recordOpenedTimeline(preferences, {"timeline", file, option}, true, "Batch"));

@@ -11,6 +11,7 @@
 
 namespace nt::exporting {
 QJsonObject exportSnapshot(const TimelineModel& model);
+QString unavailableOriginalMedia(const nt::Timeline& timeline, bool videoOutput = true);
 }
 
 class ExportController : public QObject {
