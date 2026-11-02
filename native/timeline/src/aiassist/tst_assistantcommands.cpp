@@ -113,7 +113,7 @@ private slots:
     void securityDenials_data() {
         QTest::addColumn<QString>("id");
         for (const auto* id : {"exportVideo", "quickExport", "exportFrame", "exportPremiere", "importPremiere", "exportMarkersCsv",
-                               "remixClip", "sceneEditDetection", "projectSettings", "toggleSnap", "playPause", "resetWorkspace",
+                               "remixClip", "sceneEditDetection", "projectSettings", "toggleSnap", "playPause", "resetWorkspace", "updateTrackEffect",
                                "ai.insertGeneration", "assets.dropAsset", "restoreDocument", "acceptExternalUnit", "toggleScrubAudio"}) {
             QTest::newRow(id) << QString(id);
         }
@@ -375,25 +375,68 @@ private slots:
         QVERIFY(!result.value("error").toString().isEmpty());
         QCOMPARE(doc(), before);
     }
-    void effectIdsAndFields() {
+    void effectIds() {
         QVERIFY(run("addTrackEffect", {{"track_id", TRACK_A}, {"effect", "eq3"}}).value("ok").toBool());
-        const auto effect = track(TRACK_A).value("effects").toArray().first().toObject();
-        const auto id = effect.value("id").toString();
-        QString numeric;
-        for (auto it = effect.begin(); it != effect.end(); ++it) {
-            if (it.value().isDouble()) { numeric = it.key(); }
-        }
-        QVERIFY(!numeric.isEmpty());
-        const auto changed = run("updateTrackEffect", {{"track_id", TRACK_A}, {"effect_id", id.left(12)}, {"patch", QVariantMap{{numeric, effect.value(numeric).toDouble() + 0.25}}}});
-        QVERIFY2(changed.value("ok").toBool(), qPrintable(changed.value("error").toString()));
+        const auto id = track(TRACK_A).value("effects").toArray().first().toObject().value("id").toString();
         const auto before = doc();
-        QVERIFY(!run("updateTrackEffect", {{"track_id", TRACK_A}, {"effect_id", "ffffffffffff"}, {"patch", QVariantMap{{numeric, 1.0}}}}).value("ok").toBool());
-        QVERIFY(!run("updateTrackEffect", {{"track_id", TRACK_A}, {"effect_id", id}, {"patch", QVariantMap{{"type", 1}}}}).value("ok").toBool());
-        QVERIFY(!run("updateTrackEffect", {{"track_id", TRACK_A}, {"effect_id", id}, {"patch", QVariantMap{{"nope", 1}}}}).value("ok").toBool());
-        QVERIFY(!run("updateTrackEffect", {{"track_id", TRACK_A}, {"effect_id", id}, {"patch", QVariantMap{{numeric, true}}}}).value("ok").toBool());
+        QVERIFY(!run("removeTrackEffect", {{"track_id", TRACK_A}, {"effect_id", "ffffffffffff"}}).value("ok").toBool());
         QCOMPARE(doc(), before);
         QVERIFY(run("removeTrackEffect", {{"track_id", TRACK_A}, {"effect_id", id.left(12)}}).value("ok").toBool());
         QVERIFY(track(TRACK_A).value("effects").toArray().isEmpty());
+        // A new master effect's id comes back in the state, which removes it again.
+        const auto added = run("addMasterEffect", {{"effect", "eq3"}});
+        QVERIFY2(added.value("ok").toBool(), qPrintable(added.value("error").toString()));
+        const auto masterId = added.value("state").toMap().value("master").toMap().value("effects").toList().value(0).toMap().value("id").toString();
+        QVERIFY(!masterId.isEmpty());
+        QVERIFY(run("removeMasterEffect", {{"effect_id", masterId.left(12)}}).value("ok").toBool());
+    }
+    // Unbounded numbers can allocate without limit in the audio plan, so these stay out.
+    void effectValuesAreNotExposed() {
+        for (const auto* id : {"updateTrackEffect", "updateMasterEffect", "patchClipAudioEffect"}) {
+            QVERIFY(run(id).value("error").toString().contains("not available to the Assistant"));
+        }
+    }
+    void actionsRespectLocks() {
+        QVERIFY(run("toggleClipLock", {{"clip_ids", QStringList{CLIP_C}}}).value("ok").toBool());
+        const auto before = doc();
+        gestures()->setSelection({CLIP_B});
+        // The locked clip stays, and the selection comes back.
+        for (const auto* id : {"deleteSelected", "rippleDeleteSelected", "toggleClipEnabled", "applyFades", "addKeyframe"}) {
+            QVariantMap params{{"clip_ids", QStringList{CLIP_C}}};
+            if (QString(id) == "addKeyframe") { params.insert("atMs", 4500.0); }
+            const auto result = run(id, params);
+            QVERIFY2(!result.value("ok").toBool(), id);
+            QVERIFY2(result.value("error").toString().contains("locked"), qPrintable(result.value("error").toString()));
+            QCOMPARE(gestures()->selection(), QStringList{CLIP_B});
+        }
+        QCOMPARE(doc(), before);
+        // A lock on the track holds its clips, and only the clip's own lock can be toggled.
+        QVERIFY(run("toggleClipLock", {{"clip_ids", QStringList{CLIP_C}}}).value("ok").toBool());
+        QVERIFY(run("setTrackLocked", {{"track_id", TRACK_A}, {"locked", true}}).value("ok").toBool());
+        const auto lockedTrack = doc();
+        QVERIFY(!run("toggleClipEnabled", {{"clip_ids", QStringList{CLIP_AUDIO}}}).value("ok").toBool());
+        QVERIFY(!run("toggleClipLock", {{"clip_ids", QStringList{CLIP_AUDIO}}}).value("ok").toBool());
+        QCOMPARE(doc(), lockedTrack);
+    }
+    // An action that takes the selection and changes nothing is an error, not a success.
+    void noChangeOnSelectionIsAnError() {
+        const auto before = doc();
+        gestures()->setSelection({CLIP_B});
+        const auto result = run("removeFades", {{"clip_ids", QStringList{CLIP_A}}});
+        QVERIFY(!result.value("ok").toBool());
+        QCOMPARE(gestures()->selection(), QStringList{CLIP_B});
+        QCOMPARE(doc(), before);
+        // Reading commands have nothing to change.
+        QVERIFY(run("copy", {{"clip_ids", QStringList{CLIP_A}}}).value("ok").toBool());
+    }
+    void batchSpeedFollowsLinkedSelection() {
+        QVERIFY(run("linkClips", {{"clip_ids", QStringList{CLIP_A, CLIP_AUDIO}}}).value("ok").toBool());
+        gestures()->setLinkedSelection(false);
+        const auto result = run("setClipsSpeed", {{"clip_ids", QStringList{CLIP_A}}, {"speed", 2.0}});
+        gestures()->setLinkedSelection(true);
+        QVERIFY2(result.value("ok").toBool(), qPrintable(result.value("error").toString()));
+        QCOMPARE(clip(CLIP_A).value("speedMultiplier").toDouble(), 2.0);
+        QVERIFY(clip(CLIP_AUDIO).value("speedMultiplier").toDouble(1.0) == 1.0);
     }
     void rangeCommands() {
         const auto extract = run("extractRange", {{"inMs", 2000.0}, {"outMs", 4000.0}});

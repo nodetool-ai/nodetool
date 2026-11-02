@@ -109,7 +109,6 @@ QJsonObject parameterSchema(const Param& param) {
         schema = {{"type", "boolean"}};
         break;
     case ParamKind::Patch:
-    case ParamKind::EffectPatch:
         schema = {{"type", "object"}};
         if (!param.choices.isEmpty()) { schema.insert("fields", QJsonArray::fromStringList(param.choices)); }
         break;
@@ -374,24 +373,6 @@ Prepared prepare(const Command& command, const QJsonObject& params, const QJsonO
             out.payload.insert(key, patch);
             break;
         }
-        case ParamKind::EffectPatch: {
-            const auto patch = value.toObject();
-            if (!value.isObject() || patch.isEmpty()) { out.error = param.name + " must be an object with fields to set."; }
-            QJsonObject effect;
-            for (const auto& row : effectsIn(raw, out.payload)) {
-                if (row.toObject().value("id") == out.payload.value("effectId")) { effect = row.toObject(); }
-            }
-            for (auto it = patch.begin(); it != patch.end() && out.error.isEmpty(); ++it) {
-                const auto current = effect.value(it.key());
-                if (it.key() == u"id" || it.key() == u"type" || current.isUndefined()) {
-                    out.error = QStringLiteral("%1.%2 is not a field this effect can change.").arg(param.name, it.key());
-                } else if ((!it.value().isDouble() && !it.value().isBool()) || it.value().type() != current.type()) {
-                    out.error = QStringLiteral("%1.%2 must keep its type.").arg(param.name, it.key());
-                }
-            }
-            out.payload.insert(key, value);
-            break;
-        }
         }
         if (!out.error.isEmpty()) { return out; }
     }
@@ -637,6 +618,8 @@ QJsonObject AssistantCommands::state(ClipGestureController& gestures) const {
                     {"tracks", tracks},
                     {"clips", clips},
                     {"markers", raw.value("markers").toArray()}};
+    // Nothing else shows the master effects' ids.
+    if (raw.contains("master")) { out.insert("master", raw.value("master")); }
     if (!gestures.selectedGap().isEmpty()) { out.insert("selectedGap", QJsonObject::fromVariantMap(gestures.selectedGap())); }
     if (!gestures.selectedEdit().isEmpty()) { out.insert("selectedEditPoint", QJsonObject::fromVariantMap(gestures.selectedEdit())); }
     if (auto* view = gestures.viewState()) {
@@ -679,16 +662,21 @@ QJsonObject AssistantCommands::runCommand(const QJsonObject& args) {
     const auto before = m_model.timeline().raw;
     const auto prepared = prepare(*command, args.value("params").toObject(), before, m_model.markersJson());
     if (!prepared.error.isEmpty()) { return failure(prepared.error); }
-    if (command->runs == Runs::Edit) {
-        // A raw edit doesn't know about locks. The inspector checks them before calling it.
+    // A raw edit doesn't know about locks, and an action may check only the clip's. The panels and
+    // menus check them before calling.
+    const auto anyLocked = [&before](const QStringList& ids) {
         const auto locked = nt::edit::lockedUserTargetIds(nt::edit::structure::editDocument(before));
+        return std::ranges::any_of(ids, [&](const QString& id) { return locked.contains(id); });
+    };
+    const QString lockedReason = QStringLiteral("That clip or its track is locked. Unlock it first.");
+    if (command->runs == Runs::Edit) {
         QStringList targets;
         if (const auto clip = prepared.payload.value("clipId"); clip.isString()) { targets.append(clip.toString()); }
         for (const auto* key : {"clipIds", "selectedIds"}) {
             for (const auto& clip : prepared.payload.value(QLatin1String(key)).toArray()) { targets.append(clip.toString()); }
         }
-        if (std::ranges::any_of(targets, [&](const QString& clip) { return locked.contains(clip); })) {
-            auto refused = failure("That clip or its track is locked. Unlock it first.");
+        if (anyLocked(targets)) {
+            auto refused = failure(lockedReason);
             refused.insert("disabled", true);
             refused.insert("command", id);
             return refused;
@@ -707,6 +695,7 @@ QJsonObject AssistantCommands::runCommand(const QJsonObject& args) {
     auto context = menuContext(*editor);
     context.insert(prepared.context);
     if (const auto reason = blockedReason(*command, *editor, context); !reason.isEmpty()) { return disabled(reason); }
+    if (command->editsSelection && anyLocked(editor->selection())) { return disabled(lockedReason); }
 
     auto* stack = m_model.undoStack();
     const int indexBefore = stack->index();

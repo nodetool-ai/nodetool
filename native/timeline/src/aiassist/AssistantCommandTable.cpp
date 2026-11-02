@@ -2,6 +2,8 @@
 #include "edit/ClipGestureController.h"
 #include "markers/MarkerOps.h"
 
+#include <algorithm>
+
 namespace nt::aiassist::commands {
 namespace {
 using P = Param;
@@ -29,6 +31,15 @@ QString need(ClipGestureController& g, bool ok, const char* reason) { return g.t
 const Need selected = [](ClipGestureController& g) { return need(g, !g.selection().isEmpty(), "Select a clip first."); };
 const Need atEditPoint = [](ClipGestureController& g) {
     return need(g, !g.selectedEdit().isEmpty(), "Pass clip_id and edge, or select an edit point first.");
+};
+// A clip's own lock can be toggled, but a locked track holds its clips.
+const Need onUnlockedTrack = [](ClipGestureController& g) {
+    const auto doc = g.editDoc();
+    const auto locked = nt::edit::lockedTrackIds(doc);
+    const bool blocked = std::ranges::any_of(doc.clips, [&](const QJsonObject& clip) {
+        return g.selection().contains(nt::edit::clipId(clip)) && locked.contains(nt::edit::clipTrackId(clip));
+    });
+    return need(g, !blocked, "That clip's track is locked. Unlock the track first.");
 };
 
 // Commands of one family, for ids that differ by a suffix.
@@ -73,7 +84,8 @@ QList<Command> buildAllowed() {
     action("selectClipAtPlayhead", seek);
     actions({"selectNextClip", "selectPrevClip"}, clips);
     // Clip state, transitions, fades, labels and framing.
-    actions({"toggleClipEnabled", "linkClips", "groupClips", "ungroupClips", "toggleClipLock", "applyDefaultTransition",
+    action("toggleClipLock", clips, onUnlockedTrack);
+    actions({"toggleClipEnabled", "linkClips", "groupClips", "ungroupClips", "applyDefaultTransition",
              "applyDefaultAudioTransition", "removeTransition", "applyFades", "removeFades", "fitToFrame", "fillFrame"}, clips);
     actions(family("clipLabel.", markerColors()), clips);
     actions({"nudgeLeft", "nudgeRight", "nudgeLeftLarge", "nudgeRightLarge", "slideLeft", "slideRight"}, clips, selected);
@@ -112,9 +124,6 @@ QList<Command> buildAllowed() {
     // Takes that exist already. Generating a take goes through its own review step.
     actions(numbered("takeSwitch", 9), clips);
     actions(numbered("takeCut", 9), clipsAtTime);
-    for (auto& command : out) {
-        if (command.id.startsWith("takeSwitch") || command.id.startsWith("takeCut")) { command.mustChange = true; }
-    }
     action("takeGrid");
     // The Source monitor.
     actions({"sourceInsert", "sourceOverwrite", "sourceAppend"}, seek);
@@ -138,6 +147,18 @@ QList<Command> buildAllowed() {
     const P contextClip{"clip_id", ParamKind::ContextClip, false, "The clip. Defaults to the one selected clip.", {}, "clipId"};
     actions({"referenceClipFirstFrame", "referenceClipLastFrame", "referenceClipTake"}, {contextClip});
     action("referenceMarker", {P{"marker_id", ParamKind::ContextMarker, true, "The marker.", {}, "markerId"}});
+
+    // An action on the selected clips returns true when it refuses them, so its result is whether
+    // the document changed. Those that only read or move the view don't count.
+    static const QStringList reads{"copy", "selectNextClip", "selectPrevClip", "markClip", "markSelection", "goToSelectedStart", "goToSelectedEnd", "revealInProject",
+                                   "nextKeyframe", "prevKeyframe", "toggleClipLock"};
+    for (auto& command : out) {
+        const bool onSelection = std::ranges::any_of(command.params, [](const P& param) { return param.kind == ParamKind::Selection; });
+        if (onSelection && !reads.contains(command.id)) {
+            command.editsSelection = true;
+            command.mustChange = !command.background;
+        }
+    }
 
     // Headless forms: the same edits a gesture or dialog makes, with typed parameters.
     edit("trimClipStart", "Trim clip start", {clip, delta}).linked = true;
@@ -169,7 +190,7 @@ QList<Command> buildAllowed() {
     edit("setTransitionDuration", "Set a transition's length", {clip, P{"durationMs", ParamKind::Number, true, "The length in ms.", {}, {}, 0}}).sourceLimits = true;
     const P speed{"speed", ParamKind::Number, true, "Speed multiplier. 2 is twice as fast.", {}, "speedMultiplier", 0.01, 100};
     edit("setClipSpeed", "Set clip speed", {clip, speed, P{"ripple", ParamKind::Boolean, false, "Move later clips to follow the new length."}}).linked = true;
-    edit("setClipsSpeed", "Set the speed of several clips", {P{"clip_ids", ParamKind::ClipIds, true, "The clips.", {}, "clipIds"}, speed});
+    edit("setClipsSpeed", "Set the speed of several clips", {P{"clip_ids", ParamKind::ClipIds, true, "The clips.", {}, "clipIds"}, speed}).linked = true;
     edit("setClipsGain", "Set audio gain", {P{"clip_ids", ParamKind::ClipIds, true, "The clips.", {}, "selectedIds"}, P{"db", ParamKind::Number, true, "Gain in dB.", {}, {}, -96, 24},
                                             P{"mode", ParamKind::Choice, false, "adjust adds to the current gain. set replaces it. Defaults to adjust.", {"adjust", "set"}}})
         .fixed = {{"mode", "adjust"}};
@@ -185,7 +206,7 @@ QList<Command> buildAllowed() {
     edit("removeTrack", "Remove a track and its clips", {track});
     edit("reorderTracks", "Reorder tracks", {P{"track_ids", ParamKind::TrackIds, true, "Every track id, in the new order.", {}, "orderedIds"}});
     edit("setTrackName", "Name a track", {track, P{"name", ParamKind::Text, true, "The name."}});
-    edit("setTrackHeight", "Set a track's height", {track, P{"heightPx", ParamKind::Number, true, "The height in pixels.", {}, {}, 1}});
+    edit("setTrackHeight", "Set a track's height", {track, P{"heightPx", ParamKind::Number, true, "The height in pixels.", {}, {}, 24, 1000}});
     edit("setTrackVisible", "Show or hide a track", {track, P{"visible", ParamKind::Boolean, true}});
     edit("setTrackLocked", "Lock or unlock a track", {track, P{"locked", ParamKind::Boolean, true}});
     edit("setTrackMuted", "Mute or unmute a track", {track, P{"muted", ParamKind::Boolean, true}});
@@ -194,18 +215,14 @@ QList<Command> buildAllowed() {
     edit("setTrackVolume", "Set a track's volume", {track, db});
     edit("setTrackPan", "Set a track's pan", {track, P{"pan", ParamKind::Number, true, "-1 is left, 1 is right.", {}, {}, -1, 1}});
     edit("setMasterVolume", "Set the master volume", {db});
-    // Effects by name, and their numbers.
+    // Effects by name, with their default values.
     const P effect{"effect", ParamKind::Text, true, "The effect's name, such as eq3."};
     const P effectId{"effect_id", ParamKind::EffectId, true, "The effect's id from the document.", {}, "effectId"};
-    const P numbers{"patch", ParamKind::EffectPatch, true, "Fields of the effect to change, as numbers or booleans."};
     edit("addTrackEffect", "Add a track effect", {track, effect});
-    edit("updateTrackEffect", "Change a track effect", {track, effectId, numbers});
     edit("removeTrackEffect", "Remove a track effect", {track, effectId});
     edit("addMasterEffect", "Add a master effect", {effect});
-    edit("updateMasterEffect", "Change a master effect", {effectId, numbers});
     edit("removeMasterEffect", "Remove a master effect", {effectId});
     edit("addClipAudioEffect", "Add a clip audio effect", {clip, P{"type", ParamKind::Text, true, "The effect's type, such as eq3."}});
-    edit("patchClipAudioEffect", "Change a clip audio effect", {clip, effectId, numbers});
     edit("removeClipAudioEffect", "Remove a clip audio effect", {clip, effectId});
     // Markers with their text.
     const P markers{"marker_ids", ParamKind::MarkerIds, true, "The markers.", {}, "ids"};
@@ -286,6 +303,8 @@ QHash<QString, QString> buildDenied() {
     deny({"editMarker"}, dialog + ". Use markers.update");
     deny({"resetWorkspace", "maximizePanel", "toggleProgramFullscreen"}, window);
     // Steps of other features. An edit with the same id as an action above runs through that action.
+    deny({"updateTrackEffect", "updateMasterEffect", "patchClipAudioEffect"},
+         "only the panels know each value's range, and a very large one can exhaust memory. Add or remove the effect instead");
     deny({"deleteMarker", "altDragCopy", "duplicateSelected", "moveSelectedClips", "nudge", "pasteClipAttributes", "removeRange", "resolveDropAction", "splitSelectedAtPlayhead",
           "changeAudioTrackHeights", "insertTrack", "setClipFadeGrip", "setClipTimeRemap", "setClipsAudioRole", "setClipsVolumeDb", "applyDucking", "moveClipAudioEffect", "moveTrackEffect",
           "setTrackAutomation", "addClipReframeKeyframe", "setClipReframeSubject", "source.place", "clip.remix", "clip.remix.revert", "sceneEdit.cut", "sceneEdit.markers",

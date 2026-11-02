@@ -41,7 +41,6 @@ enum class ParamKind {
     Text,
     Choice,
     Patch,        // an object limited to `choices` fields, each of the type the document needs
-    EffectPatch,  // an object changing fields the effect has, keeping their types
 };
 struct Param {
     QString name;
@@ -67,7 +66,8 @@ struct Command {
     bool sourceLimit = false; // pass how long the clip's source is
     bool sourceLimits = false;
     bool background = false;  // finishes later, so its edit arrives after the result
-    bool mustChange = false;  // the handler reports a refusal to the person and returns true
+    bool mustChange = false;  // the handler returns true even when it refuses
+    bool editsSelection = false; // the handler changes the selected clips, so locks apply to them
 };
 const QList<Command>& allowedCommands();
 // id -> why the Assistant can't run it.
