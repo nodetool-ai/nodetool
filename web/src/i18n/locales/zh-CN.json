@@ -7947,7 +7947,9 @@
         "shot_other": "镜头 {{number}}",
         "shots_other": "{{number}} 个镜头",
         "shot_one": "镜头 {{number}}",
-        "shots_one": "{{number}} 个镜头"
+        "shots_one": "{{number}} 个镜头",
+        "playTitle": "已渲染的片段",
+        "playLabel": "场景片段"
       }
     }
   },

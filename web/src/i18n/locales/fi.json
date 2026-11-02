@@ -7947,7 +7947,9 @@
           "durationUnavailable": "{{model}} ei tarjoa {{duration}} pituista leikettä. Valitse jokin seuraavista: {{choices}}.",
           "durationLimit": "Oton kesto on {{duration}}. Yksi otto renderöi enintään {{limit}}.",
           "shotRange": "Kohtausleike kattaa {{min}}–{{max}} otosta."
-        }
+        },
+        "playTitle": "Renderöity klippi",
+        "playLabel": "Kohtauksen klippi"
       }
     }
   },

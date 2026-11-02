@@ -1078,6 +1078,24 @@ export const __resetStoryboardSubscriptionsForTests = (): void => {
 };
 
 /**
+ * The running one-take or scene-clip job that will cover `shotId`, or
+ * undefined. The job sits on the run's first shot, so the other shots in the
+ * run have no job of their own while it renders. The owner is excluded: its
+ * own status already says it is generating.
+ */
+export const coveringOneTakeJob = (
+  shotJobs: Readonly<Record<string, ShotJobState>>,
+  shotId: string
+): ShotJobState | undefined =>
+  Object.values(shotJobs).find(
+    (job) =>
+      job.kind === "clip" &&
+      job.shotId !== shotId &&
+      (job.status === "queued" || job.status === "running") &&
+      job.oneTake?.steps.some((step) => step.shot_id === shotId) === true
+  );
+
+/**
  * The shot patches that split a landed one-take or scene clip back onto the
  * board. The owning shot keeps the clip and drops any coverage of its own.
  * Every other shot in `steps` names the owner with its window and gives up

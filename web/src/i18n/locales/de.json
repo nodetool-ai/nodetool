@@ -7947,7 +7947,9 @@
           "durationUnavailable": "{{model}} bietet keinen {{duration}}-Clip an. Wähle eine dieser Optionen: {{choices}}.",
           "durationLimit": "Die Aufnahme dauert {{duration}}. Bei einer Einstellung werden höchstens {{limit}} gerendert.",
           "shotRange": "Ein Szenenclip umfasst {{min}} bis {{max}} Einstellungen."
-        }
+        },
+        "playTitle": "Gerenderter Clip",
+        "playLabel": "Szenen-Clip"
       }
     }
   },

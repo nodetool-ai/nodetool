@@ -7947,7 +7947,9 @@
           "durationUnavailable": "{{model}} does not offer a {{duration}} clip. Pick one of {{choices}}.",
           "durationLimit": "The take runs {{duration}}. One take renders at most {{limit}}.",
           "shotRange": "A scene clip covers {{min}} to {{max}} shots."
-        }
+        },
+        "playTitle": "Rendered clip",
+        "playLabel": "Scene clip"
       }
     }
   },

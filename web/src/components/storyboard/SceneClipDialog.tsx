@@ -37,6 +37,7 @@ import {
   SelectField,
   Text,
   TextArea,
+  VideoPlayer,
   BORDER_RADIUS,
   SPACING
 } from "../ui_primitives";
@@ -324,6 +325,23 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
     onClose();
   }, [removeSceneClip, boardId, clip.id, onClose]);
 
+  // The rendered clip, once this saved run has one. It sits on the run's first
+  // shot and every other shot in the run is covered by a window of it. A draft
+  // that changed the run shows no player: the clip belongs to the saved run.
+  const renderedClip = useMemo(() => {
+    if (!saved || draft.shot_ids.join() !== clip.shot_ids.join()) {
+      return undefined;
+    }
+    const [firstId, ...rest] = clip.shot_ids;
+    const first = sceneShots.find((shot) => shot.id === firstId);
+    const covered = rest.every(
+      (id) =>
+        sceneShots.find((shot) => shot.id === id)?.covered_by?.shot_id ===
+        firstId
+    );
+    return covered ? first?.clip : undefined;
+  }, [saved, draft.shot_ids, clip.shot_ids, sceneShots]);
+
   const references = plan?.compiled.references ?? [];
   const steps = plan?.compiled.steps ?? [];
   // With entity images as the references the stills above are not sent, so
@@ -375,6 +393,20 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
         <Caption color="secondary">
           {t("screens4_14.storyboard.sceneClip.description")}
         </Caption>
+
+        {renderedClip && (
+          <FormSection label={t("screens4_14.storyboard.sceneClip.playTitle")}>
+            <Box
+              data-testid="scene-clip-player"
+              sx={{ borderRadius: BORDER_RADIUS.md, overflow: "hidden" }}
+            >
+              <VideoPlayer
+                locator={renderedClip}
+                label={t("screens4_14.storyboard.sceneClip.playLabel")}
+              />
+            </Box>
+          </FormSection>
+        )}
 
         <FlexRow gap={SPACING.lg} wrap>
           <Box sx={settingSx}>
