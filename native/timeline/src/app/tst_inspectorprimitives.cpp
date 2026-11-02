@@ -188,6 +188,53 @@ InspectorPillInput { width: 140; value: "10"; scrub: ({step:1,min:0,max:100}); o
         item->forceActiveFocus();
         QCOMPARE(commits.count(), 1);
     }
+    void precisionChangesOnlyAffectNewPointerTravel_data() {
+        QTest::addColumn<bool>("cancel");
+        QTest::newRow("commit") << false;
+        QTest::newRow("cancel") << true;
+    }
+    void precisionChangesOnlyAffectNewPointerTravel() {
+        QFETCH(bool, cancel);
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData(R"(import QtQuick
+import NodeTool.Timeline
+InspectorPillInput { width: 200; value: "10"; scrub: ({step:1,min:0,max:1000}) })", QUrl());
+        std::unique_ptr<QObject> object(component.create());
+        QVERIFY2(object, qPrintable(component.errorString()));
+        auto* item = qobject_cast<QQuickItem*>(object.get());
+        QVERIFY(item);
+        QQuickWindow window;
+        window.resize(200, 40);
+        item->setParentItem(window.contentItem());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QSignalSpy previews(object.get(), SIGNAL(preview(QString)));
+        QSignalSpy commits(object.get(), SIGNAL(commit(QString)));
+        QSignalSpy cancels(object.get(), SIGNAL(canceled()));
+        QTest::mousePress(&window, Qt::LeftButton, {}, {10, 14});
+        QTest::mouseMove(&window, {30, 14});
+        QCOMPARE(previews.last()[0].toString(), QString("30"));
+        QTest::keyPress(&window, Qt::Key_Alt);
+        QTest::mouseEvent(QTest::MouseMove, &window, Qt::NoButton, Qt::AltModifier, {40, 14});
+        QCOMPARE(previews.last()[0].toDouble(), 31.0);
+        QTest::keyRelease(&window, Qt::Key_Alt);
+        QTest::mouseMove(&window, {50, 14});
+        QCOMPARE(previews.last()[0].toDouble(), 41.0);
+        QTest::keyPress(&window, Qt::Key_Shift);
+        QTest::mouseEvent(QTest::MouseMove, &window, Qt::NoButton, Qt::ShiftModifier, {60, 14});
+        QCOMPARE(previews.last()[0].toDouble(), 141.0);
+        QTest::keyRelease(&window, Qt::Key_Shift);
+        if (cancel) { QTest::keyClick(&window, Qt::Key_Escape); }
+        QTest::mouseRelease(&window, Qt::LeftButton, {}, {60, 14});
+        QCOMPARE(commits.count(), cancel ? 0 : 1);
+        if (cancel) {
+            QCOMPARE(cancels.count(), 1);
+            QCOMPARE(object->property("draft").toString(), QString("10"));
+        } else {
+            QCOMPARE(commits[0][0].toDouble(), 141.0);
+        }
+    }
     void documentEditsUseIncrementalPaths() {
         TimelineModel model;
         auto parsed = nt::parseTimelineJson(R"({"name":"Before","width":640,"height":360,"fps":30,"durationMs":5000,"tracks":[{"id":"v","type":"video","name":"Video","index":0}],"clips":[{"id":"c","trackId":"v","startMs":0,"durationMs":1000,"mediaType":"video"}]})");

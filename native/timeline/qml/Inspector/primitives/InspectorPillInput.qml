@@ -16,6 +16,7 @@ Item {
     property string size: "small"
     property string draft: value
     property bool typed: false
+    property bool helpSuppressed: false
     signal gestureStarted()
     signal preview(string value)
     signal commit(string value)
@@ -47,12 +48,26 @@ Item {
     }
     function cancelGesture() {
         const fieldEditing = numberField.editing || textField.editing
+        drag.aborted = true
         drag.moved = false
         numberField.cancelEdit()
         textField.cancelEdit()
         draft = value
         typed = false
         if (!fieldEditing) canceled()
+    }
+    Keys.onEscapePressed: event => {
+        if (drag.pressed && drag.moved) { cancelGesture(); event.accepted = true }
+        else event.accepted = false
+    }
+    HoverHandler {
+        id: valueHover
+        onHoveredChanged: if (hovered) root.helpSuppressed = false
+    }
+    Ui.Tooltip {
+        trigger: root
+        visible: !!root.scrub && valueHover.hovered && !root.helpSuppressed && !drag.pressed && !numberField.activeFocus && !root.disabled
+        text: root.value + (root.unit !== "" ? " " + root.unit : "") + "\nShift: coarse steps. Alt: fine steps."
     }
 
     Ui.NumberField {
@@ -115,21 +130,39 @@ Item {
         cursorShape: Qt.SizeHorCursor
         property real startX: 0
         property real startValue: 0
+        property real lastX: 0
+        property real currentValue: 0
+        property real precisionFactor: 1
+        property bool aborted: false
         property bool moved: false
-        onPressed: mouse => { startX = mouse.x; startValue = parseFloat(root.value); moved = false }
+        onPressed: mouse => {
+            root.helpSuppressed = true
+            startX = lastX = mouse.x
+            startValue = currentValue = parseFloat(root.value)
+            precisionFactor = 1
+            aborted = false
+            moved = false
+        }
         onPositionChanged: mouse => {
-            if (!pressed || !Number.isFinite(startValue)) return
+            if (!pressed || aborted || !Number.isFinite(startValue)) return
             const dx = mouse.x - startX
             if (!moved) {
                 if (Math.abs(dx) < Ui.Metrics.micro) return
                 moved = true
+                root.forceActiveFocus()
                 root.gestureStarted()
             }
             const factor = root.multiplier(mouse.modifiers)
-            root.draft = root.stepped(startValue + dx * root.scrub.step * factor, factor)
+            currentValue += (mouse.x - lastX) * root.scrub.step * factor
+            lastX = mouse.x
+            if (root.scrub.min !== undefined) currentValue = Math.max(root.scrub.min, currentValue)
+            if (root.scrub.max !== undefined) currentValue = Math.min(root.scrub.max, currentValue)
+            precisionFactor = Math.min(precisionFactor, factor)
+            root.draft = root.stepped(currentValue, precisionFactor)
             root.preview(root.draft)
         }
         onReleased: {
+            if (aborted) return
             if (moved) { moved = false; root.finishGesture() }
             else { numberField.forceActiveFocus(); numberField.selectAll() }
         }
