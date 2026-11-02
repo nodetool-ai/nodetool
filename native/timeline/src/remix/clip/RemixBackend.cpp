@@ -51,8 +51,11 @@ private:
 };
 }  // namespace
 
+std::shared_ptr<Backend> serverBackend(const nt::server::SaveTarget& target) {
+    return std::make_shared<ServerBackend>(target);
+}
 std::shared_ptr<Backend> serverBackend() {
     const auto target = nt::server::serverSaveTarget();
-    return target ? std::make_shared<ServerBackend>(*target) : nullptr;
+    return target ? serverBackend(*target) : nullptr;
 }
 }  // namespace nt::remix

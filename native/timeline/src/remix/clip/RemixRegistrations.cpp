@@ -42,15 +42,21 @@ TimelineModel* modelOf(const QVariantMap& context) {
     auto* gestures = qobject_cast<ClipGestureController*>(context.value("gestures").value<QObject*>());
     return gestures ? gestures->timeline() : nullptr;
 }
+// The clip an item is about: the one the clip menu carries, else the target the menu bar's
+// context (gestures and timeline) selects.
+QJsonObject clipOf(const QVariantMap& context) {
+    if (context.contains("clip")) {
+        const auto clip = QJsonObject::fromVariantMap(context.value("clip").toMap());
+        if (!clip.isEmpty()) { return clip; }
+    }
+    return clipById(modelOf(context), targetOf(context));
+}
+bool editable(const QVariantMap& context) { return !context.contains("editable") || context.value("editable").toBool(); }
 bool canRemix(const QVariantMap& context) {
-    auto* model = modelOf(context);
-    const auto id = targetOf(context);
-    return model && !id.isEmpty() && clipById(model, id).value("mediaType").toString() == QStringLiteral("audio");
+    return editable(context) && clipOf(context).value("mediaType").toString() == QStringLiteral("audio");
 }
 bool canRevert(const QVariantMap& context) {
-    auto* model = modelOf(context);
-    const auto id = targetOf(context);
-    return model && !id.isEmpty() && !activeRemix(clipById(model, id)).isEmpty();
+    return editable(context) && !activeRemix(clipOf(context)).isEmpty();
 }
 RemixSession* sessionOf(ClipGestureController& g) {
     auto* engine = qmlEngine(&g);

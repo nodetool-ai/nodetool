@@ -55,7 +55,12 @@ void RemixController::setBackend(std::shared_ptr<nt::remix::Backend> backend) {
     emit changed();
 }
 std::shared_ptr<nt::remix::Backend> RemixController::backend() const {
-    return m_backendSet ? m_backend : nt::remix::serverBackend();
+    if (m_backendSet) { return m_backend; }
+    if (!m_serverBackendResolved) {
+        m_serverBackend = nt::remix::serverBackend();
+        m_serverBackendResolved = true;
+    }
+    return m_serverBackend;
 }
 
 void RemixController::setAudioMode(const QString& mode) {

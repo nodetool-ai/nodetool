@@ -6,6 +6,7 @@
 
 #include "assets/AssetMedia.h"
 #include "model/TimelineTypes.h"
+#include "server/AutosaveController.h"
 
 #include <QJsonObject>
 #include <QString>
@@ -37,5 +38,6 @@ public:
 
 // The server the timeline was opened from, or null when it was opened from a file.
 std::shared_ptr<Backend> serverBackend();
+std::shared_ptr<Backend> serverBackend(const nt::server::SaveTarget& target);
 
 }  // namespace nt::remix

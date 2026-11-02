@@ -154,6 +154,8 @@ private:
 
     QPointer<TimelineModel> m_timeline;
     std::shared_ptr<nt::remix::Backend> m_backend;
+    mutable std::shared_ptr<nt::remix::Backend> m_serverBackend;
+    mutable bool m_serverBackendResolved = false;
     bool m_backendSet = false;
     std::shared_ptr<nt::assets::MediaProtection> m_protection;
     QString m_clipId, m_clipName, m_currentAsset;

@@ -135,6 +135,10 @@ class TestRemixUi : public WiringFixture {
         QTRY_COMPARE_WITH_TIMEOUT(controller()->state(), QString("ready"), 20000);
         settle();
     }
+    // A clip may run past the window: the point 100 px into its visible part.
+    QPoint visiblePoint(QQuickItem* target) const {
+        return target->mapToScene({100, target->height() / 2}).toPoint();
+    }
     void typeTarget(const QString& text) {
         auto* field = item("remixTarget");
         QVERIFY(field);
@@ -403,6 +407,37 @@ private slots:
         QTRY_VERIFY(dialog()->property("visible").toBool());
         QTRY_COMPARE_WITH_TIMEOUT(controller()->state(), QString("ready"), 20000);
         QCOMPARE(controller()->clipId(), QString("m"));
+    }
+    void theClipContextMenuOpensRemixAndRevertsIt() {
+        openMusic(false);
+        QVERIFY(item("clip-m"));
+        view->requestActivate();
+        QVERIFY(QTest::qWaitForWindowActive(view.get()));
+        QTest::mouseClick(view.get(), Qt::RightButton, Qt::NoModifier, visiblePoint(item("clip-m")));
+        QTRY_VERIFY(item("registryMenu-clip-remixClip"));
+        QVERIFY(item("registryMenu-clip-remixClip")->property("enabled").toBool());
+        QVERIFY(!item("registryMenu-clip-revertRemix")->property("enabled").toBool());
+        QCOMPARE(item("registryMenu-clip-remixClip")->property("text").toString(), QString("Remix…"));
+        settle();
+        click("registryMenu-clip-remixClip");
+        QTRY_VERIFY(dialog()->property("visible").toBool());
+        QTRY_COMPARE_WITH_TIMEOUT(controller()->state(), QString("ready"), 20000);
+        QCOMPARE(controller()->clipId(), QString("m"));
+        typeTarget("12");
+        QTRY_COMPARE(controller()->targetMs(), 12000.0);
+        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(item("remixApply")));
+        QTRY_VERIFY_WITH_TIMEOUT(!dialog()->property("visible").toBool(), 30000);
+        QCOMPARE(clip("m").value("durationMs").toDouble(), 12000.0);
+        // The menu now offers Revert, and clicking it restores the clip in one entry.
+        QTest::mouseClick(view.get(), Qt::RightButton, Qt::NoModifier, visiblePoint(item("clip-m")));
+        QTRY_VERIFY(item("registryMenu-clip-revertRemix"));
+        QTRY_VERIFY(item("registryMenu-clip-revertRemix")->property("enabled").toBool());
+        settle();
+        const int base = model.undoStack()->count();
+        click("registryMenu-clip-revertRemix");
+        QTRY_COMPARE(model.undoStack()->count(), base + 1);
+        QCOMPARE(clip("m").value("durationMs").toDouble(), 20000.0);
+        QCOMPARE(clip("m").value("currentAssetId").toString(), QString("asset-src"));
     }
     void theClipMenusOfferRemixOnlyForAudio() {
         openMusic(false);
