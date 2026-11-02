@@ -67,7 +67,7 @@ ExportController::ExportController(QObject* parent) : QObject(parent) {
         if (!self) return;
         self->readProgress();
         const bool success = code == 0 && status == QProcess::NormalExit;
-        if (!success && !(self->m_cancelled && code == 3)) {
+        if (!success && !self->m_cancelled) {
             self->m_error = QString::fromUtf8(self->m_diagnostics).trimmed();
             if (self->m_error.isEmpty()) self->m_error = QStringLiteral("Export failed");
             emit self->errorChanged();
@@ -75,7 +75,7 @@ ExportController::ExportController(QObject* parent) : QObject(parent) {
         self->m_job.reset();
         self->m_staging.reset();
         self->m_mediaLeases.clear();
-        nt::activity::LocalActivityStore::instance().finish(self->m_activityId, success, self->m_cancelled && code == 3, self->m_error);
+        nt::activity::LocalActivityStore::instance().finish(self->m_activityId, success, self->m_cancelled, self->m_error);
         self->m_activityId.clear();
         emit self->finished(success);
     });
@@ -93,7 +93,7 @@ ExportController::~ExportController() {
         cancel();
         // Keep the parent-owned staging directory until the child stops,
         // including a decoder or encoder that cannot cooperate with cancel.
-        if (!m_process.waitForFinished(5000)) {
+        if (!m_process.waitForFinished(nt::exporting::kShutdownGraceMs)) {
             m_process.kill();
             m_process.waitForFinished(1000);
         }
@@ -110,6 +110,8 @@ void ExportController::fail(const QString& message) {
     m_error = message;
     emit errorChanged();
     if (!running()) {
+        m_job.reset();
+        m_staging.reset();
         m_mediaLeases.clear();
         nt::activity::LocalActivityStore::instance().finish(m_activityId, false, false, m_error);
         m_activityId.clear();
@@ -122,18 +124,12 @@ void ExportController::start(const QString& output, const QString& format, bool 
     const bool videoOutput = format != u"wav" && format != u"mp3";
     const auto unavailable = nt::exporting::unavailableOriginalMedia(m_timeline->timeline(), videoOutput);
     if (!unavailable.isEmpty()) { fail(unavailable); return; }
-    m_mediaLeases = nt::assets::MediaProtection::leasePaths(m_timeline->resolvedMediaPaths());
-    m_activityId = nt::activity::LocalActivityStore::instance().begin(
-        nt::activity::localScope(m_timeline->timeline().raw), QStringLiteral("Export %1").arg(m_timeline->name()), this, output);
-    m_job = std::make_unique<QTemporaryDir>();
-    if (!m_job->isValid()) { fail(QStringLiteral("Cannot create export snapshot")); return; }
-    const auto raw = nt::exporting::exportSnapshot(*m_timeline);
-    QFile snapshot(m_job->filePath("timeline.json"));
-    const auto bytes = QJsonDocument(raw).toJson(QJsonDocument::Compact);
-    if (!snapshot.open(QIODevice::WriteOnly) || snapshot.write(bytes) != bytes.size()) {
-        m_job.reset(); fail(QStringLiteral("Cannot write export snapshot")); return;
-    }
-    snapshot.close();
+    startSnapshot(nt::exporting::exportSnapshot(*m_timeline), output, nt::exporting::Settings{format, alpha},
+        m_timeline->name(), nt::assets::MediaProtection::leasePaths(m_timeline->resolvedMediaPaths()));
+}
+bool ExportController::startSnapshot(const QJsonObject& raw, const QString& output, const nt::exporting::Settings& settings,
+                                     const QString& label, std::vector<nt::server::AssetCache::Lease> leases) {
+    if (running()) { return false; }
     m_error.clear();
     m_pending.clear();
     m_diagnostics.clear();
@@ -141,17 +137,29 @@ void ExportController::start(const QString& output, const QString& format, bool 
     m_phase = QStringLiteral("preparing");
     m_frame = m_total = 0;
     m_ratio = 0;
+    m_mediaLeases = std::move(leases);
+    m_activityId = nt::activity::LocalActivityStore::instance().begin(
+        nt::activity::localScope(raw), QStringLiteral("Export %1").arg(label), this, output);
     emit errorChanged();
     emit progressChanged();
+    m_job = std::make_unique<QTemporaryDir>();
+    if (!m_job->isValid()) { fail(QStringLiteral("Cannot create export snapshot")); return false; }
+    QFile snapshot(m_job->filePath("timeline.json"));
+    const auto bytes = QJsonDocument(raw).toJson(QJsonDocument::Compact);
+    if (!snapshot.open(QIODevice::WriteOnly) || snapshot.write(bytes) != bytes.size()) {
+        m_job.reset(); fail(QStringLiteral("Cannot write export snapshot")); return false;
+    }
+    snapshot.close();
     QString path = output;
     if (QUrl(output).isLocalFile()) path = QUrl(output).toLocalFile();
     m_staging = std::make_unique<QTemporaryDir>(QFileInfo(path).dir().filePath(".nt-export-XXXXXX"));
     if (!m_staging->isValid()) {
-        m_job.reset(); m_staging.reset(); fail(QStringLiteral("Cannot create temporary export output")); return;
+        m_job.reset(); m_staging.reset(); fail(QStringLiteral("Cannot create temporary export output")); return false;
     }
-    QStringList args{snapshot.fileName(), "--export", path, "--format", format, "--cancel-file", m_job->filePath("cancel"), "--staging-directory", m_staging->path(), "--json"};
-    if (alpha) args.append("--alpha");
+    QStringList args{snapshot.fileName(), "--export", path, "--cancel-file", m_job->filePath("cancel"), "--staging-directory", m_staging->path(), "--json"};
+    args.append(nt::exporting::cliArguments(settings));
     m_process.start(m_executable.isEmpty() ? QCoreApplication::applicationFilePath() : m_executable, args);
+    return true;
 }
 void ExportController::cancel() {
     if (!m_job || !running()) return;

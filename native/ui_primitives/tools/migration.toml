@@ -117,12 +117,32 @@ replacement = "NodeTool.UiPrimitives: Ui.Text"
 [[file]]
 path = "native/timeline/qml/ExportVideoDialog.qml"
 category = "chrome"
-controls = ["FileDialog", "Ui.Dialog", "Ui.Text", "InspectorSelect", "InspectorToggleRow", "Ui.EditorButton", "Rectangle", "Ui.Progress"]
+controls = ["FileDialog", "Ui.Dialog", "Ui.Text", "Ui.TextField", "Ui.ScrollBar", "InspectorSelect", "InspectorToggleRow", "InspectorRow", "InspectorPillInput", "Ui.EditorButton"]
 signals = ["exportRequested"]
 test_host = "tst_exportdialog"
 test_scope = "interaction"
 qml_callers = []
-replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.EditorButton, Ui.Progress"
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/export/ExportQueueCard.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.Status", "Ui.EditorButton", "Ui.Progress", "Ui.ScrollBar", "ListView", "Rectangle"]
+signals = ["noticeDismissed"]
+test_host = "tst_wiringw"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.Status, Ui.EditorButton, Ui.Progress"
+
+[[file]]
+path = "native/timeline/qml/export/QuickExportButton.qml"
+category = "chrome"
+controls = ["Ui.EditorButton"]
+signals = []
+test_host = "tst_wiringw"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton"
 
 [[file]]
 path = "native/timeline/qml/Inspector/AudioEffects.qml"

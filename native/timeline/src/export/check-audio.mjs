@@ -35,6 +35,16 @@ function compare(reference, decoded, wav) {
   }
 }
 try {
+  const fixture = path.join(root, 'fixtures/audio-mix.json');
+  const ref = path.join(dir, 'range-reference.f32');
+  run(bin, [fixture, '--render-audio', ref, '--from', '500', '--to', '1500']);
+  const out = path.join(dir, 'range.wav');
+  const result = exportFile(fixture, out, 'wav', ['--start-ms', '500', '--end-ms', '1500']);
+  assert.equal(result.samples, 48000);
+  const decoded = path.join(dir, 'range-decoded.f32');
+  decodeAudio(out, decoded);
+  compare(floats(ref), floats(decoded), true);
+  console.log('audio-mix ranged WAV 500..1500 ms: PASS');
   for (const name of ['audio-mix', 'av-sync']) {
     const fixture = path.join(root, 'fixtures', `${name}.json`);
     const doc = JSON.parse(fs.readFileSync(fixture));

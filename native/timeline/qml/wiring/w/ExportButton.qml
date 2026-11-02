@@ -7,8 +7,7 @@ Ui.EditorButton {
     objectName: "exportButton"
     required property TimelineModel timeline
     property var panel: null
-    loading: panel !== null && panel.controller.running
-    text: loading ? "Exporting…" : "Export"
+    text: "Export"
     accessibleName: text
     variant: Ui.EditorButton.Primary
     density: Ui.EditorButton.Compact

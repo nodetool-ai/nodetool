@@ -191,4 +191,48 @@ function golden() {
     }
   }
 }
-if (process.argv[1] === fileURLToPath(import.meta.url)) golden();
+// A short moving section of the numbered scrub fixture exercises exact source times.
+// This mode is deliberately separate from the default golden coverage run.
+export function checkRange() {
+  const started = performance.now();
+  const dir = fs.mkdtempSync(path.join(scratchBase, "nt-export-range-"));
+  try {
+    const doc = JSON.parse(fs.readFileSync(path.join(root, "fixtures/video-scrub-gop.json")));
+    doc.durationMs = 1000;
+    doc.width = 320;
+    doc.height = 180;
+    doc.clips[0].mediaPath = path.join(root, "fixtures", doc.clips[0].mediaPath);
+    const fixture = path.join(dir, "motion.json");
+    fs.writeFileSync(fixture, JSON.stringify(doc));
+    const full = path.join(dir, "full.mp4");
+    const range = path.join(dir, "range.mp4");
+    exportFile(fixture, full);
+    exportFile(fixture, range, "mp4", ["--start-ms", "200", "--end-ms", "800"]);
+    const decode = (movie, frame, output) => {
+      run("ffmpeg", ["-v", "error", "-y", "-i", movie, "-vf", `select=eq(n\\,${frame})`,
+        "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "yuv420p", output]);
+      assert.equal(fs.statSync(output).size, 320 * 180 * 3 / 2, `Missing frame ${frame}`);
+    };
+    const rows = [];
+    for (const k of [0, 5, 10, 17]) {
+      const a = path.join(dir, "full.yuv");
+      const b = path.join(dir, "range.yuv");
+      decode(full, 6 + k + (args.includes("--shift-frame") ? 1 : 0), a);
+      decode(range, k, b);
+      const raw = ["-f", "rawvideo", "-pix_fmt", "yuv420p", "-s", "320x180"];
+      const compared = run("ffmpeg", ["-v", "info", ...raw, "-i", a, ...raw, "-i", b,
+        "-lavfi", "psnr", "-f", "null", "-"]);
+      const match = /average:(inf|[\d.]+)/.exec(compared.stderr);
+      assert.ok(match, "No ranged PSNR measurement");
+      const value = match[1] === "inf" ? Infinity : Number(match[1]);
+      console.log(`range frame ${k}: ${value} dB`);
+      rows.push({ fixture: "video-scrub-gop range", frame: k, psnr: value });
+    }
+    requireFrames(rows);
+    console.log(`export_range: PASS (${((performance.now() - started) / 1000).toFixed(2)} s)`);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+}
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  if (args.includes("--range")) checkRange();
+  else golden();
+}

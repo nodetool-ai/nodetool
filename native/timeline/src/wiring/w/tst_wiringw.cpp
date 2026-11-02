@@ -3,6 +3,7 @@
 #include "app/Menus/ShellMenus.h"
 #include "edit/Keymap.h"
 #include "export/ExportController.h"
+#include "export/ExportQueue.h"
 #include <QAccessible>
 #include <QElapsedTimer>
 #include <QJSValue>
@@ -124,17 +125,22 @@ private slots:
         QVERIFY(object("exportVideoDialog")->property("visible").toBool());
         QTest::keyClick(view.get(), Qt::Key_Escape);
         // A process fixture keeps running without rendering, network or audio.
+        // The queue runs it in the background, and the editor keeps its Export button.
+        auto* queue = qobject_cast<ExportQueue*>(object("exportQueue")); QVERIFY(queue);
         QTemporaryDir temporary;
-        controller->setExecutable(QCoreApplication::applicationFilePath());
-        controller->start(temporary.filePath("out.wav"), "wav");
-        QTRY_VERIFY(controller->running());
-        QTRY_COMPARE(button->property("text").toString(), QString("Exporting…"));
+        queue->setExecutable(QCoreApplication::applicationFilePath());
+        const auto id = queue->enqueue(temporary.filePath("out.wav"), {{"format", "wav"}});
+        QVERIFY2(!id.isEmpty(), qPrintable(queue->lastError()));
+        QTRY_VERIFY(queue->running());
+        QCOMPARE(button->property("text").toString(), QString("Export"));
         QVERIFY(button->isEnabled());
-        QVERIFY(button->property("loading").toBool());
+        QVERIFY(!button->property("loading").toBool());
         click("exportButton");
-        QCOMPARE(opened.count(), 1);
-        controller->cancel();
-        QTRY_VERIFY(!controller->running());
+        QCOMPARE(opened.count(), 2);
+        QVERIFY(object("exportVideoDialog")->property("visible").toBool());
+        QTest::keyClick(view.get(), Qt::Key_Escape);
+        queue->cancel(id);
+        QTRY_VERIFY(!queue->running());
     }
     void exportMenu() {
         const auto menus = nt::app::shellMenuDescription("nodetool");
@@ -159,6 +165,58 @@ private slots:
         QVERIFY(menu->trigger("exportVideo"));
         QCOMPARE(opened.count(), 1);
         QVERIFY(object("exportVideoDialog")->property("visible").toBool());
+    }
+    void exportShortcutRangeAndPresets() {
+        auto* panel = object("exportPanel"); QVERIFY(panel);
+        auto* dialog = object("exportVideoDialog"); QVERIFY(dialog);
+        const auto settings = [&] {
+            QVariant value;
+            QMetaObject::invokeMethod(panel, "currentSettings", Q_RETURN_ARG(QVariant, value));
+            return value.value<QJSValue>().toVariant().toMap();
+        };
+        // Ctrl+M opens the full dialog in every keyboard preset. With no marks it exports the whole timeline.
+        clock.clearRange();
+        QTest::keyClick(view.get(), Qt::Key_M, Qt::ControlModifier);
+        QTRY_VERIFY(dialog->property("visible").toBool());
+        QCOMPARE(panel->property("rangeMode").toString(), QString("all"));
+        QCOMPARE(settings().value("startMs").toDouble(), 0.0);
+        QCOMPARE(settings().value("endMs").toDouble(), -1.0);
+        QTest::keyClick(view.get(), Qt::Key_Escape);
+        QTRY_VERIFY(!dialog->property("visible").toBool());
+        // With marks it defaults to In to Out, and a preset sets the picture.
+        clock.setRangeIn(1000);
+        clock.setRangeOut(2500);
+        QTest::keyClick(view.get(), Qt::Key_M, Qt::ControlModifier);
+        QTRY_VERIFY(dialog->property("visible").toBool());
+        QCOMPARE(panel->property("rangeMode").toString(), QString("inout"));
+        QCOMPARE(settings().value("startMs").toDouble(), 1000.0);
+        QCOMPARE(settings().value("endMs").toDouble(), 2500.0);
+        QVERIFY(QMetaObject::invokeMethod(panel, "applyPreset", Q_ARG(QVariant, QString("vertical-9x16"))));
+        QCOMPARE(settings().value("width").toInt(), 1080);
+        QCOMPARE(settings().value("height").toInt(), 1920);
+        QCOMPARE(panel->property("presetId").toString(), QString("vertical-9x16"));
+        QVERIFY(panel->setProperty("format", "webm"));
+        QCOMPARE(panel->property("presetId").toString(), QString());
+        QCOMPARE(panel->property("rangeSummary").toString().contains("45 frames"), true);
+        QSignalSpy requested(panel, SIGNAL(exportRequested(QVariant)));
+        QVERIFY(QMetaObject::invokeMethod(panel, "confirmExport"));
+        QCOMPARE(requested.count(), 1);
+        const auto sent = requested.first().first().toMap();
+        QCOMPARE(sent.value("format").toString(), QString("webm"));
+        QCOMPARE(sent.value("startMs").toDouble(), 1000.0);
+        QCOMPARE(sent.value("height").toInt(), 1920);
+        QCOMPARE(sent.value("scaleMode").toString(), QString("fit"));
+        // The Quick Export button repeats the last settings over the marked range.
+        QVERIFY(item("quickExportButton"));
+        requested.clear();
+        click("quickExportButton");
+        QCOMPARE(requested.count(), 1);
+        const auto quick = requested.first().first().toMap();
+        QCOMPARE(quick.value("format").toString(), QString("webm"));
+        QCOMPARE(quick.value("width").toInt(), 1080);
+        QCOMPARE(quick.value("startMs").toDouble(), 1000.0);
+        QCOMPARE(quick.value("endMs").toDouble(), 2500.0);
+        clock.clearRange();
     }
     void panelPlacement() {
         QVERIFY(item("track-fx-a"));

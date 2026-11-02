@@ -13,6 +13,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QSet>
+#include <QPainter>
+#include <limits>
 #include <QTemporaryDir>
 #include <algorithm>
 #include <cmath>
@@ -30,6 +32,21 @@ extern "C" {
 }
 
 namespace nt::exporting {
+QImage fitFrame(const QImage& frame, QSize target, const QString& scaleMode) {
+    if (frame.size() == target) return frame;
+    const bool fill = scaleMode == u"fill";
+    const auto scaled = frame.scaled(target, fill ? Qt::KeepAspectRatioByExpanding : Qt::KeepAspectRatio,
+                                     Qt::SmoothTransformation);
+    if (fill) {
+        return scaled.copy((scaled.width() - target.width()) / 2, (scaled.height() - target.height()) / 2,
+                           target.width(), target.height()).convertToFormat(QImage::Format_RGBA8888);
+    }
+    QImage output(target, QImage::Format_RGBA8888);
+    output.fill(Qt::black);
+    QPainter painter(&output);
+    painter.drawImage((target.width() - scaled.width()) / 2, (target.height() - scaled.height()) / 2, scaled);
+    return output;
+}
 namespace {
 struct CodecDelete { void operator()(AVCodecContext* p) const { avcodec_free_context(&p); } };
 struct FrameDelete { void operator()(AVFrame* p) const { av_frame_free(&p); } };
@@ -110,13 +127,13 @@ public:
 private:
     Format m_format;
 };
-Codec videoCodec(const AVCodec* encoder, const Timeline& timeline) {
+Codec videoCodec(const AVCodec* encoder, const Result& output, const Options& options) {
     Codec c(avcodec_alloc_context3(encoder));
     if (!c) throw std::bad_alloc();
-    c->width = std::max(2, timeline.width / 2 * 2);
-    c->height = std::max(2, timeline.height / 2 * 2);
+    c->width = output.width;
+    c->height = output.height;
     c->pix_fmt = AV_PIX_FMT_YUV420P;
-    c->framerate = av_d2q(timeline.fps, 1000000);
+    c->framerate = av_d2q(output.fps, 1000000);
     c->time_base = av_inv_q(c->framerate);
     c->color_range = AVCOL_RANGE_MPEG;
     c->colorspace = AVCOL_SPC_BT709;
@@ -126,12 +143,22 @@ Codec videoCodec(const AVCodec* encoder, const Timeline& timeline) {
     c->thread_count = 3;
     c->bit_rate = 30000000;
     const std::string name(encoder->name);
+    const bool bitrate = options.videoBitrateKbps > 0;
+    if (bitrate) {
+        c->bit_rate = static_cast<int64_t>(options.videoBitrateKbps) * 1000;
+        if (name == "libx264" || name == "libvpx-vp9") {
+            c->rc_max_rate = c->bit_rate;
+            c->rc_buffer_size = static_cast<int>(std::min<int64_t>(2 * c->bit_rate, std::numeric_limits<int>::max()));
+        }
+    }
     if (name == "libx264") {
-        check(av_opt_set(c->priv_data, "crf", "8", 0), "Set H.264 quality");
-        check(av_opt_set(c->priv_data, "preset", "slow", 0), "Set H.264 preset");
+        if (!bitrate) check(av_opt_set(c->priv_data, "crf", "8", 0), "Set H.264 quality");
+        check(av_opt_set(c->priv_data, "preset", bitrate ? "medium" : "slow", 0), "Set H.264 preset");
     } else if (name == "libvpx-vp9") {
-        c->bit_rate = 0;
-        check(av_opt_set(c->priv_data, "crf", "12", 0), "Set VP9 quality");
+        if (!bitrate) {
+            c->bit_rate = 0;
+            check(av_opt_set(c->priv_data, "crf", "12", 0), "Set VP9 quality");
+        }
         check(av_opt_set(c->priv_data, "row-mt", "1", 0), "Set VP9 threading");
     }
     return c;
@@ -195,7 +222,8 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
         if (options.alpha) throw std::runtime_error("Export with transparency is unavailable in the native compositor");
         const QStringList formats{QStringLiteral("mp4"), QStringLiteral("webm"), QStringLiteral("png_sequence"), QStringLiteral("wav"), QStringLiteral("mp3")};
         if (!formats.contains(options.format)) throw std::runtime_error("Unknown export format");
-        if (!std::isfinite(timeline.fps) || timeline.fps <= 0 || timeline.width <= 0 || timeline.height <= 0) {
+        if (!std::isfinite(timeline.fps) || timeline.fps <= 0 || timeline.width <= 0 || timeline.height <= 0 ||
+            !std::isfinite(options.fps) || options.fps < 0 || options.width < 0 || options.height < 0) {
             throw std::runtime_error("Invalid export frame rate or canvas size");
         }
         double duration = timeline.durationMs;
@@ -205,10 +233,24 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
             }
         }
         if (!std::isfinite(duration) || duration <= 0) throw std::runtime_error("Add a clip before exporting.");
-        result.frames = std::max<qint64>(1, std::llround(duration * timeline.fps / 1000));
-        result.fps = timeline.fps;
+        result.startMs = std::clamp(options.startMs, 0.0, duration);
+        result.endMs = options.endMs < 0 ? duration : std::min(options.endMs, duration);
+        const double rangeMs = result.endMs - result.startMs;
+        if (!(rangeMs > 0)) throw std::runtime_error("The export range is empty.");
+        result.fps = options.fps > 0 ? options.fps : timeline.fps;
+        result.frames = std::max<qint64>(1, std::llround(rangeMs * result.fps / 1000));
         const bool audioOnly = options.format == u"wav" || options.format == u"mp3";
         const bool png = options.format == u"png_sequence";
+        // Without an explicit size the picture is the timeline's, as before: video is
+        // scaled to the even encoded size, a PNG sequence keeps the canvas size.
+        const bool explicitSize = (options.width > 0 && options.width != timeline.width) ||
+            (options.height > 0 && options.height != timeline.height);
+        if (!audioOnly) {
+            const int width = options.width > 0 ? options.width : timeline.width;
+            const int height = options.height > 0 ? options.height : timeline.height;
+            result.width = png ? width : std::max(2, width / 2 * 2);
+            result.height = png ? height : std::max(2, height / 2 * 2);
+        }
         QSet<QString> mediaPaths;
         for (const auto& clip : timeline.clips) {
             for (const auto& path : {clip.mediaPath, clip.originalMediaPath, clip.audioPath, clip.generatedMattePath}) {
@@ -216,7 +258,7 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
             }
         }
         const auto mediaLeases = nt::assets::MediaProtection::leasePaths(mediaPaths);
-        result.samples = std::max<qint64>(1, std::llround((audioOnly ? duration / 1000 : result.frames / timeline.fps) * 48000));
+        result.samples = std::max<qint64>(1, std::llround((audioOnly ? rangeMs / 1000 : result.frames / result.fps) * 48000));
         if (png && static_cast<quint64>(result.frames) >= PngZip::MaxEntries) {
             throw std::runtime_error("PNG sequence exceeds classic ZIP limit of 65535 entries including the manifest");
         }
@@ -251,7 +293,7 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
             muxer = std::make_unique<Muxer>(temporary, options.format);
             if (!audioOnly) {
                 const auto* encoder = chosen(options.videoEncoder, options.format == u"mp4" ? h264Encoder() : avcodec_find_encoder_by_name("libvpx-vp9"));
-                video = videoCodec(encoder, timeline);
+                video = videoCodec(encoder, result, options);
                 result.videoEncoder = QString::fromUtf8(encoder->name);
                 videoStream = muxer->add(*video);
                 videoStream->avg_frame_rate = video->framerate;
@@ -269,7 +311,7 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
         if (!png) {
             report(QStringLiteral("audio"));
             std::vector<std::string> problems;
-            pcm = audio::renderOffline(timeline, 48000, 0, static_cast<double>(result.samples) / 48, &problems, cancelled);
+            pcm = audio::renderOffline(timeline, 48000, result.startMs, static_cast<double>(result.samples) / 48, &problems, cancelled);
             if (cancelled()) { result.cancelled = true; return result; }
             for (const auto& problem : problems) {
                 // A silent video source is valid. Missing or corrupt media is
@@ -295,7 +337,8 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
             std::unique_ptr<SwsContext, ScaleDelete> scale;
             Frame output;
             if (video) {
-                scale.reset(sws_getContext(timeline.width, timeline.height, AV_PIX_FMT_RGBA, video->width, video->height,
+                scale.reset(sws_getContext(explicitSize ? result.width : timeline.width, explicitSize ? result.height : timeline.height,
+                    AV_PIX_FMT_RGBA, video->width, video->height,
                     AV_PIX_FMT_YUV420P, SWS_BICUBIC, nullptr, nullptr, nullptr));
                 if (!scale) throw std::runtime_error("Cannot create export video conversion");
                 check(sws_setColorspaceDetails(scale.get(), sws_getCoefficients(SWS_CS_ITU709), 1,
@@ -309,9 +352,10 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
                 check(av_frame_get_buffer(output.get(), 32), "Allocate export video frame");
             }
             for (qint64 i = 0; i < result.frames && !cancelled(); ++i) {
-                const QImage image = frames.capture(i, timeline.fps, cancelled);
+                const QImage captured = frames.captureAt(result.startMs + static_cast<double>(i) * 1000.0 / result.fps, cancelled);
                 if (cancelled()) break;
-                if (image.isNull()) throw std::runtime_error("Empty export frame");
+                if (captured.isNull()) throw std::runtime_error("Empty export frame");
+                const QImage image = explicitSize ? fitFrame(captured, QSize(result.width, result.height), options.scaleMode) : captured;
                 if (png) {
                     QByteArray bytes;
                     QBuffer buffer(&bytes);
@@ -324,11 +368,11 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
                     check(av_frame_make_writable(output.get()), "Make export frame writable");
                     const std::array<const uint8_t*, 4> data{image.constBits(), nullptr, nullptr, nullptr};
                     const std::array<int, 4> stride{static_cast<int>(image.bytesPerLine()), 0, 0, 0};
-                    check(sws_scale(scale.get(), data.data(), stride.data(), 0, timeline.height, output->data, output->linesize), "Convert export video");
+                    check(sws_scale(scale.get(), data.data(), stride.data(), 0, image.height(), output->data, output->linesize), "Convert export video");
                     output->pts = i;
                     output->duration = 1;
                     muxer->encode(*video, *videoStream, output.get());
-                    soundUntil(std::llround((i + 1) * 48000 / timeline.fps));
+                    soundUntil(std::llround((i + 1) * 48000 / result.fps));
                 }
                 report(QStringLiteral("encoding"), i + 1);
             }
@@ -346,8 +390,8 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
             const auto bytes = QJsonDocument(QJsonObject{
                 {QStringLiteral("format"), QStringLiteral("png_sequence")},
                 {QStringLiteral("pattern"), QStringLiteral("frame_%06d.png")},
-                {QStringLiteral("fps"), timeline.fps}, {QStringLiteral("width"), timeline.width},
-                {QStringLiteral("height"), timeline.height}, {QStringLiteral("count"), result.frames}
+                {QStringLiteral("fps"), result.fps}, {QStringLiteral("width"), result.width},
+                {QStringLiteral("height"), result.height}, {QStringLiteral("count"), result.frames}
             }).toJson();
             pngZip->add("manifest.json", bytes);
             pngZip->finish();
@@ -355,6 +399,7 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
             pngOutput.close();
         } else {
             soundUntil(result.samples);
+            if (cancelled()) { result.cancelled = true; return result; }
             if (video) muxer->encode(*video, *videoStream, nullptr);
             muxer->encode(*audio, *audioStream, nullptr);
             muxer->finish();
