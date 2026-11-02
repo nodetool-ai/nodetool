@@ -1,4 +1,5 @@
 #include "audio/AppAudio.h"
+#include "audio/loudness/AppReadout.h"
 
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
@@ -28,6 +29,7 @@ bool AppAudio::start(const QString& mode, double latencyMs, TimelineModel& model
         if (error) *error = QStringLiteral("--audio takes none, null or system");
         return false;
     }
+    if (m_publishLoudness) options.loudness = &appLoudnessReadout();
     m_engine = std::make_unique<AudioEngine>();
     m_engine->setTimeline(model.snapshot());
     // A new snapshot applies from the next play or seek.
