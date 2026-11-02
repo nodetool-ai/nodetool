@@ -16,11 +16,13 @@ const maxWorkers = configuredWorkers
 
 export default {
   preset: "ts-jest",
-  testEnvironment: "jsdom",
+  // jsdom with a resource loader that decodes `data:` URLs and fetches
+  // nothing else. `resources: "usable"` fetched real remote images rendered by
+  // UI suites, including Supabase preset previews. See jest.environment.cjs.
+  testEnvironment: "<rootDir>/jest.environment.cjs",
   testEnvironmentOptions: {
     customExportConditions: ["node", "node-addons"],
-    pretendToBeVisual: true,
-    resources: "usable"
+    pretendToBeVisual: true
   },
   testTimeout: 10000,
   maxWorkers,

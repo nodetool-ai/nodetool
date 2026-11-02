@@ -1,6 +1,4 @@
 /**
- * @jest-environment jsdom
- *
  * "Split selected layer" applies its masks after a model call that takes
  * seconds. An inactive workspace tab stays mounted but leaves the activation
  * stack, so reading the document through `getState()` once the model answers
