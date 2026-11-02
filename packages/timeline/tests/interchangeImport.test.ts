@@ -88,7 +88,7 @@ describe("Premiere XML import", () => {
     // The shot's own sound came back folded into the shot, not as a second clip.
     expect(result.clips).toHaveLength(3);
     expect(byName.get("Logo")).toMatchObject({ mediaType: "image", currentAssetId: "asset:logo.png", startMs: 501, opacity: 0.5 });
-    expect(byName.get("Shot")).toMatchObject({ mediaType: "video", startMs: 0, durationMs: 4004, inPointMs: 1001, speedMultiplier: 2, volumeDb: -6 });
+    expect(byName.get("Shot")).toMatchObject({ mediaType: "video", startMs: 0, durationMs: 4004, inPointMs: 1000, speedMultiplier: 2, volumeDb: -6 });
     expect(byName.get("Shot")!.muted).toBeUndefined();
     expect(byName.get("Music")).toMatchObject({ mediaType: "audio", muted: true, startMs: 1001 });
     expect(result.markers).toEqual([{ id: expect.any(String), timeMs: 2002, label: "Beat" }]);

@@ -9,6 +9,7 @@
 #include <QJsonDocument>
 #include <QProcessEnvironment>
 #include <QSaveFile>
+#include <QSet>
 #include <cmath>
 #include <limits>
 #include <utility>
@@ -112,8 +113,9 @@ void FrameCapture::invalidateSnapshot() { m_snapshot.reset(); }
 int FrameCapture::captureSequence(double timeMs) { return captureSequence(timeMs, {}); }
 int FrameCapture::captureSource(const QString& path, double timeMs) { return captureSource(path, timeMs, {}); }
 int FrameCapture::captureSequence(double timeMs, Callback callback) { return request(true, {}, timeMs, std::move(callback)); }
+int FrameCapture::captureDocument(const QJsonObject& document, double timeMs, Callback callback) { return request(true, {}, timeMs, std::move(callback), &document); }
 int FrameCapture::captureSource(const QString& path, double timeMs, Callback callback) { return request(false, path, timeMs, std::move(callback)); }
-int FrameCapture::request(bool sequence, const QString& path, double timeMs, Callback callback) {
+int FrameCapture::request(bool sequence, const QString& path, double timeMs, Callback callback, const QJsonObject* document) {
     do {
         m_nextId = m_nextId == std::numeric_limits<int>::max() ? 1 : m_nextId + 1;
     } while (m_requests.contains(m_nextId));
@@ -134,24 +136,30 @@ int FrameCapture::request(bool sequence, const QString& path, double timeMs, Cal
         complete({id, {}, timeMs, error});
     } else {
         if (sequence) {
-            if (!m_snapshot) prepareSnapshot();
-            m_requests[id].snapshot = m_snapshot;
+            if (document) {
+                m_requests[id].snapshot = prepareSnapshot(*document);
+            } else {
+                if (!m_snapshot) m_snapshot = prepareSnapshot(nt::exporting::exportSnapshot(*m_timeline));
+                m_requests[id].snapshot = m_snapshot;
+            }
         }
         QMetaObject::invokeMethod(this, [this] { sendRequests(); }, Qt::QueuedConnection);
     }
     emit pendingChanged();
     return id;
 }
-void FrameCapture::prepareSnapshot() {
+std::shared_ptr<FrameCapture::Snapshot> FrameCapture::prepareSnapshot(const QJsonObject& raw) {
     auto snapshot = std::shared_ptr<Snapshot>(new Snapshot, [this](Snapshot* value) {
         m_pool.start([value] { QFile::remove(value->path); delete value; });
     });
     snapshot->path = m_directory.filePath(QStringLiteral("sequence-%1.json").arg(++m_snapshotSerial));
     snapshot->leases = nt::assets::MediaProtection::leasePaths(m_timeline->resolvedMediaPaths());
-    m_snapshot = snapshot;
-    const auto raw = nt::exporting::exportSnapshot(*m_timeline);
-    const auto timeline = m_timeline->timeline();
-    m_pool.start([this, snapshot, raw, timeline] {
+    // Only the media this document draws has to be there.
+    QSet<QString> drawn;
+    for (const auto& clip : raw.value("clips").toArray()) drawn.insert(clip.toObject().value("id").toString());
+    auto timeline = m_timeline->timeline();
+    std::erase_if(timeline.clips, [&drawn](const auto& clip) { return !drawn.contains(QString::fromStdString(clip.id)); });
+    m_pool.start([this, snapshot, raw, timeline = std::move(timeline)] {
         QString error = nt::exporting::unavailableOriginalMedia(timeline);
         if (error.isEmpty()) {
             const auto bytes = QJsonDocument(raw).toJson(QJsonDocument::Compact);
@@ -168,6 +176,7 @@ void FrameCapture::prepareSnapshot() {
             sendRequests();
         }, Qt::QueuedConnection);
     });
+    return snapshot;
 }
 void FrameCapture::send(const QJsonObject& object) {
     m_process.write(QJsonDocument(object).toJson(QJsonDocument::Compact) + '\n');

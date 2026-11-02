@@ -71,16 +71,17 @@ model or change the operation.
 
 ## Hand off a sequence
 
-`exportInterchange` in `@nodetool-ai/timeline` writes an editable project document for another editor. No editor menu, CLI command, or agent tool calls it yet. Use it from code until one does.
+`exportInterchange` in `@nodetool-ai/timeline` writes an editable project document for another editor. The native editor's **File > Export to Premiere Pro** calls it through the server, and **File > Import Premiere XML** reads a sequence back. Both need a timeline opened from a server. No other editor menu, CLI command, or agent tool calls it yet.
 
 | Target | Output | Carries |
 | --- | --- | --- |
 | Final Cut Pro | FCPXML | sequence format, active media, timing, tracks, and markers |
-| Premiere Pro | Legacy FCP XML | sequence format, active media, audio and video tracks, timing, and markers |
+| Premiere Pro | Legacy FCP XML | sequence format, active media, audio and video tracks, timing, markers, Basic Motion (scale, rotation, position, anchor), opacity, constant speed and reverse, clip volume, fades, track fader and pan, with keyframes |
 
 The export report names missing media and edits that need baking, including
-effects, transforms, masks, retimes, fades, captions, and unsupported clip
-types. Resolve or bake those items before delivery. NodeTool never reports an
+effects, masks, 3D transforms, speed ramps and freezes, presets and keyframes
+on other properties, captions, and unsupported clip types. FCPXML also lists
+transforms, opacity, speed, volume, and fades. Resolve or bake those items before delivery. NodeTool never reports an
 incomplete editable export as lossless.
 
 ## Work with the agent

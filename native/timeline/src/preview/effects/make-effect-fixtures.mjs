@@ -76,6 +76,23 @@ const cropped = clip("crop", "t0", 0, "source-pattern.png");
 cropped.crop = { left: 0.25, right: 0.25, top: 0.125, bottom: 0.125 };
 cropped.effects = [effect("blur", { radius: 36 }), effect("vignette", { amount: 0.9, radius: 1, softness: 0.8 })];
 save("clip-crop-chain", [cropped], [0, 15], "crop before blur and vignette with clamped crop edges");
+// What the color panel writes: every section on, then what Match leaves with sections switched off.
+const panelCurve = { master: points(0.56), r: points(0.52), g: points(0.5), b: points(0.47) };
+const graded = clip("panel-all-sections", "t0", 0, "source-pattern.png");
+graded.effects = [
+  effect("liftGammaGain", { lift: [0.03, -0.02, 0.01], gamma: [1.2, 0.9, 1.1], gain: [0.9, 1.05, 1.1] }, "panel-wheels"),
+  effect("curves", panelCurve, "panel-curves"),
+  effect("vignette", { amount: 0.5, radius: 0.9, softness: 0.5 }, "panel-vignette"),
+  effect("color", { brightness: 0.02, contrast: 1.05, saturation: 1.2, hue: 4, temperature: 0.1, tint: -0.05, shadows: 0.1, highlights: -0.1 }, "inspector:color")
+];
+const matched = clip("panel-after-match", "t0", 1000, "source-pattern.png");
+matched.effects = [
+  effect("liftGammaGain", { lift: [-0.0072, -0.0004, -0.02], gamma: [0.9085, 0.8942, 0.9515], gain: [1.1607, 1.1556, 1.1559] }, "panel-wheels-match"),
+  { ...effect("curves", panelCurve, "panel-curves-off"), enabled: false },
+  { ...effect("vignette", { amount: 0.5, radius: 0.9, softness: 0.5 }, "panel-vignette-off"), enabled: false },
+  effect("color", { saturation: 1.15 }, "inspector:color")
+];
+save("clip-color-panel", [graded, matched], [0, 30], "color panel grade: wheels, curves, vignette and basic correction");
 const ordered = clip("ordered", "t0", 0, "source-pattern.png");
 ordered.effects = [effect("color", { brightness: 0.06 }, "early-color"), effect("pixelate", { cellSize: 36 }),
   effect("blur", { radius: 6 }, "early-blur"), effect("curves", settings.curves[0]), effect("posterize", { levels: 6 }),

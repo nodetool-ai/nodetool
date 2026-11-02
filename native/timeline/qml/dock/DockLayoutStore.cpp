@@ -60,7 +60,7 @@ bool DockLayoutStore::dispatch(const QVariantMap& action) {
 void DockLayoutStore::registerPanels(const QVariantList& panels) {
     finishResize(true);
     m_panels = panels;
-    const auto next = call("registerMissingPanels", {m_layout, panels});
+    const auto next = call("registerMissingPanels", {m_layout, panels, m_workspace});
     if (next.isEmpty() || next == m_layout) { return; }
     m_layout = m_workspace == "Script" && !m_workspaces.contains(m_workspace)
         ? withScriptPanelSelected(next) : next;
@@ -75,7 +75,7 @@ void DockLayoutStore::switchWorkspace(int index) {
     const auto next = saved ? call("hydrate", {m_workspaces.value(name)})
         : call("presetFromWorkspace", {m_layout, m_workspace, name});
     m_workspace = name;
-    m_layout = call("registerMissingPanels", {next, m_panels});
+    m_layout = call("registerMissingPanels", {next, m_panels, name});
     if (name == "Script" && !saved) m_layout = withScriptPanelSelected(m_layout);
     ++m_epoch;
     persist();
@@ -83,8 +83,8 @@ void DockLayoutStore::switchWorkspace(int index) {
 }
 void DockLayoutStore::resetWorkspace() {
     finishResize(true);
-    m_layout = call("presetWithExtensions", {m_layout, m_workspace});
-    m_layout = call("registerMissingPanels", {m_layout, m_panels});
+    m_layout = call("presetFromWorkspace", {m_layout, m_workspace, m_workspace});
+    m_layout = call("registerMissingPanels", {m_layout, m_panels, m_workspace});
     if (m_workspace == "Script") m_layout = withScriptPanelSelected(m_layout);
     ++m_epoch;
     persist();

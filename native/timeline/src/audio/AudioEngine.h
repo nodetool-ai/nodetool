@@ -29,6 +29,8 @@
 
 namespace nt::audio {
 
+class LoudnessReadout;
+
 class AudioEngine {
 public:
     enum class Backend { Null, System };
@@ -42,6 +44,9 @@ public:
         // Keep this many seconds of the device output, from the first
         // callback on (null backend checks).
         double recordSeconds = 0.0;
+        // Where the loudness of the played mix goes (LUFS meter). Null: no metering. The readout must
+        // outlive the engine. The callback writes it without allocating or locking.
+        LoudnessReadout* loudness = nullptr;
     };
     struct Stats {
         std::int64_t callbacks = 0;

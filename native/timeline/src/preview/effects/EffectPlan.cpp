@@ -682,50 +682,51 @@ bool decorateAdjustment(SceneAdjustment &adjustment, const Clip &clip, const Sce
     return true;
 }
 
+QJsonArray convertTrackEffects(const QJsonArray &effects) {
+    QJsonArray converted;
+    for (const auto &value : effects) {
+        const auto raw = value.toObject();
+        if (!raw.value("enabled").toBool()) { continue; }
+        const auto type = raw.value("type").toString();
+        QJsonObject e{{"id", raw.value("id")}, {"enabled", true}};
+        const auto copy = [&](std::initializer_list<const char *> keys) {
+            for (const auto *key : keys) {
+                if (raw.contains(QLatin1String(key))) { e.insert(QLatin1String(key), raw.value(QLatin1String(key))); }
+            }
+        };
+        if (type == "colorCorrection") {
+            if (number(raw,"exposure") != 0 || number(raw,"rolloff") != 0 || number(raw,"whites") != 0) {
+                auto exposure=e;
+                exposure.insert("type","exposure");
+                for (const auto* key : {"exposure","rolloff","whites"}) { exposure.insert(key,raw.value(key)); }
+                converted.append(exposure);
+            }
+            e.insert("type", "color");
+            copy({"brightness", "contrast", "saturation", "hue", "temperature", "tint", "shadows", "highlights"});
+        } else if (type == "videoBlur") {
+            e.insert("type", "blur");
+            copy({"radius"});
+        } else if (type == "sharpen") {
+            e.insert("type", type);
+            copy({"amount", "threshold"});
+        } else if (type == "vignette") {
+            e.insert("type", type);
+            e.insert("amount", raw.value("intensity"));
+            copy({"radius", "softness", "centerX", "centerY", "roundness"});
+        } else if (type == "chromaKey") {
+            e.insert("type", type);
+            e.insert("color", raw.value("keyColor"));
+            copy({"tolerance", "softness", "spill"});
+        } else {
+            continue;
+        }
+        converted.append(e);
+    }
+    return converted;
+}
 void decorateTrackEffects(QJsonObject &ext, const Track *track) {
     if (ext.value("qualifierMatte").toBool()) { ext.remove("trackEffects"); return; }
     if (ext.value("generatedMatteSource").toBool()) { return; }
-    QJsonArray converted;
-    if (track) {
-        for (const auto &value : track->raw.value("effects").toArray()) {
-            const auto raw = value.toObject();
-            if (!raw.value("enabled").toBool()) { continue; }
-            const auto type = raw.value("type").toString();
-            QJsonObject e{{"id", raw.value("id")}, {"enabled", true}};
-            const auto copy = [&](std::initializer_list<const char *> keys) {
-                for (const auto *key : keys) {
-                    if (raw.contains(QLatin1String(key))) { e.insert(QLatin1String(key), raw.value(QLatin1String(key))); }
-                }
-            };
-            if (type == "colorCorrection") {
-                if (number(raw,"exposure") != 0 || number(raw,"rolloff") != 0 || number(raw,"whites") != 0) {
-                    auto exposure=e;
-                    exposure.insert("type","exposure");
-                    for (const auto* key : {"exposure","rolloff","whites"}) { exposure.insert(key,raw.value(key)); }
-                    converted.append(exposure);
-                }
-                e.insert("type", "color");
-                copy({"brightness", "contrast", "saturation", "hue", "temperature", "tint", "shadows", "highlights"});
-            } else if (type == "videoBlur") {
-                e.insert("type", "blur");
-                copy({"radius"});
-            } else if (type == "sharpen") {
-                e.insert("type", type);
-                copy({"amount", "threshold"});
-            } else if (type == "vignette") {
-                e.insert("type", type);
-                e.insert("amount", raw.value("intensity"));
-                copy({"radius", "softness", "centerX", "centerY", "roundness"});
-            } else if (type == "chromaKey") {
-                e.insert("type", type);
-                e.insert("color", raw.value("keyColor"));
-                copy({"tolerance", "softness", "spill"});
-            } else {
-                continue;
-            }
-            converted.append(e);
-        }
-    }
-    ext.insert("trackEffects", converted);
+    ext.insert("trackEffects", track ? convertTrackEffects(track->raw.value("effects").toArray()) : QJsonArray{});
 }
 } // namespace nt::effects

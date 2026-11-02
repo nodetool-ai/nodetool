@@ -1,4 +1,5 @@
 #include "audio/AudioEngine.h"
+#include "audio/loudness/LiveLoudness.h"
 
 #include "audio/AudioSource.h"
 #include "audio/hooks/OutputDevice.h"
@@ -88,6 +89,12 @@ struct AudioEngine::Impl {
     std::atomic<std::int64_t> lateStarts{0};
     std::atomic<double> lastPlayStartMs{-1.0};
     std::int64_t seenStartNs = 0;
+    // The loudness meter of the played mix. Created in start() before the device runs, driven only by the
+    // callback. `meterPlaying` and `meterSeq` are the callback's own: a pause or a seek restarts the short
+    // windows once, not on every block.
+    std::unique_ptr<LiveLoudness> liveLoudness;
+    bool meterPlaying = false;
+    std::uint64_t meterSeq = 0;
     // Scrub burst. The worker publishes the seek to audition. Only the
     // callback touches its own progress.
     std::atomic<std::uint64_t> scrubRequest{0};
@@ -184,9 +191,11 @@ struct AudioEngine::Impl {
         }
         const auto silence = [&]() { std::fill(out, out + static_cast<std::size_t>(frames) * 2, 0.0f); };
         if (!anchor.playing) {
+            meterPlaying = false;
             silence();
             renderScrub(s, out, frames);
         } else if (driver->seekPending() || !s || s->seekSeq.load(std::memory_order_acquire) != anchor.seekSeq) {
+            meterPlaying = false;
             silence();
             waitBlocks.fetch_add(1, std::memory_order_relaxed);
         } else {
@@ -204,6 +213,14 @@ struct AudioEngine::Impl {
             MixStats st;
             mixBlock(plan, s->pcm.data(), sampleRate, t0, msPerFrame, static_cast<int>(frames), out, st);
             if (st.underruns > 0 || missing) underruns.fetch_add(1, std::memory_order_relaxed);
+            if (liveLoudness) {
+                if (!meterPlaying || meterSeq != anchor.seekSeq) {
+                    liveLoudness->discontinuity();
+                    meterPlaying = true;
+                    meterSeq = anchor.seekSeq;
+                }
+                liveLoudness->process(out, static_cast<int>(frames));
+            }
             s->doneMs.store(tEnd, std::memory_order_release);
             playedFrames.fetch_add(frames, std::memory_order_relaxed);
             s->consumed.store(true, std::memory_order_release);
@@ -608,6 +625,13 @@ bool AudioEngine::start(const Options& options, std::string* error) {
     d.deviceReady = true;
     d.sampleRate = static_cast<double>(d.device.sampleRate);
     prepareMixPlan(*d.plan, d.sampleRate);
+    // Before the device starts, so the callback never sees a half-built meter.
+    d.liveLoudness.reset();
+    d.meterPlaying = false;
+    if (options.loudness) {
+        d.liveLoudness = std::make_unique<LiveLoudness>(*options.loudness);
+        d.liveLoudness->prepare(d.sampleRate);
+    }
     d.backendName = ma_get_backend_name(d.context.backend);
     d.deviceName = d.device.playback.name;
     d.latencySec.store(d.queryLatency());
@@ -652,6 +676,8 @@ void AudioEngine::stop() {
     d.inUse.store(nullptr);
     d.sessions.clear();
     d.sources.clear();
+    // The device is stopped, so the callback no longer reads the meter.
+    d.liveLoudness.reset();
 }
 
 void AudioEngine::simulateDeviceChange(double latencySec) {

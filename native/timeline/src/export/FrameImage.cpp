@@ -11,6 +11,12 @@ void FrameImage::setImage(const QImage& image) {
     update();
     emit imageChanged();
 }
+void FrameImage::setStretch(bool stretch) {
+    if (m_stretch == stretch) return;
+    m_stretch = stretch;
+    update();
+    emit stretchChanged();
+}
 QSGNode* FrameImage::updatePaintNode(QSGNode* old, UpdatePaintNodeData*) {
     if (m_image.isNull() || width() <= 0 || height() <= 0) {
         delete old;
@@ -27,7 +33,7 @@ QSGNode* FrameImage::updatePaintNode(QSGNode* old, UpdatePaintNodeData*) {
         node->setTexture(window()->createTextureFromImage(m_image));
         m_imageChanged = false;
     }
-    const QSizeF size = QSizeF(m_image.size()).scaled(boundingRect().size(), Qt::KeepAspectRatio);
+    const QSizeF size = m_stretch ? boundingRect().size() : QSizeF(m_image.size()).scaled(boundingRect().size(), Qt::KeepAspectRatio);
     node->setRect(QRectF(QPointF((width() - size.width()) / 2, (height() - size.height()) / 2), size));
     node->setSourceRect(QRectF(QPointF(0, 0), QSizeF(m_image.size())));
     return node;

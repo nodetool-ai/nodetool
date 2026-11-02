@@ -83,7 +83,8 @@ const bool registered = [] {
         {"panelTimeline", "Go to the Timeline", "tracks"}, {"panelProgram", "Go to Program", "program"},
         {"panelInspector", "Go to the Inspector", "inspector"}, {"panelMixer", "Go to the Mixer", "mixer"},
         {"panelScript", "Go to Scripts", "script"}, {"panelStoryboard", "Go to Storyboards", "storyboard"},
-        {"panelEffectControls", "Go to Effect Controls", "effectControls"}};
+        {"panelEffectControls", "Go to Effect Controls", "effectControls"},
+        {"panelColor", "Go to Color", "color"}, {"panelScopes", "Go to Scopes", "scopes"}};
     for (const auto& entry : panels) {
         const QString panel = entry.panel;
         nt::wiring::registerKeyAction({entry.action, entry.title, {}, [panel](C gestures, V) {
