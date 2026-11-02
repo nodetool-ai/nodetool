@@ -35,6 +35,10 @@ QImage applyGrade(const QImage &, const QJsonArray &effects, const QJsonArray &t
 QJsonArray applyMatchToEffects(const QJsonArray &, const MatchResult &, const QString &newId);
 // The list to render the shot with, so the solver sees the picture just before its correction runs:
 // the passes it models are off, because it runs them itself in order, and so is everything after
-// the correction's place in the chain. Effects before that place stay on.
+// the correction's place in the chain, and blur, which the renderer always runs after the grade.
+// Effects before that place stay on.
 QJsonArray probeEffects(const QJsonArray &);
+// The type of an enabled effect after the correction's place that changes colors in a way the
+// solver cannot run, or an empty string. Match cannot promise a result through one.
+QString colorEffectAfterCorrection(const QJsonArray &);
 }

@@ -83,11 +83,11 @@ QJsonObject ColorMatchController::findClip(const QString& id) const {
     }
     return {};
 }
-QJsonArray ColorMatchController::trackEffectsOf(const QJsonObject& clip) const {
+QJsonObject ColorMatchController::trackOf(const QJsonObject& clip) const {
     if (!m_capture || !m_capture->timeline()) return {};
     for (const auto& value : m_capture->timeline()->timeline().raw.value("tracks").toArray()) {
         const auto track = value.toObject();
-        if (track.value("id") == clip.value("trackId")) return track.value("effects").toArray();
+        if (track.value("id") == clip.value("trackId")) return track;
     }
     return {};
 }
@@ -171,8 +171,13 @@ void ColorMatchController::match() {
         finish(tr("Select a video or image clip to match."));
         return;
     }
-    if (clip.value("locked").toBool()) {
-        finish(tr("Unlock the clip to match it."));
+    if (clip.value("locked").toBool() || trackOf(clip).value("locked").toBool()) {
+        finish(tr("Unlock the clip and its track to match it."));
+        return;
+    }
+    const auto unmodelled = nt::color::colorEffectAfterCorrection(clip.value("effects").toArray());
+    if (!unmodelled.isEmpty()) {
+        finish(tr("Match cannot see through the %1 effect after the wheels. Move it before them or turn it off.").arg(unmodelled));
         return;
     }
     const double start = clip.value("startMs").toDouble();
@@ -186,7 +191,7 @@ void ColorMatchController::match() {
     const double time = snapped(playhead >= start && playhead < end ? playhead : (start + end) / 2, m_clock ? m_clock->fps() : 0);
     m_targetId = m_clipId;
     m_targetClip = clip;
-    m_targetTrackEffects = trackEffectsOf(clip);
+    m_targetTrackEffects = trackOf(clip).value("effects").toArray();
     m_step = Step::Current;
     m_error.clear();
     m_status.clear();
@@ -237,7 +242,8 @@ void ColorMatchController::solved(const nt::color::MatchResult& result) {
     }
     const auto clip = findClip(m_targetId);
     // The whole clip, because media, timing and crop all change the picture that was solved for.
-    if (clip.isEmpty() || clip != m_targetClip || trackEffectsOf(clip) != m_targetTrackEffects) {
+    const auto track = trackOf(clip);
+    if (clip.isEmpty() || clip != m_targetClip || track.value("effects").toArray() != m_targetTrackEffects || track.value("locked").toBool()) {
         finish(tr("The clip changed while matching. Run Match again."));
         return;
     }

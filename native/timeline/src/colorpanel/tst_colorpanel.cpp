@@ -248,6 +248,30 @@ private slots:
         QCOMPARE(e.model.documentJson(), documentBefore);
         e.model.undoStack()->redo();
         QCOMPARE(e.effectOf("liftGammaGain").value("gain").toArray(), gain);
+        // A held arrow key is one entry on release, and Escape takes a held key back.
+        dial->forceActiveFocus();
+        e.settle();
+        const auto beforeKeys = e.effectOf("liftGammaGain").value("gain").toArray();
+        const int undoBeforeKeys = e.model.undoStack()->index();
+        for (int repeat = 0; repeat < 5; ++repeat) {
+            QTest::keyPress(&e.window, Qt::Key_Right);
+            e.settle();
+        }
+        QCOMPARE(e.model.undoStack()->index(), undoBeforeKeys);
+        QTest::keyRelease(&e.window, Qt::Key_Right);
+        e.settle();
+        QCOMPARE(e.model.undoStack()->index(), undoBeforeKeys + 1);
+        const auto afterKeys = e.effectOf("liftGammaGain").value("gain").toArray();
+        QVERIFY(afterKeys != beforeKeys);
+        QTest::keyPress(&e.window, Qt::Key_Up);
+        e.settle();
+        QVERIFY(e.effectOf("liftGammaGain").value("gain").toArray() != afterKeys);
+        QTest::keyClick(&e.window, Qt::Key_Escape);
+        e.settle();
+        QCOMPARE(e.effectOf("liftGammaGain").value("gain").toArray(), afterKeys);
+        QTest::keyRelease(&e.window, Qt::Key_Up);
+        e.settle();
+        QCOMPARE(e.model.undoStack()->index(), undoBeforeKeys + 1);
         // A click changes nothing, and a double click on the wheel resets it as one entry.
         const int undoAfter = e.model.undoStack()->count();
         const auto again = e.reveal(dial, QPointF(dial->width() / 2, dial->height() / 2));
@@ -700,6 +724,32 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(!error.isEmpty(), 60000);
     }
 
+    void matchRefusesAColorEffectItCannotRun() {
+        const auto reference = image("refuse-reference", scene());
+        auto a = clipJson("a", 0, 1000, image("refuse-current", scene(10, -5)));
+        a.insert("effects", QJsonArray{
+            QJsonObject{{"id", "w"}, {"type", "liftGammaGain"}, {"enabled", true}, {"lift", QJsonArray{0, 0, 0}}, {"gamma", QJsonArray{1, 1, 1}}, {"gain", QJsonArray{1, 1, 1}}},
+            QJsonObject{{"id", "steps"}, {"type", "posterize"}, {"enabled", true}, {"levels", 2}}});
+        TimelineModel model;
+        auto parsed = nt::parseTimeline(documentOf({a, clipJson("r", 1000, 1000, reference)}));
+        QVERIFY2(parsed.timeline, qPrintable(parsed.error));
+        model.setTimeline(std::move(*parsed.timeline));
+        FrameCapture capture;
+        capture.setExecutable(QStringLiteral(NT_TIMELINE_BINARY));
+        capture.setTimeline(&model);
+        ColorMatchController matcher;
+        matcher.setCapture(&capture);
+        matcher.setClipId("r");
+        matcher.useSelectedShot();
+        QTRY_VERIFY_WITH_TIMEOUT(matcher.hasReference(), 60000);
+        const auto document = model.documentJson();
+        matcher.setClipId("a");
+        matcher.match();
+        QVERIFY(!matcher.busy());
+        QVERIFY2(matcher.error().contains("posterize"), qPrintable(matcher.error()));
+        QCOMPARE(model.documentJson(), document);
+    }
+
     void matchSurvivesAChangeWhileSolving() {
         const auto reference = image("race-reference", scene());
         const auto current = image("race-current", scene(20, -10));
@@ -720,6 +770,20 @@ private slots:
         // The user's edit stays. Match says so instead of overwriting it.
         QCOMPARE(e.effects(), edited);
         QVERIFY2(!matcher.error().isEmpty(), "Match wrote over a newer edit");
+        // A lock taken while matching also stops the write.
+        auto lockTrack = [&](bool locked) {
+            return e.model.applyEdit("setTrackLocked", {{"trackId", "v"}, {"locked", locked}});
+        };
+        matcher.match();
+        QVERIFY(matcher.busy());
+        QVERIFY(lockTrack(true));
+        QTRY_VERIFY_WITH_TIMEOUT(!matcher.busy(), 60000);
+        QCOMPARE(e.effects(), edited);
+        QVERIFY2(!matcher.error().isEmpty(), "Match wrote to a track locked while it ran");
+        matcher.match();
+        QVERIFY(!matcher.busy());
+        QVERIFY(matcher.error().contains("Unlock"));
+        QVERIFY(lockTrack(false));
         // The same for a change that leaves the effects alone and gives a different picture.
         matcher.match();
         QVERIFY(matcher.busy());

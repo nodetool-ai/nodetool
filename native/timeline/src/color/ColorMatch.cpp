@@ -409,11 +409,20 @@ QJsonArray probeEffects(const QJsonArray &effects) {
     for (int i = 0; i < out.size(); ++i) {
         auto e = out[i].toObject();
         const auto type = e["type"].toString();
-        if (type == "liftGammaGain" || type == "curves" || type == "levels" || type == "color" || type == "vignette" || i > place) {
+        if (type == "liftGammaGain" || type == "curves" || type == "levels" || type == "color" || type == "vignette" || type == "blur" || i > place) {
             e["enabled"] = false; out[i] = e;
         }
     }
     return out;
+}
+QString colorEffectAfterCorrection(const QJsonArray &effects) {
+    constexpr std::array unmodelled{"lut","posterize","stylize","generator","chromaKey","glow"};
+    for (int i = matchIndex(effects)+1; i < effects.size(); ++i) {
+        const auto e = effects[i].toObject();
+        const auto type = e["type"].toString();
+        if (e["enabled"].toBool() && std::ranges::any_of(unmodelled,[&](const char *name) { return type == QLatin1String(name); })) { return type; }
+    }
+    return {};
 }
 MatchResult solveMatch(const MatchInput &input) {
     MatchResult result;
@@ -497,8 +506,10 @@ MatchResult solveMatch(const MatchInput &input) {
     result = values(x);
     result.ok = true; result.before = before; result.after = std::sqrt(c);
     // What the shot looks like now, not the probe with its grade switched off.
-    result.differenceBefore = meanColorDifference(applyGrade(input.current,input.effects,input.trackEffects),input.reference);
-    result.differenceAfter = meanColorDifference(applyGrade(input.current,applyMatchToEffects(input.effects,result,"match"),input.trackEffects),input.reference);
+    // Trimmed first, because a vignette runs on the clip's own surface and not the bars around it.
+    const auto trimmed = trimBlackBars(input.current);
+    result.differenceBefore = meanColorDifference(applyGrade(trimmed,input.effects,input.trackEffects),input.reference);
+    result.differenceAfter = meanColorDifference(applyGrade(trimmed,applyMatchToEffects(input.effects,result,"match"),input.trackEffects),input.reference);
     return result;
 }
 }

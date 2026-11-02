@@ -71,7 +71,7 @@ signals:
 private:
     enum class Step { Idle, Reference, Current, Solving };
     QJsonObject findClip(const QString& id) const;
-    QJsonArray trackEffectsOf(const QJsonObject& clip) const;
+    QJsonObject trackOf(const QJsonObject& clip) const;
     void finish(const QString& error, const QString& status = {});
     void capturedReference(const FrameCaptureResult& result, const QString& clipName, const QString& clipId);
     void capturedCurrent(const FrameCaptureResult& result);

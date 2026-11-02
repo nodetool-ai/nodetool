@@ -5,7 +5,7 @@ function(nt_colorpanel_tests)
     find_package(Qt6 6.12 REQUIRED COMPONENTS QuickTest)
     qt_add_executable(tst_colorpanel src/colorpanel/tst_colorpanel.cpp
         src/app/BuiltinEdits.cpp src/edit/groups/GroupRegistrations.cpp
-        src/edit/transitions/TransitionRegistrations.cpp)
+        src/edit/transitions/TransitionRegistrations.cpp src/edit/tracks/TrackEditRegistrations.cpp)
     set_target_properties(tst_colorpanel PROPERTIES MACOSX_BUNDLE FALSE)
     target_link_libraries(tst_colorpanel PRIVATE timeline_core timeline_decode timeline_audio timeline_server
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test Qt6::QuickTest PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})

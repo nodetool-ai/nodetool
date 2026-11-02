@@ -28,6 +28,7 @@ Column {
     }
     onDisabledChanged: if (disabled && dragging) {
         dragging = false;
+        dial.keying = false;
         gestureCancelled();
     }
     Ui.Text {
@@ -47,18 +48,50 @@ Column {
         Accessible.name: root.title + " color wheel"
         Accessible.description: "Arrow keys move the puck. Delete resets it."
         readonly property real ringRadius: width / 2 - Ui.Metrics.xs
+        property bool keying: false
+        // A held arrow key is one gesture, like a drag: it previews, and writes on release.
         function nudge(dx, dy) {
             if (root.disabled)
                 return;
-            const next = WheelMath.clampToDisc(root.state_.x + dx, root.state_.y + dy);
-            root.emitWheel(next.x, next.y, "apply");
+            if (!keying) {
+                keying = true;
+                root.draftX = root.puckX;
+                root.draftY = root.puckY;
+                root.dragging = true;
+                root.gestureStarted();
+            }
+            const next = WheelMath.clampToDisc(root.draftX + dx, root.draftY + dy);
+            root.draftX = next.x;
+            root.draftY = next.y;
+            root.emitWheel(next.x, next.y, "preview");
+        }
+        function finishKeys() {
+            if (!keying)
+                return;
+            keying = false;
+            root.dragging = false;
+            root.emitWheel(root.draftX, root.draftY, "commit");
         }
         Keys.onLeftPressed: nudge(-0.02, 0)
         Keys.onRightPressed: nudge(0.02, 0)
         Keys.onUpPressed: nudge(0, 0.02)
         Keys.onDownPressed: nudge(0, -0.02)
-        Keys.onDeletePressed: if (!root.disabled)
+        Keys.onDeletePressed: if (!root.disabled && !keying)
             root.emitWheel(0, 0, "apply")
+        Keys.onEscapePressed: event => {
+            event.accepted = keying;
+            if (!keying)
+                return;
+            keying = false;
+            root.dragging = false;
+            root.gestureCancelled();
+        }
+        Keys.onReleased: event => {
+            if (!event.isAutoRepeat && (event.key === Qt.Key_Left || event.key === Qt.Key_Right || event.key === Qt.Key_Up || event.key === Qt.Key_Down))
+                finishKeys();
+        }
+        onActiveFocusChanged: if (!activeFocus)
+            finishKeys()
         Canvas {
             id: ring
             anchors.fill: parent

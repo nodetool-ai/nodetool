@@ -1,4 +1,5 @@
 // Ported from FilmCraft (https://github.com/storytold/filmcraft) crates/render/src/color_match.rs at 8c171a0. MIT, see licenses/FilmCraft-MIT.txt.
+#include <QPainter>
 #include "color/ColorMatch.h"
 #include "color/ColorMatchMath.h"
 #include <QElapsedTimer>
@@ -130,6 +131,18 @@ private slots:
         QVERIFY(rendered <= r.differenceBefore*.25);
         QVERIFY(std::abs(rendered-r.differenceAfter) < .002);
     }
+    void barsDoNotMoveTheVignette() {
+        // A narrow picture in bars: the reported numbers read the same surface the renderer does.
+        QImage inner(60,60,QImage::Format_RGBA8888);
+        inner.fill(QColor(180,180,180));
+        QImage boxed(200,60,QImage::Format_RGBA8888);
+        boxed.fill(Qt::black);
+        QPainter(&boxed).drawImage(70,0,inner);
+        const QJsonArray edge{QJsonObject{{"id","edge"},{"type","vignette"},{"enabled",true},{"amount",.6},{"radius",.9},{"softness",.5}}};
+        const auto r = solveMatch({boxed,applyGrade(inner,edge),edge,false,{}});
+        QVERIFY2(r.ok,qPrintable(r.error));
+        QVERIFY2(r.differenceBefore < .002,qPrintable(QString::number(r.differenceBefore)));
+    }
     void differenceBeforeIsWhatTheShotLooksLikeNow() {
         // A shot already graded to match has nothing left to gain, whatever its ungraded probe shows.
         const auto f = frame(false);
@@ -198,13 +211,25 @@ private slots:
         QCOMPARE(beforeEdge[1].toObject()["id"].toString(),QString("created"));
         QCOMPARE(beforeEdge[2].toObject(),edge);
         // What stays on in the probe is what runs before the correction.
-        const auto probed = probeEffects({blur,lgg(),QJsonObject{{"id","late"},{"type","blur"},{"enabled",true}},edge});
+        const QJsonObject pixelate{{"id","early"},{"type","pixelate"},{"enabled",true},{"cellSize",4}};
+        const QJsonObject late{{"id","late"},{"type","pixelate"},{"enabled",true},{"cellSize",4}};
+        const auto probed = probeEffects({pixelate,lgg(),late,edge});
         QVERIFY(probed[0].toObject()["enabled"].toBool());
         for (int i = 1; i < 4; ++i) { QVERIFY(!probed[i].toObject()["enabled"].toBool()); }
-        const auto noWheels = probeEffects({blur,edge,QJsonObject{{"id","late"},{"type","blur"},{"enabled",true}}});
+        const auto noWheels = probeEffects({pixelate,edge,late});
         QVERIFY(noWheels[0].toObject()["enabled"].toBool());
         QVERIFY(!noWheels[1].toObject()["enabled"].toBool());
         QVERIFY(!noWheels[2].toObject()["enabled"].toBool());
+        // The renderer runs blur after the grade wherever the list has it, so it is never baked in.
+        QVERIFY(!probeEffects({blur,lgg()})[0].toObject()["enabled"].toBool());
+        // Match refuses a color effect it cannot run after the correction, and only then.
+        const QJsonObject posterize{{"id","steps"},{"type","posterize"},{"enabled",true},{"levels",2}};
+        QCOMPARE(colorEffectAfterCorrection({lgg(),posterize}),QString("posterize"));
+        QCOMPARE(colorEffectAfterCorrection({posterize,lgg()}),QString());
+        QCOMPARE(colorEffectAfterCorrection({posterize}),QString());
+        auto off = posterize; off["enabled"] = false;
+        QCOMPARE(colorEffectAfterCorrection({lgg(),off}),QString());
+        QCOMPARE(colorEffectAfterCorrection({lgg(),blur,edge}),QString());
         auto existing = lgg(); existing["enabled"] = false; existing["custom"] = "keep";
         auto second = lgg({.2,.2,.2}); second["id"] = "second";
         r.saturationScale = 1.2;
@@ -219,8 +244,7 @@ private slots:
         QCOMPARE(added.last().toObject()["id"].toString(),QString("inspector:color"));
         const QJsonArray effects{blur,existing,colour,second,QJsonObject{{"type","curves"},{"enabled",true}},QJsonObject{{"type","levels"},{"enabled",true}}};
         const auto probe = probeEffects(effects);
-        QCOMPARE(probe[0],effects[0]);
-        for (int i = 1; i < probe.size(); ++i) { QVERIFY(!probe[i].toObject()["enabled"].toBool()); }
+        for (int i = 0; i < probe.size(); ++i) { QVERIFY(!probe[i].toObject()["enabled"].toBool()); }
     }
     void cancellation() {
         const auto f = frame(); int polls = 0;
