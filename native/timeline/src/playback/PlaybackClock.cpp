@@ -1,4 +1,5 @@
 #include "playback/PlaybackClock.h"
+#include "audio/ShuttleStretch.h"
 
 #include <algorithm>
 #include <chrono>
@@ -184,12 +185,14 @@ void PlaybackClock::sendCommandLocked(bool seek, double seekMs, std::int64_t now
     if (!m_feed) return;
     m_command.seq += 1;
     m_command.playing = m_playing && m_rate > 0.0;
+    m_command.keepPitch = m_keepShuttlePitch && nt::audio::shuttleKeepsPitch(m_rate);
+    if (!m_scrubAudio) m_command.scrub = false;
     m_command.rate = m_rate > 0.0 ? m_rate : 1.0;
     if (seek) {
         m_command.seekSeq += 1;
         m_command.seekMs = seekMs;
         m_command.seekIssuedNs = nowNs;
-        m_command.scrub = m_scrubNext && !m_playing;
+        m_command.scrub = m_scrubAudio && m_scrubNext && !m_playing;
     }
     m_feed->command.store(m_command);
 }
@@ -448,6 +451,8 @@ void PlaybackClock::setRate(double rate) {
         const std::int64_t now = m_nowNs();
         if (m_playing) {
             const double t = boundedTimeLocked(rawTimeLocked(now));
+            const bool shuttleChange = m_keepShuttlePitch &&
+                (nt::audio::shuttleKeepsPitch(m_rate) || nt::audio::shuttleKeepsPitch(rate));
             m_rate = rate;
             updateBoundsLocked();
             const double resolved = resolveStartLocked(t);
@@ -458,7 +463,8 @@ void PlaybackClock::setRate(double rate) {
                 // over at the current time.
                 m_source = Source::Monotonic;
             }
-            if (resolved != t || (m_source == Source::Monotonic && m_feed && audioUsable(m_feed->device.load()))) {
+            if ((m_source == Source::Audio && rate > 0.0 && shuttleChange) || resolved != t ||
+                (m_source == Source::Monotonic && m_feed && audioUsable(m_feed->device.load()))) {
                 m_timeMs = resolved;
                 anchorLocked(resolved, now);
                 timeChangedNow = resolved != t;
@@ -549,4 +555,39 @@ void PlaybackClock::tick() {
     }
     if (sourceChanged) emit audioMasterChanged();
     emit timeChanged();
+}
+
+bool PlaybackClock::scrubAudio() const {
+    std::lock_guard lock(m_mutex);
+    return m_scrubAudio;
+}
+
+void PlaybackClock::setScrubAudio(bool enabled) {
+    {
+        std::lock_guard lock(m_mutex);
+        if (m_scrubAudio == enabled) return;
+        m_scrubAudio = enabled;
+        // A burst still waiting for its PCM must not sound after the switch is off.
+        if (!enabled && m_feed && m_command.scrub) sendCommandLocked(false, 0.0, m_nowNs());
+    }
+    emit scrubAudioChanged();
+}
+
+bool PlaybackClock::keepShuttlePitch() const {
+    std::lock_guard lock(m_mutex);
+    return m_keepShuttlePitch;
+}
+
+void PlaybackClock::setKeepShuttlePitch(bool enabled) {
+    {
+        std::lock_guard lock(m_mutex);
+        if (m_keepShuttlePitch == enabled) return;
+        const auto now = m_nowNs();
+        const double audible = m_playing ? boundedTimeLocked(rawTimeLocked(now)) : m_timeMs;
+        m_keepShuttlePitch = enabled;
+        if (m_playing && m_source == Source::Audio && nt::audio::shuttleKeepsPitch(m_rate)) {
+            anchorLocked(audible, now);
+        }
+    }
+    emit keepShuttlePitchChanged();
 }

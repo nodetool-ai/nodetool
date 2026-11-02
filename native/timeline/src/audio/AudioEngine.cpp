@@ -2,6 +2,7 @@
 #include "audio/loudness/LiveLoudness.h"
 
 #include "audio/AudioSource.h"
+#include "audio/ShuttleStretch.h"
 #include "audio/hooks/OutputDevice.h"
 
 #include "miniaudio.h"
@@ -60,6 +61,7 @@ struct Session {
     std::unique_ptr<std::atomic<PcmRing*>[]> live;         // published to the callback
     std::vector<std::int64_t> endFrame;                     // source frame past the clip end
     std::unique_ptr<std::atomic<bool>[]> failed;            // no PCM for this voice
+    std::vector<VoicePcm> shuttlePcm;                       // worker-only scratch
     std::vector<VoicePcm> pcm;                              // callback scratch
     std::atomic<bool> primed{false};
     std::atomic<bool> consumed{false};
@@ -102,6 +104,29 @@ struct AudioEngine::Impl {
     std::int64_t scrubPos = 0;
     std::vector<float> record;
     std::atomic<std::int64_t> recordedFrames{0};
+
+    // The worker resets write indices then release-stamps a command. The
+    // callback publishes a command-tagged read position, even for silence.
+    // Indices are absolute output frames relative to that anchor. A late
+    // producer skips to read, never overwrites unread frames. Atomic samples
+    // also cover a reset overlapping the end of an old callback. A final
+    // stamp check rejects that old block. No owner changes on the callback.
+    struct ShuttleRead {
+        std::uint64_t commandSeq = 0;
+        std::int64_t frame = 0;
+    };
+    playback::SeqLock<ShuttleRead> shuttleRead;
+    std::atomic<std::uint64_t> shuttleStamp{0};
+    std::atomic<std::int64_t> shuttleWrite{0};
+    std::atomic<std::int64_t> shuttleFirst{0};
+    std::atomic<std::int64_t> shuttleFrames{0};
+    std::atomic<std::int64_t> shuttleSkipped{0};
+    std::unique_ptr<std::atomic<float>[]> shuttleRing;
+    std::int64_t shuttleCapacity = 0;
+    std::uint64_t shuttleHeard = 0;  // callback only
+    std::unique_ptr<ShuttleStretcher> stretcher;
+    std::vector<float> shuttleOutput;
+    static_assert(std::atomic<float>::is_always_lock_free);
 
     // ---- worker ----
     std::jthread worker;
@@ -198,6 +223,9 @@ struct AudioEngine::Impl {
             meterPlaying = false;
             silence();
             waitBlocks.fetch_add(1, std::memory_order_relaxed);
+        } else if (anchor.keepPitch && shuttleKeepsPitch(anchor.rate)) {
+            renderShuttle(anchor, framesAt - anchor.frame, frames, out);
+            playedFrames.fetch_add(frames, std::memory_order_relaxed);
         } else {
             const double t0 = CallbackClockDriver::timelineAt(anchor, framesAt, sampleRate);
             const double msPerFrame = 1000.0 / sampleRate * anchor.rate;
@@ -235,6 +263,36 @@ struct AudioEngine::Impl {
         }
         callbacks.fetch_add(1, std::memory_order_relaxed);
         framesRendered.store(driver->framesRendered(), std::memory_order_relaxed);
+    }
+
+    void renderShuttle(const AudioAnchor& anchor, std::int64_t at, std::uint32_t frames, float* out) {
+        std::fill_n(out, static_cast<std::size_t>(frames) * 2, 0.f);
+        std::int64_t copied = 0;
+        if (shuttleStamp.load(std::memory_order_acquire) == anchor.commandSeq) {
+            const auto end = shuttleWrite.load(std::memory_order_acquire);
+            const auto first = shuttleFirst.load(std::memory_order_acquire);
+            for (std::uint32_t i = 0; i < frames; ++i) {
+                const auto f = at + i;
+                if (f < first || f >= end) continue;
+                const auto slot = static_cast<std::size_t>(f & (shuttleCapacity - 1)) * 2;
+                out[2 * i] = shuttleRing[slot].load(std::memory_order_relaxed);
+                out[2 * i + 1] = shuttleRing[slot + 1].load(std::memory_order_relaxed);
+                ++copied;
+            }
+            if (shuttleStamp.load(std::memory_order_acquire) != anchor.commandSeq) {
+                std::fill_n(out, static_cast<std::size_t>(frames) * 2, 0.f);
+                copied = 0;
+            }
+        }
+        // The block that first finds frames may be partly filled. It still counts as startup, not as an underrun.
+        const bool playingSince = shuttleHeard == anchor.commandSeq;
+        if (copied < frames) {
+            if (playingSince) underruns.fetch_add(1, std::memory_order_relaxed);
+            else waitBlocks.fetch_add(1, std::memory_order_relaxed);
+        }
+        if (copied > 0) shuttleHeard = anchor.commandSeq;
+        shuttleFrames.fetch_add(copied, std::memory_order_relaxed);
+        shuttleRead.store(ShuttleRead{anchor.commandSeq, at + frames});
     }
 
     // While paused, plays kScrubMs of the mix from the start of the primed session.
@@ -376,6 +434,7 @@ struct AudioEngine::Impl {
         s->failed = std::make_unique<std::atomic<bool>[]>(n);
         for (std::size_t i = 0; i < n; ++i) s->failed[i].store(false);
         s->pcm.assign(n, VoicePcm{});
+        s->shuttlePcm.assign(n, VoicePcm{});
         s->doneMs.store(startMs);
         if (previous) {
             // Identity plus the affine source mapping, not gain, fades, pan or
@@ -485,6 +544,68 @@ struct AudioEngine::Impl {
         });
     }
 
+    struct ShuttleMixSource : ShuttleSource {
+        Impl& engine;
+        Session& session;
+        ShuttleMixSource(Impl& e, Session& s) : engine(e), session(s) {}
+        void mix(double timelineMs, int frames, float* out) override {
+            const double step = 1000. / engine.sampleRate;
+            const double end = timelineMs + frames * step;
+            const MixPlan& plan = *session.plan;
+            bool missing = false;
+            for (std::size_t i = 0; i < plan.voices.size(); ++i) {
+                const VoicePlan& voice = plan.voices[i];
+                const bool overlaps = !voice.silent && end > voice.startMs && timelineMs < voice.startMs + voice.durationMs;
+                session.shuttlePcm[i].ring = overlaps ? session.live[i].load(std::memory_order_acquire) : nullptr;
+                if (overlaps && !session.shuttlePcm[i].ring && !session.failed[i].load(std::memory_order_relaxed)) missing = true;
+            }
+            MixStats stats;
+            mixBlock(plan, session.shuttlePcm.data(), engine.sampleRate, timelineMs, step, frames, out, stats);
+            if (stats.underruns > 0 || missing) engine.underruns.fetch_add(1, std::memory_order_relaxed);
+            session.doneMs.store(std::max(session.doneMs.load(std::memory_order_relaxed), end), std::memory_order_release);
+            session.consumed.store(true, std::memory_order_release);
+        }
+    };
+
+    void produceShuttle(Session* current) {
+        const auto cb = feed.callback.load();
+        const auto anchor = cb.cur();
+        if (!anchor.playing || !anchor.keepPitch || !shuttleKeepsPitch(anchor.rate) || !current ||
+            current != published.load() || current->seekSeq.load() != anchor.seekSeq || !current->primed.load()) return;
+        if (shuttleStamp.load(std::memory_order_relaxed) != anchor.commandSeq) {
+            shuttleStamp.store(0, std::memory_order_release);
+            stretcher->begin(anchor.rate, anchor.timelineMs);
+            shuttleWrite.store(0, std::memory_order_relaxed);
+            shuttleFirst.store(0, std::memory_order_relaxed);
+            shuttleStamp.store(anchor.commandSeq, std::memory_order_release);
+        }
+        auto write = shuttleWrite.load(std::memory_order_relaxed);
+        const auto readState = shuttleRead.load();
+        const auto read = readState.commandSeq == anchor.commandSeq ? readState.frame : 0;
+        if (read > write) {
+            shuttleSkipped.fetch_add(read - write, std::memory_order_relaxed);
+            write = read;
+            shuttleFirst.store(read, std::memory_order_release);
+            shuttleWrite.store(write, std::memory_order_release);
+        }
+        const auto lead = static_cast<std::int64_t>(sampleRate * std::min(.100, .900 / anchor.rate));
+        const auto quantum = std::max<std::int64_t>(1, static_cast<std::int64_t>(sampleRate * .010));
+        const auto n = std::min({quantum, std::int64_t(kShuttleMaxRequestFrames), read + lead - write,
+                                 read + shuttleCapacity - write});
+        if (n <= 0) return;
+        ShuttleMixSource source(*this, *current);
+        stretcher->render(source, write, static_cast<int>(n), shuttleOutput.data());
+        // Reads that advanced during synthesis simply discard these late frames
+        // on their next block. Capacity is measured against the older read,
+        // so producing cannot catch and overwrite unread samples.
+        for (std::int64_t i = 0; i < n; ++i) {
+            const auto slot = static_cast<std::size_t>((write + i) & (shuttleCapacity - 1)) * 2;
+            shuttleRing[slot].store(shuttleOutput[2 * i], std::memory_order_relaxed);
+            shuttleRing[slot + 1].store(shuttleOutput[2 * i + 1], std::memory_order_relaxed);
+        }
+        shuttleWrite.store(write + n, std::memory_order_release);
+    }
+
     std::uint64_t lastScrubArmed = 0;
     std::chrono::steady_clock::time_point lastScrubBuild{};
 
@@ -547,6 +668,7 @@ struct AudioEngine::Impl {
                 lastScrubArmed = cmd.seekSeq;
                 scrubRequest.store(cmd.seekSeq, std::memory_order_release);
             }
+            produceShuttle(current);
             evictSources(current);
             retire();
         }
@@ -636,6 +758,14 @@ bool AudioEngine::start(const Options& options, std::string* error) {
     d.deviceName = d.device.playback.name;
     d.latencySec.store(d.queryLatency());
     d.driver = std::make_unique<CallbackClockDriver>(d.feed);
+    d.shuttleStamp.store(0);
+    d.shuttleRead.store(Impl::ShuttleRead{});
+    d.shuttleHeard = 0;
+    d.shuttleCapacity = 1;
+    while (d.shuttleCapacity < static_cast<std::int64_t>(d.sampleRate)) d.shuttleCapacity *= 2;
+    d.shuttleRing = std::make_unique<std::atomic<float>[]>(static_cast<std::size_t>(d.shuttleCapacity) * 2);
+    d.stretcher = std::make_unique<ShuttleStretcher>(d.sampleRate);
+    d.shuttleOutput.resize(kShuttleMaxRequestFrames * 2);
     if (options.recordSeconds > 0.0) {
         d.record.assign(static_cast<std::size_t>(options.recordSeconds * d.sampleRate) * 2, 0.0f);
     }
@@ -675,6 +805,9 @@ void AudioEngine::stop() {
     d.published.store(nullptr);
     d.inUse.store(nullptr);
     d.sessions.clear();
+    d.stretcher.reset();
+    d.shuttleRing.reset();
+    d.shuttleOutput.clear();
     d.sources.clear();
     // The device is stopped, so the callback no longer reads the meter.
     d.liveLoudness.reset();
@@ -698,6 +831,8 @@ void AudioEngine::simulateDeviceNotification(bool started) {
 AudioEngine::Stats AudioEngine::stats() const {
     const Impl& d = *m_impl;
     Stats s;
+    s.shuttleFrames = d.shuttleFrames.load();
+    s.shuttleSkipped = d.shuttleSkipped.load();
     s.callbacks = d.callbacks.load();
     s.framesRendered = d.framesRendered.load();
     s.underruns = d.underruns.load();

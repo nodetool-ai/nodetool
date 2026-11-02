@@ -34,6 +34,8 @@ class PlaybackClock : public QObject {
     Q_PROPERTY(double rangeOutMs READ rangeOutMs WRITE setRangeOut NOTIFY rangeChanged)
     Q_PROPERTY(double fps READ fps WRITE setFps NOTIFY fpsChanged)
     Q_PROPERTY(bool playingInToOut READ playingInToOut NOTIFY playingInToOutChanged)
+    Q_PROPERTY(bool scrubAudio READ scrubAudio WRITE setScrubAudio NOTIFY scrubAudioChanged)
+    Q_PROPERTY(bool keepShuttlePitch READ keepShuttlePitch WRITE setKeepShuttlePitch NOTIFY keepShuttlePitchChanged)
     Q_PROPERTY(bool audioMaster READ audioMaster NOTIFY audioMasterChanged)
 
 public:
@@ -47,6 +49,10 @@ public:
     void setLoop(bool loop);
     double rate() const { return m_rate; }
     void setRate(double rate);
+    bool scrubAudio() const;
+    void setScrubAudio(bool enabled);
+    bool keepShuttlePitch() const;
+    void setKeepShuttlePitch(bool enabled);
     double rangeInMs() const { return m_rangeInMs; }
     double rangeOutMs() const { return m_rangeOutMs; }
     double fps() const { return m_fps; }
@@ -88,6 +94,8 @@ public slots:
     void tick();
 
 signals:
+    void scrubAudioChanged();
+    void keepShuttlePitchChanged();
     void timeChanged();
     void playingChanged();
     void durationMsChanged();
@@ -129,6 +137,8 @@ private:
     std::int64_t m_monoAnchorNs = 0;
     std::uint64_t m_seekSerial = 0;
     bool m_scrubNext = false;
+    bool m_scrubAudio = true;
+    bool m_keepShuttlePitch = true;
     double m_timeMs = 0.0;
     double m_durationMs = 0.0;
     double m_rate = 1.0;

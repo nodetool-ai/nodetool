@@ -295,6 +295,17 @@ Rectangle {
             x: parent.width - width - Ui.Metrics.md
             anchors.verticalCenter: parent.verticalCenter
             spacing: Ui.Metrics.md
+            Ui.ToolbarIconButton {
+                objectName: "transportScrubAudio"
+                iconName: area.clock.scrubAudio ? "volumeUp" : "volumeOffOutlined"
+                anchors.verticalCenter: parent.verticalCenter
+                active: area.clock.scrubAudio
+                Accessible.checkable: true
+                Accessible.checked: area.clock.scrubAudio
+                accessibleName: "Play audio while scrubbing"
+                shortcutText: "Shift+S"
+                onClicked: area.clock.scrubAudio = !area.clock.scrubAudio
+            }
             Ui.Text {
                 objectName: "transportDuration"
                 anchors.verticalCenter: parent.verticalCenter
