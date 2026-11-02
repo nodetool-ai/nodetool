@@ -49,7 +49,7 @@ The picker disables a card that would break a rule and names the preset blocking
 
 `compilePresets(ids, { modelId, mode, prompt, catalog })` returns `{ prompt, params, applied, warnings }`. It is deterministic and has no model call.
 
-1. `modelFamily(modelId)` maps the provider model id to a family: `kling`, `seedance`, `veo`, `wan`, `sora`, `minimax`, `ltx`, `local-wan` or `default`. The same table picks the prompting guide in `MODEL_PROMPTING_SKILLS`, so one list decides both. For the `nodetool` provider, the delegate model resolves first.
+1. `modelFamily(modelId)` maps the provider model id to a family: `kling`, `seedance`, `veo`, `wan`, `sora`, `minimax`, `ltx`, `local-wan` or `default`. [Local Wan2GP models](#local-wan2gp-models) explains the local ids. The same table picks the prompting guide in `MODEL_PROMPTING_SKILLS`, so one list decides both. For the `nodetool` provider, the delegate model resolves first.
 2. For each preset in stack order, the compiler takes the fragment for that family, or `default` when the preset has none.
 3. A string fragment appends to the prompt with a space. An object fragment `{ prefix, suffix, replace }` joins `prefix`, then `replace` (or the current prompt when there is no `replace`), then `suffix`. A `replace` fragment drops the prompt built so far, so use it only for effects that must own the whole instruction.
 4. For each preset, the selected `family_params` entry overrides `params`. There is no default-family fallback for settings. A scoped key absent from both the selected family and shared params is dropped with a warning naming the preset, key and family. Settings outside the mode allowlist in `mediaPresetSettings` are also dropped with a warning before conflict checking. The remaining params merge in stack order. Two presets that set the same key to different values fail the compile with an error naming both.
@@ -98,6 +98,41 @@ ticket.
 Use looks through the CLI, agent preset tools or media requests with
 `preset_ids`. The existing composer picker continues to offer camera and effect
 presets. Dedicated storyboard and composer look controls follow in P15.
+
+### Local Wan2GP models
+
+A [Wan2GP](wan2gp.md) model id is the model's `model_type`, the stem of its
+`defaults/` file, such as `ti2v_2_2_fastwan`. The `wangp` provider reports it
+unchanged. `modelFamily` maps them as follows:
+
+| Wan2GP family | NodeTool family | How it matches |
+|---|---|---|
+| Wan 2.1 and Wan 2.2, including `uni3c`, `prism` and the Chrono Edit image models | `local-wan` | The exact, case-insensitive `localWan` allowlist in `packages/presets/src/families.ts`: WanGP v19.02 ids plus the legacy `fun_camera` |
+| LTX-2 (`ltx2_*`) | `ltx` | The hosted LTX pattern, which already matches `ltx2` |
+| MiniMax H3 (`minimax_h3_*`) | `minimax` | The H3 pattern, which also accepts `minimax_h3` |
+| Others: Hunyuan, Kandinsky, LongCat, Magi Human, EVOKE, Hy-Nomas, LTX-Video 0.9, JoyAI-Echo, Viggle | none | Default wording with a warning |
+
+Provider prefixes, arbitrary suffixes, neighbouring versions and finetunes a
+user adds to Wan2GP do not map to `local-wan`. Local H3 shares `minimax` with
+the hosted H3 routes because it is the same model line, and it gets the same
+`minimax-h3-prompting` guide. Local Wan 2.1 and 2.2 do not get the Wan 2.6
+guide, whose shot controls are version-specific.
+`packages/presets/tests/wan2gp-models.json` pins the claimed and excluded ids
+of WanGP v19.02 and the family each of its 173 video models compiles to.
+
+Every camera and effect preset has a `local-wan` fragment. Restyles describe
+the whole frame in the target medium. These fragments compile whatever
+`families` says, and `families` records only tested eligibility, which no
+preset has for `local-wan` yet (P24). No preset has an `ltx` or `minimax`
+fragment, so those models compile with the `default` fragment and the
+fallback warning below.
+
+Presets reach a Wan2GP model through the built-in `wangp` provider, which
+calls the Wan2GP server named by `WAN2GP_MCP_URL` over MCP.
+[Wan2GP](wan2gp.md#use-presets-with-your-server) lists what it sends for each
+task. The provider lists the server's models, and media requests compile
+presets for them before the prompt reaches the server. The `lib.wan2gp` nodes
+take a plain prompt and no `preset_ids`.
 
 ### Fallback warning
 
@@ -347,28 +382,6 @@ Camera and effective look presets share the three-preset limit. Choose one per s
 The composer uses one Presets picker with Camera, Look and Effect kind filters. This keeps the shared selection limit visible and lets a look combine with a camera move. Only presets supporting the current mode appear.
 
 Agents can set `look_preset_ids` with `edit_storyboard` on `set_board`, `add_shot` or `update_shot`. The frontend bridge exposes the board field through `ui_storyboard_set_style` and shot fields through the add/update tools.
-
-### Local Wan models
-
-| Family | Model ids |
-| --- | --- |
-| `wan` | Hosted Wan 2.6 video routes |
-| `local-wan` | Exact Wan2GP Wan video defaults stems, including `t2v`, `i2v`, `t2v_2_2`, `i2v_2_2`, `ti2v_2_2` and `ti2v_2_2_fastwan` |
-
-The `wangp` provider reports bare defaults stems as model ids. Both server
-compilation and web previews use the shared case-insensitive allowlist in
-[`families.ts`](https://github.com/nodetool-ai/nodetool/blob/main/packages/presets/src/families.ts). It includes Wan-derived
-control, talking, editing and distilled variants, plus legacy Fun Camera ids.
-Provider prefixes, arbitrary suffixes, neighboring versions and non-Wan defaults
-such as Hunyuan, LTX, Kandinsky, image and audio models do not map to `local-wan`.
-The complete claimed and excluded defaults are pinned in the
-[Wan2GP fixtures](https://github.com/nodetool-ai/nodetool/blob/main/packages/presets/tests/wan2gp-models.json).
-
-Every camera and effect has a local fragment with positive motion or material
-instructions. Restyles describe the whole frame in the target medium. These
-fragments compile independently of `families`, which records tested eligibility.
-Local eligibility and rendered previews remain P24 work. Local Wan 2.1/2.2 does
-not select the Wan 2.6 prompting guide, whose shot controls are version-specific.
 
 ## Community preset packs
 

@@ -14,9 +14,7 @@ import { getSecret } from "@nodetool-ai/models";
 /** Settings the worker or its node packs read with `os.environ`. */
 export const WORKER_ENV_SETTINGS = [
   // nodetool-core: torch device for every node (cuda, cuda:N, mps, cpu).
-  "NODETOOL_TORCH_DEVICE",
-  // nodetool-wan2gp: the Wan2GP server's MCP endpoint.
-  "WAN2GP_MCP_URL"
+  "NODETOOL_TORCH_DEVICE"
 ] as const;
 
 /** The user whose settings a single-user (local) server applies. */

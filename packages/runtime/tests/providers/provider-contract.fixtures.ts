@@ -45,6 +45,7 @@ export const MEDIA_ONLY_EXEMPTIONS: Record<string, string> = {
   elevenlabs: "Text-to-speech provider; generateMessage(s) always throws.",
   topaz: "Image upscaling provider; generateMessage(s) always throws.",
   reve: "Image generation provider; generateMessage(s) always throws.",
+  wangp: "Wan2GP video and image generation over MCP; generateMessage(s) always throws.",
   stable_diffusion_cpp:
     "Local image generation through a spawned sd-server; generateMessage(s) always throws.",
   higgsfield:

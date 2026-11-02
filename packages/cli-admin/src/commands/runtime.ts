@@ -7,20 +7,26 @@
  * pinned list the desktop Package Manager installs. A feature that needs a
  * missing one fails with a message naming `nodetool runtime add <id>`.
  *
- * `sd-cpp` is the one binary here: the stable-diffusion.cpp `sd-server`
- * release, unpacked into `runtimeLocations().sdCpp` by the installer the
- * desktop app shares.
+ * `sd-cpp` is the stable-diffusion.cpp `sd-server` release, unpacked into
+ * `runtimeLocations().sdCpp` by the installer the desktop app shares.
+ * `wan2gp` is the Wan2GP source and the Python environment its own installer
+ * builds in `runtimeLocations().wan2gp`, with a Python 3.10+ and uv from the
+ * NodeTool conda environment or PATH.
  */
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import type { Command } from "commander";
 import { z } from "zod";
 import {
+  WAN2GP_VERSION,
   installSdCpp,
+  installWan2GP,
   runtimeLocations,
   sdCppInstallStatus,
-  uninstallSdCpp
+  uninstallSdCpp,
+  uninstallWan2GP,
+  wan2gpInstallStatus
 } from "@nodetool-ai/config";
 import {
   RUNTIME_NPM_PACKAGES,
@@ -37,9 +43,10 @@ import { withInstallLock } from "@nodetool-ai/pack-manager/install-lock";
 const installedManifestSchema = z.object({ version: z.string() });
 
 const SD_CPP_ID = "sd-cpp";
+const WAN2GP_ID = "wan2gp";
 
 interface RuntimeRow {
-  id: RuntimeNpmPackageId | typeof SD_CPP_ID;
+  id: RuntimeNpmPackageId | typeof SD_CPP_ID | typeof WAN2GP_ID;
   name: string;
   installed: boolean;
   version: string;
@@ -82,6 +89,68 @@ async function sdCppRow(): Promise<RuntimeRow> {
   };
 }
 
+function wan2gpDir(): string {
+  const dir = runtimeLocations().wan2gp;
+  if (!dir) {
+    throw new Error("This host has no Wan2GP install directory. Set WAN2GP_MCP_URL to a Wan2GP server instead.");
+  }
+  return dir;
+}
+
+async function wan2gpRow(): Promise<RuntimeRow> {
+  const status = await wan2gpInstallStatus(wan2gpDir(), process.platform);
+  return {
+    id: WAN2GP_ID,
+    name: RUNTIME_PACKAGE_NAMES[WAN2GP_ID],
+    installed: status.installed,
+    version: status.version ?? "",
+    description: `Local video, image and audio generation server for the Wan2GP provider and nodes (${WAN2GP_VERSION}).`
+  };
+}
+
+/** The first of `names` in the NodeTool conda environment, then on PATH. */
+function findExecutable(names: readonly string[]): string | null {
+  const windows = process.platform === "win32";
+  const dirs: string[] = [];
+  const conda = runtimeLocations().condaEnv;
+  if (conda) {
+    dirs.push(windows ? conda : join(conda, "bin"));
+    if (windows) dirs.push(join(conda, "Library", "bin"), join(conda, "Scripts"));
+  }
+  dirs.push(...(process.env.PATH ?? "").split(delimiter).filter(Boolean));
+  for (const dir of dirs) {
+    for (const name of names) {
+      const candidate = join(dir, windows ? `${name}.exe` : name);
+      if (existsSync(candidate)) return candidate;
+    }
+  }
+  return null;
+}
+
+async function addWan2GP(options: { python?: string; uv?: string; profile?: string }): Promise<void> {
+  const python = options.python ?? findExecutable(["python3", "python"]);
+  const uv = options.uv ?? findExecutable(["uv"]);
+  if (!python || !uv) {
+    throw new Error(
+      "Installing Wan2GP needs a Python 3.10+ and uv (https://docs.astral.sh/uv/). Put them on PATH, or pass --python and --uv."
+    );
+  }
+  const installDir = wan2gpDir();
+  console.error(`Installing Wan2GP ${WAN2GP_VERSION} into ${installDir}`);
+  await installWan2GP({
+    installDir,
+    platform: process.platform,
+    python,
+    uv,
+    ...(options.profile && { profile: options.profile }),
+    onEvent: (event) => {
+      if (event.type === "stage") {
+        console.error(event.label);
+      }
+    }
+  });
+}
+
 async function runtimeRows(): Promise<RuntimeRow[]> {
   const ids = Object.keys(RUNTIME_NPM_PACKAGES).filter(isRuntimeNpmPackageId);
   const npmRows = await Promise.all(
@@ -98,19 +167,22 @@ async function runtimeRows(): Promise<RuntimeRow[]> {
       };
     })
   );
-  return runtimeLocations().sdCpp ? [...npmRows, await sdCppRow()] : npmRows;
+  const rows: RuntimeRow[] = [...npmRows];
+  if (runtimeLocations().sdCpp) rows.push(await sdCppRow());
+  if (runtimeLocations().wan2gp) rows.push(await wan2gpRow());
+  return rows;
 }
 
 /** Parse the ids a user typed, failing on any id the catalog lacks. */
-function parseIds(ids: readonly string[]): { npm: RuntimeNpmPackageId[]; sdCpp: boolean } {
-  const unknown = ids.filter((id) => id !== SD_CPP_ID && !isRuntimeNpmPackageId(id));
+function parseIds(ids: readonly string[]): { npm: RuntimeNpmPackageId[]; sdCpp: boolean; wan2gp: boolean } {
+  const unknown = ids.filter((id) => id !== SD_CPP_ID && id !== WAN2GP_ID && !isRuntimeNpmPackageId(id));
   if (unknown.length > 0) {
-    const known = [...Object.keys(RUNTIME_NPM_PACKAGES), SD_CPP_ID].join(", ");
+    const known = [...Object.keys(RUNTIME_NPM_PACKAGES), SD_CPP_ID, WAN2GP_ID].join(", ");
     throw new Error(
       `Unknown runtime package: ${unknown.join(", ")}. Known: ${known}.`
     );
   }
-  return { npm: ids.filter(isRuntimeNpmPackageId), sdCpp: ids.includes(SD_CPP_ID) };
+  return { npm: ids.filter(isRuntimeNpmPackageId), sdCpp: ids.includes(SD_CPP_ID), wan2gp: ids.includes(WAN2GP_ID) };
 }
 
 /** Create the root with a private manifest, so npm installs into it. */
@@ -154,8 +226,14 @@ export function registerRuntimeCommands(program: Command): void {
     .command("add")
     .description("Install one or more runtime packages by id")
     .argument("<ids...>", "Runtime package ids, from `nodetool runtime list`")
-    .action(async (ids: string[]) => {
-      const { npm: parsed, sdCpp } = parseIds(ids);
+    .option("--python <path>", "wan2gp: the Python 3.10+ that runs Wan2GP's installer")
+    .option("--uv <path>", "wan2gp: the uv executable Wan2GP's installer uses")
+    .option("--profile <name>", "wan2gp: a Wan2GP hardware profile, such as RTX_40, instead of the detected one")
+    .action(async (ids: string[], options: { python?: string; uv?: string; profile?: string }) => {
+      const { npm: parsed, sdCpp, wan2gp } = parseIds(ids);
+      if (wan2gp) {
+        await addWan2GP(options);
+      }
       if (sdCpp) {
         const installDir = sdCppDir();
         console.error(`Installing sd-cpp into ${installDir}`);
@@ -191,9 +269,12 @@ export function registerRuntimeCommands(program: Command): void {
     .description("Uninstall one or more runtime packages by id")
     .argument("<ids...>", "Runtime package ids")
     .action(async (ids: string[]) => {
-      const { npm: parsed, sdCpp } = parseIds(ids);
+      const { npm: parsed, sdCpp, wan2gp } = parseIds(ids);
       if (sdCpp) {
         await uninstallSdCpp(sdCppDir());
+      }
+      if (wan2gp) {
+        await uninstallWan2GP(wan2gpDir());
       }
       if (parsed.length === 0) {
         return;

@@ -49,6 +49,8 @@ export interface VideoModel {
   durations?: number[];
   resolutions?: string[];
   aspectRatios?: string[];
+  /** Execution adapter facts for a model whose files run on this host. */
+  adapter?: ModelAdapterInfo;
 }
 
 export interface ModelArtifactRef {

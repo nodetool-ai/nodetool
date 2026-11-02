@@ -43,6 +43,7 @@ import { GeminiVertexProvider } from "./gemini-vertex-provider.js";
 import { LlamaProvider } from "./llama-provider.js";
 import { NodeLlamaCppProvider } from "./node-llama-cpp-provider.js";
 import { StableDiffusionCppProvider } from "./sdcpp-provider.js";
+import { Wan2GPProvider } from "./wan2gp-provider.js";
 import { OpenAIProvider } from "./openai-provider.js";
 import { CodexProvider } from "./codex-provider.js";
 import { OllamaProvider } from "./ollama-provider.js";
@@ -259,6 +260,43 @@ export { GeminiProvider };
 export { LlamaProvider };
 export { NodeLlamaCppProvider };
 export { StableDiffusionCppProvider };
+export { Wan2GPProvider, resetWan2GPListings, wan2gpBaseSettings, wan2gpResolution } from "./wan2gp-provider.js";
+export { findInstalledWan2GP, stopWan2GPServer, warmWan2GPServer, withWan2GPClient } from "./wan2gp-server.js";
+export {
+  downloadWan2GPModel,
+  markWan2GPModelAvailable,
+  resetWan2GPFileStatus,
+  wan2gpCatalog,
+  wan2gpFileStatus
+} from "./wan2gp-models.js";
+export type { Wan2GPDownloadProgress, Wan2GPFileStatus } from "./wan2gp-models.js";
+export type { Wan2GPConnection } from "./wan2gp-server.js";
+export {
+  WAN2GP_CANCEL_TIMEOUT_MS,
+  WAN2GP_DEFAULT_MAX_MEDIA_BYTES,
+  WAN2GP_DEFAULT_SERVER_URL,
+  WAN2GP_MAX_MEDIA_BYTES,
+  Wan2GPClient,
+  Wan2GPError,
+  Wan2GPTimeoutError,
+  parseWan2GPToolResult,
+  wan2gpAudioFilename,
+  wan2gpFirstGalleryItem,
+  wan2gpImageFilename,
+  wan2gpJobErrorMessage,
+  wan2gpMediaTypeFor,
+  wan2gpOrigin,
+  wan2gpProgressFromJob,
+  wan2gpTransferUrl,
+  wan2gpVideoFilename
+} from "./wan2gp-client.js";
+export type {
+  Wan2GPClientOptions,
+  Wan2GPGalleryItem,
+  Wan2GPPollOptions,
+  Wan2GPProgress,
+  Wan2GPRecord
+} from "./wan2gp-client.js";
 export { SD_CPP_MODELS, type SdCppModelSpec } from "./sdcpp-models.js";
 export { OpenAIProvider };
 export { snapToGptImage2Size } from "./gpt-image-size.js";
@@ -799,6 +837,17 @@ if (!_cloudProfile) {
     {},
     { SD_CPP_SERVER_PATH: "", MODEL_FOLDERS: "" },
     { access: "local_service", displayName: "stable-diffusion.cpp" }
+  );
+  // Wan2GP: a server the user runs, reached over MCP. WAN2GP_MCP_URL
+  // and WAN2GP_MCP_TOKEN re-resolve on every getProvider() call, so a changed
+  // setting applies without a restart. The model list is empty while no
+  // server answers.
+  registerBuiltinProvider(
+    PROVIDER_IDS.WANGP,
+    Wan2GPProvider,
+    {},
+    { WAN2GP_MCP_URL: "", WAN2GP_MCP_TOKEN: "" },
+    { access: "local_service", displayName: "Wan2GP" }
   );
   // vLLM — base URL from Settings / env; optional API key defaults like LM Studio.
   registerBuiltinProvider(

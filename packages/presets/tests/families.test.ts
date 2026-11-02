@@ -70,11 +70,13 @@ it.each([
   expect(modelFamily(id)).toBeNull();
 });
 
-// defaults/*.json at Wan2GP 362c3467, classified by model names, weights and
-// inherited architectures. Includes legacy fun_camera ids requested by the pack.
+// The WanGP v19.02 registry (616e605). Wan2GP model ids are its `defaults/`
+// file stems, which the `wangp` provider reports unchanged. `wan` keeps the
+// legacy fun_camera id from 362c3467.
 const wan2gp = JSON.parse(readFileSync(new URL("./wan2gp-models.json", import.meta.url), "utf8")) as {
   wan: string[];
   excluded: string[];
+  video: ReadonlyArray<{ model_type: string; family: string; name: string }>;
 };
 it.each(wan2gp.wan)("maps bare Wan2GP model %s exactly to local-wan", (id) => {
   expect(modelFamily(id)).toBe("local-wan");
@@ -89,4 +91,70 @@ it.each(wan2gp.excluded)("does not claim non-Wan defaults model %s", (id) => {
 });
 it.each(["t2v_2_3", "i2v_2_3", "ti2v_2_3_fastwan", "t2v_13B", "fun_camera_13B"])("leaves unlisted Wan neighbors %s unclaimed", (id) => {
   expect(modelFamily(id)).toBeNull();
+});
+
+// The video models of WanGP v19.02 and the family each one compiles to.
+const WAN2GP_FAMILY: Readonly<Record<string, ModelFamily | null>> = {
+  wan: "local-wan",
+  wan2_2: "local-wan",
+  ltx2: "ltx",
+  minimax_h3: "minimax"
+};
+// Wan2GP files these under a family whose prompting the NodeTool family does
+// not cover. They compile with default wording and a warning.
+const WAN2GP_EXCEPTIONS: Readonly<Record<string, ModelFamily | null>> = {
+  // LTX-2 finetunes and LTX-Video 0.9, named without the `ltx2` line marker.
+  joyai_echo: null,
+  joyai_echo_surgical: null,
+  ltxv_13B: null,
+  ltxv_distilled: null,
+  // Viggle's character animator, built on H3 but prompted as an animator.
+  viggle_animate: null
+};
+
+it("reads the recorded WanGP v19.02 video registry", () => {
+  expect(wan2gp.video.length).toBe(173);
+  expect(wan2gp.video.filter((model) => WAN2GP_FAMILY[model.family] === "local-wan").map((model) => model.model_type))
+    .toEqual(expect.arrayContaining(["t2v_2_2", "i2v_2_2", "ti2v_2_2_fastwan", "uni3c", "prism", "vace_14B"]));
+});
+
+it.each(wan2gp.video.map((model) => [model.model_type, model.family] as const))(
+  "maps Wan2GP model %s (family %s)",
+  (modelType, family) => {
+    const expected = Object.hasOwn(WAN2GP_EXCEPTIONS, modelType)
+      ? WAN2GP_EXCEPTIONS[modelType]
+      : (WAN2GP_FAMILY[family] ?? null);
+    expect(modelFamily(modelType)).toBe(expected);
+  }
+);
+
+it("keeps hosted MiniMax and Hailuo routes on minimax and local H3 off Wan", () => {
+  for (const id of ["minimax/h3/text-to-video", "minimax-h3/image-to-video", "hailuo/2-3-image-to-video-pro", "minimax/video-01", "t2v-01-director"]) {
+    expect(modelFamily(id)).toBe("minimax");
+  }
+  expect(modelFamily("minimax_h3_fl2va_pruned")).toBe("minimax");
+  expect(modelFamily("minimax_h3_fl2va_pruned")).not.toBe("local-wan");
+  expect(modelFamily("minimax_h30")).toBeNull();
+  expect(modelFamily("minimax_h3.5")).toBeNull();
+});
+
+it("matches Wan2GP ids exactly, not as prefixes or substrings", () => {
+  expect(modelFamily("T2V_2_2")).toBe("local-wan");
+  for (const id of ["t2v_2_2_custom_finetune", "my_t2v_2_2", "fal-ai/t2v", "t2v-01", "animate-anything"]) {
+    expect(modelFamily(id)).not.toBe("local-wan");
+  }
+});
+
+it("claims no shipped hosted model id for the local Wan2GP families", () => {
+  const local = new Set(wan2gp.video.map((model) => model.model_type.toLowerCase()));
+  let checked = 0;
+  for (const provider of ["fal", "kie", "replicate", "higgsfield", "atlascloud", "together", "topaz"]) {
+    const source = readFileSync(new URL(`../../${provider}-nodes/src/${provider}-manifest.json`, import.meta.url), "utf8");
+    for (const [, id] of source.matchAll(/"(?:endpointId|modelId|model_id|model|id|endpoint)"\s*:\s*"([^"]+)"/g)) {
+      checked += 1;
+      expect(local.has(id.toLowerCase())).toBe(false);
+      expect(modelFamily(id)).not.toBe("local-wan");
+    }
+  }
+  expect(checked).toBeGreaterThan(100);
 });

@@ -33,6 +33,23 @@ export const LOCAL_PROVIDERS: readonly LocalProviderSpec[] = [
     capabilities: ["text_to_image", "image_to_image"]
   },
   {
+    provider: "wangp",
+    displayName: "Wan2GP",
+    install: { kind: "runtime", id: "wan2gp" },
+    installLabel: "Wan2GP",
+    // Wan2GP's installer picks a profile for NVIDIA and AMD on Windows and
+    // Linux, and for Apple Silicon. It names the GPU it found otherwise.
+    capabilities: [
+      "text_to_video",
+      "image_to_video",
+      "reference_to_video",
+      "text_to_image",
+      "image_to_image",
+      "text_to_speech",
+      "text_to_music"
+    ]
+  },
+  {
     provider: "node_llama_cpp",
     displayName: "llama.cpp (local)",
     install: { kind: "runtime", id: "node-llama-cpp" },

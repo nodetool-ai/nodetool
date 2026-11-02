@@ -121,7 +121,8 @@ const LOCAL_PROVIDERS: readonly string[] = [
   "claude_agent_sdk",
   "antigravity",
   "node_llama_cpp",
-  "stable_diffusion_cpp"
+  "stable_diffusion_cpp",
+  "wangp"
 ];
 
 /**

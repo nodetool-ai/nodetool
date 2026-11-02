@@ -58,6 +58,7 @@ Generate, edit and assemble video, timelines and scripts.
 |---|---|---|
 | [gemini.video](gemini/video/) | Gemini text to video and image to video. | 2 |
 | [lib.video.download](lib/video/download/) | Download a video from YouTube. | 1 |
+| [lib.wan2gp](lib/wan2gp/) | Generate video, images, audio and 3D models with a Wan2GP server you run. | 4 |
 | [nodetool.creative](nodetool/creative/) | Storyboard helpers such as director, screenplay shots, shot batches and entity application. | 5 |
 | [nodetool.manimgx](nodetool/manimgx/) | Write, inspect and render ManimGX math and 3D animation scenes in Python. | 3 |
 | [nodetool.script](nodetool/script/) | Load voiceover scripts and convert them to subtitles, timelines and voiced audio. | 4 |
