@@ -80,13 +80,15 @@ transaction. Set `resetOnDoubleTap` to let the slider own that gesture. A single
 tap then commits after the platform double-click interval; a drag commits on
 release.
 
-`Ui.TextField` and `Ui.TextArea` take a string `value`; `Ui.NumberField` takes
+`Ui.TextField` and `Ui.TextArea` take a string `value`. `Ui.NumberField` takes
 a numeric `value`, `displayValue`, `unit`, `from`, `to`, and `stepSize`. Fields
 also accept `accessibleName`, `readOnly`, `enabled`, `valid`, `errorText`, and
 `density`. TextField accepts `suffix`. All emit `editStarted()`,
 `valuePreviewed(value)`, `valueCommitted(value)`, and `editCanceled()`.
 `NumberField.previewWhileTyping` defaults to true. Set it to false to defer
 typed drafts until commit while retaining arrow-key previews.
+Enter in `TextField` and `NumberField` commits a valid draft, then emits
+`accepted()` for the host's default action.
 `cancelEdit()` discards the draft. Invalid focus loss cancels and restores the
 latest authoritative value. Hosts roll back previewed document changes.
 

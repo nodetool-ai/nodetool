@@ -56,7 +56,11 @@ Basic.TextField {
     Keys.onPressed: event => {
         if (inputMethodComposing) return
         if (event.key === Qt.Key_Escape && editing) { cancelEdit(); event.accepted = true; return }
-        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) { finishEdit(); event.accepted = true; return }
+        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+            if (valid && draftValid) { finishEdit(); accepted() }
+            event.accepted = true
+            return
+        }
         if (!readOnly && (event.key === Qt.Key_Up || event.key === Qt.Key_Down)) {
             begin()
             const factor = event.modifiers & Qt.ShiftModifier ? 10 : event.modifiers & Qt.AltModifier ? 0.1 : 1
