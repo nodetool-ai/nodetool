@@ -25,5 +25,8 @@
   },
   "observability": {
     "enabled": true
-  }
+  },
+  // Wrangler uploads source maps by default. The OpenNext server bundle's maps
+  // exceed Cloudflare's 60 MiB limit, which rejects the deploy (error 10021).
+  "upload_source_maps": false
 }
