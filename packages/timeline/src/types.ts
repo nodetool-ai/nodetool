@@ -171,6 +171,12 @@ export interface CaptionWord {
   kind?: CaptionWordKind;
   /** ASR confidence in [0, 1] when the provider reports one. */
   confidence?: number;
+  /**
+   * Pins a caption boundary that the pause and length rules would not produce:
+   * `"start"` begins a new cue at this word, `"continue"` keeps it in the current
+   * cue. Absent means the rules decide. Written by the native Captions tab.
+   */
+  cue?: "start" | "continue";
 }
 
 /**
