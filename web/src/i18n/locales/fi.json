@@ -9045,6 +9045,10 @@
           "button": "Hanki API Route -avain",
           "tooltip": "Siirry API Routen API-avainsivulle"
         },
+        "RUNCRATE_API_KEY": {
+          "button": "Hanki Runcrate API-avain",
+          "tooltip": "Siirry Runcraten API-avainsivulle"
+        },
         "HF_TOKEN": {
           "button": "Hanki Hugging Face -tunnus",
           "tooltip": "Siirry Hugging Facen tunnussivulle"
