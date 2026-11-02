@@ -37,7 +37,9 @@ QString validate(const EditDoc& doc, const QJsonObject& clip, bool split) {
     return {};
 }
 bool sourceAnchored(const QJsonObject& animation) {
-    return animation.value("custom").toObject().value("timeBase").toString() == u"source";
+    const auto custom = animation.value("custom").toObject();
+    return animation.value("preset").toString() == u"custom" && custom.value("timeBase").toString() == u"source" &&
+           !custom.value("curves").toArray().isEmpty();
 }
 // `piece` is the right half of `original`, whose source curves were cut at the split. Its own animations keep their ids.
 void restoreSourceCurves(QJsonObject& piece, const QJsonObject& original, double fromMs) {
