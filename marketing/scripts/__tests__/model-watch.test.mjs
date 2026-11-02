@@ -26,6 +26,13 @@ test("matchesSlug is token-aware, not naive substring", () => {
   assert.ok(matchesSlug("google/veo-3", "veo-3"));
 });
 
+test("matchesSlug treats . _ and / like - in ids and display names", () => {
+  assert.ok(matchesSlug("stability-ai/stable-diffusion-3.5-large", "stable-diffusion-3-5"));
+  assert.ok(matchesSlug("Minimax_Image_01", "minimax-image-01"));
+  assert.ok(matchesSlug("minimax/image-01", "minimax-image-01"));
+  assert.ok(!matchesSlug("stability-ai/stable-diffusion-3.5-large", "stable-diffusion-3-4"));
+});
+
 test("classifyProvider: covered, ignored, and new are split correctly", () => {
   const knownSlugs = ["flux", "imagen"];
   const watchlist = loadWatchlist({

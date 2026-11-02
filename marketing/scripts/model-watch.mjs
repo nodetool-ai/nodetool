@@ -78,7 +78,11 @@ const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
  * "veo3" / "veo 3" (the de-hyphenated variants the coverage generator keys on).
  */
 export function matchesSlug(text, slug) {
-  const hay = String(text).toLowerCase();
+  // ".", "_" and "/" separate tokens like "-" does: `stable-diffusion-3.5-large`
+  // matches the page slug `stable-diffusion-3-5`, and `minimax/image-01`
+  // matches `minimax-image-01`. `deriveSeedSlug` folds the same characters
+  // into hyphens.
+  const hay = String(text).toLowerCase().replace(/[._/]/g, "-");
   const needles = new Set([slug, slug.replace(/-/g, ""), slug.replace(/-/g, " ")]);
   for (const n of needles) {
     if (!n) continue;
