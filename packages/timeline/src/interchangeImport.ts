@@ -328,15 +328,19 @@ export function readPremiereXml(xml: string): PremiereSequence {
     const sample = path(element, "media", "video", "samplecharacteristics");
     const width = numberOf(sample, "width");
     const height = numberOf(sample, "height");
-    files.set(element.attrs.id, {
+    const file: PremiereFile = {
       id: element.attrs.id,
       name,
       pathurl,
-      ...(width !== undefined && height !== undefined && width > 0 && height > 0 ? { width, height } : {}),
       hasVideo,
       hasAudio: !!path(element, "media", "audio"),
       still: STILL_EXTENSIONS.test(name) || (hasVideo && !path(element, "media", "audio") && numberOf(element, "duration") === undefined)
-    });
+    };
+    if (width !== undefined && height !== undefined && width > 0 && height > 0) {
+      file.width = width;
+      file.height = height;
+    }
+    files.set(element.attrs.id, file);
   }
 
   const clips: PremiereClip[] = [];
@@ -443,12 +447,10 @@ export function readPremiereXml(xml: string): PremiereSequence {
       const frame = numberOf(marker, "in") ?? 0;
       const end = numberOf(marker, "out");
       const comment = textOf(marker, "comment");
-      return {
-        name: textOf(marker, "name") || comment || "Marker",
-        frame,
-        ...(comment && textOf(marker, "name") ? { comment } : {}),
-        ...(end !== undefined && end > frame ? { endFrame: end } : {})
-      };
+      const imported: PremiereSequence["markers"][number] = { name: textOf(marker, "name") || comment || "Marker", frame };
+      if (comment && textOf(marker, "name")) imported.comment = comment;
+      if (end !== undefined && end > frame) imported.endFrame = end;
+      return imported;
     });
 
   const usedFileIds = new Set(clips.map((clip) => clip.fileId));
@@ -577,9 +579,8 @@ export function premiereToTimeline(
     const contextFor = (entry: PremiereClip): MotionContext => {
       const frames = entry.end - entry.start;
       const speed = entry.speed ?? 1;
-      return {
+      const context: MotionContext = {
         frame: { width: sequence.width, height: sequence.height },
-        ...(file.width !== undefined && file.height !== undefined ? { picture: { width: file.width, height: file.height } } : {}),
         frameMs: sequence.frameMs,
         in: entry.in,
         out: entry.out > entry.in ? entry.out : entry.in + frames * speed,
@@ -588,6 +589,8 @@ export function premiereToTimeline(
         durationMs: clip.durationMs,
         warn: (message) => warnings.push(`${entry.name}: ${message}`)
       };
+      if (file.width !== undefined && file.height !== undefined) context.picture = { width: file.width, height: file.height };
+      return context;
     };
     if (source.kind === "video") applyVisualMotion(clip, source.motion ?? {}, contextFor(source));
     const sound = source.kind === "audio" ? source : folded.get(source.id);
@@ -638,13 +641,16 @@ export function premiereToTimeline(
   if (missingFiles.size > 0) {
     warnings.push(`${missingClips} clip(s) were left out because their media was not supplied: ${[...missingFiles].join(", ")}.`);
   }
-  const markers: TimelineMarker[] = sequence.markers.map((marker, position) => ({
-    id: newId ? newId("marker") : `marker-${position + 1}`,
-    timeMs: ms(marker.frame),
-    label: marker.name,
-    ...(marker.comment ? { note: marker.comment } : {}),
-    ...(marker.endFrame !== undefined ? { durationMs: ms(marker.endFrame - marker.frame) } : {})
-  }));
+  const markers: TimelineMarker[] = sequence.markers.map((marker, position) => {
+    const imported: TimelineMarker = {
+      id: newId ? newId("marker") : `marker-${position + 1}`,
+      timeMs: ms(marker.frame),
+      label: marker.name
+    };
+    if (marker.comment) imported.note = marker.comment;
+    if (marker.endFrame !== undefined) imported.durationMs = ms(marker.endFrame - marker.frame);
+    return imported;
+  });
   return {
     name: sequence.name,
     fps: sequence.fps,
