@@ -41,6 +41,8 @@ export type { TimelineBeat, TimelineSetup, TimelineSetupStage };
 export type { ProductionGenerationSnapshot } from "@nodetool-ai/protocol";
 
 export interface TimelineSequence {
+  /** Show timecode as drop-frame at 29.97, 59.94 and 119.88 fps. Display only. */
+  dropFrame?: boolean;
   id: string;
   projectId: string;
   /** Reserved for Slice 3 sequence-as-workflow. */

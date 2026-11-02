@@ -564,6 +564,23 @@ describe("timeline router", () => {
       expect(got.scriptEnabled).toBe(true);
     });
 
+    it("persists and retains drop-frame display through update", async () => {
+      let stored = makeSeq();
+      TS.findById.mockImplementation(async () => stored);
+      TS.update.mockImplementation((_id, fields) => {
+        stored = makeSeq({ document: (fields as { document: string }).document });
+        return Promise.resolve(stored);
+      });
+      const caller = createCaller(makeCtx());
+      expect((await caller.timeline.get({ id: "seq-1" })).dropFrame).toBeUndefined();
+      await caller.timeline.update({ id: "seq-1", document: { tracks: [], clips: [], markers: [], dropFrame: true } });
+      expect((await caller.timeline.get({ id: "seq-1" })).dropFrame).toBe(true);
+      await caller.timeline.update({ id: "seq-1", document: { tracks: [], clips: [], markers: [] } });
+      expect((await caller.timeline.get({ id: "seq-1" })).dropFrame).toBe(true);
+      await caller.timeline.update({ id: "seq-1", document: { tracks: [], clips: [], markers: [], dropFrame: false } });
+      expect((await caller.timeline.get({ id: "seq-1" })).dropFrame).toBe(false);
+    });
+
     it("persists, retains and explicitly clears the camera through update", async () => {
       const camera2d = { position: { x: 10, y: 20 }, depthPx: 50, focalLengthPx: 1000 };
       let stored = makeSeq();

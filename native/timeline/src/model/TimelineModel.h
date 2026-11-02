@@ -21,6 +21,7 @@ class TimelineModel : public QObject {
     QML_UNCREATABLE("Created by main")
     Q_PROPERTY(QString name READ name NOTIFY timelineChanged)
     Q_PROPERTY(double fps READ fps NOTIFY timelineChanged)
+    Q_PROPERTY(bool dropFrame READ dropFrame NOTIFY timelineChanged)
     Q_PROPERTY(double durationMs READ durationMs NOTIFY timelineChanged)
     Q_PROPERTY(int canvasWidth READ canvasWidth NOTIFY timelineChanged)
     Q_PROPERTY(int canvasHeight READ canvasHeight NOTIFY timelineChanged)
@@ -52,6 +53,7 @@ public:
 
     QString name() const { return QString::fromStdString(m_timeline->name); }
     double fps() const { return m_timeline->fps; }
+    bool dropFrame() const { return m_timeline->dropFrame; }
     double durationMs() const { return m_timeline->durationMs; }
     int canvasWidth() const { return m_timeline->width; }
     int canvasHeight() const { return m_timeline->height; }

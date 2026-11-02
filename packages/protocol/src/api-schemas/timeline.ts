@@ -2117,6 +2117,8 @@ export const timelineSource = z.object({
 export type TimelineSource = z.infer<typeof timelineSource>;
 
 export const timelineDocument = z.object({
+  /** Show timecode as drop-frame at 29.97, 59.94 and 119.88 fps. Display only. */
+  dropFrame: z.boolean().optional(),
   tracks: z.array(timelineTrack),
   trackFolders: z.array(timelineTrackFolder).optional(),
   clips: z.array(timelineClip),
@@ -2184,6 +2186,7 @@ export const installExampleTimelineInput = z.object({
 // ── Sequence response ────────────────────────────────────────────────────────
 
 export const timelineSequenceResponse = z.object({
+  dropFrame: z.boolean().optional(),
   id: z.string(),
   projectId: z.string(),
   workflowId: z.string().optional(),

@@ -10,12 +10,29 @@ import { describe, expect, it } from "vitest";
 import {
   clipAudioRole,
   timelineMarker,
+  timelineSequenceResponse,
+  type TimelineSequenceResponse,
   type ClipAudioRole as ProtocolClipAudioRole,
   type TimelineMarker as ProtocolTimelineMarker
 } from "@nodetool-ai/protocol/api-schemas/timeline.js";
-import type { ClipAudioRole, TimelineMarker } from "../src/types.js";
+import type { ClipAudioRole, TimelineMarker, TimelineSequence } from "../src/types.js";
 
 describe("native editor fields match the protocol", () => {
+  it("keeps optional dropFrame in sequence types and protocol reads", () => {
+    const sequence: TimelineSequence = {
+      id: "s", projectId: "p", name: "Sequence", fps: 30,
+      width: 1920, height: 1080, durationMs: 0, tracks: [], clips: [], markers: [],
+      createdAt: "", updatedAt: "", dropFrame: true
+    };
+    const protocol: TimelineSequenceResponse = sequence;
+    const back: TimelineSequence = protocol;
+    expect(timelineSequenceResponse.parse(back)).toHaveProperty("dropFrame", true);
+    expect(timelineSequenceResponse.parse({ ...back, dropFrame: false })).toHaveProperty("dropFrame", false);
+    const { dropFrame, ...legacy } = back;
+    expect(dropFrame).toBe(true);
+    expect(timelineSequenceResponse.parse(legacy)).not.toHaveProperty("dropFrame");
+  });
+
   it("keeps every marker field through the schema", () => {
     const marker: TimelineMarker = {
       id: "m1",

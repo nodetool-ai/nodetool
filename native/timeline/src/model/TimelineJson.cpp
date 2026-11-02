@@ -69,6 +69,7 @@ ParseResult parseTimeline(const QJsonObject& root, const QString& baseDir) {
     tl.id = root.value(u"id").toString().toStdString();
     tl.name = root.value(u"name").toString().toStdString();
     tl.fps = root.value(u"fps").toDouble(30.0);
+    tl.dropFrame = root.value(u"dropFrame").toBool();
     tl.width = root.value(u"width").toInt(1920);
     tl.height = root.value(u"height").toInt(1080);
     tl.durationMs = root.value(u"durationMs").toDouble(0.0);

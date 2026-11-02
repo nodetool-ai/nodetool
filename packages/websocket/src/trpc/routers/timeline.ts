@@ -542,6 +542,7 @@ export const timelineRouter = router({
       if (input.document !== undefined) {
         const current = seq.toDocument();
         const merged: TimelineDocument = {
+          dropFrame: input.document.dropFrame ?? current.dropFrame,
           tracks: input.document.tracks ?? current.tracks,
           trackFolders: input.document.trackFolders ?? current.trackFolders,
           clips:
