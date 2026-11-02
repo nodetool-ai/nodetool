@@ -99,6 +99,7 @@ import {
   useShotDuration
 } from "../../hooks/storyboard/useShotDuration";
 import { useShotCostEstimate } from "../../hooks/storyboard/useShotCostEstimate";
+import { useShotVideoModelId } from "../../hooks/storyboard/useShotVideoModelId";
 import { useEntities } from "../../serverState/useEntities";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { requestDocumentFocus } from "../../stores/DocumentFocusStore";
@@ -232,7 +233,9 @@ const formatDraftValue = (
     return notSet;
   }
   if (key === "sceneId") {
-    return sceneOptions.find((option) => option.value === value)?.label ?? notSet;
+    return (
+      sceneOptions.find((option) => option.value === value)?.label ?? notSet
+    );
   }
   if (typeof value === "object") {
     return editedGraphics;
@@ -292,11 +295,21 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
   const boardEntityIds = useStoryboardStore(
     (state) => state.boards[boardId]?.entityIds ?? EMPTY_IDS
   );
+  const boardImageModelId = useStoryboardStore(
+    (state) => state.boards[boardId]?.imageModel?.id
+  );
   const boardStyle = useStoryboardStore(
     (state) => state.boards[boardId]?.style ?? ""
   );
+  const boardLookIds = useStoryboardStore(
+    (state) => state.boards[boardId]?.look_preset_ids ?? EMPTY_IDS
+  );
   const applyShotDraft = useStoryboardStore((state) => state.applyShotDraft);
   const nudgeShot = useStoryboardStore((state) => state.nudgeShot);
+  const toggleShotEntity = useStoryboardStore(
+    (state) => state.toggleShotEntity
+  );
+  const setEntityIds = useStoryboardStore((state) => state.setEntityIds);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const { generateClip } = useGenerateShot();
   const { data: allEntities } = useEntities();
@@ -334,6 +347,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
         : (shot ?? PLACEHOLDER_SHOT),
     [draft, shot]
   );
+  const videoModelId = useShotVideoModelId(boardId, previewShot);
   const duration = useShotDuration(boardId, previewShot);
   const costEstimate = useShotCostEstimate(boardId, previewShot);
   const scriptLines = useBoardScriptLines(boardId);
@@ -355,6 +369,21 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
         .filter((entity) => appliedIds.includes(entity.id))
         .map((entity) => entity.name || t("screens4_16.shotEditPanel.untitledEntity")),
     [boardEntities, appliedIds, t]
+  );
+
+  // An entity picked with `@` in a prompt field joins the board and this shot,
+  // as one picked in the cast field does. Picking one the shot already has
+  // changes nothing: the cast field's toggle would remove it.
+  const handleMentionEntity = useCallback(
+    (entity: Entity) => {
+      if (!boardEntityIds.includes(entity.id)) {
+        setEntityIds(boardId, [...boardEntityIds, entity.id]);
+      }
+      if (!appliedIds.includes(entity.id)) {
+        toggleShotEntity(boardId, shotId, entity.id, appliedIds);
+      }
+    },
+    [boardEntityIds, appliedIds, setEntityIds, toggleShotEntity, boardId, shotId]
   );
   // The prompt preview reads the scene the draft points at, lit the way the
   // draft says: both are saved with the shot.
@@ -748,6 +777,8 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
     framing: t("screens4_16.shotEditPanel.fields.size"),
     angle: t("screens4_16.shotEditPanel.fields.perspective"),
     movement: t("screens4_16.shotEditPanel.fields.movement"),
+    lookPresetIds: t("look_preset_field.title"),
+    presetIds: t("screens4_16.shotEditPanel.fields.movement"),
     equipment: t("screens4_16.shotEditPanel.fields.equipment"),
     lens: t("screens4_16.shotEditPanel.fields.focalLength"),
     notes: t("screens4_16.shotEditPanel.fields.notes"),
@@ -874,6 +905,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
           <ScrollArea thin sx={formColumnSx}>
             <FlexColumn gap={SPACING.lg}>
               <ShotEditTable
+                boardLookIds={boardLookIds}
                 draft={draft}
                 onChange={setDraft}
                 entities={entityChips}
@@ -882,6 +914,8 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
                 readOnly={readOnly}
                 focusDialogue={focusDialogue}
                 onEditInScript={linksLines ? handleEditInScript : undefined}
+                videoModelId={videoModelId}
+                onMentionEntity={handleMentionEntity}
               />
               <Card variant="outlined" padding="normal">
                 <CollapsibleSection
@@ -921,6 +955,9 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
                 scene={promptScene}
                 style={boardStyle}
                 castNames={castNames}
+                videoModelId={videoModelId}
+                boardLookIds={boardLookIds}
+                imageModelId={previewShot.still_model?.id ?? boardImageModelId}
               />
               <ShotScriptPanel
                 boardId={boardId}

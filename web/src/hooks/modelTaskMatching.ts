@@ -40,6 +40,7 @@ const STRICT_MODEL_TASKS = new Set<string>([
   "outpaint_video",
   "matte_video",
   "reference_to_video",
+  "audio_to_video",
   "lip_sync"
 ]);
 

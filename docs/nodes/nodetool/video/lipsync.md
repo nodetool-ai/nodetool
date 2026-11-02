@@ -21,6 +21,7 @@ Drive a face in a video to match speech in an audio track using any supported li
 | model | `video_model` | The lip-sync model to use | `{"type":"video_model","provider":"fal_ai","id":...` |
 | video | `video` | The input video containing the face to drive | - |
 | audio | `audio` | The audio track the mouth motion should follow | `{"type":"audio","uri":"","asset_id":null,"data"...` |
+| image | `image` | Optional source picture instead of a video | `{"type":"image","uri":""}` |
 
 ## Outputs
 

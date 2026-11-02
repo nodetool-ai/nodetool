@@ -387,6 +387,21 @@ describe("ReplicateProvider coverage", () => {
     expect(input.audio).toMatch(/^data:audio\/mpeg;base64,/);
     expect(input.seed).toBe(42);
   });
+  it("lipSync sends a still image with its image MIME", async () => {
+    const runMock = vi.fn().mockResolvedValue(fakeFileOutput(IMG));
+    const provider = createProvider({ run: runMock });
+    await provider.lipSync(new Uint8Array([1]), {
+      model: { id: "owner/lipsync", name: "LS", provider: "replicate" },
+      audio: new Uint8Array([2]),
+      visualMimeType: "image/png",
+      audioMimeType: "audio/wav",
+      seed: 42
+    });
+    const input = runMock.mock.calls[0][1].input;
+    expect(input.image).toMatch(/^data:image\/png;base64,/);
+    expect(input.audio).toMatch(/^data:audio\/wav;base64,/);
+    expect(input.seed).toBe(42);
+  });
 
   // --- textToSpeech ---
 

@@ -48,6 +48,7 @@
     "@nodetool-ai/protocol": "*",
     "zod": "^4.4.3",
     "commander": "^12.1.0",
-    "@nodetool-ai/pack-core": "*"
+    "@nodetool-ai/pack-core": "*",
+    "@nodetool-ai/presets": "*"
   }
 }

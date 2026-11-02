@@ -1,0 +1,38 @@
+{
+  "id": "effect.liquid-chrome",
+  "version": 1,
+  "kind": "effect",
+  "name": "Liquid chrome",
+  "description": "Animates the subject to melt into mirror-polished liquid chrome.",
+  "tags": [
+    "effect",
+    "liquid",
+    "metal"
+  ],
+  "slot": "effect",
+  "modes": [
+    "image_to_video"
+  ],
+  "inputs": [
+    "image"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "melt into mirror-polished liquid chrome"
+  ],
+  "prompt": {
+    "default": "The subject begins still, then proceeds to melt into mirror-polished liquid chrome. Reflections ripple across the molten metal surface. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+    "kling": "The subject begins still, then proceeds to melt into mirror-polished liquid chrome. Reflections ripple across the molten metal surface. Physically accurate motion, steady locked camera.",
+    "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to melt into mirror-polished liquid chrome. Reflections ripple across the molten metal surface. Physically accurate motion.",
+    "veo": "The subject begins still, then proceeds to melt into mirror-polished liquid chrome. Reflections ripple across the molten metal surface. Cinematic lighting, realistic physics, locked camera.",
+    "wan": "The subject begins still, then proceeds to melt into mirror-polished liquid chrome. Reflections ripple across the molten metal surface. Locked camera, smooth realistic motion, high detail.",
+    "local-wan": "The subject softens into silver liquid metal, sagging and flowing downward. Mirror reflections bend across the moving surface as a chrome puddle spreads below."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.liquid-chrome/c38dc1457271908cc3798bc06df5b9956c85e25d50ed0c2372e64fc7438410b5.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.liquid-chrome/c38dc1457271908cc3798bc06df5b9956c85e25d50ed0c2372e64fc7438410b5.png",
+    "run": "runs/effect.liquid-chrome.json"
+  }
+}

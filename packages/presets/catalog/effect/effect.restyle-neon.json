@@ -1,0 +1,31 @@
+{
+  "id": "effect.restyle-neon",
+  "version": 1,
+  "kind": "effect",
+  "name": "Neon restyle",
+  "description": "Restyle the video with luminous neon lighting, cyan and magenta highlights, deep violet shadows and reflective surfaces.",
+  "tags": [
+    "restyle",
+    "neon"
+  ],
+  "slot": "effect",
+  "modes": [
+    "video_edit"
+  ],
+  "inputs": [
+    "video"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "Restyle the video with luminous neon lighting, cyan and magenta highlights, deep violet shadows and reflective surfaces. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames.",
+    "local-wan": "From the first frame, the entire scene is rebuilt as a luminous neon-lit film. Cyan edge light and magenta reflections spread across surfaces, with deep violet shadows and glowing colored highlights throughout the setting. The layout and movement follow the source video, with this treatment sustained in every frame."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-neon/09cab2aeaf87a1a294c98ef0a302a50fbfb270dfa31758c28ddddd7be915ff4a.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-neon/09cab2aeaf87a1a294c98ef0a302a50fbfb270dfa31758c28ddddd7be915ff4a-late.png",
+    "run": "runs/effect.restyle-neon.json"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "id": "camera.parallax-slide",
+  "version": 1,
+  "kind": "camera",
+  "name": "parallax slide",
+  "description": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly.",
+    "kling": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly.",
+    "seedance": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly throughout one continuous shot.",
+    "veo": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly.",
+    "wan": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly.",
+    "local-wan": "The camera glides sideways past a nearby foreground edge. That edge moves quickly across the frame while distant scenery shifts slowly, revealing the subject beyond. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.parallax-slide/a458a2ca17936a80a549f33155f0cd32f36da13782015eb4c94a6af1e968c8db.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.parallax-slide/a458a2ca17936a80a549f33155f0cd32f36da13782015eb4c94a6af1e968c8db.png",
+    "run": "runs/camera.parallax-slide.json"
+  }
+}

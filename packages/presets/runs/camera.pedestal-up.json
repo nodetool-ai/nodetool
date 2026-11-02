@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "id": "camera.pedestal-up",
+  "status": "completed",
+  "workflow": {
+    "nodes": [
+      {
+        "id": "prompt",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "prompt",
+          "value": ""
+        },
+        "position": {
+          "x": 80,
+          "y": 80
+        }
+      },
+      {
+        "id": "template",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "{{ prompt }} Camera rises vertically without tilting throughout one continuous shot."
+        },
+        "position": {
+          "x": 380,
+          "y": 80
+        }
+      },
+      {
+        "id": "generate",
+        "type": "nodetool.video.ImageToVideo",
+        "data": {
+          "model": {
+            "provider": "dreamina",
+            "id": "dreamina_seedance_45_pro_draft",
+            "type": "video_model",
+            "name": "dreamina_seedance_45_pro_draft"
+          },
+          "seed": 20261031,
+          "duration": 4,
+          "resolution": "480p"
+        },
+        "position": {
+          "x": 680,
+          "y": 80
+        }
+      },
+      {
+        "id": "output",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "result"
+        },
+        "position": {
+          "x": 980,
+          "y": 80
+        }
+      },
+      {
+        "id": "image",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "image"
+        },
+        "position": {
+          "x": 80,
+          "y": 320
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "prompt-template",
+        "source": "prompt",
+        "sourceHandle": "output",
+        "target": "template",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "template-generate",
+        "source": "template",
+        "sourceHandle": "output",
+        "target": "generate",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "generate-output",
+        "source": "generate",
+        "sourceHandle": "output",
+        "target": "output",
+        "targetHandle": "value"
+      },
+      {
+        "id": "image-generate",
+        "source": "image",
+        "sourceHandle": "output",
+        "target": "generate",
+        "targetHandle": "image"
+      }
+    ]
+  },
+  "workflow_hash": "bb8c5289e1432e24707959e54cc8ac2d3e75894b35ca53f3ed2b243579fb8316",
+  "provider": "dreamina",
+  "model": "dreamina_seedance_45_pro_draft",
+  "seed": 20261031,
+  "prompt": "A large bronze ring sculpture with a twisted open loop and a green-gold patina on a rough travertine plinth in a sunlit Mediterranean stone courtyard, olive trees in terracotta pots in the foreground, an arched colonnade behind, cypress trees and mountains in the distance, golden late-afternoon light. Camera rises vertically without tilting throughout one continuous shot.",
+  "source_hash": "adbf4a2064a6325d86502adc505cd9c7fab33cde19180d0d3281c6f5f15a8267",
+  "credits": null,
+  "cost_usd": null,
+  "started_at": "2026-10-31T18:12:14.501Z",
+  "finished_at": "2026-10-31T18:13:48.261Z",
+  "output_path": "/home/mg/.cache/nodetool/preset-previews/camera.pedestal-up-dreamina_seedance_45_pro_draft.mp4"
+}

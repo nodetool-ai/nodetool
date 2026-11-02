@@ -82,7 +82,8 @@ const IconTile = ({ icon, accent }: { icon: ReactNode; accent: string }) => (
   </FlexRow>
 );
 
-const CardRow = ({
+/** A row of creation cards; the start page's studio tiles use it too. */
+export const CardRow = ({
   cards,
   onSelect,
   minItemWidth = CARD_MIN_WIDTH

@@ -1,3 +1,5 @@
+import { loadPackageAssetJson } from "@nodetool-ai/config";
+import { loadCatalog } from "@nodetool-ai/presets";
 /**
  * Storyboard nodes — a persisted board as a graph value.
  *
@@ -1251,6 +1253,9 @@ export class RenderClipsNode extends BaseNode {
     const script = await loadLinkedScript(ctx, doc);
     const options: ShotRenderPlanOptions = {
       ...modelOverrides(this.video_model),
+      presetCatalog: loadCatalog(() => loadPackageAssetJson(
+        { pkg: "@nodetool-ai/presets", path: "preset-catalog.json" }, import.meta.url
+      )),
       scriptLines: scriptLinesById(script?.document.sections ?? [])
     };
     const plans = planShotRenders(doc, entities, "clip", targets, options);

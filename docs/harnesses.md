@@ -1653,6 +1653,46 @@ npm run dev:nodetool -- generate fal_ai --list-models              # discover mo
 npm run dev:nodetool -- generate fal_ai flux-schnell "..." --json  # machine-readable
 ```
 
+### nodetool presets
+
+Browse, compile and eject the generation presets in `@nodetool-ai/presets`
+without a workflow, a browser or a provider call. Every command prints JSON.
+The compile is the same one `generate_media`, the storyboard renders and the
+agent tools run, so a prompt printed here is the prompt a provider receives.
+The command lives in `packages/cli-models`. The concepts, the schema and how to
+write a preset are in [Presets](presets.md).
+
+```bash
+npm run dev:nodetool -- presets list --kind camera --mode video --family kling
+npm run dev:nodetool -- presets show camera.dolly-zoom
+npm run dev:nodetool -- presets compile camera.dolly-zoom camera.handheld --model <model id> --mode image_to_video --prompt "a red fox"
+npm run dev:nodetool -- presets eject camera.dolly-zoom --provider <provider> --model <model id> --out graph.json
+```
+
+`compile` takes up to three ids and prints `{ prompt, params, applied, warnings }`.
+A non-empty `warnings` array means a preset has no fragment for the model's family
+and used `default`. An unknown id, an unsupported mode or a stack that breaks the
+slot and conflict rules fails with the reason. `--provider nodetool`
+resolves a NodeTool delegate model to its underlying model before the family is
+chosen. `eject` writes the graph that the web's **Open as workflow** creates.
+
+The agent-facing form is `list_presets`, `get_preset` and `compile_presets`, and
+`preset_ids` on `generate_image`, `edit_image`, `generate_video` and
+`animate_image`.
+
+Two selfchecks cover the catalogue:
+
+| Selfcheck | What it runs | Fails on |
+|---|---|---|
+| `preset-compilation` | `compile-all` in `packages/presets` | A preset that compiles to an empty prompt in any mode for any model family |
+| `preset-ejection` | `preset-ejection` in `packages/cli-execution`, a suite-only check (add `--include-suites` to the gate) | An ejected graph that fails `nodetool validate` |
+
+The gate selects them from the **Generation presets** surface when a file under
+`packages/presets/`, the `Effects Gallery.json` template or
+`scripts/presets/sync-effects-template.mjs` changes. Previews are rendered by
+hand with the scripts in [scripts/presets/README.md](https://github.com/nodetool-ai/nodetool/blob/main/scripts/presets/README.md)
+and are not a selfcheck.
+
 ### nodetool eval (Agent Evaluation Suites)
 
 Runs the graph authoring eval suite (`authorGraph` over the typed DSL pack)

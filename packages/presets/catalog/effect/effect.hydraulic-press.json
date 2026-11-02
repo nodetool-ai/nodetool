@@ -1,0 +1,38 @@
+{
+  "id": "effect.hydraulic-press",
+  "version": 1,
+  "kind": "effect",
+  "name": "Hydraulic press",
+  "description": "Animates the subject to compress under a studio hydraulic press.",
+  "tags": [
+    "effect",
+    "crush",
+    "studio"
+  ],
+  "slot": "effect",
+  "modes": [
+    "image_to_video"
+  ],
+  "inputs": [
+    "image"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "compress under a studio hydraulic press"
+  ],
+  "prompt": {
+    "default": "The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+    "kling": "The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. Physically accurate motion, steady locked camera.",
+    "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. Physically accurate motion.",
+    "veo": "The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. Cinematic lighting, realistic physics, locked camera.",
+    "wan": "The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. Locked camera, smooth realistic motion, high detail.",
+    "local-wan": "A broad metal press plate lowers steadily onto the subject. The subject flattens under its weight, bulging outward along the base as the plate continues downward."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.hydraulic-press/f0a117cceb1ee8ab7d1b2161474cb62ba9108ee5db960bfaa47441e1c2d238c0.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.hydraulic-press/f0a117cceb1ee8ab7d1b2161474cb62ba9108ee5db960bfaa47441e1c2d238c0.png",
+    "run": "runs/effect.hydraulic-press.json"
+  }
+}

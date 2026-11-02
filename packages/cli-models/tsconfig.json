@@ -39,6 +39,15 @@
     },
     {
       "path": "../pack-manager"
+    },
+    {
+      "path": "../presets"
+    },
+    {
+      "path": "../config"
+    },
+    {
+      "path": "../pack-core"
     }
   ]
 }

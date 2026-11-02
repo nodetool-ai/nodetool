@@ -62,6 +62,7 @@ import {
 import { useMediaOptions } from "../../../hooks/useModelsByProvider";
 
 import ErrorBanner from "../../support/ErrorBanner";
+import EntityMentionTextArea from "../../entities/EntityMentionTextArea";
 import {
   SPACING,
   CollapsibleSection,
@@ -163,6 +164,10 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
         : clip?.bindingKind === "text-to-audio"
           ? "audio"
           : "image";
+  // `@` picks an entity in an image or video prompt. Sound prompts have no
+  // use for one.
+  const PromptField =
+    kind === "audio" || kind === "music" ? TextArea : EntityMentionTextArea;
   const isImageToImage = clip?.bindingKind === "image-to-image";
   const isImageToVideo = clip?.bindingKind === "image-to-video";
   const hasSourceClip = isImageToImage || isImageToVideo;
@@ -476,7 +481,7 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
               />
             )}
 
-            <TextArea
+            <PromptField
               value={clip.prompt ?? ""}
               onChange={handlePromptChange}
               onFocus={handlePromptFocus}

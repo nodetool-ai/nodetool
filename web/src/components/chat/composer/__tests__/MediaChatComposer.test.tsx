@@ -158,7 +158,8 @@ const MEDIA_DEFAULTS = (() => {
     music: s.music,
     audio: s.audio,
     retake: s.retake,
-    extend: s.extend
+    extend: s.extend,
+    presetIds: s.presetIds
   };
 })();
 
@@ -703,6 +704,141 @@ describe("MediaChatComposer", () => {
 
     expect(onSendMessage.mock.calls[0][2]).toMatchObject({
       use_reference_video_audio: true
+    });
+  });
+
+  describe("preset_ids", () => {
+    const videoModel = {
+      type: "video_model" as const,
+      id: "fal-ai/kling-video/v2.6/pro/text-to-video",
+      provider: "fal_ai",
+      name: "Kling"
+    };
+    const sendPrompt = async (
+      user: ReturnType<typeof userEvent.setup>,
+      onSendMessage: jest.Mock
+    ) => {
+      await user.click(promptBox());
+      await user.keyboard("a slow reveal");
+      await user.click(screen.getByRole("button", { name: "Generate" }));
+      return onSendMessage.mock.calls[onSendMessage.mock.calls.length - 1][2];
+    };
+
+    it("sends the selected presets of text-to-video in stack order", async () => {
+      const user = userEvent.setup();
+      const onSendMessage = jest.fn();
+      useMediaGenerationStore.setState({
+        mode: "video",
+        video: { ...MEDIA_DEFAULTS.video, model: videoModel },
+        presetIds: { video: ["camera.dolly-in", "camera.handheld"] }
+      });
+      renderComposer(onSendMessage);
+
+      expect(await sendPrompt(user, onSendMessage)).toMatchObject({
+        mode: "video",
+        preset_ids: ["camera.dolly-in", "camera.handheld"]
+      });
+    });
+
+    it("sends no preset_ids when nothing is selected", async () => {
+      const user = userEvent.setup();
+      const onSendMessage = jest.fn();
+      useMediaGenerationStore.setState({
+        mode: "video",
+        video: { ...MEDIA_DEFAULTS.video, model: videoModel },
+        presetIds: { video: [] }
+      });
+      renderComposer(onSendMessage);
+
+      const sent = await sendPrompt(user, onSendMessage);
+      expect(sent.mode).toBe("video");
+      expect(sent.preset_ids).toBeUndefined();
+    });
+
+    it("sends each mode's own selection for image-to-video and reference-to-video", async () => {
+      const user = userEvent.setup();
+      const onSendMessage = jest.fn();
+      useMediaGenerationStore.setState({
+        mode: "image_to_video",
+        imageToVideo: { ...MEDIA_DEFAULTS.imageToVideo, model: videoModel },
+        referenceToVideo: {
+          ...MEDIA_DEFAULTS.referenceToVideo,
+          model: videoModel
+        },
+        presetIds: {
+          video: ["camera.dolly-in"],
+          image_to_video: ["camera.orbit"],
+          reference_to_video: ["camera.tracking"]
+        }
+      });
+      const first = renderComposer(onSendMessage);
+      expect(await sendPrompt(user, onSendMessage)).toMatchObject({
+        mode: "image_to_video",
+        preset_ids: ["camera.orbit"]
+      });
+      first.unmount();
+
+      useMediaGenerationStore.setState({ mode: "reference_to_video" });
+      renderComposer(onSendMessage);
+      expect(await sendPrompt(user, onSendMessage)).toMatchObject({
+        mode: "reference_to_video",
+        preset_ids: ["camera.tracking"]
+      });
+    });
+
+    it("sends only the presets of the current mode, and keeps the other selections for later", async () => {
+      const user = userEvent.setup();
+      const onSendMessage = jest.fn();
+      useMediaGenerationStore.setState({
+        mode: "image",
+        image: {
+          ...MEDIA_DEFAULTS.image,
+          model: {
+            type: "image_model",
+            id: "flux",
+            provider: "fal_ai",
+            name: "Flux",
+            path: ""
+          }
+        },
+        presetIds: { video: ["camera.dolly-in"] }
+      });
+      renderComposer(onSendMessage);
+
+      const sent = await sendPrompt(user, onSendMessage);
+      expect(sent.mode).toBe("image");
+      expect(sent.preset_ids).toBeUndefined();
+      expect(useMediaGenerationStore.getState().presetIds.video).toEqual([
+        "camera.dolly-in"
+      ]);
+    });
+
+    it("keeps each mode's selection while switching modes in the composer", async () => {
+      const user = userEvent.setup();
+      useMediaGenerationStore.setState({
+        mode: "video",
+        video: { ...MEDIA_DEFAULTS.video, model: videoModel },
+        presetIds: { video: ["camera.dolly-in"], image_to_video: [] }
+      });
+      renderComposer(jest.fn());
+
+      expect(
+        screen.getByRole("button", { name: "dolly in" })
+      ).toBeInTheDocument();
+      act(() => {
+        useMediaGenerationStore.getState().setMode("image_to_video");
+      });
+      expect(
+        screen.queryByRole("button", { name: "dolly in" })
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Presets" })).toBeVisible();
+
+      await user.click(screen.getByRole("button", { name: "Presets" }));
+      await user.click(screen.getByRole("option", { name: /orbit$/ }));
+      expect(useMediaGenerationStore.getState().presetIds).toEqual({
+        video: ["camera.dolly-in"],
+        image_to_video: ["camera.orbit"]
+      });
     });
   });
 

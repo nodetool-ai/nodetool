@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "id": "effect.restyle-pixel",
+  "status": "completed",
+  "workflow": {
+    "nodes": [
+      {
+        "id": "prompt",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "prompt",
+          "value": ""
+        },
+        "position": {
+          "x": 80,
+          "y": 80
+        }
+      },
+      {
+        "id": "template",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "{{ prompt }} Restyle the video as pixel art animation with crisp pixel edges, a limited palette and readable silhouettes. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+        },
+        "position": {
+          "x": 380,
+          "y": 80
+        }
+      },
+      {
+        "id": "generate",
+        "type": "nodetool.video.ReferenceToVideo",
+        "data": {
+          "model": {
+            "provider": "dreamina",
+            "id": "dreamina_seedance_45_pro_draft",
+            "type": "video_model",
+            "name": "dreamina_seedance_45_pro_draft"
+          },
+          "seed": 20261031,
+          "duration": 4,
+          "resolution": "480p"
+        },
+        "position": {
+          "x": 680,
+          "y": 80
+        }
+      },
+      {
+        "id": "output",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "result"
+        },
+        "position": {
+          "x": 980,
+          "y": 80
+        }
+      },
+      {
+        "id": "video",
+        "type": "nodetool.input.VideoInput",
+        "data": {
+          "name": "video"
+        },
+        "position": {
+          "x": 80,
+          "y": 560
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "prompt-template",
+        "source": "prompt",
+        "sourceHandle": "output",
+        "target": "template",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "template-generate",
+        "source": "template",
+        "sourceHandle": "output",
+        "target": "generate",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "generate-output",
+        "source": "generate",
+        "sourceHandle": "output",
+        "target": "output",
+        "targetHandle": "value"
+      },
+      {
+        "id": "video-generate",
+        "source": "video",
+        "sourceHandle": "output",
+        "target": "generate",
+        "targetHandle": "reference_videos"
+      }
+    ]
+  },
+  "workflow_hash": "12ba69da4a3da52999dba98753a2b9efb14b69c59699fcb33720bb87a74f131a",
+  "provider": "dreamina",
+  "model": "dreamina_seedance_45_pro_draft",
+  "seed": 20261031,
+  "prompt": "A large bronze ring sculpture with a twisted open loop and a green-gold patina on a rough travertine plinth in a sunlit Mediterranean stone courtyard, olive trees in terracotta pots in the foreground, an arched colonnade behind, cypress trees and mountains in the distance, golden late-afternoon light. Restyle the video as pixel art animation with crisp pixel edges, a limited palette and readable silhouettes. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames.",
+  "source_hash": "6355a4c168b5136eb1442682cb678d77b8333929ba76755a5395b953ab6dd700",
+  "source_url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.dolly-in/f71a51ff8637b65add4e4fb86cf57aa8ab9bce70cc6024f2c6d903fb5ff5ea90.mp4",
+  "credits": null,
+  "cost_usd": null,
+  "started_at": "2026-11-01T06:28:56.905Z",
+  "finished_at": "2026-11-01T06:30:41.505Z",
+  "output_path": "/home/mg/.cache/nodetool/preset-previews/effect.restyle-pixel-dreamina_seedance_45_pro_draft.mp4"
+}

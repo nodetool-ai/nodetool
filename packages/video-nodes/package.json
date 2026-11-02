@@ -32,7 +32,8 @@
     "manifold-3d": "^3.4.1",
     "meshoptimizer": "^1.1.1",
     "playwright": "1.60.0",
-    "three": "^0.185.1"
+    "three": "^0.185.1",
+    "@nodetool-ai/presets": "*"
   },
   "devDependencies": {
     "@types/chrome-remote-interface": "^0.33.0",

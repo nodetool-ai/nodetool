@@ -21,7 +21,13 @@ import {
   shotRenderMode
 } from "@nodetool-ai/protocol";
 
+import { presetText } from "../../utils/presetText";
+import { presetCatalog } from "../../lib/presets/catalog";
+import { previewShotCamera } from "./shotCameraPresets";
+import { compileShotPresets } from "@nodetool-ai/presets";
+
 import {
+  AlertBanner,
   Box,
   Caption,
   CollapsibleSection,
@@ -42,6 +48,10 @@ interface ShotPromptPreviewProps {
   style: string;
   /** Names of the cast the render attaches as references. */
   castNames: string[];
+  /** The model the clip renders with; the camera presets compile for its family. */
+  videoModelId?: string | null;
+  imageModelId?: string | null;
+  boardLookIds?: readonly string[];
 }
 
 const promptSx = {
@@ -80,17 +90,56 @@ const ShotPromptPreviewInner: React.FC<ShotPromptPreviewProps> = ({
   shot,
   scene,
   style,
-  castNames
+  castNames,
+  videoModelId,
+  imageModelId,
+  boardLookIds = []
 }) => {
   const { t } = useTranslation();
   const mode = shotRenderMode(shot);
-  const { still, clip } = useMemo(
-    () => ({
-      still: keyframePrompt(shot, { scene, style }),
-      clip: clipPromptFor(shot, { scene, style }, mode)
-    }),
-    [shot, scene, style, mode]
+  const presetIds = shot.camera?.preset_ids;
+  const camera = useMemo(
+    () => previewShotCamera(presetIds, videoModelId, mode, presetCatalog),
+    [presetIds, videoModelId, mode]
   );
+  const preview = (() => {
+    try {
+      const still = compileShotPresets(shot, boardLookIds, {
+        catalog: presetCatalog,
+        modelId: imageModelId ?? "",
+        mode: "image"
+      });
+      const clip = compileShotPresets(shot, boardLookIds, {
+        catalog: presetCatalog,
+        modelId: videoModelId ?? "",
+        mode:
+          mode === "keyframe"
+            ? "image_to_video"
+            : mode === "reference"
+              ? "reference_to_video"
+              : "video"
+      });
+      return {
+        still: keyframePrompt(shot, { scene, style, ...still.context }),
+        clip: clipPromptFor(shot, { scene, style, ...clip.context }, mode),
+        look: clip.context.compiledLook ?? still.context.compiledLook,
+        error: undefined
+      };
+    } catch (error) {
+      return {
+        still: "",
+        clip: "",
+        look: undefined,
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  })();
+  const { still, clip } = preview;
+  const fallbackNames = camera.fallbackIds
+    .map((id) => presetCatalog.getPreset(id))
+    .filter((preset) => preset !== undefined)
+    .map((preset) => presetText(t, preset).name)
+    .join(", ");
 
   return (
     <CollapsibleSection
@@ -131,6 +180,53 @@ const ShotPromptPreviewInner: React.FC<ShotPromptPreviewProps> = ({
           )}
           text={clip}
         />
+        {preview.look && (
+          <PromptBlock
+            label={t("look_preset_field.clause")}
+            copyLabel={t("look_preset_field.clause")}
+            emptyText=""
+            text={preview.look}
+          />
+        )}
+        {preview.error && (
+          <AlertBanner severity="warning" compact>
+            {preview.error}
+          </AlertBanner>
+        )}
+        {camera.compiled && (
+          <PromptBlock
+            label={t("screens4_18.storyboard.shotPromptPreview.cameraClause")}
+            copyLabel={t(
+              "screens4_18.storyboard.shotPromptPreview.copyPrompt",
+              {
+                promptType: t(
+                  "screens4_18.storyboard.shotPromptPreview.cameraClause"
+                )
+              }
+            )}
+            emptyText={t(
+              "screens4_18.storyboard.shotPromptPreview.emptyPrompt"
+            )}
+            text={camera.compiled.clause}
+          />
+        )}
+        {camera.fallbackIds.length > 0 && (
+          <AlertBanner severity="warning" compact>
+            {t("screens4_18.storyboard.shotPromptPreview.defaultFallback", {
+              names: fallbackNames,
+              model: videoModelId || t(
+                "screens4_18.storyboard.shotPromptPreview.noVideoModel"
+              )
+            })}
+          </AlertBanner>
+        )}
+        {camera.error && (
+          <AlertBanner severity="warning" compact>
+            {t("screens4_18.storyboard.shotPromptPreview.cameraError", {
+              message: camera.error
+            })}
+          </AlertBanner>
+        )}
         {castNames.length > 0 && (
           <Caption color="secondary">
             {t(

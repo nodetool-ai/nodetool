@@ -160,6 +160,7 @@ describe("boardRenderContext", () => {
       video_model: "",
       style_entity_id: null,
       style: "",
+      look_preset_ids: [],
       scenes: null,
       reference_asset_ids: []
     });

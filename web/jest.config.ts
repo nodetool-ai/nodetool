@@ -59,6 +59,8 @@ export default {
       "<rootDir>/../packages/game-renderer/src/browser.ts",
     "^@nodetool-ai/game-renderer/audio$":
       "<rootDir>/../packages/game-renderer/src/audio.ts",
+    "^@nodetool-ai/presets$": "<rootDir>/../packages/presets/src/index.ts",
+    "^@nodetool-ai/presets/preset-catalog\\.json$": "<rootDir>/../packages/presets/preset-catalog.json",
     "^@nodetool-ai/protocol$": "<rootDir>/../packages/protocol/src/index.ts",
     // Subpath imports carry the ESM `.js` extension (`api-schemas/code-gen.js`);
     // strip it before the generic subpath mapping resolves to source.

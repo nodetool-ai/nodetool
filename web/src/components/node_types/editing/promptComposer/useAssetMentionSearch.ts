@@ -17,6 +17,8 @@ export type MentionTab = "recent" | "saved";
 
 const PAGE_SIZE = 24;
 
+const NO_ASSETS: Asset[] = [];
+
 interface AssetMentionSearch {
   activeTab: MentionTab;
   setActiveTab: (tab: MentionTab) => void;
@@ -47,12 +49,14 @@ interface AssetMentionSearch {
  * the query) — plus a rename that syncs back to the asset library.
  * `initialTab` overrides the opening bucket, which otherwise is Recent when
  * there is anything recent. `contentType` narrows both buckets to assets whose
- * content type starts with it, such as `"video"`.
+ * content type starts with it, such as `"video"`. `includeAssets: false` skips
+ * the asset search and returns no assets, for a picker that offers entities only.
  */
 export const useAssetMentionSearch = (
   queryString: string | null,
   initialTab?: MentionTab,
-  contentType?: string
+  contentType?: string,
+  includeAssets = true
 ): AssetMentionSearch => {
   const search = useAssetStore((state) => state.search);
   const updateAsset = useAssetStore((state) => state.update);
@@ -82,7 +86,7 @@ export const useAssetMentionSearch = (
     queryTokenRef.current += 1;
     const token = queryTokenRef.current;
     loadingMoreRef.current = false;
-    if (queryString === null) {
+    if (queryString === null || !includeAssets) {
       setSavedAssets([]);
       setSavedCursor(null);
       return;
@@ -115,7 +119,7 @@ export const useAssetMentionSearch = (
       active = false;
       clearTimeout(handle);
     };
-  }, [queryString, search, activeProjectId, contentType]);
+  }, [queryString, search, activeProjectId, contentType, includeAssets]);
 
   const loadMoreSaved = useCallback(() => {
     if (!savedCursor || queryString === null || loadingMoreRef.current) {
@@ -173,7 +177,11 @@ export const useAssetMentionSearch = (
     );
   }, [scopedRecentAssets, queryString]);
 
-  const displayedAssets = activeTab === "recent" ? filteredRecent : savedAssets;
+  const displayedAssets = !includeAssets
+    ? NO_ASSETS
+    : activeTab === "recent"
+      ? filteredRecent
+      : savedAssets;
 
   const entities = useMemo(
     () =>

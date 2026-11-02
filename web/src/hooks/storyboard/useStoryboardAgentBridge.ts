@@ -110,6 +110,7 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
         slug: shot.slug,
         action: shot.action,
         camera: shot.camera,
+        look_preset_ids: shot.look_preset_ids,
         motion: shot.motion,
         graphics: shot.graphics,
         production: shot.production,
@@ -220,6 +221,7 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
         title: board.title,
         brief: board.brief,
         style: board.style,
+        look_preset_ids: board.look_preset_ids,
         aspectRatio: board.aspectRatio,
         setupStage: board.setupStage,
         genre: board.genre,
@@ -357,6 +359,7 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
             action: input.action,
             slug: input.slug,
             camera: input.camera,
+            look_preset_ids: input.look_preset_ids,
             motion: input.motion,
             graphics: input.graphics,
             production: input.production,
@@ -372,6 +375,7 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
           slug: input.slug,
           action: input.action,
           camera: input.camera,
+          look_preset_ids: input.look_preset_ids,
           motion: input.motion,
           graphics: input.graphics,
           production: input.production,
@@ -397,6 +401,8 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
         const next: Partial<Shot> = {};
         if (patch.action !== undefined) next.action = patch.action;
         if (patch.slug !== undefined) next.slug = patch.slug;
+        if (patch.look_preset_ids !== undefined)
+          next.look_preset_ids = patch.look_preset_ids;
         if (patch.camera !== undefined) next.camera = patch.camera;
         if (patch.motion !== undefined) next.motion = patch.motion;
         if (patch.graphics !== undefined) {
@@ -476,7 +482,12 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
         return { merged: sceneId, into };
       },
 
-      setStyle({ entityId, descriptor }) {
+      setStyle({ entityId, descriptor, look_preset_ids }) {
+        if (look_preset_ids !== undefined) {
+          store().setLookPresetIds(boardId, look_preset_ids);
+          if (entityId === undefined && descriptor === undefined)
+            return getSnapshot();
+        }
         requireBoard();
         if (entityId !== undefined) {
           const entity = entities.find((e) => e.id === entityId);

@@ -1,0 +1,24 @@
+{
+  "id": "studio.photo-effects",
+  "version": 1,
+  "kind": "studio",
+  "name": "Animate a photo",
+  "description": "Drop in one photo and turn it into a short clip: levitate, burst into petals, melt to gold and more.",
+  "tags": [
+    "effect",
+    "image-to-video"
+  ],
+  "target": {
+    "type": "effects"
+  },
+  "preset_ids": [
+    "effect.levitate",
+    "effect.petal-burst",
+    "effect.confetti-burst",
+    "effect.golden-embers",
+    "effect.glass-shatter",
+    "effect.smoke-vanish",
+    "effect.liquid-chrome",
+    "effect.molten-gold"
+  ]
+}

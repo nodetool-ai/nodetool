@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "id": "effect.snow-blanket",
+  "status": "completed",
+  "workflow": {
+    "nodes": [
+      {
+        "id": "prompt",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "prompt",
+          "value": ""
+        },
+        "position": {
+          "x": 80,
+          "y": 80
+        }
+      },
+      {
+        "id": "template",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "{{ prompt }} Edit the image to cover the scene in a fresh blanket of soft snow with gentle snowfall. Keep the composition and subject identical."
+        },
+        "position": {
+          "x": 380,
+          "y": 80
+        }
+      },
+      {
+        "id": "generate",
+        "type": "nodetool.image.ImageToImage",
+        "data": {
+          "model": {
+            "provider": "dreamina",
+            "id": "dreamina_gpt_image_2_5_sunburst",
+            "type": "image_model",
+            "name": "dreamina_gpt_image_2_5_sunburst"
+          },
+          "aspect_ratio": "16:9",
+          "resolution": "2K"
+        },
+        "position": {
+          "x": 680,
+          "y": 80
+        }
+      },
+      {
+        "id": "output",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "result"
+        },
+        "position": {
+          "x": 980,
+          "y": 80
+        }
+      },
+      {
+        "id": "image",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "image"
+        },
+        "position": {
+          "x": 80,
+          "y": 320
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "prompt-template",
+        "source": "prompt",
+        "sourceHandle": "output",
+        "target": "template",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "template-generate",
+        "source": "template",
+        "sourceHandle": "output",
+        "target": "generate",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "generate-output",
+        "source": "generate",
+        "sourceHandle": "output",
+        "target": "output",
+        "targetHandle": "value"
+      },
+      {
+        "id": "image-generate",
+        "source": "image",
+        "sourceHandle": "output",
+        "target": "generate",
+        "targetHandle": "image"
+      }
+    ]
+  },
+  "workflow_hash": "e205c0572ea962cf6ae3f1ad143c36eed886af5fd1229e7c0e8635e700221987",
+  "provider": "dreamina",
+  "model": "dreamina_gpt_image_2_5_sunburst",
+  "seed": null,
+  "prompt": "A large bronze ring sculpture with a twisted open loop and a green-gold patina on a rough travertine plinth in a sunlit Mediterranean stone courtyard, olive trees in terracotta pots in the foreground, an arched colonnade behind, cypress trees and mountains in the distance, golden late-afternoon light. Edit the image to cover the scene in a fresh blanket of soft snow with gentle snowfall. Keep the composition and subject identical.",
+  "source_hash": "adbf4a2064a6325d86502adc505cd9c7fab33cde19180d0d3281c6f5f15a8267",
+  "credits": null,
+  "cost_usd": null,
+  "started_at": "2026-10-31T20:30:49.554Z",
+  "finished_at": "2026-10-31T20:31:38.019Z",
+  "output_path": "/home/mg/.cache/nodetool/preset-previews/effect.snow-blanket-dreamina_gpt_image_2_5_sunburst.png"
+}

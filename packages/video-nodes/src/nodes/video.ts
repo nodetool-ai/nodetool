@@ -15,6 +15,8 @@ import type {
 } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
+  sniffImageMime,
+  sniffAudioMime,
   loadMediaRefBytes,
   mapPromptAssetsToInputs,
   resolveEntities
@@ -618,6 +620,9 @@ export class ImageToVideoNode extends BaseNode {
   })
   declare timeout_seconds: number;
 
+  @prop({ type: "int", default: -1, title: "Seed", description: "Generation seed. Use -1 for a random seed." })
+  declare seed: number;
+
   async process(context?: ProcessingContext): Promise<ImageToVideoNodeOutputs> {
     let images = normalizeImageList(this.image);
     let prompt = String(this.prompt ?? "");
@@ -665,6 +670,7 @@ export class ImageToVideoNode extends BaseNode {
       params: {
         image,
         prompt,
+        seed: this.seed >= 0 ? this.seed : undefined,
         negative_prompt: this.negative_prompt,
         entities: await resolveEntities(this.entities, context),
         duration_seconds: Number(this.duration ?? 0) || undefined,
@@ -3033,7 +3039,7 @@ export class LipSyncNode extends BaseNode {
     "Drive a face in a video to match speech in an audio track using any supported lip-sync provider.\n    video, lip-sync, lipsync, talking-head, dubbing, AI";
   static readonly metadataOutputTypes = { output: "video" };
   static readonly inlineFields: string[] = [];
-  static readonly inputFields: string[] = ["video", "audio"];
+  static readonly inputFields: string[] = ["image", "video", "audio"];
   static readonly autoSaveAsset = true;
 
   @prop({
@@ -3061,14 +3067,30 @@ export class LipSyncNode extends BaseNode {
 
   @prop({
     type: "audio",
-    default: { type: "audio", uri: "", asset_id: null, data: null, metadata: null },
+    default: {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
     title: "Audio",
     description: "The audio track the mouth motion should follow"
   })
   declare audio: AudioRef;
 
+  @prop({
+    type: "image",
+    default: { type: "image", uri: "" },
+    title: "Image",
+    description: "Optional source picture instead of a video"
+  })
+  declare image: ImageRef;
+
   async process(context?: ProcessingContext): Promise<LipSyncNodeOutputs> {
-    const video = await videoBytesAsync(this.video, context);
+    const image = await imageBytesAsync(this.image, context);
+    const video =
+      image.length > 0 ? image : await videoBytesAsync(this.video, context);
     if (video.length === 0) throw new Error("The input video is empty.");
     const audio = await audioBytesAsync(this.audio, context);
     if (audio.length === 0) throw new Error("The input audio is empty.");
@@ -3078,11 +3100,18 @@ export class LipSyncNode extends BaseNode {
     }
     const output = coerceProviderBytes(
       await context.runProviderPrediction({
-      provider: providerId,
-      capability: "lip_sync",
-      model: modelId,
-      params: { video, audio }
-    }),
+        provider: providerId,
+        capability: "lip_sync",
+        model: modelId,
+        params: {
+          video,
+          audio,
+          audioMimeType: sniffAudioMime(audio),
+          ...(image.length > 0 && {
+            visualMimeType: sniffImageMime(image) ?? "image/png"
+          })
+        }
+      }),
       "Lip Sync"
     );
     return { output: videoRef(output) };

@@ -1,0 +1,31 @@
+{
+  "id": "effect.restyle-anime",
+  "version": 1,
+  "kind": "effect",
+  "name": "Anime restyle",
+  "description": "Restyle the video as hand-drawn anime with clean ink outlines, cel shading and painted backgrounds.",
+  "tags": [
+    "restyle",
+    "anime"
+  ],
+  "slot": "effect",
+  "modes": [
+    "video_edit"
+  ],
+  "inputs": [
+    "video"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "The source video remade from scratch as a hand-drawn 2D anime film. Every object, the architecture, the plants, the ground and the sky are redrawn with clean ink outlines, flat cel-shaded color and painted backgrounds. Not live action, not a photograph, not CGI. Only the layout, action and camera move of the source video stay the same.",
+    "local-wan": "From the first frame, the entire scene is rebuilt as a hand-drawn 2D anime film. Clean ink contours enclose flat cel-shaded colors; architecture, foliage and sky become painted animation backgrounds. The layout and movement follow the source video, with this treatment sustained in every frame."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-anime/7b07a72178ff32015dca04a0826f0c8c31866c9ce1257195ddb724b4ee335d5a.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-anime/7b07a72178ff32015dca04a0826f0c8c31866c9ce1257195ddb724b4ee335d5a-late.png",
+    "run": "runs/effect.restyle-anime.json"
+  }
+}

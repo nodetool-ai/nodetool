@@ -592,6 +592,7 @@ const CAPABILITY_LINKS = [
   ["Game Editor guide", "https://docs.nodetool.ai/game-editor", "scene tree, inspector, scripts, play mode, publishing, and export."],
   ["Native Game Engine reference", "https://docs.nodetool.ai/game-engine/", "game documents, scripts, physics, assets, agent authoring, and current coverage."],
   ["AI storyboard generator", "/storyboards", "turn a brief into scenes and shots, render each shot, and assemble a timeline. Example films with every shot shown."],
+  ["Preset previews", "/presets", "camera move, look and effect presets, each with a short preview render and the model that made it."],
   ["Storyboard Editor guide", "https://docs.nodetool.ai/storyboard-editor", "scenes and shots, still and clip renders, takes, and assembling a timeline."],
   ["Video Editor guide", "https://docs.nodetool.ai/video-editor", "multi-track timeline editing and export."],
   ["Video ad templates", "/ad-library", "editable vertical video ad templates, each with beats, timing, and formats, and each shipped as a mini app."],

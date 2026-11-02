@@ -42,6 +42,7 @@ const cameraParam = z
     lens: z.string().optional(),
     angle: z.string().optional(),
     movement: z.string().optional(),
+    preset_ids: z.array(z.string()).max(3).optional(),
     equipment: z
       .string()
       .optional()
@@ -92,6 +93,7 @@ const screenplayShotParam = z
       .describe("The concrete visual to render: subject plus setting."),
     slug: z.string().optional().describe("Short human label for the shot."),
     camera: cameraParam.optional(),
+    look_preset_ids: z.array(z.string()).max(3).optional(),
     motion: z.string().optional(),
     graphics: storyboards.storyboardShotGraphics.optional(),
     production: productionRequirement.optional(),
@@ -265,6 +267,7 @@ FrontendToolRegistry.register({
     action: z.string().min(1),
     slug: z.string().optional(),
     camera: cameraParam.optional(),
+    look_preset_ids: z.array(z.string()).max(3).optional(),
     motion: z.string().optional(),
     graphics: storyboards.storyboardShotGraphics.optional(),
     production: productionRequirement.optional(),
@@ -281,6 +284,7 @@ FrontendToolRegistry.register({
     action,
     slug,
     camera,
+    look_preset_ids,
     motion,
     graphics,
     production,
@@ -292,6 +296,7 @@ FrontendToolRegistry.register({
       action,
       slug,
       camera,
+      look_preset_ids,
       motion,
       graphics,
       production,
@@ -319,6 +324,7 @@ FrontendToolRegistry.register({
     action: z.string().min(1).optional(),
     slug: z.string().optional(),
     camera: cameraParam.optional(),
+    look_preset_ids: z.array(z.string()).max(3).optional(),
     motion: z.string().optional(),
     graphics: storyboards.storyboardShotGraphics.nullable().optional(),
     production: productionRequirement.nullable().optional(),
@@ -347,6 +353,7 @@ FrontendToolRegistry.register({
     action,
     slug,
     camera,
+    look_preset_ids,
     motion,
     graphics,
     production,
@@ -360,6 +367,7 @@ FrontendToolRegistry.register({
       action,
       slug,
       camera,
+      look_preset_ids,
       motion,
       graphics,
       production,
@@ -839,6 +847,7 @@ FrontendToolRegistry.register({
     "Set the look every shot renders in. Pass `entityId` to apply a style entity from the library as a preset: it replaces whatever style entity the board carried, its descriptor becomes the board style, and per-shot exclusions of a style are dropped — a style is board-wide. Pass `descriptor` instead to set the style text on its own, with no entity behind it. Discover style entity ids with ui_entity_list. This renders nothing: stills and clips made under the old style read as stale, and you re-render them with staleOnly.",
   parameters: z.object({
     storyboard_id: storyboardIdParam,
+    look_preset_ids: z.array(z.string()).max(3).optional(),
     entityId: z
       .string()
       .optional()
@@ -852,10 +861,11 @@ FrontendToolRegistry.register({
         "Raw style text, when no library entity carries the look. Ignored when entityId is given."
       )
   }),
-  async execute({ storyboard_id, entityId, descriptor }) {
+  async execute({ storyboard_id, entityId, descriptor, look_preset_ids }) {
     const snapshot = getStoryboardAgentHandler(storyboard_id).setStyle({
       entityId,
-      descriptor
+      descriptor,
+      look_preset_ids
     });
     const persisted = await persistBoard(storyboard_id, "The style");
     return {

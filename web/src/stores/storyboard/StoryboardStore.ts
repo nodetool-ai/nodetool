@@ -84,6 +84,7 @@ export interface StoryboardBoard {
    * prompt picks up the applicable entities' descriptors for consistency.
    */
   entityIds: string[];
+  look_preset_ids?: string[];
   aspectRatio: string;
   /**
    * Where the board sits in the guided setup. A board built before the flow
@@ -190,6 +191,7 @@ interface StoryboardStoreState {
 
   setBrief: (boardId: string, brief: string) => void;
   setStyle: (boardId: string, style: string) => void;
+  setLookPresetIds: (boardId: string, ids: string[]) => void;
   setCreativeContext: (
     boardId: string,
     creativeContext: CreativeContext | undefined
@@ -415,6 +417,7 @@ const emptyBoard = (id: string): StoryboardBoard => ({
   title: "",
   brief: "",
   style: "",
+  look_preset_ids: [],
   entityIds: [],
   aspectRatio: "16:9",
   setupStage: "done",
@@ -950,6 +953,15 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         boardId,
         (b) => (b.style === style ? null : { ...b, style }),
         { coalesceKey: "style" }
+      )
+    ),
+
+  setLookPresetIds: (boardId, ids) =>
+    set((state) =>
+      withBoard(state, boardId, (board) =>
+        JSON.stringify(board.look_preset_ids ?? []) === JSON.stringify(ids)
+          ? null
+          : { ...board, look_preset_ids: [...ids] }
       )
     ),
 

@@ -16,7 +16,8 @@
   },
   "dependencies": {
     "@nodetool-ai/protocol": "*",
-    "@nodetool-ai/timeline": "*"
+    "@nodetool-ai/timeline": "*",
+    "@nodetool-ai/presets": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

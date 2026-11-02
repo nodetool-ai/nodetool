@@ -38,6 +38,21 @@ import { clipPromptFor, keyframePrompt, sceneForShot } from "./shot-prompt.js";
 /** Submission-time provenance persisted with the durable attachment intent. */
 export const storyboardRenderProvenance = productionTakeMetadata.extend({
   render_inputs: z.object({
+    generation: z
+      .object({
+        mode: z.enum([
+          "image",
+          "image_edit",
+          "video",
+          "image_to_video",
+          "reference_to_video",
+          "video_edit"
+        ]),
+        provider: z.string(),
+        prompt: z.string(),
+        params: z.record(z.string(), z.unknown())
+      })
+      .optional(),
     kind: z.enum(["keyframe", "clip"]),
     prompt_hash: z.string(),
     model: z.string(),
@@ -47,6 +62,8 @@ export const storyboardRenderProvenance = productionTakeMetadata.extend({
     reference_asset_ids: z.array(z.string()).optional(),
     entity_conditioning_hash: z.string().optional(),
     render_mode: z.enum(["keyframe", "direct", "reference"]).optional(),
+    camera_preset_ids: z.array(z.string()).max(3).optional(),
+    look_preset_ids: z.array(z.string()).max(3).optional(),
     recorded_at: z.string()
   })
 });
@@ -80,6 +97,8 @@ export interface BoardRenderContext {
   style_entity_id: string | null;
   /** The style descriptor pasted into still and direct-clip prompts. */
   style: string;
+  /** Effective look stack after per-shot override/inheritance. */
+  look_preset_ids?: readonly string[];
   /** The screenplay's scenes, so a shot's lighting can be found. */
   scenes?: readonly Scene[] | null;
   /** Ordered entity reference image asset ids for stills or reference clips. */
@@ -194,7 +213,18 @@ export function currentRenderInputs(
     aspect_ratio: board.aspect_ratio,
     style_entity_id: board.style_entity_id
   };
-  if (kind === "clip") draft.render_mode = mode;
+  if (kind === "clip") {
+    draft.render_mode = mode;
+    if (shot.camera?.preset_ids?.length) {
+      draft.camera_preset_ids = [...shot.camera.preset_ids];
+    }
+  }
+  const lookIds = shot.look_preset_ids?.length
+    ? shot.look_preset_ids
+    : board.look_preset_ids;
+  if (lookIds?.length) {
+    draft.look_preset_ids = [...lookIds];
+  }
   // A keyframe-mode clip animates the selected still, so which still that was
   // is one of its inputs: re-picking a take makes the clip stale. A direct clip
   // has no source.
@@ -272,6 +302,10 @@ function renderInputsMatchDraft(
     recorded.style_entity_id === current.style_entity_id &&
     recorded.entity_conditioning_hash === current.entity_conditioning_hash &&
     recordedRenderMode === current.render_mode &&
+    JSON.stringify(recorded.camera_preset_ids ?? []) ===
+      JSON.stringify(current.camera_preset_ids ?? []) &&
+    JSON.stringify(recorded.look_preset_ids ?? []) ===
+      JSON.stringify(current.look_preset_ids ?? []) &&
     JSON.stringify(recorded.reference_asset_ids ?? []) ===
       JSON.stringify(current.reference_asset_ids ?? []) &&
     recorded.source_version_id === current.source_version_id

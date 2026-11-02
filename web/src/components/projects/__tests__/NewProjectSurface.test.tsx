@@ -11,6 +11,11 @@ import mockTheme from "../../../__mocks__/themeMock";
 import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
 import { useBugReportStore } from "../../../stores/BugReportStore";
 
+// Each test renders the whole start page, studios row included, and drives it
+// with userEvent, so a test takes several seconds and slower CI runners pass
+// the 10 s default.
+jest.setTimeout(30_000);
+
 jest.mock("../CurrentProjectDocuments", () => ({
   __esModule: true,
   default: () => <div data-testid="current-project-documents" />
@@ -1573,6 +1578,41 @@ describe("NewProjectSurface", () => {
     expect(flowTabs[0].ref).not.toBe(flowTabs[1].ref);
     expect(flowTabs.map((tab) => tab.setupTarget.kind)).toEqual(["storyboard", "app"]);
     expect(await screen.findByRole("group", { name: "Start with a guided flow" })).toBeInTheDocument();
+  });
+
+  it("opens the Effects gallery from its studio instead of a guided flow", async () => {
+    renderSurface();
+    const studios = screen.getByRole("region", { name: "Studios" });
+    await userEvent.click(
+      within(studios).getByRole("button", { name: /^Animate a photo/ })
+    );
+    expect(openPageTab).toHaveBeenCalledWith("effects");
+    expect(createStoryboard).not.toHaveBeenCalled();
+    expect(createProject).not.toHaveBeenCalled();
+  });
+
+  it("puts a skill studio's starter in the prompt and keeps it on a second click", async () => {
+    renderSurface();
+    const prompt = screen.getByPlaceholderText(/Describe what you want to create/);
+    await userEvent.type(prompt, "A spot for our desk lamp");
+    const tile = within(screen.getByRole("region", { name: "Studios" })).getByRole(
+      "button",
+      { name: /^Product ad/ }
+    );
+    await userEvent.click(tile);
+    expect(prompt).toHaveValue("/launch-commercial A spot for our desk lamp");
+    await userEvent.click(tile);
+    expect(prompt).toHaveValue("/launch-commercial A spot for our desk lamp");
+  });
+
+  it("starts the storyboard flow from the Film a scene studio", async () => {
+    renderSurface();
+    await userEvent.click(
+      within(screen.getByRole("region", { name: "Studios" })).getByRole("button", {
+        name: /^Film a scene/
+      })
+    );
+    await waitFor(() => expect(createStoryboard).toHaveBeenCalled());
   });
 
   it("starts a guided card in the current project without a destination dialog", async () => {

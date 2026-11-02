@@ -1369,3 +1369,27 @@ describe("removeShot coverage", () => {
     });
   });
 });
+
+it("stores board looks in undo history without changing shot overrides", () => {
+  const store = useStoryboardStore.getState();
+  store.ensureBoard("look-board");
+  store.upsertShot("look-board", {
+    type: "shot",
+    id: "s",
+    index: 0,
+    action: "A lighthouse",
+    status: "planned",
+    look_preset_ids: ["look.bleach-bypass"]
+  });
+  store.setLookPresetIds("look-board", ["look.arri-alexa"]);
+  expect(
+    useStoryboardStore.getState().boards["look-board"].look_preset_ids
+  ).toEqual(["look.arri-alexa"]);
+  store.undo("look-board");
+  expect(
+    useStoryboardStore.getState().boards["look-board"].look_preset_ids
+  ).toEqual([]);
+  expect(
+    useStoryboardStore.getState().boards["look-board"].shots[0].look_preset_ids
+  ).toEqual(["look.bleach-bypass"]);
+});

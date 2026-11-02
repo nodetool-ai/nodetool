@@ -1,0 +1,31 @@
+{
+  "id": "effect.restyle-oil-painting",
+  "version": 1,
+  "kind": "effect",
+  "name": "Oil painting restyle",
+  "description": "Restyle the video as animated oil painting with visible brushstrokes, layered pigments and rich canvas texture.",
+  "tags": [
+    "restyle",
+    "oil-painting"
+  ],
+  "slot": "effect",
+  "modes": [
+    "video_edit"
+  ],
+  "inputs": [
+    "video"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "The source video remade from scratch as a moving oil painting on canvas. Every object, the architecture, the plants, the ground and the sky are built from thick visible impasto brushstrokes, with loose simplified forms, broken color and ridged paint. Not live action, not a photograph, not CGI. Only the layout, action and camera move of the source video stay the same.",
+    "local-wan": "From the first frame, the entire scene is rebuilt as a moving oil painting on canvas. Thick ridged impasto strokes build every figure, tree, wall and patch of sky with broken colors and loose painted shapes. The layout and movement follow the source video, with this treatment sustained in every frame."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-oil-painting/b7ab6ab130ffde0118b2a0a083f8f1a1c8e2a3456ed34a961f91488a5a89e859.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-oil-painting/b7ab6ab130ffde0118b2a0a083f8f1a1c8e2a3456ed34a961f91488a5a89e859-late.png",
+    "run": "runs/effect.restyle-oil-painting.json"
+  }
+}

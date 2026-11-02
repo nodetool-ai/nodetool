@@ -23,9 +23,9 @@ import {
   FlexRow,
   Panel,
   SPACING,
-  SelectField,
-  TextArea
+  SelectField
 } from "../../ui_primitives";
+import EntityMentionTextArea from "../../entities/EntityMentionTextArea";
 import { sketchFieldSx } from "../sketchStyles";
 import { EditorButton } from "../../editor_ui";
 import ImageModelSelect from "../../properties/ImageModelSelect";
@@ -235,7 +235,7 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
           onChange={handleModelChange}
         />
 
-        <TextArea
+        <EntityMentionTextArea
           value={binding.prompt ?? ""}
           onChange={(value) => patchBinding(layer.id, { prompt: value })}
           onFocus={revealGenerate}

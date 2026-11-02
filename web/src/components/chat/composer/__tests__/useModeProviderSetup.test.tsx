@@ -44,7 +44,10 @@ describe("capabilityForMode", () => {
 
   it("maps not-yet-selectable modes to null", () => {
     expect(capabilityForMode("motion_control")).toBeNull();
-    expect(capabilityForMode("audio_to_video")).toBeNull();
+  });
+
+  it("maps audio-to-video to the lipsync capability", () => {
+    expect(capabilityForMode("audio_to_video")).toBe("lip_sync");
   });
 
   it("has a reason for every mode with a capability", () => {

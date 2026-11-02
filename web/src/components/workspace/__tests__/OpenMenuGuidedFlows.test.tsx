@@ -12,6 +12,11 @@ import {
   renderOpenMenu
 } from "../openMenuTestHarness";
 
+const mockOpenPageTab = jest.fn();
+jest.mock("../openPageTab", () => ({
+  openPageTab: (key: string) => mockOpenPageTab(key)
+}));
+
 const startStoryboard = jest.fn(async () => undefined);
 const startVideo = jest.fn(async () => undefined);
 
@@ -89,5 +94,19 @@ describe("OpenMenu guided flows", () => {
     await waitFor(() => expect(startStoryboard).toHaveBeenCalledTimes(1));
     expect(startVideo).not.toHaveBeenCalled();
     expect(screen.queryByText("Start Storyboard in…")).not.toBeInTheDocument();
+  });
+
+  it("lists Effects under guided flows and opens the gallery page", async () => {
+    const user = userEvent.setup();
+    const onClose = jest.fn();
+    renderOpenMenu(onClose);
+    expect(
+      screen.getByText("Turn one picture into a short effect clip")
+    ).toBeInTheDocument();
+    await user.click(screen.getByText("Add an effect to a photo"));
+
+    expect(mockOpenPageTab).toHaveBeenCalledWith("effects");
+    expect(onClose).toHaveBeenCalled();
+    expect(startStoryboard).not.toHaveBeenCalled();
   });
 });

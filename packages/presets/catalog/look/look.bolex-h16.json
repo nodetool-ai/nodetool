@@ -1,0 +1,37 @@
+{
+  "id": "look.bolex-h16",
+  "version": 1,
+  "kind": "look",
+  "name": "Bolex H16",
+  "description": "Bolex H16 16 mm rendering: slight gate weave, compact grain and soft corners with a subtle mechanical exposure flutter.",
+  "tags": [
+    "look",
+    "body"
+  ],
+  "slot": "body",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video",
+    "image"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "Bolex H16 16 mm rendering: slight gate weave, compact grain and soft corners with a subtle mechanical exposure flutter.",
+    "kling": "Bolex H16 16 mm rendering: slight gate weave, compact grain and soft corners with a subtle mechanical exposure flutter. Maintain this rendering consistently across the scene.",
+    "seedance": "Bolex H16 16 mm rendering: slight gate weave, compact grain and soft corners with a subtle mechanical exposure flutter. Preserve this appearance throughout one continuous shot.",
+    "veo": "Bolex H16 16 mm rendering: slight gate weave, compact grain and soft corners with a subtle mechanical exposure flutter. Keep the lighting and color response consistent between frames.",
+    "wan": "Bolex H16 16 mm rendering: slight gate weave, compact grain and soft corners with a subtle mechanical exposure flutter. Retain natural subject detail under this visual treatment."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.bolex-h16/ced551c5704acfddbdb4b7548431e944be70fa27e8de998dde577c7fc8cd6a79.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.bolex-h16/ced551c5704acfddbdb4b7548431e944be70fa27e8de998dde577c7fc8cd6a79-late.png",
+    "run": "runs/look.bolex-h16.json"
+  }
+}

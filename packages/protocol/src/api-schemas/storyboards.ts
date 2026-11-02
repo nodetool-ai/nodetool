@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { cameraPresetIdsSchema } from "../creative.js";
 import type { Screenplay, Shot } from "../creative.js";
 import { SCENE_CLIP_MAX_SHOTS, SCENE_CLIP_MIN_SHOTS } from "../one-take.js";
 import {
@@ -161,6 +162,7 @@ export const storyboardShot = z
     id: z.string(),
     index: z.number(),
     action: z.string(),
+    look_preset_ids: cameraPresetIdsSchema.optional(),
     status: z.string(),
     slug: z.string().optional(),
     motion: z.string().optional(),
@@ -168,6 +170,14 @@ export const storyboardShot = z
     end_state: z.string().optional(),
     /** What is heard in the shot; a one-take audio cue. */
     sound: z.string().optional(),
+    camera: z.object({
+      framing: z.string().optional(),
+      lens: z.string().optional(),
+      angle: z.string().optional(),
+      movement: z.string().optional(),
+      equipment: z.string().optional(),
+      preset_ids: cameraPresetIdsSchema.optional()
+    }).passthrough().optional(),
     graphics: storyboardShotGraphics.optional(),
     duration_seconds: z.number().optional(),
     keyframe: mediaRef.nullable().optional(),
@@ -512,6 +522,7 @@ export const storyboardDocument = z.object({
   style: z.string(),
   /** Library entity (asset) ids whose descriptors season every shot prompt. */
   entityIds: z.array(z.string()).default([]),
+  look_preset_ids: cameraPresetIdsSchema.optional(),
   aspectRatio: z.string(),
   setupStage: storyboardSetupStage.default("done"),
   /** Genre sits on the board, not the screenplay: it is picked before one exists. */

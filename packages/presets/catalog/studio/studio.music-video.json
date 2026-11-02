@@ -1,0 +1,16 @@
+{
+  "id": "studio.music-video",
+  "version": 1,
+  "kind": "studio",
+  "name": "Music video",
+  "description": "A beat-synced treatment and storyboard cut to your track.",
+  "tags": [
+    "music",
+    "storyboard"
+  ],
+  "target": {
+    "type": "skill",
+    "skill": "music-video-treatment"
+  },
+  "preset_ids": []
+}

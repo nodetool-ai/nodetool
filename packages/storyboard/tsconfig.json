@@ -8,6 +8,7 @@
   "include": ["src"],
   "references": [
     { "path": "../protocol" },
+    { "path": "../presets" },
     { "path": "../timeline" }
   ]
 }

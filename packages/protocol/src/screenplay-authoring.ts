@@ -11,6 +11,7 @@
  * does not depend on which surface asked for it.
  */
 
+import { cameraPresetIdsSchema } from "./creative.js";
 import type { CameraDirection, Scene, Screenplay, Shot } from "./creative.js";
 import {
   isNonBlankString,
@@ -96,6 +97,9 @@ function coerceCamera(raw: unknown): CameraDirection | undefined {
   if (angle) camera.angle = angle;
   if (movement) camera.movement = movement;
   if (equipment) camera.equipment = equipment;
+  if (raw.preset_ids !== undefined) {
+    camera.preset_ids = cameraPresetIdsSchema.parse(raw.preset_ids);
+  }
   return Object.keys(camera).length > 0 ? camera : undefined;
 }
 
@@ -114,6 +118,9 @@ function coerceShot(raw: unknown, index: number): Shot {
   // `scene-N`; nothing else calls coerceShot with a foreign id.
   const sceneId = optionalStr(obj.scene_id);
   if (sceneId) shot.scene_id = sceneId;
+  if (obj.look_preset_ids !== undefined) {
+    shot.look_preset_ids = cameraPresetIdsSchema.parse(obj.look_preset_ids);
+  }
   const camera = coerceCamera(obj.camera);
   if (camera) shot.camera = camera;
   const motion = optionalStr(obj.motion);
@@ -355,6 +362,11 @@ export function buildScreenplaySchema(
             dialogue: { type: "string" },
             narration: { type: "string" },
             duration_seconds: { type: "number" },
+            look_preset_ids: {
+              type: "array",
+              items: { type: "string" },
+              maxItems: 3
+            },
             camera: {
               type: "object",
               additionalProperties: false,
@@ -363,6 +375,7 @@ export function buildScreenplaySchema(
                 lens: { type: "string" },
                 angle: { type: "string" },
                 movement: { type: "string" },
+                preset_ids: { type: "array", items: { type: "string" }, maxItems: 3 },
                 equipment: { type: "string" }
               }
             }

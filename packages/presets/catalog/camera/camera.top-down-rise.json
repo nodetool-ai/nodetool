@@ -1,0 +1,39 @@
+{
+  "id": "camera.top-down-rise",
+  "version": 1,
+  "kind": "camera",
+  "name": "top-down rise",
+  "description": "Camera rises straight upward while looking vertically down, widening the view.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [
+    "top-down rise"
+  ],
+  "prompt": {
+    "default": "Camera rises straight upward while looking vertically down, widening the view.",
+    "kling": "Camera rises straight upward while looking vertically down, widening the view.",
+    "seedance": "Camera rises straight upward while looking vertically down, widening the view throughout one continuous shot.",
+    "veo": "Camera rises straight upward while looking vertically down, widening the view.",
+    "wan": "Camera rises straight upward while looking vertically down, widening the view.",
+    "local-wan": "The camera looks straight down and rises vertically above the subject. The subject becomes smaller as the ground fills an increasingly wide overhead view. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.top-down-rise/f2908dbdc8e345411ab43555322a0afc056a176bcb4d69e7ec65392482afd723.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.top-down-rise/f2908dbdc8e345411ab43555322a0afc056a176bcb4d69e7ec65392482afd723.png",
+    "run": "runs/camera.top-down-rise.json"
+  }
+}

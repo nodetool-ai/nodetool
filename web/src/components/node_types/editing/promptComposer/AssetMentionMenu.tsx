@@ -93,6 +93,11 @@ export interface AssetMentionMenuProps {
   hasMore?: boolean;
   /** Fetch the next page; called when the grid is scrolled near the bottom. */
   onLoadMore?: () => void;
+  /**
+   * List entities only: no Recent/Saved tabs and no asset grid. For a prompt
+   * box that takes no assets.
+   */
+  entitiesOnly?: boolean;
   className?: string;
 }
 
@@ -177,6 +182,7 @@ export const AssetMentionMenu: React.FC<AssetMentionMenuProps> = ({
   queryString,
   hasMore = false,
   onLoadMore,
+  entitiesOnly = false,
   className
 }) => {
   const { t } = useTranslation();
@@ -238,37 +244,46 @@ export const AssetMentionMenu: React.FC<AssetMentionMenuProps> = ({
           ))}
         </div>
       )}
-      <TabGroup
-        className="mention-tabs"
-        size="small"
-        aria-label={t("i18n-next34.assetMention.assetSource")}
-        tabs={mentionTabs}
-        value={activeTab}
-        onChange={handleTabChange}
-        // Keep focus in the prompt editor: the menu is driven from its caret.
-        onMouseDown={(e) => e.preventDefault()}
-      />
-      <div
-        className="mention-grid"
-        role="listbox"
-        onScroll={activeTab === "saved" ? handleGridScroll : undefined}
-      >
-        {assets.length === 0 ? (
-          <div className="mention-empty">{emptyMessage}</div>
-        ) : (
-          assets.map((asset, index) => (
-            <AssetRow
-              key={asset.id}
-              asset={asset}
-              index={entityCount + index}
-              selected={entityCount + index === selectedIndex}
-              onSelect={onSelect}
-              onHighlight={onHighlight}
-              onRename={onRename}
-            />
-          ))
-        )}
-      </div>
+      {entitiesOnly && entityCount === 0 && (
+        <div className="mention-empty">
+          {t("i18n-next34.assetMention.noEntitiesMatch")}
+        </div>
+      )}
+      {!entitiesOnly && (
+        <TabGroup
+          className="mention-tabs"
+          size="small"
+          aria-label={t("i18n-next34.assetMention.assetSource")}
+          tabs={mentionTabs}
+          value={activeTab}
+          onChange={handleTabChange}
+          // Keep focus in the prompt editor: the menu is driven from its caret.
+          onMouseDown={(e) => e.preventDefault()}
+        />
+      )}
+      {!entitiesOnly && (
+        <div
+          className="mention-grid"
+          role="listbox"
+          onScroll={activeTab === "saved" ? handleGridScroll : undefined}
+        >
+          {assets.length === 0 ? (
+            <div className="mention-empty">{emptyMessage}</div>
+          ) : (
+            assets.map((asset, index) => (
+              <AssetRow
+                key={asset.id}
+                asset={asset}
+                index={entityCount + index}
+                selected={entityCount + index === selectedIndex}
+                onSelect={onSelect}
+                onHighlight={onHighlight}
+                onRename={onRename}
+              />
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 };

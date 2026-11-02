@@ -1,0 +1,19 @@
+{
+  "id": "studio.portrait-photo",
+  "version": 1,
+  "kind": "studio",
+  "name": "Portrait photo",
+  "description": "A still portrait under a soft Rembrandt key on warm daylight film stock.",
+  "tags": [
+    "image",
+    "portrait"
+  ],
+  "target": {
+    "type": "create",
+    "mode": "image"
+  },
+  "preset_ids": [
+    "look.rembrandt-key",
+    "look.kodak-5207"
+  ]
+}

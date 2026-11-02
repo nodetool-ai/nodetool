@@ -11,17 +11,22 @@ import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { Caption, FlexColumn, Text, Tooltip } from "../../ui_primitives";
 import type { MediaMode } from "../../../stores/MediaGenerationStore";
-import { useMediaCostEstimate } from "./useMediaCostEstimate";
+import {
+  useMediaCostEstimate,
+  type MediaCostEstimateOptions
+} from "./useMediaCostEstimate";
 
-interface MediaCostEstimateProps {
+interface MediaCostEstimateProps extends MediaCostEstimateOptions {
   mode: MediaMode;
 }
 
 const MediaCostEstimateInternal: React.FC<MediaCostEstimateProps> = ({
-  mode
+  mode,
+  requests,
+  variations
 }) => {
   const { t } = useTranslation();
-  const estimate = useMediaCostEstimate(mode);
+  const estimate = useMediaCostEstimate(mode, { requests, variations });
 
   if (!estimate) {
     return null;

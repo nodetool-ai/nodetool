@@ -220,7 +220,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "effects-gallery",
         "name": "Effects Gallery",
-        "description": "Apply one of 12 visual effects presets — levitation, glass shatter, liquid chrome melt, slow-motion embers, frost freeze, balloon inflate, or floral explosion — to any product or subject photo. Estimated cost is about $0.30 to $0.85 per clip on fal at provider list price, or $0 locally with Wan 2.2.",
+        "description": "Apply one of 17 visual effects presets — levitation, glass shatter, liquid chrome melt, slow-motion embers, frost freeze, balloon inflate, or floral explosion — to any product or subject photo. Estimated cost is about $0.30 to $0.85 per clip on fal at provider list price, or $0 locally with Wan 2.2.",
         "tags": [
           "video",
           "image",

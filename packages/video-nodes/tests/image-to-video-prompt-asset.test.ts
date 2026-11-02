@@ -33,6 +33,7 @@ describe("ImageToVideoNode — inline asset prompt mapping", () => {
     const node = new ImageToVideoNode();
     node.assign({
       prompt: "loop asset://a.png forever",
+      seed: 20261031,
       image: {
         type: "image",
         data: Buffer.from([5, 5, 5]).toString("base64"),
@@ -47,5 +48,6 @@ describe("ImageToVideoNode — inline asset prompt mapping", () => {
     const image = params.image as Uint8Array;
     expect(Array.from(image)).toEqual([5, 5, 5]);
     expect(params.prompt).toBe("loop forever");
+    expect(params.seed).toBe(20261031);
   });
 });

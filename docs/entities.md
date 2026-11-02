@@ -83,6 +83,7 @@ Where this happens:
 |---------|--------------|
 | Storyboard | The **Entities** field under **Board settings** pins a cast to the board. Styles and locations season every shot. Characters and props apply to shots that name them. Each shot's **Edit** view shows the cast as chips you can include or exclude for that shot. See [Creative Agent](creative-agent.md#entities-reusable-ingredients). |
 | `@` mentions | The mention picker in the chat composer and the Prompt node lists entities first. A picked entity carries its descriptor and reference image into the generation. |
+| Prompt boxes | Type `@` in a storyboard shot's **Description**, **Motion**, or **End** field, in the Sketch Editor's prompt boxes, and in the timeline's image and video prompts. These pickers list entities only. In a shot, the entity joins **In this shot**. In the timeline's **Generate** dialog for video, it joins the clip's reference entities. Elsewhere the prompt holds an `entity://` reference that is expanded when the prompt is sent. |
 | Workflow nodes | `nodetool.creative.ApplyEntities` injects descriptors into a prompt and outputs `prompt` and `reference_images`. `LoadEntity`, `ListEntities`, and `CreateEntity` read and write the library. See [the node table in Creative Agent](creative-agent.md). |
 | Entity picker | Entity properties on workflow nodes open a picker titled **Pick an entity**. It has a search box ("Search entities by name, kind, or tag") and filters for All, Characters, Locations, Styles, and Props. |
 

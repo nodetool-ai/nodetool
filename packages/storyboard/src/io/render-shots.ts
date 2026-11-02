@@ -280,6 +280,7 @@ export async function renderShots(
     }
     try {
       const params: RenderParams = {
+        ...plan.presetParams,
         prompt: plan.prompt,
         entities: plan.entities,
         aspect_ratio: plan.aspectRatio,
@@ -348,7 +349,38 @@ export async function renderShots(
             ? { ...candidate.snapshot, ...identity }
             : undefined;
         const provenance: StoryboardRenderProvenance = {
-          render_inputs: stampRenderInputs(plan.renderInputs),
+          render_inputs: stampRenderInputs({
+            ...plan.renderInputs,
+            camera_preset_ids: plan.renderInputs.camera_preset_ids ?? [],
+            look_preset_ids: plan.renderInputs.look_preset_ids ?? [],
+            generation: {
+              mode:
+                capability === "text_to_image"
+                  ? "image"
+                  : capability === "image_to_image"
+                    ? "image_edit"
+                    : capability === "text_to_video"
+                      ? "video"
+                      : capability,
+              provider: plan.model.provider,
+              prompt: params.prompt,
+              params: {
+                ...plan.presetParams,
+                aspect_ratio: params.aspect_ratio,
+                resolution: params.resolution,
+                ...(plan.durationSeconds !== undefined && {
+                  duration_seconds: plan.durationSeconds
+                }),
+                entities: plan.entities,
+                ...(capability === "image_to_video" && {
+                  image: plan.sourceKeyframe
+                }),
+                ...(capability === "reference_to_video" && {
+                  reference_images: plan.referenceImages
+                })
+              }
+            }
+          }),
           ...(identity !== undefined && {
             candidateId: identity.candidateId,
             batchId: identity.batchId,

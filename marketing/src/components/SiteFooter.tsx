@@ -27,6 +27,7 @@ const COLUMNS: Col[] = [
       { name: "Templates", href: "/templates" },
       { name: "Recipes", href: "/recipes" },
       { name: "Storyboards", href: "/storyboards" },
+      { name: "Presets", href: "/presets" },
       { name: "AI image editor", href: "/ai-image-editor" },
       { name: "AI video editor", href: "/ai-video-editor" },
       { name: "MCP server", href: "/mcp" },

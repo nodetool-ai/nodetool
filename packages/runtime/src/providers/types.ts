@@ -864,6 +864,9 @@ export interface OutpaintVideoParams {
  * ride along in the params.
  */
 export interface LipSyncParams {
+  /** MIME of the primary visual, defaults to video/mp4 for existing callers. */
+  visualMimeType?: string;
+  audioMimeType?: string;
   model: VideoModel;
   /** Encoded audio bytes (e.g. WAV/MP3) the mouth motion should follow. */
   audio: Uint8Array;

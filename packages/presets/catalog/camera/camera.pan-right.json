@@ -1,0 +1,41 @@
+{
+  "id": "camera.pan-right",
+  "version": 1,
+  "kind": "camera",
+  "name": "pan right",
+  "description": "Camera pans right from a fixed position.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "camera.pan-left"
+  ],
+  "aliases": [
+    "pan right"
+  ],
+  "prompt": {
+    "default": "Camera pans right from a fixed position.",
+    "kling": "Camera pans right from a fixed position.",
+    "seedance": "Camera pans right from a fixed position throughout one continuous shot.",
+    "veo": "Camera pans right from a fixed position.",
+    "wan": "Camera pans right from a fixed position.",
+    "local-wan": "From a stationary viewpoint, the camera turns slowly right. The scene slides left across the frame while new scenery enters along the right edge. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pan-right/91cec0ff5dc2321d885523817a19be7ab30ccdb28be321595093e764dc0098cd.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pan-right/91cec0ff5dc2321d885523817a19be7ab30ccdb28be321595093e764dc0098cd.png",
+    "run": "runs/camera.pan-right.json"
+  }
+}

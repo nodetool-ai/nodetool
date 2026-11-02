@@ -125,6 +125,7 @@ type RestorableTabType = Exclude<
   | "project-list"
   | "project"
   | "project-new"
+  | "create"
   | "guided-flow"
   | "example-app"
 >;

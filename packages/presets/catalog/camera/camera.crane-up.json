@@ -1,0 +1,41 @@
+{
+  "id": "camera.crane-up",
+  "version": 1,
+  "kind": "camera",
+  "name": "crane up",
+  "description": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "camera.crane-down"
+  ],
+  "aliases": [
+    "crane up"
+  ],
+  "prompt": {
+    "default": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear.",
+    "kling": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear.",
+    "seedance": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear throughout one continuous shot.",
+    "veo": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear.",
+    "wan": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear.",
+    "local-wan": "The camera lifts above the subject and gradually points downward. More of the surrounding ground becomes visible as the subject recedes below. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.crane-up/ec9fe69e2efea589ce3b0ded33ca306ecb3cbce16e6f326eff53c8bf51478c4f.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.crane-up/ec9fe69e2efea589ce3b0ded33ca306ecb3cbce16e6f326eff53c8bf51478c4f.png",
+    "run": "runs/camera.crane-up.json"
+  }
+}

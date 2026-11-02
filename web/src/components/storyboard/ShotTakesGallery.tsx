@@ -1,3 +1,4 @@
+import OpenRenderAsWorkflow from "./OpenRenderAsWorkflow";
 /**
  * ShotTakesGallery
  *
@@ -329,10 +330,13 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
                       <span>{formatNumber(i + 1)}</span>
                     )}
                   </Box>
+                  <OpenRenderAsWorkflow record={still.render_inputs} />
                   {!readOnly && (
                     <ToolbarIconButton
                       icon={<DeleteOutlineIcon fontSize="inherit" />}
-                      tooltip={t("i18n-cont-storyboard-04.storyboard.takesGallery.removeStill")}
+                      tooltip={t(
+                        "i18n-cont-storyboard-04.storyboard.takesGallery.removeStill"
+                      )}
                       ariaLabel={t(
                         "i18n-cont-storyboard-04.storyboard.takesGallery.removeStillNumbered",
                         { number: formatNumber(i + 1) }
@@ -345,7 +349,9 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
                   )}
                   <ToolbarIconButton
                     icon={<FullscreenIcon fontSize="inherit" />}
-                    tooltip={t("i18n-cont-storyboard-04.storyboard.takesGallery.viewFullscreen")}
+                    tooltip={t(
+                      "i18n-cont-storyboard-04.storyboard.takesGallery.viewFullscreen"
+                    )}
                     ariaLabel={t(
                       "i18n-cont-storyboard-04.storyboard.takesGallery.viewStillFullscreen",
                       { number: formatNumber(i + 1) }
@@ -409,10 +415,13 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
                   >
                     <ClipTakeThumb clip={clip} index={i} />
                   </Box>
+                  <OpenRenderAsWorkflow record={clip.render_inputs} />
                   {!readOnly && (
                     <ToolbarIconButton
                       icon={<DeleteOutlineIcon fontSize="inherit" />}
-                      tooltip={t("i18n-cont-storyboard-04.storyboard.takesGallery.removeClip")}
+                      tooltip={t(
+                        "i18n-cont-storyboard-04.storyboard.takesGallery.removeClip"
+                      )}
                       ariaLabel={t(
                         "i18n-cont-storyboard-04.storyboard.takesGallery.removeClipNumbered",
                         { number: formatNumber(i + 1) }
@@ -425,7 +434,9 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
                   )}
                   <ToolbarIconButton
                     icon={<FullscreenIcon fontSize="inherit" />}
-                    tooltip={t("i18n-cont-storyboard-04.storyboard.takesGallery.viewFullscreen")}
+                    tooltip={t(
+                      "i18n-cont-storyboard-04.storyboard.takesGallery.viewFullscreen"
+                    )}
                     ariaLabel={t(
                       "i18n-cont-storyboard-04.storyboard.takesGallery.viewClipFullscreen",
                       { number: formatNumber(i + 1) }
