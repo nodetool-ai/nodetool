@@ -2,6 +2,27 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "bria/video/background-removal": {
+      className: "BriaVideoBackgroundRemoval",
+      docstring:
+        "Bria removes the background from a video and returns it with transparency or a solid color.",
+      tags: ["video", "background-removal", "video-to-video", "bria", "matting"]
+    },
+
+    "minimax/h3-max/recast": {
+      className: "MinimaxH3MaxRecast",
+      docstring:
+        "H3 Max Recast replaces the main people in a source video with people from reference photos, keeping motion, camera work, and soundtrack.",
+      tags: [
+        "video",
+        "editing",
+        "video-to-video",
+        "minimax",
+        "h3-max",
+        "recast"
+      ]
+    },
+
     "kling/v4/video-to-video/edit": {
       className: "KlingV4VideoToVideoEdit",
       docstring: "Kling 4 edits an existing video from a text instruction.",

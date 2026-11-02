@@ -16,6 +16,47 @@ export const config: ModuleConfig = {
     }
   },
   configs: {
+    "fal-ai/aura-sr": {
+      className: "AuraSr",
+      docstring:
+        "AuraSR upscales an image 4x with a GAN-based super-resolution model.",
+      tags: [
+        "image",
+        "upscaling",
+        "super-resolution",
+        "image-to-image",
+        "aura-sr"
+      ]
+    },
+
+    "fal-ai/flux/dev/image-to-image": {
+      className: "FluxDevImageToImage",
+      docstring:
+        "FLUX.1 [dev] transforms an input image guided by a text prompt.",
+      tags: ["flux", "image", "image-to-image", "img2img", "transformation"]
+    },
+
+    "fal-ai/invisible-watermark": {
+      className: "InvisibleWatermark",
+      docstring:
+        "Invisible Watermark embeds a hidden text watermark into an image, or decodes one from a watermarked image.",
+      tags: ["image", "watermark", "image-to-image", "processing"]
+    },
+
+    "fal-ai/marigold-v2": {
+      className: "MarigoldV2",
+      docstring:
+        "Marigold v2 estimates dense depth, surface normals, or intrinsic maps from a single image.",
+      tags: ["image", "depth", "normals", "image-to-image", "marigold"]
+    },
+
+    "krea/v3/realtime": {
+      className: "KreaV3Realtime",
+      docstring:
+        "Krea 3 Realtime edits an input image from a text prompt at interactive latency.",
+      tags: ["image", "editing", "image-to-image", "krea", "realtime"]
+    },
+
     "ideogram/vector/image-to-vector": {
       className: "IdeogramVectorImageToVector",
       docstring:
