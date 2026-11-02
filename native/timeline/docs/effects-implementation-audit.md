@@ -12,7 +12,7 @@ This audit covers visual clip/track effects, their controls, and the shared effe
 
 Check an item only after its implementation and relevant verification pass. Each item is committed separately. F39 precedes F35 so removing the decorative preview retains live feedback.
 
-- [ ] F35: Remove the duplicate Canvas effect preview.
+- [x] F35: Remove the duplicate Canvas effect preview. Vignette and Blur cards now use the live viewer feedback from F39. Native parameter-editor tests pass with the decorative component removed.
 - [ ] F36: Add a compatible gradual vignette falloff.
 - [x] F37: Expose consistent vignette radius controls and units. The clip inspector now matches the track range/default. Catalogue regression passed after reproducing the missing control. Existing render geometry is unchanged.
 - [ ] F38: Add vignette center and roundness controls.
