@@ -651,6 +651,10 @@
       "details": "Genau ansehen, was gesendet wird",
       "noThanks": "Nein danke",
       "share": "Statistiken teilen"
+    },
+    "githubStar": {
+      "message": "Gefällt dir NodeTool? Ein Stern auf GitHub hilft anderen, es zu finden.",
+      "action": "Auf GitHub markieren"
     }
   },
   "batch2_0": {

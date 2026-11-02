@@ -28,6 +28,12 @@ export const NOTIFICATION_TIMEOUT_MIN = 2000; // 2 seconds minimum
 export const NOTIFICATION_TIMEOUT_MAX = 12000; // 12 seconds maximum
 export const NOTIFICATION_READING_WPM = 200; // average reading speed in words per minute
 
+// GITHUB STAR PROMPT
+export const GITHUB_REPO_URL = "https://github.com/nodetool-ai/nodetool";
+export const GITHUB_STAR_PROMPT_AFTER_MS = 10 * 60 * 1000; // 10 minutes of active use, summed across sessions
+export const GITHUB_STAR_PROMPT_TICK_MS = 30 * 1000; // how often active time is counted
+export const GITHUB_STAR_PROMPT_TIMEOUT = 20000; // 20 seconds on screen
+
 // LAYOUT
 export const HEADER_HEIGHT = 36; // Workspace app bar height in px
 export const TOOLBAR_WIDTH = 50; // Vertical toolbar width in px
