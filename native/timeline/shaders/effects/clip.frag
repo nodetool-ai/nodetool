@@ -205,6 +205,22 @@ vec4 visualFx(vec2 v) {
     }
     return vec4(clamp(result.rgb,vec3(0),vec3(result.a)),result.a);
 }
+vec3 toHsl(vec3 rgb) {
+    float hi=max(max(rgb.r,rgb.g),rgb.b), lo=min(min(rgb.r,rgb.g),rgb.b), delta=hi-lo, l=(hi+lo)*0.5;
+    if (delta<0.000001) return vec3(0,0,l);
+    float h=hi==rgb.r ? (rgb.g-rgb.b)/delta : hi==rgb.g ? (rgb.b-rgb.r)/delta+2. : (rgb.r-rgb.g)/delta+4.;
+    return vec3(fract(h/6.),delta/max(0.000001,1.-abs(2.*l-1.)),l);
+}
+vec3 fromHsl(vec3 hsl) {
+    vec3 ramp=clamp(abs(fract(vec3(hsl.x)+vec3(0,2./3.,1./3.))*6.-3.)-1.,0.,1.);
+    return vec3(hsl.z)+(1.-abs(2.*hsl.z-1.))*hsl.y*(ramp-0.5);
+}
+float rangeMask(float v,float low,float high,float soft) {
+    if (low>high) return 0.;
+    if (v>=low && v<=high) return 1.;
+    if (soft<=0) return 0.;
+    return v<low ? smoothstep(low-soft,low,v) : 1.-smoothstep(high,high+soft,v);
+}
 void main() {
     int op=int(geometry.z+0.5);
     vec2 pixel=floor(uv*dimensions.xy);
@@ -381,6 +397,16 @@ void main() {
         fragColor=src+vec4(p[0].xyz*cov,cov)*(1-src.a); return;
     } else if (op==19) { fragColor=src.a<=0 ? vec4(0) : vec4(src.rgb/src.a,src.a); return; }
     else if (op==20) { fragColor=vec4(src.rgb*src.a,src.a); return; }
+    else if (op==28) {
+        vec3 hsl=toHsl(rgb);
+        float distance=abs(fract(hsl.x-p[0].x/360.+0.5)-0.5)*360.;
+        float mask=p[0].y>=180. ? 1. : rangeMask(distance,0.,p[0].y,p[0].z)*smoothstep(0.,0.01,hsl.y);
+        mask*=rangeMask(hsl.y,p[1].x,p[1].y,p[0].w)*rangeMask(hsl.z,p[1].z,p[1].w,p[0].w);
+        float position=hsl.x*255.; int lo=int(floor(position)), hi=min(255,lo+1);
+        vec2 curve=mix(texelFetch(second,ivec2(lo,0),0).xy,texelFetch(second,ivec2(hi,0),0).xy,fract(position));
+        vec3 corrected=fromHsl(vec3(fract(hsl.x+p[2].x/360.+curve.x-0.5),clamp(hsl.y*p[2].y*2.*curve.y,0.,1.),clamp(hsl.z+p[2].z,0.,1.)));
+        rgb=p[2].w>0.5 ? vec3(mask) : mix(rgb,corrected,mask);
+    }
     else if (op==27) {
         vec3 linear=mix(pow((rgb+0.055)/1.055,vec3(2.4)),rgb/12.92,lessThanEqual(rgb,vec3(0.04045)));
         float mask=smoothstep(0.25,1.,dot(linear,vec3(0.2126,0.7152,0.0722)));

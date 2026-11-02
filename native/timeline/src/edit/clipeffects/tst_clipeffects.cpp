@@ -7,6 +7,7 @@
 #include <QFile>
 #include <QGuiApplication>
 #include <QJsonDocument>
+#include <QJSValue>
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QPointer>
@@ -168,6 +169,7 @@ class TestClipEffects : public QObject {
     Q_OBJECT
 private slots:
     void init() {
+        QTest::failOnWarning(QRegularExpression("(EffectFields|ToneCurveEditor)\\.qml:.*(Unable to assign|TypeError|ReferenceError)"));
         QTest::failOnWarning(QRegularExpression(
             "(InspectorActionButton|InspectorSectionTitle)\\.qml:.*does not support customization"));
     }
@@ -188,6 +190,7 @@ private slots:
     void softVignettePreset();
     void invalidNumbersAndGestureCancellation();
     void curvePointEditing();
+    void secondaryColorEditing();
     void cancellationLocksAndPlayhead();
     void groupSections();
     void foldsAndSearch();
@@ -257,6 +260,7 @@ void TestClipEffects::catalogue_data() {
         QTest::addColumn<QByteArray>("expected");
         // Literal defaults from ClipEffectsList.tsx makeEffect(), without its UUID.
         const QList<QByteArray> rows{
+            R"({"type":"secondaryColor","enabled":true,"hueCenter":0,"hueWidth":180,"hueSoftness":15,"rangeSoftness":0.1,"saturationMin":0,"saturationMax":1,"lightnessMin":0,"lightnessMax":1,"hueShift":0,"saturation":1,"lightness":0})",
             R"({"type":"exposure","enabled":true,"exposure":0,"rolloff":0,"whites":0})",
             R"({"type":"blur","enabled":true,"radius":8})",
             R"({"type":"glow","enabled":true,"radius":8,"intensity":1})",
@@ -443,6 +447,47 @@ void TestClipEffects::fixedProcessingStages() {
     QVERIFY(!e.item("effectsReorder_color")->isVisible());
     QVERIFY(!e.item("effectsReorder_blur")->isVisible());
     QCOMPARE(e.model.documentJson(),before);
+}
+
+void TestClipEffects::secondaryColorEditing() {
+    Editor e; QVERIFY2(e.object,qPrintable(e.error)); QVERIFY(e.add("secondaryColor"));
+    const auto id=e.effects()[0].toObject()["id"].toString();
+    e.model.undoStack()->clear();
+    const auto before=e.model.documentJson();
+    auto* matte=e.item("effects_"+id+"_matte"); QVERIFY(matte); e.click(matte);
+    QCOMPARE(e.model.effectMatteId(),id); QCOMPARE(e.model.documentJson(),before); QCOMPARE(e.model.undoStack()->count(),0);
+    auto* width=e.item("effects_"+id+"_hueWidth"); QVERIFY(width);
+    QVERIFY(number(width,"change",30));
+    QCOMPARE(e.effects()[0].toObject()["hueWidth"].toDouble(),30.);
+    QCOMPARE(e.model.effectMatteId(),id); QCOMPARE(e.model.undoStack()->count(),1);
+    e.model.undoStack()->undo(); QCOMPARE(e.model.documentJson(),before);
+    auto* curves=e.item("effects_"+id+"_secondaryCurves"); QVERIFY(curves);
+    const QVariant nextPoint=QVariantMap{{"x",0.5},{"y",0.75}};
+    QVERIFY(QMetaObject::invokeMethod(curves,"addPoint",Q_ARG(QVariant,nextPoint)));
+    const auto points=e.effects()[0].toObject()["hueCurve"].toArray(); QCOMPARE(points.size(),3);
+    QCOMPARE(points[0].toObject()["y"],points[2].toObject()["y"]);
+    auto* first=find(curves,"toneCurvePoint_0"); QVERIFY(first); first->forceActiveFocus();
+    QTest::keyClick(&e.window,Qt::Key_Up);
+    const auto changed=e.effects()[0].toObject()["hueCurve"].toArray();
+    QCOMPARE(changed[0].toObject()["y"],changed[2].toObject()["y"]);
+    QVERIFY(changed[0].toObject()["y"].toDouble()>0.5);
+    const QList<QPair<QJsonArray,double>> importedCurves{
+        {QJsonArray{QJsonObject{{"x",0.5},{"y",0.25}}},0.25},
+        {QJsonArray{QJsonObject{{"x",1},{"y",0.8}},QJsonObject{{"x",0},{"y",0.6}},QJsonObject{{"x",0},{"y",0.7}}},0.7}};
+    for (const auto& [input,red] : importedCurves) {
+        auto imported=e.effects()[0].toObject(); imported.insert("hueCurve",input);
+        e.patch({{"effects",QJsonArray{imported}}});
+        auto* current=e.item("effects_"+id+"_secondaryCurves"); QVERIFY(current);
+        auto displayed=current->property("points");
+        if (displayed.canConvert<QJSValue>()) { displayed=displayed.value<QJSValue>().toVariant(); }
+        const auto knots=displayed.toList(); QVERIFY(knots.size()>=2);
+        QCOMPARE(knots.first().toMap()["y"].toDouble(),red);
+        QCOMPARE(knots.last().toMap()["y"].toDouble(),red);
+    }
+    const auto saved=e.model.documentJson();
+    e.select("other"); QVERIFY(e.model.effectMatteId().isEmpty()); QCOMPARE(e.model.documentJson(),saved);
+    e.model.setEffectMattePreview("picture",id); QCOMPARE(e.model.effectMatteId(),id);
+    e.model.close(); QVERIFY(e.model.effectMatteId().isEmpty());
 }
 
 void TestClipEffects::curvePointEditing() {

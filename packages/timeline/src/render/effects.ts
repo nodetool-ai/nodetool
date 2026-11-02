@@ -1,8 +1,9 @@
+import { secondaryCurveTransfer, secondaryNeutral } from "./secondaryColor.js";
 import { curveTransfer } from "./curveTransfer.js";
 import { GENERATOR_MODES, STYLIZE_MODES, type ClipEffect, type TrackEffect } from "../types.js";
 import {
   isClipBlurEffect,
-  isClipExposureEffect,
+  isClipSecondaryColorEffect, isClipExposureEffect,
   isClipChromaKeyEffect,
   isClipColorEffect,
   isClipCurvesEffect,
@@ -21,7 +22,7 @@ import {
   createLabeledTexture,
   createRecipeRunner,
   LabeledTexture,
-  colorExposureLinearV1,
+  colorSecondaryV1, colorExposureLinearV1,
   colorCdlV1,
   colorCurveTransferV1,
   colorGradeV1,
@@ -407,6 +408,23 @@ export class WebGPUEffectsProcessor {
     ) => void,
     stepRecipe: <P>(module: RecipeModule<P>, params: P) => void
   ): void {
+    if (isClipSecondaryColorEffect(effect)) {
+      step(colorSecondaryV1, {
+        hueCenter: effect.hueCenter ?? 0,
+        hueWidth: effect.hueWidth ?? 180,
+        hueSoftness: effect.hueSoftness ?? 15,
+        rangeSoftness: effect.rangeSoftness ?? 0.1,
+        saturationMin: effect.saturationMin ?? 0,
+        saturationMax: effect.saturationMax ?? 1,
+        lightnessMin: effect.lightnessMin ?? 0,
+        lightnessMax: effect.lightnessMax ?? 1,
+        hueShift: effect.hueShift ?? 0,
+        saturation: effect.saturation ?? 1,
+        lightness: effect.lightness ?? 0,
+        table: secondaryCurveTransfer(effect).map(value => d.vec4f(...value))
+      });
+      return;
+    }
     if (isClipExposureEffect(effect)) {
       step(colorExposureLinearV1, {exposure: effect.exposure ?? 0, rolloff: effect.rolloff ?? 0, whites: effect.whites ?? 0});
       return;
@@ -990,6 +1008,7 @@ function clamp(v: number, lo: number, hi: number): number {
  */
 function isShaderStepEffect(effect: ClipEffect): boolean {
   return (
+    (isClipSecondaryColorEffect(effect) && !secondaryNeutral(effect)) ||
     (isClipExposureEffect(effect) && !!(effect.exposure || effect.rolloff || effect.whites)) ||
     effect.type === "lut" ||
     effect.type === "stylize" ||

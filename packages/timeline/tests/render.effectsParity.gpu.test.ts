@@ -50,6 +50,20 @@ async function comparePixels(width: number, height: number, rgba: Uint8ClampedAr
 }
 
 describe("effect parity on diagnostic pixels", () => {
+  it("qualifies red across the hue seam while retaining unselected blue", async () => {
+    const rgba = new Uint8ClampedArray([255, 0, 0, 255, 0, 0, 255, 255, 255, 0, 4, 255, 255, 0, 128, 255]);
+    const result = await comparePixels(4, 1, rgba, {id: "s", type: "secondaryColor", enabled: true, hueWidth: 20, hueSoftness: 20, hueShift: 120});
+    for (const pixels of [result.cpu, result.gpu]) {
+      expect([...pixels.slice(0, 8)]).toEqual([0, 255, 0, 255, 0, 0, 255, 255]);
+      expect(pixels[9]).toBe(255);
+      expect(pixels[13]).toBeGreaterThan(100); expect(pixels[13]).toBeLessThan(150);
+    }
+    expect(result.maxError).toBeLessThanOrEqual(1);
+    const curve = await comparePixels(4, 1, rgba, {id: "s", type: "secondaryColor", enabled: true,
+      saturationCurve: [{x: 0, y: 0.25}, {x: 1, y: 0.25}]});
+    for (const pixels of [curve.cpu, curve.gpu]) { expect([...pixels.slice(0, 4)]).toEqual([191, 64, 64, 255]); }
+    expect(curve.maxError).toBeLessThanOrEqual(1);
+  });
   it("exposes in linear light and compresses highlights before quantizing", async () => {
     const width = 256, height = 1, rgba = new Uint8ClampedArray(width * 4);
     for (let x = 0; x < width; x++) { rgba.set([x, x, x, 255], x * 4); }

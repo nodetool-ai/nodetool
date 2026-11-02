@@ -1,11 +1,12 @@
 import { exposeRgb } from "./exposure.js";
 import {
-  isClipExposureEffect,
+  isClipSecondaryColorEffect, isClipExposureEffect,
   isClipChromaKeyEffect, isClipColorEffect, isClipCurvesEffect, isClipGlowEffect,
   isClipGrainEffect, isClipLevelsEffect, isClipLiftGammaGainEffect,
   isClipSharpenEffect, isClipVignetteEffect, type ClipEffect
 } from "../types.js";
 import { parseCssColorOrBlack } from "./color.js";
+import { secondaryCurveTransfer, secondaryNeutral, secondaryRgb } from "./secondaryColor.js";
 import { curveTransfer, sampleTransfer } from "./curveTransfer.js";
 import type { PixelBuffer } from "./cpuVisualEffects.js";
 
@@ -14,7 +15,7 @@ const smooth = (v: number): number => { const t = clamp(v); return t * t * (3 - 
 const byte = (v: number): number => Math.round(clamp(v) * 255);
 
 export function isCpuLegacyEffect(effect: ClipEffect): boolean {
-  return isClipExposureEffect(effect) || isClipGlowEffect(effect) || isClipVignetteEffect(effect)
+  return isClipSecondaryColorEffect(effect) || isClipExposureEffect(effect) || isClipGlowEffect(effect) || isClipVignetteEffect(effect)
     || isClipSharpenEffect(effect) || isClipChromaKeyEffect(effect)
     || isClipCurvesEffect(effect) || isClipLevelsEffect(effect)
     || isClipLiftGammaGainEffect(effect) || isClipGrainEffect(effect);
@@ -193,6 +194,7 @@ export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly Cli
   const { width, height, data } = pixels;
   for (const effect of effects) {
     if (!effect.enabled || !isCpuLegacyEffect(effect)) continue;
+    if (isClipSecondaryColorEffect(effect) && secondaryNeutral(effect)) { continue; }
     if (isClipExposureEffect(effect) && !(effect.exposure || effect.rolloff || effect.whites)) { continue; }
     const sharpenRadius = isClipSharpenEffect(effect) ? Math.max(0, Math.min(256, effect.radius ?? 1)) : 0;
     if (isClipSharpenEffect(effect) && (sharpenRadius === 0 || effect.amount === 0)) continue;
@@ -214,6 +216,7 @@ export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly Cli
       unpremultiply(output, data);
       continue;
     }
+    const secondary = isClipSecondaryColorEffect(effect) ? secondaryCurveTransfer(effect) : undefined;
     const curve = isClipCurvesEffect(effect) ? curveTransfer(effect) : undefined;
     const key = isClipChromaKeyEffect(effect) ? parseCssColorOrBlack(effect.color) : undefined;
     for (let y = 0; y < height; y++) {
@@ -221,7 +224,9 @@ export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly Cli
         const i = (y * width + x) * 4;
         let a = input[i + 3]! / 255;
         const rgb = [input[i]!, input[i + 1]!, input[i + 2]!].map((v) => v / Math.max(1, input[i + 3]!));
-        if (isClipExposureEffect(effect)) {
+        if (isClipSecondaryColorEffect(effect) && secondary) {
+          rgb.splice(0, 3, ...secondaryRgb([rgb[0] ?? 0, rgb[1] ?? 0, rgb[2] ?? 0], effect, secondary));
+        } else if (isClipExposureEffect(effect)) {
           const value = exposeRgb([rgb[0] ?? 0, rgb[1] ?? 0, rgb[2] ?? 0], effect.exposure, effect.rolloff, effect.whites);
           rgb.splice(0, 3, ...value);
         } else if (isClipChromaKeyEffect(effect) && key) {

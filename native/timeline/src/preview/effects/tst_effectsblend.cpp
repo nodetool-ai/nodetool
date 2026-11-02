@@ -476,6 +476,17 @@ private slots:
         QVERIFY(!shadow.isNull()); QVERIFY(shadow.pixelColor(51,16).red()>245); QCOMPARE(shadow.pixelColor(51,16).green(),0);
         QCOMPARE(shadow.pixelColor(10,16),QColor(Qt::black));
     }
+    void secondaryColorPixels() {
+        QImage source(256,16,QImage::Format_RGBA8888_Premultiplied);
+        for (int y=0;y<16;++y) { for (int x=0;x<256;++x) { source.setPixelColor(x,y,x<128 ? QColor(Qt::red) : QColor(Qt::blue)); } }
+        const auto corrected=effectStill({effect("secondaryColor",{{"hueWidth",20},{"hueShift",120}})},source);
+        QVERIFY(!corrected.isNull()); QCOMPARE(corrected.pixelColor(32,8),QColor(Qt::green)); QCOMPARE(corrected.pixelColor(192,8),QColor(Qt::blue));
+        const auto matte=effectStill({effect("secondaryColor",{{"hueWidth",20},{"_matte",true}})},source);
+        QVERIFY(!matte.isNull()); QCOMPARE(matte.pixelColor(32,8),QColor(Qt::white)); QCOMPARE(matte.pixelColor(192,8),QColor(Qt::black));
+        const auto desaturated=effectStill({effect("secondaryColor",{{"saturationCurve",QJsonArray{QJsonObject{{"x",0},{"y",0.25}},QJsonObject{{"x",1},{"y",0.25}}}}})},source);
+        QVERIFY(!desaturated.isNull()); const auto pixel=desaturated.pixelColor(32,8);
+        QVERIFY(std::abs(pixel.red()-191)<=1); QVERIFY(std::abs(pixel.green()-64)<=1); QVERIFY(std::abs(pixel.blue()-64)<=1);
+    }
     void exposurePixels() {
         QImage source(256,16,QImage::Format_RGBA8888_Premultiplied);
         for (int y=0;y<16;++y) { for (int x=0;x<256;++x) { source.setPixelColor(x,y,QColor(x,x,x)); } }

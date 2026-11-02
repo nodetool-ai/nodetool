@@ -8,6 +8,7 @@
 #include <bit>
 #include <cmath>
 #include <limits>
+#include <map>
 #include <numbers>
 #include <span>
 #include <unordered_map>
@@ -150,6 +151,33 @@ std::array<float, 1024> curveTransfer(const QJsonObject &effect) {
         const auto value=std::clamp(sample(curves[0],double(i)/255),0.,1.);
         for (size_t c=0;c<3;++c) { table[i*4+c]=float(std::clamp(sample(curves[c+1],value),0.,1.)); }
         table[i*4+3]=1;
+    }
+    return table;
+}
+std::array<float, 1024> secondaryCurveTransfer(const QJsonObject &effect) {
+    std::array<float, 1024> table{};
+    constexpr std::array keys{"hueCurve", "saturationCurve"};
+    for (size_t c=0; c<keys.size(); ++c) {
+        std::map<double, double> knots;
+        for (const auto point : readPoints(effect.value(keys[c]).toArray())) {
+            if (point.x == 1 && knots.contains(0)) { continue; }
+            const auto x=std::clamp(point.x,0.,1.);
+            knots[x-std::floor(x)]=std::clamp(point.y,0.,1.);
+        }
+        for (size_t i=0; i<256; ++i) {
+            const double x=i==255 ? 0. : double(i)/255.;
+            double y=0.5;
+            if (!knots.empty()) {
+                auto right=knots.upper_bound(x);
+                const bool before=right==knots.begin(), after=right==knots.end();
+                const auto a=before ? *knots.rbegin() : *std::prev(right);
+                const auto b=after ? *knots.begin() : *right;
+                const double ax=a.first-(before ? 1. : 0.), bx=b.first+(after ? 1. : 0.);
+                y=a.second+(b.second-a.second)*(x-ax)/(bx-ax);
+            }
+            table[i*4+c]=static_cast<float>(y);
+            table[i*4+3]=1;
+        }
     }
     return table;
 }
@@ -301,6 +329,15 @@ std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEf
             v[3] = f(e, "tolerance");
             v[4] = f(e, "softness", 0.1);
             v[5] = f(e, "spill", 0.5);
+        } else if (type == "secondaryColor") {
+            const auto flat=[](const QJsonArray& points) { return std::ranges::all_of(points,[](const QJsonValue& point) { return point.toObject().value("y").toDouble(0.5)==0.5; }); };
+            if (!e.value("_matte").toBool() && number(e,"hueShift")==0 && number(e,"lightness")==0 && number(e,"saturation",1)==1
+                && flat(e.value("hueCurve").toArray()) && flat(e.value("saturationCurve").toArray())) { continue; }
+            p.op = Op::SecondaryColor;
+            p.curve = e;
+            v = {f(e,"hueCenter"), f(e,"hueWidth",180), f(e,"hueSoftness",15), f(e,"rangeSoftness",0.1),
+                 f(e,"saturationMin"), f(e,"saturationMax",1), f(e,"lightnessMin"), f(e,"lightnessMax",1),
+                 f(e,"hueShift"), f(e,"saturation",1), f(e,"lightness"), e.value("_matte").toBool() ? 1.f : 0.f};
         } else if (type == "curves") {
             p.op = Op::Curves;
             p.curve = e;
@@ -582,6 +619,22 @@ void decorateEffects(QJsonObject &ext, const Clip &clip, const SceneDecorationCo
             *value = e;
         }
     }
+    if (context.timeline.matteClipId==clip.id && !context.timeline.matteEffectId.empty()) {
+        QJsonArray before;
+        bool found=false;
+        for (const auto& value : enabled) {
+            auto effect=value.toObject();
+            if (effect.value("type")=="color" || effect.value("type")=="blur") { continue; }
+            if (effect.value("id").toString().toStdString()==context.timeline.matteEffectId && effect.value("type")=="secondaryColor") {
+                effect.insert("_matte",true);
+                before.append(effect);
+                found=true;
+                break;
+            }
+            before.append(effect);
+        }
+        if (found) { enabled=before; ext.insert("qualifierMatte",true); }
+    }
     ext.insert("clipEffects", enabled);
 }
 bool decorateAdjustment(SceneAdjustment &adjustment, const Clip &clip, const SceneDecorationContext &context) {
@@ -592,6 +645,7 @@ bool decorateAdjustment(SceneAdjustment &adjustment, const Clip &clip, const Sce
 }
 
 void decorateTrackEffects(QJsonObject &ext, const Track *track) {
+    if (ext.value("qualifierMatte").toBool()) { ext.remove("trackEffects"); return; }
     if (ext.value("generatedMatteSource").toBool()) { return; }
     QJsonArray converted;
     if (track) {

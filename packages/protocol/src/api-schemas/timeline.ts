@@ -1154,6 +1154,24 @@ export const clipGrainEffect = z.object({
  * type it does not carry on every PATCH, so a graded clip loses that step of
  * its chain on the next save.
  */
+export const secondaryCurvePoints = z.array(z.object({x: z.number().min(0).max(1), y: z.number().min(0).max(1)})).max(256);
+export const clipSecondaryColorEffect = z.object({
+  id: z.string(), type: z.literal("secondaryColor"), enabled: z.boolean(),
+  hueCenter: z.number().min(0).max(360).optional(),
+  hueWidth: z.number().min(0).max(180).optional(),
+  hueSoftness: z.number().min(0).max(180).optional(),
+  rangeSoftness: z.number().min(0).max(1).optional(),
+  saturationMin: z.number().min(0).max(1).optional(),
+  saturationMax: z.number().min(0).max(1).optional(),
+  lightnessMin: z.number().min(0).max(1).optional(),
+  lightnessMax: z.number().min(0).max(1).optional(),
+  hueShift: z.number().min(-180).max(180).optional(),
+  saturation: z.number().min(0).max(4).optional(),
+  lightness: z.number().min(-1).max(1).optional(),
+  hueCurve: secondaryCurvePoints.optional(),
+  saturationCurve: secondaryCurvePoints.optional(),
+});
+
 export const clipExposureEffect = z.object({
   id: z.string(), type: z.literal("exposure"), enabled: z.boolean(),
   exposure: z.number().min(-5).max(5).optional(),
@@ -1162,6 +1180,7 @@ export const clipExposureEffect = z.object({
 });
 
 const knownClipEffect = z.discriminatedUnion("type", [
+  clipSecondaryColorEffect,
   clipExposureEffect,
   clipColorEffect,
   clipBlurEffect,
@@ -1188,6 +1207,7 @@ const knownClipEffect = z.discriminatedUnion("type", [
  * a list for the same reason {@link KNOWN_TRANSITION_TYPE_LIST} is.
  */
 export const KNOWN_CLIP_EFFECT_TYPE_LIST = [
+  "secondaryColor",
   "exposure",
   "color",
   "blur",

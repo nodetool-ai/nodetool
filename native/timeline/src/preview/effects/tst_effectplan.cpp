@@ -36,6 +36,26 @@ QJsonObject adjustmentStyleDocument() {
 class TestEffectPlan : public QObject {
     Q_OBJECT
   private slots:
+    void secondaryMatteDecoration() {
+        nt::Timeline timeline;
+        timeline.matteClipId="picture"; timeline.matteEffectId="secondary";
+        nt::Clip clip; clip.id="picture";
+        clip.raw.insert("effects",QJsonArray{
+            QJsonObject{{"id","grade"},{"type","color"},{"enabled",true},{"brightness",1}},
+            QJsonObject{{"id","first"},{"type","exposure"},{"enabled",true},{"exposure",1}},
+            QJsonObject{{"id","secondary"},{"type","secondaryColor"},{"enabled",true}},
+            QJsonObject{{"id","last"},{"type","vignette"},{"enabled",true},{"amount",1}}});
+        QJsonObject ext;
+        decorateEffects(ext,clip,{timeline,nullptr,0,0,30,0});
+        decorateTrackEffects(ext,nullptr);
+        const auto chain=ext.value("clipEffects").toArray();
+        QCOMPARE(chain.size(),2); QVERIFY(chain.last().toObject().value("_matte").toBool());
+        QVERIFY(ext.value("trackEffects").toArray().isEmpty());
+        QCOMPARE(planChain(chain).back().op,Op::SecondaryColor);
+        QVERIFY(planChain({effect("secondaryColor")}).empty());
+        const auto table=secondaryCurveTransfer({{"hueCurve",points({{0.2,0.3},{0.8,0.7}})}});
+        QCOMPARE(table[0],table[1020]); QVERIFY(std::abs(table[0]-0.5f)<0.00001f);
+    }
     void contextDecorators() {
         const QJsonObject raw{{"fps", 23.976}, {"width", 64}, {"height", 32}, {"durationMs", 3000},
             {"tracks", QJsonArray{QJsonObject{{"id", "v"}, {"type", "video"}}}},

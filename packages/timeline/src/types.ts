@@ -1986,6 +1986,7 @@ export type ClipEffect = KnownClipEffect | UnknownClipEffect;
 
 /** The effects this build applies, each spelled out field by field. */
 export type KnownClipEffect =
+  | ClipSecondaryColorEffect
   | ClipExposureEffect
   | ClipColorEffect
   | ClipBlurEffect
@@ -2072,6 +2073,7 @@ export const isClipGrainEffect = (e: ClipEffect): e is ClipGrainEffect =>
  * and Canvas 2D names it in `unsupportedEffectTypes`.
  */
 export const CLIP_EFFECT_TYPES = [
+  "secondaryColor",
   "exposure",
   "color",
   "blur",
@@ -2107,6 +2109,26 @@ export interface CurvePoint {
   x: number;
   y: number;
 }
+
+export interface ClipSecondaryColorEffect {
+  id: string;
+  type: "secondaryColor";
+  enabled: boolean;
+  hueCenter?: number;
+  hueWidth?: number;
+  hueSoftness?: number;
+  rangeSoftness?: number;
+  saturationMin?: number;
+  saturationMax?: number;
+  lightnessMin?: number;
+  lightnessMax?: number;
+  hueShift?: number;
+  saturation?: number;
+  lightness?: number;
+  hueCurve?: CurvePoint[];
+  saturationCurve?: CurvePoint[];
+}
+export const isClipSecondaryColorEffect = (e: ClipEffect): e is ClipSecondaryColorEffect => e.type === "secondaryColor";
 
 export interface ClipExposureEffect {
   id: string;

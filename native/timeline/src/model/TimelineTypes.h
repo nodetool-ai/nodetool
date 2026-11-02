@@ -157,6 +157,9 @@ struct Timeline {
     // in the same order. Null: not built; findClip then scans.
     std::shared_ptr<const std::unordered_map<std::string, std::size_t>> clipIndex;
 
+    // Viewer-only qualifier matte selection. Never serialized into raw.
+    std::string matteClipId, matteEffectId;
+
     // Builds `clipIndex` from `clips`. Call it after the ids or their order change.
     void indexClips() {
         auto index = std::make_shared<std::unordered_map<std::string, std::size_t>>();

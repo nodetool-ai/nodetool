@@ -12,6 +12,11 @@ QtObject {
     readonly property bool locked: !clip.id || !controller || controller.locked
     readonly property bool visual: !!clip.id && clip.mediaType !== "audio" && clip.mediaType !== "midi"
     readonly property var color: effects.find(effect => effect.type === "color" && effect.id === "inspector:color")
+    readonly property string matteEffectId: timelineModel ? timelineModel.effectMatteId : ""
+    function toggleMatte(id) { timelineModel.setEffectMattePreview(clip.id, matteEffectId === id ? "" : id) }
+    function clearMatte() { if (timelineModel && matteEffectId) timelineModel.setEffectMattePreview("", "") }
+    onLockedChanged: if (locked) clearMatte()
+    onEffectsChanged: if (matteEffectId && !effects.some(effect => effect.id === matteEffectId && effect.enabled)) clearMatte()
     property string observedId: ""
     property bool gesturing: false
     property bool staleRelease: false
@@ -23,6 +28,7 @@ QtObject {
         function onChanged() {
             const next = root.clip.id || "";
             if (next !== root.observedId) {
+                root.clearMatte();
                 root.observedId = next;
                 root.staleRelease = root.gesturing;
                 root.gesturing = false;
@@ -30,7 +36,7 @@ QtObject {
             }
         }
     }
-    Component.onDestruction: edits.cancelGesture()
+    Component.onDestruction: { clearMatte(); edits.cancelGesture() }
     function begin() {
         if (!locked) {
             gesturing = true;

@@ -5,13 +5,16 @@ import NodeTool.UiPrimitives as Ui
 
 Column {
     id: root
+    property bool cyclic: false
+    property var hueCurve: undefined
+    property var saturationCurve: undefined
     property var master: []
     property var r: undefined
     property var g: undefined
     property var b: undefined
     property bool disabled: false
-    property string channel: "master"
-    readonly property var channels: [
+    property string channel: cyclic ? "hueCurve" : "master"
+    readonly property var channels: cyclic ? [{value: "hueCurve", label: "Hue → hue"}, {value: "saturationCurve", label: "Hue → saturation"}] : [
         {
             value: "master",
             label: "Master"
@@ -29,7 +32,7 @@ Column {
             label: "Blue"
         }
     ]
-    readonly property string channelLabel: channels.find(item => item.value === channel).label
+    readonly property string channelLabel: channels.find(item => item.value === channel)?.label ?? channel
     readonly property color curveColor: channel === "r" ? Ui.Theme.statusError : channel === "g" ? Ui.Theme.statusSuccess : channel === "b" ? Ui.Theme.statusInfo : Ui.Theme.textPrimary
     readonly property var points: editablePoints(root[channel])
     property int dragIndex: -1
@@ -48,6 +51,7 @@ Column {
     Component.onDestruction: if (dragIndex >= 0)
         gestureCancelled()
     function identity() {
+        if (cyclic) return [{x: 0, y: 0.5}, {x: 1, y: 0.5}];
         return [
             {
                 x: 0,
@@ -63,13 +67,25 @@ Column {
         return Math.min(1, Math.max(0, value));
     }
     function editablePoints(source) {
-        if (!source || source.length < 2)
+        if (!source || source.length < (cyclic ? 1 : 2))
             return identity();
         const valid = source.filter(point => Number.isFinite(point.x) && Number.isFinite(point.y)).map(point => ({
                     x: clamp(point.x),
                     y: clamp(point.y)
-                })).sort((a, b) => a.x - b.x);
-        return valid.length < 2 ? identity() : valid;
+                }));
+        if (!cyclic) return valid.length < 2 ? identity() : valid.sort((a, b) => a.x - b.x);
+        if (!valid.length) return identity();
+        const knots = new Map();
+        for (const point of valid) {
+            if (point.x === 1 && knots.has(0)) continue;
+            knots.set(point.x === 1 ? 0 : point.x, point.y);
+        }
+        const normalized = Array.from(knots, ([x, y]) => ({x, y})).sort((a, b) => a.x - b.x);
+        const middle = normalized.filter(point => point.x > 0);
+        const first = normalized[0], last = normalized[normalized.length - 1];
+        const red = first.x === 0 ? first.y
+            : last.y + (first.y - last.y) * (1 - last.x) / (first.x + 1 - last.x);
+        return [{x: 0, y: red}].concat(middle, [{x: 1, y: red}]);
     }
     function write(next, phase = "apply") {
         if (disabled)
@@ -79,8 +95,14 @@ Column {
         patch(change, phase);
     }
     function movePoint(source, index, next) {
-        const lower = index === 0 ? 0 : source[index - 1].x + 0.005;
-        const upper = index === source.length - 1 ? 1 : source[index + 1].x - 0.005;
+        if (cyclic && (index === 0 || index === source.length - 1)) {
+            return source.map((point, i) => i === 0 || i === source.length - 1 ? {x: point.x, y: clamp(next.y)} : point);
+        }
+        const left = index === 0 ? 0 : source[index - 1].x;
+        const right = index === source.length - 1 ? 1 : source[index + 1].x;
+        const gap = Math.min(0.005, Math.max(0, (right - left) / 3));
+        const lower = index === 0 ? 0 : left + gap;
+        const upper = index === source.length - 1 ? 1 : right - gap;
         return source.map((point, i) => i === index ? {
                 x: Math.min(upper, Math.max(lower, next.x)),
                 y: clamp(next.y)
@@ -90,12 +112,17 @@ Column {
         if (disabled)
             return;
         const existing = points.findIndex(point => Math.abs(point.x - next.x) < 0.005);
+        if (cyclic && (existing === 0 || existing === points.length - 1)) {
+            write(movePoint(points, existing, next));
+            return;
+        }
         write(existing < 0 ? points.concat([next]).sort((a, b) => a.x - b.x) : points.map((point, i) => i === existing ? {
                 x: point.x,
                 y: next.y
             } : point));
     }
     function removePoint(index) {
+        if (cyclic && (index === 0 || index === points.length - 1)) return;
         if (points.length > 2)
             write(points.filter((_, i) => i !== index));
     }
@@ -139,7 +166,7 @@ Column {
                 model: root.channels
                 delegate: Ui.EditorButton {
                     required property var modelData
-                    width: parent.width / 4
+                    width: parent.width / root.channels.length
                     objectName: "toneCurveChannel_" + modelData.value
                     text: modelData.label
                     density: Ui.EditorButton.Compact
@@ -162,7 +189,7 @@ Column {
             enabled: !root.disabled
             onClicked: {
                 root.cancelDrag();
-                root.write(root.channel === "master" ? root.identity() : undefined);
+                root.write(root.cyclic || root.channel === "master" ? root.identity() : undefined);
             }
         }
     }
@@ -196,8 +223,8 @@ Column {
             ctx.lineWidth = 0.75;
             ctx.setLineDash([2, 2]);
             ctx.beginPath();
-            ctx.moveTo(0, height);
-            ctx.lineTo(width, 0);
+            ctx.moveTo(0, root.cyclic ? height / 2 : height);
+            ctx.lineTo(width, root.cyclic ? height / 2 : 0);
             ctx.stroke();
             ctx.setLineDash([]);
             ctx.strokeStyle = root.curveColor;
@@ -290,6 +317,6 @@ Column {
         tone: Ui.Text.Secondary
         wrapMode: Text.WordWrap
         width: parent.width
-        text: "Click to add a point. Drag points to shape the curve. Double-click a point or press Delete to remove it."
+        text: (root.cyclic ? "Input: red, yellow, green, cyan, blue, magenta, red. Red endpoints move together. " + (root.channel === "hueCurve" ? "Output: -180° at bottom, 0° at center, +180° at top. " : "Output: 0× at bottom, 1× at center, 2× at top. ") : "") + "Click to add a point. Drag points to shape the curve. Double-click an interior point or press Delete to remove it."
     }
 }

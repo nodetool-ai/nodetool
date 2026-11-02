@@ -1,3 +1,4 @@
+import { colorSecondaryV1 } from "./color/secondary/v1/module.js";
 /**
  * Explicit shader barrel. The registry is populated from `ALL_SHADERS` (not
  * `import.meta.glob`) so the catalog is Node-bundling-safe, grep-able, and
@@ -106,6 +107,7 @@ export {
   colorSolarizeV1,
   colorColorBalanceV1,
   colorExposureToneV1,
+  colorSecondaryV1,
   colorExposureLinearV1,
   colorLiftGammaGainV1,
   colorCdlV1,
@@ -184,6 +186,7 @@ export const ALL_SHADERS: readonly ShaderModule[] = [
   colorSolarizeV1,
   colorColorBalanceV1,
   colorExposureToneV1,
+  colorSecondaryV1,
   colorExposureLinearV1,
   colorLiftGammaGainV1,
   colorCdlV1,

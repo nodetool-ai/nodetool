@@ -26,6 +26,7 @@ import { isRecord, isString } from "../predicates.js";
 import { withKeyRemedies } from "../zod-schema.js";
 import {
   captionStyle,
+  secondaryCurvePoints,
   clipModel3DAnimation,
   clipModel3DCamera,
   clipModel3DStyle,
@@ -1192,6 +1193,7 @@ const rgbTriple = z.tuple([z.number(), z.number(), z.number()]);
 const EFFECT_PARAMETER_FIELDS: Record<
   typeof KNOWN_CLIP_EFFECT_TYPE_LIST[number], readonly string[]
 > = {
+  secondaryColor: ["hueCenter", "hueWidth", "hueSoftness", "rangeSoftness", "saturationMin", "saturationMax", "lightnessMin", "lightnessMax", "hueShift", "saturation", "lightness", "hueCurve", "saturationCurve"],
   exposure: ["exposure", "rolloff", "whites"],
   color: ["brightness", "contrast", "saturation", "hue", "temperature", "tint", "shadows", "highlights"],
   blur: ["radius"],
@@ -1223,6 +1225,19 @@ const EFFECT_PARAMETER_FIELDS: Record<
  * one it cannot get wrong.
  */
 export const effectParams = z.object({
+  hueCenter: z.number().min(0).max(360).optional().describe("secondaryColor: hueCenter, 0..360, default 0."),
+  hueWidth: z.number().min(0).max(180).optional().describe("secondaryColor: hueWidth, 0..180, default 180."),
+  hueSoftness: z.number().min(0).max(180).optional().describe("secondaryColor: hueSoftness, 0..180, default 15."),
+  rangeSoftness: z.number().min(0).max(1).optional().describe("secondaryColor: rangeSoftness, 0..1, default 0.1."),
+  saturationMin: z.number().min(0).max(1).optional().describe("secondaryColor: saturationMin, 0..1, default 0."),
+  saturationMax: z.number().min(0).max(1).optional().describe("secondaryColor: saturationMax, 0..1, default 1."),
+  lightnessMin: z.number().min(0).max(1).optional().describe("secondaryColor: lightnessMin, 0..1, default 0."),
+  lightnessMax: z.number().min(0).max(1).optional().describe("secondaryColor: lightnessMax, 0..1, default 1."),
+  hueShift: z.number().min(-180).max(180).optional().describe("secondaryColor: hueShift, -180..180, default 0."),
+  lightness: z.number().min(-1).max(1).optional().describe("secondaryColor: lightness, -1..1, default 0."),
+  hueCurve: secondaryCurvePoints.optional().describe("secondaryColor: periodic hue-input curve, neutral output 0.5."),
+  saturationCurve: secondaryCurvePoints.optional().describe("secondaryColor: periodic hue-input curve, neutral output 0.5."),
+
   exposure: z.number().min(-5).max(5).optional().describe("exposure: linear-light stops, -5..5."),
   rolloff: z.number().min(0).max(1).optional().describe("exposure: highlight shoulder strength, 0..1."),
   whites: z.number().min(-2).max(2).optional().describe("exposure: highlight-weighted stops, -2..2."),
@@ -1329,6 +1344,9 @@ export const effectParams = z.object({
         message: "grain softness must be between 0 and 1."
       });
     }
+    if (input.type === "secondaryColor" && input.saturation !== undefined && (input.saturation < 0 || input.saturation > 4)) {
+      context.addIssue({code: "custom", path: ["saturation"], message: "Secondary saturation must be between 0 and 4."});
+    }
     const allowed = EFFECT_PARAMETER_FIELDS[input.type];
     for (const [field, value] of Object.entries(input)) {
       if (field !== "type" && value !== undefined && !allowed.includes(field)) {
@@ -1355,6 +1373,22 @@ export function buildEffect(
   effectParams.parse(input);
   const base = { id: `fx-${index + 1}`, enabled: true };
   switch (input.type) {
+    case "secondaryColor":
+      return { ...base, type: "secondaryColor",
+        hueCenter: input.hueCenter ?? 0,
+        hueWidth: input.hueWidth ?? 180,
+        hueSoftness: input.hueSoftness ?? 15,
+        rangeSoftness: input.rangeSoftness ?? 0.1,
+        saturationMin: input.saturationMin ?? 0,
+        saturationMax: input.saturationMax ?? 1,
+        lightnessMin: input.lightnessMin ?? 0,
+        lightnessMax: input.lightnessMax ?? 1,
+        hueShift: input.hueShift ?? 0,
+        saturation: input.saturation ?? 1,
+        lightness: input.lightness ?? 0,
+        hueCurve: input.hueCurve,
+        saturationCurve: input.saturationCurve,
+      };
     case "exposure":
       return { ...base, type: "exposure", exposure: input.exposure ?? 0, rolloff: input.rolloff ?? 0, whites: input.whites ?? 0 };
     case "color":

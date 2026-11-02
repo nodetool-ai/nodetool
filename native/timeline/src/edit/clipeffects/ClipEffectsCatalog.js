@@ -3,6 +3,7 @@
 const softVignette = {radius: 1.5, softness: 1, centerX: 0.5, centerY: 0.5, roundness: 0};
 
 const addableEffects = [
+    {value: "secondaryColor", label: "Secondary color"},
     {value: "exposure", label: "Exposure / highlights"},
     {value: "blur", label: "Blur"}, {value: "glow", label: "Glow"},
     {value: "dropShadow", label: "Drop shadow"}, {value: "vignette", label: "Vignette"},
@@ -15,6 +16,7 @@ const addableEffects = [
 function makeEffect(type, id) {
     const base = {id, type, enabled: true};
     switch (type) {
+    case "secondaryColor": return Object.assign(base, {hueCenter: 0, hueWidth: 180, hueSoftness: 15, rangeSoftness: 0.1, saturationMin: 0, saturationMax: 1, lightnessMin: 0, lightnessMax: 1, hueShift: 0, saturation: 1, lightness: 0});
     case "exposure": return Object.assign(base, {exposure: 0, rolloff: 0, whites: 0});
     case "blur": return Object.assign(base, {radius: 8});
     case "glow": return Object.assign(base, {radius: 8, intensity: 1});
@@ -37,7 +39,7 @@ function name(type) {
     return type === "color" ? "Color" : (addableEffects.find(item => item.value === type)?.label || type);
 }
 function known(type) {
-    return ["exposure", "color", "blur", "glow", "dropShadow", "vignette", "sharpen", "chromaKey", "curves", "levels", "liftGammaGain", "grain", "pixelate", "posterize", "directionalBlur", "lensDistortion", "stylize", "generator", "lut"].includes(type);
+    return ["secondaryColor", "exposure", "color", "blur", "glow", "dropShadow", "vignette", "sharpen", "chromaKey", "curves", "levels", "liftGammaGain", "grain", "pixelate", "posterize", "directionalBlur", "lensDistortion", "stylize", "generator", "lut"].includes(type);
 }
 function readOnlyDescription(type) {
     switch (type) {
@@ -65,6 +67,16 @@ function number(key, label, fallback, minimum, step = 1, extra = {}) {
 }
 function fields(type) {
     switch (type) {
+    case "secondaryColor": return [
+        slider("hueCenter", "Hue center", 0, 360, 0, 1, {unit: "°", decimals: 0}),
+        slider("hueWidth", "Hue half-width", 180, 180, 0, 1, {unit: "°", decimals: 0}),
+        slider("hueSoftness", "Hue softness", 15, 180, 0, 1, {unit: "°", decimals: 0}),
+        slider("saturationMin", "Saturation low", 0), slider("saturationMax", "Saturation high", 1),
+        slider("lightnessMin", "Lightness low", 0), slider("lightnessMax", "Lightness high", 1),
+        slider("rangeSoftness", "Range softness", 0.1),
+        slider("hueShift", "Hue shift", 0, 180, -180, 1, {unit: "°", decimals: 0}),
+        slider("saturation", "Saturation", 1, 4), slider("lightness", "Lightness", 0, 1, -1)
+    ];
     case "exposure": return [slider("exposure", "Exposure", 0, 5, -5, 0.1, {unit: "stops", decimals: 1}), slider("rolloff", "Highlight roll-off", 0), slider("whites", "Whites", 0, 2, -2, 0.1, {unit: "stops", decimals: 1})];
     case "color": return colorFields.map(field => Object.assign({kind: "slider", fallback: field.origin, resetValue: field.origin}, field));
     case "pixelate": return [slider("cellSize", "Cell size", 8, 128, 1, 1, {unit: "px", decimals: 0, resetValue: 1})];

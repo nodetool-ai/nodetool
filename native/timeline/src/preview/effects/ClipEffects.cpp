@@ -184,8 +184,8 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
             recipeSource = current;
         }
         QRhiTexture *other = nullptr;
-        if (pass.op == Op::Lut || pass.op == Op::Curves) {
-            const bool isCurve=pass.op==Op::Curves;
+        if (pass.op == Op::Lut || pass.op == Op::Curves || pass.op == Op::SecondaryColor) {
+            const bool isCurve=pass.op!=Op::Lut;
             const auto key = QCryptographicHash::hash(isCurve ? QByteArray("curve:")+QJsonDocument(pass.curve).toJson(QJsonDocument::Compact)
                                                               : pass.cube.toUtf8(), QCryptographicHash::Sha256);
             auto found = std::ranges::find(m_luts, key, &decltype(m_luts)::value_type::first);
@@ -195,7 +195,7 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
                 std::vector<std::uint16_t> pixels;
                 if (isCurve) {
                     textureSize={256,1};
-                    const auto table=curveTransfer(pass.curve);
+                    const auto table=pass.op==Op::SecondaryColor ? secondaryCurveTransfer(pass.curve) : curveTransfer(pass.curve);
                     pixels.resize(table.size());
                     std::ranges::transform(table,pixels.begin(),cubeHalfBits);
                 } else {

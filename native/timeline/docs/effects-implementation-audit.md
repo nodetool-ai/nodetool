@@ -169,7 +169,7 @@ F51–F56 continue the implementation checklist, with one commit per task. The c
 
 - [x] F51: Linear-light exposure, highlight roll-off and whites, with clip/track controls and native/export parity.
 - [ ] F52: Edge-preserving luma/chroma noise reduction, followed by motion-aware temporal reduction with deterministic seeking.
-- [ ] F53: Soft HSL qualification, matte preview and hue-versus-hue/saturation curves.
+- [x] F53: Soft HSL qualification, matte preview and hue-versus-hue/saturation curves.
 - [ ] F54: Cached deflicker analysis with scene cuts, fade preservation and backward-seek consistency.
 - [ ] F55: Thresholded debanding with deterministic dither, alpha and detail preservation.
 - [ ] F56: Cached camera-motion analysis, foreground rejection, smoothing and crop limits.
@@ -192,3 +192,9 @@ The new exposure effect decodes sRGB using the [standard transfer function](http
 Track exposure runs after the clip's ordered effects and before the fixed color/blur stages. The track Color correction card exposes the new controls. Output still uses the existing 8-bit effect surfaces. The effect preserves highlight differences within its calculation, but does not recover detail already clipped in the source or an earlier effect.
 
 Independent CPU/GPU/native pixel tests cover linear gain and highlight separation. Clip and track inspector tests cover editing and undo. The retained [clip](../src/preview/effects/fixtures/clip-exposure.json) and [track](../src/preview/effects/fixtures/track-exposure.json) fixtures match native preview and export exactly on the tested D3D11 device.
+
+### Secondary color contract (F53)
+
+Qualification uses [HSL over encoded sRGB](https://www.w3.org/TR/css-color-4/#the-hsl-notation). Hue center, half-width and feather use degrees. Saturation and lightness ranges intersect with soft boundaries. A limited hue selection excludes neutral grays. Hue curves wrap at red, with linked endpoints and neutral output 0.5. Hue-versus-hue spans ±180 degrees and hue-versus-saturation spans 0–2 times the saturation adjustment.
+
+Selection matte is viewer state, excluded from saved documents and exports. It shows the selected effect's coverage after preceding ordered effects, before later grading. Switching clips or closing the effect clears it. CPU/GPU/native pixel tests, inspector undo checks and the [preview/export fixture](../src/preview/effects/fixtures/clip-secondary-color.json) cover the implementation.

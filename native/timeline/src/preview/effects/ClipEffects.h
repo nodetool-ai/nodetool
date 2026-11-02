@@ -43,7 +43,8 @@ enum class Op {
     ScaleOpacity,
     MixTreatment,
     SharpenCombine,
-    Exposure
+    Exposure,
+    SecondaryColor
 };
 struct Pass {
     Op op = Op::Copy;
@@ -64,6 +65,7 @@ std::uint16_t cubeHalfBits(float value);
 std::optional<Cube> parseCube(const QString &text);
 CurveKnobs fitCurve(const QJsonArray &points);
 double channelMidtones(const QJsonArray &points);
+std::array<float, 1024> secondaryCurveTransfer(const QJsonObject &effect);
 std::array<float, 1024> curveTransfer(const QJsonObject &effect);
 std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEffects = {});
 QMargins chainOutset(const QJsonArray &effects);

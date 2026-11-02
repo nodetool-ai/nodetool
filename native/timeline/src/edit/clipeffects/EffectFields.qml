@@ -12,6 +12,7 @@ Column {
     readonly property var effect: editor.effects.find(effect => effect.id === effectId) || ({})
     readonly property string effectType: effect.type || ""
     readonly property var definitions: Catalog.fields(effectType)
+    Component.onDestruction: if (root.editor?.matteEffectId === root.effectId) root.editor.clearMatte()
     spacing: Ui.Metrics.micro
     Ui.EditorButton {
         objectName: "effects_" + root.effectId + "_softPreset"
@@ -21,6 +22,17 @@ Column {
         visible: root.effectType === "vignette"
         enabled: !root.editor.locked
         onClicked: root.editor.patch(root.effectId, Catalog.softVignette)
+    }
+    Ui.EditorButton {
+        objectName: "effects_" + root.effectId + "_matte"
+        text: root.editor.matteEffectId === root.effectId ? "Hide selection matte" : "Show selection matte"
+        description: "View this clip's qualification mask. The matte is not saved or exported."
+        density: Ui.EditorButton.Compact
+        visible: root.effectType === "secondaryColor"
+        enabled: !root.editor.locked && !!root.effect.enabled
+        active: root.editor.matteEffectId === root.effectId
+        onClicked: root.editor.toggleMatte(root.effectId)
+        Keys.onEscapePressed: root.editor.clearMatte()
     }
     Repeater {
         model: root.definitions
@@ -176,7 +188,11 @@ Column {
     }
     ToneCurveEditor {
         width: parent.width
-        visible: root.effectType === "curves"
+        visible: root.effectType === "curves" || root.effectType === "secondaryColor"
+        objectName: cyclic ? "effects_" + root.effectId + "_secondaryCurves" : ""
+        cyclic: root.effectType === "secondaryColor"
+        hueCurve: root.effect.hueCurve
+        saturationCurve: root.effect.saturationCurve
         height: visible ? implicitHeight : 0
         master: root.effect.master || []
         r: root.effect.r
