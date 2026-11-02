@@ -504,6 +504,10 @@ QJsonObject retimeCaption(const QJsonObject& caption, double offsetMs, double sc
     return out;
 }
 
+QJsonArray sourceAnimationsForWindow(const QJsonArray& animations, double fromMs, double toMs, double clipDurationMs) {
+    return resliceSourceAnimations(animations, fromMs, toMs, clipDurationMs);
+}
+
 QJsonObject trimClip(const QJsonObject& clip, const QString& edge, double deltaMs, std::optional<double> maxDurationMs) {
     assertNotTimeRemapped(clip, "trimClip");
 

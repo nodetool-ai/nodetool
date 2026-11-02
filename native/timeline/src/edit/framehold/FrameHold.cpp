@@ -48,7 +48,14 @@ Split splitAt(const EditDoc& doc, const QStringList& ids, double atMs) {
 }
 }
 bool isHold(const QJsonObject& clip) { return nt::edit::isHoldRemap(clip); }
-double sourceMsAt(const QJsonObject& clip, double timelineMs) {
+double sourceMsAt(const QJsonObject& clip, double requestedMs) {
+    // A stepped clip shows the frame at the start of its step, as SceneEval's steppedTime does.
+    double timelineMs = requestedMs;
+    const auto steppedFps = clip.value("steppedTime").toObject().value("fps").toDouble();
+    if (std::isfinite(steppedFps) && steppedFps > 0) {
+        const double step = 1000 / steppedFps;
+        timelineMs = clipStartMs(clip) + std::floor((requestedMs - clipStartMs(clip)) / step) * step;
+    }
     if (const auto remap = nt::speed::parseTimeRemap(clip.value("timeRemap"))) {
         const double t = clipDurationMs(clip) > 0 ? (timelineMs - clipStartMs(clip)) / clipDurationMs(clip) : 0;
         if (const auto source = nt::speed::evaluateTimeRemapMs(remap->keyframes, t)) { return std::max(0.0, *source); }
@@ -114,6 +121,10 @@ Result insertFrameHoldSegment(const QJsonObject& raw, const QString& id, double 
             if (clipId(clip) == id || clipLinkId(clip) != clipLinkId(original) || !(clipStartMs(clip) < atMs && atMs < clipEndMs(clip))) {
                 cut.push_back(clip);
                 continue;
+            }
+            // Its media tracks name this clip by id, and a split gives it new ids (the same refusal as an ordinary split).
+            if (doc.clipsWithMediaTracks.count(clipId(clip))) {
+                return {raw, {}, "A linked clip with motion tracking spans this point. Remove the tracking or choose another position."};
             }
             try {
                 auto [head, tail] = splitClip(clip, atMs);
@@ -181,6 +192,16 @@ Result setFrameHoldOptions(const QJsonObject& raw, const OptionsRequest& request
         if (!request.enabled) {
             if (!isHold(clip)) { continue; }
             next.remove("timeRemap");
+            // A hold can run past its source window. In motion the clip ends where the window does.
+            const double in = clip.value("inPointMs").toDouble();
+            const double rate = sourceRate(clip);
+            const double window = (clip.value("outPointMs").toDouble(in + clipDurationMs(clip) * rate) - in) / rate;
+            if (window > 0 && clipDurationMs(clip) > window) {
+                next.insert("durationMs", window);
+                if (next.value("animations").isArray()) {
+                    next.insert("animations", sourceAnimationsForWindow(next.value("animations").toArray(), in, in + window * rate, window));
+                }
+            }
         } else {
             auto moving = clip;
             if (isHold(moving)) { moving.remove("timeRemap"); }

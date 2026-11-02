@@ -378,7 +378,7 @@ private slots:
         QCOMPARE(object("frameHoldLength")->property("text").toString(), QStringLiteral("2"));
         shoot("frame-hold-insert");
         typeInto("frameHoldLength", "3");
-        clickObject("frameHoldInsertApply");
+        QTest::keyClick(view.get(), Qt::Key_Return);
         QTRY_VERIFY(!shown("frameHoldInsertDialog"));
         const auto held = gestures()->selection().first();
         QCOMPARE(clip(held).value("durationMs").toDouble(), 3000.0);

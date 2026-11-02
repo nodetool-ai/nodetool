@@ -236,6 +236,48 @@ private slots:
             QVERIFY2(nt::framehold::sourceMsAt(byId(result.doc, "c"), 1000) <= 700, mode);
         }
     }
+    void disablingARunPastHoldEndsWithItsSourceWindow() {
+        auto raw = document(false, 1);
+        auto c = byId(raw, "c");
+        c.insert("startMs", 0); c.insert("durationMs", 5000); c.insert("inPointMs", 0); c.insert("outPointMs", 1000);
+        c.insert("timeRemap", QJsonObject{{"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"sourceMs", 0}},
+            QJsonObject{{"t", 1}, {"sourceMs", 0}}}}});
+        raw.insert("clips", QJsonArray{c});
+        const auto result = nt::framehold::setFrameHoldOptions(raw, {{"c"}, false});
+        QVERIFY2(result.ok(), qPrintable(result.error));
+        const auto next = byId(result.doc, "c");
+        QVERIFY(!next.contains("timeRemap"));
+        QCOMPARE(next.value("durationMs").toDouble(), 1000.0);
+        QCOMPARE(next.value("outPointMs").toDouble(), 1000.0);
+        // At twice the speed the same window lasts half as long.
+        c.insert("speedMultiplier", 2);
+        raw.insert("clips", QJsonArray{c});
+        QCOMPARE(byId(nt::framehold::setFrameHoldOptions(raw, {{"c"}, false}).doc, "c").value("durationMs").toDouble(), 500.0);
+    }
+    void insertAtTheStartRefusesToOrphanMotionTracking() {
+        auto raw = document(true, 1);
+        auto v = byId(raw, "c");
+        v.insert("startMs", 1000); v.insert("linkId", "L");
+        auto a = byId(raw, "audio");
+        a.insert("startMs", 0); a.insert("durationMs", 3000); a.insert("linkId", "L");
+        raw.insert("clips", QJsonArray{v, a});
+        raw.insert("mediaTracks", QJsonArray{QJsonObject{{"id", "m"}, {"clipId", "audio"}, {"sourceStartMs", 0},
+            {"sourceEndMs", 1000}, {"samples", QJsonArray{}}}});
+        const auto result = nt::framehold::insertFrameHoldSegment(raw, "c", 1000, 500);
+        QVERIFY2(!result.ok(), "the split would leave mediaTracks[].clipId dangling");
+        QCOMPARE(result.doc, raw);
+    }
+    void aSteppedClipHoldsTheFrameOnScreen() {
+        auto raw = document(false, 1);
+        auto c = byId(raw, "c");
+        c.insert("startMs", 0); c.insert("inPointMs", 0); c.insert("durationMs", 2000); c.insert("outPointMs", 2000);
+        c.insert("steppedTime", QJsonObject{{"fps", 2}});
+        raw.insert("clips", QJsonArray{c});
+        const auto held = nt::framehold::addFrameHold(raw, {"c"}, 400);
+        QVERIFY(held.ok());
+        QCOMPARE(byId(held.doc, held.clipIds.first()).value("timeRemap").toObject().value("keyframes").toArray()
+            .first().toObject().value("sourceMs").toDouble(), 0.0);
+    }
     void options_data() {
         QTest::addColumn<QString>("mode"); QTest::addColumn<double>("expected");
         QTest::newRow("in") << QString("in") << 200.0;
