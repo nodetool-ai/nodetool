@@ -1595,6 +1595,36 @@ qml_callers = []
 replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.EditorButton"
 
 [[file]]
+path = "native/timeline/qml/remix/RemixDialog.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "Flickable", "Ui.ScrollBar", "ColumnLayout", "RowLayout", "GridLayout", "Ui.Text", "Ui.Progress", "Ui.Banner", "Ui.TextField", "Ui.EditorButton", "Ui.Slider", "RemixPlanStrip"]
+signals = []
+test_host = "tst_remixui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/remix/RemixHost.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.ScrollBar, Ui.Text, Ui.Progress, Ui.Banner, Ui.TextField, Ui.EditorButton, Ui.Slider"
+
+[[file]]
+path = "native/timeline/qml/remix/RemixHost.qml"
+category = "chrome"
+controls = ["RemixController", "RemixDialog", "Ui.Dialog", "Ui.Text", "Ui.EditorButton"]
+signals = []
+test_host = "tst_remixui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/remix/RemixPlanStrip.qml"
+category = "chrome"
+controls = ["Column", "Item", "Ui.Text", "Rectangle", "Repeater"]
+signals = []
+test_host = "tst_remixui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/remix/RemixDialog.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text"
+
+[[file]]
 path = "native/timeline/qml/markers/MarkersPanel.qml"
 category = "chrome"
 controls = ["Ui.Surface", "ColumnLayout", "Ui.TextField", "Flow", "Rectangle", "Ui.Tooltip", "MouseArea", "HoverHandler", "ListView", "Ui.ScrollBar", "Ui.Text", "Ui.EmptyState", "Ui.EditorButton", "RegistryContextMenu"]
