@@ -13,6 +13,11 @@ Create images, video, audio, and text with agents that work alongside you.
 Describe what you want, let the agent build it, then take over whenever you
 like.
 
+**Stop prompting slot machines. Direct the agent.** Most AI video apps charge
+you to roll the dice, then hand back a flat MP4 you can't edit. In NodeTool the
+agent writes the script, boards the shots, and cuts a multi-track timeline.
+Every shot, voice line, and node stays open for you to change by hand.
+
 **[Download NodeTool Studio](https://github.com/nodetool-ai/nodetool/releases/latest)** ·
 **[Quick start](#first-run-in-studio)** ·
 **[Documentation](https://docs.nodetool.ai/)** · **[MCP setup](#mcp)** ·
@@ -27,6 +32,23 @@ calls the provider with your key, at their price, with no billing unit in
 between. When a better model ships, add it the day it ships.
 
 [Models and Providers](docs/models-and-providers.md) lists what runs where.
+
+## Run it on the AI plan you already pay for
+
+Sign in with ChatGPT or Claude in Studio and the agent runs on that $20
+subscription instead of a metered API bill. ChatGPT and Gemini plans also
+generate images, and Gemini generates video. Those runs count against your
+plan's own limits.
+
+| Plan | Chat and agent | Images | Video |
+| :--- | :---: | :---: | :---: |
+| ChatGPT | Yes | Yes | No |
+| Claude | Yes | No | No |
+| Gemini | Yes | Yes | Yes |
+
+Subscriptions run in Studio, the desktop app, not in Cloud. Gemini also needs
+the [NodeTool Chrome extension](https://docs.nodetool.ai/chrome-extension) in
+the browser where you are signed in.
 
 ## Why NodeTool
 
@@ -59,20 +81,23 @@ narration, and export an MP4. Revise one shot without regenerating the film.
 The [film quick start](docs/getting-started.md) walks through each step.
 
 Seven editors share one project, so a piece never leaves the studio to be
-finished, and an agent drives every one of them through the actions you have.
+finished. Each editor exposes its actions to the agent as tools, so the agent
+works in all of them.
 
 ### Storyboard
 
-![NodeTool storyboard](marketing/public/surface-storyboard-poster.webp)
+<img src="marketing/public/surface-storyboard-poster.webp" alt="NodeTool storyboard" width="640">
 
 Board the film shot by shot. Pitch a concept, a style, and a shot count, and
 you get back a screenplay: one shot per card with action, camera, motion, and
 duration, plus the logline, style bible, narration, and music direction.
 
-- **Cheap stages first.** A still costs cents, a clip costs dollars. Generate
-  stills until one looks right, then animate that one.
+- **Cheap stages first.** A Seedream 5 Lite still costs $0.03 on Kie.ai. Five
+  seconds of Seedance 2 costs $1.03 (list prices via genspend.io, August 2026).
+  Generate stills until one looks right, then animate that one.
 - **Revise one shot, not the reel.** "Make it darker, add rain" runs
-  video-to-video on that clip alone and swaps it in place.
+  video-to-video on that clip alone and returns a new take. You decide whether
+  it replaces the old one.
 - **Entities keep the cast steady.** Characters, locations, styles, and props
   paste the same descriptor into every prompt that names them.
 - **Assemble the cut.** One click lays the shots onto a timeline with narration
@@ -83,7 +108,7 @@ The agent works the same board, with or without the editor open.
 
 ### Script and voice
 
-![NodeTool script editor: the transcript panel beside the sequence it assembles into](marketing/public/surface-script-poster.webp)
+<img src="marketing/public/surface-script-poster.webp" alt="NodeTool script editor: the transcript panel beside the sequence it assembles into" width="640">
 
 Draft the dialogue, cast a provider, model, and voice per character, and
 audition alternate readings. Each voicing saves its own take with word timings,
@@ -93,7 +118,7 @@ every line that still needs it, then cuts the sequence for you.
 
 ### Timeline
 
-![NodeTool timeline](marketing/public/surface-timeline-poster.webp)
+<img src="marketing/public/surface-timeline-poster.webp" alt="NodeTool timeline" width="640">
 
 Arrange, trim, and layer video and audio across tracks, down to the frame and
 the stem. Drop in your own footage, or bind a workflow to a clip and generate
@@ -104,7 +129,7 @@ when you ask it to tighten the opening.
 
 ### Sketch
 
-![NodeTool sketch editor](marketing/public/screen_sketch_editor.webp)
+<img src="marketing/public/screen_sketch_editor.webp" alt="NodeTool sketch editor" width="640">
 
 Build a composition in layers with blend modes and masks, then bind a layer to
 a model or a workflow and generate where you are painting. Change a prompt or
@@ -114,7 +139,7 @@ receives the flattened image, the mask, and each layer on its own.
 
 ### 3D
 
-![NodeTool 3D scene editor](marketing/public/surface-3d-poster.webp)
+<img src="marketing/public/surface-3d-poster.webp" alt="NodeTool 3D scene editor" width="640">
 
 Place primitives and lights in a scene by hand or by asking, then capture a
 view as a depth or composition reference for an image or video model. The same
@@ -124,7 +149,7 @@ every time.
 
 ### Game
 
-![NodeTool game editor](marketing/public/surface-game-poster.webp)
+<img src="marketing/public/surface-game-poster.webp" alt="NodeTool game editor" width="640">
 
 Build a 2D or 3D game in a workspace tab and play it without leaving the
 editor. Place entities, give them behaviors or JavaScript, and bind generated
@@ -135,7 +160,7 @@ a standalone web player that runs without NodeTool.
 
 ## The node editor
 
-![NodeTool node editor](marketing/public/surface-nodes-poster.webp)
+<img src="marketing/public/surface-nodes-poster.webp" alt="NodeTool node editor" width="640">
 
 Every project is a graph you can open. Drag nodes in, connect typed ports, and
 read the live output at each step. Double-click the canvas to search for a
@@ -150,41 +175,44 @@ Each film below is a timeline document that ships with NodeTool, rendered to MP4
 Select a poster to watch the film. Open the example in the app to edit every
 clip, track, and effect.
 
-### Serein, the inbox that sorts itself
-
-[![Serein, the inbox that sorts itself](marketing/public/timelines/serein/poster.webp)](marketing/public/timelines/serein/film.mp4)
-
-A 26-second product launch film built from editable scene clips, text, motion, and effects. [Watch the film](marketing/public/timelines/serein/film.mp4) or see the [timeline layout](marketing/public/timelines/serein/timeline.webp).
-
-### Kite, savings on autopilot
-
-[![Kite, savings on autopilot](marketing/public/timelines/kite/poster.webp)](marketing/public/timelines/kite/film.mp4)
-
-A 15-second app ad made from motion graphics alone: kinetic type, a drawn-on chart, a filling goal ring, and a logo reveal. [Watch the film](marketing/public/timelines/kite/film.mp4) or see the [timeline layout](marketing/public/timelines/kite/timeline.webp).
-
-### Voltra, silent and violent
-
-[![Voltra, silent and violent](marketing/public/timelines/voltra/poster.webp)](marketing/public/timelines/voltra/film.mp4)
-
-A 23-second motorcycle launch ad cut to a 120 BPM beat, with generated stills, parallax plates, mattes, and spec gauges. [Watch the film](marketing/public/timelines/voltra/film.mp4) or see the [timeline layout](marketing/public/timelines/voltra/timeline.webp).
-
-### Prism, run in every colour
-
-[![Prism, run in every colour](marketing/public/timelines/prism/poster.webp)](marketing/public/timelines/prism/film.mp4)
-
-An 18-second running-shoe ad on a 120 BPM grid, with green-screen stills keyed in the timeline and a prism that splits light. [Watch the film](marketing/public/timelines/prism/film.mp4) or see the [timeline layout](marketing/public/timelines/prism/timeline.webp).
-
-### Tidewater, summer jazz on the pier
-
-[![Tidewater, summer jazz on the pier](marketing/public/timelines/tidewater/poster.webp)](marketing/public/timelines/tidewater/film.mp4)
-
-A 16-second 4:5 risograph poster that moves, on stepped 12 fps time with a swing score. [Watch the film](marketing/public/timelines/tidewater/film.mp4) or see the [timeline layout](marketing/public/timelines/tidewater/timeline.webp).
-
-### Cadence, a year on two wheels
-
-[![Cadence, a year on two wheels](marketing/public/timelines/cadence/poster.webp)](marketing/public/timelines/cadence/film.mp4)
-
-A vertical year-in-review data story with a route that rides itself, counted stat cards, and animated charts. [Watch the film](marketing/public/timelines/cadence/film.mp4) or see the [timeline layout](marketing/public/timelines/cadence/timeline.webp).
+<table>
+<tr>
+<td valign="top" width="50%">
+<a href="marketing/public/timelines/serein/film.mp4"><img src="marketing/public/timelines/serein/poster.webp" alt="Serein, the inbox that sorts itself" width="360"></a><br>
+<b>Serein, the inbox that sorts itself</b><br>
+A 26-second product launch film built from editable scene clips, text, motion, and effects. <a href="marketing/public/timelines/serein/film.mp4">Watch the film</a> or see the <a href="marketing/public/timelines/serein/timeline.webp">timeline layout</a>.
+</td>
+<td valign="top" width="50%">
+<a href="marketing/public/timelines/kite/film.mp4"><img src="marketing/public/timelines/kite/poster.webp" alt="Kite, savings on autopilot" width="360"></a><br>
+<b>Kite, savings on autopilot</b><br>
+A 15-second app ad made from motion graphics alone: kinetic type, a drawn-on chart, a filling goal ring, and a logo reveal. <a href="marketing/public/timelines/kite/film.mp4">Watch the film</a> or see the <a href="marketing/public/timelines/kite/timeline.webp">timeline layout</a>.
+</td>
+</tr>
+<tr>
+<td valign="top" width="50%">
+<a href="marketing/public/timelines/voltra/film.mp4"><img src="marketing/public/timelines/voltra/poster.webp" alt="Voltra, silent and violent" width="360"></a><br>
+<b>Voltra, silent and violent</b><br>
+A 23-second motorcycle launch ad cut to a 120 BPM beat, with generated stills, parallax plates, mattes, and spec gauges. <a href="marketing/public/timelines/voltra/film.mp4">Watch the film</a> or see the <a href="marketing/public/timelines/voltra/timeline.webp">timeline layout</a>.
+</td>
+<td valign="top" width="50%">
+<a href="marketing/public/timelines/prism/film.mp4"><img src="marketing/public/timelines/prism/poster.webp" alt="Prism, run in every colour" width="360"></a><br>
+<b>Prism, run in every colour</b><br>
+An 18-second running-shoe ad on a 120 BPM grid, with green-screen stills keyed in the timeline and a prism that splits light. <a href="marketing/public/timelines/prism/film.mp4">Watch the film</a> or see the <a href="marketing/public/timelines/prism/timeline.webp">timeline layout</a>.
+</td>
+</tr>
+<tr>
+<td valign="top" width="50%">
+<a href="marketing/public/timelines/tidewater/film.mp4"><img src="marketing/public/timelines/tidewater/poster.webp" alt="Tidewater, summer jazz on the pier" width="200"></a><br>
+<b>Tidewater, summer jazz on the pier</b><br>
+A 16-second 4:5 risograph poster that moves, on stepped 12 fps time with a swing score. <a href="marketing/public/timelines/tidewater/film.mp4">Watch the film</a> or see the <a href="marketing/public/timelines/tidewater/timeline.webp">timeline layout</a>.
+</td>
+<td valign="top" width="50%">
+<a href="marketing/public/timelines/cadence/film.mp4"><img src="marketing/public/timelines/cadence/poster.webp" alt="Cadence, a year on two wheels" width="140"></a><br>
+<b>Cadence, a year on two wheels</b><br>
+A vertical year-in-review data story with a route that rides itself, counted stat cards, and animated charts. <a href="marketing/public/timelines/cadence/film.mp4">Watch the film</a> or see the <a href="marketing/public/timelines/cadence/timeline.webp">timeline layout</a>.
+</td>
+</tr>
+</table>
 
 The [showcase](https://nodetool.ai/showcase) and
 [template gallery](https://nodetool.ai/templates) hold the single workflows
@@ -211,8 +239,8 @@ Choosing against a node tool instead? See
 ## The agent
 
 Most tools bolt a chat panel onto an editor. NodeTool built the editors around
-the agent: every surface hands it the actions you have — wire a graph, paint a
-layer, cut a clip, revise a shot, voice a line.
+the agent: each surface exposes its actions to the agent as tools, so it can
+wire a graph, paint a layer, cut a clip, revise a shot, or voice a line.
 
 - **Build workflows.** Describe the pipeline. The agent picks the nodes, wires
   the edges, and validates the graph, and leaves behind a workflow you own.
