@@ -8,7 +8,8 @@
 
 namespace {
 QVariantMap reply(const nt::framehold::Result& result, bool applied) {
-    return {{"ok", result.ok() && applied}, {"error", result.ok() && !applied ? "No frame holds changed." : result.error},
+    return {{"ok", result.ok() && applied}, {"unchanged", result.unchanged},
+        {"error", result.ok() && !applied ? "No frame holds changed." : result.error},
         {"clipIds", result.ok() && applied ? result.clipIds : QStringList{}}};
 }
 nt::framehold::Result noTimeline() { return {{}, {}, "Open a timeline before adding a frame hold."}; }

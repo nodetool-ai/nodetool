@@ -16,6 +16,8 @@ Item {
     property var clipIds: []
     property string insertClipId: ""
     property string holdOn: "in"
+    property string openedStamp: ""
+    property double openedHeldMs: -1
     // Read when a command starts. A binding would run on every frame of playback.
     property double playheadMs: 0
     readonly property double fps: timelineModel ? timelineModel.fps : 30
@@ -95,6 +97,9 @@ Item {
         const stamp = TimelineFormat.timecode(held >= 0 ? held : playheadMs, fps, false)
         timeField.value = stamp
         timeField.text = stamp
+        // The field rounds to a sequence frame, so an untouched field must send the exact held time.
+        openedStamp = stamp
+        openedHeldMs = held
         optionsError.text = ""
         optionsDialog.open()
         return true
@@ -102,11 +107,12 @@ Item {
     function applyOptions() {
         if (!timeValid)
             return
+        const untouched = holdOn === "sourceTime" && openedHeldMs >= 0 && timeField.text === openedStamp
         const result = controller.setOptions({
             clipIds: clipIds, enabled: enabledBox.checked, holdOn: holdOn,
-            playheadMs: playheadMs, timeMs: parsedTimeMs
+            playheadMs: playheadMs, timeMs: untouched ? openedHeldMs : parsedTimeMs
         })
-        if (!result.ok && enabledBox.checked) {
+        if (!result.ok && !result.unchanged && enabledBox.checked) {
             optionsError.text = result.error
             return
         }

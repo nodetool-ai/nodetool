@@ -278,6 +278,59 @@ private slots:
         QCOMPARE(byId(held.doc, held.clipIds.first()).value("timeRemap").toObject().value("keyframes").toArray()
             .first().toObject().value("sourceMs").toDouble(), 0.0);
     }
+    void aHoldKeepsTheSourceWindowOfAClipWithoutOutPoints() {
+        auto raw = document(false, 1);
+        auto c = byId(raw, "c");
+        c.remove("outPointMs"); c.remove("inPointMs");
+        c.insert("startMs", 0); c.insert("durationMs", 1000);
+        raw.insert("clips", QJsonArray{c});
+        const auto held = nt::framehold::setFrameHoldOptions(raw, {{"c"}, true, "in"});
+        QVERIFY2(held.ok(), qPrintable(held.error));
+        auto extended = byId(held.doc, "c");
+        QCOMPARE(extended.value("outPointMs").toDouble(), 1000.0);
+        extended.insert("durationMs", 6000);
+        auto next = raw;
+        next.insert("clips", QJsonArray{extended});
+        const auto disabled = nt::framehold::setFrameHoldOptions(next, {{"c"}, false});
+        QVERIFY2(disabled.ok(), qPrintable(disabled.error));
+        QCOMPARE(byId(disabled.doc, "c").value("durationMs").toDouble(), 1000.0);
+        // Add at the clip's first frame does the same.
+        const auto added = nt::framehold::addFrameHold(raw, {"c"}, 0);
+        QVERIFY2(added.ok(), qPrintable(added.error));
+        QCOMPARE(byId(added.doc, "c").value("outPointMs").toDouble(), 1000.0);
+    }
+    void anUnchangedOptionsApplyIsNotAnEdit() {
+        auto raw = document(false, 1);
+        auto c = byId(raw, "c");
+        c.insert("timeRemap", QJsonObject{{"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"sourceMs", 50}},
+            QJsonObject{{"t", 1}, {"sourceMs", 50}}}}});
+        raw.insert("clips", QJsonArray{c});
+        const auto result = nt::framehold::setFrameHoldOptions(raw, {{"c"}, true, "sourceTime", 0, 50});
+        QVERIFY(!result.ok());
+        QVERIFY(result.unchanged);
+        QCOMPARE(result.doc, raw);
+    }
+    void aSteppedHoldKeepsTheCurveAtTheHeldFrame() {
+        auto raw = document(false, 1);
+        auto c = byId(raw, "c");
+        c.insert("startMs", 0); c.insert("inPointMs", 0); c.insert("durationMs", 2000); c.insert("outPointMs", 2000);
+        c.insert("steppedTime", QJsonObject{{"fps", 2}});
+        c.insert("animations", QJsonArray{QJsonObject{{"id", "m"}, {"preset", "custom"}, {"role", "emphasis"}, {"durationMs", 2000},
+            {"custom", QJsonObject{{"timeBase", "source"}, {"curves", QJsonArray{QJsonObject{{"property", "offsetY"},
+                {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"sourceMs", 0}, {"value", 0}},
+                                         QJsonObject{{"t", 1}, {"sourceMs", 2000}, {"value", 200}}}}}}}}}}});
+        raw.insert("clips", QJsonArray{c});
+        const auto held = nt::framehold::addFrameHold(raw, {"c"}, 400);
+        QVERIFY2(held.ok(), qPrintable(held.error));
+        const auto piece = byId(held.doc, held.clipIds.first());
+        const auto frames = piece.value("animations").toArray().first().toObject().value("custom").toObject()
+            .value("curves").toArray().first().toObject().value("keyframes").toArray();
+        QVERIFY(!frames.isEmpty());
+        // The curve still starts at the held frame, whose value the picture showed.
+        QCOMPARE(frames.first().toObject().value("sourceMs").toDouble(), 0.0);
+        QCOMPARE(frames.first().toObject().value("value").toDouble(), 0.0);
+        QVERIFY(piece.value("animations").toArray().first().toObject().value("id").toString() != "m");
+    }
     void options_data() {
         QTest::addColumn<QString>("mode"); QTest::addColumn<double>("expected");
         QTest::newRow("in") << QString("in") << 200.0;

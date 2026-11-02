@@ -19,6 +19,12 @@ QJsonObject holdRemap(double sourceMs) {
 bool hasRemap(const QJsonObject& clip) {
     return !clip.value("timeRemap").toObject().value("keyframes").toArray().isEmpty();
 }
+// A hold's duration no longer follows its source, so a window that was implicit must be written down first.
+void writeSourceWindow(QJsonObject& clip) {
+    const double in = clip.value("inPointMs").toDouble();
+    clip.insert("inPointMs", in);
+    clip.insert("outPointMs", clip.value("outPointMs").toDouble(in + clipDurationMs(clip) * sourceRate(clip)));
+}
 bool spans(const QJsonObject& clip, double atMs) {
     return std::isfinite(atMs) && clipStartMs(clip) <= atMs && atMs < clipEndMs(clip);
 }
@@ -29,6 +35,30 @@ QString validate(const EditDoc& doc, const QJsonObject& clip, bool split) {
     }
     if (split && hasRemap(clip) && !isHold(clip)) { return curveError; }
     return {};
+}
+bool sourceAnchored(const QJsonObject& animation) {
+    return animation.value("custom").toObject().value("timeBase").toString() == u"source";
+}
+// `piece` is the right half of `original`, whose source curves were cut at the split. Its own animations keep their ids.
+void restoreSourceCurves(QJsonObject& piece, const QJsonObject& original, double fromMs) {
+    if (!original.value("animations").isArray() || !piece.value("animations").isArray()) { return; }
+    const double in = original.value("inPointMs").toDouble();
+    const double out = original.value("outPointMs").toDouble(in + clipDurationMs(original) * sourceRate(original));
+    const auto whole = sourceAnimationsForWindow(original.value("animations").toArray(), fromMs, out, clipDurationMs(piece));
+    QList<QJsonObject> curves;
+    for (const auto& value : whole) {
+        if (sourceAnchored(value.toObject())) { curves.append(value.toObject()); }
+    }
+    auto own = piece.value("animations").toArray();
+    qsizetype next = 0;
+    for (qsizetype i = 0; i < own.size() && next < curves.size(); ++i) {
+        auto animation = own[i].toObject();
+        if (!sourceAnchored(animation)) { continue; }
+        auto restored = curves[next++];
+        restored.insert("id", animation.value("id"));
+        own[i] = restored;
+    }
+    piece.insert("animations", own);
 }
 struct Split {
     ClipList clips;
@@ -90,9 +120,16 @@ Result addFrameHold(const QJsonObject& raw, const QStringList& ids, double atMs)
         const auto target = found == split.rightIds.end() ? id : found->second;
         heldSources.emplace(target, sources.at(id));
         heldIds.append(target);
+        // A stepped clip holds a frame from before the cut, so the piece needs the curve from there.
+        if (found != split.rightIds.end() && sources.at(id) < original.value("inPointMs").toDouble() + (atMs - clipStartMs(original)) * sourceRate(original)) {
+            for (auto& clip : split.clips) {
+                if (clipId(clip) == target) { restoreSourceCurves(clip, original, sources.at(id)); }
+            }
+        }
     }
     for (auto& clip : split.clips) {
         if (const auto source = heldSources.find(clipId(clip)); source != heldSources.end()) {
+            writeSourceWindow(clip);
             clip.insert("timeRemap", holdRemap(source->second));
         }
     }
@@ -222,11 +259,12 @@ Result setFrameHoldOptions(const QJsonObject& raw, const OptionsRequest& request
             } else if (request.holdOn == "playhead") { source = at(request.playheadMs); }
             else if (request.holdOn == "sequenceTime") { source = at(request.timeMs); }
             else if (request.holdOn == "sourceTime") { source = std::max(0.0, request.timeMs); }
+            writeSourceWindow(next);
             next.insert("timeRemap", holdRemap(source));
         }
         if (next != clip) { changed.append(clipId(clip)); clip = next; }
     }
-    if (changed.isEmpty()) { return {raw, {}, "No frame holds changed."}; }
+    if (changed.isEmpty()) { return {raw, {}, "No frame holds changed.", true}; }
     return {structure::withClips(raw, doc.clips), changed, {}};
 }
 }

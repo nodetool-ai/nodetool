@@ -8,6 +8,7 @@ struct Result {
     QJsonObject doc;
     QStringList clipIds;
     QString error;
+    bool unchanged = false;  // the document already says this, which is not a failure to report
     bool ok() const { return error.isEmpty(); }
 };
 struct OptionsRequest {

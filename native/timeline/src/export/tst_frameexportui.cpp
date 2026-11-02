@@ -416,6 +416,27 @@ private slots:
         QTRY_VERIFY(!shown("frameHoldOptionsDialog"));
         QVERIFY(!clip("vid").contains("timeRemap"));
     }
+    void applyingUnchangedOptionsLeavesTheHeldFrame() {
+        // 50 ms is between two 30 fps timecodes, so a round trip through the field would move it.
+        auto raw = doc();
+        auto clips = raw.value("clips").toArray();
+        auto held = clips[0].toObject();
+        held.insert("timeRemap", QJsonObject{{"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"sourceMs", 50}},
+            QJsonObject{{"t", 1}, {"sourceMs", 50}}}}});
+        clips[0] = held;
+        raw.insert("clips", clips);
+        auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        gestures()->setSelection({"vid"});
+        const auto before = doc();
+        QVERIFY(gestures()->runAction("frameHoldOptions"));
+        QTRY_VERIFY(shown("frameHoldOptionsDialog"));
+        clickObject("frameHoldOptionsApply");
+        QTRY_VERIFY(!shown("frameHoldOptionsDialog"));
+        QCOMPARE(doc(), before);
+        QCOMPARE(holdAt("vid"), 50.0);
+    }
     void aTrimmedHoldRunsPastTheMedia() {
         gestures()->setSelection({"later"});
         QVERIFY(gestures()->runAction("deleteSelected"));
