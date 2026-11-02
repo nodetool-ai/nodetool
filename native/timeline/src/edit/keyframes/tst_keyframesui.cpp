@@ -2,12 +2,21 @@
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
+#include <QFile>
 #include <QQmlContext>
 #include <QQmlEngine>
+#include <QTemporaryDir>
 #include <QtQuickTest/quicktest.h>
 
 class KeyframeUiSetup : public QObject {
     Q_OBJECT
+  public:
+    KeyframeUiSetup() {
+        if (qEnvironmentVariableIsEmpty("NODETOOL_TIMELINE_PREFERENCES")) {
+            if (!m_preferences.isValid()) { qFatal("Cannot create test preferences"); }
+            qputenv("NODETOOL_TIMELINE_PREFERENCES", QFile::encodeName(m_preferences.filePath("Timeline.ini")));
+        }
+    }
   public slots:
     void qmlEngineAvailable(QQmlEngine* engine) {
         auto parsed = nt::parseTimelineJson(
@@ -34,6 +43,7 @@ class KeyframeUiSetup : public QObject {
     Q_INVOKABLE QString documentJson() const { return QString::fromUtf8(m_model.documentJson()); }
 
   private:
+    QTemporaryDir m_preferences;
     TimelineModel m_model;
     PlaybackClock m_clock;
     ClipGestureController m_gestures;

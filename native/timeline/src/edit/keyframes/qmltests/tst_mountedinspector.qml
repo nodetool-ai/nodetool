@@ -63,6 +63,7 @@ Item {
             const transform = findItem(panel, item => item.title === "Transform" && item.open !== undefined)
             verify(transform)
             verify(transform.visible)
+            verify(waitForRendering(transform))
             mouseClick(transform, transform.width / 2, Ui.Metrics.xs + Ui.Metrics.small / 2)
             tryCompare(position, "visible", true)
             compare(position.disabled, false)

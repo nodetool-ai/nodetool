@@ -2858,6 +2858,14 @@ owner = "Timeline track header"
 reason = "Right click adds track actions to the editable header; Menu key and Shift+F10 open the same shared context menu and focus returns to the header."
 
 [[exception]]
+path = "native/timeline/qml/Tracks/TracksRegion.qml"
+object = "region/headerSplitter"
+binding = "onDoubleClicked"
+rule = "manual-control"
+owner = "Timeline track column"
+reason = "Double click resets the persisted track-name column width. Keyboard Home performs the same reset."
+
+[[exception]]
 path = "native/timeline/qml/Tracks/automation/AutomationAddLaneHeader.qml"
 object = "root/picker/TapHandler[0]"
 binding = "onTapped"

@@ -99,6 +99,17 @@ struct Layout {
     double clipStart(int k) const { return k * clipStepMs; }
 };
 
+bool writeSourceVideo(const QString& path, int frames) {
+    QFile video(path);
+    if (!video.open(QIODevice::WriteOnly)) { return false; }
+    const QByteArray header("YUV4MPEG2 W2 H2 F1:1 Ip A1:1 C420jpeg\n");
+    if (video.write(header) != header.size()) { return false; }
+    for (int i = 0; i < frames; ++i) {
+        if (video.write("FRAME\n") != 6 || video.write(QByteArray(6, '\x7f')) != 6) { return false; }
+    }
+    return video.flush();
+}
+
 // The fixture as the document JSON the server sends, parsed the way a load
 // parses it, so the raw JSON the edits work on is there (D4).
 QJsonObject makeTimelineJson(const Layout& layout) {
@@ -381,7 +392,9 @@ class TestTracksUi : public QObject {
     void drag(QPoint from, QPoint to, int steps, Qt::KeyboardModifiers pressMods = {},
               Qt::KeyboardModifiers releaseMods = {}) {
         QTest::mousePress(view.get(), Qt::LeftButton, pressMods, from);
-        for (int i = 1; i <= steps; ++i) QTest::mouseMove(view.get(), from + (to - from) * i / steps);
+        for (int i = 1; i <= steps; ++i) {
+            QTest::mouseEvent(QTest::MouseMove, view.get(), Qt::NoButton, pressMods, from + (to - from) * i / steps);
+        }
         QTest::mouseRelease(view.get(), Qt::LeftButton, releaseMods, to);
         frame();
     }
@@ -389,6 +402,13 @@ class TestTracksUi : public QObject {
         for (const QJsonValue& v : model->clipsJson())
             if (v.toObject().value("id").toString() == id) return v.toObject();
         return {};
+    }
+    static QVariantList webShortcutGroups(const QVariantMap& sheet) {
+        auto groups = sheet.value("groups").toList();
+        groups.removeIf([](const QVariant& group) {
+            return group.toMap().value("title").toString() == "Extensions";
+        });
+        return groups;
     }
     QJsonArray toJsonArray(const nt::edit::ClipList& clips) const {
         QJsonArray out;
@@ -864,15 +884,7 @@ private slots:
         QTemporaryDir media;
         QVERIFY(media.isValid());
         const auto file = media.filePath("source.y4m");
-        QFile video(file);
-        QVERIFY(video.open(QIODevice::WriteOnly));
-        const QByteArray header("YUV4MPEG2 W2 H2 F1:1 Ip A1:1 C420jpeg\n");
-        QCOMPARE(video.write(header), header.size());
-        for (int i = 0; i < 2; ++i) {
-            QCOMPARE(video.write("FRAME\n"), 6);
-            QCOMPARE(video.write(QByteArray(6, char(128))), 6);
-        }
-        video.close();
+        QVERIFY(writeSourceVideo(file, 2));
         const auto facts = nt::probeMedia(file.toStdString());
         QVERIFY(facts.opened);
         QCOMPARE(facts.durationSec, 2.0);
@@ -2117,9 +2129,13 @@ private slots:
     // file, or (unknown length) the furthest out-point seen on the asset; a
     // head roll uses the neighbour's source.
     void trimsStopAtTheSourceEnd() {
-        const QString media = QStringLiteral(NT_FIXTURES_DIR "/media/seek-360p30.mp4");
+        QTemporaryDir source;
+        QVERIFY(source.isValid());
+        const auto media = source.filePath("source.y4m");
+        QVERIFY(writeSourceVideo(media, 10));
         const nt::MediaFacts facts = nt::probeMedia(media.toStdString());
-        QVERIFY2(facts.opened && facts.durationSec > 1, "run scripts/make-fixtures.sh");
+        QVERIFY(facts.opened);
+        QCOMPARE(facts.durationSec, 10.0);
         const double sourceMs = facts.durationSec * 1000.0;
         QJsonObject json = makeTimelineJson({2, 0});
         QJsonArray clips;
@@ -2560,7 +2576,7 @@ private slots:
         QTRY_VERIFY(dialog->property("visible").toBool());
         const QVariantMap content = sheet->property("content").toMap();
         QCOMPARE(content.value("title").toString(), QStringLiteral("Keyboard shortcuts"));
-        const QVariantList groups = content.value("groups").toList();
+        const QVariantList groups = webShortcutGroups(content);
         QCOMPARE(groups.size(), 11);
         QCOMPARE(groups.first().toMap().value("title").toString(), QStringLiteral("Tools"));
         const QVariantMap cut = groups.first().toMap().value("rows").toList().at(6).toMap();
@@ -2583,7 +2599,7 @@ private slots:
         g->setKeyboardPreset(QStringLiteral("premiere"));
         sheet->setProperty("open", false);
         sheet->setProperty("open", true);
-        const QVariantMap redo = sheet->property("content").toMap().value("groups").toList().last().toMap()
+        const QVariantMap redo = webShortcutGroups(sheet->property("content").toMap()).last().toMap()
                                      .value("rows").toList().at(1).toMap();
         QCOMPARE(combos(redo), (QList<QStringList>{{"Ctrl", "Shift", "Z"}, {"Ctrl", "Y"}}));
         view->resize(320, 480);
@@ -2970,7 +2986,7 @@ private slots:
 
         const QVariantMap sheet = g->shortcutSheet();
         QHash<QString, bool> available;
-        for (const QVariant& gv : sheet.value("groups").toList())
+        for (const QVariant& gv : webShortcutGroups(sheet))
             for (const QVariant& rv : gv.toMap().value("rows").toList())
                 available.insert(rv.toMap().value("id").toString(), rv.toMap().value("available").toBool());
         QCOMPARE(available.size(), 107);
