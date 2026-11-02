@@ -133,13 +133,27 @@ void RulerCanvas::paint(QPainter* painter) {
         painter->drawText(QPointF(px + 3.0, 3.0 + metrics.ascent()), label);
         ++labels;
     }
-    // Markers: a full-height guide line; the flag is a QML item on top.
+    // Markers: a full-height guide line; the flag is a QML item on top. A range
+    // marker also shades the span of its duration and closes it with an end line.
     for (const QVariant& v : m_markers) {
         const QVariantMap m = v.toMap();
         const double px = m.value(QStringLiteral("timeMs")).toDouble() / m_msPerPx - m_scrollLeftPx;
-        if (px < 0 || px > w) continue;
+        const double durationPx = m.value(QStringLiteral("durationMs")).toDouble() / m_msPerPx;
+        if (px > w || px + durationPx < 0) continue;
         const QString color = m.value(QStringLiteral("color")).toString();
-        QPen pen(color.isEmpty() ? m_marker : QColor(color));
+        const QColor ink = color.isEmpty() ? m_marker : QColor(color);
+        if (durationPx > 0) {
+            QColor span = ink;
+            span.setAlphaF(0.22 * ink.alphaF());
+            painter->fillRect(QRectF(px, 0, durationPx, h), span);
+            QPen bar(ink);
+            bar.setWidthF(2.0);
+            painter->setPen(bar);
+            painter->drawLine(QPointF(px, h - 1.0), QPointF(px + durationPx, h - 1.0));
+            painter->drawLine(QPointF(px + durationPx, 0), QPointF(px + durationPx, h));
+        }
+        if (px < 0) continue;
+        QPen pen(ink);
         pen.setWidthF(1.0);
         painter->setPen(pen);
         painter->drawLine(QPointF(px + 0.5, 0), QPointF(px + 0.5, h));

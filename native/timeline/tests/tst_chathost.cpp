@@ -39,6 +39,42 @@ private slots:
         QVERIFY(host.execute("ui_timeline_delete_marker", {{"timeline_id", "001122334455"}, {"target", markerPrefix}}).value("ok").toBool());
         QCOMPARE(model.markers().size(), 0);
     }
+    void markerNotesReachTheDocumentAndTheState() {
+        TimelineModel model;
+        PlaybackClock clock;
+        nt::chat::TimelineChatHost host(model, clock);
+        const auto id = host.context().value("timeline_id");
+        const auto added = host.execute("ui_timeline_add_marker", {{"timeline_id", id}, {"timeMs", 4000.4}, {"label", "Hands"},
+            {"note", "Regenerate with the right number of fingers"}, {"color", "#E5484D"}, {"durationMs", 1500.0}});
+        QVERIFY2(added.value("ok").toBool(), qPrintable(added.value("error").toString()));
+        QCOMPARE(model.undoStack()->count(), 1);
+        const auto marker = added.value("marker").toMap();
+        QCOMPARE(marker.value("note").toString(), QString("Regenerate with the right number of fingers"));
+        QCOMPARE(marker.value("color").toString(), QString("#E5484D"));
+        QCOMPARE(marker.value("durationMs").toDouble(), 1500.0);
+        QCOMPARE(marker.value("author").toString(), QString("Assistant"));
+        // The note comes back through the state the assistant reads.
+        const auto state = host.execute("ui_timeline_get_state", {{"timeline_id", id}});
+        const auto markers = state.value("markers").toList();
+        QCOMPARE(markers.size(), 1);
+        QCOMPARE(markers[0].toMap().value("note").toString(), QString("Regenerate with the right number of fingers"));
+        QCOMPARE(markers[0].toMap().value("timeMs").toDouble(), 4000.0);
+        model.undoStack()->undo();
+        QCOMPARE(model.markers().size(), 0);
+        model.undoStack()->redo();
+        QCOMPARE(model.markers().size(), 1);
+    }
+    void markerFieldsOfTheWrongTypeAreRefused() {
+        TimelineModel model;
+        PlaybackClock clock;
+        nt::chat::TimelineChatHost host(model, clock);
+        const auto id = host.context().value("timeline_id");
+        QVERIFY(!host.execute("ui_timeline_add_marker", {{"timeline_id", id}, {"timeMs", 0.0}, {"note", 5}}).value("ok").toBool());
+        QVERIFY(!host.execute("ui_timeline_add_marker", {{"timeline_id", id}, {"timeMs", 0.0}, {"color", true}}).value("ok").toBool());
+        QVERIFY(!host.execute("ui_timeline_add_marker", {{"timeline_id", id}, {"timeMs", 0.0}, {"durationMs", -1.0}}).value("ok").toBool());
+        QVERIFY(!host.execute("ui_timeline_add_marker", {{"timeline_id", id}, {"timeMs", 0.0}, {"durationMs", "long"}}).value("ok").toBool());
+        QCOMPARE(model.undoStack()->count(), 0);
+    }
     void rejectsInvalidAndWrongDocumentEdits() {
         TimelineModel model;
         PlaybackClock clock;

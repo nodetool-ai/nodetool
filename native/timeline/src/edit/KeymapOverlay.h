@@ -41,6 +41,8 @@ inline constexpr const char* KEYMAP_OVERLAY_JSON = R"overlay({"premiere":[
 ["clearOut",[{"key":"o","alt":true}]],
 ["clearMarker",[{"key":"m","alt":true}]],
 ["clearAllMarkers",[{"key":"m","ctrl":true,"alt":true}]],
+["addRangeMarker",[{"key":"m","alt":true,"shift":true}]],
+["addMarkerInOut",[{"key":"m","ctrl":true}]],
 ["expandAllTracks",[{"key":"=","shift":true}]],
 ["minimizeAllTracks",[{"key":"-","shift":true}]],
 ["audioTracksTaller",[{"key":"=","alt":true}]],
