@@ -1,3 +1,4 @@
+import type { TemporalSources } from "./denoise.js";
 /**
  * The WebGPU compositing rules every timeline render surface draws through.
  *
@@ -174,6 +175,7 @@ export interface FrameLayer<TSource = FrameLayerPixels> {
   /** Stable across frames for the same clip — keys the source texture. */
   id: string;
   source: TSource;
+  temporalSources?: TemporalSources<TSource>;
   opacity: number;
   blendMode: CompositorBlendMode;
   zIndex: number;
@@ -810,6 +812,13 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     // contain fit, the border radius — then sees the cropped rectangle as the
     // layer's whole picture, which is what a crop means.
     const src = this.cropSource(layer, uploaded, encoder);
+    const neighbor = (role: "before" | "after"): GPUTexture => {
+      const id = `${layer.id}#denoise-${role}`;
+      const value = this.upload(id, layer.temporalSources![role]);
+      if (!value) throw new Error(`Noise reduction ${role} frame could not be uploaded`);
+      return this.cropSource({...layer, id}, value, encoder).texture;
+    };
+    const temporalSources = layer.temporalSources ? {before: neighbor("before"), after: neighbor("after")} : undefined;
     const window = layer.sourceWindow;
     const placement = this.placementOf(
       {
@@ -841,7 +850,8 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
             clipEffects,
             trackEffects,
             "straight",
-            encoder
+            encoder,
+            temporalSources
           )
         : src.texture;
 
@@ -1485,6 +1495,10 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     const effectKeys = new Set<string>();
     const visit = (layer: FrameLayer<TSource>): void => {
       live.add(layer.id);
+      if (layer.temporalSources) {
+        live.add(`${layer.id}#denoise-before`);
+        live.add(`${layer.id}#denoise-after`);
+      }
       effectKeys.add(layer.id);
       if (layer.shapeMask) {
         live.add(`${layer.id}#mask`);

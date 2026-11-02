@@ -1,3 +1,4 @@
+import { filtersDenoiseSpatialV1, filtersDenoiseTemporalV1 } from "./filters/denoise/v1/module.js";
 import { transformStabilizeV1 } from "./transform/stabilize/v1/module.js";
 import { filterDebandV1 } from "./filters/deband/v1/module.js";
 import { colorSecondaryV1 } from "./color/secondary/v1/module.js";
@@ -109,6 +110,7 @@ export {
   colorSolarizeV1,
   colorColorBalanceV1,
   colorExposureToneV1,
+  filtersDenoiseSpatialV1, filtersDenoiseTemporalV1,
   transformStabilizeV1,
   filterDebandV1,
   colorSecondaryV1,
@@ -190,6 +192,7 @@ export const ALL_SHADERS: readonly ShaderModule[] = [
   colorSolarizeV1,
   colorColorBalanceV1,
   colorExposureToneV1,
+  filtersDenoiseSpatialV1, filtersDenoiseTemporalV1,
   transformStabilizeV1,
   filterDebandV1,
   colorSecondaryV1,

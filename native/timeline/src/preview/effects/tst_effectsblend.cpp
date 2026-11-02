@@ -477,6 +477,20 @@ private slots:
         QVERIFY(!shadow.isNull()); QVERIFY(shadow.pixelColor(51,16).red()>245); QCOMPARE(shadow.pixelColor(51,16).green(),0);
         QCOMPARE(shadow.pixelColor(10,16),QColor(Qt::black));
     }
+    void denoisePixels() {
+        QImage source(64,32,QImage::Format_RGBA8888_Premultiplied);uint32_t random=1;
+        double before=0,after=0;
+        for(int y=0;y<32;++y) { for(int x=0;x<64;++x) {
+            random=random*1664525u+1013904223u;const int value=(x<32?70:180)+int((random>>24)%21)-10;
+            source.setPixelColor(x,y,QColor(value,value,value,255));
+            if(x>2 && x<28) { before+=(value-70)*(value-70); }
+        } }
+        const auto result=effectStill({effect("denoise",{{"lumaStrength",1},{"chromaStrength",1},{"radius",2}})},source);
+        QVERIFY(!result.isNull());
+        for(int y=0;y<32;++y) { for(int x=3;x<28;++x) { const auto value=result.pixelColor(x,y).red();after+=(value-70)*(value-70); } }
+        QVERIFY(after<before*.5);QVERIFY(result.pixelColor(31,16).red()<90);QVERIFY(result.pixelColor(32,16).red()>160);
+        QCOMPARE(effectStill({effect("denoise")},source),effectStill({},source));
+    }
     void stabilizationPixels() {
         QImage source(64,32,QImage::Format_RGBA8888_Premultiplied);
         for (int y=0;y<32;++y) { for (int x=0;x<64;++x) { source.setPixelColor(x,y,QColor(x*4,y*7,64,x<8 ? 128 : 255)); } }

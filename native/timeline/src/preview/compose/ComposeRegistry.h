@@ -1,6 +1,7 @@
 #pragma once
 #include "preview/layers/LayerRegistry.h"
 #include <map>
+#include <optional>
 
 namespace nt {
 class BlendHandler {
@@ -42,6 +43,7 @@ std::unique_ptr<MatteStage> registeredMatteStage();
 struct SecondSourceRequest {
     std::string key;
     std::string mediaPath;
+    std::optional<double> sourceTimeMs;
 };
 using SecondSourceProvider = std::function<std::vector<SecondSourceRequest>(const ActiveLayer&, const Clip&)>;
 using SecondSourceToken = std::uint64_t;

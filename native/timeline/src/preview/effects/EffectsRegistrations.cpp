@@ -1,6 +1,7 @@
 #include "preview/effects/BlendModes.h"
 #include "preview/PreviewCompositor.h"
 #include "preview/effects/ClipEffects.h"
+#include "preview/effects/Denoise.h"
 #include "preview/effects/Masks.h"
 #include "preview/layers/SceneHooks.h"
 #include <QCoreApplication>
@@ -49,6 +50,7 @@ void registerEffects() {
     nt::registerContextAdjustmentDecorator(nt::effects::decorateAdjustment);
     nt::registerBackdropStage([] { return std::make_unique<AdjustmentStage>(); });
     nt::registerSecondSourceProvider(nt::effects::generatedMatteSources);
+    nt::registerSecondSourceProvider(nt::effects::denoiseSources);
     nt::registerEffectStage([] { return std::make_unique<nt::effects::GeneratedMatteSourceStage>(); });
     nt::registerEffectStage([] { return std::make_unique<nt::effects::ClipEffectStage>(); });
     nt::registerEffectStage([] { return std::make_unique<nt::effects::ShapeMaskStage>(); });

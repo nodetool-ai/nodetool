@@ -13,7 +13,7 @@ function surface(width: number, height: number): { surface: Canvas; ctx: Composi
   return { surface: canvas, ctx: canvas.getContext("2d") as unknown as CompositeContext2D<Canvas> };
 }
 
-async function comparePixels(width: number, height: number, rgba: Uint8ClampedArray, effect: KnownClipEffect): Promise<{
+async function comparePixels(width: number, height: number, rgba: Uint8ClampedArray, effect: KnownClipEffect, neighbors?: {before: Uint8ClampedArray; after: Uint8ClampedArray}): Promise<{
   meanError: number;
   maxError: number;
   cpu: Uint8ClampedArray;
@@ -21,10 +21,12 @@ async function comparePixels(width: number, height: number, rgba: Uint8ClampedAr
 }> {
   const source = createCanvas(width, height);
   source.getContext("2d").putImageData(new ImageData(rgba, width, height), 0, 0);
+  const canvasFor = (rgba: Uint8ClampedArray): Canvas => { const c=createCanvas(width,height);c.getContext("2d").putImageData(new ImageData(rgba,width,height),0,0);return c; };
+  const temporalSources = neighbors ? {before: canvasFor(neighbors.before),after: canvasFor(neighbors.after)} : undefined;
   const output = createCanvas(width, height);
   const report = drawTimelineFrame(
     output.getContext("2d") as unknown as CompositeContext2D<Canvas>,
-    [{ source, sourceWidth: width, sourceHeight: height, opacity: 1, blendMode: "normal", zIndex: 0, effects: [effect] }],
+    [{ source, temporalSources, sourceWidth: width, sourceHeight: height, opacity: 1, blendMode: "normal", zIndex: 0, effects: [effect] }],
     { canvasWidth: width, canvasHeight: height },
     { alpha: true, effectSurface: surface, projectiveSurface: surface, maskSurface: surface, maskScratch: surface }
   );
@@ -34,7 +36,8 @@ async function comparePixels(width: number, height: number, rgba: Uint8ClampedAr
   try {
     const gpu = await compositor.renderFrame([{
       id: "effect", opacity: 1, blendMode: "normal", zIndex: 0, effects: [effect],
-      source: { rgba: new Uint8Array(rgba), width, height, version: "source" }
+      source: { rgba: new Uint8Array(rgba), width, height, version: "source" },
+      temporalSources: neighbors ? {before:{rgba:new Uint8Array(neighbors.before),width,height,version:"before"},after:{rgba:new Uint8Array(neighbors.after),width,height,version:"after"}} : undefined
     }], [], { alpha: true });
     let sum = 0;
     let maxError = 0;
@@ -50,6 +53,28 @@ async function comparePixels(width: number, height: number, rgba: Uint8ClampedAr
 }
 
 describe("effect parity on diagnostic pixels", () => {
+  it("preserves translucent colored detail during noise reduction",async()=>{
+    const width=32,height=16,source=new Uint8ClampedArray(width*height*4);
+    for(let y=0;y<height;y++)for(let x=0;x<width;x++)source.set([40+x*4,90+y*3,150-x*2,x<4?0:x<12?128:255],(y*width+x)*4);
+    const before=source.map((value,index)=>index%4===3?value:Math.max(0,value-3));
+    const after=source.map((value,index)=>index%4===3?value:Math.min(255,value+3));
+    const result=await comparePixels(width,height,source,{id:"d",type:"denoise",enabled:true,lumaStrength:.6,chromaStrength:1,temporalStrength:1,radius:3},{before,after});
+    for(let i=0;i<source.length;i+=4){
+      const ca=result.cpu[i+3]!,ga=result.gpu[i+3]!;
+      expect(ca).toBe(source[i+3]);expect(ga).toBe(source[i+3]);
+      for(let c=0;c<3;c++)expect(Math.abs(result.cpu[i+c]!*ca/255-result.gpu[i+c]!*ga/255)).toBeLessThanOrEqual(2);
+    }
+  });
+  it("denoises spatial and moving temporal samples consistently",async()=>{
+    const width=32,height=16;
+    const frame=(seed:number,shift:number):Uint8ClampedArray=>{const data=new Uint8ClampedArray(width*height*4);let state=seed;
+      for(let y=0;y<height;y++) for(let x=0;x<width;x++){state=(Math.imul(state,1664525)+1013904223)>>>0;const v=(x-shift<16?70:180)+((state>>>24)%21-10);data.set([v,v,v,255],(y*width+x)*4);}return data;};
+    const effect:KnownClipEffect={id:"d",type:"denoise",enabled:true,lumaStrength:.7,chromaStrength:.8,temporalStrength:1,radius:2};
+    const source=frame(1,0),neighbors={before:frame(2,-2),after:frame(3,2)};
+    const result=await comparePixels(width,height,source,effect,neighbors);
+    expect(result.maxError).toBeLessThanOrEqual(2);
+    const repeat=await comparePixels(width,height,source,effect,neighbors);expect(repeat.gpu).toEqual(result.gpu);
+  });
   it("stabilizes with cubic reconstruction and premultiplied alpha", async () => {
     const width=64,height=48,rgba=new Uint8ClampedArray(width*height*4);
     for (let y=0;y<height;y++) { for (let x=0;x<width;x++) {

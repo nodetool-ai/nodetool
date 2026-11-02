@@ -168,7 +168,7 @@ Start-Process ./build-windows/Release/nodetool-timeline.exe -Wait -WindowStyle H
 F51–F56 continue the implementation checklist, with one commit per task. The current catalogue already covers LUTs, RGB curves, levels, lift/gamma/gain, chroma key, grain, masks and several stylized effects.
 
 - [x] F51: Linear-light exposure, highlight roll-off and whites, with clip/track controls and native/export parity.
-- [ ] F52: Edge-preserving luma/chroma noise reduction, followed by motion-aware temporal reduction with deterministic seeking.
+- [x] F52: Separate luma/chroma filtering and motion-aware temporal reduction with bounded source frames, cut rejection and deterministic seeking. Native controls, CPU/GPU pixels and native/export fixtures pass, including five simultaneous video clips.
 - [x] F53: Soft HSL qualification, matte preview and hue-versus-hue/saturation curves.
 - [x] F54: Cached deflicker analysis with scene cuts, fade preservation and backward-seek consistency.
 - [x] F55: Thresholded debanding with deterministic dither, alpha and detail preservation.
@@ -217,6 +217,16 @@ The [fixture](../src/preview/effects/fixtures/clip-deflicker.json) covers altern
 
 Analyze original video with bounded corner matching, forward/backward consistency and [robust four-parameter similarity fitting](https://docs.opencv.org/4.13.0/d9/d0c/group__calib3d.html). Prefer distributed background matches over a moving foreground. Smooth translation, rotation and uniform scale within each tracked shot. Average relative translation before reconstructing rotation/scale, so a long pan cannot turn rotation jitter into sideways drift. Weak texture, scene cuts and failed fits start separate segments.
 
-Store source-time corrections as one undoable edit. Window changes require analysis again. Strength and maximum zoom remain interactive. Use a fixed zoom for the analyzed interval, capped at 1–1.5 times the source. Reduce correction when that crop budget cannot keep every output corner inside the source. Apply stabilization before clip effects and track keying, using aspect-correct, premultiplied cubic reconstruction. Zero strength and missing or stale analysis bypass it.
+Store source-time corrections as one undoable edit. Window changes require analysis again. Strength and maximum zoom remain interactive. Use a fixed zoom for the analyzed interval, capped at 1–1.5 times the source. Reduce correction when that crop budget cannot keep every output corner inside the source. Apply stabilization after noise reduction and before clip effects and track keying, using aspect-correct, premultiplied cubic reconstruction. Zero strength and missing or stale analysis bypass it.
 
 Analysis retains two reduced frames and at most 18,000 transform samples. The model does not correct perspective or rolling shutter. The [fixture generator](../src/preview/effects/make-stabilize-fixture.mjs) includes jitter, an independently moving foreground and a cut. Tests cover long pans, portrait/cropped bounds, backward sampling, cancellation, undo and alpha. The [preview/export fixture](../src/preview/effects/fixtures/clip-stabilize.json) passes at 45 dB or better on the tested D3D11 device.
+
+### Noise reduction contract (F52)
+
+Use separate luminance/chroma bilateral strengths, a 1–4 pixel spatial radius and an independent temporal strength. All strengths default to zero. Following the [separate-channel and multi-frame denoising approach](https://docs.opencv.org/4.13.0/d1/d79/group__photo__denoise.html), preserve center alpha and reject neighbors that differ too much in local detail, color or opacity.
+
+For video, sample source time ±33.33 ms, clamped to the clip's source interval. Search up to four source pixels for matching cross-shaped patches. Reject large mean-color changes and mismatching local patches. Apply temporal reduction, then spatial reduction, before stabilization and grading. Temporal controls are disabled for nonvideo sources. Existing 8-bit SDR surfaces and the short motion search limit the recoverable detail.
+
+Each active video uses two independent neighboring frame sources. Their caches follow the existing decoder lifecycle, with no accumulated playback history. Keep every visible layer's required sources even when they exceed the ordinary preroll pool budget. The [fixtures](../src/preview/effects/make-denoise-fixture.mjs) cover crops, moving edges, cuts, backward seeks and five simultaneous video layers. CPU/GPU tests cover independent strengths, alpha, neutral bypass and repeatability. Native inspector tests cover parameter editing and undo.
+
+The tested native/export frames exceed 51 dB PSNR. A warmed 1080p shared-GPU render measured about 38 ms including readback on this Windows machine. Temporal reduction can reduce playback speed, especially with several clips.

@@ -153,6 +153,12 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
     if (!m_drawCache->initialize(ctx, ":/effects/clip.vert.qsb", ":/effects/clip.frag.qsb", QRhiSampler::Linear)) {
         return false;
     }
+    std::unique_ptr<Encoder> denoiseEncoder;
+    if (std::any_of(chain.begin(),chain.end(),[](const Pass& pass) { return pass.op==Op::DenoiseTemporal || pass.op==Op::DenoiseSpatial; })) {
+        if (!m_denoiseCache) { m_denoiseCache=std::make_shared<DrawCache>(); }
+        denoiseEncoder=std::make_unique<Encoder>(ctx,m_denoiseCache);
+        if (!m_denoiseCache->initialize(ctx,":/effects/clip.vert.qsb",":/effects/denoise.frag.qsb",QRhiSampler::Linear)) { return false; }
+    }
     auto *extracted = encoder.surface(workingSize);
     if (!extracted) {
         return false;
@@ -163,16 +169,30 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
     }
     auto current = encoder.result(extracted);
     std::optional<LayerFrame> recipeSource;
-    const auto step = [&](const Pass &pass, QRhiTexture *other = nullptr) {
-        auto *target = encoder.surface(workingSize, current.planes[0], other,
-                                       recipeSource ? recipeSource->planes[0] : nullptr);
-        if (!target || !encoder.draw(current, *target, pass, crop.size(), pad, other, nullptr, {}, nullptr, boundedCrop)) {
+    const auto step = [&](const Pass &pass, QRhiTexture *other = nullptr, QRhiTexture* third=nullptr) {
+        auto& active=(pass.op==Op::DenoiseTemporal || pass.op==Op::DenoiseSpatial) ? *denoiseEncoder : encoder;
+        auto *target = active.surface(workingSize, current.planes[0], other,
+                                       third ? third : recipeSource ? recipeSource->planes[0] : nullptr);
+        if (!target || !active.draw(current, *target, pass, crop.size(), pad, other, nullptr, {}, third, boundedCrop)) {
             return false;
         }
-        current = encoder.result(target);
+        current = active.result(target);
         return true;
     };
     for (auto pass : chain) {
+        if (pass.op==Op::DenoiseTemporal) {
+            if (!ctx.sources) { return false; }
+            const auto before=ctx.sources->find("denoise:before"),after=ctx.sources->find("denoise:after");
+            if (before==ctx.sources->end() || after==ctx.sources->end() || !before->second.planes[0] || !after->second.planes[0]) { return false; }
+            const auto originalOrigin=ext.value("effectSourceOrigin").toArray(),originalSize=ext.value("effectOriginalSize").toArray();
+            pass.params[4]=float(originalOrigin.isEmpty() ? crop.x() : originalOrigin[0].toInt());
+            pass.params[5]=float(originalOrigin.isEmpty() ? crop.y() : originalOrigin[1].toInt());
+            pass.params[6]=before->second.flipV ? 1.f : 0.f;pass.params[7]=after->second.flipV ? 1.f : 0.f;
+            pass.params[8]=float(originalSize.isEmpty() ? input.size.width() : originalSize[0].toInt());
+            pass.params[9]=float(originalSize.isEmpty() ? input.size.height() : originalSize[1].toInt());
+            if (!step(pass,before->second.planes[0],after->second.planes[0])) { return false; }
+            continue;
+        }
         if (pass.op == Op::ChromaKey) {
             Pass bridge;
             bridge.op = Op::ToStraight;

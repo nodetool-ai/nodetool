@@ -1,3 +1,4 @@
+import type { TemporalSources } from "@nodetool-ai/timeline/render";
 import type {
   AnimationSampleMask,
   ClipCrop,
@@ -37,6 +38,7 @@ export type CompositeSource =
 export interface CompositeLayer {
   id: string;
   source: CompositeSource;
+  temporalSources?: TemporalSources<CompositeSource>;
   opacity: number;
   blendMode: CompositorBlendMode;
   zIndex: number;

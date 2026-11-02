@@ -1,6 +1,7 @@
 #include "preview/effects/ClipEffects.h"
 #include "preview/effects/ClipAnalysis.h"
 #include "preview/effects/Stabilization.h"
+#include "preview/effects/Denoise.h"
 #include "preview/layers/SceneHooks.h"
 #include "model/TimelineJson.h"
 #include <QJsonDocument>
@@ -38,6 +39,19 @@ QJsonObject adjustmentStyleDocument() {
 class TestEffectPlan : public QObject {
     Q_OBJECT
   private slots:
+    void noiseReductionPlan() {
+        auto noise=effect("denoise");QVERIFY(planChain({noise}).empty());
+        noise.insert("lumaStrength",.7);noise.insert("chromaStrength",.8);noise.insert("temporalStrength",.9);noise.insert("radius",3);
+        auto exposure=effect("exposure");exposure.insert("exposure",1);
+        const auto passes=planChain({exposure,noise});QCOMPARE(passes.size(),size_t{3});
+        QCOMPARE(passes[0].op,Op::DenoiseTemporal);QCOMPARE(passes[1].op,Op::DenoiseSpatial);QCOMPARE(passes[2].op,Op::Exposure);
+        QCOMPARE(passes[1].params[3],3.f);
+        nt::Clip clip;clip.mediaType=nt::MediaType::Video;clip.durationMs=1000;clip.inPointMs=200;
+        nt::ActiveLayer layer;layer.mediaPath="source.mp4";layer.sourceTimeMs=200;layer.ext.insert("clipEffects",QJsonArray{noise});
+        const auto before=denoiseSources(layer,clip);QCOMPARE(before.size(),size_t{2});QCOMPARE(*before[0].sourceTimeMs,200.);
+        layer.sourceTimeMs=1190;const auto after=denoiseSources(layer,clip);QVERIFY(std::abs(*after[1].sourceTimeMs-1199.999)<.0001);
+        clip.mediaType=nt::MediaType::Image;QVERIFY(denoiseSources(layer,clip).empty());
+    }
     void cameraMotion() {
         std::vector<MotionMatch> matches;
         const CameraMotion expected{1.01*std::cos(.03),1.01*std::sin(.03),.02,-.01};

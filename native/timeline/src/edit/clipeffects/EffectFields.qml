@@ -92,7 +92,7 @@ Column {
                     resetValue: rowLoader.modelData.resetValue ?? rowLoader.modelData.origin
                     value: root.effect[rowLoader.modelData.key] ?? rowLoader.modelData.fallback
                     display: value.toFixed(rowLoader.modelData.decimals ?? 2) + (rowLoader.modelData.unit || "")
-                    disabled: root.editor.locked
+                    disabled: root.editor.locked || (!!rowLoader.modelData.videoOnly && root.editor.clip?.mediaType !== "video")
                     onGestureStarted: root.editor.begin()
                     onPreview: value => {
                         const patch = {};

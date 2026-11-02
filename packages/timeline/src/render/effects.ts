@@ -1,10 +1,11 @@
+import type { TemporalSources } from "./denoise.js";
 import { stabilizationNeutral } from "./stabilization.js";
 import { secondaryCurveTransfer, secondaryNeutral } from "./secondaryColor.js";
 import { curveTransfer } from "./curveTransfer.js";
 import { GENERATOR_MODES, STYLIZE_MODES, type ClipEffect, type TrackEffect } from "../types.js";
 import {
   isClipBlurEffect,
-  isClipStabilizeEffect, isClipDebandEffect, isClipSecondaryColorEffect, isClipExposureEffect,
+  isClipDenoiseEffect, isClipStabilizeEffect, isClipDebandEffect, isClipSecondaryColorEffect, isClipExposureEffect,
   isClipChromaKeyEffect,
   isClipColorEffect,
   isClipCurvesEffect,
@@ -23,7 +24,7 @@ import {
   createLabeledTexture,
   createRecipeRunner,
   LabeledTexture,
-  transformStabilizeV1, filterDebandV1, colorSecondaryV1, colorExposureLinearV1,
+  filtersDenoiseSpatialV1, filtersDenoiseTemporalV1, transformStabilizeV1, filterDebandV1, colorSecondaryV1, colorExposureLinearV1,
   colorCdlV1,
   colorCurveTransferV1,
   colorGradeV1,
@@ -189,7 +190,7 @@ export class WebGPUEffectsProcessor {
    * {@link WebGPUEffectsProcessor.stepClipEffect} is the only place that knows
    * which shader module an effect type is.
    *
-   * Order: the track key first, on pixels nothing has graded; then the clip's
+   * Order: source noise reduction and stabilization, then the track key and the clip's
    * own new-type effects in the order the document lists them; then the
    * aggregated clip+track colour and blur, and the track sharpen and vignette.
    * The aggregate is one pass over both scopes, so a clip `color` cannot hold
@@ -212,7 +213,8 @@ export class WebGPUEffectsProcessor {
      * and the GPU idles between them. Given an encoder, this records and lets
      * the caller submit the frame once. Omitted, it behaves as it always did.
      */
-    frameEncoder?: GPUCommandEncoder
+    frameEncoder?: GPUCommandEncoder,
+    temporalSources?: TemporalSources<GPUTexture>
   ): GPUTexture {
     const enabledClip = clipEffects.filter((e) => e.enabled);
     const enabledTrack = trackEffectsAsClipEffects(trackEffects).filter(
@@ -294,11 +296,20 @@ export class WebGPUEffectsProcessor {
     ): void => {
       const { input, outIdx } = pick();
       const [wgX, wgY] = module.workgroupSize;
+      const inputs: Record<string, LabeledTexture> = {source: input};
+      if (module.id === filtersDenoiseTemporalV1.id) {
+        if (!temporalSources) { throw new Error("Temporal noise reduction requires neighboring source frames."); }
+        for (const key of ["before", "after"] as const) {
+          const texture = temporalSources[key];
+          inputs[key] = new LabeledTexture(texture, {label: `${poolKey}-denoise-${key}`, format: texture.format, width: texture.width, height: texture.height,
+            meta: {colorSpace: "srgb", alpha: "straight", bindingKind: "texture_2d"}});
+        }
+      }
       this.executor.encode({
         ctx: this.ctx,
         module,
         encoder,
-        inputs: { source: input },
+        inputs,
         output: pool.textures[outIdx],
         params,
         dispatch:
@@ -329,11 +340,12 @@ export class WebGPUEffectsProcessor {
       settle(outIdx, module.io.output.alpha);
     };
 
+    for (const effect of shaderClip.filter(isClipDenoiseEffect)) { this.stepClipEffect(effect, width, height, step, stepRecipe); }
     for (const effect of shaderClip.filter(isClipStabilizeEffect)) { this.stepClipEffect(effect, width, height, step, stepRecipe); }
     if (chromaKeyActive && chromaKey) {
       this.stepClipEffect(chromaKey, width, height, step, stepRecipe);
     }
-    for (const effect of shaderClip.filter(effect => !isClipStabilizeEffect(effect))) {
+    for (const effect of shaderClip.filter(effect => !isClipStabilizeEffect(effect) && !isClipDenoiseEffect(effect))) {
       if (effect.type === "lut" && typeof effect.cube === "string") {
         const { texture: lut, parsed } = this.getLutTexture(effect.cube);
         const { input, outIdx } = pick();
@@ -410,6 +422,13 @@ export class WebGPUEffectsProcessor {
     ) => void,
     stepRecipe: <P>(module: RecipeModule<P>, params: P) => void
   ): void {
+    if (isClipDenoiseEffect(effect)) {
+      if ((effect.temporalStrength ?? 0) > 0) { step(filtersDenoiseTemporalV1, {strength: effect.temporalStrength!}); }
+      if ((effect.lumaStrength ?? 0) > 0 || (effect.chromaStrength ?? 0) > 0) {
+        step(filtersDenoiseSpatialV1, {lumaStrength: effect.lumaStrength ?? 0, chromaStrength: effect.chromaStrength ?? 0, radius: Math.round(Math.max(1, Math.min(4, effect.radius ?? 2)))});
+      }
+      return;
+    }
     if (isClipStabilizeEffect(effect)) {
       if (effect._matrix && !stabilizationNeutral(effect)) {
         const [a, b, x, c, e, y] = effect._matrix;
@@ -1021,6 +1040,7 @@ function clamp(v: number, lo: number, hi: number): number {
  */
 function isShaderStepEffect(effect: ClipEffect): boolean {
   return (
+    (isClipDenoiseEffect(effect) && !!(effect.lumaStrength || effect.chromaStrength || effect.temporalStrength)) ||
     (isClipStabilizeEffect(effect) && !stabilizationNeutral(effect)) ||
     (isClipDebandEffect(effect) && (effect.strength ?? 0) > 0) ||
     (isClipSecondaryColorEffect(effect) && !secondaryNeutral(effect)) ||

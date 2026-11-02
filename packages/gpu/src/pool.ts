@@ -66,6 +66,7 @@ export {
   colorSolarizeV1,
   colorColorBalanceV1,
   colorExposureToneV1,
+  filtersDenoiseSpatialV1, filtersDenoiseTemporalV1,
   transformStabilizeV1,
   filterDebandV1,
   colorSecondaryV1,

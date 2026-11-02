@@ -222,7 +222,15 @@ std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEf
     std::vector<Pass> result;
     QJsonArray combined;
     for (const auto& value : effects) {
+        const auto e=value.toObject();if (e.value("type")!="denoise" || !e.value("enabled").toBool()) { continue; }
+        Pass pass;pass.params={std::clamp(f(e,"lumaStrength"),0.f,1.f),std::clamp(f(e,"chromaStrength"),0.f,1.f),
+            std::clamp(f(e,"temporalStrength"),0.f,1.f),std::clamp(std::round(f(e,"radius",2)),1.f,4.f)};
+        if (pass.params[2]>0) { pass.op=Op::DenoiseTemporal;result.push_back(pass); }
+        if (pass.params[0]>0 || pass.params[1]>0) { pass.op=Op::DenoiseSpatial;result.push_back(pass); }
+    }
+    for (const auto& value : effects) {
         const auto e=value.toObject();
+        if (e.value("type")=="denoise") { continue; }
         if (e.value("type")!="stabilize") { combined.append(e); continue; }
         if (!e.value("enabled").toBool()) { continue; }
         const auto matrix=e.value("_matrix").toArray();
@@ -497,6 +505,7 @@ void decorateEffects(QJsonObject &ext, const Clip &clip, double timeMs) {
     for (const auto &effect : clip.raw.value("effects").toArray()) {
         auto e = effect.toObject();
         if (e.value("enabled").toBool()) {
+            if (e.value("type")=="denoise" && clip.mediaType!=MediaType::Video) { e.insert("temporalStrength",0); }
             if (e.value("type")=="stabilize") {
                 QJsonArray matrix; for (double value : stabilizationMatrix(clip,e,timeMs)) { matrix.append(value); }
                 e=QJsonObject{{"id",e.value("id")},{"type","stabilize"},{"enabled",true},{"_matrix",matrix}};
@@ -649,11 +658,11 @@ void decorateEffects(QJsonObject &ext, const Clip &clip, const SceneDecorationCo
     }
     if (context.timeline.matteClipId==clip.id && !context.timeline.matteEffectId.empty()) {
         QJsonArray before;
-        for (const auto& value : enabled) { if (value.toObject().value("type")=="stabilize") { before.append(value); } }
+        for (const auto& value : enabled) { const auto type=value.toObject().value("type"); if (type=="stabilize" || type=="denoise") { before.append(value); } }
         bool found=false;
         for (const auto& value : enabled) {
             auto effect=value.toObject();
-            if (effect.value("type")=="color" || effect.value("type")=="blur" || effect.value("type")=="stabilize") { continue; }
+            if (effect.value("type")=="color" || effect.value("type")=="blur" || effect.value("type")=="stabilize" || effect.value("type")=="denoise") { continue; }
             if (effect.value("id").toString().toStdString()==context.timeline.matteEffectId && effect.value("type")=="secondaryColor") {
                 effect.insert("_matte",true);
                 before.append(effect);

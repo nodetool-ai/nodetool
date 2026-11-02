@@ -14,7 +14,7 @@
 namespace nt { struct SceneDecorationContext; }
 
 namespace nt::effects {
-// Values match the branches in clip.frag. Recipes expand into these primitives.
+// Values match clip.frag and denoise.frag. Recipes expand into these primitives.
 enum class Op {
     Copy,
     Grade,
@@ -46,7 +46,9 @@ enum class Op {
     Exposure,
     SecondaryColor,
     Deband,
-    Stabilize
+    Stabilize,
+    DenoiseTemporal,
+    DenoiseSpatial
 };
 struct Pass {
     Op op = Op::Copy;
@@ -87,6 +89,7 @@ class ClipEffectStage final : public LayerEffectStage {
     friend class TestEffectResources;
     struct Lut;
     std::shared_ptr<DrawCache> m_drawCache;
+    std::shared_ptr<DrawCache> m_denoiseCache;
     std::list<std::pair<QByteArray, std::shared_ptr<Lut>>> m_luts;
 };
 class AdjustmentTreatment {

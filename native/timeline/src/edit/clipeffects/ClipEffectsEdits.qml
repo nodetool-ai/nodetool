@@ -130,7 +130,7 @@ QtObject {
     function remove(id) {
         write(effects.filter(effect => effect.id !== id));
     }
-    function processingStage(effect) { return effect.type === "stabilize" ? -1 : effect.type === "color" ? 1 : effect.type === "blur" ? 2 : 0 }
+    function processingStage(effect) { return effect.type === "denoise" ? -2 : effect.type === "stabilize" ? -1 : effect.type === "color" ? 1 : effect.type === "blur" ? 2 : 0 }
     function orderedEffects() {
         return effects.filter(effect => effect.id !== "inspector:color")
             .map((effect, index) => ({effect: effect, index: index}))

@@ -1,8 +1,9 @@
+import { denoiseSpatial, denoiseTemporal, type TemporalSources } from "./denoise.js";
 import { stabilizeImage, stabilizationNeutral } from "./stabilization.js";
 import { debandImage } from "./deband.js";
 import { exposeRgb } from "./exposure.js";
 import {
-  isClipStabilizeEffect, isClipDebandEffect, isClipSecondaryColorEffect, isClipExposureEffect,
+  isClipDenoiseEffect, isClipStabilizeEffect, isClipDebandEffect, isClipSecondaryColorEffect, isClipExposureEffect,
   isClipChromaKeyEffect, isClipColorEffect, isClipCurvesEffect, isClipGlowEffect,
   isClipGrainEffect, isClipLevelsEffect, isClipLiftGammaGainEffect,
   isClipSharpenEffect, isClipVignetteEffect, type ClipEffect
@@ -17,7 +18,7 @@ const smooth = (v: number): number => { const t = clamp(v); return t * t * (3 - 
 const byte = (v: number): number => Math.round(clamp(v) * 255);
 
 export function isCpuLegacyEffect(effect: ClipEffect): boolean {
-  return isClipStabilizeEffect(effect) || isClipDebandEffect(effect) || isClipSecondaryColorEffect(effect) || isClipExposureEffect(effect) || isClipGlowEffect(effect) || isClipVignetteEffect(effect)
+  return isClipDenoiseEffect(effect) || isClipStabilizeEffect(effect) || isClipDebandEffect(effect) || isClipSecondaryColorEffect(effect) || isClipExposureEffect(effect) || isClipGlowEffect(effect) || isClipVignetteEffect(effect)
     || isClipSharpenEffect(effect) || isClipChromaKeyEffect(effect)
     || isClipCurvesEffect(effect) || isClipLevelsEffect(effect)
     || isClipLiftGammaGainEffect(effect) || isClipGrainEffect(effect);
@@ -192,10 +193,11 @@ function softLight(base: number, blend: number): number {
 }
 
 /** CPU counterparts of the persisted GPU color, keying and texture effects. */
-export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly ClipEffect[]): void {
+export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly ClipEffect[], neighbors?: TemporalSources<PixelBuffer>): void {
   const { width, height, data } = pixels;
   for (const effect of effects) {
     if (!effect.enabled || !isCpuLegacyEffect(effect)) continue;
+    if (isClipDenoiseEffect(effect) && !(effect.lumaStrength || effect.chromaStrength || effect.temporalStrength)) { continue; }
     if (isClipStabilizeEffect(effect) && stabilizationNeutral(effect)) { continue; }
     if (isClipDebandEffect(effect) && (effect.strength ?? 0) <= 0) { continue; }
     if (isClipSecondaryColorEffect(effect) && secondaryNeutral(effect)) { continue; }
@@ -205,6 +207,20 @@ export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly Cli
     const input = premultiply(data);
     const sharpenLow = sharpenRadius > 1 ? gaussian(input, width, height, sharpenRadius) : undefined;
     const output = new Uint8ClampedArray(input.length);
+    if (isClipDenoiseEffect(effect)) {
+      let current = input;
+      if ((effect.temporalStrength ?? 0) > 0) {
+        if (!neighbors) { throw new Error("Temporal noise reduction requires neighboring source frames."); }
+        const matching = (frame: PixelBuffer): Uint8ClampedArray | null => frame.width === width && frame.height === height ? frame.data : null;
+        denoiseTemporal(input, output, width, height, {before: matching(neighbors.before), after: matching(neighbors.after)}, effect.temporalStrength!);
+        current = output;
+      }
+      if ((effect.lumaStrength ?? 0) > 0 || (effect.chromaStrength ?? 0) > 0) {
+        const target = current === input ? output : input;
+        denoiseSpatial(current, target, width, height, effect); current = target;
+      }
+      unpremultiply(current, data); continue;
+    }
     if (isClipStabilizeEffect(effect) && effect._matrix) {
       stabilizeImage(input, output, width, height, effect._matrix);
       unpremultiply(output, data);

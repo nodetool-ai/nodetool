@@ -328,6 +328,7 @@ void TestClipEffects::catalogue_data() {
         QTest::addColumn<QByteArray>("expected");
         // Creation defaults, including effects available only in the native inspector.
         const QList<QByteArray> rows{
+            R"({"type":"denoise","enabled":true,"lumaStrength":0,"chromaStrength":0,"temporalStrength":0,"radius":2})",
             R"({"type":"stabilize","enabled":true,"strength":1,"windowMs":500,"maxZoom":1.1})",
             R"({"type":"deflicker","enabled":true,"strength":1,"windowMs":500,"maxCorrection":1})",
             R"({"type":"deband","enabled":true,"strength":0,"range":16,"threshold":0.02,"dither":0.5})",
@@ -418,6 +419,10 @@ void TestClipEffects::parameterFields_data() {
         };
         row("exposure-stops","exposure","exposure","1.5",R"({"exposure":1.5})");
         row("exposure-rolloff","exposure","rolloff","0.7",R"({"rolloff":0.7})");
+        row("denoise-luma","denoise","lumaStrength","0.7",R"({"lumaStrength":0.7})");
+        row("denoise-chroma","denoise","chromaStrength","0.8",R"({"chromaStrength":0.8})");
+        row("denoise-temporal","denoise","temporalStrength","0.9",R"({"temporalStrength":0.9})");
+        row("denoise-radius","denoise","radius","3",R"({"radius":3})");
         row("stabilize-strength","stabilize","strength","0.8",R"({"strength":0.8})");
         row("stabilize-window","stabilize","windowMs","1000",R"({"windowMs":1000})");
         row("stabilize-zoom","stabilize","maxZoom","1.2",R"({"maxZoom":1.2})");
@@ -442,11 +447,13 @@ void TestClipEffects::parameterFields_data() {
 
 void TestClipEffects::parameterFields() {
         QFETCH(QString,type); QFETCH(QString,field); QFETCH(QString,input); QFETCH(QByteArray,expected);
-        Editor e; QVERIFY2(e.object,qPrintable(e.error)); QVERIFY(e.add(type));
+        Editor e; QVERIFY2(e.object,qPrintable(e.error));
+        if (type=="denoise") { e.patch({{"mediaType","video"}}); e.model.undoStack()->clear(); }
+        QVERIFY(e.add(type));
         const auto id = e.effects()[0].toObject()["id"].toString();
         auto* control = e.item("effects_"+id+"_"+field); QVERIFY(control);
         const auto before = e.model.documentJson();
-        if (type == "exposure" || type == "deband" || type == "deflicker" || type == "stabilize") { QVERIFY(number(control,"change",input.toDouble())); }
+        if (type == "exposure" || type == "deband" || type == "deflicker" || type == "stabilize" || type == "denoise") { QVERIFY(number(control,"change",input.toDouble())); }
         else { QVERIFY(text(control,"commit",input)); }
         QCOMPARE(e.model.undoStack()->count(),2);
         const auto wanted = QJsonDocument::fromJson(expected).object();

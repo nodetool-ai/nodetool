@@ -1,6 +1,6 @@
 import type { ClipDeflickerEffect, ClipEffect, TimelineClip } from "../types.js";
 import { stabilizationMatrix } from "./stabilization.js";
-import { isClipDeflickerEffect, isClipStabilizeEffect } from "../types.js";
+import { isClipDenoiseEffect, isClipDeflickerEffect, isClipStabilizeEffect } from "../types.js";
 import { clipSourceWindowMs } from "../generatedMatte.js";
 import { clipSourceMsAt } from "../timeRemap.js";
 
@@ -71,8 +71,8 @@ export function deflickerStops(clip: AnalysisClip, effect: ClipDeflickerEffect, 
 
 /** Resolve persisted source samples before either the GPU or CPU effect chain runs. */
 export function resolveAnalysisEffects(clip: AnalysisClip, effects: ClipEffect[] | undefined, timelineMs: number): ClipEffect[] | undefined {
-  if (!effects?.some(effect => isClipDeflickerEffect(effect) || isClipStabilizeEffect(effect))) { return effects; }
+  if (!effects?.some(effect => isClipDeflickerEffect(effect) || isClipStabilizeEffect(effect) || isClipDenoiseEffect(effect))) { return effects; }
   return effects.map(effect => isClipDeflickerEffect(effect)
     ? {id: effect.id, type: "exposure", enabled: effect.enabled, exposure: deflickerStops(clip, effect, timelineMs)}
-    : isClipStabilizeEffect(effect) ? {id: effect.id, type: "stabilize", enabled: effect.enabled, _matrix: stabilizationMatrix(clip, effect, timelineMs)} : effect);
+    : isClipStabilizeEffect(effect) ? {id: effect.id, type: "stabilize", enabled: effect.enabled, _matrix: stabilizationMatrix(clip, effect, timelineMs)} : isClipDenoiseEffect(effect) && clip.mediaType !== "video" ? {...effect, temporalStrength: 0} : effect);
 }

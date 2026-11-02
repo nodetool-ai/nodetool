@@ -1155,6 +1155,11 @@ export const clipGrainEffect = z.object({
  * its chain on the next save.
  */
 export const secondaryCurvePoints = z.array(z.object({x: z.number().min(0).max(1), y: z.number().min(0).max(1)})).max(256);
+export const clipDenoiseEffect = z.object({
+  id: z.string(), type: z.literal("denoise"), enabled: z.boolean(),
+  lumaStrength: z.number().min(0).max(1).optional(), chromaStrength: z.number().min(0).max(1).optional(),
+  temporalStrength: z.number().min(0).max(1).optional(), radius: z.number().int().min(1).max(4).optional()
+});
 export const clipStabilizeAnalysis = z.object({
   version: z.literal(1), kind: z.literal("stabilize"),
   source: z.object({assetId: z.string(), mediaPath: z.string()}),
@@ -1218,6 +1223,7 @@ export const clipExposureEffect = z.object({
 });
 
 const knownClipEffect = z.discriminatedUnion("type", [
+  clipDenoiseEffect,
   clipStabilizeEffect,
   clipDeflickerEffect,
   clipDebandEffect,
@@ -1248,6 +1254,7 @@ const knownClipEffect = z.discriminatedUnion("type", [
  * a list for the same reason {@link KNOWN_TRANSITION_TYPE_LIST} is.
  */
 export const KNOWN_CLIP_EFFECT_TYPE_LIST = [
+  "denoise",
   "stabilize",
   "deflicker",
   "deband",

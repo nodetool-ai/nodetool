@@ -1195,6 +1195,7 @@ const rgbTriple = z.tuple([z.number(), z.number(), z.number()]);
 const EFFECT_PARAMETER_FIELDS: Record<
   typeof KNOWN_CLIP_EFFECT_TYPE_LIST[number], readonly string[]
 > = {
+  denoise: ["lumaStrength", "chromaStrength", "temporalStrength", "radius"],
   stabilize: ["strength", "windowMs", "maxZoom", "analysis"],
   deflicker: ["strength", "windowMs", "maxCorrection", "analysis"],
   deband: ["strength", "range", "threshold", "dither"],
@@ -1230,6 +1231,9 @@ const EFFECT_PARAMETER_FIELDS: Record<
  * one it cannot get wrong.
  */
 export const effectParams = z.object({
+  lumaStrength: z.number().min(0).max(1).optional().describe("denoise: luminance noise reduction, 0..1, default 0."),
+  chromaStrength: z.number().min(0).max(1).optional().describe("denoise: chroma noise reduction, 0..1, default 0."),
+  temporalStrength: z.number().min(0).max(1).optional().describe("denoise: motion-compensated neighboring-frame strength, 0..1, default 0. Video only."),
   strength: z.number().min(0).max(1).optional().describe("deband/deflicker/stabilize: effect strength, 0..1. Deband defaults to 0, the analysis effects to 1."),
   windowMs: z.number().min(0).max(2000).optional().describe("deflicker/stabilize: symmetric analysis window in milliseconds, default 500."),
   maxCorrection: z.number().min(0).max(3).optional().describe("deflicker: maximum correction in exposure stops, default 1."),
@@ -1349,6 +1353,9 @@ export const effectParams = z.object({
   // issue, which would never name the type's actual allowed fields.
   .passthrough()
   .superRefine((input, context) => {
+    if (input.type === "denoise" && input.radius !== undefined && (!Number.isInteger(input.radius) || input.radius < 1 || input.radius > 4)) {
+      context.addIssue({code: "custom", path: ["radius"], message: "Noise reduction radius must be an integer from 1 to 4."});
+    }
     if (input.analysis && ((input.type === "stabilize") !== ("kind" in input.analysis))) {
       context.addIssue({code: "custom", path: ["analysis"], message: "Analysis must match the effect type."});
     }
@@ -1389,6 +1396,8 @@ export function buildEffect(
   effectParams.parse(input);
   const base = { id: `fx-${index + 1}`, enabled: true };
   switch (input.type) {
+    case "denoise":
+      return {...base, type: "denoise", lumaStrength: input.lumaStrength ?? 0, chromaStrength: input.chromaStrength ?? 0, temporalStrength: input.temporalStrength ?? 0, radius: input.radius ?? 2};
     case "stabilize":
       return {...base, type: "stabilize", strength: input.strength ?? 1, windowMs: input.windowMs ?? 500, maxZoom: input.maxZoom ?? 1.1, ...(input.analysis && "kind" in input.analysis ? {analysis: input.analysis} : {})};
     case "deflicker":

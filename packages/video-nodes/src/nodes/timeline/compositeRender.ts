@@ -1,3 +1,4 @@
+import { hasTemporalDenoise, denoiseSourceTimes, type TemporalSources, type FrameLayerPixels } from "@nodetool-ai/timeline/render";
 /**
  * Frame-by-frame render of a timeline sequence, server-side.
  *
@@ -308,12 +309,13 @@ export async function renderTimelineComposited(
 
   const videoFor = async (
     clip: TimelineClip,
-    assetId: string
+    assetId: string,
+    neighbor?: "before" | "after"
   ): Promise<ClipVideoSource | null> => {
     // Keyed by clip *and* asset: a clip with a generated matte decodes two
     // videos at the same source time — the picture and its mask — and keying on
     // the clip alone handed the mask decode back the picture's stream.
-    const key = `${clip.id}:${assetId}`;
+    const key = JSON.stringify([clip.id, assetId, neighbor ?? "current"]);
     const existing = videoSources.get(key);
     if (existing) return existing;
     const file = await pathFor(assetId);
@@ -335,7 +337,7 @@ export async function renderTimelineComposited(
     // whatever the clip's window) and shutter sampling (instants between
     // output frames) address the source by time.
     const stream =
-      !baked && !hasTimeRemap(clip) && !shutterSampling
+      !baked && !hasTimeRemap(clip) && !shutterSampling && !clip.effects?.some(effect => effect.enabled && effect.type === "denoise") && !neighbor
         ? openForwardSourceFrameStream({
             filePath: file,
             size: decodeSize,
@@ -360,7 +362,7 @@ export async function renderTimelineComposited(
         const sourceSec = baked
           ? Math.max(0, (timeMs - clip.startMs) / 1000)
           : clipSourceTimeSec(clip, timeMs);
-        const rgba = await stream.frameAtSourceSec(sourceSec);
+        const rgba = await stream.frameAtSourceSec(neighbor ? denoiseSourceTimes(clip, sourceSec * 1000)[neighbor] / 1000 : sourceSec);
         if (!rgba) return null;
         let version = frameVersions.get(rgba);
         if (version === undefined) {
@@ -535,7 +537,8 @@ export async function renderTimelineComposited(
         }
         try {
           if (layer.kind === "video") {
-            const stream = await videoFor(layer.clip, layer.assetId);
+            const assetId = layer.assetId;
+            const stream = await videoFor(layer.clip, assetId);
             if (!stream) {
               diagnose(
                 layer.clipId,
@@ -555,8 +558,19 @@ export async function renderTimelineComposited(
               );
               return null;
             }
+            let temporalSources: TemporalSources<FrameLayerPixels> | undefined;
+            if (layer.clip.mediaType === "video" && hasTemporalDenoise(common.effects)) {
+              const read = async (role: "before" | "after"): Promise<FrameLayerPixels> => {
+                const adjacent = await videoFor(layer.clip, assetId, role);
+                const frame = await adjacent?.frameAt(layerTimeMs);
+                if (!adjacent || !frame) throw new Error(`Noise reduction ${role} frame could not be decoded`);
+                return {rgba: frame.rgba, width: adjacent.width, height: adjacent.height, version: frame.version};
+              };
+              temporalSources = {before: await read("before"), after: await read("after")};
+            }
             return finish({
               ...common,
+              temporalSources,
               id: id("v"),
               source: {
                 rgba: decoded.rgba,

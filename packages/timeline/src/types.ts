@@ -1986,6 +1986,7 @@ export type ClipEffect = KnownClipEffect | UnknownClipEffect;
 
 /** The effects this build applies, each spelled out field by field. */
 export type KnownClipEffect =
+  | ClipDenoiseEffect
   | ClipStabilizeEffect
   | ClipDeflickerEffect
   | ClipDebandEffect
@@ -2076,6 +2077,7 @@ export const isClipGrainEffect = (e: ClipEffect): e is ClipGrainEffect =>
  * and Canvas 2D names it in `unsupportedEffectTypes`.
  */
 export const CLIP_EFFECT_TYPES = [
+  "denoise",
   "stabilize",
   "deflicker",
   "deband",
@@ -2115,6 +2117,17 @@ export interface CurvePoint {
   x: number;
   y: number;
 }
+
+export interface ClipDenoiseEffect {
+  id: string;
+  type: "denoise";
+  enabled: boolean;
+  lumaStrength?: number;
+  chromaStrength?: number;
+  temporalStrength?: number;
+  radius?: number;
+}
+export const isClipDenoiseEffect = (e: ClipEffect): e is ClipDenoiseEffect => e.type === "denoise";
 
 export interface StabilizationSample { timeMs: number; x: number; y: number; angle: number; scale: number }
 export interface ClipStabilizeAnalysis {
