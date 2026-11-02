@@ -51,6 +51,7 @@ protected:
     void focusInEvent(QFocusEvent* event) override;
 private:
     void refresh();
+    void clearPointerFeedback();
     QString targetAt(QPointF point) const;
     void write(const nt::ClipTransform& next);
     void probe(const QString& path);
@@ -74,6 +75,7 @@ private:
     std::optional<nt::gizmo::Drag> m_drag;
     quint64 m_generation = 0;
     QString m_hover;
+    Qt::CursorShape m_dragCursor = Qt::ArrowCursor;
     bool m_focusVisible = false;
     QHash<QString, QSize> m_dimensions;
     QSet<QString> m_probing;

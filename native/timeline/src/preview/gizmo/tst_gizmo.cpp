@@ -79,6 +79,102 @@ void near(QPointF a, QPointF b) { QVERIFY2(QLineF(a, b).length() < 0.001, qPrint
 class TestGizmo : public QObject {
     Q_OBJECT
 private slots:
+    void pointerCancellation_data() {
+        QTest::addColumn<bool>("loseGrab");
+        QTest::newRow("escape") << false;
+        QTest::newRow("grab-loss") << true;
+    }
+    void pointerCancellation() {
+        QFETCH(bool, loseGrab);
+        TimelineModel model;
+        auto c = clip();
+        nt::ClipTransform transform;
+        transform.scale = {0.5, 0.5};
+        c.insert("transform", transformJson(transform));
+        load(model, c);
+        PlaybackClock clock;
+        clock.setDurationMs(3000);
+        clock.seek(1100);
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData(R"(import QtQuick
+import NodeTool.Timeline
+TransformGizmoController { width: 300; height: 200; selection: ["picture"] })", QUrl());
+        std::unique_ptr<QObject> object(component.createWithInitialProperties({
+            {"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)}}));
+        QVERIFY2(object, qPrintable(component.errorString()));
+        auto* g = qobject_cast<TransformGizmoController*>(object.get());
+        QVERIFY(g);
+        QQuickWindow window;
+        window.resize(400, 300);
+        g->setParentItem(window.contentItem());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        const auto before = model.documentJson();
+        const auto point = (g->box().center + QPointF(15, 10)).toPoint();
+        QTest::mousePress(&window, Qt::LeftButton, {}, point);
+        QTest::mouseMove(&window, point + QPoint(20, 10));
+        QVERIFY(model.documentJson() != before);
+        QCOMPARE(model.undoStack()->count(), 0);
+        if (loseGrab) { g->ungrabMouse(); }
+        else { QTest::keyClick(&window, Qt::Key_Escape); }
+        QCOMPARE(model.documentJson(), before);
+        QTest::mouseRelease(&window, Qt::LeftButton, {}, point + QPoint(20, 10));
+        QCOMPARE(model.undoStack()->count(), 0);
+        QCOMPARE(g->cursor().shape(), Qt::ArrowCursor);
+        g->setParentItem(nullptr);
+    }
+    void pointerResizeCursor_data() {
+        QTest::addColumn<double>("rotation");
+        QTest::addColumn<double>("flip");
+        QTest::addColumn<QString>("handle");
+        QTest::addColumn<int>("cursor");
+        QTest::newRow("right") << 0.0 << 1.0 << QString("r") << int(Qt::SizeHorCursor);
+        QTest::newRow("rotated-right") << std::numbers::pi / 2 << 1.0 << QString("r") << int(Qt::SizeVerCursor);
+        QTest::newRow("rotated-corner") << std::numbers::pi / 4 << 1.0 << QString("br") << int(Qt::SizeVerCursor);
+        QTest::newRow("flipped-corner") << 0.0 << -1.0 << QString("br") << int(Qt::SizeBDiagCursor);
+    }
+    void pointerResizeCursor() {
+        QFETCH(double, rotation);
+        QFETCH(double, flip);
+        QFETCH(QString, handle);
+        QFETCH(int, cursor);
+        TimelineModel model;
+        auto c = clip();
+        nt::ClipTransform transform;
+        transform.scale = {0.5 * flip, 0.5};
+        transform.rotation = rotation;
+        c.insert("transform", transformJson(transform));
+        load(model, c);
+        PlaybackClock clock;
+        clock.setDurationMs(3000);
+        clock.seek(1100);
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData(R"(import QtQuick
+import NodeTool.Timeline
+TransformGizmoController { width: 300; height: 200; selection: ["picture"] })", QUrl());
+        std::unique_ptr<QObject> object(component.createWithInitialProperties({
+            {"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)}}));
+        QVERIFY2(object, qPrintable(component.errorString()));
+        auto* g = qobject_cast<TransformGizmoController*>(object.get());
+        QVERIFY(g);
+        QQuickWindow window;
+        window.resize(400, 300);
+        g->setParentItem(window.contentItem());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        const auto point = g->box().handle(handle).toPoint();
+        QTest::mouseMove(&window, point);
+        QTRY_COMPARE(int(g->cursor().shape()), cursor);
+        QTest::mousePress(&window, Qt::LeftButton, {}, point);
+        QTest::mouseMove(&window, {390, 290});
+        QCOMPARE(int(g->cursor().shape()), cursor);
+        QTest::mouseRelease(&window, Qt::LeftButton, {}, {390, 290});
+        QCOMPARE(model.undoStack()->count(), 1);
+        QCOMPARE(g->cursor().shape(), Qt::ArrowCursor);
+        g->setParentItem(nullptr);
+    }
     void qmlPanelDiscoversEditorAndFollowsMonitor() {
         const auto panels = PanelRegistry().forSlot("preview");
         QVERIFY(std::any_of(panels.begin(), panels.end(), [](const auto& panel) {
