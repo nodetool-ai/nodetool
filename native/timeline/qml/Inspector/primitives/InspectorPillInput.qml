@@ -21,6 +21,7 @@ Item {
     signal preview(string value)
     signal commit(string value)
     signal canceled()
+    signal accepted()
 
     implicitWidth: minWidth
     implicitHeight: size === "small" ? Ui.Metrics.compact : Ui.Metrics.comfortable
@@ -98,6 +99,7 @@ Item {
             root.typed = false
         }
         onEditCanceled: { root.draft = root.value; root.typed = false; root.canceled() }
+        onAccepted: root.accepted()
         onTextChanged: if (editing) { root.draft = text; root.typed = true }
     }
 
@@ -120,6 +122,7 @@ Item {
             root.typed = false
         }
         onEditCanceled: { root.draft = root.value; root.typed = false; root.canceled() }
+        onAccepted: root.accepted()
     }
 
     MouseArea {

@@ -62,6 +62,66 @@ QJsonObject keyframe(double t, double source, const QString& easing = {}) {
 class TestSpeed : public QObject {
     Q_OBJECT
   private slots:
+    void dialogEnterAppliesTheActiveDraft_data() {
+        QTest::addColumn<QString>("field");
+        QTest::addColumn<QString>("draft");
+        QTest::addColumn<bool>("applies");
+        QTest::newRow("speed") << QString("dialogSpeed") << QString("200") << true;
+        QTest::newRow("duration") << QString("dialogDuration") << QString("00:00:00:15") << true;
+        QTest::newRow("invalid-speed") << QString("dialogSpeed") << QString("0") << false;
+        QTest::newRow("invalid-duration") << QString("dialogDuration") << QString("invalid") << false;
+        QTest::newRow("zero-duration") << QString("dialogDuration") << QString("0") << false;
+    }
+    void dialogEnterAppliesTheActiveDraft() {
+        QFETCH(QString, field);
+        QFETCH(QString, draft);
+        QFETCH(bool, applies);
+        TimelineModel model;
+        auto parsed = nt::parseTimelineJson(document());
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        const auto before = model.documentJson();
+        SpeedController edits;
+        edits.setModel(&model);
+        QQmlEngine engine;
+        QQuickWindow window;
+        window.resize(600, 400);
+        QQuickItem invoker(window.contentItem());
+        QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/Inspector/SpeedDurationDialog.qml"));
+        std::unique_ptr<QObject> dialog(component.createWithInitialProperties({
+            {"controller", QVariant::fromValue(&edits)}, {"clipIds", QStringList{"c"}},
+            {"parent", QVariant::fromValue(window.contentItem())}}));
+        QVERIFY2(dialog, qPrintable(component.errorString()));
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        invoker.forceActiveFocus();
+        QVERIFY(QMetaObject::invokeMethod(dialog.get(), "openForSelection"));
+        QTRY_VERIFY(dialog->property("opened").toBool());
+        auto* input = dialog->findChild<QQuickItem*>(field);
+        QVERIFY(input);
+        if (field == "dialogSpeed") {
+            input = input->findChild<QQuickItem*>("inspectorNumericField");
+            QVERIFY(input);
+        }
+        input->forceActiveFocus();
+        QTest::keyClick(&window, Qt::Key_A, Qt::ControlModifier);
+        for (const auto character : draft) { QTest::keyClick(&window, character.toLatin1()); }
+        QTest::keyClick(&window, Qt::Key_Return);
+        if (!applies) {
+            QVERIFY(dialog->property("visible").toBool());
+            QCOMPARE(model.documentJson(), before);
+            QTest::keyClick(&window, Qt::Key_Escape);
+            QTRY_VERIFY(!dialog->property("visible").toBool());
+            QCOMPARE(model.undoStack()->count(), 0);
+            QCOMPARE(window.activeFocusItem(), &invoker);
+            return;
+        }
+        QTRY_VERIFY(!dialog->property("visible").toBool());
+        QCOMPARE(model.undoStack()->count(), 1);
+        QCOMPARE(model.clipsJson()[0].toObject().value("speedMultiplier").toDouble(), 2.0);
+        QCOMPARE(model.clipsJson()[0].toObject().value("durationMs").toDouble(), 500.0);
+        QCOMPARE(window.activeFocusItem(), &invoker);
+    }
     void pasteSpeedAttributesRetimesTheTarget() {
         const QJsonObject source{{"id", "source"}, {"mediaType", "video"}, {"speedMultiplier", 2}};
         const QJsonObject target{{"id", "target"}, {"trackId", "v"}, {"mediaType", "video"},
