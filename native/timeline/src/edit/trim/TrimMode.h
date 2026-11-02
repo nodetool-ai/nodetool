@@ -6,9 +6,7 @@
 //
 // A dynamic trim writes the model with no undo entry while it runs, like a pointer
 // gesture, and K pushes one entry from the document at its start. Any press, key
-// command or undo that is not part of the trim commits it first. A change from
-// elsewhere while it runs ends it where it is, with no entry of its own, because
-// the other change already recorded that document as its starting point.
+// command, undo or command from elsewhere commits it first.
 // Looping only moves the clock, so it writes nothing to any model.
 
 #include "edit/trim/TrimModel.h"
@@ -129,7 +127,10 @@ private:
     // A mergeable entry takes in the next one that says `merge`, as a held key's repeats do.
     bool commit(const QString& text, const QJsonArray& before, const QJsonArray& after, bool mergeable = false, bool merge = false);
     void commitTrim(const nt::edit::trim::TrimResult& result, const QString& text, bool merge);
-    void commitDynamic();
+    void commitDynamic(bool liveClips = false);
+    // Puts a running dynamic trim or drag on the undo stack. `liveClips`: end at the
+    // model's clips, which someone else has changed, instead of the trim's own.
+    void settleEdits(bool liveClips = false);
     void cancelDynamic();
     void endDynamic();
     void writeDynamic();

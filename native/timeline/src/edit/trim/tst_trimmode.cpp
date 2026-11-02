@@ -539,10 +539,57 @@ private slots:
         }
         model.commitEdit("Rename", live, next);
         QVERIFY(!trim()->dynamicActive());
-        QCOMPARE(history()->index(), entries + 1);
+        // The trim's entry goes under the other command, so undo unwinds both in order.
+        QCOMPARE(history()->index(), entries + 2);
         QCOMPARE(clip("later").value("name").toString(), QString("Renamed"));
         press(Qt::Key_K);
+        QCOMPARE(history()->index(), entries + 2);
+        press(Qt::Key_Z, Qt::ControlModifier);
+        QCOMPARE(clips(), live);
+        press(Qt::Key_Z, Qt::ControlModifier);
+        QCOMPARE(endOf("l"), 2000.0);
+        QCOMPARE(history()->index(), entries);
+    }
+
+    void aWriteWithNoCommandKeepsTheTrimUndoable() {
+        press(Qt::Key_B, Qt::ShiftModifier);
+        clickEdge("l", "end");
+        const auto base = clips();
+        const int entries = history()->index();
+        press(Qt::Key_L);
+        m_fakeClock = 500;
+        trim()->advance();
+        auto next = clips();
+        for (int i = 0; i < next.size(); ++i) {
+            auto c = next[i].toObject();
+            if (c.value("id") == "later") {
+                c.insert("name", "Settled");
+                next[i] = c;
+            }
+        }
+        QVERIFY(model.replaceClips(next));
+        QVERIFY(!trim()->dynamicActive());
         QCOMPARE(history()->index(), entries + 1);
+        QVERIFY(endOf("l") > 2000);
+        QCOMPARE(clip("later").value("name").toString(), QString("Settled"));
+        press(Qt::Key_Z, Qt::ControlModifier);
+        QCOMPARE(clips(), base);
+    }
+
+    void aButtonLeavesSpaceAndTheKeysToTheEditor() {
+        press(Qt::Key_B, Qt::ShiftModifier);
+        clickEdge("l", "end");
+        QTRY_VERIFY(item("trimMonitorForward"));
+        QTRY_VERIFY(item("trimMonitorForward")->width() > 0);
+        click("trimMonitorForward");
+        const auto after = clips();
+        const int entries = history()->index();
+        press(Qt::Key_Space);
+        QVERIFY2(trim()->looping(), "Space did not reach the editor");
+        QCOMPARE(clips(), after);
+        QCOMPARE(history()->index(), entries);
+        press(Qt::Key_Space);
+        QVERIFY(!trim()->looping());
     }
 
     void replacingTheDocumentEndsTrimMode() {

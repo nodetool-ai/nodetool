@@ -41,6 +41,25 @@ std::pair<QString, QString> sides(const EditDoc& doc, const EditPoint& point) {
     return point.out ? std::pair{point.clipId, QString{}} : std::pair{QString{}, point.clipId};
 }
 
+// A frame is shown by the clips with start <= time < end, so a clip's length alone
+// does not say it has one: 41 ms at 24 fps can fall between two frames.
+bool showsAFrame(const QJsonObject& clip, double fps) {
+    const double frameMs = frameDuration(fps);
+    return std::ceil(clipStartMs(clip) / frameMs - 1e-9) * frameMs < clipEndMs(clip) - 1e-9;
+}
+// The movement `frames` frames on the grid. A ripple on a start edge leaves the clip
+// parked, so the edge that has to land on a frame is its end, moving the other way.
+double frameMovement(const EditDoc& doc, const EditPoint& point, double frames, double fps) {
+    const auto* clip = findClip(doc, point.clipId);
+    if (!clip) { return 0; }
+    if (!point.out && point.kind == Kind::Ripple) {
+        const double end = clipEndMs(*clip);
+        return end - frameEdgeMs(end, -frames, fps);
+    }
+    const double edge = point.out ? clipEndMs(*clip) : clipStartMs(*clip);
+    return frameEdgeMs(edge, frames, fps) - edge;
+}
+
 using Overlaps = QHash<QString, double>;
 Overlaps overlaps(const ClipList& clips) {
     QHash<QString, std::vector<std::pair<double, double>>> tracks;
@@ -67,10 +86,7 @@ bool validEdit(const EditDoc& before, const ClipList& after, const Overlaps& bef
         if (clipId(old) != clipId(clip)) { return false; }
         if (isGroupClip(clip) || clip == old) { continue; }
         const double duration = clipDurationMs(clip);
-        // frameStepMs rounds each edge to a whole ms, so one frame can measure up to 1 ms short.
-        if (duration + 1 + EPSILON_MS < frameDuration(env.fps) && duration + EPSILON_MS < clipDurationMs(old)) {
-            return false;
-        }
+        if (!showsAFrame(clip, env.fps) && duration + EPSILON_MS < clipDurationMs(old)) { return false; }
         if (env.sourceDuration && sourceOut(clip) > sourceOut(old) + EPSILON_MS) {
             const auto cap = env.sourceDuration(clip);
             if (cap && sourceOut(clip) > *cap + EPSILON_MS) { return false; }
@@ -361,7 +377,6 @@ TrimResult trimBy(const EditDoc& doc, const EditPoints& points,
         if (!accepted) {
             applied = 0;
             appliedFrames = 0;
-            const double edge = *editTimeMs(current, point);
             const double sign = wanted > 0 ? 1 : -1;
             // Two extra frames cover the rounded edge and the rounded grid origin.
             std::int64_t low = 0;
@@ -370,7 +385,7 @@ TrimResult trimBy(const EditDoc& doc, const EditPoints& points,
                 static_cast<double>(std::numeric_limits<int>::max()) + 2));
             while (high - low > 1) {
                 const auto middle = low + (high - low) / 2;
-                const double delta = frameEdgeMs(edge, sign * static_cast<double>(middle), env.fps) - edge;
+                const double delta = frameMovement(current, point, sign * static_cast<double>(middle), env.fps);
                 auto trial = std::abs(delta) <= std::abs(wanted) + EPSILON_MS ? attempt(delta) : std::nullopt;
                 if (trial) {
                     low = middle;
@@ -394,14 +409,11 @@ TrimResult trimBy(const EditDoc& doc, const EditPoints& points,
 }
 TrimResult nudgeFrames(const EditDoc& doc, const EditPoints& points, int frames, const Env& env) {
     auto result = trimBy(doc, points, [&](const EditDoc& current, const EditPoint& p) {
-        const double edge = *editTimeMs(current, p);
-        return frameEdgeMs(edge, frames, env.fps) - edge;
+        return frameMovement(current, p, frames, env.fps);
     }, env);
-    if (!points.empty()) {
-        if (const auto edge = editTimeMs(doc, points.front()); edge && !result.atLimit &&
-            std::abs(result.appliedMs - (frameEdgeMs(*edge, frames, env.fps) - *edge)) <= EPSILON_MS) {
-            result.appliedFrames = frames;
-        }
+    if (!points.empty() && !result.atLimit &&
+        std::abs(result.appliedMs - frameMovement(doc, points.front(), frames, env.fps)) <= EPSILON_MS) {
+        result.appliedFrames = frames;
     }
     return result;
 }
@@ -530,7 +542,8 @@ std::optional<QString> DynamicTrim::commit() {
     if (m_committed) { return std::nullopt; }
     m_committed = true;
     m_speed = 0;
-    if (m_offsetFrames == 0 || m_clips == m_base.clips || m_points.empty()) { return std::nullopt; }
+    // The clips decide, not the offset: a later point can move while the first is at its limit.
+    if (m_clips == m_base.clips || m_points.empty()) { return std::nullopt; }
     switch (m_points.front().kind) {
     case Kind::Roll: return QStringLiteral("Dynamic rolling edit");
     case Kind::Ripple: return QStringLiteral("Dynamic ripple trim");

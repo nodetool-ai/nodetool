@@ -345,6 +345,63 @@ private slots:
         QVERIFY(!start.outgoing);
         QVERIFY(start.incoming);
     }
+    void a_later_point_moving_alone_still_commits() {
+        auto env = environment();
+        env.linked = false;
+        // v0 is at its source limit, so only v1 moves.
+        env.sourceDuration = [](const QJsonObject& c) {
+            return std::optional<double>(clipId(c) == "v0" ? 4000 : 100000);
+        };
+        auto doc = fixture();
+        doc.clips[2].insert("startMs", 6000);
+        doc.clips[3].insert("startMs", 6000);
+        DynamicTrim dynamic(doc, {{"v0", true, Kind::Trim}, {"v1", true, Kind::Trim}}, env);
+        dynamic.shuttle(1, 0);
+        QVERIFY(dynamic.tick(500));
+        QCOMPARE(dynamic.offsetFrames(), 0);
+        QVERIFY(dynamic.atLimit());
+        QCOMPARE(clipEndMs(get(dynamic.clips(), "v0")), 2000.0);
+        QVERIFY(clipEndMs(get(dynamic.clips(), "v1")) > 8000);
+        QCOMPARE(dynamic.commit(), std::optional<QString>("Dynamic trim"));
+    }
+    void a_trim_keeps_a_frame_on_screen() {
+        // At 24 fps 41 ms from 2042 holds no frame: 49 is at 2041.67 and 50 at 2083.33.
+        auto doc = fixture();
+        doc.clips[2].insert("startMs", 2042);
+        doc.clips[2].insert("durationMs", 1958);
+        auto env = environment();
+        env.linked = false;
+        const auto r = nudgeFrames(doc, {{"v1", true, Kind::Trim}}, -500, env);
+        QVERIFY(r.atLimit);
+        const auto& kept = get(r.clips, "v1");
+        const double first = std::ceil(clipStartMs(kept) / frame(1) - 1e-9);
+        QVERIFY2(first * frame(1) < clipEndMs(kept), "the clip holds no frame");
+    }
+    void ripple_in_nudges_stay_on_the_grid_and_undo_exactly() {
+        for (double fps : {24.0, 30.0, 30000.0 / 1001}) {
+            auto env = environment();
+            env.fps = fps;
+            env.linked = false;
+            auto doc = fixture();
+            // The clip's end on the grid: a first step from elsewhere also snaps to it.
+            doc.clips[2].insert("durationMs", frameEdgeMs(4000, 0, fps) - 2000);
+            const double base = clipDurationMs(doc.clips[2]);
+            const EditPoints point{{"v1", false, Kind::Ripple}};
+            auto current = doc;
+            // A step and its opposite put the clip back.
+            current = withClips(current, nudgeFrames(current, point, 1, env).clips);
+            const double one = clipDurationMs(get(current.clips, "v1"));
+            QVERIFY(one < base);
+            current = withClips(current, nudgeFrames(current, point, -1, env).clips);
+            QCOMPARE(clipDurationMs(get(current.clips, "v1")), base);
+            // Many steps add up to the same frames as one large step.
+            auto stepped = doc;
+            for (int i = 0; i < 24; ++i) { stepped = withClips(stepped, nudgeFrames(stepped, point, 1, env).clips); }
+            const auto once = nudgeFrames(doc, point, 24, env);
+            QCOMPARE(clipDurationMs(get(stepped.clips, "v1")), clipDurationMs(get(once.clips, "v1")));
+            QVERIFY(std::abs(clipDurationMs(get(stepped.clips, "v1")) - (base - frame(24, fps))) <= 1);
+        }
+    }
     void a_nudge_puts_the_cut_exactly_on_its_frame() {
         for (double fps : {24.0, 30.0, 30000.0 / 1001}) {
             auto env = environment();

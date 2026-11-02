@@ -130,7 +130,7 @@ struct TrimResult {
 // movement from the document as it is when the group is reached. A group whose
 // movement is zero is left alone. A clamped group moves a whole number of frames.
 // A movement is accepted when: the edit moved the group's first
-// edge by exactly that amount; no clip it changed is shorter than one frame
+// edge by exactly that amount; no clip it changed shows no frame at all
 // unless it did not shrink; no track gains overlap (the summed overlap of its
 // sorted clips does not grow); and no changed clip's out-point passes
 // env.sourceDuration unless it did not grow. The accepted set is an interval
@@ -140,8 +140,8 @@ struct TrimResult {
 // A Roll with no neighbour runs as a Trim.
 TrimResult trimBy(const EditDoc& doc, const EditPoints& points,
                   const std::function<double(const EditDoc&, const EditPoint&)>& wantedMs, const Env& env);
-// Each group moves to the frame grid point `frames` frames from its first edge,
-// so the cut falls exactly on that frame. appliedFrames counts frames for the first group.
+// Each group moves `frames` frames so that its first edge falls exactly on a frame
+// (for a ripple on a start edge, the clip's end does). appliedFrames counts frames for the first group.
 TrimResult nudgeFrames(const EditDoc& doc, const EditPoints& points, int frames, const Env& env);
 // Each group's first edge moves to `playheadMs`.
 TrimResult extendToPlayhead(const EditDoc& doc, const EditPoints& points, double playheadMs, const Env& env);

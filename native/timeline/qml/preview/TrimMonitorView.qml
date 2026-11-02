@@ -256,8 +256,11 @@ Item {
             y: parent.height - height
             width: parent.width
             height: buttonRow.height
+            // None of these buttons takes the focus on a click, so Space and the
+            // trim keys go on reaching the editor.
             Ui.ToolbarIconButton {
                 objectName: "trimMonitorLoop"
+                focusPolicy: Qt.TabFocus
                 iconName: root.trim && root.trim.looping ? "pause" : "repeat"
                 active: root.trim !== null && root.trim.looping
                 accessibleName: root.trim && root.trim.looping ? "Stop the loop" : "Loop around the edit"
@@ -273,6 +276,7 @@ Item {
                     delegate: Ui.EditorButton {
                         required property var modelData
                         objectName: "trimMonitor" + modelData.name
+                        focusPolicy: Qt.TabFocus
                         density: Ui.EditorButton.Compact
                         text: "−" + Math.abs(modelData.frames)
                         accessibleName: modelData.say
@@ -281,6 +285,7 @@ Item {
                 }
                 Ui.EditorButton {
                     objectName: "trimMonitorApplyTransition"
+                    focusPolicy: Qt.TabFocus
                     density: Ui.EditorButton.Compact
                     text: root.width >= Ui.Metrics.dialogCompactWidth ? "Apply default transition" : "Transition"
                     accessibleName: "Apply default transition"
@@ -292,6 +297,7 @@ Item {
                     delegate: Ui.EditorButton {
                         required property var modelData
                         objectName: "trimMonitor" + modelData.name
+                        focusPolicy: Qt.TabFocus
                         density: Ui.EditorButton.Compact
                         text: "+" + modelData.frames
                         accessibleName: modelData.say
@@ -301,6 +307,7 @@ Item {
             }
             Ui.ToolbarIconButton {
                 objectName: "trimMonitorExit"
+                focusPolicy: Qt.TabFocus
                 x: parent.width - width
                 iconName: "close"
                 accessibleName: "Exit trim mode"

@@ -67,10 +67,7 @@ TrimMode::TrimMode(ClipGestureController& gestures) : QObject(&gestures), m_gest
 
 void TrimMode::rebind() {
     if (m_gestures.timeline() != m_timeline) {
-        if (m_timeline) {
-            disconnect(m_timeline, nullptr, this, nullptr);
-            disconnect(m_timeline->undoStack(), nullptr, this, nullptr);
-        }
+        if (m_timeline) disconnect(m_timeline, nullptr, this, nullptr);
         // The old document's undo stack and clips are no longer ours to write.
         endDynamic();
         m_drag.reset();
@@ -84,9 +81,10 @@ void TrimMode::rebind() {
                 emit dragChanged();
                 setPoints({}, true);
             });
-            connect(m_timeline->undoStack(), &QUndoStack::indexChanged, this, [this] {
-                // Only someone else's command can land while this one is running.
-                if (!m_writing && m_dynamic) endDynamic();
+            // Someone else's command: this trim goes on the stack first, so its
+            // undo entry sits under that command's, which starts from the trimmed clips.
+            connect(m_timeline, &TimelineModel::beforeCommand, this, [this] {
+                if (!m_writing) settleEdits();
             });
         }
     }
@@ -174,12 +172,9 @@ void TrimMode::refresh() {
 void TrimMode::onClipsChanged() {
     if (!active()) return;
     if (!m_writing) {
-        // Someone else changed the clips: a running trim stops where it is.
-        endDynamic();
-        if (m_drag) {
-            m_drag.reset();
-            emit dragChanged();
-        }
+        // Someone else changed the clips with no command: a running trim stops where it
+        // is, and its entry goes from the clips at its start to the clips now.
+        settleEdits(true);
         const auto live = prune(m_gestures.editDoc(), m_points);
         if (live != m_points) {
             setPoints(live, false);
@@ -411,13 +406,18 @@ void TrimMode::stop() {
     stopLoop();
 }
 
-void TrimMode::commitDynamic() {
+void TrimMode::commitDynamic(bool liveClips) {
     if (!m_dynamic) return;
     const auto text = m_dynamic->commit();
     const QJsonArray before = structure::clipsToJson(m_dynamic->baseClips());
-    const QJsonArray after = structure::clipsToJson(m_dynamic->clips());
+    const QJsonArray after = liveClips ? m_timeline->clipsJson() : structure::clipsToJson(m_dynamic->clips());
     endDynamic();
     if (text) commit(*text, before, after);
+}
+
+void TrimMode::settleEdits(bool liveClips) {
+    if (m_dynamic) commitDynamic(liveClips);
+    if (m_drag) endDrag(true);
 }
 
 void TrimMode::cancelDynamic() {
