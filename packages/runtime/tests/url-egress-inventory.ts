@@ -665,6 +665,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     note: "Calls only the sd-server it spawned on 127.0.0.1 at a port it picked. Redirects are rejected. Job URLs are built from the job id, never from a response URL. The provider is excluded from the cloud profile."
   },
   {
+    file: "packages/runtime/src/providers/wan2gp-client.ts",
+    owner: "Wan2GP MCP client",
+    inputSource: "operator",
+    schemes: ["http", "https"],
+    authScope: "none",
+    redirects: "manual-none",
+    dnsRebinding: "deployment-egress",
+    policy: "private-integration",
+    guardedBy: [],
+    note: "Calls the Wan2GP server named by WAN2GP_MCP_URL or a lib.wan2gp node's server_url, normally localhost or the LAN. Transfer tickets from the server must be relative URLs under /wangp_api/ that resolve to the same origin. Redirects are rejected. The wangp provider and the lib.wan2gp nodes are excluded from the cloud profile."
+  },
+  {
     file: "packages/runtime/src/comfy-executor.ts",
     owner: "ComfyUI executor",
     inputSource: "workflow",

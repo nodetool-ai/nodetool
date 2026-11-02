@@ -149,7 +149,7 @@ pieces arrive only when you install them:
   that appears when a workflow contains nodes that need a runtime. The prompt
   installs runtimes only. A workflow with no Python nodes never needs Python.
   Allow several GB of disk space.
-- **Python node packs.** HuggingFace, MLX, and Wan2GP nodes come in packs you
+- **Python node packs.** HuggingFace and MLX nodes come in packs you
   install from **Tools → Package Manager → Python nodes**. Installing a pack
   sets up Python first if it is missing. The
   HuggingFace pack downloads a PyTorch build for your graphics card, which
@@ -297,7 +297,7 @@ On Linux and macOS,
 [install.sh](https://github.com/nodetool-ai/nodetool/blob/main/install.sh)
 does steps 1 to 3 below for you. It creates a Python 3.11 environment with
 ffmpeg in `~/.local/share/nodetool/conda_env` and installs `nodetool-core` plus the packs you name with `--pack`
-(`huggingface`, `mlx`, or `wan2gp`):
+(`huggingface` or `mlx`):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/nodetool-ai/nodetool/main/install.sh | bash -s -- -y --pack huggingface
@@ -329,7 +329,6 @@ To set up the environment by hand:
    pip install nodetool-core nodetool-huggingface   # add nodetool-mlx on Apple Silicon
    ```
 
-   `nodetool-wan2gp` is the Wan2GP pack. See [Wan2GP](wan2gp.md).
 4. Start the server so it finds that interpreter:
 
    ```bash

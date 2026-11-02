@@ -18,5 +18,6 @@ Browse the lib nodes by sub-namespace.
 - **[stable_diffusion_cpp](stable_diffusion_cpp/)** - 1 node(s)
 - **[svg](svg/)** - 2 node(s)
 - **[video](video/)** - 1 node(s)
+- **[wan2gp](wan2gp/)** - 4 node(s)
 
 [Back to all nodes](../)

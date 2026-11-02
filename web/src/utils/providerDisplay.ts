@@ -18,7 +18,8 @@ const LOCAL_PROVIDER_IDS: ReadonlySet<string> = new Set([
   "whisper_cpp",
   "whisper_cpp_server",
   "lmstudio",
-  "vllm"
+  "vllm",
+  "wangp"
 ]);
 
 export const isLocalProvider = (provider?: string): boolean => {
@@ -104,7 +105,8 @@ const PROVIDER_ALIAS_NAMES: Record<string, string> = {
   nodetool: "NodeTool",
   rodin: "Rodin AI",
   "rodin-ai": "Rodin AI",
-  mlx: "MLX"
+  mlx: "MLX",
+  wangp: "Wan2GP"
 };
 
 // Fallback formatter for arbitrary provider strings

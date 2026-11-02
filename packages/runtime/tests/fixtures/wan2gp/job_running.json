@@ -1,0 +1,26 @@
+{
+  "job_id": "3d9a1c0e5b7f4a2d8c6e0f1a2b3c4d5e",
+  "done": false,
+  "cancel_requested": false,
+  "webui_submission_ready": false,
+  "webui_load_queue_token": "",
+  "created_at": 1710000000.0,
+  "updated_at": 1710000004.0,
+  "events": [
+    {"kind": "started", "timestamp": 1710000000.0, "data": {"tasks": 1}},
+    {
+      "kind": "progress",
+      "timestamp": 1710000004.0,
+      "data": {
+        "phase": "denoising",
+        "status": "Denoising",
+        "progress": 40,
+        "current_step": 12,
+        "total_steps": 30,
+        "raw_phase": "Denoising",
+        "unit": null
+      }
+    }
+  ],
+  "result": null
+}

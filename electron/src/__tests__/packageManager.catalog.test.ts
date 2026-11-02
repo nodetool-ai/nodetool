@@ -52,8 +52,9 @@ describe('package catalog', () => {
     const repoIds = packages.map((p) => p.repo_id);
 
     expect(repoIds).toContain('nodetool-ai/nodetool-core');
-    expect(repoIds).toContain('nodetool-ai/nodetool-wan2gp');
     expect(repoIds).not.toContain('nodetool-ai/nodetool-whispercpp');
+    // The Wan2GP nodes are built in (lib.wan2gp), so the Python pack is gone.
+    expect(repoIds).not.toContain('nodetool-ai/nodetool-wan2gp');
     expect(
       packages.find((p) => p.repo_id === 'nodetool-ai/nodetool-core')?.description
     ).toContain('Essential NodeTool core nodes');

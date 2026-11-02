@@ -225,6 +225,12 @@ at 24 hours.
   provider calls only the `sd-server` it starts on `127.0.0.1`, at a port it
   picked. Requests send no credentials and reject redirects. Job polling uses
   URLs built from the job id. The cloud profile excludes this provider.
+- `packages/runtime/src/providers/wan2gp-client.ts` — a Wan2GP server, named
+  by `WAN2GP_MCP_URL` or a `lib.wan2gp` node's server URL, normally localhost
+  or the LAN. Requests send no credentials and reject redirects. A media
+  transfer ticket from the server must be a relative URL under `/wangp_api/`
+  that resolves to the configured origin. The cloud profile excludes the
+  `wangp` provider and the `lib.wan2gp` nodes.
 - `packages/runtime/src/comfy-executor.ts` — a ComfyUI server, normally
   localhost or the LAN, so screening private addresses would refuse the ordinary
   case. The address is the node's `endpoint` property, so the graph author picks

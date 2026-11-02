@@ -57,6 +57,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | llama.cpp | ✅ | | | | | | |
 | llama.cpp local | ✅ | | | | | ✅ | |
 | stable-diffusion.cpp | | ✅ | | | | | |
+| Wan2GP | | ✅ | ✅ | | | | |
 | Transformers.js | ✅ | | | ✅ | ✅ | ✅ | |
 | ElevenLabs | | | | ✅ | ✅³ | | |
 | Topaz | | ✅⁴ | | | | | |
@@ -270,6 +271,15 @@ VAD or fixed windows when no VAD model is installed. Local only.
 whisper.cpp server (`whisper_cpp_server`) posts audio to a user-run
 `whisper-server` at `WHISPER_CPP_SERVER_URL`. Its model id is `default`.
 It requires no native package. Local only.
+
+## Wan2GP
+
+Wan2GP (provider id `wangp`) generates video and images on a
+[Wan2GP](wan2gp.md) server you run yourself, over MCP: text-to-video,
+image-to-video, reference-to-video, text-to-image and image-to-image.
+`WAN2GP_MCP_URL` names the server, default `http://127.0.0.1:7866/mcp`. The
+model list is the server's own, read on each request, and is empty while no
+server answers. Local only.
 
 ## stable-diffusion.cpp
 
