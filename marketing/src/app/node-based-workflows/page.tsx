@@ -11,6 +11,7 @@ import SubscriptionSection from "../../components/SubscriptionSection";
 import { breadcrumbSchema } from "../../lib/jsonld";
 import { SmartDownloadButton } from "../SmartDownloadButton";
 import { competitors } from "../../data/competitorEntries";
+import { STAGE_COSTS } from "../../data/stageCosts";
 
 /**
  * `/node-based-workflows` — the landing page for people searching for
@@ -68,7 +69,7 @@ const qualities: { heading: string; body: string }[] = [
   },
   {
     heading: "A check before you pay",
-    body: "nodetool validate reads a graph without running it and reports unknown nodes, missing required fields, mis-typed edges, and model ids that don't exist. A run that costs money starts from a graph that passed.",
+    body: "nodetool validate reads a graph without running it and reports unknown nodes, missing required fields, mis-typed edges, and model ids that don't exist. Agents get the same check as the validate_workflow tool. Run it first and a broken wire shows up before any provider bills you.",
   },
   {
     heading: "Every step on screen",
@@ -296,12 +297,15 @@ export default function NodeBasedWorkflowsPage() {
               id="nbw-qualities-title"
               className="text-3xl font-semibold tracking-tight text-white md:text-4xl"
             >
-              A graph you can trust with paid runs
+              Catch the broken wire before the paid run.
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-slate-300">
-              A workflow that touches paid models has to fail early and
-              visibly. These are the parts of NodeTool that make that happen.
+              Five {STAGE_COSTS.clipModel} clips of five seconds cost{" "}
+              {STAGE_COSTS.fiveClipPrice} on Kie.ai. A workflow that spends that
+              has to fail before the first call, not at step nine. These are the
+              parts of NodeTool that make it fail early and in plain view.
             </p>
+            <p className="mt-2 text-xs text-slate-500">{STAGE_COSTS.attribution}</p>
           </div>
           <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {qualities.map((q) => (

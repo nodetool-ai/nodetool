@@ -100,13 +100,14 @@ export default function PricingPage() {
             id="pricing-title"
             className="mt-6 text-4xl font-bold tracking-tight text-white md:text-5xl"
           >
-            Free to download. You pay providers, not us.
+            Free to download. Provider prices, nothing on top.
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-slate-300">
-            NodeTool Studio is free and open source. Current Cloud alpha access
-            is free, and future Cloud pricing has not been announced. In both,
-            provider charges are separate: you connect your own supported
-            provider accounts and pay those providers directly.
+            NodeTool Studio is free and open source. Run it on the ChatGPT,
+            Claude, or Gemini plan you already pay for, add your own provider
+            keys and pay each provider its list price, or run local models on
+            your own machine at no cost per run. Current Cloud alpha access is
+            free, and future Cloud pricing has not been announced.
           </p>
         </section>
 
