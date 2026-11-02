@@ -145,6 +145,7 @@ QtObject {
     readonly property string close: "M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
     // ArrowDropDown
     readonly property string arrowDropDown: "m7 10 5 5 5-5z"
+    readonly property string arrowRight: "m10 17 5-5-5-5z"
     // Undo
     readonly property string undo: "M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8"
     // Redo

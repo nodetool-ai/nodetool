@@ -22,10 +22,11 @@ struct ShellMenuItem {
     bool separator = false;
     bool checkable = false;
     bool checked = false;
+    QString disabledReason;  // set while the item is off. The platform menu has no place to show it.
 };
 struct Menu { QString label; std::vector<ShellMenuItem> items; };
 QKeyCombination bindingCombination(const QStringList& keys);
-// The built-in menus plus the registerShellMenuItem entries (app/MenuRegistry.h).
+// The File items plus the registerShellMenuItem entries (app/MenuRegistry.h).
 // `context` is what the entries' enabled and checked predicates receive.
 std::vector<Menu> shellMenuDescription(const QString& preset, const QVariantList& recent = {},
                                        const QVariantMap& context = {});

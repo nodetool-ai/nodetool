@@ -16,7 +16,7 @@ TestCase {
         id: menu
         returnFocusTo: trigger
         Ui.MenuItem { objectName: "firstMenuItem"; text: "First"; iconName: "check"; textTone: Ui.Text.Error; shortcutText: "Ctrl+N"; accessibleName: "First action"; onTriggered: menuCount++ }
-        Ui.MenuItem { text: "Disabled"; enabled: false; onTriggered: menuCount += 100 }
+        Ui.MenuItem { objectName: "disabledMenuItem"; text: "Disabled"; enabled: false; reasonText: "Select a clip first."; onTriggered: menuCount += 100 }
         Ui.MenuItem { text: "Last"; onTriggered: menuCount += 10 }
         Ui.ContextMenu { title: "More"; Ui.MenuItem { text: "Nested"; onTriggered: menuCount += 1000 } }
     }
@@ -112,6 +112,20 @@ TestCase {
         keyClick(Qt.Key_Down)
         keyClick(Qt.Key_Return)
         compare(menuCount, 1000)
+    }
+    function test_disabledItemShowsItsReason() {
+        menu.popup(trigger)
+        tryVerify(() => menu.visible)
+        const off = findChild(menu.contentItem, "disabledMenuItem")
+        const reason = findChild(off, "menuItemReason")
+        verify(reason !== null && reason.visible)
+        compare(reason.text, "Select a clip first.")
+        verify(off.implicitHeight > findChild(menu.contentItem, "firstMenuItem").implicitHeight)
+        verify(off.implicitWidth >= reason.implicitWidth)
+        const first = findChild(findChild(menu.contentItem, "firstMenuItem"), "menuItemReason")
+        verify(!first.visible)
+        menu.close()
+        tryVerify(() => !menu.visible)
     }
     function test_menuKeyboardAndFocus() {
         trigger.forceActiveFocus()

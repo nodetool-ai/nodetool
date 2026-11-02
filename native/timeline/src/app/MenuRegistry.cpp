@@ -63,14 +63,16 @@ QVariantList MenuRegistry::query(const QString& kind, const QVariantMap& context
     std::copy_if(items().begin(), items().end(), std::back_inserter(list), [&](const auto& i) { return i.kind == kind; });
     QVariantList out;
     const QString* previous = nullptr;
-    for (const auto& item : arranged(std::move(list))) {
+    const auto arrangedList = arranged(std::move(list));
+    for (const auto& item : arrangedList) {
+        const bool enabled = !item.enabled || item.enabled(context);
         out.append(QVariantMap{{"action", item.action}, {"label", item.label}, {"shortcut", item.shortcut},
-                               {"enabled", !item.enabled || item.enabled(context)},
-                               {"group", item.group}, {"order", item.order},
-                               {"separatorBefore", previous && *previous != item.group},
+                               {"enabled", enabled}, {"reason", enabled ? QString() : item.disabledReason},
+                               {"group", item.group}, {"order", item.order}, {"submenu", item.submenu},
+                               {"separatorBefore", previous && item.submenu.isEmpty() && *previous != item.group},
                                {"checkable", bool(item.checked)},
                                {"checked", item.checked && item.checked(context)}});
-        previous = &item.group;
+        if (item.submenu.isEmpty()) { previous = &item.group; }
     }
     return out;
 }

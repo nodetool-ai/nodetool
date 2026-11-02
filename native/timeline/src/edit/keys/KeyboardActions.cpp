@@ -444,7 +444,17 @@ const bool registered = [] {
             return true;
         }},
         {"matchFrame", "Match frame (open the source at this frame)", "Playback", [](C g, V) { return revealClipMedia(g, true); }},
-        {"revealInProject", "Reveal the clip's media in Assets", "Playback", [](C g, V) { return revealClipMedia(g, false); }},
+        {"revealInProject", "Reveal the clip's media in Assets", "Playback", [](C g, V c) {
+            // A menu names its clip. The key follows the playhead.
+            const auto ids = c.value("clipIds").toStringList();
+            if (ids.isEmpty()) return revealClipMedia(g, false);
+            const auto clip = g.clipData(ids.first());
+            auto* editor = editorOf(g);
+            const auto asset = clip.value("currentAssetId").toString();
+            QVariant shown;
+            return editor && !asset.isEmpty() && QMetaObject::invokeMethod(editor, "revealAsset", Q_RETURN_ARG(QVariant, shown),
+                       Q_ARG(QVariant, asset), Q_ARG(QVariant, false)) && shown.toBool();
+        }},
         {"addKeyframe", "Keyframe the selected clip at the playhead", "Keyframes & source", [](C g, V) {
             const auto clip = singleSelectedClip(g);
             if (!clip) return false;

@@ -1571,8 +1571,18 @@ controls = ["Ui.MenuItem"]
 signals = []
 test_host = "tst_menus"
 test_scope = "build/import"
-qml_callers = ["native/timeline/qml/menus/ClipContextMenu.qml", "native/timeline/qml/menus/TrackLaneContextMenu.qml"]
+qml_callers = ["native/timeline/qml/menus/ClipContextMenu.qml", "native/timeline/qml/menus/ClipMenuEntry.qml", "native/timeline/qml/menus/TrackLaneContextMenu.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.MenuItem"
+
+[[file]]
+path = "native/timeline/qml/menus/ClipMenuEntry.qml"
+category = "chrome"
+controls = ["MenuActionItem"]
+signals = []
+test_host = "tst_menus"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/menus/ClipContextMenu.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.MenuItem through MenuActionItem"
 
 [[file]]
 path = "native/timeline/qml/menus/TrackLaneContextMenu.qml"

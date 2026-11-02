@@ -122,6 +122,12 @@ public:
     QVariantMap rubberBand() const { return m_rubberBand; }
     QVariantMap selectedGap() const { return m_selectedGap; }
     QVariantMap selectedEdit() const { return m_selectedEdit; }
+    // Selects the gap at this time on the track, as a click on it does. False: there is none.
+    Q_INVOKABLE bool selectGapAt(const QString& trackId, double timeMs);
+    // Selects an edge of a clip as the edit point.
+    Q_INVOKABLE void selectEdit(const QString& clipId, const QString& edge);
+    // The cut at an edge of a clip: {leftId, rightId}, either empty at the end of a gap.
+    Q_INVOKABLE QVariantMap editPointAt(const QString& clipId, const QString& edge) const;
     QString keyframeRow() const { return m_keyframeRow; }
     bool keyframeRowOnly() const { return m_keyframeRowOnly; }
     void setKeyframeRowOnly(bool only);
@@ -174,6 +180,8 @@ public slots:
     // The keymap actions handleKey runs, and the pointer gestures of the
     // sheet's key-only rows that work here.
     static QSet<QString> availableActions();
+    // Whether the preset uses this key for an action, so a default key gives way to it.
+    static bool presetUsesKey(const QString& preset, const QKeySequence& sequence);
 
 signals:
     void changed();

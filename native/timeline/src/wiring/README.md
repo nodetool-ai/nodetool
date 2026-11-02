@@ -22,20 +22,26 @@ is discovered automatically. Other QML needs `nt_qml_files(...)`.
   `nt::tracks::registerHeaderAction({id, url, order})` from
   `edit/tracks/TrackHeaderActions.h`. Set implicit dimensions. This existing
   header slot does not inject properties.
-- Context menus: `nt::app::registerMenuItem({kind, action, label, shortcut, enabled, group, order, checked})`
+- Context menus: `nt::app::registerMenuItem({kind, action, label, shortcut, enabled, group, order, checked, disabledReason, submenu})`
   from `app/MenuRegistry.h`. Kinds are `clip`, `track`, `lane`, `ruler`, `asset`,
   `marker`, `gap`, and `editPoint`. A kind with no menu that queries it shows nothing.
   Context includes `kind`, `editable`, and the target's `clipId`, `trackId`, or
   `timeMs`. Clip context also includes the raw clip and selected IDs.
   Items of one `group` stay together with a separator between groups. Groups sort
   by their lowest `order`, items within a group by `order`, and equal orders keep
-  registration order. Setting `checked` makes the item show a checkmark.
+  registration order. Setting `checked` makes the item show a checkmark. `disabledReason` shows
+  under the label while `enabled` is false. The menu shows the active preset's key for the action,
+  else `shortcut`. The context also holds `gestures`, so a predicate can read the editor.
+  `submenu` is honoured by the clip menu's `Label` submenu.
 - Menu bar: `nt::app::registerShellMenuItem({menu, action, label, shortcut, submenu,
-  group, order, enabled, checked, run})`, also from `app/MenuRegistry.h`. `menu` is
+  group, order, enabled, checked, run, disabledReason})`, also from `app/MenuRegistry.h`.
+  `app/Menus/StandardMenus.cpp` has the standard items as one table, and a new item is one
+  row there when its action has no module of its own. `menu` is
   one of `File`, `Edit`, `Clip`, `Sequence`, `Markers`, `View`, `Playback`, `Window`,
   `Help`. Other names are refused. A menu with no items does not appear. `action`
-  is unique among these entries. Entries go after the built-in items of their menu,
-  and before Settings in File. A group with a name starts after a separator. `submenu`
+  is unique among these entries, so a second entry for it is refused. Entries go
+  before Settings in File. An enabled item must run, and a disabled one needs a
+  `disabledReason`: `tst_menus` runs every item and fails on either. A group with a name starts after a separator. `submenu`
   adds one level. The shortcut shown is the active preset's binding, then the
   `registerKeyAction` default, then the entry's `shortcut`. The predicates and `run`
   receive `kind` (`"shell"`), and `gestures` and `timeline` when an editor is open, so they

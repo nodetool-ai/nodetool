@@ -1,9 +1,19 @@
 #include "wiring/WiringFixture.h"
 #include "app/MenuRegistry.h"
+#include "app/Menus/ShellMenus.h"
+#include "edit/clipboard/ClipboardOps.h"
+#include "server/FieldAudit.h"
+#include "wiring/KeyActions.h"
+#include <QJSValue>
+#include <QQmlEngine>
+#include <QTemporaryDir>
+#include <algorithm>
+#include <cmath>
 
 class TestMenus : public WiringFixture {
     Q_OBJECT
     QPointer<QObject> activeMenu;
+    QTemporaryDir settings;
     void patch(const QString& id, const QJsonObject& fields) {
         auto clips = model.clipsJson();
         for (qsizetype i = 0; i < clips.size(); ++i) {
@@ -45,7 +55,16 @@ class TestMenus : public WiringFixture {
         QSignalSpy triggered(entry, SIGNAL(triggered()));
         QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(entry));
         QCoreApplication::processEvents();
-        if (name.startsWith("laneMenu-") || name.startsWith("registryMenu-lane-")) { QCOMPARE(triggered.count(), 1); }
+        if (name.startsWith("laneMenu-") || name.startsWith("registryMenu-lane-") || name.startsWith("registryMenu-gap-")) { QCOMPARE(triggered.count(), 1); }
+    }
+    // The bar entries whose action no one runs. An entry with `run` runs itself.
+    static QStringList unknownActions(const std::vector<nt::app::ShellMenuEntry>& entries) {
+        const auto known = ClipGestureController::availableActions();
+        QStringList unknown;
+        for (const auto& entry : entries) {
+            if (!entry.run && !known.contains(entry.action)) { unknown << entry.menu + ": " + entry.action; }
+        }
+        return unknown;
     }
     void restore(const QJsonObject& raw) {
         auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
@@ -54,7 +73,14 @@ class TestMenus : public WiringFixture {
         QCoreApplication::processEvents();
     }
 private slots:
+    // The items below change panels and workspaces, which the editor saves. They must
+    // not reach the settings of the person running the test.
+    void initTestCase() {
+        QVERIFY(settings.isValid());
+        qputenv("NODETOOL_TIMELINE_PREFERENCES", QFile::encodeName(settings.filePath("settings.ini")));
+    }
     void init() {
+        QFile::remove(settings.filePath("settings.ini"));
         open();
         gestures()->setKeyboardPreset("nodetool");
         patch("c", {{"mediaType", "video"}});
@@ -104,9 +130,21 @@ private slots:
         QFETCH(QJsonObject, fields); QFETCH(QStringList, middle);
         patch("c", fields);
         auto* menu = popup("clip", "clip-c"); QVERIFY(menu);
-        QStringList expected{"clipMenu-splitAtPlayhead:Split at playhead", "clipMenu-duplicate:Duplicate"};
-        for (const auto& value : middle) { expected.append("clipMenu-" + value); }
-        expected.append({"registryMenu-clip-speedDuration:Speed / Duration…", "clipMenu-deleteDivider:", "clipMenu-deleteSelected:Delete"});
+        QStringList expected{"clipMenu-splitAtPlayhead:Split at playhead", "clipMenu-duplicate:Duplicate", "registryMenuGroup-clip-transition:"};
+        bool stateStarted = false;
+        for (const auto& value : middle) {
+            if (!stateStarted && value.startsWith("toggleClipLock")) {
+                expected.append("registryMenuGroup-clip-state:");
+                stateStarted = true;
+            }
+            expected.append("clipMenu-" + value);
+        }
+        expected.append({"clipMenu-labelDivider:", "clipMenu-label:Label", "clipMenu-afterLabelDivider:",
+                         "registryMenu-clip-addMarker:Add marker", "registryMenuGroup-clip-:",
+                         "registryMenu-clip-speedDuration:Speed / Duration…", "registryMenuGroup-clip-frame:",
+                         "registryMenu-clip-fitToFrame:Fit to frame", "registryMenu-clip-fillFrame:Fill frame",
+                         "registryMenuGroup-clip-reveal:", "registryMenu-clip-revealInProject:Reveal in Library",
+                         "clipMenu-deleteDivider:", "clipMenu-deleteSelected:Delete"});
         QCOMPARE(entries(menu), expected);
     }
     void shortcutParity_data() {
@@ -179,6 +217,9 @@ private slots:
         clock.seek(4500); const auto before = doc();
         popup("clip", "clip-c"); trigger("clipMenu-splitAtPlayhead");
         QCOMPARE(doc(), before); QCOMPARE(model.undoStack()->count(), 0);
+        auto* split = item("clipMenu-splitAtPlayhead"); QVERIFY(split);
+        QVERIFY(!split->isEnabled());
+        QCOMPARE(split->property("reasonText").toString(), QString("Move the playhead over this clip first."));
     }
     void shortcutResults() {
         const auto before = doc();
@@ -282,11 +323,12 @@ private slots:
     }
     void laneList_data() {
         QTest::addColumn<QString>("type"); QTest::addColumn<double>("at"); QTest::addColumn<QStringList>("expected");
-        QTest::newRow("video-gap") << QString("video") << 4000.0 << QStringList{"laneMenu-addText:Add text", "laneMenu-closeGap:Close gap"};
+        const QString gapItem = "registryMenu-gap-rippleDeleteSelected:Ripple delete";
+        QTest::newRow("video-gap") << QString("video") << 4000.0 << QStringList{"laneMenu-addText:Add text", ":", gapItem};
         QTest::newRow("video-after-end") << QString("video") << 7000.0 << QStringList{"laneMenu-addText:Add text"};
-        QTest::newRow("overlay") << QString("overlay") << 4000.0 << QStringList{"laneMenu-addText:Add text", "laneMenu-closeGap:Close gap"};
+        QTest::newRow("overlay") << QString("overlay") << 4000.0 << QStringList{"laneMenu-addText:Add text", ":", gapItem};
         for (const auto& type : {"audio", "subtitle", "midi", "chord"}) {
-            QTest::newRow(type) << QString(type) << 4000.0 << QStringList{"laneMenu-closeGap:Close gap"};
+            QTest::newRow(type) << QString(type) << 4000.0 << QStringList{gapItem};
         }
     }
     void laneList() {
@@ -298,7 +340,7 @@ private slots:
     }
     void laneEdits() {
         const auto before = doc();
-        popup("lane", "trackLane-v", 400); trigger("laneMenu-closeGap");
+        popup("lane", "trackLane-v", 400); trigger("registryMenu-gap-rippleDeleteSelected");
         QCOMPARE(clip("d").value("startMs").toDouble(), 3000.0);
         QCOMPARE(model.undoStack()->count(), 1); model.undoStack()->undo(); QCOMPARE(doc(), before);
         popup("lane", "trackLane-v", 400); trigger("laneMenu-addText");
@@ -320,7 +362,7 @@ private slots:
     void laneExtension() {
         QVERIFY(nt::app::registerMenuItem({"lane", "selectAll", "Select all clips", "Ctrl+A", {}}));
         auto* menu = popup("lane", "trackLane-v", 400); QVERIFY(menu);
-        QCOMPARE(entries(menu), QStringList({"laneMenu-addText:Add text", "laneMenu-closeGap:Close gap",
+        QCOMPARE(entries(menu), QStringList({"laneMenu-addText:Add text", ":", "registryMenu-gap-rippleDeleteSelected:Ripple delete",
                                              "registryMenu-lane-selectAll:Select all clips"}));
         trigger("registryMenu-lane-selectAll"); QCOMPARE(gestures()->selection().size(), 5);
     }
@@ -359,31 +401,549 @@ private slots:
             "trackMenu-insertAbove:Insert " + label + " track above", "trackMenu-insertBelow:Insert " + label + " track below",
             "trackMenu-deleteDivider:", "trackMenu-remove:Delete track"}));
     }
-    void rulerRegisteredActionsThenExtension() {
-        MenuRegistry registry;
+    QStringList rulerList() {
         QStringList expected;
+        MenuRegistry registry;
         for (const auto& value : registry.query("ruler", {})) {
             const auto entry = value.toMap();
+            if (entry.value("separatorBefore").toBool()) {
+                expected.append("registryMenuGroup-ruler-" + entry.value("group").toString() + ":");
+            }
             expected.append("registryMenu-ruler-" + entry.value("action").toString() + ":" + entry.value("label").toString());
         }
+        return expected;
+    }
+private slots:
+    void rulerRegisteredActionsThenExtension() {
+        auto expected = rulerList();
         auto* menu = popup("ruler", "timeRuler"); QVERIFY(menu);
         QCOMPARE(menu->property("visible").toBool(), !expected.isEmpty());
         QCOMPARE(entries(menu), expected);
         QVERIFY(QMetaObject::invokeMethod(menu, "close"));
         QTRY_VERIFY(!menu->property("visible").toBool());
-        QVERIFY(nt::app::registerMenuItem({"ruler", "selectAll", "Select all clips", "Ctrl+A", {}}));
+        QVERIFY(nt::app::registerMenuItem({"ruler", "selectAll", "Select all clips", "Ctrl+A", {}, "zExtension", 200}));
         menu = popup("ruler", "timeRuler"); QVERIFY(menu);
         QTRY_VERIFY(menu->property("visible").toBool());
-        expected.append("registryMenu-ruler-selectAll:Select all clips");
+        expected = rulerList();
+        QVERIFY(expected.endsWith("registryMenu-ruler-selectAll:Select all clips"));
         QCOMPARE(entries(menu), expected);
         trigger("registryMenu-ruler-selectAll"); QCOMPARE(gestures()->selection().size(), 5);
+    }
+
+    void aMenuTallerThanTheWindowStaysInside() {
+        view->resize(1800, 300);
+        QTRY_COMPARE(view->rootObject()->height(), 300.0);
+        auto* surface = item("clip-c");
+        if (!surface || !surface->isVisible()) { QSKIP("the small window hides the Timeline"); }
+        auto* menu = popup("clip", "clip-c"); QVERIFY(menu);
+        QTRY_VERIFY(menu->property("opened").toBool());
+        QVERIFY(menu->property("y").toDouble() >= 0);
+        QVERIFY(menu->property("y").toDouble() + menu->property("height").toDouble() <= view->height());
+    }
+    void menusOpenAtThePointer() {
+        auto* surface = item("clip-c"); QVERIFY(surface);
+        const auto at = center(surface);
+        auto* menu = popup("clip", "clip-c"); QVERIFY(menu);
+        QTRY_VERIFY(menu->property("opened").toBool());
+        QCOMPARE(int(menu->property("x").toDouble()), at.x());
+        QVERIFY(menu->property("y").toDouble() + menu->property("height").toDouble() <= view->height());
+    }
+    void shortcutsFollowThePreset() {
+        popup("clip", "clip-c");
+        QTRY_VERIFY(activeMenu && activeMenu->property("opened").toBool());
+        QCOMPARE(item("clipMenu-splitAtPlayhead")->property("shortcutText").toString(), gestures()->shortcutFor("splitAtPlayhead"));
+        QCOMPARE(item("registryMenu-clip-addMarker")->property("shortcutText").toString(), QString("M"));
+        QVERIFY(QMetaObject::invokeMethod(activeMenu, "close"));
+        QTRY_VERIFY(!activeMenu->property("visible").toBool());
+        const auto before = gestures()->shortcutFor("splitAtPlayhead");
+        gestures()->setKeyboardPreset("premiere");
+        const auto premiere = gestures()->shortcutFor("splitAtPlayhead");
+        QVERIFY(premiere != before);
+        popup("clip", "clip-c");
+        QTRY_VERIFY(activeMenu && activeMenu->property("opened").toBool());
+        QCOMPARE(item("clipMenu-splitAtPlayhead")->property("shortcutText").toString(), premiere);
+        const auto bar = nt::app::shellMenuDescription("premiere");
+        QStringList shortcuts;
+        for (const auto& menu : bar) {
+            for (const auto& entry : menu.items) {
+                if (entry.action == "splitAtPlayhead") { shortcuts << entry.shortcut; }
+            }
+        }
+        QCOMPARE(shortcuts, QStringList{premiere});
+    }
+    void fitAndFillFrame() {
+        patch("c", {{"width", 320}, {"height", 360}, {"transform", QJsonObject{{"position", QJsonObject{{"x", 40}, {"y", 9}}},
+            {"scale", QJsonObject{{"x", -0.5}, {"y", 0.5}}}, {"rotation", 0.25}, {"anchor", QJsonObject{{"x", 0}, {"y", 1}}}}}});
+        const auto before = doc();
+        popup("clip", "clip-c"); trigger("registryMenu-clip-fillFrame");
+        auto transform = clip("c").value("transform").toObject();
+        // 320x360 in 640x360 is contained at half width, so the fill doubles it. The flip stays.
+        QCOMPARE(transform.value("scale").toObject(), QJsonObject({{"x", -2}, {"y", 2}}));
+        QCOMPARE(transform.value("position").toObject(), QJsonObject({{"x", 0}, {"y", 0}}));
+        QCOMPARE(transform.value("anchor").toObject(), QJsonObject({{"x", 0.5}, {"y", 0.5}}));
+        QCOMPARE(transform.value("rotation").toDouble(), 0.25);
+        QCOMPARE(model.undoStack()->count(), 1);
+        popup("clip", "clip-c"); trigger("registryMenu-clip-fitToFrame");
+        QCOMPARE(clip("c").value("transform").toObject().value("scale").toObject(), QJsonObject({{"x", -1}, {"y", 1}}));
+        QCOMPARE(model.undoStack()->count(), 2);
+        model.undoStack()->undo(); model.undoStack()->undo();
+        QCOMPARE(doc(), before);
+    }
+    void fitReplacesFramingKeyframes() {
+        const QJsonArray curves{QJsonObject{{"property", "scale"}, {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", 2}}}}},
+                                QJsonObject{{"property", "opacity"}, {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", 1}}}}}};
+        patch("c", {{"animations", QJsonArray{QJsonObject{{"id", "k"}, {"custom", QJsonObject{{"curves", curves}}}}}}});
+        gestures()->setSelection({"c"});
+        QVERIFY(gestures()->runAction("fitToFrame"));
+        const auto kept = clip("c").value("animations").toArray().first().toObject().value("custom").toObject().value("curves").toArray();
+        QCOMPARE(kept.size(), 1);
+        QCOMPARE(kept.first().toObject().value("property").toString(), QString("opacity"));
+    }
+    void frameItemsSayWhyTheyAreOff_data() {
+        QTest::addColumn<QString>("target");
+        QTest::addColumn<QJsonObject>("fields");
+        QTest::addColumn<bool>("fit");
+        QTest::addColumn<bool>("fill");
+        QTest::newRow("no-size") << "c" << QJsonObject{} << true << false;
+        QTest::newRow("sized") << "c" << QJsonObject{{"width", 100}, {"height", 100}} << true << true;
+        QTest::newRow("locked") << "c" << QJsonObject{{"width", 100}, {"height", 100}, {"locked", true}} << false << false;
+        QTest::newRow("audio") << "s" << QJsonObject{} << false << false;
+    }
+    void frameItemsSayWhyTheyAreOff() {
+        QFETCH(QString, target); QFETCH(QJsonObject, fields); QFETCH(bool, fit); QFETCH(bool, fill);
+        patch(target, fields);
+        popup("clip", "clip-" + target);
+        QTRY_VERIFY(activeMenu && activeMenu->property("opened").toBool());
+        auto* fitItem = item("registryMenu-clip-fitToFrame");
+        auto* fillItem = item("registryMenu-clip-fillFrame");
+        QVERIFY(fitItem && fillItem);
+        QCOMPARE(fitItem->isEnabled(), fit);
+        QCOMPARE(fillItem->isEnabled(), fill);
+        QCOMPARE(fitItem->property("reasonText").toString().isEmpty(), fit);
+        QCOMPARE(fillItem->property("reasonText").toString().isEmpty(), fill);
+        if (!fill) {
+            auto* reason = named(fillItem, "menuItemReason");
+            QVERIFY(reason && reason->isVisible());
+        }
+    }
+    void labelSubmenu() {
+        const auto before = doc();
+        gestures()->setSelection({"c", "e"});
+        auto* menu = popup("clip", "clip-c"); QVERIFY(menu);
+        QTRY_VERIFY(menu->property("opened").toBool());
+        QVERIFY(entries(menu).contains("clipMenu-label:Label"));
+        auto* row = item("clipMenu-label"); QVERIFY(row);
+        auto* arrow = named(row, "menuItemSubmenuArrow");
+        QVERIFY(arrow && arrow->isVisible());
+        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(row));
+        QTRY_VERIFY(item("clipLabelMenu-clipLabel.red") && item("clipLabelMenu-clipLabel.red")->isVisible());
+        QTRY_VERIFY(item("clipLabelMenu-clipLabel.red")->width() > 0);
+        // The submenu opens beside its row, not somewhere else in the window.
+        const auto rowRight = row->mapToScene({row->width(), row->height() / 2});
+        const auto redLeft = item("clipLabelMenu-clipLabel.red")->mapToScene({0, 0});
+        QVERIFY2(std::abs(redLeft.x() - rowRight.x()) < 40, qPrintable(QString::number(redLeft.x() - rowRight.x())));
+        QVERIFY2(std::abs(redLeft.y() - rowRight.y()) < 120, qPrintable(QString::number(redLeft.y() - rowRight.y())));
+        QSignalSpy frame(view.get(), &QQuickWindow::frameSwapped);
+        view->update();
+        QVERIFY(!frame.isEmpty() || frame.wait(1000));
+        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(item("clipLabelMenu-clipLabel.red")));
+        QCoreApplication::processEvents();
+        // The clip menu names its clip, as its other items do. One edit, one undo entry.
+        QCOMPARE(clip("c").value("labelColor").toString(), QString("#E5484D"));
+        QVERIFY(!clip("e").contains("labelColor"));
+        QCOMPARE(model.undoStack()->count(), 1);
+        auto* tint = named(item("clip-c"), "clipTint"); QVERIFY(tint);
+        QTRY_COMPARE(tint->property("color").value<QColor>().rgb(), QColor("#E5484D").rgb());
+        popup("clip", "clip-c");
+        QTRY_VERIFY(activeMenu && activeMenu->property("opened").toBool());
+        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(item("clipMenu-label")));
+        QTRY_VERIFY(item("clipLabelMenu-clipLabel.red"));
+        QVERIFY(item("clipLabelMenu-clipLabel.red")->property("checked").toBool());
+        QVERIFY(!item("clipLabelMenu-clipLabel.none")->property("checked").toBool());
+        QVERIFY(QMetaObject::invokeMethod(activeMenu, "close"));
+        QVERIFY(gestures()->runAction("clipLabel.none", {{"clipIds", QStringList{"c"}}}));
+        QVERIFY(!clip("c").contains("labelColor"));
+        model.undoStack()->undo(); model.undoStack()->undo();
+        QCOMPARE(doc(), before);
+    }
+    void clipLabelSurvivesAParseAndAnEmptyTarget() {
+        patch("c", {{"labelColor", "#3E63DD"}});
+        const auto raw = doc();
+        auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson()); QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        QCOMPARE(clip("c").value("labelColor").toString(), QString("#3E63DD"));
+        gestures()->setSelection({});
+        QVERIFY(!gestures()->runAction("clipLabel.red"));
+        QCOMPARE(clip("c").value("labelColor").toString(), QString("#3E63DD"));
+        // The field audit knows the field.
+        const auto audit = QJsonDocument(nt::server::auditTimelineFields(raw)).toJson(QJsonDocument::Compact);
+        QVERIFY2(!audit.contains("labelColor"), audit.constData());
+    }
+    void addMarkerFromTheClipMenu() {
+        const auto before = doc();
+        popup("clip", "clip-c"); trigger("registryMenu-clip-addMarker");
+        const auto markers = model.markersJson();
+        QCOMPARE(markers.size(), 1);
+        QCOMPARE(markers.first().toObject().value("timeMs").toDouble(), 1500.0);
+        QCOMPARE(model.undoStack()->count(), 1);
+        model.undoStack()->undo();
+        QVERIFY(model.markersJson().isEmpty());
+        QCOMPARE(doc().value("clips"), before.value("clips"));
+    }
+    void revealNamesTheClickedClip() {
+        patch("c", {{"currentAssetId", "asset-c"}});
+        clock.seek(5500);  // Over another clip, so a playhead lookup would find no asset.
+        popup("clip", "clip-c");
+        QTRY_VERIFY(activeMenu && activeMenu->property("opened").toBool());
+        QVERIFY(item("registryMenu-clip-revealInProject")->isEnabled());
+        QVERIFY(QMetaObject::invokeMethod(activeMenu, "close"));
+        QTRY_VERIFY(!activeMenu->property("visible").toBool());
+        QVERIFY(gestures()->runAction("revealInProject", {{"clipIds", QStringList{"c"}}}));
+        QVERIFY(!gestures()->runAction("revealInProject", {{"clipIds", QStringList{"d"}}}));
+        popup("clip", "clip-d");
+        QTRY_VERIFY(activeMenu && activeMenu->property("opened").toBool());
+        auto* off = item("registryMenu-clip-revealInProject");
+        QVERIFY(!off->isEnabled());
+        QVERIFY(!off->property("reasonText").toString().isEmpty());
+    }
+    void gapMenuSelectsAndRippleDeletes() {
+        const auto before = doc();
+        gestures()->setSelection({"e"});
+        auto* menu = popup("lane", "trackLane-v", 400); QVERIFY(menu);
+        QTRY_VERIFY(menu->property("opened").toBool());
+        // The right-click selects the gap, as a click does.
+        QCOMPARE(gestures()->selectedGap().value("trackId").toString(), QString("v"));
+        QVERIFY(gestures()->selection().isEmpty());
+        QVERIFY(item("selectedGap-v")->isVisible());
+        auto* entry = item("registryMenu-gap-rippleDeleteSelected"); QVERIFY(entry);
+        QCOMPARE(entry->property("shortcutText").toString(), gestures()->shortcutFor("rippleDeleteSelected"));
+        QVERIFY(!entry->property("shortcutText").toString().isEmpty());
+        QVERIFY(QMetaObject::invokeMethod(menu, "close"));
+        QTRY_VERIFY(!menu->property("visible").toBool());
+        popup("lane", "trackLane-v", 400);
+        trigger("registryMenu-gap-rippleDeleteSelected");
+        QCOMPARE(clip("d").value("startMs").toDouble(), 3000.0);
+        QVERIFY(gestures()->selectedGap().isEmpty());
+        QCOMPARE(model.undoStack()->count(), 1);
+        model.undoStack()->undo(); QCOMPARE(doc(), before);
+        // A press on a clip-free lane past the last clip offers no gap.
+        popup("lane", "trackLane-v", 800);
+        QVERIFY(gestures()->selectedGap().isEmpty());
+    }
+    void rulerMarks() {
+        gestures()->viewState()->clearRange();
+        auto* menu = popup("ruler", "timeRuler"); QVERIFY(menu);
+        QTRY_VERIFY(menu->property("opened").toBool());
+        auto* goToIn = item("registryMenu-ruler-goToIn"); QVERIFY(goToIn);
+        QVERIFY(!goToIn->isEnabled());
+        QCOMPARE(goToIn->property("reasonText").toString(), QString("Set an In point first."));
+        QVERIFY(!item("registryMenu-ruler-clearRange")->isEnabled());
+        QCOMPARE(item("registryMenu-ruler-markIn")->property("shortcutText").toString(), gestures()->shortcutFor("markIn"));
+        trigger("registryMenu-ruler-markIn");
+        QCOMPARE(gestures()->viewState()->rangeInMs(), 1500.0);
+        QCOMPARE(model.undoStack()->count(), 0);
+        clock.seek(9000);
+        popup("ruler", "timeRuler");
+        QTRY_VERIFY(activeMenu && activeMenu->property("opened").toBool());
+        QVERIFY(item("registryMenu-ruler-goToIn")->isEnabled());
+        QVERIFY(!item("registryMenu-ruler-goToOut")->isEnabled());
+        trigger("registryMenu-ruler-goToIn");
+        QCOMPARE(clock.time(), 1500.0);
+        popup("ruler", "timeRuler"); trigger("registryMenu-ruler-addMarker");
+        QCOMPARE(model.markersJson().size(), 1);
+        QCOMPARE(model.undoStack()->count(), 1);
+        popup("ruler", "timeRuler"); trigger("registryMenu-ruler-clearRange");
+        QCOMPARE(gestures()->viewState()->rangeInMs(), -1.0);
+    }
+    void editPointMenu() {
+        // c ends where d starts, so this cut has a clip on both sides.
+        patch("d", {{"startMs", 3000}});
+        const auto before = doc();
+        auto* edge = named(item("clip-c"), "clipTrimEnd"); QVERIFY(edge);
+        const auto rightClickEdge = [&](QQuickItem* target) {
+            QTest::mouseClick(view.get(), Qt::RightButton, Qt::NoModifier, center(target));
+            QCoreApplication::processEvents();
+            activeMenu = item("trackLane-v")->findChild<QObject*>("registryContextMenu-editPoint");
+        };
+        rightClickEdge(edge);
+        QTRY_VERIFY(activeMenu && activeMenu->property("opened").toBool());
+        QCOMPARE(entries(activeMenu), QStringList({"registryMenu-editPoint-editPoint.rippleIn:Ripple trim in",
+            "registryMenu-editPoint-editPoint.rippleOut:Ripple trim out", "registryMenu-editPoint-editPoint.roll:Roll edit",
+            "registryMenu-editPoint-editPoint.trimIn:Trim in", "registryMenu-editPoint-editPoint.trimOut:Trim out",
+            "registryMenuGroup-editPoint-transition:", "registryMenu-editPoint-applyDefaultTransition:Apply default transition"}));
+        trigger("registryMenu-editPoint-editPoint.roll");
+        QCOMPARE(gestures()->selectedEdit().value("clipId").toString(), QString("c"));
+        QCOMPARE(gestures()->selectedEdit().value("edge").toString(), QString("end"));
+        QCOMPARE(gestures()->activeTool(), QString("roll"));
+        QCOMPARE(model.undoStack()->count(), 0);
+        // The checkmark shows the current type when the menu opens again.
+        rightClickEdge(edge);
+        QTRY_VERIFY(activeMenu->property("opened").toBool());
+        QVERIFY(item("registryMenu-editPoint-editPoint.roll")->property("checked").toBool());
+        QVERIFY(!item("registryMenu-editPoint-editPoint.trimOut")->property("checked").toBool());
+        QVERIFY(QMetaObject::invokeMethod(activeMenu, "close"));
+        QTRY_VERIFY(!activeMenu->property("visible").toBool());
+        // The selected type is what the trim keys do: a roll moves both sides of the cut.
+        view->rootObject()->forceActiveFocus();
+        QVERIFY(gestures()->runAction("trimEditRight"));
+        QVERIFY(clip("c").value("durationMs").toDouble() > 2000);
+        QCOMPARE(clip("d").value("startMs").toDouble(), clip("c").value("startMs").toDouble() + clip("c").value("durationMs").toDouble());
+        QCOMPARE(model.undoStack()->count(), 1);
+        model.undoStack()->undo(); QCOMPARE(doc(), before);
+        gestures()->setActiveTool("select");
+        // Ripple moves the later clips.
+        rightClickEdge(edge);
+        trigger("registryMenu-editPoint-editPoint.rippleOut");
+        QCOMPARE(gestures()->activeTool(), QString("ripple"));
+        QVERIFY(gestures()->runAction("trimEditLeft"));
+        QVERIFY(clip("d").value("startMs").toDouble() < 3000);
+        model.undoStack()->undo(); QCOMPARE(doc(), before);
+        gestures()->setActiveTool("select");
+        // The default transition goes on the clip after the cut, as one entry.
+        rightClickEdge(edge);
+        trigger("registryMenu-editPoint-applyDefaultTransition");
+        QVERIFY(clip("d").contains("transitionIn"));
+        QVERIFY(!clip("c").contains("transitionIn"));
+        QCOMPARE(model.undoStack()->count(), 1);
+        model.undoStack()->undo(); QCOMPARE(doc(), before);
+    }
+    void editPointMenuAtTheEndOfAGap() {
+        auto* edge = named(item("clip-c"), "clipTrimEnd"); QVERIFY(edge);
+        QTest::mouseClick(view.get(), Qt::RightButton, Qt::NoModifier, center(edge));
+        activeMenu = item("trackLane-v")->findChild<QObject*>("registryContextMenu-editPoint");
+        QTRY_VERIFY(activeMenu && activeMenu->property("opened").toBool());
+        for (const auto* action : {"editPoint.rippleIn", "editPoint.roll", "editPoint.trimIn", "applyDefaultTransition"}) {
+            auto* entry = item(QString("registryMenu-editPoint-") + action); QVERIFY(entry);
+            QVERIFY2(!entry->isEnabled(), action);
+            QVERIFY2(!entry->property("reasonText").toString().isEmpty(), action);
+        }
+        QVERIFY(item("registryMenu-editPoint-editPoint.rippleOut")->isEnabled());
+        QVERIFY(item("registryMenu-editPoint-editPoint.trimOut")->isEnabled());
+        QVERIFY(QMetaObject::invokeMethod(activeMenu, "close"));
+        // A locked clip's edge keeps the clip menu.
+        patch("c", {{"locked", true}});
+        QTest::mouseClick(view.get(), Qt::RightButton, Qt::NoModifier, center(edge));
+        QCoreApplication::processEvents();
+        QVERIFY(!activeMenu->property("visible").toBool());
+    }
+    // Every item of every menu names an action the editor has.
+    void everyMenuItemNamesAKnownAction() {
+        const auto problems = unknownActions(nt::app::shellMenuEntries());
+        QVERIFY2(problems.isEmpty(), qPrintable(problems.join(", ")));
+        // The check works: it names an action no one registered.
+        QCOMPARE(unknownActions({{"Edit", "no.such.action", "Nothing"}}), QStringList{"Edit: no.such.action"});
+        // The same for the items of the context menus.
+        MenuRegistry registry;
+        const auto known = ClipGestureController::availableActions();
+        int inspected = 0;
+        for (const auto* kind : {"clip", "track", "lane", "ruler", "asset", "marker", "gap", "editPoint"}) {
+            for (const auto& value : registry.query(kind, {})) {
+                ++inspected;
+                const auto action = value.toMap().value("action").toString();
+                QVERIFY2(known.contains(action), qPrintable(QString(kind) + ": " + action));
+            }
+        }
+        QVERIFY(inspected > 30);
+        // And for the items QML adds, while the menus are open.
+        for (const auto& [kind, target] : std::vector<std::pair<QString, QString>>{{"clip", "clip-c"}}) {
+            auto* menu = popup(kind, target); QVERIFY(menu);
+            QTRY_VERIFY(menu->property("opened").toBool());
+            int named = 0;
+            for (int i = 0; i < menu->property("count").toInt(); ++i) {
+                QQuickItem* entry = nullptr;
+                QVERIFY(QMetaObject::invokeMethod(menu, "itemAt", Q_RETURN_ARG(QQuickItem*, entry), Q_ARG(int, i)));
+                const auto action = entry->property("actionName").toString();
+                if (action.isEmpty()) { continue; }
+                ++named;
+                QVERIFY2(known.contains(action), qPrintable(action));
+            }
+            QVERIFY(named > 8);
+        }
+    }
+    void everyMenuBarItemRunsOrSaysWhy_data() {
+        QTest::addColumn<bool>("rich");
+        QTest::newRow("nothing-selected") << false;
+        QTest::newRow("everything-available") << true;
+    }
+    // An enabled item runs. A disabled one gives its reason.
+    void everyMenuBarItemRunsOrSaysWhy() {
+        QFETCH(bool, rich);
+        nt::app::ShellMenus menus;
+        menus.setAnchor(view->rootObject());
+        const auto context = [&] {
+            return QVariantMap{{"kind", "shell"}, {"gestures", QVariant::fromValue<QObject*>(gestures())},
+                               {"timeline", QVariant::fromValue<QObject*>(&model)}};
+        };
+        auto* store = qobject_cast<DockLayoutStore*>(view->rootObject()->property("dockStore").value<QObject*>());
+        const auto workspace = store->workspace();
+        auto* source = qmlEngine(gestures())->singletonInstance<QObject*>("NodeTool.Timeline", "SourceViewerState");
+        if (rich) {
+            model.applyEdit("addMarker", {{"id", "m"}, {"timeMs", 1500}});
+            patch("c", {{"mediaType", "video"}, {"width", 100}, {"height", 100}, {"fadeInMs", 100}, {"linkId", "pair"},
+                        {"currentAssetId", "asset-c"}, {"transitionIn", QJsonObject{{"type", "crossfade"}, {"durationMs", 200}}}});
+            patch("e", {{"linkId", "pair"}, {"currentAssetId", "asset-e"}});
+            source->setProperty("asset", QVariantMap{{"id", "asset-c"}, {"name", "Clip"}, {"content_type", "video/*"}, {"duration", 5}});
+        }
+        const auto base = doc();
+        const int baseIndex = model.undoStack()->index();
+        // Undo puts the document back, far faster than loading it again for each item.
+        const auto reset = [&] {
+            while (model.undoStack()->index() > baseIndex) { model.undoStack()->undo(); }
+            if (doc() != base) { restore(base); }
+            nt::edit::clipboard::clearClipClipboard();
+            gestures()->setSelection({});
+            gestures()->setActiveTool("select");
+            gestures()->viewState()->clearRange();
+            clock.pause();
+            clock.seek(1500);
+            if (store->workspace() != workspace) { store->switchWorkspace(int(store->workspaces().indexOf(workspace))); }
+            if (!rich) { return; }
+            gestures()->setSelection({"c", "e"});
+            QVERIFY(gestures()->runAction("copy"));
+            gestures()->selectEdit("c", "end");
+            gestures()->viewState()->setRangeIn(1200);
+            gestures()->viewState()->setRangeOut(1800);
+        };
+        reset();
+        QStringList problems;
+        int ran = 0, off = 0;
+        const auto visit = [&](auto&& self, const std::vector<nt::app::ShellMenuItem>& items, const QString& path) -> void {
+            for (const auto& entry : items) {
+                if (entry.separator) { continue; }
+                const auto name = path + " > " + entry.label;
+                if (!entry.children.empty()) { self(self, entry.children, name); continue; }
+                if (!entry.enabled) {
+                    ++off;
+                    if (entry.disabledReason.isEmpty()) { problems << name + " is off with no reason"; }
+                    continue;
+                }
+                // Quitting ends this test, and the recent list needs the settings file of a person.
+                if (entry.action == "quit" || entry.action == "clearRecent") { continue; }
+                ++ran;
+                if (!menus.trigger(entry.action)) { problems << name + " (" + entry.action + ") is on and did not run"; }
+                if (entry.action == "toggleProgramFullscreen") { menus.trigger(entry.action); }
+                reset();
+            }
+        };
+        // The list is read once: running an item changes only what reset() restores.
+        for (const auto& menu : nt::app::shellMenuDescription("nodetool", {}, context())) {
+            visit(visit, menu.items, menu.label);
+        }
+        QVERIFY2(problems.isEmpty(), qPrintable(problems.join("\n")));
+        QVERIFY(ran > 40);
+        if (rich) { QVERIFY2(off < 8, qPrintable(QString::number(off))); } else { QVERIFY(off > 10); }
+        source->setProperty("asset", QVariantMap{});
+    }
+    void toggleItemsShowACheckmark() {
+        const auto find = [&](const QString& action) {
+            const QVariantMap context{{"kind", "shell"}, {"gestures", QVariant::fromValue<QObject*>(gestures())},
+                                      {"timeline", QVariant::fromValue<QObject*>(&model)}};
+            nt::app::ShellMenuItem found;
+            const auto visit = [&](auto&& self, const std::vector<nt::app::ShellMenuItem>& items) -> void {
+                for (const auto& entry : items) {
+                    if (entry.action == action) { found = entry; }
+                    self(self, entry.children);
+                }
+            };
+            for (const auto& menu : nt::app::shellMenuDescription("nodetool", {}, context)) { visit(visit, menu.items); }
+            return found;
+        };
+        const auto snap = gestures()->snapEnabled();
+        QVERIFY(find("toggleSnap").checkable);
+        QCOMPARE(find("toggleSnap").checked, snap);
+        gestures()->setSnapEnabled(!snap);
+        QCOMPARE(find("toggleSnap").checked, !snap);
+        gestures()->setSnapEnabled(snap);
+        QVERIFY(find("rippleTool").checkable);
+        QVERIFY(!find("rippleTool").checked);
+        gestures()->setActiveTool("ripple");
+        QVERIFY(find("rippleTool").checked);
+        gestures()->setActiveTool("select");
+        QVERIFY(find("toggleLoop").checkable);
+        QVERIFY(find("panelTimeline").checked);
+        QVERIFY(find("workspace1").checked);
+        QVERIFY(!find("workspace2").checked);
+        gestures()->setSelection({"c"});
+        QVERIFY(find("toggleClipEnabled").checked);
+        patch("c", {{"hidden", true}});
+        QVERIFY(!find("toggleClipEnabled").checked);
+        QVERIFY(!find("clipLabel.red").checked);
+        QVERIFY(find("clipLabel.none").checked);
+    }
+    void windowMenuListsPanelsAndWorkspaces() {
+        nt::app::ShellMenus menus;
+        menus.setAnchor(view->rootObject());
+        const auto& entries = nt::app::shellMenuEntries();
+        const auto store = qobject_cast<DockLayoutStore*>(view->rootObject()->property("dockStore").value<QObject*>());
+        QStringList names;
+        for (int i = 1; i <= store->workspaces().size(); ++i) {
+            for (const auto& entry : entries) {
+                if (entry.action == "workspace" + QString::number(i)) { names << entry.label; }
+            }
+        }
+        // The labels are in the order the workspace actions switch through.
+        QCOMPARE(names, store->workspaces());
+        QVERIFY(menus.trigger("workspace5"));
+        QCOMPARE(store->workspace(), store->workspaces().at(4));
+        QVERIFY(menus.trigger("workspace1"));
+        // A panel added since gets its row in the later pass, so one missing here only warns.
+        for (const auto& value : view->rootObject()->property("dockPanels").value<QJSValue>().toVariant().toList()) {
+            const auto title = value.toMap().value("title").toString();
+            const bool listed = std::any_of(entries.begin(), entries.end(), [&](const auto& entry) {
+                return entry.menu == "Window" && entry.label == title;
+            });
+            if (!listed) { qWarning() << "The Window menu does not list the panel" << title; }
+        }
+        QVERIFY(menus.trigger("panelMarkers"));
+        QTRY_VERIFY(!store->layout().value("hidden").toStringList().contains("markers"));
+    }
+    // With NT_MENU_SHOTS set to a folder, saves how the new menus look, for a person to check.
+    void menuPictures() {
+        const auto folder = qEnvironmentVariable("NT_MENU_SHOTS");
+        if (folder.isEmpty()) { QSKIP("NT_MENU_SHOTS is not set"); }
+        const auto save = [&](const QString& name) {
+            QSignalSpy frame(view.get(), &QQuickWindow::frameSwapped);
+            view->update();
+            QCoreApplication::processEvents();
+            frame.wait(500);
+            QVERIFY(view->grabWindow().save(folder + "/" + name + ".png"));
+        };
+        patch("c", {{"labelColor", "#E5484D"}, {"width", 320}, {"height", 360}});
+        patch("e", {{"labelColor", "#3E63DD"}, {"locked", true}});
+        auto* menu = popup("clip", "clip-c"); QVERIFY(menu);
+        QTRY_VERIFY(menu->property("opened").toBool());
+        save("clip-menu");
+        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(item("clipMenu-label")));
+        QTRY_VERIFY(item("clipLabelMenu-clipLabel.red"));
+        save("clip-label-submenu");
+        QVERIFY(QMetaObject::invokeMethod(menu, "close"));
+        QTRY_VERIFY(!menu->property("visible").toBool());
+        menu = popup("clip", "clip-e"); QVERIFY(menu);
+        QTRY_VERIFY(menu->property("opened").toBool());
+        save("clip-menu-locked");
+        QVERIFY(QMetaObject::invokeMethod(menu, "close"));
+        QTRY_VERIFY(!menu->property("visible").toBool());
+        menu = popup("ruler", "timeRuler"); QVERIFY(menu);
+        QTRY_VERIFY(menu->property("opened").toBool());
+        save("ruler-menu");
+        QVERIFY(QMetaObject::invokeMethod(menu, "close"));
+        QTRY_VERIFY(!menu->property("visible").toBool());
+        menu = popup("lane", "trackLane-v", 400); QVERIFY(menu);
+        QTRY_VERIFY(menu->property("opened").toBool());
+        save("gap-menu");
+        QVERIFY(QMetaObject::invokeMethod(menu, "close"));
+        QTRY_VERIFY(!menu->property("visible").toBool());
+        QTest::mouseClick(view.get(), Qt::RightButton, Qt::NoModifier, center(named(item("clip-c"), "clipTrimEnd")));
+        menu = item("trackLane-v")->findChild<QObject*>("registryContextMenu-editPoint"); QVERIFY(menu);
+        QTRY_VERIFY(menu->property("opened").toBool());
+        save("edit-point-menu");
     }
     // These two change the registry for the rest of the process, so they stay last.
     void groupsAndOrderInRulerMenu() {
         MenuRegistry registry;
-        nt::app::registerMenuItem({"ruler", "selectAll", "Select all clips", "Ctrl+A", {}});  // no group; may be registered already
+        nt::app::registerMenuItem({"ruler", "selectAll", "Select all clips", "Ctrl+A", {}, "zExtension", 200});  // may be registered already
         QVERIFY(nt::app::registerMenuItem({"ruler", "test.ruler.later", "Later", {}, {}, "second", 30}));
-        QVERIFY(nt::app::registerMenuItem({"ruler", "test.ruler.first", "First", {}, {}, "first", -20}));
+        QVERIFY(nt::app::registerMenuItem({"ruler", "test.ruler.first", "First", {}, {}, "first", 20}));
         QVERIFY(nt::app::registerMenuItem({"ruler", "test.ruler.alsoFirst", "Also first", {}, {}, "first", 40}));
         QVERIFY(nt::app::registerMenuItem({"ruler", "test.ruler.tick", "Tick", {}, {}, "second", 50,
             [](const QVariantMap&) { return true; }}));
