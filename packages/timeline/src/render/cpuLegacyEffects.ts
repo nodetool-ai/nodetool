@@ -203,7 +203,9 @@ export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly Cli
         for (let c = 0; c < 4; c++) bright[i + c] = Math.round(input[i + c]! * coverage);
       }
       const blurred = gaussian(bright, width, height, effect.radius);
-      for (let i = 0; i < input.length; i++) output[i] = Math.round(input[i]! + blurred[i]! * effect.intensity);
+      const color = parseCssColorOrBlack(effect.color ?? "#ffffff");
+      const tint = [color.r, color.g, color.b, 1];
+      for (let i = 0; i < input.length; i++) output[i] = Math.round(input[i]! + blurred[i]! * effect.intensity * (tint[i % 4] ?? 1));
       unpremultiply(output, data);
       continue;
     }

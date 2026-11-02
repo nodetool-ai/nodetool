@@ -474,6 +474,17 @@ private slots:
         QVERIFY(!shadow.isNull()); QVERIFY(shadow.pixelColor(51,16).red()>245); QCOMPARE(shadow.pixelColor(51,16).green(),0);
         QCOMPARE(shadow.pixelColor(10,16),QColor(Qt::black));
     }
+    void glowTintPixels() {
+        QImage source(64,32,QImage::Format_RGBA8888_Premultiplied); source.fill(Qt::black);
+        for (int y=8;y<24;++y) { for (int x=24;x<40;++x) { source.setPixelColor(x,y,Qt::white); } }
+        const auto red=effectStill({effect("glow",{{"radius",8},{"intensity",1},{"color","#ff0000"}})},source);
+        const auto blue=effectStill({effect("glow",{{"radius",8},{"intensity",1},{"color","#0000ff"}})},source);
+        QVERIFY(!red.isNull()); QVERIFY(!blue.isNull());
+        QVERIFY(red.pixelColor(22,16).red()>0);
+        QCOMPARE(red.pixelColor(22,16).green(),0); QCOMPARE(red.pixelColor(22,16).blue(),0);
+        QVERIFY(blue.pixelColor(22,16).blue()>0); QCOMPARE(blue.pixelColor(22,16).red(),0);
+        QCOMPARE(red.pixelColor(32,16),QColor(Qt::white));
+    }
     void groupEffectAlpha() {
         QImage source(64,32,QImage::Format_RGBA8888_Premultiplied); source.fill(QColor(64,128,192));
         const auto image=effectStill({effect("color",{{"brightness",0.2}})},source,true);

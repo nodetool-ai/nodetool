@@ -18,7 +18,8 @@ export const GlowParams = d.struct({
   threshold: d.f32,
   softness: d.f32,
   radius: d.f32,
-  intensity: d.f32
+  intensity: d.f32,
+  tint: d.vec3f
 });
 
 // Inlined WebGPU `GPUTextureUsage` flags. The named constants are runtime
@@ -35,7 +36,7 @@ export const filtersGlowV1 = defineRecipe({
   version: 1,
   surface: "internal",
   category: "filters",
-  paramDefaults: { threshold: 0.7, softness: 0.1, radius: 8, intensity: 1 },
+  paramDefaults: { threshold: 0.7, softness: 0.1, radius: 8, intensity: 1, tint: d.vec3f(1, 1, 1) },
   paramUi: {
     threshold: { min: 0, max: 1, step: 0.01, label: "Threshold" },
     softness: { min: 0, max: 0.5, step: 0.01, label: "Softness" },
@@ -98,7 +99,7 @@ export const filtersGlowV1 = defineRecipe({
           over: { kind: "intermediate", name: "blurV" }
         },
         out: "output",
-        params: { gain: "$.intensity" }
+        params: { gain: "$.intensity", tint: "$.tint" }
       }
     ]
   }

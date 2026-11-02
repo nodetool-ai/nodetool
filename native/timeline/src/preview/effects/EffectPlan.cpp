@@ -323,6 +323,8 @@ std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEf
             p.op = glow ? Op::Add : Op::Shadow;
             if (glow) {
                 v[0] = f(e, "intensity", 1);
+                const auto tint = color(e, "color", "#ffffff");
+                std::copy(tint.begin(), tint.end(), v.begin() + 1);
             } else {
                 const auto rgb = color(e);
                 std::copy(rgb.begin(), rgb.end(), v.begin());

@@ -18,7 +18,7 @@ Check an item only after its implementation and relevant verification pass. Each
 - [ ] F38: Add vignette center and roundness controls.
 - [ ] F39: Preview track effects live with commit/cancel transactions.
 - [ ] F40: Make sharpen radius affect rendering.
-- [ ] F41: Apply glow color to the bloom contribution.
+- [x] F41: Apply glow color to the bloom contribution. Native D3D11, shared GPU and CPU halo tests pass. White/absent tint preserves source-colored glow, and the source image remains unchanged. GPU alpha checks pass.
 - [ ] F42: Render authored tone curves faithfully.
 - [ ] F43: Remove gaps from large-radius blur kernels.
 - [ ] F44: Make processing order explicit and consistent.

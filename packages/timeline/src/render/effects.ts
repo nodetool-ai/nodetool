@@ -463,14 +463,13 @@ export class WebGPUEffectsProcessor {
       return;
     }
     if (isClipGlowEffect(effect)) {
-      // `color` tints the bloom, which `filters.glow@1` has no knob for; the
-      // bloom takes the source's own colour. Threshold and softness are the
-      // recipe's defaults, which is what `lib.image.effects.Glow` ships.
+      const [r, g, b] = colorChannels(effect.color ?? "#ffffff");
       stepRecipe(filtersGlowV1, {
         threshold: filtersGlowV1.paramDefaults.threshold,
         softness: filtersGlowV1.paramDefaults.softness,
         radius: effect.radius,
-        intensity: effect.intensity
+        intensity: effect.intensity,
+        tint: d.vec3f(r, g, b)
       });
       return;
     }

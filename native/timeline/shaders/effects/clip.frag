@@ -360,7 +360,7 @@ void main() {
         float t=smoothstep(p[0].x-max(p[0].y,0.0001),p[0].x+max(p[0].y,0.0001),dot(rgb,vec3(0.299,0.587,0.114)));
         fragColor=src*t; return;
     } else if (op==16) { fragColor=vec4(0,0,0,src.a); return; }
-    else if (op==17) { fragColor=clamp(src+texture(second,oriented(uv))*p[0].x,0,1); return; }
+    else if (op==17) { fragColor=clamp(src+texture(second,oriented(uv))*vec4(p[0].yzw,1)*p[0].x,0,1); return; }
     else if (op==18) {
         vec2 shadowUv=uv-p[1].xy/dimensions.xy;
         vec2 first=geometry.w>0.5 ? origin.xy/dimensions.xy : vec2(0);
