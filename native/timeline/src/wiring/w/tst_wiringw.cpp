@@ -212,6 +212,13 @@ private slots:
         QCOMPARE(doc(), before);
         QCOMPARE(model.undoStack()->count(), undoCount);
         knob->setEnabled(true);
+        QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, from);
+        QTest::mouseMove(view.get(), from - QPoint(0, 10), 20);
+        QVERIFY(doc() != before);
+        QTest::keyClick(view.get(), Qt::Key_Escape);
+        QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, from - QPoint(0, 10));
+        QCOMPARE(doc(), before);
+        QCOMPARE(model.undoStack()->count(), undoCount);
     }
     void cancelCurveDragRestoresDraft_data() {
         QTest::addColumn<QString>("effectType");
@@ -354,6 +361,39 @@ private slots:
         QTRY_VERIFY(effects(trackId)[0].toObject().value(field) != effect.value(field));
         QCOMPARE(model.undoStack()->count(), 2);
         click("undoButton"); QCOMPARE(doc(), before);
+    }
+    void numericParameterEditing() {
+        click("track-fx-a"); add("gain");
+        const auto id = effectId();
+        const auto fieldName = "fx-value-" + id + "-gainDb";
+        const int before = model.undoStack()->count();
+        const auto typeValue = [&](const QByteArray& text) {
+            QTRY_VERIFY(item(fieldName));
+            click(fieldName);
+            QTest::keyClick(view.get(), Qt::Key_A, Qt::ControlModifier);
+            for (const char ch : text) { QTest::keyClick(view.get(), ch); }
+        };
+        typeValue("3.5");
+        QCOMPARE(effects()[0].toObject()["gainDb"].toDouble(), 3.5);
+        QCOMPARE(model.undoStack()->count(), before);
+        QTest::keyClick(view.get(), Qt::Key_Return);
+        QCOMPARE(model.undoStack()->count(), before + 1);
+        model.undoStack()->undo(); QCOMPARE(effects()[0].toObject()["gainDb"].toDouble(), 0.0);
+        model.undoStack()->redo(); QCOMPARE(effects()[0].toObject()["gainDb"].toDouble(), 3.5);
+        typeValue("999");
+        QTest::keyClick(view.get(), Qt::Key_Return);
+        QCOMPARE(model.undoStack()->count(), before + 1);
+        QTest::keyClick(view.get(), Qt::Key_Escape);
+        QCOMPARE(effects()[0].toObject()["gainDb"].toDouble(), 3.5);
+        typeValue("-2.4");
+        QTest::keyClick(view.get(), Qt::Key_Escape);
+        QCOMPARE(effects()[0].toObject()["gainDb"].toDouble(), 3.5);
+        const bool wasPlaying = clock.playing();
+        click(fieldName);
+        QTest::keyClick(view.get(), Qt::Key_Space);
+        QCOMPARE(clock.playing(), wasPlaying);
+        QTest::keyClick(view.get(), Qt::Key_Escape);
+        QCOMPARE(model.undoStack()->count(), before + 1);
     }
     void speedDuration() {
         click("timeRuler"); QTest::keyClick(view.get(), Qt::Key_R, Qt::ControlModifier);
