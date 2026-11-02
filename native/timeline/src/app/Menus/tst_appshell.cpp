@@ -182,43 +182,35 @@ Item {
         }
     }
     void viewMenuRunsItsTimelineCommandWhileTyping() {
-        QQmlEngine engine;
-        QQmlComponent component(&engine);
+        TimelineModel model;
+        PlaybackClock clock;
+        QQuickView view;
+        loadEditor(view, model, clock);
+        auto* root = view.rootObject();
+        QVERIFY(root);
+        QQmlComponent component(view.engine());
         component.setData(R"(import QtQuick
 import NodeTool.UiPrimitives as Ui
-Item {
-    id: root
-    property bool timeline: true
-    property int zoomCount: 0
-    property string draft: "Clip"
-    width: 300; height: 100
-    Keys.onPressed: event => {
-        if (event.key === Qt.Key_Minus) { zoomCount++; event.accepted = true }
-        else event.accepted = false
-    }
-    Ui.TextField {
-        objectName: "rename"; width: 200; value: root.draft
-        onValueCommitted: next => root.draft = next
-    }
-})", QUrl());
-        std::unique_ptr<QObject> surface(component.create());
-        QVERIFY2(surface, qPrintable(component.errorString()));
-        auto* root = qobject_cast<QQuickItem*>(surface.get());
-        QVERIFY(root);
-        QQuickWindow window;
-        window.resize(300, 100);
-        root->setParentItem(window.contentItem());
-        window.show();
-        QVERIFY(QTest::qWaitForWindowExposed(&window));
-        auto* input = root->findChild<QQuickItem*>("rename");
+Ui.TextField { property string draft: "Clip"; width: 200; value: draft; onValueCommitted: next => draft = next })", QUrl());
+        std::unique_ptr<QObject> field(component.create());
+        QVERIFY2(field, qPrintable(component.errorString()));
+        auto* input = qobject_cast<QQuickItem*>(field.get());
         QVERIFY(input);
+        input->setParentItem(root);
         input->forceActiveFocus();
-        QTest::keyClick(&window, Qt::Key_End);
+        QTest::keyClick(&view, Qt::Key_End);
+        QTest::keyClick(&view, Qt::Key_S);
+        auto* gestures = root->findChild<ClipGestureController*>("clipGestures");
+        QVERIFY(gestures);
+        auto* state = gestures->viewState();
+        QVERIFY(state);
+        const double zoom = state->msPerPx();
         ShellMenus menus;
         menus.setAnchor(root);
-        QVERIFY(menus.trigger("zoomOut"));
-        QCOMPARE(root->property("zoomCount").toInt(), 1);
-        QCOMPARE(input->property("text").toString(), QString("Clip"));
+        QVERIFY(menus.trigger("zoomIn"));
+        QVERIFY(state->msPerPx() < zoom);
+        QVERIFY(!input->hasActiveFocus());
+        QCOMPARE(input->property("draft").toString(), QString("Clips"));
     }
     void shellRegistration() {
         const auto panels = PanelRegistry().forSlot("overlay");
