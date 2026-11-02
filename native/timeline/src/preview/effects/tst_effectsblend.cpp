@@ -474,6 +474,28 @@ private slots:
         QVERIFY(!shadow.isNull()); QVERIFY(shadow.pixelColor(51,16).red()>245); QCOMPARE(shadow.pixelColor(51,16).green(),0);
         QCOMPARE(shadow.pixelColor(10,16),QColor(Qt::black));
     }
+    void wideBlurPixels() {
+        QImage line(512,16,QImage::Format_RGBA8888_Premultiplied); line.fill(Qt::black);
+        for (int y=0;y<line.height();++y) { line.setPixelColor(256,y,Qt::white); }
+        for (int radius : {20,40,64,128}) {
+            const auto blurred=effectStill({effect("blur",{{"radius",radius}})},line);
+            QVERIFY(!blurred.isNull());
+            const double sigma=radius/3.; double total=0;
+            for (int i=-radius;i<=radius;++i) { total+=std::exp(-i*i/(2*sigma*sigma)); }
+            for (int i=-radius;i<=radius;++i) {
+                const int expected=qRound(255*std::exp(-i*i/(2*sigma*sigma))/total);
+                QVERIFY(std::abs(blurred.pixelColor(256+i,8).red()-expected)<=1);
+                if (std::abs(i)<radius/2) { QVERIFY(blurred.pixelColor(256+i,8).red()>0); }
+            }
+        }
+        QImage checker(256,64,QImage::Format_RGBA8888_Premultiplied);
+        for (int y=0;y<checker.height();++y) { for (int x=0;x<checker.width();++x) {
+            checker.setPixelColor(x,y,(x+y)%2 ? Qt::white : Qt::black);
+        } }
+        const auto blurred=effectStill({effect("blur",{{"radius",40}})},checker);
+        QVERIFY(!blurred.isNull());
+        for (int x=64;x<192;++x) { QVERIFY(std::abs(blurred.pixelColor(x,32).red()-128)<=1); }
+    }
     void vignetteGeometry() {
         QImage source(64,32,QImage::Format_RGBA8888_Premultiplied); source.fill(Qt::white);
         const auto soft=effectStill({effect("vignette",{{"amount",0.5},{"radius",1.5},{"softness",1}})},source);

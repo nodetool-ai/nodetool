@@ -273,10 +273,10 @@ void main() {
         }
     } else if (op==2) {
         if (p[0].x<0.5) { fragColor=src; return; }
-        int radius=int(min(p[0].x,20)); float spacing=max(1,p[0].x/20), sigma=p[0].y<=0 ? p[0].x/3 : p[0].y;
+        int radius=int(min(p[0].x,256)); float sigma=p[0].y<=0 ? p[0].x/3 : p[0].y;
         vec4 sum=vec4(0); float weights=0;
         for (int i=-radius;i<=radius;++i) {
-            float distance=float(i)*spacing;
+            float distance=float(i);
             ivec2 offset=ivec2(round(p[0].zw*distance));
             float w=exp(-(distance*distance)/(2*sigma*sigma))/(sqrt(2*3.14159265)*sigma);
             sum+=loadSource(ivec2(pixel)+offset)*w; weights+=w;

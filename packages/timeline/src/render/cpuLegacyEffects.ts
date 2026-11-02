@@ -92,10 +92,9 @@ function coversSurface(bounds: PixelBounds, pixels: PixelBuffer): boolean {
 
 function gaussian(input: Uint8ClampedArray, width: number, height: number, radius: number): Uint8ClampedArray {
   if (radius < 0.5) return input;
-  const taps = Math.floor(Math.min(radius, 20));
-  const step = Math.max(1, radius / 20);
+  const taps = Math.floor(Math.min(radius, 256));
   const sigma = radius / 3;
-  const weights = Array.from({ length: taps * 2 + 1 }, (_, i) => Math.exp(-Math.pow((i - taps) * step, 2) / (2 * sigma * sigma)));
+  const weights = Array.from({ length: taps * 2 + 1 }, (_, i) => Math.exp(-Math.pow(i - taps, 2) / (2 * sigma * sigma)));
   const total = weights.reduce((a, b) => a + b, 0);
   let source = input;
   for (let axis = 0; axis < 2; axis++) {
@@ -105,7 +104,7 @@ function gaussian(input: Uint8ClampedArray, width: number, height: number, radiu
         for (let c = 0; c < 4; c++) {
           let sum = 0;
           for (let tap = -taps; tap <= taps; tap++) {
-            const offset = Math.round(tap * step);
+            const offset = tap;
             const sx = Math.max(0, Math.min(width - 1, x + (axis === 0 ? offset : 0)));
             const sy = Math.max(0, Math.min(height - 1, y + (axis === 1 ? offset : 0)));
             sum += source[(sy * width + sx) * 4 + c]! * weights[tap + taps]!;
@@ -322,8 +321,7 @@ export function applyCpuGaussianBlur(pixels: PixelBuffer, radius: number, conten
     unpremultiply(gaussian(premultiply(pixels.data), pixels.width, pixels.height, radius), pixels.data);
     return;
   }
-  const taps = Math.floor(Math.min(radius, 20));
-  const support = Math.round(taps * Math.max(1, radius / 20));
+  const support = Math.floor(Math.min(radius, 256));
   const expanded = {
     x0: Math.max(0, bounds.x0 - support),
     y0: Math.max(0, bounds.y0 - support),

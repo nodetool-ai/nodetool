@@ -20,7 +20,7 @@ Check an item only after its implementation and relevant verification pass. Each
 - [ ] F40: Make sharpen radius affect rendering.
 - [x] F41: Apply glow color to the bloom contribution. Native D3D11, shared GPU and CPU halo tests pass. White/absent tint preserves source-colored glow, and the source image remains unchanged. GPU alpha checks pass.
 - [ ] F42: Render authored tone curves faithfully.
-- [ ] F43: Remove gaps from large-radius blur kernels.
+- [x] F43: Remove gaps from large-radius blur kernels. Dense sampling replaces spaced taps within the supported 256-pixel radius. CPU, GPU and native impulse/line checks pass at 20/40/64/128, and checker patterns no longer alias. Large radii require more samples than the old fixed budget.
 - [x] F44: Make processing order explicit and consistent. Fixed color/blur and video-track stages are displayed in processing order with explanations. Reordering is limited to ordered stages. Native row/reorder tests and independent ordering tests pass, including duplicate precedence and a large chain.
 - [x] F45: Give clip effect controls explicit reset defaults. Every slider has an in-range reset value. Intensity controls can reset to neutral while new effects retain visible defaults. Catalogue regressions passed.
 - [x] F46: Provide controls or specific explanations for imported effects. Pixelate, Posterize, Directional Blur and Lens Distortion have controls and Add entries. LUT, Stylize and Generator explain their editing limits. Catalogue and native add/edit tests pass.

@@ -63,10 +63,8 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     return;
   }
 
-  let kernelRadius = i32(min(blur.radius, 20.0));
-  // Keep the 41-tap budget, but spread those taps across a wide blur's full
-  // support. Sampling only the central 20 pixels left large glows hard-edged.
-  let sampleStep = max(1.0, blur.radius / 20.0);
+  // Visit every texel in the supported radius. Spaced taps alias thin lines.
+  let kernelRadius = i32(min(blur.radius, 256.0));
   // Honor an explicit positive sigma. Only fall back to radius/3 when the
   // caller leaves sigma unset (<= 0); the previous max(sigma, radius/3)
   // silently raised any explicit sigma smaller than radius/3.
@@ -75,7 +73,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   var colorSum = vec4<f32>(0.0);
   var weightSum: f32 = 0.0;
   for (var i = -kernelRadius; i <= kernelRadius; i = i + 1) {
-    let distance = f32(i) * sampleStep;
+    let distance = f32(i);
     let offset = vec2<i32>(
       i32(round(blur.direction.x * distance)),
       i32(round(blur.direction.y * distance))
