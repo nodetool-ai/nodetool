@@ -60,7 +60,7 @@ const bool registered = [] {
         [](V c) { return !ReferenceController::takesOf(rawClip(c)).isEmpty(); }, "reference", 92});
     nt::app::registerMenuItem({"marker", "referenceMarker", "Use as reference", {}, [](V) { return true; }, "reference", 30});
     nt::app::registerShellMenuItem({"View", "setReferenceFrame", "Set reference frame", {}, {}, "reference", 900,
-        [](V c) { return c.value("gestures").value<QObject*>() != nullptr; }});
+        [](V c) { return c.value("gestures").value<QObject*>() != nullptr; }, {}, {}, QStringLiteral("Open a sequence to set a reference frame.")});
     return true;
 }();
 }

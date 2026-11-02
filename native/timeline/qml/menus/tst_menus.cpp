@@ -153,12 +153,13 @@ private slots:
         }
         expected.append({"clipMenu-labelDivider:", "clipMenu-label:Label", "clipMenu-afterLabelDivider:",
                          "registryMenu-clip-addMarker:Add marker", "registryMenuGroup-clip-:",
-                         "registryMenu-clip-speedDuration:Speed / Duration…", "registryMenuGroup-clip-reference:",
-                         "registryMenu-clip-referenceClipFirstFrame:Use first frame as reference",
-                         "registryMenu-clip-referenceClipLastFrame:Use last frame as reference",
-                         "registryMenu-clip-referenceClipTake:Compare another take", "registryMenuGroup-clip-frame:",
+                         "registryMenu-clip-speedDuration:Speed / Duration…", "registryMenuGroup-clip-frame:",
                          "registryMenu-clip-fitToFrame:Fit to frame", "registryMenu-clip-fillFrame:Fill frame",
                          "registryMenuGroup-clip-reveal:", "registryMenu-clip-revealInProject:Reveal in Library",
+                         "registryMenuGroup-clip-reference:",
+                         "registryMenu-clip-referenceClipFirstFrame:Use first frame as reference",
+                         "registryMenu-clip-referenceClipLastFrame:Use last frame as reference",
+                         "registryMenu-clip-referenceClipTake:Compare another take",
                          "clipMenu-deleteDivider:", "clipMenu-deleteSelected:Delete"});
         // Features register their own clip items and groups: the list pins the built-in ones and those of this menu.
         auto actual = entries(menu);
