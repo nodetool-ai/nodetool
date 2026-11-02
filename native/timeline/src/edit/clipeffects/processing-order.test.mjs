@@ -26,6 +26,14 @@ test("fixed color and blur stages follow the ordered clip effects", () => {
   assert.equal(state.effects[0].id, "blur", "Displaying stages does not rewrite the document");
 });
 
+test("source stabilization precedes ordered effects and cannot be dragged between them", () => {
+  const state=editor(); state.effects.push({id:"stabilize",type:"stabilize"});
+  assert.equal(vm.runInContext("orderedEffects()[0].id",state),"stabilize");
+  const before=JSON.stringify(state.effects);
+  vm.runInContext("move('stabilize',1); drop('stabilize','a'); drop('a','stabilize')",state);
+  assert.equal(JSON.stringify(state.effects),before);
+});
+
 test("keyboard reorder skips fixed stages and retains their authored values", () => {
   const state = editor();
   vm.runInContext("move('a', 1)", state);

@@ -1,5 +1,6 @@
 #include "preview/effects/ClipEffects.h"
 #include "preview/effects/ClipAnalysis.h"
+#include "preview/effects/Stabilization.h"
 #include "preview/effects/BlurBounds.h"
 #include "preview/layers/SceneHooks.h"
 #include "render2d/Paint.h"
@@ -219,7 +220,20 @@ double channelMidtones(const QJsonArray &values) {
 }
 std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEffects) {
     std::vector<Pass> result;
-    QJsonArray combined = effects;
+    QJsonArray combined;
+    for (const auto& value : effects) {
+        const auto e=value.toObject();
+        if (e.value("type")!="stabilize") { combined.append(e); continue; }
+        if (!e.value("enabled").toBool()) { continue; }
+        const auto matrix=e.value("_matrix").toArray();
+        if (matrix.size()!=6) { continue; }
+        Pass pass; pass.op=Op::Stabilize; bool changed=false,valid=true;
+        for (int i=0;i<6;++i) {
+            const double v=matrix[i].toDouble(); valid=valid && matrix[i].isDouble() && std::isfinite(v);
+            pass.params[i]=float(v); changed=changed || std::abs(v-stabilizationIdentity[i])>=1e-8;
+        }
+        if (valid && changed) { result.push_back(pass); }
+    }
     QJsonObject sharpen, vignette, chromaKey;
     for (const auto &value : trackEffects) {
         const auto e = value.toObject();
@@ -230,7 +244,7 @@ std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEf
         else if (type == "vignette" && vignette.isEmpty()) { vignette = e; }
         else if (type == "chromaKey" && chromaKey.isEmpty()) { chromaKey = e; }
     }
-    if (number(chromaKey, "tolerance") > 0.001) { result = planChain({chromaKey}); }
+    if (number(chromaKey, "tolerance") > 0.001) { const auto key=planChain({chromaKey}); result.insert(result.end(),key.begin(),key.end()); }
     std::array<double, 8> grade{0, 1, 1, 0, 0, 0, 0, 0};
     double radius = 0;
     for (const auto &value : combined) {
@@ -483,6 +497,10 @@ void decorateEffects(QJsonObject &ext, const Clip &clip, double timeMs) {
     for (const auto &effect : clip.raw.value("effects").toArray()) {
         auto e = effect.toObject();
         if (e.value("enabled").toBool()) {
+            if (e.value("type")=="stabilize") {
+                QJsonArray matrix; for (double value : stabilizationMatrix(clip,e,timeMs)) { matrix.append(value); }
+                e=QJsonObject{{"id",e.value("id")},{"type","stabilize"},{"enabled",true},{"_matrix",matrix}};
+            }
             if (e.value("type")=="deflicker") {
                 e=QJsonObject{{"id",e.value("id")},{"type","exposure"},{"enabled",true},
                               {"exposure",deflickerStops(clip,e,timeMs)}};
@@ -631,10 +649,11 @@ void decorateEffects(QJsonObject &ext, const Clip &clip, const SceneDecorationCo
     }
     if (context.timeline.matteClipId==clip.id && !context.timeline.matteEffectId.empty()) {
         QJsonArray before;
+        for (const auto& value : enabled) { if (value.toObject().value("type")=="stabilize") { before.append(value); } }
         bool found=false;
         for (const auto& value : enabled) {
             auto effect=value.toObject();
-            if (effect.value("type")=="color" || effect.value("type")=="blur") { continue; }
+            if (effect.value("type")=="color" || effect.value("type")=="blur" || effect.value("type")=="stabilize") { continue; }
             if (effect.value("id").toString().toStdString()==context.timeline.matteEffectId && effect.value("type")=="secondaryColor") {
                 effect.insert("_matte",true);
                 before.append(effect);

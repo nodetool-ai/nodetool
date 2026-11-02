@@ -28,6 +28,7 @@ import {
   captionStyle,
   secondaryCurvePoints,
   clipDeflickerAnalysis,
+  clipStabilizeAnalysis,
   clipModel3DAnimation,
   clipModel3DCamera,
   clipModel3DStyle,
@@ -1194,6 +1195,7 @@ const rgbTriple = z.tuple([z.number(), z.number(), z.number()]);
 const EFFECT_PARAMETER_FIELDS: Record<
   typeof KNOWN_CLIP_EFFECT_TYPE_LIST[number], readonly string[]
 > = {
+  stabilize: ["strength", "windowMs", "maxZoom", "analysis"],
   deflicker: ["strength", "windowMs", "maxCorrection", "analysis"],
   deband: ["strength", "range", "threshold", "dither"],
   secondaryColor: ["hueCenter", "hueWidth", "hueSoftness", "rangeSoftness", "saturationMin", "saturationMax", "lightnessMin", "lightnessMax", "hueShift", "saturation", "lightness", "hueCurve", "saturationCurve"],
@@ -1228,10 +1230,11 @@ const EFFECT_PARAMETER_FIELDS: Record<
  * one it cannot get wrong.
  */
 export const effectParams = z.object({
-  strength: z.number().min(0).max(1).optional().describe("deband/deflicker: effect strength, 0..1. Deband defaults to 0, deflicker to 1."),
-  windowMs: z.number().min(0).max(2000).optional().describe("deflicker: symmetric analysis window in milliseconds, default 500."),
+  strength: z.number().min(0).max(1).optional().describe("deband/deflicker/stabilize: effect strength, 0..1. Deband defaults to 0, the analysis effects to 1."),
+  windowMs: z.number().min(0).max(2000).optional().describe("deflicker/stabilize: symmetric analysis window in milliseconds, default 500."),
   maxCorrection: z.number().min(0).max(3).optional().describe("deflicker: maximum correction in exposure stops, default 1."),
-  analysis: clipDeflickerAnalysis.optional().describe("deflicker: saved source analysis. The effect is neutral until matching analysis is available."),
+  maxZoom: z.number().min(1).max(1.5).optional().describe("stabilize: maximum fixed zoom, default 1.1. Limits correction to avoid exposed borders."),
+  analysis: z.union([clipDeflickerAnalysis, clipStabilizeAnalysis]).optional().describe("Saved deflicker or stabilization source analysis. Neutral until matching analysis is available."),
   range: z.number().int().min(1).max(64).optional().describe("deband: neighborhood range in source pixels, default 16."),
   threshold: z.number().min(0).max(0.1).optional().describe("deband: maximum encoded RGB difference for smoothing, default 0.02."),
   dither: z.number().min(0).max(1).optional().describe("deband: fixed monochrome dither, up to one output byte level peak to peak, default 0.5."),
@@ -1346,6 +1349,9 @@ export const effectParams = z.object({
   // issue, which would never name the type's actual allowed fields.
   .passthrough()
   .superRefine((input, context) => {
+    if (input.analysis && ((input.type === "stabilize") !== ("kind" in input.analysis))) {
+      context.addIssue({code: "custom", path: ["analysis"], message: "Analysis must match the effect type."});
+    }
     if (input.type === "grain" && input.softness !== undefined &&
         (input.softness < 0 || input.softness > 1)) {
       context.addIssue({
@@ -1383,8 +1389,10 @@ export function buildEffect(
   effectParams.parse(input);
   const base = { id: `fx-${index + 1}`, enabled: true };
   switch (input.type) {
+    case "stabilize":
+      return {...base, type: "stabilize", strength: input.strength ?? 1, windowMs: input.windowMs ?? 500, maxZoom: input.maxZoom ?? 1.1, ...(input.analysis && "kind" in input.analysis ? {analysis: input.analysis} : {})};
     case "deflicker":
-      return {...base, type: "deflicker", strength: input.strength ?? 1, windowMs: input.windowMs ?? 500, maxCorrection: input.maxCorrection ?? 1, ...(input.analysis ? {analysis: input.analysis} : {})};
+      return {...base, type: "deflicker", strength: input.strength ?? 1, windowMs: input.windowMs ?? 500, maxCorrection: input.maxCorrection ?? 1, ...(input.analysis && !("kind" in input.analysis) ? {analysis: input.analysis} : {})};
     case "deband":
       return {...base, type: "deband", strength: input.strength ?? 0, range: input.range ?? 16, threshold: input.threshold ?? 0.02, dither: input.dither ?? 0.5};
     case "secondaryColor":

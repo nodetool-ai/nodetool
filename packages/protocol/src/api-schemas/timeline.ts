@@ -1155,6 +1155,23 @@ export const clipGrainEffect = z.object({
  * its chain on the next save.
  */
 export const secondaryCurvePoints = z.array(z.object({x: z.number().min(0).max(1), y: z.number().min(0).max(1)})).max(256);
+export const clipStabilizeAnalysis = z.object({
+  version: z.literal(1), kind: z.literal("stabilize"),
+  source: z.object({assetId: z.string(), mediaPath: z.string()}),
+  rangeStartMs: z.number().min(0), rangeEndMs: z.number().min(0),
+  windowMs: z.number().min(0).max(2000), frameRate: z.number().positive().max(240),
+  width: z.number().int().positive().max(32768), height: z.number().int().positive().max(32768),
+  requiredZoom: z.number().min(1).max(10), trackedFrames: z.number().int().min(0).max(18000),
+  samples: z.array(z.object({timeMs: z.number().min(0), x: z.number().min(-2000).max(2000),
+    y: z.number().min(-2000).max(2000), angle: z.number().min(-600).max(600), scale: z.number().min(0.000001).max(1000000)})).min(1).max(18000)
+}).refine(data => data.rangeEndMs >= data.rangeStartMs && data.trackedFrames < data.samples.length && data.samples.every((sample, index) =>
+  index === 0 ? sample.timeMs <= data.rangeStartMs + 1e-6 : sample.timeMs > data.samples[index - 1]!.timeMs),
+"Motion samples must have ascending source times, cover the range start and bound the tracked frame count.");
+export const clipStabilizeEffect = z.object({
+  id: z.string(), type: z.literal("stabilize"), enabled: z.boolean(),
+  strength: z.number().min(0).max(1).optional(), windowMs: z.number().min(0).max(2000).optional(),
+  maxZoom: z.number().min(1).max(1.5).optional(), analysis: clipStabilizeAnalysis.optional()
+});
 export const clipDeflickerAnalysis = z.object({
   version: z.literal(1),
   source: z.object({assetId: z.string(), mediaPath: z.string()}),
@@ -1201,6 +1218,7 @@ export const clipExposureEffect = z.object({
 });
 
 const knownClipEffect = z.discriminatedUnion("type", [
+  clipStabilizeEffect,
   clipDeflickerEffect,
   clipDebandEffect,
   clipSecondaryColorEffect,
@@ -1230,6 +1248,7 @@ const knownClipEffect = z.discriminatedUnion("type", [
  * a list for the same reason {@link KNOWN_TRANSITION_TYPE_LIST} is.
  */
 export const KNOWN_CLIP_EFFECT_TYPE_LIST = [
+  "stabilize",
   "deflicker",
   "deband",
   "secondaryColor",

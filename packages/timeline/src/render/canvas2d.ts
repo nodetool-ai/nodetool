@@ -392,13 +392,14 @@ export interface Canvas2DFrameReport<TSource> {
 /**
  * Effect types handled by the Canvas pixel path or a native draw operation.
  */
-const CANVAS_EFFECT_TYPES = new Set(["deband", "secondaryColor", "exposure", "color", "blur", "dropShadow", "glow", "vignette", "sharpen", "chromaKey", "curves", "levels", "liftGammaGain", "grain", "pixelate", "posterize", "directionalBlur", "lensDistortion", "stylize", "generator", "lut"]);
+const CANVAS_EFFECT_TYPES = new Set(["stabilize", "deband", "secondaryColor", "exposure", "color", "blur", "dropShadow", "glow", "vignette", "sharpen", "chromaKey", "curves", "levels", "liftGammaGain", "grain", "pixelate", "posterize", "directionalBlur", "lensDistortion", "stylize", "generator", "lut"]);
 
 function applyCpuEffectChain(pixels: ImagePixels, clipEffects: readonly ClipEffect[], trackEffects: readonly ClipEffect[] = []): void {
+  applyCpuLegacyEffects(pixels, clipEffects.filter(effect => effect.type === "stabilize"));
   const trackKey = trackEffects.find((effect) => effect.enabled && isClipChromaKeyEffect(effect) && effect.tolerance > 0.001);
   if (trackKey) applyCpuLegacyEffects(pixels, [trackKey]);
   for (const effect of clipEffects) {
-    if (!effect.enabled) continue;
+    if (!effect.enabled || effect.type === "stabilize") continue;
     if (isClipDropShadowEffect(effect)) applyCpuDropShadows(pixels, [effect]);
     else if (isCpuVisualEffect(effect)) applyCpuVisualEffects(pixels, [effect]);
     else if (isCpuLegacyEffect(effect)) applyCpuLegacyEffects(pixels, [effect]);

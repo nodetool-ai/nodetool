@@ -3,6 +3,7 @@
 const softVignette = {radius: 1.5, softness: 1, centerX: 0.5, centerY: 0.5, roundness: 0};
 
 const addableEffects = [
+    {value: "stabilize", label: "Stabilization"},
     {value: "deflicker", label: "Deflicker"},
     {value: "deband", label: "Deband"},
     {value: "secondaryColor", label: "Secondary color"},
@@ -18,6 +19,7 @@ const addableEffects = [
 function makeEffect(type, id) {
     const base = {id, type, enabled: true};
     switch (type) {
+    case "stabilize": return Object.assign(base, {strength: 1, windowMs: 500, maxZoom: 1.1});
     case "deflicker": return Object.assign(base, {strength: 1, windowMs: 500, maxCorrection: 1});
     case "deband": return Object.assign(base, {strength: 0, range: 16, threshold: 0.02, dither: 0.5});
     case "secondaryColor": return Object.assign(base, {hueCenter: 0, hueWidth: 180, hueSoftness: 15, rangeSoftness: 0.1, saturationMin: 0, saturationMax: 1, lightnessMin: 0, lightnessMax: 1, hueShift: 0, saturation: 1, lightness: 0});
@@ -43,7 +45,7 @@ function name(type) {
     return type === "color" ? "Color" : (addableEffects.find(item => item.value === type)?.label || type);
 }
 function known(type) {
-    return ["deflicker", "deband", "secondaryColor", "exposure", "color", "blur", "glow", "dropShadow", "vignette", "sharpen", "chromaKey", "curves", "levels", "liftGammaGain", "grain", "pixelate", "posterize", "directionalBlur", "lensDistortion", "stylize", "generator", "lut"].includes(type);
+    return ["stabilize", "deflicker", "deband", "secondaryColor", "exposure", "color", "blur", "glow", "dropShadow", "vignette", "sharpen", "chromaKey", "curves", "levels", "liftGammaGain", "grain", "pixelate", "posterize", "directionalBlur", "lensDistortion", "stylize", "generator", "lut"].includes(type);
 }
 function readOnlyDescription(type) {
     switch (type) {
@@ -71,6 +73,9 @@ function number(key, label, fallback, minimum, step = 1, extra = {}) {
 }
 function fields(type) {
     switch (type) {
+    case "stabilize": return [slider("strength", "Strength", 1),
+        slider("windowMs", "Smoothing window", 500, 2000, 0, 50, {unit: "ms", decimals: 0}),
+        slider("maxZoom", "Maximum zoom", 1.1, 1.5, 1, 0.01, {unit: "x", decimals: 2})];
     case "deflicker": return [slider("strength", "Strength", 1),
         slider("windowMs", "Analysis window", 500, 2000, 0, 50, {unit: "ms", decimals: 0}),
         slider("maxCorrection", "Correction limit", 1, 3, 0, 0.1, {unit: "stops", decimals: 1})];

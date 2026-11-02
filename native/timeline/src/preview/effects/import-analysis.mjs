@@ -2,7 +2,7 @@
 export function rebindAnalysisSource(clip, source) {
   return clip.effects?.map(effect => {
     const previous = effect.analysis?.source;
-    if (effect.type !== "deflicker" || !previous || previous.assetId !== (clip.currentAssetId ?? "") ||
+    if ((effect.type !== "deflicker" && effect.type !== "stabilize") || !previous || previous.assetId !== (clip.currentAssetId ?? "") ||
         previous.mediaPath !== (clip.mediaPath ?? "")) return effect;
     return {...effect, analysis: {...effect.analysis, source}};
   });

@@ -221,6 +221,10 @@ float rangeMask(float v,float low,float high,float soft) {
     if (soft<=0) return 0.;
     return v<low ? smoothstep(low-soft,low,v) : 1.-smoothstep(high,high+soft,v);
 }
+float cubic(float distance) {
+    float x=abs(distance);
+    return x<=1 ? 1.5*x*x*x-2.5*x*x+1 : x<2 ? -0.5*x*x*x+2.5*x*x-4*x+2 : 0;
+}
 void main() {
     int op=int(geometry.z+0.5);
     vec2 pixel=floor(uv*dimensions.xy);
@@ -229,6 +233,18 @@ void main() {
     vec3 rgb=straight(src);
     if (geometry.w>0.5 && (any(lessThan(pixel,origin.xy)) || any(greaterThanEqual(pixel,origin.xy+dimensions.zw)))) {
         fragColor=vec4(0); return;
+    }
+    if (op==30) {
+        if (any(lessThan(logical,vec2(0))) || any(greaterThanEqual(logical,vec2(1)))) { fragColor=vec4(0); return; }
+        vec2 mapped=vec2(dot(p[0].xy,logical)+p[0].z,p[0].w*logical.x+p[1].x*logical.y+p[1].y);
+        vec2 at=origin.xy+mapped*dimensions.zw-0.5;
+        ivec2 base=ivec2(floor(at)); vec4 result=vec4(0);
+        for (int y=-1;y<=2;++y) { for (int x=-1;x<=2;++x) {
+            ivec2 coord=clamp(base+ivec2(x,y),ivec2(origin.xy),ivec2(origin.xy+dimensions.zw)-1);
+            if (geometry.x>0.5) { coord.y=int(dimensions.y)-1-coord.y; }
+            result+=texelFetch(source,coord,0)*cubic(at.x-float(base.x+x))*cubic(at.y-float(base.y+y));
+        } }
+        float alpha=clamp(result.a,0.,1.); fragColor=vec4(clamp(result.rgb,vec3(0),vec3(alpha)),alpha); return;
     }
     if (op==21) { fragColor=visualFx(geometry.w>0.5 ? logical : uv); return; }
     if (op==22) {

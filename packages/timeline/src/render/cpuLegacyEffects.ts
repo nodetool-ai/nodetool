@@ -1,7 +1,8 @@
+import { stabilizeImage, stabilizationNeutral } from "./stabilization.js";
 import { debandImage } from "./deband.js";
 import { exposeRgb } from "./exposure.js";
 import {
-  isClipDebandEffect, isClipSecondaryColorEffect, isClipExposureEffect,
+  isClipStabilizeEffect, isClipDebandEffect, isClipSecondaryColorEffect, isClipExposureEffect,
   isClipChromaKeyEffect, isClipColorEffect, isClipCurvesEffect, isClipGlowEffect,
   isClipGrainEffect, isClipLevelsEffect, isClipLiftGammaGainEffect,
   isClipSharpenEffect, isClipVignetteEffect, type ClipEffect
@@ -16,7 +17,7 @@ const smooth = (v: number): number => { const t = clamp(v); return t * t * (3 - 
 const byte = (v: number): number => Math.round(clamp(v) * 255);
 
 export function isCpuLegacyEffect(effect: ClipEffect): boolean {
-  return isClipDebandEffect(effect) || isClipSecondaryColorEffect(effect) || isClipExposureEffect(effect) || isClipGlowEffect(effect) || isClipVignetteEffect(effect)
+  return isClipStabilizeEffect(effect) || isClipDebandEffect(effect) || isClipSecondaryColorEffect(effect) || isClipExposureEffect(effect) || isClipGlowEffect(effect) || isClipVignetteEffect(effect)
     || isClipSharpenEffect(effect) || isClipChromaKeyEffect(effect)
     || isClipCurvesEffect(effect) || isClipLevelsEffect(effect)
     || isClipLiftGammaGainEffect(effect) || isClipGrainEffect(effect);
@@ -195,6 +196,7 @@ export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly Cli
   const { width, height, data } = pixels;
   for (const effect of effects) {
     if (!effect.enabled || !isCpuLegacyEffect(effect)) continue;
+    if (isClipStabilizeEffect(effect) && stabilizationNeutral(effect)) { continue; }
     if (isClipDebandEffect(effect) && (effect.strength ?? 0) <= 0) { continue; }
     if (isClipSecondaryColorEffect(effect) && secondaryNeutral(effect)) { continue; }
     if (isClipExposureEffect(effect) && !(effect.exposure || effect.rolloff || effect.whites)) { continue; }
@@ -203,6 +205,11 @@ export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly Cli
     const input = premultiply(data);
     const sharpenLow = sharpenRadius > 1 ? gaussian(input, width, height, sharpenRadius) : undefined;
     const output = new Uint8ClampedArray(input.length);
+    if (isClipStabilizeEffect(effect) && effect._matrix) {
+      stabilizeImage(input, output, width, height, effect._matrix);
+      unpremultiply(output, data);
+      continue;
+    }
     if (isClipDebandEffect(effect)) {
       debandImage(input, output, width, height, effect);
       unpremultiply(output, data);

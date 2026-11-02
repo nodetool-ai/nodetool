@@ -181,6 +181,7 @@ private slots:
     void catalogue_data();
     void catalogue();
     void analysisLifecycle();
+    void stabilizationLifecycle();
     void listActionsAndParameterGesture_data();
     void listActionsAndParameterGesture();
     void dragReorder();
@@ -199,6 +200,32 @@ private slots:
     void exportDocuments();
 };
 
+void TestClipEffects::stabilizationLifecycle() {
+    Editor editor; QVERIFY2(editor.object,qPrintable(editor.error));
+    const auto directory=QString(NT_TIMELINE_DIR)+"/src/preview/effects/fixtures/";
+    const auto path=directory+"source-jitter.mp4"; QVERIFY(QFile::exists(path));
+    QJsonObject effect{{"id","analysis"},{"type","stabilize"},{"enabled",true}};
+    editor.patch({{"mediaType","video"},{"mediaPath",path},{"durationMs",2000},{"effects",QJsonArray{effect}}});
+    auto media=*editor.model.findClip("picture"); media.mediaPath=path.toStdString(); editor.model.registerMedia(media);
+    ClipAnalysisController controller;
+    controller.setModel(&editor.model); controller.setClipId("picture"); controller.setEffectId("analysis");
+    controller.analyze(); QVERIFY(controller.busy()); QTRY_VERIFY_WITH_TIMEOUT(!controller.busy(),30000);
+    QVERIFY2(controller.status().startsWith("Analysis ready"),qPrintable(controller.status()));
+    const auto data=editor.model.findClip("picture")->raw.value("effects").toArray()[0].toObject().value("analysis").toObject();
+    QCOMPARE(data.value("kind").toString(),QString("stabilize")); QVERIFY(data.value("trackedFrames").toInt()>=50);
+    const auto samples=data.value("samples").toArray(); QCOMPARE(samples.size(),60);
+    QFile reference(directory+"clip-stabilize.json"); QVERIFY(reference.open(QIODevice::ReadOnly));
+    const auto expected=QJsonDocument::fromJson(reference.readAll()).object().value("clips").toArray()[0].toObject()
+        .value("effects").toArray()[0].toObject().value("analysis").toObject().value("samples").toArray();
+    for (int i : {10,11,20,31,40,50}) { for (const auto* axis : {"x","y"}) {
+        QVERIFY2(std::abs(samples[i].toObject().value(axis).toDouble()-expected[i].toObject().value(axis).toDouble())<.004,axis);
+    } }
+    QVERIFY(data.value("requiredZoom").toDouble()>1.01); QVERIFY(data.value("requiredZoom").toDouble()<1.15);
+    QCOMPARE(editor.model.undoStack()->count(),1); const auto saved=editor.model.documentJson();
+    editor.model.undoStack()->undo(); QVERIFY(controller.status().startsWith("Analyze the source"));
+    editor.model.undoStack()->redo(); QCOMPARE(editor.model.documentJson(),saved);
+    controller.analyze(); controller.cancel(); QTest::qWait(50); QCOMPARE(editor.model.documentJson(),saved);
+}
 void TestClipEffects::analysisLifecycle() {
     Editor editor; QVERIFY2(editor.object,qPrintable(editor.error));
     const auto path=QString(NT_TIMELINE_DIR)+"/src/preview/effects/fixtures/source-flicker.mp4";
@@ -301,6 +328,7 @@ void TestClipEffects::catalogue_data() {
         QTest::addColumn<QByteArray>("expected");
         // Creation defaults, including effects available only in the native inspector.
         const QList<QByteArray> rows{
+            R"({"type":"stabilize","enabled":true,"strength":1,"windowMs":500,"maxZoom":1.1})",
             R"({"type":"deflicker","enabled":true,"strength":1,"windowMs":500,"maxCorrection":1})",
             R"({"type":"deband","enabled":true,"strength":0,"range":16,"threshold":0.02,"dither":0.5})",
             R"({"type":"secondaryColor","enabled":true,"hueCenter":0,"hueWidth":180,"hueSoftness":15,"rangeSoftness":0.1,"saturationMin":0,"saturationMax":1,"lightnessMin":0,"lightnessMax":1,"hueShift":0,"saturation":1,"lightness":0})",
@@ -390,6 +418,9 @@ void TestClipEffects::parameterFields_data() {
         };
         row("exposure-stops","exposure","exposure","1.5",R"({"exposure":1.5})");
         row("exposure-rolloff","exposure","rolloff","0.7",R"({"rolloff":0.7})");
+        row("stabilize-strength","stabilize","strength","0.8",R"({"strength":0.8})");
+        row("stabilize-window","stabilize","windowMs","1000",R"({"windowMs":1000})");
+        row("stabilize-zoom","stabilize","maxZoom","1.2",R"({"maxZoom":1.2})");
         row("deflicker-strength","deflicker","strength","0.8",R"({"strength":0.8})");
         row("deflicker-window","deflicker","windowMs","1000",R"({"windowMs":1000})");
         row("deflicker-limit","deflicker","maxCorrection","2",R"({"maxCorrection":2})");
@@ -415,7 +446,7 @@ void TestClipEffects::parameterFields() {
         const auto id = e.effects()[0].toObject()["id"].toString();
         auto* control = e.item("effects_"+id+"_"+field); QVERIFY(control);
         const auto before = e.model.documentJson();
-        if (type == "exposure" || type == "deband" || type == "deflicker") { QVERIFY(number(control,"change",input.toDouble())); }
+        if (type == "exposure" || type == "deband" || type == "deflicker" || type == "stabilize") { QVERIFY(number(control,"change",input.toDouble())); }
         else { QVERIFY(text(control,"commit",input)); }
         QCOMPARE(e.model.undoStack()->count(),2);
         const auto wanted = QJsonDocument::fromJson(expected).object();

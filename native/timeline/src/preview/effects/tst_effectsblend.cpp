@@ -477,6 +477,26 @@ private slots:
         QVERIFY(!shadow.isNull()); QVERIFY(shadow.pixelColor(51,16).red()>245); QCOMPARE(shadow.pixelColor(51,16).green(),0);
         QCOMPARE(shadow.pixelColor(10,16),QColor(Qt::black));
     }
+    void stabilizationPixels() {
+        QImage source(64,32,QImage::Format_RGBA8888_Premultiplied);
+        for (int y=0;y<32;++y) { for (int x=0;x<64;++x) { source.setPixelColor(x,y,QColor(x*4,y*7,64,x<8 ? 128 : 255)); } }
+        const auto token=nt::registerContextLayerDecorator([](nt::ActiveLayer& layer,const nt::Clip&,const nt::SceneDecorationContext&) {
+            // Exercise the shader with an already resolved source-time correction.
+            auto effects=layer.ext.value("clipEffects").toArray();
+            for (qsizetype i=0;i<effects.size();++i) {
+                auto e=effects[i].toObject(); if (e.value("type")!="stabilize") { continue; }
+                e.insert("_matrix",QJsonArray{1,0,1./64,0,1,0}); effects[i]=e;
+            }
+            layer.ext.insert("clipEffects",effects);
+        });
+        const auto cleanup=qScopeGuard([token] { nt::unregisterSceneHook(token); });
+        const auto baseline=effectStill({},source),result=effectStill({effect("stabilize")},source);
+        QVERIFY(!result.isNull());
+        for (int y=1;y<31;++y) { for (int x=0;x<63;++x) {
+            QCOMPARE(result.pixelColor(x,y),baseline.pixelColor(x+1,y));
+        } }
+        QCOMPARE(effectStill({effect("stabilize")},source),result);
+    }
     void debandPixels() {
         QImage source(256,16,QImage::Format_RGBA8888_Premultiplied);
         for (int y=0;y<16;++y) { for (int x=0;x<256;++x) { int v=x/16*4; source.setPixelColor(x,y,QColor(v,v,v)); } }

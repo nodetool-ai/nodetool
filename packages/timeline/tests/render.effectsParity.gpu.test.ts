@@ -50,6 +50,26 @@ async function comparePixels(width: number, height: number, rgba: Uint8ClampedAr
 }
 
 describe("effect parity on diagnostic pixels", () => {
+  it("stabilizes with cubic reconstruction and premultiplied alpha", async () => {
+    const width=64,height=48,rgba=new Uint8ClampedArray(width*height*4);
+    for (let y=0;y<height;y++) { for (let x=0;x<width;x++) {
+      const alpha=x<8 ? 0 : x<16 ? 128 : 255;
+      rgba.set([x*4,y*5,(x+y)*2,alpha],(y*width+x)*4);
+    } }
+    const effect: KnownClipEffect={id:"s",type:"stabilize",enabled:true,_matrix:[.92,.025,.025,-.025,.92,.065]};
+    const result=await comparePixels(width,height,rgba,effect);
+    expect(result.meanError).toBeLessThan(.5);
+    // Straight RGB amplifies a one-byte premultiplied rounding difference near transparent edges.
+    for (let i=0;i<rgba.length;i+=4) {
+      const ca=result.cpu[i+3]!,ga=result.gpu[i+3]!;
+      expect(Math.abs(ca-ga)).toBeLessThanOrEqual(1);
+      for (let c=0;c<3;c++) {
+        expect(Math.abs(result.cpu[i+c]!*ca/255-result.gpu[i+c]!*ga/255)).toBeLessThanOrEqual(2);
+        if (ca===255 && ga===255) { expect(Math.abs(result.cpu[i+c]!-result.gpu[i+c]!)).toBeLessThanOrEqual(1); }
+      }
+    }
+    const again=await comparePixels(width,height,rgba,effect); expect(again.gpu).toEqual(result.gpu);
+  });
   it("debands dark ramps with stable monochrome dither", async () => {
     const width = 128, height = 16, rgba = new Uint8ClampedArray(width * height * 4);
     for (let y = 0; y < height; y++) { for (let x = 0; x < width; x++) {

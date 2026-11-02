@@ -101,8 +101,8 @@ Item {
         Sections.InspectorCaption {
             objectName: "effectsStage_" + root.effectId
             width: parent.width
-            visible: root.processingStage > 0
-            text: root.processingStage === 1 ? "Combined color grade after clip effects" : "Combined blur after color grade"
+            visible: root.processingStage !== 0
+            text: root.processingStage === -1 ? "Source stabilization before clip effects" : root.processingStage === 1 ? "Combined color grade after clip effects" : "Combined blur after color grade"
         }
         Loader {
             width: parent.width

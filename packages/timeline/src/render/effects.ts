@@ -1,9 +1,10 @@
+import { stabilizationNeutral } from "./stabilization.js";
 import { secondaryCurveTransfer, secondaryNeutral } from "./secondaryColor.js";
 import { curveTransfer } from "./curveTransfer.js";
 import { GENERATOR_MODES, STYLIZE_MODES, type ClipEffect, type TrackEffect } from "../types.js";
 import {
   isClipBlurEffect,
-  isClipDebandEffect, isClipSecondaryColorEffect, isClipExposureEffect,
+  isClipStabilizeEffect, isClipDebandEffect, isClipSecondaryColorEffect, isClipExposureEffect,
   isClipChromaKeyEffect,
   isClipColorEffect,
   isClipCurvesEffect,
@@ -22,7 +23,7 @@ import {
   createLabeledTexture,
   createRecipeRunner,
   LabeledTexture,
-  filterDebandV1, colorSecondaryV1, colorExposureLinearV1,
+  transformStabilizeV1, filterDebandV1, colorSecondaryV1, colorExposureLinearV1,
   colorCdlV1,
   colorCurveTransferV1,
   colorGradeV1,
@@ -328,10 +329,11 @@ export class WebGPUEffectsProcessor {
       settle(outIdx, module.io.output.alpha);
     };
 
+    for (const effect of shaderClip.filter(isClipStabilizeEffect)) { this.stepClipEffect(effect, width, height, step, stepRecipe); }
     if (chromaKeyActive && chromaKey) {
       this.stepClipEffect(chromaKey, width, height, step, stepRecipe);
     }
-    for (const effect of shaderClip) {
+    for (const effect of shaderClip.filter(effect => !isClipStabilizeEffect(effect))) {
       if (effect.type === "lut" && typeof effect.cube === "string") {
         const { texture: lut, parsed } = this.getLutTexture(effect.cube);
         const { input, outIdx } = pick();
@@ -408,6 +410,13 @@ export class WebGPUEffectsProcessor {
     ) => void,
     stepRecipe: <P>(module: RecipeModule<P>, params: P) => void
   ): void {
+    if (isClipStabilizeEffect(effect)) {
+      if (effect._matrix && !stabilizationNeutral(effect)) {
+        const [a, b, x, c, e, y] = effect._matrix;
+        step(transformStabilizeV1, {a, b, x, c, e, y});
+      }
+      return;
+    }
     if (isClipDebandEffect(effect)) {
       step(filterDebandV1, {strength: effect.strength ?? 0, range: Math.round(Math.max(1, Math.min(64, effect.range ?? 16))), threshold: effect.threshold ?? 0.02, dither: effect.dither ?? 0.5});
       return;
@@ -1012,6 +1021,7 @@ function clamp(v: number, lo: number, hi: number): number {
  */
 function isShaderStepEffect(effect: ClipEffect): boolean {
   return (
+    (isClipStabilizeEffect(effect) && !stabilizationNeutral(effect)) ||
     (isClipDebandEffect(effect) && (effect.strength ?? 0) > 0) ||
     (isClipSecondaryColorEffect(effect) && !secondaryNeutral(effect)) ||
     (isClipExposureEffect(effect) && !!(effect.exposure || effect.rolloff || effect.whites)) ||

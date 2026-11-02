@@ -27,13 +27,17 @@ inline std::pair<double,double> analysisRange(const Clip& clip) {
 }
 inline QJsonObject analysisKey(const Clip& clip, const QJsonObject& effect) {
     const auto [first,last]=analysisRange(clip);
-    return {{"source",analysisSource(clip)},{"rangeStartMs",first},{"rangeEndMs",last},
-            {"windowMs",effect.value("windowMs").toDouble(500)},
-            {"maxCorrection",effect.value("maxCorrection").toDouble(1)}};
+    QJsonObject key{{"source",analysisSource(clip)},{"rangeStartMs",first},{"rangeEndMs",last},
+                    {"windowMs",effect.value("windowMs").toDouble(500)}};
+    if (effect.value("type")=="stabilize") { key.insert("kind","stabilize"); }
+    else { key.insert("maxCorrection",effect.value("maxCorrection").toDouble(1)); }
+    return key;
 }
 inline bool analysisMatches(const Clip& clip, const QJsonObject& effect) {
     const auto data=effect.value("analysis").toObject(), key=analysisKey(clip,effect);
     if (clip.mediaType!=MediaType::Video || data.value("version").toInt()!=1) { return false; }
+    if (effect.value("type")=="stabilize" && (data.value("width").toDouble()<=0 || data.value("height").toDouble()<=0 ||
+        data.value("requiredZoom").toDouble()<1 || data.value("requiredZoom").toDouble()>10)) { return false; }
     for (auto it=key.begin();it!=key.end();++it) {
         if (it.key()=="rangeStartMs" || it.key()=="rangeEndMs") { continue; }
         if (data.value(it.key())!=it.value()) { return false; }

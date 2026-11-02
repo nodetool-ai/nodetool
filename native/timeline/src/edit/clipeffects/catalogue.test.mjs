@@ -75,7 +75,7 @@ test("effects shared with the web retain the same creation defaults", () => {
   vm.runInContext(ts.transpileModule(defaults+"\n"+functionSource,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,oracle);
   const types = ["blur","glow","dropShadow","vignette","sharpen","chromaKey","curves","levels","liftGammaGain","grain"];
   assert.deepEqual(JSON.parse(JSON.stringify(context.catalogue.addableEffects)).map(item => item.value),
-    ["deflicker", "deband", "secondaryColor", "exposure", ...types, "pixelate", "posterize", "directionalBlur", "lensDistortion"]);
+    ["stabilize", "deflicker", "deband", "secondaryColor", "exposure", ...types, "pixelate", "posterize", "directionalBlur", "lensDistortion"]);
   for (const type of types) {
     const actual = JSON.parse(JSON.stringify(context.catalogue.makeEffect(type,"native-id")));
     const expected = JSON.parse(JSON.stringify(oracle.makeEffect(type)));

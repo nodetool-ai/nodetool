@@ -1986,6 +1986,7 @@ export type ClipEffect = KnownClipEffect | UnknownClipEffect;
 
 /** The effects this build applies, each spelled out field by field. */
 export type KnownClipEffect =
+  | ClipStabilizeEffect
   | ClipDeflickerEffect
   | ClipDebandEffect
   | ClipSecondaryColorEffect
@@ -2075,6 +2076,7 @@ export const isClipGrainEffect = (e: ClipEffect): e is ClipGrainEffect =>
  * and Canvas 2D names it in `unsupportedEffectTypes`.
  */
 export const CLIP_EFFECT_TYPES = [
+  "stabilize",
   "deflicker",
   "deband",
   "secondaryColor",
@@ -2113,6 +2115,35 @@ export interface CurvePoint {
   x: number;
   y: number;
 }
+
+export interface StabilizationSample { timeMs: number; x: number; y: number; angle: number; scale: number }
+export interface ClipStabilizeAnalysis {
+  version: 1;
+  kind: "stabilize";
+  source: { assetId: string; mediaPath: string };
+  rangeStartMs: number;
+  rangeEndMs: number;
+  windowMs: number;
+  frameRate: number;
+  width: number;
+  height: number;
+  requiredZoom: number;
+  trackedFrames: number;
+  samples: StabilizationSample[];
+}
+export type StabilizationMatrix = [number, number, number, number, number, number];
+export interface ClipStabilizeEffect {
+  id: string;
+  type: "stabilize";
+  enabled: boolean;
+  strength?: number;
+  windowMs?: number;
+  maxZoom?: number;
+  analysis?: ClipStabilizeAnalysis;
+  /** Render-time inverse UV matrix. Excluded from the document and tool schemas. */
+  _matrix?: StabilizationMatrix;
+}
+export const isClipStabilizeEffect = (e: ClipEffect): e is ClipStabilizeEffect => e.type === "stabilize";
 
 export interface ClipDeflickerAnalysis {
   version: 1;

@@ -24,16 +24,16 @@ Column {
     }
     Ui.EditorButton {
         objectName: "effects_" + root.effectId + "_analyze"
-        visible: root.effectType === "deflicker"
+        visible: root.effectType === "deflicker" || root.effectType === "stabilize"
         text: analysis.busy ? "Cancel analysis" : "Analyze source"
-        description: "Measure the original video and save source-time corrections. A completed analysis is one undoable edit."
+        description: "Analyze the original video. The completed result can be undone."
         density: Ui.EditorButton.Compact
         enabled: !root.editor.locked && root.editor.clip.mediaType === "video"
         onClicked: analysis.busy ? analysis.cancel() : analysis.analyze()
     }
     Sections.InspectorCaption {
         objectName: "effects_" + root.effectId + "_analysisStatus"
-        visible: root.effectType === "deflicker"
+        visible: root.effectType === "deflicker" || root.effectType === "stabilize"
         width: parent.width
         text: analysis.status
     }

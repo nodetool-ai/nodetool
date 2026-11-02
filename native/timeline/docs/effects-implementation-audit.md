@@ -172,7 +172,7 @@ F51–F56 continue the implementation checklist, with one commit per task. The c
 - [x] F53: Soft HSL qualification, matte preview and hue-versus-hue/saturation curves.
 - [x] F54: Cached deflicker analysis with scene cuts, fade preservation and backward-seek consistency.
 - [x] F55: Thresholded debanding with deterministic dither, alpha and detail preservation.
-- [ ] F56: Cached camera-motion analysis, foreground rejection, smoothing and crop limits.
+- [x] F56: Cached camera-motion analysis, foreground rejection, smoothing and crop limits. Native analysis/undo, source-time sampling, CPU/GPU pixels and preview/export comparisons pass.
 
 | ID | Priority | Missing timeline capability | Implementation direction |
 | --- | --- | --- | --- |
@@ -212,3 +212,11 @@ Analyze original video on a cancellable worker, following actual source timestam
 Save the result as one undoable edit. Match its asset/local path, covered source interval and analysis settings before rendering. Strength stays interactive. Changing the window or correction limit requires analysis again. Failed, canceled or superseded work cannot replace the previous result. Analysis retains two reduced frames and at most 18,000 scalar samples. It uses the current SDR decode path.
 
 The [fixture](../src/preview/effects/fixtures/clip-deflicker.json) covers alternating exposure, a color cut and a fade. Native/export comparisons pass at 45 dB or better on the tested device. Tests also cover variable-rate decoding, backward sampling, trimming, stale sources, cancellation and undo.
+
+### Stabilization contract (F56)
+
+Analyze original video with bounded corner matching, forward/backward consistency and [robust four-parameter similarity fitting](https://docs.opencv.org/4.13.0/d9/d0c/group__calib3d.html). Prefer distributed background matches over a moving foreground. Smooth translation, rotation and uniform scale within each tracked shot. Average relative translation before reconstructing rotation/scale, so a long pan cannot turn rotation jitter into sideways drift. Weak texture, scene cuts and failed fits start separate segments.
+
+Store source-time corrections as one undoable edit. Window changes require analysis again. Strength and maximum zoom remain interactive. Use a fixed zoom for the analyzed interval, capped at 1–1.5 times the source. Reduce correction when that crop budget cannot keep every output corner inside the source. Apply stabilization before clip effects and track keying, using aspect-correct, premultiplied cubic reconstruction. Zero strength and missing or stale analysis bypass it.
+
+Analysis retains two reduced frames and at most 18,000 transform samples. The model does not correct perspective or rolling shutter. The [fixture generator](../src/preview/effects/make-stabilize-fixture.mjs) includes jitter, an independently moving foreground and a cut. Tests cover long pans, portrait/cropped bounds, backward sampling, cancellation, undo and alpha. The [preview/export fixture](../src/preview/effects/fixtures/clip-stabilize.json) passes at 45 dB or better on the tested D3D11 device.

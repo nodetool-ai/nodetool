@@ -16,6 +16,9 @@ test("fixture import rebinds matching analysis and preserves stale source identi
   assert.deepEqual(rebindAnalysisSource(clip, source)[0].analysis.source, source);
   assert.deepEqual(rebindAnalysisSource({...clip, mediaPath: "replacement.mp4"}, source), clip.effects);
   assert.equal(clip.effects[0].analysis.source.mediaPath, "source.mp4");
+  const motion={...clip,effects:[{...clip.effects[0],type:"stabilize"}]};
+  assert.deepEqual(rebindAnalysisSource(motion,source)[0].analysis.source,source);
+  assert.deepEqual(rebindAnalysisSource({...motion,currentAssetId:"replacement"},source),motion.effects);
 });
 
 test("parses defaults and explicit fixture selection", () => {

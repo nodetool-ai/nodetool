@@ -1,5 +1,6 @@
 #include "preview/effects/ClipEffects.h"
 #include "preview/effects/ClipAnalysis.h"
+#include "preview/effects/Stabilization.h"
 #include "preview/layers/SceneHooks.h"
 #include "model/TimelineJson.h"
 #include <QJsonDocument>
@@ -37,6 +38,67 @@ QJsonObject adjustmentStyleDocument() {
 class TestEffectPlan : public QObject {
     Q_OBJECT
   private slots:
+    void cameraMotion() {
+        std::vector<MotionMatch> matches;
+        const CameraMotion expected{1.01*std::cos(.03),1.01*std::sin(.03),.02,-.01};
+        for (int y=0;y<6;++y) { for (int x=0;x<8;++x) {
+            MotionPoint from{(x-3.5)/8,(y-2.5)/8}; auto to=movePoint(expected,from);
+            if (x>=2 && x<=5 && y>=2 && y<=4) { to.x-=.08; to.y+=.03; }
+            matches.push_back({from,to});
+        } }
+        const auto fitted=fitCameraMotion(matches,.004,.75); QVERIFY(fitted);
+        QVERIFY(std::abs(fitted->a-expected.a)<1e-6); QVERIFY(std::abs(fitted->b-expected.b)<1e-6);
+        QVERIFY(std::abs(fitted->x-expected.x)<1e-6); QVERIFY(std::abs(fitted->y-expected.y)<1e-6);
+        MotionFrame first{128,96,std::vector<float>(128*96)},second=first;
+        uint32_t state=19;
+        for (auto& value : first.luma) { state=state*1664525u+1013904223u; value=float(state>>24)/255; }
+        for (int y=0;y<96;++y) { for (int x=0;x<128;++x) {
+            second.luma[y*128+x]=first.luma[std::clamp(y+1,0,95)*128+std::clamp(x-2,0,127)];
+        } }
+        const auto tracked=estimateCameraMotion(first,second,.75); QVERIFY(tracked);
+        QVERIFY(std::abs(tracked->x-2./128)<.001); QVERIFY(std::abs(tracked->y+1./128)<.001);
+        std::fill(second.luma.begin(),second.luma.end(),.5f);
+        QVERIFY(!estimateCameraMotion(first,second,.75)); QVERIFY(!estimateCameraMotion(second,second,.75));
+    }
+    void stabilizationAnalysis() {
+        std::vector<CameraPath> path;
+        for (int i=0;i<90;++i) { path.push_back({i*1000./30,i*.001,0,0,0,i==45}); }
+        for (const auto& sample : stabilizationCurve(path,500,.75).value("samples").toArray()) {
+            QCOMPARE(sample.toObject().value("x").toDouble(),0.);
+        }
+        for (int i=0;i<90;++i) { path[i].x+=i%2 ? .01 : -.01; }
+        const auto curve=stabilizationCurve(path,500,.75);
+        QVERIFY(curve.value("requiredZoom").toDouble()>1.01);
+        const auto samples=curve.value("samples").toArray();
+        for (int i=8;i<37;++i) { QVERIFY(std::abs(samples[i].toObject().value("x").toDouble()+(i%2 ? .01 : -.01))<.002); }
+        std::vector<CameraPath> reference,shifted;
+        for (int i=0;i<90;++i) {
+            CameraPath p{i*1000./30,i*.001,0,i%2 ? .02 : -.02,0}; reference.push_back(p);
+            p.x+=20*std::cos(p.angle)-10*std::sin(p.angle); p.y+=20*std::sin(p.angle)+10*std::cos(p.angle); shifted.push_back(p);
+        }
+        const auto original=stabilizationCurve(reference,500,.75).value("samples").toArray();
+        const auto moved=stabilizationCurve(shifted,500,.75).value("samples").toArray();
+        for (int i=8;i<82;++i) { for (const auto* axis : {"x","y"}) {
+            QVERIFY(std::abs(original[i].toObject().value(axis).toDouble()-moved[i].toObject().value(axis).toDouble())<1e-7);
+        } }
+        nt::Clip clip; clip.mediaType=nt::MediaType::Video; clip.startMs=1000; clip.durationMs=1000;
+        clip.raw.insert("currentAssetId","source"); clip.raw.insert("crop",QJsonObject{{"left",.2},{"right",.1},{"top",.1},{"bottom",.15}});
+        auto e=effect("stabilize"),data=analysisKey(clip,e);
+        data.insert("version",1); data.insert("width",256); data.insert("height",512); data.insert("requiredZoom",1.3);
+        data.insert("samples",QJsonArray{QJsonObject{{"timeMs",0},{"x",.07},{"y",.03},{"angle",.1},{"scale",1.02}},
+                                       QJsonObject{{"timeMs",40},{"x",-.04},{"y",0},{"angle",0},{"scale",1}}});
+        e.insert("analysis",data);
+        const auto first=stabilizationMatrix(clip,e,1000),second=stabilizationMatrix(clip,e,1040);
+        QVERIFY(stabilizationFits(first)); QVERIFY(stabilizationFits(second)); QVERIFY(first!=second);
+        QCOMPARE(stabilizationMatrix(clip,e,1039),first); QCOMPARE(stabilizationMatrix(clip,e,1000),first);
+        e.insert("strength",0); QCOMPARE(stabilizationMatrix(clip,e,1000),stabilizationIdentity);
+        e.insert("strength",1); clip.raw.insert("effects",QJsonArray{e}); QJsonObject ext; decorateEffects(ext,clip,1000);
+        const auto rendered=ext.value("clipEffects").toArray()[0].toObject(); QVERIFY(!rendered.contains("analysis"));
+        auto key=effect("chromaKey"); key.insert("tolerance",.2); auto exposure=effect("exposure"); exposure.insert("exposure",1);
+        const auto plan=planChain({exposure,rendered},{key}); QCOMPARE(plan.size(),size_t(3));
+        QCOMPARE(plan[0].op,Op::Stabilize); QCOMPARE(plan[1].op,Op::ChromaKey); QCOMPARE(plan[2].op,Op::Exposure);
+        clip.raw.insert("currentAssetId","changed"); QCOMPARE(stabilizationMatrix(clip,e,1000),stabilizationIdentity);
+    }
     void deflickerAnalysis() {
         std::vector<LuminanceSample> samples;
         for (int i=0;i<90;++i) { samples.push_back({i*1000./30,-2+(i%2 ? .5 : -.5)}); }
@@ -74,6 +136,9 @@ class TestEffectPlan : public QObject {
         QCOMPARE(chain.size(),2); QVERIFY(chain.last().toObject().value("_matte").toBool());
         QVERIFY(ext.value("trackEffects").toArray().isEmpty());
         QCOMPARE(planChain(chain).back().op,Op::SecondaryColor);
+        auto withRepair=clip.raw.value("effects").toArray(); withRepair.append(effect("stabilize")); clip.raw.insert("effects",withRepair);
+        decorateEffects(ext,clip,{timeline,nullptr,0,0,30,0});
+        QCOMPARE(ext.value("clipEffects").toArray().first().toObject().value("type").toString(),QString("stabilize"));
         QVERIFY(planChain({effect("secondaryColor")}).empty());
         const auto table=secondaryCurveTransfer({{"hueCurve",points({{0.2,0.3},{0.8,0.7}})}});
         QCOMPARE(table[0],table[1020]); QVERIFY(std::abs(table[0]-0.5f)<0.00001f);
