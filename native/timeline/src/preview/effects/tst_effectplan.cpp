@@ -451,9 +451,10 @@ class TestEffectPlan : public QObject {
             QCOMPARE(v[5], 0.5f);
         }
         if (type == "curves") {
-            QCOMPARE(v[0], 0.f);
-            QCOMPARE(v[1], 1.f);
-            QCOMPARE(v[3], 0.f);
+            QCOMPARE(chain[0].curve,e);
+            const auto table=curveTransfer(chain[0].curve);
+            QCOMPARE(table[0],0.f); QCOMPARE(table[255*4],1.f);
+            QCOMPARE(table[64*4+1],64.f/255);
         }
         if (type == "levels") {
             QCOMPARE(v[1], 1.f);

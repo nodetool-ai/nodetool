@@ -50,6 +50,18 @@ async function comparePixels(width: number, height: number, rgba: Uint8ClampedAr
 }
 
 describe("effect parity on diagnostic pixels", () => {
+  it("renders authored channel bends rather than reducing them to midpoint gamma", async () => {
+    const width = 64, height = 16, rgba = new Uint8ClampedArray(width * height * 4);
+    for (let index = 0; index < rgba.length; index += 4) { rgba.set([64, 64, 64, 255], index); }
+    const result = await comparePixels(width, height, rgba, {id: "curve", type: "curves", enabled: true,
+      master: [{x: 0, y: 0}, {x: 1, y: 1}],
+      r: [{x: 0, y: 0}, {x: 0.25, y: 0.4}, {x: 0.5, y: 0.5}, {x: 1, y: 1}]});
+    for (const pixels of [result.cpu, result.gpu]) {
+      expect(pixels[0]).toBeGreaterThanOrEqual(101); expect(pixels[0]).toBeLessThanOrEqual(103);
+      expect([...pixels.slice(1, 4)]).toEqual([64, 64, 255]);
+    }
+    expect(result.maxError).toBeLessThanOrEqual(1);
+  });
   it("renders an interpolated generator color in both CPU preview and GPU export", async () => {
     const effect: KnownClipEffect = { id: "field", type: "generator", mode: "conicGradient",
       enabled: true, colorA: "#000000", colorB: "#0000ff", scale: 3 };

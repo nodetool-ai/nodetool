@@ -69,6 +69,7 @@ export {
   colorLiftGammaGainV1,
   colorCdlV1,
   colorCurvesV1,
+  colorCurveTransferV1,
   colorHslAdjustV1,
   colorSplitToningV1,
   colorFilmLookV1,

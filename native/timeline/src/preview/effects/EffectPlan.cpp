@@ -138,6 +138,21 @@ std::optional<Cube> parseCube(const QString &text) {
     }
     return cube;
 }
+std::array<float, 1024> curveTransfer(const QJsonObject &effect) {
+    std::array<std::vector<Point>, 4> curves;
+    constexpr std::array keys{"master", "r", "g", "b"};
+    for (size_t c=0;c<keys.size();++c) {
+        curves[c]=readPoints(effect.value(keys[c]).toArray());
+        std::stable_sort(curves[c].begin(),curves[c].end(),[](auto a,auto b) { return a.x<b.x; });
+    }
+    std::array<float,1024> table{};
+    for (size_t i=0;i<256;++i) {
+        const auto value=std::clamp(sample(curves[0],double(i)/255),0.,1.);
+        for (size_t c=0;c<3;++c) { table[i*4+c]=float(std::clamp(sample(curves[c+1],value),0.,1.)); }
+        table[i*4+3]=1;
+    }
+    return table;
+}
 CurveKnobs fitCurve(const QJsonArray &values) {
     auto points = readPoints(values);
     std::stable_sort(points.begin(), points.end(), [](auto a, auto b) { return a.x < b.x; });
@@ -284,15 +299,7 @@ std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEf
             v[5] = f(e, "spill", 0.5);
         } else if (type == "curves") {
             p.op = Op::Curves;
-            const auto c = fitCurve(e.value("master").toArray());
-            v = {float(c.black),
-                 float(c.white),
-                 float(c.shadows),
-                 float(c.midtones),
-                 float(c.highlights),
-                 float(channelMidtones(e.value("r").toArray())),
-                 float(channelMidtones(e.value("g").toArray())),
-                 float(channelMidtones(e.value("b").toArray()))};
+            p.curve = e;
         } else if (type == "levels") {
             p.op = Op::Levels;
             v[0] = f(e, "inBlack");

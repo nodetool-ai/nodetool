@@ -49,6 +49,7 @@ struct Pass {
     std::array<float, 16> params{};
     QString cube;
     bool rememberSource = false;
+    QJsonObject curve;
 };
 struct CurveKnobs {
     double black = 0, white = 1, shadows = 0, midtones = 0, highlights = 0;
@@ -62,6 +63,7 @@ std::uint16_t cubeHalfBits(float value);
 std::optional<Cube> parseCube(const QString &text);
 CurveKnobs fitCurve(const QJsonArray &points);
 double channelMidtones(const QJsonArray &points);
+std::array<float, 1024> curveTransfer(const QJsonObject &effect);
 std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEffects = {});
 QMargins chainOutset(const QJsonArray &effects);
 QRect cropPixels(const QJsonObject &ext, QSize inputSize);

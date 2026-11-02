@@ -81,6 +81,11 @@ float softLight(float base,float blend) {
     if (base<=0.25) d=((16*base-12)*base+4)*base;
     return base+(2*blend-1)*(d-base);
 }
+float curveValue(float value,int channel) {
+    float at=clamp(value,0,1)*255;
+    int lo=int(floor(at)), hi=min(255,lo+1);
+    return mix(texelFetch(second,ivec2(lo,0),0)[channel],texelFetch(second,ivec2(hi,0),0)[channel],fract(at));
+}
 // packages/gpu/src/shaders/filters/visualFx/v1, with the optional mask at full coverage.
 float visualHash(vec2 v) {
     uint x=uint(int(v.x)), y=uint(int(v.y));
@@ -327,11 +332,7 @@ void main() {
         }
         float a=src.a*mask; fragColor=vec4(rgb*a,a); return;
     } else if (op==9) {
-        rgb=clamp((rgb-p[0].x)/max(0.001,p[0].y-p[0].x),0,1);
-        rgb+=p[0].z*(1-rgb)*rgb;
-        rgb=pow(max(rgb,vec3(0)),vec3(1/max(0.01,1+p[0].w)));
-        rgb+=p[1].x*rgb*(1-rgb);
-        rgb=pow(max(rgb,vec3(0)),1/max(vec3(0.01),1+p[1].yzw));
+        rgb=vec3(curveValue(rgb.r,0),curveValue(rgb.g,1),curveValue(rgb.b,2));
     } else if (op==10) {
         rgb=pow(clamp((rgb-p[0].x)/max(1.0/255.0,p[0].z-p[0].x),0,1),vec3(1/max(0.01,p[0].y)));
     } else if (op==11) {

@@ -474,6 +474,20 @@ private slots:
         QVERIFY(!shadow.isNull()); QVERIFY(shadow.pixelColor(51,16).red()>245); QCOMPARE(shadow.pixelColor(51,16).green(),0);
         QCOMPARE(shadow.pixelColor(10,16),QColor(Qt::black));
     }
+    void curveFidelity() {
+        const QJsonArray identity{QJsonObject{{"x",0},{"y",0}},QJsonObject{{"x",1},{"y",1}}};
+        const QJsonArray bend{QJsonObject{{"x",0},{"y",0}},QJsonObject{{"x",0.25},{"y",0.4}},
+                              QJsonObject{{"x",0.5},{"y",0.5}},QJsonObject{{"x",1},{"y",1}}};
+        QImage source(256,16,QImage::Format_RGBA8888_Premultiplied);
+        for (int y=0;y<16;++y) { for (int x=0;x<256;++x) { source.setPixelColor(x,y,QColor(x,x,x)); } }
+        const auto red=effectStill({effect("curves",{{"master",identity},{"r",bend}})},source);
+        QVERIFY(!red.isNull()); QVERIFY(std::abs(red.pixelColor(64,8).red()-102)<=1);
+        QCOMPARE(red.pixelColor(64,8).green(),64); QCOMPARE(red.pixelColor(64,8).blue(),64);
+        const QJsonArray custom{QJsonObject{{"x",0},{"y",0.2}},QJsonObject{{"x",0.5},{"y",0.8}},QJsonObject{{"x",1},{"y",0.3}}};
+        const auto master=effectStill({effect("curves",{{"master",custom}})},source);
+        QVERIFY(!master.isNull()); QVERIFY(std::abs(master.pixelColor(0,8).red()-51)<=1);
+        QVERIFY(std::abs(master.pixelColor(255,8).red()-77)<=1); QVERIFY(master.pixelColor(128,8).red()>200);
+    }
     void sharpenRadius() {
         QImage source(64,16,QImage::Format_RGBA8888_Premultiplied);
         for (int y=0;y<16;++y) { for (int x=0;x<64;++x) {

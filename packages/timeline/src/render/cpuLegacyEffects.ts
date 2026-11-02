@@ -4,7 +4,7 @@ import {
   isClipSharpenEffect, isClipVignetteEffect, type ClipEffect
 } from "../types.js";
 import { parseCssColorOrBlack } from "./color.js";
-import { channelMidtones, fitCurve } from "./curveFitting.js";
+import { curveTransfer, sampleTransfer } from "./curveTransfer.js";
 import type { PixelBuffer } from "./cpuVisualEffects.js";
 
 const clamp = (v: number): number => Math.max(0, Math.min(1, v));
@@ -211,9 +211,7 @@ export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly Cli
       unpremultiply(output, data);
       continue;
     }
-    const curve = isClipCurvesEffect(effect) ? fitCurve(effect.master) : undefined;
-    const channelGamma = isClipCurvesEffect(effect)
-      ? [effect.r, effect.g, effect.b].map((points) => 1 / Math.max(0.01, 1 + channelMidtones(points))) : [];
+    const curve = isClipCurvesEffect(effect) ? curveTransfer(effect) : undefined;
     const key = isClipChromaKeyEffect(effect) ? parseCssColorOrBlack(effect.color) : undefined;
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
@@ -286,11 +284,7 @@ export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly Cli
             } else if (isClipLiftGammaGainEffect(effect)) {
               v = Math.pow(Math.max(0, (v + effect.lift[c]!) * effect.gain[c]!), 1 / Math.max(0.01, effect.gamma[c]!));
             } else if (curve) {
-              v = clamp((v - curve.blackPoint) / Math.max(0.001, curve.whitePoint - curve.blackPoint));
-              v += curve.shadows * (1 - v) * v;
-              v = Math.pow(Math.max(0, v), 1 / Math.max(0.01, 1 + curve.midtones));
-              v += curve.highlights * v * (1 - v);
-              v = Math.pow(Math.max(0, v), channelGamma[c]!);
+              v = sampleTransfer(curve, v, c);
             } else if (isClipVignetteEffect(effect)) {
               const radius = effect.radius ?? 0.9;
               const inner = Math.max(0, radius - effect.softness);

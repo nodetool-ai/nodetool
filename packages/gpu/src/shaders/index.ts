@@ -30,6 +30,7 @@ import { colorExposureToneV1 } from "./color/exposureTone/v1/module.js";
 import { colorLiftGammaGainV1 } from "./color/liftGammaGain/v1/module.js";
 import { colorCdlV1 } from "./color/cdl/v1/module.js";
 import { colorCurvesV1 } from "./color/curves/v1/module.js";
+import { colorCurveTransferV1 } from "./color/curveTransfer/v1/module.js";
 import { colorHslAdjustV1 } from "./color/hslAdjust/v1/module.js";
 import { colorSplitToningV1 } from "./color/splitToning/v1/module.js";
 import { colorFilmLookV1 } from "./color/filmLook/v1/module.js";
@@ -107,6 +108,7 @@ export {
   colorLiftGammaGainV1,
   colorCdlV1,
   colorCurvesV1,
+  colorCurveTransferV1,
   colorHslAdjustV1,
   colorSplitToningV1,
   colorFilmLookV1,
@@ -183,6 +185,7 @@ export const ALL_SHADERS: readonly ShaderModule[] = [
   colorLiftGammaGainV1,
   colorCdlV1,
   colorCurvesV1,
+  colorCurveTransferV1,
   colorHslAdjustV1,
   colorSplitToningV1,
   colorFilmLookV1,

@@ -1,4 +1,4 @@
-import { fitCurve, channelMidtones } from "./curveFitting.js";
+import { curveTransfer } from "./curveTransfer.js";
 import { GENERATOR_MODES, STYLIZE_MODES, type ClipEffect, type TrackEffect } from "../types.js";
 import {
   isClipBlurEffect,
@@ -21,7 +21,7 @@ import {
   createRecipeRunner,
   LabeledTexture,
   colorCdlV1,
-  colorCurvesV1,
+  colorCurveTransferV1,
   colorGradeV1,
   colorLevelsV1,
   colorLiftGammaGainV1,
@@ -392,8 +392,8 @@ export class WebGPUEffectsProcessor {
    * Encode one clip effect as its shader step, with the parameters
    * `packages/image-nodes/src/nodes/lib-image-*.ts` already settled for the
    * same modules (D7). Only the units the timeline document differs in are
-   * converted here: pixel offsets become UV, a control-point curve becomes the
-   * parametric knobs `color.curves@1` takes.
+   * converted here: pixel offsets become UV and control-point curves become
+   * transfer samples.
    */
   private stepClipEffect(
     effect: ClipEffect,
@@ -541,17 +541,7 @@ export class WebGPUEffectsProcessor {
       return;
     }
     if (isClipCurvesEffect(effect)) {
-      const master = fitCurve(effect.master);
-      step(colorCurvesV1, {
-        blackPoint: master.blackPoint,
-        whitePoint: master.whitePoint,
-        shadows: master.shadows,
-        midtones: master.midtones,
-        highlights: master.highlights,
-        redMidtones: channelMidtones(effect.r),
-        greenMidtones: channelMidtones(effect.g),
-        blueMidtones: channelMidtones(effect.b)
-      });
+      step(colorCurveTransferV1, {table: curveTransfer(effect).map(value => d.vec4f(...value))});
       return;
     }
     if (isClipLevelsEffect(effect)) {
