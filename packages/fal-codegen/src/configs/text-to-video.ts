@@ -2,6 +2,41 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "fal-ai/minimax/hailuo-02/standard/text-to-video": {
+      className: "MinimaxHailuo02StandardTextToVideo",
+      docstring:
+        "MiniMax Hailuo-02 Standard generates a 768p video from a text prompt.",
+      tags: [
+        "video",
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "minimax",
+        "hailuo"
+      ]
+    },
+
+    "wan/v2.6/text-to-video": {
+      className: "WanV26TextToVideo",
+      docstring:
+        "Wan 2.6 generates a video with synchronized audio from a text prompt.",
+      tags: ["video", "generation", "text-to-video", "txt2vid", "wan"]
+    },
+
+    "bytedance/seedance-2.5/draft/complete": {
+      className: "Seedance25DraftComplete",
+      docstring:
+        "Seedance 2.5 regenerates a draft task at 1080p from its draft id.",
+      tags: [
+        "video",
+        "generation",
+        "text-to-video",
+        "seedance",
+        "bytedance",
+        "draft"
+      ]
+    },
+
     "kling/v4/text-to-video": {
       className: "KlingV4TextToVideo",
       docstring: "Kling 4 generates video from a text prompt.",

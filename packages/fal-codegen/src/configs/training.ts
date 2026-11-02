@@ -2,6 +2,41 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "fal-ai/flux-kontext-trainer": {
+      className: "FluxKontextTrainer",
+      docstring:
+        "Trains a FLUX.1 Kontext LoRA from paired before and after images for custom image edits.",
+      tags: ["flux", "training", "fine-tuning", "lora", "model-training"]
+    },
+
+    "fal-ai/flux-lora-fast-training": {
+      className: "FluxLoraFastTraining",
+      docstring:
+        "Trains a FLUX.1 [dev] LoRA from a set of images for a subject or style.",
+      tags: [
+        "flux",
+        "training",
+        "fine-tuning",
+        "lora",
+        "model-training",
+        "fast"
+      ]
+    },
+
+    "fal-ai/flux-lora-portrait-trainer": {
+      className: "FluxLoraPortraitTrainer",
+      docstring:
+        "Trains a FLUX.1 [dev] LoRA tuned for portraits of one person.",
+      tags: [
+        "flux",
+        "training",
+        "fine-tuning",
+        "lora",
+        "model-training",
+        "portrait"
+      ]
+    },
+
     "fal-ai/z-image-base-trainer": {
       className: "ZImageBaseTrainer",
       docstring: "Z-Image Trainer",
