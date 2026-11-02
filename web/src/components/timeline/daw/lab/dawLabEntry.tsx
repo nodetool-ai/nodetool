@@ -17,6 +17,7 @@ import "../../../../styles/base.css";
 import ThemeNodetool from "../../../themes/ThemeNodetool";
 import { ThemeRoot } from "../../../ui_primitives";
 import { TRPCProvider } from "../../../../trpc/Provider";
+import TranslationProvider from "../../../../contexts/TranslationProvider";
 import {
   createTimelineInstance,
   TimelineProvider,
@@ -81,6 +82,7 @@ function Lab(): React.JSX.Element {
 
   return (
     <MemoryRouter>
+      <TranslationProvider>
       <TRPCProvider>
         <ThemeRoot theme={ThemeNodetool}>
           <TimelineProvider instance={instance}>
@@ -90,6 +92,7 @@ function Lab(): React.JSX.Element {
           </TimelineProvider>
         </ThemeRoot>
       </TRPCProvider>
+      </TranslationProvider>
     </MemoryRouter>
   );
 }

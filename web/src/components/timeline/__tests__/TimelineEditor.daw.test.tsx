@@ -15,6 +15,10 @@ import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import {
+  timelineEditorModeKey,
+  useTimelineEditorModeStore
+} from "../../../stores/timeline/TimelineEditorMode";
+import {
   AssetGridStoreProvider,
   LIBRARY_ASSET_GRID_STORE_KEY
 } from "../../../stores/AssetGridStore";
@@ -161,6 +165,10 @@ const renderEditor = () =>
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // DAW mode is Expert mode's.
+  useTimelineEditorModeStore.setState({
+    modes: { [timelineEditorModeKey(null)]: "expert" }
+  });
   useTimelineLayoutStore.setState({ dawMode: false, dawDockTab: "mixer", metronomeEnabled: false });
   (useParams as jest.Mock).mockReturnValue({ sequenceId: "seq-1" });
   (useNavigate as jest.Mock).mockReturnValue(jest.fn());

@@ -50,6 +50,9 @@ test("timeline actions remain reachable on a narrow phone", async ({
 }) => {
   await openTimeline(page);
   const menu = page.getByRole("button", { name: "More timeline actions" });
+  // Simple mode's ⋮ menu holds the mode. Expert mode adds the other actions.
+  await menu.tap();
+  await page.getByRole("menuitemradio", { name: "Expert" }).tap();
   await expect(menu).toBeVisible();
   for (const width of [320, 375, 390]) {
     await page.setViewportSize({ width, height: 844 });

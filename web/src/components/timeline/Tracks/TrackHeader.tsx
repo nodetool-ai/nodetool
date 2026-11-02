@@ -81,6 +81,7 @@ import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
 import { trackRowHeightPx } from "./trackHeight";
 import { trackSupportsAutomation } from "./automation/automationTargets";
 import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
+import { useTimelineSimpleMode } from "../../../stores/timeline/TimelineEditorMode";
 import { trackTypeMeta, trackTypeAccent } from "./trackVisuals";
 export const TRACK_HEADER_WIDTH_PX = DEFAULT_TRACK_HEADER_WIDTH_PX;
 /**
@@ -416,6 +417,9 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
   ({ track, typedIndex, compact = false }) => {
     const theme = useTheme();
     const { t } = useTranslation();
+    // Simple mode: one row with the type, the name and a show or mute
+    // toggle. The context menu keeps every track command.
+    const simple = useTimelineSimpleMode();
 
     const setTrackVisible = useTimelineStore((s) => s.setTrackVisible);
     const setTrackLocked = useTimelineStore((s) => s.setTrackLocked);
@@ -852,6 +856,42 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
       </>
     ) : null;
 
+    const visibilityToggle =
+      track.type !== "midi" ? (
+        <Tooltip title={track.visible ? t("i18n-next6.trackHeader.hideTrack") : t("i18n-next6.trackHeader.showTrack")}>
+          <button
+            type="button"
+            css={track.visible ? iconButtonOnCss : iconButtonWarningCss}
+            onClick={() => setTrackVisible(track.id, !track.visible)}
+            aria-label={track.visible ? t("i18n-next6.trackHeader.hideTrack") : t("i18n-next6.trackHeader.showTrack")}
+            aria-pressed={!track.visible}
+          >
+            {track.visible ? (
+              <VisibilityOutlinedIcon />
+            ) : (
+              <VisibilityOffOutlinedIcon />
+            )}
+          </button>
+        </Tooltip>
+      ) : null;
+    const muteToggle =
+      isSoundTrack ? (
+        <Tooltip title={track.muted ? t("i18n-next6.trackHeader.unmute") : t("i18n-next6.trackHeader.mute")}>
+          <button
+            type="button"
+            css={track.muted ? iconButtonWarningCss : iconButtonOnCss}
+            onClick={() => setTrackMuted(track.id, !track.muted)}
+            aria-label={track.muted ? t("i18n-next6.trackHeader.unmute") : t("i18n-next6.trackHeader.mute")}
+            aria-pressed={!!track.muted}
+          >
+            {track.muted ? (
+              <VolumeOffOutlinedIcon />
+            ) : (
+              <VolumeUpOutlinedIcon />
+            )}
+          </button>
+        </Tooltip>
+      ) : null;
 
     return (
       <>
@@ -878,6 +918,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
           <div css={topRowStyles}>
             {!compact && (
               <>
+                {!simple && (
                 <Tooltip title={t("i18n-next6.trackHeader.dragToReorder")}>
                   <div
                     css={dragHandleCss}
@@ -894,6 +935,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
                     <DragIndicatorIcon />
                   </div>
                 </Tooltip>
+                )}
                 <div css={typeGlyphCss} aria-hidden title={meta.label}>
                   <TypeIcon />
                 </div>
@@ -911,7 +953,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
                 ariaLabel={t("i18n-next6.trackHeader.trackName", { name: track.name })}
                 title={t("i18n-next6.trackHeader.clickToRename")}
               />
-              {track.type === "chord" ? (
+              {track.type === "chord" || simple ? (
                 <span
                   css={indexChipCss}
                   aria-label={t("i18n-next6.trackHeader.trackTypeIndex", { type: meta.label, index: typedIndex })}
@@ -943,34 +985,20 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
                 </Tooltip>
               )}
             </div>
+            {simple && (muteToggle ?? visibilityToggle)}
           </div>
 
-          {instrumentOnOwnRow && (
+          {instrumentOnOwnRow && !simple && (
             <div css={instrumentRowStyles}>{instrumentControls}</div>
           )}
 
           {/* Controls row */}
+          {!simple && (
           <div
             css={controlsRowCss}
             className={compact ? "timeline-track-controls" : undefined}
           >
-            {track.type !== "midi" && (
-              <Tooltip title={track.visible ? t("i18n-next6.trackHeader.hideTrack") : t("i18n-next6.trackHeader.showTrack")}>
-                <button
-                  type="button"
-                  css={track.visible ? iconButtonOnCss : iconButtonWarningCss}
-                  onClick={() => setTrackVisible(track.id, !track.visible)}
-                  aria-label={track.visible ? t("i18n-next6.trackHeader.hideTrack") : t("i18n-next6.trackHeader.showTrack")}
-                  aria-pressed={!track.visible}
-                >
-                  {track.visible ? (
-                    <VisibilityOutlinedIcon />
-                  ) : (
-                    <VisibilityOffOutlinedIcon />
-                  )}
-                </button>
-              </Tooltip>
-            )}
+            {visibilityToggle}
 
             <Tooltip title={track.locked ? t("i18n-next6.trackHeader.unlockTrack") : t("i18n-next6.trackHeader.lockTrack")}>
               <button
@@ -1007,21 +1035,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
 
             {isSoundTrack && (
               <>
-                <Tooltip title={track.muted ? t("i18n-next6.trackHeader.unmute") : t("i18n-next6.trackHeader.mute")} key="mute">
-                  <button
-                    type="button"
-                    css={track.muted ? iconButtonWarningCss : iconButtonOnCss}
-                    onClick={() => setTrackMuted(track.id, !track.muted)}
-                    aria-label={track.muted ? t("i18n-next6.trackHeader.unmute") : t("i18n-next6.trackHeader.mute")}
-                    aria-pressed={!!track.muted}
-                  >
-                    {track.muted ? (
-                      <VolumeOffOutlinedIcon />
-                    ) : (
-                      <VolumeUpOutlinedIcon />
-                    )}
-                  </button>
-                </Tooltip>
+                {muteToggle}
 
                 <Tooltip title={track.solo ? t("i18n-next6.trackHeader.unsolo") : t("i18n-next6.trackHeader.solo")}>
                   <button
@@ -1106,6 +1120,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
               </button>
             </Tooltip>
           </div>
+          )}
 
           {/* Height resize handle */}
           <div

@@ -121,6 +121,30 @@ describe("TimelineDocumentBar overflow menu", () => {
     );
     expect(onSetDawMode).toHaveBeenCalledWith(true);
   });
+
+  it("offers Simple or Expert in the menu when the bar has no mode switch", async () => {
+    const onSetEditorMode = jest.fn();
+    renderTopBar({ onSetEditorMode, editorMode: "simple" });
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "More timeline actions" })
+    );
+    expect(
+      screen.getByRole("menuitemradio", { name: "Simple" })
+    ).toHaveAttribute("aria-checked", "true");
+    await userEvent.click(screen.getByRole("menuitemradio", { name: "Expert" }));
+    expect(onSetEditorMode).toHaveBeenCalledWith("expert");
+  });
+
+  it("keeps the mode out of the menu beside a mode switch", () => {
+    renderTopBar({
+      onSetEditorMode: jest.fn(),
+      modeControls: <span>switch</span>
+    });
+    expect(
+      screen.queryByRole("button", { name: "More timeline actions" })
+    ).not.toBeInTheDocument();
+  });
 });
 
 describe("TimelineDocumentBar actions", () => {
