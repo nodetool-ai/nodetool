@@ -1185,6 +1185,9 @@ export interface TimelineTempo {
   };
 }
 
+/** Kind of sound on a clip. Mirrors `clipAudioRole` in the protocol schema. */
+export type ClipAudioRole = "dialogue" | "music" | "sfx" | "ambience";
+
 export interface TimelineClip {
   id: string;
   trackId: string;
@@ -1357,6 +1360,11 @@ export interface TimelineClip {
    * order. See {@link ClipAudioEffect}.
    */
   audioEffects?: ClipAudioEffect[];
+  /**
+   * What the clip's sound is, so loudness targets and ducking can treat it by
+   * kind. It does not change playback by itself.
+   */
+  audioRole?: ClipAudioRole;
   /**
    * GPU effects applied to this clip in order. On an `adjustment` clip they
    * run on the composite of the layers beneath it instead of on its own
@@ -2452,4 +2460,8 @@ export interface TimelineMarker {
   label: string;
   color?: string;
   note?: string;
+  /** Length of a range marker. Absent or 0 is a point marker. */
+  durationMs?: number;
+  /** Who placed the marker, as free text. */
+  author?: string;
 }

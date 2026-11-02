@@ -665,6 +665,30 @@ private slots:
         QCOMPARE(audit.value(u"tracks").toArray().size(), 0);
     }
 
+    // G3: the fields the protocol schema gained for the native editor have no
+    // effect on picture or sound, so a document using them reports nothing.
+    void auditKnowsNativeEditorFields() {
+        QJsonObject clip = clipJson(QStringLiteral("c1"), QStringLiteral("audio"), 0, kReady);
+        clip.insert(QStringLiteral("audioRole"), QStringLiteral("dialogue"));
+        const QJsonObject marker{{QStringLiteral("id"), QStringLiteral("m1")}, {QStringLiteral("timeMs"), 1000},
+                                 {QStringLiteral("label"), QStringLiteral("Beat")}, {QStringLiteral("color"), QStringLiteral("#ff0000")},
+                                 {QStringLiteral("note"), QStringLiteral("Hold")}, {QStringLiteral("durationMs"), 2500},
+                                 {QStringLiteral("author"), QStringLiteral("Ana")}};
+        QJsonObject seq{{QStringLiteral("id"), QStringLiteral("s")}, {QStringLiteral("clips"), QJsonArray{clip}},
+                        {QStringLiteral("markers"), QJsonArray{marker}}};
+        QCOMPARE(auditTimelineFields(seq).value(u"fields").toObject(), QJsonObject{});
+
+        // The check sees inside markers: a field the schema would strip is reported once per name.
+        QJsonObject invented = marker;
+        invented.insert(QStringLiteral("inventedField"), 1);
+        seq.insert(QStringLiteral("markers"), QJsonArray{invented, invented});
+        const QJsonObject fields = auditTimelineFields(seq).value(u"fields").toObject();
+        QCOMPARE(fields.size(), 1);
+        const QJsonObject entry = fields.value(u"marker.inventedField").toObject();
+        QCOMPARE(entry.value(u"effect").toString(), QStringLiteral("unknown"));
+        QCOMPARE(entry.value(u"count").toInt(), 2);
+    }
+
     // A text clip whose animations change its text moves its flex tree every
     // frame. The layout reads the animated style (scene/TextAnimation.h), so
     // the audit puts no clip of the tree out of the plan. The animated layout

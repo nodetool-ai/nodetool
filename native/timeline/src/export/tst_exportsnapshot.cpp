@@ -57,6 +57,30 @@ private slots:
         QCOMPARE(nt::exporting::exportSnapshot(model).value("clips").toArray().first().toObject()
                      .value("audioPath").toString(), QString("/fixtures/separate.wav"));
     }
+    // G3: fields only the protocol schema and the native editor know stay in the
+    // raw document through an edit and through undo.
+    void nativeEditorFieldsSurviveEdits() {
+        const QJsonObject marker{{"id", "m"}, {"timeMs", 500}, {"label", "Beat"}, {"durationMs", 2500}, {"author", "Ana"}};
+        const QJsonObject other{{"id", "gone"}, {"timeMs", 900}, {"label", "Other"}};
+        const QJsonObject clip{{"id", "c"}, {"trackId", "a"}, {"mediaType", "audio"}, {"startMs", 0},
+            {"durationMs", 1000}, {"audioRole", "dialogue"}};
+        const QJsonObject raw{{"width", 64}, {"height", 64}, {"fps", 30},
+            {"tracks", QJsonArray{QJsonObject{{"id", "a"}, {"type", "audio"}}}},
+            {"clips", QJsonArray{clip}}, {"markers", QJsonArray{marker, other}}};
+        auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        QVERIFY(parsed.timeline);
+        TimelineModel model;
+        model.setTimeline(std::move(*parsed.timeline));
+        QVERIFY(model.moveClip("c", 200));
+        QVERIFY(model.deleteMarker("gone"));
+        QCOMPARE(model.markersJson(), QJsonArray{marker});
+        QCOMPARE(model.clipsJson().first().toObject().value("audioRole").toString(), QString("dialogue"));
+        QCOMPARE(nt::exporting::exportSnapshot(model).value("markers").toArray(), QJsonArray{marker});
+        model.undoStack()->undo();
+        QCOMPARE(model.markersJson(), QJsonArray({marker, other}));
+        model.undoStack()->undo();
+        QCOMPARE(model.clipsJson().first().toObject().value("audioRole").toString(), QString("dialogue"));
+    }
     void duration_data() {
         QTest::addColumn<double>("authored");
         QTest::addColumn<double>("clipDuration");
