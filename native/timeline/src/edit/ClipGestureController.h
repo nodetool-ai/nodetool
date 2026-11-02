@@ -304,5 +304,4 @@ private:
     QSet<QString> m_razorTargets;
     QString m_hoverPart;
     QPointF m_hoverScene;
-    Qt::KeyboardModifiers m_hoverModifiers;
 };

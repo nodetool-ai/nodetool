@@ -133,26 +133,28 @@ void ClipGestureController::watchWindow(QQuickWindow* window) {
     if (window) { window->installEventFilter(this); }
 }
 bool ClipGestureController::eventFilter(QObject*, QEvent* event) {
-    if (!m_toolPreview.isEmpty() && (event->type() == QEvent::KeyPress || event->type() == QEvent::KeyRelease)) {
-        const auto* key = static_cast<QKeyEvent*>(event);
+    if (event->type() != QEvent::KeyPress && event->type() != QEvent::KeyRelease) { return false; }
+    const auto* key = static_cast<QKeyEvent*>(event);
+    if (key->isAutoRepeat()) { return false; }
+    const bool pressed = event->type() == QEvent::KeyPress;
+    if (!m_toolPreview.isEmpty()) {
         auto modifiers = key->modifiers();
         const auto flag = key->key() == Qt::Key_Control ? Qt::ControlModifier : key->key() == Qt::Key_Meta ? Qt::MetaModifier :
                           key->key() == Qt::Key_Shift ? Qt::ShiftModifier : key->key() == Qt::Key_Alt ? Qt::AltModifier : Qt::NoModifier;
-        if (flag != Qt::NoModifier && !key->isAutoRepeat()) {
-            modifiers.setFlag(flag, event->type() == QEvent::KeyPress);
+        if (flag != Qt::NoModifier) {
+            modifiers.setFlag(flag, pressed);
             updateToolHover(m_toolPreview.value("clipId").toString(), m_hoverPart, m_hoverScene.x(), m_hoverScene.y(), int(modifiers));
         }
     }
-    if (!m_gesture.kind.isEmpty() && (event->type() == QEvent::KeyPress || event->type() == QEvent::KeyRelease)) {
-        const auto* key = static_cast<QKeyEvent*>(event);
-        if (key->key() == Qt::Key_Alt && !key->isAutoRepeat()) {
-            m_gesture.alt = event->type() == QEvent::KeyPress;
+    if (!m_gesture.kind.isEmpty()) {
+        if (key->key() == Qt::Key_Alt) {
+            m_gesture.alt = pressed;
             if (m_gesture.dragging) {
                 if (m_gesture.kind == u"move") { applyMove(); }
                 else if (m_gesture.kind == u"trim") { applyTrim(); }
             }
         }
-        if (key->key() == Qt::Key_Escape && event->type() == QEvent::KeyPress && !key->isAutoRepeat()) {
+        if (key->key() == Qt::Key_Escape && pressed) {
             cancelGesture();
             return true;
         }
@@ -541,7 +543,7 @@ void ClipGestureController::updateToolHover(const QString& id, const QString& pa
     }
     m_hoverPart = part;
     m_hoverScene = {sceneX, sceneY};
-    m_hoverModifiers = Qt::KeyboardModifiers(modifiers);
+    const auto mods = Qt::KeyboardModifiers(modifiers);
     const double atMs = laneMsAt(sceneX);
     bool available = m_hoverAvailable;
     QString label = m_hoverReason;
@@ -561,7 +563,7 @@ void ClipGestureController::updateToolHover(const QString& id, const QString& pa
         else if (m_tool == u"trackSelect") { label = tr("Select following clips"); }
         else if (m_tool == u"trackSelectBackward") { label = tr("Select preceding clips"); }
         else if (part != u"body") {
-            const auto mode = trimModeFor(m_tool, m_hoverModifiers & (Qt::ControlModifier | Qt::MetaModifier), m_rippleMode);
+            const auto mode = trimModeFor(m_tool, mods & (Qt::ControlModifier | Qt::MetaModifier), m_rippleMode);
             label = mode == u"roll" ? tr("Roll edit") : mode == u"ripple" ? tr("Ripple trim") :
                     mode == u"stretch" ? tr("Rate stretch") : part == u"start" ? tr("Trim start") : tr("Trim end");
             if (!m_hoverClip.value("timeRemap").toObject().value("keyframes").toArray().isEmpty()) {

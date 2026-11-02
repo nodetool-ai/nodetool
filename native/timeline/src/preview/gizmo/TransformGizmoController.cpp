@@ -425,7 +425,7 @@ void TransformGizmoController::mouseMoveEvent(QMouseEvent* event) {
     move(event->position() - m_origin, event->modifiers().testFlag(Qt::ShiftModifier), event->modifiers().testFlag(Qt::AltModifier));
     event->accept();
 }
-void TransformGizmoController::mouseReleaseEvent(QMouseEvent* event) { end(); setKeepMouseGrab(false); event->accept(); }
+void TransformGizmoController::mouseReleaseEvent(QMouseEvent* event) { end(); event->accept(); }
 void TransformGizmoController::mouseUngrabEvent() { cancel(); }
 void TransformGizmoController::hoverMoveEvent(QHoverEvent* event) {
     if (m_drag) { setCursor(QCursor(m_dragCursor)); return; }
