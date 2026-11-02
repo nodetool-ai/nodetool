@@ -33,6 +33,8 @@ constexpr double TICK_INTERVAL_MS = 1000;
 constexpr double FALLBACK_VIEWPORT_PX = 1200;
 // Merge key of a held nudge key's commands.
 constexpr int NUDGE_MERGE_ID = 1;
+// Merge key of a held keyboard trim's commands.
+constexpr int TRIM_KEY_MERGE_ID = 2;
 
 struct WindowSnap {
     double startMs;
@@ -61,6 +63,21 @@ const QJsonObject* findClip(const ClipList& clips, const QString& id) {
     return nullptr;
 }
 
+// The key under a shifted symbol on a US keyboard: a platform reports Shift+1
+// as Qt::Key_Exclam and Shift+= as Qt::Key_Plus. Any other key is itself.
+int unshiftedKey(int key) {
+    static const QHash<int, int> keys{
+        {Qt::Key_Exclam, Qt::Key_1},       {Qt::Key_At, Qt::Key_2},           {Qt::Key_NumberSign, Qt::Key_3},
+        {Qt::Key_Dollar, Qt::Key_4},       {Qt::Key_Percent, Qt::Key_5},      {Qt::Key_AsciiCircum, Qt::Key_6},
+        {Qt::Key_Ampersand, Qt::Key_7},    {Qt::Key_Asterisk, Qt::Key_8},     {Qt::Key_ParenLeft, Qt::Key_9},
+        {Qt::Key_ParenRight, Qt::Key_0},   {Qt::Key_Underscore, Qt::Key_Minus}, {Qt::Key_Plus, Qt::Key_Equal},
+        {Qt::Key_BraceLeft, Qt::Key_BracketLeft}, {Qt::Key_BraceRight, Qt::Key_BracketRight},
+        {Qt::Key_Bar, Qt::Key_Backslash},  {Qt::Key_Colon, Qt::Key_Semicolon}, {Qt::Key_QuoteDbl, Qt::Key_Apostrophe},
+        {Qt::Key_Less, Qt::Key_Comma},     {Qt::Key_Greater, Qt::Key_Period}, {Qt::Key_AsciiTilde, Qt::Key_QuoteLeft},
+    };
+    return keys.value(key, key);
+}
+
 // A Qt key event in the DOM terms the keymap reads (`e.key`, `e.code`).
 KeyEventLike domKey(int key, const QString& text, int modifiers) {
     KeyEventLike e;
@@ -76,9 +93,13 @@ KeyEventLike domKey(int key, const QString& text, int modifiers) {
         e.code = QStringLiteral("Key") + QString(c.toUpper());
         return e;
     }
-    if (key >= Qt::Key_0 && key <= Qt::Key_9) {
-        e.key = text.isEmpty() ? QString(QChar(u'0' + (key - Qt::Key_0))) : text;
-        e.code = QStringLiteral("Digit") + QString(QChar(u'0' + (key - Qt::Key_0)));
+    // Ctrl turns a symbol's text into a control character or nothing.
+    const QString printable = !text.isEmpty() && text.at(0).isPrint() ? text
+        : key >= Qt::Key_Space && key <= Qt::Key_AsciiTilde ? QString(QChar(key)) : text;
+    const int physical = unshiftedKey(key);
+    if (physical >= Qt::Key_0 && physical <= Qt::Key_9) {
+        e.key = printable;
+        e.code = QStringLiteral("Digit") + QString(QChar(u'0' + (physical - Qt::Key_0)));
         return e;
     }
     switch (key) {
@@ -91,6 +112,8 @@ KeyEventLike domKey(int key, const QString& text, int modifiers) {
     case Qt::Key_Escape: e.key = QStringLiteral("Escape"); return e;
     case Qt::Key_Home: e.key = QStringLiteral("Home"); return e;
     case Qt::Key_End: e.key = QStringLiteral("End"); return e;
+    case Qt::Key_PageUp: e.key = QStringLiteral("PageUp"); return e;
+    case Qt::Key_PageDown: e.key = QStringLiteral("PageDown"); return e;
     case Qt::Key_Space: e.key = QStringLiteral(" "); return e;
     default: break;
     }
@@ -101,9 +124,21 @@ KeyEventLike domKey(int key, const QString& text, int modifiers) {
         {Qt::Key_Backslash, QStringLiteral("Backslash")}, {Qt::Key_Equal, QStringLiteral("Equal")},
         {Qt::Key_Minus, QStringLiteral("Minus")},          {Qt::Key_QuoteLeft, QStringLiteral("Backquote")},
     };
-    e.code = symbolCodes.value(key);
-    e.key = text;
+    e.code = symbolCodes.value(physical);
+    e.key = printable;
     return e;
+}
+
+bool presetBindsAction(const QString& preset, const QString& action) {
+    return !nt::edit::actionBindingKeys(preset, action).empty();
+}
+
+// A registered default key gives way to the preset's own use of that key.
+bool presetBindsSequence(const QString& preset, const QKeySequence& sequence) {
+    if (sequence.isEmpty()) return false;
+    const QKeyCombination combination = sequence[0];
+    const int mods = combination.keyboardModifiers().toInt();
+    return !resolveTimelineAction(domKey(int(combination.key()), {}, mods), preset).isEmpty();
 }
 
 }  // namespace
@@ -171,8 +206,9 @@ void ClipGestureController::setLanesViewport(QQuickItem* v) {
     emit changed();
 }
 void ClipGestureController::setSelection(const QStringList& ids) {
-    if (ids == m_selection && m_selectedGap.isEmpty()) return;
+    if (ids == m_selection && m_selectedGap.isEmpty() && m_selectedEdit.isEmpty()) return;
     m_selectedGap.clear();
+    m_selectedEdit.clear();
     m_selection = ids;
     emit selectionChanged();
 }
@@ -184,6 +220,11 @@ void ClipGestureController::setRippleMode(bool on) {
 void ClipGestureController::setSnapEnabled(bool on) {
     if (on == m_snapEnabled) return;
     m_snapEnabled = on;
+    emit optionsChanged();
+}
+void ClipGestureController::setKeyframeRow(const QString& row) {
+    if (row == m_keyframeRow) return;
+    m_keyframeRow = row;
     emit optionsChanged();
 }
 void ClipGestureController::setLinkedSelection(bool on) {
@@ -960,15 +1001,26 @@ void ClipGestureController::finishGesture(bool completed, Qt::KeyboardModifiers 
                                                    {QStringLiteral("slip"), QStringLiteral("Slip clip")},
                                                    {QStringLiteral("slide"), QStringLiteral("Slide clip")}};
         m_timeline->commitEdit(names.value(g.kind), g.before, m_timeline->clipsJson());
+        selectEditPoint(g);
     } else if (g.dragging) {
         // Cancelled: back to the state at the press, with no entry.
         m_timeline->replaceClips(g.before);
     } else if (g.kind == u"move" && completed && m_tool != u"trackSelect" && m_tool != u"trackSelectBackward") {
         // A track-select tool chose the selection at the press.
         clickSelect(g.clipId, modifiers);
+    } else if (completed) {
+        selectEditPoint(g);
     }
     if (window() && window()->mouseGrabberItem() == this) ungrabMouse();
     emit gestureChanged();
+}
+
+// useClipTrim handleTrimPointerEnd: the edge just handled is the edit point
+// for E and the keyboard trims, whether the press dragged it or only clicked.
+void ClipGestureController::selectEditPoint(const Gesture& g) {
+    if (g.edge.isEmpty()) return;
+    m_selectedEdit = {{"clipId", g.clipId}, {"edge", g.edge}};
+    emit selectionChanged();
 }
 
 void ClipGestureController::clickSelect(const QString& id, Qt::KeyboardModifiers modifiers) {
@@ -998,19 +1050,46 @@ void ClipGestureController::nudge(double deltaMs, bool merge) {
     m_timeline->commitEdit(QStringLiteral("Nudge clips"), before, toArray(next), NUDGE_MERGE_ID, merge);
 }
 
+bool ClipGestureController::trimEditPoint(double edgeTargetMs, bool merge) {
+    if (!m_timeline || m_selectedEdit.isEmpty()) return false;
+    const QString id = m_selectedEdit.value("clipId").toString();
+    const EditDoc doc = editDoc();
+    const QJsonObject* target = findClip(doc.clips, id);
+    if (!target) return false;
+    const QJsonArray before = m_timeline->clipsJson();
+    ClipList next;
+    if (m_selectedEdit.value("edge").toString() == u"start") {
+        const double deltaMs = clipStartMs(*target) - edgeTargetMs;
+        next = resolveEdit(m_rippleMode ? "rippleTrimClipStart" : "trimClipStart", {{"clipId", id}, {"deltaMs", deltaMs}}, [&] {
+            return m_rippleMode ? rippleTrimClipStart(doc, id, deltaMs, m_linked) : trimClipStart(doc, id, deltaMs, m_linked);
+        });
+    } else {
+        const double deltaMs = edgeTargetMs - clipEndMs(*target);
+        const auto cap = sourceCap(*target);
+        next = resolveEdit(m_rippleMode ? "rippleTrimClipEnd" : "trimClipEnd", {{"clipId", id}, {"deltaMs", deltaMs}}, [&] {
+            return m_rippleMode ? rippleTrimClipEnd(doc, id, deltaMs, cap, m_linked) : trimClipEnd(doc, id, deltaMs, cap, m_linked);
+        }, cap);
+    }
+    m_timeline->commitEdit(QStringLiteral("Trim clip"), before, toArray(next), TRIM_KEY_MERGE_ID, merge);
+    return true;
+}
+
 bool ClipGestureController::handleKey(int key, const QString& text, int modifiers, bool autoRepeat) {
     if (!m_timeline) { return false; }
     const QVariantMap context{{"autoRepeat", autoRepeat}};
     const QString action = resolveTimelineAction(domKey(key, text, modifiers), m_preset);
-    if (!action.isEmpty() && runAction(action, context)) { return true; }
+    // A preset's key means that action alone, even when the action refuses.
+    if (!action.isEmpty()) { return runAction(action, context); }
     auto mods = Qt::KeyboardModifiers(modifiers) & (Qt::ControlModifier | Qt::MetaModifier | Qt::ShiftModifier | Qt::AltModifier);
     if (mods.testFlag(Qt::MetaModifier)) {
         mods &= ~Qt::MetaModifier;
         mods |= Qt::ControlModifier;
     }
-    const QKeySequence sequence(QKeyCombination(mods, static_cast<Qt::Key>(key)));
+    const QKeySequence sequence(QKeyCombination(mods, static_cast<Qt::Key>(unshiftedKey(key))));
     for (const auto& extension : nt::wiring::keyActions()) {
-        if (extension.defaultKeys.contains(sequence) && runAction(extension.name, context)) { return true; }
+        if (extension.defaultKeys.contains(sequence) && !presetBindsAction(m_preset, extension.name)) {
+            return runAction(extension.name, context);
+        }
     }
     return false;
 }
@@ -1456,8 +1535,10 @@ QString ClipGestureController::shortcutFor(const QString& action) const {
     const auto shortcut = formatActionShortcut(m_preset, action);
     if (!shortcut.isEmpty()) { return shortcut; }
     for (const auto& extension : nt::wiring::keyActions()) {
-        if (extension.name == action && !extension.defaultKeys.isEmpty()) {
-            return extension.defaultKeys.first().toString(QKeySequence::NativeText);
+        if (extension.name == action) {
+            for (const auto& key : extension.defaultKeys) {
+                if (!presetBindsSequence(m_preset, key)) { return key.toString(QKeySequence::NativeText); }
+            }
         }
     }
     return {};
@@ -1477,8 +1558,8 @@ QSet<QString> ClipGestureController::availableActions() {
         "groupClips", "ungroupClips", "cutAllTracks", "liftRange", "extractRange",
         "rippleTrimPrevToPlayhead", "rippleTrimNextToPlayhead", "shuttleBack", "shuttleStop", "shuttleForward",
         "toggleLoop", "playInToOut", "stepFrameBack", "stepFrameForward", "stepFramesBack", "stepFramesForward",
-        // key-only rows: Space in TimelineEditor, and the drag modifiers
-        "playPause", "rollCut", "disableSnapping", "insertOnDrop"};
+        // key-only rows: Space in TimelineEditor, and the pointer gestures
+        "playPause", "rollCut", "disableSnapping", "insertOnDrop", "selectEditPoint"};
     auto result = actions;
     for (const auto& action : nt::wiring::keyActions()) { result.insert(action.name); }
     return result;
@@ -1503,11 +1584,19 @@ QVariantMap ClipGestureController::shortcutSheet() const {
         groups.append(group);
     }
     for (const auto& action : nt::wiring::keyActions()) {
-        if (listed.contains(action.name) || action.defaultKeys.isEmpty()) { continue; }
+        if (listed.contains(action.name)) { continue; }
         QJsonArray combos;
-        for (const auto& key : action.defaultKeys) {
-            combos.append(QJsonArray::fromStringList(key.toString(QKeySequence::NativeText).split('+')));
+        for (const QStringList& keys : actionBindingKeys(m_preset, action.name)) {
+            combos.append(QJsonArray::fromStringList(keys));
         }
+        if (combos.isEmpty()) {
+            for (const auto& key : action.defaultKeys) {
+                if (!presetBindsSequence(m_preset, key)) {
+                    combos.append(QJsonArray::fromStringList(key.toString(QKeySequence::NativeText).split('+')));
+                }
+            }
+        }
+        if (combos.isEmpty()) { continue; }
         const QJsonObject row{{"id", action.name}, {"label", action.label}, {"combos", combos}, {"available", true}};
         const QString title = action.group.isEmpty() ? QStringLiteral("Extensions") : action.group;
         qsizetype index = 0;

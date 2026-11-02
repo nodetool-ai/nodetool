@@ -2,8 +2,8 @@
 
 // The timeline keyboard map (web/src/components/timeline/timelineKeymap.ts):
 // the three presets come from KeymapData.h, generated from the TypeScript
-// table, and `resolveTimelineAction` copies the web resolver, so a key does
-// the same thing in both editors.
+// table, and `resolveTimelineAction` copies the web resolver. KeymapOverlay.h
+// holds the keys that differ here, without editing the web table.
 
 #include <QJsonObject>
 #include <QString>
@@ -28,6 +28,18 @@ struct KeyEventLike {
 // The action id `e` triggers under `preset` ("nodetool", "premiere", "fcp"),
 // or an empty string.
 QString resolveTimelineAction(const KeyEventLike& e, const QString& preset);
+// The same, on the web table alone. The differential against the web reads this.
+QString resolveWebTimelineAction(const KeyEventLike& e, const QString& preset);
+
+struct PresetBinding {
+    QString action;
+    QString key;
+    bool ctrl = false;
+    bool shift = false;
+    bool alt = false;
+};
+// Every binding of `preset` with the overlay applied, in table order.
+std::vector<PresetBinding> presetBindings(const QString& preset);
 
 // bindingKeys: the key chips of each binding of `action` ("Ctrl", "Alt",
 // "Shift", then the key label), in table order.

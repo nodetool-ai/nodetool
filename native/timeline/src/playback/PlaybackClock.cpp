@@ -99,7 +99,18 @@ void PlaybackClock::clearRange() {
     emit rangeChanged();
 }
 
+void PlaybackClock::clearSpanLocked() {
+    m_spanFromMs = -1.0;
+    m_spanToMs = -1.0;
+    m_spanRestMs = -1.0;
+}
+
 void PlaybackClock::updateBoundsLocked() {
+    if (spanActive()) {
+        m_floorMs = m_spanFromMs;
+        m_endMs = m_spanToMs;
+        return;
+    }
     const bool ranged = m_loop || m_playingInToOut;
     m_floorMs = ranged && m_rangeInMs >= 0.0 ? m_rangeInMs : 0.0;
     m_endMs = ranged && m_rangeOutMs >= 0.0 ? m_rangeOutMs : m_durationMs;
@@ -245,6 +256,7 @@ void PlaybackClock::pause() {
         std::lock_guard lock(m_mutex);
         wasInToOut = m_playingInToOut;
         m_playingInToOut = false;
+        clearSpanLocked();
         wasPlaying = m_playing;
         if (m_playing) {
             const auto now = m_nowNs();
@@ -287,6 +299,7 @@ void PlaybackClock::playInToOut() {
         rateChangedNow = m_rate != 1.0;
         rangeModeChanged = !m_playingInToOut;
         const bool wasAudio = m_source == Source::Audio;
+        clearSpanLocked();
         m_playingInToOut = true;
         m_playing = true;
         m_rate = 1.0;
@@ -297,6 +310,49 @@ void PlaybackClock::playInToOut() {
         sourceChanged = wasAudio != (m_source == Source::Audio);
     }
     if (rangeModeChanged) {
+        emit playingInToOutChanged();
+    }
+    if (rateChangedNow) {
+        emit rateChanged();
+    }
+    if (started) {
+        emit playingChanged();
+    }
+    if (sourceChanged) {
+        emit audioMasterChanged();
+    }
+    emit timeChanged();
+}
+
+void PlaybackClock::playSpan(double fromMs, double toMs, double restMs) {
+    bool started = false;
+    bool rateChangedNow = false;
+    bool rangeModeEnded = false;
+    bool sourceChanged = false;
+    {
+        std::lock_guard lock(m_mutex);
+        const double from = clampTime(fromMs);
+        const double to = clampTime(toMs);
+        if (!(to > from)) {
+            return;
+        }
+        started = !m_playing;
+        rateChangedNow = m_rate != 1.0;
+        rangeModeEnded = m_playingInToOut;
+        const bool wasAudio = m_source == Source::Audio;
+        m_playingInToOut = false;
+        m_spanFromMs = from;
+        m_spanToMs = to;
+        m_spanRestMs = restMs;
+        m_playing = true;
+        m_rate = 1.0;
+        updateBoundsLocked();
+        m_timeMs = from;
+        ++m_seekSerial;
+        anchorLocked(m_timeMs, m_nowNs());
+        sourceChanged = wasAudio != (m_source == Source::Audio);
+    }
+    if (rangeModeEnded) {
         emit playingInToOutChanged();
     }
     if (rateChangedNow) {
@@ -323,6 +379,7 @@ void PlaybackClock::shuttle(int direction) {
         const auto now = m_nowNs();
         const double live = m_playing ? boundedTimeLocked(rawTimeLocked(now)) : m_timeMs;
         const bool sameDirection = m_playing && ((m_rate > 0.0 && direction == 1) || (m_rate < 0.0 && direction == -1));
+        clearSpanLocked();
         const double nextRate = sameDirection ? direction * std::min(8.0, std::abs(m_rate) * 2.0) : direction;
         started = !m_playing;
         rateChangedNow = nextRate != m_rate;
@@ -471,6 +528,15 @@ void PlaybackClock::tick() {
         if (stopped && m_playingInToOut) {
             m_playingInToOut = false;
             rangeModeCleared = true;
+        }
+        if (stopped && spanActive()) {
+            if (m_spanRestMs >= 0.0) {
+                m_timeMs = clampTime(m_spanRestMs);
+                ++m_seekSerial;
+                sendCommandLocked(true, m_timeMs, now);
+            }
+            clearSpanLocked();
+            updateBoundsLocked();
         }
         sourceChanged = wasAudio != (m_source == Source::Audio);
     }

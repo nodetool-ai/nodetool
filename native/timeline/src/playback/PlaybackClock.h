@@ -71,6 +71,10 @@ public slots:
     void toggle();
     void stop();
     void playInToOut();
+    // Plays once from `fromMs` to `toMs` at normal speed without touching the
+    // marks, then stops at `restMs`, or at `toMs` when it is negative. Any
+    // pause, shuttle or in-to-out play ends it.
+    void playSpan(double fromMs, double toMs, double restMs = -1.0);
     void shuttle(int direction);
     void shuttleStop();
     void setRangeIn(double ms);
@@ -110,6 +114,8 @@ private:
     // with a seek command when the device is usable. Caller holds m_mutex.
     void anchorLocked(double ms, std::int64_t nowNs);
     void sendCommandLocked(bool seek, double seekMs, std::int64_t nowNs);
+    bool spanActive() const { return m_spanToMs >= 0.0; }
+    void clearSpanLocked();
 
     mutable std::mutex m_mutex;
     std::function<std::int64_t()> m_nowNs;
@@ -128,6 +134,9 @@ private:
     bool m_loop = false;
     double m_rangeInMs = -1.0;
     double m_rangeOutMs = -1.0;
+    double m_spanFromMs = -1.0;
+    double m_spanToMs = -1.0;
+    double m_spanRestMs = -1.0;
     double m_fps = 30.0;
     bool m_playingInToOut = false;
     double m_floorMs = 0.0;

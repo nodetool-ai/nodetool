@@ -140,6 +140,7 @@ bool ClipInspectorController::write(const QVariantMap& value) {
     }
     cancelGesture();
     const auto p = payload(value);
+    if (const auto row = p["row"].toString(); !row.isEmpty()) { emit rowEdited(row); }
     return m_timeline->applyEdit("keyframes." + p["action"].toString(), p);
 }
 void ClipInspectorController::beginGesture() {

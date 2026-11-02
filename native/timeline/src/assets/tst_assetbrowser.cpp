@@ -973,6 +973,34 @@ private slots:
         model.undoStack()->redo();
         QCOMPARE(model.clipCount(), 1);
     }
+    // Match Frame finds an asset's folder by asking for that one asset.
+    void locateAssetReportsTheAsset() {
+        TestHttpServer http;
+        http.setJson([](const QByteArray&, const QUrl& url) {
+            const auto input = QJsonDocument::fromJson(QUrlQuery(url).queryItemValue("input", QUrl::FullyDecoded).toUtf8()).object();
+            if (input.value("id") != "known") {
+                return QJsonDocument(QJsonObject{{"error", QJsonObject{{"message", "Not found"}}}}).toJson();
+            }
+            const QJsonObject asset{{"id", "known"}, {"name", "Take"}, {"parent_id", "folder-1"}, {"content_type", "video/mp4"}};
+            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", asset}}}}).toJson();
+        });
+        AssetBrowser browser;
+        browser.m_target = nt::server::SaveTarget{http.base(), {}, {}, {}, {}};
+        QSignalSpy located(&browser, &AssetBrowser::assetLocated);
+        browser.locateAsset("known");
+        QTRY_COMPARE(located.size(), 1);
+        const auto asset = located.first().first().toMap();
+        QCOMPARE(asset.value("id").toString(), QString("known"));
+        QCOMPARE(asset.value("parent_id").toString(), QString("folder-1"));
+        browser.locateAsset("gone");
+        QTRY_VERIFY(!browser.busy());
+        QCOMPARE(located.size(), 1);
+        AssetBrowser noServer;
+        QSignalSpy nothing(&noServer, &AssetBrowser::assetLocated);
+        noServer.locateAsset("known");
+        QVERIFY(!noServer.busy());
+        QCOMPARE(nothing.size(), 0);
+    }
     void thumbnailRequestsUseAssetMetadata_data() {
         QTest::addColumn<bool>("hasThumbnail");
         QTest::newRow("thumbnail") << true;

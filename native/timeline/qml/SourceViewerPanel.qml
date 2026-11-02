@@ -42,7 +42,11 @@ Rectangle {
     property string playerAssetId: ""
     onAssetChanged: {
         const id = asset.id || ""
-        if (id !== playerAssetId) { playerTimeMs = 0; playerAssetId = id }
+        if (id !== playerAssetId) { playerTimeMs = SourceViewerState.cueMs; playerAssetId = id }
+    }
+    Connections {
+        target: SourceViewerState
+        function onCued() { root.playerTimeMs = SourceViewerState.cueMs; root.playerAssetId = root.asset.id || "" }
     }
 
     // Keep editor, gesture and Library discovery together for the dock replacement.
