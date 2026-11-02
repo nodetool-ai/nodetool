@@ -17,7 +17,7 @@ public:
     int layoutEpoch() const { return m_epoch; }
     QVariantMap layout() const { return m_layout; }
     QString workspace() const { return m_workspace; }
-    QStringList workspaces() const { return {"Editing", "Script", "Assistant", "Review"}; }
+    QStringList workspaces() const { return m_workspaceNames; }
     Q_INVOKABLE bool dispatch(const QVariantMap& action);
     Q_INVOKABLE void registerPanels(const QVariantList& panels);
     Q_INVOKABLE void switchWorkspace(int index);
@@ -37,6 +37,7 @@ private:
     std::optional<QVariantMap> m_resizeStart;
     QString m_workspace = "Editing";
     QVariantMap m_workspaces;
+    QStringList m_workspaceNames;
     QVariantList m_panels;
     int m_epoch = 0;
 };

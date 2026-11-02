@@ -2,6 +2,7 @@
 #include "app/PanelRegistry.h"
 #include "app/Preferences/PreferencesSettings.h"
 #include "edit/ClipGestureController.h"
+#include "export/FrameCapture.h"
 #include "model/TimelineJson.h"
 #include "playback/PlaybackClock.h"
 #include "runtime/ChatSession.h"
@@ -39,6 +40,104 @@ private slots:
         QVERIFY(preferences.isValid());
         qputenv("NODETOOL_TIMELINE_PREFERENCES", QFile::encodeName(preferences.filePath("ui.ini")));
         QFile::remove(preferences.filePath("ui.ini"));
+    }
+    void colorAndAudioWorkspaces() {
+        TimelineModel model;
+        auto parsed = nt::parseTimelineJson(R"({"name":"Dock","width":640,"height":360,"fps":30,"durationMs":10000,"tracks":[],"clips":[]})");
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        PlaybackClock clock;
+        QQmlEngine engine;
+        QQuickRenderControl control;
+        QQuickWindow window(&control);
+        window.resize(1500, 900);
+        QQmlComponent component(&engine);
+        component.loadFromModule("NodeTool.Timeline", "TimelineEditor");
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        std::unique_ptr<QObject> editor(component.createWithInitialProperties({
+            {"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)},
+            {"width", 1500}, {"height", 900}}));
+        QVERIFY2(editor, qPrintable(component.errorString()));
+        auto* root = qobject_cast<QQuickItem*>(editor.get());
+        QVERIFY(root);
+        root->setParentItem(window.contentItem());
+        QImage image(1500, 900, QImage::Format_ARGB32_Premultiplied);
+        window.setRenderTarget(QQuickRenderTarget::fromPaintDevice(&image));
+        auto render = [&] {
+            QCoreApplication::processEvents();
+            control.polishItems();
+            control.sync();
+            control.render();
+        };
+        render();
+        auto click = [&](QQuickItem* item) {
+            const auto position = QPointF(item->mapToScene({item->width() / 2, item->height() / 2}));
+            QMouseEvent press(QEvent::MouseButtonPress, position, position, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+            QCoreApplication::sendEvent(&window, &press);
+            QMouseEvent release(QEvent::MouseButtonRelease, position, position, Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+            QCoreApplication::sendEvent(&window, &release);
+            QCoreApplication::processEvents();
+        };
+        auto* dock = named(root, "dockCanvas");
+        QVERIFY(dock);
+        auto* store = editor->findChild<DockLayoutStore*>();
+        QVERIFY(store);
+        auto* gestures = qobject_cast<ClipGestureController*>(named(root, "clipGestures"));
+        QVERIFY(gestures);
+        // The shortcut sheet names the new keys.
+        const auto rows = gestures->shortcutSheet().value("groups").toList().at(9).toMap().value("rows").toList();
+        QStringList ids;
+        for (const auto& row : rows) { ids << row.toMap().value("id").toString(); }
+        QVERIFY2(ids.contains("workspace5") && ids.contains("workspace6"), qPrintable(ids.join(',')));
+        // Open each one through the menu with the pointer.
+        auto* layoutMenu = named(root, "dockLayoutMenu");
+        QVERIFY(layoutMenu);
+        click(layoutMenu);
+        render();
+        auto* colorItem = named(window.contentItem(), "dockWorkspace_Color");
+        QVERIFY(colorItem);
+        QTRY_VERIFY2(colorItem->width() > 0 && colorItem->height() > 0, "Workspace menu items must be laid out");
+        QCOMPARE(colorItem->property("shortcutText").toString(), QString("Alt+Shift+5"));
+        click(colorItem);
+        render();
+        QCOMPARE(store->workspace(), QString("Color"));
+        auto visible = dock->property("visiblePanels").toStringList();
+        QVERIFY2(visible.contains("program") && visible.contains("tracks") && visible.contains("inspector"), qPrintable(visible.join(',')));
+        QCOMPARE(dock->property("leftExtent").toInt(), 0);
+        QCOMPARE(dock->property("rightExtent").toInt(), 400);
+        QCOMPARE(dock->property("bottomExtent").toInt(), 280);
+        // Until a scopes panel exists the Program monitor takes the whole viewport.
+        auto* program = named(root, "previewCompositor");
+        QVERIFY(program);
+        // A window-level key press reaches the same workspace action.
+        QVERIFY(gestures->handleKey(Qt::Key_6, {}, int(Qt::AltModifier | Qt::ShiftModifier), false));
+        render();
+        QCOMPARE(store->workspace(), QString("Audio"));
+        visible = dock->property("visiblePanels").toStringList();
+        QVERIFY2(visible.contains("mixer") && visible.contains("program") && visible.contains("tracks"), qPrintable(visible.join(',')));
+        QVERIFY(named(root, "dockTab_mixer"));
+        // The mixer is above the timeline, not a tab beside it.
+        auto* mixerTab = named(root, "dockTab_mixer");
+        auto* tracksTab = named(root, "dockTab_tracks");
+        QVERIFY(tracksTab);
+        QVERIFY(mixerTab->mapToScene({0, 0}).y() < tracksTab->mapToScene({0, 0}).y());
+        // Back to a web workspace with the mixer where it was.
+        click(layoutMenu);
+        render();
+        auto* editingItem = named(window.contentItem(), "dockWorkspace_Editing");
+        QVERIFY(editingItem);
+        QTRY_VERIFY(editingItem->width() > 0 && editingItem->height() > 0);
+        click(editingItem);
+        render();
+        QCOMPARE(store->workspace(), QString("Editing"));
+        visible = dock->property("visiblePanels").toStringList();
+        QVERIFY2(visible.contains("storyboard") && visible.contains("inspector"), qPrintable(visible.join(',')));
+        // The editor holds the one frame capture that panels and tools share.
+        auto* capture = editor->property("frameCapture").value<FrameCapture*>();
+        QVERIFY(capture);
+        QCOMPARE(capture->timeline(), &model);
+        QCOMPARE(capture->processId(), 0);
+        window.setRenderTarget(QQuickRenderTarget{});
     }
     void mountedWorkspacesAndStablePanels() {
         TimelineModel model;
@@ -158,7 +257,7 @@ private slots:
         QVERIFY(gestures);
         const auto sheet = gestures->shortcutSheet();
         const auto shortcutGroups = sheet.value("groups").toList();
-        QCOMPARE(shortcutGroups.size(), 11);
+        QVERIFY(shortcutGroups.size() >= 11);  // registered key actions add an Extensions group
         const auto workspaceRows = shortcutGroups.at(9).toMap();
         QCOMPARE(workspaceRows.value("title").toString(), QString("Workspaces"));
         const QStringList ordinals{"first", "second", "third", "fourth"};

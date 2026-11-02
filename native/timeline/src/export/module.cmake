@@ -1,8 +1,9 @@
 nt_sources(decode src/export/ExportCapabilities.h src/export/ExportCapabilities.cpp)
 nt_sources(app src/export/ExportEngine.h src/export/ExportEngine.cpp
-    src/export/OffscreenFrames.h src/export/OffscreenFrames.cpp src/export/ExportCli.cpp
+    src/export/OffscreenFrames.h src/export/OffscreenFrames.cpp src/export/ExportCli.cpp src/export/FrameServerCli.cpp
     src/export/ExportPanel.cpp src/export/PngZip.h src/export/PngZip.cpp)
-nt_qml_sources(src/export/ExportController.h src/export/ExportController.cpp)
+nt_qml_sources(src/export/ExportController.h src/export/ExportController.cpp
+    src/export/FrameCapture.h src/export/FrameCapture.cpp src/export/FrameImage.h src/export/FrameImage.cpp)
 function(nt_export_tests)
     qt_add_executable(tst_pngzip src/export/tst_pngzip.cpp src/export/PngZip.cpp)
     set_target_properties(tst_pngzip PROPERTIES MACOSX_BUNDLE FALSE)
@@ -44,6 +45,17 @@ function(nt_export_tests)
         snapshotKeepsRelativeMatte refusesUnavailableServerOriginal audioOnlyExportAllowsMissingPictureOriginal
         cancelExportDuringAudio cancelBlockedAudio cancelOfflineMix stuckChildTeardownCleansStaging)
     set_tests_properties(tst_exportdialog PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    qt_add_executable(tst_framecapture src/export/tst_framecapture.cpp src/export/OffscreenFrames.cpp src/preview/hw/HwWindow.cpp)
+    set_target_properties(tst_framecapture PROPERTIES MACOSX_BUNDLE FALSE)
+    target_compile_definitions(tst_framecapture PRIVATE
+        NT_EXPORT_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+        NT_EXPORT_BINARY="$<TARGET_FILE:nodetool-timeline>")
+    target_link_libraries(tst_framecapture PRIVATE timeline_core timeline_decode timeline_server
+        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::Test)
+    nt_add_timeline_qml(tst_framecapture)
+    add_test(NAME tst_framecapture COMMAND tst_framecapture)
+    set_tests_properties(tst_framecapture PROPERTIES LABELS render FIXTURES_REQUIRED media
+        ENVIRONMENT_MODIFICATION "QT_QUICK_BACKEND=unset:")
     add_test(NAME export_original_pixels COMMAND tst_exportdialog snapshotRendersOriginalPicture
         relativeMatteSurvivesOriginalPictureSelection)
     if(APPLE)

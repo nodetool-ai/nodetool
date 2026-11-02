@@ -9,6 +9,7 @@
 #include <vector>
 
 class QPlatformMenu;
+class QPlatformMenuItem;
 
 namespace nt::app {
 struct ShellMenuItem {
@@ -18,10 +19,16 @@ struct ShellMenuItem {
     QKeySequence sequence;
     bool enabled = true;
     std::vector<ShellMenuItem> children;
+    bool separator = false;
+    bool checkable = false;
+    bool checked = false;
 };
 struct Menu { QString label; std::vector<ShellMenuItem> items; };
 QKeyCombination bindingCombination(const QStringList& keys);
-std::vector<Menu> shellMenuDescription(const QString& preset, const QVariantList& recent = {});
+// The built-in menus plus the registerShellMenuItem entries (app/MenuRegistry.h).
+// `context` is what the entries' enabled and checked predicates receive.
+std::vector<Menu> shellMenuDescription(const QString& preset, const QVariantList& recent = {},
+                                       const QVariantMap& context = {});
 
 class ShellMenus : public QObject {
     Q_OBJECT
@@ -47,8 +54,16 @@ signals:
     void newTimelineRequested();
     void preferencesChanged();
 private:
+    struct RegisteredItem {
+        QPointer<QObject> item;
+        QPlatformMenu* menu = nullptr;
+        QString action;
+    };
     void rebuild();
     void populate(QPlatformMenu* menu, const std::vector<ShellMenuItem>& items);
+    QVariantMap menuContext() const;
+    void refreshRegisteredItems();
+    std::vector<RegisteredItem> m_registered;
     QPointer<Preferences> m_preferences;
     QPointer<QQuickItem> m_anchor;
     QString m_preset = QStringLiteral("nodetool");

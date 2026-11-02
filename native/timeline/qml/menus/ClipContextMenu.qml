@@ -42,21 +42,38 @@ Ui.ContextMenu {
     popupType: Popup.Item
     // Settle the dynamic ListView's hit regions before accepting clicks.
     onAboutToShow: contentItem.forceLayout()
+    Component { id: groupSeparator; MenuSeparator { contentItem: Ui.Separator {} } }
     Instantiator {
+        property int separators: 0
         model: menu.webItems.concat(menu.registeredItems)
         delegate: MenuActionItem {
             required property var modelData
+            property Item separatorBefore: null
             objectName: (modelData.registered ? "registryMenu-clip-" : "clipMenu-") + modelData.action
             text: modelData.label
             enabled: modelData.enabled ?? true
+            checkable: modelData.checkable ?? false
+            checked: modelData.checked ?? false
             iconName: modelData.icon ?? ""
             shortcutText: modelData.shortcut ?? ""
             actionName: modelData.action
             actionContext: menu.actionContext
             gestures: menu.gestures
         }
-        onObjectAdded: (index, object) => menu.insertItem(index, object)
-        onObjectRemoved: (index, object) => menu.removeItem(object)
+        onObjectAdded: (index, object) => {
+            if (object.modelData.separatorBefore) {
+                object.separatorBefore = groupSeparator.createObject(menu.contentItem, { objectName: "registryMenuGroup-clip-" + object.modelData.group })
+                menu.insertItem(index + separators++, object.separatorBefore)
+            }
+            menu.insertItem(index + separators, object)
+        }
+        onObjectRemoved: (index, object) => {
+            if (object.separatorBefore) {
+                menu.removeItem(object.separatorBefore)
+                --separators
+            }
+            menu.removeItem(object)
+        }
     }
     MenuSeparator {
         objectName: "clipMenu-deleteDivider"

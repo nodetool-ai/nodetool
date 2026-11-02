@@ -3,7 +3,6 @@
 #include "export/OffscreenFrames.h"
 #include "export/ExportCapabilities.h"
 #include "export/PngZip.h"
-#include "preview/effects/Masks.h"
 #include <QBuffer>
 #include <array>
 #include "audio/AudioEngine.h"
@@ -291,22 +290,7 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
         };
         if (!audioOnly) {
             TimelineModel model;
-            Timeline pictureTimeline = timeline;
-            for (auto& clip : pictureTimeline.clips) {
-                auto matte = clip.raw.value("generatedMatte").toObject();
-                if (!matte.isEmpty() && !matte.value("mediaPath").toString().isEmpty()) {
-                    const QString resolved = nt::effects::resolvedGeneratedMattePath(clip);
-                    if (!resolved.isEmpty()) {
-                        matte.insert("mediaPath", resolved);
-                        clip.raw.insert("generatedMatte", matte);
-                    }
-                }
-                if ((clip.mediaType == MediaType::Video || clip.mediaType == MediaType::Image) &&
-                    !clip.originalMediaPath.empty()) {
-                    clip.mediaPath = clip.originalMediaPath;
-                }
-            }
-            model.setTimeline(std::move(pictureTimeline));
+            model.setTimeline(pictureTimeline(timeline));
             OffscreenFrames frames(model);
             std::unique_ptr<SwsContext, ScaleDelete> scale;
             Frame output;
