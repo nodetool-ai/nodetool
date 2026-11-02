@@ -18,7 +18,7 @@ const bool registered = [] {
                 Q_ARG(QVariant, QVariant::fromValue<QObject*>(&gestures))) && opened.toBool();
         }, QStringLiteral("Keyframes & source")});
     nt::app::registerShellMenuItem({QStringLiteral("File"), QStringLiteral("exportFrame"), QStringLiteral("Export Frame…"), {}, {},
-        QStringLiteral("interchange"), 5, editorOpen});
+        QStringLiteral("export"), 2, editorOpen, {}, {}, QStringLiteral("Open a timeline first.")});
     return true;
 }();
 }  // namespace

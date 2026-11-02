@@ -30,7 +30,7 @@ would not be heard, and so is a lane that would pass 10000 points, the web schem
 be read leaves the existing ducking as it is.
 
 An unset role reads as Dialogue or Music for a generated voice or music clip, so there is nothing to clear on such a
-clip: the panel ignores a click on that role and the Clip menu's "No role" is off until a clip has the field. Choose
+clip: the panel ignores a click on that role and the Clip menu's "No Role" is off until a clip has the field. Choose
 another role to change it.
 
 ## Measuring

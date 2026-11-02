@@ -110,8 +110,11 @@ const bool registered = [] {
     const struct { const char* action; const char* title; const char* panel; const char* menuLabel; } panels[] = {
         {"panelAssets", "Go to the Library", "assets", "Library"}, {"panelSource", "Go to Source", "source", "Source"},
         {"panelTimeline", "Go to the Timeline", "tracks", "Timeline"}, {"panelProgram", "Go to Program", "program", "Program"},
+        {"panelReference", "Go to Reference", "reference", "Reference"},
         {"panelInspector", "Go to the Inspector", "inspector", "Inspector"}, {"panelMixer", "Go to the Mixer", "mixer", "Mixer"},
+        {"panelAudio", "Go to Audio", "audio", "Audio"},
         {"panelScript", "Go to Scripts", "script", "Scripts"}, {"panelStoryboard", "Go to Storyboards", "storyboard", "Storyboards"},
+        {"panelText", "Go to Text", "transcript", "Text"},
         {"panelEffectControls", "Go to Effect Controls", "effectControls", "Effect Controls"},
         {"panelColor", "Go to Color", "color", "Color"}, {"panelScopes", "Go to Scopes", "scopes", "Scopes"},
         {"panelEntities", "Go to Entities", "entities", "Entities"}, {"panelMarkers", "Go to Markers", "markers", "Markers"},

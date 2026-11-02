@@ -15,6 +15,7 @@ bool callPanel(ClipGestureController& gestures, const char* method) {
     auto* panel = nt::wiring::w::windowItem(&gestures, QStringLiteral("exportPanel"));
     return panel && QMetaObject::invokeMethod(panel, method);
 }
+bool hasEditor(const QVariantMap& context) { return context.value("gestures").value<QObject*>() != nullptr; }
 bool hasContent(const QVariantMap& context) {
     const auto* model = qobject_cast<TimelineModel*>(context.value("timeline").value<QObject*>());
     return model && model->contentEndMs() > 0;
@@ -32,8 +33,10 @@ const bool registered = [] {
         [](ClipGestureController& gestures, const QVariantMap& context) {
             return context.value("autoRepeat").toBool() || callPanel(gestures, "quickExport");
         }, QStringLiteral("File")});
+    nt::app::registerShellMenuItem({QStringLiteral("File"), QStringLiteral("exportVideo"), QStringLiteral("Export…"),
+        {}, {}, QStringLiteral("export"), 0, hasEditor, {}, {}, QStringLiteral("Open a timeline first.")});
     nt::app::registerShellMenuItem({QStringLiteral("File"), QStringLiteral("quickExport"), QStringLiteral("Quick Export…"),
-        {}, {}, QStringLiteral("export"), 10, hasContent});
+        {}, {}, QStringLiteral("export"), 1, hasContent, {}, {}, QStringLiteral("Add a clip to the timeline first.")});
     return true;
 }();
 }

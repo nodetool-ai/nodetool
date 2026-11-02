@@ -154,7 +154,7 @@ private slots:
         QCOMPARE(recentItem->label, QString("Open Recent"));
         QCOMPARE(exportItem->label, QString("Export…"));
         QCOMPARE(exportItem->action, QString("exportVideo"));
-        QVERIFY(exportItem->sequence.isEmpty());
+        QCOMPARE(exportItem->sequence, QKeySequence(Qt::CTRL | Qt::Key_M));
         QCOMPARE(settingsItem->label, QString("Settings…"));
         QVERIFY(recentItem < exportItem);
         QVERIFY(exportItem < settingsItem);

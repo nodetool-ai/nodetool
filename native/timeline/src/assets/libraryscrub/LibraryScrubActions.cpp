@@ -23,7 +23,8 @@ const bool registered = [] {
         }, "Library"});
     nt::app::registerShellMenuItem({"View", "toggleLibraryScrub", "Scrub Clips in the Library", {}, {}, "library", 100,
         [](const QVariantMap& context) { return scrubOf(context) != nullptr; },
-        [](const QVariantMap& context) { auto* scrub = scrubOf(context); return scrub && scrub->enabled(); }});
+        [](const QVariantMap& context) { auto* scrub = scrubOf(context); return scrub && scrub->enabled(); }, {},
+        QStringLiteral("Open a timeline first.")});
     return true;
 }();
 }  // namespace
