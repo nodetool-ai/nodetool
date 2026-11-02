@@ -22,7 +22,7 @@ Check an item only after its implementation and relevant verification pass. Each
 - [ ] F42: Render authored tone curves faithfully.
 - [ ] F43: Remove gaps from large-radius blur kernels.
 - [ ] F44: Make processing order explicit and consistent.
-- [ ] F45: Give clip effect controls explicit reset defaults.
+- [x] F45: Give clip effect controls explicit reset defaults. Every slider has an in-range reset value. Intensity controls can reset to neutral while new effects retain visible defaults. Catalogue regressions passed.
 - [ ] F46: Provide controls or specific explanations for imported effects.
 - [ ] F47: Edit imported Color effect instances.
 - [ ] F48: Support exact numeric entry for track effects.

@@ -40,26 +40,26 @@ const colorFields = [
     {key: "highlights", label: "Highlights", min: -1, max: 1, origin: 0, step: 0.01}
 ];
 function slider(key, label, fallback, max = 1, min = 0, step = 0.01, extra = {}) {
-    return Object.assign({kind: "slider", key, label, fallback, min, max, step}, extra);
+    return Object.assign({kind: "slider", key, label, fallback, min, max, step, resetValue: fallback}, extra);
 }
 function number(key, label, fallback, minimum, step = 1, extra = {}) {
     return Object.assign({kind: "number", key, label, fallback, minimum, step}, extra);
 }
 function fields(type) {
     switch (type) {
-    case "blur": return [slider("radius", "Radius", 8, 20, 0, 0.5, {unit: "px", decimals: 1})];
-    case "glow": return [number("radius", "Radius", 8, 0), slider("intensity", "Intensity", 1, 2), {kind: "color", key: "color", label: "Color", fallback: "#ffffff"}];
+    case "blur": return [slider("radius", "Radius", 8, 20, 0, 0.5, {unit: "px", decimals: 1, resetValue: 0})];
+    case "glow": return [number("radius", "Radius", 8, 0), slider("intensity", "Intensity", 1, 2, 0, 0.01, {resetValue: 0}), {kind: "color", key: "color", label: "Color", fallback: "#ffffff"}];
     case "dropShadow": return [
         {kind: "offset", label: "Offset"}, number("blur", "Blur", 12, 0),
         {kind: "color", key: "color", label: "Color", fallback: "#000000"},
         slider("opacity", "Opacity", 1, 1, 0, 0.01, {resetValue: 1})
     ];
-    case "vignette": return [slider("amount", "Amount", 0.4), slider("radius", "Radius", 0.9, 1.5, 0.1, 0.01, {resetValue: 0.9}), slider("softness", "Softness", 0.5)];
-    case "sharpen": return [slider("amount", "Amount", 0.5, 2), number("radius", "Radius", 1, 0)];
+    case "vignette": return [slider("amount", "Amount", 0.4, 1, 0, 0.01, {resetValue: 0}), slider("radius", "Radius", 0.9, 1.5, 0.1, 0.01, {resetValue: 0.9}), slider("softness", "Softness", 0.5)];
+    case "sharpen": return [slider("amount", "Amount", 0.5, 2, 0, 0.01, {resetValue: 0}), number("radius", "Radius", 1, 0)];
     case "chromaKey": return [{kind: "color", key: "color", label: "Key color", fallback: "#00ff00"}, slider("tolerance", "Tolerance", 0.2), slider("softness", "Softness", 0.1), slider("spill", "Spill", 0.5)];
     case "levels": return [slider("inBlack", "In black", 0), slider("inWhite", "In white", 1), number("gamma", "Gamma", 1, 0, 0.01, {exclusiveMin: true}), slider("outBlack", "Out black", 0), slider("outWhite", "Out white", 1)];
     case "liftGammaGain": return [{kind: "triple", key: "lift", label: "Lift"}, {kind: "triple", key: "gamma", label: "Gamma"}, {kind: "triple", key: "gain", label: "Gain"}];
-    case "grain": return [slider("amount", "Amount", 0.25), slider("size", "Size", 1, 16, 1, 0.5, {unit: "px", decimals: 1}), slider("roughness", "Roughness", 0.5), slider("softness", "Softness", 0.25), slider("colorAmount", "Color", 0, 1, 0, 0.01, {origin: 0}), {kind: "toggle", key: "animate", label: "Animate", fallback: false}];
+    case "grain": return [slider("amount", "Amount", 0.25, 1, 0, 0.01, {resetValue: 0}), slider("size", "Size", 1, 16, 1, 0.5, {unit: "px", decimals: 1}), slider("roughness", "Roughness", 0.5), slider("softness", "Softness", 0.25), slider("colorAmount", "Color", 0, 1, 0, 0.01, {origin: 0}), {kind: "toggle", key: "animate", label: "Animate", fallback: false}];
     default: return [];
     }
 }

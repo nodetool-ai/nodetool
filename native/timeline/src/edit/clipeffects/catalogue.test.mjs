@@ -21,6 +21,24 @@ test("vignette radius uses the renderer default and the track control range", ()
   assert.equal(radius.unit, undefined, "Radius is normalized, not pixels");
 });
 
+test("every clip effect slider resets to an explicit in-range default", () => {
+  const source = fs.readFileSync(new URL("./ClipEffectsCatalog.js", import.meta.url), "utf8").replace(/^\.pragma library\s*/, "");
+  const context = vm.createContext({});
+  vm.runInContext(source + "\nglobalThis.catalogue = {fields, addableEffects};", context);
+  let checked = 0;
+  for (const {value: type} of context.catalogue.addableEffects) {
+    for (const field of context.catalogue.fields(type).filter(field => field.kind === "slider")) {
+      assert.ok(Number.isFinite(field.resetValue), `${type}.${field.key} has a reset value`);
+      assert.ok(field.resetValue >= field.min && field.resetValue <= field.max, `${type}.${field.key} resets within its range`);
+      checked++;
+    }
+  }
+  assert.ok(checked > 0);
+  assert.equal(context.catalogue.fields("vignette").find(field => field.key === "amount").resetValue, 0);
+  assert.equal(context.catalogue.fields("blur")[0].resetValue, 0);
+  assert.equal(context.catalogue.fields("levels").find(field => field.key === "inWhite").resetValue, 1);
+});
+
 test("the add catalogue writes exactly the web makeEffect defaults", () => {
   const native = fs.readFileSync(new URL("./ClipEffectsCatalog.js",import.meta.url),"utf8").replace(/^\.pragma library\s*/,"");
   const context = vm.createContext({});
