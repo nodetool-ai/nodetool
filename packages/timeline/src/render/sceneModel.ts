@@ -290,8 +290,9 @@ export const CAPTION_CUE_MAX_WORDS = 10;
 /**
  * Split a clip's words into cues, the runs shown on screen together: a cue
  * ends at a pause of {@link CAPTION_CUE_GAP_MS} or after
- * {@link CAPTION_CUE_MAX_WORDS} words. Words outside the clip's window
- * (`0..durationMs`, clip-local) are left out.
+ * {@link CAPTION_CUE_MAX_WORDS} words, unless the next word's `cue` mark says
+ * otherwise. Words outside the clip's window (`0..durationMs`, clip-local) are
+ * left out.
  */
 export function captionCues(
   clip: Pick<TimelineClip, "caption" | "durationMs">
@@ -301,10 +302,13 @@ export function captionCues(
   for (const word of clip.caption?.words ?? []) {
     if (word.endMs <= 0 || word.startMs >= clip.durationMs) continue;
     const previous = current[current.length - 1];
+    const natural =
+      previous !== undefined &&
+      (word.startMs - previous.endMs >= CAPTION_CUE_GAP_MS ||
+        current.length >= CAPTION_CUE_MAX_WORDS);
     if (
       previous &&
-      (word.startMs - previous.endMs >= CAPTION_CUE_GAP_MS ||
-        current.length >= CAPTION_CUE_MAX_WORDS)
+      (word.cue === "start" || (word.cue !== "continue" && natural))
     ) {
       cues.push(current);
       current = [];

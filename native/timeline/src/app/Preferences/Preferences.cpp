@@ -1,6 +1,7 @@
 #include "Preferences.h"
 #include "edit/ClipGestureController.h"
 #include "audio/LoopbackCapture.h"
+#include "playback/PlaybackClock.h"
 #include <QCoreApplication>
 #include <QGuiApplication>
 #include <QFileInfo>
@@ -63,6 +64,8 @@ double Preferences::trackHeaderWidth() const {
 void Preferences::setTrackHeaderWidth(double value) {
     if (std::isfinite(value) && (value > 0 || value == -1)) { write("layout/trackHeaderWidth", value); }
 }
+bool Preferences::scrubAudio() const { return m_settings->value("playback/scrubAudio", true).toBool(); }
+bool Preferences::shuttleKeepsPitch() const { return m_settings->value("playback/shuttleKeepsPitch", true).toBool(); }
 QString Preferences::themePreference() const {
     const QString value = m_settings->value("appearance/themePreference", "System").toString();
     return validTheme(value) ? value : QStringLiteral("System");
@@ -104,6 +107,8 @@ void Preferences::setDecoderMode(const QString& value) {
     }
 }
 void Preferences::setAudioDevice(const QString& value) { write("audioDevice", value); }
+void Preferences::setScrubAudio(bool value) { write("playback/scrubAudio", value); }
+void Preferences::setShuttleKeepsPitch(bool value) { write("playback/shuttleKeepsPitch", value); }
 void Preferences::setThemePreference(const QString& value) {
     if (validTheme(value)) write("appearance/themePreference", value);
 }
@@ -333,6 +338,20 @@ void ShellPreferences::bind() {
             });
         }
         controller->setKeyboardPreset(m_store->keyboardLayout());
+        if (auto* clock = controller->clock()) {
+            clock->setScrubAudio(m_store->scrubAudio());
+            clock->setKeepShuttlePitch(m_store->shuttleKeepsPitch());
+            if (!m_clocks.contains(clock)) {
+                m_clocks.append(clock);
+                // A key or menu toggles the clock; the store keeps it for the next launch.
+                connect(clock, &PlaybackClock::scrubAudioChanged, this, [this, clock]() {
+                    if (m_store) m_store->setScrubAudio(clock->scrubAudio());
+                });
+                connect(clock, &PlaybackClock::keepShuttlePitchChanged, this, [this, clock]() {
+                    if (m_store) m_store->setShuttleKeepsPitch(clock->keepShuttlePitch());
+                });
+            }
+        }
     }
 }
 void ShellPreferences::recordActiveTimeline() {

@@ -107,7 +107,13 @@ private slots:
         QStringList expected{"clipMenu-splitAtPlayhead:Split at playhead", "clipMenu-duplicate:Duplicate"};
         for (const auto& value : middle) { expected.append("clipMenu-" + value); }
         expected.append({"registryMenu-clip-speedDuration:Speed / Duration…", "clipMenu-deleteDivider:", "clipMenu-deleteSelected:Delete"});
-        QCOMPARE(entries(menu), expected);
+        // Features register their own clip items and groups: the list pins the built-in ones and Speed / Duration.
+        auto actual = entries(menu);
+        actual.removeIf([](const QString& entry) {
+            return (entry.startsWith("registryMenu-clip-") && !entry.startsWith("registryMenu-clip-speedDuration")) ||
+                   entry.startsWith("registryMenuGroup-clip-");
+        });
+        QCOMPARE(actual, expected);
     }
     void shortcutParity_data() {
         QTest::addColumn<QString>("action"); QTest::addColumn<int>("key"); QTest::addColumn<int>("mods");

@@ -1,6 +1,8 @@
 nt_sources(audio
     src/audio/FadeCurves.h
     src/audio/FadeCurves.cpp
+    src/audio/ShuttleStretch.h
+    src/audio/ShuttleStretch.cpp
     src/audio/PcmRing.h
     src/audio/Mixer.h
     src/audio/Mixer.cpp
@@ -28,13 +30,16 @@ nt_sources(app
 function(nt_audio_tests)
     # Audio tests (M3): fade curves against the TypeScript vectors, the mixer,
     # the PCM ring, the audio source, and the clock with a fake device.
-    foreach(test_name tst_fadecurves tst_mixer tst_audioclock tst_audioengine)
+    foreach(test_name tst_fadecurves tst_mixer tst_audioclock tst_audioengine tst_shuttlestretch tst_shuttleaudio)
         nt_qt_test(${test_name} LIBS timeline_core timeline_audio Qt6::Test
             DEFINES NT_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures" NT_BUILD_DIR="${CMAKE_CURRENT_BINARY_DIR}"
             INCLUDES src/playback)
     endforeach()
     target_sources(tst_audioclock PRIVATE src/playback/PlaybackClock.h src/playback/PlaybackClock.cpp)
     target_link_libraries(tst_audioclock PRIVATE Qt6::Qml)
+    target_sources(tst_shuttleaudio PRIVATE src/playback/PlaybackClock.h src/playback/PlaybackClock.cpp)
+    target_link_libraries(tst_shuttleaudio PRIVATE Qt6::Qml)
+    set_tests_properties(tst_shuttleaudio PROPERTIES FIXTURES_REQUIRED media)
     # The curve vectors come from the TypeScript functions on every run.
     add_test(NAME fade_vectors COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/scripts/fade-vectors.mjs
         --out ${CMAKE_CURRENT_BINARY_DIR}/fade-vectors.json)

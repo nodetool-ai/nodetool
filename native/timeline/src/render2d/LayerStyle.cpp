@@ -2,6 +2,7 @@
 #include "render2d/Paint.h"
 #include "render2d/Rasterizer.h"
 #include "scene/TextAnimation.h"
+#include "transcript/TranscriptDocument.h"
 #include <QJsonArray>
 #include <QRegularExpression>
 #include <algorithm>
@@ -209,22 +210,13 @@ QJsonObject sampleObject(const scene::AnimationSample& s) {
     return out;
 }
 QJsonObject captionAt(const QJsonObject& caption, double localMs, double duration) {
+    const auto source = caption.value(u"words").toArray();
     std::vector<QJsonArray> cues;
-    QJsonArray cue;
-    for (const auto& value : caption.value(u"words").toArray()) {
-        const auto word = value.toObject();
-        if (word.value(u"endMs").toDouble() <= 0 || word.value(u"startMs").toDouble() >= duration) {
-            continue;
+    for (const auto& group : nt::transcript::captionCues(source, duration)) {
+        QJsonArray cue;
+        for (const int index : group) {
+            cue.append(source.at(index));
         }
-        if (!cue.isEmpty() &&
-            (cue.size() >= 10 ||
-             word.value(u"startMs").toDouble() - cue.last().toObject().value(u"endMs").toDouble() >= 700)) {
-            cues.push_back(cue);
-            cue = {};
-        }
-        cue.append(word);
-    }
-    if (!cue.isEmpty()) {
         cues.push_back(cue);
     }
     QJsonArray words;

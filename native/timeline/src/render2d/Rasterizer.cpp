@@ -876,6 +876,7 @@ void paintCaption(QPainter& p, const QJsonObject& caption, QSize size) {
     }
 }
 } // namespace
+void loadTimelineFonts() { loadFonts(); }
 scene::MeasureText textMeasurer() {
     return [](const QString& text, const scene::TextStyle& style) {
         // Canvas returns a float32 width rounded to hundredths. Preserve
