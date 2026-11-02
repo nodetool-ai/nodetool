@@ -29,4 +29,6 @@ QString preferredDecodeMode() {
     return mode == "sw" || mode == "hw" || mode == "auto" ? mode : QStringLiteral("sw");
 }
 QString preferredAudioDevice() { return openTimelinePreferences()->value("audioDevice").toString(); }
+double playbackPrerollMs() { return std::max(0.0, openTimelinePreferences()->value("playback/prerollMs", kDefaultPrerollMs).toDouble()); }
+double playbackPostrollMs() { return std::max(0.0, openTimelinePreferences()->value("playback/postrollMs", kDefaultPostrollMs).toDouble()); }
 }

@@ -48,9 +48,12 @@
 #include <QTimer>
 #include <QtQmlIntegration/qqmlintegration.h>
 
+class TrimMode;
+
 class ClipGestureController : public QQuickItem {
     Q_OBJECT
     QML_ELEMENT
+    Q_MOC_INCLUDE("edit/trim/TrimMode.h")
     Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY changed)
     Q_PROPERTY(TimelineViewState* viewState READ viewState WRITE setViewState NOTIFY changed)
     Q_PROPERTY(TrackWindowModel* rows READ rows WRITE setRows NOTIFY changed)
@@ -85,6 +88,8 @@ class ClipGestureController : public QQuickItem {
     // While set, as the open Effect Controls panel sets it, the keyframe navigation keys step
     // through keyframeRow alone instead of every keyframe of the clip.
     Q_PROPERTY(bool keyframeRowOnly READ keyframeRowOnly WRITE setKeyframeRowOnly NOTIFY optionsChanged)
+    // Selected edit points, keyboard and dynamic trimming, and the Trim Monitor's state.
+    Q_PROPERTY(TrimMode* trimMode READ trimMode CONSTANT)
 
 public:
     explicit ClipGestureController(QQuickItem* parent = nullptr);
@@ -143,6 +148,7 @@ public:
     bool keyframeRowOnly() const { return m_keyframeRowOnly; }
     void setKeyframeRowOnly(bool only);
     void setKeyframeRow(const QString& row);
+    TrimMode* trimMode() const { return m_trimMode; }
     Q_INVOKABLE bool pressTrack(const QString& trackId, const QString& kind, double sceneX, double sceneY);
     Q_INVOKABLE void pressEmptyLane(const QString& trackId, double sceneX, double sceneY, int modifiers);
     Q_INVOKABLE QVariantMap groupSpan(const QString& clipId) const;
@@ -215,6 +221,7 @@ protected:
 
 private:
     void watchWindow(QQuickWindow* window);
+    friend class TrimMode;
     bool runBuiltinAction(const QString& action, bool autoRepeat, const QVariantMap& context);
 
     struct SnapCandidates {
@@ -234,6 +241,7 @@ private:
         bool copyOnDrag = false;
         bool copiesCreated = false;
         bool additiveSelection = false;
+        bool shiftAtPress = false;
         QPointF laneStart;
         double trackHeightAtStart = 64;
         QString trackType;
@@ -281,7 +289,10 @@ private:
     std::optional<double> sourceCap(const QJsonObject& clip);
     void probeSources();
     void syncPlaybackRange();
+    // Ends a selection of clips, an edge and a gap, leaving trim mode's edit points.
+    void clearClipSelection();
 
+    TrimMode* m_trimMode = nullptr;
     QPointer<TimelineModel> m_timeline;
     QPointer<TimelineViewState> m_view;
     QPointer<TrackWindowModel> m_rows;
