@@ -18,6 +18,7 @@
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
 #include "edit/ClipGestureController.h"
+#include "export/FrameCapture.h"
 #include "motion/mattes/MatteResolver.h"
 #include "playback/PlaybackClock.h"
 #include "preview/PreviewCompositor.h"
@@ -509,6 +510,14 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, QSize size, const Q
             renderFrame(false);
             renderFrame(false);
             for (int i = 0; i < 256 && !compositor->frameSettled(); ++i) { renderFrame(false); }
+            // A view that shows a captured frame, such as the comparison view, waits for it too.
+            if (auto* capture = rootObject->property("frameCapture").value<FrameCapture*>()) {
+                for (int i = 0; i < 4 || (capture->pending() > 0 && timer.elapsed() < 60000); ++i) {
+                    renderFrame(false);
+                    QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
+                }
+                renderFrame(false);
+            }
         }
         renderFrame(true);
         QImage img(reinterpret_cast<const uchar*>(readback.data.constData()), readback.pixelSize.width(),
