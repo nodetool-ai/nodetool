@@ -52,6 +52,8 @@ IdSet lockedUserTargetIds(const EditDoc& doc);
 IdSet moveUnitIds(const ClipList& clips, const QStringList& rootIds, bool followLinks);
 double clampEndTrimDeltaToSource(const QJsonObject& clip, double deltaMs, std::optional<double> maxSourceDurationMs);
 ClipList removeClipsLinkAware(const ClipList& clips, const IdSet& ids);
+IdSet splitTargetIds(const ClipList& clips, double atMs, const QStringList& targetIds,
+                     const IdSet& clipsWithMediaTracks = {});
 ClipList splitClipsLinkAware(const ClipList& clips, double atMs, const QStringList& targetIds,
                              const IdSet& clipsWithMediaTracks = {});
 // defaults.ts clipFitsTrack

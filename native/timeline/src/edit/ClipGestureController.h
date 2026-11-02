@@ -45,6 +45,7 @@
 #include <QSet>
 #include <QQuickItem>
 #include <QStringList>
+#include <QTimer>
 #include <QtQmlIntegration/qqmlintegration.h>
 
 class ClipGestureController : public QQuickItem {
@@ -68,12 +69,15 @@ class ClipGestureController : public QQuickItem {
     Q_PROPERTY(QString gestureKind READ gestureKind NOTIFY gestureChanged)
     // The candidate a moving edge locked onto, or -1.
     Q_PROPERTY(double snapGuideMs READ snapGuideMs NOTIFY snapGuideChanged)
+    Q_PROPERTY(QString snapGuideLabel READ snapGuideLabel NOTIFY snapGuideChanged)
     Q_PROPERTY(int liveUpdates READ liveUpdates NOTIFY gestureChanged)
     // Goes up when the live list of a move changes (liveStartMs).
     Q_PROPERTY(int liveRevision READ liveRevision NOTIFY liveChanged)
     Q_PROPERTY(double trackDropY READ trackDropY NOTIFY gestureChanged)
     Q_PROPERTY(QVariantMap rubberBand READ rubberBand NOTIFY gestureChanged)
     Q_PROPERTY(QVariantMap selectedGap READ selectedGap NOTIFY selectionChanged)
+    Q_PROPERTY(QVariantMap trimSourceRange READ trimSourceRange NOTIFY gestureChanged)
+    Q_PROPERTY(QVariantMap toolPreview READ toolPreview NOTIFY toolPreviewChanged)
 
 public:
     explicit ClipGestureController(QQuickItem* parent = nullptr);
@@ -105,6 +109,7 @@ public:
     QString activeClipId() const { return m_gesture.clipId; }
     QString gestureKind() const { return m_gesture.kind; }
     double snapGuideMs() const { return m_snapGuideMs; }
+    QString snapGuideLabel() const;
     int liveUpdates() const { return m_liveUpdates; }
     int liveRevision() const { return m_liveUpdates; }
     // The place of a clip a move shows before the document has it. -1: the
@@ -114,6 +119,11 @@ public:
     double trackDropY() const { return m_trackDropY; }
     QVariantMap rubberBand() const { return m_rubberBand; }
     QVariantMap selectedGap() const { return m_selectedGap; }
+    QVariantMap trimSourceRange() const { return m_trimSourceRange; }
+    QVariantMap toolPreview() const { return m_toolPreview; }
+    Q_INVOKABLE void updateToolHover(const QString& clipId, const QString& part, double sceneX, double sceneY, int modifiers = 0);
+    Q_INVOKABLE void clearToolHover(const QString& clipId = {});
+    Q_INVOKABLE bool previewsCut(const QString& clipId) const { return m_razorTargets.contains(clipId); }
     Q_INVOKABLE bool pressTrack(const QString& trackId, const QString& kind, double sceneX, double sceneY);
     Q_INVOKABLE void pressEmptyLane(const QString& trackId, double sceneX, double sceneY, int modifiers);
     Q_INVOKABLE QVariantMap groupSpan(const QString& clipId) const;
@@ -166,19 +176,26 @@ signals:
     void gestureChanged();
     void liveChanged();
     void snapGuideChanged();
+    void toolPreviewChanged();
     // The `?` key: open or close the shortcut sheet.
     void shortcutsToggled();
     void pasteAttributesRequested(QVariantMap source, QVariantList targets);
 
 protected:
+    bool eventFilter(QObject* watched, QEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
     void mouseUngrabEvent() override;
     void updatePolish() override;
 
 private:
+    void watchWindow(QQuickWindow* window);
     bool runBuiltinAction(const QString& action, bool autoRepeat, const QVariantMap& context);
 
+    struct SnapCandidates {
+        std::vector<double> points;
+        QHash<double, QString> labels;
+    };
     struct Gesture {
         QString kind;  // clip move/trim/slip/slide, track resize/reorder, or marquee
         QString clipId;
@@ -205,7 +222,7 @@ private:
         double durationMsAtStart = 0;
         double inAtStart = 0;  // slip: the source in-point at the press
         bool dragging = false;
-        std::vector<double> candidates;
+        SnapCandidates candidates;
         QJsonArray before;
         // The document the gesture edits; a replacement ends it.
         quint64 generation = 0;
@@ -220,6 +237,7 @@ private:
     void clearLive();
     void applyMove();
     void applyTrim();
+    void updateTrimFeedback(const nt::edit::EditDoc& doc, const QJsonObject& clip, double requestedMs, bool landed);
     void applySlip();
     void applySlide();
     void updateTrackDrag();
@@ -230,7 +248,7 @@ private:
     void clickSelect(const QString& clipId, Qt::KeyboardModifiers modifiers);
     void setSnapGuide(double ms);
     QString trackUnderPointer(double sceneX, double sceneY) const;
-    std::vector<double> collectSnapCandidates(const nt::edit::IdSet& exclude) const;
+    SnapCandidates collectSnapCandidates(const nt::edit::IdSet& exclude) const;
     double playheadMs() const;
     void nudge(double deltaMs, bool merge);
     void dropGesture();
@@ -243,6 +261,7 @@ private:
     QPointer<TrackWindowModel> m_rows;
     QPointer<PlaybackClock> m_clock;
     QPointer<QQuickItem> m_viewport;
+    QPointer<QQuickWindow> m_eventWindow;
     QStringList m_selection;
     bool m_rippleMode = false;
     bool m_snapEnabled = true;
@@ -251,6 +270,7 @@ private:
     QString m_tool = QStringLiteral("select");
     QString m_preset = QStringLiteral("nodetool");
     Gesture m_gesture;
+    QTimer m_autoScrollTimer;
     double m_snapGuideMs = -1;
     // Probed source lengths by media file, and the furthest out-point seen
     // per asset (`observedSourceEnds`).
@@ -272,4 +292,17 @@ private:
     QStringList m_trackOrder;
     QVariantMap m_rubberBand;
     QVariantMap m_selectedGap;
+    QVariantMap m_trimSourceRange;
+    QVariantMap m_toolPreview;
+    QString m_hoverPlanId;
+    nt::edit::ClipList m_hoverClips;
+    QJsonObject m_hoverClip;
+    QHash<QString, bool> m_hoverRollAvailable;
+    nt::edit::IdSet m_hoverMediaOwners;
+    bool m_hoverAvailable = false;
+    QString m_hoverReason;
+    QSet<QString> m_razorTargets;
+    QString m_hoverPart;
+    QPointF m_hoverScene;
+    Qt::KeyboardModifiers m_hoverModifiers;
 };

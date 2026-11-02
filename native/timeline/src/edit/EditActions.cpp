@@ -230,7 +230,7 @@ ClipList removeClipsLinkAware(const ClipList& clips, const IdSet& ids) {
     return next;
 }
 
-ClipList splitClipsLinkAware(const ClipList& clips, double atMs, const QStringList& targetIds,
+IdSet splitTargetIds(const ClipList& clips, double atMs, const QStringList& targetIds,
                              const IdSet& clipsWithMediaTracks) {
     const auto contains = [&](const QJsonObject& c) {
         return !isGroupClip(c) && atMs > clipStartMs(c) && atMs < clipEndMs(c);
@@ -247,11 +247,11 @@ ClipList splitClipsLinkAware(const ClipList& clips, double atMs, const QStringLi
     for (const auto& c : clips) {
         if (!clipLinkId(c).isEmpty() && affectedLinkIds.count(clipLinkId(c)) && contains(c)) toSplit.insert(clipId(c));
     }
-    if (toSplit.empty()) return clips;
+    if (toSplit.empty()) return {};
     // A split clip that owns a media track would need its track resliced,
     // which is not ported: refuse the whole split rather than drift.
     for (const QString& id : toSplit) {
-        if (clipsWithMediaTracks.count(id)) return clips;
+        if (clipsWithMediaTracks.count(id)) return {};
     }
     // A link unit splits whole or not at all: a member the split refuses (a
     // time remap, an unported animation) keeps its whole unit unsplit, so the
@@ -273,7 +273,13 @@ ClipList splitClipsLinkAware(const ClipList& clips, double atMs, const QStringLi
             toSplit.erase(clipId(c));
         }
     }
-    if (toSplit.empty()) return clips;
+    return toSplit;
+}
+
+ClipList splitClipsLinkAware(const ClipList& clips, double atMs, const QStringList& targetIds,
+                            const IdSet& clipsWithMediaTracks) {
+    const auto toSplit = splitTargetIds(clips, atMs, targetIds, clipsWithMediaTracks);
+    if (toSplit.empty()) { return clips; }
     std::map<QString, QString> leftLinkByGroup;
     std::map<QString, QString> rightLinkByGroup;
     const auto groupLink = [](std::map<QString, QString>& map, const QString& source) {

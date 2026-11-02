@@ -12,6 +12,8 @@
 #include "model/TimelineModel.h"
 #include "model/TrackWindowModel.h"
 #include "preview/FfmpegSource.h"
+#include <QSemaphore>
+#include <QThreadPool>
 #include "edit/ClipGestureController.h"
 #include "app/EditRegistry.h"
 #include <QScopeGuard>
@@ -626,6 +628,15 @@ private slots:
         QTest::mouseDClick(view.get(), Qt::LeftButton, {}, reset);
         frame();
         QCOMPARE(region->property("headerWidth").toDouble(), before);
+        splitter->forceActiveFocus(Qt::TabFocusReason);
+        QTest::keyClick(view.get(), Qt::Key_Right);
+        frame();
+        QCOMPARE(region->property("headerWidth").toDouble(), before + 8);
+        clock->seek(3000);
+        QTest::keyClick(view.get(), Qt::Key_Home);
+        frame();
+        QCOMPARE(region->property("headerWidth").toDouble(), before);
+        QCOMPARE(clock->time(), 3000.0);
         QCOMPARE(model->undoStack()->count(), 0);
     }
     void truncatedTrackNameRevealsItsFullText() {
@@ -647,6 +658,273 @@ private slots:
         QTest::mouseMove(view.get(), point);
         QTRY_VERIFY(tip->property("visible").toBool());
         QCOMPARE(tip->property("text").toString(), name);
+    }
+    void edgeScrollingSupportsTimelineGestures_data() {
+        QTest::addColumn<QString>("kind");
+        for (const auto& kind : {"trim", "slip", "marquee", "reorder"}) {
+            QTest::newRow(kind) << QString::fromLatin1(kind);
+        }
+    }
+    void edgeScrollingSupportsTimelineGestures() {
+        QFETCH(QString, kind);
+        load({40, 40});
+        seed(10, 0);
+        controller()->setSnapEnabled(false);
+        QPoint from;
+        if (kind == "reorder") {
+            auto* grip = itemNamed("trackGrip-track-0");
+            QVERIFY(grip);
+            from = grip->mapToScene(QPointF(grip->width() / 2, grip->height() / 2)).toPoint();
+        } else if (kind == "marquee") {
+            from = lanesPoint(90).toPoint();
+        } else {
+            if (kind == "slip") { controller()->setActiveTool("slip"); }
+            from = clipPoint("c-0-9", kind == "trim" ? 76 : 35);
+        }
+        const auto before = model->documentJson();
+        const auto to = kind == "reorder" ? QPoint(from.x(), kRegionHeight - 20)
+            : lanesPoint(vs->viewportWidthPx() - 2).toPoint();
+        QTest::mousePress(view.get(), Qt::LeftButton, {}, from);
+        QTest::mouseMove(view.get(), to);
+        frame();
+        frame();
+        if (kind == "reorder") { QVERIFY(vs->scrollTopPx() > 0); }
+        else { QVERIFY(vs->scrollLeftPx() > 0); }
+        const double firstScroll = kind == "reorder" ? vs->scrollTopPx() : vs->scrollLeftPx();
+        QTRY_VERIFY_WITH_TIMEOUT((kind == "reorder" ? vs->scrollTopPx() : vs->scrollLeftPx()) > firstScroll, 500);
+        QTest::keyClick(view.get(), Qt::Key_Escape);
+        QCOMPARE(controller()->gestureKind(), QString());
+        QTest::mouseRelease(view.get(), Qt::LeftButton, {}, to);
+        const double left = vs->scrollLeftPx();
+        const double top = vs->scrollTopPx();
+        frame();
+        frame();
+        QCOMPARE(vs->scrollLeftPx(), left);
+        QCOMPARE(vs->scrollTopPx(), top);
+        QCOMPARE(model->documentJson(), before);
+        QCOMPARE(model->undoStack()->count(), 0);
+    }
+    void snapBypassChangesDuringAHeldDrag() {
+        load({2, 10});
+        seed(10, 0);
+        clock->seek(3000);
+        const auto from = clipPoint("c-0-2", 30);
+        QTest::mousePress(view.get(), Qt::LeftButton, {}, from);
+        QTest::mouseMove(view.get(), from + QPoint(17, 0));
+        QCOMPARE(controller()->liveStartMs("c-0-2"), 2200.0);
+        QTest::keyPress(view.get(), Qt::Key_Alt);
+        QCOMPARE(controller()->liveStartMs("c-0-2"), 2170.0);
+        QCOMPARE(controller()->snapGuideMs(), -1.0);
+        QTest::keyRelease(view.get(), Qt::Key_Alt);
+        QCOMPARE(controller()->liveStartMs("c-0-2"), 2200.0);
+        QCOMPARE(controller()->property("snapGuideLabel").toString(), QString("Playhead"));
+        QTest::mouseRelease(view.get(), Qt::LeftButton, {}, from + QPoint(17, 0));
+        QCOMPARE(model->undoStack()->count(), 1);
+    }
+    void nearVerticalMoveKeepsItsOriginalTime() {
+        const Layout l{2, 10};
+        auto json = makeTimelineJson(l);
+        auto clips = json.value("clips").toArray();
+        auto clip = clips[2].toObject();
+        clip.insert("startMs", 2055);
+        clips[2] = clip;
+        json.insert("clips", clips);
+        loadJson(json, l);
+        seed(10, 0);
+        const auto from = clipPoint("c-0-2", 30);
+        QTest::mousePress(view.get(), Qt::LeftButton, {}, from);
+        QTest::mouseMove(view.get(), from + QPoint(1, 64));
+        const double live = controller()->liveStartMs("c-0-2");
+        QCOMPARE(live >= 0 ? live : clipJson("c-0-2").value("startMs").toDouble(), 2055.0);
+        QTest::mouseRelease(view.get(), Qt::LeftButton, {}, from + QPoint(1, 64));
+        QCOMPARE(clipJson("c-0-2").value("startMs").toDouble(), 2055.0);
+        QCOMPARE(clipJson("c-0-2").value("trackId").toString(), QString("track-1"));
+    }
+    void razorHoverShowsTheCutOnLinkedClips_data() {
+        QTest::addColumn<double>("msPerPx");
+        QTest::newRow("whole-ms") << 10.0;
+        QTest::newRow("fractional-ms") << 7.5;
+    }
+    void razorHoverShowsTheCutOnLinkedClips() {
+        QFETCH(double, msPerPx);
+        const Layout l{2, 10};
+        auto json = makeTimelineJson(l);
+        auto clips = json.value("clips").toArray();
+        for (const auto index : {2, 12}) {
+            auto clip = clips[index].toObject();
+            clip.insert("linkId", "linked");
+            clips[index] = clip;
+        }
+        json.insert("clips", clips);
+        loadJson(json, l);
+        seed(msPerPx, 0);
+        controller()->setActiveTool("cut");
+        const auto before = model->documentJson();
+        const auto point = clipPoint("c-0-2", 30);
+        const double expected = vs->timeAtViewportX(point.x() - region->property("headerWidth").toDouble());
+        if (msPerPx == 7.5) { QVERIFY(std::fmod(expected, 1.0) != 0); }
+        QTest::mouseMove(view.get(), point);
+        auto* area = itemNamed("clip-c-0-2")->findChild<QQuickItem*>("clipBodyArea");
+        QVERIFY(area);
+        QCOMPARE(area->property("cursorShape").toInt(), int(Qt::CrossCursor));
+        QTRY_COMPARE(controller()->property("toolPreview").toMap().value("timeMs").toDouble(), expected);
+        const auto ids = controller()->property("toolPreview").toMap().value("clipIds").toStringList();
+        QVERIFY(ids.contains("c-0-2") && ids.contains("c-1-2"));
+        const auto* line = itemNamed("razorPreview-c-1-2");
+        QVERIFY(line && line->isVisible());
+        QCOMPARE(model->documentJson(), before);
+        QCOMPARE(model->undoStack()->count(), 0);
+        QTest::mouseClick(view.get(), Qt::LeftButton, {}, point);
+        QCOMPARE(model->undoStack()->count(), 1);
+        QCOMPARE(model->clipCount(), 22);
+        QJsonObject left;
+        for (const auto& value : model->clipsJson()) {
+            const auto c = value.toObject();
+            if (c.value("trackId") == "track-0" && c.value("startMs").toDouble() == 2000) { left = c; break; }
+        }
+        QVERIFY(!left.isEmpty());
+        QCOMPARE(left.value("durationMs").toDouble(), expected - 2000);
+        model->undoStack()->undo();
+        QCOMPARE(model->documentJson(), before);
+    }
+    void unavailableRazorTargetsUseTheForbiddenCursor_data() {
+        QTest::addColumn<bool>("remapped");
+        QTest::newRow("locked-linked-peer") << false;
+        QTest::newRow("variable-speed") << true;
+    }
+    void unavailableRazorTargetsUseTheForbiddenCursor() {
+        QFETCH(bool, remapped);
+        const Layout l{2, 10};
+        auto json = makeTimelineJson(l);
+        auto clips = json.value("clips").toArray();
+        for (const auto index : {2, 12}) {
+            auto clip = clips[index].toObject();
+            clip.insert("linkId", "linked");
+            if (index == 12 && !remapped) { clip.insert("locked", true); }
+            if (index == 2 && remapped) {
+                clip.insert("timeRemap", QJsonObject{{"keyframes", QJsonArray{
+                    QJsonObject{{"t", 0}, {"sourceMs", 0}}, QJsonObject{{"t", 0.5}, {"sourceMs", 100}},
+                    QJsonObject{{"t", 1}, {"sourceMs", 800}}}}});
+            }
+            clips[index] = clip;
+        }
+        json.insert("clips", clips);
+        loadJson(json, l);
+        seed(10, 0);
+        controller()->setActiveTool("cut");
+        const auto before = model->documentJson();
+        const auto point = clipPoint("c-0-2", 30);
+        QTest::mouseMove(view.get(), lanesPoint(600, 200).toPoint());
+        QTest::mouseMove(view.get(), point);
+        auto* area = itemNamed("clip-c-0-2")->findChild<QQuickItem*>("clipBodyArea");
+        QVERIFY(area);
+        QTRY_COMPARE(area->property("cursorShape").toInt(), int(Qt::ForbiddenCursor));
+        QVERIFY(!controller()->property("toolPreview").toMap().value("available").toBool());
+        QTest::mouseClick(view.get(), Qt::LeftButton, {}, point);
+        QCOMPARE(model->documentJson(), before);
+        QCOMPARE(model->undoStack()->count(), 0);
+    }
+    void trimLimitFeedbackExplainsTheSourceBoundary() {
+        const Layout l{1, 1};
+        auto json = makeTimelineJson(l);
+        auto clips = json.value("clips").toArray();
+        auto clip = clips[0].toObject();
+        clip.insert("currentAssetId", "source");
+        clip.insert("inPointMs", 200);
+        clip.insert("outPointMs", 1000);
+        clips[0] = clip;
+        json.insert("clips", clips);
+        loadJson(json, l);
+        seed(10, 0);
+        controller()->setSnapEnabled(false);
+        const auto from = clipPoint("c-0-0", 76);
+        QTest::mousePress(view.get(), Qt::LeftButton, {}, from);
+        QTest::mouseMove(view.get(), from + QPoint(50, 0));
+        QCOMPARE(clipJson("c-0-0").value("durationMs").toDouble(), 800.0);
+        const auto feedback = controller()->property("trimSourceRange").toMap();
+        QCOMPARE(feedback.value("startMs").toDouble(), -200.0);
+        QCOMPARE(feedback.value("endMs").toDouble(), 800.0);
+        QCOMPARE(feedback.value("limitReason").toString(), QString("Source end"));
+        auto* guide = itemNamed("trimSourceGuide-c-0-0");
+        auto* message = itemNamed("trimLimitFeedback-c-0-0");
+        QVERIFY(guide && guide->isVisible());
+        QVERIFY(message && message->isVisible());
+        frame();
+        auto* extent = itemNamed("trimSourceExtent-c-0-0");
+        QVERIFY(extent);
+        const auto image = view->grabWindow();
+        QVERIFY(!image.isNull());
+        const auto at = extent->mapToScene(QPointF(extent->width() / 2, extent->height() / 2)) * image.devicePixelRatio();
+        QCOMPARE(image.pixelColor(int(at.x()), int(at.y())), extent->property("color").value<QColor>());
+        QTest::mouseRelease(view.get(), Qt::LeftButton, {}, from + QPoint(50, 0));
+        QVERIFY(controller()->property("trimSourceRange").toMap().isEmpty());
+    }
+
+    void sourceProbeDoesNotStartAnUntouchedTrim() {
+        QTemporaryDir media;
+        QVERIFY(media.isValid());
+        const auto file = media.filePath("source.y4m");
+        QFile video(file);
+        QVERIFY(video.open(QIODevice::WriteOnly));
+        const QByteArray header("YUV4MPEG2 W2 H2 F1:1 Ip A1:1 C420jpeg\n");
+        QCOMPARE(video.write(header), header.size());
+        for (int i = 0; i < 2; ++i) {
+            QCOMPARE(video.write("FRAME\n"), 6);
+            QCOMPARE(video.write(QByteArray(6, char(128))), 6);
+        }
+        video.close();
+        const auto facts = nt::probeMedia(file.toStdString());
+        QVERIFY(facts.opened);
+        QCOMPARE(facts.durationSec, 2.0);
+        auto* pool = QThreadPool::globalInstance();
+        const int previousMaximum = pool->maxThreadCount();
+        auto entered = std::make_shared<QSemaphore>();
+        auto proceed = std::make_shared<QSemaphore>();
+        pool->setMaxThreadCount(1);
+        const auto restorePool = qScopeGuard([pool, proceed, previousMaximum]() {
+            proceed->release();
+            pool->waitForDone(3000);
+            pool->setMaxThreadCount(previousMaximum);
+        });
+        pool->start([entered, proceed]() { entered->release(); proceed->acquire(); });
+        QVERIFY(entered->tryAcquire(1, 5000));
+        const Layout l{1, 2};
+        auto json = makeTimelineJson(l);
+        auto clips = json.value("clips").toArray();
+        auto clip = clips[0].toObject();
+        clip.insert("mediaPath", file);
+        clip.insert("currentAssetId", "source");
+        clip.insert("durationMs", 1490);
+        clip.insert("inPointMs", 0);
+        clip.insert("outPointMs", 1490);
+        clips[0] = clip;
+        auto neighbour = clips[1].toObject();
+        neighbour.insert("startMs", 1500);
+        clips[1] = neighbour;
+        json.insert("clips", clips);
+        loadJson(json, l);
+        seed(10, 0);
+        QCOMPARE(controller()->sourceCapMs("c-0-0"), 1490.0);
+        const auto before = model->documentJson();
+        auto* item = itemNamed("clip-c-0-0");
+        QVERIFY(item);
+        const auto point = clipPoint("c-0-0", item->width() - 3);
+        bool pressed = true;
+        const auto releasePointer = qScopeGuard([this, &pressed, point]() {
+            if (pressed && view) {
+                controller()->cancelGesture();
+                QTest::mouseRelease(view.get(), Qt::LeftButton, {}, point);
+            }
+        });
+        QTest::mousePress(view.get(), Qt::LeftButton, {}, point);
+        QCOMPARE(controller()->gestureKind(), QString("trim"));
+        proceed->release();
+        QTRY_COMPARE(controller()->sourceCapMs("c-0-0"), 2000.0);
+        QCOMPARE(model->documentJson(), before);
+        QTest::mouseRelease(view.get(), Qt::LeftButton, {}, point);
+        pressed = false;
+        QCOMPARE(model->documentJson(), before);
+        QCOMPARE(model->undoStack()->count(), 0);
     }
     void contextMenuKeepsTheMultiSelectionAndUsesItForDelete() {
         load({2, 10});

@@ -41,6 +41,7 @@ Item {
     readonly property bool interactionLocked: locked || trackLocked
     readonly property bool selected: gestures !== null && gestures.selection.indexOf(clipId) >= 0
     readonly property bool underGesture: gestures !== null && gestures.activeClipId === clipId
+    readonly property var toolPreview: gestures ? gestures.toolPreview : ({})
     // MIN_TRIM_HANDLE_CLIP_WIDTH_PX: the two 8 px grips leave 12 px of body.
     readonly property bool trimHandles: width >= 28
 
@@ -100,31 +101,142 @@ Item {
     }
     HoverHandler { id: hover }
 
+    Loader {
+        active: !!clipItem.gestures && clipItem.gestures.trimSourceRange.clipId === clipItem.clipId
+        z: TimelineMetrics.trimHandleLayer
+        sourceComponent: Item {
+            id: sourceGuide
+            objectName: "trimSourceGuide-" + clipItem.clipId
+            readonly property var range: clipItem.gestures ? clipItem.gestures.trimSourceRange : ({})
+            visible: range.clipId === clipItem.clipId
+            readonly property real sourceX: ((range.startMs || 0) - clipItem.startMs) / clipItem.msPerPx
+            readonly property real sourceEndX: ((range.endMs || 0) - clipItem.startMs) / clipItem.msPerPx
+            Rectangle {
+                visible: sourceGuide.range.hasSource === true && sourceGuide.range.bounded === true
+                objectName: "trimSourceExtent-" + clipItem.clipId
+                x: sourceGuide.sourceX
+                width: Math.max(0, sourceGuide.sourceEndX - x)
+                height: Ui.Metrics.border
+                color: Ui.Theme.statusWarning
+            }
+            Rectangle {
+                visible: sourceGuide.range.hasSource === true
+                x: sourceGuide.sourceX
+                width: Ui.Metrics.border
+                height: Ui.Metrics.md
+                color: Ui.Theme.statusWarning
+            }
+            Rectangle {
+                visible: sourceGuide.range.bounded === true
+                x: sourceGuide.sourceEndX
+                width: Ui.Metrics.border
+                height: Ui.Metrics.md
+                color: Ui.Theme.statusWarning
+            }
+            Ui.Surface {
+                objectName: "trimLimitFeedback-" + clipItem.clipId
+                visible: sourceGuide.range.limitReason !== undefined && sourceGuide.range.limitReason !== ""
+                variant: Ui.Surface.Overlay
+                readonly property real leftBound: clipItem.viewState ? clipItem.viewState.scrollLeftPx - clipItem.x : 0
+                readonly property real viewportWidth: clipItem.viewState ? clipItem.viewState.viewportWidthPx : clipItem.width
+                width: Math.min(viewportWidth, reasonText.implicitWidth + 2 * Ui.Metrics.md)
+                height: reasonText.implicitHeight + 2 * Ui.Metrics.sm
+                x: Math.max(leftBound, Math.min(leftBound + viewportWidth - width,
+                            (sourceGuide.range.edge === "start" ? 0 : clipItem.width) + Ui.Metrics.sm))
+                y: Ui.Metrics.md
+                Ui.Text {
+                    id: reasonText
+                    x: Ui.Metrics.md
+                    y: Ui.Metrics.sm
+                    width: parent.width - 2 * Ui.Metrics.md
+                    text: sourceGuide.range.limitReason || ""
+                    role: Ui.Typography.SansCaption
+                    wrapMode: Text.Wrap
+                }
+            }
+        }
+    }
+
+    function slotHit(area, x, y, button) {
+        const hit = item => {
+            if (!item.visible || !item.enabled) return null
+            if (item instanceof MouseArea && item.takesTrimPress === true
+                && (item.acceptedButtons & button) && item.contains(item.mapFromItem(area, x, y))) return item
+            for (const child of item.children) {
+                const target = hit(child)
+                if (target) return target
+            }
+            return null
+        }
+        for (const item of clipBody.children) {
+            if (item.slot !== "clipBody") continue
+            const target = hit(item)
+            if (target) return target
+        }
+        return null
+    }
+    function cursorFor(part, pressed, area) {
+        if (part !== "body") {
+            const owner = slotHit(area, area.mouseX, area.mouseY, Qt.LeftButton)
+            if (owner) return owner.cursorShape
+        }
+        if (interactionLocked || (toolPreview.clipId === clipId && toolPreview.available === false)) return Qt.ForbiddenCursor
+        const tool = gestures ? gestures.activeTool : "select"
+        if (tool === "cut" || tool === "zoom") return Qt.CrossCursor
+        if (tool === "slip") return Qt.SplitHCursor
+        if (tool === "slide") return Qt.SizeHorCursor
+        if (tool === "trackSelect" || tool === "trackSelectBackward") return Qt.SizeAllCursor
+        if (tool === "hand") return pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+        if (part !== "body") return tool === "roll" ? Qt.SplitHCursor : Qt.SizeHorCursor
+        return pressed || (underGesture && gestures.gestureKind === "move") ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+    }
+    function updateToolPreview(part, area, modifiers) {
+        if (!gestures) return
+        if (part !== "body" && slotHit(area, area.mouseX, area.mouseY, Qt.LeftButton)) {
+            gestures.clearToolHover(clipId)
+            return
+        }
+        const point = area.mapToItem(null, area.mouseX, area.mouseY)
+        gestures.updateToolHover(clipId, part, point.x, point.y, modifiers || 0)
+    }
+    Connections {
+        target: clipItem.gestures
+        function onOptionsChanged() {
+            if (startArea.containsMouse) clipItem.updateToolPreview("start", startArea, 0)
+            else if (endArea.containsMouse) clipItem.updateToolPreview("end", endArea, 0)
+            else if (bodyArea.containsMouse) clipItem.updateToolPreview("body", bodyArea, 0)
+        }
+    }
+    Rectangle {
+        objectName: "razorPreview-" + clipItem.clipId
+        visible: clipItem.toolPreview.timeMs !== undefined && !!clipItem.gestures && clipItem.gestures.previewsCut(clipItem.clipId)
+        x: ((clipItem.toolPreview.timeMs || 0) - clipItem.startMs) / clipItem.msPerPx
+        width: Ui.Metrics.focus
+        height: parent.height
+        z: TimelineMetrics.trimHandleLayer
+        color: Ui.Theme.statusWarning
+    }
+
     function press(part, mouse, area) {
         if (!clipItem.gestures) return
-        if (part !== "body") {
-            const takesPress = item => {
-                if (!item.visible || !item.enabled) return false
-                if (item instanceof MouseArea && item.takesTrimPress === true
-                    && (item.acceptedButtons & mouse.button)
-                    && item.contains(item.mapFromItem(area, mouse.x, mouse.y))) return true
-                return item.children.some(takesPress)
-            }
-            // takesTrimPress lets slot controls precede trim without raising the transition grip.
-            if (clipBody.children.some(item => item.slot === "clipBody" && takesPress(item))) {
-                mouse.accepted = false
-                return
-            }
+        if (part !== "body" && slotHit(area, mouse.x, mouse.y, mouse.button)) {
+            mouse.accepted = false
+            return
         }
         const p = area.mapToItem(null, mouse.x, mouse.y)
         clipItem.gestures.pressClip(clipItem.clipId, part, p.x, p.y, mouse.modifiers)
     }
 
     MouseArea {
+        id: bodyArea
         objectName: "clipBodyArea"
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton | Qt.RightButton
-        cursorShape: clipItem.interactionLocked ? Qt.ForbiddenCursor : pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+        hoverEnabled: true
+        cursorShape: clipItem.cursorFor("body", pressed, this)
+        onEntered: clipItem.updateToolPreview("body", this, 0)
+        onPositionChanged: mouse => clipItem.updateToolPreview("body", this, mouse.modifiers)
+        onExited: if (clipItem.gestures) clipItem.gestures.clearToolHover(clipItem.clipId)
         onPressed: mouse => {
             if (mouse.button === Qt.RightButton) {
                 if (clipItem.gestures && clipItem.gestures.parent) clipItem.gestures.parent.forceActiveFocus(Qt.MouseFocusReason)
@@ -139,16 +251,22 @@ Item {
     }
     // The trim grips (TRIM_HANDLE_WIDTH_PX), over the body.
     MouseArea {
+        id: startArea
         objectName: "clipTrimStart"
         z: TimelineMetrics.trimHandleLayer
         visible: clipItem.trimHandles
         width: 8
         height: parent.height
         acceptedButtons: Qt.LeftButton
-        cursorShape: clipItem.interactionLocked ? Qt.ForbiddenCursor : Qt.SizeHorCursor
+        hoverEnabled: true
+        cursorShape: clipItem.cursorFor("start", pressed, this)
+        onEntered: clipItem.updateToolPreview("start", this, 0)
+        onPositionChanged: mouse => clipItem.updateToolPreview("start", this, mouse.modifiers)
+        onExited: if (clipItem.gestures) clipItem.gestures.clearToolHover(clipItem.clipId)
         onPressed: mouse => clipItem.press("start", mouse, this)
     }
     MouseArea {
+        id: endArea
         objectName: "clipTrimEnd"
         z: TimelineMetrics.trimHandleLayer
         visible: clipItem.trimHandles
@@ -156,7 +274,11 @@ Item {
         width: 8
         height: parent.height
         acceptedButtons: Qt.LeftButton
-        cursorShape: clipItem.interactionLocked ? Qt.ForbiddenCursor : Qt.SizeHorCursor
+        hoverEnabled: true
+        cursorShape: clipItem.cursorFor("end", pressed, this)
+        onEntered: clipItem.updateToolPreview("end", this, 0)
+        onPositionChanged: mouse => clipItem.updateToolPreview("end", this, mouse.modifiers)
+        onExited: if (clipItem.gestures) clipItem.gestures.clearToolHover(clipItem.clipId)
         onPressed: mouse => clipItem.press("end", mouse, this)
     }
 }

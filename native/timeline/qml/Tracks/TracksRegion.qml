@@ -558,11 +558,52 @@ Rectangle {
         // SnapGuideOverlay: the candidate a moving edge locked onto.
         Rectangle {
             objectName: "snapGuide"
+            id: snapGuide
             visible: clipGestures.snapGuideMs >= 0
             x: clipGestures.snapGuideMs / view.msPerPx - view.scrollLeftPx
             width: Ui.Metrics.border
             height: parent.height
             color: Ui.Theme.statusWarning
+        }
+        Ui.Surface {
+            objectName: "snapGuideLabel"
+            visible: snapGuide.visible
+            variant: Ui.Surface.Overlay
+            x: Math.max(0, Math.min(parent.width - width, snapGuide.x + Ui.Metrics.sm))
+            y: Ui.Metrics.xs
+            width: Math.min(parent.width, snapLabel.implicitWidth + 2 * Ui.Metrics.md)
+            height: snapLabel.implicitHeight + 2 * Ui.Metrics.sm
+            Ui.Text {
+                id: snapLabel
+                x: Ui.Metrics.md
+                y: Ui.Metrics.sm
+                width: parent.width - 2 * Ui.Metrics.md
+                text: clipGestures.snapGuideLabel
+                role: Ui.Typography.SansCaption
+                elide: Text.ElideRight
+            }
+        }
+
+        Ui.Surface {
+            id: toolHint
+            objectName: "toolHoverFeedback"
+            readonly property var preview: clipGestures.toolPreview
+            visible: !!preview.label && clipGestures.gestureKind === ""
+            variant: Ui.Surface.Overlay
+            width: Math.min(parent.width, toolHintText.implicitWidth + 2 * Ui.Metrics.md)
+            height: toolHintText.implicitHeight + 2 * Ui.Metrics.sm
+            x: Math.max(0, Math.min(parent.width - width, (preview.x || 0) + Ui.Metrics.lg))
+            y: Math.max(0, Math.min(parent.height - height, (preview.y || 0) + Ui.Metrics.lg))
+            z: Ui.Metrics.layerOverlay
+            Ui.Text {
+                id: toolHintText
+                x: Ui.Metrics.md
+                y: Ui.Metrics.sm
+                width: parent.width - 2 * Ui.Metrics.md
+                text: toolHint.preview.label || ""
+                role: Ui.Typography.SansCaption
+                wrapMode: Text.Wrap
+            }
         }
 
         Ui.Text {
