@@ -104,6 +104,45 @@ Item {
             QCOMPARE(input->property("selectedText").toString(), QString("Clips"));
         }
     }
+    void viewMenuRunsItsTimelineCommandWhileTyping() {
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData(R"(import QtQuick
+import NodeTool.UiPrimitives as Ui
+Item {
+    id: root
+    property bool timeline: true
+    property int zoomCount: 0
+    property string draft: "Clip"
+    width: 300; height: 100
+    Keys.onPressed: event => {
+        if (event.key === Qt.Key_Minus) { zoomCount++; event.accepted = true }
+        else event.accepted = false
+    }
+    Ui.TextField {
+        objectName: "rename"; width: 200; value: root.draft
+        onValueCommitted: next => root.draft = next
+    }
+})", QUrl());
+        std::unique_ptr<QObject> surface(component.create());
+        QVERIFY2(surface, qPrintable(component.errorString()));
+        auto* root = qobject_cast<QQuickItem*>(surface.get());
+        QVERIFY(root);
+        QQuickWindow window;
+        window.resize(300, 100);
+        root->setParentItem(window.contentItem());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        auto* input = root->findChild<QQuickItem*>("rename");
+        QVERIFY(input);
+        input->forceActiveFocus();
+        QTest::keyClick(&window, Qt::Key_End);
+        ShellMenus menus;
+        menus.setAnchor(root);
+        QVERIFY(menus.trigger("zoomOut"));
+        QCOMPARE(root->property("zoomCount").toInt(), 1);
+        QCOMPARE(input->property("text").toString(), QString("Clip"));
+    }
     void shellRegistration() {
         const auto panels = PanelRegistry().forSlot("overlay");
         QVariantList shellPanels;

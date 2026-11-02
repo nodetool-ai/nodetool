@@ -8,6 +8,7 @@
 #include <QJsonArray>
 #include <QKeyEvent>
 #include <QQuickWindow>
+#include <QSet>
 #include <QTimer>
 #include <private/qguiapplication_p.h>
 #include <qpa/qplatformmenu.h>
@@ -184,6 +185,15 @@ bool ShellMenus::trigger(const QString& action) {
         for (const auto& item : menu.items) {
             if (item.action != action || !item.enabled || item.sequence.isEmpty()) {
                 continue;
+            }
+            static const QSet<QString> TEXT_EDIT_ACTIONS{"cut", "copy", "paste", "selectAll", "undo", "redo", "deleteSelected"};
+            if (!TEXT_EDIT_ACTIONS.contains(action)) {
+                for (auto* root = m_anchor.data(); root; root = root->parentItem()) {
+                    if (root->property("timeline").isValid()) {
+                        root->forceActiveFocus();
+                        break;
+                    }
+                }
             }
             const auto combination = item.sequence[0];
             const auto key = combination.key();
