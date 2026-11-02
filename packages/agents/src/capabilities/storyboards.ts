@@ -3373,7 +3373,9 @@ async function oneTakeSummary(
   const compiled = compileOneTake({
     shots: doc.shots,
     oneTake: doc.one_take,
-    entities: await loadBoardEntities(context, doc)
+    entities: await loadBoardEntities(context, doc),
+    scenes: doc.screenplay?.scenes,
+    style: doc.style
   });
   const direction = doc.one_take;
   const settings = {

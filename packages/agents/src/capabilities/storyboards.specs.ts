@@ -667,7 +667,7 @@ export const getStoryboardOneTakeSpec: CapabilitySpec = {
   name: "get_storyboard_one_take",
   description:
     "Read a storyboard's one-take direction: the creator's prompt, the " +
-    "block compiled from the board (REFS, STEPS, AUDIO), the full prompt a " +
+    "block compiled from the board (REFS, then SHOTS as JSON), the full prompt a " +
     "render sends, the [Image N] references (the shot stills in shot " +
     "order, or the board's entity images when reference_source is " +
     "`entities`), each shot's window, the total duration, the stored render " +

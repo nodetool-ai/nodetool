@@ -9,8 +9,9 @@
  * | Block   | Compiled from                                                    |
  * | ------- | ---------------------------------------------------------------- |
  * | `REFS`  | the reference images, numbered `[Image N]` (see below)           |
- * | `STEPS` | each shot: time range, description, motion, `End:` end state     |
- * | `AUDIO` | each shot's `sound` with its time range                          |
+ * | `STYLE` | the board's style descriptor, once                               |
+ * | `SHOTS` | JSON, one object per shot: window, action, motion, end state,    |
+ * |         | scene lighting, camera, sound, dialogue, narration               |
  *
  * The render sends the creator's prompt, then the compiled block. Duration and
  * aspect ratio travel as request parameters, so the creator's text never has
@@ -33,7 +34,8 @@
  */
 
 import { entitiesForShot } from "./creative.js";
-import type { Entity, Shot, ShotModelRef } from "./creative.js";
+import type { Entity, Scene, Shot, ShotModelRef } from "./creative.js";
+import { sceneForShot } from "./shot-prompt.js";
 
 /** Which images a one take sends as `[Image N]`. */
 export type OneTakeReferenceSource = "stills" | "entities";
@@ -88,6 +90,10 @@ export interface OneTakeBoard {
    * `reference_source` is `entities`; each shot's entities come from {@link entitiesForShot}.
    */
   entities?: readonly Entity[];
+  /** The board's scenes. A shot's scene supplies its `lighting`. */
+  scenes?: readonly Scene[];
+  /** The board's style descriptor, sent once for the whole take. */
+  style?: string;
 }
 
 /** A shot's place on the one-take clock. */
@@ -100,7 +106,7 @@ export interface OneTakeStep {
 export interface CompiledOneTake {
   /** Which images {@link references} holds. */
   reference_source: OneTakeReferenceSource;
-  /** The block compiled from the board: REFS, STEPS, AUDIO. */
+  /** The block compiled from the board: REFS, STYLE, then SHOTS as JSON. */
   compiled: string;
   /** What the render sends: the creator's prompt, then the compiled block. */
   prompt: string;
@@ -169,13 +175,6 @@ function shotSteps(shots: readonly Shot[]): OneTakeStep[] {
     return step;
   });
 }
-
-const sentence = (text: string | undefined): string => {
-  const trimmed = (text ?? "").trim();
-  return trimmed.length === 0 || /[.!?…:]$/.test(trimmed)
-    ? trimmed
-    : `${trimmed}.`;
-};
 
 /** A shot's name in a reference label: its title, else "shot N". */
 const shotName = (shot: Shot): string =>
@@ -260,40 +259,60 @@ function compileRefs(
   return source === "entities" ? `${list} ${ONE_TAKE_ENTITY_REFS_NOTE}` : list;
 }
 
-function compileSteps(
-  shots: readonly Shot[],
-  steps: readonly OneTakeStep[]
-): string {
-  const byId = new Map(shots.map((shot) => [shot.id, shot]));
-  return steps
-    .map((step, index) => {
-      const shot = byId.get(step.shot_id);
-      const body = [sentence(shot?.action), sentence(shot?.motion)]
-        .filter((part) => part.length > 0)
-        .join(" ");
-      const end = shot?.end_state?.trim()
-        ? ` End: ${sentence(shot.end_state)}`
-        : "";
-      const number = String(index + 1).padStart(2, "0");
-      return `STEP_${number}: ${oneTakeWindow(step.start_seconds, step.end_seconds)}. ${body}${end}`.trimEnd();
+/** Drops empty values so the JSON carries only what the shot sets. */
+function present(record: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(record).filter(([, value]) => {
+      if (typeof value === "string") {
+        return value.trim().length > 0;
+      }
+      if (value && typeof value === "object") {
+        return Object.keys(value).length > 0;
+      }
+      return value !== undefined && value !== null;
     })
-    .join("\n");
+  );
 }
 
-function compileAudio(
+const trimmed = (text: string | undefined): string | undefined => {
+  const value = text?.trim();
+  return value ? value : undefined;
+};
+
+/**
+ * One JSON object per shot, in clip order: its window and every field a video
+ * model can act on. Overlay graphics, notes and asset ids stay out. The
+ * stills carry the picture, and overlay copy in a prompt gets drawn into it.
+ */
+function compileShots(
   shots: readonly Shot[],
-  steps: readonly OneTakeStep[]
+  steps: readonly OneTakeStep[],
+  scenes?: readonly Scene[]
 ): string {
   const byId = new Map(shots.map((shot) => [shot.id, shot]));
-  return steps
-    .map((step) => {
-      const sound = byId.get(step.shot_id)?.sound?.trim();
-      return sound
-        ? `<${sound}> at ${oneTakeWindow(step.start_seconds, step.end_seconds)}`
-        : null;
-    })
-    .filter((cue): cue is string => cue !== null)
-    .join(" · ");
+  const entries = steps.map((step, index) => {
+    const shot = byId.get(step.shot_id);
+    const camera = shot?.camera;
+    return present({
+      shot: index + 1,
+      window: oneTakeWindow(step.start_seconds, step.end_seconds),
+      action: trimmed(shot?.action),
+      motion: trimmed(shot?.motion),
+      end_state: trimmed(shot?.end_state),
+      lighting: trimmed(sceneForShot(shot as Shot, scenes)?.lighting),
+      camera: present({
+        framing: trimmed(camera?.framing),
+        angle: trimmed(camera?.angle),
+        lens: trimmed(camera?.lens),
+        movement: trimmed(camera?.movement),
+        equipment: trimmed(camera?.equipment)
+      }),
+      sound: trimmed(shot?.sound),
+      dialogue: trimmed(shot?.dialogue),
+      narration: trimmed(shot?.narration)
+    });
+  });
+  return JSON.stringify(entries, null, 2);
 }
 
 /**
@@ -306,11 +325,12 @@ export function compileOneTake(board: OneTakeBoard): CompiledOneTake {
   const referenceSource = oneTakeReferenceSource(board.oneTake);
   const references = oneTakeReferences(board);
   const refs = compileRefs(references, referenceSource);
-  const audio = compileAudio(board.shots, steps);
   const compiled = [
     refs ? `REFS: ${refs}` : "",
-    compileSteps(board.shots, steps),
-    audio ? `AUDIO: ${audio}` : ""
+    trimmed(board.style) ? `STYLE: ${trimmed(board.style)}` : "",
+    steps.length > 0
+      ? `SHOTS:\n${compileShots(board.shots, steps, board.scenes)}`
+      : ""
   ]
     .filter((block) => block.length > 0)
     .join("\n\n");
@@ -403,11 +423,14 @@ export function sceneClipRun(
 export function compileSceneClip(
   shots: readonly Shot[],
   clip: SceneClipDirection,
-  entities?: readonly Entity[]
+  entities?: readonly Entity[],
+  look?: { scenes?: readonly Scene[]; style?: string }
 ): CompiledOneTake {
   return compileOneTake({
     shots: sceneClipRun(shots, clip.shot_ids).shots,
     oneTake: clip,
-    entities
+    entities,
+    scenes: look?.scenes,
+    style: look?.style
   });
 }
