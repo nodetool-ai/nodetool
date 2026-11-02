@@ -42,7 +42,8 @@ enum class Op {
     MaskDerive,
     ScaleOpacity,
     MixTreatment,
-    SharpenCombine
+    SharpenCombine,
+    Exposure
 };
 struct Pass {
     Op op = Op::Copy;

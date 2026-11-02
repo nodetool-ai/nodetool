@@ -36,6 +36,10 @@ export function trackEffectsAsClipEffects(
   if (hit) return hit;
   const converted: ClipEffect[] = [];
   for (const effect of effects) {
+    if (effect.type === "colorCorrection" && (effect.exposure || effect.rolloff || effect.whites)) {
+      converted.push({id: effect.id, type: "exposure", enabled: effect.enabled,
+        exposure: effect.exposure ?? 0, rolloff: effect.rolloff ?? 0, whites: effect.whites ?? 0});
+    }
     const clip = asClipEffect(effect);
     if (clip) converted.push(clip);
   }

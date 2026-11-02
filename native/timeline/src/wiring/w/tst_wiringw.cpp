@@ -329,6 +329,9 @@ private slots:
         QTest::newRow("EQ curve") << QString("a") << QString("eq3") << QString("midGainDb");
         QTest::newRow("Compressor curve") << QString("a") << QString("compressor") << QString("thresholdDb");
         QTest::newRow("Color") << QString("v") << QString("colorCorrection") << QString("brightness");
+        QTest::newRow("Exposure") << QString("v") << QString("colorCorrection") << QString("exposure");
+        QTest::newRow("Highlight roll-off") << QString("v") << QString("colorCorrection") << QString("rolloff");
+        QTest::newRow("Whites") << QString("v") << QString("colorCorrection") << QString("whites");
         QTest::newRow("Blur") << QString("v") << QString("videoBlur") << QString("radius");
         QTest::newRow("Sharpen") << QString("v") << QString("sharpen") << QString("amount");
         QTest::newRow("Vignette") << QString("v") << QString("vignette") << QString("intensity");

@@ -1192,6 +1192,7 @@ const rgbTriple = z.tuple([z.number(), z.number(), z.number()]);
 const EFFECT_PARAMETER_FIELDS: Record<
   typeof KNOWN_CLIP_EFFECT_TYPE_LIST[number], readonly string[]
 > = {
+  exposure: ["exposure", "rolloff", "whites"],
   color: ["brightness", "contrast", "saturation", "hue", "temperature", "tint", "shadows", "highlights"],
   blur: ["radius"],
   pixelate: ["cellSize"],
@@ -1222,6 +1223,9 @@ const EFFECT_PARAMETER_FIELDS: Record<
  * one it cannot get wrong.
  */
 export const effectParams = z.object({
+  exposure: z.number().min(-5).max(5).optional().describe("exposure: linear-light stops, -5..5."),
+  rolloff: z.number().min(0).max(1).optional().describe("exposure: highlight shoulder strength, 0..1."),
+  whites: z.number().min(-2).max(2).optional().describe("exposure: highlight-weighted stops, -2..2."),
   type: z.enum(KNOWN_CLIP_EFFECT_TYPE_LIST),
   brightness: z.number().optional().describe("color: -1..1, 0 is unchanged."),
   contrast: z.number().optional().describe("color: 0..4, 1 is unchanged."),
@@ -1351,6 +1355,8 @@ export function buildEffect(
   effectParams.parse(input);
   const base = { id: `fx-${index + 1}`, enabled: true };
   switch (input.type) {
+    case "exposure":
+      return { ...base, type: "exposure", exposure: input.exposure ?? 0, rolloff: input.rolloff ?? 0, whites: input.whites ?? 0 };
     case "color":
       return {
         ...base,

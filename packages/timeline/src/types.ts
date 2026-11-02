@@ -776,6 +776,9 @@ export function clipAudioTailSec(
 // ── Video track effects ─────────────────────────────────────────────────────
 
 export interface TrackColorCorrectionEffect {
+  exposure?: number;
+  rolloff?: number;
+  whites?: number;
   id: string;
   type: "colorCorrection";
   enabled: boolean;
@@ -1983,6 +1986,7 @@ export type ClipEffect = KnownClipEffect | UnknownClipEffect;
 
 /** The effects this build applies, each spelled out field by field. */
 export type KnownClipEffect =
+  | ClipExposureEffect
   | ClipColorEffect
   | ClipBlurEffect
   | ClipGlowEffect
@@ -2068,6 +2072,7 @@ export const isClipGrainEffect = (e: ClipEffect): e is ClipGrainEffect =>
  * and Canvas 2D names it in `unsupportedEffectTypes`.
  */
 export const CLIP_EFFECT_TYPES = [
+  "exposure",
   "color",
   "blur",
   "glow",
@@ -2102,6 +2107,19 @@ export interface CurvePoint {
   x: number;
   y: number;
 }
+
+export interface ClipExposureEffect {
+  id: string;
+  type: "exposure";
+  enabled: boolean;
+  /** Linear-light gain in stops, -5..5. */
+  exposure?: number;
+  /** Highlight shoulder strength, 0..1. Zero disables compression. */
+  rolloff?: number;
+  /** Source-highlight-weighted gain in stops, -2..2. */
+  whites?: number;
+}
+export const isClipExposureEffect = (e: ClipEffect): e is ClipExposureEffect => e.type === "exposure";
 
 export interface ClipColorEffect {
   id: string;

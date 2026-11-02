@@ -54,7 +54,10 @@
       "temperature": 0,
       "tint": 0,
       "shadows": 0,
-      "highlights": 0
+      "highlights": 0,
+      "exposure": 0,
+      "rolloff": 0,
+      "whites": 0
     },
     "videoBlur": {
       "type": "videoBlur",
@@ -393,6 +396,29 @@
     ],
     "fable": [],
     "colorCorrection": [
+      {
+        "key": "exposure",
+        "label": "Exposure",
+        "min": -5,
+        "max": 5,
+        "step": 0.1,
+        "unit": "stops"
+      },
+      {
+        "key": "rolloff",
+        "label": "Highlight roll-off",
+        "min": 0,
+        "max": 1,
+        "step": 0.01
+      },
+      {
+        "key": "whites",
+        "label": "Whites",
+        "min": -2,
+        "max": 2,
+        "step": 0.1,
+        "unit": "stops"
+      },
       {
         "key": "brightness",
         "label": "Brightness",

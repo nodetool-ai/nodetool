@@ -3,6 +3,7 @@
 const softVignette = {radius: 1.5, softness: 1, centerX: 0.5, centerY: 0.5, roundness: 0};
 
 const addableEffects = [
+    {value: "exposure", label: "Exposure / highlights"},
     {value: "blur", label: "Blur"}, {value: "glow", label: "Glow"},
     {value: "dropShadow", label: "Drop shadow"}, {value: "vignette", label: "Vignette"},
     {value: "sharpen", label: "Sharpen"}, {value: "chromaKey", label: "Chroma key"},
@@ -14,6 +15,7 @@ const addableEffects = [
 function makeEffect(type, id) {
     const base = {id, type, enabled: true};
     switch (type) {
+    case "exposure": return Object.assign(base, {exposure: 0, rolloff: 0, whites: 0});
     case "blur": return Object.assign(base, {radius: 8});
     case "glow": return Object.assign(base, {radius: 8, intensity: 1});
     case "dropShadow": return Object.assign(base, {offsetX: 8, offsetY: 8, blur: 12, color: "#000000", opacity: 0.6});
@@ -35,7 +37,7 @@ function name(type) {
     return type === "color" ? "Color" : (addableEffects.find(item => item.value === type)?.label || type);
 }
 function known(type) {
-    return ["color", "blur", "glow", "dropShadow", "vignette", "sharpen", "chromaKey", "curves", "levels", "liftGammaGain", "grain", "pixelate", "posterize", "directionalBlur", "lensDistortion", "stylize", "generator", "lut"].includes(type);
+    return ["exposure", "color", "blur", "glow", "dropShadow", "vignette", "sharpen", "chromaKey", "curves", "levels", "liftGammaGain", "grain", "pixelate", "posterize", "directionalBlur", "lensDistortion", "stylize", "generator", "lut"].includes(type);
 }
 function readOnlyDescription(type) {
     switch (type) {
@@ -63,6 +65,7 @@ function number(key, label, fallback, minimum, step = 1, extra = {}) {
 }
 function fields(type) {
     switch (type) {
+    case "exposure": return [slider("exposure", "Exposure", 0, 5, -5, 0.1, {unit: "stops", decimals: 1}), slider("rolloff", "Highlight roll-off", 0), slider("whites", "Whites", 0, 2, -2, 0.1, {unit: "stops", decimals: 1})];
     case "color": return colorFields.map(field => Object.assign({kind: "slider", fallback: field.origin, resetValue: field.origin}, field));
     case "pixelate": return [slider("cellSize", "Cell size", 8, 128, 1, 1, {unit: "px", decimals: 0, resetValue: 1})];
     case "posterize": return [slider("levels", "Levels", 4, 256, 2, 1, {decimals: 0, resetValue: 256})];

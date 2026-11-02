@@ -476,6 +476,19 @@ private slots:
         QVERIFY(!shadow.isNull()); QVERIFY(shadow.pixelColor(51,16).red()>245); QCOMPARE(shadow.pixelColor(51,16).green(),0);
         QCOMPARE(shadow.pixelColor(10,16),QColor(Qt::black));
     }
+    void exposurePixels() {
+        QImage source(256,16,QImage::Format_RGBA8888_Premultiplied);
+        for (int y=0;y<16;++y) { for (int x=0;x<256;++x) { source.setPixelColor(x,y,QColor(x,x,x)); } }
+        const auto neutral=effectStill({effect("exposure",{})},source);
+        QVERIFY(!neutral.isNull()); QCOMPARE(neutral.pixelColor(128,8).red(),128);
+        const auto exposed=effectStill({effect("exposure",{{"exposure",1}})},source);
+        QVERIFY(!exposed.isNull()); QVERIFY(std::abs(exposed.pixelColor(128,8).red()-176)<=1);
+        const auto shoulder=effectStill({effect("exposure",{{"exposure",1},{"rolloff",1}})},source);
+        QVERIFY(!shoulder.isNull());
+        QVERIFY(shoulder.pixelColor(180,8).red()<shoulder.pixelColor(220,8).red());
+        QVERIFY(shoulder.pixelColor(220,8).red()<shoulder.pixelColor(255,8).red());
+        QVERIFY(shoulder.pixelColor(255,8).red()<255);
+    }
     void curveFidelity() {
         const QJsonArray identity{QJsonObject{{"x",0},{"y",0}},QJsonObject{{"x",1},{"y",1}}};
         const QJsonArray bend{QJsonObject{{"x",0},{"y",0}},QJsonObject{{"x",0.25},{"y",0.4}},

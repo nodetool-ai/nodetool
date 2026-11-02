@@ -392,7 +392,7 @@ export interface Canvas2DFrameReport<TSource> {
 /**
  * Effect types handled by the Canvas pixel path or a native draw operation.
  */
-const CANVAS_EFFECT_TYPES = new Set(["color", "blur", "dropShadow", "glow", "vignette", "sharpen", "chromaKey", "curves", "levels", "liftGammaGain", "grain", "pixelate", "posterize", "directionalBlur", "lensDistortion", "stylize", "generator", "lut"]);
+const CANVAS_EFFECT_TYPES = new Set(["exposure", "color", "blur", "dropShadow", "glow", "vignette", "sharpen", "chromaKey", "curves", "levels", "liftGammaGain", "grain", "pixelate", "posterize", "directionalBlur", "lensDistortion", "stylize", "generator", "lut"]);
 
 function applyCpuEffectChain(pixels: ImagePixels, clipEffects: readonly ClipEffect[], trackEffects: readonly ClipEffect[] = []): void {
   const trackKey = trackEffects.find((effect) => effect.enabled && isClipChromaKeyEffect(effect) && effect.tolerance > 0.001);
@@ -403,6 +403,7 @@ function applyCpuEffectChain(pixels: ImagePixels, clipEffects: readonly ClipEffe
     else if (isCpuVisualEffect(effect)) applyCpuVisualEffects(pixels, [effect]);
     else if (isCpuLegacyEffect(effect)) applyCpuLegacyEffects(pixels, [effect]);
   }
+  applyCpuLegacyEffects(pixels, trackEffects.filter(effect => effect.type === "exposure"));
   const combinedEffects = [...clipEffects, ...trackEffects];
   const blurRadius = aggregateBlurRadius(clipEffects.filter((effect) => effect.enabled), trackEffects.filter((effect) => effect.enabled));
   const sharedBounds = blurRadius >= 0.5 && combinedEffects.some((effect) => effect.enabled && isClipColorEffect(effect))

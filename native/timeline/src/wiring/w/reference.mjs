@@ -29,7 +29,11 @@ const strings = JSON.parse(readFileSync(path.join(root,'web/src/i18n/locales/en.
 const reference = {palette:{grey400:ts.paletteDark.grey[400],grey600:ts.paletteDark.grey[600],primaryContrast:ts.paletteDark.primary.contrastText,primaryDark:ts.paletteDark.primary.dark},defaults, fableDefaults, strings, widths:ts.constants.DEVICE_WIDTHS,
  fableWidths:ts.constants.FABLE_DEVICE_WIDTHS, knobs:ts.constants.KNOBS,
  audioTypes:ts.constants.AUDIO_EFFECT_TYPES, videoTypes:ts.constants.VIDEO_EFFECT_TYPES, fableKinds:ts.FABLE_FX_KINDS};
-// Native shape controls extend the shared rack metadata.
+// Native color and shape controls extend the shared rack metadata.
+reference.knobs.colorCorrection.unshift(
+ {key:'exposure',label:'Exposure',min:-5,max:5,step:0.1,unit:'stops'},
+ {key:'rolloff',label:'Highlight roll-off',min:0,max:1,step:0.01},
+ {key:'whites',label:'Whites',min:-2,max:2,step:0.1,unit:'stops'});
 reference.knobs.vignette.push(
  {key:'centerX',label:'Center X',min:0,max:1,step:0.01},
  {key:'centerY',label:'Center Y',min:0,max:1,step:0.01},

@@ -26,6 +26,7 @@ import { colorChannelMergeV1 } from "./color/channelMerge/v1/module.js";
 import { colorGrayscaleV1 } from "./color/grayscale/v1/module.js";
 import { colorSolarizeV1 } from "./color/solarize/v1/module.js";
 import { colorColorBalanceV1 } from "./color/colorBalance/v1/module.js";
+import { colorExposureLinearV1 } from "./color/exposureLinear/v1/module.js";
 import { colorExposureToneV1 } from "./color/exposureTone/v1/module.js";
 import { colorLiftGammaGainV1 } from "./color/liftGammaGain/v1/module.js";
 import { colorCdlV1 } from "./color/cdl/v1/module.js";
@@ -105,6 +106,7 @@ export {
   colorSolarizeV1,
   colorColorBalanceV1,
   colorExposureToneV1,
+  colorExposureLinearV1,
   colorLiftGammaGainV1,
   colorCdlV1,
   colorCurvesV1,
@@ -182,6 +184,7 @@ export const ALL_SHADERS: readonly ShaderModule[] = [
   colorSolarizeV1,
   colorColorBalanceV1,
   colorExposureToneV1,
+  colorExposureLinearV1,
   colorLiftGammaGainV1,
   colorCdlV1,
   colorCurvesV1,

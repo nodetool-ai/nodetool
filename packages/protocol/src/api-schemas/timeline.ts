@@ -256,6 +256,9 @@ export const trackFableEffect = z.object({
 // ── Track video effects ──────────────────────────────────────────────────────
 
 export const trackColorCorrectionEffect = z.object({
+  exposure: z.number().min(-5).max(5).optional(),
+  rolloff: z.number().min(0).max(1).optional(),
+  whites: z.number().min(-2).max(2).optional(),
   id: z.string(),
   type: z.literal("colorCorrection"),
   enabled: z.boolean(),
@@ -1151,7 +1154,15 @@ export const clipGrainEffect = z.object({
  * type it does not carry on every PATCH, so a graded clip loses that step of
  * its chain on the next save.
  */
+export const clipExposureEffect = z.object({
+  id: z.string(), type: z.literal("exposure"), enabled: z.boolean(),
+  exposure: z.number().min(-5).max(5).optional(),
+  rolloff: z.number().min(0).max(1).optional(),
+  whites: z.number().min(-2).max(2).optional()
+});
+
 const knownClipEffect = z.discriminatedUnion("type", [
+  clipExposureEffect,
   clipColorEffect,
   clipBlurEffect,
   clipPixelateEffect,
@@ -1177,6 +1188,7 @@ const knownClipEffect = z.discriminatedUnion("type", [
  * a list for the same reason {@link KNOWN_TRANSITION_TYPE_LIST} is.
  */
 export const KNOWN_CLIP_EFFECT_TYPE_LIST = [
+  "exposure",
   "color",
   "blur",
   "pixelate",

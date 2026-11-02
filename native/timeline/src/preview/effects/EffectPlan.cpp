@@ -196,7 +196,7 @@ std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEf
         const auto e = value.toObject();
         if (!e.value("enabled").toBool()) { continue; }
         const auto type = e.value("type").toString();
-        if (type == "color" || type == "blur") { combined.append(e); }
+        if (type == "color" || type == "blur" || type == "exposure") { combined.append(e); }
         else if (type == "sharpen" && sharpen.isEmpty()) { sharpen = e; }
         else if (type == "vignette" && vignette.isEmpty()) { vignette = e; }
         else if (type == "chromaKey" && chromaKey.isEmpty()) { chromaKey = e; }
@@ -250,6 +250,10 @@ std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEf
             std::ranges::copy(a, v.begin() + 8);
             std::ranges::copy(b, v.begin() + 12);
             v[11] = v[15] = 1;
+        } else if (type == "exposure") {
+            if (number(e,"exposure") == 0 && number(e,"rolloff") == 0 && number(e,"whites") == 0) { continue; }
+            p.op = Op::Exposure;
+            v = {f(e, "exposure"), f(e, "rolloff"), f(e, "whites")};
         } else if (type == "pixelate") {
             p.op = Op::Pixelate;
             v[0] = f(e, "cellSize", 8);
@@ -602,6 +606,12 @@ void decorateTrackEffects(QJsonObject &ext, const Track *track) {
                 }
             };
             if (type == "colorCorrection") {
+                if (number(raw,"exposure") != 0 || number(raw,"rolloff") != 0 || number(raw,"whites") != 0) {
+                    auto exposure=e;
+                    exposure.insert("type","exposure");
+                    for (const auto* key : {"exposure","rolloff","whites"}) { exposure.insert(key,raw.value(key)); }
+                    converted.append(exposure);
+                }
                 e.insert("type", "color");
                 copy({"brightness", "contrast", "saturation", "hue", "temperature", "tint", "shadows", "highlights"});
             } else if (type == "videoBlur") {

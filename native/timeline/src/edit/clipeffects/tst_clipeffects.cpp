@@ -257,6 +257,7 @@ void TestClipEffects::catalogue_data() {
         QTest::addColumn<QByteArray>("expected");
         // Literal defaults from ClipEffectsList.tsx makeEffect(), without its UUID.
         const QList<QByteArray> rows{
+            R"({"type":"exposure","enabled":true,"exposure":0,"rolloff":0,"whites":0})",
             R"({"type":"blur","enabled":true,"radius":8})",
             R"({"type":"glow","enabled":true,"radius":8,"intensity":1})",
             R"({"type":"dropShadow","enabled":true,"offsetX":8,"offsetY":8,"blur":12,"color":"#000000","opacity":0.6})",
@@ -340,6 +341,9 @@ void TestClipEffects::parameterFields_data() {
         const auto row = [](const char* name,const QString& type,const QString& field,const QString& input,const QByteArray& expected) {
             QTest::newRow(name) << type << field << input << expected;
         };
+        row("exposure-stops","exposure","exposure","1.5",R"({"exposure":1.5})");
+        row("exposure-rolloff","exposure","rolloff","0.7",R"({"rolloff":0.7})");
+        row("exposure-whites","exposure","whites","-0.5",R"({"whites":-0.5})");
         row("glow-radius","glow","radius","27",R"({"radius":27})");
         row("shadow-offset","dropShadow","offsetX","-18",R"({"offsetX":-18})");
         row("shadow-color","dropShadow","color","#123456",R"({"color":"#123456"})");
@@ -357,7 +361,9 @@ void TestClipEffects::parameterFields() {
         const auto id = e.effects()[0].toObject()["id"].toString();
         auto* control = e.item("effects_"+id+"_"+field); QVERIFY(control);
         const auto before = e.model.documentJson();
-        QVERIFY(text(control,"commit",input)); QCOMPARE(e.model.undoStack()->count(),2);
+        if (type == "exposure") { QVERIFY(number(control,"change",input.toDouble())); }
+        else { QVERIFY(text(control,"commit",input)); }
+        QCOMPARE(e.model.undoStack()->count(),2);
         const auto wanted = QJsonDocument::fromJson(expected).object();
         for (auto it = wanted.begin(); it != wanted.end(); ++it) { QCOMPARE(e.effects()[0].toObject()[it.key()],it.value()); }
         const auto after = e.model.documentJson(); e.model.undoStack()->undo(); QCOMPARE(e.model.documentJson(),before);

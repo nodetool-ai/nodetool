@@ -50,6 +50,20 @@ async function comparePixels(width: number, height: number, rgba: Uint8ClampedAr
 }
 
 describe("effect parity on diagnostic pixels", () => {
+  it("exposes in linear light and compresses highlights before quantizing", async () => {
+    const width = 256, height = 1, rgba = new Uint8ClampedArray(width * 4);
+    for (let x = 0; x < width; x++) { rgba.set([x, x, x, 255], x * 4); }
+    const exposed = await comparePixels(width, height, rgba, {id: "e", type: "exposure", enabled: true, exposure: 1});
+    expect(Math.abs(exposed.gpu[128 * 4]! - 176)).toBeLessThanOrEqual(1);
+    expect(exposed.maxError).toBeLessThanOrEqual(1);
+    const shoulder = await comparePixels(width, height, rgba, {id: "e", type: "exposure", enabled: true, exposure: 1, rolloff: 1});
+    for (const pixels of [shoulder.cpu, shoulder.gpu]) {
+      expect(pixels[180 * 4]).toBeLessThan(pixels[220 * 4]!);
+      expect(pixels[220 * 4]).toBeLessThan(pixels[255 * 4]!);
+      expect(pixels[255 * 4]).toBeLessThan(255);
+    }
+    expect(shoulder.maxError).toBeLessThanOrEqual(1);
+  });
   it("renders authored channel bends rather than reducing them to midpoint gamma", async () => {
     const width = 64, height = 16, rgba = new Uint8ClampedArray(width * height * 4);
     for (let index = 0; index < rgba.length; index += 4) { rgba.set([64, 64, 64, 255], index); }

@@ -381,5 +381,15 @@ void main() {
         fragColor=src+vec4(p[0].xyz*cov,cov)*(1-src.a); return;
     } else if (op==19) { fragColor=src.a<=0 ? vec4(0) : vec4(src.rgb/src.a,src.a); return; }
     else if (op==20) { fragColor=vec4(src.rgb*src.a,src.a); return; }
+    else if (op==27) {
+        vec3 linear=mix(pow((rgb+0.055)/1.055,vec3(2.4)),rgb/12.92,lessThanEqual(rgb,vec3(0.04045)));
+        float mask=smoothstep(0.25,1.,dot(linear,vec3(0.2126,0.7152,0.0722)));
+        float gain=exp2(clamp(p[0].x,-5.,5.))*mix(1.,exp2(clamp(p[0].z,-2.,2.)),mask);
+        float strength=clamp(p[0].y,0.,1.), knee=1.-0.75*strength;
+        float peak=max(max(linear.r,linear.g),linear.b)*gain;
+        if (strength>0 && peak>knee) { gain*=(knee+(1.-knee)*(1.-exp(-(peak-knee)/(1.-knee))))/peak; }
+        linear*=gain;
+        rgb=mix(1.055*pow(linear,vec3(1./2.4))-0.055,12.92*linear,lessThanEqual(linear,vec3(0.0031308)));
+    }
     fragColor=vec4(clamp(rgb,0,1)*src.a,src.a);
 }

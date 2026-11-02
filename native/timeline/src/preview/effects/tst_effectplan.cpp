@@ -289,6 +289,17 @@ class TestEffectPlan : public QObject {
             }
         }
     }
+    void exposureTrackChain() {
+        nt::Track track;
+        track.raw={{"effects",QJsonArray{QJsonObject{{"id","e"},{"type","colorCorrection"},{"enabled",true},
+            {"exposure",1.5},{"rolloff",0.7},{"whites",-0.5},{"brightness",0.1}}}}};
+        QJsonObject ext;
+        decorateTrackEffects(ext,&track);
+        const auto chain=planChain({effect("posterize")},ext["trackEffects"].toArray());
+        QCOMPARE(chain.size(),size_t{3});
+        QCOMPARE(chain[0].op,Op::Posterize); QCOMPARE(chain[1].op,Op::Exposure); QCOMPARE(chain[2].op,Op::Grade);
+        QCOMPARE(chain[1].params[0],1.5f); QCOMPARE(chain[1].params[1],0.7f); QCOMPARE(chain[1].params[2],-0.5f);
+    }
     void trackChain() {
         auto color = effect("color"); color.insert("brightness", 0.25); color.insert("contrast", 2);
         auto trackColor = color; trackColor.insert("brightness", 0.5); trackColor.insert("contrast", 3);

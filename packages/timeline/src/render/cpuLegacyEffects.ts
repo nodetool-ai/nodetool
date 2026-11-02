@@ -1,4 +1,6 @@
+import { exposeRgb } from "./exposure.js";
 import {
+  isClipExposureEffect,
   isClipChromaKeyEffect, isClipColorEffect, isClipCurvesEffect, isClipGlowEffect,
   isClipGrainEffect, isClipLevelsEffect, isClipLiftGammaGainEffect,
   isClipSharpenEffect, isClipVignetteEffect, type ClipEffect
@@ -12,7 +14,7 @@ const smooth = (v: number): number => { const t = clamp(v); return t * t * (3 - 
 const byte = (v: number): number => Math.round(clamp(v) * 255);
 
 export function isCpuLegacyEffect(effect: ClipEffect): boolean {
-  return isClipGlowEffect(effect) || isClipVignetteEffect(effect)
+  return isClipExposureEffect(effect) || isClipGlowEffect(effect) || isClipVignetteEffect(effect)
     || isClipSharpenEffect(effect) || isClipChromaKeyEffect(effect)
     || isClipCurvesEffect(effect) || isClipLevelsEffect(effect)
     || isClipLiftGammaGainEffect(effect) || isClipGrainEffect(effect);
@@ -191,6 +193,7 @@ export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly Cli
   const { width, height, data } = pixels;
   for (const effect of effects) {
     if (!effect.enabled || !isCpuLegacyEffect(effect)) continue;
+    if (isClipExposureEffect(effect) && !(effect.exposure || effect.rolloff || effect.whites)) { continue; }
     const sharpenRadius = isClipSharpenEffect(effect) ? Math.max(0, Math.min(256, effect.radius ?? 1)) : 0;
     if (isClipSharpenEffect(effect) && (sharpenRadius === 0 || effect.amount === 0)) continue;
     const input = premultiply(data);
@@ -218,7 +221,10 @@ export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly Cli
         const i = (y * width + x) * 4;
         let a = input[i + 3]! / 255;
         const rgb = [input[i]!, input[i + 1]!, input[i + 2]!].map((v) => v / Math.max(1, input[i + 3]!));
-        if (isClipChromaKeyEffect(effect) && key) {
+        if (isClipExposureEffect(effect)) {
+          const value = exposeRgb([rgb[0] ?? 0, rgb[1] ?? 0, rgb[2] ?? 0], effect.exposure, effect.rolloff, effect.whites);
+          rgb.splice(0, 3, ...value);
+        } else if (isClipChromaKeyEffect(effect) && key) {
           // Keying reads straight pixels, before the premultiplied bridge.
           for (let c = 0; c < 3; c++) rgb[c] = data[i + c]! / 255;
           const dist = Math.hypot(rgb[0]! - key.r, rgb[1]! - key.g, rgb[2]! - key.b);

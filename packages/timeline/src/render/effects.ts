@@ -2,6 +2,7 @@ import { curveTransfer } from "./curveTransfer.js";
 import { GENERATOR_MODES, STYLIZE_MODES, type ClipEffect, type TrackEffect } from "../types.js";
 import {
   isClipBlurEffect,
+  isClipExposureEffect,
   isClipChromaKeyEffect,
   isClipColorEffect,
   isClipCurvesEffect,
@@ -20,6 +21,7 @@ import {
   createLabeledTexture,
   createRecipeRunner,
   LabeledTexture,
+  colorExposureLinearV1,
   colorCdlV1,
   colorCurveTransferV1,
   colorGradeV1,
@@ -227,7 +229,7 @@ export class WebGPUEffectsProcessor {
     const sharpenActive = sharpen != null && sharpen.amount > 0.001;
     const vignetteActive = vignette != null && vignette.amount > 0.001;
     const chromaKeyActive = chromaKey != null && chromaKey.tolerance > 0.001;
-    const shaderClip = enabledClip.filter(isShaderStepEffect);
+    const shaderClip = [...enabledClip.filter(isShaderStepEffect), ...enabledTrack.filter(isClipExposureEffect)];
 
     if (
       !colorActive &&
@@ -405,6 +407,10 @@ export class WebGPUEffectsProcessor {
     ) => void,
     stepRecipe: <P>(module: RecipeModule<P>, params: P) => void
   ): void {
+    if (isClipExposureEffect(effect)) {
+      step(colorExposureLinearV1, {exposure: effect.exposure ?? 0, rolloff: effect.rolloff ?? 0, whites: effect.whites ?? 0});
+      return;
+    }
     if (effect.type === "stylize" && typeof effect.mode === "string") {
       const index = (STYLIZE_MODES as readonly string[]).indexOf(effect.mode);
       if (index >= 0) {
@@ -984,6 +990,7 @@ function clamp(v: number, lo: number, hi: number): number {
  */
 function isShaderStepEffect(effect: ClipEffect): boolean {
   return (
+    (isClipExposureEffect(effect) && !!(effect.exposure || effect.rolloff || effect.whites)) ||
     effect.type === "lut" ||
     effect.type === "stylize" ||
     effect.type === "generator" ||
