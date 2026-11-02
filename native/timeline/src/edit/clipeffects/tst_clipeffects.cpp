@@ -264,7 +264,11 @@ void TestClipEffects::catalogue_data() {
             R"({"type":"curves","enabled":true,"master":[{"x":0,"y":0},{"x":1,"y":1}]})",
             R"({"type":"levels","enabled":true,"inBlack":0,"inWhite":1,"gamma":1,"outBlack":0,"outWhite":1})",
             R"({"type":"liftGammaGain","enabled":true,"lift":[0,0,0],"gamma":[1,1,1],"gain":[1,1,1]})",
-            R"({"type":"grain","enabled":true,"amount":0.25,"size":1,"colorAmount":0,"roughness":0.5,"softness":0.25,"animate":true})"};
+            R"({"type":"grain","enabled":true,"amount":0.25,"size":1,"colorAmount":0,"roughness":0.5,"softness":0.25,"animate":true})",
+            R"({"type":"pixelate","enabled":true,"cellSize":8})",
+            R"({"type":"posterize","enabled":true,"levels":4})",
+            R"({"type":"directionalBlur","enabled":true,"radius":8,"angle":0})",
+            R"({"type":"lensDistortion","enabled":true,"amount":0.5})"};
         for (const auto& row : rows) { QTest::newRow(qPrintable(QJsonDocument::fromJson(row).object()["type"].toString())) << row; }
     }
 

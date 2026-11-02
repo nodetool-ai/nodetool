@@ -181,6 +181,6 @@ Column {
     Sections.InspectorCaption {
         visible: root.definitions.length === 0 && root.effectType !== "curves"
         width: parent.width
-        text: Catalog.known(root.effectType) ? "This effect still applies. Use the Color section to adjust color." : 'This build does not draw "' + root.effectType + '". Its settings are kept as written.'
+        text: Catalog.readOnlyDescription(root.effectType)
     }
 }

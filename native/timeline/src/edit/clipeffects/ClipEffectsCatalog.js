@@ -5,7 +5,9 @@ const addableEffects = [
     {value: "dropShadow", label: "Drop shadow"}, {value: "vignette", label: "Vignette"},
     {value: "sharpen", label: "Sharpen"}, {value: "chromaKey", label: "Chroma key"},
     {value: "curves", label: "Curves"}, {value: "levels", label: "Levels"},
-    {value: "liftGammaGain", label: "Lift / gamma / gain"}, {value: "grain", label: "Film grain"}
+    {value: "liftGammaGain", label: "Lift / gamma / gain"}, {value: "grain", label: "Film grain"},
+    {value: "pixelate", label: "Pixelate"}, {value: "posterize", label: "Posterize"},
+    {value: "directionalBlur", label: "Directional blur"}, {value: "lensDistortion", label: "Lens distortion"}
 ];
 function makeEffect(type, id) {
     const base = {id, type, enabled: true};
@@ -20,6 +22,10 @@ function makeEffect(type, id) {
     case "levels": return Object.assign(base, {inBlack: 0, inWhite: 1, gamma: 1, outBlack: 0, outWhite: 1});
     case "liftGammaGain": return Object.assign(base, {lift: [0, 0, 0], gamma: [1, 1, 1], gain: [1, 1, 1]});
     case "grain": return Object.assign(base, {amount: 0.25, size: 1, colorAmount: 0, roughness: 0.5, softness: 0.25, animate: true});
+    case "pixelate": return Object.assign(base, {cellSize: 8});
+    case "posterize": return Object.assign(base, {levels: 4});
+    case "directionalBlur": return Object.assign(base, {radius: 8, angle: 0});
+    case "lensDistortion": return Object.assign(base, {amount: 0.5});
     }
     return null;
 }
@@ -28,6 +34,14 @@ function name(type) {
 }
 function known(type) {
     return ["color", "blur", "glow", "dropShadow", "vignette", "sharpen", "chromaKey", "curves", "levels", "liftGammaGain", "grain", "pixelate", "posterize", "directionalBlur", "lensDistortion", "stylize", "generator", "lut"].includes(type);
+}
+function readOnlyDescription(type) {
+    switch (type) {
+    case "stylize": return "This stylize effect is applied. Its mode parameters cannot be edited here yet. Imported settings are preserved.";
+    case "generator": return "This generator is rendered. Its parameters cannot be edited here yet. Imported settings are preserved.";
+    case "lut": return "This LUT is applied. Its color table cannot be replaced here yet. Imported settings are preserved.";
+    default: return 'This build does not draw "' + type + '". Its settings are kept as written.';
+    }
 }
 const colorFields = [
     {key: "brightness", label: "Brightness", min: -1, max: 1, origin: 0, step: 0.01},
@@ -48,6 +62,10 @@ function number(key, label, fallback, minimum, step = 1, extra = {}) {
 function fields(type) {
     switch (type) {
     case "color": return colorFields.map(field => Object.assign({kind: "slider", fallback: field.origin, resetValue: field.origin}, field));
+    case "pixelate": return [slider("cellSize", "Cell size", 8, 128, 1, 1, {unit: "px", decimals: 0, resetValue: 1})];
+    case "posterize": return [slider("levels", "Levels", 4, 256, 2, 1, {decimals: 0, resetValue: 256})];
+    case "directionalBlur": return [slider("radius", "Radius", 8, 256, 0, 0.5, {unit: "px", decimals: 1, resetValue: 0}), slider("angle", "Angle", 0, 180, -180, 1, {unit: "°", decimals: 0})];
+    case "lensDistortion": return [slider("amount", "Amount", 0.5, 1, -1, 0.01, {origin: 0, resetValue: 0})];
     case "blur": return [slider("radius", "Radius", 8, 20, 0, 0.5, {unit: "px", decimals: 1, resetValue: 0})];
     case "glow": return [number("radius", "Radius", 8, 0), slider("intensity", "Intensity", 1, 2, 0, 0.01, {resetValue: 0}), {kind: "color", key: "color", label: "Color", fallback: "#ffffff"}];
     case "dropShadow": return [

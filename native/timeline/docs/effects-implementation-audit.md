@@ -23,7 +23,7 @@ Check an item only after its implementation and relevant verification pass. Each
 - [ ] F43: Remove gaps from large-radius blur kernels.
 - [ ] F44: Make processing order explicit and consistent.
 - [x] F45: Give clip effect controls explicit reset defaults. Every slider has an in-range reset value. Intensity controls can reset to neutral while new effects retain visible defaults. Catalogue regressions passed.
-- [ ] F46: Provide controls or specific explanations for imported effects.
+- [x] F46: Provide controls or specific explanations for imported effects. Pixelate, Posterize, Directional Blur and Lens Distortion have controls and Add entries. LUT, Stylize and Generator explain their editing limits. Catalogue and native add/edit tests pass.
 - [x] F47: Edit imported Color effect instances. Inline controls target the authored ID and preserve other instances and unknown fields. Catalogue and native edit/undo/redo tests pass.
 - [ ] F48: Support exact numeric entry for track effects.
 - [ ] F49: Add independent effect sensitivity and lifecycle checks.

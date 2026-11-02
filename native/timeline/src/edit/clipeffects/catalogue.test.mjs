@@ -50,7 +50,21 @@ test("imported Color instances expose editable fields with neutral defaults", ()
   assert.equal(fields.find(field => field.key === "contrast").fallback, 1);
 });
 
-test("the add catalogue writes exactly the web makeEffect defaults", () => {
+test("imported effects have parameter fields or a specific read-only explanation", () => {
+  const source = fs.readFileSync(new URL("./ClipEffectsCatalog.js", import.meta.url), "utf8").replace(/^\.pragma library\s*/, "");
+  const context = vm.createContext({});
+  vm.runInContext(source + "\nglobalThis.catalogue = {fields, readOnlyDescription};", context);
+  for (const type of ["pixelate", "posterize", "directionalBlur", "lensDistortion"]) {
+    assert.ok(context.catalogue.fields(type).length > 0, type);
+  }
+  for (const type of ["stylize", "generator", "lut"]) {
+    const message = context.catalogue.readOnlyDescription(type);
+    assert.ok(message.length > 0, type);
+    assert.ok(!message.includes("Color section"));
+  }
+});
+
+test("effects shared with the web retain the same creation defaults", () => {
   const native = fs.readFileSync(new URL("./ClipEffectsCatalog.js",import.meta.url),"utf8").replace(/^\.pragma library\s*/,"");
   const context = vm.createContext({});
   vm.runInContext(native+"\nglobalThis.catalogue = {makeEffect, addableEffects};",context);
@@ -60,7 +74,8 @@ test("the add catalogue writes exactly the web makeEffect defaults", () => {
   const oracle = vm.createContext({crypto});
   vm.runInContext(ts.transpileModule(defaults+"\n"+functionSource,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,oracle);
   const types = ["blur","glow","dropShadow","vignette","sharpen","chromaKey","curves","levels","liftGammaGain","grain"];
-  assert.deepEqual(JSON.parse(JSON.stringify(context.catalogue.addableEffects)).map(item => item.value),types);
+  assert.deepEqual(JSON.parse(JSON.stringify(context.catalogue.addableEffects)).map(item => item.value),
+    [...types, "pixelate", "posterize", "directionalBlur", "lensDistortion"]);
   for (const type of types) {
     const actual = JSON.parse(JSON.stringify(context.catalogue.makeEffect(type,"native-id")));
     const expected = JSON.parse(JSON.stringify(oracle.makeEffect(type)));
