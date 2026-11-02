@@ -52,7 +52,7 @@ export default function CommunitySection({
     <section
       id={id}
       aria-labelledby="community-title"
-      className="relative py-24 overflow-clip-safe"
+      className="relative py-16 sm:py-24 overflow-clip-safe"
     >
       {variant === "home" && (
         <>

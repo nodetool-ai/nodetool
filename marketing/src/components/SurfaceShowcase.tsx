@@ -292,7 +292,7 @@ export default function SurfaceShowcase({
       ref={sectionRef}
       id="surfaces"
       aria-labelledby="surfaces-title"
-      className="relative py-24 overflow-clip-safe"
+      className="relative py-16 sm:py-24 overflow-clip-safe"
     >
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mb-10 text-center max-w-3xl mx-auto">

@@ -61,7 +61,7 @@ export default function UnderneathSection() {
     <section
       id="underneath"
       aria-labelledby="underneath-title"
-      className="relative py-20 scroll-mt-24"
+      className="relative py-14 sm:py-20 scroll-mt-24"
     >
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <header className="scroll-fade mb-10 max-w-3xl">

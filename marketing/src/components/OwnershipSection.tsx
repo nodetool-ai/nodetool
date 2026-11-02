@@ -35,7 +35,7 @@ export default function OwnershipSection({
   reducedMotion: _reducedMotion = false,
 }: OwnershipSectionProps) {
   return (
-    <section className="relative py-24 overflow-clip-safe">
+    <section className="relative py-16 sm:py-24 overflow-clip-safe">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-slate-500/5 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">

@@ -10,7 +10,7 @@ export default function ContactSection() {
     <section
       id="contact"
       aria-labelledby="contact-title"
-      className="relative py-24 overflow-clip-safe"
+      className="relative py-16 sm:py-24 overflow-clip-safe"
     >
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
         <div className="scroll-fade mb-16 text-center max-w-3xl mx-auto">

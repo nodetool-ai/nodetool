@@ -61,7 +61,7 @@ export default function ComparisonSection({
     <section
       id="differences"
       aria-labelledby="differences-title"
-      className="relative py-24 scroll-mt-24"
+      className="relative py-16 sm:py-24 scroll-mt-24"
     >
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
         <header className="scroll-fade mb-10 max-w-3xl">
@@ -101,8 +101,29 @@ export default function ComparisonSection({
           >
             NodeTool and hosted AI apps, row by row
           </h3>
+          {/* Phones get one card per row: the three-column table needs
+              36rem, so below `sm` its third column sat off screen. */}
+          <dl className="mt-6 divide-y divide-slate-800/80 rounded-2xl border border-slate-800/80 sm:hidden">
+            {comparisonRows.map((row) => (
+              <div key={row.label} className="px-4 py-4">
+                <dt className="text-sm font-semibold text-slate-200">
+                  {row.label}
+                </dt>
+                <dd className="mt-2 grid grid-cols-[5.5rem_1fr] items-baseline gap-x-3 gap-y-1.5 text-sm">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-blue-300">
+                    NodeTool
+                  </span>
+                  <span className="text-white">{row.nodetool}</span>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Hosted
+                  </span>
+                  <span className="text-slate-400">{row.closed}</span>
+                </dd>
+              </div>
+            ))}
+          </dl>
           <div
-            className="mt-6 overflow-x-auto rounded-2xl border border-slate-800/80"
+            className="mt-6 hidden overflow-x-auto rounded-2xl border border-slate-800/80 sm:block"
             role="region"
             aria-labelledby="comparison-table-title"
             tabIndex={0}
