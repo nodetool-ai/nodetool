@@ -49,6 +49,10 @@ test("timeline actions remain reachable on a narrow phone", async ({
   page
 }) => {
   await openTimeline(page);
+  // The ⋮ menu is Expert mode's; Simple mode keeps Export and the switch.
+  const expert = page.getByRole("button", { name: "Expert", exact: true });
+  await expect(expert).toBeInViewport({ ratio: 1 });
+  await expert.tap();
   const menu = page.getByRole("button", { name: "More timeline actions" });
   await expect(menu).toBeVisible();
   for (const width of [320, 375, 390]) {

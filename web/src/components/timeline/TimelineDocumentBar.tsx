@@ -39,6 +39,11 @@ export interface TimelineDocumentBarProps {
   isSaving?: boolean;
   /** Undo and Redo of the timeline document. Off while it is unavailable. */
   showHistory?: boolean;
+  /**
+   * The Simple / Expert switch, and in Simple mode the format chips. Shown
+   * first in the view slot.
+   */
+  modeControls?: React.ReactNode;
   /** The Workspace menu (video or DAW, then the layouts). Omit on phones. */
   workspaceMenu?: React.ReactNode;
   /**
@@ -112,6 +117,7 @@ export const TimelineDocumentBar: React.FC<TimelineDocumentBarProps> = memo(
     sequenceId,
     isSaving = false,
     showHistory = true,
+    modeControls,
     workspaceMenu,
     dawMode = false,
     onSetDawMode,
@@ -160,8 +166,9 @@ export const TimelineDocumentBar: React.FC<TimelineDocumentBarProps> = memo(
       showCode;
 
     const view =
-      workspaceMenu || onToggleTranscript || onToggleSidePanel ? (
+      modeControls || workspaceMenu || onToggleTranscript || onToggleSidePanel ? (
         <>
+          {modeControls}
           {workspaceMenu}
           {onToggleTranscript && (
             <ToolbarIconButton

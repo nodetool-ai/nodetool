@@ -19574,5 +19574,12 @@
     "chooseItem": "Wähle einen Eintrag und dann das Feld mit dem Schlüssel.",
     "noFields": "Dieser Eintrag hat keine Felder.",
     "pickedHelp": "Aus 1Password: {{path}}. NodeTool liest ihn bei jeder Verwendung des Schlüssels."
+  },
+  "timelineSimpleMode": {
+    "modeLabel": "Editormodus",
+    "simple": "Einfach",
+    "expert": "Experte",
+    "canvasSize": "{{width}} × {{height}}",
+    "frameRate": "{{fps}} fps"
   }
 }
