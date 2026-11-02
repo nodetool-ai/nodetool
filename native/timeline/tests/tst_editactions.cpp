@@ -98,8 +98,10 @@ private slots:
         video.insert("linkId", "L");
         QJsonObject audio = clip("a", "a1", 0, 2000, "audio");
         audio.insert("linkId", "L");
-        // The web and native split both refuse a time-remapped member.
-        audio.insert("timeRemap", QJsonObject{{"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"sourceMs", 0}}}}});
+        // The web and native split both refuse a time-remapped member. A remap
+        // with one source time is a hold, which splits, so this one has to move.
+        audio.insert("timeRemap", QJsonObject{{"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"sourceMs", 0}},
+                                                                       QJsonObject{{"t", 1}, {"sourceMs", 2000}}}}});
         const EditDoc doc = docOf({video, audio});
         QCOMPARE(splitClipAtTime(doc, "v", 1000), doc.clips);
         QCOMPARE(splitSelectedAtPlayhead(doc, 1000, {"v"}).clips, doc.clips);
