@@ -378,6 +378,63 @@ private slots:
         QCOMPARE(entries(menu), expected);
         trigger("registryMenu-ruler-selectAll"); QCOMPARE(gestures()->selection().size(), 5);
     }
+    // These two change the registry for the rest of the process, so they stay last.
+    void groupsAndOrderInRulerMenu() {
+        MenuRegistry registry;
+        nt::app::registerMenuItem({"ruler", "selectAll", "Select all clips", "Ctrl+A", {}});  // no group; may be registered already
+        QVERIFY(nt::app::registerMenuItem({"ruler", "test.ruler.later", "Later", {}, {}, "second", 30}));
+        QVERIFY(nt::app::registerMenuItem({"ruler", "test.ruler.first", "First", {}, {}, "first", -20}));
+        QVERIFY(nt::app::registerMenuItem({"ruler", "test.ruler.alsoFirst", "Also first", {}, {}, "first", 40}));
+        QVERIFY(nt::app::registerMenuItem({"ruler", "test.ruler.tick", "Tick", {}, {}, "second", 50,
+            [](const QVariantMap&) { return true; }}));
+        QStringList expected;
+        for (const auto& value : registry.query("ruler", {})) {
+            const auto entry = value.toMap();
+            if (entry.value("separatorBefore").toBool()) {
+                expected.append("registryMenuGroup-ruler-" + entry.value("group").toString() + ":");
+            }
+            expected.append("registryMenu-ruler-" + entry.value("action").toString() + ":" + entry.value("label").toString());
+        }
+        const auto first = expected.indexOf("registryMenu-ruler-test.ruler.first:First");
+        QCOMPARE(expected.at(first + 1), QString("registryMenu-ruler-test.ruler.alsoFirst:Also first"));
+        const auto second = expected.indexOf("registryMenuGroup-ruler-second:");
+        QCOMPARE(expected.mid(second + 1, 2), QStringList({"registryMenu-ruler-test.ruler.later:Later",
+            "registryMenu-ruler-test.ruler.tick:Tick"}));
+        QVERIFY(first < second);
+        auto* menu = popup("ruler", "timeRuler"); QVERIFY(menu);
+        QTRY_VERIFY(menu->property("visible").toBool());
+        QCOMPARE(entries(menu), expected);
+        QVERIFY(item("registryMenu-ruler-test.ruler.tick")->property("checkable").toBool());
+        QVERIFY(item("registryMenu-ruler-test.ruler.tick")->property("checked").toBool());
+        QVERIFY(!item("registryMenu-ruler-test.ruler.first")->property("checkable").toBool());
+        // Reopening does not add a second set of separators.
+        QVERIFY(QMetaObject::invokeMethod(menu, "close"));
+        QTRY_VERIFY(!menu->property("visible").toBool());
+        menu = popup("ruler", "timeRuler"); QVERIFY(menu);
+        QTRY_VERIFY(menu->property("visible").toBool());
+        QCOMPARE(entries(menu), expected);
+        trigger("registryMenu-ruler-selectAll"); QCOMPARE(gestures()->selection().size(), 5);
+    }
+    void groupsInClipMenuStayAboveDelete() {
+        QVERIFY(nt::app::registerMenuItem({"clip", "selectAll", "Select all clips", {}, {}, "zSelect", 100}));
+        auto* menu = popup("clip", "clip-c"); QVERIFY(menu);
+        QTRY_VERIFY(menu->property("visible").toBool());
+        const auto list = entries(menu);
+        const auto group = list.indexOf("registryMenuGroup-clip-zSelect:");
+        QVERIFY2(group > 0, qPrintable(list.join(',')));
+        QCOMPARE(list.at(group + 1), QString("registryMenu-clip-selectAll:Select all clips"));
+        QCOMPARE(list.mid(group + 2), QStringList({"clipMenu-deleteDivider:", "clipMenu-deleteSelected:Delete"}));
+        trigger("registryMenu-clip-selectAll"); QCOMPARE(gestures()->selection().size(), 5);
+        // The separator goes with its item when the menu's model changes.
+        patch("c", {{"locked", true}});
+        menu = popup("clip", "clip-c"); QVERIFY(menu);
+        QTRY_VERIFY(menu->property("visible").toBool());
+        const auto changed = entries(menu);
+        QVERIFY(!changed.contains("clipMenu-toggleClipEnabled:Disable"));
+        QCOMPARE(changed.count("registryMenuGroup-clip-zSelect:"), 1);
+        QCOMPARE(changed.mid(changed.indexOf("registryMenuGroup-clip-zSelect:") + 1, 1),
+                 QStringList("registryMenu-clip-selectAll:Select all clips"));
+    }
 };
 QTEST_MAIN(TestMenus)
 #include "tst_menus.moc"

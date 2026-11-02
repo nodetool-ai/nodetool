@@ -3,6 +3,7 @@
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
 #include "preview/PreviewCompositor.h"
+#include "preview/effects/Masks.h"
 #include "preview/hw/HwWindow.h"
 #include <QCoreApplication>
 #include <QElapsedTimer>
@@ -14,6 +15,25 @@
 #include <stdexcept>
 
 namespace nt::exporting {
+nt::Timeline pictureTimeline(const nt::Timeline& timeline) {
+    auto picture = timeline;
+    for (auto& clip : picture.clips) {
+        auto matte = clip.raw.value("generatedMatte").toObject();
+        if (!matte.isEmpty() && !matte.value("mediaPath").toString().isEmpty()) {
+            const QString resolved = nt::effects::resolvedGeneratedMattePath(clip);
+            if (!resolved.isEmpty()) {
+                matte.insert("mediaPath", resolved);
+                clip.raw.insert("generatedMatte", matte);
+            }
+        }
+        if ((clip.mediaType == MediaType::Video || clip.mediaType == MediaType::Image) &&
+            !clip.originalMediaPath.empty()) {
+            clip.mediaPath = clip.originalMediaPath;
+        }
+    }
+    return picture;
+}
+
 struct OffscreenFrames::Impl {
     PlaybackClock clock;
     QQuickRenderControl control;
@@ -64,8 +84,11 @@ OffscreenFrames::OffscreenFrames(TimelineModel& model) : m_impl(std::make_unique
 }
 OffscreenFrames::~OffscreenFrames() = default;
 QImage OffscreenFrames::capture(qint64 index, double fps, const std::function<bool()>& cancelled) {
+    return captureAt(static_cast<double>(index) * 1000.0 / fps, cancelled);
+}
+QImage OffscreenFrames::captureAt(double timeMs, const std::function<bool()>& cancelled) {
     auto& s = *m_impl;
-    s.clock.seek(static_cast<double>(index) * 1000.0 / fps);
+    s.clock.seek(timeMs);
     s.compositor->requestCapture();
     QElapsedTimer timeout;
     timeout.start();
