@@ -16,6 +16,48 @@ export const config: ModuleConfig = {
     }
   },
   configs: {
+    "fal-ai/flux-general": {
+      className: "FluxGeneral",
+      docstring:
+        "FLUX General generates images with FLUX.1 [dev] plus LoRAs, ControlNets, and IP-Adapters in one endpoint.",
+      tags: [
+        "flux",
+        "image",
+        "generation",
+        "text-to-image",
+        "lora",
+        "controlnet"
+      ]
+    },
+
+    "fal-ai/hidream-i1-dev": {
+      className: "HidreamI1Dev",
+      docstring:
+        "HiDream-I1 Dev generates images from text with the distilled 17B HiDream model.",
+      tags: ["image", "generation", "text-to-image", "hidream"]
+    },
+
+    "fal-ai/hidream-i1-fast": {
+      className: "HidreamI1Fast",
+      docstring:
+        "HiDream-I1 Fast generates images from text in few steps with the 17B HiDream model.",
+      tags: ["image", "generation", "text-to-image", "hidream", "fast"]
+    },
+
+    "fal-ai/hidream-i1-full": {
+      className: "HidreamI1Full",
+      docstring:
+        "HiDream-I1 Full generates high-quality images from text with the full 17B HiDream model.",
+      tags: ["image", "generation", "text-to-image", "hidream"]
+    },
+
+    "fal-ai/recraft/v3/text-to-image": {
+      className: "RecraftV3TextToImage",
+      docstring:
+        "Recraft V3 generates raster or vector-style images from text, with long text rendering and style control.",
+      tags: ["image", "generation", "text-to-image", "recraft", "vector"]
+    },
+
     "ideogram/vector/text-to-vector": {
       className: "IdeogramVectorTextToVector",
       docstring:

@@ -2,6 +2,90 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "fal-ai/bytedance/seedance/v1/pro/image-to-video": {
+      className: "SeedanceV1ProImageToVideo",
+      docstring:
+        "Seedance 1.0 Pro animates a start image into a 1080p video guided by a text prompt.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "seedance",
+        "bytedance"
+      ]
+    },
+
+    "fal-ai/decart/lucy-5b/image-to-video": {
+      className: "Lucy5bImageToVideo",
+      docstring:
+        "Lucy 5B animates a start image into a short video guided by a text prompt.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "decart",
+        "lucy"
+      ]
+    },
+
+    "fal-ai/hunyuan-video-img2vid-lora": {
+      className: "HunyuanVideoImg2VidLora",
+      docstring:
+        "Hunyuan Video animates a start image into a video with an image-to-video LoRA.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "hunyuan",
+        "lora"
+      ]
+    },
+
+    "fal-ai/minimax/hailuo-02/standard/image-to-video": {
+      className: "MinimaxHailuo02StandardImageToVideo",
+      docstring:
+        "MiniMax Hailuo-02 Standard animates a start image into a 768p video guided by a text prompt.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "minimax",
+        "hailuo"
+      ]
+    },
+
+    "fal-ai/minimax/video-01/image-to-video": {
+      className: "MinimaxVideo01ImageToVideo",
+      docstring:
+        "MiniMax Video-01 animates a start image into a video guided by a text prompt.",
+      tags: ["video", "generation", "image-to-video", "img2vid", "minimax"]
+    },
+
+    "fal-ai/pixverse/v4.5/image-to-video": {
+      className: "PixverseV45ImageToVideo",
+      docstring:
+        "PixVerse v4.5 animates a start image into a video guided by a text prompt.",
+      tags: ["video", "generation", "image-to-video", "img2vid", "pixverse"]
+    },
+
+    "fal-ai/wan-i2v": {
+      className: "WanI2V",
+      docstring:
+        "Wan 2.1 animates a start image into a video guided by a text prompt.",
+      tags: ["video", "generation", "image-to-video", "img2vid", "wan"]
+    },
+
+    "fal-ai/wan-pro/image-to-video": {
+      className: "WanProImageToVideo",
+      docstring:
+        "Wan Pro animates a start image into a 1080p video guided by a text prompt.",
+      tags: ["video", "generation", "image-to-video", "img2vid", "wan"]
+    },
+
     "kling/v4/image-to-video": {
       className: "KlingV4ImageToVideo",
       docstring:

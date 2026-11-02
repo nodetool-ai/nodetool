@@ -2,6 +2,20 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "mureka/api/generate/podcast": {
+      className: "MurekaPodcast",
+      docstring:
+        "Mureka turns an ordered list of conversation turns, each with text and a voice, into podcast audio.",
+      tags: [
+        "audio",
+        "generation",
+        "text-to-audio",
+        "mureka",
+        "podcast",
+        "speech"
+      ]
+    },
+
     "mirelo-ai/sfx2.0/text-to-audio": {
       className: "Sfx20TextToAudio",
       docstring: "Mirelo SFX 2.0 generates sound effects from a text prompt.",

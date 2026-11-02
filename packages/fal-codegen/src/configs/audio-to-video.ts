@@ -2,6 +2,20 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "mureka/api/generate/lyrics-video": {
+      className: "MurekaLyricsVideo",
+      docstring:
+        "Mureka generates a lyrics video for a song from a prompt, a song id, or an uploaded audio id.",
+      tags: [
+        "video",
+        "generation",
+        "audio-to-video",
+        "mureka",
+        "lyrics",
+        "music"
+      ]
+    },
+
     "fal-ai/ltx-2-19b/distilled/audio-to-video/lora": {
       className: "Ltx219BDistilledAudioToVideoLora",
       docstring: "LTX-2 19B Distilled",
