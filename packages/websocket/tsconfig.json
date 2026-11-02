@@ -93,6 +93,9 @@
       "path": "../protocol"
     },
     {
+      "path": "../presets"
+    },
+    {
       "path": "../replicate-nodes"
     },
     {
@@ -166,6 +169,9 @@
     },
     {
       "path": "../error-trace-services"
+    },
+    {
+      "path": "../pack-core"
     }
   ]
 }

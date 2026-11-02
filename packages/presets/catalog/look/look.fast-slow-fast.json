@@ -1,0 +1,38 @@
+{
+  "id": "look.fast-slow-fast",
+  "version": 1,
+  "kind": "look",
+  "name": "Fast slow fast",
+  "description": "Start with accelerated action, smoothly settle into slow motion at the midpoint, then accelerate through the finish without cuts or repeated action.",
+  "tags": [
+    "look",
+    "ramp"
+  ],
+  "slot": "ramp",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "camera.speed-ramp"
+  ],
+  "aliases": [],
+  "prompt": {
+    "default": "Start with accelerated action, smoothly settle into slow motion at the midpoint, then accelerate through the finish without cuts or repeated action.",
+    "kling": "Start with accelerated action, smoothly settle into slow motion at the midpoint, then accelerate through the finish without cuts or repeated action. Apply the speed change to the subject's motion, without a camera cut.",
+    "seedance": "Start with accelerated action, smoothly settle into slow motion at the midpoint, then accelerate through the finish without cuts or repeated action. Keep the speed transition continuous within one shot.",
+    "veo": "Start with accelerated action, smoothly settle into slow motion at the midpoint, then accelerate through the finish without cuts or repeated action. Show a smooth temporal transition with consistent subject identity.",
+    "wan": "Start with accelerated action, smoothly settle into slow motion at the midpoint, then accelerate through the finish without cuts or repeated action. Gradually vary action speed with continuous subject motion."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.fast-slow-fast/1a27d500ec24fe29cd3280c5c3775e3902f6306a76822173b3ee2f031d597c40.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.fast-slow-fast/1a27d500ec24fe29cd3280c5c3775e3902f6306a76822173b3ee2f031d597c40-late.png",
+    "run": "runs/look.fast-slow-fast.json"
+  }
+}

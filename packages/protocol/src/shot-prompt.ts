@@ -50,6 +50,10 @@ export interface ShotPromptContext {
   scene?: Scene | null;
   /** The board's style descriptor, applied to every shot. */
   style?: string;
+  /** Model-compiled camera fragment. Replaces movement, and equipment when a rig is selected. */
+  compiledCamera?: { clause: string; replacesEquipment: boolean };
+  /** Compiled look fragments apply to stills and clips. */
+  compiledLook?: string;
 }
 
 /** Trimmed, comma-separated, empties dropped. */
@@ -94,22 +98,24 @@ export function keyframePrompt(
     camera?.angle,
     qualified(camera?.lens, "lens"),
     context.scene?.lighting,
-    context.style
+    context.style,
+    context.compiledLook
   ]);
 }
 
 /**
  * Keyframe-mode clip prompt: what moves, what is in frame, and how the camera
  * moves. Framing, lighting and style come from the still being animated, so
- * they are deliberately absent — this takes no context.
+ * they are deliberately absent. Context supplies only compiled camera direction.
  */
-export function clipPrompt(shot: Shot): string {
+export function clipPrompt(shot: Shot, context: ShotPromptContext = {}): string {
   const camera = shot.camera;
   return compose([
     shot.motion,
     shot.action,
-    camera?.movement,
-    camera?.equipment
+    context.compiledCamera?.clause ?? camera?.movement,
+    context.compiledCamera?.replacesEquipment ? undefined : camera?.equipment,
+    context.compiledLook
   ]);
 }
 
@@ -129,9 +135,10 @@ export function directClipPrompt(
     qualified(camera?.lens, "lens"),
     context.scene?.lighting,
     shot.motion,
-    camera?.movement,
-    camera?.equipment,
-    context.style
+    context.compiledCamera?.clause ?? camera?.movement,
+    context.compiledCamera?.replacesEquipment ? undefined : camera?.equipment,
+    context.style,
+    context.compiledLook
   ]);
 }
 
@@ -148,6 +155,6 @@ export function clipPromptFor(
   mode: ReturnType<typeof shotRenderMode> = shotRenderMode(shot)
 ): string {
   return mode === "keyframe"
-    ? clipPrompt(shot)
+    ? clipPrompt(shot, context)
     : directClipPrompt(shot, context);
 }

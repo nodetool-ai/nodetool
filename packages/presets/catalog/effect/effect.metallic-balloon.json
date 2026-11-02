@@ -1,0 +1,38 @@
+{
+  "id": "effect.metallic-balloon",
+  "version": 1,
+  "kind": "effect",
+  "name": "Metallic balloon",
+  "description": "Animates the subject to inflate like a glossy metallic balloon and lift off.",
+  "tags": [
+    "effect",
+    "inflate",
+    "metal"
+  ],
+  "slot": "effect",
+  "modes": [
+    "image_to_video"
+  ],
+  "inputs": [
+    "image"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "inflate like a glossy metallic balloon and lift off"
+  ],
+  "prompt": {
+    "default": "The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+    "kling": "The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. Physically accurate motion, steady locked camera.",
+    "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. Physically accurate motion.",
+    "veo": "The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. Cinematic lighting, realistic physics, locked camera.",
+    "wan": "The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. Locked camera, smooth realistic motion, high detail.",
+    "local-wan": "The subject swells into a rounded foil balloon. Glossy metallic highlights stretch over the inflated surface as it gently lifts from the ground and floats upward."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.metallic-balloon/8c73ba277a0b9450c0d27a66f9096516d7a221543512eb61baff142ad9ef227a.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.metallic-balloon/8c73ba277a0b9450c0d27a66f9096516d7a221543512eb61baff142ad9ef227a.png",
+    "run": "runs/effect.metallic-balloon.json"
+  }
+}

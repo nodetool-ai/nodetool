@@ -35,7 +35,9 @@ export interface StoryboardShotNode {
   index: number;
   slug?: string;
   action: string;
+  /** Free-text direction plus an optional camera.preset_ids stack (max three). */
   camera?: CameraDirection;
+  look_preset_ids?: string[];
   motion?: string;
   graphics?: ShotGraphics;
   production?: ProductionRequirement;
@@ -79,6 +81,7 @@ export interface StoryboardSnapshot {
   title: string;
   brief: string;
   style: string;
+  look_preset_ids?: string[];
   aspectRatio: string;
   /** Where the board sits in the guided setup; "done" once it is finished. */
   setupStage: StoryboardSetupStage;
@@ -130,7 +133,9 @@ export interface StoryboardAddShotInput {
   action: string;
   /** Short human title for the shot, e.g. "Lighthouse at dusk". */
   slug?: string;
+  /** Free-text direction plus an optional camera.preset_ids stack (max three). */
   camera?: CameraDirection;
+  look_preset_ids?: string[];
   motion?: string;
   graphics?: ShotGraphics;
   production?: ProductionRequirement;
@@ -195,7 +200,9 @@ export interface StoryboardUpdateShotPatch {
   action?: string;
   /** Short human title for the shot, e.g. "Lighthouse at dusk". */
   slug?: string;
+  /** Free-text direction plus an optional camera.preset_ids stack (max three). */
   camera?: CameraDirection;
+  look_preset_ids?: string[];
   motion?: string;
   graphics?: ShotGraphics | null;
   production?: ProductionRequirement | null;
@@ -264,6 +271,7 @@ export interface StoryboardAgentHandler {
   setStyle: (input: {
     entityId?: string;
     descriptor?: string;
+    look_preset_ids?: string[];
   }) => StoryboardSnapshot;
   /** Select one of a shot's preserved stills or takes. */
   selectVersion: (

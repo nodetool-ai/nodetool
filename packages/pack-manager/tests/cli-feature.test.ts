@@ -97,7 +97,7 @@ describe("admitted CLI features", () => {
     const program = new Command();
     registerPackCommands(program, undefined, async () => { throw new Error("Help must not load services"); });
     const packs = program.commands.find(command => command.name() === "packs");
-    expect(packs?.commands.map(command => command.name())).toEqual(["list", "add", "remove", "doctor", "why"]);
+    expect(packs?.commands.map(command => command.name())).toEqual(["list", "add", "remove", "doctor", "why", "presets"]);
     expect(packs?.commands.find(command => command.name() === "add")?.aliases()).toContain("install");
     expect(packs?.commands.find(command => command.name() === "remove")?.aliases()).toContain("uninstall");
     expect(packs?.helpInformation()).toContain("doctor");

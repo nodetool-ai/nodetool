@@ -1,0 +1,31 @@
+{
+  "id": "effect.restyle-comic",
+  "version": 1,
+  "kind": "effect",
+  "name": "Comic book restyle",
+  "description": "Restyle the video as a comic book animation with bold ink contours, halftone shading and graphic color blocks.",
+  "tags": [
+    "restyle",
+    "comic"
+  ],
+  "slot": "effect",
+  "modes": [
+    "video_edit"
+  ],
+  "inputs": [
+    "video"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "Restyle the video as a comic book animation with bold ink contours, halftone shading and graphic color blocks. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames.",
+    "local-wan": "From the first frame, the entire scene is rebuilt as an animated comic book. Heavy black ink outlines, halftone dot shadows and bold flat color panels build every figure, object and background. The layout and movement follow the source video, with this treatment sustained in every frame."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-comic/75f1841a160587dff7311f3c19e3ddd8fcd7989dbe64b3d93a72be8aa2955fa8.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-comic/75f1841a160587dff7311f3c19e3ddd8fcd7989dbe64b3d93a72be8aa2955fa8-late.png",
+    "run": "runs/effect.restyle-comic.json"
+  }
+}

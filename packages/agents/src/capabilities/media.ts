@@ -19,6 +19,10 @@
  * Design: docs/tool-class-retirement-design.md § Migration.
  */
 
+import { compileMediaPresets, mediaPresetSettings } from "@nodetool-ai/presets";
+import { presetCatalog } from "./presets.js";
+
+
 import { Buffer } from "node:buffer";
 import { randomInt, randomUUID } from "node:crypto";
 import { mkdir, readFile, rm } from "node:fs/promises";
@@ -462,7 +466,19 @@ async function runMediaGeneration(
   spec: MediaGeneration
 ): Promise<unknown> {
   const context = run.context;
+  let presetWarnings: string[] | undefined;
   const id = randomUUID();
+  if (params["preset_ids"] !== undefined) {
+    try {
+      const modes: Record<string, string> = { text_to_image: "image", image_to_image: "image_edit", text_to_video: "video", image_to_video: "image_to_video", video_to_video: "video_edit" };
+      const mode = modes[spec.capability] ?? spec.capability;
+      const compiled = compileMediaPresets(params["preset_ids"], spec.m.provider, spec.m.model, mode, String(spec.params["prompt"] ?? ""), presetCatalog());
+      presetWarnings = compiled.warnings;
+      spec = { ...spec, params: { ...spec.params, ...mediaPresetSettings(compiled, mode), prompt: compiled.prompt } };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : String(error) };
+    }
+  }
   const req = generationRequest(id, params, spec);
   if (params["background"] === true) {
     return startMediaBackgroundGeneration(context, req, spec, params);
@@ -496,6 +512,7 @@ async function runMediaGeneration(
       };
     }
     return {
+      preset_warnings: presetWarnings,
       type: spec.type,
       provider: spec.m.provider,
       model: spec.m.model,

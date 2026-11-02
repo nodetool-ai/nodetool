@@ -1,0 +1,40 @@
+{
+  "id": "look.teal-amber",
+  "version": 1,
+  "kind": "look",
+  "name": "Teal and amber",
+  "description": "Teal-and-amber grade: cool cyan shadows against warm skin, neutral whites and controlled saturation in highlights.",
+  "tags": [
+    "look",
+    "grade"
+  ],
+  "slot": "grade",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video",
+    "image"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "look.kodak-tri-x",
+    "look.silver-monochrome"
+  ],
+  "aliases": [],
+  "prompt": {
+    "default": "Teal-and-amber grade: cool cyan shadows against warm skin, neutral whites and controlled saturation in highlights.",
+    "kling": "Teal-and-amber grade: cool cyan shadows against warm skin, neutral whites and controlled saturation in highlights. Maintain this rendering consistently across the scene.",
+    "seedance": "Teal-and-amber grade: cool cyan shadows against warm skin, neutral whites and controlled saturation in highlights. Preserve this appearance throughout one continuous shot.",
+    "veo": "Teal-and-amber grade: cool cyan shadows against warm skin, neutral whites and controlled saturation in highlights. Keep the lighting and color response consistent between frames.",
+    "wan": "Teal-and-amber grade: cool cyan shadows against warm skin, neutral whites and controlled saturation in highlights. Retain natural subject detail under this visual treatment."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.teal-amber/9bb930cd4b149ed4659cce42c921515fc70a899737cadea1c18cb087fd6d95ac.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.teal-amber/9bb930cd4b149ed4659cce42c921515fc70a899737cadea1c18cb087fd6d95ac-late.png",
+    "run": "runs/look.teal-amber.json"
+  }
+}

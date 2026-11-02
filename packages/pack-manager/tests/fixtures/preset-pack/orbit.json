@@ -1,0 +1,1 @@
+{"id":"camera.community-orbit","version":1,"kind":"camera","name":"Community orbit","description":"A community camera move","author":"Fixture author","modes":["video"],"prompt":{"default":"Orbit around the subject."},"preview":{"url":"https://example.com/orbit.mp4","poster":"https://example.com/orbit.jpg","run":"fixture"}}

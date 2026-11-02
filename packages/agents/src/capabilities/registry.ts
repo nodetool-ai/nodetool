@@ -40,6 +40,7 @@ interface CapabilityModuleEntry {
 }
 
 const CAPABILITY_MODULES: Readonly<Record<string, CapabilityModuleEntry>> = {
+  presets: { loader: () => import("./presets.js").then((m) => m.module), specs: CAPABILITY_SPECS["presets"] },
   workflows: {
     loader: () => import("./workflows.js").then((m) => m.module),
     specs: CAPABILITY_SPECS["workflows"]

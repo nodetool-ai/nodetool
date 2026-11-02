@@ -15,7 +15,8 @@ vi.mock("@nodetool-ai/asset-services/asset-paths", () => ({
   retrieveAssetBytes: async (_adapter: unknown, _user: string, id: string) =>
     new Uint8Array([id === "entity" ? 2 : id === "reference" ? 3 : 1])
 }));
-vi.mock("../src/session/media-generation.js", () => ({
+vi.mock("../src/session/media-generation.js", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../src/session/media-generation.js")>(),
   createGenerationRun: () => ({ generate: generation, seamAssetId: () => "candidate" })
 }));
 

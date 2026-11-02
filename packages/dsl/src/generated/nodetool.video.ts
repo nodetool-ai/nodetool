@@ -34,6 +34,7 @@ export type ImageToVideoInputs = {
   resolution?: Connectable<string>;
   duration?: Connectable<number>;
   timeout_seconds?: Connectable<number>;
+  seed?: Connectable<number>;
 };
 
 export interface ImageToVideoOutputs {
@@ -517,6 +518,7 @@ export type LipSyncInputs = {
   model?: Connectable<unknown>;
   video?: Connectable<VideoRef>;
   audio?: Connectable<AudioRef>;
+  image?: Connectable<ImageRef>;
 };
 
 export interface LipSyncOutputs {

@@ -25,6 +25,7 @@ export interface StoryboardDocument {
   creative_context?: CreativeContext;
   /** Library entity (asset) ids applied to the board's shot prompts. */
   entityIds: string[];
+  look_preset_ids?: string[];
   aspectRatio: string;
   /** Where the board sits in guided setup. Rows written before it read "done". */
   setupStage: StoryboardSetupStage;
@@ -143,6 +144,7 @@ export class Storyboard extends DBModel {
     const doc = JSON.parse(this.document) as StoryboardDocument;
     // Rows persisted before these fields existed lack them.
     doc.entityIds ??= [];
+    doc.look_preset_ids ??= [];
     doc.setupStage ??= "done";
     doc.genre ??= "";
     if (doc.screenplay) {

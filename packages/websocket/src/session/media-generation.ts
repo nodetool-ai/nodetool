@@ -1,3 +1,4 @@
+import { runtimePresetCatalog } from "@nodetool-ai/pack-core/preset-catalog";
 /**
  * The scaffolding every media generation runs inside, shared by the two
  * surfaces that generate media: the chat turn (`handleMediaGenerationMessage`)
@@ -12,10 +13,15 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { z } from "zod";
 
+import {
+  compileMediaPresets as compileSharedMediaPresets,
+  type CompiledPresets,
+} from "@nodetool-ai/presets";
 import { createLogger } from "@nodetool-ai/config";
 import { encryptFernet, getMasterKey } from "@nodetool-ai/security";
-import { Asset } from "@nodetool-ai/models";
+import { Asset, Prediction } from "@nodetool-ai/models";
 import {
   attachRunCostLedger,
   createFalGenerationLifecycleHooks,
@@ -37,7 +43,15 @@ import { storeAssetWithThumbnail } from "../lib/thumbnail.js";
 
 const log = createLogger("nodetool.websocket.media-generation");
 
+export function compileMediaPresets(ids: unknown, provider: string, model: string, mode: string, prompt: string): CompiledPresets {
+  const parsed = z.array(z.string().min(1)).max(3).optional().parse(ids) ?? [];
+  if (!parsed.length) { return { prompt, params: {}, applied: [], warnings: [] }; }
+  return compileSharedMediaPresets(parsed, provider, model, mode, prompt, runtimePresetCatalog());
+}
+export { mediaPresetSettings } from "@nodetool-ai/presets";
+
 export interface GenerationRunOptions {
+  presets?: CompiledPresets;
   userId: string;
   providerId: string;
   modelId: string;
@@ -178,24 +192,44 @@ export function createGenerationRun(
       if (lifecycleHooks) {
         Object.assign(runOptions, lifecycleHooks);
       }
-      const result = await context.runGenerationWith<T>(
-        {
-          id,
-          provider: providerId,
-          capability,
-          model: modelId,
-          params,
-          origin,
-          destination,
-          persist: persist ? { ...persist, parentId: userId } : undefined,
-          signal
-        },
-        (_provider, abort) => call(abort),
-        runOptions
-      );
-      onGenerationId?.(result.id);
-      await ledger.settled();
-      return result;
+      const generationId =
+        id ??
+        (options.presets?.applied.length
+          ? randomUUID().replaceAll("-", "")
+          : undefined);
+      try {
+        const result = await context.runGenerationWith<T>(
+          {
+            id: generationId,
+            provider: providerId,
+            capability,
+            model: modelId,
+            params,
+            origin,
+            destination,
+            persist: persist ? { ...persist, parentId: userId } : undefined,
+            signal
+          },
+          async (_provider, abort) => {
+            await ledger.settled();
+            if (options.presets?.applied.length && generationId) {
+              const row = await Prediction.findForUser(userId, generationId);
+              if (row) {
+                await row.update({
+                  preset_ids: options.presets.applied,
+                  preset_warnings: options.presets.warnings
+                });
+              }
+            }
+            return call(abort);
+          },
+          runOptions
+        );
+        onGenerationId?.(result.id);
+        return result;
+      } finally {
+        await ledger.settled();
+      }
     },
 
     seamAssetId(result, index = 0) {

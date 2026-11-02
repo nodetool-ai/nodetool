@@ -1,7 +1,8 @@
 /**
  * @jest-environment node
  */
-import {
+import { buildMediaGenerationRequest } from "../../components/chat/composer/mediaGenerationRequest";
+import useMediaGenerationStore, {
   resolveImageSize,
   deriveImageSizePreset,
   IMAGE_ASPECT_RATIOS,
@@ -16,6 +17,7 @@ import {
   AUDIO_FORMATS,
   IMAGE_EDIT_STRENGTHS,
   INFERENCE_STEPS,
+  presetModeForMediaMode,
 } from "../MediaGenerationStore";
 
 describe("resolveImageSize", () => {
@@ -345,5 +347,63 @@ describe("MediaGenerationStore Zustand store", () => {
     store.getState().setImageToVideoParams({ duration: 6 });
     expect(store.getState().imageToVideo.duration).toBe(6);
     store.getState().setImageToVideoParams({ duration: 4 });
+  });
+});
+
+describe("preset selection", () => {
+  beforeEach(() => {
+    useMediaGenerationStore.setState({ presetIds: {} });
+  });
+
+  it("maps the image and video modes to preset modes and no other mode", () => {
+    expect(presetModeForMediaMode("video")).toBe("video");
+    expect(presetModeForMediaMode("image_to_video")).toBe("image_to_video");
+    expect(presetModeForMediaMode("reference_to_video")).toBe(
+      "reference_to_video"
+    );
+    expect(presetModeForMediaMode("chat")).toBeNull();
+    expect(presetModeForMediaMode("image")).toBe("image");
+    expect(presetModeForMediaMode("image_edit")).toBe("image_edit");
+    expect(presetModeForMediaMode("audio")).toBeNull();
+    expect(presetModeForMediaMode("extend")).toBeNull();
+    expect(presetModeForMediaMode(null)).toBeNull();
+  });
+
+  it("keeps a separate ordered selection for each mode", () => {
+    const { setPresetIds } = useMediaGenerationStore.getState();
+    setPresetIds("video", ["camera.dolly-in", "camera.handheld"]);
+    setPresetIds("image_to_video", ["camera.orbit"]);
+
+    useMediaGenerationStore.getState().setMode("reference_to_video");
+    useMediaGenerationStore.getState().setMode("video");
+
+    expect(useMediaGenerationStore.getState().presetIds).toEqual({
+      video: ["camera.dolly-in", "camera.handheld"],
+      image_to_video: ["camera.orbit"]
+    });
+  });
+
+  it("replaces one mode's selection without touching the others", () => {
+    const { setPresetIds } = useMediaGenerationStore.getState();
+    setPresetIds("video", ["camera.dolly-in"]);
+    setPresetIds("image_to_video", ["camera.orbit"]);
+    setPresetIds("video", []);
+
+    expect(useMediaGenerationStore.getState().presetIds).toEqual({
+      video: [],
+      image_to_video: ["camera.orbit"]
+    });
+  });
+});
+
+describe("retake restyle request", () => {
+  it("maps retake to video_edit and sends its selected preset ids", () => {
+    const state = useMediaGenerationStore.getState();
+    expect(presetModeForMediaMode("retake")).toBe("video_edit");
+    const request = buildMediaGenerationRequest("retake", {
+      ...state, presetIds: { retake: ["effect.restyle-anime"] }
+    });
+    expect(request).toMatchObject({ mode: "retake", preset_ids: ["effect.restyle-anime"] });
+    expect(buildMediaGenerationRequest("retake", { ...state, presetIds: {} }).preset_ids).toBeUndefined();
   });
 });

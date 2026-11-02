@@ -42,7 +42,8 @@ export const TYPE_GLYPH = {
   "project-list": PROJECT_GLYPH,
   project: PROJECT_HOME_GLYPH,
   "guided-flow": "✦",
-  "project-new": PROJECT_GLYPH
+  "project-new": PROJECT_GLYPH,
+  create: "✧"
 } satisfies Record<WorkspaceTabType, string>;
 
 /** Pin color per tab type, reusing the app's canonical data-type palette. */
@@ -68,5 +69,6 @@ export const TYPE_COLOR = {
   "project-list": PROJECT_COLOR,
   project: PROJECT_COLOR,
   "guided-flow": PROJECT_COLOR,
-  "project-new": PROJECT_COLOR
+  "project-new": PROJECT_COLOR,
+  create: colorForType("image")
 } satisfies Record<WorkspaceTabType, string>;

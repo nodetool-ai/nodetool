@@ -1,0 +1,39 @@
+{
+  "id": "look.moonlit-blue",
+  "version": 1,
+  "kind": "look",
+  "name": "Moonlit blue",
+  "description": "Light with a broad cool moonlight source from the side, a low fill level and a narrow rim separating the silhouette from the dark background.",
+  "tags": [
+    "look",
+    "lighting"
+  ],
+  "slot": "lighting",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video",
+    "image"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "look.hard-noon"
+  ],
+  "aliases": [],
+  "prompt": {
+    "default": "Light with a broad cool moonlight source from the side, a low fill level and a narrow rim separating the silhouette from the dark background.",
+    "kling": "Light with a broad cool moonlight source from the side, a low fill level and a narrow rim separating the silhouette from the dark background. Maintain this rendering consistently across the scene.",
+    "seedance": "Light with a broad cool moonlight source from the side, a low fill level and a narrow rim separating the silhouette from the dark background. Preserve this appearance throughout one continuous shot.",
+    "veo": "Light with a broad cool moonlight source from the side, a low fill level and a narrow rim separating the silhouette from the dark background. Keep the lighting and color response consistent between frames.",
+    "wan": "Light with a broad cool moonlight source from the side, a low fill level and a narrow rim separating the silhouette from the dark background. Retain natural subject detail under this visual treatment."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.moonlit-blue/b5af4cb297a92526e2ffd7a297e41a51205d37068351bdc0593344f5fd69a2a4.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.moonlit-blue/b5af4cb297a92526e2ffd7a297e41a51205d37068351bdc0593344f5fd69a2a4-late.png",
+    "run": "runs/look.moonlit-blue.json"
+  }
+}

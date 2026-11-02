@@ -1,7 +1,7 @@
 /** Command ownership for independently installed CLI features. */
 export const COMMAND_FEATURES: Readonly<Record<string, string>> = {
   chat: "cli-chat", agent: "cli-chat", tools: "cli-chat",
-  models: "cli-models", providers: "cli-models",
+  presets: "cli-models", models: "cli-models", providers: "cli-models",
   run: "cli-workflow", validate: "cli-workflow", workflows: "cli-workflow",
   jobs: "cli-workflow", assets: "cli-workflow", secrets: "cli-workflow",
   debug: "cli-workflow", node: "cli-workflow", settings: "cli-workflow",

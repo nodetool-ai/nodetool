@@ -268,6 +268,7 @@ const CreateCommands = memo(function CreateCommands() {
   const entryLabels: Record<string, string> = {
     workflow: t("screens4_4.globalCommands.createEntries.workflow"),
     chat: t("screens4_4.globalCommands.createEntries.chat"),
+    create: t("screens4_4.globalCommands.createEntries.create"),
     text: t("screens4_4.globalCommands.createEntries.text"),
     image: t("screens4_4.globalCommands.createEntries.image"),
     svg: t("screens4_4.globalCommands.createEntries.svg"),

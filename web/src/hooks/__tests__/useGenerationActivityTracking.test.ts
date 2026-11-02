@@ -81,6 +81,65 @@ describe("generationFromCommand", () => {
     });
   });
 
+  it("keeps the request's settings and presets for a retake", () => {
+    const generation = generationFromCommand(
+      {
+        command: "generate_media",
+        request_id: "req-2",
+        data: {
+          mode: "video",
+          prompt: "dolly in",
+          provider: "fake",
+          model: "wan",
+          seed: 9,
+          preset_ids: ["camera.arc"]
+        }
+      },
+      null
+    );
+    expect(generation?.preset_ids).toEqual(["camera.arc"]);
+    expect(generation?.request).toEqual({
+      mode: "video",
+      provider: "fake",
+      model: "wan",
+      seed: 9,
+      preset_ids: ["camera.arc"]
+    });
+  });
+
+  it("keeps the preset ids of a generate_media request, a media chat turn and a prediction", () => {
+    expect(
+      generationFromCommand(
+        {
+          command: "generate_media",
+          request_id: "req-fx",
+          data: { mode: "video", preset_ids: ["effect.levitate", 3, "camera.orbit"] }
+        },
+        null
+      )?.preset_ids
+    ).toEqual(["effect.levitate", "camera.orbit"]);
+    expect(
+      generationFromCommand(
+        { command: "generate_media", request_id: "req-plain", data: { mode: "video" } },
+        null
+      )
+    ).not.toHaveProperty("preset_ids");
+    expect(
+      generationFromCommand(
+        {
+          command: "chat_message",
+          data: {
+            id: "m-fx",
+            thread_id: "t1",
+            content: "x",
+            media_generation: { mode: "video", preset_ids: ["camera.dolly-in"] }
+          }
+        },
+        null
+      )?.preset_ids
+    ).toEqual(["camera.dolly-in"]);
+  });
+
   it("reads a media chat turn and skips a text one", () => {
     expect(
       generationFromCommand(

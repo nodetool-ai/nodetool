@@ -37,6 +37,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import type { MediaMode } from "../../stores/MediaGenerationStore";
 import {
+  CREATE_REF,
   creationProjectId,
   useWorkspaceTabsStore,
   type WorkspaceTabType
@@ -457,6 +458,19 @@ export const useNewDocumentCatalog = (
     [runCreate, createSkill, openGlobalTab]
   );
 
+  const openCreateView = useCallback(
+    () =>
+      runCreate("Create view", async () => {
+        openGlobalTab({
+          type: "create",
+          ref: CREATE_REF,
+          mode: "view",
+          title: "Create"
+        });
+      }),
+    [runCreate, openGlobalTab]
+  );
+
   const createModel = useCallback(
     () =>
       runCreate("3D model", async (destinationProjectId) => {
@@ -488,6 +502,14 @@ export const useNewDocumentCatalog = (
       type: "chat",
       icon: <ForumOutlinedIcon fontSize="small" />,
       submenu: "chats"
+    },
+    {
+      key: "create",
+      label: "Create",
+      menuLabel: "Create images and videos",
+      type: "create",
+      icon: <AutoAwesomeOutlinedIcon fontSize="small" />,
+      create: openCreateView
     },
     {
       key: "text",

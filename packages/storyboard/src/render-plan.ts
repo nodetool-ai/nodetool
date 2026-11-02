@@ -10,6 +10,7 @@
  * Pure: no provider, no database, no clock.
  */
 
+import { compileShotPresets, type Catalog } from "@nodetool-ai/presets";
 import {
   assertProductionGenerationAllowed,
   currentRenderInputs,
@@ -66,6 +67,7 @@ export interface ShotRenderPlan {
   /** Production requests compiled before spending, one for each requested take. */
   productionCandidates?: CompiledProductionCandidate[];
   preflightError?: string;
+  presetParams?: Record<string, string | number | boolean>;
   aspectRatio: string;
   /** How a clip is produced. Always `"keyframe"` on a stills plan. */
   mode: "keyframe" | "direct" | "reference";
@@ -96,6 +98,8 @@ function imageAssetId(image: ImageRef): string | undefined {
 /** Per-call overrides. Each one is recorded, so a render made against something
  * other than the board's own settings reads stale against the board. */
 export interface ShotRenderPlanOptions {
+  /** Loaded by the host through the registered presets runtime asset. */
+  presetCatalog?: Catalog;
   provider?: string;
   model?: string;
   supportedTasks?: string[];
@@ -132,6 +136,7 @@ export function boardRenderContext(
       [...(doc.entityIds ?? [])].reverse().find((id) => styleIds.has(id)) ??
       null,
     style: doc.style,
+    look_preset_ids: doc.look_preset_ids ?? [],
     scenes: doc.screenplay?.scenes ?? null,
     production_reference_asset_ids: doc.creative_context?.reference_bindings?.map((binding) => binding.asset_id) ?? [],
     entity_conditioning_hash: entityConditioningHash(
@@ -241,7 +246,34 @@ export function planShotRenders(
       aspect_ratio: aspectRatio,
       style
     };
+    const lookPresetIds = shot.look_preset_ids?.length
+      ? shot.look_preset_ids
+      : (doc.look_preset_ids ?? []);
+    if (
+      (lookPresetIds.length ||
+        (kind === "clip" && shot.camera?.preset_ids?.length)) &&
+      !options.presetCatalog
+    ) {
+      throw new Error(
+        "Storyboard presets require a preset catalog when planning renders"
+      );
+    }
+    const compiled = options.presetCatalog
+      ? compileShotPresets(shot, lookPresetIds, {
+          catalog: options.presetCatalog,
+          modelId: model.model,
+          mode:
+            kind === "keyframe"
+              ? "image"
+              : mode === "keyframe"
+                ? "image_to_video"
+                : mode === "reference"
+                  ? "reference_to_video"
+                  : "video"
+        })
+      : undefined;
     const context = {
+      ...compiled?.context,
       scene: sceneForShot(shot, doc.screenplay?.scenes),
       style
     };
@@ -340,6 +372,7 @@ export function planShotRenders(
       referenceAssetIds: shotReferenceAssetIds,
       model,
       aspectRatio,
+      presetParams: compiled?.params,
       mode: kind === "keyframe" ? "keyframe" : mode,
       referenceImages,
       sourceKeyframe: shot.keyframe ?? null,

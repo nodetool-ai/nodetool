@@ -1,0 +1,41 @@
+{
+  "id": "camera.truck-left",
+  "version": 1,
+  "kind": "camera",
+  "name": "truck left",
+  "description": "Camera translates left parallel to the subject.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "camera.truck-right"
+  ],
+  "aliases": [
+    "truck left"
+  ],
+  "prompt": {
+    "default": "Camera translates left parallel to the subject.",
+    "kling": "Camera translates left parallel to the subject.",
+    "seedance": "Camera translates left parallel to the subject throughout one continuous shot.",
+    "veo": "Camera translates left parallel to the subject.",
+    "wan": "Camera translates left parallel to the subject.",
+    "local-wan": "The camera slides straight left, parallel to the subject. The subject shifts right in frame and nearby scenery moves faster than the distant background. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.truck-left/d3c27f618afb7a66aa15f0afdb7ce17f11f87a61d5d545361492e882c0a6e48b.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.truck-left/d3c27f618afb7a66aa15f0afdb7ce17f11f87a61d5d545361492e882c0a6e48b.png",
+    "run": "runs/camera.truck-left.json"
+  }
+}

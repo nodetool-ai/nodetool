@@ -1,0 +1,3675 @@
+[
+  {
+    "id": "camera.arc",
+    "version": 1,
+    "kind": "camera",
+    "name": "arc",
+    "description": "Camera travels through a gentle quarter-circle around the subject at constant height.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Camera travels through a gentle quarter-circle around the subject at constant height.",
+      "kling": "Camera travels through a gentle quarter-circle around the subject at constant height.",
+      "seedance": "Camera travels through a gentle quarter-circle around the subject at constant height throughout one continuous shot.",
+      "veo": "Camera travels through a gentle quarter-circle around the subject at constant height.",
+      "wan": "Camera travels through a gentle quarter-circle around the subject at constant height.",
+      "local-wan": "The camera moves slowly along a quarter circle around the subject. The subject stays centered while the background slides sideways, revealing its side. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.arc/c0ded97242b8a490665aef12ed32968fb6a5cdbc78673bfd87c10f2a0247689f.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.arc/c0ded97242b8a490665aef12ed32968fb6a5cdbc78673bfd87c10f2a0247689f.png",
+      "run": "runs/camera.arc.json"
+    }
+  },
+  {
+    "id": "camera.bullet-time",
+    "version": 1,
+    "kind": "camera",
+    "name": "bullet time",
+    "description": "Camera arcs around the subject while the action hangs nearly frozen in time.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "bullet time"
+    ],
+    "prompt": {
+      "default": "Camera arcs around the subject while the action hangs nearly frozen in time.",
+      "kling": "Camera arcs around the subject while the action hangs nearly frozen in time.",
+      "seedance": "Camera arcs around the subject while the action hangs nearly frozen in time throughout one continuous shot.",
+      "veo": "Camera arcs around the subject while the action hangs nearly frozen in time.",
+      "wan": "Camera arcs around the subject while the action hangs nearly frozen in time.",
+      "local-wan": "The action slows almost to a standstill. The camera circles smoothly around the suspended subject as the surroundings rotate behind it. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.bullet-time/d29d66c81102599ac1cfec0d1afa4f7d21733c991a70caa7d4bff90a69cea011.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.bullet-time/d29d66c81102599ac1cfec0d1afa4f7d21733c991a70caa7d4bff90a69cea011.png",
+      "run": "runs/camera.bullet-time.json"
+    }
+  },
+  {
+    "id": "camera.crane-down",
+    "version": 1,
+    "kind": "camera",
+    "name": "crane down",
+    "description": "Camera cranes downward and tilts up to keep the subject framed.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.crane-up"
+    ],
+    "aliases": [
+      "crane down"
+    ],
+    "prompt": {
+      "default": "Camera cranes downward and tilts up to keep the subject framed.",
+      "kling": "Camera cranes downward and tilts up to keep the subject framed.",
+      "seedance": "Camera cranes downward and tilts up to keep the subject framed throughout one continuous shot.",
+      "veo": "Camera cranes downward and tilts up to keep the subject framed.",
+      "wan": "Camera cranes downward and tilts up to keep the subject framed.",
+      "local-wan": "The camera descends from above toward eye level, tilting upward gradually to hold the subject in the center as foreground details rise into view. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.crane-down/d89e1e60f1c3dfca657f0549a9290bd2030b8dc8d6918002263da78835f4712f.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.crane-down/d89e1e60f1c3dfca657f0549a9290bd2030b8dc8d6918002263da78835f4712f.png",
+      "run": "runs/camera.crane-down.json"
+    }
+  },
+  {
+    "id": "camera.crane-up",
+    "version": 1,
+    "kind": "camera",
+    "name": "crane up",
+    "description": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.crane-down"
+    ],
+    "aliases": [
+      "crane up"
+    ],
+    "prompt": {
+      "default": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear.",
+      "kling": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear.",
+      "seedance": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear throughout one continuous shot.",
+      "veo": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear.",
+      "wan": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear.",
+      "local-wan": "The camera lifts above the subject and gradually points downward. More of the surrounding ground becomes visible as the subject recedes below. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.crane-up/ec9fe69e2efea589ce3b0ded33ca306ecb3cbce16e6f326eff53c8bf51478c4f.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.crane-up/ec9fe69e2efea589ce3b0ded33ca306ecb3cbce16e6f326eff53c8bf51478c4f.png",
+      "run": "runs/camera.crane-up.json"
+    }
+  },
+  {
+    "id": "camera.crash-zoom-in",
+    "version": 1,
+    "kind": "camera",
+    "name": "crash zoom in",
+    "description": "Lens zooms rapidly into the subject from a fixed camera position.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.crash-zoom-out"
+    ],
+    "aliases": [
+      "crash zoom in"
+    ],
+    "prompt": {
+      "default": "Lens zooms rapidly into the subject from a fixed camera position.",
+      "kling": "Lens zooms rapidly into the subject from a fixed camera position.",
+      "seedance": "Lens zooms rapidly into the subject from a fixed camera position throughout one continuous shot.",
+      "veo": "Lens zooms rapidly into the subject from a fixed camera position.",
+      "wan": "Lens zooms rapidly into the subject from a fixed camera position.",
+      "local-wan": "A sudden fast lens zoom enlarges the subject from a wide view to a tight close-up. The viewpoint stays fixed and the zoom settles on the subject. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.crash-zoom-in/797d3805a53496a5c2ea7fd2922b884789a8fdd3db1667b4cd133085f7b17d33.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.crash-zoom-in/797d3805a53496a5c2ea7fd2922b884789a8fdd3db1667b4cd133085f7b17d33.png",
+      "run": "runs/camera.crash-zoom-in.json"
+    }
+  },
+  {
+    "id": "camera.crash-zoom-out",
+    "version": 1,
+    "kind": "camera",
+    "name": "crash zoom out",
+    "description": "Lens zooms rapidly out from the subject from a fixed camera position.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.crash-zoom-in"
+    ],
+    "aliases": [
+      "crash zoom out"
+    ],
+    "prompt": {
+      "default": "Lens zooms rapidly out from the subject from a fixed camera position.",
+      "kling": "Lens zooms rapidly out from the subject from a fixed camera position.",
+      "seedance": "Lens zooms rapidly out from the subject from a fixed camera position throughout one continuous shot.",
+      "veo": "Lens zooms rapidly out from the subject from a fixed camera position.",
+      "wan": "Lens zooms rapidly out from the subject from a fixed camera position.",
+      "local-wan": "A sudden fast lens zoom widens from the subject to its surroundings. The viewpoint stays fixed as the subject rapidly becomes smaller in frame. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.crash-zoom-out/f45fbea52933efb176d8c70f2529dc20d6c8c9ca41a497a1572b4171cc8f8f4a.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.crash-zoom-out/f45fbea52933efb176d8c70f2529dc20d6c8c9ca41a497a1572b4171cc8f8f4a.png",
+      "run": "runs/camera.crash-zoom-out.json"
+    }
+  },
+  {
+    "id": "camera.dolly-in",
+    "version": 1,
+    "kind": "camera",
+    "name": "dolly in",
+    "description": "Camera dollies smoothly toward the subject with visible depth change.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.dolly-out",
+      "camera.slow-pull-out"
+    ],
+    "aliases": [
+      "dolly in",
+      "slow push in",
+      "push in slow"
+    ],
+    "prompt": {
+      "default": "Camera dollies smoothly toward the subject with visible depth change.",
+      "kling": "Camera dollies smoothly toward the subject with visible depth change.",
+      "seedance": "Camera dollies smoothly toward the subject with visible depth change throughout one continuous shot.",
+      "veo": "Camera dollies smoothly toward the subject with visible depth change.",
+      "wan": "Camera dollies smoothly toward the subject with visible depth change.",
+      "local-wan": "The camera glides forward toward the subject in one continuous movement. Nearby objects slide past faster than the distant background as the subject grows larger. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.dolly-in/f71a51ff8637b65add4e4fb86cf57aa8ab9bce70cc6024f2c6d903fb5ff5ea90.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.dolly-in/f71a51ff8637b65add4e4fb86cf57aa8ab9bce70cc6024f2c6d903fb5ff5ea90.png",
+      "run": "runs/camera.dolly-in.json"
+    }
+  },
+  {
+    "id": "camera.dolly-out",
+    "version": 1,
+    "kind": "camera",
+    "name": "dolly out",
+    "description": "Camera dollies smoothly away from the subject with visible depth change.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.dolly-in"
+    ],
+    "aliases": [
+      "dolly out"
+    ],
+    "prompt": {
+      "default": "Camera dollies smoothly away from the subject with visible depth change.",
+      "kling": "Camera dollies smoothly away from the subject with visible depth change.",
+      "seedance": "Camera dollies smoothly away from the subject with visible depth change throughout one continuous shot.",
+      "veo": "Camera dollies smoothly away from the subject with visible depth change.",
+      "wan": "Camera dollies smoothly away from the subject with visible depth change.",
+      "local-wan": "The camera glides backward away from the subject. Foreground and background separate in depth as the view widens around the shrinking subject. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.dolly-out/ddd203b32ac86f716fe9351bd65d64d7f650a86fb35219f454241d866c4e8ed8.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.dolly-out/ddd203b32ac86f716fe9351bd65d64d7f650a86fb35219f454241d866c4e8ed8.png",
+      "run": "runs/camera.dolly-out.json"
+    }
+  },
+  {
+    "id": "camera.dolly-zoom",
+    "version": 1,
+    "kind": "camera",
+    "name": "dolly zoom (vertigo)",
+    "description": "Camera dollies backward while zooming in, holding subject size as the background expands.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [
+      "dolly zoom (vertigo)"
+    ],
+    "prompt": {
+      "default": "Camera dollies backward while zooming in, holding subject size as the background expands.",
+      "kling": "Camera dollies backward while zooming in, holding subject size as the background expands.",
+      "seedance": "Camera dollies backward while zooming in, holding subject size as the background expands throughout one continuous shot.",
+      "veo": "Camera dollies backward while zooming in, holding subject size as the background expands.",
+      "wan": "Camera dollies backward while zooming in, holding subject size as the background expands.",
+      "local-wan": "The camera moves backward as the lens zooms toward the subject. The subject holds the same size in frame while the background stretches outward behind it. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.dolly-zoom/0faf8aa85f3d00d9e99218b1bfecd18edcf2e1b3e54a484e1027e8413c9d3540.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.dolly-zoom/0faf8aa85f3d00d9e99218b1bfecd18edcf2e1b3e54a484e1027e8413c9d3540.png",
+      "run": "runs/camera.dolly-zoom.json"
+    }
+  },
+  {
+    "id": "camera.dutch-roll",
+    "version": 1,
+    "kind": "camera",
+    "name": "dutch roll",
+    "description": "Camera rolls gradually around its optical axis, tilting the horizon.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Camera rolls gradually around its optical axis, tilting the horizon.",
+      "kling": "Camera rolls gradually around its optical axis, tilting the horizon.",
+      "seedance": "Camera rolls gradually around its optical axis, tilting the horizon throughout one continuous shot.",
+      "veo": "Camera rolls gradually around its optical axis, tilting the horizon.",
+      "wan": "Camera rolls gradually around its optical axis, tilting the horizon.",
+      "local-wan": "The camera slowly rotates around the viewing axis. The horizon tips diagonally while the subject remains at the center of the rotating frame. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.dutch-roll/55056d723d7d5d0b285a7b62b50d58e40a5ec5c6ca0595a7aa8acb0ffb134275.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.dutch-roll/55056d723d7d5d0b285a7b62b50d58e40a5ec5c6ca0595a7aa8acb0ffb134275.png",
+      "run": "runs/camera.dutch-roll.json"
+    }
+  },
+  {
+    "id": "camera.fpv-drone-fly-through",
+    "version": 1,
+    "kind": "camera",
+    "name": "FPV drone fly-through",
+    "description": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path.",
+    "tags": [
+      "camera",
+      "rig"
+    ],
+    "slot": "rig",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "FPV drone fly-through"
+    ],
+    "prompt": {
+      "default": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path.",
+      "kling": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path.",
+      "seedance": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path throughout one continuous shot.",
+      "veo": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path.",
+      "wan": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path.",
+      "local-wan": "The camera flies forward close to the surroundings, banking around obstacles and passing through open gaps. Foreground edges rush past during the continuous flight. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.fpv-drone-fly-through/3a369458ef42ad6dac805c48ee063c6bd9438b1189205de50527090ab0dfc48d.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.fpv-drone-fly-through/3a369458ef42ad6dac805c48ee063c6bd9438b1189205de50527090ab0dfc48d.png",
+      "run": "runs/camera.fpv-drone-fly-through.json"
+    }
+  },
+  {
+    "id": "camera.handheld-follow",
+    "version": 1,
+    "kind": "camera",
+    "name": "handheld follow",
+    "description": "Camera follows behind the moving subject with subtle handheld sway.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [
+      "handheld follow"
+    ],
+    "prompt": {
+      "default": "Camera follows behind the moving subject with subtle handheld sway.",
+      "kling": "Camera follows behind the moving subject with subtle handheld sway.",
+      "seedance": "Camera follows behind the moving subject with subtle handheld sway throughout one continuous shot.",
+      "veo": "Camera follows behind the moving subject with subtle handheld sway.",
+      "wan": "Camera follows behind the moving subject with subtle handheld sway.",
+      "local-wan": "The camera follows just behind the moving subject at walking speed. Small uneven steps produce gentle vertical sway while the subject stays clearly framed. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.handheld-follow/be3b7a5cf2771901296b6a979897a677139080da5f93896faff7ad4843f1ddcd.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.handheld-follow/be3b7a5cf2771901296b6a979897a677139080da5f93896faff7ad4843f1ddcd.png",
+      "run": "runs/camera.handheld-follow.json"
+    }
+  },
+  {
+    "id": "camera.handheld",
+    "version": 1,
+    "kind": "camera",
+    "name": "handheld",
+    "description": "Camera has gentle irregular handheld sway.",
+    "tags": [
+      "camera",
+      "rig"
+    ],
+    "slot": "rig",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [
+      "handheld"
+    ],
+    "prompt": {
+      "default": "Camera has gentle irregular handheld sway.",
+      "kling": "Camera has gentle irregular handheld sway.",
+      "seedance": "Camera has gentle irregular handheld sway throughout one continuous shot.",
+      "veo": "Camera has gentle irregular handheld sway.",
+      "wan": "Camera has gentle irregular handheld sway.",
+      "local-wan": "Small irregular camera movements drift gently up, down and sideways, like a person holding a camera while standing still. The subject remains clearly visible. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.handheld/20c89a90d9d7e733b3dae7f9f7ca6926d008e92654b1f34c5da4b4ce11f36134.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.handheld/20c89a90d9d7e733b3dae7f9f7ca6926d008e92654b1f34c5da4b4ce11f36134.png",
+      "run": "runs/camera.handheld.json"
+    }
+  },
+  {
+    "id": "camera.low-angle-hero-rise",
+    "version": 1,
+    "kind": "camera",
+    "name": "low-angle hero rise",
+    "description": "Camera rises from ground level toward a low-angle view of the subject.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [
+      "low-angle hero rise"
+    ],
+    "prompt": {
+      "default": "Camera rises from ground level toward a low-angle view of the subject.",
+      "kling": "Camera rises from ground level toward a low-angle view of the subject.",
+      "seedance": "Camera rises from ground level toward a low-angle view of the subject throughout one continuous shot.",
+      "veo": "Camera rises from ground level toward a low-angle view of the subject.",
+      "wan": "Camera rises from ground level toward a low-angle view of the subject.",
+      "local-wan": "The camera starts near the ground looking upward at the subject, then rises slowly. The subject towers above the lens as more of its upper body enters view. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.low-angle-hero-rise/b1b854da18dba4e29327b9a8605c4539cb005fa51c274991e63802540046f6d9.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.low-angle-hero-rise/b1b854da18dba4e29327b9a8605c4539cb005fa51c274991e63802540046f6d9.png",
+      "run": "runs/camera.low-angle-hero-rise.json"
+    }
+  },
+  {
+    "id": "camera.orbit-left",
+    "version": 1,
+    "kind": "camera",
+    "name": "orbit left",
+    "description": "Camera arcs left around the subject at a steady distance.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.orbit-right"
+    ],
+    "aliases": [
+      "orbit left"
+    ],
+    "prompt": {
+      "default": "Camera arcs left around the subject at a steady distance.",
+      "kling": "Camera arcs left around the subject at a steady distance.",
+      "seedance": "Camera arcs left around the subject at a steady distance throughout one continuous shot.",
+      "veo": "Camera arcs left around the subject at a steady distance.",
+      "wan": "Camera arcs left around the subject at a steady distance.",
+      "local-wan": "The camera travels left around the subject along a curved path at a steady distance. The subject stays centered while its visible side and background change smoothly. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.orbit-left/c8abdd660883288424f77d0d4f23a2b4c9776c7a64a198915df07a7f07fe0db5.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.orbit-left/c8abdd660883288424f77d0d4f23a2b4c9776c7a64a198915df07a7f07fe0db5.png",
+      "run": "runs/camera.orbit-left.json"
+    }
+  },
+  {
+    "id": "camera.orbit-right",
+    "version": 1,
+    "kind": "camera",
+    "name": "orbit right",
+    "description": "Camera arcs right around the subject at a steady distance.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.orbit-left"
+    ],
+    "aliases": [
+      "orbit right"
+    ],
+    "prompt": {
+      "default": "Camera arcs right around the subject at a steady distance.",
+      "kling": "Camera arcs right around the subject at a steady distance.",
+      "seedance": "Camera arcs right around the subject at a steady distance throughout one continuous shot.",
+      "veo": "Camera arcs right around the subject at a steady distance.",
+      "wan": "Camera arcs right around the subject at a steady distance.",
+      "local-wan": "The camera travels right around the subject along a curved path at a steady distance. The subject stays centered while the background slides behind it. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.orbit-right/1458c0321b76fdf7313eb1dd11e07c46e68c2984d62726c52cd7500665edefed.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.orbit-right/1458c0321b76fdf7313eb1dd11e07c46e68c2984d62726c52cd7500665edefed.png",
+      "run": "runs/camera.orbit-right.json"
+    }
+  },
+  {
+    "id": "camera.orbit",
+    "version": 1,
+    "kind": "camera",
+    "name": "orbit",
+    "description": "Camera completes a full circle around the subject at a steady distance.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [
+      "orbit",
+      "360 orbit"
+    ],
+    "prompt": {
+      "default": "Camera completes a full circle around the subject at a steady distance.",
+      "kling": "Camera completes a full circle around the subject at a steady distance.",
+      "seedance": "Camera completes a full circle around the subject at a steady distance throughout one continuous shot.",
+      "veo": "Camera completes a full circle around the subject at a steady distance.",
+      "wan": "Camera completes a full circle around the subject at a steady distance.",
+      "local-wan": "The camera circles all the way around the subject at a steady height and distance, revealing front, side, back and front again in a continuous shot. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.orbit/5f909c6c5e25291eee3edd4615f5303b54caaf91901dd0dd4d67a9c2011fb5d4.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.orbit/5f909c6c5e25291eee3edd4615f5303b54caaf91901dd0dd4d67a9c2011fb5d4.png",
+      "run": "runs/camera.orbit.json"
+    }
+  },
+  {
+    "id": "camera.overhead-spiral",
+    "version": 1,
+    "kind": "camera",
+    "name": "overhead spiral",
+    "description": "Camera ascends in a widening spiral while looking down at the subject.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "overhead spiral"
+    ],
+    "prompt": {
+      "default": "Camera ascends in a widening spiral while looking down at the subject.",
+      "kling": "Camera ascends in a widening spiral while looking down at the subject.",
+      "seedance": "Camera ascends in a widening spiral while looking down at the subject throughout one continuous shot.",
+      "veo": "Camera ascends in a widening spiral while looking down at the subject.",
+      "wan": "Camera ascends in a widening spiral while looking down at the subject.",
+      "local-wan": "Looking downward at the subject, the camera spirals outward and upward. The ground rotates gently below as the widening view reveals the surroundings. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.overhead-spiral/e0c3403e1efed5f276e877e5f01e9479e6011e05fe1a0f02c94a7652b8178ee5.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.overhead-spiral/e0c3403e1efed5f276e877e5f01e9479e6011e05fe1a0f02c94a7652b8178ee5.png",
+      "run": "runs/camera.overhead-spiral.json"
+    }
+  },
+  {
+    "id": "camera.pan-left",
+    "version": 1,
+    "kind": "camera",
+    "name": "pan left",
+    "description": "Camera pans left from a fixed position.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.pan-right"
+    ],
+    "aliases": [
+      "pan left"
+    ],
+    "prompt": {
+      "default": "The camera stays fixed in one place and turns steadily to the left on its axis, so the whole scene slides to the right across the frame and new parts of the scene enter from the left edge.",
+      "kling": "The camera stays fixed in one place and turns steadily to the left on its axis, so the whole scene slides to the right across the frame and new parts of the scene enter from the left edge.",
+      "seedance": "The camera stays fixed in one place and turns steadily to the left on its axis, so the whole scene slides to the right across the frame and new parts of the scene enter from the left edge. One continuous shot.",
+      "veo": "The camera stays fixed in one place and turns steadily to the left on its axis, so the whole scene slides to the right across the frame and new parts of the scene enter from the left edge.",
+      "wan": "The camera stays fixed in one place and turns steadily to the left on its axis, so the whole scene slides to the right across the frame and new parts of the scene enter from the left edge.",
+      "local-wan": "From a stationary viewpoint, the camera turns slowly left. The scene slides right across the frame while new scenery enters along the left edge. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pan-left/f55e17801b94407b0eac70606028d68b65f611051fce60125d1d054ff93d986b.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pan-left/f55e17801b94407b0eac70606028d68b65f611051fce60125d1d054ff93d986b.png",
+      "run": "runs/camera.pan-left.json"
+    }
+  },
+  {
+    "id": "camera.pan-right",
+    "version": 1,
+    "kind": "camera",
+    "name": "pan right",
+    "description": "Camera pans right from a fixed position.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.pan-left"
+    ],
+    "aliases": [
+      "pan right"
+    ],
+    "prompt": {
+      "default": "Camera pans right from a fixed position.",
+      "kling": "Camera pans right from a fixed position.",
+      "seedance": "Camera pans right from a fixed position throughout one continuous shot.",
+      "veo": "Camera pans right from a fixed position.",
+      "wan": "Camera pans right from a fixed position.",
+      "local-wan": "From a stationary viewpoint, the camera turns slowly right. The scene slides left across the frame while new scenery enters along the right edge. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pan-right/91cec0ff5dc2321d885523817a19be7ab30ccdb28be321595093e764dc0098cd.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pan-right/91cec0ff5dc2321d885523817a19be7ab30ccdb28be321595093e764dc0098cd.png",
+      "run": "runs/camera.pan-right.json"
+    }
+  },
+  {
+    "id": "camera.parallax-slide",
+    "version": 1,
+    "kind": "camera",
+    "name": "parallax slide",
+    "description": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly.",
+      "kling": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly.",
+      "seedance": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly throughout one continuous shot.",
+      "veo": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly.",
+      "wan": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly.",
+      "local-wan": "The camera glides sideways past a nearby foreground edge. That edge moves quickly across the frame while distant scenery shifts slowly, revealing the subject beyond. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.parallax-slide/a458a2ca17936a80a549f33155f0cd32f36da13782015eb4c94a6af1e968c8db.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.parallax-slide/a458a2ca17936a80a549f33155f0cd32f36da13782015eb4c94a6af1e968c8db.png",
+      "run": "runs/camera.parallax-slide.json"
+    }
+  },
+  {
+    "id": "camera.pedestal-down",
+    "version": 1,
+    "kind": "camera",
+    "name": "pedestal down",
+    "description": "Camera lowers vertically without tilting.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.pedestal-up"
+    ],
+    "aliases": [
+      "pedestal down"
+    ],
+    "prompt": {
+      "default": "Camera lowers vertically without tilting.",
+      "kling": "Camera lowers vertically without tilting.",
+      "seedance": "Camera lowers vertically without tilting throughout one continuous shot.",
+      "veo": "Camera lowers vertically without tilting.",
+      "wan": "Camera lowers vertically without tilting.",
+      "local-wan": "The level camera descends straight downward. The viewing direction stays horizontal as the subject rises within the frame and lower details become visible. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pedestal-down/255bf9ccfe8abfc814beca256f4141169a77877f9afbf0b3f5b462c9465c2288.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pedestal-down/255bf9ccfe8abfc814beca256f4141169a77877f9afbf0b3f5b462c9465c2288.png",
+      "run": "runs/camera.pedestal-down.json"
+    }
+  },
+  {
+    "id": "camera.pedestal-up",
+    "version": 1,
+    "kind": "camera",
+    "name": "pedestal up",
+    "description": "Camera rises vertically without tilting.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.pedestal-down"
+    ],
+    "aliases": [
+      "pedestal up"
+    ],
+    "prompt": {
+      "default": "Camera rises vertically without tilting.",
+      "kling": "Camera rises vertically without tilting.",
+      "seedance": "Camera rises vertically without tilting throughout one continuous shot.",
+      "veo": "Camera rises vertically without tilting.",
+      "wan": "Camera rises vertically without tilting.",
+      "local-wan": "The level camera rises straight upward. The viewing direction stays horizontal as the subject moves lower within the frame and higher details become visible. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pedestal-up/bb8c5289e1432e24707959e54cc8ac2d3e75894b35ca53f3ed2b243579fb8316.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pedestal-up/bb8c5289e1432e24707959e54cc8ac2d3e75894b35ca53f3ed2b243579fb8316.png",
+      "run": "runs/camera.pedestal-up.json"
+    }
+  },
+  {
+    "id": "camera.pull-back-reveal",
+    "version": 1,
+    "kind": "camera",
+    "name": "pull back reveal",
+    "description": "Camera pulls back from a close view to reveal the surroundings.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [
+      "pull back reveal"
+    ],
+    "prompt": {
+      "default": "Camera pulls back from a close view to reveal the surroundings.",
+      "kling": "Camera pulls back from a close view to reveal the surroundings.",
+      "seedance": "Camera pulls back from a close view to reveal the surroundings throughout one continuous shot.",
+      "veo": "Camera pulls back from a close view to reveal the surroundings.",
+      "wan": "Camera pulls back from a close view to reveal the surroundings.",
+      "local-wan": "Beginning close to the subject, the camera retreats smoothly into a wide shot. Surrounding scenery progressively enters at the edges and reveals the larger setting. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pull-back-reveal/ddb3f1acc5d2a0faef1541e739fc2f8bf0b8cb61bb45ea81bade69f731db71ce.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pull-back-reveal/ddb3f1acc5d2a0faef1541e739fc2f8bf0b8cb61bb45ea81bade69f731db71ce.png",
+      "run": "runs/camera.pull-back-reveal.json"
+    }
+  },
+  {
+    "id": "camera.rack-focus",
+    "version": 1,
+    "kind": "camera",
+    "name": "rack focus",
+    "description": "Focus shifts smoothly from foreground to background with fixed framing.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "rack focus"
+    ],
+    "prompt": {
+      "default": "Focus shifts smoothly from foreground to background with fixed framing.",
+      "kling": "Focus shifts smoothly from foreground to background with fixed framing.",
+      "seedance": "Focus shifts smoothly from foreground to background with fixed framing throughout one continuous shot.",
+      "veo": "Focus shifts smoothly from foreground to background with fixed framing.",
+      "wan": "Focus shifts smoothly from foreground to background with fixed framing.",
+      "local-wan": "With the camera held still, the sharp foreground gradually softens while the distant background becomes crisp. Framing stays constant throughout the focus change. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.rack-focus/48d222ef1a4d232ecd4418baf4a5fec6cb3258f3db252eb56f1506ba4ecb23dc.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.rack-focus/48d222ef1a4d232ecd4418baf4a5fec6cb3258f3db252eb56f1506ba4ecb23dc.png",
+      "run": "runs/camera.rack-focus.json"
+    }
+  },
+  {
+    "id": "camera.slow-pull-out",
+    "version": 1,
+    "kind": "camera",
+    "name": "slow pull out",
+    "description": "Camera slowly pulls away from the subject.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.dolly-in"
+    ],
+    "aliases": [
+      "slow pull out"
+    ],
+    "prompt": {
+      "default": "Camera slowly pulls away from the subject.",
+      "kling": "Camera slowly pulls away from the subject.",
+      "seedance": "Camera slowly pulls away from the subject throughout one continuous shot.",
+      "veo": "Camera slowly pulls away from the subject.",
+      "wan": "Camera slowly pulls away from the subject.",
+      "local-wan": "The camera retreats very slowly from the subject throughout the shot. The subject gradually becomes smaller as a little more of the surroundings enters view. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.slow-pull-out/987972b7e6af3522d570d73a90b25f9355eebdadf1c05076adadae2f920b1562.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.slow-pull-out/987972b7e6af3522d570d73a90b25f9355eebdadf1c05076adadae2f920b1562.png",
+      "run": "runs/camera.slow-pull-out.json"
+    }
+  },
+  {
+    "id": "camera.snorricam",
+    "version": 1,
+    "kind": "camera",
+    "name": "snorricam",
+    "description": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts.",
+    "tags": [
+      "camera",
+      "rig"
+    ],
+    "slot": "rig",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "snorricam"
+    ],
+    "prompt": {
+      "default": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts.",
+      "kling": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts.",
+      "seedance": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts throughout one continuous shot.",
+      "veo": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts.",
+      "wan": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts.",
+      "local-wan": "A camera attached to the subject faces its face. The face holds a fixed position and size while walking makes the background sway and shift behind it. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.snorricam/0148da2bc19ac3e7d839fdfa23e292b5d30edf7d0e4665b8fac5d201333319e8.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.snorricam/0148da2bc19ac3e7d839fdfa23e292b5d30edf7d0e4665b8fac5d201333319e8.png",
+      "run": "runs/camera.snorricam.json"
+    }
+  },
+  {
+    "id": "camera.speed-ramp",
+    "version": 1,
+    "kind": "camera",
+    "name": "speed ramp",
+    "description": "Motion accelerates from normal speed into a rapid burst then eases into slow motion.",
+    "tags": [
+      "camera",
+      "speed"
+    ],
+    "slot": "speed",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Motion accelerates from normal speed into a rapid burst then eases into slow motion.",
+      "kling": "Motion accelerates from normal speed into a rapid burst then eases into slow motion.",
+      "seedance": "Motion accelerates from normal speed into a rapid burst then eases into slow motion throughout one continuous shot.",
+      "veo": "Motion accelerates from normal speed into a rapid burst then eases into slow motion.",
+      "wan": "Motion accelerates from normal speed into a rapid burst then eases into slow motion.",
+      "local-wan": "The action starts at an ordinary pace, accelerates into a brief fast burst, then eases into slow motion. The same action flows continuously through each speed change. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.speed-ramp/7aa1d104dfc26f216f8e018ba94b0675ad280e9c74ca0b2cdf2c083591dae545.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.speed-ramp/7aa1d104dfc26f216f8e018ba94b0675ad280e9c74ca0b2cdf2c083591dae545.png",
+      "run": "runs/camera.speed-ramp.json"
+    }
+  },
+  {
+    "id": "camera.static",
+    "version": 1,
+    "kind": "camera",
+    "name": "static",
+    "description": "Camera locked off with fixed framing.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "static"
+    ],
+    "prompt": {
+      "default": "Camera locked off with fixed framing.",
+      "kling": "Camera locked off with fixed framing.",
+      "seedance": "Camera locked off with fixed framing throughout one continuous shot.",
+      "veo": "Camera locked off with fixed framing.",
+      "wan": "Camera locked off with fixed framing.",
+      "local-wan": "The camera holds exactly the same viewpoint and framing throughout the shot. Motion belongs to the subject and the environment inside the stationary frame. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.static/9fa4becc78ecd82faf048febc4e55f8493a54d9a8aba4be27d63b54194210ee9.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.static/9fa4becc78ecd82faf048febc4e55f8493a54d9a8aba4be27d63b54194210ee9.png",
+      "run": "runs/camera.static.json"
+    }
+  },
+  {
+    "id": "camera.steadicam",
+    "version": 1,
+    "kind": "camera",
+    "name": "steadicam",
+    "description": "Camera is stabilized on a Steadicam with smooth floating motion.",
+    "tags": [
+      "camera",
+      "rig"
+    ],
+    "slot": "rig",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Camera is stabilized on a Steadicam with smooth floating motion.",
+      "kling": "Camera is stabilized on a Steadicam with smooth floating motion.",
+      "seedance": "Camera is stabilized on a Steadicam with smooth floating motion throughout one continuous shot.",
+      "veo": "Camera is stabilized on a Steadicam with smooth floating motion.",
+      "wan": "Camera is stabilized on a Steadicam with smooth floating motion.",
+      "local-wan": "The camera floats smoothly through the scene at walking speed with a level horizon. The subject remains steadily framed as the surroundings flow past. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.steadicam/26d2fa9f29547d1a595d975a01337cae2b99fb45b7a097fcde2e63af8dfa39fb.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.steadicam/26d2fa9f29547d1a595d975a01337cae2b99fb45b7a097fcde2e63af8dfa39fb.png",
+      "run": "runs/camera.steadicam.json"
+    }
+  },
+  {
+    "id": "camera.through-object-pass",
+    "version": 1,
+    "kind": "camera",
+    "name": "through-object pass",
+    "description": "Camera advances through an opening in the foreground object to reveal the subject beyond.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [
+      "through-object pass"
+    ],
+    "prompt": {
+      "default": "The camera pushes forward through a gap between foreground elements that are already in the scene, such as leaves, an archway or a doorway, which sweep past the lens and out of frame to reveal the subject beyond. No new objects appear.",
+      "kling": "The camera pushes forward through a gap between foreground elements that are already in the scene, such as leaves, an archway or a doorway, which sweep past the lens and out of frame to reveal the subject beyond. No new objects appear.",
+      "seedance": "The camera pushes forward through a gap between foreground elements that are already in the scene, such as leaves, an archway or a doorway, which sweep past the lens and out of frame to reveal the subject beyond. No new objects appear. One continuous shot.",
+      "veo": "The camera pushes forward through a gap between foreground elements that are already in the scene, such as leaves, an archway or a doorway, which sweep past the lens and out of frame to reveal the subject beyond. No new objects appear.",
+      "wan": "The camera pushes forward through a gap between foreground elements that are already in the scene, such as leaves, an archway or a doorway, which sweep past the lens and out of frame to reveal the subject beyond. No new objects appear.",
+      "local-wan": "The camera advances through an existing opening in the foreground. Its edges sweep past the lens, uncovering the subject beyond in the same continuous shot. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.through-object-pass/a35391d5e2eed0bb13f92303745583bb75ec9f76093858b086c0d65564b28f92.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.through-object-pass/a35391d5e2eed0bb13f92303745583bb75ec9f76093858b086c0d65564b28f92.png",
+      "run": "runs/camera.through-object-pass.json"
+    }
+  },
+  {
+    "id": "camera.tilt-down",
+    "version": 1,
+    "kind": "camera",
+    "name": "tilt down",
+    "description": "Camera tilts downward from a fixed position.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.tilt-up"
+    ],
+    "aliases": [
+      "tilt down"
+    ],
+    "prompt": {
+      "default": "Camera tilts downward from a fixed position.",
+      "kling": "Camera tilts downward from a fixed position.",
+      "seedance": "Camera tilts downward from a fixed position throughout one continuous shot.",
+      "veo": "Camera tilts downward from a fixed position.",
+      "wan": "Camera tilts downward from a fixed position.",
+      "local-wan": "From a fixed camera position, the lens turns slowly downward. Upper scenery leaves the top of the frame as lower details enter from below. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.tilt-down/caa8dc58b88fe65030135f856ace9db90a0b2e8204acb6f8460b964ce1229661.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.tilt-down/caa8dc58b88fe65030135f856ace9db90a0b2e8204acb6f8460b964ce1229661.png",
+      "run": "runs/camera.tilt-down.json"
+    }
+  },
+  {
+    "id": "camera.tilt-up",
+    "version": 1,
+    "kind": "camera",
+    "name": "tilt up",
+    "description": "Camera tilts upward from a fixed position.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.tilt-down"
+    ],
+    "aliases": [
+      "tilt up"
+    ],
+    "prompt": {
+      "default": "Camera tilts upward from a fixed position.",
+      "kling": "Camera tilts upward from a fixed position.",
+      "seedance": "Camera tilts upward from a fixed position throughout one continuous shot.",
+      "veo": "Camera tilts upward from a fixed position.",
+      "wan": "Camera tilts upward from a fixed position.",
+      "local-wan": "From a fixed camera position, the lens turns slowly upward. Lower scenery leaves the bottom of the frame as higher details enter from above. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.tilt-up/0cd4c700b1905b06b39759beac52995c58a41b32bd32285d9ae6e279ecd8b8b8.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.tilt-up/0cd4c700b1905b06b39759beac52995c58a41b32bd32285d9ae6e279ecd8b8b8.png",
+      "run": "runs/camera.tilt-up.json"
+    }
+  },
+  {
+    "id": "camera.top-down-rise",
+    "version": 1,
+    "kind": "camera",
+    "name": "top-down rise",
+    "description": "Camera rises straight upward while looking vertically down, widening the view.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [
+      "top-down rise"
+    ],
+    "prompt": {
+      "default": "Camera rises straight upward while looking vertically down, widening the view.",
+      "kling": "Camera rises straight upward while looking vertically down, widening the view.",
+      "seedance": "Camera rises straight upward while looking vertically down, widening the view throughout one continuous shot.",
+      "veo": "Camera rises straight upward while looking vertically down, widening the view.",
+      "wan": "Camera rises straight upward while looking vertically down, widening the view.",
+      "local-wan": "The camera looks straight down and rises vertically above the subject. The subject becomes smaller as the ground fills an increasingly wide overhead view. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.top-down-rise/f2908dbdc8e345411ab43555322a0afc056a176bcb4d69e7ec65392482afd723.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.top-down-rise/f2908dbdc8e345411ab43555322a0afc056a176bcb4d69e7ec65392482afd723.png",
+      "run": "runs/camera.top-down-rise.json"
+    }
+  },
+  {
+    "id": "camera.tracking",
+    "version": 1,
+    "kind": "camera",
+    "name": "tracking",
+    "description": "Camera tracks alongside the moving subject at matching speed.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [
+      "tracking"
+    ],
+    "prompt": {
+      "default": "Camera tracks alongside the moving subject at matching speed.",
+      "kling": "Camera tracks alongside the moving subject at matching speed.",
+      "seedance": "Camera tracks alongside the moving subject at matching speed throughout one continuous shot.",
+      "veo": "Camera tracks alongside the moving subject at matching speed.",
+      "wan": "Camera tracks alongside the moving subject at matching speed.",
+      "local-wan": "The camera moves alongside the subject at the same speed. The subject holds its position in frame while the surroundings stream past behind it. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.tracking/7b996cedcb68e6fec8bdc4fa7d0dcd88d1421aab2cf4550bb0b1202203a4870e.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.tracking/7b996cedcb68e6fec8bdc4fa7d0dcd88d1421aab2cf4550bb0b1202203a4870e.png",
+      "run": "runs/camera.tracking.json"
+    }
+  },
+  {
+    "id": "camera.truck-left",
+    "version": 1,
+    "kind": "camera",
+    "name": "truck left",
+    "description": "Camera translates left parallel to the subject.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.truck-right"
+    ],
+    "aliases": [
+      "truck left"
+    ],
+    "prompt": {
+      "default": "Camera translates left parallel to the subject.",
+      "kling": "Camera translates left parallel to the subject.",
+      "seedance": "Camera translates left parallel to the subject throughout one continuous shot.",
+      "veo": "Camera translates left parallel to the subject.",
+      "wan": "Camera translates left parallel to the subject.",
+      "local-wan": "The camera slides straight left, parallel to the subject. The subject shifts right in frame and nearby scenery moves faster than the distant background. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.truck-left/d3c27f618afb7a66aa15f0afdb7ce17f11f87a61d5d545361492e882c0a6e48b.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.truck-left/d3c27f618afb7a66aa15f0afdb7ce17f11f87a61d5d545361492e882c0a6e48b.png",
+      "run": "runs/camera.truck-left.json"
+    }
+  },
+  {
+    "id": "camera.truck-right",
+    "version": 1,
+    "kind": "camera",
+    "name": "truck right",
+    "description": "Camera translates right parallel to the subject.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.truck-left"
+    ],
+    "aliases": [
+      "truck right"
+    ],
+    "prompt": {
+      "default": "Camera translates right parallel to the subject.",
+      "kling": "Camera translates right parallel to the subject.",
+      "seedance": "Camera translates right parallel to the subject throughout one continuous shot.",
+      "veo": "Camera translates right parallel to the subject.",
+      "wan": "Camera translates right parallel to the subject.",
+      "local-wan": "The camera slides straight right, parallel to the subject. The subject shifts left in frame and nearby scenery moves faster than the distant background. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.truck-right/07c68cea5387c21c71d9ac8cd19289152970829bdc8f8dbb2387a9738e5fc9cd.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.truck-right/07c68cea5387c21c71d9ac8cd19289152970829bdc8f8dbb2387a9738e5fc9cd.png",
+      "run": "runs/camera.truck-right.json"
+    }
+  },
+  {
+    "id": "camera.whip-pan",
+    "version": 1,
+    "kind": "camera",
+    "name": "whip pan",
+    "description": "Camera pans rapidly sideways with directional motion blur, then settles.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [
+      "whip pan"
+    ],
+    "prompt": {
+      "default": "Camera pans rapidly sideways with directional motion blur, then settles.",
+      "kling": "Camera pans rapidly sideways with directional motion blur, then settles.",
+      "seedance": "Camera pans rapidly sideways with directional motion blur, then settles throughout one continuous shot.",
+      "veo": "Camera pans rapidly sideways with directional motion blur, then settles.",
+      "wan": "Camera pans rapidly sideways with directional motion blur, then settles.",
+      "local-wan": "The camera turns rapidly sideways, sweeping the scene into horizontal motion blur, then slows to a steady hold as the view becomes sharp again. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.whip-pan/63f3ffac1bff13afba411c2576e238059e0db4efb726bc206fa74fad520986f5.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.whip-pan/63f3ffac1bff13afba411c2576e238059e0db4efb726bc206fa74fad520986f5.png",
+      "run": "runs/camera.whip-pan.json"
+    }
+  },
+  {
+    "id": "camera.zoom-in",
+    "version": 1,
+    "kind": "camera",
+    "name": "zoom in",
+    "description": "Lens zooms in from a fixed camera position.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.zoom-out"
+    ],
+    "aliases": [
+      "zoom in"
+    ],
+    "prompt": {
+      "default": "Lens zooms in from a fixed camera position.",
+      "kling": "Lens zooms in from a fixed camera position.",
+      "seedance": "Lens zooms in from a fixed camera position throughout one continuous shot.",
+      "veo": "Lens zooms in from a fixed camera position.",
+      "wan": "Lens zooms in from a fixed camera position.",
+      "local-wan": "From a fixed viewpoint, the lens slowly zooms closer. The subject grows larger and the edges of the scene gradually leave the frame. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.zoom-in/3a2685add69157f2cc539c44229e27f981d1a018bd7c8ed8e2470df8295217d3.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.zoom-in/3a2685add69157f2cc539c44229e27f981d1a018bd7c8ed8e2470df8295217d3.png",
+      "run": "runs/camera.zoom-in.json"
+    }
+  },
+  {
+    "id": "camera.zoom-out",
+    "version": 1,
+    "kind": "camera",
+    "name": "zoom out",
+    "description": "Lens zooms out from a fixed camera position.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.zoom-in"
+    ],
+    "aliases": [
+      "zoom out"
+    ],
+    "prompt": {
+      "default": "Lens zooms out from a fixed camera position.",
+      "kling": "Lens zooms out from a fixed camera position.",
+      "seedance": "Lens zooms out from a fixed camera position throughout one continuous shot.",
+      "veo": "Lens zooms out from a fixed camera position.",
+      "wan": "Lens zooms out from a fixed camera position.",
+      "local-wan": "From a fixed viewpoint, the lens slowly zooms wider. The subject becomes smaller and more of the surrounding scene appears at the frame edges. One continuous shot."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.zoom-out/215010eb92a634e6e755ee45080418a7003a066e836f265ad1a079c11c3d805b.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.zoom-out/215010eb92a634e6e755ee45080418a7003a066e836f265ad1a079c11c3d805b.png",
+      "run": "runs/camera.zoom-out.json"
+    }
+  },
+  {
+    "id": "effect.bioluminescent-dissolve",
+    "version": 1,
+    "kind": "effect",
+    "name": "Bioluminescent dissolve",
+    "description": "Animates the subject to dissolve into swirling bioluminescent particles.",
+    "tags": [
+      "effect",
+      "particles",
+      "glow"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "dissolve into swirling bioluminescent particles"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to dissolve into swirling bioluminescent particles. Glowing blue-green motes spiral away into darkness. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to dissolve into swirling bioluminescent particles. Glowing blue-green motes spiral away into darkness. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to dissolve into swirling bioluminescent particles. Glowing blue-green motes spiral away into darkness. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to dissolve into swirling bioluminescent particles. Glowing blue-green motes spiral away into darkness. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to dissolve into swirling bioluminescent particles. Glowing blue-green motes spiral away into darkness. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "The subject breaks apart gradually into glowing turquoise particles. Bright motes peel from its edges, spiral outward and drift into the dark as its solid shape disappears."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.bioluminescent-dissolve/a719585f74ed1b149c01c8dba91aaecbd20fd901ad66e453fef90c1496af10e6.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.bioluminescent-dissolve/a719585f74ed1b149c01c8dba91aaecbd20fd901ad66e453fef90c1496af10e6.png",
+      "run": "runs/effect.bioluminescent-dissolve.json"
+    }
+  },
+  {
+    "id": "effect.claymation",
+    "version": 1,
+    "kind": "effect",
+    "name": "Claymation",
+    "description": "Edits the photo to restyle it as a handmade claymation scene with visible fingerprints in the clay.",
+    "tags": [
+      "effect",
+      "stylize",
+      "craft"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_edit"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "restyle it as a handmade claymation scene with visible fingerprints in the clay"
+    ],
+    "prompt": {
+      "default": "Edit the image to restyle it as a handmade claymation scene with visible fingerprints in the clay. Keep the composition and subject identical.",
+      "local-wan": "A handmade plasticine miniature scene, with rounded clay forms, thumbprints and tiny sculpted details across every surface. The image layout is rebuilt entirely from colored clay under soft miniature-set lighting."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.claymation/da17b0101e6b3f38aa135ffbbb7aceb39fc9a09f68d9574bfb14f54b5909844a.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.claymation/da17b0101e6b3f38aa135ffbbb7aceb39fc9a09f68d9574bfb14f54b5909844a.png",
+      "run": "runs/effect.claymation.json"
+    }
+  },
+  {
+    "id": "effect.confetti-burst",
+    "version": 1,
+    "kind": "effect",
+    "name": "Confetti burst",
+    "description": "Animates the subject to explode into slow-motion colorful confetti.",
+    "tags": [
+      "effect",
+      "celebration",
+      "particles"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "explode into slow-motion colorful confetti"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to explode into slow-motion colorful confetti. Paper pieces spin and glitter as they fill the frame. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to explode into slow-motion colorful confetti. Paper pieces spin and glitter as they fill the frame. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to explode into slow-motion colorful confetti. Paper pieces spin and glitter as they fill the frame. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to explode into slow-motion colorful confetti. Paper pieces spin and glitter as they fill the frame. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to explode into slow-motion colorful confetti. Paper pieces spin and glitter as they fill the frame. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "The subject suddenly bursts outward into colorful paper confetti. Individual pieces spin, flutter and fall slowly through the space where the subject stood."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.confetti-burst/16b42f8d298d98cf769c61fb4c67c54495f48aec1aef9a3aaf10dbd36ac753b9.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.confetti-burst/16b42f8d298d98cf769c61fb4c67c54495f48aec1aef9a3aaf10dbd36ac753b9.png",
+      "run": "runs/effect.confetti-burst.json"
+    }
+  },
+  {
+    "id": "effect.electric-arcs",
+    "version": 1,
+    "kind": "effect",
+    "name": "Electric arcs",
+    "description": "Animates the subject to crackle with high-voltage blue electric arcs.",
+    "tags": [
+      "effect",
+      "electric",
+      "glow"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "crackle with high-voltage blue electric arcs"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "Blue electrical branches flicker over the subject, jumping between points on its surface. Each pulse briefly casts cold blue light onto the nearby surroundings."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.electric-arcs/08854a7e2fdca1eebd1267cea80a3d505884d48d32720500e93b0e1361f5ba41.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.electric-arcs/08854a7e2fdca1eebd1267cea80a3d505884d48d32720500e93b0e1361f5ba41.png",
+      "run": "runs/effect.electric-arcs.json"
+    }
+  },
+  {
+    "id": "effect.frost-crystals",
+    "version": 1,
+    "kind": "effect",
+    "name": "Frost crystals",
+    "description": "Animates the subject to freeze rapidly in branching frost and ice crystals.",
+    "tags": [
+      "effect",
+      "ice",
+      "nature"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "freeze rapidly in branching frost and ice crystals"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "Fine white frost starts at the subject's edges and spreads across its surface. Branching ice crystals grow and join together until a thick crystalline coating covers it."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.frost-crystals/4bfacccbee966214f752c95bc995af6241bd697d46983245a5e197cc1659181b.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.frost-crystals/4bfacccbee966214f752c95bc995af6241bd697d46983245a5e197cc1659181b.png",
+      "run": "runs/effect.frost-crystals.json"
+    }
+  },
+  {
+    "id": "effect.glass-shatter",
+    "version": 1,
+    "kind": "effect",
+    "name": "Glass shatter",
+    "description": "Animates the subject to shatter into slow-motion crystalline glass fragments.",
+    "tags": [
+      "effect",
+      "destruction",
+      "glass"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "shatter into slow-motion crystalline glass fragments"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to shatter into slow-motion crystalline glass fragments. Fragments catch the light as they scatter outward. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to shatter into slow-motion crystalline glass fragments. Fragments catch the light as they scatter outward. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to shatter into slow-motion crystalline glass fragments. Fragments catch the light as they scatter outward. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to shatter into slow-motion crystalline glass fragments. Fragments catch the light as they scatter outward. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to shatter into slow-motion crystalline glass fragments. Fragments catch the light as they scatter outward. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "The subject fractures into transparent glass shards that separate and scatter outward in slow motion. Sharp facets turn and catch bright reflections as they fall."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.glass-shatter/60fbb906a7374c147852a71e1c1b11f08ff49a9a642896ddb5db4160ed00c1f2.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.glass-shatter/60fbb906a7374c147852a71e1c1b11f08ff49a9a642896ddb5db4160ed00c1f2.png",
+      "run": "runs/effect.glass-shatter.json"
+    }
+  },
+  {
+    "id": "effect.golden-embers",
+    "version": 1,
+    "kind": "effect",
+    "name": "Golden embers",
+    "description": "Animates the subject to ignite in rising golden embers and heat shimmer.",
+    "tags": [
+      "effect",
+      "fire",
+      "particles"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "ignite in rising golden embers and heat shimmer"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. The subject glows from within like hot coals and the embers grow denser until the end of the shot, sparks drifting upward through warm heat distortion. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. The subject glows from within like hot coals and the embers grow denser until the end of the shot, sparks drifting upward through warm heat distortion. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. The subject glows from within like hot coals and the embers grow denser until the end of the shot, sparks drifting upward through warm heat distortion. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. The subject glows from within like hot coals and the embers grow denser until the end of the shot, sparks drifting upward through warm heat distortion. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. The subject glows from within like hot coals and the embers grow denser until the end of the shot, sparks drifting upward through warm heat distortion. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "A warm orange glow spreads through the subject. Golden sparks lift from its surface and rise in growing streams while heat ripples shimmer above it."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.golden-embers/9f1b6d2f1c8ebeb395ffc3a78eb0297d1c143d4925c02a7722b19892966bb4c3.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.golden-embers/9f1b6d2f1c8ebeb395ffc3a78eb0297d1c143d4925c02a7722b19892966bb4c3.png",
+      "run": "runs/effect.golden-embers.json"
+    }
+  },
+  {
+    "id": "effect.hydraulic-press",
+    "version": 1,
+    "kind": "effect",
+    "name": "Hydraulic press",
+    "description": "Animates the subject to compress under a studio hydraulic press.",
+    "tags": [
+      "effect",
+      "crush",
+      "studio"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "compress under a studio hydraulic press"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "A broad metal press plate lowers steadily onto the subject. The subject flattens under its weight, bulging outward along the base as the plate continues downward."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.hydraulic-press/f0a117cceb1ee8ab7d1b2161474cb62ba9108ee5db960bfaa47441e1c2d238c0.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.hydraulic-press/f0a117cceb1ee8ab7d1b2161474cb62ba9108ee5db960bfaa47441e1c2d238c0.png",
+      "run": "runs/effect.hydraulic-press.json"
+    }
+  },
+  {
+    "id": "effect.levitate",
+    "version": 1,
+    "kind": "effect",
+    "name": "Levitate",
+    "description": "Animates the subject to levitate and float upward in zero gravity.",
+    "tags": [
+      "effect",
+      "motion",
+      "physics"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "levitate and float upward in zero gravity"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "The subject lifts slowly away from the ground and floats upward. A widening gap opens beneath it while its contact shadow becomes softer and fainter."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.levitate/f346b1092c269dcf33fdc9fe7c051a249946801e84093f32c7e0385803d99fc8.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.levitate/f346b1092c269dcf33fdc9fe7c051a249946801e84093f32c7e0385803d99fc8.png",
+      "run": "runs/effect.levitate.json"
+    }
+  },
+  {
+    "id": "effect.liquid-chrome",
+    "version": 1,
+    "kind": "effect",
+    "name": "Liquid chrome",
+    "description": "Animates the subject to melt into mirror-polished liquid chrome.",
+    "tags": [
+      "effect",
+      "liquid",
+      "metal"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "melt into mirror-polished liquid chrome"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to melt into mirror-polished liquid chrome. Reflections ripple across the molten metal surface. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to melt into mirror-polished liquid chrome. Reflections ripple across the molten metal surface. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to melt into mirror-polished liquid chrome. Reflections ripple across the molten metal surface. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to melt into mirror-polished liquid chrome. Reflections ripple across the molten metal surface. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to melt into mirror-polished liquid chrome. Reflections ripple across the molten metal surface. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "The subject softens into silver liquid metal, sagging and flowing downward. Mirror reflections bend across the moving surface as a chrome puddle spreads below."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.liquid-chrome/c38dc1457271908cc3798bc06df5b9956c85e25d50ed0c2372e64fc7438410b5.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.liquid-chrome/c38dc1457271908cc3798bc06df5b9956c85e25d50ed0c2372e64fc7438410b5.png",
+      "run": "runs/effect.liquid-chrome.json"
+    }
+  },
+  {
+    "id": "effect.marble-petrify",
+    "version": 1,
+    "kind": "effect",
+    "name": "Marble petrify",
+    "description": "Animates the subject to petrify into veined Carrara marble sculpture.",
+    "tags": [
+      "effect",
+      "stone",
+      "transform"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "petrify into veined Carrara marble sculpture"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "White stone spreads gradually across the subject from bottom to top. Thin grey veins form within the smooth marble until the subject stands as a solid polished sculpture."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.marble-petrify/c73d86582657cb6469a82b97078d7853e183b6e175a77450ae4c1bb0142d7518.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.marble-petrify/c73d86582657cb6469a82b97078d7853e183b6e175a77450ae4c1bb0142d7518.png",
+      "run": "runs/effect.marble-petrify.json"
+    }
+  },
+  {
+    "id": "effect.metallic-balloon",
+    "version": 1,
+    "kind": "effect",
+    "name": "Metallic balloon",
+    "description": "Animates the subject to inflate like a glossy metallic balloon and lift off.",
+    "tags": [
+      "effect",
+      "inflate",
+      "metal"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "inflate like a glossy metallic balloon and lift off"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "The subject swells into a rounded foil balloon. Glossy metallic highlights stretch over the inflated surface as it gently lifts from the ground and floats upward."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.metallic-balloon/8c73ba277a0b9450c0d27a66f9096516d7a221543512eb61baff142ad9ef227a.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.metallic-balloon/8c73ba277a0b9450c0d27a66f9096516d7a221543512eb61baff142ad9ef227a.png",
+      "run": "runs/effect.metallic-balloon.json"
+    }
+  },
+  {
+    "id": "effect.molten-gold",
+    "version": 1,
+    "kind": "effect",
+    "name": "Molten gold",
+    "description": "Animates the subject to transform into flowing molten gold.",
+    "tags": [
+      "effect",
+      "liquid",
+      "metal"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "transform into flowing molten gold"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to transform into flowing molten gold. Bright liquid metal runs and pools with warm highlights. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to transform into flowing molten gold. Bright liquid metal runs and pools with warm highlights. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to transform into flowing molten gold. Bright liquid metal runs and pools with warm highlights. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to transform into flowing molten gold. Bright liquid metal runs and pools with warm highlights. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to transform into flowing molten gold. Bright liquid metal runs and pools with warm highlights. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "The subject turns glowing gold and softens into flowing liquid metal. Thick golden streams run down its sides and gather in a bright reflective pool beneath it."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.molten-gold/3c90f898fde3b3057c55fa3931292f8ff717387407b21e9d83e8c23e25badedf.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.molten-gold/3c90f898fde3b3057c55fa3931292f8ff717387407b21e9d83e8c23e25badedf.png",
+      "run": "runs/effect.molten-gold.json"
+    }
+  },
+  {
+    "id": "effect.neon-outline",
+    "version": 1,
+    "kind": "effect",
+    "name": "Neon outline",
+    "description": "Animates the subject to light up in pulsing neon tube outlines.",
+    "tags": [
+      "effect",
+      "glow",
+      "stylize"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "light up in pulsing neon tube outlines"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges and stay lit to the end while the surroundings dim slightly. Nothing else in the scene changes. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges and stay lit to the end while the surroundings dim slightly. Nothing else in the scene changes. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges and stay lit to the end while the surroundings dim slightly. Nothing else in the scene changes. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges and stay lit to the end while the surroundings dim slightly. Nothing else in the scene changes. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges and stay lit to the end while the surroundings dim slightly. Nothing else in the scene changes. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "Luminous cyan and pink lines gradually trace the subject's edges. The completed outline glows steadily with gentle pulses while colored light spills onto the dim surroundings."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.neon-outline/9b525dd7d3ddb477fd9d6920f5a42491d03b9e6a99db16341d92200475227a3a.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.neon-outline/9b525dd7d3ddb477fd9d6920f5a42491d03b9e6a99db16341d92200475227a3a.png",
+      "run": "runs/effect.neon-outline.json"
+    }
+  },
+  {
+    "id": "effect.origami-fold",
+    "version": 1,
+    "kind": "effect",
+    "name": "Origami fold",
+    "description": "Animates the subject to fold itself into crisp origami paper.",
+    "tags": [
+      "effect",
+      "paper",
+      "transform"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "fold itself into crisp origami paper"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "The subject becomes colored paper and folds along crisp straight creases. Each fold follows the previous one until a complete angular origami shape stands in its place."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.origami-fold/57a0983aef3d4549ef80c82b9494c6ee9c9d34453e122ae3eeb4eb36e9e0c0e1.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.origami-fold/57a0983aef3d4549ef80c82b9494c6ee9c9d34453e122ae3eeb4eb36e9e0c0e1.png",
+      "run": "runs/effect.origami-fold.json"
+    }
+  },
+  {
+    "id": "effect.petal-burst",
+    "version": 1,
+    "kind": "effect",
+    "name": "Petal burst",
+    "description": "Animates the subject to burst into a cloud of velvet botanical petals.",
+    "tags": [
+      "effect",
+      "botanical",
+      "particles"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "burst into a cloud of velvet botanical petals"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to burst into a cloud of velvet botanical petals. Petals tumble and fan out in slow motion. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to burst into a cloud of velvet botanical petals. Petals tumble and fan out in slow motion. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to burst into a cloud of velvet botanical petals. Petals tumble and fan out in slow motion. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to burst into a cloud of velvet botanical petals. Petals tumble and fan out in slow motion. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to burst into a cloud of velvet botanical petals. Petals tumble and fan out in slow motion. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "The subject separates into a cloud of soft flower petals. Petals fan outward, tumble slowly through the air and drift down around the opening space."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.petal-burst/a55a6bcb4279c7607e7b75f275f01a9609860c4888d72b513c27b1dbc1469921.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.petal-burst/a55a6bcb4279c7607e7b75f275f01a9609860c4888d72b513c27b1dbc1469921.png",
+      "run": "runs/effect.petal-burst.json"
+    }
+  },
+  {
+    "id": "effect.restyle-anime",
+    "version": 1,
+    "kind": "effect",
+    "name": "Anime restyle",
+    "description": "Restyle the video as hand-drawn anime with clean ink outlines, cel shading and painted backgrounds.",
+    "tags": [
+      "restyle",
+      "anime"
+    ],
+    "slot": "effect",
+    "modes": [
+      "video_edit"
+    ],
+    "inputs": [
+      "video"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "The source video remade from scratch as a hand-drawn 2D anime film. Every object, the architecture, the plants, the ground and the sky are redrawn with clean ink outlines, flat cel-shaded color and painted backgrounds. Not live action, not a photograph, not CGI. Only the layout, action and camera move of the source video stay the same.",
+      "local-wan": "From the first frame, the entire scene is rebuilt as a hand-drawn 2D anime film. Clean ink contours enclose flat cel-shaded colors; architecture, foliage and sky become painted animation backgrounds. The layout and movement follow the source video, with this treatment sustained in every frame."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-anime/7b07a72178ff32015dca04a0826f0c8c31866c9ce1257195ddb724b4ee335d5a.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-anime/7b07a72178ff32015dca04a0826f0c8c31866c9ce1257195ddb724b4ee335d5a-late.png",
+      "run": "runs/effect.restyle-anime.json"
+    }
+  },
+  {
+    "id": "effect.restyle-clay",
+    "version": 1,
+    "kind": "effect",
+    "name": "Clay animation restyle",
+    "description": "Restyle the video as clay animation with sculpted forms, tactile surfaces and soft studio lighting.",
+    "tags": [
+      "restyle",
+      "clay"
+    ],
+    "slot": "effect",
+    "modes": [
+      "video_edit"
+    ],
+    "inputs": [
+      "video"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "The source video remade from scratch as a stop-motion claymation film on a miniature set. All real materials are replaced with plasticine: foliage becomes lumps of clay, stone and walls become smooth clay slabs, the ground becomes rolled clay and the sky a painted clay backdrop, with chunky simplified shapes and visible fingerprints. Not live action, not a photograph, not CGI. Only the layout, action and camera move of the source video stay the same.",
+      "local-wan": "From the first frame, the entire scene is rebuilt as a stop-motion plasticine film on a miniature set. Chunky clay shapes, finger impressions and sculpted seams replace every surface; trees are clay lumps and the sky is a painted backdrop. The layout and movement follow the source video, with this treatment sustained in every frame."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-clay/809401009996ca8528142df755fcaefaff864dd35168b456db6494156a22519a.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-clay/809401009996ca8528142df755fcaefaff864dd35168b456db6494156a22519a-late.png",
+      "run": "runs/effect.restyle-clay.json"
+    }
+  },
+  {
+    "id": "effect.restyle-comic",
+    "version": 1,
+    "kind": "effect",
+    "name": "Comic book restyle",
+    "description": "Restyle the video as a comic book animation with bold ink contours, halftone shading and graphic color blocks.",
+    "tags": [
+      "restyle",
+      "comic"
+    ],
+    "slot": "effect",
+    "modes": [
+      "video_edit"
+    ],
+    "inputs": [
+      "video"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Restyle the video as a comic book animation with bold ink contours, halftone shading and graphic color blocks. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames.",
+      "local-wan": "From the first frame, the entire scene is rebuilt as an animated comic book. Heavy black ink outlines, halftone dot shadows and bold flat color panels build every figure, object and background. The layout and movement follow the source video, with this treatment sustained in every frame."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-comic/75f1841a160587dff7311f3c19e3ddd8fcd7989dbe64b3d93a72be8aa2955fa8.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-comic/75f1841a160587dff7311f3c19e3ddd8fcd7989dbe64b3d93a72be8aa2955fa8-late.png",
+      "run": "runs/effect.restyle-comic.json"
+    }
+  },
+  {
+    "id": "effect.restyle-neon",
+    "version": 1,
+    "kind": "effect",
+    "name": "Neon restyle",
+    "description": "Restyle the video with luminous neon lighting, cyan and magenta highlights, deep violet shadows and reflective surfaces.",
+    "tags": [
+      "restyle",
+      "neon"
+    ],
+    "slot": "effect",
+    "modes": [
+      "video_edit"
+    ],
+    "inputs": [
+      "video"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Restyle the video with luminous neon lighting, cyan and magenta highlights, deep violet shadows and reflective surfaces. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames.",
+      "local-wan": "From the first frame, the entire scene is rebuilt as a luminous neon-lit film. Cyan edge light and magenta reflections spread across surfaces, with deep violet shadows and glowing colored highlights throughout the setting. The layout and movement follow the source video, with this treatment sustained in every frame."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-neon/09cab2aeaf87a1a294c98ef0a302a50fbfb270dfa31758c28ddddd7be915ff4a.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-neon/09cab2aeaf87a1a294c98ef0a302a50fbfb270dfa31758c28ddddd7be915ff4a-late.png",
+      "run": "runs/effect.restyle-neon.json"
+    }
+  },
+  {
+    "id": "effect.restyle-noir",
+    "version": 1,
+    "kind": "effect",
+    "name": "Film noir restyle",
+    "description": "Restyle the video as black-and-white film noir with deep shadows, hard directional light and fine film grain.",
+    "tags": [
+      "restyle",
+      "noir"
+    ],
+    "slot": "effect",
+    "modes": [
+      "video_edit"
+    ],
+    "inputs": [
+      "video"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Restyle the video as black-and-white film noir with deep shadows, hard directional light and fine film grain. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames.",
+      "local-wan": "From the first frame, the entire scene is rebuilt as a monochrome film noir. Hard side lighting carves bright silver highlights and deep black shadows across the scene, with fine moving film grain. The layout and movement follow the source video, with this treatment sustained in every frame."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-noir/e92943d72951a975d9e9cc2bd7b6709af35c90de713ed343490fe9e7067f8789.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-noir/e92943d72951a975d9e9cc2bd7b6709af35c90de713ed343490fe9e7067f8789-late.png",
+      "run": "runs/effect.restyle-noir.json"
+    }
+  },
+  {
+    "id": "effect.restyle-oil-painting",
+    "version": 1,
+    "kind": "effect",
+    "name": "Oil painting restyle",
+    "description": "Restyle the video as animated oil painting with visible brushstrokes, layered pigments and rich canvas texture.",
+    "tags": [
+      "restyle",
+      "oil-painting"
+    ],
+    "slot": "effect",
+    "modes": [
+      "video_edit"
+    ],
+    "inputs": [
+      "video"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "The source video remade from scratch as a moving oil painting on canvas. Every object, the architecture, the plants, the ground and the sky are built from thick visible impasto brushstrokes, with loose simplified forms, broken color and ridged paint. Not live action, not a photograph, not CGI. Only the layout, action and camera move of the source video stay the same.",
+      "local-wan": "From the first frame, the entire scene is rebuilt as a moving oil painting on canvas. Thick ridged impasto strokes build every figure, tree, wall and patch of sky with broken colors and loose painted shapes. The layout and movement follow the source video, with this treatment sustained in every frame."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-oil-painting/b7ab6ab130ffde0118b2a0a083f8f1a1c8e2a3456ed34a961f91488a5a89e859.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-oil-painting/b7ab6ab130ffde0118b2a0a083f8f1a1c8e2a3456ed34a961f91488a5a89e859-late.png",
+      "run": "runs/effect.restyle-oil-painting.json"
+    }
+  },
+  {
+    "id": "effect.restyle-pixel",
+    "version": 1,
+    "kind": "effect",
+    "name": "Pixel art restyle",
+    "description": "Restyle the video as pixel art animation with crisp pixel edges, a limited palette and readable silhouettes.",
+    "tags": [
+      "restyle",
+      "pixel"
+    ],
+    "slot": "effect",
+    "modes": [
+      "video_edit"
+    ],
+    "inputs": [
+      "video"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Restyle the video as pixel art animation with crisp pixel edges, a limited palette and readable silhouettes. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames.",
+      "local-wan": "From the first frame, the entire scene is rebuilt as a pixel art animation. Crisp square pixels, stepped contours and a small consistent color palette construct every silhouette and all background details. The layout and movement follow the source video, with this treatment sustained in every frame."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-pixel/12ba69da4a3da52999dba98753a2b9efb14b69c59699fcb33720bb87a74f131a.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-pixel/12ba69da4a3da52999dba98753a2b9efb14b69c59699fcb33720bb87a74f131a-late.png",
+      "run": "runs/effect.restyle-pixel.json"
+    }
+  },
+  {
+    "id": "effect.restyle-watercolor",
+    "version": 1,
+    "kind": "effect",
+    "name": "Watercolor restyle",
+    "description": "Restyle the video as watercolor animation with translucent washes, soft pigment edges and textured paper.",
+    "tags": [
+      "restyle",
+      "watercolor"
+    ],
+    "slot": "effect",
+    "modes": [
+      "video_edit"
+    ],
+    "inputs": [
+      "video"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Repaint every frame, from the very first, as a watercolor painting: translucent washes, bleeding pigment edges and visible paper grain, with white paper showing through. No photographic texture remains. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames.",
+      "local-wan": "From the first frame, the entire scene is rebuilt as a moving watercolor illustration on textured paper. Translucent washes, bleeding pigment edges and exposed white paper form every figure, object and background. The layout and movement follow the source video, with this treatment sustained in every frame."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-watercolor/73fbf3ab7f3370e9009e34af15559cb5b9acaebb3f91097a54c2a1c7d704f994.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-watercolor/73fbf3ab7f3370e9009e34af15559cb5b9acaebb3f91097a54c2a1c7d704f994-late.png",
+      "run": "runs/effect.restyle-watercolor.json"
+    }
+  },
+  {
+    "id": "effect.smoke-vanish",
+    "version": 1,
+    "kind": "effect",
+    "name": "Smoke vanish",
+    "description": "Animates the subject to dissolve into drifting smoke and vanish.",
+    "tags": [
+      "effect",
+      "smoke",
+      "transform"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "dissolve into drifting smoke and vanish"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "The subject dissolves from its edges into thick curling smoke. Its solid form disappears completely as the remaining wisps drift away and reveal the space behind it."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.smoke-vanish/b0420249251076509815f36c7bf4597ff3e890ff2b232564ec035f1bc537dd92.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.smoke-vanish/b0420249251076509815f36c7bf4597ff3e890ff2b232564ec035f1bc537dd92.png",
+      "run": "runs/effect.smoke-vanish.json"
+    }
+  },
+  {
+    "id": "effect.snow-blanket",
+    "version": 1,
+    "kind": "effect",
+    "name": "Snow blanket",
+    "description": "Edits the photo to cover the scene in a fresh blanket of soft snow with gentle snowfall.",
+    "tags": [
+      "effect",
+      "weather",
+      "stylize"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_edit"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "cover the scene in a fresh blanket of soft snow with gentle snowfall"
+    ],
+    "prompt": {
+      "default": "Edit the image to cover the scene in a fresh blanket of soft snow with gentle snowfall. Keep the composition and subject identical.",
+      "local-wan": "A thick layer of fresh white snow covers the ground and upward-facing surfaces. Soft snow piles follow the scene's shapes while small flakes fill the air under cool diffuse light."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.snow-blanket/e205c0572ea962cf6ae3f1ad143c36eed886af5fd1229e7c0e8635e700221987.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.snow-blanket/e205c0572ea962cf6ae3f1ad143c36eed886af5fd1229e7c0e8635e700221987.png",
+      "run": "runs/effect.snow-blanket.json"
+    }
+  },
+  {
+    "id": "effect.tilt-shift-miniature",
+    "version": 1,
+    "kind": "effect",
+    "name": "Tilt-shift miniature",
+    "description": "Edits the photo to restyle it as a tilt-shift miniature model with shallow focus and saturated colors.",
+    "tags": [
+      "effect",
+      "stylize",
+      "lens"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_edit"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "restyle it as a tilt-shift miniature model with shallow focus and saturated colors"
+    ],
+    "prompt": {
+      "default": "Edit the image to restyle it as a tilt-shift miniature model with shallow focus and saturated colors. Keep the composition and subject identical.",
+      "local-wan": "The scene becomes a detailed tabletop miniature with tiny crafted objects and saturated colors. A narrow band through the subject is sharp while the foreground and distant background soften strongly."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.tilt-shift-miniature/3e3ec6b8fa64d29ad31ab750be7fbdc5c7317fe9bf25d9117bcfadaaff4c5d98.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.tilt-shift-miniature/3e3ec6b8fa64d29ad31ab750be7fbdc5c7317fe9bf25d9117bcfadaaff4c5d98.png",
+      "run": "runs/effect.tilt-shift-miniature.json"
+    }
+  },
+  {
+    "id": "effect.underwater-caustics",
+    "version": 1,
+    "kind": "effect",
+    "name": "Underwater drift",
+    "description": "Animates the subject to drift underwater with slow caustic light ripples.",
+    "tags": [
+      "effect",
+      "water",
+      "light"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "drift underwater with slow caustic light ripples"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "The subject floats gently underwater as slow currents move it. Rippling bands of sunlight travel across its surface and small bubbles rise through the surrounding blue water."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.underwater-caustics/b9c3d9a2d2c97d2dada18f72ed7e7a7bafbfaf8eb84498e8bd4e253d356ff795.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.underwater-caustics/b9c3d9a2d2c97d2dada18f72ed7e7a7bafbfaf8eb84498e8bd4e253d356ff795.png",
+      "run": "runs/effect.underwater-caustics.json"
+    }
+  },
+  {
+    "id": "look.arri-alexa",
+    "version": 1,
+    "kind": "look",
+    "name": "ARRI Alexa",
+    "description": "ARRI Alexa large-format rendering: gentle highlight roll-off, open shadow detail and restrained edge sharpening.",
+    "tags": [
+      "look",
+      "body"
+    ],
+    "slot": "body",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video",
+      "image"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "ARRI Alexa large-format rendering: gentle highlight roll-off, open shadow detail and restrained edge sharpening.",
+      "kling": "ARRI Alexa large-format rendering: gentle highlight roll-off, open shadow detail and restrained edge sharpening. Maintain this rendering consistently across the scene.",
+      "seedance": "ARRI Alexa large-format rendering: gentle highlight roll-off, open shadow detail and restrained edge sharpening. Preserve this appearance throughout one continuous shot.",
+      "veo": "ARRI Alexa large-format rendering: gentle highlight roll-off, open shadow detail and restrained edge sharpening. Keep the lighting and color response consistent between frames.",
+      "wan": "ARRI Alexa large-format rendering: gentle highlight roll-off, open shadow detail and restrained edge sharpening. Retain natural subject detail under this visual treatment."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.arri-alexa/d5e19639298fec14d20e042ed01089c76a75db398f223edecd75f6b2de42e523.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.arri-alexa/d5e19639298fec14d20e042ed01089c76a75db398f223edecd75f6b2de42e523-late.png",
+      "run": "runs/look.arri-alexa.json"
+    }
+  },
+  {
+    "id": "look.bleach-bypass",
+    "version": 1,
+    "kind": "look",
+    "name": "Bleach bypass",
+    "description": "Bleach-bypass grade: retain silver-like density, reduce color saturation, deepen blacks and preserve bright metallic highlights.",
+    "tags": [
+      "look",
+      "grade"
+    ],
+    "slot": "grade",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video",
+      "image"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Bleach-bypass grade: retain silver-like density, reduce color saturation, deepen blacks and preserve bright metallic highlights.",
+      "kling": "Bleach-bypass grade: retain silver-like density, reduce color saturation, deepen blacks and preserve bright metallic highlights. Maintain this rendering consistently across the scene.",
+      "seedance": "Bleach-bypass grade: retain silver-like density, reduce color saturation, deepen blacks and preserve bright metallic highlights. Preserve this appearance throughout one continuous shot.",
+      "veo": "Bleach-bypass grade: retain silver-like density, reduce color saturation, deepen blacks and preserve bright metallic highlights. Keep the lighting and color response consistent between frames.",
+      "wan": "Bleach-bypass grade: retain silver-like density, reduce color saturation, deepen blacks and preserve bright metallic highlights. Retain natural subject detail under this visual treatment."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.bleach-bypass/82880a66cbca3dc4001fdb3521ce8b40e6f774c0c67fae2463fc57575eb168ac.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.bleach-bypass/82880a66cbca3dc4001fdb3521ce8b40e6f774c0c67fae2463fc57575eb168ac-late.png",
+      "run": "runs/look.bleach-bypass.json"
+    }
+  },
+  {
+    "id": "look.bolex-h16",
+    "version": 1,
+    "kind": "look",
+    "name": "Bolex H16",
+    "description": "Bolex H16 16 mm rendering: slight gate weave, compact grain and soft corners with a subtle mechanical exposure flutter.",
+    "tags": [
+      "look",
+      "body"
+    ],
+    "slot": "body",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video",
+      "image"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Bolex H16 16 mm rendering: slight gate weave, compact grain and soft corners with a subtle mechanical exposure flutter.",
+      "kling": "Bolex H16 16 mm rendering: slight gate weave, compact grain and soft corners with a subtle mechanical exposure flutter. Maintain this rendering consistently across the scene.",
+      "seedance": "Bolex H16 16 mm rendering: slight gate weave, compact grain and soft corners with a subtle mechanical exposure flutter. Preserve this appearance throughout one continuous shot.",
+      "veo": "Bolex H16 16 mm rendering: slight gate weave, compact grain and soft corners with a subtle mechanical exposure flutter. Keep the lighting and color response consistent between frames.",
+      "wan": "Bolex H16 16 mm rendering: slight gate weave, compact grain and soft corners with a subtle mechanical exposure flutter. Retain natural subject detail under this visual treatment."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.bolex-h16/ced551c5704acfddbdb4b7548431e944be70fa27e8de998dde577c7fc8cd6a79.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.bolex-h16/ced551c5704acfddbdb4b7548431e944be70fa27e8de998dde577c7fc8cd6a79-late.png",
+      "run": "runs/look.bolex-h16.json"
+    }
+  },
+  {
+    "id": "look.fast-slow-fast",
+    "version": 1,
+    "kind": "look",
+    "name": "Fast slow fast",
+    "description": "Start with accelerated action, smoothly settle into slow motion at the midpoint, then accelerate through the finish without cuts or repeated action.",
+    "tags": [
+      "look",
+      "ramp"
+    ],
+    "slot": "ramp",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.speed-ramp"
+    ],
+    "aliases": [],
+    "prompt": {
+      "default": "Start with accelerated action, smoothly settle into slow motion at the midpoint, then accelerate through the finish without cuts or repeated action.",
+      "kling": "Start with accelerated action, smoothly settle into slow motion at the midpoint, then accelerate through the finish without cuts or repeated action. Apply the speed change to the subject's motion, without a camera cut.",
+      "seedance": "Start with accelerated action, smoothly settle into slow motion at the midpoint, then accelerate through the finish without cuts or repeated action. Keep the speed transition continuous within one shot.",
+      "veo": "Start with accelerated action, smoothly settle into slow motion at the midpoint, then accelerate through the finish without cuts or repeated action. Show a smooth temporal transition with consistent subject identity.",
+      "wan": "Start with accelerated action, smoothly settle into slow motion at the midpoint, then accelerate through the finish without cuts or repeated action. Gradually vary action speed with continuous subject motion."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.fast-slow-fast/1a27d500ec24fe29cd3280c5c3775e3902f6306a76822173b3ee2f031d597c40.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.fast-slow-fast/1a27d500ec24fe29cd3280c5c3775e3902f6306a76822173b3ee2f031d597c40-late.png",
+      "run": "runs/look.fast-slow-fast.json"
+    }
+  },
+  {
+    "id": "look.fuji-eterna",
+    "version": 1,
+    "kind": "look",
+    "name": "Fuji Eterna 400T",
+    "description": "Fuji Eterna 400T negative emulation: muted greens, pastel skin tones, low contrast and a cool bias in the shadows.",
+    "tags": [
+      "look",
+      "stock"
+    ],
+    "slot": "stock",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video",
+      "image"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Fuji Eterna 400T negative emulation: muted greens, pastel skin tones, low contrast and a cool bias in the shadows.",
+      "kling": "Fuji Eterna 400T negative emulation: muted greens, pastel skin tones, low contrast and a cool bias in the shadows. Maintain this rendering consistently across the scene.",
+      "seedance": "Fuji Eterna 400T negative emulation: muted greens, pastel skin tones, low contrast and a cool bias in the shadows. Preserve this appearance throughout one continuous shot.",
+      "veo": "Fuji Eterna 400T negative emulation: muted greens, pastel skin tones, low contrast and a cool bias in the shadows. Keep the lighting and color response consistent between frames.",
+      "wan": "Fuji Eterna 400T negative emulation: muted greens, pastel skin tones, low contrast and a cool bias in the shadows. Retain natural subject detail under this visual treatment."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.fuji-eterna/38a79e9070432cc4c93426b5066e1c468f957284223e5ff0eef3720d2acc2bc0.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.fuji-eterna/38a79e9070432cc4c93426b5066e1c468f957284223e5ff0eef3720d2acc2bc0-late.png",
+      "run": "runs/look.fuji-eterna.json"
+    }
+  },
+  {
+    "id": "look.hard-noon",
+    "version": 1,
+    "kind": "look",
+    "name": "Hard noon sun",
+    "description": "Light with hard overhead midday sun: short dense shadows, crisp contours and bright pavement bounce beneath the face.",
+    "tags": [
+      "look",
+      "lighting"
+    ],
+    "slot": "lighting",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video",
+      "image"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "look.moonlit-blue"
+    ],
+    "aliases": [],
+    "prompt": {
+      "default": "Light with hard overhead midday sun: short dense shadows, crisp contours and bright pavement bounce beneath the face.",
+      "kling": "Light with hard overhead midday sun: short dense shadows, crisp contours and bright pavement bounce beneath the face. Maintain this rendering consistently across the scene.",
+      "seedance": "Light with hard overhead midday sun: short dense shadows, crisp contours and bright pavement bounce beneath the face. Preserve this appearance throughout one continuous shot.",
+      "veo": "Light with hard overhead midday sun: short dense shadows, crisp contours and bright pavement bounce beneath the face. Keep the lighting and color response consistent between frames.",
+      "wan": "Light with hard overhead midday sun: short dense shadows, crisp contours and bright pavement bounce beneath the face. Retain natural subject detail under this visual treatment."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.hard-noon/0c78963f046ad5dc4eb0f1cdc1f50ef957dd25728c7edc548e2b67f76c9e0509.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.hard-noon/0c78963f046ad5dc4eb0f1cdc1f50ef957dd25728c7edc548e2b67f76c9e0509-late.png",
+      "run": "runs/look.hard-noon.json"
+    }
+  },
+  {
+    "id": "look.impact-ramp",
+    "version": 1,
+    "kind": "look",
+    "name": "Impact speed ramp",
+    "description": "Play the action at natural speed, briefly decelerate through the moment of contact, then smoothly return to natural speed without repeating the action.",
+    "tags": [
+      "look",
+      "ramp"
+    ],
+    "slot": "ramp",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.speed-ramp"
+    ],
+    "aliases": [],
+    "prompt": {
+      "default": "Play the action at natural speed, briefly decelerate through the moment of contact, then smoothly return to natural speed without repeating the action.",
+      "kling": "Play the action at natural speed, briefly decelerate through the moment of contact, then smoothly return to natural speed without repeating the action. Apply the speed change to the subject's motion, without a camera cut.",
+      "seedance": "Play the action at natural speed, briefly decelerate through the moment of contact, then smoothly return to natural speed without repeating the action. Keep the speed transition continuous within one shot.",
+      "veo": "Play the action at natural speed, briefly decelerate through the moment of contact, then smoothly return to natural speed without repeating the action. Show a smooth temporal transition with consistent subject identity.",
+      "wan": "Play the action at natural speed, briefly decelerate through the moment of contact, then smoothly return to natural speed without repeating the action. Gradually vary action speed with continuous subject motion."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.impact-ramp/52b7bf61b7af74fa4ab0f6265ad979c98b0934a4863082738ca570da3b8d042f.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.impact-ramp/52b7bf61b7af74fa4ab0f6265ad979c98b0934a4863082738ca570da3b8d042f-late.png",
+      "run": "runs/look.impact-ramp.json"
+    }
+  },
+  {
+    "id": "look.kodak-5207",
+    "version": 1,
+    "kind": "look",
+    "name": "Kodak Vision3 250D",
+    "description": "Kodak Vision3 5207 250D daylight-negative emulation: warm skin, clear blue skies, fine grain and a long highlight shoulder.",
+    "tags": [
+      "look",
+      "stock"
+    ],
+    "slot": "stock",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video",
+      "image"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Kodak Vision3 5207 250D daylight-negative emulation: warm skin, clear blue skies, fine grain and a long highlight shoulder.",
+      "kling": "Kodak Vision3 5207 250D daylight-negative emulation: warm skin, clear blue skies, fine grain and a long highlight shoulder. Maintain this rendering consistently across the scene.",
+      "seedance": "Kodak Vision3 5207 250D daylight-negative emulation: warm skin, clear blue skies, fine grain and a long highlight shoulder. Preserve this appearance throughout one continuous shot.",
+      "veo": "Kodak Vision3 5207 250D daylight-negative emulation: warm skin, clear blue skies, fine grain and a long highlight shoulder. Keep the lighting and color response consistent between frames.",
+      "wan": "Kodak Vision3 5207 250D daylight-negative emulation: warm skin, clear blue skies, fine grain and a long highlight shoulder. Retain natural subject detail under this visual treatment."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.kodak-5207/6665e7b5f319ebaf7b7fc8877573b82abf390ffccb3ca41932a68776304ff6c5.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.kodak-5207/6665e7b5f319ebaf7b7fc8877573b82abf390ffccb3ca41932a68776304ff6c5-late.png",
+      "run": "runs/look.kodak-5207.json"
+    }
+  },
+  {
+    "id": "look.kodak-5219",
+    "version": 1,
+    "kind": "look",
+    "name": "Kodak Vision3 500T",
+    "description": "Kodak Vision3 5219 500T tungsten-negative emulation: warm practical bulbs, cyan shadow separation, fine grain and soft highlight halation.",
+    "tags": [
+      "look",
+      "stock"
+    ],
+    "slot": "stock",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video",
+      "image"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Kodak Vision3 5219 500T tungsten-negative emulation: warm practical bulbs, cyan shadow separation, fine grain and soft highlight halation.",
+      "kling": "Kodak Vision3 5219 500T tungsten-negative emulation: warm practical bulbs, cyan shadow separation, fine grain and soft highlight halation. Maintain this rendering consistently across the scene.",
+      "seedance": "Kodak Vision3 5219 500T tungsten-negative emulation: warm practical bulbs, cyan shadow separation, fine grain and soft highlight halation. Preserve this appearance throughout one continuous shot.",
+      "veo": "Kodak Vision3 5219 500T tungsten-negative emulation: warm practical bulbs, cyan shadow separation, fine grain and soft highlight halation. Keep the lighting and color response consistent between frames.",
+      "wan": "Kodak Vision3 5219 500T tungsten-negative emulation: warm practical bulbs, cyan shadow separation, fine grain and soft highlight halation. Retain natural subject detail under this visual treatment."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.kodak-5219/809432dc4cf9da485086a58c696c663b31be47e84458fa8532500a2e8e8a0c4d.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.kodak-5219/809432dc4cf9da485086a58c696c663b31be47e84458fa8532500a2e8e8a0c4d-late.png",
+      "run": "runs/look.kodak-5219.json"
+    }
+  },
+  {
+    "id": "look.kodak-tri-x",
+    "version": 1,
+    "kind": "look",
+    "name": "Kodak Tri-X",
+    "description": "Kodak Tri-X reversal emulation in monochrome: coarse silver grain, bright whites, deep blacks and a short tonal shoulder.",
+    "tags": [
+      "look",
+      "stock"
+    ],
+    "slot": "stock",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video",
+      "image"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "look.teal-amber",
+      "look.technicolor-1950s"
+    ],
+    "aliases": [],
+    "prompt": {
+      "default": "Kodak Tri-X reversal emulation in monochrome: coarse silver grain, bright whites, deep blacks and a short tonal shoulder.",
+      "kling": "Kodak Tri-X reversal emulation in monochrome: coarse silver grain, bright whites, deep blacks and a short tonal shoulder. Maintain this rendering consistently across the scene.",
+      "seedance": "Kodak Tri-X reversal emulation in monochrome: coarse silver grain, bright whites, deep blacks and a short tonal shoulder. Preserve this appearance throughout one continuous shot.",
+      "veo": "Kodak Tri-X reversal emulation in monochrome: coarse silver grain, bright whites, deep blacks and a short tonal shoulder. Keep the lighting and color response consistent between frames.",
+      "wan": "Kodak Tri-X reversal emulation in monochrome: coarse silver grain, bright whites, deep blacks and a short tonal shoulder. Retain natural subject detail under this visual treatment."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.kodak-tri-x/dbc252ff6b6a7d8e0ee7c37daa05c5a46c7a804a159c14ee1bc5879c6cbb8514.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.kodak-tri-x/dbc252ff6b6a7d8e0ee7c37daa05c5a46c7a804a159c14ee1bc5879c6cbb8514-late.png",
+      "run": "runs/look.kodak-tri-x.json"
+    }
+  },
+  {
+    "id": "look.moonlit-blue",
+    "version": 1,
+    "kind": "look",
+    "name": "Moonlit blue",
+    "description": "Light with a broad cool moonlight source from the side, a low fill level and a narrow rim separating the silhouette from the dark background.",
+    "tags": [
+      "look",
+      "lighting"
+    ],
+    "slot": "lighting",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video",
+      "image"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "look.hard-noon"
+    ],
+    "aliases": [],
+    "prompt": {
+      "default": "Light with a broad cool moonlight source from the side, a low fill level and a narrow rim separating the silhouette from the dark background.",
+      "kling": "Light with a broad cool moonlight source from the side, a low fill level and a narrow rim separating the silhouette from the dark background. Maintain this rendering consistently across the scene.",
+      "seedance": "Light with a broad cool moonlight source from the side, a low fill level and a narrow rim separating the silhouette from the dark background. Preserve this appearance throughout one continuous shot.",
+      "veo": "Light with a broad cool moonlight source from the side, a low fill level and a narrow rim separating the silhouette from the dark background. Keep the lighting and color response consistent between frames.",
+      "wan": "Light with a broad cool moonlight source from the side, a low fill level and a narrow rim separating the silhouette from the dark background. Retain natural subject detail under this visual treatment."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.moonlit-blue/b5af4cb297a92526e2ffd7a297e41a51205d37068351bdc0593344f5fd69a2a4.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.moonlit-blue/b5af4cb297a92526e2ffd7a297e41a51205d37068351bdc0593344f5fd69a2a4-late.png",
+      "run": "runs/look.moonlit-blue.json"
+    }
+  },
+  {
+    "id": "look.new-hollywood-1970s",
+    "version": 1,
+    "kind": "look",
+    "name": "1970s New Hollywood",
+    "description": "Use a 1970s New Hollywood print finish: warm earth tones, subdued blues, visible 35 mm grain and slight halation around practical lights. Preserve the described scene and wardrobe.",
+    "tags": [
+      "look",
+      "era"
+    ],
+    "slot": "era",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video",
+      "image"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Use a 1970s New Hollywood print finish: warm earth tones, subdued blues, visible 35 mm grain and slight halation around practical lights. Preserve the described scene and wardrobe.",
+      "kling": "Use a 1970s New Hollywood print finish: warm earth tones, subdued blues, visible 35 mm grain and slight halation around practical lights. Preserve the described scene and wardrobe. Maintain this rendering consistently across the scene.",
+      "seedance": "Use a 1970s New Hollywood print finish: warm earth tones, subdued blues, visible 35 mm grain and slight halation around practical lights. Preserve the described scene and wardrobe. Preserve this appearance throughout one continuous shot.",
+      "veo": "Use a 1970s New Hollywood print finish: warm earth tones, subdued blues, visible 35 mm grain and slight halation around practical lights. Preserve the described scene and wardrobe. Keep the lighting and color response consistent between frames.",
+      "wan": "Use a 1970s New Hollywood print finish: warm earth tones, subdued blues, visible 35 mm grain and slight halation around practical lights. Preserve the described scene and wardrobe. Retain natural subject detail under this visual treatment."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.new-hollywood-1970s/a2e075da87b7e67e52671fbc50155f74ac720b8a5677729b61777d06b0c2e2d4.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.new-hollywood-1970s/a2e075da87b7e67e52671fbc50155f74ac720b8a5677729b61777d06b0c2e2d4-late.png",
+      "run": "runs/look.new-hollywood-1970s.json"
+    }
+  },
+  {
+    "id": "look.pastel-print",
+    "version": 1,
+    "kind": "look",
+    "name": "Pastel print",
+    "description": "Pastel print grade: lifted black floor, low saturation, peach highlights and soft blue shadows with gentle contrast.",
+    "tags": [
+      "look",
+      "grade"
+    ],
+    "slot": "grade",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video",
+      "image"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Pastel print grade: lifted black floor, low saturation, peach highlights and soft blue shadows with gentle contrast.",
+      "kling": "Pastel print grade: lifted black floor, low saturation, peach highlights and soft blue shadows with gentle contrast. Maintain this rendering consistently across the scene.",
+      "seedance": "Pastel print grade: lifted black floor, low saturation, peach highlights and soft blue shadows with gentle contrast. Preserve this appearance throughout one continuous shot.",
+      "veo": "Pastel print grade: lifted black floor, low saturation, peach highlights and soft blue shadows with gentle contrast. Keep the lighting and color response consistent between frames.",
+      "wan": "Pastel print grade: lifted black floor, low saturation, peach highlights and soft blue shadows with gentle contrast. Retain natural subject detail under this visual treatment."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.pastel-print/182a090af75fd84b1463d0d632a6d1e8290478005ebefb6aabef8e86c01c4d98.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.pastel-print/182a090af75fd84b1463d0d632a6d1e8290478005ebefb6aabef8e86c01c4d98-late.png",
+      "run": "runs/look.pastel-print.json"
+    }
+  },
+  {
+    "id": "look.ramp-into-slow",
+    "version": 1,
+    "kind": "look",
+    "name": "Ramp into slow motion",
+    "description": "Begin at natural action speed, smoothly decelerate into slow motion at the action peak, then hold slow motion through the end. Keep the same action and camera path.",
+    "tags": [
+      "look",
+      "ramp"
+    ],
+    "slot": "ramp",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.speed-ramp"
+    ],
+    "aliases": [],
+    "prompt": {
+      "default": "Begin at natural action speed, smoothly decelerate into slow motion at the action peak, then hold slow motion through the end. Keep the same action and camera path.",
+      "kling": "Begin at natural action speed, smoothly decelerate into slow motion at the action peak, then hold slow motion through the end. Keep the same action and camera path. Apply the speed change to the subject's motion, without a camera cut.",
+      "seedance": "Begin at natural action speed, smoothly decelerate into slow motion at the action peak, then hold slow motion through the end. Keep the same action and camera path. Keep the speed transition continuous within one shot.",
+      "veo": "Begin at natural action speed, smoothly decelerate into slow motion at the action peak, then hold slow motion through the end. Keep the same action and camera path. Show a smooth temporal transition with consistent subject identity.",
+      "wan": "Begin at natural action speed, smoothly decelerate into slow motion at the action peak, then hold slow motion through the end. Keep the same action and camera path. Gradually vary action speed with continuous subject motion."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.ramp-into-slow/688883ede14f55dfa40dfb2947bc8adad9bcdfc18943b9f2b8869fb2cb3d71c8.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.ramp-into-slow/688883ede14f55dfa40dfb2947bc8adad9bcdfc18943b9f2b8869fb2cb3d71c8-late.png",
+      "run": "runs/look.ramp-into-slow.json"
+    }
+  },
+  {
+    "id": "look.ramp-out-of-slow",
+    "version": 1,
+    "kind": "look",
+    "name": "Ramp out of slow motion",
+    "description": "Begin in slow motion, smoothly accelerate to natural action speed halfway through, then hold natural speed. Keep the same action and camera path.",
+    "tags": [
+      "look",
+      "ramp"
+    ],
+    "slot": "ramp",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.speed-ramp"
+    ],
+    "aliases": [],
+    "prompt": {
+      "default": "Begin in slow motion, smoothly accelerate to natural action speed halfway through, then hold natural speed. Keep the same action and camera path.",
+      "kling": "Begin in slow motion, smoothly accelerate to natural action speed halfway through, then hold natural speed. Keep the same action and camera path. Apply the speed change to the subject's motion, without a camera cut.",
+      "seedance": "Begin in slow motion, smoothly accelerate to natural action speed halfway through, then hold natural speed. Keep the same action and camera path. Keep the speed transition continuous within one shot.",
+      "veo": "Begin in slow motion, smoothly accelerate to natural action speed halfway through, then hold natural speed. Keep the same action and camera path. Show a smooth temporal transition with consistent subject identity.",
+      "wan": "Begin in slow motion, smoothly accelerate to natural action speed halfway through, then hold natural speed. Keep the same action and camera path. Gradually vary action speed with continuous subject motion."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.ramp-out-of-slow/8b1d018cb84398d3c85a5c0174d40a52b54821643d21a967ef171f7c66d0bc29.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.ramp-out-of-slow/8b1d018cb84398d3c85a5c0174d40a52b54821643d21a967ef171f7c66d0bc29-late.png",
+      "run": "runs/look.ramp-out-of-slow.json"
+    }
+  },
+  {
+    "id": "look.red-v-raptor",
+    "version": 1,
+    "kind": "look",
+    "name": "RED V-Raptor",
+    "description": "RED V-Raptor rendering: crisp fine texture, dense blacks and clean specular highlights without digital halos.",
+    "tags": [
+      "look",
+      "body"
+    ],
+    "slot": "body",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video",
+      "image"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "RED V-Raptor rendering: crisp fine texture, dense blacks and clean specular highlights without digital halos.",
+      "kling": "RED V-Raptor rendering: crisp fine texture, dense blacks and clean specular highlights without digital halos. Maintain this rendering consistently across the scene.",
+      "seedance": "RED V-Raptor rendering: crisp fine texture, dense blacks and clean specular highlights without digital halos. Preserve this appearance throughout one continuous shot.",
+      "veo": "RED V-Raptor rendering: crisp fine texture, dense blacks and clean specular highlights without digital halos. Keep the lighting and color response consistent between frames.",
+      "wan": "RED V-Raptor rendering: crisp fine texture, dense blacks and clean specular highlights without digital halos. Retain natural subject detail under this visual treatment."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.red-v-raptor/c0fdac48064512a6e0287d1ccf15ad1daa46edd7ac1cc248011dbacbc443d59c.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.red-v-raptor/c0fdac48064512a6e0287d1ccf15ad1daa46edd7ac1cc248011dbacbc443d59c-late.png",
+      "run": "runs/look.red-v-raptor.json"
+    }
+  },
+  {
+    "id": "look.rembrandt-key",
+    "version": 1,
+    "kind": "look",
+    "name": "Rembrandt key",
+    "description": "Light with one soft key forty-five degrees to the face and slightly above eye level, leaving a small triangle on the shadow cheek and minimal fill.",
+    "tags": [
+      "look",
+      "lighting"
+    ],
+    "slot": "lighting",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video",
+      "image"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Light with one soft key forty-five degrees to the face and slightly above eye level, leaving a small triangle on the shadow cheek and minimal fill.",
+      "kling": "Light with one soft key forty-five degrees to the face and slightly above eye level, leaving a small triangle on the shadow cheek and minimal fill. Maintain this rendering consistently across the scene.",
+      "seedance": "Light with one soft key forty-five degrees to the face and slightly above eye level, leaving a small triangle on the shadow cheek and minimal fill. Preserve this appearance throughout one continuous shot.",
+      "veo": "Light with one soft key forty-five degrees to the face and slightly above eye level, leaving a small triangle on the shadow cheek and minimal fill. Keep the lighting and color response consistent between frames.",
+      "wan": "Light with one soft key forty-five degrees to the face and slightly above eye level, leaving a small triangle on the shadow cheek and minimal fill. Retain natural subject detail under this visual treatment."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.rembrandt-key/4cb59fe2baec913737d42b3fae834165fd4d067d63d78abe9ddb7c15b7dbc4ae.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.rembrandt-key/4cb59fe2baec913737d42b3fae834165fd4d067d63d78abe9ddb7c15b7dbc4ae-late.png",
+      "run": "runs/look.rembrandt-key.json"
+    }
+  },
+  {
+    "id": "look.silent-1920s",
+    "version": 1,
+    "kind": "look",
+    "name": "1920s silent cinema",
+    "description": "Use a 1920s silent-cinema finish: monochrome orthochromatic-like tonality, luminous skin, dark reds, mild corner falloff and irregular fine scratches. Preserve the described scene and wardrobe.",
+    "tags": [
+      "look",
+      "era"
+    ],
+    "slot": "era",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video",
+      "image"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Use a 1920s silent-cinema finish: monochrome orthochromatic-like tonality, luminous skin, dark reds, mild corner falloff and irregular fine scratches. Preserve the described scene and wardrobe.",
+      "kling": "Use a 1920s silent-cinema finish: monochrome orthochromatic-like tonality, luminous skin, dark reds, mild corner falloff and irregular fine scratches. Preserve the described scene and wardrobe. Maintain this rendering consistently across the scene.",
+      "seedance": "Use a 1920s silent-cinema finish: monochrome orthochromatic-like tonality, luminous skin, dark reds, mild corner falloff and irregular fine scratches. Preserve the described scene and wardrobe. Preserve this appearance throughout one continuous shot.",
+      "veo": "Use a 1920s silent-cinema finish: monochrome orthochromatic-like tonality, luminous skin, dark reds, mild corner falloff and irregular fine scratches. Preserve the described scene and wardrobe. Keep the lighting and color response consistent between frames.",
+      "wan": "Use a 1920s silent-cinema finish: monochrome orthochromatic-like tonality, luminous skin, dark reds, mild corner falloff and irregular fine scratches. Preserve the described scene and wardrobe. Retain natural subject detail under this visual treatment."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.silent-1920s/4f85c76ac2e03a7912567e39e44ea0a659ac51d4b04703868555c4ed67fa43a1.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.silent-1920s/4f85c76ac2e03a7912567e39e44ea0a659ac51d4b04703868555c4ed67fa43a1-late.png",
+      "run": "runs/look.silent-1920s.json"
+    }
+  },
+  {
+    "id": "look.silver-monochrome",
+    "version": 1,
+    "kind": "look",
+    "name": "Silver monochrome",
+    "description": "Neutral black-and-white grade: separate skin and fabric through luminance, hold midtone detail and keep whites free of color tint.",
+    "tags": [
+      "look",
+      "grade"
+    ],
+    "slot": "grade",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video",
+      "image"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "look.teal-amber",
+      "look.technicolor-1950s"
+    ],
+    "aliases": [],
+    "prompt": {
+      "default": "Neutral black-and-white grade: separate skin and fabric through luminance, hold midtone detail and keep whites free of color tint.",
+      "kling": "Neutral black-and-white grade: separate skin and fabric through luminance, hold midtone detail and keep whites free of color tint. Maintain this rendering consistently across the scene.",
+      "seedance": "Neutral black-and-white grade: separate skin and fabric through luminance, hold midtone detail and keep whites free of color tint. Preserve this appearance throughout one continuous shot.",
+      "veo": "Neutral black-and-white grade: separate skin and fabric through luminance, hold midtone detail and keep whites free of color tint. Keep the lighting and color response consistent between frames.",
+      "wan": "Neutral black-and-white grade: separate skin and fabric through luminance, hold midtone detail and keep whites free of color tint. Retain natural subject detail under this visual treatment."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.silver-monochrome/206b4372f8a8141a4402fae5fba449dc0d344e67fdc84692ba4a879a58f5dab9.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.silver-monochrome/206b4372f8a8141a4402fae5fba449dc0d344e67fdc84692ba4a879a58f5dab9-late.png",
+      "run": "runs/look.silver-monochrome.json"
+    }
+  },
+  {
+    "id": "look.sony-venice",
+    "version": 1,
+    "kind": "look",
+    "name": "Sony Venice",
+    "description": "Sony Venice full-frame rendering: clean low-light detail, neutral skin tones and fine separation in saturated practical lights.",
+    "tags": [
+      "look",
+      "body"
+    ],
+    "slot": "body",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video",
+      "image"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Sony Venice full-frame rendering: clean low-light detail, neutral skin tones and fine separation in saturated practical lights.",
+      "kling": "Sony Venice full-frame rendering: clean low-light detail, neutral skin tones and fine separation in saturated practical lights. Maintain this rendering consistently across the scene.",
+      "seedance": "Sony Venice full-frame rendering: clean low-light detail, neutral skin tones and fine separation in saturated practical lights. Preserve this appearance throughout one continuous shot.",
+      "veo": "Sony Venice full-frame rendering: clean low-light detail, neutral skin tones and fine separation in saturated practical lights. Keep the lighting and color response consistent between frames.",
+      "wan": "Sony Venice full-frame rendering: clean low-light detail, neutral skin tones and fine separation in saturated practical lights. Retain natural subject detail under this visual treatment."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.sony-venice/9f79970935c8beb80bd6ae4d5fd28ab3c4171e94005aaebcc8a8c1697ba7d1f8.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.sony-venice/9f79970935c8beb80bd6ae4d5fd28ab3c4171e94005aaebcc8a8c1697ba7d1f8-late.png",
+      "run": "runs/look.sony-venice.json"
+    }
+  },
+  {
+    "id": "look.teal-amber",
+    "version": 1,
+    "kind": "look",
+    "name": "Teal and amber",
+    "description": "Teal-and-amber grade: cool cyan shadows against warm skin, neutral whites and controlled saturation in highlights.",
+    "tags": [
+      "look",
+      "grade"
+    ],
+    "slot": "grade",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video",
+      "image"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "look.kodak-tri-x",
+      "look.silver-monochrome"
+    ],
+    "aliases": [],
+    "prompt": {
+      "default": "Teal-and-amber grade: cool cyan shadows against warm skin, neutral whites and controlled saturation in highlights.",
+      "kling": "Teal-and-amber grade: cool cyan shadows against warm skin, neutral whites and controlled saturation in highlights. Maintain this rendering consistently across the scene.",
+      "seedance": "Teal-and-amber grade: cool cyan shadows against warm skin, neutral whites and controlled saturation in highlights. Preserve this appearance throughout one continuous shot.",
+      "veo": "Teal-and-amber grade: cool cyan shadows against warm skin, neutral whites and controlled saturation in highlights. Keep the lighting and color response consistent between frames.",
+      "wan": "Teal-and-amber grade: cool cyan shadows against warm skin, neutral whites and controlled saturation in highlights. Retain natural subject detail under this visual treatment."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.teal-amber/9bb930cd4b149ed4659cce42c921515fc70a899737cadea1c18cb087fd6d95ac.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.teal-amber/9bb930cd4b149ed4659cce42c921515fc70a899737cadea1c18cb087fd6d95ac-late.png",
+      "run": "runs/look.teal-amber.json"
+    }
+  },
+  {
+    "id": "look.technicolor-1950s",
+    "version": 1,
+    "kind": "look",
+    "name": "1950s dye-transfer print",
+    "description": "Use a 1950s three-strip dye-transfer print finish: rich reds, separated emerald greens, luminous skin and dense stable blacks. Preserve the described scene and wardrobe.",
+    "tags": [
+      "look",
+      "era"
+    ],
+    "slot": "era",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video",
+      "image"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "look.kodak-tri-x",
+      "look.silver-monochrome"
+    ],
+    "aliases": [],
+    "prompt": {
+      "default": "Use a 1950s three-strip dye-transfer print finish: rich reds, separated emerald greens, luminous skin and dense stable blacks. Preserve the described scene and wardrobe.",
+      "kling": "Use a 1950s three-strip dye-transfer print finish: rich reds, separated emerald greens, luminous skin and dense stable blacks. Preserve the described scene and wardrobe. Maintain this rendering consistently across the scene.",
+      "seedance": "Use a 1950s three-strip dye-transfer print finish: rich reds, separated emerald greens, luminous skin and dense stable blacks. Preserve the described scene and wardrobe. Preserve this appearance throughout one continuous shot.",
+      "veo": "Use a 1950s three-strip dye-transfer print finish: rich reds, separated emerald greens, luminous skin and dense stable blacks. Preserve the described scene and wardrobe. Keep the lighting and color response consistent between frames.",
+      "wan": "Use a 1950s three-strip dye-transfer print finish: rich reds, separated emerald greens, luminous skin and dense stable blacks. Preserve the described scene and wardrobe. Retain natural subject detail under this visual treatment."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.technicolor-1950s/665ff5194658a204fd4ce0e85616ac21b59d5be5f6df992b666fc59dff0a07ab.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.technicolor-1950s/665ff5194658a204fd4ce0e85616ac21b59d5be5f6df992b666fc59dff0a07ab-late.png",
+      "run": "runs/look.technicolor-1950s.json"
+    }
+  },
+  {
+    "id": "look.tungsten-practicals",
+    "version": 1,
+    "kind": "look",
+    "name": "Tungsten practicals",
+    "description": "Light with visible warm tungsten practical bulbs, localized pools of amber light and dim cool ambient fill, retaining detail around each bulb.",
+    "tags": [
+      "look",
+      "lighting"
+    ],
+    "slot": "lighting",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video",
+      "image"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Light with visible warm tungsten practical bulbs, localized pools of amber light and dim cool ambient fill, retaining detail around each bulb.",
+      "kling": "Light with visible warm tungsten practical bulbs, localized pools of amber light and dim cool ambient fill, retaining detail around each bulb. Maintain this rendering consistently across the scene.",
+      "seedance": "Light with visible warm tungsten practical bulbs, localized pools of amber light and dim cool ambient fill, retaining detail around each bulb. Preserve this appearance throughout one continuous shot.",
+      "veo": "Light with visible warm tungsten practical bulbs, localized pools of amber light and dim cool ambient fill, retaining detail around each bulb. Keep the lighting and color response consistent between frames.",
+      "wan": "Light with visible warm tungsten practical bulbs, localized pools of amber light and dim cool ambient fill, retaining detail around each bulb. Retain natural subject detail under this visual treatment."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.tungsten-practicals/de3b9d492d3d5a0f7af39533ead68619ac99ff46a5c92736b56a44009bdef451.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.tungsten-practicals/de3b9d492d3d5a0f7af39533ead68619ac99ff46a5c92736b56a44009bdef451-late.png",
+      "run": "runs/look.tungsten-practicals.json"
+    }
+  },
+  {
+    "id": "look.vhs-1990s",
+    "version": 1,
+    "kind": "look",
+    "name": "1990s VHS",
+    "description": "Use a 1990s VHS transfer finish: limited chroma resolution, slight horizontal color bleed, interlaced edge texture and soft tape noise. Preserve the described scene and wardrobe.",
+    "tags": [
+      "look",
+      "era"
+    ],
+    "slot": "era",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video",
+      "image"
+    ],
+    "inputs": [
+      "text"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Use a 1990s VHS transfer finish: limited chroma resolution, slight horizontal color bleed, interlaced edge texture and soft tape noise. Preserve the described scene and wardrobe.",
+      "kling": "Use a 1990s VHS transfer finish: limited chroma resolution, slight horizontal color bleed, interlaced edge texture and soft tape noise. Preserve the described scene and wardrobe. Maintain this rendering consistently across the scene.",
+      "seedance": "Use a 1990s VHS transfer finish: limited chroma resolution, slight horizontal color bleed, interlaced edge texture and soft tape noise. Preserve the described scene and wardrobe. Preserve this appearance throughout one continuous shot.",
+      "veo": "Use a 1990s VHS transfer finish: limited chroma resolution, slight horizontal color bleed, interlaced edge texture and soft tape noise. Preserve the described scene and wardrobe. Keep the lighting and color response consistent between frames.",
+      "wan": "Use a 1990s VHS transfer finish: limited chroma resolution, slight horizontal color bleed, interlaced edge texture and soft tape noise. Preserve the described scene and wardrobe. Retain natural subject detail under this visual treatment."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.vhs-1990s/595da2d4e951967c5dbb2ac28549860648eaa306f44a15c2bce831c19d7be9a2.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.vhs-1990s/595da2d4e951967c5dbb2ac28549860648eaa306f44a15c2bce831c19d7be9a2-late.png",
+      "run": "runs/look.vhs-1990s.json"
+    }
+  },
+  {
+    "id": "studio.cinematic-shot",
+    "version": 1,
+    "kind": "studio",
+    "name": "Cinematic shot",
+    "description": "A film-look video clip from one sentence: a slow push in on tungsten film stock with a teal-and-amber grade.",
+    "tags": [
+      "video",
+      "film"
+    ],
+    "target": {
+      "type": "create",
+      "mode": "video"
+    },
+    "preset_ids": [
+      "camera.dolly-in",
+      "look.kodak-5219",
+      "look.teal-amber"
+    ]
+  },
+  {
+    "id": "studio.film-scene",
+    "version": 1,
+    "kind": "studio",
+    "name": "Film a scene",
+    "description": "From one sentence to a storyboard of shots, then rendered stills and clips you can direct shot by shot.",
+    "tags": [
+      "storyboard",
+      "film"
+    ],
+    "target": {
+      "type": "flow",
+      "flow": "storyboard"
+    },
+    "preset_ids": []
+  },
+  {
+    "id": "studio.music-video",
+    "version": 1,
+    "kind": "studio",
+    "name": "Music video",
+    "description": "A beat-synced treatment and storyboard cut to your track.",
+    "tags": [
+      "music",
+      "storyboard"
+    ],
+    "target": {
+      "type": "skill",
+      "skill": "music-video-treatment"
+    },
+    "preset_ids": []
+  },
+  {
+    "id": "studio.photo-effects",
+    "version": 1,
+    "kind": "studio",
+    "name": "Animate a photo",
+    "description": "Drop in one photo and turn it into a short clip: levitate, burst into petals, melt to gold and more.",
+    "tags": [
+      "effect",
+      "image-to-video"
+    ],
+    "target": {
+      "type": "effects"
+    },
+    "preset_ids": [
+      "effect.levitate",
+      "effect.petal-burst",
+      "effect.confetti-burst",
+      "effect.golden-embers",
+      "effect.glass-shatter",
+      "effect.smoke-vanish",
+      "effect.liquid-chrome",
+      "effect.molten-gold"
+    ]
+  },
+  {
+    "id": "studio.portrait-photo",
+    "version": 1,
+    "kind": "studio",
+    "name": "Portrait photo",
+    "description": "A still portrait under a soft Rembrandt key on warm daylight film stock.",
+    "tags": [
+      "image",
+      "portrait"
+    ],
+    "target": {
+      "type": "create",
+      "mode": "image"
+    },
+    "preset_ids": [
+      "look.rembrandt-key",
+      "look.kodak-5207"
+    ]
+  },
+  {
+    "id": "studio.product-ad",
+    "version": 1,
+    "kind": "studio",
+    "name": "Product ad",
+    "description": "A finished launch commercial from a product page: storyboard, footage, voice, music and an edited timeline.",
+    "tags": [
+      "ad",
+      "product"
+    ],
+    "target": {
+      "type": "skill",
+      "skill": "launch-commercial"
+    },
+    "preset_ids": []
+  },
+  {
+    "id": "studio.product-hero",
+    "version": 1,
+    "kind": "studio",
+    "name": "Product hero shot",
+    "description": "A product turning in a slow orbit, rendered crisp with clean specular highlights.",
+    "tags": [
+      "video",
+      "product"
+    ],
+    "target": {
+      "type": "create",
+      "mode": "video"
+    },
+    "preset_ids": [
+      "camera.orbit",
+      "look.red-v-raptor"
+    ]
+  },
+  {
+    "id": "studio.talking-head",
+    "version": 1,
+    "kind": "studio",
+    "name": "Talking head",
+    "description": "A picture of a person speaking your line in a chosen voice, lip-synced.",
+    "tags": [
+      "lipsync",
+      "voice"
+    ],
+    "target": {
+      "type": "lipsync"
+    },
+    "preset_ids": []
+  },
+  {
+    "id": "studio.trailer",
+    "version": 1,
+    "kind": "studio",
+    "name": "Movie trailer",
+    "description": "A trailer from an idea: a beat sheet and shot list you can rewrite cheaply before rendering.",
+    "tags": [
+      "film",
+      "trailer"
+    ],
+    "target": {
+      "type": "app",
+      "app": "trailer-room"
+    },
+    "preset_ids": []
+  },
+  {
+    "id": "studio.ugc-ad",
+    "version": 1,
+    "kind": "studio",
+    "name": "Creator testimonial",
+    "description": "A phone-shot creator video for a product: the spoken pitch, captions and a branded end card.",
+    "tags": [
+      "ad",
+      "ugc"
+    ],
+    "target": {
+      "type": "app",
+      "app": "ugc-product-video"
+    },
+    "preset_ids": []
+  }
+]

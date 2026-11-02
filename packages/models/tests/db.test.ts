@@ -291,7 +291,7 @@ describe("db", () => {
             "SELECT version FROM _nodetool_migrations ORDER BY version DESC LIMIT 1"
           )
           .get()
-      ).toEqual({ version: "20261024_000000" });
+      ).toEqual({ version: "20261031_000000" });
       expect(
         getRawDb()
           .prepare("SELECT name FROM pragma_table_info('nodetool_jobs') WHERE name = 'has_run_trace'")

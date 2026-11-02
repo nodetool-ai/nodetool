@@ -24,6 +24,8 @@ export const capabilityForMode = (
     case "retake":
     case "extend":
       return "text_to_video";
+    case "audio_to_video":
+      return "lip_sync";
     case "music":
       return "text_to_music";
     case "audio":
@@ -52,6 +54,8 @@ export const setupReasonForMode = (mode: MediaMode): string | null => {
       return "Retake needs a video provider. Connect one to continue.";
     case "extend":
       return "Extending a video needs a video provider. Connect one to continue.";
+    case "audio_to_video":
+      return "Lipsync needs a lipsync provider. Connect one to continue.";
     case "music":
       return "Generating music needs a music provider. Connect one to continue.";
     case "audio":

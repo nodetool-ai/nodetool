@@ -243,6 +243,8 @@ export class Prediction extends DBModel {
   declare hardware: string | null;
   declare input_size: number | null;
   declare output_size: number | null;
+  declare preset_ids: string[] | null;
+  declare preset_warnings: string[] | null;
   declare parameters: Record<string, unknown> | null;
   declare metadata: Record<string, unknown> | null;
   declare idempotency_key: string | null;
@@ -275,6 +277,8 @@ export class Prediction extends DBModel {
     this.document_id ??= null;
     this.error ??= null;
     this.logs ??= null;
+    this.preset_ids ??= null;
+    this.preset_warnings ??= null;
     this.cost ??= null;
     this.input_tokens ??= null;
     this.output_tokens ??= null;

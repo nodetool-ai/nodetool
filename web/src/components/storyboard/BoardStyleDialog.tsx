@@ -18,6 +18,8 @@ import {
   Caption,
   Dialog,
   FlexColumn,
+  PresetPicker,
+  Label,
   SPACING
 } from "../ui_primitives";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
@@ -26,6 +28,7 @@ import {
   mergeStylePresetEntities,
   useStylePresets
 } from "../../serverState/useStylePresets";
+import { LOOK_PRESETS } from "../../lib/presets/catalog";
 import { PresetTileGrid, type PresetTile } from "../setup/PresetTileGrid";
 
 export interface BoardStyleDialogProps {
@@ -45,6 +48,12 @@ const BoardStyleDialogInner: React.FC<BoardStyleDialogProps> = ({
   onClose
 }) => {
   const { t } = useTranslation();
+  const lookIds = useStoryboardStore(
+    (state) => state.boards[boardId]?.look_preset_ids
+  );
+  const setLookPresetIds = useStoryboardStore(
+    (state) => state.setLookPresetIds
+  );
   const setStylePreset = useStoryboardStore((state) => state.setStylePreset);
   const entityIds = useStoryboardStore(
     useCallback(
@@ -97,6 +106,7 @@ const BoardStyleDialogInner: React.FC<BoardStyleDialogProps> = ({
         <Caption color="secondary">
           {t("screens4_12.boardStyleDialog.description")}
         </Caption>
+        <Label>{t("screens4_12.boardStyleDialog.artStyle")}</Label>
         <PresetTileGrid
           label={t("screens4_12.boardStyleDialog.artStyle")}
           presets={tiles}
@@ -108,6 +118,13 @@ const BoardStyleDialogInner: React.FC<BoardStyleDialogProps> = ({
           addOwnDisabledReason={t(
             "screens4_12.boardStyleDialog.addOwnDisabledReason"
           )}
+        />
+        <Label>{t("look_preset_field.board")}</Label>
+        <PresetPicker
+          presets={LOOK_PRESETS}
+          value={lookIds ?? []}
+          onChange={(ids) => setLookPresetIds(boardId, ids)}
+          filter={{ kind: "look" }}
         />
       </FlexColumn>
     </Dialog>

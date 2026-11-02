@@ -1,0 +1,41 @@
+{
+  "id": "camera.slow-pull-out",
+  "version": 1,
+  "kind": "camera",
+  "name": "slow pull out",
+  "description": "Camera slowly pulls away from the subject.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "camera.dolly-in"
+  ],
+  "aliases": [
+    "slow pull out"
+  ],
+  "prompt": {
+    "default": "Camera slowly pulls away from the subject.",
+    "kling": "Camera slowly pulls away from the subject.",
+    "seedance": "Camera slowly pulls away from the subject throughout one continuous shot.",
+    "veo": "Camera slowly pulls away from the subject.",
+    "wan": "Camera slowly pulls away from the subject.",
+    "local-wan": "The camera retreats very slowly from the subject throughout the shot. The subject gradually becomes smaller as a little more of the surroundings enters view. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.slow-pull-out/987972b7e6af3522d570d73a90b25f9355eebdadf1c05076adadae2f920b1562.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.slow-pull-out/987972b7e6af3522d570d73a90b25f9355eebdadf1c05076adadae2f920b1562.png",
+    "run": "runs/camera.slow-pull-out.json"
+  }
+}

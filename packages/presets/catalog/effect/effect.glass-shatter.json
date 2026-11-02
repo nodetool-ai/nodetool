@@ -1,0 +1,38 @@
+{
+  "id": "effect.glass-shatter",
+  "version": 1,
+  "kind": "effect",
+  "name": "Glass shatter",
+  "description": "Animates the subject to shatter into slow-motion crystalline glass fragments.",
+  "tags": [
+    "effect",
+    "destruction",
+    "glass"
+  ],
+  "slot": "effect",
+  "modes": [
+    "image_to_video"
+  ],
+  "inputs": [
+    "image"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "shatter into slow-motion crystalline glass fragments"
+  ],
+  "prompt": {
+    "default": "The subject begins still, then proceeds to shatter into slow-motion crystalline glass fragments. Fragments catch the light as they scatter outward. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+    "kling": "The subject begins still, then proceeds to shatter into slow-motion crystalline glass fragments. Fragments catch the light as they scatter outward. Physically accurate motion, steady locked camera.",
+    "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to shatter into slow-motion crystalline glass fragments. Fragments catch the light as they scatter outward. Physically accurate motion.",
+    "veo": "The subject begins still, then proceeds to shatter into slow-motion crystalline glass fragments. Fragments catch the light as they scatter outward. Cinematic lighting, realistic physics, locked camera.",
+    "wan": "The subject begins still, then proceeds to shatter into slow-motion crystalline glass fragments. Fragments catch the light as they scatter outward. Locked camera, smooth realistic motion, high detail.",
+    "local-wan": "The subject fractures into transparent glass shards that separate and scatter outward in slow motion. Sharp facets turn and catch bright reflections as they fall."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.glass-shatter/60fbb906a7374c147852a71e1c1b11f08ff49a9a642896ddb5db4160ed00c1f2.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.glass-shatter/60fbb906a7374c147852a71e1c1b11f08ff49a9a642896ddb5db4160ed00c1f2.png",
+    "run": "runs/effect.glass-shatter.json"
+  }
+}

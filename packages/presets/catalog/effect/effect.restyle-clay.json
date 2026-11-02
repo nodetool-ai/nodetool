@@ -1,0 +1,31 @@
+{
+  "id": "effect.restyle-clay",
+  "version": 1,
+  "kind": "effect",
+  "name": "Clay animation restyle",
+  "description": "Restyle the video as clay animation with sculpted forms, tactile surfaces and soft studio lighting.",
+  "tags": [
+    "restyle",
+    "clay"
+  ],
+  "slot": "effect",
+  "modes": [
+    "video_edit"
+  ],
+  "inputs": [
+    "video"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "The source video remade from scratch as a stop-motion claymation film on a miniature set. All real materials are replaced with plasticine: foliage becomes lumps of clay, stone and walls become smooth clay slabs, the ground becomes rolled clay and the sky a painted clay backdrop, with chunky simplified shapes and visible fingerprints. Not live action, not a photograph, not CGI. Only the layout, action and camera move of the source video stay the same.",
+    "local-wan": "From the first frame, the entire scene is rebuilt as a stop-motion plasticine film on a miniature set. Chunky clay shapes, finger impressions and sculpted seams replace every surface; trees are clay lumps and the sky is a painted backdrop. The layout and movement follow the source video, with this treatment sustained in every frame."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-clay/809401009996ca8528142df755fcaefaff864dd35168b456db6494156a22519a.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-clay/809401009996ca8528142df755fcaefaff864dd35168b456db6494156a22519a-late.png",
+    "run": "runs/effect.restyle-clay.json"
+  }
+}

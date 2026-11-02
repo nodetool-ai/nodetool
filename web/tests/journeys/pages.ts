@@ -479,6 +479,120 @@ export class TextFilePage {
   }
 }
 
+/** The Create view, opened from the New menu. */
+export class CreatePage {
+  constructor(private readonly page: Page) {}
+
+  /** Start the image model on the hermetic provider's, as Settings would. */
+  async seedImageModel(): Promise<void> {
+    await this.page.addInitScript(() => {
+      window.localStorage.setItem(
+        "nodetool-media-generation",
+        JSON.stringify({
+          state: {
+            image: {
+              model: {
+                type: "image_model",
+                id: "test-image-model",
+                provider: "openai",
+                name: "Test Image Model",
+                path: ""
+              },
+              resolution: "1K",
+              aspectRatio: "1:1",
+              variations: 1
+            }
+          },
+          version: 5
+        })
+      );
+    });
+  }
+
+  /** New → Create images and videos, from the workspace home. */
+  async open(): Promise<void> {
+    await goto(this.page, "/workspace");
+    await this.page.getByRole("button", { name: "Open or create a tab" }).click();
+    await this.page.getByRole("menuitem", { name: /Create images and videos/ }).click();
+    await this.prompt().waitFor({ state: "visible", timeout: 30_000 });
+  }
+
+  prompt(): Locator {
+    return this.page.getByRole("textbox", { name: "Describe what to create" });
+  }
+
+  async generate(prompt: string): Promise<void> {
+    await this.prompt().fill(prompt);
+    await this.page.getByRole("button", { name: "Generate" }).click();
+  }
+
+  /** The finished tiles, by the prompt each was made from. */
+  tile(prompt: string): Locator {
+    return this.page
+      .getByTestId("create-grid-item")
+      .filter({ hasText: prompt })
+      .filter({ has: this.page.getByRole("button", { name: /^Retake / }) });
+  }
+}
+
+/** The Effects gallery: one picture, one effect, one result. */
+export class EffectsPage {
+  constructor(private readonly page: Page) {}
+
+  /** The video model the run starts on, as the model chip's remembered default. */
+  static async rememberVideoModel(page: Page, provider: string, model: string): Promise<void> {
+    await page.addInitScript(({ provider, model }) => {
+      localStorage.setItem("nodetool-last-models:v1", JSON.stringify({
+        state: { byKind: { video: { provider, model } }, byTask: {} },
+        version: 0
+      }));
+    }, { provider, model });
+  }
+
+  /** New → "Add an effect to a photo", from the workspace home. */
+  async open(): Promise<void> {
+    await goto(this.page, "/workspace");
+    await this.page.getByRole("button", { name: "Open or create a tab" }).click();
+    await this.page.getByRole("menuitem", { name: /Add an effect to a photo/ }).click();
+    await this.gallery().waitFor({ state: "visible" });
+  }
+
+  gallery(): Locator {
+    return this.page.getByTestId("effects-gallery");
+  }
+
+  applyButton(): Locator {
+    return this.gallery().getByRole("button", { name: /^Apply effect$|^Applying/ });
+  }
+
+  card(name: string): Locator {
+    return this.gallery().getByRole("button", { name, exact: true });
+  }
+
+  result(): Locator {
+    return this.gallery().getByTestId("effects-result");
+  }
+
+  /** Drop an image onto the picture target the way a file from the desktop lands. */
+  async dropPicture(file: { name: string; mimeType: string; buffer: Buffer }): Promise<void> {
+    const zone = this.gallery().getByTestId("effects-drop-zone");
+    await zone.evaluate(async (element, payload) => {
+      const bytes = Uint8Array.from(atob(payload.base64), (char) => char.charCodeAt(0));
+      const transfer = new DataTransfer();
+      transfer.items.add(new File([bytes], payload.name, { type: payload.mimeType }));
+      for (const type of ["dragenter", "dragover", "drop"]) {
+        element.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: transfer }));
+      }
+    }, { base64: file.buffer.toString("base64"), name: file.name, mimeType: file.mimeType });
+  }
+
+  /** Open the bottom panel's Generations view. */
+  async openGenerations(): Promise<Locator> {
+    await this.page.getByRole("tab", { name: /^Generations/ }).click();
+    return this.page.getByRole("list", { name: "Generations" });
+  }
+}
+
 /** Home actions must work at their first painted positions, without scrolling. */
 export class HomePage {
   constructor(private readonly page: Page) {}

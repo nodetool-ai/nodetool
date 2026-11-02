@@ -1,0 +1,16 @@
+{
+  "id": "studio.film-scene",
+  "version": 1,
+  "kind": "studio",
+  "name": "Film a scene",
+  "description": "From one sentence to a storyboard of shots, then rendered stills and clips you can direct shot by shot.",
+  "tags": [
+    "storyboard",
+    "film"
+  ],
+  "target": {
+    "type": "flow",
+    "flow": "storyboard"
+  },
+  "preset_ids": []
+}

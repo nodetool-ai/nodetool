@@ -514,3 +514,12 @@ describe("stale selections across a board", () => {
     expect(staleClipShots(shots, BOARD).map((s) => s.id)).toEqual(["s2"]);
   });
 });
+
+describe("camera preset freshness", () => {
+  it("invalidates a clip when the ordered stack changes", () => {
+    const target: Shot = { type: "shot", id: "s1", index: 0, status: "planned", action: "walk", render_mode: "direct", camera: { preset_ids: ["camera.dolly-in"] } };
+    const version = { type: "video" as const, asset_id: "v1", render_inputs: stampRenderInputs(currentRenderInputs(target, BOARD, "clip")) };
+    expect(isVersionStale(version, target, BOARD)).toBe(false);
+    expect(isVersionStale(version, { ...target, camera: { preset_ids: ["camera.dolly-in", "camera.steadicam"] } }, BOARD)).toBe(true);
+  });
+});

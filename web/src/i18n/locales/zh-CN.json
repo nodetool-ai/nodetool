@@ -1,4 +1,9 @@
 {
+  "ejection": {
+    "unavailable": "未记录此旧生成结果的确切输入。请生成新版本以作为工作流打开。",
+    "open": "作为工作流打开",
+    "failed": "无法作为工作流打开：{{reason}}"
+  },
   "common": {
     "save": "保存",
     "cancel": "取消",
@@ -6158,6 +6163,7 @@
         "checkingModels": "正在检查语言模型，请稍后重试。",
         "chatNeedsModel": "快好了，聊天需要模型才能运行。",
         "pickModelToStartChat": "选择语言模型即可开始聊天。",
+        "pickMediaModel": "选择一个模型，生成随即开始。",
         "openChatError": "无法打开聊天：{{error}}",
         "startFlowError": "无法启动{{flow}}：{{error}}",
         "flowNames": {
@@ -6331,6 +6337,10 @@
           "model3d": {
             "title": "3D 模型",
             "description": "一个空白 3D 模型，手动编辑。无需 AI 提供商。"
+          },
+          "effects": {
+            "title": "给照片加特效",
+            "description": "把一张图片变成简短的特效视频"
           }
         },
         "allTypes": {
@@ -8101,7 +8111,11 @@
         "copyPrompt": "复制{{promptType}}",
         "emptyPrompt": "暂无可发送内容。",
         "referenceImages_one": "开始渲染时会附上 {{names}} 的参考图像。",
-        "referenceImages_other": "开始渲染时会附上 {{names}} 的参考图像。"
+        "referenceImages_other": "开始渲染时会附上 {{names}} 的参考图像。",
+        "cameraClause": "镜头措辞",
+        "defaultFallback": "{{model}} 没有针对 {{names}} 调校的措辞，因此使用默认措辞。",
+        "noVideoModel": "视频模型",
+        "cameraError": "无法编译镜头预设：{{message}}"
       }
     }
   },
@@ -8790,7 +8804,8 @@
         "script": "新建脚本",
         "jsscript": "新建 JS 脚本",
         "skill": "新建技能",
-        "model3d": "新建 3D 模型"
+        "model3d": "新建 3D 模型",
+        "create": "创作图像和视频"
       },
       "templates": {
         "markdown": "Markdown (.md)",
@@ -13996,6 +14011,7 @@
       "noRecentAssets": "还没有文件。附加或拖入一个文件。",
       "noAssetsMatch": "没有匹配的资源。",
       "noSavedAssets": "尚未保存资源。",
+      "noEntitiesMatch": "没有匹配的实体。",
       "entities": "实体",
       "assetSource": "资源来源",
       "rename": "重命名 {{name}}",
@@ -15876,7 +15892,9 @@
         "workspaces": "工作区",
         "entities": "实体",
         "memory": "记忆",
-        "settings": "设置"
+        "settings": "设置",
+        "effects": "特效",
+        "lipsync": "口型同步"
       }
     },
     "script": {
@@ -18877,7 +18895,8 @@
       "timeline": "时间线",
       "model3d": "3D 模型",
       "script": "脚本"
-    }
+    },
+    "openAsWorkflow": "作为工作流打开"
   },
   "shareDocument": {
     "description": "登录此服务器的任何人打开查看或编辑链接后，都会获得该链接对应的角色。查看者可以打开文档，编辑者还可以保存更改。只有你可以删除文档或更改访问权限。撤销链接后，新用户将无法加入。已加入的用户仍会列在下方。",
@@ -18947,6 +18966,587 @@
     "referenceAlt": "参考图 {{index}}",
     "sketchTitle": "Sketch",
     "audio": "音频"
+  },
+  "preset_chip": {
+    "label": "预设",
+    "title": "选择预设",
+    "dialogTitle": "预设",
+    "fallbackWarning": "此模型没有适配的措辞：{{names}}。将改用默认措辞。"
+  },
+  "preset_picker": {
+    "author": "作者：{{author}}",
+    "searchPlaceholder": "搜索预设",
+    "searchLabel": "搜索预设",
+    "kindLabel": "预设类型",
+    "allKinds": "全部",
+    "kind": {
+      "camera": "镜头",
+      "look": "风格",
+      "effect": "特效",
+      "studio": "工作室"
+    },
+    "tagsLabel": "标签",
+    "listLabel": "预设",
+    "selectedLabel": "已选预设",
+    "selectedCount": "已选 {{count}} / {{max}}",
+    "remove": "移除 {{name}}",
+    "clearFilters": "清除筛选",
+    "reason": {
+      "limit": "最多可组合 {{max}} 个预设。",
+      "mode": "{{name}} 不适用于这种生成方式。",
+      "notStackable": "{{name}} 无法与其他预设组合。",
+      "slot": "{{name}} 已占用同一槽位。",
+      "conflict": "与 {{name}} 冲突。"
+    }
+  },
+  "preset_catalog": {
+    "camera": {
+      "arc": {
+        "name": "arc",
+        "description": "Camera travels through a gentle quarter-circle around the subject at constant height."
+      },
+      "bullet-time": {
+        "name": "bullet time",
+        "description": "Camera arcs around the subject while the action hangs nearly frozen in time."
+      },
+      "crane-down": {
+        "name": "crane down",
+        "description": "Camera cranes downward and tilts up to keep the subject framed."
+      },
+      "crane-up": {
+        "name": "Crane up",
+        "description": "The camera rises vertically to reveal the surroundings."
+      },
+      "crash-zoom-in": {
+        "name": "crash zoom in",
+        "description": "Lens zooms rapidly into the subject from a fixed camera position."
+      },
+      "crash-zoom-out": {
+        "name": "crash zoom out",
+        "description": "Lens zooms rapidly out from the subject from a fixed camera position."
+      },
+      "dolly-in": {
+        "name": "Dolly in",
+        "description": "The camera dollies smoothly toward the subject."
+      },
+      "dolly-out": {
+        "name": "dolly out",
+        "description": "Camera dollies smoothly away from the subject with visible depth change."
+      },
+      "dolly-zoom": {
+        "name": "dolly zoom (vertigo)",
+        "description": "Camera dollies backward while zooming in, holding subject size as the background expands."
+      },
+      "dutch-roll": {
+        "name": "dutch roll",
+        "description": "Camera rolls gradually around its optical axis, tilting the horizon."
+      },
+      "fpv-drone-fly-through": {
+        "name": "FPV drone fly-through",
+        "description": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path."
+      },
+      "handheld": {
+        "name": "handheld",
+        "description": "Camera has gentle irregular handheld sway."
+      },
+      "handheld-follow": {
+        "name": "handheld follow",
+        "description": "Camera follows behind the moving subject with subtle handheld sway."
+      },
+      "low-angle-hero-rise": {
+        "name": "low-angle hero rise",
+        "description": "Camera rises from ground level toward a low-angle view of the subject."
+      },
+      "orbit": {
+        "name": "Orbit",
+        "description": "The camera orbits the subject at a steady distance."
+      },
+      "orbit-left": {
+        "name": "orbit left",
+        "description": "Camera arcs left around the subject at a steady distance."
+      },
+      "orbit-right": {
+        "name": "orbit right",
+        "description": "Camera arcs right around the subject at a steady distance."
+      },
+      "overhead-spiral": {
+        "name": "overhead spiral",
+        "description": "Camera ascends in a widening spiral while looking down at the subject."
+      },
+      "pan-left": {
+        "name": "pan left",
+        "description": "Camera pans left from a fixed position."
+      },
+      "pan-right": {
+        "name": "pan right",
+        "description": "Camera pans right from a fixed position."
+      },
+      "parallax-slide": {
+        "name": "parallax slide",
+        "description": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly."
+      },
+      "pedestal-down": {
+        "name": "pedestal down",
+        "description": "Camera lowers vertically without tilting."
+      },
+      "pedestal-up": {
+        "name": "pedestal up",
+        "description": "Camera rises vertically without tilting."
+      },
+      "pull-back-reveal": {
+        "name": "pull back reveal",
+        "description": "Camera pulls back from a close view to reveal the surroundings."
+      },
+      "rack-focus": {
+        "name": "rack focus",
+        "description": "Focus shifts smoothly from foreground to background with fixed framing."
+      },
+      "slow-pull-out": {
+        "name": "slow pull out",
+        "description": "Camera slowly pulls away from the subject."
+      },
+      "snorricam": {
+        "name": "snorricam",
+        "description": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts."
+      },
+      "speed-ramp": {
+        "name": "speed ramp",
+        "description": "Motion accelerates from normal speed into a rapid burst then eases into slow motion."
+      },
+      "static": {
+        "name": "static",
+        "description": "Camera locked off with fixed framing."
+      },
+      "steadicam": {
+        "name": "steadicam",
+        "description": "Camera is stabilized on a Steadicam with smooth floating motion."
+      },
+      "through-object-pass": {
+        "name": "through-object pass",
+        "description": "Camera advances through an opening in the foreground object to reveal the subject beyond."
+      },
+      "tilt-down": {
+        "name": "tilt down",
+        "description": "Camera tilts downward from a fixed position."
+      },
+      "tilt-up": {
+        "name": "tilt up",
+        "description": "Camera tilts upward from a fixed position."
+      },
+      "top-down-rise": {
+        "name": "top-down rise",
+        "description": "Camera rises straight upward while looking vertically down, widening the view."
+      },
+      "tracking": {
+        "name": "tracking",
+        "description": "Camera tracks alongside the moving subject at matching speed."
+      },
+      "truck-left": {
+        "name": "truck left",
+        "description": "Camera translates left parallel to the subject."
+      },
+      "truck-right": {
+        "name": "truck right",
+        "description": "Camera translates right parallel to the subject."
+      },
+      "whip-pan": {
+        "name": "whip pan",
+        "description": "Camera pans rapidly sideways with directional motion blur, then settles."
+      },
+      "zoom-in": {
+        "name": "zoom in",
+        "description": "Lens zooms in from a fixed camera position."
+      },
+      "zoom-out": {
+        "name": "zoom out",
+        "description": "Lens zooms out from a fixed camera position."
+      }
+    },
+    "effect": {
+      "bioluminescent-dissolve": {
+        "name": "Bioluminescent dissolve",
+        "description": "Animates the subject to dissolve into swirling bioluminescent particles."
+      },
+      "claymation": {
+        "name": "Claymation",
+        "description": "Edits the photo to restyle it as a handmade claymation scene with visible fingerprints in the clay."
+      },
+      "confetti-burst": {
+        "name": "Confetti burst",
+        "description": "Animates the subject to explode into slow-motion colorful confetti."
+      },
+      "electric-arcs": {
+        "name": "Electric arcs",
+        "description": "Animates the subject to crackle with high-voltage blue electric arcs."
+      },
+      "frost-crystals": {
+        "name": "Frost crystals",
+        "description": "Animates the subject to freeze rapidly in branching frost and ice crystals."
+      },
+      "glass-shatter": {
+        "name": "Glass shatter",
+        "description": "Animates the subject to shatter into slow-motion crystalline glass fragments."
+      },
+      "golden-embers": {
+        "name": "Golden embers",
+        "description": "Animates the subject to ignite in rising golden embers and heat shimmer."
+      },
+      "hydraulic-press": {
+        "name": "Hydraulic press",
+        "description": "Animates the subject to compress under a studio hydraulic press."
+      },
+      "levitate": {
+        "name": "Levitate",
+        "description": "Animates the subject to levitate and float upward in zero gravity."
+      },
+      "liquid-chrome": {
+        "name": "Liquid chrome",
+        "description": "Animates the subject to melt into mirror-polished liquid chrome."
+      },
+      "marble-petrify": {
+        "name": "Marble petrify",
+        "description": "Animates the subject to petrify into veined Carrara marble sculpture."
+      },
+      "metallic-balloon": {
+        "name": "Metallic balloon",
+        "description": "Animates the subject to inflate like a glossy metallic balloon and lift off."
+      },
+      "molten-gold": {
+        "name": "Molten gold",
+        "description": "Animates the subject to transform into flowing molten gold."
+      },
+      "neon-outline": {
+        "name": "Neon outline",
+        "description": "Animates the subject to light up in pulsing neon tube outlines."
+      },
+      "origami-fold": {
+        "name": "Origami fold",
+        "description": "Animates the subject to fold itself into crisp origami paper."
+      },
+      "petal-burst": {
+        "name": "Petal burst",
+        "description": "Animates the subject to burst into a cloud of velvet botanical petals."
+      },
+      "restyle-anime": {
+        "name": "Anime restyle",
+        "description": "Restyle the video as hand-drawn anime with clean ink outlines, cel shading and painted backgrounds."
+      },
+      "restyle-clay": {
+        "name": "Clay animation restyle",
+        "description": "Restyle the video as clay animation with sculpted forms, tactile surfaces and soft studio lighting."
+      },
+      "restyle-comic": {
+        "name": "Comic book restyle",
+        "description": "Restyle the video as a comic book animation with bold ink contours, halftone shading and graphic color blocks."
+      },
+      "restyle-neon": {
+        "name": "Neon restyle",
+        "description": "Restyle the video with luminous neon lighting, cyan and magenta highlights, deep violet shadows and reflective surfaces."
+      },
+      "restyle-noir": {
+        "name": "Film noir restyle",
+        "description": "Restyle the video as black-and-white film noir with deep shadows, hard directional light and fine film grain."
+      },
+      "restyle-oil-painting": {
+        "name": "Oil painting restyle",
+        "description": "Restyle the video as animated oil painting with visible brushstrokes, layered pigments and rich canvas texture."
+      },
+      "restyle-pixel": {
+        "name": "Pixel art restyle",
+        "description": "Restyle the video as pixel art animation with crisp pixel edges, a limited palette and readable silhouettes."
+      },
+      "restyle-watercolor": {
+        "name": "Watercolor restyle",
+        "description": "Restyle the video as watercolor animation with translucent washes, soft pigment edges and textured paper."
+      },
+      "smoke-vanish": {
+        "name": "Smoke vanish",
+        "description": "Animates the subject to dissolve into drifting smoke and vanish."
+      },
+      "snow-blanket": {
+        "name": "Snow blanket",
+        "description": "Edits the photo to cover the scene in a fresh blanket of soft snow with gentle snowfall."
+      },
+      "tilt-shift-miniature": {
+        "name": "Tilt-shift miniature",
+        "description": "Edits the photo to restyle it as a tilt-shift miniature model with shallow focus and saturated colors."
+      },
+      "underwater-caustics": {
+        "name": "Underwater drift",
+        "description": "Animates the subject to drift underwater with slow caustic light ripples."
+      }
+    },
+    "look": {
+      "arri-alexa": {
+        "name": "ARRI Alexa",
+        "description": "ARRI Alexa large-format rendering: gentle highlight roll-off, open shadow detail and restrained edge sharpening."
+      },
+      "bleach-bypass": {
+        "name": "Bleach bypass",
+        "description": "Bleach-bypass grade: retain silver-like density, reduce color saturation, deepen blacks and preserve bright metallic highlights."
+      },
+      "bolex-h16": {
+        "name": "Bolex H16",
+        "description": "Bolex H16 16 mm rendering: slight gate weave, compact grain and soft corners with a subtle mechanical exposure flutter."
+      },
+      "fast-slow-fast": {
+        "name": "Fast slow fast",
+        "description": "Start with accelerated action, smoothly settle into slow motion at the midpoint, then accelerate through the finish without cuts or repeated action."
+      },
+      "fuji-eterna": {
+        "name": "Fuji Eterna 400T",
+        "description": "Fuji Eterna 400T negative emulation: muted greens, pastel skin tones, low contrast and a cool bias in the shadows."
+      },
+      "hard-noon": {
+        "name": "Hard noon sun",
+        "description": "Light with hard overhead midday sun: short dense shadows, crisp contours and bright pavement bounce beneath the face."
+      },
+      "impact-ramp": {
+        "name": "Impact speed ramp",
+        "description": "Play the action at natural speed, briefly decelerate through the moment of contact, then smoothly return to natural speed without repeating the action."
+      },
+      "kodak-5207": {
+        "name": "Kodak Vision3 250D",
+        "description": "Kodak Vision3 5207 250D daylight-negative emulation: warm skin, clear blue skies, fine grain and a long highlight shoulder."
+      },
+      "kodak-5219": {
+        "name": "Kodak Vision3 500T",
+        "description": "Kodak Vision3 5219 500T tungsten-negative emulation: warm practical bulbs, cyan shadow separation, fine grain and soft highlight halation."
+      },
+      "kodak-tri-x": {
+        "name": "Kodak Tri-X",
+        "description": "Kodak Tri-X reversal emulation in monochrome: coarse silver grain, bright whites, deep blacks and a short tonal shoulder."
+      },
+      "moonlit-blue": {
+        "name": "Moonlit blue",
+        "description": "Light with a broad cool moonlight source from the side, a low fill level and a narrow rim separating the silhouette from the dark background."
+      },
+      "new-hollywood-1970s": {
+        "name": "1970s New Hollywood",
+        "description": "Use a 1970s New Hollywood print finish: warm earth tones, subdued blues, visible 35 mm grain and slight halation around practical lights. Preserve the described scene and wardrobe."
+      },
+      "pastel-print": {
+        "name": "Pastel print",
+        "description": "Pastel print grade: lifted black floor, low saturation, peach highlights and soft blue shadows with gentle contrast."
+      },
+      "ramp-into-slow": {
+        "name": "Ramp into slow motion",
+        "description": "Begin at natural action speed, smoothly decelerate into slow motion at the action peak, then hold slow motion through the end. Keep the same action and camera path."
+      },
+      "ramp-out-of-slow": {
+        "name": "Ramp out of slow motion",
+        "description": "Begin in slow motion, smoothly accelerate to natural action speed halfway through, then hold natural speed. Keep the same action and camera path."
+      },
+      "red-v-raptor": {
+        "name": "RED V-Raptor",
+        "description": "RED V-Raptor rendering: crisp fine texture, dense blacks and clean specular highlights without digital halos."
+      },
+      "rembrandt-key": {
+        "name": "Rembrandt key",
+        "description": "Light with one soft key forty-five degrees to the face and slightly above eye level, leaving a small triangle on the shadow cheek and minimal fill."
+      },
+      "silent-1920s": {
+        "name": "1920s silent cinema",
+        "description": "Use a 1920s silent-cinema finish: monochrome orthochromatic-like tonality, luminous skin, dark reds, mild corner falloff and irregular fine scratches. Preserve the described scene and wardrobe."
+      },
+      "silver-monochrome": {
+        "name": "Silver monochrome",
+        "description": "Neutral black-and-white grade: separate skin and fabric through luminance, hold midtone detail and keep whites free of color tint."
+      },
+      "sony-venice": {
+        "name": "Sony Venice",
+        "description": "Sony Venice full-frame rendering: clean low-light detail, neutral skin tones and fine separation in saturated practical lights."
+      },
+      "teal-amber": {
+        "name": "Teal and amber",
+        "description": "Teal-and-amber grade: cool cyan shadows against warm skin, neutral whites and controlled saturation in highlights."
+      },
+      "technicolor-1950s": {
+        "name": "1950s dye-transfer print",
+        "description": "Use a 1950s three-strip dye-transfer print finish: rich reds, separated emerald greens, luminous skin and dense stable blacks. Preserve the described scene and wardrobe."
+      },
+      "tungsten-practicals": {
+        "name": "Tungsten practicals",
+        "description": "Light with visible warm tungsten practical bulbs, localized pools of amber light and dim cool ambient fill, retaining detail around each bulb."
+      },
+      "vhs-1990s": {
+        "name": "1990s VHS",
+        "description": "Use a 1990s VHS transfer finish: limited chroma resolution, slight horizontal color bleed, interlaced edge texture and soft tape noise. Preserve the described scene and wardrobe."
+      }
+    },
+    "studio": {
+      "cinematic-shot": {
+        "name": "Cinematic shot",
+        "description": "A film-look video clip from one sentence: a slow push in on tungsten film stock with a teal-and-amber grade."
+      },
+      "film-scene": {
+        "name": "Film a scene",
+        "description": "From one sentence to a storyboard of shots, then rendered stills and clips you can direct shot by shot."
+      },
+      "music-video": {
+        "name": "Music video",
+        "description": "A beat-synced treatment and storyboard cut to your track."
+      },
+      "photo-effects": {
+        "name": "Animate a photo",
+        "description": "Drop in one photo and turn it into a short clip: levitate, burst into petals, melt to gold and more."
+      },
+      "portrait-photo": {
+        "name": "Portrait photo",
+        "description": "A still portrait under a soft Rembrandt key on warm daylight film stock."
+      },
+      "product-ad": {
+        "name": "Product ad",
+        "description": "A finished launch commercial from a product page: storyboard, footage, voice, music and an edited timeline."
+      },
+      "product-hero": {
+        "name": "Product hero shot",
+        "description": "A product turning in a slow orbit, rendered crisp with clean specular highlights."
+      },
+      "talking-head": {
+        "name": "Talking head",
+        "description": "A picture of a person speaking your line in a chosen voice, lip-synced."
+      },
+      "trailer": {
+        "name": "Movie trailer",
+        "description": "A trailer from an idea: a beat sheet and shot list you can rewrite cheaply before rendering."
+      },
+      "ugc-ad": {
+        "name": "Creator testimonial",
+        "description": "A phone-shot creator video for a product: the spoken pitch, captions and a branded end card."
+      }
+    }
+  },
+  "shot_camera_field": {
+    "browse": "浏览预设",
+    "title": "镜头预设",
+    "done": "完成",
+    "remove": "移除 {{name}}"
+  },
+  "create_view": {
+    "title": "创作",
+    "promptLabel": "描述要创作的内容",
+    "generate": "生成",
+    "takesHeader": "每次生成的条数",
+    "takes_one": "{{count}} 条",
+    "takes_other": "{{count}} 条",
+    "placeholder": {
+      "image": "黄昏中的灯塔，电影剧照",
+      "video": "镜头缓缓推向黄昏中的灯塔"
+    },
+    "blocker": {
+      "noPrompt": "请先写下提示词再生成。",
+      "noModel": {
+        "image": "请先选择图像模型再生成。",
+        "video": "请先选择视频模型再生成。"
+      }
+    },
+    "sendFailed": "已启动 {{count}} 条中的 {{sent}} 条，其余未能送达 NodeTool。请检查网络连接后重试。",
+    "retakeFailed": "无法重拍：{{reason}}",
+    "olderFailed": "无法加载较早的结果。",
+    "gridLabel": "生成记录",
+    "empty": {
+      "title": "还没有创作内容",
+      "description": "在上方写下提示词并点击“生成”。图像和视频会显示在这里，最新的在前。",
+      "action": "写提示词"
+    },
+    "item": {
+      "open": "打开 {{title}}",
+      "download": "下载",
+      "downloadLabel": "下载 {{title}}",
+      "retake": "用相同设置重拍",
+      "retakeLabel": "用相同设置重拍 {{title}}",
+      "sendToTimeline": "发送到时间线",
+      "sendToTimelineLabel": "将 {{title}} 发送到时间线",
+      "openAsWorkflow": "作为工作流打开",
+      "openAsWorkflowLabel": "将 {{title}} 作为工作流打开",
+      "loadFailed": "无法加载结果：{{reason}}",
+      "downloaded": "已下载 {{name}}",
+      "downloadFailed": "无法下载：{{reason}}",
+      "workflowName": "创作工作流",
+      "workflowFailed": "无法生成工作流：{{reason}}"
+    }
+  },
+  "effectsGallery": {
+    "title": "特效",
+    "subtitle": "先选择一张图片，再选择特效。结果会显示在这里和“生成”面板中。",
+    "noEffect": "未选择特效",
+    "apply": "应用特效",
+    "applying": "正在应用…",
+    "effects": "特效",
+    "source": {
+      "zoneLabel": "特效使用的图片",
+      "dropHint": "将图片拖放到此处",
+      "choose": "选择图片",
+      "replace": "更换图片",
+      "previewAlt": "要应用特效的图片",
+      "notImage": "该文件不是图片。请使用 PNG、JPG 或 WebP 文件。",
+      "uploadFailed": "无法上传图片。请检查网络连接后重试。"
+    },
+    "model": {
+      "video": "视频模型",
+      "image": "图像模型",
+      "choose": "选择一个模型以应用特效。",
+      "estimated": "每个结果约 {{estimate}}。",
+      "noEstimate": "此模型没有标价。"
+    },
+    "reason": {
+      "needPicture": "添加一张图片以应用特效。",
+      "needEffect": "请在下方选择特效。",
+      "needVideoModel": "请选择视频模型。",
+      "needImageModel": "请选择图像模型。"
+    },
+    "result": {
+      "running": "正在应用“{{effect}}”。视频可能需要几分钟。你可以离开此标签页，结果也会显示在“生成”面板中。",
+      "done": "“{{effect}}”已完成。",
+      "alt": "“{{effect}}”的结果",
+      "failed": "特效未完成，也没有返回结果。请重试或选择其他模型。",
+      "failedWithReason": "特效未完成：{{reason}} 请重试或选择其他模型。",
+      "tryAgain": "重试",
+      "emptyTitle": "结果会显示在这里",
+      "emptyPickEffect": "在下方选择特效，然后选择“应用特效”。",
+      "emptyAddPicture": "先添加一张图片，再选择特效。"
+    },
+    "card": {
+      "actions": "{{name}}的操作",
+      "openAsWorkflow": "作为工作流打开"
+    },
+    "studio": {
+      "showing": "正在显示“{{studio}}”工作室的效果。",
+      "showAll": "显示全部效果"
+    }
+  },
+  "lipsync": {
+    "title": "口型同步",
+    "subtitle": "让图片用你选择的声音说话。",
+    "entity": "选择实体",
+    "entityImage": "请选择带有已保存参考图的实体，或上传图片。",
+    "realPerson": "这是真实人物",
+    "consent": "我已获得此人的同意，可以在这段生成的视频中使用其肖像。",
+    "line": "人物要说什么？",
+    "model": "口型同步视频模型",
+    "requirements": "添加图片和台词，然后选择语音模型、声音和口型同步模型。结果也会出现在“生成记录”中。",
+    "render": "生成口型同步视频",
+    "speech": "正在生成语音…",
+    "video": "正在生成口型同步视频…",
+    "failed": "口型同步失败。{{reason}} 请重试。",
+    "result": "口型同步结果",
+    "estimate": "视频标价：{{amount}}。最终费用取决于语音长度。语音单独计费。",
+    "noEstimate": "暂无价格估算。语音和视频单独计费。"
+  },
+  "look_preset_field": {
+    "browse": "选择风格",
+    "title": "镜头风格",
+    "board": "分镜风格",
+    "done": "完成",
+    "remove": "移除 {{name}}",
+    "clause": "风格提示词",
+    "inherit": "未选择时继承分镜风格。",
+    "inherited": "使用故事板外观：{{names}}"
+  },
+  "startStudios": {
+    "title": "工作室",
+    "subtitle": "从你想做的作品开始。每个工作室打开时都已选好预设。"
   },
   "onePassword": {
     "useOnePassword": "使用 1Password",

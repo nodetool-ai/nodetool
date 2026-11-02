@@ -1,0 +1,37 @@
+{
+  "id": "look.fuji-eterna",
+  "version": 1,
+  "kind": "look",
+  "name": "Fuji Eterna 400T",
+  "description": "Fuji Eterna 400T negative emulation: muted greens, pastel skin tones, low contrast and a cool bias in the shadows.",
+  "tags": [
+    "look",
+    "stock"
+  ],
+  "slot": "stock",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video",
+    "image"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "Fuji Eterna 400T negative emulation: muted greens, pastel skin tones, low contrast and a cool bias in the shadows.",
+    "kling": "Fuji Eterna 400T negative emulation: muted greens, pastel skin tones, low contrast and a cool bias in the shadows. Maintain this rendering consistently across the scene.",
+    "seedance": "Fuji Eterna 400T negative emulation: muted greens, pastel skin tones, low contrast and a cool bias in the shadows. Preserve this appearance throughout one continuous shot.",
+    "veo": "Fuji Eterna 400T negative emulation: muted greens, pastel skin tones, low contrast and a cool bias in the shadows. Keep the lighting and color response consistent between frames.",
+    "wan": "Fuji Eterna 400T negative emulation: muted greens, pastel skin tones, low contrast and a cool bias in the shadows. Retain natural subject detail under this visual treatment."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.fuji-eterna/38a79e9070432cc4c93426b5066e1c468f957284223e5ff0eef3720d2acc2bc0.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.fuji-eterna/38a79e9070432cc4c93426b5066e1c468f957284223e5ff0eef3720d2acc2bc0-late.png",
+    "run": "runs/look.fuji-eterna.json"
+  }
+}

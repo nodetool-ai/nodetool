@@ -53,8 +53,18 @@ const readRecord = (value: unknown): Record<string, unknown> =>
     ? (value as Record<string, unknown>)
     : {};
 
-const readAssetIds = (value: unknown): string[] =>
+const readStrings = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter(isString) : [];
+
+const readAssetIds = readStrings;
+
+/** A `generate_media` request's settings: everything but the prompt. */
+const readRequestSettings = (
+  data: Record<string, unknown>
+): Record<string, unknown> => {
+  const { prompt: _prompt, ...settings } = data;
+  return settings;
+};
 
 /** The active workspace tab, which is where a request was started from. */
 const activeTabSource = (): GenerationActivitySource | null => {
@@ -108,9 +118,10 @@ export const generationFromCommand = (
     if (!id) {
       return null;
     }
-    return {
+    const generation: GenerationActivity = {
       id,
       channel: "rpc",
+      request: readRequestSettings(data),
       status: "generating",
       kind: mediaKindOf(readString(data.mode)),
       prompt: readString(data.prompt),
@@ -122,6 +133,11 @@ export const generationFromCommand = (
       assetIds: [],
       error: null
     };
+    const presetIds = readStrings(data.preset_ids);
+    if (presetIds.length > 0) {
+      generation.preset_ids = presetIds;
+    }
+    return generation;
   }
   if (message.command === "chat_message") {
     const media = readRecord(data.media_generation);
@@ -140,9 +156,13 @@ export const generationFromCommand = (
             .filter(isString)
             .join(" ")
         : null;
+    const presetIds = Array.isArray(media.preset_ids)
+      ? media.preset_ids.filter(isString)
+      : [];
     return {
       id,
       channel: "chat",
+      ...(presetIds.length > 0 && { preset_ids: presetIds }),
       status: "generating",
       kind: mediaKindOf(mode),
       prompt: prompt || null,
@@ -183,7 +203,8 @@ const handlePrediction = (message: WebSocketMessage): void => {
   const store = useGenerationActivityStore.getState();
   const origin = readRecord(message.origin);
   const requestId = readString(origin.request_id);
-  const threadId = readString(origin.thread_id) ?? readString(message.thread_id);
+  const threadId =
+    readString(origin.thread_id) ?? readString(message.thread_id);
   // The request or the media chat turn that caused it is already listed.
   if (requestId && store.generations[requestId]) {
     return;
@@ -209,9 +230,27 @@ const handlePrediction = (message: WebSocketMessage): void => {
     }
     const workflowId = readString(message.workflow_id);
     const params = readRecord(message.params);
+    const presetIds = Array.isArray(message.preset_ids)
+      ? message.preset_ids.filter(isString)
+      : [];
     store.start({
       id,
       channel: "prediction",
+      request: {
+        provider: readString(message.provider),
+        mode: (
+          {
+            text_to_image: "image",
+            image_to_image: "image_edit",
+            text_to_video: "video",
+            image_to_video: "image_to_video",
+            reference_to_video: "reference_to_video",
+            video_to_video: "video_edit"
+          } as Record<string, string>
+        )[readString(message.capability) ?? ""],
+        params
+      },
+      ...(presetIds.length > 0 && { preset_ids: presetIds }),
       status: "generating",
       kind: mediaKindOf(readString(message.capability)),
       prompt: readString(params.prompt),

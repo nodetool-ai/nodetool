@@ -36,6 +36,8 @@ interface MediaControlChipProps {
   className?: string;
   /** Show as emphasized / primary. */
   emphasis?: "default" | "primary";
+  /** Mark the chip's setting as needing attention (warning colour). */
+  warning?: boolean;
   /** Allow this chip to shrink and truncate its label. */
   truncate?: boolean;
   /**
@@ -54,6 +56,7 @@ const createStyles = (
   theme: Theme,
   size: "sm" | "md",
   emphasis: "default" | "primary",
+  warning: boolean,
   active: boolean,
   truncate: boolean,
   grow: boolean,
@@ -79,7 +82,9 @@ const createStyles = (
       : emphasis === "primary"
         ? theme.vars.palette.c_overlay
         : "transparent",
-    color: theme.vars.palette.grey[100],
+    color: warning
+      ? theme.vars.palette.warning.main
+      : theme.vars.palette.grey[100],
     fontFamily: theme.fontFamily1,
     fontSize: size === "sm" ? "var(--fontSizeSmall)" : "var(--fontSizeNormal)",
     lineHeight: 1,
@@ -90,7 +95,8 @@ const createStyles = (
     justifyContent: "flex-start",
     flex: grow ? "1 1 auto" : undefined,
     flexShrink: grow || truncate ? 1 : 0,
-    minWidth: grow || truncate ? 0 : undefined,
+    // Enough room for an icon and a few letters, so a squeezed chip stays a chip.
+    minWidth: grow || truncate ? (iconOnly ? 0 : 72) : undefined,
     maxWidth: grow || truncate ? maxWidth : undefined,
     overflow: grow || truncate ? "hidden" : undefined,
     "&:hover:not(:disabled)": {
@@ -107,7 +113,9 @@ const createStyles = (
       display: "inline-flex",
       alignItems: "center",
       flexShrink: 0,
-      color: theme.vars.palette.grey[300],
+      color: warning
+        ? theme.vars.palette.warning.main
+        : theme.vars.palette.grey[300],
       "& svg": { fontSize: size === "sm" ? 16 : 18 }
     },
     ".media-chip-chevron": {
@@ -138,6 +146,7 @@ const MediaControlChip = memo(function MediaControlChip({
   size = "md",
   className,
   emphasis = "default",
+  warning = false,
   truncate = false,
   grow = false,
   maxWidth = 200,
@@ -156,6 +165,7 @@ const MediaControlChip = memo(function MediaControlChip({
           theme,
           size,
           emphasis,
+          warning,
           active,
           truncate,
           grow,

@@ -1,0 +1,39 @@
+{
+  "id": "camera.fpv-drone-fly-through",
+  "version": 1,
+  "kind": "camera",
+  "name": "FPV drone fly-through",
+  "description": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path.",
+  "tags": [
+    "camera",
+    "rig"
+  ],
+  "slot": "rig",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "FPV drone fly-through"
+  ],
+  "prompt": {
+    "default": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path.",
+    "kling": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path.",
+    "seedance": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path throughout one continuous shot.",
+    "veo": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path.",
+    "wan": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path.",
+    "local-wan": "The camera flies forward close to the surroundings, banking around obstacles and passing through open gaps. Foreground edges rush past during the continuous flight. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.fpv-drone-fly-through/3a369458ef42ad6dac805c48ee063c6bd9438b1189205de50527090ab0dfc48d.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.fpv-drone-fly-through/3a369458ef42ad6dac805c48ee063c6bd9438b1189205de50527090ab0dfc48d.png",
+    "run": "runs/camera.fpv-drone-fly-through.json"
+  }
+}

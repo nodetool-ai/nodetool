@@ -1,0 +1,38 @@
+{
+  "id": "effect.frost-crystals",
+  "version": 1,
+  "kind": "effect",
+  "name": "Frost crystals",
+  "description": "Animates the subject to freeze rapidly in branching frost and ice crystals.",
+  "tags": [
+    "effect",
+    "ice",
+    "nature"
+  ],
+  "slot": "effect",
+  "modes": [
+    "image_to_video"
+  ],
+  "inputs": [
+    "image"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "freeze rapidly in branching frost and ice crystals"
+  ],
+  "prompt": {
+    "default": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+    "kling": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Physically accurate motion, steady locked camera.",
+    "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Physically accurate motion.",
+    "veo": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Cinematic lighting, realistic physics, locked camera.",
+    "wan": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Locked camera, smooth realistic motion, high detail.",
+    "local-wan": "Fine white frost starts at the subject's edges and spreads across its surface. Branching ice crystals grow and join together until a thick crystalline coating covers it."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.frost-crystals/4bfacccbee966214f752c95bc995af6241bd697d46983245a5e197cc1659181b.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.frost-crystals/4bfacccbee966214f752c95bc995af6241bd697d46983245a5e197cc1659181b.png",
+    "run": "runs/effect.frost-crystals.json"
+  }
+}

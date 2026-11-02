@@ -9,6 +9,7 @@
  */
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { PresetMode } from "@nodetool-ai/presets";
 import type {
   ImageModelValue,
   Message,
@@ -25,6 +26,7 @@ import type {
  */
 export interface MediaGenerationRequest {
   mode: MediaMode;
+  preset_ids?: string[];
   provider?: string | null;
   model?: string | null;
   width?: number | null;
@@ -71,6 +73,30 @@ export type MediaMode =
   | "motion_control";
 
 export type MediaGenerationCategory = "image" | "video" | "audio";
+
+/**
+ * The preset mode (`PresetMode` in `@nodetool-ai/presets`) each chat mode
+ * applies presets under. A mode missing here takes no presets.
+ */
+export const PRESET_MODE_FOR_MEDIA_MODE = {
+  image: "image",
+  image_edit: "image_edit",
+  video: "video",
+  image_to_video: "image_to_video",
+  reference_to_video: "reference_to_video",
+  retake: "video_edit"
+} as const satisfies Partial<Record<MediaMode, PresetMode>>;
+
+export type PresetMediaMode = keyof typeof PRESET_MODE_FOR_MEDIA_MODE;
+
+/** The preset mode of a chat mode, or null when the mode takes no presets. */
+export function presetModeForMediaMode(
+  mode: MediaMode | null | undefined
+): PresetMode | null {
+  return mode && mode in PRESET_MODE_FOR_MEDIA_MODE
+    ? PRESET_MODE_FOR_MEDIA_MODE[mode as PresetMediaMode]
+    : null;
+}
 
 export const CATEGORY_SUB_MODES: Record<
   MediaGenerationCategory,
@@ -282,6 +308,13 @@ interface MediaGenerationState {
   music: MusicGenerationParams;
   retake: RetakeParams;
   extend: ExtendParams;
+  /**
+   * Selected preset ids in stack order, kept apart for each mode that takes
+   * presets. Not persisted, so a reload cannot bring back an id the catalogue
+   * no longer ships.
+   */
+  presetIds: Partial<Record<PresetMediaMode, string[]>>;
+  setPresetIds: (mode: PresetMediaMode, ids: string[]) => void;
   setRetakeParams: (params: Partial<RetakeParams>) => void;
   setExtendParams: (params: Partial<ExtendParams>) => void;
   setMusicParams: (params: Partial<MusicGenerationParams>) => void;
@@ -369,6 +402,9 @@ const useMediaGenerationStore = create<MediaGenerationState>()(
       music: { model: null, duration: 30 },
       retake: DEFAULT_RETAKE_PARAMS,
       extend: DEFAULT_EXTEND_PARAMS,
+      presetIds: {},
+      setPresetIds: (mode, ids) =>
+        set((state) => ({ presetIds: { ...state.presetIds, [mode]: ids } })),
       setRetakeParams: (params) =>
         set((state) => ({ retake: { ...state.retake, ...params } })),
       setExtendParams: (params) =>
@@ -410,8 +446,12 @@ const useMediaGenerationStore = create<MediaGenerationState>()(
       version: 5,
       // The mode is not kept: a new chat starts in Chat unless it was opened
       // in another mode, so a reload must not bring back the last one.
-      partialize: ({ mode: _mode, threadModes: _threadModes, ...params }) =>
-        params,
+      partialize: ({
+        mode: _mode,
+        threadModes: _threadModes,
+        presetIds: _presetIds,
+        ...params
+      }) => params,
       migrate: (persistedState, version) => {
         let state = (persistedState ?? {}) as Partial<MediaGenerationState>;
         if (version < 2) {

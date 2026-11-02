@@ -367,3 +367,12 @@ describe("parseScreenplay aspect ratio", () => {
     expect(isAspectRatio(value)).toBe(expected);
   });
 });
+
+describe("camera preset authoring", () => {
+  it("retains a camera stack and rejects more than three ids", () => {
+    const input = payload([], [{ action: "walk", camera: { movement: "slow push in", preset_ids: ["camera.dolly-in"] } }]);
+    const parsed = parseScreenplay(input, { shotCount: 1 });
+    expect(parsed.shots[0].camera?.preset_ids).toEqual(["camera.dolly-in"]);
+    expect(() => parseScreenplay(payload([], [{ action: "walk", camera: { preset_ids: ["a", "b", "c", "d"] } }]), { shotCount: 1 })).toThrow();
+  });
+});

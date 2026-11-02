@@ -1,0 +1,39 @@
+{
+  "id": "camera.dolly-zoom",
+  "version": 1,
+  "kind": "camera",
+  "name": "dolly zoom (vertigo)",
+  "description": "Camera dollies backward while zooming in, holding subject size as the background expands.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [
+    "dolly zoom (vertigo)"
+  ],
+  "prompt": {
+    "default": "Camera dollies backward while zooming in, holding subject size as the background expands.",
+    "kling": "Camera dollies backward while zooming in, holding subject size as the background expands.",
+    "seedance": "Camera dollies backward while zooming in, holding subject size as the background expands throughout one continuous shot.",
+    "veo": "Camera dollies backward while zooming in, holding subject size as the background expands.",
+    "wan": "Camera dollies backward while zooming in, holding subject size as the background expands.",
+    "local-wan": "The camera moves backward as the lens zooms toward the subject. The subject holds the same size in frame while the background stretches outward behind it. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.dolly-zoom/0faf8aa85f3d00d9e99218b1bfecd18edcf2e1b3e54a484e1027e8413c9d3540.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.dolly-zoom/0faf8aa85f3d00d9e99218b1bfecd18edcf2e1b3e54a484e1027e8413c9d3540.png",
+    "run": "runs/camera.dolly-zoom.json"
+  }
+}

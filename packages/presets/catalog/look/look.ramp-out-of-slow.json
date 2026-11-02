@@ -1,0 +1,38 @@
+{
+  "id": "look.ramp-out-of-slow",
+  "version": 1,
+  "kind": "look",
+  "name": "Ramp out of slow motion",
+  "description": "Begin in slow motion, smoothly accelerate to natural action speed halfway through, then hold natural speed. Keep the same action and camera path.",
+  "tags": [
+    "look",
+    "ramp"
+  ],
+  "slot": "ramp",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "camera.speed-ramp"
+  ],
+  "aliases": [],
+  "prompt": {
+    "default": "Begin in slow motion, smoothly accelerate to natural action speed halfway through, then hold natural speed. Keep the same action and camera path.",
+    "kling": "Begin in slow motion, smoothly accelerate to natural action speed halfway through, then hold natural speed. Keep the same action and camera path. Apply the speed change to the subject's motion, without a camera cut.",
+    "seedance": "Begin in slow motion, smoothly accelerate to natural action speed halfway through, then hold natural speed. Keep the same action and camera path. Keep the speed transition continuous within one shot.",
+    "veo": "Begin in slow motion, smoothly accelerate to natural action speed halfway through, then hold natural speed. Keep the same action and camera path. Show a smooth temporal transition with consistent subject identity.",
+    "wan": "Begin in slow motion, smoothly accelerate to natural action speed halfway through, then hold natural speed. Keep the same action and camera path. Gradually vary action speed with continuous subject motion."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.ramp-out-of-slow/8b1d018cb84398d3c85a5c0174d40a52b54821643d21a967ef171f7c66d0bc29.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.ramp-out-of-slow/8b1d018cb84398d3c85a5c0174d40a52b54821643d21a967ef171f7c66d0bc29-late.png",
+    "run": "runs/look.ramp-out-of-slow.json"
+  }
+}

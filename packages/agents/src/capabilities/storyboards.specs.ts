@@ -152,6 +152,7 @@ export const RENDER_CLIPS_SCHEMA: JsonSchema = {
 export const REVISE_CLIP_SCHEMA: JsonSchema = {
   type: "object",
   properties: {
+    preset_ids: { type: "array", items: { type: "string" }, maxItems: 3 },
     storyboard_id: { type: "string", description: "Storyboard id." },
     target: {
       type: "string",
@@ -230,6 +231,22 @@ export const EDIT_STORYBOARD_SCHEMA: JsonSchema = {
       items: {
         type: "object",
         properties: {
+          look_preset_ids: {
+            type: "array",
+            items: { type: "string" },
+            maxItems: 3,
+            description:
+              "Look ids for set_board or a shot override. Empty shot ids inherit the board. Camera and effective look share a three-preset limit."
+          },
+          camera: {
+            type: "object",
+            properties: {
+              framing: { type: "string" }, lens: { type: "string" },
+              angle: { type: "string" }, movement: { type: "string" },
+              equipment: { type: "string" },
+              preset_ids: { type: "array", items: { type: "string" }, maxItems: 3, description: "Camera preset ids from list_presets. Compiled for the clip model instead of movement." }
+            }
+          },
           op: { type: "string", description: "Operation name from the ops description." },
           target: {
             anyOf: [{ type: "string", minLength: 1 }, { type: "integer", minimum: 0 }],

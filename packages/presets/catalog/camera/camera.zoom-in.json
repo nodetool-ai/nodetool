@@ -1,0 +1,41 @@
+{
+  "id": "camera.zoom-in",
+  "version": 1,
+  "kind": "camera",
+  "name": "zoom in",
+  "description": "Lens zooms in from a fixed camera position.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "camera.zoom-out"
+  ],
+  "aliases": [
+    "zoom in"
+  ],
+  "prompt": {
+    "default": "Lens zooms in from a fixed camera position.",
+    "kling": "Lens zooms in from a fixed camera position.",
+    "seedance": "Lens zooms in from a fixed camera position throughout one continuous shot.",
+    "veo": "Lens zooms in from a fixed camera position.",
+    "wan": "Lens zooms in from a fixed camera position.",
+    "local-wan": "From a fixed viewpoint, the lens slowly zooms closer. The subject grows larger and the edges of the scene gradually leave the frame. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.zoom-in/3a2685add69157f2cc539c44229e27f981d1a018bd7c8ed8e2470df8295217d3.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.zoom-in/3a2685add69157f2cc539c44229e27f981d1a018bd7c8ed8e2470df8295217d3.png",
+    "run": "runs/camera.zoom-in.json"
+  }
+}

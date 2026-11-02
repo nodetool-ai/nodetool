@@ -1,0 +1,37 @@
+{
+  "id": "camera.steadicam",
+  "version": 1,
+  "kind": "camera",
+  "name": "steadicam",
+  "description": "Camera is stabilized on a Steadicam with smooth floating motion.",
+  "tags": [
+    "camera",
+    "rig"
+  ],
+  "slot": "rig",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "Camera is stabilized on a Steadicam with smooth floating motion.",
+    "kling": "Camera is stabilized on a Steadicam with smooth floating motion.",
+    "seedance": "Camera is stabilized on a Steadicam with smooth floating motion throughout one continuous shot.",
+    "veo": "Camera is stabilized on a Steadicam with smooth floating motion.",
+    "wan": "Camera is stabilized on a Steadicam with smooth floating motion.",
+    "local-wan": "The camera floats smoothly through the scene at walking speed with a level horizon. The subject remains steadily framed as the surroundings flow past. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.steadicam/26d2fa9f29547d1a595d975a01337cae2b99fb45b7a097fcde2e63af8dfa39fb.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.steadicam/26d2fa9f29547d1a595d975a01337cae2b99fb45b7a097fcde2e63af8dfa39fb.png",
+    "run": "runs/camera.steadicam.json"
+  }
+}

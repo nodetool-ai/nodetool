@@ -281,6 +281,16 @@ const CLI_COMMAND_PACKAGES = [
 ];
 
 export const HARNESSES: HarnessEntry[] = [
+  { id: "preset-compilation", title: "Preset compilation across model families", command: "npm run test --workspace=packages/presets -- compile-all", kind: "execution", capabilities: ["gated:pr"], docs: "packages/presets/README.md", selfcheck: { command: "npm run test --workspace=packages/presets -- compile-all", cost: "cheap" } },
+  {
+    id: "preset-ejection",
+    title: "Preset workflow ejection",
+    command: "npm run test --workspace=packages/cli-execution -- preset-ejection",
+    kind: "execution",
+    capabilities: ["gated:pr"],
+    docs: "packages/presets/README.md",
+    selfcheck: { command: "npm run test --workspace=packages/cli-execution -- preset-ejection", cost: "cheap", suiteOnly: true }
+  },
   ...CLI_COMMAND_PACKAGES.map((name): HarnessEntry => ({
     id: `${name}-module`,
     title: `Command package ${name}`,
@@ -906,6 +916,18 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "lipsync-studio",
+    title: "Lipsync studio consent and speech-to-video flow",
+    command: "npm run test:journeys --workspace=web -- lipsync-studio.spec.ts",
+    kind: "meta",
+    capabilities: ["browser"],
+    docs: "docs/presets.md",
+    selfcheck: {
+      command: "npm run test --workspace=web -- --runInBand --runTestsByPath src/stores/__tests__/LipsyncStudioStore.test.ts src/components/lipsync/__tests__/LipsyncStudio.test.tsx",
+      cost: "cheap"
+    }
+  },
+  {
     id: "provider-contract",
     title:
       "Provider contract probes (raw response fixtures + one live request per provider)",
@@ -1282,17 +1304,19 @@ export const HARNESSES: HarnessEntry[] = [
   },
   {
     id: "shared-services",
-    title: "Shared service libraries (vector store, model pricing)",
+    title: "Shared service libraries (vector store, model pricing, presets)",
     command:
       "npm run test --workspace=packages/vectorstore && " +
-      "npm run test --workspace=packages/model-pricing",
+      "npm run test --workspace=packages/model-pricing && " +
+      "npm run test --workspace=packages/presets",
     kind: "static",
     capabilities: ["no-db"],
     docs: "packages/AGENTS.md",
     selfcheck: {
       command:
         "npm run test --workspace=packages/vectorstore && " +
-        "npm run test --workspace=packages/model-pricing",
+        "npm run test --workspace=packages/model-pricing && " +
+        "npm run test --workspace=packages/presets",
       cost: "cheap"
     }
   },
@@ -2278,6 +2302,20 @@ export const SURFACES: SurfaceEntry[] = [
       // groups it with the node packages for the same reason.
       "packages/workflow-runner/"
     ]
+  },
+  {
+    id: "lipsync-studio",
+    title: "Lipsync studio",
+    harnesses: ["lipsync-studio"],
+    paths: ["web/src/components/lipsync/", "web/src/stores/LipsyncStudioStore.ts", "web/tests/journeys/lipsync-studio.spec.ts"]
+  },
+  {
+    id: "presets",
+    title: "Generation presets",
+    harnesses: ["shared-services", "preset-ejection", "preset-compilation"],
+    // The Effects Gallery template is regenerated from the effect presets, and
+    // the presets suite fails when it drifts.
+    paths: ["packages/presets/", "packages/base-nodes/nodetool/examples/nodetool-base/Effects Gallery.json", "scripts/presets/sync-effects-template.mjs"]
   },
   {
     id: "shared-services",

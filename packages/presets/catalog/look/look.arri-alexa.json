@@ -1,0 +1,37 @@
+{
+  "id": "look.arri-alexa",
+  "version": 1,
+  "kind": "look",
+  "name": "ARRI Alexa",
+  "description": "ARRI Alexa large-format rendering: gentle highlight roll-off, open shadow detail and restrained edge sharpening.",
+  "tags": [
+    "look",
+    "body"
+  ],
+  "slot": "body",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video",
+    "image"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "ARRI Alexa large-format rendering: gentle highlight roll-off, open shadow detail and restrained edge sharpening.",
+    "kling": "ARRI Alexa large-format rendering: gentle highlight roll-off, open shadow detail and restrained edge sharpening. Maintain this rendering consistently across the scene.",
+    "seedance": "ARRI Alexa large-format rendering: gentle highlight roll-off, open shadow detail and restrained edge sharpening. Preserve this appearance throughout one continuous shot.",
+    "veo": "ARRI Alexa large-format rendering: gentle highlight roll-off, open shadow detail and restrained edge sharpening. Keep the lighting and color response consistent between frames.",
+    "wan": "ARRI Alexa large-format rendering: gentle highlight roll-off, open shadow detail and restrained edge sharpening. Retain natural subject detail under this visual treatment."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.arri-alexa/d5e19639298fec14d20e042ed01089c76a75db398f223edecd75f6b2de42e523.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.arri-alexa/d5e19639298fec14d20e042ed01089c76a75db398f223edecd75f6b2de42e523-late.png",
+    "run": "runs/look.arri-alexa.json"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "id": "look.pastel-print",
+  "version": 1,
+  "kind": "look",
+  "name": "Pastel print",
+  "description": "Pastel print grade: lifted black floor, low saturation, peach highlights and soft blue shadows with gentle contrast.",
+  "tags": [
+    "look",
+    "grade"
+  ],
+  "slot": "grade",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video",
+    "image"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "Pastel print grade: lifted black floor, low saturation, peach highlights and soft blue shadows with gentle contrast.",
+    "kling": "Pastel print grade: lifted black floor, low saturation, peach highlights and soft blue shadows with gentle contrast. Maintain this rendering consistently across the scene.",
+    "seedance": "Pastel print grade: lifted black floor, low saturation, peach highlights and soft blue shadows with gentle contrast. Preserve this appearance throughout one continuous shot.",
+    "veo": "Pastel print grade: lifted black floor, low saturation, peach highlights and soft blue shadows with gentle contrast. Keep the lighting and color response consistent between frames.",
+    "wan": "Pastel print grade: lifted black floor, low saturation, peach highlights and soft blue shadows with gentle contrast. Retain natural subject detail under this visual treatment."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.pastel-print/182a090af75fd84b1463d0d632a6d1e8290478005ebefb6aabef8e86c01c4d98.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.pastel-print/182a090af75fd84b1463d0d632a6d1e8290478005ebefb6aabef8e86c01c4d98-late.png",
+    "run": "runs/look.pastel-print.json"
+  }
+}

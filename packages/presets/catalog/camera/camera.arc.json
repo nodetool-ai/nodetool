@@ -1,0 +1,37 @@
+{
+  "id": "camera.arc",
+  "version": 1,
+  "kind": "camera",
+  "name": "arc",
+  "description": "Camera travels through a gentle quarter-circle around the subject at constant height.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "Camera travels through a gentle quarter-circle around the subject at constant height.",
+    "kling": "Camera travels through a gentle quarter-circle around the subject at constant height.",
+    "seedance": "Camera travels through a gentle quarter-circle around the subject at constant height throughout one continuous shot.",
+    "veo": "Camera travels through a gentle quarter-circle around the subject at constant height.",
+    "wan": "Camera travels through a gentle quarter-circle around the subject at constant height.",
+    "local-wan": "The camera moves slowly along a quarter circle around the subject. The subject stays centered while the background slides sideways, revealing its side. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.arc/c0ded97242b8a490665aef12ed32968fb6a5cdbc78673bfd87c10f2a0247689f.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.arc/c0ded97242b8a490665aef12ed32968fb6a5cdbc78673bfd87c10f2a0247689f.png",
+    "run": "runs/camera.arc.json"
+  }
+}

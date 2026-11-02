@@ -1,0 +1,37 @@
+{
+  "id": "look.tungsten-practicals",
+  "version": 1,
+  "kind": "look",
+  "name": "Tungsten practicals",
+  "description": "Light with visible warm tungsten practical bulbs, localized pools of amber light and dim cool ambient fill, retaining detail around each bulb.",
+  "tags": [
+    "look",
+    "lighting"
+  ],
+  "slot": "lighting",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video",
+    "image"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "Light with visible warm tungsten practical bulbs, localized pools of amber light and dim cool ambient fill, retaining detail around each bulb.",
+    "kling": "Light with visible warm tungsten practical bulbs, localized pools of amber light and dim cool ambient fill, retaining detail around each bulb. Maintain this rendering consistently across the scene.",
+    "seedance": "Light with visible warm tungsten practical bulbs, localized pools of amber light and dim cool ambient fill, retaining detail around each bulb. Preserve this appearance throughout one continuous shot.",
+    "veo": "Light with visible warm tungsten practical bulbs, localized pools of amber light and dim cool ambient fill, retaining detail around each bulb. Keep the lighting and color response consistent between frames.",
+    "wan": "Light with visible warm tungsten practical bulbs, localized pools of amber light and dim cool ambient fill, retaining detail around each bulb. Retain natural subject detail under this visual treatment."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.tungsten-practicals/de3b9d492d3d5a0f7af39533ead68619ac99ff46a5c92736b56a44009bdef451.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.tungsten-practicals/de3b9d492d3d5a0f7af39533ead68619ac99ff46a5c92736b56a44009bdef451-late.png",
+    "run": "runs/look.tungsten-practicals.json"
+  }
+}

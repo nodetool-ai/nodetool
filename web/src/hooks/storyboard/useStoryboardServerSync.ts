@@ -49,6 +49,7 @@ const boardToDocument = (board: StoryboardBoard): StoryboardWireDocument => {
     shots: board.shots,
     brief: board.brief,
     style: board.style,
+    look_preset_ids: board.look_preset_ids ?? [],
     entityIds: board.entityIds,
     aspectRatio: board.aspectRatio,
     setupStage: board.setupStage,
@@ -82,6 +83,7 @@ const responseToBoard = (
     title: res.name === "Untitled storyboard" ? "" : res.name,
     brief: doc.brief,
     style: doc.style,
+    look_preset_ids: doc.look_preset_ids ?? [],
     entityIds: (doc.entityIds as string[] | undefined) ?? [],
     aspectRatio: doc.aspectRatio,
     setupStage: doc.setupStage,
@@ -270,6 +272,14 @@ export const useStoryboardServerSync = (
         case "brief":
           s.setBrief(boardId, value as string);
           break;
+        case "look_preset_ids":
+          if (Array.isArray(value)) {
+            s.setLookPresetIds(
+              boardId,
+              value.filter((id): id is string => typeof id === "string")
+            );
+          }
+          break;
         case "style":
           s.setStyle(boardId, value as string);
           break;
@@ -371,7 +381,9 @@ export const useStoryboardServerSync = (
     };
 
     const currentRevision = (): string | null =>
-      initialLoadReady ? store.getState().serverRevisions[boardId] ?? null : null;
+      initialLoadReady
+        ? (store.getState().serverRevisions[boardId] ?? null)
+        : null;
     const flushNow = async (): Promise<StoryboardSaveResult> => {
       await loadPromiseRef.current;
       return controller

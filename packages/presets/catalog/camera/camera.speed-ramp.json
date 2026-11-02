@@ -1,0 +1,37 @@
+{
+  "id": "camera.speed-ramp",
+  "version": 1,
+  "kind": "camera",
+  "name": "speed ramp",
+  "description": "Motion accelerates from normal speed into a rapid burst then eases into slow motion.",
+  "tags": [
+    "camera",
+    "speed"
+  ],
+  "slot": "speed",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "Motion accelerates from normal speed into a rapid burst then eases into slow motion.",
+    "kling": "Motion accelerates from normal speed into a rapid burst then eases into slow motion.",
+    "seedance": "Motion accelerates from normal speed into a rapid burst then eases into slow motion throughout one continuous shot.",
+    "veo": "Motion accelerates from normal speed into a rapid burst then eases into slow motion.",
+    "wan": "Motion accelerates from normal speed into a rapid burst then eases into slow motion.",
+    "local-wan": "The action starts at an ordinary pace, accelerates into a brief fast burst, then eases into slow motion. The same action flows continuously through each speed change. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.speed-ramp/7aa1d104dfc26f216f8e018ba94b0675ad280e9c74ca0b2cdf2c083591dae545.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.speed-ramp/7aa1d104dfc26f216f8e018ba94b0675ad280e9c74ca0b2cdf2c083591dae545.png",
+    "run": "runs/camera.speed-ramp.json"
+  }
+}

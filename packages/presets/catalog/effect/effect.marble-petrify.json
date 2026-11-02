@@ -1,0 +1,38 @@
+{
+  "id": "effect.marble-petrify",
+  "version": 1,
+  "kind": "effect",
+  "name": "Marble petrify",
+  "description": "Animates the subject to petrify into veined Carrara marble sculpture.",
+  "tags": [
+    "effect",
+    "stone",
+    "transform"
+  ],
+  "slot": "effect",
+  "modes": [
+    "image_to_video"
+  ],
+  "inputs": [
+    "image"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "petrify into veined Carrara marble sculpture"
+  ],
+  "prompt": {
+    "default": "The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+    "kling": "The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. Physically accurate motion, steady locked camera.",
+    "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. Physically accurate motion.",
+    "veo": "The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. Cinematic lighting, realistic physics, locked camera.",
+    "wan": "The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. Locked camera, smooth realistic motion, high detail.",
+    "local-wan": "White stone spreads gradually across the subject from bottom to top. Thin grey veins form within the smooth marble until the subject stands as a solid polished sculpture."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.marble-petrify/c73d86582657cb6469a82b97078d7853e183b6e175a77450ae4c1bb0142d7518.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.marble-petrify/c73d86582657cb6469a82b97078d7853e183b6e175a77450ae4c1bb0142d7518.png",
+    "run": "runs/effect.marble-petrify.json"
+  }
+}

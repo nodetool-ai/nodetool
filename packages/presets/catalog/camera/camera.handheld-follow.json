@@ -1,0 +1,39 @@
+{
+  "id": "camera.handheld-follow",
+  "version": 1,
+  "kind": "camera",
+  "name": "handheld follow",
+  "description": "Camera follows behind the moving subject with subtle handheld sway.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [
+    "handheld follow"
+  ],
+  "prompt": {
+    "default": "Camera follows behind the moving subject with subtle handheld sway.",
+    "kling": "Camera follows behind the moving subject with subtle handheld sway.",
+    "seedance": "Camera follows behind the moving subject with subtle handheld sway throughout one continuous shot.",
+    "veo": "Camera follows behind the moving subject with subtle handheld sway.",
+    "wan": "Camera follows behind the moving subject with subtle handheld sway.",
+    "local-wan": "The camera follows just behind the moving subject at walking speed. Small uneven steps produce gentle vertical sway while the subject stays clearly framed. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.handheld-follow/be3b7a5cf2771901296b6a979897a677139080da5f93896faff7ad4843f1ddcd.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.handheld-follow/be3b7a5cf2771901296b6a979897a677139080da5f93896faff7ad4843f1ddcd.png",
+    "run": "runs/camera.handheld-follow.json"
+  }
+}

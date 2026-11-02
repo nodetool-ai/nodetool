@@ -1,0 +1,19 @@
+{
+  "id": "studio.product-hero",
+  "version": 1,
+  "kind": "studio",
+  "name": "Product hero shot",
+  "description": "A product turning in a slow orbit, rendered crisp with clean specular highlights.",
+  "tags": [
+    "video",
+    "product"
+  ],
+  "target": {
+    "type": "create",
+    "mode": "video"
+  },
+  "preset_ids": [
+    "camera.orbit",
+    "look.red-v-raptor"
+  ]
+}

@@ -482,6 +482,38 @@ describe("FalProvider — video endpoints", () => {
     expect(captured.video_url).toBe("https://fal.media/v.mp4");
     expect(captured.audio_url).toBe("https://fal.media/a.mp3");
   });
+  it("lipSync routes a still image as image_url", async () => {
+    const uploadMock = vi
+      .fn()
+      .mockResolvedValueOnce("https://fal.media/v.mp4")
+      .mockResolvedValueOnce("https://fal.media/a.mp3");
+    let captured: any;
+    const subscribeMock = vi.fn(async (_id: string, opts: any) => {
+      captured = opts.input;
+      return { data: { videos: [{ url: "https://fal.ai/out.mp4" }] } };
+    });
+    vi.stubGlobal("fetch", okFetch());
+    const p = createProvider();
+    (p as any)._client = {
+      subscribe: subscribeMock,
+      storage: { upload: uploadMock }
+    };
+    const params: LipSyncParams = {
+      model: {
+        id: "fal-ai/unknown-lipsync",
+        name: "LS",
+        provider: "fal_ai"
+      },
+      visualMimeType: "image/png",
+      audio: new Uint8Array([1, 2, 3])
+    };
+    const out = await p.lipSync(new Uint8Array([4, 5, 6]), params);
+    expect(out).toBeInstanceOf(Uint8Array);
+    expect(uploadMock).toHaveBeenCalledTimes(2);
+    // Falls back to *_url for unknown endpoints.
+    expect(captured.image_url).toBe("https://fal.media/v.mp4");
+    expect(captured.audio_url).toBe("https://fal.media/a.mp3");
+  });
 });
 
 describe("FalProvider — single-image editing endpoints", () => {

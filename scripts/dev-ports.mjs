@@ -50,8 +50,24 @@ export function findListenerPids(port, platform = process.platform) {
     return [...new Set(out.split(/\s+/).filter(Boolean).map(Number))].filter(
       (pid) => Number.isInteger(pid) && pid > 0
     );
-  } catch {
+  } catch (error) {
+    // Some Linux installs ship ss but not lsof.
+    if (error?.code === "ENOENT") {
+      return findListenerPidsWithSs(port);
+    }
     // lsof exits non-zero when nothing listens.
+    return [];
+  }
+}
+
+function findListenerPidsWithSs(port) {
+  try {
+    const out = execFileSync("ss", ["-H", "-t", "-l", "-n", "-p", "sport", "=", `:${port}`], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"]
+    });
+    return [...new Set([...out.matchAll(/pid=(\d+)/g)].map((match) => Number(match[1])))];
+  } catch {
     return [];
   }
 }

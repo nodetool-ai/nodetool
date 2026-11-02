@@ -24,4 +24,15 @@ describe("MediaGenerationStore persistence", () => {
     expect(migrated).not.toHaveProperty("mode");
     expect(migrated.music).toEqual({ model: null, duration: 10 });
   });
+
+  it("does not keep the preset selection", () => {
+    const { persist } = useMediaGenerationStore;
+    useMediaGenerationStore.getState().setPresetIds("video", ["camera.dolly-in"]);
+
+    const saved = persist.getOptions().partialize?.(
+      useMediaGenerationStore.getState()
+    ) as Record<string, unknown>;
+    expect(saved).not.toHaveProperty("presetIds");
+    expect(saved).toHaveProperty("video");
+  });
 });

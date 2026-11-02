@@ -1,3 +1,4 @@
+import { loadRuntimePresetCatalog } from "../lib/presets/loadRuntimeCatalog";
 import { NodeTypes } from "@xyflow/react";
 import { restFetch } from "../lib/rest-fetch";
 import { UnifiedModel, NodeMetadata } from "../stores/ApiTypes";
@@ -102,6 +103,11 @@ export const prefetchMetadata = (): void => {
 export const loadMetadata = async (): Promise<"success" | "error"> => {
   // Take the prefetch at most once; later reloads (package changes, etc.)
   // fetch fresh so a consumed response body is never read twice.
+  // The built-in presets stay usable when installed packs cannot be loaded.
+  // A generation naming a pack preset then fails with its own clear error.
+  await loadRuntimePresetCatalog().catch((error: unknown) => {
+    console.error(error);
+  });
   const pending = prefetchedResponse;
   prefetchedResponse = null;
   const baseNodeReady = loadBaseNode();

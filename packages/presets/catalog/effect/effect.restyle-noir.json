@@ -1,0 +1,31 @@
+{
+  "id": "effect.restyle-noir",
+  "version": 1,
+  "kind": "effect",
+  "name": "Film noir restyle",
+  "description": "Restyle the video as black-and-white film noir with deep shadows, hard directional light and fine film grain.",
+  "tags": [
+    "restyle",
+    "noir"
+  ],
+  "slot": "effect",
+  "modes": [
+    "video_edit"
+  ],
+  "inputs": [
+    "video"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "Restyle the video as black-and-white film noir with deep shadows, hard directional light and fine film grain. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames.",
+    "local-wan": "From the first frame, the entire scene is rebuilt as a monochrome film noir. Hard side lighting carves bright silver highlights and deep black shadows across the scene, with fine moving film grain. The layout and movement follow the source video, with this treatment sustained in every frame."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-noir/e92943d72951a975d9e9cc2bd7b6709af35c90de713ed343490fe9e7067f8789.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-noir/e92943d72951a975d9e9cc2bd7b6709af35c90de713ed343490fe9e7067f8789-late.png",
+    "run": "runs/effect.restyle-noir.json"
+  }
+}

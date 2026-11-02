@@ -28,7 +28,6 @@ import {
 import {
   ANGLE_OPTIONS,
   FRAMING_OPTIONS,
-  MOVEMENT_OPTIONS,
   cameraOptions
 } from "../../storyboard/cameraOptions";
 import {
@@ -39,7 +38,9 @@ import {
   shotPatchFromChangedDraft,
   type ShotDraft
 } from "../../storyboard/shotDraft";
+import ShotMovementField from "../../storyboard/ShotMovementField";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
+import { useShotVideoModelId } from "../../../hooks/storyboard/useShotVideoModelId";
 
 interface TimelineShotFormProps {
   boardId: string;
@@ -54,6 +55,7 @@ const TimelineShotFormInner = ({
 }: TimelineShotFormProps) => {
   const { t } = useTranslation();
   const applyShotDraft = useStoryboardStore((state) => state.applyShotDraft);
+  const videoModelId = useShotVideoModelId(boardId, shot);
   const scene = useStoryboardStore(
     (state) =>
       state.boards[boardId]?.screenplay?.scenes?.find(
@@ -143,11 +145,6 @@ const TimelineShotFormInner = ({
     () => localizeCameraOptions(cameraOptions(ANGLE_OPTIONS, draft.angle)),
     [draft.angle, localizeCameraOptions]
   );
-  const movementOptions = useMemo(
-    () =>
-      localizeCameraOptions(cameraOptions(MOVEMENT_OPTIONS, draft.movement)),
-    [draft.movement, localizeCameraOptions]
-  );
 
   return (
     <FlexColumn gap={SPACING.lg} data-testid="timeline-shot-form">
@@ -213,13 +210,13 @@ const TimelineShotFormInner = ({
         onChange={(value) => set({ angle: value })}
         options={angleOptions}
       />
-      <SelectField
-        size="small"
+      <ShotMovementField
         label={t("batch2_28.form.movement")}
-        disabled={readOnly}
-        value={draft.movement}
-        onChange={(value) => set({ movement: value })}
-        options={movementOptions}
+        draft={draft}
+        onChange={setDraft}
+        videoModelId={videoModelId}
+        renderMode={draft.renderMode}
+        readOnly={readOnly}
       />
       <SelectField
         size="small"

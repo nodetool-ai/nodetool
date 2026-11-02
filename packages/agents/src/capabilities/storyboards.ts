@@ -1,3 +1,6 @@
+import { cameraPresetIdsSchema } from "@nodetool-ai/protocol";
+import { compileMediaPresets, mediaPresetSettings } from "@nodetool-ai/presets";
+import { presetCatalog } from "./presets.js";
 import { finishStoryboard, layoutStoryboard, previewStoryboardDesign } from "./finish-storyboard.js";
 /**
  * The `storyboards` capability module.
@@ -587,6 +590,7 @@ const getStoryboard: CapabilityExport = {
       name: row.name,
       brief: doc.brief,
       style: doc.style,
+      look_preset_ids: doc.look_preset_ids ?? [],
       aspect_ratio: doc.aspectRatio,
       image_model: doc.imageModel ?? null,
       video_model: doc.videoModel ?? null,
@@ -605,6 +609,7 @@ const getStoryboard: CapabilityExport = {
           slug: shot.slug,
           action: shot.action,
           camera: shot.camera,
+          look_preset_ids: shot.look_preset_ids ?? [],
           motion: shot.motion,
           end_state: shot.end_state,
           sound: shot.sound,
@@ -718,7 +723,8 @@ async function filterStale(
       doc,
       entities,
       kind,
-      selected.map((shot) => shot.id)
+      selected.map((shot) => shot.id),
+      { presetCatalog: presetCatalog() }
     )
       .filter((plan) => plan.fresh)
       .map((plan) => plan.shotId)
@@ -732,7 +738,7 @@ async function filterStale(
 }
 
 function modelOverrides(params: Record<string, unknown>): ShotRenderPlanOptions {
-  const options: ShotRenderPlanOptions = {};
+  const options: ShotRenderPlanOptions = { presetCatalog: presetCatalog() };
   if (isNonBlankString(params["provider"])) {
     options.provider = params["provider"];
   }
@@ -1091,6 +1097,7 @@ const reviseStoryboardClip: CapabilityExport = {
 
     const { loadMediaRefBytes } = await import("@nodetool-ai/runtime");
     try {
+      const compiled = compileMediaPresets(params["preset_ids"], model.provider, model.model, "video_edit", instruction, presetCatalog());
       const source = await loadMediaRefBytes(shot.clip, context);
       if (!source || source.length === 0) {
         return {
@@ -1108,7 +1115,7 @@ const reviseStoryboardClip: CapabilityExport = {
           provider: model.provider,
           capability: "video_to_video",
           model: model.model,
-          params: { video: source, prompt: instruction }
+          params: { ...mediaPresetSettings(compiled, "video_edit"), video: source, prompt: compiled.prompt }
         },
         `shot-${shot.index + 1}-revision`,
         "video/mp4"
@@ -1666,6 +1673,7 @@ const SHOT_EDIT_FIELDS = new Set([
   "action",
   "slug",
   "camera",
+  "look_preset_ids",
   "motion",
   "end_state",
   "sound",
@@ -1736,6 +1744,7 @@ function shotTarget(args: Record<string, unknown>, op: string): string {
 
 /** The board fields `set_board` may set. */
 const BOARD_EDIT_FIELDS = new Set([
+  "look_preset_ids",
   "brief",
   "style",
   "aspect_ratio",
@@ -1844,8 +1853,15 @@ function applyShotFields(
   const next: Shot = { ...shot };
   if (args["action"] !== undefined) next.action = String(args["action"]);
   if (args["slug"] !== undefined) next.slug = String(args["slug"]);
-  if (args["camera"] !== undefined)
+  if (args["look_preset_ids"] !== undefined) {
+    next.look_preset_ids = cameraPresetIdsSchema.parse(args["look_preset_ids"]);
+  }
+  if (args["camera"] !== undefined) {
     next.camera = args["camera"] as Shot["camera"];
+  }
+  if (next.camera?.preset_ids !== undefined) {
+    cameraPresetIdsSchema.parse(next.camera.preset_ids);
+  }
   if (args["motion"] !== undefined) next.motion = String(args["motion"]);
   for (const field of ["end_state", "sound"] as const) {
     const value = args[field];
@@ -2369,6 +2385,11 @@ function applyBoardOp(
               .join("; ")
         );
       }
+      if (args["look_preset_ids"] !== undefined) {
+        doc.look_preset_ids = cameraPresetIdsSchema.parse(
+          args["look_preset_ids"]
+        );
+      }
       if (args["brief"] !== undefined) doc.brief = String(args["brief"]);
       if (args["style"] !== undefined) doc.style = String(args["style"]);
       if (args["aspect_ratio"] !== undefined) {
@@ -2513,7 +2534,9 @@ async function resolveStoryboardEditSources(run: CapabilityRun, ops: readonly Pa
       }
     }
     if (Array.isArray(args["entity_ids"])) {
-      args["entity_ids"] = await Promise.all(args["entity_ids"].map(async (id) => isString(id) ? resolve(id) : id));
+      args["entity_ids"] = await Promise.all(
+        args["entity_ids"].map(async (id) => (isString(id) ? resolve(id) : id))
+      );
     }
   }
   return resolved;

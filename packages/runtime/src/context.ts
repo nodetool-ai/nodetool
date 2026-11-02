@@ -3401,6 +3401,7 @@ export class ProcessingContext {
           {
             signal: params.signal as AbortSignal | undefined,
             prompt: params.prompt as string | undefined,
+            seed: isNumber(params.seed) ? params.seed : undefined,
             entities: await coerceEntityList(params, this),
             model: { id: req.model, name: req.model, provider: req.provider },
             negativePrompt: params.negative_prompt as string | undefined,
@@ -3662,6 +3663,8 @@ export class ProcessingContext {
         return provider.lipSync(params.video as Uint8Array, {
           model: { id: req.model, name: req.model, provider: req.provider },
           audio: params.audio as Uint8Array,
+          visualMimeType: params.visualMimeType as string | undefined,
+          audioMimeType: params.audioMimeType as string | undefined,
           seed: params.seed as number | undefined
         });
       case "text_to_music":

@@ -322,7 +322,7 @@ export class FakeProvider extends BaseProvider {
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
     return [{
       id: "fake-video", name: "Fake Video (no-cost test MP4)", provider: "fake",
-      supportedTasks: ["text_to_video", "image_to_video", "reference_to_video", "video_to_video"],
+      supportedTasks: ["audio_to_video", "text_to_video", "image_to_video", "reference_to_video", "video_to_video"],
       durations: [2]
     }];
   }

@@ -1,0 +1,34 @@
+{
+  "id": "effect.claymation",
+  "version": 1,
+  "kind": "effect",
+  "name": "Claymation",
+  "description": "Edits the photo to restyle it as a handmade claymation scene with visible fingerprints in the clay.",
+  "tags": [
+    "effect",
+    "stylize",
+    "craft"
+  ],
+  "slot": "effect",
+  "modes": [
+    "image_edit"
+  ],
+  "inputs": [
+    "image"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "restyle it as a handmade claymation scene with visible fingerprints in the clay"
+  ],
+  "prompt": {
+    "default": "Edit the image to restyle it as a handmade claymation scene with visible fingerprints in the clay. Keep the composition and subject identical.",
+    "local-wan": "A handmade plasticine miniature scene, with rounded clay forms, thumbprints and tiny sculpted details across every surface. The image layout is rebuilt entirely from colored clay under soft miniature-set lighting."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.claymation/da17b0101e6b3f38aa135ffbbb7aceb39fc9a09f68d9574bfb14f54b5909844a.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.claymation/da17b0101e6b3f38aa135ffbbb7aceb39fc9a09f68d9574bfb14f54b5909844a.png",
+    "run": "runs/effect.claymation.json"
+  }
+}
