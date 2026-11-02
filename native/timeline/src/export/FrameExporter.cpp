@@ -38,11 +38,13 @@ FrameExporter::~FrameExporter() { cancel(); }
 void FrameExporter::cancel() {
     ++m_serial;
     if (m_request) { m_capture.cancel(m_request); m_request = 0; }
-    if (m_worker) {
-        disconnect(m_worker, nullptr, this, nullptr);
-        m_worker->requestInterruption();
-        m_worker->wait();
-        delete std::exchange(m_worker, nullptr);
+    // The worker captures no pointer to this object. It may be waiting on another download's
+    // cache lock, which does not see an interruption, so the GUI thread leaves it to finish alone.
+    if (auto* thread = std::exchange(m_worker, nullptr)) {
+        disconnect(thread, nullptr, this, nullptr);
+        connect(thread, &QThread::finished, thread, &QObject::deleteLater);
+        thread->requestInterruption();
+        if (thread->isFinished()) { thread->deleteLater(); }
     }
 }
 void FrameExporter::worker(std::function<void()> work, std::function<void()> finish) {

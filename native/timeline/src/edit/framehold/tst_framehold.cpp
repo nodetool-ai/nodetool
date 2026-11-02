@@ -159,6 +159,83 @@ private slots:
         QCOMPARE(model.undoStack()->count(), 0); QCOMPARE(model.documentJson(), unshifted);
         targeting.setTrackSyncLocked("off", true);
     }
+    void insertKeepsValidSourceBounds() {
+        // A hold set outside the clip's own source window, by Source time.
+        auto raw = document(false, 1);
+        auto c = byId(raw, "c");
+        c.insert("startMs", 0); c.insert("durationMs", 1000); c.insert("inPointMs", 0); c.insert("outPointMs", 1000);
+        c.insert("timeRemap", QJsonObject{{"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"sourceMs", 4000}},
+            QJsonObject{{"t", 1}, {"sourceMs", 4000}}}}});
+        raw.insert("clips", QJsonArray{c});
+        const auto result = nt::framehold::insertFrameHoldSegment(raw, "c", 500, 500);
+        QVERIFY2(result.ok(), qPrintable(result.error));
+        const auto segment = byId(result.doc, result.clipIds.first());
+        QVERIFY2(segment.value("inPointMs").toDouble() < segment.value("outPointMs").toDouble(),
+            qPrintable(QString("%1 %2").arg(segment.value("inPointMs").toDouble()).arg(segment.value("outPointMs").toDouble())));
+        QCOMPARE(nt::framehold::sourceMsAt(segment, 700), 4000.0);
+    }
+    void insertAtTheVideoStartSplitsLinkedAudioThatSpansIt() {
+        auto raw = document(true, 1);
+        auto v = byId(raw, "c");
+        v.insert("startMs", 1000); v.insert("durationMs", 1000); v.insert("inPointMs", 0); v.insert("outPointMs", 1000); v.insert("linkId", "L");
+        auto a = byId(raw, "audio");
+        a.insert("startMs", 0); a.insert("durationMs", 3000); a.insert("inPointMs", 0); a.insert("outPointMs", 3000); a.insert("linkId", "L");
+        raw.insert("clips", QJsonArray{v, a});
+        const auto result = nt::framehold::insertFrameHoldSegment(raw, "c", 1000, 500);
+        QVERIFY2(result.ok(), qPrintable(result.error));
+        QCOMPARE(byId(result.doc, "c").value("startMs").toDouble(), 1500.0);
+        const auto segment = byId(result.doc, result.clipIds.first());
+        QJsonObject before, after;
+        for (const auto& value : result.doc.value("clips").toArray()) {
+            const auto clip = value.toObject();
+            if (clip.value("mediaType") != "audio") { continue; }
+            if (clip.value("startMs").toDouble() < 1000) { before = clip; } else { after = clip; }
+            // Sound never runs under the hold.
+            const double start = clip.value("startMs").toDouble();
+            QVERIFY(start >= 1500 || start + clip.value("durationMs").toDouble() <= 1000);
+        }
+        QCOMPARE(before.value("startMs").toDouble(), 0.0);
+        QCOMPARE(before.value("durationMs").toDouble(), 1000.0);
+        QCOMPARE(before.value("outPointMs").toDouble(), 1000.0);
+        QCOMPARE(after.value("startMs").toDouble(), 1500.0);
+        QCOMPARE(after.value("inPointMs").toDouble(), 1000.0);
+        QCOMPARE(after.value("durationMs").toDouble(), 2000.0);
+        QCOMPARE(after.value("linkId").toString(), byId(result.doc, "c").value("linkId").toString());
+        QVERIFY(before.value("linkId").toString() != after.value("linkId").toString());
+        QVERIFY(!segment.contains("linkId"));
+    }
+    void splittingAHoldKeepsItsSourceCurve() {
+        auto raw = document(false, 1);
+        auto c = byId(raw, "c");
+        c.insert("startMs", 0); c.insert("durationMs", 1000); c.insert("inPointMs", 0); c.insert("outPointMs", 1000);
+        c.insert("timeRemap", QJsonObject{{"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"sourceMs", 250}},
+            QJsonObject{{"t", 1}, {"sourceMs", 250}}}}});
+        c.insert("animations", QJsonArray{QJsonObject{{"id", "m"}, {"preset", "custom"}, {"role", "emphasis"}, {"durationMs", 1000},
+            {"custom", QJsonObject{{"timeBase", "source"}, {"curves", QJsonArray{QJsonObject{{"property", "offsetY"},
+                {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"sourceMs", 0}, {"value", 0}},
+                                         QJsonObject{{"t", 1}, {"sourceMs", 1000}, {"value", 100}}}}}}}}}}});
+        const auto [left, right] = nt::edit::splitClip(c, 500);
+        for (const auto& half : {left, right}) {
+            const auto frames = half.value("animations").toArray().first().toObject().value("custom").toObject()
+                .value("curves").toArray().first().toObject().value("keyframes").toArray();
+            QVERIFY2(frames.size() == 2, qPrintable(QJsonDocument(frames).toJson()));
+            QCOMPARE(frames.first().toObject().value("sourceMs").toDouble(), 0.0);
+            QCOMPARE(frames.last().toObject().value("sourceMs").toDouble(), 1000.0);
+        }
+    }
+    void aHoldRunningPastItsMediaCannotChooseAFramePastIt() {
+        auto raw = document(false, 1);
+        auto c = byId(raw, "c");
+        c.insert("startMs", 1000); c.insert("durationMs", 3000); c.insert("inPointMs", 200); c.insert("outPointMs", 700);
+        c.insert("timeRemap", QJsonObject{{"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"sourceMs", 200}},
+            QJsonObject{{"t", 1}, {"sourceMs", 200}}}}});
+        raw.insert("clips", QJsonArray{c});
+        for (const auto* mode : {"playhead", "sequenceTime", "out"}) {
+            const auto result = nt::framehold::setFrameHoldOptions(raw, {{"c"}, true, mode, 3500, 3500});
+            QVERIFY2(result.ok(), qPrintable(result.error));
+            QVERIFY2(nt::framehold::sourceMsAt(byId(result.doc, "c"), 1000) <= 700, mode);
+        }
+    }
     void options_data() {
         QTest::addColumn<QString>("mode"); QTest::addColumn<double>("expected");
         QTest::newRow("in") << QString("in") << 200.0;

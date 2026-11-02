@@ -15,7 +15,11 @@
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include "playback/PlaybackClock.h"
+#include <QElapsedTimer>
+#include <QSemaphore>
 #include <QtTest>
+#include <atomic>
+#include <memory>
 
 class TestFrameExport : public QObject {
     Q_OBJECT
@@ -156,6 +160,22 @@ private slots:
         } else { QVERIFY(!result.error.isEmpty()); }
         QCOMPARE(http.countRequests("GET", "/proxy.mp4"), 0);
         QCOMPARE(http.countRequests("GET", "/trpc/assets.get"), 1);
+    }
+    void cancellingDoesNotWaitForABlockedWorker() {
+        // A Source capture can sit on another download's cache lock, which does not see an interruption.
+        auto gate = std::make_shared<QSemaphore>();
+        auto finished = std::make_shared<std::atomic_bool>(false);
+        {
+            FrameExporter exporter;
+            exporter.startWorkerForTest([gate, finished] { gate->acquire(); finished->store(true); });
+            QElapsedTimer timer;
+            timer.start();
+            exporter.reset();
+            QVERIFY2(timer.elapsed() < 1000, "reset waited for the worker");
+            QCOMPARE(exporter.state(), QStringLiteral("idle"));
+        }
+        gate->release();
+        QTRY_VERIFY(finished->load());
     }
     void namesAndFileExists() {
         QTemporaryDir dir;

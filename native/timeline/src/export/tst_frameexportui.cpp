@@ -1,5 +1,6 @@
 // Export Frame and Frame Hold driven through the mounted editor with real pointer and key events.
 #include "wiring/WiringFixture.h"
+#include "app/MenuRegistry.h"
 #include "edit/Keymap.h"
 #include "edit/sourceEdit/SourceViewerState.h"
 #include "export/FrameExporter.h"
@@ -202,6 +203,13 @@ private slots:
         clickObject("exportFrameSave");
         QTRY_COMPARE_WITH_TIMEOUT(exporter()->state(), QStringLiteral("saved"), 20000);
         QVERIFY(QFileInfo(path).lastModified() > first);
+    }
+    void theMenusListTheCommands() {
+        QStringList clipMenu, fileMenu;
+        for (const auto& entry : nt::app::shellMenuEntries("Clip")) { clipMenu.append(entry.action); }
+        for (const auto& entry : nt::app::shellMenuEntries("File")) { fileMenu.append(entry.action); }
+        for (const auto* action : {"frameHoldOptions", "frameHoldAdd", "frameHoldInsert"}) { QVERIFY2(clipMenu.contains(action), action); }
+        QVERIFY(fileMenu.contains("exportFrame"));
     }
     void keysOpenTheDialogAndAppendMoved() {
         QVERIFY(nt::edit::resolveTimelineAction({"e", "KeyE", true, false, true, false}, "premiere") == "exportFrame");

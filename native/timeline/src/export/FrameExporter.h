@@ -45,6 +45,7 @@ public:
     Q_INVOKABLE QVariantMap startFramePlacement() const;
     Q_INVOKABLE void reset();
     FrameCapture* captureForTest() { return &m_capture; }
+    void startWorkerForTest(std::function<void()> work) { worker(std::move(work), [] {}); }
     void setSavedAssetForTest(const QVariantMap& asset) { m_savedAsset = asset; m_state = "saved"; emit changed(); }
 signals:
     void changed();

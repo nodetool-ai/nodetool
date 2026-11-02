@@ -308,7 +308,8 @@ double rebaseLoopDelayMs(const QJsonObject& anim, double splitMs) {
 
 struct SplitAnimationSource {
     double inPointMs;
-    double cutPointMs;
+    double leftOutMs;
+    double rightInMs;
     double outPointMs;
     double leftDurationMs;
     double rightDurationMs;
@@ -322,8 +323,8 @@ std::pair<QJsonArray, QJsonArray> splitAnimations(const QJsonArray& animations, 
         QJsonObject anim = v.toObject();
         const QString role = anim.value(u"role").toString();
         if (isSourceAnchoredAnimation(anim)) {
-            left.append(sliceSourceAnimation(anim, source.inPointMs, source.cutPointMs, source.leftDurationMs));
-            QJsonObject r = sliceSourceAnimation(anim, source.cutPointMs, source.outPointMs, source.rightDurationMs);
+            left.append(sliceSourceAnimation(anim, source.inPointMs, source.leftOutMs, source.leftDurationMs));
+            QJsonObject r = sliceSourceAnimation(anim, source.rightInMs, source.outPointMs, source.rightDurationMs);
             r.insert(QStringLiteral("id"), newId());
             right.append(r);
         } else if (isKeyframeAnimation(anim)) {
@@ -576,8 +577,10 @@ std::pair<QJsonObject, QJsonObject> splitClip(const QJsonObject& clip, double at
     }
     std::optional<std::pair<QJsonArray, QJsonArray>> animations;
     if (present(clip, "animations")) {
+        // Both halves of a hold show the same source window, so each keeps the whole curve.
         animations = splitAnimations(clip.value(u"animations").toArray(), leftDurationMs,
-                                     {inPointMs, cutPointMs, outPointMs, leftDurationMs, rightDurationMs});
+                                     {inPointMs, isHoldRemap(clip) ? outPointMs : cutPointMs,
+                                      isHoldRemap(clip) ? inPointMs : cutPointMs, outPointMs, leftDurationMs, rightDurationMs});
     }
 
     QJsonObject left = clip;

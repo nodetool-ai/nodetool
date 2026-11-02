@@ -106,13 +106,33 @@ Result insertFrameHoldSegment(const QJsonObject& raw, const QString& id, double 
     if (atMs > clipStartMs(original) && !split.rightIds.contains(id)) {
         return {raw, {}, "This clip and its linked clips could not be split here."};
     }
+    // At the video's first frame nothing splits, so linked audio that started earlier must be cut here.
+    // Its tail stays linked to the video, and the head stays in place as a clip of its own.
+    if (atMs == clipStartMs(original) && !clipLinkId(original).isEmpty()) {
+        ClipList cut;
+        for (const auto& clip : split.clips) {
+            if (clipId(clip) == id || clipLinkId(clip) != clipLinkId(original) || !(clipStartMs(clip) < atMs && atMs < clipEndMs(clip))) {
+                cut.push_back(clip);
+                continue;
+            }
+            try {
+                auto [head, tail] = splitClip(clip, atMs);
+                head.remove("linkId");
+                cut.push_back(head);
+                cut.push_back(tail);
+            } catch (const OpError&) { return {raw, {}, "This clip and its linked clips could not be split here."}; }
+        }
+        split.clips = std::move(cut);
+    }
     auto segment = original;
     const auto newId = nt::edit::newId();
     segment.insert("id", newId); segment.insert("startMs", atMs); segment.insert("durationMs", duration);
-    segment.insert("inPointMs", source);
-    const double originalOut = original.value("outPointMs").toDouble(
-        original.value("inPointMs").toDouble() + clipDurationMs(original) * sourceRate(original));
-    segment.insert("outPointMs", std::min(source + duration * sourceRate(original), originalOut));
+    const double originalIn = original.value("inPointMs").toDouble();
+    const double originalOut = original.value("outPointMs").toDouble(originalIn + clipDurationMs(original) * sourceRate(original));
+    // A hold may show a frame outside the clip's source window. The window stays valid, and it is what Disable plays.
+    const bool inside = source < originalOut;
+    segment.insert("inPointMs", inside ? source : originalIn);
+    segment.insert("outPointMs", inside ? std::min(source + duration * sourceRate(original), originalOut) : originalOut);
     segment.insert("timeRemap", holdRemap(source));
     for (const auto* key : {"linkId", "caption", "animations", "transitionIn", "transitionOut", "transitions",
                             "fadeInMs", "fadeOutMs", "fadeInShape", "fadeOutShape", "markers"}) {
@@ -168,11 +188,16 @@ Result setFrameHoldOptions(const QJsonObject& raw, const OptionsRequest& request
             const double end = clipEndMs(clip);
             const double in = clip.value("inPointMs").toDouble();
             const double rate = sourceRate(clip);
-            const auto at = [&](double time) { return sourceMsAt(moving, std::clamp(time, start, std::max(start, std::nextafter(end, start)))); };
+            const double out = clip.value("outPointMs").toDouble(in + clipDurationMs(clip) * rate);
+            const double lastSource = std::max(in, out - frame * rate);
+            // A hold can outlast its source window, so a time mapped at the clip's rate can land past the media.
+            const auto at = [&](double time) {
+                const double mapped = sourceMsAt(moving, std::clamp(time, start, std::max(start, std::nextafter(end, start))));
+                return hasRemap(moving) ? mapped : std::min(mapped, lastSource);
+            };
             double source = at(start);
             if (request.holdOn == "out") {
-                const double out = clip.value("outPointMs").toDouble(in + clipDurationMs(clip) * rate);
-                source = std::max(in, std::min(at(std::max(start, end - frame)), out - frame * rate));
+                source = at(std::max(start, end - frame));
             } else if (request.holdOn == "playhead") { source = at(request.playheadMs); }
             else if (request.holdOn == "sequenceTime") { source = at(request.timeMs); }
             else if (request.holdOn == "sourceTime") { source = std::max(0.0, request.timeMs); }

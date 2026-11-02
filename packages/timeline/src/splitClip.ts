@@ -44,7 +44,8 @@ function splitAnimations(
   splitMs: number,
   source: {
     inPointMs: number;
-    cutPointMs: number;
+    leftOutMs: number;
+    rightInMs: number;
     outPointMs: number;
     leftDurationMs: number;
     rightDurationMs: number;
@@ -58,14 +59,14 @@ function splitAnimations(
         sliceSourceAnimation(
           anim,
           source.inPointMs,
-          source.cutPointMs,
+          source.leftOutMs,
           source.leftDurationMs
         )
       );
       right.push({
         ...sliceSourceAnimation(
           anim,
-          source.cutPointMs,
+          source.rightInMs,
           source.outPointMs,
           source.rightDurationMs
         ),
@@ -193,7 +194,9 @@ export function splitClip(clip: TimelineClip, atMs: number): [TimelineClip, Time
   const animations = clip.animations
     ? splitAnimations(clip.animations, leftDurationMs, {
         inPointMs,
-        cutPointMs,
+        // Both halves of a hold show the same source window, so each keeps the whole curve.
+        leftOutMs: isHoldRemap(clip) ? outPointMs : cutPointMs,
+        rightInMs: isHoldRemap(clip) ? inPointMs : cutPointMs,
         outPointMs,
         leftDurationMs,
         rightDurationMs
