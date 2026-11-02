@@ -38,7 +38,8 @@ QKeyCombination bindingCombination(const QStringList& keys) {
         modifiers |= Qt::AltModifier;
     }
     // Symbol keys already describe their shifted glyph, as in the web resolver.
-    if (keys.contains("Shift") && (label.size() != 1 || label.at(0).isLetter())) {
+    // Digits do not, so Shift+5 keeps its modifier.
+    if (keys.contains("Shift") && (label.size() != 1 || label.at(0).isLetterOrNumber())) {
         modifiers |= Qt::ShiftModifier;
     }
     return QKeyCombination(modifiers, key);
