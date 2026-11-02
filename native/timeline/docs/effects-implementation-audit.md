@@ -1,0 +1,145 @@
+# Native timeline visual effects audit
+
+The vignette concern has concrete causes: its control-card preview uses different math from the rendered effect, its falloff leaves a broad flat border, and track controls update the actual footage only on release. Remove the duplicate Canvas preview and make edits preview through the real renderer.
+
+This audit covers visual clip/track effects, their controls, and the shared effect pipeline at `3df7fc227bba42a325f15b2668d62d87a20ba0b5`. It combines source inspection with Windows D3D11 still renders. Audio DSP and transitions are outside this audit. Individual stylize/generator modes, masks and blend modes were inspected as pipeline capabilities, not exhaustively validated visually.
+
+**Render** means reproduced in native output. **Source** means established from code. **Design** means a proposed quality improvement, not a correctness failure. IDs continue from the [interaction plan](interaction-polish-plan.md). No production behavior was changed.
+
+**Implementation guidance for these issues:** Effect implementations may closely follow [Filmcraft](https://github.com/storytold/filmcraft) or [EffectCraft](https://github.com/storytold/effectcraft), including their algorithms, parameter behavior and visual results. Adapt them to the native rendering pipeline and preserve compatibility with existing timelines. Carry this guidance into any implementation issues created from this audit.
+
+## Implementation checklist
+
+Check an item only after its implementation and relevant verification pass. Each item is committed separately. F39 precedes F35 so removing the decorative preview retains live feedback.
+
+- [ ] F35: Remove the duplicate Canvas effect preview.
+- [ ] F36: Add a compatible gradual vignette falloff.
+- [ ] F37: Expose consistent vignette radius controls and units.
+- [ ] F38: Add vignette center and roundness controls.
+- [ ] F39: Preview track effects live with commit/cancel transactions.
+- [ ] F40: Make sharpen radius affect rendering.
+- [ ] F41: Apply glow color to the bloom contribution.
+- [ ] F42: Render authored tone curves faithfully.
+- [ ] F43: Remove gaps from large-radius blur kernels.
+- [ ] F44: Make processing order explicit and consistent.
+- [ ] F45: Give clip effect controls explicit reset defaults.
+- [ ] F46: Provide controls or specific explanations for imported effects.
+- [ ] F47: Edit imported Color effect instances.
+- [ ] F48: Support exact numeric entry for track effects.
+- [ ] F49: Add independent effect sensitivity and lifecycle checks.
+- [ ] F50: Evaluate and document precision and color-space behavior.
+
+## Vignette findings
+
+| ID | Finding | Implementation recommendation |
+| --- | --- | --- |
+| F35 | **Source: the Canvas preview is misleading.** [VideoPreview] uses a linear radial gradient normalized to the corner and clamps stops to 1. The [shader] uses a smooth cubic falloff, different distance normalization, and supports radius above 1. | Remove the decorative Canvas approximation from the effect card. Preview the actual footage during editing. If a thumbnail remains necessary, generate it through the same effect renderer and parameter contract. Do not maintain a second hand-written vignette. |
+| F36 | **Render + design: the falloff creates a flat dark outer region.** At radius 0.9, the shader reaches full darkening before the midpoint of every edge. Roughly 36% of the image lies outside that radius and gets the same maximum attenuation. | Review the intended visual profile on footage. Offer a gradual feather that can extend through the corners, with separate size and falloff controls. Preserve the current profile for existing documents rather than silently changing their appearance. |
+| F37 | **Source: radius is inconsistently exposed and described.** [ClipCatalog] provides Amount/Softness only. Track controls expose Radius. The [type contract] calls radius relative to the half-diagonal, but actual normalized distance is 1 at edge midpoints and √2 at corners. | Expose Radius on clips and tracks with identical units/defaults. Correct the contract or version the geometry. Imported radius values must remain visible and editable. Verify square, landscape, portrait and cropped sources. |
+| F38 | **Design: the vignette is limited to a centered, frame-shaped oval and black attenuation.** Center, roundness/aspect and highlight preservation are not parameters. Multiplication happens in the declared sRGB surface, so Amount is not an exposure-in-stops control. | After fixing preview fidelity, consider Center, Roundness and independent Feather. Add exposure or highlight protection only with an explicit color-space contract. Keep existing Amount semantics stable. These are enhancements, not proof that an oval vignette is mathematically wrong. |
+| F39 | **Source: track effects do not preview against footage during a drag.** [EffectCard] updates a local draft; it commits to the timeline only on release. | Use a reversible render/model preview transaction for track effects, as clip effects already do. Update the program viewer while held, commit one undo entry on release, and restore on Escape/cancel. Removing the Canvas card must accompany this change. |
+
+### What the current vignette actually renders
+
+For a normalized pixel position `(u,v)`, the shader computes:
+
+```text
+d = length(2 * (u,v) - 1)
+inner = max(0, radius - softness)
+outer = max(inner + 0.001, radius)
+t = clamp((d - inner) / (outer - inner), 0, 1)
+gain = 1 - amount * t² * (3 - 2t)
+RGBout = RGBin * gain
+alphaOut = alphaIn
+```
+
+This is also the formula in the [shared vignette module][SharedVignette]. The native result is therefore not evidence of a Windows-only rendering divergence.
+
+On a 640×360 white RGB image, Amount 0.5, Radius 0.9 and Softness 0.5 produced these channel values:
+
+| Pixel | Measured RGB |
+| --- | --- |
+| Center `(320,180)` | `255,255,255` |
+| Three-quarter width `(480,180)` | `241,241,241` |
+| Near edge `(560,180)` | `155,155,155` |
+| Edge midpoint `(639,180)` | `127,127,127` |
+| Corner `(639,359)` | `127,127,127` |
+
+![Current native vignette on a white image](effects-audit/vignette-current.png)
+
+For the same parameters, the control-card formula predicts about **0.693 gain** at the exact edge midpoint, versus **0.5** in the shader. This comparison is calculated from source, not a captured card image. The no-op Amount 0 render stayed white at the sampled positions. Softness 0 produced the expected hard boundary, which should not be confused with a rendering defect.
+
+## Other effect findings
+
+| ID | Finding | Implementation and acceptance |
+| --- | --- | --- |
+| F40 | **Render: Sharpen Radius does nothing.** Radius 1 and 8 produced byte-identical PNGs. [ClipCatalog] writes radius, but [EffectPlan] supplies only amount/threshold and the shader uses a fixed 3×3 neighborhood. | Implement radius-dependent unsharp masking consistently across rendering paths, or remove the ineffective control and expose the supported threshold. A radius-only change must change halo width on an edge pattern. Amount 0 must remain neutral. |
+| F41 | **Render: Glow Color does nothing.** Red and blue settings produced byte-identical PNGs. The glow recipe never reads the authored color. | Tint the bloom contribution before adding it, leaving the original image unchanged. Preserve source-colored glow when color is absent. Test halo chroma outside a bright source shape, not just the saved setting. |
+| F42 | **Render: tone curves do not reproduce the drawn graph.** Raising a red-channel point at input 0.25 from 0.25 to 0.4, while leaving input 0.5 unchanged, produced identical output. [EffectPlan] keeps only each channel's midpoint. Master curves are reduced to a few fitted parameters. | Evaluate the authored transfer curves directly or bake transfer LUTs. Match the interpolation drawn by [ToneCurve]. Preserve endpoints, off-midpoint bends and nonmonotonic curves. Test pixels at control-point inputs and between them. |
+| F43 | **Render: large blur radii create separated stripes.** Radius 40 spreads 41 taps two pixels apart and uses discrete texel fetches. A white line produces alternating bright/black columns. | Replace sparse sampling with a continuous blur strategy, such as a prefiltered image pyramid. Fix the shared primitive used by blur and related recipes. Test impulses, thin lines and checkerboards at radii 20/40/64/128, with energy and continuity assertions. |
+| F44 | **Render + source: the reorderable stack does not express execution order.** Swapping Color and Vignette produced identical output. Color/blur aggregate at the end. Track processing also keeps only the first enabled sharpen and vignette. This behavior is intentional in the current planner. | Decide between an ordered stack and explicit fixed processing stages. Make UI, native render and export agree with that decision. Test noncommutative pairs and duplicate effects. Version changed semantics so existing documents do not unexpectedly render differently. |
+| F45 | **Source: many clip sliders do not reset.** Catalog fields omit `origin`/`resetValue`; [SliderRow] falls back to the current value. Both vignette sliders are affected. | Give every resettable field an explicit default. Distinguish neutral values from the values used when adding an effect. Double-click must restore the declared value in one undo step. |
+| F46 | **Source: several rendered effects have no native parameter editor.** Pixelate, Posterize, Directional Blur, Lens Distortion, Stylize, Generator and LUT are recognized but return no fields and are absent from the add menu. | Add supported controls from authoritative metadata, or show a specific read-only explanation. Remove the generic instruction to use Color for unrelated effects. Preserve imported parameters during other edits. |
+| F47 | **Source: imported Color instances cannot be edited through the advertised section.** [ClipEdits] selects only the ID `inspector:color`; ordinary Color IDs receive the same “use Color” message. | Bind controls to the actual effect instance, or offer an explicit conversion that preserves data and processing semantics. Editing imported brightness must change that instance rather than append a separate adjustment. |
+| F48 | **Source: track knobs lack exact typed values.** [KnobList] draws the value as text. Dragging, wheel, key nudging and reset exist, but numeric text entry does not. | Add click-to-type with units, shared range validation, Enter commit and Escape cancel. Keep one undo entry and prevent timeline shortcuts from consuming field input. |
+
+### Rendered blur evidence
+
+For a one-pixel white vertical line on black, these are the measured red-channel values at horizontal offsets 0–10 from the line:
+
+```text
+Radius 20: 15,15,15,14,13,12,10,9,7,6,5
+Radius 40: 15, 0,15, 0,15, 0,14,0,13,0,12
+```
+
+![Current radius-40 blur of a white line](effects-audit/blur-radius40-current.png)
+
+The shared Gaussian implementation and CPU fallback use the same sparse-sampling approach. Agreement between rendering paths therefore does not establish blur quality.
+
+## Verification changes
+
+| ID | Gap | Required check |
+| --- | --- | --- |
+| F49 | **Source: parity and data-edit tests miss shared defects.** Existing tests compare native output with export or assert that a control saved a value. Both paths can ignore the same parameter or share the same bad formula. | Retain parity tests, then add isolated parameter-sensitivity tests and independent pixel expectations. Cover neutral/disabled states, alpha, crop, clip versus track scope, order, reset, undo and canceled preview. A deliberately disconnected control must fail. |
+| F50 | **Check: precision and color-space quality need targeted evaluation.** Effect intermediates use RGBA8. This limits precision but does not by itself establish visible banding in footage. | Test dark ramps and repeated grading for banding/clipping, plus translucent edges over light/dark backgrounds. Specify which operations use encoded versus linear-light values. Consider higher-precision intermediates only after measuring a failure and checking all rendering paths. |
+
+The inspected vignette preserves alpha, and no new concrete defect was established in the examined chroma-key/spill or blend equations. Their broader quality remains a test question, not a clean bill of health for every configuration.
+
+## Reproduction assets and results
+
+The retained fixtures use opaque RGB images to exercise the effect renderer without unsupported-alpha placeholders. All three render processes exited 0 and produced the expected 14 stills with no media fallback. The Windows executable's effect sources match the audited revision. This was a focused diagnostic run, not the full effects test suite.
+
+Run from `native/timeline/` with the existing Windows dependency environment:
+
+```powershell
+. ./build-windows/environment.ps1
+$env:QSG_RHI_BACKEND = 'd3d11'
+# Use Start-Process -Wait when invoking this GUI executable from PowerShell.
+Start-Process ./build-windows/Release/nodetool-timeline.exe -Wait -WindowStyle Hidden -ArgumentList 'docs/effects-audit/vignette-white.json --stills build-windows/audit-vignette --still-frames 0,30,60,90 --decode sw --audio none'
+Start-Process ./build-windows/Release/nodetool-timeline.exe -Wait -WindowStyle Hidden -ArgumentList 'docs/effects-audit/parameter-pairs.json --stills build-windows/audit-pairs --still-frames 0,30,60,90,120,150,180,210 --decode sw --audio none'
+Start-Process ./build-windows/Release/nodetool-timeline.exe -Wait -WindowStyle Hidden -ArgumentList 'docs/effects-audit/blur-line.json --stills build-windows/audit-blur --still-frames 0,30 --decode sw --audio none'
+```
+
+| Fixture | Frames and purpose |
+| --- | --- |
+| [Vignette](effects-audit/vignette-white.json) | 0: measured profile. 30: larger radius. 60: zero softness. 90: zero amount. |
+| [Parameter pairs](effects-audit/parameter-pairs.json) | 0/30: sharpen radius. 60/90: glow color. 120/150: red curve. 180/210: color/vignette order. Each pair was byte-identical in this audit. |
+| [Blur](effects-audit/blur-line.json) | 0: radius 20. 30: radius 40. Compare the middle scanline. |
+
+## Implementation order
+
+1. **A1:** Remove the fake card preview, add live track-effect preview, and expose consistent vignette radius controls. Retain current rendering semantics initially.
+2. **A2:** Fix inactive parameters, curve fidelity and wide-radius blur with independent pixel tests. Coordinate changes with shared render/export implementations.
+3. **A3:** Settle stack ordering, reset defaults and imported-effect editing. Add vignette shape/color-quality enhancements as explicit, compatible changes.
+
+[VideoPreview]: ../qml/wiring/w/VideoPreview.qml
+[shader]: ../shaders/effects/clip.frag
+[EffectPlan]: ../src/preview/effects/EffectPlan.cpp
+[ClipCatalog]: ../src/edit/clipeffects/ClipEffectsCatalog.js
+[EffectCard]: ../qml/wiring/w/EffectCard.qml
+[ToneCurve]: ../src/edit/clipeffects/ToneCurveEditor.qml
+[SliderRow]: ../qml/Inspector/primitives/InspectorSliderRow.qml
+[ClipEdits]: ../src/edit/clipeffects/ClipEffectsEdits.qml
+[KnobList]: ../qml/wiring/w/KnobList.qml
+[type contract]: ../../../packages/timeline/src/types.ts
+[SharedVignette]: ../../../packages/gpu/src/shaders/filters/vignette/v1/module.ts
