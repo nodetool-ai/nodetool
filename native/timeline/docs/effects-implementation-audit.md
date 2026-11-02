@@ -4,7 +4,7 @@ The vignette concern has concrete causes: its control-card preview uses differen
 
 This audit covers visual clip/track effects, their controls, and the shared effect pipeline at `3df7fc227bba42a325f15b2668d62d87a20ba0b5`. It combines source inspection with Windows D3D11 still renders. Audio DSP and transitions are outside this audit. Individual stylize/generator modes, masks and blend modes were inspected as pipeline capabilities, not exhaustively validated visually.
 
-**Render** means reproduced in native output. **Source** means established from code. **Design** means a proposed quality improvement, not a correctness failure. IDs continue from the [interaction plan](interaction-polish-plan.md). No production behavior was changed.
+**Render** means reproduced in native output. **Source** means established from code. **Design** means a proposed quality improvement, not a correctness failure. IDs continue from the [interaction plan](interaction-polish-plan.md). The original audit changed no production behavior. The checklist tracks subsequent implementation.
 
 **Implementation guidance for these issues:** Effect implementations may closely follow [Filmcraft](https://github.com/storytold/filmcraft) or [EffectCraft](https://github.com/storytold/effectcraft), including their algorithms, parameter behavior and visual results. Adapt them to the native rendering pipeline and preserve compatibility with existing timelines. Carry this guidance into any implementation issues created from this audit.
 
@@ -27,7 +27,7 @@ Check an item only after its implementation and relevant verification pass. Each
 - [ ] F47: Edit imported Color effect instances.
 - [ ] F48: Support exact numeric entry for track effects.
 - [ ] F49: Add independent effect sensitivity and lifecycle checks.
-- [ ] F50: Evaluate and document precision and color-space behavior.
+- [x] F50: Evaluate and document precision and color-space behavior. The retained native ramp exposes shadow quantization. Shared GPU/CPU precision bounds and CPU translucent-edge checks pass. See the measured limits below.
 
 ## Vignette findings
 
@@ -105,6 +105,16 @@ The shared Gaussian implementation and CPU fallback use the same sparse-sampling
 
 The inspected vignette preserves alpha, and no new concrete defect was established in the examined chroma-key/spill or blend equations. Their broader quality remains a test question, not a clean bill of health for every configuration.
 
+### Precision and color-space evaluation (F50)
+
+The [precision ramp](effects-audit/precision-ramp.json) compares an untouched 256-level gray ramp with two inverse Levels adjustments, Gamma 0.5 followed by Gamma 2. The native D3D11 render exited 0 without a media fallback. The untouched result retained 256 distinct levels. The adjusted result retained 192, with a maximum error of 11 byte levels. Inputs 0–11 collapsed to black. This is measurable intermediate quantization, not a claim about all footage.
+
+The [shared GPU test](../../../packages/gpu/tests/precision.test.ts) and [CPU tests](../../../packages/timeline/tests/render.precision.test.ts) enforce that precision floor while allowing improvements. The CPU edge test also verifies that hidden red pixels under zero alpha cannot contaminate a blurred white edge over black or white. The GPU glow tests separately check premultiplied alpha bounds.
+
+Current timeline operations consume encoded RGB values. Vignette multiplies encoded RGB, Levels and Curves operate on encoded channel values, and blur/glow average their supplied values without a transfer-function conversion. A module's `linear` metadata does not perform that conversion. [Executor](../../../packages/gpu/src/executor.ts) currently defers color-space validation and bridges alpha representation only.
+
+Retain current rendering semantics for existing documents. A future color-managed pipeline should version its working space, use floating-point intermediates across native/shared GPU and a float CPU reference, and convert/dither only at the display or export boundary. Recheck dark ramps, highlights, translucent edges, LUTs and compositing together. Changing only the texture format would improve precision but would not make current encoded-light operations physically linear.
+
 ## Reproduction assets and results
 
 The retained fixtures use opaque RGB images to exercise the effect renderer without unsupported-alpha placeholders. All three render processes exited 0 and produced the expected 14 stills with no media fallback. The Windows executable's effect sources match the audited revision. This was a focused diagnostic run, not the full effects test suite.
@@ -125,6 +135,7 @@ Start-Process ./build-windows/Release/nodetool-timeline.exe -Wait -WindowStyle H
 | [Vignette](effects-audit/vignette-white.json) | 0: measured profile. 30: larger radius. 60: zero softness. 90: zero amount. |
 | [Parameter pairs](effects-audit/parameter-pairs.json) | 0/30: sharpen radius. 60/90: glow color. 120/150: red curve. 180/210: color/vignette order. Each pair was byte-identical in this audit. |
 | [Blur](effects-audit/blur-line.json) | 0: radius 20. 30: radius 40. Compare the middle scanline. |
+| [Precision](effects-audit/precision-ramp.json) | 0: untouched ramp. 30: inverse Levels adjustments. Compare distinct levels and maximum byte error. |
 
 ## Implementation order
 
@@ -132,7 +143,7 @@ Start-Process ./build-windows/Release/nodetool-timeline.exe -Wait -WindowStyle H
 2. **A2:** Fix inactive parameters, curve fidelity and wide-radius blur with independent pixel tests. Coordinate changes with shared render/export implementations.
 3. **A3:** Settle stack ordering, reset defaults and imported-effect editing. Add vignette shape/color-quality enhancements as explicit, compatible changes.
 
-[VideoPreview]: ../qml/wiring/w/VideoPreview.qml
+[VideoPreview]: https://github.com/nodetool-ai/nodetool/blob/3df7fc227bba42a325f15b2668d62d87a20ba0b5/native/timeline/qml/wiring/w/VideoPreview.qml
 [shader]: ../shaders/effects/clip.frag
 [EffectPlan]: ../src/preview/effects/EffectPlan.cpp
 [ClipCatalog]: ../src/edit/clipeffects/ClipEffectsCatalog.js

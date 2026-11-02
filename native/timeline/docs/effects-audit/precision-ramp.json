@@ -1,0 +1,77 @@
+{
+  "id": "precision-ramp",
+  "projectId": "native-prototype",
+  "name": "Precision ramp",
+  "fps": 30,
+  "width": 256,
+  "height": 32,
+  "durationMs": 2000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "effect-0",
+      "trackId": "t0",
+      "name": "effect-0",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 256,
+      "height": 32,
+      "mediaPath": "ramp.png",
+      "effects": []
+    },
+    {
+      "id": "effect-1",
+      "trackId": "t0",
+      "name": "effect-1",
+      "startMs": 1000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 256,
+      "height": 32,
+      "mediaPath": "ramp.png",
+      "effects": [
+        {
+          "gamma": 0.5,
+          "id": "compress",
+          "inWhite": 1,
+          "enabled": true,
+          "outWhite": 1,
+          "outBlack": 0,
+          "inBlack": 0,
+          "type": "levels"
+        },
+        {
+          "gamma": 2,
+          "id": "expand",
+          "inWhite": 1,
+          "enabled": true,
+          "outWhite": 1,
+          "outBlack": 0,
+          "inBlack": 0,
+          "type": "levels"
+        }
+      ]
+    }
+  ],
+  "markers": []
+}
