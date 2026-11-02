@@ -51,7 +51,8 @@ bool showsAFrame(const QJsonObject& clip, double fps) {
 // parked, so the edge that has to land on a frame is its end, moving the other way.
 double frameMovement(const EditDoc& doc, const EditPoint& point, double frames, double fps) {
     const auto* clip = findClip(doc, point.clipId);
-    if (!clip) { return 0; }
+    // No frames is no movement, even for an edge that lies off the grid.
+    if (!clip || frames == 0) { return 0; }
     if (!point.out && point.kind == Kind::Ripple) {
         const double end = clipEndMs(*clip);
         return end - frameEdgeMs(end, -frames, fps);
@@ -86,7 +87,9 @@ bool validEdit(const EditDoc& before, const ClipList& after, const Overlaps& bef
         if (clipId(old) != clipId(clip)) { return false; }
         if (isGroupClip(clip) || clip == old) { continue; }
         const double duration = clipDurationMs(clip);
-        if (!showsAFrame(clip, env.fps) && duration + EPSILON_MS < clipDurationMs(old)) { return false; }
+        if (!showsAFrame(clip, env.fps) && (showsAFrame(old, env.fps) || duration + EPSILON_MS < clipDurationMs(old))) {
+            return false;
+        }
         if (env.sourceDuration && sourceOut(clip) > sourceOut(old) + EPSILON_MS) {
             const auto cap = env.sourceDuration(clip);
             if (cap && sourceOut(clip) > *cap + EPSILON_MS) { return false; }
@@ -520,11 +523,15 @@ bool DynamicTrim::tick(double clockMs) {
     const double travelled = std::max(0.0, clockMs - m_anchorClockMs) * m_speed / frameDuration(m_env.fps);
     const int wanted = frameCount(m_anchorOffset + std::trunc(travelled + std::copysign(1e-9, travelled)));
     if (wanted == m_offsetFrames) { return false; }
-    auto result = wanted == 0 ? TrimResult{m_base.clips} : nudgeFrames(m_base, m_points, wanted, m_env);
+    auto result = nudgeFrames(m_base, m_points, wanted, m_env);
+    // Every point holds where the first stopped. A later point past it would move
+    // back on the next press, when the offset starts again from the first point's.
+    m_atLimit = result.atLimit || result.appliedFrames != wanted;
+    const int reached = result.appliedFrames;
+    if (m_atLimit) { result = nudgeFrames(m_base, m_points, reached, m_env); }
     const bool changed = result.clips != m_clips;
     m_clips = std::move(result.clips);
-    m_offsetFrames = result.appliedFrames;
-    m_atLimit = result.atLimit || m_offsetFrames != wanted;
+    m_offsetFrames = reached;
     if (m_atLimit) {
         m_speed = 0;
         m_anchorOffset = m_offsetFrames;

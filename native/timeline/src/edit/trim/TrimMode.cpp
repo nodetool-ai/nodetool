@@ -246,14 +246,14 @@ bool TrimMode::toggleKind() {
 
 bool TrimMode::nudge(int frames, bool merge) {
     if (!active() || !m_timeline) return false;
-    if (m_dynamic) commitDynamic();
+    settleEdits();
     commitTrim(nudgeFrames(m_gestures.editDoc(), m_points, frames, env()), editText(m_points.front().kind), merge);
     return true;
 }
 
 bool TrimMode::extendToPlayhead(bool merge) {
     if (!active() || !m_timeline || !m_clock) return false;
-    if (m_dynamic) commitDynamic();
+    settleEdits();
     commitTrim(trim::extendToPlayhead(m_gestures.editDoc(), m_points, m_clock->currentTimeMs(), env()),
                QStringLiteral("Extend edit"), merge);
     return true;
@@ -286,6 +286,9 @@ bool TrimMode::applyDefaultTransition() {
             const auto clips = structure::editDocument(raw).clips;
             const QJsonObject left = clipIn(clips, cut->first);
             const QJsonObject right = clipIn(clips, cut->second);
+            // A cross-fade changes both clips, so neither can be locked.
+            const IdSet both{cut->first, cut->second};
+            if (editableUserTargets(doc, both, false, false).size() != both.size()) continue;
             if (right.value("mediaType").toString() != u"audio") {
                 raw = transitions::setTransitionDuration(std::move(raw), {{"clipId", cut->second},
                     {"durationMs", DEFAULT_TRANSITION_MS}, {"sourceCaps", caps}});

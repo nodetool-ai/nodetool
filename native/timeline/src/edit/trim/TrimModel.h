@@ -211,7 +211,8 @@ LoopSpan playAround(double centerMs, double prerollMs, double postrollMs, double
 // L moves the edit forward and J back. Each press in the same direction doubles
 // the speed up to 8x, and the other direction starts at 1x. Every update applies
 // the whole offset to the document as it was at the start, so nothing accumulates.
-// At a limit it holds, at speed 0, until the next press.
+// When the first point reaches a limit every point holds there, at speed 0, until
+// the next press.
 class DynamicTrim {
 public:
     DynamicTrim(EditDoc base, EditPoints points, Env env);

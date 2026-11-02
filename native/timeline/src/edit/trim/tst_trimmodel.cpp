@@ -345,10 +345,32 @@ private slots:
         QVERIFY(!start.outgoing);
         QVERIFY(start.incoming);
     }
-    void a_later_point_moving_alone_still_commits() {
+    void every_point_holds_where_the_first_stopped() {
         auto env = environment();
         env.linked = false;
-        // v0 is at its source limit, so only v1 moves.
+        // v0 has 12 frames left in its source and v1 has plenty.
+        env.sourceDuration = [](const QJsonObject& c) {
+            return std::optional<double>(clipId(c) == "v0" ? 4000 + std::ceil(frame(12)) : 100000);
+        };
+        auto doc = fixture();
+        doc.clips[2].insert("startMs", 6000);
+        doc.clips[3].insert("startMs", 6000);
+        DynamicTrim dynamic(doc, {{"v0", true, Kind::Trim}, {"v1", true, Kind::Trim}}, env);
+        dynamic.shuttle(1, 0);
+        QVERIFY(dynamic.tick(frame(14)));
+        QVERIFY(dynamic.atLimit());
+        QCOMPARE(dynamic.offsetFrames(), 12);
+        const double second = clipEndMs(get(dynamic.clips(), "v1"));
+        QCOMPARE(second, frameEdgeMs(8000, 12, FPS));
+        // The next press never moves the second point back.
+        dynamic.shuttle(1, frame(14));
+        dynamic.tick(frame(15));
+        QVERIFY(clipEndMs(get(dynamic.clips(), "v1")) >= second);
+        QCOMPARE(dynamic.commit(), std::optional<QString>("Dynamic trim"));
+    }
+    void nothing_moves_when_the_first_point_has_no_room() {
+        auto env = environment();
+        env.linked = false;
         env.sourceDuration = [](const QJsonObject& c) {
             return std::optional<double>(clipId(c) == "v0" ? 4000 : 100000);
         };
@@ -357,12 +379,32 @@ private slots:
         doc.clips[3].insert("startMs", 6000);
         DynamicTrim dynamic(doc, {{"v0", true, Kind::Trim}, {"v1", true, Kind::Trim}}, env);
         dynamic.shuttle(1, 0);
-        QVERIFY(dynamic.tick(500));
-        QCOMPARE(dynamic.offsetFrames(), 0);
+        QVERIFY(!dynamic.tick(500));
         QVERIFY(dynamic.atLimit());
-        QCOMPARE(clipEndMs(get(dynamic.clips(), "v0")), 2000.0);
-        QVERIFY(clipEndMs(get(dynamic.clips(), "v1")) > 8000);
-        QCOMPARE(dynamic.commit(), std::optional<QString>("Dynamic trim"));
+        QCOMPARE(dynamic.clips(), doc.clips);
+        QCOMPARE(dynamic.commit(), std::nullopt);
+    }
+    void zero_frames_leaves_an_edge_off_the_grid_alone() {
+        auto doc = fixture();
+        doc.clips[0].insert("durationMs", 2042);
+        doc.clips[1].insert("durationMs", 2042);
+        doc.clips[2].insert("startMs", 2042);
+        doc.clips[3].insert("startMs", 2042);
+        const auto r = nudgeFrames(doc, {{"v0", true, Kind::Roll}}, 0, environment());
+        QCOMPARE(r.clips, doc.clips);
+        QVERIFY(!r.atLimit);
+    }
+    void a_shifted_clip_keeps_its_only_frame() {
+        // At 24 fps [125, 166) holds frame 3, and [167, 208) would hold none.
+        EditDoc doc;
+        doc.tracks.push_back({"V1", "video", false});
+        doc.clips = {clip("a", "V1", 0, 41), clip("b", "V1", 125, 41)};
+        auto env = environment();
+        env.linked = false;
+        const auto r = nudgeFrames(doc, {{"a", true, Kind::Ripple}}, 1, env);
+        const auto& b = get(r.clips, "b");
+        const double first = std::ceil(clipStartMs(b) / frame(1) - 1e-9);
+        QVERIFY2(first * frame(1) < clipEndMs(b), "the shifted clip holds no frame");
     }
     void a_trim_keeps_a_frame_on_screen() {
         // At 24 fps 41 ms from 2042 holds no frame: 49 is at 2041.67 and 50 at 2083.33.

@@ -589,6 +589,8 @@ bool TimelineModel::settleCommand(quint64 token, const QJsonObject& document) {
         if (current) {
             const auto before = m_timeline->raw;
             emit beforeCommand();
+            // A listener can put its running edit on the stack, and then this token is stale.
+            if (i + 1 != m_undo->count()) { return false; }
             const auto restored = m_timeline->raw;
             if (before != restored) { settled = nt::motion::rebaseDocumentDelta(restored, before, settled); }
         }

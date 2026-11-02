@@ -371,6 +371,90 @@ private slots:
         QCOMPARE(clips(), before);
     }
 
+    void aKeyDuringADragCommitsTheDragFirst() {
+        press(Qt::Key_B, Qt::ShiftModifier);
+        clickEdge("l", "end");
+        QTRY_VERIFY(item("trimMonitorDrag-between"));
+        QTRY_VERIFY(item("trimMonitorDrag-between")->width() > 0);
+        const auto before = clips();
+        const int entries = history()->index();
+        const QPoint from = center(item("trimMonitorDrag-between"));
+        const QPoint to = from + QPoint(int(TimelineMetricsPxPerFrame()), 0);
+        QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, from);
+        QTest::mouseMove(view.get(), to, 20);
+        QCoreApplication::processEvents();
+        press(Qt::Key_Right, Qt::ControlModifier | Qt::ShiftModifier);
+        QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, to);
+        QCoreApplication::processEvents();
+        QCOMPARE(history()->index(), entries + 2);
+        QVERIFY(std::abs(endOf("l") - (2000 + 2 * FRAME_MS)) <= 1);
+        press(Qt::Key_Z, Qt::ControlModifier);
+        QVERIFY(std::abs(endOf("l") - (2000 + FRAME_MS)) <= 1);
+        press(Qt::Key_Z, Qt::ControlModifier);
+        QCOMPARE(clips(), before);
+    }
+
+    void aDragBackToItsStartCommitsNothing() {
+        press(Qt::Key_B, Qt::ShiftModifier);
+        clickEdge("l", "end");
+        QTRY_VERIFY(item("trimMonitorDrag-between"));
+        QTRY_VERIFY(item("trimMonitorDrag-between")->width() > 0);
+        const auto before = clips();
+        const int entries = history()->index();
+        const QPoint from = center(item("trimMonitorDrag-between"));
+        QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, from);
+        QTest::mouseMove(view.get(), from + QPoint(int(3 * TimelineMetricsPxPerFrame()), 0), 20);
+        QTest::mouseMove(view.get(), from, 20);
+        QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, from);
+        QCoreApplication::processEvents();
+        QCOMPARE(clips(), before);
+        QCOMPARE(history()->index(), entries);
+    }
+
+    void aCommandSettlingLateCannotOverwriteATrim() {
+        press(Qt::Key_B, Qt::ShiftModifier);
+        clickEdge("l", "end");
+        auto next = clips();
+        auto later = next[4].toObject();
+        later.insert("name", "Dropped");
+        next[4] = later;
+        const quint64 token = model.commitEdit("Drop", clips(), next);
+        QVERIFY(token != 0);
+        const QJsonObject staleDocument = model.timeline().raw;
+        press(Qt::Key_L);
+        m_fakeClock = 500;
+        trim()->advance();
+        const double trimmed = endOf("l");
+        QVERIFY(trimmed > 2000);
+        const int entries = history()->index();
+        // The trim goes on the stack first, so the settlement is stale and is refused.
+        QVERIFY(!model.settleCommand(token, staleDocument));
+        QVERIFY(!trim()->dynamicActive());
+        QCOMPARE(history()->index(), entries + 1);
+        QCOMPARE(endOf("l"), trimmed);
+    }
+
+    void aTransitionLeavesALockedNeighbourAlone() {
+        auto raw = cutDocument();
+        auto list = raw.value("clips").toArray();
+        auto locked = list[2].toObject();
+        locked.insert("locked", true);
+        list[2] = locked;
+        raw.insert("clips", list);
+        auto parsed = nt::parseTimeline(raw);
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        gestures()->viewState()->flush();
+        QTest::qWait(100);
+        region()->forceActiveFocus();
+        press(Qt::Key_B, Qt::ShiftModifier);
+        clickEdge("ar", "start");
+        const auto before = clips();
+        QVERIFY(trim()->applyDefaultTransition());
+        QCOMPARE(clip("al"), before[2].toObject());
+        QCOMPARE(clip("ar"), before[3].toObject());
+    }
+
     void dragBetweenPicturesRolls() {
         press(Qt::Key_B);
         clickEdge("l", "end");
