@@ -15,7 +15,7 @@ Check an item only after its implementation and relevant verification pass. Each
 - [x] F35: Remove the duplicate Canvas effect preview. Vignette and Blur cards now use the live viewer feedback from F39. Native parameter-editor tests pass with the decorative component removed.
 - [ ] F36: Add a compatible gradual vignette falloff.
 - [x] F37: Expose consistent vignette radius controls and units. The clip inspector now matches the track range/default. Catalogue regression passed after reproducing the missing control. Existing render geometry is unchanged.
-- [ ] F38: Add vignette center and roundness controls.
+- [x] F38: Add vignette center and roundness controls. Native, shared GPU and CPU tests verify shifted centers, circles at portrait/landscape aspect ratios and legacy defaults. Schema tests cover persistence and tool arguments.
 - [x] F39: Preview track effects live with commit/cancel transactions. Native gesture tests verify model updates before release, cancel restoration and one undo entry. The preview entry-point regression also passes.
 - [ ] F40: Make sharpen radius affect rendering.
 - [x] F41: Apply glow color to the bloom contribution. Native D3D11, shared GPU and CPU halo tests pass. White/absent tint preserves source-colored glow, and the source image remains unchanged. GPU alpha checks pass.

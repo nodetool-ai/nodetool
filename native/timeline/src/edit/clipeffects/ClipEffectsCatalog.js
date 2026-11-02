@@ -73,7 +73,7 @@ function fields(type) {
         {kind: "color", key: "color", label: "Color", fallback: "#000000"},
         slider("opacity", "Opacity", 1, 1, 0, 0.01, {resetValue: 1})
     ];
-    case "vignette": return [slider("amount", "Amount", 0.4, 1, 0, 0.01, {resetValue: 0}), slider("radius", "Radius", 0.9, 1.5, 0.1, 0.01, {resetValue: 0.9}), slider("softness", "Softness", 0.5)];
+    case "vignette": return [slider("amount", "Amount", 0.4, 1, 0, 0.01, {resetValue: 0}), slider("radius", "Radius", 0.9, 1.5, 0.1, 0.01, {resetValue: 0.9}), slider("softness", "Softness", 0.5), slider("centerX", "Center X", 0.5), slider("centerY", "Center Y", 0.5), slider("roundness", "Roundness", 0)];
     case "sharpen": return [slider("amount", "Amount", 0.5, 2, 0, 0.01, {resetValue: 0}), number("radius", "Radius", 1, 0)];
     case "chromaKey": return [{kind: "color", key: "color", label: "Key color", fallback: "#00ff00"}, slider("tolerance", "Tolerance", 0.2), slider("softness", "Softness", 0.1), slider("spill", "Spill", 0.5)];
     case "levels": return [slider("inBlack", "In black", 0), slider("inWhite", "In white", 1), number("gamma", "Gamma", 1, 0, 0.01, {exclusiveMin: true}), slider("outBlack", "Out black", 0), slider("outWhite", "Out white", 1)];

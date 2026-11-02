@@ -290,7 +290,10 @@ export const trackVignetteEffect = z.object({
   enabled: z.boolean(),
   intensity: z.number(),
   radius: z.number(),
-  softness: z.number()
+  softness: z.number(),
+  centerX: z.number().min(0).max(1).optional(),
+  centerY: z.number().min(0).max(1).optional(),
+  roundness: z.number().min(0).max(1).optional()
 });
 
 export const trackChromaKeyEffect = z.object({
@@ -1071,7 +1074,10 @@ export const clipVignetteEffect = z.object({
   amount: z.number(),
   softness: z.number(),
   /** Absent means the shader's own default. Mirrors ClipVignetteEffect.radius. */
-  radius: z.number().optional()
+  radius: z.number().optional(),
+  centerX: z.number().min(0).max(1).optional(),
+  centerY: z.number().min(0).max(1).optional(),
+  roundness: z.number().min(0).max(1).optional()
 });
 
 export const clipSharpenEffect = z.object({

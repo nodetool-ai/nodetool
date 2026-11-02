@@ -76,6 +76,7 @@ export {
   blurGaussianV1,
   sharpenUnsharpMaskV1,
   vignetteV1,
+  vignetteV2,
   filtersGrainV1,
   filtersGrainV2,
   filtersPixelateV1,

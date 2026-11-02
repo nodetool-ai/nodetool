@@ -85,7 +85,10 @@ function asClipEffect(effect: TrackEffect): ClipEffect | null {
         enabled: effect.enabled,
         amount: effect.intensity,
         radius: effect.radius,
-        softness: effect.softness
+        softness: effect.softness,
+        centerX: effect.centerX,
+        centerY: effect.centerY,
+        roundness: effect.roundness
       } satisfies ClipVignetteEffect;
     case "chromaKey":
       return {

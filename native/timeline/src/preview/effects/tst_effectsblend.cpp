@@ -474,6 +474,20 @@ private slots:
         QVERIFY(!shadow.isNull()); QVERIFY(shadow.pixelColor(51,16).red()>245); QCOMPARE(shadow.pixelColor(51,16).green(),0);
         QCOMPARE(shadow.pixelColor(10,16),QColor(Qt::black));
     }
+    void vignetteGeometry() {
+        QImage source(64,32,QImage::Format_RGBA8888_Premultiplied); source.fill(Qt::white);
+        const auto shifted=effectStill({effect("vignette",{{"amount",0.5},{"radius",0.9},{"softness",0.5},{"centerX",0.25}})},source);
+        QVERIFY(!shifted.isNull()); QCOMPARE(shifted.pixelColor(16,16).red(),255);
+        QVERIFY(shifted.pixelColor(32,16).red()<245);
+        for (const QSize size : {QSize(256,128),QSize(128,256)}) {
+            QImage white(size,QImage::Format_RGBA8888_Premultiplied); white.fill(Qt::white);
+            const auto circle=effectStill({effect("vignette",{{"amount",0.5},{"radius",0.9},{"softness",0.5},{"roundness",1}})},white);
+            QVERIFY(!circle.isNull());
+            const int horizontal=circle.pixelColor(size.width()/2+40,size.height()/2).red();
+            const int vertical=circle.pixelColor(size.width()/2,size.height()/2+40).red();
+            QVERIFY(std::abs(horizontal-vertical)<=1); QVERIFY(horizontal<240);
+        }
+    }
     void glowTintPixels() {
         QImage source(64,32,QImage::Format_RGBA8888_Premultiplied); source.fill(Qt::black);
         for (int y=8;y<24;++y) { for (int x=24;x<40;++x) { source.setPixelColor(x,y,Qt::white); } }

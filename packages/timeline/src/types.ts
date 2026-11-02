@@ -821,10 +821,15 @@ export interface TrackVignetteEffect {
   enabled: boolean;
   /** Vignette intensity 0..1. Default 0.4. */
   intensity: number;
-  /** Outer radius (relative to frame half-diagonal) 0.1..1.5. Default 0.9. */
+  /** Outer radius in normalized frame coordinates, 0.1..1.5. Default 0.9. */
   radius: number;
   /** Softness of the falloff 0..1. Default 0.5. */
   softness: number;
+  /** Center in normalized image coordinates, default (0.5, 0.5). */
+  centerX?: number;
+  centerY?: number;
+  /** 0 keeps the frame-shaped oval. 1 is a circle measured against the shorter axis. */
+  roundness?: number;
 }
 
 export interface TrackChromaKeyEffect {
@@ -2258,6 +2263,11 @@ export interface ClipVignetteEffect {
    * legacy spelling made mandatory.
    */
   radius?: number;
+  /** Center in normalized image coordinates, default (0.5, 0.5). */
+  centerX?: number;
+  centerY?: number;
+  /** 0 keeps the frame-shaped oval. 1 is a circle measured against the shorter axis. */
+  roundness?: number;
 }
 
 /**

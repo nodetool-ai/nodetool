@@ -29,7 +29,7 @@ import {
   filtersGlowV1,
   mixerDropShadowV1,
   sharpenUnsharpMaskV1,
-  vignetteV1,
+  vignetteV2,
   filtersGrainV2,
   filtersPixelateV1,
   colorPosterizeV1,
@@ -490,10 +490,13 @@ export class WebGPUEffectsProcessor {
     if (isClipVignetteEffect(effect)) {
       // Without a midpoint the vignette starts where `lib.image.filter.Vignette`
       // starts. A track vignette always carries one.
-      step(vignetteV1, {
+      step(vignetteV2, {
         intensity: effect.amount,
-        radius: effect.radius ?? vignetteV1.paramDefaults.radius,
-        softness: effect.softness
+        radius: effect.radius ?? vignetteV2.paramDefaults.radius,
+        softness: effect.softness,
+        centerX: effect.centerX ?? 0.5,
+        centerY: effect.centerY ?? 0.5,
+        roundness: effect.roundness ?? 0
       });
       return;
     }

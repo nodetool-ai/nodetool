@@ -1203,7 +1203,7 @@ const EFFECT_PARAMETER_FIELDS: Record<
   lut: ["cube", "intensity"],
   glow: ["radius", "intensity", "color"],
   dropShadow: ["offsetX", "offsetY", "blur", "radius", "color", "opacity"],
-  vignette: ["amount", "softness"],
+  vignette: ["amount", "softness", "radius", "centerX", "centerY", "roundness"],
   sharpen: ["amount", "radius"],
   chromaKey: ["color", "tolerance", "softness", "spill"],
   grain: ["amount", "size", "colorAmount", "roughness", "softness", "seed", "animate"],
@@ -1234,7 +1234,10 @@ export const effectParams = z.object({
   radius: z
     .number()
     .optional()
-    .describe("blur, glow and sharpen: radius in the clip's own pixels."),
+    .describe("blur, glow and sharpen: radius in source pixels. vignette: normalized outer radius, 0.1..1.5."),
+  centerX: z.number().min(0).max(1).optional().describe("vignette: horizontal center, 0..1, default 0.5."),
+  centerY: z.number().min(0).max(1).optional().describe("vignette: vertical center, 0..1, default 0.5."),
+  roundness: z.number().min(0).max(1).optional().describe("vignette: 0 is a frame-shaped oval, 1 a circle."),
   cellSize: z.number().optional().describe("pixelate: square cell width in source pixels."),
   levels: z.number().optional().describe("posterize: number of channel levels."),
   angle: z.number().optional().describe("directionalBlur and visual effects: angle in degrees."),
@@ -1409,7 +1412,11 @@ export function buildEffect(
         ...base,
         type: "vignette",
         amount: input.amount ?? 0.5,
-        softness: input.softness ?? 0.5
+        softness: input.softness ?? 0.5,
+        radius: input.radius,
+        centerX: input.centerX,
+        centerY: input.centerY,
+        roundness: input.roundness
       };
     case "sharpen":
       return {

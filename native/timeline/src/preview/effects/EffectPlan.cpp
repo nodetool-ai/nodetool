@@ -256,6 +256,9 @@ std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEf
             v[0] = f(e, "amount");
             v[1] = f(e, "radius", 0.9);
             v[2] = f(e, "softness", 0.5);
+            v[3] = f(e, "centerX", 0.5);
+            v[4] = f(e, "centerY", 0.5);
+            v[5] = f(e, "roundness", 0);
         } else if (type == "sharpen") {
             p.op = Op::Sharpen;
             v[0] = f(e, "amount");
@@ -591,7 +594,7 @@ void decorateTrackEffects(QJsonObject &ext, const Track *track) {
             } else if (type == "vignette") {
                 e.insert("type", type);
                 e.insert("amount", raw.value("intensity"));
-                copy({"radius", "softness"});
+                copy({"radius", "softness", "centerX", "centerY", "roundness"});
             } else if (type == "chromaKey") {
                 e.insert("type", type);
                 e.insert("color", raw.value("keyColor"));

@@ -38,6 +38,7 @@ import { colorLevelsV1 } from "./color/levels/v1/module.js";
 import { blurGaussianV1 } from "./filters/blur/gaussian/v1/module.js";
 import { sharpenUnsharpMaskV1 } from "./filters/sharpen/unsharpMask/v1/module.js";
 import { vignetteV1 } from "./filters/vignette/v1/module.js";
+import { vignetteV2 } from "./filters/vignette/v2/module.js";
 import { filtersGrainV1 } from "./filters/grain/v1/module.js";
 import { filtersGrainV2 } from "./filters/grain/v2/module.js";
 import { filtersPixelateV1 } from "./filters/pixelate/v1/module.js";
@@ -111,6 +112,7 @@ export {
   blurGaussianV1,
   sharpenUnsharpMaskV1,
   vignetteV1,
+  vignetteV2,
   filtersGrainV1,
   filtersGrainV2,
   filtersPixelateV1,
@@ -185,6 +187,7 @@ export const ALL_SHADERS: readonly ShaderModule[] = [
   blurGaussianV1,
   sharpenUnsharpMaskV1,
   vignetteV1,
+  vignetteV2,
   filtersGrainV1,
   filtersGrainV2,
   filtersPixelateV1,

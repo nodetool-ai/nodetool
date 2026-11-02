@@ -298,7 +298,9 @@ void main() {
         return;
     } else if (op==6) {
         float inner=max(0,p[0].y-p[0].z), outer=max(inner+0.001,p[0].y);
-        float t=clamp((length(logical*2-1)-inner)/(outer-inner),0,1);
+        vec2 axis=mix(vec2(1),dimensions.zw/min(dimensions.z,dimensions.w),p[1].y);
+        vec2 position=(logical*2-vec2(p[0].w,p[1].x)*2)*axis;
+        float t=clamp((length(position)-inner)/(outer-inner),0,1);
         fragColor=vec4(src.rgb*(1-p[0].x*t*t*(3-2*t)),src.a); return;
     } else if (op==7) {
         vec4 sum=vec4(0);

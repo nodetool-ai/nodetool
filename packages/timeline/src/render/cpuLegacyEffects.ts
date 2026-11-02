@@ -289,7 +289,11 @@ export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly Cli
             } else if (isClipVignetteEffect(effect)) {
               const radius = effect.radius ?? 0.9;
               const inner = Math.max(0, radius - effect.softness);
-              const distance = Math.hypot((x + 0.5) / width * 2 - 1, (y + 0.5) / height * 2 - 1);
+              const roundness = effect.roundness ?? 0;
+              const shortAxis = Math.min(width, height);
+              const dx = ((x + 0.5) / width * 2 - (effect.centerX ?? 0.5) * 2) * (1 + roundness * (width / shortAxis - 1));
+              const dy = ((y + 0.5) / height * 2 - (effect.centerY ?? 0.5) * 2) * (1 + roundness * (height / shortAxis - 1));
+              const distance = Math.hypot(dx, dy);
               v *= 1 - effect.amount * smooth((distance - inner) / (Math.max(inner + 0.001, radius) - inner));
             }
             rgb[c] = clamp(v);

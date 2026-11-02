@@ -314,7 +314,10 @@ export function makeTrackEffect(type: TrackEffect["type"]): TrackEffect {
         enabled: true,
         intensity: 0.4,
         radius: 0.9,
-        softness: 0.5
+        softness: 0.5,
+        centerX: 0.5,
+        centerY: 0.5,
+        roundness: 0
       } satisfies TrackVignetteEffect;
     case "chromaKey":
       return {
