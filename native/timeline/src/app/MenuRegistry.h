@@ -21,6 +21,8 @@ struct MenuItem {
     QString group = {};
     int order = 0;
     MenuPredicate checked = {};  // set: the item shows a checkmark
+    QString disabledReason = {};  // what the menu says while `enabled` is false
+    QString submenu = {};  // set: a host menu that has this submenu shows the item there
 };
 bool registerMenuItem(MenuItem item);
 
@@ -39,6 +41,7 @@ struct ShellMenuEntry {
     MenuPredicate enabled = {};
     MenuPredicate checked = {};  // set: the item shows a checkmark
     MenuPredicate run = {};
+    QString disabledReason = {};  // why the item is off while `enabled` is false
 };
 const QStringList& shellMenuNames();
 bool registerShellMenuItem(ShellMenuEntry entry);

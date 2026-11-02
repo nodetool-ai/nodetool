@@ -42,6 +42,8 @@ const Fields kClipInert = {
     QStringLiteral("sourceScene"), QStringLiteral("outPointMs"), QStringLiteral("audioRole"),
     // Values set aside by the Effect Controls switches. The clip's own fields hold the identity.
     QStringLiteral("bypassedFixedEffects"),
+    // The colour of the clip's label: the clip's look in the Timeline, not in the picture.
+    QStringLiteral("labelColor"),
 };
 // Read by SceneEval (M1e): groups, animations, repeats, stepped time, the
 // whole transform and transition, the camera. `animations` entries are

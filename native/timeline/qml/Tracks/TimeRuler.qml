@@ -69,8 +69,8 @@ Rectangle {
         }
         onPressed: mouse => {
             if (mouse.button === Qt.RightButton) {
-                rulerMenu.context = { timeMs: ruler.viewState.timeAtViewportX(mouse.x), editable: true, rulerMode: ruler.viewState.rulerMode }
-                if (MenuRegistry.query("ruler", rulerMenu.context).length > 0) rulerMenu.popup(mouse.x, mouse.y)
+                rulerMenu.context = { timeMs: ruler.viewState.timeAtViewportX(mouse.x), editable: true, kind: "ruler", gestures: ruler.gestures, rulerMode: ruler.viewState.rulerMode }
+                if (MenuRegistry.query("ruler", rulerMenu.context).length > 0) rulerMenu.popupAt(this, mouse.x, mouse.y)
             } else {
                 MarkerSession.clearSelection()
                 seekTo(mouse.x)
@@ -210,8 +210,7 @@ Rectangle {
                         if (mouse.button === Qt.RightButton) {
                             if (!flag.chosen) MarkerSession.select(flag.modelData.id)
                             markerMenu.context = { markerId: flag.modelData.id, timeMs: flag.modelData.timeMs, color: flag.modelData.color ?? "", editable: true }
-                            const at = mapToItem(ruler, mouse.x, mouse.y)
-                            markerMenu.popup(at.x, at.y)
+                            markerMenu.popupAt(this, mouse.x, mouse.y)
                         } else {
                             MarkerSession.select(flag.modelData.id, (mouse.modifiers & (Qt.ControlModifier | Qt.MetaModifier)) !== 0)
                             if (!(mouse.modifiers & (Qt.ControlModifier | Qt.MetaModifier))) ruler.seekRequested(flag.modelData.timeMs)

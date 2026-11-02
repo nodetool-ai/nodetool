@@ -47,7 +47,7 @@ Rectangle {
                 if (lane.locked) return
                 laneMenu.context = { trackId: lane.trackId, trackType: lane.trackType,
                                      timeMs: Math.max(0, mouse.x * lane.viewState.msPerPx), editable: true }
-                laneMenu.openAt(mouse.x, mouse.y)
+                laneMenu.openAt(this, mouse.x, mouse.y)
                 return
             }
             const atMs = Math.max(0, mouse.x * lane.viewState.msPerPx)
@@ -74,6 +74,17 @@ Rectangle {
         id: laneMenu
         gestures: lane.gestures
     }
+    RegistryContextMenu {
+        id: editPointMenu
+        kind: "editPoint"
+        gestures: lane.gestures
+    }
+    function openEditPointMenu(clipId, edge, area, areaX, areaY) {
+        const cut = lane.gestures.editPointAt(clipId, edge)
+        editPointMenu.context = { clipId: clipId, edge: edge, leftId: cut.leftId, rightId: cut.rightId,
+                                  clipIds: cut.rightId ? [cut.rightId] : [], editable: true }
+        editPointMenu.popupAt(area, areaX, areaY)
+    }
 
     Repeater {
         model: clips
@@ -83,6 +94,7 @@ Rectangle {
             mutedTrack: lane.mutedSoundTrack
             viewState: lane.viewState
             gestures: lane.gestures
+            onEditPointMenuRequested: (clipId, edge, area, areaX, areaY) => lane.openEditPointMenu(clipId, edge, area, areaX, areaY)
         }
     }
 
