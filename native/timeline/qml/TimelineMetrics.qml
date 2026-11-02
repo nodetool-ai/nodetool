@@ -8,6 +8,8 @@ QtObject {
     readonly property real rulerHeight: 28 * Ui.Theme.uiScale
     readonly property real scrollbarHeight: 14 * Ui.Theme.uiScale
     readonly property real trackHeaderWidth: 320 * Ui.Theme.uiScale
+    readonly property real trackHeaderMinWidth: 264 * Ui.Theme.uiScale
+    readonly property real trackHeaderMaxWidth: 640 * Ui.Theme.uiScale
     readonly property real sourceViewerPreferredWidth: 360 * Ui.Theme.uiScale
     readonly property real trackHeight: 64
     readonly property real transportHeight: 36 * Ui.Theme.uiScale

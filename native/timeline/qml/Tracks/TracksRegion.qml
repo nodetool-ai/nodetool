@@ -31,12 +31,76 @@ Rectangle {
     property bool followPlayhead: true
     // The `?` key and the help button ask the editor for the shortcut sheet.
     signal shortcutsRequested()
-    readonly property int headerWidth: TimelineMetrics.trackHeaderWidth
+    property real headerWidthDraft: -1
+    readonly property real headerWidth: Math.min(
+        Math.max(0, Math.min(TimelineMetrics.trackHeaderMaxWidth, width - Ui.Metrics.touch * 3)),
+        Math.max(TimelineMetrics.trackHeaderMinWidth, headerWidthDraft >= 0 ? headerWidthDraft
+            : columnPreferences.trackHeaderWidth > 0 ? columnPreferences.trackHeaderWidth * Ui.Theme.uiScale
+            : TimelineMetrics.trackHeaderWidth))
     readonly property double lanesHeight: Math.max(0, height - TimelineMetrics.toolbarHeight - TimelineMetrics.rulerHeight - TimelineMetrics.scrollbarHeight)
 
     objectName: "tracksRegion"
     color: Ui.Theme.surfaceCanvas
     clip: true
+    Preferences { id: columnPreferences }
+
+    function saveHeaderWidth(value) {
+        headerWidthDraft = value
+        columnPreferences.trackHeaderWidth = headerWidth / Ui.Theme.uiScale
+        headerWidthDraft = -1
+    }
+    function resetHeaderWidth() {
+        headerWidthDraft = -1
+        columnPreferences.trackHeaderWidth = -1
+    }
+    MouseArea {
+        id: headerSplitter
+        objectName: "trackHeaderSplitter"
+        x: region.headerWidth - width / 2
+        y: TimelineMetrics.toolbarHeight
+        width: Ui.Metrics.md
+        height: Math.max(0, region.height - y - TimelineMetrics.scrollbarHeight)
+        z: Ui.Metrics.layerOverlay
+        hoverEnabled: true
+        cursorShape: Qt.SizeHorCursor
+        preventStealing: true
+        activeFocusOnTab: true
+        Accessible.role: Accessible.Slider
+        Accessible.name: "Track-name column width"
+        Accessible.description: "Drag or use the arrow keys to resize. Home or a double-click resets the width."
+        property real startSceneX: 0
+        property real startWidth: 0
+        property bool aborted: false
+        onPressed: mouse => {
+            forceActiveFocus()
+            startSceneX = mapToItem(null, mouse.x, mouse.y).x
+            startWidth = region.headerWidth
+            aborted = false
+        }
+        onPositionChanged: mouse => {
+            if (pressed && !aborted)
+                region.headerWidthDraft = startWidth + mapToItem(null, mouse.x, mouse.y).x - startSceneX
+        }
+        onReleased: {
+            if (!aborted) region.saveHeaderWidth(region.headerWidth)
+            region.headerWidthDraft = -1
+        }
+        onCanceled: { aborted = true; region.headerWidthDraft = -1 }
+        onDoubleClicked: { aborted = true; region.resetHeaderWidth() }
+        Keys.onLeftPressed: region.saveHeaderWidth(region.headerWidth - Ui.Metrics.md)
+        Keys.onRightPressed: region.saveHeaderWidth(region.headerWidth + Ui.Metrics.md)
+        Keys.onPressed: event => {
+            if (event.key === Qt.Key_Home) { region.resetHeaderWidth(); event.accepted = true }
+            else event.accepted = false
+        }
+        Keys.onEscapePressed: { aborted = true; region.headerWidthDraft = -1 }
+        Rectangle {
+            anchors.centerIn: parent
+            width: headerSplitter.containsMouse || headerSplitter.pressed || headerSplitter.activeFocus ? Ui.Metrics.focus : Ui.Metrics.border
+            height: parent.height
+            color: headerSplitter.containsMouse || headerSplitter.pressed || headerSplitter.activeFocus ? Ui.Theme.borderFocus : Ui.Theme.borderSubtle
+        }
+    }
 
     function focusTrackResize(id) {
         for (let i = 0; i < headerRepeater.count; ++i) {
@@ -146,6 +210,7 @@ Rectangle {
                 compact: toolbar.narrow
                 viewState: view
                 clock: region.clock
+                gestures: clipGestures
             }
         }
     }

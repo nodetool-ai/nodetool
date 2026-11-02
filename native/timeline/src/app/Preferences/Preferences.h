@@ -20,6 +20,7 @@ class Preferences : public QObject {
     Q_PROPERTY(qint64 cacheBudgetMb READ cacheBudgetMb WRITE setCacheBudgetMb NOTIFY changed)
     Q_PROPERTY(QString decoderMode READ decoderMode WRITE setDecoderMode NOTIFY changed)
     Q_PROPERTY(QString audioDevice READ audioDevice WRITE setAudioDevice NOTIFY changed)
+    Q_PROPERTY(double trackHeaderWidth READ trackHeaderWidth WRITE setTrackHeaderWidth NOTIFY changed)
     Q_PROPERTY(QString themePreference READ themePreference WRITE setThemePreference NOTIFY changed)
     Q_PROPERTY(double uiScale READ uiScale WRITE setUiScale NOTIFY changed)
     Q_PROPERTY(double textScale READ textScale WRITE setTextScale NOTIFY changed)
@@ -35,6 +36,7 @@ public:
     qint64 cacheBudgetMb() const;
     QString decoderMode() const;
     QString audioDevice() const;
+    double trackHeaderWidth() const;
     QString themePreference() const;
     double uiScale() const;
     double textScale() const;
@@ -46,6 +48,7 @@ public:
     void setCacheBudgetMb(qint64 value);
     void setDecoderMode(const QString& value);
     void setAudioDevice(const QString& value);
+    void setTrackHeaderWidth(double value);
     void setThemePreference(const QString& value);
     void setUiScale(double value);
     void setTextScale(double value);

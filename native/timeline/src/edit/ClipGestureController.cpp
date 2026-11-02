@@ -22,6 +22,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 using namespace nt::edit;
 
@@ -1367,9 +1368,21 @@ bool ClipGestureController::runBuiltinAction(const QString& action, bool autoRep
         setActiveTool(toolFor.value(action));
         return true;
     }
+    if (m_view && action == u"zoomSelection") {
+        double start = std::numeric_limits<double>::infinity();
+        double end = 0;
+        for (const auto& clip : m_timeline->timeline().clips) {
+            if (selected.contains(QString::fromStdString(clip.id))) {
+                start = std::min(start, clip.startMs);
+                end = std::max(end, clip.endMs());
+            }
+        }
+        m_view->zoomToRange(start, end);
+        return true;
+    }
     if (m_view && (action == u"zoomIn" || action == u"zoomOut" || action == u"zoomFit")) {
         if (action == u"zoomFit") {
-            m_view->zoomToFit();
+            m_view->toggleFit();
         } else {
             m_view->zoomBy(action == u"zoomIn" ? nt::ui::ZOOM_IN_FACTOR : nt::ui::ZOOM_OUT_FACTOR, playheadMs());
         }
@@ -1470,7 +1483,7 @@ QSet<QString> ClipGestureController::availableActions() {
         "escape", "deleteSelected", "rippleDeleteSelected", "splitAtPlayhead", "selectAll", "deselectAll",
         "nudgeLeft", "nudgeRight", "nudgeLeftLarge", "nudgeRightLarge", "undo", "redo", "toggleSnap",
         "toggleShortcuts", "markIn", "markOut", "markClip", "clearRange", "goToIn", "goToOut", "addMarker",
-        "nextMarker", "prevMarker", "zoomIn", "zoomOut", "zoomFit", "selectTool", "trackSelectTool",
+        "nextMarker", "prevMarker", "zoomIn", "zoomOut", "zoomFit", "zoomSelection", "selectTool", "trackSelectTool",
         "trackSelectBackwardTool", "rippleTool", "rollTool", "rateStretchTool", "cutTool", "slipTool", "slideTool",
         "handTool", "zoomTool",
         "copy", "cut", "paste", "pasteInsert", "pasteAttributes", "duplicate", "duplicateWithGap",

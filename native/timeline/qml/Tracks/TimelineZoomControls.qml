@@ -11,6 +11,7 @@ Row {
     objectName: "timelineZoomControls"
     required property TimelineViewState viewState
     required property PlaybackClock clock
+    property ClipGestureController gestures: null
     // Narrow toolbar: keep the step buttons, drop the slider.
     property bool compact: false
     spacing: Ui.Metrics.xs
@@ -52,7 +53,17 @@ Row {
         objectName: "zoomFit"
         anchors.verticalCenter: parent.verticalCenter
         iconName: "fitScreen"
-        accessibleName: "Zoom to fit"
-        onClicked: controls.viewState.zoomToFit()
+        accessibleName: "Fit / previous view"
+        description: "Show the whole timeline, or return to the previous zoom and scroll"
+        onClicked: controls.viewState.toggleFit()
+    }
+    Ui.ToolbarIconButton {
+        objectName: "zoomSelection"
+        anchors.verticalCenter: parent.verticalCenter
+        iconName: "myLocation"
+        accessibleName: "Zoom to selection"
+        enabled: !!controls.gestures && controls.gestures.selection.length > 0
+        disabledReason: "Select a clip to frame it in the timeline"
+        onClicked: controls.gestures.runAction("zoomSelection")
     }
 }

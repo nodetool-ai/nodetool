@@ -80,6 +80,8 @@ Rectangle {
             width: parent.width - 2 * Ui.Metrics.sm
             spacing: Ui.Metrics.micro
             Ui.Text {
+                id: assetName
+                objectName: "assetName"
                 width: parent.width
                 text: tile.asset.name || ""
                 maximumLineCount: 2
@@ -101,6 +103,18 @@ Rectangle {
         }
     }
     HoverHandler { id: hover; cursorShape: mouse.cursorShape }
+    Ui.Tooltip {
+        objectName: "assetNameTooltip"
+        trigger: assetName
+        visible: assetName.truncated && tile.showCaption && !tile.dragging && !mouse.pressed
+        text: {
+            const name = tile.asset.name || ""
+            const path = typeof tile.asset.folder_path === "string" ? tile.asset.folder_path
+                : (tile.asset.parent_id || "") === tile.browser.folderId
+                    ? tile.browser.breadcrumbs.map(row => row.name).join(" / ") : ""
+            return name + (path !== "" ? "\n" + path : "")
+        }
+    }
     Loader {
         parent: tile.Window.window ? tile.Window.window.contentItem : tile
         anchors.fill: parent

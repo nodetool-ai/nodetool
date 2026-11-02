@@ -18,6 +18,7 @@
 #include <QObject>
 #include <QVariantMap>
 #include <QtQmlIntegration/qqmlintegration.h>
+#include <optional>
 
 class TimelineViewState : public QObject {
     Q_OBJECT
@@ -113,6 +114,8 @@ public slots:
     void zoomFromSlider(double value, double playheadMs);
     // Shift+Z: all content in view, the content start at the left edge.
     void zoomToFit();
+    void toggleFit();
+    void zoomToRange(double startMs, double endMs);
     // The web fits a timeline that opens wider than its lanes, again on each
     // resize until the person zooms; a later content change never refits.
     void fitIfOverflowing(bool resized);
@@ -176,6 +179,8 @@ private:
     enum class Fit { Waiting, Decided, Done };
     Fit m_fit = Fit::Waiting;
     double m_fitMsPerPx = 0.0;
+    struct View { double msPerPx; double left; double top; };
+    std::optional<View> m_previousView;
     int m_clipCount = 0;
     nt::ui::ClipWindow m_window;
     int m_flushCount = 0;

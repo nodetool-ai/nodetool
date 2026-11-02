@@ -252,6 +252,31 @@ void TimelineViewState::zoomToFit() {
     setMsPerPxAndScroll(clampMsPerPx(fit), 0.0);
 }
 
+void TimelineViewState::toggleFit() {
+    if (m_flushRequested) { flush(); }
+    const double fit = zoomToFitMsPerPx(m_contentEndMs, m_viewportWidthPx);
+    if (fit <= 0) { return; }
+    m_fit = Fit::Done;
+    if (m_previousView && m_msPerPx == clampMsPerPx(fit) && m_scrollLeftPx == 0) {
+        const auto previous = *m_previousView;
+        m_previousView.reset();
+        setMsPerPxAndScroll(previous.msPerPx, previous.left);
+        setScrollTopPx(previous.top);
+    } else {
+        m_previousView = View{m_msPerPx, m_scrollLeftPx, m_scrollTopPx};
+        zoomToFit();
+    }
+}
+
+void TimelineViewState::zoomToRange(double startMs, double endMs) {
+    if (!std::isfinite(startMs) || !std::isfinite(endMs) || startMs < 0 || endMs <= startMs ||
+        m_viewportWidthPx <= ZOOM_FIT_PADDING_PX) { return; }
+    if (m_flushRequested) { flush(); }
+    m_fit = Fit::Done;
+    const double next = clampMsPerPx((endMs - startMs) / (m_viewportWidthPx - ZOOM_FIT_PADDING_PX));
+    setMsPerPxAndScroll(next, startMs / next - ZOOM_FIT_PADDING_PX / 2);
+}
+
 void TimelineViewState::fitIfOverflowing(bool resized) {
     // TracksRegion.tsx's initial fit: the content present when the editor
     // first has any clips decides once; after that only a resize refits, and

@@ -571,7 +571,83 @@ private slots:
         QCOMPARE(vs->scrollLeftPx(), 0.0);
         QCOMPARE(vs->msPerPx(), model->contentEndMs() / (vs->viewportWidthPx() - 64));
     }
-
+    void fitButtonRestoresThePreviousScaleAndScroll() {
+        load({8, 80});
+        seed(10, 3000);
+        auto* button = region->findChild<QQuickItem*>("zoomFit");
+        QVERIFY(button);
+        const auto point = button->mapToScene(QPointF(button->width() / 2, button->height() / 2)).toPoint();
+        QTest::mouseClick(view.get(), Qt::LeftButton, {}, point);
+        frame();
+        QCOMPARE(vs->scrollLeftPx(), 0.0);
+        QVERIFY(vs->msPerPx() > 10);
+        QTest::mouseClick(view.get(), Qt::LeftButton, {}, point);
+        frame();
+        QCOMPARE(vs->msPerPx(), 10.0);
+        QCOMPARE(vs->scrollLeftPx(), 3000.0);
+    }
+    void selectionZoomFramesTheSelectedClips() {
+        load({8, 80});
+        seed(10, 3000);
+        controller()->setSelection({"c-0-2", "c-0-5"});
+        auto* button = region->findChild<QQuickItem*>("zoomSelection");
+        QVERIFY(button);
+        const auto before = model->documentJson();
+        const auto point = button->mapToScene(QPointF(button->width() / 2, button->height() / 2)).toPoint();
+        QTest::mouseClick(view.get(), Qt::LeftButton, {}, point);
+        frame();
+        QVERIFY(vs->msPerPx() < 10);
+        QVERIFY(vs->timeAtViewportX(0) <= 2000);
+        QVERIFY(vs->timeAtViewportX(vs->viewportWidthPx()) >= 5800);
+        QCOMPARE(model->documentJson(), before);
+        QCOMPARE(model->undoStack()->count(), 0);
+    }
+    void trackHeaderSplitterResizesPersistsAndResets() {
+        QTemporaryDir settings;
+        QVERIFY(settings.isValid());
+        const auto previous = qgetenv("NODETOOL_TIMELINE_PREFERENCES");
+        qputenv("NODETOOL_TIMELINE_PREFERENCES", QFile::encodeName(settings.filePath("preferences.ini")));
+        const auto restore = qScopeGuard([previous]() {
+            if (previous.isNull()) { qunsetenv("NODETOOL_TIMELINE_PREFERENCES"); }
+            else { qputenv("NODETOOL_TIMELINE_PREFERENCES", previous); }
+        });
+        load({8, 40});
+        auto* splitter = itemNamed("trackHeaderSplitter");
+        QVERIFY(splitter);
+        const double before = region->property("headerWidth").toDouble();
+        const auto point = splitter->mapToScene(QPointF(splitter->width() / 2, splitter->height() / 2)).toPoint();
+        drag(point, point + QPoint(80, 0), 4);
+        QCOMPARE(region->property("headerWidth").toDouble(), before + 80);
+        QCOMPARE(itemNamed("trackHeader-track-0")->width(), before + 79);
+        load({8, 40});
+        QCOMPARE(region->property("headerWidth").toDouble(), before + 80);
+        splitter = itemNamed("trackHeaderSplitter");
+        const auto reset = splitter->mapToScene(QPointF(splitter->width() / 2, splitter->height() / 2)).toPoint();
+        QTest::mouseDClick(view.get(), Qt::LeftButton, {}, reset);
+        frame();
+        QCOMPARE(region->property("headerWidth").toDouble(), before);
+        QCOMPARE(model->undoStack()->count(), 0);
+    }
+    void truncatedTrackNameRevealsItsFullText() {
+        const Layout l{1, 4};
+        auto json = makeTimelineJson(l);
+        auto tracks = json.value("tracks").toArray();
+        auto track = tracks[0].toObject();
+        const QString name = QString("A long descriptive track name ").repeated(8);
+        track.insert("name", name);
+        tracks[0] = track;
+        json.insert("tracks", tracks);
+        loadJson(json, l);
+        auto* label = itemNamed("trackName-track-0");
+        QVERIFY(label);
+        QVERIFY(label->property("truncated").toBool());
+        auto* tip = label->findChild<QObject*>("trackNameTooltip");
+        QVERIFY(tip);
+        const auto point = label->mapToScene(QPointF(label->width() / 2, label->height() / 2)).toPoint();
+        QTest::mouseMove(view.get(), point);
+        QTRY_VERIFY(tip->property("visible").toBool());
+        QCOMPARE(tip->property("text").toString(), name);
+    }
     void opensFittedWhenTheContentOverflows() {
         load({8, 400});
         // 400 s at 10 ms/px is 40 000 px: the first layout fits it.

@@ -7,10 +7,33 @@ Item {
     id: host
     width: 280
     height: 480
+    Component { id: browserComponent; AssetBrowser {} }
     TestCase {
         id: tests
         name: "NativeLibraryUI"
         when: windowShown
+        function test_truncatedAssetNameRevealsItsFullText() {
+            const browser = createTemporaryObject(browserComponent, host)
+            const component = Qt.createComponent("qrc:/qt/qml/NodeTool/Timeline/qml/assets/AssetItem.qml")
+            compare(component.status, Component.Ready, component.errorString())
+            const name = "A long descriptive asset name ".repeat(10)
+            const tile = createTemporaryObject(component, host, {
+                width: 120, height: 100, browser: browser,
+                asset: {id: "long-name", name: name, content_type: "image/png"}
+            })
+            verify(tile, component.errorString())
+            const tip = findChild(tile, "assetNameTooltip")
+            verify(tip)
+            mouseMove(tile, tile.width / 2, tile.height / 2)
+            tryVerify(() => tip.visible, 1500)
+            compare(tip.text.split("\n")[0], name)
+            tile.asset = {id: "short-name", name: "Short", content_type: "image/png"}
+            tryVerify(() => !tip.visible)
+            tile.asset = {id: "long-name", name: name, content_type: "image/png"}
+            mouseMove(tile, -10, -10)
+            tile.forceActiveFocus(Qt.TabFocusReason)
+            tryVerify(() => tip.visible, 1500)
+        }
         function typeText(text) {
             for (let i = 0; i < text.length; ++i) keyClick(text[i])
         }

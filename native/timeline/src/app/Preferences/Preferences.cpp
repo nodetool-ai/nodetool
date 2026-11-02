@@ -54,6 +54,14 @@ QString Preferences::decoderMode() const {
     return validDecoder(value) ? value : QStringLiteral("sw");
 }
 QString Preferences::audioDevice() const { return m_settings->value("audioDevice").toString(); }
+double Preferences::trackHeaderWidth() const {
+    bool ok = false;
+    const double value = m_settings->value("layout/trackHeaderWidth", -1).toDouble(&ok);
+    return ok && std::isfinite(value) && value > 0 ? value : -1;
+}
+void Preferences::setTrackHeaderWidth(double value) {
+    if (std::isfinite(value) && (value > 0 || value == -1)) { write("layout/trackHeaderWidth", value); }
+}
 QString Preferences::themePreference() const {
     const QString value = m_settings->value("appearance/themePreference", "System").toString();
     return validTheme(value) ? value : QStringLiteral("System");

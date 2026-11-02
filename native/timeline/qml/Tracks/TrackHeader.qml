@@ -82,12 +82,20 @@ Rectangle {
         }
         Ui.Text {
             id: nameText
+            objectName: "trackName-" + header.trackId
             x: glyph.x + glyph.width + Ui.Metrics.md
             anchors.verticalCenter: parent.verticalCenter
-            width: Math.max(0, Math.min(Ui.Metrics.small * 6 + Ui.Metrics.sm, topRow.width - x - chip.width - Ui.Metrics.sm))
+            width: Math.max(0, topRow.width - x - chip.width - Ui.Metrics.sm)
             text: header.name
             role: Ui.Typography.SansLabel
             elide: Text.ElideRight
+            HoverHandler { id: nameHover }
+            Ui.Tooltip {
+                objectName: "trackNameTooltip"
+                trigger: nameText
+                visible: nameText.truncated && (nameHover.hovered || header.activeFocus)
+                text: header.name
+            }
         }
         // The index chip doubles as the track-target toggle; a track is
         // targeted unless the person turned it off.
