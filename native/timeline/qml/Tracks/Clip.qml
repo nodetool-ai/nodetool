@@ -249,6 +249,18 @@ Item {
             } else clipItem.press("body", mouse, this)
         }
     }
+    // The edit point E and the keyboard trims act on.
+    Rectangle {
+        objectName: "clipSelectedEdit"
+        readonly property string edge: clipItem.gestures && clipItem.gestures.selectedEdit.clipId === clipItem.clipId
+            ? clipItem.gestures.selectedEdit.edge : ""
+        z: TimelineMetrics.trimHandleLayer
+        visible: edge !== ""
+        x: edge === "end" ? parent.width - width : 0
+        width: Ui.Metrics.xs
+        height: parent.height
+        color: Ui.Theme.accentPrimary
+    }
     // The trim grips (TRIM_HANDLE_WIDTH_PX), over the body.
     MouseArea {
         id: startArea

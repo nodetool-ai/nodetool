@@ -1051,6 +1051,8 @@ int main(int argc, char** argv) {
     view.rootContext()->setContextProperty(QStringLiteral("nativeAssistantTools"), &assistantTools);
     view.rootContext()->setContextProperty(QStringLiteral("nativeChatInitiallyOpen"), parser.isSet(chatOpt));
     view.rootContext()->setContextProperty(QStringLiteral("autosave"), autosave.get());
+    view.rootContext()->setContextProperty(QStringLiteral("nativeInteractiveRun"),
+                                           !background && QGuiApplication::platformName() != u"offscreen");
     view.loadFromModule("NodeTool.Timeline", "TimelineEditor");
     if (view.status() != QQuickView::Ready) {
         return 1;

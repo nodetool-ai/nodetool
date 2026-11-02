@@ -155,13 +155,23 @@ qml_callers = ["native/timeline/qml/Inspector/AudioEffects.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Separator, Ui.CheckBox, Ui.EditorButton, Ui.ToolbarIconButton"
 
 [[file]]
+path = "native/timeline/qml/Inspector/AudioGainHost.qml"
+category = "chrome"
+controls = ["AudioGainDialog"]
+signals = []
+test_host = "tst_keyboardpresets"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
 path = "native/timeline/qml/Inspector/AudioGainDialog.qml"
 category = "chrome"
 controls = ["Ui.Dialog", "Ui.Text", "Ui.Select", "Ui.TextField", "Ui.EditorButton"]
 signals = []
 test_host = "tst_inspectorsections"
 test_scope = "build/import"
-qml_callers = []
+qml_callers = ["native/timeline/qml/Inspector/AudioGainHost.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.Select, Ui.TextField, Ui.EditorButton"
 
 [[file]]
@@ -627,12 +637,22 @@ replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.ToolbarIconButton, 
 [[file]]
 path = "native/timeline/qml/Preferences/AppShell.qml"
 category = "chrome"
-controls = ["Shortcut", "PreferencesDialog", "ProviderSettingsDialog"]
+controls = ["Shortcut", "KeyboardLayoutPrompt", "PreferencesDialog", "ProviderSettingsDialog"]
 signals = []
 test_host = "tst_appshell_preferences"
 test_scope = "build/import"
 qml_callers = []
 replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/Preferences/KeyboardLayoutPrompt.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.EditorButton", "Ui.ToolbarIconButton"]
+signals = ["chosen"]
+test_host = "tst_keyboardpresets"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/Preferences/AppShell.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.EditorButton, Ui.ToolbarIconButton"
 
 [[file]]
 path = "native/timeline/qml/Preferences/PreferencesDialog.qml"
@@ -1383,6 +1403,36 @@ test_host = "tst_fxcontrols"
 test_scope = "build/import"
 qml_callers = ["native/timeline/qml/wiring/w/FilterEditor.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.ToolbarIconButton, Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/markers/MarkerEditDialog.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "Flickable", "Ui.ScrollBar", "ColumnLayout", "GridLayout", "Flow", "Ui.Text", "Ui.TextField", "Ui.TextArea", "Ui.EditorButton", "Rectangle", "Ui.Icon", "Ui.Tooltip", "MouseArea", "HoverHandler"]
+signals = []
+test_host = "tst_markers"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/markers/MarkerEditHost.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.ScrollBar, Ui.Text, Ui.TextField, Ui.TextArea, Ui.EditorButton, Ui.Icon, Ui.Tooltip"
+
+[[file]]
+path = "native/timeline/qml/markers/MarkerEditHost.qml"
+category = "chrome"
+controls = ["MarkerEditDialog", "FileDialog", "Ui.Dialog", "Ui.Text", "Ui.EditorButton"]
+signals = []
+test_host = "tst_markers"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/markers/MarkersPanel.qml"
+category = "chrome"
+controls = ["Ui.Surface", "ColumnLayout", "Ui.TextField", "Flow", "Rectangle", "Ui.Tooltip", "MouseArea", "HoverHandler", "ListView", "Ui.ScrollBar", "Ui.Text", "Ui.EmptyState", "Ui.EditorButton", "RegistryContextMenu"]
+signals = []
+test_host = "tst_markers"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.TextField, Ui.Tooltip, Ui.ScrollBar, Ui.Text, Ui.EmptyState, Ui.EditorButton"
 
 [[file]]
 path = "native/timeline/qml/menus/ClipContextMenu.qml"
@@ -2920,3 +2970,43 @@ test_host = "tst_storyworkspace"
 test_scope = "build/import"
 qml_callers = ["native/timeline/qml/storyworkspace/StoryWorkspaceEditor.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Select, Ui.Text"
+
+[[exception]]
+path = "native/timeline/qml/Tracks/TimeRuler.qml"
+object = "ruler/Item[0]/Repeater[0]/flag/MouseArea[0]"
+binding = "onDoubleClicked"
+rule = "manual-control"
+owner = "Timeline marker editing"
+reason = "Double-clicking a marker flag opens the Edit Marker dialog for that marker; the flag is a document-time target on the ruler, not a button."
+
+[[exception]]
+path = "native/timeline/qml/markers/MarkerEditDialog.qml"
+object = "dialog/ColumnLayout[0]/notesScroll/body/ColumnLayout[2]/swatches/Repeater[0]/swatch/MouseArea[0]"
+binding = "onClicked"
+rule = "manual-control"
+owner = "Timeline marker colours"
+reason = "A colour swatch shows the exact document colour it stores, which no Ui control draws; it is a radio choice with keyboard and accessibility actions."
+
+[[exception]]
+path = "native/timeline/qml/markers/MarkersPanel.qml"
+object = "panel/ColumnLayout[0]/filters/Repeater[0]/chip/MouseArea[0]"
+binding = "onClicked"
+rule = "manual-control"
+owner = "Timeline marker colours"
+reason = "A colour filter chip shows the exact document colour it filters by, which no Ui control draws; it is a toggle with keyboard and accessibility actions."
+
+[[exception]]
+path = "native/timeline/qml/markers/MarkersPanel.qml"
+object = "panel/ColumnLayout[0]/Item[0]/rowsView/row/MouseArea[0]"
+binding = "onClicked"
+rule = "manual-control"
+owner = "Timeline marker list"
+reason = "A row selects with Ctrl and Shift ranges and seeks to the marker, and a right click opens the marker menu on it. Ui.ListRow reports neither the modifiers nor the button."
+
+[[exception]]
+path = "native/timeline/qml/markers/MarkersPanel.qml"
+object = "panel/ColumnLayout[0]/Item[0]/rowsView/row/MouseArea[0]"
+binding = "onDoubleClicked"
+rule = "manual-control"
+owner = "Timeline marker list"
+reason = "Double-clicking a row opens the Edit Marker dialog, with the same pointer area as the single click."

@@ -436,6 +436,19 @@ void AssetBrowser::requestThumbnail(const QString& assetId) {
     }, m_documentEpoch);
 }
 
+void AssetBrowser::locateAsset(const QString& assetId) {
+    if (!m_target || assetId.isEmpty()) { return; }
+    request([assetId](nt::server::ServerClient& client) {
+        Result result;
+        result.display = false;
+        const auto asset = client.getAsset(assetId);
+        if (asset.ok()) { result.assets.append(asset.data); }
+        return result;
+    }, [this](const Result& result) {
+        if (!result.assets.isEmpty()) { emit assetLocated(result.assets.first().toObject().toVariantMap()); }
+    }, m_documentEpoch);
+}
+
 QUrl AssetBrowser::mediaUrl(const QString& path) const {
     if (path.isEmpty() || !m_target) { return {}; }
     return m_target->server.resolved(QUrl(path));

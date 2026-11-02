@@ -21,7 +21,7 @@ function webWorkspaceNames() { return workspaces; }
 // them part of the preset, so they can be hidden. "color", "scopes" and "audio"
 // are the ids of the panels the two workspaces are for.
 function applyNativePreset(layout, name) {
-    var leftPanels = ["transcript", "storyboard", "script", "entities", "assets"];
+    var leftPanels = ["transcript", "storyboard", "script", "entities", "markers", "assets"];
     var workArea = name === "Color" ? "scopes" : "mixer";
     var controls = name === "Color" ? "color" : "audio";
     layout.regions.left[0].panels = leftPanels;

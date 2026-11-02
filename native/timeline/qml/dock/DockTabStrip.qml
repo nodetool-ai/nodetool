@@ -55,6 +55,12 @@ Rectangle {
         tab.forceActiveFocus()
         revealTab(tab.panelId)
     }
+    function focusPanelTab(panelId) {
+        for (let i = 0; i < tabs.count; ++i) {
+            const tab = tabs.itemAt(i)
+            if (tab && tab.panelId === panelId) { tab.forceActiveFocus(); revealTab(panelId); return }
+        }
+    }
     Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: Ui.Metrics.border; color: Ui.Theme.borderSubtle }
     Flickable {
         id: tabViewport

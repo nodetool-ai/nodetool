@@ -37,6 +37,7 @@ Rectangle {
         if (alignRight && anchor) menu.x = Math.max(0, anchor.mapToItem(menu.parent, anchor.width, 0).x - menu.width)
     }
     function tabTarget(x, dragged) { return tabs.insertionIndex(x, dragged) }
+    function focusTabOf(id) { tabs.focusPanelTab(id) }
     function trackSlot() { if (dock && group) dock.registerSlot(group.id, body) }
     onGroupChanged: trackSlot()
     Component.onCompleted: trackSlot()

@@ -659,15 +659,24 @@ Item {
         const auto menu = [&menus](const QString& label) -> const Menu& {
             return *std::find_if(menus.begin(), menus.end(), [&](const Menu& m) { return m.label == label; });
         };
+        // The Markers menu also holds the items of the markers module, so only this test's items are compared.
         QStringList markers;
+        std::vector<const ShellMenuItem*> own;
+        qsizetype separatorsBetween = 0;
         for (const auto& item : menu("Markers").items) {
-            markers << (item.separator ? QString("---") : item.label);
+            if (item.separator) {
+                separatorsBetween += !markers.isEmpty() && markers.last() == "Also first";
+            } else if (item.action.startsWith("test.") || item.label == "More") {
+                markers << item.label;
+                own.push_back(&item);
+            }
         }
-        QCOMPARE(markers, QStringList({"First", "Also first", "---", "Later", "More"}));
-        QCOMPARE(menu("Markers").items[3].shortcut, QString("F7"));
-        QCOMPARE(menu("Markers").items[3].sequence, QKeySequence(Qt::Key_F7));
-        QCOMPARE(menu("Markers").items[4].children.size(), size_t(1));
-        QCOMPARE(menu("Markers").items[4].children[0].action, QString("test.inSub"));
+        QCOMPARE(markers, QStringList({"First", "Also first", "Later", "More"}));
+        QVERIFY2(separatorsBetween >= 1, "a group of this test starts after a separator");
+        QCOMPARE(own[2]->shortcut, QString("F7"));
+        QCOMPARE(own[2]->sequence, QKeySequence(Qt::Key_F7));
+        QCOMPARE(own[3]->children.size(), size_t(1));
+        QCOMPARE(own[3]->children[0].action, QString("test.inSub"));
         QStringList file;
         for (const auto& item : menu("File").items) {
             file << (item.separator ? QString("---") : item.label);
