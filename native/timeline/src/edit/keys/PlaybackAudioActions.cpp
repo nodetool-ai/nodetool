@@ -30,9 +30,11 @@ const bool registered = [] {
         }, group});
     const auto hasClock = [](const QVariantMap& context) { return clockOf(context) != nullptr; };
     nt::app::registerShellMenuItem({"Playback", "toggleScrubAudio", "Play Audio While Scrubbing", {}, {}, "audio", 100, hasClock,
-        [](const QVariantMap& context) { auto* clock = clockOf(context); return clock && clock->scrubAudio(); }});
+        [](const QVariantMap& context) { auto* clock = clockOf(context); return clock && clock->scrubAudio(); },
+        {}, QStringLiteral("Open a timeline first.")});
     nt::app::registerShellMenuItem({"Playback", "toggleShuttleKeepsPitch", "Keep Pitch While Shuttling", {}, {}, "audio", 101, hasClock,
-        [](const QVariantMap& context) { auto* clock = clockOf(context); return clock && clock->keepShuttlePitch(); }});
+        [](const QVariantMap& context) { auto* clock = clockOf(context); return clock && clock->keepShuttlePitch(); },
+        {}, QStringLiteral("Open a timeline first.")});
     return true;
 }();
 }  // namespace

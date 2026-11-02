@@ -44,7 +44,8 @@ const bool registered = [] {
         nt::wiring::registerKeyAction({"audioRole." + role, "Set audio role to " + roleLabel(role), {}, setRole(role), "Audio"});
         nt::app::registerShellMenuItem({"Clip", "audioRole." + role, roleLabel(role), {}, "Audio role", "audio", kMenuOrder + order++,
             [](const QVariantMap& context) { return soundingSelected(context) > 0; },
-            [role](const QVariantMap& context) { return roleChecked(context, role); }});
+            [role](const QVariantMap& context) { return roleChecked(context, role); }, {},
+            QStringLiteral("Select an audio clip first.")});
     }
     nt::wiring::registerKeyAction({"audioRole.none", "Clear the audio role", {}, setRole({}), "Audio"});
     nt::app::registerShellMenuItem({"Clip", "audioRole.none", "No role", {}, "Audio role", "audio", kMenuOrder + order,
@@ -53,7 +54,7 @@ const bool registered = [] {
             auto* controller = controllerOf(context);
             auto* gestures = gesturesOf(context);
             return controller && gestures && controller->roleSummary(gestures->selection()).value("explicitCount").toInt() > 0;
-        }});
+        }, {}, {}, QStringLiteral("The selected clips have no audio role to clear.")});
 
     nt::wiring::registerKeyAction({"matchLoudness", "Match loudness to the role targets", {},
         [](ClipGestureController& gestures, const QVariantMap&) {
@@ -73,8 +74,10 @@ const bool registered = [] {
         auto* controller = controllerOf(context);
         return controller && !controller->busy();
     };
-    nt::app::registerShellMenuItem({"Clip", "matchLoudness", "Match loudness", {}, {}, "audio", kMenuOrder + 10, idle});
-    nt::app::registerShellMenuItem({"Clip", "duckMusic", "Duck music under dialogue", {}, {}, "audio", kMenuOrder + 11, idle});
+    nt::app::registerShellMenuItem({"Clip", "matchLoudness", "Match loudness", {}, {}, "audio", kMenuOrder + 10, idle, {}, {},
+        QStringLiteral("Select audio clips first, and wait for the running job.")});
+    nt::app::registerShellMenuItem({"Clip", "duckMusic", "Duck music under dialogue", {}, {}, "audio", kMenuOrder + 11, idle, {}, {},
+        QStringLiteral("Select audio clips first, and wait for the running job.")});
     return true;
 }();
 
