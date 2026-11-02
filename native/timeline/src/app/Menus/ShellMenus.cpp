@@ -1,4 +1,6 @@
 #include "ShellMenus.h"
+#include "app/MenuRegistry.h"
+#include "wiring/KeyActions.h"
 #include "wiring/w/SceneItems.h"
 #include "edit/ClipGestureController.h"
 #include "edit/Keymap.h"
@@ -9,6 +11,7 @@
 #include <QKeyEvent>
 #include <QQuickWindow>
 #include <QTimer>
+#include <algorithm>
 #include <private/qguiapplication_p.h>
 #include <qpa/qplatformmenu.h>
 #include <qpa/qplatformtheme.h>
@@ -41,7 +44,67 @@ QKeyCombination bindingCombination(const QStringList& keys) {
     return QKeyCombination(modifiers, key);
 }
 
-std::vector<Menu> shellMenuDescription(const QString& preset, const QVariantList& recent) {
+namespace {
+// The active preset's binding first, as for the built-in items, then the key
+// action's default, then the shortcut the entry names.
+void applyEntryShortcut(ShellMenuItem& item, const QString& preset, const ShellMenuEntry& entry) {
+    if (const auto bindings = nt::edit::actionBindingKeys(preset, entry.action); !bindings.empty()) {
+        item.shortcut = nt::edit::formatActionShortcut(preset, entry.action);
+        item.sequence = QKeySequence(bindingCombination(bindings.front()));
+        return;
+    }
+    for (const auto& action : nt::wiring::keyActions()) {
+        if (action.name == entry.action && !action.defaultKeys.isEmpty()) {
+            item.sequence = action.defaultKeys.first();
+            item.shortcut = item.sequence.toString(QKeySequence::NativeText);
+            return;
+        }
+    }
+    item.shortcut = entry.shortcut;
+    item.sequence = QKeySequence::fromString(entry.shortcut, QKeySequence::PortableText);
+}
+ShellMenuItem menuSeparator() {
+    ShellMenuItem item;
+    item.separator = true;
+    return item;
+}
+void insertEntries(std::vector<ShellMenuItem>& items, size_t at, const std::vector<ShellMenuEntry>& entries,
+                   const QString& preset, const QVariantMap& context) {
+    QString group;  // Built-in items have no group.
+    QHash<QString, QString> submenuGroups;
+    for (const auto& entry : entries) {
+        ShellMenuItem item{entry.label, entry.action, {}, {}, !entry.enabled || entry.enabled(context), {}};
+        item.checkable = bool(entry.checked);
+        item.checked = entry.checked && entry.checked(context);
+        applyEntryShortcut(item, preset, entry);
+        const auto startGroup = [&] {
+            if (at > 0 && group != entry.group) {
+                items.insert(items.begin() + at++, menuSeparator());
+            }
+            group = entry.group;
+        };
+        if (entry.submenu.isEmpty()) {
+            startGroup();
+            items.insert(items.begin() + at++, std::move(item));
+            continue;
+        }
+        auto parent = std::find_if(items.begin(), items.end(), [&](const ShellMenuItem& candidate) {
+            return candidate.label == entry.submenu && candidate.action.isEmpty();
+        });
+        if (parent == items.end()) {
+            startGroup();
+            parent = items.insert(items.begin() + at++, ShellMenuItem{entry.submenu, {}, {}, {}, true, {}});
+            submenuGroups.insert(entry.submenu, entry.group);
+        } else if (submenuGroups.value(entry.submenu) != entry.group) {
+            parent->children.push_back(menuSeparator());
+            submenuGroups.insert(entry.submenu, entry.group);
+        }
+        parent->children.push_back(std::move(item));
+    }
+}
+}
+
+std::vector<Menu> shellMenuDescription(const QString& preset, const QVariantList& recent, const QVariantMap& context) {
     QHash<QString, QString> labels;
     for (const auto& group : nt::edit::shortcutSheet(preset).value("groups").toArray()) {
         for (const auto& row : group.toObject().value("rows").toArray()) {
@@ -91,6 +154,30 @@ std::vector<Menu> shellMenuDescription(const QString& preset, const QVariantList
             !recentTimelineArguments(entry).isEmpty() && (server || QFileInfo(path).isFile()), {}});
     }
     recentItems.push_back({"Clear Menu", "clearRecent", {}, {}, true, {}});
+    for (const QString& name : shellMenuNames()) {
+        const auto entries = shellMenuEntries(name);
+        if (entries.empty()) {
+            continue;
+        }
+        auto menu = std::find_if(menus.begin(), menus.end(), [&](const Menu& candidate) { return candidate.label == name; });
+        if (menu == menus.end()) {
+            // Keep the order of shellMenuNames() when a module adds a whole menu.
+            const auto rank = shellMenuNames().indexOf(name);
+            menu = menus.insert(std::find_if(menus.begin(), menus.end(), [&](const Menu& candidate) {
+                return shellMenuNames().indexOf(candidate.label) > rank;
+            }), Menu{name, {}});
+        }
+        // File keeps Settings and Quit at its end.
+        auto& items = menu->items;
+        const auto settings = std::find_if(items.begin(), items.end(), [](const ShellMenuItem& item) { return item.action == "settings"; });
+        const bool beforeSettings = settings != items.end();
+        const size_t at = size_t(settings - items.begin());
+        const size_t before = items.size();
+        insertEntries(items, at, entries, preset, context);
+        if (beforeSettings) {
+            items.insert(items.begin() + at + (items.size() - before), menuSeparator());
+        }
+    }
     return menus;
 }
 
@@ -138,7 +225,47 @@ void ShellMenus::setPreferences(Preferences* preferences) {
     QTimer::singleShot(0, this, &ShellMenus::rebuild);
     emit preferencesChanged();
 }
+QVariantMap ShellMenus::menuContext() const {
+    QVariantMap context{{"kind", "shell"}};
+    if (auto* gestures = qobject_cast<ClipGestureController*>(nt::wiring::w::windowItem(m_anchor, "clipGestures"))) {
+        context.insert("gestures", QVariant::fromValue<QObject*>(gestures));
+        context.insert("timeline", QVariant::fromValue<QObject*>(gestures->timeline()));
+    }
+    return context;
+}
+void ShellMenus::refreshRegisteredItems() {
+    const auto context = menuContext();
+    for (const auto& registered : m_registered) {
+        auto* item = qobject_cast<QPlatformMenuItem*>(registered.item.data());
+        if (!item) {
+            continue;
+        }
+        for (const auto& entry : shellMenuEntries()) {
+            if (entry.action == registered.action) {
+                item->setEnabled(!entry.enabled || entry.enabled(context));
+                item->setCheckable(bool(entry.checked));
+                item->setChecked(entry.checked && entry.checked(context));
+                registered.menu->syncMenuItem(item);
+                break;
+            }
+        }
+    }
+}
 bool ShellMenus::trigger(const QString& action) {
+    for (const auto& entry : shellMenuEntries()) {
+        if (entry.action != action) {
+            continue;
+        }
+        const auto context = menuContext();
+        if (entry.enabled && !entry.enabled(context)) {
+            return false;
+        }
+        if (entry.run) {
+            return entry.run(context);
+        }
+        auto* gestures = qobject_cast<ClipGestureController*>(context.value("gestures").value<QObject*>());
+        return gestures && gestures->runAction(action, context);
+    }
     if (action == "clearRecent" && m_preferences) {
         m_preferences->clearRecentTimelines();
         return true;
@@ -206,6 +333,7 @@ bool ShellMenus::trigger(const QString& action) {
     return false;
 }
 void ShellMenus::rebuild() {
+    m_registered.clear();
     if (auto* bar = qobject_cast<QPlatformMenuBar*>(m_bar.data())) {
         bar->handleReparent(nullptr);
         delete bar;
@@ -220,7 +348,7 @@ void ShellMenus::rebuild() {
     }
     bar->setParent(this);
     m_bar = bar;
-    for (const auto& description : shellMenuDescription(m_preset, m_preferences ? m_preferences->recentTimelines() : QVariantList())) {
+    for (const auto& description : shellMenuDescription(m_preset, m_preferences ? m_preferences->recentTimelines() : QVariantList(), menuContext())) {
         auto* menu = theme->createPlatformMenu();
         if (!menu) {
             continue;
@@ -230,6 +358,7 @@ void ShellMenus::rebuild() {
         menu->setEnabled(true);
         menu->setVisible(true);
         populate(menu, description.items);
+        connect(menu, &QPlatformMenu::aboutToShow, this, &ShellMenus::refreshRegisteredItems);
         bar->insertMenu(menu, nullptr);
     }
     bar->handleReparent(m_anchor->window());
@@ -242,10 +371,18 @@ void ShellMenus::populate(QPlatformMenu* menu, const std::vector<ShellMenuItem>&
             continue;
         }
         item->setParent(menu);
+        if (entry.separator) {
+            item->setIsSeparator(true);
+            item->setVisible(true);
+            menu->insertMenuItem(item, nullptr);
+            continue;
+        }
         item->setText(entry.label);
         item->setEnabled(entry.enabled);
         item->setVisible(true);
         item->setShortcut(entry.sequence);
+        item->setCheckable(entry.checkable);
+        item->setChecked(entry.checked);
         item->setRole(entry.action == "settings" ? QPlatformMenuItem::PreferencesRole
             : entry.action == "quit" ? QPlatformMenuItem::QuitRole : QPlatformMenuItem::NoRole);
         if (!entry.children.empty()) {
@@ -259,6 +396,10 @@ void ShellMenus::populate(QPlatformMenu* menu, const std::vector<ShellMenuItem>&
             }
         } else {
             connect(item, &QPlatformMenuItem::activated, this, [this, action = entry.action]() { trigger(action); });
+            const auto& entries = shellMenuEntries();
+            if (std::any_of(entries.begin(), entries.end(), [&](const auto& e) { return e.action == entry.action; })) {
+                m_registered.push_back({item, menu, entry.action});
+            }
         }
         menu->insertMenuItem(item, nullptr);
     }

@@ -12,16 +12,29 @@ Instantiator {
     required property var context
     required property ClipGestureController gestures
     readonly property var actionContext: Object.assign({}, context, { kind: kind })
+    readonly property Component groupSeparator: Component { MenuSeparator { contentItem: Ui.Separator {} } }
     model: MenuRegistry.query(kind, actionContext)
     delegate: Ui.MenuItem {
         id: entry
         required property var modelData
+        property Item separatorBefore: null
         objectName: "registryMenu-" + entries.kind + "-" + modelData.action
         text: modelData.label
         enabled: modelData.enabled
+        checkable: modelData.checkable
+        checked: modelData.checked
         shortcutText: modelData.shortcut ?? ""
         onTriggered: if (entries.gestures) entries.gestures.runAction(modelData.action, entries.actionContext)
     }
-    onObjectAdded: (index, object) => menu.addItem(object)
-    onObjectRemoved: (index, object) => menu.removeItem(object)
+    onObjectAdded: (index, object) => {
+        if (object.modelData.separatorBefore) {
+            object.separatorBefore = groupSeparator.createObject(menu.contentItem, { objectName: "registryMenuGroup-" + kind + "-" + object.modelData.group })
+            menu.addItem(object.separatorBefore)
+        }
+        menu.addItem(object)
+    }
+    onObjectRemoved: (index, object) => {
+        if (object.separatorBefore) menu.removeItem(object.separatorBefore)
+        menu.removeItem(object)
+    }
 }

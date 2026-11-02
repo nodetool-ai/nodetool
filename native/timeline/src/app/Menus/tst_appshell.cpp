@@ -1,4 +1,5 @@
 #include "ShellMenus.h"
+#include "app/MenuRegistry.h"
 #include "app/Preferences/Preferences.h"
 #include "app/PanelRegistry.h"
 #include <QScopeGuard>
@@ -19,8 +20,84 @@
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QtTest>
+#include <algorithm>
 #include <limits>
+#include <private/qguiapplication_p.h>
+#include <qpa/qplatformmenu.h>
+#include <qpa/qplatformtheme.h>
 using namespace nt::app;
+namespace {
+// A platform menu bar that records what ShellMenus builds. No QPA plugin on
+// this machine has one, so the native path would otherwise run on macOS only.
+class RecordingItem : public QPlatformMenuItem {
+    Q_OBJECT
+public:
+    QString text;
+    QPlatformMenu* submenu = nullptr;
+    QKeySequence shortcut;
+    bool separator = false, checkable = false, checked = false, enabled = true;
+    void setText(const QString& value) override { text = value; }
+    void setIcon(const QIcon&) override {}
+    void setMenu(QPlatformMenu* value) override { submenu = value; }
+    void setVisible(bool) override {}
+    void setIsSeparator(bool value) override { separator = value; }
+    void setFont(const QFont&) override {}
+    void setRole(MenuRole) override {}
+    void setCheckable(bool value) override { checkable = value; }
+    void setChecked(bool value) override { checked = value; }
+    void setShortcut(const QKeySequence& value) override { shortcut = value; }
+    void setEnabled(bool value) override { enabled = value; }
+    void setIconSize(int) override {}
+};
+class RecordingMenu : public QPlatformMenu {
+    Q_OBJECT
+public:
+    QString text;
+    QList<RecordingItem*> items;
+    int synced = 0;
+    void insertMenuItem(QPlatformMenuItem* item, QPlatformMenuItem*) override { items.append(static_cast<RecordingItem*>(item)); }
+    void removeMenuItem(QPlatformMenuItem* item) override { items.removeAll(static_cast<RecordingItem*>(item)); }
+    void syncMenuItem(QPlatformMenuItem*) override { ++synced; }
+    void syncSeparatorsCollapsible(bool) override {}
+    void setText(const QString& value) override { text = value; }
+    void setIcon(const QIcon&) override {}
+    void setEnabled(bool) override {}
+    void setVisible(bool) override {}
+    QPlatformMenuItem* menuItemAt(int position) const override { return items.value(position); }
+    QPlatformMenuItem* menuItemForTag(quintptr) const override { return nullptr; }
+    QPlatformMenuItem* createMenuItem() const override { return new RecordingItem; }
+    RecordingItem* named(const QString& label) const {
+        for (auto* item : items) {
+            if (item->text == label) { return item; }
+        }
+        return nullptr;
+    }
+};
+class RecordingBar : public QPlatformMenuBar {
+    Q_OBJECT
+public:
+    static inline QPointer<RecordingBar> last;
+    QList<RecordingMenu*> menus;
+    RecordingBar() { last = this; }
+    void insertMenu(QPlatformMenu* menu, QPlatformMenu*) override { menus.append(static_cast<RecordingMenu*>(menu)); }
+    void removeMenu(QPlatformMenu* menu) override { menus.removeAll(static_cast<RecordingMenu*>(menu)); }
+    void syncMenu(QPlatformMenu*) override {}
+    void handleReparent(QWindow*) override {}
+    QPlatformMenu* menuForTag(quintptr) const override { return nullptr; }
+    RecordingMenu* named(const QString& label) const {
+        for (auto* menu : menus) {
+            if (menu->text == label) { return menu; }
+        }
+        return nullptr;
+    }
+};
+class RecordingTheme : public QPlatformTheme {
+public:
+    QPlatformMenuItem* createPlatformMenuItem() const override { return new RecordingItem; }
+    QPlatformMenu* createPlatformMenu() const override { return new RecordingMenu; }
+    QPlatformMenuBar* createPlatformMenuBar() const override { return new RecordingBar; }
+};
+}
 class TestAppShell : public QObject {
     Q_OBJECT
     QQuickItem* shellItem(QQuickItem* item) {
@@ -77,17 +154,30 @@ private slots:
     }
     void menus() {
         const auto menus = shellMenuDescription("nodetool");
-        QCOMPARE(menus.size(), size_t(5));
         QStringList names;
         for (const auto& menu : menus) {
             names << menu.label;
         }
+        // Modules add menus and items through registerShellMenuItem. Only the built-ins are checked here.
+        for (const auto& entry : shellMenuEntries()) {
+            if (!QStringList({"File", "Edit", "View", "Playback", "Help"}).contains(entry.menu)) {
+                names.removeAll(entry.menu);
+            }
+        }
         QCOMPARE(names, QStringList({"File", "Edit", "View", "Playback", "Help"}));
-        QCOMPARE(menus[1].items[0].label, QString("Undo"));
-        QCOMPARE(menus[2].items[2].label, QString("Zoom to fit content"));
+        const auto registered = [](const ShellMenuItem& item) {
+            const auto& entries = shellMenuEntries();
+            return item.separator || !item.children.empty() ||
+                std::any_of(entries.begin(), entries.end(), [&](const auto& e) { return e.action == item.action; });
+        };
+        const auto named = [&menus](const QString& label) -> const Menu& {
+            return *std::find_if(menus.begin(), menus.end(), [&](const Menu& m) { return m.label == label; });
+        };
+        QCOMPARE(named("Edit").items[0].label, QString("Undo"));
+        QCOMPARE(named("View").items[2].label, QString("Zoom to fit content"));
         for (const auto& menu : menus) {
             for (const auto& item : menu.items) {
-                if (item.action == "playPause" || menu.label == "File") {
+                if (item.action == "playPause" || menu.label == "File" || registered(item)) {
                     continue;
                 }
                 QCOMPARE(item.enabled, ClipGestureController::availableActions().contains(item.action));
@@ -108,7 +198,7 @@ private slots:
         for (const QString preset : {"nodetool", "premiere", "fcp"}) {
             for (const auto& menu : shellMenuDescription(preset)) {
                 for (const auto& item : menu.items) {
-                    if (menu.label == "File" || item.action == "playPause") {
+                    if (menu.label == "File" || item.action == "playPause" || item.separator) {
                         continue;
                     }
                     for (const auto& binding : nt::edit::actionBindingKeys(preset, item.action)) {
@@ -448,6 +538,151 @@ private slots:
         QVERIFY(sheet->property("open").toBool());
         QVERIFY(menus.trigger("pasteAttributes"));
         QVERIFY(menus.trigger("linkClips"));
+    }
+    void registeredEntriesRefuseBadInput() {
+        QVERIFY(!registerShellMenuItem({"Nonsense", "test.badMenu", "Bad menu"}));
+        QVERIFY(!registerShellMenuItem({"Edit", "", "No action"}));
+        QVERIFY(!registerShellMenuItem({"Edit", "test.noLabel", ""}));
+        QVERIFY(registerShellMenuItem({"Help", "test.once", "Once"}));
+        QVERIFY(!registerShellMenuItem({"Edit", "test.once", "Twice"}));
+    }
+    void registeredEntriesInDescription() {
+        // Registered out of order: the description sorts by group and order.
+        QVERIFY(registerShellMenuItem({"Markers", "test.later", "Later", "F7", {}, "second", 30}));
+        QVERIFY(registerShellMenuItem({"Markers", "test.first", "First", {}, {}, "first", 10}));
+        QVERIFY(registerShellMenuItem({"Markers", "test.alsoFirst", "Also first", {}, {}, "first", 40}));
+        QVERIFY(registerShellMenuItem({"Markers", "test.inSub", "In submenu", {}, "More", "second", 50}));
+        QVERIFY(registerShellMenuItem({"File", "test.fileItem", "Export Thing…", {}, {}, "exporting", 0}));
+        // A preset binding wins over the shortcut the entry names.
+        QVERIFY(registerShellMenuItem({"Clip", "linkClips", "Link here", "F9", {}, {}, 0,
+            [](const QVariantMap& context) { return context.value("allow").toBool(); },
+            [](const QVariantMap& context) { return context.value("tick").toBool(); }}));
+        const auto menus = shellMenuDescription("nodetool");
+        QStringList names;
+        for (const auto& menu : menus) {
+            names << menu.label;
+        }
+        QVERIFY2(names.indexOf("Clip") > names.indexOf("Edit") && names.indexOf("Markers") > names.indexOf("Clip") &&
+                 names.indexOf("View") > names.indexOf("Markers") && names.last() == "Help", qPrintable(names.join(',')));
+        const auto menu = [&menus](const QString& label) -> const Menu& {
+            return *std::find_if(menus.begin(), menus.end(), [&](const Menu& m) { return m.label == label; });
+        };
+        QStringList markers;
+        for (const auto& item : menu("Markers").items) {
+            markers << (item.separator ? QString("---") : item.label);
+        }
+        QCOMPARE(markers, QStringList({"First", "Also first", "---", "Later", "More"}));
+        QCOMPARE(menu("Markers").items[3].shortcut, QString("F7"));
+        QCOMPARE(menu("Markers").items[3].sequence, QKeySequence(Qt::Key_F7));
+        QCOMPARE(menu("Markers").items[4].children.size(), size_t(1));
+        QCOMPARE(menu("Markers").items[4].children[0].action, QString("test.inSub"));
+        QStringList file;
+        for (const auto& item : menu("File").items) {
+            file << (item.separator ? QString("---") : item.label);
+        }
+        QCOMPARE(file.mid(3), QStringList({"Export…", "---", "Export Thing…", "---", "Settings…", "Quit"}));
+        const auto& linkHere = menu("Clip").items[0];
+        QCOMPARE(linkHere.shortcut, nt::edit::formatActionShortcut("nodetool", "linkClips"));
+        QVERIFY(linkHere.shortcut != "F9");
+        QVERIFY(linkHere.checkable);
+        QVERIFY(!linkHere.enabled);
+        QVERIFY(!linkHere.checked);
+        const auto allowed = shellMenuDescription("nodetool", {}, {{"allow", true}, {"tick", true}});
+        const auto clip = std::find_if(allowed.begin(), allowed.end(), [](const Menu& m) { return m.label == "Clip"; });
+        QVERIFY(clip->items[0].enabled);
+        QVERIFY(clip->items[0].checked);
+    }
+    void registeredEntryDispatch() {
+        QFile file(QStringLiteral(NT_FIXTURES_DIR "/av-sync.json"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        auto parsed = nt::parseTimelineJson(file.readAll());
+        QVERIFY(parsed.timeline);
+        TimelineModel model;
+        model.setTimeline(std::move(*parsed.timeline));
+        PlaybackClock clock;
+        QQuickView view;
+        loadEditor(view, model, clock);
+        ShellMenus menus;
+        menus.setAnchor(view.rootObject());
+        // `run` receives the editor's objects.
+        QVariantMap seen;
+        QVERIFY(registerShellMenuItem({"Clip", "test.run", "Run", {}, {}, {}, 0, {}, {},
+            [&seen](const QVariantMap& context) { seen = context; return true; }}));
+        QVERIFY(menus.trigger("test.run"));
+        QCOMPARE(seen.value("kind").toString(), QString("shell"));
+        QCOMPARE(seen.value("timeline").value<QObject*>(), &model);
+        QVERIFY(qobject_cast<ClipGestureController*>(seen.value("gestures").value<QObject*>()));
+        // A disabled entry does not run.
+        int runs = 0;
+        bool allowed = false;
+        QVERIFY(registerShellMenuItem({"Clip", "test.guarded", "Guarded", {}, {}, {}, 0,
+            [&allowed](const QVariantMap&) { return allowed; }, {},
+            [&runs](const QVariantMap&) { ++runs; return true; }}));
+        QVERIFY(!menus.trigger("test.guarded"));
+        QCOMPARE(runs, 0);
+        allowed = true;
+        QVERIFY(menus.trigger("test.guarded"));
+        QCOMPARE(runs, 1);
+        // Without `run` the entry goes through the gesture dispatcher.
+        QVERIFY(registerShellMenuItem({"Sequence", "test.unknownAction", "Unknown"}));
+        QVERIFY(!menus.trigger("test.unknownAction"));
+        QVERIFY(registerShellMenuItem({"Sequence", "undo", "Undo from here"}));
+        const auto before = model.documentJson();
+        QVERIFY(model.applyEdit("addMarker", {{"id", "shell-test"}, {"timeMs", 100}}));
+        const int index = model.undoStack()->index();
+        QVERIFY(menus.trigger("undo"));
+        QCOMPARE(model.documentJson(), before);
+        QCOMPARE(model.undoStack()->index(), index - 1);
+    }
+    void registeredEntriesInPlatformMenus() {
+        QFile file(QStringLiteral(NT_FIXTURES_DIR "/av-sync.json"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        auto parsed = nt::parseTimelineJson(file.readAll());
+        QVERIFY(parsed.timeline);
+        TimelineModel model;
+        model.setTimeline(std::move(*parsed.timeline));
+        PlaybackClock clock;
+        QQuickView view;
+        loadEditor(view, model, clock);
+        RecordingTheme theme;
+        auto* original = QGuiApplicationPrivate::platform_theme;
+        QGuiApplicationPrivate::platform_theme = &theme;
+        const auto restore = qScopeGuard([original] { QGuiApplicationPrivate::platform_theme = original; });
+        bool on = false;
+        int runs = 0;
+        QVERIFY(registerShellMenuItem({"Window", "test.toggle", "Toggle thing", {}, {}, {}, 0,
+            [&on](const QVariantMap&) { return on; }, [&on](const QVariantMap&) { return on; },
+            [&runs](const QVariantMap&) { ++runs; return true; }}));
+        ShellMenus menus;
+        menus.setAnchor(view.rootObject());
+        auto bar = RecordingBar::last;
+        QVERIFY(bar);
+        auto* window = bar->named("Window");
+        QVERIFY(window);
+        auto* toggle = window->named("Toggle thing");
+        QVERIFY(toggle);
+        QVERIFY(toggle->checkable);
+        QVERIFY(!toggle->enabled);
+        QVERIFY(!toggle->checked);
+        emit toggle->activated();
+        QCOMPARE(runs, 0);
+        // State is read again each time the menu opens, with no rebuild.
+        on = true;
+        emit window->aboutToShow();
+        QCOMPARE(RecordingBar::last.data(), bar.data());
+        QVERIFY(toggle->enabled);
+        QVERIFY(toggle->checked);
+        QVERIFY(window->synced >= 1);
+        emit toggle->activated();
+        QCOMPARE(runs, 1);
+        // Separators and submenus reach the platform menu.
+        auto* markers = bar->named("Markers");
+        QVERIFY(markers);
+        QVERIFY(std::any_of(markers->items.begin(), markers->items.end(), [](auto* item) { return item->separator; }));
+        auto* more = markers->named("More");
+        QVERIFY(more && more->submenu);
+        QVERIFY(static_cast<RecordingMenu*>(more->submenu)->named("In submenu"));
+        menus.setAnchor(nullptr);
     }
 };
 int main(int argc, char** argv) {
