@@ -261,7 +261,7 @@ abstract class Wan2GPNodeBase extends BaseNode {
       );
       const kind = item.media_type as OutputKind;
       // A finished run downloaded whatever the model lacked.
-      if (!connection.serverUrl) markWan2GPModelAvailable(String(settings.model_type));
+      if (!connection.serverUrl) void markWan2GPModelAvailable(String(settings.model_type));
       return { kind, ref: outputRef(kind, data, item.filename) };
     });
   }

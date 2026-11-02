@@ -91,19 +91,24 @@ export async function wan2gpFileStatus(install: Wan2GPInstallStatus): Promise<Ma
 /** Catalog writes, one after another, so none overwrites another's change. */
 let catalogWrites: Promise<void> = Promise.resolve();
 
-function record(modelType: string, status: Wan2GPFileStatus, sourceDir = cache?.sourceDir): void {
+/** Resolves once the catalog on disk holds the status. A failed write is logged, never thrown. */
+function record(modelType: string, status: Wan2GPFileStatus, sourceDir = cache?.sourceDir): Promise<void> {
   proven.set(modelType, status);
-  if (!sourceDir) return;
+  if (!sourceDir) return catalogWrites;
   catalogWrites = catalogWrites
     .then(() => setWan2GPCatalogStatus(sourceDir, modelType, status))
     .catch((error: unknown) => {
       log.warn("Could not update Wan2GP's model catalog", { modelType, error: String(error) });
     });
+  return catalogWrites;
 }
 
-/** Record a model whose files a generation just proved present. */
-export function markWan2GPModelAvailable(modelType: string): void {
-  record(modelType, "available");
+/**
+ * Record a model whose files a generation just proved present. Listings see
+ * it at once. The returned promise resolves once the catalog on disk holds it.
+ */
+export function markWan2GPModelAvailable(modelType: string): Promise<void> {
+  return record(modelType, "available");
 }
 
 /** Forget the cached catalog, so the next listing reads it again. */
@@ -148,6 +153,6 @@ export async function downloadWan2GPModel(
     if (options.signal?.aborted) throw error;
     throw new Wan2GPError(error instanceof Error ? error.message : String(error));
   }
-  record(modelType, final, install.sourceDir);
+  await record(modelType, final, install.sourceDir);
   return final;
 }

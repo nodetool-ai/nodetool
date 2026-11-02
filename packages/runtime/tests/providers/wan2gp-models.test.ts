@@ -69,11 +69,6 @@ async function runs(): Promise<Array<Record<string, string>>> {
   return (await readFile(log, "utf8")).trim().split("\n").map((line) => JSON.parse(line));
 }
 
-/** Let the catalog write a download or a generation started finish. */
-async function settled(): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 50));
-}
-
 describe.skipIf(process.platform === "win32")("Wan2GP models", () => {
   it("writes the catalog once when the install has none, then reads it from memory", async () => {
     const status = await wan2gpFileStatus(install);
@@ -108,7 +103,7 @@ describe.skipIf(process.platform === "win32")("Wan2GP models", () => {
     ]);
     expect((await runs())[1]).toMatchObject({ command: "prepare", argument: "flux" });
     expect((await wan2gpFileStatus(install)).get("flux")).toBe("available");
-    await settled();
+    // The download resolves once the catalog on disk holds the status.
     expect((await readWan2GPCatalog(install.sourceDir!))?.find((model) => model.model_type === "flux")?.status).toBe(
       "available"
     );
@@ -127,9 +122,9 @@ describe.skipIf(process.platform === "win32")("Wan2GP models", () => {
 
   it("keeps a generation's proof that a model is present, in memory and in the catalog", async () => {
     await wan2gpCatalog(install);
-    markWan2GPModelAvailable("ace_step_v1");
+    const written = markWan2GPModelAvailable("ace_step_v1");
     expect((await wan2gpFileStatus(install)).get("ace_step_v1")).toBe("available");
-    await settled();
+    await written;
     resetWan2GPFileStatus();
     expect((await wan2gpFileStatus(install)).get("ace_step_v1")).toBe("available");
   });

@@ -407,7 +407,7 @@ export class Wan2GPProvider extends BaseProvider {
       return { data, filename: item.filename };
     });
     // A finished generation downloaded whatever the model lacked.
-    if (!this.serverUrl) markWan2GPModelAvailable(String(settings.model_type));
+    if (!this.serverUrl) void markWan2GPModelAvailable(String(settings.model_type));
     return result;
   }
 
