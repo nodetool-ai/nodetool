@@ -3,6 +3,7 @@
 // follow FilmCraft (crates/engine/src/keyboard.rs, licenses/FilmCraft-MIT.txt)
 // where it matches what Premiere does. The keys themselves are in Keymap.
 #include "app/EditRegistry.h"
+#include "app/Preferences/PreferencesSettings.h"
 #include "edit/ClipGestureController.h"
 #include "edit/clipboard/RawDocument.h"
 #include "edit/keyframes/Keyframes.h"
@@ -32,9 +33,6 @@ using Handler = std::function<bool(ClipGestureController&, const QVariantMap&)>;
 // Merge keys of held keys. ClipGestureController uses 1 and 2.
 constexpr int SLIDE_MERGE_ID = 3;
 constexpr int VOLUME_MERGE_ID = 4;
-// Premiere's default playback preferences.
-constexpr double PREROLL_MS = 3000;
-constexpr double POSTROLL_MS = 2000;
 constexpr double DEFAULT_AUDIO_TRANSITION_MS = 500;
 // TracksRegion.tsx TRACK_HEIGHT_STEP, as a vertical zoom.
 constexpr double TRACK_ZOOM_STEP = 0.25;
@@ -494,14 +492,15 @@ const bool registered = [] {
         {"slowShuttleForward", "Shuttle forwards slowly (again: faster)", "Playback", [](C g, V) { return slowShuttle(g, 1); }},
         {"playAround", "Play around the playhead", "Playback", [](C g, V c) {
             const double at = playhead(g);
-            if (!autoRepeat(c)) g.clock()->playSpan(std::max(0.0, at - PREROLL_MS), at + POSTROLL_MS, at);
+            if (!autoRepeat(c)) g.clock()->playSpan(std::max(0.0, at - nt::app::playbackPrerollMs()), at + nt::app::playbackPostrollMs(), at);
             return true;
         }},
         {"playInToOutWithRoll", "Play from in to out with preroll and postroll", "Playback", [](C g, V c) {
             if (autoRepeat(c)) return true;
             const double in = g.viewState()->rangeInMs();
             const double out = g.viewState()->rangeOutMs();
-            g.clock()->playSpan(std::max(0.0, std::max(0.0, in) - PREROLL_MS), (out >= 0 ? out : sequenceEnd(g)) + POSTROLL_MS);
+            g.clock()->playSpan(std::max(0.0, std::max(0.0, in) - nt::app::playbackPrerollMs()),
+                                (out >= 0 ? out : sequenceEnd(g)) + nt::app::playbackPostrollMs());
             return true;
         }},
         {"playToOut", "Play from the playhead to out", "Playback", [](C g, V c) {

@@ -20,6 +20,8 @@ class Preferences : public QObject {
     Q_PROPERTY(bool keyboardLayoutChosen READ keyboardLayoutChosen NOTIFY changed)
     Q_PROPERTY(QString cacheFolder READ cacheFolder WRITE setCacheFolder NOTIFY changed)
     Q_PROPERTY(qint64 cacheBudgetMb READ cacheBudgetMb WRITE setCacheBudgetMb NOTIFY changed)
+    Q_PROPERTY(double prerollSeconds READ prerollSeconds WRITE setPrerollSeconds NOTIFY changed)
+    Q_PROPERTY(double postrollSeconds READ postrollSeconds WRITE setPostrollSeconds NOTIFY changed)
     Q_PROPERTY(QString decoderMode READ decoderMode WRITE setDecoderMode NOTIFY changed)
     Q_PROPERTY(QString audioDevice READ audioDevice WRITE setAudioDevice NOTIFY changed)
     Q_PROPERTY(QString themePreference READ themePreference WRITE setThemePreference NOTIFY changed)
@@ -36,6 +38,8 @@ public:
     bool keyboardLayoutChosen() const;
     QString cacheFolder() const;
     qint64 cacheBudgetMb() const;
+    double prerollSeconds() const;
+    double postrollSeconds() const;
     QString decoderMode() const;
     QString audioDevice() const;
     QString themePreference() const;
@@ -47,6 +51,8 @@ public:
     void setKeyboardLayout(const QString& value);
     void setCacheFolder(const QString& value);
     void setCacheBudgetMb(qint64 value);
+    void setPrerollSeconds(double value);
+    void setPostrollSeconds(double value);
     void setDecoderMode(const QString& value);
     void setAudioDevice(const QString& value);
     void setThemePreference(const QString& value);

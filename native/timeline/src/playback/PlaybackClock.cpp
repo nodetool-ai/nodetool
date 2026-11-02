@@ -103,6 +103,7 @@ void PlaybackClock::clearSpanLocked() {
     m_spanFromMs = -1.0;
     m_spanToMs = -1.0;
     m_spanRestMs = -1.0;
+    m_spanLoops = false;
 }
 
 void PlaybackClock::updateBoundsLocked() {
@@ -225,7 +226,7 @@ double PlaybackClock::boundedTimeLocked(double ms) const {
         return m_floorMs;
     }
     if (m_rate > 0.0 && m_endMs > 0.0 && ms >= m_endMs) {
-        return m_loop && m_endMs > m_floorMs ? m_floorMs : m_endMs;
+        return (m_loop || m_spanLoops) && m_endMs > m_floorMs ? m_floorMs : m_endMs;
     }
     return std::max(0.0, ms);
 }
@@ -324,7 +325,7 @@ void PlaybackClock::playInToOut() {
     emit timeChanged();
 }
 
-void PlaybackClock::playSpan(double fromMs, double toMs, double restMs) {
+void PlaybackClock::playSpan(double fromMs, double toMs, double restMs, bool looping) {
     bool started = false;
     bool rateChangedNow = false;
     bool rangeModeEnded = false;
@@ -344,6 +345,7 @@ void PlaybackClock::playSpan(double fromMs, double toMs, double restMs) {
         m_spanFromMs = from;
         m_spanToMs = to;
         m_spanRestMs = restMs;
+        m_spanLoops = looping;
         m_playing = true;
         m_rate = 1.0;
         updateBoundsLocked();
@@ -508,7 +510,7 @@ void PlaybackClock::tick() {
         }
         const double t = rawTimeLocked(now);
         if (m_rate > 0.0 && m_endMs > 0.0 && t >= m_endMs) {
-            if (m_loop && m_endMs > m_floorMs) {
+            if ((m_loop || m_spanLoops) && m_endMs > m_floorMs) {
                 m_timeMs = m_floorMs;
                 ++m_seekSerial;
                 anchorLocked(m_timeMs, now);

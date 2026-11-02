@@ -55,8 +55,14 @@ Controls.Control {
         if (panel && !panel.visible && panel.gestures.handleKey(event.key, event.text, event.modifiers, event.isAutoRepeat)) event.accepted = true
     }
     Keys.onSpacePressed: event => {
-        if (event.modifiers === Qt.NoModifier) root.clock.toggle()
-        else event.accepted = false
+        if (event.modifiers !== Qt.NoModifier) {
+            event.accepted = false
+            return
+        }
+        // In trim mode Space loops around the edit.
+        const trim = tracksHost.item ? tracksHost.item.gestures.trimMode : null
+        if (!trim || !trim.active) root.clock.toggle()
+        else if (!event.isAutoRepeat) trim.toggleLoop()
     }
     Keys.onEscapePressed: event => {
         if (programFullscreen) toggleProgramFullscreen()

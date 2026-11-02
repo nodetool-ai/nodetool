@@ -133,6 +133,28 @@ Ui.Dialog {
                 }
             }
             InspectorRow {
+                label: "Preroll (seconds)"
+                width: parent.width
+                InspectorPillInput {
+                    objectName: "prerollSeconds"
+                    width: Math.min(Ui.Metrics.dialogWidth / 2, parent.width)
+                    ariaLabel: "Preroll (seconds)"
+                    value: String(sheet.preferences.prerollSeconds)
+                    onCommit: value => { if (Number.isFinite(Number(value)) && Number(value) >= 0) sheet.preferences.prerollSeconds = Number(value) }
+                }
+            }
+            InspectorRow {
+                label: "Postroll (seconds)"
+                width: parent.width
+                InspectorPillInput {
+                    objectName: "postrollSeconds"
+                    width: Math.min(Ui.Metrics.dialogWidth / 2, parent.width)
+                    ariaLabel: "Postroll (seconds)"
+                    value: String(sheet.preferences.postrollSeconds)
+                    onCommit: value => { if (Number.isFinite(Number(value)) && Number(value) >= 0) sheet.preferences.postrollSeconds = Number(value) }
+                }
+            }
+            InspectorRow {
                 label: "Decoder"
                 width: parent.width
                 InspectorSelect {

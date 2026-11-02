@@ -1775,6 +1775,26 @@ qml_callers = ["native/timeline/qml/preview/PreviewArea.qml"]
 replacement = "Domain overlay drawn over the picture, scaled with the zoomed canvas"
 
 [[file]]
+path = "native/timeline/qml/preview/TrimMonitorView.qml"
+category = "domain"
+controls = ["Rectangle", "MouseArea", "FrameImage", "TrimMonitorFrames", "Ui.Text", "Ui.EmptyState", "Ui.EditorButton", "Ui.ToolbarIconButton"]
+signals = []
+test_host = "tst_trimmode"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Domain view mounted by the monitor view registry, with Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/qml/Tracks/TrimEditMarks.qml"
+category = "domain"
+controls = ["Rectangle"]
+signals = []
+test_host = "tst_trimmode"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Domain overlay on the clip body, mounted through the clipBody panel slot"
+
+[[file]]
 path = "native/timeline/qml/preview/MonitorRulers.qml"
 category = "domain"
 controls = ["Rectangle", "MouseArea", "MonitorRulerCanvas"]
@@ -2723,6 +2743,22 @@ test_host = "tst_wiringedit"
 test_scope = "build/import"
 qml_callers = []
 replacement = "Synthetic timeline hit-testing fixture; no product chrome"
+[[exception]]
+path = "native/timeline/qml/TimelineVisuals.qml"
+object = "QtObject[0]"
+binding = "trimRipple"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "Editors read a red edit point as a ripple and a yellow one as a roll or a regular trim, in either theme."
+
+[[exception]]
+path = "native/timeline/qml/TimelineVisuals.qml"
+object = "QtObject[0]"
+binding = "trimRoll"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "Editors read a red edit point as a ripple and a yellow one as a roll or a regular trim, in either theme."
+
 [[exception]]
 path = "native/timeline/qml/TimelineVisuals.qml"
 object = "QtObject[0]"

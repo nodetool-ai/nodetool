@@ -13,6 +13,11 @@ QtObject {
     readonly property real transportHeight: 36 * Ui.Theme.uiScale
     readonly property real transportDurationMinWidth: 640 * Ui.Theme.uiScale
     readonly property real monitorRulerThickness: 16 * Ui.Theme.uiScale
+    readonly property real trimMarkStroke: 3 * Ui.Theme.uiScale
+    readonly property real trimMarkArm: 6 * Ui.Theme.uiScale
+    readonly property real trimMonitorGap: 16 * Ui.Theme.uiScale
+    // The pointer travel that trims one frame in the Trim Monitor.
+    readonly property real trimMonitorPxPerFrame: 6 * Ui.Theme.uiScale
     readonly property real documentBarHeight: 40 * Ui.Theme.uiScale
     readonly property real automationAddHeight: 40 * Ui.Theme.uiScale
     readonly property real compactDocumentBarWidth: 640 * Ui.Theme.uiScale
