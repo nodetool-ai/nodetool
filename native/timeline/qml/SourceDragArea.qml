@@ -11,6 +11,7 @@ MouseArea {
     property bool horizontalScrub: false
     signal scrubbed(real x)
     signal tapped(real x)
+    signal scrubCanceled()
 
     readonly property bool lifting: point.Drag.active
     // Read by AssetDropOverlay through Drag.source. A lift keeps what it took,
@@ -22,7 +23,12 @@ MouseArea {
     property real pressX: 0
     property real pressY: 0
 
-    function cancelLift() {
+    function cancelGesture() {
+        if (gesture === "scrub") {
+            gesture = "canceled"
+            area.scrubCanceled()
+            return true
+        }
         if (!point.Drag.active) return false
         point.Drag.cancel()
         point.Drag.active = false
@@ -76,7 +82,7 @@ MouseArea {
         gesture = ""
     }
     onCanceled: {
-        cancelLift()
+        cancelGesture()
         gesture = ""
     }
 }

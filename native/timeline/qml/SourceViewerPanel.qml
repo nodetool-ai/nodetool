@@ -147,7 +147,7 @@ Rectangle {
             scrubBar.cancelScrub()
             return true
         }
-        return picture.cancelLift() || [dragVideo, dragAudio, dragBoth].some(area => area && area.cancelLift())
+        return picture.cancelGesture() || [dragVideo, dragAudio, dragBoth].some(area => area && area.cancelGesture())
     }
     // Keys that act on Source while it has focus. Anything else goes on to the Program keys.
     function actionForKey(event) {
@@ -300,7 +300,10 @@ Rectangle {
                     video: root.mediaType !== "audio"
                     audio: root.mediaType === "audio" || (root.mediaType === "video" && root.monitor.hasAudio)
                     horizontalScrub: root.mediaType === "audio"
+                    property real baselineMs: 0
+                    onPressed: baselineMs = root.timeMs
                     onScrubbed: x => root.scrubTo(x / Math.max(1, width) * root.durationMs)
+                    onScrubCanceled: root.scrubTo(baselineMs)
                     onTapped: x => { if (root.mediaType === "audio") root.scrubTo(x / Math.max(1, width) * root.durationMs) }
                 }
             }

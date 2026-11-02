@@ -463,6 +463,16 @@ private slots:
         QVERIFY(std::abs(monitor->clock()->time() - monitor->durationMs() / 2) < monitor->durationMs() / 50);
         QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, from + QPoint(wave->width() / 4, 0));
         QCOMPARE(model.undoStack()->count(), 0);
+        // Escape puts the playhead back and ends the scrub.
+        monitor->seek(1000);
+        QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, from);
+        QTest::mouseMove(view.get(), from + QPoint(wave->width() / 8, 0));
+        QVERIFY(monitor->clock()->time() > 2000);
+        QTest::keyClick(view.get(), Qt::Key_Escape);
+        QCOMPARE(monitor->clock()->time(), 1000.0);
+        QTest::mouseMove(view.get(), from + QPoint(wave->width() / 4, 0));
+        QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, from + QPoint(wave->width() / 4, 0));
+        QCOMPARE(monitor->clock()->time(), 1000.0);
     }
     void mediaResolutionBrowserSurvivesHiddenLibrary() {
         QTRY_VERIFY(state->mediaBrowser());

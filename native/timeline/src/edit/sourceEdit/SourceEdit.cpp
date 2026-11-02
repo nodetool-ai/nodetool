@@ -113,7 +113,7 @@ std::optional<Result> placeSource(const QJsonObject& raw, const nt::targeting::T
     const auto audioId = p.newAudioTrack ? create("audio") : p.audioTrackId;
     result.insert("tracks", tracks);
     auto doc = nt::edit::structure::editDocument(result);
-    double start = std::max(0.0, std::floor(p.startMs + 0.5));
+    double start = std::max(0.0, p.startMs);
     const auto mode = p.mode == "append" ? QString("overlap") : p.mode;
     if (p.mode == "append") {
         start = 0;
@@ -150,6 +150,18 @@ std::optional<Result> placeSource(const QJsonObject& raw, const nt::targeting::T
     }
     try { doc.clips = nt::targeting::resolveDropAction(doc, state, ids, mode); }
     catch (const nt::edit::OpError&) { return fail("This source could not be placed here."); }
+    // An edit that refuses returns its input, so the new clips would lie over what it could not move.
+    if (mode != "overlap") {
+        for (const auto& placed : doc.clips) {
+            if (!ids.contains(nt::edit::clipId(placed))) { continue; }
+            for (const auto& other : doc.clips) {
+                if (!ids.contains(nt::edit::clipId(other)) && nt::edit::clipTrackId(other) == nt::edit::clipTrackId(placed) &&
+                    nt::edit::clipStartMs(other) < nt::edit::clipEndMs(placed) && nt::edit::clipStartMs(placed) < nt::edit::clipEndMs(other)) {
+                    return fail("A locked or linked clip is in the way. Unlock it or choose another position.");
+                }
+            }
+        }
+    }
     return Result{nt::edit::structure::withClips(result, doc.clips), first};
 }
 Range sourceRangeFor(const QJsonObject& asset, const QJsonObject& range) {

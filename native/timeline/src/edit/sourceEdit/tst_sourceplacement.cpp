@@ -54,6 +54,31 @@ private slots:
             }
         }
     }
+    void exactStartIsKept() {
+        Placement p; p.asset = asset; p.inMs = 1000; p.outMs = 3000; p.videoTrackId = "v"; p.startMs = 200.0 / 3; p.mode = "overwrite";
+        const auto result = placeSource(raw, {}, p); QVERIFY(result);
+        QCOMPARE(result->doc.value("clips").toArray().first().toObject().value("startMs").toDouble(), 200.0 / 3);
+    }
+    void aRefusedEditPlacesNothing() {
+        // The clip at the insert point is linked to a clip on a locked track, so the ripple refuses.
+        auto doc = raw; auto tracks = doc.value("tracks").toArray();
+        auto locked = tracks[3].toObject(); locked.insert("locked", true); tracks[3] = locked; doc.insert("tracks", tracks);
+        doc.insert("clips", QJsonArray{
+            QJsonObject{{"id", "picture"}, {"trackId", "v"}, {"mediaType", "video"}, {"startMs", 5000}, {"durationMs", 1000}, {"linkId", "pair"}},
+            QJsonObject{{"id", "sound"}, {"trackId", "a2"}, {"mediaType", "audio"}, {"startMs", 5000}, {"durationMs", 1000}, {"linkId", "pair"}}});
+        Placement p; p.asset = asset; p.inMs = 1000; p.outMs = 3000; p.videoTrackId = "v"; p.audioTrackId = "a"; p.startMs = 5000; p.mode = "insert";
+        QString error;
+        QVERIFY(!placeSource(doc, {}, p, &error));
+        QVERIFY(!error.isEmpty());
+        // A locked clip under an overwrite refuses the same way.
+        auto lockedClip = raw; lockedClip.insert("clips", QJsonArray{
+            QJsonObject{{"id", "kept"}, {"trackId", "v"}, {"mediaType", "video"}, {"startMs", 5000}, {"durationMs", 1000}, {"locked", true}}});
+        p.audioTrackId.clear(); p.mode = "overwrite";
+        QVERIFY(!placeSource(lockedClip, {}, p, &error));
+        // Insert with nothing in the way succeeds, and an overlap stays what was asked for.
+        p.startMs = 7000; QVERIFY(placeSource(lockedClip, {}, p));
+        p.startMs = 5000; p.mode = "overlap"; QVERIFY(placeSource(lockedClip, {}, p));
+    }
     void appendAndImage() {
         Placement p; p.asset = asset; p.inMs = 1000; p.outMs = 3000; p.newVideoTrack = true; p.newAudioTrack = true;
         const auto result = placeSource(raw, {}, p); QVERIFY(result); QCOMPARE(result->doc.value("tracks").toArray().size(), 6);
