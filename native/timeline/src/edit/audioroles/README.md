@@ -36,8 +36,8 @@ another role to change it.
 ## Measuring
 
 `RoleAnalysis` takes an immutable `Timeline` snapshot and runs on a worker thread (`AudioRoles` owns it). It
-renders the clips through the same `buildMixPlan` and `mixBlock` as playback, in blocks, so clip effects, speed and
-time remaps count and a long recording is not held in memory. For a measurement the clip stands alone on a neutral
+renders the clips through the same `buildMixPlan` and `mixBlock` as playback, in blocks, so clip effects and speed
+count and a long recording is not held in memory. The mix does not apply time remaps, so neither does the measurement. For a measurement the clip stands alone on a neutral
 track with no fades, no track fader, pan or track effects and no master gain, at a clip volume of its own. The volume
 comes first, then the clip's effects, so a clip with effects (a compressor reacts to the level) is rendered again
 at the volume found and searched for (secant and bisection steps, up to seven more renders), keeping the closest. A mono file is measured

@@ -4,12 +4,13 @@ A native desktop prototype of the NodeTool timeline editor: C++20, Qt 6
 Quick (QML), QRhi for the GPU preview, and FFmpeg. The design and the
 milestones are in [docs/DESIGN.md](docs/DESIGN.md) and [docs/PLAN.md](docs/PLAN.md).
 
-Milestones M1a, M1b and M1c are in. The app loads a timeline JSON fixture and
-composites its video layers on the GPU at the playhead time. A clip with a
-`mediaPath` decodes with FFmpeg on a worker thread (software decode, YUV
-planes converted in the shader). A clip without media shows a synthetic test
-pattern. With `--decode hw` or `auto`, video decodes with VideoToolbox and
-the frames go to the GPU with no copy (M1c).
+The app opens a timeline JSON file or a server timeline and composites its
+video layers on the GPU at the playhead time. A clip with a `mediaPath` decodes
+with FFmpeg on a worker thread (software decode, YUV planes converted in the
+shader). A clip without media shows a synthetic test pattern. With `--decode hw`
+or `auto`, video decodes through the platform's hardware path (see
+[Platforms and packaging](#platforms-and-packaging-m6)). The editing commands
+that follow Premiere are in [Premiere editing](#premiere-editing).
 
 ## Assistant and story documents
 
@@ -29,6 +30,19 @@ panel while preserving the current one. The Assistant advertises the existing
 undoable timeline edit and reviewed generation tools along with seek and
 marker actions. The chat connection owns their tool results and server history.
 
+The host also advertises `ui_timeline_list_commands`, `ui_timeline_run_command`,
+`ui_timeline_read_scopes` and `ui_timeline_capture_frame`, implemented in
+`src/aiassist/AssistantCommands.cpp`. `src/aiassist/AssistantCommandTable.cpp`
+holds the allow and deny tables, and each denial states its reason. A new
+`registerKeyAction`, `registerShellMenuItem`, `registerMenuItem` or
+`registerEdit` must be added to one of them, or `tst_assistantcommands` and
+`assistant_commands_audit` (`nodetool-timeline --audit-assistant-commands`) fail.
+Parameters are typed and accept a full or 12-character short ID. One call is one
+undo entry, and a disabled or refused call returns an error and changes nothing.
+A call is refused during a drag, in trim mode and while recording take switches.
+A command with a required selection may be given `clip_ids` instead. Effect value
+changes are denied until C++ holds a table of parameter ranges.
+
 The Entities left dock panel lists the project's characters, locations, styles
 and props. A card edits or removes its entity, and a removal offers Undo. New
 entity picks an image first, then asks for a kind, name and descriptor. The
@@ -47,9 +61,9 @@ From `native/timeline/`, `ctest --test-dir build -R tst_chathost --output-on-fai
 tool edit is undoable, survives save/reload and preserves unknown document
 fields.
 `node scripts/chat-integration.mjs --bin build/nodetool-timeline` starts an
-isolated HTTP/WebSocket mock and drives a real native host edit under Xvfb.
-It checks the tool result, replay protection, local persistence and a full
-editor screenshot. It does not call a model provider.
+isolated HTTP/WebSocket mock and drives a real native host edit and the command
+tools under Xvfb. It checks the tool result, replay protection, local persistence
+and a full editor screenshot. It does not call a model provider.
 
 ## Build and test
 
@@ -116,14 +130,13 @@ Mesa llvmpipe. `--decode hw` and `auto` select Vulkan
 backends: an OpenGL readback, bottom row first, is flipped before it is
 saved.
 
-Linux results (October 2026, the machine above):
+Behaviour on the machine above:
 
-- All 36 ctest tests pass under Xvfb on the NVIDIA Vulkan device, with the
-  hardware tests (`tst_ffmpegsource`, `tst_sourcepool`) on VAAPI. Skipped
-  inside them: `tst_editpreview` `liveEditCostOnALargeDocument` until
-  `node scripts/make-ui-fixture.mjs` has written its fixture (as on every
-  platform; it passes once the fixture exists). `macho_deps` is registered
-  on macOS only.
+- The hardware tests (`tst_ffmpegsource`, `tst_sourcepool`) run on VAAPI under
+  Xvfb on the NVIDIA Vulkan device. `tst_editpreview`
+  `liveEditCostOnALargeDocument` skips on every platform until
+  `node scripts/make-ui-fixture.mjs` has written its fixture. `macho_deps` is
+  registered on macOS only.
 - `--decode hw` stills equal `--decode sw` stills on the same backend
   (PSNR infinite) for `video-4tracks`, `video-8tracks`, `video-4k-hevc`,
   `video-cuts`, `media-tracks`, `video-scrub-intra`, `video-scrub-gop`,
@@ -137,9 +150,8 @@ Linux results (October 2026, the machine above):
   (VUID-VkImageCreateInfo-initialLayout-12478), once per `QRhiTexture`,
   also with software decode.
 - Audio: `--audio-devices` lists the PulseAudio devices (PipeWire) and
-  opens none; the offline mix and the null-device A/V sync pass in ctest.
-  The real-time checks of `scripts/window-checks.sh` play sound and were
-  not run.
+  opens none. The offline mix and the null-device A/V sync run in ctest. The
+  real-time checks of `scripts/window-checks.sh` play sound.
 
 Two driver limits shape the Linux hardware path. nvidia-vaapi-driver
 numbers every surface a decode context uses and allows 32: past that,
@@ -265,7 +277,7 @@ is run only by `scripts/window-checks.sh`.
 
 ### Toolbar, clip pictures, markers, save state (M2b)
 
-- Toolbar (`ToolToggle.tsx`): the ten pointer tools in Premiere's order, the
+- Toolbar (`ToolToggle.tsx`): the pointer tools in Premiere's order, the
   Ripple toggle, the drop modes (one exclusive choice), Snap, Linked and
   Follow, then Help and the zoom. The tooltips show the shortcut of the
   keyboard layout. The row drops its labels when it overflows and takes them
@@ -282,7 +294,8 @@ is run only by `scripts/window-checks.sh`.
   `TimelineShortcutsDialog.tsx`. `scripts/extract-keymap.mjs` reads its
   groups and the English strings into `KeymapData.h`, next to the keymap.
   A row the native editor does not run yet is dimmed and says so
-  (`ClipGestureController::availableActions`).
+  (`ClipGestureController::availableActions`). Actions registered with a key
+  appear in the sheet under their group.
 - Clip pictures (`src/ui/MediaPreviews`): the waveform of an audio clip and
   the filmstrip of a video clip (the picture of an image clip). The peaks are
   the server's (`audio-peaks.ts`: channel 0, block maxima, 2000 peaks rounded
@@ -304,7 +317,8 @@ is run only by `scripts/window-checks.sh`.
   once with `--server` (`--peaks FILE` prints the native ones).
 - Markers and the in/out range: `M` adds a marker at the playhead (an undo
   entry on the raw `markers` array), Shift+M and Ctrl+Shift+M go to the next
-  and previous one, a flag's label seeks and its x deletes it. I and O set
+  and previous one, a flag's label seeks and its x deletes it. See
+  [Markers](#markers) for review notes and ranges. I and O set
   the range (view state, as the web's playback store), X marks the selection
   or the clip under the playhead, Shift+I and Shift+O go to it, Ctrl+Shift+X
   clears it. The ruler draws the band and the marker
@@ -314,12 +328,10 @@ is run only by `scripts/window-checks.sh`.
   and Undo and Redo. A conflict shows a warning banner with `lastError`. A
   stripped save shows a dismissible banner that lists the fields. A banner
   names a recovery copy only through the controller's `keptCopy` and
-  `recoveryError`, which it does not expose yet.
+  `recoveryError`.
 
-Not here yet: loop and play-in-to-out (the clock has no range), the Bars
-ruler and the grid division (no tempo grid), Generate,
-Add text and the Script toggle, the web's per-change conflict merge (Accept
-and Discard), and Retry on a failed save (the controller has no invokable
+Not here yet: the web's per-change conflict merge in the banner (Accept and
+Discard, D34), and Retry on a failed save (the controller has no invokable
 save).
 
 ## Editing (M4)
@@ -331,8 +343,11 @@ rules (`TimelineStore.ts`) in `src/edit/EditActions`, the gestures of
 `useClipDrag.ts` and `useClipTrim.ts` (`trimModeFor`) in
 `src/edit/ClipGestureController`, and the keys of `timelineKeymap.ts` in
 `src/edit/Keymap` (the table is generated: `node scripts/extract-keymap.mjs`,
-`--check` for drift). Every edit works on the raw clip JSON and keeps the
-fields it does not own (D4).
+`--check` for drift). `src/edit/KeymapOverlay.h` changes a preset natively
+without editing `web/`: `resolveTimelineAction` applies it and
+`resolveWebTimelineAction` does not, and `keymap-differential` compares the web
+table only. Every edit works on the raw clip JSON and keeps the fields it does
+not own (D4).
 
 - Move (body drag): snaps both edges within 8 px, Alt moves freely, follows
   the pointer onto a lane whose type takes the clip, moves a multi-selection
@@ -354,14 +369,11 @@ fields it does not own (D4).
 - An edited clip keeps the media its load resolved (a relative path or a
   server cache path), so a split or an undone delete plays the same file.
 
-Not ported, refused rather than half done: slicing keyframe and
-source-anchored animation curves on a split or trim (a link unit with such
-a member does not split at all), group clips as edit targets (a ripple still
-moves a group with its children), a split or drop that would split or
-remove a clip owning a media track, sync lock and track
-targeting (every unlocked track counts), the Rate stretch, Slip, Slide,
-Cut and Track select tools, duplicate and copy/paste, gap selection, the
-marquee.
+Refused rather than half done: a split or trim of a clip with a time-remap
+curve (a link unit with such a member does not split at all, and a
+[frame hold](#export-frame-and-frame-hold) is allowed), group clips as edit
+targets (a ripple still moves a group with its children), and a split or drop
+that would split or remove a clip owning a media track.
 
 ```bash
 node native/timeline/scripts/op-conformance.mjs   # needs build-m2/timeline-ops
@@ -375,7 +387,7 @@ the package's own tests for the operations run unchanged with their imports
 answered by the native code; a randomized differential of the operations;
 a randomized differential of the web store's actions (`TimelineStore.ts`,
 run in jsdom) against the native actions; and every key with every
-modifier in each keymap preset. It lists the known failures with their
+modifier in each keymap preset.
 The package tests the native code does not pass are skipped by name and
 replaced in `conformance/known-differences.test.ts`: the `toBe` identity
 case with deep equality, and each unported-curve case with the exact
@@ -384,6 +396,400 @@ missing, does not load or compares nothing, or a skipped test no longer
 exists. Ids are compared strictly: every input id must come back unchanged,
 only fresh 32-hex ids are renamed, clip ids must be unique and every
 `parentId` must name a clip.
+
+## Premiere editing
+
+These features follow Premiere's commands. Ported algorithms keep their notice in
+`licenses/FilmCraft-MIT.txt`. Panels, menu items, key actions, edits and monitor
+views register through [src/wiring/README.md](src/wiring/README.md).
+
+Each part ends with its tests. Run them from `native/timeline/` under Xvfb, as in
+[Linux](#linux), with `ctest --test-dir build -R '^(name|name)$' --output-on-failure`.
+`ctest` gives every test a private preferences file (`cmake/TestPreferences.cmake`).
+To run a test binary directly, set `NODETOOL_TIMELINE_PREFERENCES` to a scratch
+file, or the test writes to your real `Timeline.conf`.
+
+### Menus
+
+The menu bar has File, Edit, Clip, Sequence, Markers, View, Playback, Window and
+Help, with Premiere's groups. `src/app/Menus/StandardMenus.cpp` holds the standard
+items as one table, and a module registers its own. An item shows the active
+preset's key and a checkmark when it is a toggle. An item that is off carries a
+reason, which context menus show under the label. The native bar only greys the
+item, because `QPlatformMenuItem` has no tooltip API. Linux has no in-window menu
+bar, so the bar is visible only with a D-Bus global menu registrar.
+
+Every command is in a menu unless `tst_menus` lists it as key only, with the
+reason. Key-only commands are the repeat steps (nudge, slide, one-frame trim, clip
+volume), pointer gesture modifiers, Escape, the take number keys, `toggleDawMode`
+and `closeGapAt`.
+
+Right-clicking opens a menu at the pointer on a clip, gap, ruler, edit point or
+marker. A clip row that can never work on the clip's type is left out instead of
+greyed. A clip's Label submenu sets `labelColor`. A gap offers Ripple delete. An
+edit point offers the five trim types and the default transition.
+
+`node scripts/menu-parity.mjs build/nodetool-timeline` regenerates
+`docs/menu-parity.md` from `docs/premiere-menus.txt` and `--dump-menus`. Without a
+display, run it under `xvfb-run`. `--check` compares against the checked-in report.
+It reports gaps and is not a gate.
+
+Tests: `tst_menus`, `tst_appshell_menus`, `menu_parity_report`.
+
+### Keyboard presets
+
+`src/edit/KeymapOverlay.h` holds the Premiere keys. The preset uses Ctrl+K to split,
+Ctrl+Shift+L for loop, Shift+1 to Shift+9 for panels and Shift+= and Shift+- to
+expand and minimize tracks. A key the preset binds means that action alone, even
+when it refuses, and a registered default key gives way to the preset.
+
+The first interactive launch shows a keyboard layout prompt, which does not block
+the document or take focus. Only `main` sets `nativeInteractiveRun`, so other runs
+never see it.
+
+Tests: `tst_keyboardpresets` fails on a binding with no handler and on a key bound
+twice.
+
+### Workspaces
+
+Window > Workspaces lists the ported workspaces and two native ones: Color
+(Alt+Shift+5, with the Color and Scopes panels) and Audio (Alt+Shift+6, with the
+Audio panel on the right). Review hides the Color, Audio and Effect Controls panels
+so its right side stays empty. Default layouts always include the Source tab, so
+Program does not take the whole viewport. The Text tab is the active left tab in
+Editing.
+
+Tests: `tst_dockstore`, `tst_dockui`, `dock_conformance`.
+
+### Frame capture
+
+`FrameCapture` returns a composited or source frame as a `QImage` through a helper
+process, the hidden `--frame-server` mode of the same executable. Scopes, Reference
+and Match use it. See [src/wiring/README.md](src/wiring/README.md).
+
+Tests: `tst_framecapture`.
+
+### Source monitor
+
+Selecting an asset loads it while the Source panel shows. Source has its own clock
+and audio engine, and its audio mode follows `--audio`. Starting Source stops
+Program, and starting or scrubbing Program stops Source. Sound plays only at rate
+exactly 1. Images show the picture, and audio shows a clickable waveform.
+
+A press inside the panel gives it the keys, and a press elsewhere hands them back.
+Source keys are Space, J, K, L, Left/Right and Shift+Left/Right. Marks are I and O,
+go-to In/Out and clear marks follow the keyboard preset, and edit keys still reach
+the editor. Marks are saved per asset in preferences under `source/marks`, most
+recently used last, capped at 500. They are not in the document or in undo.
+
+The `source.place` edit is the one placement path, and places linked clips in one
+undo entry. Dragging the video, audio or both icons, or the picture, places the
+range captured at lift, and the drop mode comes from the toolbar. V and A patch
+chips in the track header drive Insert, Overwrite and Append. With no chip lit,
+today's targeting applies. Once any chip is lit, only lit streams place.
+
+Tests: `tst_sourceviewer`, `tst_sourcerange`, `tst_sourceplacement`,
+`tst_sourcemonitor`, `tst_sourcepanel`, `sourceedit_oracle`.
+
+### Program monitor
+
+Wheel or pinch zooms about the pointer from 10% to 1600%. Middle-drag or the Hand
+tool pans, and Fit resets both. The wrench menu holds Display mode, Playback and
+Paused resolution, Show controls, Safe margins, Transparency grid, Rulers, Guides,
+Lock guides and Clear guides. The transport has a zoom dropdown, and View repeats
+the same items. All of this is view state: it is not saved and not undoable.
+
+Reduced resolution never affects `--stills` or export. A scene with a group effect
+or a backdrop treatment composites at full size, because those stages take sizes in
+document pixels.
+
+The timecode field in Program and Source accepts `1015` (right-aligned HHMMSSFF),
+`00:00:10:15`, `+10` and `-5` (frames) and `-1.00` (one second). Drag scrubs one
+frame per pixel, and Shift makes it 10. Enter commits, Escape restores, and invalid
+text never seeks. Source counts at the rate an asset reports, otherwise at the
+sequence rate, and says so beside the field. View > Timecode Ruler and the ruler's
+context menu switch the ruler to HH:MM:SS:FF.
+
+`--preview-resolution full|half|quarter|eighth` applies to `--bench` and
+`--ui-bench`. `--monitor-state JSON` applies to `--screenshot`, which then waits for
+pending captures.
+
+Tests: `tst_monitorui`, `tst_monitorview`, `tst_monitorcompositor`, `tst_timecode`.
+
+### Trim mode
+
+Clicking an edit point with the Ripple or Rolling tool enters trim mode, and so do
+Sequence > Trim Edit and Shift+T where the preset leaves that key free. Ripple
+points are red, and roll or regular points are yellow. Shift-click toggles a point,
+and Linked selection adds partner edges. Ctrl+T cycles ripple, roll and regular
+while in trim mode.
+
+The preset trim keys (`trimEditLeft`, `trimEditRight` and their Large forms) move 1
+and 5 frames, and E extends to the playhead. The Program monitor switches to the
+Trim view. Dragging in a picture trims that side, and dragging between the pictures
+rolls. L and J run a dynamic trim, doubling to 8x. K commits one undo entry. Escape
+cancels the trim, and a second Escape leaves. Space loops around the edit using
+Preferences > Preroll and Postroll (`playback/prerollMs`, `playback/postrollMs`),
+which also drive the play-around keys. A click on a clip body or empty lane leaves.
+Ruler and transport clicks do not, so the playhead can move before E.
+
+Tests: `tst_trimmodel`, `tst_trimmode`, `tst_trimmode_frames`.
+
+### Takes
+
+Keys 1 to 9 switch the take of the selected clips or of the top clip at the playhead
+on a targeted track. Ctrl+1 to Ctrl+9 split at the playhead and switch the part after
+it. Key 0 toggles recording. During playback with recording on, a number cuts at the
+nearest frame edge, and the pass is one undo entry that ends when playback stops or
+recording is toggled off. Numbers count finished takes in `versions[]` order, and
+while the Takes view is open they pick from the shown page. A clip with more than one
+take shows a badge such as 2/4.
+
+The Takes view is under View > Monitor Display, the wrench menu and Clip > Takes.
+Click switches, Ctrl+click cuts, and right-click opens a menu. Refusals appear in the
+document bar for 6 seconds and change nothing.
+
+Tests: `tst_takeswitch`, `tst_takeswitchui`.
+
+### Effect Controls
+
+Effect Controls is a tab beside the Inspector for the selected clip. Open it from its
+tab, Window > Effect Controls or Shift+5 in the Premiere preset, where the Inspector
+moved to Shift+9. Motion, Opacity, Volume on sound clips, Camera on 3D clips, and each
+visual and audio effect collapse, and all but Camera have an enable switch.
+
+In the lanes, a click selects and leaves the playhead alone, Ctrl or Shift adds to the
+selection, a drag on an empty lane is a marquee, and a drag moves the selection as a
+group. Delete removes the selection, and Escape cancels a drag or clears the selection.
+Ctrl+wheel zooms and Shift+wheel scrolls. Rows open value and velocity graphs, and
+Bezier handles on the value graph write `cubic-bezier` easings. Alt+K and the keyframe
+navigation keys act on the panel's active row only while the panel is visible. Otherwise
+navigation covers every row.
+
+Tests: `tst_keyframes`, and `tst_keyframesui`, which runs `src/edit/keyframes/qmltests/tst_effectcontrols.qml`.
+
+### Color and scopes
+
+The Scopes panel shows the luma waveform, RGB parade, vectorscope and histogram of the
+graded frame, in Rec. 709 at 8 bits. It computes only while shown, on its own worker
+thread, with one capture in flight. `ScopesController::readNumbers` needs only `capture`
+set.
+
+The Color panel maps onto existing effects: Basic Correction is the Inspector's `color`
+effect, Wheels the first `liftGammaGain`, Curves the first `curves` and Vignette the first
+`vignette`. A section switch is its effect's `enabled` field, and Reset removes the effect.
+Basic Correction is listed first but renders last, because the renderer runs color effects
+after the rest of the chain. Drag a wheel's puck or use the arrow keys. A held key is one
+undo entry, Escape cancels, and double click or Delete resets it.
+
+For Match, choose Use playhead frame or Use selected clip, select the shot to change and
+press Match. It writes `liftGammaGain` and saturation as one undo entry, and enables the
+color effect if it was off. It refuses a `lut`, `posterize`, `stylize`, generator, `chromaKey`
+or `glow` effect after the wheels, and refuses if the clip or track changed or locked while
+it ran. Protect skin tones is on by default and limits the skin hue shift to 8 degrees.
+
+Tests: `tst_scopemath`, `tst_colormatch`, `tst_colorpanel`, `colorpanel_wheelmath`. The fixture
+is `src/preview/effects/fixtures/clip-color-panel.json`.
+
+### Audio roles, loudness and ducking
+
+[src/edit/audioroles/README.md](src/edit/audioroles/README.md) describes the data, the
+measurement and the live meter. Roles are the optional clip field `audioRole`, matches write
+clip `volumeDb`, and ducking writes the track's mixer `volumeDb` lane, so the mixer, the
+exporter and the web editor need no special case. Ducking lowers the whole track, so keep
+Music and Ambience on tracks of their own.
+
+The Audio panel (id `audio`) has the LUFS meter, role buttons, per-role targets and Match and
+Duck controls. It is registered in the bottom slot, the Audio workspace places it on the right,
+and Review hides it. The gain dialog adds Normalize loudness to and Normalize peak to. Headless:
+`nodetool-timeline fixture.json --audio-roles match|normalize|duck`, then `--render-audio` on the
+output.
+
+Tests: `tst_loudness`, `tst_ducking`, `tst_liveloudness`, `tst_loudnessengine`, `tst_audioroles`,
+`tst_audiorolesui`, `audio_roles_cli`. For the data race check, build `tst_liveloudness` and
+`tst_loudnessengine` with `NT_SANITIZE=thread`.
+
+### Playback audio
+
+Dragging the playhead or ruler plays a 70 ms burst. "Play audio while scrubbing" is on by default
+and is toggled by Shift+S (`toggleScrubAudio`), Playback > Play Audio While Scrubbing, the speaker
+button on the transport bar and Settings. It is stored as `playback/scrubAudio`. Off means a drag
+still seeks, silently.
+
+"Keep pitch while shuttling" (`toggleShuttleKeepsPitch`, `playback/shuttleKeepsPitch`) is on by
+default. It applies to forward rates from 0.1x to 8x except 1x. Rate 1, reverse (silent) and the
+setting off use the `mixBlock` path, where speed shifts pitch as WebAudio `playbackRate` does. Clip
+speed always shifts pitch, because the offline mix must match the web.
+
+When an anchor sets `keepPitch`, the audio worker mixes the 1x signal, stretches it with
+`ShuttleStretcher` (WSOLA) and writes into a lock-free ring indexed by output frame and stamped with
+the command sequence. The device callback only copies from the ring. A late producer skips ahead,
+counted in `stats.shuttleSkipped`, and frames copied count in `stats.shuttleFrames`. A rate change
+involving a pitch-kept rate sends a seek command, so the engine builds a fresh session.
+
+Tests: `tst_shuttlestretch`, `tst_shuttleaudio`, `tst_audioengine`, `tst_audioclock`.
+
+### Markers
+
+A double-click on a flag, or the marker context menu, opens Edit Marker with name, notes, colour,
+duration and author. A range marker shades its duration on the ruler, and a grip at its end resizes
+it. The Markers panel (left slot, id `markers`) has search, a colour filter, click to seek, Ctrl and
+Shift select, and multi-select delete. The `MarkerSession` QML singleton holds selection and the
+edit and export requests, and changes no model.
+
+Edits are `markers.add`, `markers.update` (`{ids, patch}`: an empty note, colour or author or a zero
+duration removes the field, a time or duration needs a single ID, and an unknown ID refuses the whole
+edit) and `markers.remove` (`{ids}`). Each is one undo entry. The `markerEditor` overlay panel is
+registered in C++ (`MarkerPanels.cpp`), because an `nt-panel` marker would add an overlay panel to
+the QML executables that `tst_appshell_isolation` expects to have none.
+
+In the Premiere preset, Ctrl+M adds a marker from In to Out and Alt+Shift+M adds a range marker.
+Ctrl+Shift+M stays Previous Marker. Other presets reach both commands through the Markers menu.
+`ui_timeline_add_marker` on the native editor accepts `note`, `color` and `durationMs`, and sets
+author to `Assistant`.
+
+CSV export has the columns Time, Duration, Name, Notes, Author and Colour, with every field quoted,
+CRLF row ends, and a leading apostrophe on text that starts with `=`, `+`, `-` or `@`.
+
+Tests: `tst_markerops`, `tst_markers`, `wiring_markers`.
+
+### Text panel
+
+The Text panel (Window > Text, `panelText`, panel ID `transcript`) has Transcript and Captions tabs.
+Words come from `clip.caption.words`, local to the clip. Click selects, Shift+click extends, and Left
+and Right move the selection. The selection sets In and Out. Delete lifts it, and Shift+Delete or
+Backspace extracts it, through `removeRange` and its sync locks. Disabled, reversed and time-remapped
+clips give no transcript words, because their clip-local times do not match the picture.
+
+The Captions tab lists the cues the renderers show. Edits are `captions.setText`, `captions.setTimes`,
+`captions.split`, `captions.merge`, `captions.delete` and `captions.add`.
+
+`nt::render2d::loadTimelineFonts()` must run before any QML loads, because a font added after the
+interface has text garbles that text.
+
+Tests: `tst_transcript`, `tst_textpanel`, `transcript_oracle`
+(`scripts/conformance/suites/transcript.mjs`).
+
+### Reference and comparison
+
+The Reference panel (ID `reference`, bottom slot) is parked or ganged to the playhead, with step
+buttons, Match playhead, an editable timecode, Picture or Scopes display, and a take selector for the
+selected clip. The Comparison monitor view (ID `comparison`) shows the reference left and the current
+frame right, with shared zoom and pan.
+
+Set a reference from the panel, the wrench menu, View > Set Reference Frame, the clip menu (first frame,
+last frame, Compare another take) or the marker menu. The key actions have no default keys:
+`setReferenceFrame`, `referenceClipFirstFrame`, `referenceClipLastFrame`, `referenceClipTake` and
+`referenceMarker`.
+
+A reference is a `FrameCapture` still and view state only, with no document field and no undo entry. An
+edit marks a parked frame stale until Refresh. A ganged frame recaptures at most about 5 times per
+second while playing.
+
+Tests: `tst_reference`.
+
+### Remix
+
+Clip > Remix… (shell menu, clip context menu, key action `remixClip`) opens a dialog for the selected
+audio clip. Analysis, preview and bake run off the GUI thread, at 24 kHz mono for analysis and 48 kHz
+stereo for output. Code is in `src/remix/`: `RemixDsp`, `RemixFile`, `clip/RemixEdit`,
+`clip/RemixController` and `clip/RemixBackend`.
+
+`clip.remix` appends a source take when the current asset is not already a take, then a remix take, and
+sets `currentAssetId`, `activeTakeId`, `durationMs`, `inPointMs` and `outPointMs`. The remix metadata is in
+`versions[].paramOverridesSnapshot.remix`, so there are no new document fields. `clip.remix.revert` puts the
+original back. A new target remixes the original source again, not the previous remix.
+
+A clip with a speed change or time remap, a locked clip or track, and a result longer than the clip that
+overlaps the next clip are refused. The planner picks a beat-quantized plan and the renderer resamples it to
+the exact target frame count, and the dialog shows the tempo change this causes.
+
+Tests: `tst_remix`, `tst_remixedit`, `tst_remixui`, `remix_oracle`, `remix_server`.
+
+### Scene Edit Detection
+
+Clip > Scene Edit Detection… analyses the selected video clips with a port of FilmCraft's hard-cut
+detector, with no dissolve or fade detection. The scan runs on a worker thread at 256 px, keeps memory flat
+and can be stopped. Sensitivity and Shortest shot update the cut count from stored differences with no rescan.
+Apply Cuts also cuts linked audio, and Create Markers adds "Scene cut" markers, each one undo entry. Locked
+clips are left out. Clips with a time remap are analysed but only get markers.
+
+`scripts/make-fixtures.sh` writes the `scene-cuts`, `scene-motion` and `scene-lighting` fixtures. For long
+runs set `NT_SCENE_LONG=1`. `tst_shotscan` generates its own 10-minute file, and `tst_sceneedit` also needs
+`NT_SCENE_LONG_FILE`.
+
+Tests: `tst_scenedetect`, `tst_shotscan`, `tst_sceneeditplan`, `tst_sceneedit`.
+
+### Export
+
+The export dialog has a range (Entire timeline, In to Out by default when marks exist, Custom in seconds),
+output size, frame rate and bit rate, a fit or fill rule, and built-in and user presets stored in preferences
+(`export/userPresets`, `export/lastPreset`, `export/lastSettings`). The Export button queues a job with
+`ExportQueue`, which captures the snapshot and media leases at queue time and runs one job at a time through
+`ExportController::startSnapshot`. A failed job keeps its reason and the queue continues.
+
+Quick Export (document bar and File menu) re-uses the last settings over the marked range. Ctrl+M (key action
+`exportVideo`) opens the dialog, except in the Premiere preset, where Ctrl+M adds a marker from In to Out and
+Export has no key.
+
+`--export` also takes `--start-ms`, `--end-ms`, `--width`, `--height`, `--fps`, `--video-bitrate` and
+`--scale-mode`. A cancelled export process exits within `kCancelStopBudgetMs`, enforced by a watchdog in
+`ExportCli.cpp`. The editor waits at most `kShutdownGraceMs` plus 1 s on close.
+
+Tests: `tst_exportdialog`, `tst_exportqueue`, `tst_exportsnapshot`, `export_range`, `export_cancel`,
+`export_controller_cancel`, `export_golden`.
+
+### Export Frame and Frame Hold
+
+Export Frame opens from a camera button in Program and Source, File > Export Frame…, Ctrl+Shift+E in the
+Premiere preset and Ctrl+Alt+E in the others. In the Premiere preset `sourceAppend` moved to Ctrl+Alt+E. Keyboard
+focus picks the monitor. The frame and its time are captured when the dialog opens, and it renders from the
+original media at full resolution, whatever the preview resolution or proxy. It writes PNG or JPEG (quality 95)
+to a file or the Library. After a Library save, Use as start frame places the still at the end of the sequence and
+opens image to video, and Use as reference opens Generate with the frame attached. Headless:
+`nodetool-timeline --export-frame <doc> --time-ms N --out path`, or `--library --name X --server URL`, or
+`--source file|asset://id`.
+
+Frame Hold is in Clip > Video Options and the clip context menu. A hold is a `timeRemap` with two keyframes at
+the same `sourceMs`, with no new document field. Hold on Playhead on an existing hold uses the clip's rate mapping
+and is clamped inside its source window. Split and trim accept a constant remap in native and web (`isHoldRemap`).
+They leave in and out points unchanged, and a trim has no source limit, so a hold can run past the media. Disabling
+a hold that ran past its source window shortens the clip to that window and leaves a gap. On Add Frame Hold, linked
+audio splits with the video and keeps playing. On Insert Frame Hold Segment, linked audio splits with a gap the
+length of the hold, and later clips ripple under the same rules as Source Insert. Audio inside an unlinked video
+clip is silent during a hold. Premiere export reports a hold as a time remap that needs baking.
+
+Tests: `tst_frameexport`, `frameexport_stills`, `frameexport_server`, `tst_frameexportui`, `tst_framehold`,
+`framehold_export`.
+
+### Premiere XML
+
+File > Export to Premiere Pro… and Import Premiere XML… (`src/interchange`, `qml/interchange/PremierePanel.qml`)
+need a server timeline, and a file timeline gets a dialog with the reason and no upload-first. Export streams
+`/api/timelines/<id>/export-premiere` into a `QSaveFile`, reads the report from the `x-nodetool-export-report`
+header and can be cancelled. Import accepts a zip, or an XML that the app packs with the media its pathurls name
+(`media/<n>-<name>`, pathurls rewritten), and posts to `/api/timelines/import-zip` with a `json` part.
+
+Export carries Basic Motion, opacity, constant speed, reverse (a two-keyframe time remap), clip volume, fades, track
+fader and pan, with keyframes and `pproTicks`. The report dialog lists what was left out or needs baking.
+
+Tests: `tst_premiere`, `premiere_server` (uses `scripts/scratch-server.mjs`), and the TypeScript interchange tests in
+`packages/timeline/tests/` and `packages/websocket/tests/`.
+
+### Library hover scrub
+
+Moving across a video tile in the Library shows the frame at that position, using the `LibraryScrub` QML singleton in
+`src/assets/libraryscrub/` and `LibraryScrubFrame`, which draws one atlas crop per hovered tile. The frame is the
+nearest of the 24 atlas thumbnails. The mark and cue time is the pointer fraction times the asset's duration, or the
+thumbnail time when the duration is unknown. The clip file is fetched through `fetchScrubSource` (proxy, else original,
+with a lease) after a 150 ms dwell, and a failed fetch is retried after 30 s.
+
+I and O mark the hovered clip through `SourceViewerState.markAsset` without opening it, and a left press cues Source at
+the hovered time. The key filter steps aside for a focused text input, for focus inside the Source panel, and when the
+scrub is off. `library/hoverScrub` is on by default. Shift+H (`toggleLibraryScrub`), View > Scrub Clips in the Library
+and Preferences toggle it.
+
+Tests: `tst_libraryscrub`.
 
 ## Bench
 
@@ -753,16 +1159,18 @@ unity gain and centre pan, as `AudioGraph` never sets that chain), then
 decide which clips sound. A clip speed reads the source at `sourceRate`,
 resampled linearly (the pitch shifts, as with WebAudio `playbackRate`). A
 cross-fade is two overlapping clips with fades, as `applyAudioCrossfades`
-writes them. Not mixed yet: midi clips, clip and track effects, automation,
-time remaps, and reverse play (a rate of 0 or less runs the monotonic clock
-in silence). An edit applies to the sound from the next play or seek.
+writes them. Clip and track effects (`src/audio/effects`) and automation lanes
+(`src/audio/automation`) run through the mixer's hooks. Not mixed yet: midi clips
+and time remaps. A rate of 0 or less runs the monotonic clock in silence. An edit
+reaches the engine as a new mix snapshot, and unchanged clips keep their PCM rings.
 
 Play and seek send a seek command to the device. The decode worker fills a
 PCM ring per clip near the position, and the callback starts the new
 position once every clip within 250 ms holds 250 ms of PCM, or at the 300 ms
 deadline (counted as a late start). The playhead holds at the target until
 that position is audible. A rate change continues the timeline in the
-callback without a refill.
+callback without a refill, unless it involves a
+[pitch-kept shuttle rate](#playback-audio).
 
 `make-fixtures.sh` writes the audio media: float WAV tones
 (`tone-440-48k-mono.wav`, `tone-220-48k-mono.wav`, `tone-lr-48k-stereo.wav`,
@@ -797,7 +1205,7 @@ hardware failure before the first frame falls back to software (D15).
   every rpath that leaves the bundle and every plug-in or QML module whose
   libraries the bundle does not have (`scripts/macho-deps.py prune`: QtPdf,
   the virtual keyboard, Qt 3D), adds the full licence texts (`licenses/`,
-  the FFmpeg source's, miniaudio's, the fonts') and
+  the FFmpeg source's, miniaudio's, the fonts', FilmCraft's) and
   `Contents/Resources/source/` (the FFmpeg source tarball and
   `SOURCES.txt`: FFmpeg's configuration, then each Homebrew keg the bundle
   holds a file of, with its source archive, patches and recipe checksum),
@@ -832,8 +1240,7 @@ hardware failure before the first frame falls back to software (D15).
   non-mach CPU counters). Its ctest runs; the hardware tests skip, as they
   do anywhere with `NT_NO_HW_DECODE=1`. `-DNT_CHECK_VULKAN_HEADERS=DIR`
   compiles the Linux hardware path against Qt's Vulkan API (objects only).
-- **Not compiled yet.** The Windows path needs the Windows SDK. The Linux
-  path builds and runs on Linux (see [Linux](#linux)). `.github/workflows/native-timeline.yml`
+- **CI.** `.github/workflows/native-timeline.yml`
   builds and runs the headless ctest on macOS, Linux and Windows. The
   offscreen platform has no QRhi, so only the window-event tests set it
   (ctest `ENVIRONMENT`). The render tests (ctest label `render`) run on
@@ -844,7 +1251,6 @@ hardware failure before the first frame falls back to software (D15).
   holds a Windows `windeployqt` package, whose smoke runs use a copy with
   PATH cut to the system folders (`--screenshot`, `--stills`), and a Linux
   AppImage step, both unverified.
-  The workflow has not run.
 - **Budgets.** `bench/budgets-<platform>-m1b.json` and `-m1c.json` carry the
   macOS measurements and a `_machine` record to fill in on the reference
   Windows and Linux machines. Keys that start with `_` are not budgets.
@@ -857,7 +1263,7 @@ node native/timeline/scripts/plan-conformance.mjs [--json]
 ```
 
 ```bash
-node native/timeline/scripts/plan-conformance.mjs --examples   # the 7 shipped example timelines
+node native/timeline/scripts/plan-conformance.mjs --examples   # the shipped example timelines
 node native/timeline/scripts/make-scene-fixtures.mjs           # rewrites fixtures/scene-*.json
 ```
 
@@ -980,7 +1386,7 @@ node native/timeline/scripts/server-check.mjs       # M5a exit checks on scratch
 
 `--server URL --timeline ID` takes the place of the fixture file in every
 mode (`--stills`, `--dump-plan`, `--probe-media`, `--bench`). The client
-(`src/server/`) only reads: `timeline.get`, `timeline.list` and `assets.get`
+(`src/server/`) reads with `timeline.get`, `timeline.list` and `assets.get`
 over tRPC GET, `HEAD` for `package://` files, and `GET` with `Range` for
 bytes. It sends no `Origin` header, so a loopback server runs it as user `1`.
 `--token` (or `NODETOOL_API_TOKEN`) sends a bearer token instead.
@@ -1086,8 +1492,20 @@ The model in `src/model/TimelineTypes.h` uses the schema's field names:
   `generatedMatte`, `blendMode`, whether `effects` has an enabled entry, and
   whether a text, shape or 3D style is present.
 - `mediaPath` on a clip is a prototype-only field, not in the schema. A real
-  document references `currentAssetId`; a server open sets `mediaPath` and
+  document references `currentAssetId`, and a server open sets `mediaPath` and
   `audioPath` from the asset cache.
+
+Optional fields the native editor added to the schema, read from the raw document:
+
+| Object | Field | Meaning |
+|---|---|---|
+| Sequence | `dropFrame` | Shows `HH;MM;SS;FF` at 29.97, 59.94 and 119.88. No UI sets it |
+| Marker | `durationMs` | Absent or 0 is a point marker |
+| Marker | `author` | Set to `Assistant` on a marker the Assistant adds |
+| Clip | `audioRole` | `dialogue`, `music`, `sfx` or `ambience` |
+| Clip | `labelColor` | The label tint on the clip body |
+| Clip | `bypassedFixedEffects` | What a switched-off Motion, Opacity or Volume set aside. The clip's own fields stay at identity, so renderers need no change |
+| Caption word | `cue` | `start` or `continue` pins a cue boundary against the 700 ms and 10-word rules |
 
 `src/preview/SceneEval` resolves a frame from these fields the way
 `sceneModel.ts` does (see the table in DESIGN.md § Scene evaluation). Each
@@ -1105,6 +1523,7 @@ can write back the fields the model does not own.
 | `src/audio/` | `AudioEngine` (miniaudio device, decode worker, PCM rings), `Mixer` (the mix rules and `mixBlock`), `FadeCurves`, `AudioSource` (FFmpeg and libswresample), `OutputLatency` (CoreAudio), `LoopbackCapture`, the audio CLI modes |
 | `third_party/miniaudio.h` | miniaudio 0.11.22, one header (MIT No Attribution or public domain) |
 | `third_party/yoga/` | Yoga 3.2.1, the flex layout engine (MIT, `LICENSE`), unchanged |
+| `licenses/FilmCraft-MIT.txt` | FilmCraft (MIT), the source of the ported algorithms. The macOS package copies it by name |
 | `src/scene/FlexLayout`, `TextBlock`, `TextAnimation`, `SvgPath` | Flex layout, the text block box, animated text styles and SVG path bounds, ported from `@nodetool-ai/timeline` |
 | `src/preview/SceneEval` | `activeLayersAt(timeline, t)` and the layer matrix. Pure functions |
 | `src/preview/PreviewCompositor` | `QQuickRhiItem`: layers into a canvas texture, then the canvas letterboxed into the item |
@@ -1114,7 +1533,7 @@ can write back the fields the model does not own.
 | `src/preview/YuvFormat` | YUV to RGB matrices for BT.709 and BT.601, limited and full range |
 | `src/preview/hw/VideoToolboxInterop` | `CVMetalTextureCache` and `QRhiTexture::createFrom` wrappers for VideoToolbox frames; `FrameRef` |
 | `src/preview/hw/HwInterop`, `HwWindow` | The hardware decode seam (D15, M6): decoder setup, frame checks and wrapping per platform; graphics API and shared device |
-| `src/preview/hw/D3D11Interop`, `VulkanInterop` | Windows D3D11VA (not compiled on Windows yet) and Linux VAAPI-to-Vulkan frame import |
+| `src/preview/hw/D3D11Interop`, `VulkanInterop` | Windows D3D11VA and Linux VAAPI-to-Vulkan frame import |
 | `src/platform/PlatformStubs.cpp` | Linux and Windows: no-op App Nap and occlusion hooks |
 | `src/preview/RetireQueue.h` | Releases a replaced frame's GPU resources after `FramesInFlight` frames (D11) |
 | `src/platform/` | `ProcessActivity` (no App Nap during measured runs) and `CpuUsage` (process and thread CPU time) |
@@ -1122,6 +1541,17 @@ can write back the fields the model does not own.
 | `src/preview/SourcePool` | Opens, pre-rolls and closes decoders (D18), draws placeholders for rejected media, keeps the loader report. Decoders are stopped and joined on a retire thread, never on the render thread |
 | `shaders/` | Textured quad with a per-layer matrix and opacity, RGBA or YUV planes, premultiplied "over" |
 | `qml/` | `TimelineEditor`, `preview/PreviewArea`, `Tracks/*`, named after the React components in `web/src/components/timeline/` |
+| `src/edit/keys/`, `src/edit/KeymapOverlay.h` | Key action handlers and the native preset changes |
+| `src/edit/sourceEdit/`, `src/edit/trim/`, `src/edit/framehold/`, `src/edit/audioroles/` | Source monitor and placement, trim mode, frame holds, audio roles |
+| `src/audio/loudness/` | BS.1770-4 meter, ducking algorithms and the lock-free live readout |
+| `src/audio/ShuttleStretch` | WSOLA stretcher for pitch-kept shuttle |
+| `src/assets/libraryscrub/` | Library hover scrub |
+| `src/color/`, `src/colorpanel/` | Scope maths and Match, and their controllers |
+| `src/markers/`, `src/takes/`, `src/transcript/`, `src/reference/`, `src/remix/`, `src/scenedetect/` | Markers, take switching, the Text panel, the Reference panel, Remix, Scene Edit Detection |
+| `src/interchange/` | Premiere XML export and import transfers |
+| `src/export/` | Export engine, queue, frame export and `FrameCapture` |
+| `src/app/Menus/StandardMenus.cpp` | The menu bar table |
+| `src/aiassist/AssistantCommands.cpp`, `AssistantCommandTable.cpp` | The Assistant's command tools and allow and deny tables |
 | `src/bench/BenchReport` | Bench measurements, the budget parser, and the verdict. Pure |
 | `budgets/m1a.json`, `budgets/m1b.json`, `budgets/m1c.json` | The M1a, M1b and M1c exit budgets |
 | `tests/` | Qt Test suites for `SceneEval`, `TimelineJson`, `BenchReport`, `FrameRing`, `YuvFormat`, `FfmpegSource`, `SourcePool`, `RetireQueue`, `TimelineWheel` and the tracks UI (`tst_tracksui`) |
