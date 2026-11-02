@@ -302,10 +302,15 @@ void main() {
         vec2 position=(logical*2-vec2(p[0].w,p[1].x)*2)*axis;
         float t=clamp((length(position)-inner)/(outer-inner),0,1);
         fragColor=vec4(src.rgb*(1-p[0].x*t*t*(3-2*t)),src.a); return;
-    } else if (op==7) {
-        vec4 sum=vec4(0);
-        for (int j=-1;j<=1;++j) { for (int i=-1;i<=1;++i) { sum+=loadSource(ivec2(pixel)+ivec2(i,j)); } }
-        vec3 diff=rgb-straight(sum/9);
+    } else if (op==7 || op==26) {
+        vec4 low;
+        if (op==26) { low=texture(second,oriented(uv)); }
+        else {
+            vec4 sum=vec4(0);
+            for (int j=-1;j<=1;++j) { for (int i=-1;i<=1;++i) { sum+=loadSource(ivec2(pixel)+ivec2(i,j)); } }
+            low=sum/9;
+        }
+        vec3 diff=rgb-straight(low);
         float mask=step(p[0].y,abs(dot(diff,vec3(0.299,0.587,0.114))));
         rgb=clamp(rgb+diff*p[0].x*mask,0,1);
     } else if (op==8) {

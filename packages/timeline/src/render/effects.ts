@@ -29,6 +29,7 @@ import {
   filtersGlowV1,
   mixerDropShadowV1,
   sharpenUnsharpMaskV1,
+  sharpenGaussianV1,
   vignetteV2,
   filtersGrainV2,
   filtersPixelateV1,
@@ -501,10 +502,14 @@ export class WebGPUEffectsProcessor {
       return;
     }
     if (isClipSharpenEffect(effect)) {
-      // `radius` has no knob on `filters.sharpen.unsharpMask@1` — its kernel
-      // is fixed — so it is carried in the document and not applied here.
+      const radius = Math.max(0, Math.min(256, effect.radius ?? 1));
+      if (radius > 1) {
+        stepRecipe(sharpenGaussianV1, {amount: effect.amount, threshold: effect.threshold ?? 0, radius});
+        return;
+      }
+      // Preserve the historical box kernel at radius 1.
       step(sharpenUnsharpMaskV1, {
-        amount: effect.amount,
+        amount: effect.amount * radius,
         threshold:
           effect.threshold ?? sharpenUnsharpMaskV1.paramDefaults.threshold
       });

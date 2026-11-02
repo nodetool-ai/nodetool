@@ -179,7 +179,7 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
                 return false;
             }
         }
-        if (pass.op == Op::Threshold || pass.op == Op::AlphaMask) {
+        if (pass.rememberSource || pass.op == Op::Threshold || pass.op == Op::AlphaMask) {
             recipeSource = current;
         }
         QRhiTexture *other = nullptr;
@@ -233,7 +233,7 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
             std::copy(lut->cube.maximum.begin(), lut->cube.maximum.end(), pass.params.begin() + 8);
             other = lut->texture.get();
             encoder.retain(lut);
-        } else if (pass.op == Op::Add || pass.op == Op::Shadow) {
+        } else if (pass.op == Op::Add || pass.op == Op::Shadow || pass.op == Op::SharpenCombine) {
             if (!recipeSource) {
                 return false;
             }

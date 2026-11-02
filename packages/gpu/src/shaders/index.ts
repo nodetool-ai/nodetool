@@ -37,6 +37,8 @@ import { colorLevelsV1 } from "./color/levels/v1/module.js";
 
 import { blurGaussianV1 } from "./filters/blur/gaussian/v1/module.js";
 import { sharpenUnsharpMaskV1 } from "./filters/sharpen/unsharpMask/v1/module.js";
+import { sharpenGaussianV1 } from "./filters/sharpen/gaussian/v1/module.js";
+import { sharpenCombineV1 } from "./filters/sharpen/combine/v1/module.js";
 import { vignetteV1 } from "./filters/vignette/v1/module.js";
 import { vignetteV2 } from "./filters/vignette/v2/module.js";
 import { filtersGrainV1 } from "./filters/grain/v1/module.js";
@@ -111,6 +113,8 @@ export {
   colorLevelsV1,
   blurGaussianV1,
   sharpenUnsharpMaskV1,
+  sharpenGaussianV1,
+  sharpenCombineV1,
   vignetteV1,
   vignetteV2,
   filtersGrainV1,
@@ -186,6 +190,7 @@ export const ALL_SHADERS: readonly ShaderModule[] = [
   // filters
   blurGaussianV1,
   sharpenUnsharpMaskV1,
+  sharpenCombineV1,
   vignetteV1,
   vignetteV2,
   filtersGrainV1,
@@ -235,6 +240,7 @@ export const ALL_SHADERS: readonly ShaderModule[] = [
 
 /** Every recipe module registered by default. */
 export const ALL_RECIPES: readonly RecipeModule[] = [
+  sharpenGaussianV1,
   filtersGlowV1,
   filtersBlurSeparableV1,
   mixerDropShadowV1

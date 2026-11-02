@@ -260,8 +260,20 @@ std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEf
             v[4] = f(e, "centerY", 0.5);
             v[5] = f(e, "roundness", 0);
         } else if (type == "sharpen") {
+            const auto radius = boundedBlurRadius(number(e, "radius", 1));
+            if (radius > 1) {
+                Pass low;
+                low.op = Op::Gaussian;
+                low.params = {float(radius), 0, 1, 0};
+                low.rememberSource = true;
+                result.push_back(low);
+                low.params[2] = 0; low.params[3] = 1;
+                low.rememberSource = false;
+                result.push_back(low);
+            }
             p.op = Op::Sharpen;
-            v[0] = f(e, "amount");
+            if (radius > 1) { p.op = Op::SharpenCombine; }
+            v[0] = f(e, "amount") * float(std::min(1., radius));
             v[1] = f(e, "threshold");
         } else if (type == "chromaKey") {
             p.op = Op::ChromaKey;

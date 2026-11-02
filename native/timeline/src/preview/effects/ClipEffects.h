@@ -41,12 +41,14 @@ enum class Op {
     MaskApply,
     MaskDerive,
     ScaleOpacity,
-    MixTreatment
+    MixTreatment,
+    SharpenCombine
 };
 struct Pass {
     Op op = Op::Copy;
     std::array<float, 16> params{};
     QString cube;
+    bool rememberSource = false;
 };
 struct CurveKnobs {
     double black = 0, white = 1, shadows = 0, midtones = 0, highlights = 0;

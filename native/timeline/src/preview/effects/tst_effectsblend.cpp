@@ -474,6 +474,25 @@ private slots:
         QVERIFY(!shadow.isNull()); QVERIFY(shadow.pixelColor(51,16).red()>245); QCOMPARE(shadow.pixelColor(51,16).green(),0);
         QCOMPARE(shadow.pixelColor(10,16),QColor(Qt::black));
     }
+    void sharpenRadius() {
+        QImage source(64,16,QImage::Format_RGBA8888_Premultiplied);
+        for (int y=0;y<16;++y) { for (int x=0;x<64;++x) {
+            const int value=x<32 ? 100 : 160;
+            source.setPixelColor(x,y,QColor(value,value,value));
+        } }
+        const auto narrow=effectStill({effect("sharpen",{{"amount",1},{"radius",1}})},source);
+        const auto wide=effectStill({effect("sharpen",{{"amount",1},{"radius",8}})},source);
+        QVERIFY(!narrow.isNull() && !wide.isNull());
+        QCOMPARE(narrow.pixelColor(35,8).red(),160);
+        QVERIFY(wide.pixelColor(35,8).red()>160); QVERIFY(wide.pixelColor(28,8).red()<100);
+        QCOMPARE(wide.pixelColor(8,8).red(),100);
+        for (const auto patch : {QJsonObject{{"amount",0},{"radius",8}}, QJsonObject{{"amount",1},{"radius",0}},
+                                 QJsonObject{{"amount",1},{"radius",8},{"threshold",1}}}) {
+            const auto neutral=effectStill({effect("sharpen",patch)},source);
+            QVERIFY(!neutral.isNull()); QCOMPARE(neutral.pixelColor(31,8),QColor(100,100,100));
+            QCOMPARE(neutral.pixelColor(32,8),QColor(160,160,160));
+        }
+    }
     void wideBlurPixels() {
         QImage line(512,16,QImage::Format_RGBA8888_Premultiplied); line.fill(Qt::black);
         for (int y=0;y<line.height();++y) { line.setPixelColor(256,y,Qt::white); }

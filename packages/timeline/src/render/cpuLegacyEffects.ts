@@ -191,7 +191,10 @@ export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly Cli
   const { width, height, data } = pixels;
   for (const effect of effects) {
     if (!effect.enabled || !isCpuLegacyEffect(effect)) continue;
+    const sharpenRadius = isClipSharpenEffect(effect) ? Math.max(0, Math.min(256, effect.radius ?? 1)) : 0;
+    if (isClipSharpenEffect(effect) && (sharpenRadius === 0 || effect.amount === 0)) continue;
     const input = premultiply(data);
+    const sharpenLow = sharpenRadius > 1 ? gaussian(input, width, height, sharpenRadius) : undefined;
     const output = new Uint8ClampedArray(input.length);
     if (isClipGlowEffect(effect)) {
       const bright = new Uint8ClampedArray(input.length);
@@ -233,7 +236,10 @@ export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly Cli
         } else if (isClipSharpenEffect(effect)) {
           const sums = [0, 0, 0];
           let sumA = 0;
-          for (let dy = -1; dy <= 1; dy++) {
+          if (sharpenLow) {
+            for (let c = 0; c < 3; c++) sums[c] = sharpenLow[i + c]! * 9;
+            sumA = sharpenLow[i + 3]! * 9;
+          } else for (let dy = -1; dy <= 1; dy++) {
             for (let dx = -1; dx <= 1; dx++) {
               const j = (Math.max(0, Math.min(height - 1, y + dy)) * width + Math.max(0, Math.min(width - 1, x + dx))) * 4;
               for (let c = 0; c < 3; c++) sums[c] = sums[c]! + input[j + c]!;
@@ -243,7 +249,7 @@ export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly Cli
           const diff = rgb.map((v, c) => v - sums[c]! / Math.max(9, sumA));
           const luma = Math.abs(diff[0]! * 0.299 + diff[1]! * 0.587 + diff[2]! * 0.114);
           if (luma >= (effect.threshold ?? 0)) {
-            for (let c = 0; c < 3; c++) rgb[c] = clamp(rgb[c]! + diff[c]! * effect.amount);
+            for (let c = 0; c < 3; c++) rgb[c] = clamp(rgb[c]! + diff[c]! * effect.amount * Math.min(sharpenRadius, 1));
           }
         } else if (isClipGrainEffect(effect)) {
           if (a > 0) {
