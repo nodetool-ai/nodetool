@@ -1,5 +1,6 @@
 #pragma once
 #include "model/TimelineModel.h"
+#include "export/ExportSettings.h"
 #include "server/AssetCache.h"
 #include <QObject>
 #include <QPointer>
@@ -10,6 +11,7 @@
 #include <vector>
 
 namespace nt::exporting {
+inline constexpr int kShutdownGraceMs = 1500;
 QJsonObject exportSnapshot(const TimelineModel& model);
 QString unavailableOriginalMedia(const nt::Timeline& timeline, bool videoOutput = true);
 }
@@ -40,6 +42,9 @@ public:
     void setExecutable(const QString& path) { m_executable = path; }
     Q_INVOKABLE void open();
     Q_INVOKABLE void start(const QString& output, const QString& format, bool alpha = false);
+    bool startSnapshot(const QJsonObject& snapshot, const QString& output, const nt::exporting::Settings& settings,
+                       const QString& label, std::vector<nt::server::AssetCache::Lease> leases);
+    bool wasCancelled() const { return m_cancelled; }
     Q_INVOKABLE void cancel();
 signals:
     void openRequested();

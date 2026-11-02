@@ -33,10 +33,144 @@ extern "C" {
 #include <QDir>
 #include <QtTest>
 #include <memory>
+#include <limits>
+#include <QPainter>
 
 class ExportDialogTest : public QObject {
     Q_OBJECT
 private slots:
+    void rangeResolution() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        nt::Timeline timeline;
+        timeline.width = 64;
+        timeline.height = 64;
+        timeline.fps = 30;
+        timeline.durationMs = 1000;
+        nt::exporting::Options options;
+        options.format = "png_sequence";
+        int serial = 0;
+        const auto run = [&] {
+            options.output = dir.filePath(QString::number(++serial));
+            return nt::exporting::exportTimeline(timeline, options);
+        };
+        auto result = run();
+        QVERIFY2(result.ok(), qPrintable(result.error));
+        QCOMPARE(result.frames, 30);
+        QCOMPARE(result.samples, 48000);
+        QCOMPARE(result.width, 64);
+        QCOMPARE(result.height, 64);
+        QCOMPARE(result.startMs, 0.0);
+        QCOMPARE(result.endMs, 1000.0);
+        options.startMs = 200;
+        options.endMs = 700;
+        result = run();
+        QVERIFY2(result.ok(), qPrintable(result.error));
+        QCOMPARE(result.frames, 15);
+        QCOMPARE(result.startMs, 200.0);
+        QCOMPARE(result.endMs, 700.0);
+        options.endMs = 2000;
+        result = run();
+        QVERIFY2(result.ok(), qPrintable(result.error));
+        QCOMPARE(result.frames, 24);
+        QCOMPARE(result.endMs, 1000.0);
+        for (double start : {1000.0, 1200.0, std::numeric_limits<double>::quiet_NaN()}) {
+            options.startMs = start;
+            QCOMPARE(run().error, QString("The export range is empty."));
+        }
+        options.startMs = 700;
+        options.endMs = 700;
+        QCOMPARE(run().error, QString("The export range is empty."));
+        options.endMs = std::numeric_limits<double>::quiet_NaN();
+        QCOMPARE(run().error, QString("The export range is empty."));
+        options.startMs = 0;
+        options.endMs = -1;
+        options.fps = 24;
+        options.width = 33;
+        options.height = 19;
+        result = run();
+        QVERIFY2(result.ok(), qPrintable(result.error));
+        QCOMPARE(result.frames, 24);
+        QCOMPARE(result.fps, 24.0);
+        // A PNG sequence keeps the exact size asked for, a video rounds it down to even.
+        QCOMPARE(result.width, 33);
+        QCOMPARE(result.height, 19);
+        options.format = "wav";
+        options.startMs = 250;
+        options.endMs = 750;
+        result = run();
+        QVERIFY2(result.ok(), qPrintable(result.error));
+        QCOMPARE(result.samples, 24000);
+        QCOMPARE(result.width, 0);
+        QCOMPARE(result.height, 0);
+        for (double fps : {-1.0, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity()}) {
+            options.fps = fps;
+            QCOMPARE(run().error, QString("Invalid export frame rate or canvas size"));
+        }
+        options.fps = 0;
+        options.width = -1;
+        QCOMPARE(run().error, QString("Invalid export frame rate or canvas size"));
+        options.width = 0;
+        options.height = -1;
+        QCOMPARE(run().error, QString("Invalid export frame rate or canvas size"));
+    }
+    void fitFrameModes() {
+        QImage image(160, 90, QImage::Format_RGBA8888);
+        image.fill(Qt::red);
+        QPainter painter(&image);
+        painter.fillRect(60, 0, 40, 90, Qt::green);
+        painter.end();
+        const QSize target(90, 160);
+        const auto fit = nt::exporting::fitFrame(image, target, "fit");
+        QCOMPARE(fit.size(), target);
+        QCOMPARE(fit.format(), QImage::Format_RGBA8888);
+        QCOMPARE(fit.pixelColor(45, 0), QColor(Qt::black));
+        QCOMPARE(fit.pixelColor(45, 159), QColor(Qt::black));
+        QCOMPARE(fit.pixelColor(0, 80), QColor(Qt::red));
+        QCOMPARE(fit.pixelColor(45, 80), QColor(Qt::green));
+        QCOMPARE(nt::exporting::fitFrame(image, target, "unknown"), fit);
+        const auto fill = nt::exporting::fitFrame(image, target, "fill");
+        QCOMPARE(fill.size(), target);
+        QCOMPARE(fill.format(), QImage::Format_RGBA8888);
+        QCOMPARE(fill.pixelColor(45, 0), QColor(Qt::green));
+        QCOMPARE(fill.pixelColor(45, 159), QColor(Qt::green));
+        QVERIFY(fill.pixelColor(0, 0) != QColor(Qt::black));
+        QCOMPARE(nt::exporting::fitFrame(image, image.size(), "fit"), image);
+    }
+    void bitrateExport() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        // Opaque: the compositor draws a placeholder for media with an alpha channel.
+        QImage image(256, 256, QImage::Format_RGB888);
+        quint32 noise = 1;
+        for (int y = 0; y < image.height(); ++y) {
+            for (int x = 0; x < image.width(); ++x) {
+                noise = noise * 1664525u + 1013904223u;
+                image.setPixelColor(x, y, QColor((noise >> 24) & 255, (noise >> 16) & 255, (noise >> 8) & 255));
+            }
+        }
+        QVERIFY(image.save(dir.filePath("noise.png")));
+        const QJsonObject doc{{"width", 256}, {"height", 256}, {"fps", 30}, {"durationMs", 1000},
+            {"tracks", QJsonArray{QJsonObject{{"id", "v"}, {"type", "video"}}}},
+            {"clips", QJsonArray{QJsonObject{{"id", "c"}, {"trackId", "v"}, {"mediaType", "image"},
+                {"status", "generated"}, {"durationMs", 1000}, {"width", 256}, {"height", 256},
+                {"mediaPath", dir.filePath("noise.png")}}}}};
+        // The export child decodes in software like the editor's export does.
+        QFile document(dir.filePath("noise.json"));
+        QVERIFY(document.open(QIODevice::WriteOnly));
+        document.write(QJsonDocument(doc).toJson());
+        document.close();
+        const auto run = [&](const QString& name, const QStringList& extra) {
+            QProcess process;
+            process.start(QStringLiteral(NT_EXPORT_BINARY), QStringList{dir.filePath("noise.json"), "--export", dir.filePath(name),
+                "--format", "mp4", "--video-encoder", "libx264"} + extra);
+            return process.waitForFinished(60000) && process.exitCode() == 0 ? QFileInfo(dir.filePath(name)).size() : qint64(-1);
+        };
+        const auto qualitySize = run("quality.mp4", {});
+        const auto bitrateSize = run("bitrate.mp4", {"--video-bitrate", "200"});
+        QVERIFY(qualitySize > 0 && bitrateSize > 0);
+        QVERIFY2(bitrateSize * 2 < qualitySize, qPrintable(QString("target %1 vs quality %2 bytes").arg(bitrateSize).arg(qualitySize)));
+    }
     void refusesUnavailableServerOriginal() {
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
@@ -297,7 +431,7 @@ private slots:
             QTRY_VERIFY(QFileInfo::exists(QDir(dir.path()).filePath(staging + "/output")));
             elapsed.start();
         }
-        QVERIFY(elapsed.elapsed() < 7000);
+        QVERIFY(elapsed.elapsed() < 3500);
         QCOMPARE(QDir(dir.path()).entryList(QDir::AllEntries | QDir::Hidden | QDir::NoDotAndDotDot), QStringList{});
     }
     void cancelOfflineMix() {
@@ -470,6 +604,16 @@ private slots:
     }
 };
 int main(int argc, char** argv) {
+    // These engine tests capture through QRhi in the otherwise software-only group.
+    for (int i = 1; i < argc; ++i) {
+        if (QByteArray(argv[i]) == "rangeResolution" || QByteArray(argv[i]) == "bitrateExport") {
+            qunsetenv("QT_QUICK_BACKEND");
+#ifdef Q_OS_LINUX
+            // nttest supplies Xvfb. Qt's offscreen plugin cannot create Vulkan instances.
+            if (!qEnvironmentVariableIsEmpty("DISPLAY")) qputenv("QT_QPA_PLATFORM", "xcb");
+#endif
+        }
+    }
     QGuiApplication app(argc, argv);
     const auto args = app.arguments();
     if (args.contains("--export")) {
