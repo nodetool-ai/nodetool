@@ -127,9 +127,10 @@ Item {
         cursorShape: clipItem.interactionLocked ? Qt.ForbiddenCursor : pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
         onPressed: mouse => {
             if (mouse.button === Qt.RightButton) {
+                if (clipItem.gestures && clipItem.gestures.parent) clipItem.gestures.parent.forceActiveFocus(Qt.MouseFocusReason)
                 if (clipItem.gestures && !clipItem.selected) clipItem.gestures.selection = [clipItem.clipId]
                 clipMenu.context = { clipId: clipItem.clipId, clip: clipItem.clipData,
-                                     clipIds: [clipItem.clipId], mediaType: clipItem.mediaType,
+                                     clipIds: clipItem.gestures ? clipItem.gestures.selection.slice() : [clipItem.clipId], mediaType: clipItem.mediaType,
                                      selectedIds: clipItem.gestures ? clipItem.gestures.selection : [],
                                      editable: !clipItem.interactionLocked }
                 clipMenu.popup(mouse.x, mouse.y)

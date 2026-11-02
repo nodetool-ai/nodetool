@@ -9,7 +9,7 @@ Ui.ContextMenu {
     id: menu
     required property ClipGestureController gestures
     property var context: ({})
-    readonly property var actionContext: Object.assign({}, context, { kind: "clip", clipIds: [context.clipId] })
+    readonly property var actionContext: Object.assign({}, context, { kind: "clip", clipIds: context.clipIds ?? [context.clipId] })
     readonly property var registeredItems: MenuRegistry.query("clip", actionContext).map(
         item => Object.assign({}, item, { registered: true }))
     readonly property var webItems: {

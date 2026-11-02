@@ -648,6 +648,41 @@ private slots:
         QTRY_VERIFY(tip->property("visible").toBool());
         QCOMPARE(tip->property("text").toString(), name);
     }
+    void contextMenuKeepsTheMultiSelectionAndUsesItForDelete() {
+        load({2, 10});
+        seed(10, 0);
+        const auto first = clipPoint("c-0-2", 30);
+        const auto second = clipPoint("c-0-3", 30);
+        QTest::mouseClick(view.get(), Qt::LeftButton, {}, first);
+        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::ShiftModifier, second);
+        const QStringList selected{"c-0-2", "c-0-3"};
+        QCOMPARE(controller()->selection(), selected);
+        const auto before = model->documentJson();
+        auto* clip = itemNamed("clip-c-0-2");
+        QVERIFY(clip);
+        auto* menu = clip->findChild<QObject*>("registryContextMenu-clip");
+        QVERIFY(menu);
+        QTest::mouseClick(view.get(), Qt::RightButton, {}, first);
+        QTRY_VERIFY(menu->property("opened").toBool());
+        QCOMPARE(controller()->selection(), selected);
+        QTest::keyClick(view.get(), Qt::Key_Delete);
+        QCOMPARE(model->documentJson(), before);
+        QTest::keyClick(view.get(), Qt::Key_Escape);
+        QTRY_VERIFY(!menu->property("visible").toBool());
+        QTest::mouseClick(view.get(), Qt::RightButton, {}, first);
+        QTRY_VERIFY(menu->property("opened").toBool());
+        frame();
+        auto* remove = menu->findChild<QQuickItem*>("clipMenu-deleteSelected");
+        QVERIFY(remove);
+        const auto point = remove->mapToScene(QPointF(remove->width() / 2, remove->height() / 2)).toPoint();
+        QTest::mouseClick(view.get(), Qt::LeftButton, {}, point);
+        QVERIFY(clipJson("c-0-2").isEmpty());
+        QVERIFY(clipJson("c-0-3").isEmpty());
+        QCOMPARE(model->undoStack()->count(), 1);
+        model->undoStack()->undo();
+        QCOMPARE(model->documentJson(), before);
+    }
+
     void opensFittedWhenTheContentOverflows() {
         load({8, 400});
         // 400 s at 10 ms/px is 40 000 px: the first layout fits it.
