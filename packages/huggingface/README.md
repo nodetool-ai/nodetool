@@ -15,14 +15,14 @@ npm install @nodetool-ai/huggingface
 | Symbol | Kind | Description |
 |---|---|---|
 | `getHfToken`, `resolveHfToken`, `clearHfTokenCache` | function | Resolve the HuggingFace access token from the secret store / env |
-| `HfFastCache`, `getDefaultHfCacheDir` | class / function | Fast scan of the local HF cache |
+| `HfFastCache` | class | Fast scan of the local HF cache |
 | `readCachedHfModels`, `searchCachedHfModels`, `getModelsByHfType`, `filterModelsByHfType`, `deleteCachedHfModel` | function | Query and prune cached models |
 | `getLlamaCppModelsFromCache`, `detectRepoPackaging` | function | Detect GGUF / repo packaging |
 | `searchHfHub`, `listAllHfModels` | function | Search and list models on the Hub |
 | `detectModel`, `summarizeSafetensor`, `classifySafetensorSet` | function | Inspect safetensors and classify model type |
 | `inspectPaths` | function | Detect model artifacts under given paths |
 | `getHuggingfaceFileInfos` | function | Fetch file metadata for repo files |
-| `asyncHfDownload`, `hfHubFileUrl`, `hfCacheRoot`, `hfRepoCacheDir` | function | Download repos and resolve cache paths |
+| `asyncHfDownload`, `hfHubFileUrl`, `hfRepoCacheDir` | function | Download repos and resolve cache paths |
 | `DownloadManager`, `getDownloadManager` | class / function | Track and report download progress |
 | `downloadLlamaCppModel`, `getLlamaCppModelPath`, `isLlamaCppModelCached` | function | Manage GGUF models for llama.cpp |
 | `UnifiedModel`, `HfHubModel`, `DetectionResult`, `SafetensorSummary`, `DownloadUpdate` | type | Model and inspection value types |
