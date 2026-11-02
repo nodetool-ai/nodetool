@@ -133,7 +133,7 @@ function checked(layout) {
     return layout;
 }
 function hydrate(value) { return valid(value) ? clone(value) : createLayout(); }
-function registerMissingPanels(layout, panels) {
+function registerMissingPanels(layout, panels, workspace) {
     var next = clone(layout);
     var placed = new Set(allGroups(next).reduce(function(ids, group) { return ids.concat(group.panels); }, []));
     var ids = new Set(allGroups(next).map(function(group) { return group.id; }));
@@ -147,6 +147,8 @@ function registerMissingPanels(layout, panels) {
         if (entries.length) { entries[0].panels.push(panel.id); }
         else { entries.push({id: id, panels: [panel.id], activePanelId: panel.id}); }
         placed.add(panel.id);
+        // A saved workspace gets the same answer its preset would give.
+        if ((nativeHidden[workspace] || []).indexOf(panel.id) >= 0) { next.hidden.push(panel.id); }
     });
     return checked(next);
 }

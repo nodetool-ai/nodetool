@@ -67,12 +67,24 @@ std::pair<Frame,Frame> pairedFrames(const QImage &a, const QImage &b) {
                                          int(std::lround(double(b.height())*width/b.width()))));
     return {boxResize(pixels(a),width,height),boxResize(pixels(b),width,height)};
 }
-std::vector<Pass> colourPlan(const QJsonArray &effects) {
-    auto plan = nt::effects::planChain(effects);
+std::vector<Pass> colourPlan(const QJsonArray &effects, const QJsonArray &trackEffects) {
+    auto plan = nt::effects::planChain(effects,trackEffects);
     std::erase_if(plan,[](const Pass &p) {
-        return p.op != Op::LiftGammaGain && p.op != Op::Curves && p.op != Op::Levels && p.op != Op::Cdl && p.op != Op::Grade;
+        return p.op != Op::LiftGammaGain && p.op != Op::Curves && p.op != Op::Levels && p.op != Op::Cdl &&
+               p.op != Op::Grade && p.op != Op::Vignette;
     });
     return plan;
+}
+int matchIndex(const QJsonArray &effects) {
+    for (int i = 0; i < effects.size(); ++i) {
+        const auto type = effects[i].toObject()["type"].toString();
+        if (type == "liftGammaGain") { return i; }
+    }
+    for (int i = 0; i < effects.size(); ++i) {
+        const auto type = effects[i].toObject()["type"].toString();
+        if (type == "curves" || type == "vignette") { return i; }
+    }
+    return int(effects.size());
 }
 std::array<float,3> rotateHue(std::array<float,3> rgb, float degrees) {
     const float hi = std::max({rgb[0],rgb[1],rgb[2]}), lo = std::min({rgb[0],rgb[1],rgb[2]});
@@ -93,7 +105,8 @@ std::array<float,3> rotateHue(std::array<float,3> rgb, float degrees) {
     case 3: return {a,b,hi}; case 4: return {c,a,hi}; default: return {hi,a,b};
     }
 }
-Triple evaluate(Triple input, const std::vector<Pass> &plan) {
+// (u, v) is the pixel center in 0..1 of the clip's surface, which only a vignette reads.
+Triple evaluate(Triple input, const std::vector<Pass> &plan, double u, double v) {
     std::array<float,3> rgb{float(input[0]),float(input[1]),float(input[2])};
     bool applied = false;
     const auto sat = [](float v) { return std::clamp(v,0.0f,1.0f); };
@@ -115,26 +128,32 @@ Triple evaluate(Triple input, const std::vector<Pass> &plan) {
         case Op::LiftGammaGain:
             for (int k = 0; k < 3; ++k) { rgb[k] = std::pow(std::max((rgb[k]+p[k])*p[8+k],0.0f),1/std::max(p[4+k],.01f)); }
             break;
+        case Op::Vignette: {
+            const float inner = std::max(0.0f,p[1]-p[2]), outer = std::max(inner+.001f,p[1]);
+            const float t = sat((float(std::hypot(u*2-1,v*2-1))-inner)/(outer-inner));
+            for (auto &value : rgb) { value *= 1-p[0]*t*t*(3-2*t); }
+            break;
+        }
         case Op::Curves:
             for (int k = 0; k < 3; ++k) {
-                float v = sat((rgb[k]-p[0])/std::max(.001f,p[1]-p[0]));
-                v += p[2]*(1-v)*v;
-                v = std::pow(std::max(v,0.0f),1/std::max(.01f,1+p[3]));
-                v += p[4]*v*(1-v);
-                rgb[k] = std::pow(std::max(v,0.0f),1/std::max(.01f,1+p[5+k]));
+                float value = sat((rgb[k]-p[0])/std::max(.001f,p[1]-p[0]));
+                value += p[2]*(1-value)*value;
+                value = std::pow(std::max(value,0.0f),1/std::max(.01f,1+p[3]));
+                value += p[4]*value*(1-value);
+                rgb[k] = std::pow(std::max(value,0.0f),1/std::max(.01f,1+p[5+k]));
             }
             break;
         case Op::Levels:
-            for (auto &v : rgb) { v = std::pow(sat((v-p[0])/std::max(1.0f/255,p[2]-p[0])),1/std::max(.01f,p[1])); }
+            for (auto &value : rgb) { value = std::pow(sat((value-p[0])/std::max(1.0f/255,p[2]-p[0])),1/std::max(.01f,p[1])); }
             break;
         case Op::Cdl:
-            for (auto &v : rgb) { v = sat(v*p[0]+p[1]); }
+            for (auto &value : rgb) { value = sat(value*p[0]+p[1]); }
             break;
         case Op::Grade:
-            if (std::abs(p[0]) > .001f) { for (auto &v : rgb) { v = sat(v+p[0]); } }
-            if (std::abs(p[1]-1) > .001f) { for (auto &v : rgb) { v = sat((v-.5f)*p[1]+.5f); } }
+            if (std::abs(p[0]) > .001f) { for (auto &value : rgb) { value = sat(value+p[0]); } }
+            if (std::abs(p[1]-1) > .001f) { for (auto &value : rgb) { value = sat((value-.5f)*p[1]+.5f); } }
             if (std::abs(p[2]-1) > .001f) {
-                const float l = lum(); for (auto &v : rgb) { v = sat(l+(v-l)*p[2]); }
+                const float l = lum(); for (auto &value : rgb) { value = sat(l+(value-l)*p[2]); }
             }
             if (std::abs(p[3]) > .001f) { rgb = rotateHue(rgb,p[3]); }
             if (std::abs(p[4]) > .001f) {
@@ -146,19 +165,24 @@ Triple evaluate(Triple input, const std::vector<Pass> &plan) {
             if (std::abs(p[6]) > .001f || std::abs(p[7]) > .001f) {
                 const float l = lum();
                 const float adj = p[6]*(1-float(smooth(0,.33f,l)))*.3f+p[7]*float(smooth(.66f,1,l))*.3f;
-                for (auto &v : rgb) { v = sat(v+adj); }
+                for (auto &value : rgb) { value = sat(value+adj); }
             }
             break;
         default: break;
         }
         // Renderer intermediates are RGBA8, including between Levels and CDL.
-        for (auto &v : rgb) { v = std::round(sat(v)*255)/255; }
+        for (auto &value : rgb) { value = std::round(sat(value)*255)/255; }
     }
     return applied ? Triple{rgb[0],rgb[1],rgb[2]} : input;
 }
 Frame graded(const Frame &source, const std::vector<Pass> &plan) {
     Frame out = source;
-    for (auto &c : out.rgb) { c = evaluate(c,plan); }
+    for (int y = 0; y < out.height; ++y) {
+        for (int x = 0; x < out.width; ++x) {
+            auto &c = out.rgb[size_t(y)*out.width+x];
+            c = evaluate(c,plan,(x+.5)/out.width,(y+.5)/out.height);
+        }
+    }
     return out;
 }
 Stats stats(const Frame &frame, bool protectSkin) {
@@ -249,7 +273,7 @@ struct SearchPlan {
         passes[grade].params[2] = float(std::clamp(saturation*r.saturationScale,0.0,4.0));
     }
 };
-SearchPlan searchPlan(const QJsonArray &effects) {
+SearchPlan searchPlan(const QJsonArray &effects, const QJsonArray &trackEffects) {
     QJsonArray list = effects;
     bool foundLgg = false, foundColour = false;
     for (int i = 0; i < list.size(); ++i) {
@@ -258,11 +282,14 @@ SearchPlan searchPlan(const QJsonArray &effects) {
         if (e["id"] == "inspector:color") { e["enabled"] = true; foundColour = true; }
         list[i] = e;
     }
-    if (!foundLgg) { list.prepend(QJsonObject{{"type","liftGammaGain"},{"enabled",true}}); }
+    if (!foundLgg) { list.insert(matchIndex(list),QJsonObject{{"type","liftGammaGain"},{"enabled",true}}); }
     if (!foundColour) { list.append(QJsonObject{{"id","inspector:color"},{"type","color"},{"enabled",true}}); }
     std::array<double,8> grade{0,1,1,0,0,0,0,0};
     constexpr std::array keys{"brightness","contrast","saturation","hue","temperature","tint","shadows","highlights"};
-    for (const auto &value : list) {
+    // The renderer sums clip and track color into one pass.
+    QJsonArray colours = list;
+    for (const auto &value : trackEffects) { colours.append(value); }
+    for (const auto &value : colours) {
         const auto e = value.toObject();
         if (e["type"] != "color" || !e["enabled"].toBool()) { continue; }
         for (int k = 0; k < 8; ++k) {
@@ -273,7 +300,7 @@ SearchPlan searchPlan(const QJsonArray &effects) {
     // A zero-saturation sentinel guarantees planChain retains the aggregate Grade.
     list.append(QJsonObject{{"type","color"},{"enabled",true},{"saturation",0}});
     SearchPlan out;
-    out.passes = colourPlan(list);
+    out.passes = colourPlan(list,trackEffects);
     out.saturation = grade[2];
     for (size_t i = 0; i < out.passes.size(); ++i) {
         if (out.passes[i].op == Op::LiftGammaGain) { out.lgg = i; break; }
@@ -328,15 +355,15 @@ QImage trimBlackBars(const QImage &image) {
     if (right < left || (left == 0 && right == image.width()-1 && top == 0 && bottom == image.height()-1)) { return image; }
     return image.copy(left,top,right-left+1,bottom-top+1);
 }
-QImage applyGrade(const QImage &frame, const QJsonArray &effects) {
+QImage applyGrade(const QImage &frame, const QJsonArray &effects, const QJsonArray &trackEffects) {
     if (frame.isNull()) { return {}; }
     auto out = frame.convertToFormat(QImage::Format_RGBA8888);
-    const auto plan = colourPlan(effects);
+    const auto plan = colourPlan(effects,trackEffects);
     for (int y = 0; y < out.height(); ++y) {
         auto *row = out.scanLine(y);
         for (int x = 0; x < out.width(); ++x) {
             auto *p = row+x*4;
-            const auto c = evaluate({p[0]/255.0,p[1]/255.0,p[2]/255.0},plan);
+            const auto c = evaluate({p[0]/255.0,p[1]/255.0,p[2]/255.0},plan,(x+.5)/out.width(),(y+.5)/out.height());
             for (int k = 0; k < 3; ++k) { p[k] = std::uint8_t(std::lround(clamp(c[k])*255)); }
             p[3] = 255;
         }
@@ -360,7 +387,7 @@ QJsonArray applyMatchToEffects(const QJsonArray &effects, const MatchResult &res
         list[i] = e; found = true; break;
     }
     if (!found) {
-        list.prepend(QJsonObject{{"id",newId},{"type","liftGammaGain"},{"enabled",true},
+        list.insert(matchIndex(list),QJsonObject{{"id",newId},{"type","liftGammaGain"},{"enabled",true},
             {"lift",triple(result.lift)},{"gamma",triple(result.gamma)},{"gain",triple(result.gain)}});
     }
     const bool scaled = std::abs(result.saturationScale-1) > .005;
@@ -378,10 +405,11 @@ QJsonArray applyMatchToEffects(const QJsonArray &effects, const MatchResult &res
 }
 QJsonArray probeEffects(const QJsonArray &effects) {
     QJsonArray out = effects;
+    const int place = matchIndex(effects);
     for (int i = 0; i < out.size(); ++i) {
         auto e = out[i].toObject();
         const auto type = e["type"].toString();
-        if (type == "liftGammaGain" || type == "curves" || type == "levels" || type == "color") {
+        if (type == "liftGammaGain" || type == "curves" || type == "levels" || type == "color" || type == "vignette" || i > place) {
             e["enabled"] = false; out[i] = e;
         }
     }
@@ -398,7 +426,7 @@ MatchResult solveMatch(const MatchInput &input) {
     if (input.reference.isNull()) { result.error = "The reference has no frame to match."; return result; }
     const auto [current,reference] = pairedFrames(trimBlackBars(input.current),trimBlackBars(input.reference));
     const auto referenceStats = stats(reference,input.protectSkin);
-    auto plan = searchPlan(input.effects);
+    auto plan = searchPlan(input.effects,input.trackEffects);
     Parameters x{};
     constexpr double regularisation = .02*.02;
     const auto cost = [&](const Parameters &p) {
@@ -468,8 +496,9 @@ MatchResult solveMatch(const MatchInput &input) {
     if (cancelled()) { return result; }
     result = values(x);
     result.ok = true; result.before = before; result.after = std::sqrt(c);
-    result.differenceBefore = meanColorDifference(input.current,input.reference);
-    result.differenceAfter = meanColorDifference(applyGrade(input.current,applyMatchToEffects(input.effects,result,"match")),input.reference);
+    // What the shot looks like now, not the probe with its grade switched off.
+    result.differenceBefore = meanColorDifference(applyGrade(input.current,input.effects,input.trackEffects),input.reference);
+    result.differenceAfter = meanColorDifference(applyGrade(input.current,applyMatchToEffects(input.effects,result,"match"),input.trackEffects),input.reference);
     return result;
 }
 }

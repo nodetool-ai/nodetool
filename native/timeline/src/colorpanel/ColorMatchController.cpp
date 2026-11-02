@@ -1,6 +1,7 @@
 #include "colorpanel/ColorMatchController.h"
 #include "color/ColorMatch.h"
 #include "export/ExportController.h"
+#include "preview/effects/ClipEffects.h"
 #include "model/TimelineModel.h"
 #include <QJsonObject>
 #include <QUuid>
@@ -16,7 +17,7 @@ bool hasPicture(const QJsonObject& clip) {
 }
 }
 
-QJsonObject nt::colorpanel::isolatedClipDocument(const QJsonObject& snapshot, const QString& clipId, const QJsonArray& effects) {
+QJsonObject nt::colorpanel::isolatedClipDocument(const QJsonObject& snapshot, const QString& clipId, const QJsonArray& effects, bool trackEffects) {
     auto document = snapshot;
     QJsonObject clip;
     for (const auto& value : snapshot.value("clips").toArray()) {
@@ -35,6 +36,7 @@ QJsonObject nt::colorpanel::isolatedClipDocument(const QJsonObject& snapshot, co
         if (track.value("id").toString() != clip.value("trackId").toString()) continue;
         track.insert("visible", true);
         track.remove("automation");
+        if (!trackEffects) track.remove("effects");
         tracks.append(track);
     }
     document.insert("tracks", tracks);
@@ -78,6 +80,14 @@ QJsonObject ColorMatchController::findClip(const QString& id) const {
     if (!m_capture || !m_capture->timeline() || id.isEmpty()) return {};
     for (const auto& value : m_capture->timeline()->clipsJson()) {
         if (value.toObject().value("id").toString() == id) return value.toObject();
+    }
+    return {};
+}
+QJsonArray ColorMatchController::trackEffectsOf(const QJsonObject& clip) const {
+    if (!m_capture || !m_capture->timeline()) return {};
+    for (const auto& value : m_capture->timeline()->timeline().raw.value("tracks").toArray()) {
+        const auto track = value.toObject();
+        if (track.value("id") == clip.value("trackId")) return track.value("effects").toArray();
     }
     return {};
 }
@@ -175,14 +185,15 @@ void ColorMatchController::match() {
     const double playhead = m_clock ? m_clock->currentTimeMs() : -1;
     const double time = snapped(playhead >= start && playhead < end ? playhead : (start + end) / 2, m_clock ? m_clock->fps() : 0);
     m_targetId = m_clipId;
-    m_targetEffects = clip.value("effects").toArray();
+    m_targetClip = clip;
+    m_targetTrackEffects = trackEffectsOf(clip);
     m_step = Step::Current;
     m_error.clear();
     m_status.clear();
     emit stateChanged();
     const int run = ++m_run;
     const auto document = nt::colorpanel::isolatedClipDocument(nt::exporting::exportSnapshot(*m_capture->timeline()), m_targetId,
-        nt::color::probeEffects(m_targetEffects));
+        nt::color::probeEffects(clip.value("effects").toArray()), false);
     m_requestId = m_capture->captureDocument(document, time, [self = QPointer(this), run](const FrameCaptureResult& result) {
         if (self && run == self->m_run) self->capturedCurrent(result);
     });
@@ -200,11 +211,13 @@ void ColorMatchController::capturedCurrent(const FrameCaptureResult& result) {
     m_step = Step::Solving;
     m_cancel = std::make_shared<std::atomic_bool>(false);
     const int run = m_run;
-    m_pool.start([this, run, current = result.image, reference = m_reference, effects = m_targetEffects, skin = m_protectSkin, cancel = m_cancel] {
+    m_pool.start([this, run, current = result.image, reference = m_reference, effects = m_targetClip.value("effects").toArray(),
+                  track = nt::effects::convertTrackEffects(m_targetTrackEffects), skin = m_protectSkin, cancel = m_cancel] {
         nt::color::MatchInput input;
         input.current = current;
         input.reference = reference;
         input.effects = effects;
+        input.trackEffects = track;
         input.protectSkin = skin;
         input.cancelled = [cancel] { return cancel->load(); };
         auto output = nt::color::solveMatch(input);
@@ -223,11 +236,12 @@ void ColorMatchController::solved(const nt::color::MatchResult& result) {
         return;
     }
     const auto clip = findClip(m_targetId);
-    if (clip.isEmpty() || clip.value("effects").toArray() != m_targetEffects || clip.value("locked").toBool()) {
+    // The whole clip, because media, timing and crop all change the picture that was solved for.
+    if (clip.isEmpty() || clip != m_targetClip || trackEffectsOf(clip) != m_targetTrackEffects) {
         finish(tr("The clip changed while matching. Run Match again."));
         return;
     }
-    const auto effects = nt::color::applyMatchToEffects(m_targetEffects, result, QUuid::createUuid().toString(QUuid::WithoutBraces));
+    const auto effects = nt::color::applyMatchToEffects(clip.value("effects").toArray(), result, QUuid::createUuid().toString(QUuid::WithoutBraces));
     auto* model = m_capture ? m_capture->timeline() : nullptr;
     if (!model || !model->applyEdit(QStringLiteral("patchClip"), QJsonObject{{"clipId", m_targetId}, {"patch", QJsonObject{{"effects", effects}}}})) {
         finish(tr("Match could not change this clip."));

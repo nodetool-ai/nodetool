@@ -13,8 +13,9 @@
 namespace nt::color { struct MatchResult; }
 namespace nt::colorpanel {
 // A document with one clip on its own: no other clips, no placement, opacity, transition, caption
-// or animation, and the given effects. What Match compares is the shot's own picture.
-QJsonObject isolatedClipDocument(const QJsonObject& snapshot, const QString& clipId, const QJsonArray& effects);
+// or animation, and the given effects. What Match compares is the shot's own picture. The solver
+// runs the track's effects itself after the correction, so a probe leaves them out.
+QJsonObject isolatedClipDocument(const QJsonObject& snapshot, const QString& clipId, const QJsonArray& effects, bool trackEffects = true);
 }
 
 // Match: grades the selected shot toward a reference frame or shot. The frames come from the
@@ -70,6 +71,7 @@ signals:
 private:
     enum class Step { Idle, Reference, Current, Solving };
     QJsonObject findClip(const QString& id) const;
+    QJsonArray trackEffectsOf(const QJsonObject& clip) const;
     void finish(const QString& error, const QString& status = {});
     void capturedReference(const FrameCaptureResult& result, const QString& clipName, const QString& clipId);
     void capturedCurrent(const FrameCaptureResult& result);
@@ -78,7 +80,8 @@ private:
     QPointer<PlaybackClock> m_clock;
     QString m_clipId;
     QString m_targetId;
-    QJsonArray m_targetEffects;
+    QJsonObject m_targetClip;
+    QJsonArray m_targetTrackEffects;
     QImage m_reference;
     QString m_referenceClipName;
     QString m_referenceClipId;

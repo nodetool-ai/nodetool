@@ -91,6 +91,54 @@ private slots:
         QVERIFY(r.differenceAfter <= r.differenceBefore*.25);
         QVERIFY(std::abs(meanColorDifference(rendered(f,{},r),ref)-r.differenceAfter)<.002);
     }
+    void vignetteRunsWhereTheRendererRunsIt() {
+        // The renderer corrects and then darkens. A solver that corrects a darkened picture
+        // predicts a different result: a gamma of 2 lifts 64 to 128, and a vignette of 0.5 then
+        // gives 64, where correcting after the vignette would give 90.
+        QImage flat(2,2,QImage::Format_RGBA8888);
+        flat.fill(QColor(64,64,64));
+        const QJsonArray effects{lgg({0,0,0},{2,2,2},{1,1,1}),QJsonObject{{"id","edge"},{"type","vignette"},{"enabled",true},{"amount",.5},{"radius",.0},{"softness",.0}}};
+        const auto out = applyGrade(flat,effects);
+        QVERIFY2(std::abs(qRed(out.pixel(0,0))-64) <= 1,qPrintable(QString::number(qRed(out.pixel(0,0)))));
+        // The center of a wide vignette is untouched and the corner takes the full amount.
+        QImage wide(101,101,QImage::Format_RGBA8888);
+        wide.fill(QColor(200,200,200));
+        const auto edged = applyGrade(wide,{QJsonObject{{"id","edge"},{"type","vignette"},{"enabled",true},{"amount",.5},{"radius",1.0},{"softness",.5}}});
+        QCOMPARE(qRed(edged.pixel(50,50)),200);
+        QVERIFY(std::abs(qRed(edged.pixel(0,0))-100) <= 1);
+        // Through the solver, with a vignette after the correction.
+        const auto f = frame(false);
+        const QJsonArray chain{QJsonObject{{"id","edge"},{"type","vignette"},{"enabled",true},{"amount",.6},{"radius",.8},{"softness",.5}}};
+        const auto ref = applyGrade(applyGrade(f,{lgg({.02,-.01,.03},{1.2,.9,1.1},{1.1,1,.9})}),chain);
+        const auto r = solveMatch({f,ref,chain,false,{}});
+        QVERIFY2(r.ok,qPrintable(r.error));
+        const double rendered = meanColorDifference(applyGrade(f,applyMatchToEffects(chain,r,"new")),ref);
+        qInfo("vignette chain difference %.5f -> %.5f",r.differenceBefore,rendered);
+        QVERIFY(rendered <= r.differenceBefore*.25);
+    }
+    void trackEffectsRunAfterTheCorrection() {
+        // A track brightening the frame: the correction runs before it, in the same order as the render.
+        const auto f = frame(false);
+        const QJsonArray track{QJsonObject{{"id","t"},{"type","color"},{"enabled",true},{"brightness",.1}}};
+        const auto ref = applyGrade(f,{lgg({.02,-.01,.03},{1.1,.9,1.2},{.95,1.05,1})},track);
+        MatchInput input{f,ref,{},false,{},track};
+        const auto r = solveMatch(input);
+        QVERIFY2(r.ok,qPrintable(r.error));
+        const double rendered = meanColorDifference(applyGrade(f,applyMatchToEffects({},r,"new"),track),ref);
+        qInfo("track effect difference %.5f -> %.5f",r.differenceBefore,rendered);
+        QVERIFY(r.differenceBefore > .01);
+        QVERIFY(rendered <= r.differenceBefore*.25);
+        QVERIFY(std::abs(rendered-r.differenceAfter) < .002);
+    }
+    void differenceBeforeIsWhatTheShotLooksLikeNow() {
+        // A shot already graded to match has nothing left to gain, whatever its ungraded probe shows.
+        const auto f = frame(false);
+        const QJsonArray graded{lgg({.03,-.02,.02},{1.2,.9,1.1},{1,1,1})};
+        const auto ref = applyGrade(f,graded);
+        const auto r = solveMatch({f,ref,graded,false,{}});
+        QVERIFY2(r.ok,qPrintable(r.error));
+        QVERIFY2(r.differenceBefore < .001,qPrintable(QString::number(r.differenceBefore)));
+    }
     void skinProtection() {
         const auto f = frame(true);
         const auto ref = applyGrade(f,{lgg({-.035,.08,.035},{.95,1.1,1.05},{.85,1.15,1.1})});
@@ -138,12 +186,25 @@ private slots:
         const QJsonObject blur{{"id","blur"},{"type","blur"},{"enabled",true},{"radius",3}};
         const QJsonObject colour{{"id","inspector:color"},{"type","color"},{"enabled",false},{"saturation",1.5},{"brightness",.2}};
         const auto created = applyMatchToEffects({blur,colour},r,"created");
-        QCOMPARE(created.size(),3); QCOMPARE(created[0].toObject()["id"].toString(),QString("created"));
-        QCOMPARE(created[0].toObject()["lift"].toArray()[0].toDouble(),.0123);
-        QCOMPARE(created[1].toObject(),blur);
+        QCOMPARE(created.size(),3); QCOMPARE(created[2].toObject()["id"].toString(),QString("created"));
+        QCOMPARE(created[2].toObject()["lift"].toArray()[0].toDouble(),.0123);
+        QCOMPARE(created[0].toObject(),blur);
         // The search ran with the color effect on. Its values stay, and it has to be on for the result to hold.
         auto enabledColour = colour; enabledColour["enabled"] = true;
-        QCOMPARE(created[2].toObject(),enabledColour);
+        QCOMPARE(created[1].toObject(),enabledColour);
+        // A new correction runs before the curves and vignette that follow it in the panel.
+        const QJsonObject edge{{"id","edge"},{"type","vignette"},{"enabled",true},{"amount",.5},{"softness",.5}};
+        const auto beforeEdge = applyMatchToEffects({blur,edge},r,"created");
+        QCOMPARE(beforeEdge[1].toObject()["id"].toString(),QString("created"));
+        QCOMPARE(beforeEdge[2].toObject(),edge);
+        // What stays on in the probe is what runs before the correction.
+        const auto probed = probeEffects({blur,lgg(),QJsonObject{{"id","late"},{"type","blur"},{"enabled",true}},edge});
+        QVERIFY(probed[0].toObject()["enabled"].toBool());
+        for (int i = 1; i < 4; ++i) { QVERIFY(!probed[i].toObject()["enabled"].toBool()); }
+        const auto noWheels = probeEffects({blur,edge,QJsonObject{{"id","late"},{"type","blur"},{"enabled",true}}});
+        QVERIFY(noWheels[0].toObject()["enabled"].toBool());
+        QVERIFY(!noWheels[1].toObject()["enabled"].toBool());
+        QVERIFY(!noWheels[2].toObject()["enabled"].toBool());
         auto existing = lgg(); existing["enabled"] = false; existing["custom"] = "keep";
         auto second = lgg({.2,.2,.2}); second["id"] = "second";
         r.saturationScale = 1.2;

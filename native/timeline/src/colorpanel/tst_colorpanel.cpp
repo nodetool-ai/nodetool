@@ -495,6 +495,7 @@ private slots:
         const QJsonArray effects{
             QJsonObject{{"id", "w"}, {"type", "liftGammaGain"}, {"enabled", true}, {"lift", QJsonArray{0.03, -0.02, 0.01}}, {"gamma", QJsonArray{1.2, 0.9, 1.1}}, {"gain", QJsonArray{0.9, 1.05, 1.1}}},
             QJsonObject{{"id", "c"}, {"type", "curves"}, {"enabled", true}, {"master", QJsonArray{QJsonObject{{"x", 0}, {"y", 0}}, QJsonObject{{"x", 0.5}, {"y", 0.56}}, QJsonObject{{"x", 1}, {"y", 1}}}}},
+            QJsonObject{{"id", "e"}, {"type", "vignette"}, {"enabled", true}, {"amount", 0.5}, {"radius", 0.9}, {"softness", 0.5}},
             QJsonObject{{"id", "inspector:color"}, {"type", "color"}, {"enabled", true}, {"saturation", 1.2}, {"brightness", 0.02}, {"contrast", 1.05}, {"temperature", 0.1}, {"tint", -0.05}, {"shadows", 0.1}, {"highlights", -0.1}, {"hue", 4}}};
         auto a = clipJson("a", 0, 2000, path);
         TimelineModel model;
@@ -616,6 +617,89 @@ private slots:
         QCOMPARE(e.model.documentJson(), documentBefore);
     }
 
+    void matchHoldsWithAVignetteAndATrackEffect() {
+        // The shot sits on a brightened track with a vignette of its own, so its correction runs
+        // before both. The reference is the same picture and vignette on a plain track.
+        const auto reference = image("chain-reference", scene());
+        const auto current = image("chain-current", scene(24, -18));
+        const QJsonArray edge{QJsonObject{{"id", "edge"}, {"type", "vignette"}, {"enabled", true}, {"amount", 0.3}, {"radius", 0.9}, {"softness", 0.5}}};
+        auto a = clipJson("a", 0, 1000, current);
+        a.insert("trackId", "w");
+        a.insert("effects", edge);
+        auto r = clipJson("r", 1000, 1000, reference);
+        r.insert("effects", edge);
+        auto raw = documentOf({a, r});
+        auto tracks = raw.value("tracks").toArray();
+        tracks.append(QJsonObject{{"id", "w"}, {"type", "video"}, {"name", "Graded"}, {"index", 1}, {"visible", true}, {"locked", false},
+            {"effects", QJsonArray{QJsonObject{{"id", "cc"}, {"type", "colorCorrection"}, {"enabled", true}, {"brightness", 0.08}}}}});
+        raw.insert("tracks", tracks);
+        TimelineModel model;
+        auto parsed = nt::parseTimeline(raw);
+        QVERIFY2(parsed.timeline, qPrintable(parsed.error));
+        model.setTimeline(std::move(*parsed.timeline));
+        PlaybackClock clock;
+        clock.setFps(30);
+        FrameCapture capture;
+        capture.setExecutable(QStringLiteral(NT_TIMELINE_BINARY));
+        capture.setTimeline(&model);
+        ColorMatchController matcher;
+        matcher.setCapture(&capture);
+        matcher.setClock(&clock);
+        matcher.setProtectSkin(false);
+        matcher.setClipId("r");
+        matcher.useSelectedShot();
+        QTRY_VERIFY_WITH_TIMEOUT(matcher.hasReference(), 60000);
+        const auto frameAt = [&](double ms) {
+            QImage out;
+            bool done = false;
+            capture.captureSequence(ms, [&](const FrameCaptureResult& result) { out = result.image; done = true; });
+            QTest::qWaitFor([&] { return done; }, 60000);
+            return out;
+        };
+        const auto target = frameAt(1500);
+        const double before = nt::color::meanColorDifference(frameAt(500), target);
+        matcher.setClipId("a");
+        QSignalSpy matched(&matcher, &ColorMatchController::matched);
+        matcher.match();
+        QTRY_VERIFY_WITH_TIMEOUT(matched.count() == 1, 120000);
+        const double after = nt::color::meanColorDifference(frameAt(500), target);
+        qInfo().noquote() << "Match through a vignette and a track effect:" << before << "before," << after << "after, in the render. Solver:"
+                          << matcher.lastDifferenceBefore() << matcher.lastDifferenceAfter();
+        QVERIFY2(before > 0.02, qPrintable(QString::number(before)));
+        QVERIFY2(after <= before * 0.25, qPrintable(QString("%1 %2").arg(before).arg(after)));
+        // The solver's forecast is what the renderer drew.
+        QVERIFY2(std::abs(matcher.lastDifferenceAfter() - after) < 0.01, qPrintable(QString("%1 %2").arg(matcher.lastDifferenceAfter()).arg(after)));
+        // The wheels run before the clip's vignette.
+        const auto effects = model.clipsJson()[0].toObject().value("effects").toArray();
+        QCOMPARE(effects[0].toObject().value("type").toString(), QString("liftGammaGain"));
+        QCOMPARE(effects[1].toObject().value("type").toString(), QString("vignette"));
+    }
+
+    void unrelatedMissingMediaDoesNotStopAMatch() {
+        const auto reference = image("missing-reference", scene());
+        const auto current = image("missing-current", scene(10, -5));
+        auto absent = clipJson("absent", 2000, 1000);
+        absent.insert("currentAssetId", QString(32, u'a'));
+        TimelineModel model;
+        auto parsed = nt::parseTimeline(documentOf({clipJson("a", 0, 1000, current), clipJson("r", 1000, 1000, reference), absent}));
+        QVERIFY2(parsed.timeline, qPrintable(parsed.error));
+        model.setTimeline(std::move(*parsed.timeline));
+        FrameCapture capture;
+        capture.setExecutable(QStringLiteral(NT_TIMELINE_BINARY));
+        capture.setTimeline(&model);
+        ColorMatchController matcher;
+        matcher.setCapture(&capture);
+        matcher.setClipId("r");
+        matcher.useSelectedShot();
+        QTRY_VERIFY_WITH_TIMEOUT(!matcher.busy(), 60000);
+        QVERIFY2(matcher.error().isEmpty(), qPrintable(matcher.error()));
+        QVERIFY(matcher.hasReference());
+        // The whole timeline still needs that media.
+        QString error;
+        capture.captureSequence(500, [&](const FrameCaptureResult& result) { error = result.error; });
+        QTRY_VERIFY_WITH_TIMEOUT(!error.isEmpty(), 60000);
+    }
+
     void matchSurvivesAChangeWhileSolving() {
         const auto reference = image("race-reference", scene());
         const auto current = image("race-current", scene(20, -10));
@@ -636,6 +720,13 @@ private slots:
         // The user's edit stays. Match says so instead of overwriting it.
         QCOMPARE(e.effects(), edited);
         QVERIFY2(!matcher.error().isEmpty(), "Match wrote over a newer edit");
+        // The same for a change that leaves the effects alone and gives a different picture.
+        matcher.match();
+        QVERIFY(matcher.busy());
+        QVERIFY(e.model.applyEdit("patchClip", {{"clipId", "a"}, {"patch", QJsonObject{{"inPointMs", 250}}}}));
+        QTRY_VERIFY_WITH_TIMEOUT(!matcher.busy(), 60000);
+        QCOMPARE(e.effects(), edited);
+        QVERIFY2(!matcher.error().isEmpty(), "Match used a picture of the clip from before the slip");
         // Cancel during the capture also leaves the document.
         const auto document = e.model.documentJson();
         matcher.match();

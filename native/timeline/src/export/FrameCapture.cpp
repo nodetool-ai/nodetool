@@ -9,6 +9,7 @@
 #include <QJsonDocument>
 #include <QProcessEnvironment>
 #include <QSaveFile>
+#include <QSet>
 #include <cmath>
 #include <limits>
 #include <utility>
@@ -153,8 +154,12 @@ std::shared_ptr<FrameCapture::Snapshot> FrameCapture::prepareSnapshot(const QJso
     });
     snapshot->path = m_directory.filePath(QStringLiteral("sequence-%1.json").arg(++m_snapshotSerial));
     snapshot->leases = nt::assets::MediaProtection::leasePaths(m_timeline->resolvedMediaPaths());
-    const auto timeline = m_timeline->timeline();
-    m_pool.start([this, snapshot, raw, timeline] {
+    // Only the media this document draws has to be there.
+    QSet<QString> drawn;
+    for (const auto& clip : raw.value("clips").toArray()) drawn.insert(clip.toObject().value("id").toString());
+    auto timeline = m_timeline->timeline();
+    std::erase_if(timeline.clips, [&drawn](const auto& clip) { return !drawn.contains(QString::fromStdString(clip.id)); });
+    m_pool.start([this, snapshot, raw, timeline = std::move(timeline)] {
         QString error = nt::exporting::unavailableOriginalMedia(timeline);
         if (error.isEmpty()) {
             const auto bytes = QJsonDocument(raw).toJson(QJsonDocument::Compact);
