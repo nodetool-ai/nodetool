@@ -5,6 +5,7 @@
 #include <QJsonObject>
 #include <algorithm>
 #include <cmath>
+#include <memory>
 #include <numbers>
 #include <numeric>
 #include <optional>
@@ -67,13 +68,22 @@ std::pair<Frame,Frame> pairedFrames(const QImage &a, const QImage &b) {
                                          int(std::lround(double(b.height())*width/b.width()))));
     return {boxResize(pixels(a),width,height),boxResize(pixels(b),width,height)};
 }
-std::vector<Pass> colourPlan(const QJsonArray &effects, const QJsonArray &trackEffects) {
+// A Curves pass carries the table the renderer samples, built once per plan.
+struct ColourPass : Pass {
+    std::shared_ptr<const std::array<float,1024>> curveTable;
+};
+std::vector<ColourPass> colourPlan(const QJsonArray &effects, const QJsonArray &trackEffects) {
     auto plan = nt::effects::planChain(effects,trackEffects);
     std::erase_if(plan,[](const Pass &p) {
         return p.op != Op::LiftGammaGain && p.op != Op::Curves && p.op != Op::Levels && p.op != Op::Cdl &&
                p.op != Op::Grade && p.op != Op::Vignette;
     });
-    return plan;
+    std::vector<ColourPass> out;
+    out.reserve(plan.size());
+    for (const auto &pass : plan) {
+        out.push_back({pass,pass.op == Op::Curves ? std::make_shared<const std::array<float,1024>>(nt::effects::curveTransfer(pass.curve)) : nullptr});
+    }
+    return out;
 }
 int matchIndex(const QJsonArray &effects) {
     for (int i = 0; i < effects.size(); ++i) {
@@ -105,8 +115,8 @@ std::array<float,3> rotateHue(std::array<float,3> rgb, float degrees) {
     case 3: return {a,b,hi}; case 4: return {c,a,hi}; default: return {hi,a,b};
     }
 }
-// (u, v) is the pixel center in 0..1 of the clip's surface, which only a vignette reads.
-Triple evaluate(Triple input, const std::vector<Pass> &plan, double u, double v) {
+// (u, v) is the pixel center in 0..1 of the clip's surface and aspect its width over height. Only a vignette reads them.
+Triple evaluate(Triple input, const std::vector<ColourPass> &plan, double u, double v, double aspect) {
     std::array<float,3> rgb{float(input[0]),float(input[1]),float(input[2])};
     bool applied = false;
     const auto sat = [](float v) { return std::clamp(v,0.0f,1.0f); };
@@ -130,17 +140,17 @@ Triple evaluate(Triple input, const std::vector<Pass> &plan, double u, double v)
             break;
         case Op::Vignette: {
             const float inner = std::max(0.0f,p[1]-p[2]), outer = std::max(inner+.001f,p[1]);
-            const float t = sat((float(std::hypot(u*2-1,v*2-1))-inner)/(outer-inner));
+            const double axisX = 1+p[5]*(std::max(aspect,1.0)-1), axisY = 1+p[5]*(std::max(1/aspect,1.0)-1);
+            const float t = sat((float(std::hypot((u-p[3])*2*axisX,(v-p[4])*2*axisY))-inner)/(outer-inner));
             for (auto &value : rgb) { value *= 1-p[0]*t*t*(3-2*t); }
             break;
         }
         case Op::Curves:
             for (int k = 0; k < 3; ++k) {
-                float value = sat((rgb[k]-p[0])/std::max(.001f,p[1]-p[0]));
-                value += p[2]*(1-value)*value;
-                value = std::pow(std::max(value,0.0f),1/std::max(.01f,1+p[3]));
-                value += p[4]*value*(1-value);
-                rgb[k] = std::pow(std::max(value,0.0f),1/std::max(.01f,1+p[5+k]));
+                const float at = sat(rgb[k])*255;
+                const int lo = int(at), hi = std::min(255,lo+1);
+                const auto &table = *pass.curveTable;
+                rgb[k] = std::lerp(table[size_t(lo)*4+k],table[size_t(hi)*4+k],at-float(lo));
             }
             break;
         case Op::Levels:
@@ -175,12 +185,12 @@ Triple evaluate(Triple input, const std::vector<Pass> &plan, double u, double v)
     }
     return applied ? Triple{rgb[0],rgb[1],rgb[2]} : input;
 }
-Frame graded(const Frame &source, const std::vector<Pass> &plan) {
+Frame graded(const Frame &source, const std::vector<ColourPass> &plan) {
     Frame out = source;
     for (int y = 0; y < out.height; ++y) {
         for (int x = 0; x < out.width; ++x) {
             auto &c = out.rgb[size_t(y)*out.width+x];
-            c = evaluate(c,plan,(x+.5)/out.width,(y+.5)/out.height);
+            c = evaluate(c,plan,(x+.5)/out.width,(y+.5)/out.height,double(out.width)/out.height);
         }
     }
     return out;
@@ -263,7 +273,7 @@ MatchResult values(const Parameters &x) {
     return r;
 }
 struct SearchPlan {
-    std::vector<Pass> passes;
+    std::vector<ColourPass> passes;
     size_t lgg = 0, grade = 0;
     double saturation = 1;
     void set(const Parameters &x) {
@@ -363,7 +373,7 @@ QImage applyGrade(const QImage &frame, const QJsonArray &effects, const QJsonArr
         auto *row = out.scanLine(y);
         for (int x = 0; x < out.width(); ++x) {
             auto *p = row+x*4;
-            const auto c = evaluate({p[0]/255.0,p[1]/255.0,p[2]/255.0},plan,(x+.5)/out.width(),(y+.5)/out.height());
+            const auto c = evaluate({p[0]/255.0,p[1]/255.0,p[2]/255.0},plan,(x+.5)/out.width(),(y+.5)/out.height(),double(out.width())/out.height());
             for (int k = 0; k < 3; ++k) { p[k] = std::uint8_t(std::lround(clamp(c[k])*255)); }
             p[3] = 255;
         }
@@ -416,7 +426,7 @@ QJsonArray probeEffects(const QJsonArray &effects) {
     return out;
 }
 QString colorEffectAfterCorrection(const QJsonArray &effects) {
-    constexpr std::array unmodelled{"lut","posterize","stylize","generator","chromaKey","glow"};
+    constexpr std::array unmodelled{"lut","posterize","stylize","generator","chromaKey","glow","exposure","secondaryColor"};
     for (int i = matchIndex(effects)+1; i < effects.size(); ++i) {
         const auto e = effects[i].toObject();
         const auto type = e["type"].toString();

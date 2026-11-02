@@ -230,6 +230,10 @@ private slots:
         auto off = posterize; off["enabled"] = false;
         QCOMPARE(colorEffectAfterCorrection({lgg(),off}),QString());
         QCOMPARE(colorEffectAfterCorrection({lgg(),blur,edge}),QString());
+        const QJsonObject exposure{{"type","exposure"},{"enabled",true},{"exposure",.5}};
+        QCOMPARE(colorEffectAfterCorrection({lgg(),exposure}),QString("exposure"));
+        const QJsonObject secondary{{"type","secondaryColor"},{"enabled",true},{"hueShift",20}};
+        QCOMPARE(colorEffectAfterCorrection({lgg(),secondary}),QString("secondaryColor"));
         auto existing = lgg(); existing["enabled"] = false; existing["custom"] = "keep";
         auto second = lgg({.2,.2,.2}); second["id"] = "second";
         r.saturationScale = 1.2;

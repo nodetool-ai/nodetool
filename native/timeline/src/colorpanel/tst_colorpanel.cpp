@@ -519,7 +519,7 @@ private slots:
         const QJsonArray effects{
             QJsonObject{{"id", "w"}, {"type", "liftGammaGain"}, {"enabled", true}, {"lift", QJsonArray{0.03, -0.02, 0.01}}, {"gamma", QJsonArray{1.2, 0.9, 1.1}}, {"gain", QJsonArray{0.9, 1.05, 1.1}}},
             QJsonObject{{"id", "c"}, {"type", "curves"}, {"enabled", true}, {"master", QJsonArray{QJsonObject{{"x", 0}, {"y", 0}}, QJsonObject{{"x", 0.5}, {"y", 0.56}}, QJsonObject{{"x", 1}, {"y", 1}}}}},
-            QJsonObject{{"id", "e"}, {"type", "vignette"}, {"enabled", true}, {"amount", 0.5}, {"radius", 0.9}, {"softness", 0.5}},
+            QJsonObject{{"id", "e"}, {"type", "vignette"}, {"enabled", true}, {"amount", 0.5}, {"radius", 0.9}, {"softness", 0.5}, {"centerX", 0.35}, {"centerY", 0.65}, {"roundness", 1}},
             QJsonObject{{"id", "inspector:color"}, {"type", "color"}, {"enabled", true}, {"saturation", 1.2}, {"brightness", 0.02}, {"contrast", 1.05}, {"temperature", 0.1}, {"tint", -0.05}, {"shadows", 0.1}, {"highlights", -0.1}, {"hue", 4}}};
         auto a = clipJson("a", 0, 2000, path);
         TimelineModel model;
