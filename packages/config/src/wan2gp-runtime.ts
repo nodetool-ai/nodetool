@@ -118,30 +118,44 @@ const PROFILE_HINT =
   "To choose a profile yourself, run `nodetool runtime add wan2gp --profile <name>`, for example RTX_40.";
 
 /**
+ * The two parts of a line around `middle`, after the first `before`, or
+ * null when the line has neither. Plain string search: the line comes from
+ * the installer, so no pattern runs on it.
+ */
+function parts(line: string, before: string, middle: string): [string, string] | null {
+  const start = line.indexOf(before);
+  if (start < 0) return null;
+  const from = start + before.length;
+  const split = line.indexOf(middle, from);
+  return split < 0 ? null : [line.slice(from, split), line.slice(split + middle.length).trim()];
+}
+
+/**
  * The installer's error, in plain words for the cases a user can act on:
  * no supported GPU found, or a profile this operating system cannot use.
  */
 export function installerFailure(exit: number | string | null, tail: string[]): string {
-  const output = tail.join("\n");
-  const noProfile = /No automatic profile for '([^']*)'; select --profile from (.+)$/m.exec(output);
-  if (noProfile) {
-    const [, gpu, profiles] = noProfile;
-    const found =
-      gpu === "Unknown"
-        ? "Wan2GP found no supported graphics card on this computer."
-        : `Wan2GP has no setup for the graphics card it found (${gpu}).`;
-    return [
-      found,
-      "It runs on NVIDIA GeForce GTX 10 series and newer, AMD Radeon, and Apple silicon.",
-      "If the card is there, update its driver and install again.",
-      `${PROFILE_HINT} Profiles: ${profiles.trim()}.`
-    ].join(" ");
+  for (const line of tail) {
+    const noProfile = parts(line, "No automatic profile for '", "'; select --profile from ");
+    if (noProfile) {
+      const [gpu, profiles] = noProfile;
+      const found =
+        gpu === "Unknown"
+          ? "Wan2GP found no supported graphics card on this computer."
+          : `Wan2GP has no setup for the graphics card it found (${gpu}).`;
+      return [
+        found,
+        "It runs on NVIDIA GeForce GTX 10 series and newer, AMD Radeon, and Apple silicon.",
+        "If the card is there, update its driver and install again.",
+        `${PROFILE_HINT} Profiles: ${profiles}.`
+      ].join(" ");
+    }
+    const unsupported = parts(line, "Hardware profile ", " is not supported on ");
+    if (unsupported) {
+      return `Wan2GP's ${unsupported[0]} profile does not run on ${unsupported[1]}. ${PROFILE_HINT}`;
+    }
   }
-  const unsupported = /Hardware profile (\S+) is not supported on (\S+)/.exec(output);
-  if (unsupported) {
-    return `Wan2GP's ${unsupported[1]} profile does not run on ${unsupported[2]}. ${PROFILE_HINT}`;
-  }
-  return `Wan2GP's installer failed (${exit}):\n${output}`;
+  return `Wan2GP's installer failed (${exit}):\n${tail.join("\n")}`;
 }
 
 /**

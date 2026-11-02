@@ -211,6 +211,12 @@ describe.skipIf(process.platform === "win32")("Wan2GP runtime", () => {
     expect(installerFailure(2, ["setup.py: error: Hardware profile MPS is not supported on linux"])).toMatch(
       /^Wan2GP's MPS profile does not run on linux\./
     );
+    // Installer output of any shape reads in linear time.
+    const hostile = "No automatic profile for ''; select --profile from a".repeat(50_000);
+    const started = performance.now();
+    expect(installerFailure(2, [hostile, "Hardware profile ".repeat(50_000)])).toMatch(/^Wan2GP has no setup/);
+    expect(installerFailure(2, ["No automatic profile for '" + "a".repeat(100_000)])).toMatch(/installer failed/);
+    expect(performance.now() - started).toBeLessThan(1000);
   });
 
   it("finishes the install when the model catalog cannot be written yet", async () => {
