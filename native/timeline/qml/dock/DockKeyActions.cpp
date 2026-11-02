@@ -4,7 +4,7 @@
 
 namespace {
 const bool registered = [] {
-    const QStringList ordinals{"first", "second", "third", "fourth"};
+    const QStringList ordinals{"first", "second", "third", "fourth", "fifth", "sixth"};
     for (int index = 0; index < ordinals.size(); ++index) {
         nt::wiring::registerKeyAction({"workspace" + QString::number(index + 1), "Switch to the " + ordinals[index] + " workspace",
             {QKeySequence::fromString("Alt+Shift+" + QString::number(index + 1), QKeySequence::PortableText)},
@@ -14,7 +14,7 @@ const bool registered = [] {
                     if (store) { store->switchWorkspace(index); return true; }
                 }
                 return false;
-            }});
+            }, QStringLiteral("Workspaces")});
     }
     const struct { const char* id; const char* title; const char* keys; const char* side; } sides[] = {
         {"toggleLeftPanels", "Show or hide the left panels", "Ctrl+B", "left"},
