@@ -12,6 +12,9 @@
 #include <QFileInfo>
 #include <QKeyEvent>
 #include <QGuiApplication>
+#include <QClipboard>
+#include <QQmlComponent>
+#include <QQmlEngine>
 #include <QJsonArray>
 #include <QJSValue>
 #include <QQuickView>
@@ -20,6 +23,7 @@
 #include <QTemporaryDir>
 #include <QtTest>
 #include <limits>
+#include <memory>
 using namespace nt::app;
 class TestAppShell : public QObject {
     Q_OBJECT
@@ -51,6 +55,55 @@ class TestAppShell : public QObject {
         QCoreApplication::processEvents();
     }
 private slots:
+    void editMenuKeepsTextFocus_data() {
+        QTest::addColumn<QString>("action");
+        for (const auto& action : {"cut", "copy", "paste", "selectAll", "undo", "deleteSelected"}) {
+            QTest::newRow(action) << QString::fromLatin1(action);
+        }
+    }
+    void editMenuKeepsTextFocus() {
+        QFETCH(QString, action);
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData(R"(import QtQuick
+import NodeTool.UiPrimitives as Ui
+Item {
+    property bool timeline: true
+    width: 300; height: 100
+    Ui.TextField { objectName: "rename"; width: 200; value: "Clip" }
+})", QUrl());
+        std::unique_ptr<QObject> surface(component.create());
+        QVERIFY2(surface, qPrintable(component.errorString()));
+        auto* root = qobject_cast<QQuickItem*>(surface.get());
+        QVERIFY(root);
+        QQuickWindow window;
+        window.resize(300, 100);
+        root->setParentItem(window.contentItem());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        auto* input = root->findChild<QQuickItem*>("rename");
+        QVERIFY(input);
+        input->forceActiveFocus();
+        QTest::keyClick(&window, Qt::Key_End);
+        QTest::keyClick(&window, Qt::Key_S);
+        QTest::keyClick(&window, Qt::Key_A, Qt::ControlModifier);
+        QGuiApplication::clipboard()->setText("Pasted");
+        ShellMenus menus;
+        menus.setAnchor(root);
+        QVERIFY(menus.trigger(action));
+        QVERIFY(input->hasActiveFocus());
+        if (action == "cut" || action == "deleteSelected") {
+            QCOMPARE(input->property("text").toString(), QString());
+        } else if (action == "paste") {
+            QCOMPARE(input->property("text").toString(), QString("Pasted"));
+        } else if (action == "undo") {
+            QCOMPARE(input->property("text").toString(), QString("Clip"));
+        } else if (action == "copy") {
+            QCOMPARE(QGuiApplication::clipboard()->text(), QString("Clips"));
+        } else {
+            QCOMPARE(input->property("selectedText").toString(), QString("Clips"));
+        }
+    }
     void shellRegistration() {
         const auto panels = PanelRegistry().forSlot("overlay");
         QVariantList shellPanels;

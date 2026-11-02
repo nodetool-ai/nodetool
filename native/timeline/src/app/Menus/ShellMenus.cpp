@@ -185,13 +185,6 @@ bool ShellMenus::trigger(const QString& action) {
             if (item.action != action || !item.enabled || item.sequence.isEmpty()) {
                 continue;
             }
-            // Restore the editor's key path even when a menu took focus.
-            for (auto* root = m_anchor.data(); root; root = root->parentItem()) {
-                if (root->property("timeline").isValid()) {
-                    root->forceActiveFocus();
-                    break;
-                }
-            }
             const auto combination = item.sequence[0];
             const auto key = combination.key();
             const QString text = key == Qt::Key_Space ? QStringLiteral(" ")
