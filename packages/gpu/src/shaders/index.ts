@@ -1,3 +1,4 @@
+import { filterDebandV1 } from "./filters/deband/v1/module.js";
 import { colorSecondaryV1 } from "./color/secondary/v1/module.js";
 /**
  * Explicit shader barrel. The registry is populated from `ALL_SHADERS` (not
@@ -107,6 +108,7 @@ export {
   colorSolarizeV1,
   colorColorBalanceV1,
   colorExposureToneV1,
+  filterDebandV1,
   colorSecondaryV1,
   colorExposureLinearV1,
   colorLiftGammaGainV1,
@@ -186,6 +188,7 @@ export const ALL_SHADERS: readonly ShaderModule[] = [
   colorSolarizeV1,
   colorColorBalanceV1,
   colorExposureToneV1,
+  filterDebandV1,
   colorSecondaryV1,
   colorExposureLinearV1,
   colorLiftGammaGainV1,

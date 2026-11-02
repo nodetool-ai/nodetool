@@ -397,6 +397,23 @@ void main() {
         fragColor=src+vec4(p[0].xyz*cov,cov)*(1-src.a); return;
     } else if (op==19) { fragColor=src.a<=0 ? vec4(0) : vec4(src.rgb/src.a,src.a); return; }
     else if (op==20) { fragColor=vec4(src.rgb*src.a,src.a); return; }
+    else if (op==29) {
+        vec3 sum=rgb*src.a; float weight=src.a;
+        for (int ring=1;ring<=2;++ring) {
+            int radius=1+int(floor(hash31(ivec2(pixel),uint(ring)*1669u)*floor(p[0].y+0.5)));
+            for (int dy=-1;dy<=1;++dy) { for (int dx=-1;dx<=1;++dx) {
+                if (dx==0 && dy==0) continue;
+                vec4 sampleValue=loadSource(ivec2(pixel)+ivec2(dx,dy)*radius);
+                vec3 color=straight(sampleValue), delta=abs(color-rgb);
+                if (sampleValue.a>0 && p[0].z>0) {
+                    float w=sampleValue.a*(1.-smoothstep(p[0].z*0.5,p[0].z,max(max(delta.r,delta.g),delta.b)));
+                    sum+=color*w; weight+=w;
+                }
+            } }
+        }
+        float grain=(hash31(ivec2(pixel),907u)-0.5)*p[0].w/255.;
+        rgb+=p[0].x*(sum/max(weight,1./255.)-rgb+grain);
+    }
     else if (op==28) {
         vec3 hsl=toHsl(rgb);
         float distance=abs(fract(hsl.x-p[0].x/360.+0.5)-0.5)*360.;

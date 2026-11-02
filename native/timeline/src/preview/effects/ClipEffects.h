@@ -44,7 +44,8 @@ enum class Op {
     MixTreatment,
     SharpenCombine,
     Exposure,
-    SecondaryColor
+    SecondaryColor,
+    Deband
 };
 struct Pass {
     Op op = Op::Copy;

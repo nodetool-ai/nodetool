@@ -3,7 +3,7 @@ import { curveTransfer } from "./curveTransfer.js";
 import { GENERATOR_MODES, STYLIZE_MODES, type ClipEffect, type TrackEffect } from "../types.js";
 import {
   isClipBlurEffect,
-  isClipSecondaryColorEffect, isClipExposureEffect,
+  isClipDebandEffect, isClipSecondaryColorEffect, isClipExposureEffect,
   isClipChromaKeyEffect,
   isClipColorEffect,
   isClipCurvesEffect,
@@ -22,7 +22,7 @@ import {
   createLabeledTexture,
   createRecipeRunner,
   LabeledTexture,
-  colorSecondaryV1, colorExposureLinearV1,
+  filterDebandV1, colorSecondaryV1, colorExposureLinearV1,
   colorCdlV1,
   colorCurveTransferV1,
   colorGradeV1,
@@ -408,6 +408,10 @@ export class WebGPUEffectsProcessor {
     ) => void,
     stepRecipe: <P>(module: RecipeModule<P>, params: P) => void
   ): void {
+    if (isClipDebandEffect(effect)) {
+      step(filterDebandV1, {strength: effect.strength ?? 0, range: Math.round(Math.max(1, Math.min(64, effect.range ?? 16))), threshold: effect.threshold ?? 0.02, dither: effect.dither ?? 0.5});
+      return;
+    }
     if (isClipSecondaryColorEffect(effect)) {
       step(colorSecondaryV1, {
         hueCenter: effect.hueCenter ?? 0,
@@ -1008,6 +1012,7 @@ function clamp(v: number, lo: number, hi: number): number {
  */
 function isShaderStepEffect(effect: ClipEffect): boolean {
   return (
+    (isClipDebandEffect(effect) && (effect.strength ?? 0) > 0) ||
     (isClipSecondaryColorEffect(effect) && !secondaryNeutral(effect)) ||
     (isClipExposureEffect(effect) && !!(effect.exposure || effect.rolloff || effect.whites)) ||
     effect.type === "lut" ||

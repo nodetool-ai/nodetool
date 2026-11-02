@@ -329,6 +329,11 @@ std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEf
             v[3] = f(e, "tolerance");
             v[4] = f(e, "softness", 0.1);
             v[5] = f(e, "spill", 0.5);
+        } else if (type == "deband") {
+            if (number(e,"strength")<=0) { continue; }
+            p.op=Op::Deband;
+            v={std::clamp(f(e,"strength"),0.f,1.f),std::clamp(f(e,"range",16),1.f,64.f),
+               std::clamp(f(e,"threshold",0.02),0.f,0.1f),std::clamp(f(e,"dither",0.5),0.f,1.f)};
         } else if (type == "secondaryColor") {
             const auto flat=[](const QJsonArray& points) { return std::ranges::all_of(points,[](const QJsonValue& point) { return point.toObject().value("y").toDouble(0.5)==0.5; }); };
             if (!e.value("_matte").toBool() && number(e,"hueShift")==0 && number(e,"lightness")==0 && number(e,"saturation",1)==1

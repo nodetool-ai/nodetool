@@ -3,6 +3,7 @@
 const softVignette = {radius: 1.5, softness: 1, centerX: 0.5, centerY: 0.5, roundness: 0};
 
 const addableEffects = [
+    {value: "deband", label: "Deband"},
     {value: "secondaryColor", label: "Secondary color"},
     {value: "exposure", label: "Exposure / highlights"},
     {value: "blur", label: "Blur"}, {value: "glow", label: "Glow"},
@@ -16,6 +17,7 @@ const addableEffects = [
 function makeEffect(type, id) {
     const base = {id, type, enabled: true};
     switch (type) {
+    case "deband": return Object.assign(base, {strength: 0, range: 16, threshold: 0.02, dither: 0.5});
     case "secondaryColor": return Object.assign(base, {hueCenter: 0, hueWidth: 180, hueSoftness: 15, rangeSoftness: 0.1, saturationMin: 0, saturationMax: 1, lightnessMin: 0, lightnessMax: 1, hueShift: 0, saturation: 1, lightness: 0});
     case "exposure": return Object.assign(base, {exposure: 0, rolloff: 0, whites: 0});
     case "blur": return Object.assign(base, {radius: 8});
@@ -39,7 +41,7 @@ function name(type) {
     return type === "color" ? "Color" : (addableEffects.find(item => item.value === type)?.label || type);
 }
 function known(type) {
-    return ["secondaryColor", "exposure", "color", "blur", "glow", "dropShadow", "vignette", "sharpen", "chromaKey", "curves", "levels", "liftGammaGain", "grain", "pixelate", "posterize", "directionalBlur", "lensDistortion", "stylize", "generator", "lut"].includes(type);
+    return ["deband", "secondaryColor", "exposure", "color", "blur", "glow", "dropShadow", "vignette", "sharpen", "chromaKey", "curves", "levels", "liftGammaGain", "grain", "pixelate", "posterize", "directionalBlur", "lensDistortion", "stylize", "generator", "lut"].includes(type);
 }
 function readOnlyDescription(type) {
     switch (type) {
@@ -67,6 +69,8 @@ function number(key, label, fallback, minimum, step = 1, extra = {}) {
 }
 function fields(type) {
     switch (type) {
+    case "deband": return [slider("strength", "Strength", 0), slider("range", "Range", 16, 64, 1, 1, {unit: "px", decimals: 0}),
+        slider("threshold", "Threshold", 0.02, 0.1, 0, 0.001, {decimals: 3}), slider("dither", "Dither", 0.5)];
     case "secondaryColor": return [
         slider("hueCenter", "Hue center", 0, 360, 0, 1, {unit: "°", decimals: 0}),
         slider("hueWidth", "Hue half-width", 180, 180, 0, 1, {unit: "°", decimals: 0}),

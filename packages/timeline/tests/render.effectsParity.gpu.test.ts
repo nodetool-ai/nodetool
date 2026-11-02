@@ -50,6 +50,18 @@ async function comparePixels(width: number, height: number, rgba: Uint8ClampedAr
 }
 
 describe("effect parity on diagnostic pixels", () => {
+  it("debands dark ramps with stable monochrome dither", async () => {
+    const width = 128, height = 16, rgba = new Uint8ClampedArray(width * height * 4);
+    for (let y = 0; y < height; y++) { for (let x = 0; x < width; x++) {
+      const v = Math.floor(x / 8) * 4; rgba.set([v, v, v, 255], (y * width + x) * 4);
+    } }
+    const effect: KnownClipEffect = {id: "d", type: "deband", enabled: true, strength: 1, range: 8, threshold: 0.04, dither: 1};
+    const first = await comparePixels(width, height, rgba, effect);
+    const again = await comparePixels(width, height, rgba, effect);
+    expect(first.gpu).toEqual(again.gpu);
+    expect(new Set(Array.from({length: width * height}, (_, i) => first.gpu[i * 4])).size).toBeGreaterThan(40);
+    expect(first.maxError).toBeLessThanOrEqual(1);
+  });
   it("qualifies red across the hue seam while retaining unselected blue", async () => {
     const rgba = new Uint8ClampedArray([255, 0, 0, 255, 0, 0, 255, 255, 255, 0, 4, 255, 255, 0, 128, 255]);
     const result = await comparePixels(4, 1, rgba, {id: "s", type: "secondaryColor", enabled: true, hueWidth: 20, hueSoftness: 20, hueShift: 120});

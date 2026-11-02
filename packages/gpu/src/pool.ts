@@ -66,6 +66,7 @@ export {
   colorSolarizeV1,
   colorColorBalanceV1,
   colorExposureToneV1,
+  filterDebandV1,
   colorSecondaryV1,
   colorExposureLinearV1,
   colorLiftGammaGainV1,

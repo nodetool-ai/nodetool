@@ -1986,6 +1986,7 @@ export type ClipEffect = KnownClipEffect | UnknownClipEffect;
 
 /** The effects this build applies, each spelled out field by field. */
 export type KnownClipEffect =
+  | ClipDebandEffect
   | ClipSecondaryColorEffect
   | ClipExposureEffect
   | ClipColorEffect
@@ -2073,6 +2074,7 @@ export const isClipGrainEffect = (e: ClipEffect): e is ClipGrainEffect =>
  * and Canvas 2D names it in `unsupportedEffectTypes`.
  */
 export const CLIP_EFFECT_TYPES = [
+  "deband",
   "secondaryColor",
   "exposure",
   "color",
@@ -2109,6 +2111,17 @@ export interface CurvePoint {
   x: number;
   y: number;
 }
+
+export interface ClipDebandEffect {
+  id: string;
+  type: "deband";
+  enabled: boolean;
+  strength?: number;
+  range?: number;
+  threshold?: number;
+  dither?: number;
+}
+export const isClipDebandEffect = (e: ClipEffect): e is ClipDebandEffect => e.type === "deband";
 
 export interface ClipSecondaryColorEffect {
   id: string;

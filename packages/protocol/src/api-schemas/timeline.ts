@@ -1155,6 +1155,11 @@ export const clipGrainEffect = z.object({
  * its chain on the next save.
  */
 export const secondaryCurvePoints = z.array(z.object({x: z.number().min(0).max(1), y: z.number().min(0).max(1)})).max(256);
+export const clipDebandEffect = z.object({
+  id: z.string(), type: z.literal("deband"), enabled: z.boolean(),
+  strength: z.number().min(0).max(1).optional(), range: z.number().int().min(1).max(64).optional(),
+  threshold: z.number().min(0).max(0.1).optional(), dither: z.number().min(0).max(1).optional()
+});
 export const clipSecondaryColorEffect = z.object({
   id: z.string(), type: z.literal("secondaryColor"), enabled: z.boolean(),
   hueCenter: z.number().min(0).max(360).optional(),
@@ -1180,6 +1185,7 @@ export const clipExposureEffect = z.object({
 });
 
 const knownClipEffect = z.discriminatedUnion("type", [
+  clipDebandEffect,
   clipSecondaryColorEffect,
   clipExposureEffect,
   clipColorEffect,
@@ -1207,6 +1213,7 @@ const knownClipEffect = z.discriminatedUnion("type", [
  * a list for the same reason {@link KNOWN_TRANSITION_TYPE_LIST} is.
  */
 export const KNOWN_CLIP_EFFECT_TYPE_LIST = [
+  "deband",
   "secondaryColor",
   "exposure",
   "color",

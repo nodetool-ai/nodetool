@@ -258,8 +258,9 @@ void TestClipEffects::colorGestureUndoReset() {
 
 void TestClipEffects::catalogue_data() {
         QTest::addColumn<QByteArray>("expected");
-        // Literal defaults from ClipEffectsList.tsx makeEffect(), without its UUID.
+        // Creation defaults, including effects available only in the native inspector.
         const QList<QByteArray> rows{
+            R"({"type":"deband","enabled":true,"strength":0,"range":16,"threshold":0.02,"dither":0.5})",
             R"({"type":"secondaryColor","enabled":true,"hueCenter":0,"hueWidth":180,"hueSoftness":15,"rangeSoftness":0.1,"saturationMin":0,"saturationMax":1,"lightnessMin":0,"lightnessMax":1,"hueShift":0,"saturation":1,"lightness":0})",
             R"({"type":"exposure","enabled":true,"exposure":0,"rolloff":0,"whites":0})",
             R"({"type":"blur","enabled":true,"radius":8})",
@@ -347,6 +348,10 @@ void TestClipEffects::parameterFields_data() {
         };
         row("exposure-stops","exposure","exposure","1.5",R"({"exposure":1.5})");
         row("exposure-rolloff","exposure","rolloff","0.7",R"({"rolloff":0.7})");
+        row("deband-strength","deband","strength","0.8",R"({"strength":0.8})");
+        row("deband-range","deband","range","24",R"({"range":24})");
+        row("deband-threshold","deband","threshold","0.025",R"({"threshold":0.025})");
+        row("deband-dither","deband","dither","0.9",R"({"dither":0.9})");
         row("exposure-whites","exposure","whites","-0.5",R"({"whites":-0.5})");
         row("glow-radius","glow","radius","27",R"({"radius":27})");
         row("shadow-offset","dropShadow","offsetX","-18",R"({"offsetX":-18})");
@@ -365,7 +370,7 @@ void TestClipEffects::parameterFields() {
         const auto id = e.effects()[0].toObject()["id"].toString();
         auto* control = e.item("effects_"+id+"_"+field); QVERIFY(control);
         const auto before = e.model.documentJson();
-        if (type == "exposure") { QVERIFY(number(control,"change",input.toDouble())); }
+        if (type == "exposure" || type == "deband") { QVERIFY(number(control,"change",input.toDouble())); }
         else { QVERIFY(text(control,"commit",input)); }
         QCOMPARE(e.model.undoStack()->count(),2);
         const auto wanted = QJsonDocument::fromJson(expected).object();

@@ -8,6 +8,7 @@
 #include <QJsonDocument>
 #include <QtTest>
 #include <array>
+#include <set>
 #include <QScopeGuard>
 
 namespace {
@@ -475,6 +476,30 @@ private slots:
         const auto shadow=effectStill({effect("dropShadow",{{"offsetX",12},{"offsetY",0},{"blur",0},{"color","#ff0000"},{"opacity",1}})},source,false,{},0.5);
         QVERIFY(!shadow.isNull()); QVERIFY(shadow.pixelColor(51,16).red()>245); QCOMPARE(shadow.pixelColor(51,16).green(),0);
         QCOMPARE(shadow.pixelColor(10,16),QColor(Qt::black));
+    }
+    void debandPixels() {
+        QImage source(256,16,QImage::Format_RGBA8888_Premultiplied);
+        for (int y=0;y<16;++y) { for (int x=0;x<256;++x) { int v=x/16*4; source.setPixelColor(x,y,QColor(v,v,v)); } }
+        const QJsonObject controls{{"strength",1},{"range",16},{"threshold",0.04},{"dither",1}};
+        const auto result=effectStill({effect("deband",controls)},source);
+        const auto again=effectStill({effect("deband",controls)},source);
+        QVERIFY(!result.isNull()); QCOMPARE(result,again);
+        std::set<int> levels;
+        for (int y=0;y<16;++y) { for (int x=0;x<256;++x) { levels.insert(result.pixelColor(x,y).red()); } }
+        QVERIFY(levels.size()>40);
+        for (int y=0;y<16;++y) { for (int x=0;x<256;++x) { source.setPixelColor(x,y,x<128 ? Qt::black : Qt::white); } }
+        auto edgeControls=controls; edgeControls.insert("dither",0);
+        const auto sharp=effectStill({effect("deband",edgeControls)},source);
+        const auto baseline=effectStill({},source);
+        QCOMPARE(sharp,baseline);
+        const auto dithered=effectStill({effect("deband",controls)},source);
+        // Quantized dither can change a channel by one byte, without smoothing the edge.
+        for (int y=0;y<16;++y) { for (int x=0;x<256;++x) {
+            const auto actual=dithered.pixelColor(x,y), expected=baseline.pixelColor(x,y);
+            QVERIFY(std::abs(actual.red()-expected.red())<=1);
+            QCOMPARE(actual.green(),actual.red()); QCOMPARE(actual.blue(),actual.red());
+            QCOMPARE(actual.alpha(),expected.alpha());
+        } }
     }
     void secondaryColorPixels() {
         QImage source(256,16,QImage::Format_RGBA8888_Premultiplied);

@@ -1193,6 +1193,7 @@ const rgbTriple = z.tuple([z.number(), z.number(), z.number()]);
 const EFFECT_PARAMETER_FIELDS: Record<
   typeof KNOWN_CLIP_EFFECT_TYPE_LIST[number], readonly string[]
 > = {
+  deband: ["strength", "range", "threshold", "dither"],
   secondaryColor: ["hueCenter", "hueWidth", "hueSoftness", "rangeSoftness", "saturationMin", "saturationMax", "lightnessMin", "lightnessMax", "hueShift", "saturation", "lightness", "hueCurve", "saturationCurve"],
   exposure: ["exposure", "rolloff", "whites"],
   color: ["brightness", "contrast", "saturation", "hue", "temperature", "tint", "shadows", "highlights"],
@@ -1225,6 +1226,10 @@ const EFFECT_PARAMETER_FIELDS: Record<
  * one it cannot get wrong.
  */
 export const effectParams = z.object({
+  strength: z.number().min(0).max(1).optional().describe("deband: smoothing strength, 0..1, default 0."),
+  range: z.number().int().min(1).max(64).optional().describe("deband: neighborhood range in source pixels, default 16."),
+  threshold: z.number().min(0).max(0.1).optional().describe("deband: maximum encoded RGB difference for smoothing, default 0.02."),
+  dither: z.number().min(0).max(1).optional().describe("deband: fixed monochrome dither, up to one output byte level peak to peak, default 0.5."),
   hueCenter: z.number().min(0).max(360).optional().describe("secondaryColor: hueCenter, 0..360, default 0."),
   hueWidth: z.number().min(0).max(180).optional().describe("secondaryColor: hueWidth, 0..180, default 180."),
   hueSoftness: z.number().min(0).max(180).optional().describe("secondaryColor: hueSoftness, 0..180, default 15."),
@@ -1373,6 +1378,8 @@ export function buildEffect(
   effectParams.parse(input);
   const base = { id: `fx-${index + 1}`, enabled: true };
   switch (input.type) {
+    case "deband":
+      return {...base, type: "deband", strength: input.strength ?? 0, range: input.range ?? 16, threshold: input.threshold ?? 0.02, dither: input.dither ?? 0.5};
     case "secondaryColor":
       return { ...base, type: "secondaryColor",
         hueCenter: input.hueCenter ?? 0,
