@@ -9,7 +9,7 @@ var sidePanels = ["inspector", "shot", "instruments", "assistant", "history", "c
 var requiredPanels = ["program", "tracks"];
 // Panels only this editor has, which a ported preset would otherwise show. Review leaves the
 // right side empty for the picture, and the port above keeps its own list of what it hides.
-var nativeHidden = {Review: ["effectControls", "color"]};
+var nativeHidden = {Review: ["effectControls", "color", "audio"]};
 
 // Field-for-field port of TimelineDockLayout.ts, checked by dock-conformance.mjs.
 function createLayout(name) {
