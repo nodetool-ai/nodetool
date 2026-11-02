@@ -115,16 +115,14 @@ private slots:
         }
         QCOMPARE(matches, groupTitle.isEmpty() ? 0 : 1);
     }
-    // Every clip delegate holds a menu, so a timeline must not pay for registered items no one opened.
+    // A timeline must not pay for a menu or its registered items before someone opens them.
     void clipMenuBuildsItsRegisteredItemsWhenItOpens() {
         const auto registered = [this](QObject* menu) {
             auto list = entries(menu);
             list.removeIf([](const QString& entry) { return !entry.startsWith("registryMenu-clip-"); });
             return list;
         };
-        auto* closed = item("clip-c")->findChild<QObject*>("registryContextMenu-clip");
-        QVERIFY(closed);
-        QCOMPARE(registered(closed), QStringList{});
+        QVERIFY(!item("clip-c")->findChild<QObject*>("registryContextMenu-clip"));
         auto* menu = popup("clip", "clip-c");
         QVERIFY(menu);
         QVERIFY(!registered(menu).isEmpty());
