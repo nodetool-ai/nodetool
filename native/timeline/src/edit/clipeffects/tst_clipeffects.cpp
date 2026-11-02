@@ -1,4 +1,5 @@
 #include "edit/ClipGestureController.h"
+#include "edit/clipeffects/ClipAnalysisController.h"
 #include "edit/inspectorsections/InspectorSectionRegistry.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
@@ -7,6 +8,7 @@
 #include <QFile>
 #include <QGuiApplication>
 #include <QJsonDocument>
+#include <QJSValue>
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QPointer>
@@ -168,6 +170,7 @@ class TestClipEffects : public QObject {
     Q_OBJECT
 private slots:
     void init() {
+        QTest::failOnWarning(QRegularExpression("(EffectFields|ToneCurveEditor)\\.qml:.*(Unable to assign|TypeError|ReferenceError)"));
         QTest::failOnWarning(QRegularExpression(
             "(InspectorActionButton|InspectorSectionTitle)\\.qml:.*does not support customization"));
     }
@@ -177,19 +180,90 @@ private slots:
     void colorRangesAndPointerGesture();
     void catalogue_data();
     void catalogue();
+    void analysisLifecycle();
+    void stabilizationLifecycle();
     void listActionsAndParameterGesture_data();
     void listActionsAndParameterGesture();
     void dragReorder();
     void collapsedRowsReleaseSpace();
     void parameterFields_data();
     void parameterFields();
+    void importedColorInstance();
+    void fixedProcessingStages();
+    void softVignettePreset();
     void invalidNumbersAndGestureCancellation();
     void curvePointEditing();
+    void secondaryColorEditing();
     void cancellationLocksAndPlayhead();
     void groupSections();
     void foldsAndSearch();
     void exportDocuments();
 };
+
+void TestClipEffects::stabilizationLifecycle() {
+    Editor editor; QVERIFY2(editor.object,qPrintable(editor.error));
+    const auto directory=QString(NT_TIMELINE_DIR)+"/src/preview/effects/fixtures/";
+    const auto path=directory+"source-jitter.mp4"; QVERIFY(QFile::exists(path));
+    QJsonObject effect{{"id","analysis"},{"type","stabilize"},{"enabled",true}};
+    editor.patch({{"mediaType","video"},{"mediaPath",path},{"durationMs",2000},{"effects",QJsonArray{effect}}});
+    auto media=*editor.model.findClip("picture"); media.mediaPath=path.toStdString(); editor.model.registerMedia(media);
+    ClipAnalysisController controller;
+    controller.setModel(&editor.model); controller.setClipId("picture"); controller.setEffectId("analysis");
+    controller.analyze(); QVERIFY(controller.busy()); QTRY_VERIFY_WITH_TIMEOUT(!controller.busy(),30000);
+    QVERIFY2(controller.status().startsWith("Analysis ready"),qPrintable(controller.status()));
+    const auto data=editor.model.findClip("picture")->raw.value("effects").toArray()[0].toObject().value("analysis").toObject();
+    QCOMPARE(data.value("kind").toString(),QString("stabilize")); QVERIFY(data.value("trackedFrames").toInt()>=50);
+    const auto samples=data.value("samples").toArray(); QCOMPARE(samples.size(),60);
+    QFile reference(directory+"clip-stabilize.json"); QVERIFY(reference.open(QIODevice::ReadOnly));
+    const auto expected=QJsonDocument::fromJson(reference.readAll()).object().value("clips").toArray()[0].toObject()
+        .value("effects").toArray()[0].toObject().value("analysis").toObject().value("samples").toArray();
+    for (int i : {10,11,20,31,40,50}) { for (const auto* axis : {"x","y"}) {
+        QVERIFY2(std::abs(samples[i].toObject().value(axis).toDouble()-expected[i].toObject().value(axis).toDouble())<.004,axis);
+    } }
+    QVERIFY(data.value("requiredZoom").toDouble()>1.01); QVERIFY(data.value("requiredZoom").toDouble()<1.15);
+    QCOMPARE(editor.model.undoStack()->count(),1); const auto saved=editor.model.documentJson();
+    editor.model.undoStack()->undo(); QVERIFY(controller.status().startsWith("Analyze the source"));
+    editor.model.undoStack()->redo(); QCOMPARE(editor.model.documentJson(),saved);
+    controller.analyze(); controller.cancel(); QTest::qWait(50); QCOMPARE(editor.model.documentJson(),saved);
+}
+void TestClipEffects::analysisLifecycle() {
+    Editor editor; QVERIFY2(editor.object,qPrintable(editor.error));
+    const auto path=QString(NT_TIMELINE_DIR)+"/src/preview/effects/fixtures/source-flicker.mp4";
+    QVERIFY(QFile::exists(path));
+    QJsonObject effect{{"id","analysis"},{"type","deflicker"},{"enabled",true},{"windowMs",500},{"maxCorrection",1}};
+    editor.patch({{"mediaType","video"},{"mediaPath",path},{"durationMs",3000},{"effects",QJsonArray{effect}}});
+    auto media=*editor.model.findClip("picture"); media.mediaPath=path.toStdString();
+    editor.model.registerMedia(media);
+    ClipAnalysisController controller;
+    controller.setModel(&editor.model); controller.setClipId("picture"); controller.setEffectId("analysis");
+    controller.analyze(); QVERIFY(controller.busy());
+    QTRY_VERIFY_WITH_TIMEOUT(!controller.busy(),10000);
+    QVERIFY2(controller.status().startsWith("Analysis ready"),qPrintable(controller.status()));
+    QCOMPARE(editor.model.undoStack()->count(),1);
+    const auto samples=editor.model.findClip("picture")->raw.value("effects").toArray()[0].toObject()
+        .value("analysis").toObject().value("samples").toArray();
+    QCOMPARE(samples.size(),90);
+    for (int i=8;i<22;++i) {
+        const double expected=i%2 ? -.5 : .5;
+        QVERIFY(std::abs(samples[i].toObject().value("stops").toDouble()-expected)<.1);
+    }
+    for (int i=60;i<90;++i) { QCOMPARE(samples[i].toObject().value("stops").toDouble(),0.); }
+    const auto saved=editor.model.documentJson();
+    editor.model.undoStack()->undo(); QVERIFY(controller.status().startsWith("Analyze the source"));
+    editor.model.undoStack()->redo(); QCOMPARE(editor.model.documentJson(),saved);
+    controller.analyze(); QVERIFY(controller.busy()); controller.cancel();
+    QTest::qWait(50); QCOMPARE(editor.model.documentJson(),saved); QCOMPARE(editor.model.undoStack()->count(),1);
+    controller.analyze(); QVERIFY(controller.busy());
+    effect=editor.model.findClip("picture")->raw.value("effects").toArray()[0].toObject();
+    const auto oldAnalysis=effect.value("analysis"); effect.insert("windowMs",1000);
+    editor.model.applyEdit("patchClip",{{"clipId","picture"},{"patch",QJsonObject{{"effects",QJsonArray{effect}}}}});
+    QTRY_VERIFY(!controller.busy()); QTest::qWait(50);
+    QCOMPARE(editor.model.findClip("picture")->raw.value("effects").toArray()[0].toObject().value("analysis"),oldAnalysis);
+    QCOMPARE(editor.model.undoStack()->count(),2);
+    controller.analyze(); QVERIFY(controller.busy()); editor.model.close();
+    QTRY_VERIFY(!controller.busy()); QTest::qWait(50); QCOMPARE(editor.model.clipCount(),0);
+    QCOMPARE(editor.model.undoStack()->count(),0);
+}
 
 void TestClipEffects::registration() {
         InspectorSectionRegistry registry;
@@ -252,8 +326,14 @@ void TestClipEffects::colorGestureUndoReset() {
 
 void TestClipEffects::catalogue_data() {
         QTest::addColumn<QByteArray>("expected");
-        // Literal defaults from ClipEffectsList.tsx makeEffect(), without its UUID.
+        // Creation defaults, including effects available only in the native inspector.
         const QList<QByteArray> rows{
+            R"({"type":"denoise","enabled":true,"lumaStrength":0,"chromaStrength":0,"temporalStrength":0,"radius":2})",
+            R"({"type":"stabilize","enabled":true,"strength":1,"windowMs":500,"maxZoom":1.1})",
+            R"({"type":"deflicker","enabled":true,"strength":1,"windowMs":500,"maxCorrection":1})",
+            R"({"type":"deband","enabled":true,"strength":0,"range":16,"threshold":0.02,"dither":0.5})",
+            R"({"type":"secondaryColor","enabled":true,"hueCenter":0,"hueWidth":180,"hueSoftness":15,"rangeSoftness":0.1,"saturationMin":0,"saturationMax":1,"lightnessMin":0,"lightnessMax":1,"hueShift":0,"saturation":1,"lightness":0})",
+            R"({"type":"exposure","enabled":true,"exposure":0,"rolloff":0,"whites":0})",
             R"({"type":"blur","enabled":true,"radius":8})",
             R"({"type":"glow","enabled":true,"radius":8,"intensity":1})",
             R"({"type":"dropShadow","enabled":true,"offsetX":8,"offsetY":8,"blur":12,"color":"#000000","opacity":0.6})",
@@ -263,7 +343,11 @@ void TestClipEffects::catalogue_data() {
             R"({"type":"curves","enabled":true,"master":[{"x":0,"y":0},{"x":1,"y":1}]})",
             R"({"type":"levels","enabled":true,"inBlack":0,"inWhite":1,"gamma":1,"outBlack":0,"outWhite":1})",
             R"({"type":"liftGammaGain","enabled":true,"lift":[0,0,0],"gamma":[1,1,1],"gain":[1,1,1]})",
-            R"({"type":"grain","enabled":true,"amount":0.25,"size":1,"colorAmount":0,"roughness":0.5,"softness":0.25,"animate":true})"};
+            R"({"type":"grain","enabled":true,"amount":0.25,"size":1,"colorAmount":0,"roughness":0.5,"softness":0.25,"animate":true})",
+            R"({"type":"pixelate","enabled":true,"cellSize":8})",
+            R"({"type":"posterize","enabled":true,"levels":4})",
+            R"({"type":"directionalBlur","enabled":true,"radius":8,"angle":0})",
+            R"({"type":"lensDistortion","enabled":true,"amount":0.5})"};
         for (const auto& row : rows) { QTest::newRow(qPrintable(QJsonDocument::fromJson(row).object()["type"].toString())) << row; }
     }
 
@@ -292,7 +376,7 @@ void TestClipEffects::listActionsAndParameterGesture() {
             QCOMPARE(scrollBar->width(), qreal(scrollBarWidth));
         }
         e.patch({{"effects",QJsonArray{
-            QJsonObject{{"id","a"},{"type","blur"},{"enabled",true},{"radius",8},{"sigma",2}},
+            QJsonObject{{"id","a"},{"type","directionalBlur"},{"enabled",true},{"radius",8},{"angle",0},{"sigma",2}},
             QJsonObject{{"id","inspector:color"},{"type","color"},{"enabled",true},{"contrast",1.3}},
             QJsonObject{{"id","future"},{"type","futureEffect"},{"enabled",true},{"opaque",QJsonObject{{"x",7}}}},
             QJsonObject{{"id","b"},{"type","vignette"},{"enabled",false},{"amount",0.4},{"softness",0.5}}}}});
@@ -333,6 +417,23 @@ void TestClipEffects::parameterFields_data() {
         const auto row = [](const char* name,const QString& type,const QString& field,const QString& input,const QByteArray& expected) {
             QTest::newRow(name) << type << field << input << expected;
         };
+        row("exposure-stops","exposure","exposure","1.5",R"({"exposure":1.5})");
+        row("exposure-rolloff","exposure","rolloff","0.7",R"({"rolloff":0.7})");
+        row("denoise-luma","denoise","lumaStrength","0.7",R"({"lumaStrength":0.7})");
+        row("denoise-chroma","denoise","chromaStrength","0.8",R"({"chromaStrength":0.8})");
+        row("denoise-temporal","denoise","temporalStrength","0.9",R"({"temporalStrength":0.9})");
+        row("denoise-radius","denoise","radius","3",R"({"radius":3})");
+        row("stabilize-strength","stabilize","strength","0.8",R"({"strength":0.8})");
+        row("stabilize-window","stabilize","windowMs","1000",R"({"windowMs":1000})");
+        row("stabilize-zoom","stabilize","maxZoom","1.2",R"({"maxZoom":1.2})");
+        row("deflicker-strength","deflicker","strength","0.8",R"({"strength":0.8})");
+        row("deflicker-window","deflicker","windowMs","1000",R"({"windowMs":1000})");
+        row("deflicker-limit","deflicker","maxCorrection","2",R"({"maxCorrection":2})");
+        row("deband-strength","deband","strength","0.8",R"({"strength":0.8})");
+        row("deband-range","deband","range","24",R"({"range":24})");
+        row("deband-threshold","deband","threshold","0.025",R"({"threshold":0.025})");
+        row("deband-dither","deband","dither","0.9",R"({"dither":0.9})");
+        row("exposure-whites","exposure","whites","-0.5",R"({"whites":-0.5})");
         row("glow-radius","glow","radius","27",R"({"radius":27})");
         row("shadow-offset","dropShadow","offsetX","-18",R"({"offsetX":-18})");
         row("shadow-color","dropShadow","color","#123456",R"({"color":"#123456"})");
@@ -346,16 +447,44 @@ void TestClipEffects::parameterFields_data() {
 
 void TestClipEffects::parameterFields() {
         QFETCH(QString,type); QFETCH(QString,field); QFETCH(QString,input); QFETCH(QByteArray,expected);
-        Editor e; QVERIFY2(e.object,qPrintable(e.error)); QVERIFY(e.add(type));
+        Editor e; QVERIFY2(e.object,qPrintable(e.error));
+        if (type=="denoise") { e.patch({{"mediaType","video"}}); e.model.undoStack()->clear(); }
+        QVERIFY(e.add(type));
         const auto id = e.effects()[0].toObject()["id"].toString();
         auto* control = e.item("effects_"+id+"_"+field); QVERIFY(control);
         const auto before = e.model.documentJson();
-        QVERIFY(text(control,"commit",input)); QCOMPARE(e.model.undoStack()->count(),2);
+        if (type == "exposure" || type == "deband" || type == "deflicker" || type == "stabilize" || type == "denoise") { QVERIFY(number(control,"change",input.toDouble())); }
+        else { QVERIFY(text(control,"commit",input)); }
+        QCOMPARE(e.model.undoStack()->count(),2);
         const auto wanted = QJsonDocument::fromJson(expected).object();
         for (auto it = wanted.begin(); it != wanted.end(); ++it) { QCOMPARE(e.effects()[0].toObject()[it.key()],it.value()); }
         const auto after = e.model.documentJson(); e.model.undoStack()->undo(); QCOMPARE(e.model.documentJson(),before);
         e.model.undoStack()->redo(); QCOMPARE(e.model.documentJson(),after);
     }
+
+void TestClipEffects::importedColorInstance() {
+    Editor e; QVERIFY2(e.object, qPrintable(e.error));
+    const QJsonObject first{{"id", "first"}, {"type", "color"}, {"enabled", true}, {"brightness", 0.1}};
+    const QJsonObject second{{"id", "second"}, {"type", "color"}, {"enabled", true}, {"brightness", -0.1}, {"custom", "keep"}};
+    e.patch({{"effects", QJsonArray{first, second}}});
+    auto* section = e.item("clipEffectsList"); QVERIFY(section);
+    QVERIFY(QMetaObject::invokeMethod(section, "toggled", Q_ARG(bool, true)));
+    auto* expand = e.item("effectsExpand_second"); QVERIFY(expand); e.click(expand);
+    auto* brightness = e.item("effects_second_brightness"); QVERIFY(brightness);
+    const auto before = e.model.documentJson();
+    QVERIFY(QMetaObject::invokeMethod(brightness, "gestureStarted"));
+    QVERIFY(number(brightness, "preview", 0.25));
+    QCOMPARE(e.effects().size(), 2);
+    QCOMPARE(e.effects()[0], QJsonValue(first));
+    QCOMPARE(e.effects()[1].toObject()["brightness"].toDouble(), 0.25);
+    QCOMPARE(e.model.undoStack()->count(), 0);
+    QVERIFY(number(brightness, "change", 0.25));
+    QCOMPARE(e.model.undoStack()->count(), 1);
+    QCOMPARE(e.effects()[1].toObject()["custom"].toString(), QString("keep"));
+    const auto after = e.model.documentJson();
+    e.model.undoStack()->undo(); QCOMPARE(e.model.documentJson(), before);
+    e.model.undoStack()->redo(); QCOMPARE(e.model.documentJson(), after);
+}
 
 void TestClipEffects::invalidNumbersAndGestureCancellation() {
         Editor e; QVERIFY2(e.object,qPrintable(e.error)); QVERIFY(e.add("levels"));
@@ -375,6 +504,79 @@ void TestClipEffects::invalidNumbersAndGestureCancellation() {
         if (pending) { QVERIFY(text(pending,"commit","4")); }
         QCOMPARE(e.model.documentJson(),before);
     }
+
+void TestClipEffects::softVignettePreset() {
+    Editor e; QVERIFY2(e.object,qPrintable(e.error)); QVERIFY(e.add("vignette"));
+    const auto original=e.effects()[0].toObject();
+    const auto before=e.model.documentJson();
+    auto* preset=e.item("effects_"+original["id"].toString()+"_softPreset"); QVERIFY(preset);
+    e.click(preset);
+    const auto changed=e.effects()[0].toObject();
+    QCOMPARE(changed["radius"].toDouble(),1.5); QCOMPARE(changed["softness"].toDouble(),1.0);
+    QCOMPARE(changed["centerX"].toDouble(),0.5); QCOMPARE(changed["roundness"].toDouble(),0.0);
+    QCOMPARE(changed["amount"],original["amount"]);
+    QCOMPARE(e.model.undoStack()->count(),2);
+    e.model.undoStack()->undo(); QCOMPARE(e.model.documentJson(),before);
+}
+
+void TestClipEffects::fixedProcessingStages() {
+    Editor e; QVERIFY2(e.object,qPrintable(e.error));
+    e.patch({{"effects",QJsonArray{
+        QJsonObject{{"id","blur"},{"type","blur"},{"enabled",true},{"radius",8}},
+        QJsonObject{{"id","color"},{"type","color"},{"enabled",true},{"brightness",0.2}},
+        QJsonObject{{"id","v"},{"type","vignette"},{"enabled",true},{"amount",0.5}}
+    }}});
+    const auto before=e.model.documentJson();
+    QVERIFY(QMetaObject::invokeMethod(e.item("clipEffectsList"),"toggled",Q_ARG(bool,true)));
+    auto* v=e.item("effectRow_v"); auto* color=e.item("effectRow_color"); auto* blur=e.item("effectRow_blur");
+    QVERIFY(v && color && blur);
+    QVERIFY(v->y()<color->y()); QVERIFY(color->y()<blur->y());
+    QVERIFY(e.item("effectsReorder_v")->isVisible());
+    QVERIFY(!e.item("effectsReorder_color")->isVisible());
+    QVERIFY(!e.item("effectsReorder_blur")->isVisible());
+    QCOMPARE(e.model.documentJson(),before);
+}
+
+void TestClipEffects::secondaryColorEditing() {
+    Editor e; QVERIFY2(e.object,qPrintable(e.error)); QVERIFY(e.add("secondaryColor"));
+    const auto id=e.effects()[0].toObject()["id"].toString();
+    e.model.undoStack()->clear();
+    const auto before=e.model.documentJson();
+    auto* matte=e.item("effects_"+id+"_matte"); QVERIFY(matte); e.click(matte);
+    QCOMPARE(e.model.effectMatteId(),id); QCOMPARE(e.model.documentJson(),before); QCOMPARE(e.model.undoStack()->count(),0);
+    auto* width=e.item("effects_"+id+"_hueWidth"); QVERIFY(width);
+    QVERIFY(number(width,"change",30));
+    QCOMPARE(e.effects()[0].toObject()["hueWidth"].toDouble(),30.);
+    QCOMPARE(e.model.effectMatteId(),id); QCOMPARE(e.model.undoStack()->count(),1);
+    e.model.undoStack()->undo(); QCOMPARE(e.model.documentJson(),before);
+    auto* curves=e.item("effects_"+id+"_secondaryCurves"); QVERIFY(curves);
+    const QVariant nextPoint=QVariantMap{{"x",0.5},{"y",0.75}};
+    QVERIFY(QMetaObject::invokeMethod(curves,"addPoint",Q_ARG(QVariant,nextPoint)));
+    const auto points=e.effects()[0].toObject()["hueCurve"].toArray(); QCOMPARE(points.size(),3);
+    QCOMPARE(points[0].toObject()["y"],points[2].toObject()["y"]);
+    auto* first=find(curves,"toneCurvePoint_0"); QVERIFY(first); first->forceActiveFocus();
+    QTest::keyClick(&e.window,Qt::Key_Up);
+    const auto changed=e.effects()[0].toObject()["hueCurve"].toArray();
+    QCOMPARE(changed[0].toObject()["y"],changed[2].toObject()["y"]);
+    QVERIFY(changed[0].toObject()["y"].toDouble()>0.5);
+    const QList<QPair<QJsonArray,double>> importedCurves{
+        {QJsonArray{QJsonObject{{"x",0.5},{"y",0.25}}},0.25},
+        {QJsonArray{QJsonObject{{"x",1},{"y",0.8}},QJsonObject{{"x",0},{"y",0.6}},QJsonObject{{"x",0},{"y",0.7}}},0.7}};
+    for (const auto& [input,red] : importedCurves) {
+        auto imported=e.effects()[0].toObject(); imported.insert("hueCurve",input);
+        e.patch({{"effects",QJsonArray{imported}}});
+        auto* current=e.item("effects_"+id+"_secondaryCurves"); QVERIFY(current);
+        auto displayed=current->property("points");
+        if (displayed.canConvert<QJSValue>()) { displayed=displayed.value<QJSValue>().toVariant(); }
+        const auto knots=displayed.toList(); QVERIFY(knots.size()>=2);
+        QCOMPARE(knots.first().toMap()["y"].toDouble(),red);
+        QCOMPARE(knots.last().toMap()["y"].toDouble(),red);
+    }
+    const auto saved=e.model.documentJson();
+    e.select("other"); QVERIFY(e.model.effectMatteId().isEmpty()); QCOMPARE(e.model.documentJson(),saved);
+    e.model.setEffectMattePreview("picture",id); QCOMPARE(e.model.effectMatteId(),id);
+    e.model.close(); QVERIFY(e.model.effectMatteId().isEmpty());
+}
 
 void TestClipEffects::curvePointEditing() {
         Editor e; QVERIFY2(e.object,qPrintable(e.error)); QVERIFY(e.add("curves"));
@@ -546,7 +748,7 @@ void TestClipEffects::dragReorder() {
     Editor e; QVERIFY2(e.object,qPrintable(e.error));
     const QJsonObject owned{{"id","inspector:color"},{"type","color"},{"enabled",true},{"hue",12}};
     e.patch({{"effects",QJsonArray{
-        QJsonObject{{"id","a"},{"type","blur"},{"enabled",true},{"radius",8}},owned,
+        QJsonObject{{"id","a"},{"type","glow"},{"enabled",true},{"radius",8},{"intensity",1}},owned,
         QJsonObject{{"id","b"},{"type","vignette"},{"enabled",true},{"amount",0.4},{"softness",0.5}},
         QJsonObject{{"id","c"},{"type","grain"},{"enabled",true},{"amount",0.25}}}}});
     auto* section = e.item("clipEffectsList"); QVERIFY(section); section->setProperty("open",true);

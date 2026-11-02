@@ -81,6 +81,11 @@ float softLight(float base,float blend) {
     if (base<=0.25) d=((16*base-12)*base+4)*base;
     return base+(2*blend-1)*(d-base);
 }
+float curveValue(float value,int channel) {
+    float at=clamp(value,0,1)*255;
+    int lo=int(floor(at)), hi=min(255,lo+1);
+    return mix(texelFetch(second,ivec2(lo,0),0)[channel],texelFetch(second,ivec2(hi,0),0)[channel],fract(at));
+}
 // packages/gpu/src/shaders/filters/visualFx/v1, with the optional mask at full coverage.
 float visualHash(vec2 v) {
     uint x=uint(int(v.x)), y=uint(int(v.y));
@@ -200,6 +205,26 @@ vec4 visualFx(vec2 v) {
     }
     return vec4(clamp(result.rgb,vec3(0),vec3(result.a)),result.a);
 }
+vec3 toHsl(vec3 rgb) {
+    float hi=max(max(rgb.r,rgb.g),rgb.b), lo=min(min(rgb.r,rgb.g),rgb.b), delta=hi-lo, l=(hi+lo)*0.5;
+    if (delta<0.000001) return vec3(0,0,l);
+    float h=hi==rgb.r ? (rgb.g-rgb.b)/delta : hi==rgb.g ? (rgb.b-rgb.r)/delta+2. : (rgb.r-rgb.g)/delta+4.;
+    return vec3(fract(h/6.),delta/max(0.000001,1.-abs(2.*l-1.)),l);
+}
+vec3 fromHsl(vec3 hsl) {
+    vec3 ramp=clamp(abs(fract(vec3(hsl.x)+vec3(0,2./3.,1./3.))*6.-3.)-1.,0.,1.);
+    return vec3(hsl.z)+(1.-abs(2.*hsl.z-1.))*hsl.y*(ramp-0.5);
+}
+float rangeMask(float v,float low,float high,float soft) {
+    if (low>high) return 0.;
+    if (v>=low && v<=high) return 1.;
+    if (soft<=0) return 0.;
+    return v<low ? smoothstep(low-soft,low,v) : 1.-smoothstep(high,high+soft,v);
+}
+float cubic(float distance) {
+    float x=abs(distance);
+    return x<=1 ? 1.5*x*x*x-2.5*x*x+1 : x<2 ? -0.5*x*x*x+2.5*x*x-4*x+2 : 0;
+}
 void main() {
     int op=int(geometry.z+0.5);
     vec2 pixel=floor(uv*dimensions.xy);
@@ -208,6 +233,18 @@ void main() {
     vec3 rgb=straight(src);
     if (geometry.w>0.5 && (any(lessThan(pixel,origin.xy)) || any(greaterThanEqual(pixel,origin.xy+dimensions.zw)))) {
         fragColor=vec4(0); return;
+    }
+    if (op==30) {
+        if (any(lessThan(logical,vec2(0))) || any(greaterThanEqual(logical,vec2(1)))) { fragColor=vec4(0); return; }
+        vec2 mapped=vec2(dot(p[0].xy,logical)+p[0].z,p[0].w*logical.x+p[1].x*logical.y+p[1].y);
+        vec2 at=origin.xy+mapped*dimensions.zw-0.5;
+        ivec2 base=ivec2(floor(at)); vec4 result=vec4(0);
+        for (int y=-1;y<=2;++y) { for (int x=-1;x<=2;++x) {
+            ivec2 coord=clamp(base+ivec2(x,y),ivec2(origin.xy),ivec2(origin.xy+dimensions.zw)-1);
+            if (geometry.x>0.5) { coord.y=int(dimensions.y)-1-coord.y; }
+            result+=texelFetch(source,coord,0)*cubic(at.x-float(base.x+x))*cubic(at.y-float(base.y+y));
+        } }
+        float alpha=clamp(result.a,0.,1.); fragColor=vec4(clamp(result.rgb,vec3(0),vec3(alpha)),alpha); return;
     }
     if (op==21) { fragColor=visualFx(geometry.w>0.5 ? logical : uv); return; }
     if (op==22) {
@@ -273,13 +310,14 @@ void main() {
         }
     } else if (op==2) {
         if (p[0].x<0.5) { fragColor=src; return; }
-        int radius=int(min(p[0].x,20)); float spacing=max(1,p[0].x/20), sigma=p[0].y<=0 ? p[0].x/3 : p[0].y;
-        vec4 sum=vec4(0); float weights=0;
-        for (int i=-radius;i<=radius;++i) {
-            float distance=float(i)*spacing;
+        int radius=int(min(p[0].x,256)); float sigma=p[0].y<=0 ? p[0].x/3 : p[0].y;
+        vec4 sum=loadSource(ivec2(pixel)); float weights=1, weight=1;
+        float ratio=exp(-0.5/(sigma*sigma)), ratioStep=ratio*ratio;
+        for (int i=1;i<=radius;++i) {
+            weight*=ratio; ratio*=ratioStep;
+            float distance=float(i);
             ivec2 offset=ivec2(round(p[0].zw*distance));
-            float w=exp(-(distance*distance)/(2*sigma*sigma))/(sqrt(2*3.14159265)*sigma);
-            sum+=loadSource(ivec2(pixel)+offset)*w; weights+=w;
+            sum+=(loadSource(ivec2(pixel)+offset)+loadSource(ivec2(pixel)-offset))*weight; weights+=2*weight;
         }
         fragColor=sum/weights; return;
     } else if (op==3) {
@@ -298,12 +336,19 @@ void main() {
         return;
     } else if (op==6) {
         float inner=max(0,p[0].y-p[0].z), outer=max(inner+0.001,p[0].y);
-        float t=clamp((length(logical*2-1)-inner)/(outer-inner),0,1);
+        vec2 axis=mix(vec2(1),dimensions.zw/min(dimensions.z,dimensions.w),p[1].y);
+        vec2 position=(logical*2-vec2(p[0].w,p[1].x)*2)*axis;
+        float t=clamp((length(position)-inner)/(outer-inner),0,1);
         fragColor=vec4(src.rgb*(1-p[0].x*t*t*(3-2*t)),src.a); return;
-    } else if (op==7) {
-        vec4 sum=vec4(0);
-        for (int j=-1;j<=1;++j) { for (int i=-1;i<=1;++i) { sum+=loadSource(ivec2(pixel)+ivec2(i,j)); } }
-        vec3 diff=rgb-straight(sum/9);
+    } else if (op==7 || op==26) {
+        vec4 low;
+        if (op==26) { low=texture(second,oriented(uv)); }
+        else {
+            vec4 sum=vec4(0);
+            for (int j=-1;j<=1;++j) { for (int i=-1;i<=1;++i) { sum+=loadSource(ivec2(pixel)+ivec2(i,j)); } }
+            low=sum/9;
+        }
+        vec3 diff=rgb-straight(low);
         float mask=step(p[0].y,abs(dot(diff,vec3(0.299,0.587,0.114))));
         rgb=clamp(rgb+diff*p[0].x*mask,0,1);
     } else if (op==8) {
@@ -320,11 +365,7 @@ void main() {
         }
         float a=src.a*mask; fragColor=vec4(rgb*a,a); return;
     } else if (op==9) {
-        rgb=clamp((rgb-p[0].x)/max(0.001,p[0].y-p[0].x),0,1);
-        rgb+=p[0].z*(1-rgb)*rgb;
-        rgb=pow(max(rgb,vec3(0)),vec3(1/max(0.01,1+p[0].w)));
-        rgb+=p[1].x*rgb*(1-rgb);
-        rgb=pow(max(rgb,vec3(0)),1/max(vec3(0.01),1+p[1].yzw));
+        rgb=vec3(curveValue(rgb.r,0),curveValue(rgb.g,1),curveValue(rgb.b,2));
     } else if (op==10) {
         rgb=pow(clamp((rgb-p[0].x)/max(1.0/255.0,p[0].z-p[0].x),0,1),vec3(1/max(0.01,p[0].y)));
     } else if (op==11) {
@@ -360,7 +401,7 @@ void main() {
         float t=smoothstep(p[0].x-max(p[0].y,0.0001),p[0].x+max(p[0].y,0.0001),dot(rgb,vec3(0.299,0.587,0.114)));
         fragColor=src*t; return;
     } else if (op==16) { fragColor=vec4(0,0,0,src.a); return; }
-    else if (op==17) { fragColor=clamp(src+texture(second,oriented(uv))*p[0].x,0,1); return; }
+    else if (op==17) { fragColor=clamp(src+texture(second,oriented(uv))*vec4(p[0].yzw,1)*p[0].x,0,1); return; }
     else if (op==18) {
         vec2 shadowUv=uv-p[1].xy/dimensions.xy;
         vec2 first=geometry.w>0.5 ? origin.xy/dimensions.xy : vec2(0);
@@ -372,5 +413,42 @@ void main() {
         fragColor=src+vec4(p[0].xyz*cov,cov)*(1-src.a); return;
     } else if (op==19) { fragColor=src.a<=0 ? vec4(0) : vec4(src.rgb/src.a,src.a); return; }
     else if (op==20) { fragColor=vec4(src.rgb*src.a,src.a); return; }
+    else if (op==29) {
+        vec3 sum=rgb*src.a; float weight=src.a;
+        for (int ring=1;ring<=2;++ring) {
+            int radius=1+int(floor(hash31(ivec2(pixel),uint(ring)*1669u)*floor(p[0].y+0.5)));
+            for (int dy=-1;dy<=1;++dy) { for (int dx=-1;dx<=1;++dx) {
+                if (dx==0 && dy==0) continue;
+                vec4 sampleValue=loadSource(ivec2(pixel)+ivec2(dx,dy)*radius);
+                vec3 color=straight(sampleValue), delta=abs(color-rgb);
+                if (sampleValue.a>0 && p[0].z>0) {
+                    float w=sampleValue.a*(1.-smoothstep(p[0].z*0.5,p[0].z,max(max(delta.r,delta.g),delta.b)));
+                    sum+=color*w; weight+=w;
+                }
+            } }
+        }
+        float grain=(hash31(ivec2(pixel),907u)-0.5)*p[0].w/255.;
+        rgb+=p[0].x*(sum/max(weight,1./255.)-rgb+grain);
+    }
+    else if (op==28) {
+        vec3 hsl=toHsl(rgb);
+        float distance=abs(fract(hsl.x-p[0].x/360.+0.5)-0.5)*360.;
+        float mask=p[0].y>=180. ? 1. : rangeMask(distance,0.,p[0].y,p[0].z)*smoothstep(0.,0.01,hsl.y);
+        mask*=rangeMask(hsl.y,p[1].x,p[1].y,p[0].w)*rangeMask(hsl.z,p[1].z,p[1].w,p[0].w);
+        float position=hsl.x*255.; int lo=int(floor(position)), hi=min(255,lo+1);
+        vec2 curve=mix(texelFetch(second,ivec2(lo,0),0).xy,texelFetch(second,ivec2(hi,0),0).xy,fract(position));
+        vec3 corrected=fromHsl(vec3(fract(hsl.x+p[2].x/360.+curve.x-0.5),clamp(hsl.y*p[2].y*2.*curve.y,0.,1.),clamp(hsl.z+p[2].z,0.,1.)));
+        rgb=p[2].w>0.5 ? vec3(mask) : mix(rgb,corrected,mask);
+    }
+    else if (op==27) {
+        vec3 linear=mix(pow((rgb+0.055)/1.055,vec3(2.4)),rgb/12.92,lessThanEqual(rgb,vec3(0.04045)));
+        float mask=smoothstep(0.25,1.,dot(linear,vec3(0.2126,0.7152,0.0722)));
+        float gain=exp2(clamp(p[0].x,-5.,5.))*mix(1.,exp2(clamp(p[0].z,-2.,2.)),mask);
+        float strength=clamp(p[0].y,0.,1.), knee=1.-0.75*strength;
+        float peak=max(max(linear.r,linear.g),linear.b)*gain;
+        if (strength>0 && peak>knee) { gain*=(knee+(1.-knee)*(1.-exp(-(peak-knee)/(1.-knee))))/peak; }
+        linear*=gain;
+        rgb=mix(1.055*pow(linear,vec3(1./2.4))-0.055,12.92*linear,lessThanEqual(linear,vec3(0.0031308)));
+    }
     fragColor=vec4(clamp(rgb,0,1)*src.a,src.a);
 }

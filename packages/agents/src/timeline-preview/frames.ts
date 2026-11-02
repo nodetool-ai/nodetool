@@ -46,6 +46,9 @@ import type {
 import {
   accumulateBlurSample,
   clipSourceTimeSec,
+  denoiseSourceTimes,
+  hasTemporalDenoise,
+  type TemporalSources,
   computeActiveLayersWithHorizon,
   createAnimationCompileCache,
   drawTimelineFrame,
@@ -669,6 +672,7 @@ export async function renderTimelineFrames(
     type LayerSource =
       | {
           source: PreviewSource;
+          temporalSources?: TemporalSources<PreviewSource>;
           width: number;
           height: number;
           untransformed?: boolean;
@@ -774,7 +778,16 @@ export async function renderTimelineFrames(
             )}ms into the source`
           };
         }
+        let temporalSources: TemporalSources<PreviewSource> | undefined;
+        if (layer.clip.mediaType === "video" && hasTemporalDenoise(anim.effects ?? layer.effects)) {
+          const times = denoiseSourceTimes(layer.clip, sourceTimeSec * 1000);
+          const before = await decodeVideoFrameAt(bytes, times.before / 1000);
+          const after = await decodeVideoFrameAt(bytes, times.after / 1000);
+          if (!before || !after) return {skipped: "noise reduction could not decode neighboring source frames"};
+          temporalSources = {before: before.canvas, after: after.canvas};
+        }
         return {
+          temporalSources,
           source: frame.canvas,
           width: frame.width,
           height: frame.height
@@ -818,6 +831,7 @@ export async function renderTimelineFrames(
       const drawn: Canvas2DLayer<PreviewSource> = {
         clipId: layer.clipId,
         source: resolved.source,
+        temporalSources: resolved.temporalSources,
         sourceWidth: resolved.width,
         sourceHeight: resolved.height,
         opacity: anim.opacity,

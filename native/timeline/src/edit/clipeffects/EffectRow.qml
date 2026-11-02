@@ -14,6 +14,7 @@ Item {
     property bool expanded: false
     readonly property var effect: editor.effects.find(effect => effect.id === effectId) || ({})
     readonly property string name: Catalog.name(effect.type || "")
+    readonly property int processingStage: editor.processingStage(effect)
     signal expand
     objectName: "effectRow_" + effectId
     implicitHeight: content.implicitHeight
@@ -30,6 +31,7 @@ Item {
                 id: reorder
                 objectName: "effectsReorder_" + root.effectId
                 iconName: "dragIndicator"
+                visible: root.processingStage === 0
                 enabled: !root.editor.locked
                 accessibleName: "Reorder " + root.name
                 description: "Drag to reorder, or use Alt + arrow keys"
@@ -96,6 +98,12 @@ Item {
                 onClicked: root.editor.remove(root.effectId)
             }
         }
+        Sections.InspectorCaption {
+            objectName: "effectsStage_" + root.effectId
+            width: parent.width
+            visible: root.processingStage !== 0
+            text: root.processingStage === -2 ? "Source noise reduction before stabilization" : root.processingStage === -1 ? "Source stabilization before clip effects" : root.processingStage === 1 ? "Combined color grade after clip effects" : "Combined blur after color grade"
+        }
         Loader {
             width: parent.width
             active: root.expanded
@@ -109,6 +117,7 @@ Item {
     }
     DropArea {
         anchors.fill: parent
+        enabled: root.processingStage === 0
         keys: ["clip-effect"]
         onDropped: drop => {
             if (drop.source && !root.editor.locked) {

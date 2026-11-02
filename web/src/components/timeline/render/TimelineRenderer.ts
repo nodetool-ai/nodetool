@@ -1,3 +1,5 @@
+import type { FrameSourceWindow } from "@nodetool-ai/timeline/render";
+import { hasTemporalDenoise, denoiseSourceTimes } from "@nodetool-ai/timeline/scene";
 /**
  * renderTimeline — offline, frame-by-frame export of a timeline.
  *
@@ -55,14 +57,13 @@ import {
   resolveFrameMotionBlur,
   resolveTextStaggerContext,
   seedBlurAccumulation
-} from "@nodetool-ai/timeline/render";
+} from "@nodetool-ai/timeline/scene";
 import type {
   ActiveLayer,
   AnimatedLayerProps,
-  FrameSourceWindow,
   MotionBlurOptions,
   RasterWindow
-} from "@nodetool-ai/timeline/render";
+} from "@nodetool-ai/timeline/scene";
 import {
   buildCompositeLayer,
   buildCompositeAdjustments,
@@ -693,7 +694,12 @@ export async function renderTimeline(
             const width = decoded instanceof HTMLVideoElement
               ? decoded.videoWidth
               : decoded.width;
-            return width === 0 ? null : { source: decoded };
+            if (width === 0) return null;
+            if (layer.clip.mediaType !== "video" || !hasTemporalDenoise(anim.effects ?? layer.effects)) return {source: decoded};
+            const times = denoiseSourceTimes(layer.clip, clipSourceTimeSec(layer.clip, layerTimeMs) * 1000);
+            const before = await videoPool.seek(`${layer.clipId}#denoise-before`, url, times.before / 1000, signal);
+            const after = await videoPool.seek(`${layer.clipId}#denoise-after`, url, times.after / 1000, signal);
+            return {source: decoded, temporalSources: {before, after}};
           }
           const img = await loadImage(url);
           return img ? { source: img } : null;
@@ -763,7 +769,10 @@ export async function renderTimeline(
           videoClipsByEnd[releasePastIndex].durationMs <
           timeMs
       ) {
-        videoPool.release(videoClipsByEnd[releasePastIndex].id);
+        const id = videoClipsByEnd[releasePastIndex].id;
+        videoPool.release(id);
+        videoPool.release(`${id}#denoise-before`);
+        videoPool.release(`${id}#denoise-after`);
         releasePastIndex++;
       }
 

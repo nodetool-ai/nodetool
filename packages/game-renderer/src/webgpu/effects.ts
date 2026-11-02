@@ -34,7 +34,7 @@ export async function encodeGameEffects(options: EffectEncoding): Promise<Labele
       options.effectRecipeRunner.encode({ ctx: options.effectContext, module: filtersGlowV1,
         registry: options.effectRegistry, executor: options.effectExecutor, encoder, inputs: { source }, output,
         params: { threshold: effect.threshold, softness: effect.softness,
-          radius: effect.radius, intensity: effect.intensity } });
+          radius: effect.radius, intensity: effect.intensity, tint: filtersGlowV1.paramDefaults.tint } });
     } else {
       const srgbSource = options.srgbTarget;
       const srgbOutput = options.lutTarget;

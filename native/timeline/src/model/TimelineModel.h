@@ -19,6 +19,7 @@ class TimelineModel : public QObject {
     Q_OBJECT
     QML_ELEMENT
     QML_UNCREATABLE("Created by main")
+    Q_PROPERTY(QString effectMatteId READ effectMatteId NOTIFY effectMatteChanged)
     Q_PROPERTY(QString name READ name NOTIFY timelineChanged)
     Q_PROPERTY(double fps READ fps NOTIFY timelineChanged)
     Q_PROPERTY(double durationMs READ durationMs NOTIFY timelineChanged)
@@ -41,6 +42,8 @@ public:
     // Replaces the document with an empty one: every clip leaves the preview,
     // so its decoders close.
     void close();
+    Q_INVOKABLE void setEffectMattePreview(const QString& clipId, const QString& effectId);
+    QString effectMatteId() const { return QString::fromStdString(m_timeline->matteEffectId); }
     // Adds runtime paths by media identity and refreshes matching snapshot clips.
     void registerMedia(const nt::Clip& media);
     void registerMatteMedia(const QString& assetId, const std::string& path);
@@ -81,6 +84,8 @@ public:
     // (previewChanged). The other listeners hear every transient change at
     // once on settleTransient, when the gesture ends.
     bool previewClips(const QJsonArray& changed);
+    // Updates only track effects in the render/audio snapshot, retaining the UI rows.
+    bool previewTrackEffects(const QJsonArray& tracks);
     void settleTransient();
     // O(1) through the snapshot's id index. Null: no such clip.
     const nt::Clip* findClip(const QString& clipId) const;
@@ -132,6 +137,7 @@ signals:
     // A transient snapshot for the preview (previewClips). The preview and
     // the audio follow it. timelineChanged and clipsChanged come later.
     void previewChanged();
+    void effectMatteChanged();
 
 private:
     bool replaceDocument(const QJsonObject& raw);

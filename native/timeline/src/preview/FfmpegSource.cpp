@@ -445,7 +445,8 @@ std::shared_ptr<const MediaFacts> FfmpegDecoder::facts() const {
     return m_facts;
 }
 
-std::shared_ptr<DecodedFrame> FfmpegDecoder::frameAt(double targetSec) {
+std::shared_ptr<DecodedFrame> FfmpegDecoder::frameAt(double targetSec, FrameAccess access) {
+    m_nextFrameSec.reset();
     m_targetSec = targetSec;
     if (targetSec < m_lastTargetSec - kTimestampEpsilonSec || targetSec - m_lastTargetSec > kSeekJumpSec) {
         m_settling = true;
@@ -460,7 +461,7 @@ std::shared_ptr<DecodedFrame> FfmpegDecoder::frameAt(double targetSec) {
     // the decoder is left where it is.
     const bool queueHasPick = snap.front && snap.generation == gen && snap.front->generation == gen &&
                               frameStartsBy(snap.front->ptsSec, targetSec) && (snap.frameAfter || snap.eof);
-    if (!queueHasPick) {
+    if (!queueHasPick && access == FrameAccess::Cached) {
         if (auto cached = FrameCache::shared().lookup(m_path, targetSec)) {
             m_shown = std::move(cached);
             m_exact = true;
@@ -510,6 +511,7 @@ std::shared_ptr<DecodedFrame> FfmpegDecoder::frameAt(double targetSec) {
     }
     if (pickExact) m_settling = false;
     m_exact = pickExact;
+    if (pickExact) { m_nextFrameSec = snap.nextPts; }
     return m_shown;
 }
 

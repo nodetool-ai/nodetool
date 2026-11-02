@@ -14,7 +14,7 @@
 namespace nt { struct SceneDecorationContext; }
 
 namespace nt::effects {
-// Values match the branches in clip.frag. Recipes expand into these primitives.
+// Values match clip.frag and denoise.frag. Recipes expand into these primitives.
 enum class Op {
     Copy,
     Grade,
@@ -41,12 +41,21 @@ enum class Op {
     MaskApply,
     MaskDerive,
     ScaleOpacity,
-    MixTreatment
+    MixTreatment,
+    SharpenCombine,
+    Exposure,
+    SecondaryColor,
+    Deband,
+    Stabilize,
+    DenoiseTemporal,
+    DenoiseSpatial
 };
 struct Pass {
     Op op = Op::Copy;
     std::array<float, 16> params{};
     QString cube;
+    bool rememberSource = false;
+    QJsonObject curve;
 };
 struct CurveKnobs {
     double black = 0, white = 1, shadows = 0, midtones = 0, highlights = 0;
@@ -60,6 +69,8 @@ std::uint16_t cubeHalfBits(float value);
 std::optional<Cube> parseCube(const QString &text);
 CurveKnobs fitCurve(const QJsonArray &points);
 double channelMidtones(const QJsonArray &points);
+std::array<float, 1024> secondaryCurveTransfer(const QJsonObject &effect);
+std::array<float, 1024> curveTransfer(const QJsonObject &effect);
 std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEffects = {});
 QMargins chainOutset(const QJsonArray &effects);
 QRect cropPixels(const QJsonObject &ext, QSize inputSize);
@@ -78,6 +89,7 @@ class ClipEffectStage final : public LayerEffectStage {
     friend class TestEffectResources;
     struct Lut;
     std::shared_ptr<DrawCache> m_drawCache;
+    std::shared_ptr<DrawCache> m_denoiseCache;
     std::list<std::pair<QByteArray, std::shared_ptr<Lut>>> m_luts;
 };
 class AdjustmentTreatment {

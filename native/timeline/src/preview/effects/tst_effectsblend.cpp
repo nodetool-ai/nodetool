@@ -8,6 +8,7 @@
 #include <QJsonDocument>
 #include <QtTest>
 #include <array>
+#include <set>
 #include <QScopeGuard>
 
 namespace {
@@ -453,8 +454,10 @@ private slots:
         const auto key=effectStill({effect("chromaKey",{{"color","#4080c0"},{"tolerance",0.1},{"softness",0.1}})},source);
         QVERIFY(!key.isNull()); QCOMPARE(key.pixelColor(32,16),QColor(Qt::black));
         const auto poster=effectStill({effect("posterize",{{"levels",3}})},source);
-        // The current clip-posterize-midpoint golden writes midpoint byte 128.
-        QVERIFY(!poster.isNull()); QCOMPARE(poster.pixelColor(32,16),QColor(0,128,255));
+        // Half intensity can quantize to either adjacent byte across RHI backends.
+        QVERIFY(!poster.isNull()); QCOMPARE(poster.pixelColor(32,16).red(),0);
+        QVERIFY(std::abs(poster.pixelColor(32,16).green()-128)<=1);
+        QCOMPARE(poster.pixelColor(32,16).blue(),255);
     }
     void cropPixelsOnClip() {
         QImage source(64,32,QImage::Format_RGBA8888_Premultiplied); source.fill(Qt::green);
@@ -473,6 +476,172 @@ private slots:
         const auto shadow=effectStill({effect("dropShadow",{{"offsetX",12},{"offsetY",0},{"blur",0},{"color","#ff0000"},{"opacity",1}})},source,false,{},0.5);
         QVERIFY(!shadow.isNull()); QVERIFY(shadow.pixelColor(51,16).red()>245); QCOMPARE(shadow.pixelColor(51,16).green(),0);
         QCOMPARE(shadow.pixelColor(10,16),QColor(Qt::black));
+    }
+    void denoisePixels() {
+        QImage source(64,32,QImage::Format_RGBA8888_Premultiplied);uint32_t random=1;
+        double before=0,after=0;
+        for(int y=0;y<32;++y) { for(int x=0;x<64;++x) {
+            random=random*1664525u+1013904223u;const int value=(x<32?70:180)+int((random>>24)%21)-10;
+            source.setPixelColor(x,y,QColor(value,value,value,255));
+            if(x>2 && x<28) { before+=(value-70)*(value-70); }
+        } }
+        const auto result=effectStill({effect("denoise",{{"lumaStrength",1},{"chromaStrength",1},{"radius",2}})},source);
+        QVERIFY(!result.isNull());
+        for(int y=0;y<32;++y) { for(int x=3;x<28;++x) { const auto value=result.pixelColor(x,y).red();after+=(value-70)*(value-70); } }
+        QVERIFY(after<before*.5);QVERIFY(result.pixelColor(31,16).red()<90);QVERIFY(result.pixelColor(32,16).red()>160);
+        QCOMPARE(effectStill({effect("denoise")},source),effectStill({},source));
+    }
+    void stabilizationPixels() {
+        QImage source(64,32,QImage::Format_RGBA8888_Premultiplied);
+        for (int y=0;y<32;++y) { for (int x=0;x<64;++x) { source.setPixelColor(x,y,QColor(x*4,y*7,64,x<8 ? 128 : 255)); } }
+        const auto token=nt::registerContextLayerDecorator([](nt::ActiveLayer& layer,const nt::Clip&,const nt::SceneDecorationContext&) {
+            // Exercise the shader with an already resolved source-time correction.
+            auto effects=layer.ext.value("clipEffects").toArray();
+            for (qsizetype i=0;i<effects.size();++i) {
+                auto e=effects[i].toObject(); if (e.value("type")!="stabilize") { continue; }
+                e.insert("_matrix",QJsonArray{1,0,1./64,0,1,0}); effects[i]=e;
+            }
+            layer.ext.insert("clipEffects",effects);
+        });
+        const auto cleanup=qScopeGuard([token] { nt::unregisterSceneHook(token); });
+        const auto baseline=effectStill({},source),result=effectStill({effect("stabilize")},source);
+        QVERIFY(!result.isNull());
+        for (int y=1;y<31;++y) { for (int x=0;x<63;++x) {
+            QCOMPARE(result.pixelColor(x,y),baseline.pixelColor(x+1,y));
+        } }
+        QCOMPARE(effectStill({effect("stabilize")},source),result);
+    }
+    void debandPixels() {
+        QImage source(256,16,QImage::Format_RGBA8888_Premultiplied);
+        for (int y=0;y<16;++y) { for (int x=0;x<256;++x) { int v=x/16*4; source.setPixelColor(x,y,QColor(v,v,v)); } }
+        const QJsonObject controls{{"strength",1},{"range",16},{"threshold",0.04},{"dither",1}};
+        const auto result=effectStill({effect("deband",controls)},source);
+        const auto again=effectStill({effect("deband",controls)},source);
+        QVERIFY(!result.isNull()); QCOMPARE(result,again);
+        std::set<int> levels;
+        for (int y=0;y<16;++y) { for (int x=0;x<256;++x) { levels.insert(result.pixelColor(x,y).red()); } }
+        QVERIFY(levels.size()>40);
+        for (int y=0;y<16;++y) { for (int x=0;x<256;++x) { source.setPixelColor(x,y,x<128 ? Qt::black : Qt::white); } }
+        auto edgeControls=controls; edgeControls.insert("dither",0);
+        const auto sharp=effectStill({effect("deband",edgeControls)},source);
+        const auto baseline=effectStill({},source);
+        QCOMPARE(sharp,baseline);
+        const auto dithered=effectStill({effect("deband",controls)},source);
+        // Quantized dither can change a channel by one byte, without smoothing the edge.
+        for (int y=0;y<16;++y) { for (int x=0;x<256;++x) {
+            const auto actual=dithered.pixelColor(x,y), expected=baseline.pixelColor(x,y);
+            QVERIFY(std::abs(actual.red()-expected.red())<=1);
+            QCOMPARE(actual.green(),actual.red()); QCOMPARE(actual.blue(),actual.red());
+            QCOMPARE(actual.alpha(),expected.alpha());
+        } }
+    }
+    void secondaryColorPixels() {
+        QImage source(256,16,QImage::Format_RGBA8888_Premultiplied);
+        for (int y=0;y<16;++y) { for (int x=0;x<256;++x) { source.setPixelColor(x,y,x<128 ? QColor(Qt::red) : QColor(Qt::blue)); } }
+        const auto corrected=effectStill({effect("secondaryColor",{{"hueWidth",20},{"hueShift",120}})},source);
+        QVERIFY(!corrected.isNull()); QCOMPARE(corrected.pixelColor(32,8),QColor(Qt::green)); QCOMPARE(corrected.pixelColor(192,8),QColor(Qt::blue));
+        const auto matte=effectStill({effect("secondaryColor",{{"hueWidth",20},{"_matte",true}})},source);
+        QVERIFY(!matte.isNull()); QCOMPARE(matte.pixelColor(32,8),QColor(Qt::white)); QCOMPARE(matte.pixelColor(192,8),QColor(Qt::black));
+        const auto desaturated=effectStill({effect("secondaryColor",{{"saturationCurve",QJsonArray{QJsonObject{{"x",0},{"y",0.25}},QJsonObject{{"x",1},{"y",0.25}}}}})},source);
+        QVERIFY(!desaturated.isNull()); const auto pixel=desaturated.pixelColor(32,8);
+        QVERIFY(std::abs(pixel.red()-191)<=1); QVERIFY(std::abs(pixel.green()-64)<=1); QVERIFY(std::abs(pixel.blue()-64)<=1);
+    }
+    void exposurePixels() {
+        QImage source(256,16,QImage::Format_RGBA8888_Premultiplied);
+        for (int y=0;y<16;++y) { for (int x=0;x<256;++x) { source.setPixelColor(x,y,QColor(x,x,x)); } }
+        const auto neutral=effectStill({effect("exposure",{})},source);
+        QVERIFY(!neutral.isNull()); QCOMPARE(neutral.pixelColor(128,8).red(),128);
+        const auto exposed=effectStill({effect("exposure",{{"exposure",1}})},source);
+        QVERIFY(!exposed.isNull()); QVERIFY(std::abs(exposed.pixelColor(128,8).red()-176)<=1);
+        const auto shoulder=effectStill({effect("exposure",{{"exposure",1},{"rolloff",1}})},source);
+        QVERIFY(!shoulder.isNull());
+        QVERIFY(shoulder.pixelColor(180,8).red()<shoulder.pixelColor(220,8).red());
+        QVERIFY(shoulder.pixelColor(220,8).red()<shoulder.pixelColor(255,8).red());
+        QVERIFY(shoulder.pixelColor(255,8).red()<255);
+    }
+    void curveFidelity() {
+        const QJsonArray identity{QJsonObject{{"x",0},{"y",0}},QJsonObject{{"x",1},{"y",1}}};
+        const QJsonArray bend{QJsonObject{{"x",0},{"y",0}},QJsonObject{{"x",0.25},{"y",0.4}},
+                              QJsonObject{{"x",0.5},{"y",0.5}},QJsonObject{{"x",1},{"y",1}}};
+        QImage source(256,16,QImage::Format_RGBA8888_Premultiplied);
+        for (int y=0;y<16;++y) { for (int x=0;x<256;++x) { source.setPixelColor(x,y,QColor(x,x,x)); } }
+        const auto red=effectStill({effect("curves",{{"master",identity},{"r",bend}})},source);
+        QVERIFY(!red.isNull()); QVERIFY(std::abs(red.pixelColor(64,8).red()-102)<=1);
+        QCOMPARE(red.pixelColor(64,8).green(),64); QCOMPARE(red.pixelColor(64,8).blue(),64);
+        const QJsonArray custom{QJsonObject{{"x",0},{"y",0.2}},QJsonObject{{"x",0.5},{"y",0.8}},QJsonObject{{"x",1},{"y",0.3}}};
+        const auto master=effectStill({effect("curves",{{"master",custom}})},source);
+        QVERIFY(!master.isNull()); QVERIFY(std::abs(master.pixelColor(0,8).red()-51)<=1);
+        QVERIFY(std::abs(master.pixelColor(255,8).red()-77)<=1); QVERIFY(master.pixelColor(128,8).red()>200);
+    }
+    void sharpenRadius() {
+        QImage source(64,16,QImage::Format_RGBA8888_Premultiplied);
+        for (int y=0;y<16;++y) { for (int x=0;x<64;++x) {
+            const int value=x<32 ? 100 : 160;
+            source.setPixelColor(x,y,QColor(value,value,value));
+        } }
+        const auto narrow=effectStill({effect("sharpen",{{"amount",1},{"radius",1}})},source);
+        const auto wide=effectStill({effect("sharpen",{{"amount",1},{"radius",8}})},source);
+        QVERIFY(!narrow.isNull() && !wide.isNull());
+        QCOMPARE(narrow.pixelColor(35,8).red(),160);
+        QVERIFY(wide.pixelColor(35,8).red()>160); QVERIFY(wide.pixelColor(28,8).red()<100);
+        QCOMPARE(wide.pixelColor(8,8).red(),100);
+        for (const auto patch : {QJsonObject{{"amount",0},{"radius",8}}, QJsonObject{{"amount",1},{"radius",0}},
+                                 QJsonObject{{"amount",1},{"radius",8},{"threshold",1}}}) {
+            const auto neutral=effectStill({effect("sharpen",patch)},source);
+            QVERIFY(!neutral.isNull()); QCOMPARE(neutral.pixelColor(31,8),QColor(100,100,100));
+            QCOMPARE(neutral.pixelColor(32,8),QColor(160,160,160));
+        }
+    }
+    void wideBlurPixels() {
+        QImage line(512,16,QImage::Format_RGBA8888_Premultiplied); line.fill(Qt::black);
+        for (int y=0;y<line.height();++y) { line.setPixelColor(256,y,Qt::white); }
+        for (int radius : {20,40,64,128}) {
+            const auto blurred=effectStill({effect("blur",{{"radius",radius}})},line);
+            QVERIFY(!blurred.isNull());
+            const double sigma=radius/3.; double total=0;
+            for (int i=-radius;i<=radius;++i) { total+=std::exp(-i*i/(2*sigma*sigma)); }
+            for (int i=-radius;i<=radius;++i) {
+                const int expected=qRound(255*std::exp(-i*i/(2*sigma*sigma))/total);
+                QVERIFY(std::abs(blurred.pixelColor(256+i,8).red()-expected)<=1);
+                if (std::abs(i)<radius/2) { QVERIFY(blurred.pixelColor(256+i,8).red()>0); }
+            }
+        }
+        QImage checker(256,64,QImage::Format_RGBA8888_Premultiplied);
+        for (int y=0;y<checker.height();++y) { for (int x=0;x<checker.width();++x) {
+            checker.setPixelColor(x,y,(x+y)%2 ? Qt::white : Qt::black);
+        } }
+        const auto blurred=effectStill({effect("blur",{{"radius",40}})},checker);
+        QVERIFY(!blurred.isNull());
+        for (int x=64;x<192;++x) { QVERIFY(std::abs(blurred.pixelColor(x,32).red()-128)<=1); }
+    }
+    void vignetteGeometry() {
+        QImage source(64,32,QImage::Format_RGBA8888_Premultiplied); source.fill(Qt::white);
+        const auto soft=effectStill({effect("vignette",{{"amount",0.5},{"radius",1.5},{"softness",1}})},source);
+        QVERIFY(!soft.isNull());
+        QVERIFY(soft.pixelColor(0,16).red()>188); QVERIFY(soft.pixelColor(0,16).red()<198);
+        QVERIFY(soft.pixelColor(0,0).red()>127); QVERIFY(soft.pixelColor(0,0).red()<140);
+        const auto shifted=effectStill({effect("vignette",{{"amount",0.5},{"radius",0.9},{"softness",0.5},{"centerX",0.25}})},source);
+        QVERIFY(!shifted.isNull()); QCOMPARE(shifted.pixelColor(16,16).red(),255);
+        QVERIFY(shifted.pixelColor(32,16).red()<245);
+        for (const QSize size : {QSize(256,128),QSize(128,256)}) {
+            QImage white(size,QImage::Format_RGBA8888_Premultiplied); white.fill(Qt::white);
+            const auto circle=effectStill({effect("vignette",{{"amount",0.5},{"radius",0.9},{"softness",0.5},{"roundness",1}})},white);
+            QVERIFY(!circle.isNull());
+            const int horizontal=circle.pixelColor(size.width()/2+40,size.height()/2).red();
+            const int vertical=circle.pixelColor(size.width()/2,size.height()/2+40).red();
+            QVERIFY(std::abs(horizontal-vertical)<=1); QVERIFY(horizontal<240);
+        }
+    }
+    void glowTintPixels() {
+        QImage source(64,32,QImage::Format_RGBA8888_Premultiplied); source.fill(Qt::black);
+        for (int y=8;y<24;++y) { for (int x=24;x<40;++x) { source.setPixelColor(x,y,Qt::white); } }
+        const auto red=effectStill({effect("glow",{{"radius",8},{"intensity",1},{"color","#ff0000"}})},source);
+        const auto blue=effectStill({effect("glow",{{"radius",8},{"intensity",1},{"color","#0000ff"}})},source);
+        QVERIFY(!red.isNull()); QVERIFY(!blue.isNull());
+        QVERIFY(red.pixelColor(22,16).red()>0);
+        QCOMPARE(red.pixelColor(22,16).green(),0); QCOMPARE(red.pixelColor(22,16).blue(),0);
+        QVERIFY(blue.pixelColor(22,16).blue()>0); QCOMPARE(blue.pixelColor(22,16).red(),0);
+        QCOMPARE(red.pixelColor(32,16),QColor(Qt::white));
     }
     void groupEffectAlpha() {
         QImage source(64,32,QImage::Format_RGBA8888_Premultiplied); source.fill(QColor(64,128,192));

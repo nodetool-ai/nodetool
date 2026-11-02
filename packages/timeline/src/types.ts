@@ -776,6 +776,9 @@ export function clipAudioTailSec(
 // ── Video track effects ─────────────────────────────────────────────────────
 
 export interface TrackColorCorrectionEffect {
+  exposure?: number;
+  rolloff?: number;
+  whites?: number;
   id: string;
   type: "colorCorrection";
   enabled: boolean;
@@ -821,10 +824,15 @@ export interface TrackVignetteEffect {
   enabled: boolean;
   /** Vignette intensity 0..1. Default 0.4. */
   intensity: number;
-  /** Outer radius (relative to frame half-diagonal) 0.1..1.5. Default 0.9. */
+  /** Outer radius in normalized frame coordinates, 0.1..1.5. Default 0.9. */
   radius: number;
   /** Softness of the falloff 0..1. Default 0.5. */
   softness: number;
+  /** Center in normalized image coordinates, default (0.5, 0.5). */
+  centerX?: number;
+  centerY?: number;
+  /** 0 keeps the frame-shaped oval. 1 is a circle measured against the shorter axis. */
+  roundness?: number;
 }
 
 export interface TrackChromaKeyEffect {
@@ -1978,6 +1986,12 @@ export type ClipEffect = KnownClipEffect | UnknownClipEffect;
 
 /** The effects this build applies, each spelled out field by field. */
 export type KnownClipEffect =
+  | ClipDenoiseEffect
+  | ClipStabilizeEffect
+  | ClipDeflickerEffect
+  | ClipDebandEffect
+  | ClipSecondaryColorEffect
+  | ClipExposureEffect
   | ClipColorEffect
   | ClipBlurEffect
   | ClipGlowEffect
@@ -2063,6 +2077,12 @@ export const isClipGrainEffect = (e: ClipEffect): e is ClipGrainEffect =>
  * and Canvas 2D names it in `unsupportedEffectTypes`.
  */
 export const CLIP_EFFECT_TYPES = [
+  "denoise",
+  "stabilize",
+  "deflicker",
+  "deband",
+  "secondaryColor",
+  "exposure",
   "color",
   "blur",
   "glow",
@@ -2097,6 +2117,111 @@ export interface CurvePoint {
   x: number;
   y: number;
 }
+
+export interface ClipDenoiseEffect {
+  id: string;
+  type: "denoise";
+  enabled: boolean;
+  lumaStrength?: number;
+  chromaStrength?: number;
+  temporalStrength?: number;
+  radius?: number;
+}
+export const isClipDenoiseEffect = (e: ClipEffect): e is ClipDenoiseEffect => e.type === "denoise";
+
+export interface StabilizationSample { timeMs: number; x: number; y: number; angle: number; scale: number }
+export interface ClipStabilizeAnalysis {
+  version: 1;
+  kind: "stabilize";
+  source: { assetId: string; mediaPath: string };
+  rangeStartMs: number;
+  rangeEndMs: number;
+  windowMs: number;
+  frameRate: number;
+  width: number;
+  height: number;
+  requiredZoom: number;
+  trackedFrames: number;
+  samples: StabilizationSample[];
+}
+export type StabilizationMatrix = [number, number, number, number, number, number];
+export interface ClipStabilizeEffect {
+  id: string;
+  type: "stabilize";
+  enabled: boolean;
+  strength?: number;
+  windowMs?: number;
+  maxZoom?: number;
+  analysis?: ClipStabilizeAnalysis;
+  /** Render-time inverse UV matrix. Excluded from the document and tool schemas. */
+  _matrix?: StabilizationMatrix;
+}
+export const isClipStabilizeEffect = (e: ClipEffect): e is ClipStabilizeEffect => e.type === "stabilize";
+
+export interface ClipDeflickerAnalysis {
+  version: 1;
+  source: { assetId: string; mediaPath: string };
+  rangeStartMs: number;
+  rangeEndMs: number;
+  windowMs: number;
+  maxCorrection: number;
+  frameRate: number;
+  samples: { timeMs: number; stops: number }[];
+}
+export interface ClipDeflickerEffect {
+  id: string;
+  type: "deflicker";
+  enabled: boolean;
+  strength?: number;
+  windowMs?: number;
+  maxCorrection?: number;
+  analysis?: ClipDeflickerAnalysis;
+}
+export const isClipDeflickerEffect = (e: ClipEffect): e is ClipDeflickerEffect => e.type === "deflicker";
+
+export interface ClipDebandEffect {
+  id: string;
+  type: "deband";
+  enabled: boolean;
+  strength?: number;
+  range?: number;
+  threshold?: number;
+  dither?: number;
+}
+export const isClipDebandEffect = (e: ClipEffect): e is ClipDebandEffect => e.type === "deband";
+
+export interface ClipSecondaryColorEffect {
+  id: string;
+  type: "secondaryColor";
+  enabled: boolean;
+  hueCenter?: number;
+  hueWidth?: number;
+  hueSoftness?: number;
+  rangeSoftness?: number;
+  saturationMin?: number;
+  saturationMax?: number;
+  lightnessMin?: number;
+  lightnessMax?: number;
+  hueShift?: number;
+  saturation?: number;
+  lightness?: number;
+  hueCurve?: CurvePoint[];
+  saturationCurve?: CurvePoint[];
+}
+export const isClipSecondaryColorEffect = (e: ClipEffect): e is ClipSecondaryColorEffect => e.type === "secondaryColor";
+
+export interface ClipExposureEffect {
+  id: string;
+  type: "exposure";
+  enabled: boolean;
+  /** Linear-light gain in stops, -5..5. */
+  exposure?: number;
+  /** Highlight shoulder strength, 0..1. Zero disables compression. */
+  rolloff?: number;
+  /** Source-highlight-weighted gain in stops, -2..2. */
+  whites?: number;
+}
+export const isClipExposureEffect = (e: ClipEffect): e is ClipExposureEffect => e.type === "exposure";
 
 export interface ClipColorEffect {
   id: string;
@@ -2251,12 +2376,18 @@ export interface ClipVignetteEffect {
   /** Falloff width, 0..1. */
   softness: number;
   /**
-   * Outer radius relative to the frame half-diagonal, 0.1..1.5. Absent means
+   * Outer radius in normalized frame coordinates, 0.1..1.5. Edge midpoints
+   * have distance 1 and corners sqrt(2), giving a frame-shaped ellipse. Absent means
    * `vignette@1`'s own default, which is where a clip vignette has always
    * started. Written by the track conversion, which carries a midpoint the
    * legacy spelling made mandatory.
    */
   radius?: number;
+  /** Center in normalized image coordinates, default (0.5, 0.5). */
+  centerX?: number;
+  centerY?: number;
+  /** 0 keeps the frame-shaped oval. 1 is a circle measured against the shorter axis. */
+  roundness?: number;
 }
 
 /**

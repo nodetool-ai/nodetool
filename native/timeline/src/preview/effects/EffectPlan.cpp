@@ -1,4 +1,6 @@
 #include "preview/effects/ClipEffects.h"
+#include "preview/effects/ClipAnalysis.h"
+#include "preview/effects/Stabilization.h"
 #include "preview/effects/BlurBounds.h"
 #include "preview/layers/SceneHooks.h"
 #include "render2d/Paint.h"
@@ -8,6 +10,7 @@
 #include <bit>
 #include <cmath>
 #include <limits>
+#include <map>
 #include <numbers>
 #include <span>
 #include <unordered_map>
@@ -138,6 +141,48 @@ std::optional<Cube> parseCube(const QString &text) {
     }
     return cube;
 }
+std::array<float, 1024> curveTransfer(const QJsonObject &effect) {
+    std::array<std::vector<Point>, 4> curves;
+    constexpr std::array keys{"master", "r", "g", "b"};
+    for (size_t c=0;c<keys.size();++c) {
+        curves[c]=readPoints(effect.value(keys[c]).toArray());
+        std::stable_sort(curves[c].begin(),curves[c].end(),[](auto a,auto b) { return a.x<b.x; });
+    }
+    std::array<float,1024> table{};
+    for (size_t i=0;i<256;++i) {
+        const auto value=std::clamp(sample(curves[0],double(i)/255),0.,1.);
+        for (size_t c=0;c<3;++c) { table[i*4+c]=float(std::clamp(sample(curves[c+1],value),0.,1.)); }
+        table[i*4+3]=1;
+    }
+    return table;
+}
+std::array<float, 1024> secondaryCurveTransfer(const QJsonObject &effect) {
+    std::array<float, 1024> table{};
+    constexpr std::array keys{"hueCurve", "saturationCurve"};
+    for (size_t c=0; c<keys.size(); ++c) {
+        std::map<double, double> knots;
+        for (const auto point : readPoints(effect.value(keys[c]).toArray())) {
+            if (point.x == 1 && knots.contains(0)) { continue; }
+            const auto x=std::clamp(point.x,0.,1.);
+            knots[x-std::floor(x)]=std::clamp(point.y,0.,1.);
+        }
+        for (size_t i=0; i<256; ++i) {
+            const double x=i==255 ? 0. : double(i)/255.;
+            double y=0.5;
+            if (!knots.empty()) {
+                auto right=knots.upper_bound(x);
+                const bool before=right==knots.begin(), after=right==knots.end();
+                const auto a=before ? *knots.rbegin() : *std::prev(right);
+                const auto b=after ? *knots.begin() : *right;
+                const double ax=a.first-(before ? 1. : 0.), bx=b.first+(after ? 1. : 0.);
+                y=a.second+(b.second-a.second)*(x-ax)/(bx-ax);
+            }
+            table[i*4+c]=static_cast<float>(y);
+            table[i*4+3]=1;
+        }
+    }
+    return table;
+}
 CurveKnobs fitCurve(const QJsonArray &values) {
     auto points = readPoints(values);
     std::stable_sort(points.begin(), points.end(), [](auto a, auto b) { return a.x < b.x; });
@@ -175,18 +220,39 @@ double channelMidtones(const QJsonArray &values) {
 }
 std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEffects) {
     std::vector<Pass> result;
-    QJsonArray combined = effects;
+    QJsonArray combined;
+    for (const auto& value : effects) {
+        const auto e=value.toObject();if (e.value("type")!="denoise" || !e.value("enabled").toBool()) { continue; }
+        Pass pass;pass.params={std::clamp(f(e,"lumaStrength"),0.f,1.f),std::clamp(f(e,"chromaStrength"),0.f,1.f),
+            std::clamp(f(e,"temporalStrength"),0.f,1.f),std::clamp(std::round(f(e,"radius",2)),1.f,4.f)};
+        if (pass.params[2]>0) { pass.op=Op::DenoiseTemporal;result.push_back(pass); }
+        if (pass.params[0]>0 || pass.params[1]>0) { pass.op=Op::DenoiseSpatial;result.push_back(pass); }
+    }
+    for (const auto& value : effects) {
+        const auto e=value.toObject();
+        if (e.value("type")=="denoise") { continue; }
+        if (e.value("type")!="stabilize") { combined.append(e); continue; }
+        if (!e.value("enabled").toBool()) { continue; }
+        const auto matrix=e.value("_matrix").toArray();
+        if (matrix.size()!=6) { continue; }
+        Pass pass; pass.op=Op::Stabilize; bool changed=false,valid=true;
+        for (int i=0;i<6;++i) {
+            const double v=matrix[i].toDouble(); valid=valid && matrix[i].isDouble() && std::isfinite(v);
+            pass.params[i]=float(v); changed=changed || std::abs(v-stabilizationIdentity[i])>=1e-8;
+        }
+        if (valid && changed) { result.push_back(pass); }
+    }
     QJsonObject sharpen, vignette, chromaKey;
     for (const auto &value : trackEffects) {
         const auto e = value.toObject();
         if (!e.value("enabled").toBool()) { continue; }
         const auto type = e.value("type").toString();
-        if (type == "color" || type == "blur") { combined.append(e); }
+        if (type == "color" || type == "blur" || type == "exposure") { combined.append(e); }
         else if (type == "sharpen" && sharpen.isEmpty()) { sharpen = e; }
         else if (type == "vignette" && vignette.isEmpty()) { vignette = e; }
         else if (type == "chromaKey" && chromaKey.isEmpty()) { chromaKey = e; }
     }
-    if (number(chromaKey, "tolerance") > 0.001) { result = planChain({chromaKey}); }
+    if (number(chromaKey, "tolerance") > 0.001) { const auto key=planChain({chromaKey}); result.insert(result.end(),key.begin(),key.end()); }
     std::array<double, 8> grade{0, 1, 1, 0, 0, 0, 0, 0};
     double radius = 0;
     for (const auto &value : combined) {
@@ -235,6 +301,10 @@ std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEf
             std::ranges::copy(a, v.begin() + 8);
             std::ranges::copy(b, v.begin() + 12);
             v[11] = v[15] = 1;
+        } else if (type == "exposure") {
+            if (number(e,"exposure") == 0 && number(e,"rolloff") == 0 && number(e,"whites") == 0) { continue; }
+            p.op = Op::Exposure;
+            v = {f(e, "exposure"), f(e, "rolloff"), f(e, "whites")};
         } else if (type == "pixelate") {
             p.op = Op::Pixelate;
             v[0] = f(e, "cellSize", 8);
@@ -256,9 +326,24 @@ std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEf
             v[0] = f(e, "amount");
             v[1] = f(e, "radius", 0.9);
             v[2] = f(e, "softness", 0.5);
+            v[3] = f(e, "centerX", 0.5);
+            v[4] = f(e, "centerY", 0.5);
+            v[5] = f(e, "roundness", 0);
         } else if (type == "sharpen") {
+            const auto radius = boundedBlurRadius(number(e, "radius", 1));
+            if (radius > 1) {
+                Pass low;
+                low.op = Op::Gaussian;
+                low.params = {float(radius), 0, 1, 0};
+                low.rememberSource = true;
+                result.push_back(low);
+                low.params[2] = 0; low.params[3] = 1;
+                low.rememberSource = false;
+                result.push_back(low);
+            }
             p.op = Op::Sharpen;
-            v[0] = f(e, "amount");
+            if (radius > 1) { p.op = Op::SharpenCombine; }
+            v[0] = f(e, "amount") * float(std::min(1., radius));
             v[1] = f(e, "threshold");
         } else if (type == "chromaKey") {
             p.op = Op::ChromaKey;
@@ -267,17 +352,23 @@ std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEf
             v[3] = f(e, "tolerance");
             v[4] = f(e, "softness", 0.1);
             v[5] = f(e, "spill", 0.5);
+        } else if (type == "deband") {
+            if (number(e,"strength")<=0) { continue; }
+            p.op=Op::Deband;
+            v={std::clamp(f(e,"strength"),0.f,1.f),std::clamp(f(e,"range",16),1.f,64.f),
+               std::clamp(f(e,"threshold",0.02),0.f,0.1f),std::clamp(f(e,"dither",0.5),0.f,1.f)};
+        } else if (type == "secondaryColor") {
+            const auto flat=[](const QJsonArray& points) { return std::ranges::all_of(points,[](const QJsonValue& point) { return point.toObject().value("y").toDouble(0.5)==0.5; }); };
+            if (!e.value("_matte").toBool() && number(e,"hueShift")==0 && number(e,"lightness")==0 && number(e,"saturation",1)==1
+                && flat(e.value("hueCurve").toArray()) && flat(e.value("saturationCurve").toArray())) { continue; }
+            p.op = Op::SecondaryColor;
+            p.curve = e;
+            v = {f(e,"hueCenter"), f(e,"hueWidth",180), f(e,"hueSoftness",15), f(e,"rangeSoftness",0.1),
+                 f(e,"saturationMin"), f(e,"saturationMax",1), f(e,"lightnessMin"), f(e,"lightnessMax",1),
+                 f(e,"hueShift"), f(e,"saturation",1), f(e,"lightness"), e.value("_matte").toBool() ? 1.f : 0.f};
         } else if (type == "curves") {
             p.op = Op::Curves;
-            const auto c = fitCurve(e.value("master").toArray());
-            v = {float(c.black),
-                 float(c.white),
-                 float(c.shadows),
-                 float(c.midtones),
-                 float(c.highlights),
-                 float(channelMidtones(e.value("r").toArray())),
-                 float(channelMidtones(e.value("g").toArray())),
-                 float(channelMidtones(e.value("b").toArray()))};
+            p.curve = e;
         } else if (type == "levels") {
             p.op = Op::Levels;
             v[0] = f(e, "inBlack");
@@ -323,6 +414,8 @@ std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEf
             p.op = glow ? Op::Add : Op::Shadow;
             if (glow) {
                 v[0] = f(e, "intensity", 1);
+                const auto tint = color(e, "color", "#ffffff");
+                std::copy(tint.begin(), tint.end(), v.begin() + 1);
             } else {
                 const auto rgb = color(e);
                 std::copy(rgb.begin(), rgb.end(), v.begin());
@@ -412,6 +505,15 @@ void decorateEffects(QJsonObject &ext, const Clip &clip, double timeMs) {
     for (const auto &effect : clip.raw.value("effects").toArray()) {
         auto e = effect.toObject();
         if (e.value("enabled").toBool()) {
+            if (e.value("type")=="denoise" && clip.mediaType!=MediaType::Video) { e.insert("temporalStrength",0); }
+            if (e.value("type")=="stabilize") {
+                QJsonArray matrix; for (double value : stabilizationMatrix(clip,e,timeMs)) { matrix.append(value); }
+                e=QJsonObject{{"id",e.value("id")},{"type","stabilize"},{"enabled",true},{"_matrix",matrix}};
+            }
+            if (e.value("type")=="deflicker") {
+                e=QJsonObject{{"id",e.value("id")},{"type","exposure"},{"enabled",true},
+                              {"exposure",deflickerStops(clip,e,timeMs)}};
+            }
             if ((e.value("type") == "stylize" || e.value("type") == "generator") && e.value("animate").toBool()) {
                 e.insert("time", timeMs / 1000);
             }
@@ -554,6 +656,23 @@ void decorateEffects(QJsonObject &ext, const Clip &clip, const SceneDecorationCo
             *value = e;
         }
     }
+    if (context.timeline.matteClipId==clip.id && !context.timeline.matteEffectId.empty()) {
+        QJsonArray before;
+        for (const auto& value : enabled) { const auto type=value.toObject().value("type"); if (type=="stabilize" || type=="denoise") { before.append(value); } }
+        bool found=false;
+        for (const auto& value : enabled) {
+            auto effect=value.toObject();
+            if (effect.value("type")=="color" || effect.value("type")=="blur" || effect.value("type")=="stabilize" || effect.value("type")=="denoise") { continue; }
+            if (effect.value("id").toString().toStdString()==context.timeline.matteEffectId && effect.value("type")=="secondaryColor") {
+                effect.insert("_matte",true);
+                before.append(effect);
+                found=true;
+                break;
+            }
+            before.append(effect);
+        }
+        if (found) { enabled=before; ext.insert("qualifierMatte",true); }
+    }
     ext.insert("clipEffects", enabled);
 }
 bool decorateAdjustment(SceneAdjustment &adjustment, const Clip &clip, const SceneDecorationContext &context) {
@@ -564,6 +683,7 @@ bool decorateAdjustment(SceneAdjustment &adjustment, const Clip &clip, const Sce
 }
 
 void decorateTrackEffects(QJsonObject &ext, const Track *track) {
+    if (ext.value("qualifierMatte").toBool()) { ext.remove("trackEffects"); return; }
     if (ext.value("generatedMatteSource").toBool()) { return; }
     QJsonArray converted;
     if (track) {
@@ -578,6 +698,12 @@ void decorateTrackEffects(QJsonObject &ext, const Track *track) {
                 }
             };
             if (type == "colorCorrection") {
+                if (number(raw,"exposure") != 0 || number(raw,"rolloff") != 0 || number(raw,"whites") != 0) {
+                    auto exposure=e;
+                    exposure.insert("type","exposure");
+                    for (const auto* key : {"exposure","rolloff","whites"}) { exposure.insert(key,raw.value(key)); }
+                    converted.append(exposure);
+                }
                 e.insert("type", "color");
                 copy({"brightness", "contrast", "saturation", "hue", "temperature", "tint", "shadows", "highlights"});
             } else if (type == "videoBlur") {
@@ -589,7 +715,7 @@ void decorateTrackEffects(QJsonObject &ext, const Track *track) {
             } else if (type == "vignette") {
                 e.insert("type", type);
                 e.insert("amount", raw.value("intensity"));
-                copy({"radius", "softness"});
+                copy({"radius", "softness", "centerX", "centerY", "roundness"});
             } else if (type == "chromaKey") {
                 e.insert("type", type);
                 e.insert("color", raw.value("keyColor"));

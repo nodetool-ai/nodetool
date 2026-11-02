@@ -1,0 +1,290 @@
+{
+  "id": "audit-parameter-pairs",
+  "projectId": "native-prototype",
+  "name": "parameter-pairs",
+  "fps": 30,
+  "width": 256,
+  "height": 144,
+  "durationMs": 8000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "effect-0",
+      "trackId": "t0",
+      "name": "effect-0",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 256,
+      "height": 144,
+      "mediaPath": "pattern.png",
+      "effects": [
+        {
+          "enabled": true,
+          "radius": 1,
+          "id": "fx-effect-0-0",
+          "amount": 1,
+          "type": "sharpen"
+        }
+      ]
+    },
+    {
+      "id": "effect-1",
+      "trackId": "t0",
+      "name": "effect-1",
+      "startMs": 1000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 256,
+      "height": 144,
+      "mediaPath": "pattern.png",
+      "effects": [
+        {
+          "enabled": true,
+          "radius": 8,
+          "id": "fx-effect-1-0",
+          "amount": 1,
+          "type": "sharpen"
+        }
+      ]
+    },
+    {
+      "id": "effect-2",
+      "trackId": "t0",
+      "name": "effect-2",
+      "startMs": 2000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 256,
+      "height": 144,
+      "mediaPath": "pattern.png",
+      "effects": [
+        {
+          "color": "#ff0000",
+          "intensity": 1,
+          "enabled": true,
+          "type": "glow",
+          "id": "fx-effect-2-0",
+          "radius": 8
+        }
+      ]
+    },
+    {
+      "id": "effect-3",
+      "trackId": "t0",
+      "name": "effect-3",
+      "startMs": 3000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 256,
+      "height": 144,
+      "mediaPath": "pattern.png",
+      "effects": [
+        {
+          "color": "#0000ff",
+          "intensity": 1,
+          "enabled": true,
+          "type": "glow",
+          "id": "fx-effect-3-0",
+          "radius": 8
+        }
+      ]
+    },
+    {
+      "id": "effect-4",
+      "trackId": "t0",
+      "name": "effect-4",
+      "startMs": 4000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 256,
+      "height": 144,
+      "mediaPath": "pattern.png",
+      "effects": [
+        {
+          "master": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ],
+          "id": "fx-effect-4-0",
+          "r": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0.25,
+              "y": 0.25
+            },
+            {
+              "x": 0.5,
+              "y": 0.5
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ],
+          "type": "curves",
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "id": "effect-5",
+      "trackId": "t0",
+      "name": "effect-5",
+      "startMs": 5000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 256,
+      "height": 144,
+      "mediaPath": "pattern.png",
+      "effects": [
+        {
+          "master": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ],
+          "id": "fx-effect-5-0",
+          "r": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0.25,
+              "y": 0.4
+            },
+            {
+              "x": 0.5,
+              "y": 0.5
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ],
+          "type": "curves",
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "id": "effect-6",
+      "trackId": "t0",
+      "name": "effect-6",
+      "startMs": 6000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 256,
+      "height": 144,
+      "mediaPath": "pattern.png",
+      "effects": [
+        {
+          "enabled": true,
+          "id": "fx-effect-6-0",
+          "type": "color",
+          "brightness": -0.3
+        },
+        {
+          "softness": 0.5,
+          "radius": 0.9,
+          "enabled": true,
+          "type": "vignette",
+          "id": "fx-effect-6-1",
+          "amount": 0.5
+        }
+      ]
+    },
+    {
+      "id": "effect-7",
+      "trackId": "t0",
+      "name": "effect-7",
+      "startMs": 7000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 256,
+      "height": 144,
+      "mediaPath": "pattern.png",
+      "effects": [
+        {
+          "softness": 0.5,
+          "radius": 0.9,
+          "enabled": true,
+          "type": "vignette",
+          "id": "fx-effect-7-0",
+          "amount": 0.5
+        },
+        {
+          "enabled": true,
+          "id": "fx-effect-7-1",
+          "type": "color",
+          "brightness": -0.3
+        }
+      ]
+    }
+  ],
+  "markers": []
+}

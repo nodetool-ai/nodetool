@@ -80,7 +80,31 @@ TimelineModel::TimelineModel(QObject* parent)
       m_tracks(new TrackListModel(this)),
       m_undo(new QUndoStack(this)) {}
 
+void TimelineModel::setEffectMattePreview(const QString& clipId, const QString& effectId) {
+    auto nextClip=clipId.toStdString(), nextEffect=effectId.toStdString();
+    const auto* clip=m_timeline->findClip(nextClip);
+    bool valid=false;
+    if (clip) {
+        for (const auto& value : clip->raw.value("effects").toArray()) {
+            const auto effect=value.toObject();
+            valid |= effect.value("id")==effectId && effect.value("type")=="secondaryColor" && effect.value("enabled").toBool();
+        }
+    }
+    if (!valid) { nextClip.clear(); nextEffect.clear(); }
+    if (m_timeline->matteClipId==nextClip && m_timeline->matteEffectId==nextEffect) { return; }
+    auto next=std::make_shared<nt::Timeline>(*m_timeline);
+    next->matteClipId=std::move(nextClip);
+    next->matteEffectId=std::move(nextEffect);
+    next->revision=nt::nextTimelineRevision();
+    m_timeline=std::move(next);
+    m_tracks->rebind(m_timeline.get());
+    emit effectMatteChanged();
+    emit previewChanged();
+}
+
 void TimelineModel::setTimeline(nt::Timeline timeline) {
+    timeline.matteClipId.clear();
+    timeline.matteEffectId.clear();
     m_media.clear();
     m_mattes.clear();
     for (const auto& c : timeline.clips) {
@@ -93,6 +117,7 @@ void TimelineModel::setTimeline(nt::Timeline timeline) {
     m_timeline = std::make_shared<const nt::Timeline>(std::move(timeline));
     markAllChanged();
     ++m_generation;
+    emit effectMatteChanged();
     emit documentReplaced();
     m_undo->clear();
     m_tracks->reset(m_timeline.get());
@@ -154,6 +179,27 @@ bool TimelineModel::patchClips(const QJsonArray& changed) {
 
 bool TimelineModel::previewClips(const QJsonArray& changed) {
     return patch(changed, true);
+}
+
+bool TimelineModel::previewTrackEffects(const QJsonArray& tracks) {
+    if (tracks == m_timeline->raw.value("tracks").toArray() || tracks.size() != qsizetype(m_timeline->tracks.size())) {
+        return false;
+    }
+    auto next = *m_timeline;
+    for (qsizetype i = 0; i < tracks.size(); ++i) {
+        const auto raw = tracks[i].toObject();
+        auto before = next.tracks[size_t(i)].raw;
+        auto after = raw;
+        before.remove("effects"); after.remove("effects");
+        if (before != after) { return false; }
+        next.tracks[size_t(i)].raw = raw;
+    }
+    next.raw.insert("tracks", tracks);
+    next.revision = nt::nextTimelineRevision();
+    m_timeline = std::make_shared<const nt::Timeline>(std::move(next));
+    m_tracks->rebind(m_timeline.get());
+    emit previewChanged();
+    return true;
 }
 
 void TimelineModel::settleTransient() {
@@ -470,6 +516,8 @@ bool TimelineModel::replaceDocument(const QJsonObject& incoming) {
     const bool tracksChanged = raw.value("tracks") != m_timeline->raw.value("tracks");
     const bool markersChangedValue = raw.value("markers") != m_timeline->raw.value("markers");
     auto next = std::move(*parsed.timeline);
+    next.matteClipId = m_timeline->matteClipId;
+    next.matteEffectId = m_timeline->matteEffectId;
     for (auto& clip : next.clips) {
         clip.generatedMattePath = m_mattes.value(clip.raw.value("generatedMatte").toObject().value("assetId").toString());
         const auto media = m_media.constFind(mediaKey(clip.raw));

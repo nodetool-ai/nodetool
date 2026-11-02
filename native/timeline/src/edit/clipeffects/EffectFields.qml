@@ -12,7 +12,51 @@ Column {
     readonly property var effect: editor.effects.find(effect => effect.id === effectId) || ({})
     readonly property string effectType: effect.type || ""
     readonly property var definitions: Catalog.fields(effectType)
+    Component.onDestruction: if (root.editor?.matteEffectId === root.effectId) root.editor.clearMatte()
     spacing: Ui.Metrics.micro
+    ClipAnalysisController {
+        id: analysis
+        objectName: "effects_" + root.effectId + "_analysisController"
+        model: root.editor.timelineModel
+        clipId: root.editor.clip.id || ""
+        effectId: root.effectId
+        locked: root.editor.locked
+    }
+    Ui.EditorButton {
+        objectName: "effects_" + root.effectId + "_analyze"
+        visible: root.effectType === "deflicker" || root.effectType === "stabilize"
+        text: analysis.busy ? "Cancel analysis" : "Analyze source"
+        description: "Analyze the original video. The completed result can be undone."
+        density: Ui.EditorButton.Compact
+        enabled: !root.editor.locked && root.editor.clip.mediaType === "video"
+        onClicked: analysis.busy ? analysis.cancel() : analysis.analyze()
+    }
+    Sections.InspectorCaption {
+        objectName: "effects_" + root.effectId + "_analysisStatus"
+        visible: root.effectType === "deflicker" || root.effectType === "stabilize"
+        width: parent.width
+        text: analysis.status
+    }
+    Ui.EditorButton {
+        objectName: "effects_" + root.effectId + "_softPreset"
+        text: "Soft centered oval"
+        description: "Extend the feather through the corners. Keep the current amount."
+        density: Ui.EditorButton.Compact
+        visible: root.effectType === "vignette"
+        enabled: !root.editor.locked
+        onClicked: root.editor.patch(root.effectId, Catalog.softVignette)
+    }
+    Ui.EditorButton {
+        objectName: "effects_" + root.effectId + "_matte"
+        text: root.editor.matteEffectId === root.effectId ? "Hide selection matte" : "Show selection matte"
+        description: "View this clip's qualification mask. The matte is not saved or exported."
+        density: Ui.EditorButton.Compact
+        visible: root.effectType === "secondaryColor"
+        enabled: !root.editor.locked && !!root.effect.enabled
+        active: root.editor.matteEffectId === root.effectId
+        onClicked: root.editor.toggleMatte(root.effectId)
+        Keys.onEscapePressed: root.editor.clearMatte()
+    }
     Repeater {
         model: root.definitions
         delegate: Loader {
@@ -48,7 +92,7 @@ Column {
                     resetValue: rowLoader.modelData.resetValue ?? rowLoader.modelData.origin
                     value: root.effect[rowLoader.modelData.key] ?? rowLoader.modelData.fallback
                     display: value.toFixed(rowLoader.modelData.decimals ?? 2) + (rowLoader.modelData.unit || "")
-                    disabled: root.editor.locked
+                    disabled: root.editor.locked || (!!rowLoader.modelData.videoOnly && root.editor.clip?.mediaType !== "video")
                     onGestureStarted: root.editor.begin()
                     onPreview: value => {
                         const patch = {};
@@ -167,7 +211,11 @@ Column {
     }
     ToneCurveEditor {
         width: parent.width
-        visible: root.effectType === "curves"
+        visible: root.effectType === "curves" || root.effectType === "secondaryColor"
+        objectName: cyclic ? "effects_" + root.effectId + "_secondaryCurves" : ""
+        cyclic: root.effectType === "secondaryColor"
+        hueCurve: root.effect.hueCurve
+        saturationCurve: root.effect.saturationCurve
         height: visible ? implicitHeight : 0
         master: root.effect.master || []
         r: root.effect.r
@@ -181,6 +229,6 @@ Column {
     Sections.InspectorCaption {
         visible: root.definitions.length === 0 && root.effectType !== "curves"
         width: parent.width
-        text: Catalog.known(root.effectType) ? "This effect still applies. Use the Color section to adjust color." : 'This build does not draw "' + root.effectType + '". Its settings are kept as written.'
+        text: Catalog.readOnlyDescription(root.effectType)
     }
 }

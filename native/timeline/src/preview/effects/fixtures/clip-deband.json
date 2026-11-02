@@ -1,0 +1,88 @@
+{
+  "id": "seq-clip-deband",
+  "projectId": "native-prototype",
+  "name": "clip-deband",
+  "fps": 30,
+  "width": 256,
+  "height": 64,
+  "durationMs": 2000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "Video",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "deband-0",
+      "trackId": "t0",
+      "name": "Deband",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 256,
+      "height": 64,
+      "mediaPath": "source-banded.png",
+      "effects": [
+        {
+          "id": "deband",
+          "type": "deband",
+          "enabled": true,
+          "strength": 1,
+          "range": 16,
+          "threshold": 0.04,
+          "dither": 1
+        }
+      ]
+    },
+    {
+      "id": "deband-1",
+      "trackId": "t0",
+      "name": "Deband",
+      "startMs": 1000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 256,
+      "height": 64,
+      "mediaPath": "source-banded.png",
+      "effects": [
+        {
+          "id": "deband",
+          "type": "deband",
+          "enabled": true,
+          "strength": 0.65,
+          "range": 24,
+          "threshold": 0.015,
+          "dither": 0.3
+        }
+      ]
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z",
+  "goldenFrames": [
+    {
+      "frame": 0,
+      "criterion": "F55 dark bands, hard edge and deterministic dither, PSNR >= 40 dB"
+    },
+    {
+      "frame": 30,
+      "criterion": "F55 dark bands, hard edge and deterministic dither, PSNR >= 40 dB"
+    }
+  ]
+}

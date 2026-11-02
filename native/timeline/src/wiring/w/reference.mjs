@@ -29,8 +29,17 @@ const strings = JSON.parse(readFileSync(path.join(root,'web/src/i18n/locales/en.
 const reference = {palette:{grey400:ts.paletteDark.grey[400],grey600:ts.paletteDark.grey[600],primaryContrast:ts.paletteDark.primary.contrastText,primaryDark:ts.paletteDark.primary.dark},defaults, fableDefaults, strings, widths:ts.constants.DEVICE_WIDTHS,
  fableWidths:ts.constants.FABLE_DEVICE_WIDTHS, knobs:ts.constants.KNOBS,
  audioTypes:ts.constants.AUDIO_EFFECT_TYPES, videoTypes:ts.constants.VIDEO_EFFECT_TYPES, fableKinds:ts.FABLE_FX_KINDS};
+// Native color and shape controls extend the shared rack metadata.
+reference.knobs.colorCorrection.unshift(
+ {key:'exposure',label:'Exposure',min:-5,max:5,step:0.1,unit:'stops'},
+ {key:'rolloff',label:'Highlight roll-off',min:0,max:1,step:0.01},
+ {key:'whites',label:'Whites',min:-2,max:2,step:0.1,unit:'stops'});
+reference.knobs.vignette.push(
+ {key:'centerX',label:'Center X',min:0,max:1,step:0.01},
+ {key:'centerY',label:'Center Y',min:0,max:1,step:0.01},
+ {key:'roundness',label:'Roundness',min:0,max:1,step:0.01});
 const target = path.join(root,'native/timeline/src/wiring/w/TrackEffectsReference.json');
 if (process.argv.includes('--write')) writeFileSync(target,JSON.stringify(reference,null,2)+'\n');
-else assert.deepEqual(JSON.parse(readFileSync(target,'utf8')),reference,'Track effects resource differs from the web sources');
+else assert.deepEqual(JSON.parse(readFileSync(target,'utf8')),reference,'Track effects resource differs from its sources');
 assert(Object.keys(reference.defaults).length && Object.keys(reference.fableDefaults).length,'Empty reference');
-console.log('PASS track effect defaults, metadata and wording match TypeScript');
+console.log('PASS track effect reference matches its sources');

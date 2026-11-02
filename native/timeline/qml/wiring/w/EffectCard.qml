@@ -12,15 +12,29 @@ Ui.Surface {
     property var draft: ({})
     readonly property var edited: Object.assign({}, effect, draft)
     readonly property string effectLabel: panel.strings.labels[effect.type === "fable" ? effect.kind : effect.type]
+    readonly property bool ignoredDuplicate: panel.isVideo && effect.enabled
+        && ["chromaKey", "sharpen", "vignette"].includes(effect.type)
+        && panel.effects.find(candidate => candidate.type === effect.type && candidate.enabled)?.id !== effect.id
     objectName: "effect-" + effect.id
     width: effect.type === "fable" ? panel.reference.fableWidths[effect.kind] : panel.reference.widths[effect.type]
     opacity: panel.draggingIndex === effectIndex ? 0.4 : 1
-    function preview(patch) { draft = Object.assign({}, draft, patch) }
+    InspectorEdits { id: edits; model: card.panel.timeline }
+    function payload(patch) { return {trackId: panel.track.id, effectId: effect.id, patch: patch} }
+    function preview(patch) {
+        if (Object.keys(draft).length === 0) edits.beginGesture("updateTrackEffect", payload({}))
+        draft = Object.assign({}, draft, patch)
+        edits.preview(payload(draft))
+    }
+    function cancel() { edits.cancelGesture(); draft = ({}) }
+    Component.onDestruction: edits.cancelGesture()
+    onVisibleChanged: if (!visible && edits) cancel()
     function commit(patch) {
+        const wasPreviewing = Object.keys(draft).length > 0
         const finalPatch = Object.assign({}, draft, patch)
         draft = ({})
         if (Object.keys(finalPatch).length === 0) return
-        panel.timeline.applyEdit("updateTrackEffect", {trackId: panel.track.id, effectId: effect.id, patch: finalPatch})
+        if (wasPreviewing) edits.commit("updateTrackEffect", payload(finalPatch))
+        else edits.apply("updateTrackEffect", payload(finalPatch))
     }
     Rectangle {
         visible: card.panel.dropIndex === card.effectIndex || (card.effectIndex === card.panel.effects.length - 1 && card.panel.dropIndex === card.effectIndex + 1)
@@ -36,12 +50,14 @@ Ui.Surface {
         Item {
             id: grip
             objectName: "fx-grip-" + card.effect.id
-            width: 16; height: parent.height
-            activeFocusOnTab: true
+            visible: !card.panel.isVideo
+            width: visible ? Ui.Metrics.iconSm : 0; height: parent.height
+            activeFocusOnTab: visible
             Accessible.role: Accessible.Button
             Accessible.name: card.panel.strings.reorder.replace("{{label}}", card.effectLabel)
             Accessible.description: card.panel.strings.reorderHelp
             Keys.onPressed: event => {
+                if (card.panel.isVideo) return
                 if (!(event.modifiers & Qt.AltModifier)) return
                 const delta = event.key === Qt.Key_Left || event.key === Qt.Key_Up ? -1
                     : event.key === Qt.Key_Right || event.key === Qt.Key_Down ? 1 : 0
@@ -98,9 +114,27 @@ Ui.Surface {
             onClicked: card.panel.timeline.applyEdit("removeTrackEffect", {trackId: card.panel.track.id, effectId: card.effect.id})
         }
     }
-    Flickable {
+    Ui.Text {
+        id: stageNote
+        objectName: "fx-stage-" + card.effect.id
         x: Ui.Metrics.md
         y: header.y + header.height + Ui.Metrics.xs
+        width: parent.width - 2 * Ui.Metrics.md
+        visible: card.panel.isVideo
+        height: visible ? implicitHeight : 0
+        wrapMode: Text.WordWrap
+        role: Ui.Typography.SansCaption
+        tone: Ui.Text.Secondary
+        text: card.ignoredDuplicate ? "Not applied. An earlier instance is enabled."
+            : ({chromaKey: "Before clip effects. First enabled instance applies.",
+                colorCorrection: "After clip effects. Combined color grade.",
+                videoBlur: "After color grade. Blur radii are combined.",
+                sharpen: "After blur. First enabled instance applies.",
+                vignette: "After sharpen. First enabled instance applies."})[card.effect.type] ?? "Unsupported in this build."
+    }
+    Flickable {
+        x: Ui.Metrics.md
+        y: card.panel.isVideo ? stageNote.y + stageNote.height + Ui.Metrics.xs : header.y + header.height + Ui.Metrics.xs
         width: parent.width - 2 * Ui.Metrics.md
         height: parent.height - y - Ui.Metrics.md
         contentWidth: width
@@ -116,7 +150,7 @@ Ui.Surface {
             disabled: !card.effect.enabled
             onPreview: patch => card.preview(patch)
             onCommit: patch => card.commit(patch)
-            onEditCanceled: card.draft = ({})
+            onEditCanceled: card.cancel()
         }
     }
 }

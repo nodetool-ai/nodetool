@@ -13,7 +13,7 @@ InspectorSection {
     property var gestures: null
     property var controller: null
     readonly property var clip: effectEdits.clip
-    readonly property var listed: effectEdits.effects.filter(effect => effect.id !== "inspector:color")
+    readonly property var listed: effectEdits.orderedEffects()
     readonly property string identity: JSON.stringify(listed.map(effect => effect.id))
     property string expandedId: ""
     title: "Effects"

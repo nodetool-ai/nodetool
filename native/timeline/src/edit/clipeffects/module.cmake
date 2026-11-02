@@ -1,4 +1,5 @@
-nt_qml_sources(src/edit/clipeffects/ClipEffectsSections.cpp src/edit/clipeffects/ClipEffectsUi.h)
+nt_qml_sources(src/edit/clipeffects/ClipEffectsSections.cpp src/edit/clipeffects/ClipEffectsUi.h
+    src/edit/clipeffects/ClipAnalysisController.h src/edit/clipeffects/ClipAnalysisController.cpp)
 nt_sources(qml_resources src/edit/clipeffects/ClipAdjustments.qml src/edit/clipeffects/ClipEffectsList.qml
     src/edit/clipeffects/EffectRow.qml src/edit/clipeffects/EffectFields.qml
     src/edit/clipeffects/EffectNumber.qml src/edit/clipeffects/ToneCurveEditor.qml
@@ -21,6 +22,7 @@ function(nt_clipeffects_tests)
     set_tests_properties(tst_clipeffects PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
     add_test(NAME clipeffects_golden_script COMMAND node --test --test-isolation=none
         ${CMAKE_CURRENT_SOURCE_DIR}/src/edit/clipeffects/check-inspector.test.mjs
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/edit/clipeffects/catalogue.test.mjs)
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/edit/clipeffects/catalogue.test.mjs
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/edit/clipeffects/processing-order.test.mjs)
 endfunction()
 nt_tests(nt_clipeffects_tests)

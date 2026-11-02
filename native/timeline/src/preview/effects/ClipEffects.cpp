@@ -4,6 +4,7 @@
 #include "preview/effects/DrawCache.h"
 #include "motion/capacity/ScratchPool.h"
 #include <QCryptographicHash>
+#include <QJsonDocument>
 #include <algorithm>
 #include <cstring>
 #include <span>
@@ -152,6 +153,12 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
     if (!m_drawCache->initialize(ctx, ":/effects/clip.vert.qsb", ":/effects/clip.frag.qsb", QRhiSampler::Linear)) {
         return false;
     }
+    std::unique_ptr<Encoder> denoiseEncoder;
+    if (std::any_of(chain.begin(),chain.end(),[](const Pass& pass) { return pass.op==Op::DenoiseTemporal || pass.op==Op::DenoiseSpatial; })) {
+        if (!m_denoiseCache) { m_denoiseCache=std::make_shared<DrawCache>(); }
+        denoiseEncoder=std::make_unique<Encoder>(ctx,m_denoiseCache);
+        if (!m_denoiseCache->initialize(ctx,":/effects/clip.vert.qsb",":/effects/denoise.frag.qsb",QRhiSampler::Linear)) { return false; }
+    }
     auto *extracted = encoder.surface(workingSize);
     if (!extracted) {
         return false;
@@ -162,16 +169,30 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
     }
     auto current = encoder.result(extracted);
     std::optional<LayerFrame> recipeSource;
-    const auto step = [&](const Pass &pass, QRhiTexture *other = nullptr) {
-        auto *target = encoder.surface(workingSize, current.planes[0], other,
-                                       recipeSource ? recipeSource->planes[0] : nullptr);
-        if (!target || !encoder.draw(current, *target, pass, crop.size(), pad, other, nullptr, {}, nullptr, boundedCrop)) {
+    const auto step = [&](const Pass &pass, QRhiTexture *other = nullptr, QRhiTexture* third=nullptr) {
+        auto& active=(pass.op==Op::DenoiseTemporal || pass.op==Op::DenoiseSpatial) ? *denoiseEncoder : encoder;
+        auto *target = active.surface(workingSize, current.planes[0], other,
+                                       third ? third : recipeSource ? recipeSource->planes[0] : nullptr);
+        if (!target || !active.draw(current, *target, pass, crop.size(), pad, other, nullptr, {}, third, boundedCrop)) {
             return false;
         }
-        current = encoder.result(target);
+        current = active.result(target);
         return true;
     };
     for (auto pass : chain) {
+        if (pass.op==Op::DenoiseTemporal) {
+            if (!ctx.sources) { return false; }
+            const auto before=ctx.sources->find("denoise:before"),after=ctx.sources->find("denoise:after");
+            if (before==ctx.sources->end() || after==ctx.sources->end() || !before->second.planes[0] || !after->second.planes[0]) { return false; }
+            const auto originalOrigin=ext.value("effectSourceOrigin").toArray(),originalSize=ext.value("effectOriginalSize").toArray();
+            pass.params[4]=float(originalOrigin.isEmpty() ? crop.x() : originalOrigin[0].toInt());
+            pass.params[5]=float(originalOrigin.isEmpty() ? crop.y() : originalOrigin[1].toInt());
+            pass.params[6]=before->second.flipV ? 1.f : 0.f;pass.params[7]=after->second.flipV ? 1.f : 0.f;
+            pass.params[8]=float(originalSize.isEmpty() ? input.size.width() : originalSize[0].toInt());
+            pass.params[9]=float(originalSize.isEmpty() ? input.size.height() : originalSize[1].toInt());
+            if (!step(pass,before->second.planes[0],after->second.planes[0])) { return false; }
+            continue;
+        }
         if (pass.op == Op::ChromaKey) {
             Pass bridge;
             bridge.op = Op::ToStraight;
@@ -179,38 +200,45 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
                 return false;
             }
         }
-        if (pass.op == Op::Threshold || pass.op == Op::AlphaMask) {
+        if (pass.rememberSource || pass.op == Op::Threshold || pass.op == Op::AlphaMask) {
             recipeSource = current;
         }
         QRhiTexture *other = nullptr;
-        if (pass.op == Op::Lut) {
-            const auto key = QCryptographicHash::hash(pass.cube.toUtf8(), QCryptographicHash::Sha256);
+        if (pass.op == Op::Lut || pass.op == Op::Curves || pass.op == Op::SecondaryColor) {
+            const bool isCurve=pass.op!=Op::Lut;
+            const auto key = QCryptographicHash::hash(isCurve ? QByteArray("curve:")+QJsonDocument(pass.curve).toJson(QJsonDocument::Compact)
+                                                              : pass.cube.toUtf8(), QCryptographicHash::Sha256);
             auto found = std::ranges::find(m_luts, key, &decltype(m_luts)::value_type::first);
             if (found == m_luts.end()) {
-                auto parsed = parseCube(pass.cube);
-                if (!parsed) {
-                    qWarning("Invalid .cube in clip effect");
-                    return false;
-                }
                 auto lut = std::make_shared<Lut>();
-                lut->cube = std::move(*parsed);
-                const int size = lut->cube.size, width = size * size;
-                lut->texture.reset(ctx.rhi->newTexture(QRhiTexture::RGBA16F, {width, size}));
-                if (!lut->texture->create()) {
-                    return false;
-                }
-                std::vector<std::uint16_t> pixels(size_t(width * size * 4));
-                for (int b = 0; b < size; ++b) {
-                    for (int g = 0; g < size; ++g) {
-                        for (int r = 0; r < size; ++r) {
-                            const int source = ((b * size + g) * size + r) * 3, target = (g * width + b * size + r) * 4;
-                            for (int c = 0; c < 3; ++c) {
-                                pixels[target + c] = cubeHalfBits(lut->cube.rgb[source + c]);
+                QSize textureSize;
+                std::vector<std::uint16_t> pixels;
+                if (isCurve) {
+                    textureSize={256,1};
+                    const auto table=pass.op==Op::SecondaryColor ? secondaryCurveTransfer(pass.curve) : curveTransfer(pass.curve);
+                    pixels.resize(table.size());
+                    std::ranges::transform(table,pixels.begin(),cubeHalfBits);
+                } else {
+                    auto parsed = parseCube(pass.cube);
+                    if (!parsed) { qWarning("Invalid .cube in clip effect"); return false; }
+                    lut->cube = std::move(*parsed);
+                    const int size = lut->cube.size, width = size * size;
+                    textureSize={width,size};
+                    pixels.resize(size_t(width * size * 4));
+                    for (int b = 0; b < size; ++b) {
+                        for (int g = 0; g < size; ++g) {
+                            for (int r = 0; r < size; ++r) {
+                                const int source = ((b * size + g) * size + r) * 3, target = (g * width + b * size + r) * 4;
+                                for (int c = 0; c < 3; ++c) {
+                                    pixels[target + c] = cubeHalfBits(lut->cube.rgb[source + c]);
+                                }
+                                pixels[target + 3] = cubeHalfBits(1.f);
                             }
-                            pixels[target + 3] = cubeHalfBits(1.f);
                         }
                     }
                 }
+                lut->texture.reset(ctx.rhi->newTexture(QRhiTexture::RGBA16F, textureSize));
+                if (!lut->texture->create()) { return false; }
                 const auto bytes = std::as_bytes(std::span{pixels});
                 QByteArray data(qsizetype(bytes.size()), Qt::Uninitialized);
                 std::memcpy(data.data(), bytes.data(), bytes.size());
@@ -228,12 +256,14 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
             }
             m_luts.splice(m_luts.begin(), m_luts, found);
             const auto &lut = m_luts.front().second;
-            pass.params[1] = float(lut->cube.size);
-            std::copy(lut->cube.minimum.begin(), lut->cube.minimum.end(), pass.params.begin() + 4);
-            std::copy(lut->cube.maximum.begin(), lut->cube.maximum.end(), pass.params.begin() + 8);
+            if (!isCurve) {
+                pass.params[1] = float(lut->cube.size);
+                std::copy(lut->cube.minimum.begin(), lut->cube.minimum.end(), pass.params.begin() + 4);
+                std::copy(lut->cube.maximum.begin(), lut->cube.maximum.end(), pass.params.begin() + 8);
+            }
             other = lut->texture.get();
             encoder.retain(lut);
-        } else if (pass.op == Op::Add || pass.op == Op::Shadow) {
+        } else if (pass.op == Op::Add || pass.op == Op::Shadow || pass.op == Op::SharpenCombine) {
             if (!recipeSource) {
                 return false;
             }

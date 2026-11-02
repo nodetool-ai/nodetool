@@ -776,7 +776,7 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
         }
     }
     for (const auto& layer : m_layers) { prepare.emplace_back(&layer, false); }
-    std::map<const nt::ActiveLayer*, std::map<std::string, std::string>> requestedSources;
+    std::map<const nt::ActiveLayer*, std::map<std::string, std::pair<std::string,double>>> requestedSources;
     const auto providers = nt::registeredSecondSourceProviders();
     if (m_timeline) {
         std::optional<nt::Timeline> poolTimeline;
@@ -795,7 +795,7 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
             clips.insert_or_assign(clip.id, &clip);
         }
         for (const auto& prepared : prepare) {
-            if (m_tapTimes.size() > 1) requiredIds.insert(prepared.first->clipId);
+            requiredIds.insert(prepared.first->clipId);
             const auto clip = clips.find(prepared.first->clipId);
             if (clip != clips.end() && usedIds.insert(clip->first).second) {
                 writableTimeline().clips.push_back(*clip->second);
@@ -813,13 +813,13 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
                         if (candidate.id == clip.id) { candidate.hidden = false; break; }
                     }
                 }
-                std::map<std::string, std::string> requests;
+                std::map<std::string, nt::SecondSourceRequest> requests;
                 for (const auto& provider : providers) {
                     for (auto& request : provider(*layer, clip)) {
-                        requests[request.key] = std::move(request.mediaPath);
+                        requests[request.key] = std::move(request);
                     }
                 }
-                for (const auto& [key, path] : requests) {
+                for (const auto& [key, request] : requests) {
                     const auto identity = std::pair{clip.id, key};
                     auto [id, inserted] = derivedIds.try_emplace(identity);
                     if (inserted) {
@@ -830,12 +830,12 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
                         usedIds.insert(id->second);
                         auto second = clip;
                         second.id = id->second;
-                        second.mediaPath = path;
+                        second.mediaPath = request.mediaPath;
                         second.hidden = false;
                         writableTimeline().clips.push_back(std::move(second));
                     }
-                    requestedSources[layer][key] = id->second;
-                    if (m_tapTimes.size() > 1) requiredIds.insert(id->second);
+                    requestedSources[layer][key] = {id->second,request.sourceTimeMs.value_or(layer->sourceTimeMs)};
+                    requiredIds.insert(id->second);
                 }
             }
         }
@@ -1028,9 +1028,10 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
         if (const auto requested = requestedSources.find(&layer); requested != requestedSources.end()) {
             auto& frames = secondSources[&layer];
             bool ready = true;
-            for (const auto& [key, id] : requested->second) {
+            for (const auto& [key, request] : requested->second) {
+                const auto& [id,sourceTimeMs]=request;
                 auto* second = m_pool.sourceFor(id);
-                auto sourceFrame = second ? second->frameAt(fctx, layer.sourceTimeMs) : nt::LayerFrame{};
+                auto sourceFrame = second ? second->frameAt(fctx, sourceTimeMs) : nt::LayerFrame{};
                 cpuCopies += sourceFrame.cpuCopies;
                 if (sourceFrame.hardware) { ++hardwareLayers; }
                 ++mediaLayers;
@@ -1121,6 +1122,8 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
             effectExt.insert("effectSourceRect", QJsonArray{0, 0, 1, 1});
             // Keep bounded effect coordinates after removing the physical crop.
             effectExt.insert("effectSourceCropped", true);
+            effectExt.insert("effectSourceOrigin", QJsonArray{crop.x(),crop.y()});
+            effectExt.insert("effectOriginalSize", QJsonArray{originalSize.width(),originalSize.height()});
         }
         QMargins outset;
         if (!m_effectStages.empty()) {

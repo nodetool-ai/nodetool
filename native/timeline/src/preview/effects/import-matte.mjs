@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { rebindAnalysisSource } from "./import-analysis.mjs";
 
 export function matteImports(doc, fixtureDir) {
   return doc.clips.filter(clip => clip.generatedMatte?.mediaPath).map(clip => ({
@@ -44,7 +45,8 @@ export async function importMatteAssets(original, imported, fixtureDir, storeEnv
 
 export function prepareMatteFixture(doc, fixtureDir) {
   return { ...doc, clips: doc.clips.map(clip => ({ ...clip,
-    ...(clip.mediaPath ? { mediaPath: path.resolve(fixtureDir, clip.mediaPath) } : {}),
+    ...(clip.mediaPath ? { mediaPath: path.resolve(fixtureDir, clip.mediaPath),
+      ...(clip.effects ? {effects: rebindAnalysisSource(clip, {assetId: clip.currentAssetId ?? "", mediaPath: path.resolve(fixtureDir, clip.mediaPath)})} : {}) } : {}),
     ...(clip.generatedMatte ? { generatedMatte: { ...clip.generatedMatte, status: "generating" } } : {})
   })) };
 }

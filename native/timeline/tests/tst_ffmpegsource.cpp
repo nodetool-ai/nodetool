@@ -118,6 +118,16 @@ class TestFfmpegSource : public QObject {
     Q_OBJECT
 
 private slots:
+    void sequentialFrameTimes() {
+        FfmpegDecoder decoder{FfmpegDecoder::NoWorkerForTest{}};
+        decoder.testPush(0); decoder.testPush(.04); decoder.testPush(.12);
+        QVERIFY(decoder.frameAt(0,FfmpegDecoder::FrameAccess::Sequential));
+        QVERIFY(decoder.exact()); QCOMPARE(decoder.nextFrameSec(),std::optional<double>(.04));
+        QVERIFY(decoder.frameAt(.04,FfmpegDecoder::FrameAccess::Sequential));
+        QVERIFY(decoder.exact()); QCOMPARE(decoder.nextFrameSec(),std::optional<double>(.12));
+        decoder.frameAt(.12,FfmpegDecoder::FrameAccess::Sequential);
+        QVERIFY(!decoder.exact()); QVERIFY(!decoder.nextFrameSec());
+    }
     // Each test starts with an empty scrub cache: a frame cached by an
     // earlier test would answer for its decoder and skip the path under test.
     void init() {
@@ -192,6 +202,24 @@ private slots:
         QVERIFY(f);
         QVERIFY2(std::abs(f->ptsSec - 44.0 / 30.0) < 1e-3, qPrintable(QString::number(f->ptsSec)));
         QCOMPARE(barcode(*f), 37);
+    }
+    void sequentialVariableFrames() {
+        FfmpegDecoder decoder(media("vfr-360p.mp4"),0.,DecodeMode::Software);
+        // Prime the scrub cache, then require the decode queue's actual next PTS.
+        QVERIFY(waitExact(decoder,1.5));
+        double target=0;
+        for (int index=0;index<45;++index) {
+            QElapsedTimer timer; timer.start(); std::shared_ptr<DecodedFrame> frame;
+            do {
+                frame=decoder.frameAt(target,FfmpegDecoder::FrameAccess::Sequential);
+                if (frame && decoder.exact()) { break; }
+                QThread::msleep(2);
+            } while (timer.elapsed()<4000);
+            QVERIFY(frame && decoder.exact()); QCOMPARE(barcode(*frame),index);
+            const auto next=decoder.nextFrameSec(); QVERIFY(next); QVERIFY(*next>target);
+            const double expected=(index+1<30 ? index+1 : 2*(index+1)-30)/30.;
+            QVERIFY(std::abs(*next-expected)<1e-3); target=*next;
+        }
     }
 
     void supersededSeekLandsOnTheNewest() {

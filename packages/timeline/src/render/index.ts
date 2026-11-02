@@ -26,3 +26,6 @@ export * from "./temporal.js";
 export * from "./effects.js";
 export * from "./frameCompositor.js";
 export * from "./headlessRender.js";
+export { hasTemporalDenoise, denoiseSourceTimes, type TemporalSources } from "./denoise.js";
+export { stabilizationCurve } from "./stabilization.js";
+export { deflickerCurve } from "./clipAnalysis.js";

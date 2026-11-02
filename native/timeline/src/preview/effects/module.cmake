@@ -7,7 +7,7 @@ nt_sources(app src/preview/effects/EffectsRegistrations.cpp)
 function(nt_effects_shaders target)
     qt_add_shaders(${target} "${target}_effects_shaders" PREFIX "/effects" BASE shaders/effects GLSL "330,440"
         FILES shaders/effects/blend.vert shaders/effects/blend.frag
-            shaders/effects/clip.vert shaders/effects/clip.frag)
+            shaders/effects/clip.vert shaders/effects/clip.frag shaders/effects/denoise.frag)
 endfunction()
 cmake_language(DEFER CALL nt_effects_shaders nodetool-timeline)
 
@@ -41,7 +41,7 @@ function(nt_effects_tests)
     set_tests_properties(tst_effectsblend_documents PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
     add_test(NAME tst_effectsblend_render COMMAND tst_effectsblend blendPixels)
     set_tests_properties(tst_effectsblend_render PROPERTIES LABELS render)
-    add_test(NAME tst_effectsclip_render COMMAND tst_effectsblend clipPixels cropPixelsOnClip spreadPixels groupEffectAlpha)
+    add_test(NAME tst_effectsclip_render COMMAND tst_effectsblend clipPixels cropPixelsOnClip spreadPixels glowTintPixels vignetteGeometry wideBlurPixels sharpenRadius curveFidelity debandPixels secondaryColorPixels exposurePixels stabilizationPixels denoisePixels groupEffectAlpha)
     set_tests_properties(tst_effectsclip_render PROPERTIES LABELS render)
     add_test(NAME tst_effectsmatte_render COMMAND tst_effectsblend mattePixels matteStrengthAndFeather maskPixels)
     set_tests_properties(tst_effectsmatte_render PROPERTIES LABELS render)

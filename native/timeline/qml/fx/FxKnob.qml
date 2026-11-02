@@ -30,6 +30,7 @@ Item {
     property real gestureNorm: norm
     property real lastY: 0
     property bool dragging: false
+    property bool editing: false
     implicitWidth: diameter
     implicitHeight: diameter + (size === "xs" ? 0 : labelText.implicitHeight + Ui.Metrics.xs) + valueLabel.implicitHeight + Ui.Metrics.micro
     activeFocusOnTab: true
@@ -38,23 +39,28 @@ Item {
     Accessible.description: valueText
     onNormChanged: { if (!dragging) gestureNorm = norm }
     function cancelGesture() {
-        if (!dragging) return
+        if (!dragging && !editing) return
         dragging = false
+        editing = false
+        wheelEnd.stop()
         gestureCanceled()
         gestureNorm = norm
     }
     onEnabledChanged: if (!enabled) cancelGesture()
-    onActiveFocusChanged: { if (!activeFocus) { if (dragging) cancelGesture(); else gestureEnd() } }
+    function finishGesture() { editing = false; gestureEnd() }
+    onActiveFocusChanged: { if (!activeFocus) { if (dragging) cancelGesture(); else finishGesture() } }
     function nudge(delta) {
+        editing = true
         gestureNorm = Math.min(1, Math.max(0, gestureNorm + delta))
         change(Params.normToValue(def, gestureNorm))
     }
     Keys.onPressed: event => {
+        if (event.key === Qt.Key_Escape && root.editing) { root.cancelGesture(); event.accepted = true; return }
         var step = event.modifiers & Qt.ShiftModifier ? 0.005 : 0.02
         if (event.key === Qt.Key_Up || event.key === Qt.Key_Right) { nudge(step); event.accepted = true }
         else if (event.key === Qt.Key_Down || event.key === Qt.Key_Left) { nudge(-step); event.accepted = true }
     }
-    Keys.onReleased: event => { gestureEnd() }
+    Keys.onReleased: event => { finishGesture() }
     Rectangle {
         anchors.centerIn: dial
         width: root.diameter + 4; height: width; radius: width / 2
@@ -105,7 +111,7 @@ Item {
         height: implicitHeight; text: root.valueText; role: Ui.Typography.MonoCaption; tone: Ui.Text.Primary; opacity: mouse.containsMouse || root.dragging || root.activeFocus ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: Ui.Theme.reducedMotion ? 0 : Ui.Metrics.motionQuick } }
     }
-    Timer { id: wheelEnd; interval: 250; onTriggered: root.gestureEnd() }
+    Timer { id: wheelEnd; interval: 250; onTriggered: root.finishGesture() }
     MouseArea {
         id: mouse
         anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.SizeVerCursor
@@ -119,7 +125,7 @@ Item {
             var dy = root.lastY - event.y; root.lastY = event.y
             root.nudge(dy * (event.modifiers & Qt.ShiftModifier ? 0.0008 : 0.005))
         }
-        onReleased: { if (root.dragging) { root.dragging = false; root.gestureEnd() } }
+        onReleased: { if (root.dragging) { root.dragging = false; root.finishGesture() } }
         onCanceled: root.cancelGesture()
         onDoubleClicked: root.requestSet(root.def.def)
 

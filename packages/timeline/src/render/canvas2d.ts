@@ -1,3 +1,4 @@
+import type { TemporalSources } from "./denoise.js";
 /**
  * canvas2d — the Canvas 2D compositing rules shared by every non-GPU render
  * surface.
@@ -116,6 +117,7 @@ export interface Canvas2DLayer<TSource> {
    */
   clipId?: string;
   source: TSource;
+  temporalSources?: TemporalSources<TSource>;
   /** Source pixel dimensions — the space the transform and mask act in. */
   sourceWidth: number;
   sourceHeight: number;
@@ -392,17 +394,20 @@ export interface Canvas2DFrameReport<TSource> {
 /**
  * Effect types handled by the Canvas pixel path or a native draw operation.
  */
-const CANVAS_EFFECT_TYPES = new Set(["color", "blur", "dropShadow", "glow", "vignette", "sharpen", "chromaKey", "curves", "levels", "liftGammaGain", "grain", "pixelate", "posterize", "directionalBlur", "lensDistortion", "stylize", "generator", "lut"]);
+const CANVAS_EFFECT_TYPES = new Set(["denoise", "stabilize", "deband", "secondaryColor", "exposure", "color", "blur", "dropShadow", "glow", "vignette", "sharpen", "chromaKey", "curves", "levels", "liftGammaGain", "grain", "pixelate", "posterize", "directionalBlur", "lensDistortion", "stylize", "generator", "lut"]);
 
-function applyCpuEffectChain(pixels: ImagePixels, clipEffects: readonly ClipEffect[], trackEffects: readonly ClipEffect[] = []): void {
+function applyCpuEffectChain(pixels: ImagePixels, clipEffects: readonly ClipEffect[], trackEffects: readonly ClipEffect[] = [], neighbors?: TemporalSources<ImagePixels>): void {
+  applyCpuLegacyEffects(pixels, clipEffects.filter(effect => effect.type === "denoise"), neighbors);
+  applyCpuLegacyEffects(pixels, clipEffects.filter(effect => effect.type === "stabilize"));
   const trackKey = trackEffects.find((effect) => effect.enabled && isClipChromaKeyEffect(effect) && effect.tolerance > 0.001);
   if (trackKey) applyCpuLegacyEffects(pixels, [trackKey]);
   for (const effect of clipEffects) {
-    if (!effect.enabled) continue;
+    if (!effect.enabled || effect.type === "denoise" || effect.type === "stabilize") continue;
     if (isClipDropShadowEffect(effect)) applyCpuDropShadows(pixels, [effect]);
     else if (isCpuVisualEffect(effect)) applyCpuVisualEffects(pixels, [effect]);
     else if (isCpuLegacyEffect(effect)) applyCpuLegacyEffects(pixels, [effect]);
   }
+  applyCpuLegacyEffects(pixels, trackEffects.filter(effect => effect.type === "exposure"));
   const combinedEffects = [...clipEffects, ...trackEffects];
   const blurRadius = aggregateBlurRadius(clipEffects.filter((effect) => effect.enabled), trackEffects.filter((effect) => effect.enabled));
   const sharedBounds = blurRadius >= 0.5 && combinedEffects.some((effect) => effect.enabled && isClipColorEffect(effect))
@@ -1194,7 +1199,17 @@ export function drawTimelineLayer<TSource>(
       ectx.clearRect(0, 0, width, height);
       ectx.drawImage(layerSource, 0, 0, width, height);
       const pixels = ectx.getImageData(0, 0, width, height);
-      applyCpuEffectChain(pixels, clipEffects, trackEffects);
+      let neighbors: TemporalSources<ImagePixels> | undefined;
+      if (layer.temporalSources) {
+        const rect = hasCrop(layer.crop) ? cropRectPx(layer.crop, layer.sourceWidth, layer.sourceHeight) : {x: 0, y: 0};
+        const readNeighbor = (source: TSource): ImagePixels => {
+          ectx.clearRect(0, 0, width, height);
+          ectx.drawImage(source, -rect.x, -rect.y, layer.sourceWidth, layer.sourceHeight);
+          return ectx.getImageData(0, 0, width, height);
+        };
+        neighbors = {before: readNeighbor(layer.temporalSources.before), after: readNeighbor(layer.temporalSources.after)};
+      }
+      applyCpuEffectChain(pixels, clipEffects, trackEffects, neighbors);
       stackedShadows = shadows.length > 0;
       if (iris) applyCpuIris(pixels, iris.progress, iris.softness);
       ectx.putImageData(pixels, 0, 0);

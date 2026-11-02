@@ -4,8 +4,22 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
+import { rebindAnalysisSource } from "./import-analysis.mjs";
 import { parseArgs, comparisonPasses, allComparisonsPass, loadFixtures, visualFxFixtures,
   distinctComparisonPasses, compareDistinctFrames } from "./check-effects.mjs";
+
+test("fixture import rebinds matching analysis and preserves stale source identities", () => {
+  const clip = {mediaPath: "source.mp4", effects: [{type: "deflicker", analysis: {
+    source: {assetId: "", mediaPath: "source.mp4"}, samples: [{timeMs: 0, stops: .5}]
+  }}]};
+  const source = {assetId: "imported-source", mediaPath: ""};
+  assert.deepEqual(rebindAnalysisSource(clip, source)[0].analysis.source, source);
+  assert.deepEqual(rebindAnalysisSource({...clip, mediaPath: "replacement.mp4"}, source), clip.effects);
+  assert.equal(clip.effects[0].analysis.source.mediaPath, "source.mp4");
+  const motion={...clip,effects:[{...clip.effects[0],type:"stabilize"}]};
+  assert.deepEqual(rebindAnalysisSource(motion,source)[0].analysis.source,source);
+  assert.deepEqual(rebindAnalysisSource({...motion,currentAssetId:"replacement"},source),motion.effects);
+});
 
 test("parses defaults and explicit fixture selection", () => {
   const defaults = parseArgs(["--bin", "build/nodetool-timeline"]);
@@ -13,7 +27,7 @@ test("parses defaults and explicit fixture selection", () => {
   assert.equal(defaults.json, false);
   assert.deepEqual(defaults.only, []);
   const args = parseArgs(["--bin", "/tmp/native", "--only", "blend-modes,blend-group", "--min-psnr", "42.5", "--json"]);
-  assert.deepEqual(args, { bin: "/tmp/native", only: ["blend-modes", "blend-group"], minPsnr: 42.5, json: true });
+  assert.deepEqual(args, { bin: path.resolve("/tmp/native"), only: ["blend-modes", "blend-group"], minPsnr: 42.5, json: true });
 });
 
 test("rejects missing, unknown and invalid arguments", () => {
@@ -179,7 +193,7 @@ test("new PNG fixtures declare supported RGB ingress", () => {
 test("matte imports resolve separately and bind without mutating the fixture", async () => {
   const { matteImports, bindMatteAssets } = await import("./import-matte.mjs");
   const doc = { clips: [{ id: "a", mediaPath: "picture.mp4", generatedMatte: { mediaPath: "mask.mp4", assetId: "old", invert: true } }, { id: "b" }] };
-  assert.deepEqual(matteImports(doc, "/tmp/j4"), [{ clipId: "a", file: "/tmp/j4/mask.mp4" }]);
+  assert.deepEqual(matteImports(doc, "/tmp/j4"), [{ clipId: "a", file: path.resolve("/tmp/j4/mask.mp4") }]);
   assert.throws(() => bindMatteAssets(doc, []), /Missing matte asset/);
   const bound = bindMatteAssets(doc, [{ clipId: "a", assetId: "new" }]);
   assert.deepEqual(bound.clips[0].generatedMatte, { assetId: "new", invert: true });
@@ -192,7 +206,7 @@ test("prepares generated matte fixtures with absolute picture paths and a pendin
   const { prepareMatteFixture } = await import("./import-matte.mjs");
   const doc = { clips: [{ id: "a", mediaPath: "picture.mp4", generatedMatte: { mediaPath: "mask.mp4", assetId: "old", status: "ready" } }] };
   const prepared = prepareMatteFixture(doc, "/tmp/j4");
-  assert.equal(prepared.clips[0].mediaPath, "/tmp/j4/picture.mp4");
+  assert.equal(prepared.clips[0].mediaPath, path.resolve("/tmp/j4/picture.mp4"));
   assert.equal(prepared.clips[0].generatedMatte.status, "generating");
   assert.equal(doc.clips[0].generatedMatte.status, "ready");
 });

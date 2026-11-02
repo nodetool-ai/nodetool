@@ -256,6 +256,9 @@ export const trackFableEffect = z.object({
 // ── Track video effects ──────────────────────────────────────────────────────
 
 export const trackColorCorrectionEffect = z.object({
+  exposure: z.number().min(-5).max(5).optional(),
+  rolloff: z.number().min(0).max(1).optional(),
+  whites: z.number().min(-2).max(2).optional(),
   id: z.string(),
   type: z.literal("colorCorrection"),
   enabled: z.boolean(),
@@ -290,7 +293,10 @@ export const trackVignetteEffect = z.object({
   enabled: z.boolean(),
   intensity: z.number(),
   radius: z.number(),
-  softness: z.number()
+  softness: z.number(),
+  centerX: z.number().min(0).max(1).optional(),
+  centerY: z.number().min(0).max(1).optional(),
+  roundness: z.number().min(0).max(1).optional()
 });
 
 export const trackChromaKeyEffect = z.object({
@@ -1071,7 +1077,10 @@ export const clipVignetteEffect = z.object({
   amount: z.number(),
   softness: z.number(),
   /** Absent means the shader's own default. Mirrors ClipVignetteEffect.radius. */
-  radius: z.number().optional()
+  radius: z.number().optional(),
+  centerX: z.number().min(0).max(1).optional(),
+  centerY: z.number().min(0).max(1).optional(),
+  roundness: z.number().min(0).max(1).optional()
 });
 
 export const clipSharpenEffect = z.object({
@@ -1145,7 +1154,81 @@ export const clipGrainEffect = z.object({
  * type it does not carry on every PATCH, so a graded clip loses that step of
  * its chain on the next save.
  */
+export const secondaryCurvePoints = z.array(z.object({x: z.number().min(0).max(1), y: z.number().min(0).max(1)})).max(256);
+export const clipDenoiseEffect = z.object({
+  id: z.string(), type: z.literal("denoise"), enabled: z.boolean(),
+  lumaStrength: z.number().min(0).max(1).optional(), chromaStrength: z.number().min(0).max(1).optional(),
+  temporalStrength: z.number().min(0).max(1).optional(), radius: z.number().int().min(1).max(4).optional()
+});
+export const clipStabilizeAnalysis = z.object({
+  version: z.literal(1), kind: z.literal("stabilize"),
+  source: z.object({assetId: z.string(), mediaPath: z.string()}),
+  rangeStartMs: z.number().min(0), rangeEndMs: z.number().min(0),
+  windowMs: z.number().min(0).max(2000), frameRate: z.number().positive().max(240),
+  width: z.number().int().positive().max(32768), height: z.number().int().positive().max(32768),
+  requiredZoom: z.number().min(1).max(10), trackedFrames: z.number().int().min(0).max(18000),
+  samples: z.array(z.object({timeMs: z.number().min(0), x: z.number().min(-2000).max(2000),
+    y: z.number().min(-2000).max(2000), angle: z.number().min(-600).max(600), scale: z.number().min(0.000001).max(1000000)})).min(1).max(18000)
+}).refine(data => data.rangeEndMs >= data.rangeStartMs && data.trackedFrames < data.samples.length && data.samples.every((sample, index) =>
+  index === 0 ? sample.timeMs <= data.rangeStartMs + 1e-6 : sample.timeMs > data.samples[index - 1]!.timeMs),
+"Motion samples must have ascending source times, cover the range start and bound the tracked frame count.");
+export const clipStabilizeEffect = z.object({
+  id: z.string(), type: z.literal("stabilize"), enabled: z.boolean(),
+  strength: z.number().min(0).max(1).optional(), windowMs: z.number().min(0).max(2000).optional(),
+  maxZoom: z.number().min(1).max(1.5).optional(), analysis: clipStabilizeAnalysis.optional()
+});
+export const clipDeflickerAnalysis = z.object({
+  version: z.literal(1),
+  source: z.object({assetId: z.string(), mediaPath: z.string()}),
+  rangeStartMs: z.number().min(0), rangeEndMs: z.number().min(0),
+  windowMs: z.number().min(0).max(2000), maxCorrection: z.number().min(0).max(3),
+  frameRate: z.number().positive().max(240),
+  samples: z.array(z.object({timeMs: z.number().min(0), stops: z.number().min(-3).max(3)})).min(1).max(18000)
+}).refine(data => data.rangeEndMs >= data.rangeStartMs && data.samples.every((sample, index) =>
+  Math.abs(sample.stops) <= data.maxCorrection + 1e-6 && (index === 0
+    ? sample.timeMs <= data.rangeStartMs + 1e-6 : sample.timeMs > data.samples[index - 1]!.timeMs)),
+"Analysis samples must have ascending source times, cover the range start and respect the correction limit.");
+export const clipDeflickerEffect = z.object({
+  id: z.string(), type: z.literal("deflicker"), enabled: z.boolean(),
+  strength: z.number().min(0).max(1).optional(), windowMs: z.number().min(0).max(2000).optional(),
+  maxCorrection: z.number().min(0).max(3).optional(), analysis: clipDeflickerAnalysis.optional()
+});
+export const clipDebandEffect = z.object({
+  id: z.string(), type: z.literal("deband"), enabled: z.boolean(),
+  strength: z.number().min(0).max(1).optional(), range: z.number().int().min(1).max(64).optional(),
+  threshold: z.number().min(0).max(0.1).optional(), dither: z.number().min(0).max(1).optional()
+});
+export const clipSecondaryColorEffect = z.object({
+  id: z.string(), type: z.literal("secondaryColor"), enabled: z.boolean(),
+  hueCenter: z.number().min(0).max(360).optional(),
+  hueWidth: z.number().min(0).max(180).optional(),
+  hueSoftness: z.number().min(0).max(180).optional(),
+  rangeSoftness: z.number().min(0).max(1).optional(),
+  saturationMin: z.number().min(0).max(1).optional(),
+  saturationMax: z.number().min(0).max(1).optional(),
+  lightnessMin: z.number().min(0).max(1).optional(),
+  lightnessMax: z.number().min(0).max(1).optional(),
+  hueShift: z.number().min(-180).max(180).optional(),
+  saturation: z.number().min(0).max(4).optional(),
+  lightness: z.number().min(-1).max(1).optional(),
+  hueCurve: secondaryCurvePoints.optional(),
+  saturationCurve: secondaryCurvePoints.optional(),
+});
+
+export const clipExposureEffect = z.object({
+  id: z.string(), type: z.literal("exposure"), enabled: z.boolean(),
+  exposure: z.number().min(-5).max(5).optional(),
+  rolloff: z.number().min(0).max(1).optional(),
+  whites: z.number().min(-2).max(2).optional()
+});
+
 const knownClipEffect = z.discriminatedUnion("type", [
+  clipDenoiseEffect,
+  clipStabilizeEffect,
+  clipDeflickerEffect,
+  clipDebandEffect,
+  clipSecondaryColorEffect,
+  clipExposureEffect,
   clipColorEffect,
   clipBlurEffect,
   clipPixelateEffect,
@@ -1171,6 +1254,12 @@ const knownClipEffect = z.discriminatedUnion("type", [
  * a list for the same reason {@link KNOWN_TRANSITION_TYPE_LIST} is.
  */
 export const KNOWN_CLIP_EFFECT_TYPE_LIST = [
+  "denoise",
+  "stabilize",
+  "deflicker",
+  "deband",
+  "secondaryColor",
+  "exposure",
   "color",
   "blur",
   "pixelate",

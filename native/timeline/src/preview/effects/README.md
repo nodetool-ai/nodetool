@@ -44,6 +44,14 @@ sequence clock stays unstepped for grouped clips and temporal echoes.
 Missing document fps defaults to 30 in the timeline parser.
 The driver compares every listed frame with the export.
 
+Authored tone curves use piecewise-linear transfer samples, with the master
+curve applied before each channel curve. A 256-entry table matches the encoded
+8-bit input grid and interpolates between samples for unpremultiplied values.
+Native rendering stores the table in a cached RGBA16F texture. Shared GPU
+rendering uses uniform samples, and CPU rendering uses the same transfer table.
+This preserves channel bends and endpoint values that parametric curve fitting
+discarded. It does not change the pipeline's encoded-light working space.
+
 `clip-grain-animated` and `group-grain-animated` use a static image at 24 fps,
 with golden frames 17 and 18. An optional `distinctFrames` array lists pairs
 of golden frame indices whose native stills must differ. The script rejects
