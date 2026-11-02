@@ -83,7 +83,7 @@ void DockLayoutStore::switchWorkspace(int index) {
 }
 void DockLayoutStore::resetWorkspace() {
     finishResize(true);
-    m_layout = call("presetWithExtensions", {m_layout, m_workspace});
+    m_layout = call("presetFromWorkspace", {m_layout, m_workspace, m_workspace});
     m_layout = call("registerMissingPanels", {m_layout, m_panels});
     if (m_workspace == "Script") m_layout = withScriptPanelSelected(m_layout);
     ++m_epoch;

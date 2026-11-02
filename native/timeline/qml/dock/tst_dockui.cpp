@@ -102,11 +102,16 @@ private slots:
         render();
         QCOMPARE(store->workspace(), QString("Color"));
         auto visible = dock->property("visiblePanels").toStringList();
-        QVERIFY2(visible.contains("program") && visible.contains("tracks") && visible.contains("inspector"), qPrintable(visible.join(',')));
+        QVERIFY2(visible.contains("program") && visible.contains("tracks"), qPrintable(visible.join(',')));
         QCOMPARE(dock->property("leftExtent").toInt(), 0);
         QCOMPARE(dock->property("rightExtent").toInt(), 400);
         QCOMPARE(dock->property("bottomExtent").toInt(), 280);
-        // Until a scopes panel exists the Program monitor takes the whole viewport.
+        // Its panels registered themselves, so the preset shows them with no edit here.
+        QVERIFY2(visible.contains("scopes") && visible.contains("color"), qPrintable(visible.join(',')));
+        QVERIFY(named(root, "dockTab_scopes"));
+        QVERIFY(named(root, "dockTab_color"));
+        // The Inspector stays one tab away.
+        QVERIFY(named(root, "dockTab_inspector"));
         auto* program = named(root, "previewCompositor");
         QVERIFY(program);
         // A window-level key press reaches the same workspace action.

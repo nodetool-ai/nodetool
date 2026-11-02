@@ -7,6 +7,9 @@ var workspaces = ["Editing", "Script", "Assistant", "Review"];
 var nativeWorkspaces = ["Color", "Audio"];
 var sidePanels = ["inspector", "shot", "instruments", "assistant", "history", "code"];
 var requiredPanels = ["program", "tracks"];
+// Panels only this editor has, which a ported preset would otherwise show. Review leaves the
+// right side empty for the picture, and the port above keeps its own list of what it hides.
+var nativeHidden = {Review: ["color"]};
 
 // Field-for-field port of TimelineDockLayout.ts, checked by dock-conformance.mjs.
 function createLayout(name) {
@@ -36,11 +39,14 @@ function applyNativePreset(layout, name) {
 // What a native preset hides is its own choice. Leaving it would hide those
 // panels in the next workspace too, the first time that one opens.
 function presetFromWorkspace(layout, from, name) {
-    if (nativeWorkspaces.indexOf(from) < 0) { return presetWithExtensions(layout, name); }
     var next = clone(layout);
-    var own = createLayout(from).hidden;
+    var own = nativeWorkspaces.indexOf(from) >= 0 ? createLayout(from).hidden : (nativeHidden[from] || []);
     next.hidden = next.hidden.filter(function(id) { return own.indexOf(id) < 0; });
-    return presetWithExtensions(next, name);
+    var preset = presetWithExtensions(next, name);
+    (nativeHidden[name] || []).forEach(function(id) {
+        if (groupOfPanel(preset, id) && preset.hidden.indexOf(id) < 0) { preset.hidden.push(id); }
+    });
+    return checked(preset);
 }
 
 function createWebLayout(name) {

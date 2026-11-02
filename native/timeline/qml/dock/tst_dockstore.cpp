@@ -79,6 +79,25 @@ private slots:
         restored.resetWorkspace();
         QCOMPARE(restored.layout().value("sizes").toMap().value("right").toDouble(), 400.0);
     }
+    void reviewKeepsTheRightSideEmpty() {
+        QFile::remove(qEnvironmentVariable("NODETOOL_TIMELINE_PREFERENCES"));
+        DockLayoutStore store;
+        store.registerPanels({
+            QVariantMap{{"id", "program"}, {"title", "Program"}, {"defaultRegion", "viewport"}},
+            QVariantMap{{"id", "tracks"}, {"title", "Timeline"}, {"defaultRegion", "bottom"}},
+            QVariantMap{{"id", "color"}, {"title", "Color"}, {"defaultRegion", "right"}}});
+        const auto hidden = [&store] { return store.layout().value("hidden").toStringList(); };
+        QVERIFY(!hidden().contains("color"));
+        store.switchWorkspace(store.workspaces().indexOf("Review"));
+        QVERIFY(hidden().contains("color"));
+        // Reset gives the same preset, and leaving Review gives the panel back.
+        store.resetWorkspace();
+        QVERIFY(hidden().contains("color"));
+        store.switchWorkspace(store.workspaces().indexOf("Editing"));
+        QVERIFY(!hidden().contains("color"));
+        store.switchWorkspace(store.workspaces().indexOf("Color"));
+        QVERIFY(!hidden().contains("color"));
+    }
     void panelsMoveBetweenWebAndNativeWorkspaces() {
         QFile::remove(qEnvironmentVariable("NODETOOL_TIMELINE_PREFERENCES"));
         DockLayoutStore store;
