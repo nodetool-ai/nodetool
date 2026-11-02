@@ -2315,6 +2315,16 @@ qml_callers = []
 replacement = "Feature composition through migrated native Ui wrappers"
 
 [[file]]
+path = "native/timeline/src/motion/controls/qmltests/tst_docktabtitles.qml"
+category = "chrome"
+controls = ["DockCanvas"]
+signals = []
+test_host = "tst_followpathui"
+test_scope = "interaction: truncated dock titles on hover and keyboard focus"
+qml_callers = []
+replacement = "Mounted coverage for the shared tooltip on dock tabs"
+
+[[file]]
 path = "native/timeline/src/motion/tracking/TrackBinding.qml"
 category = "chrome"
 controls = ["InspectorSection", "InspectorRow", "InspectorPillInput", "InspectorSelect", "Sections.InspectorActionButton", "InspectorSliderRow"]

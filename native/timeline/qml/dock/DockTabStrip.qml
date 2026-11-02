@@ -112,6 +112,12 @@ Rectangle {
                         tone: tab.selected ? Ui.Text.Primary : Ui.Text.Secondary
                     }
                     Rectangle { anchors.right: parent.right; width: Ui.Metrics.border; height: parent.height; color: Ui.Theme.borderSubtle }
+                    Ui.Tooltip {
+                        objectName: "dockTabTitleTooltip"
+                        trigger: tab
+                        visible: title.truncated && (hover.containsMouse || tab.activeFocus) && !hover.pressed && root.dock.dragPanel === ""
+                        text: title.text
+                    }
                     Rectangle { width: parent.width; height: Ui.Metrics.micro; color: tab.activeFocus ? Ui.Theme.accentPrimary : Ui.Theme.actionDisabled; visible: tab.selected }
                     MouseArea {
                         id: hover
