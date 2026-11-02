@@ -27,6 +27,9 @@ Rectangle {
     readonly property bool targeted: !TrackTargeting.untargetedTrackIds.includes(trackId)
     readonly property bool syncLocked: !TrackTargeting.syncLockOffTrackIds.includes(trackId)
 
+    readonly property string patchKind: trackType === "video" || trackType === "overlay" ? "video" : trackType === "audio" ? "audio" : ""
+    readonly property bool patched: patchKind === "video" ? SourceViewerState.patchedVideoTrackId === trackId
+                                  : patchKind === "audio" && SourceViewerState.patchedAudioTrackId === trackId
     readonly property bool isSoundTrack: trackType === "audio" || trackType === "midi"
     readonly property bool automationShown: AutomationUIState.shownAutomationTrackIds.includes(trackId)
     readonly property color accent: TimelineVisuals.trackAccent(trackType)
@@ -84,10 +87,31 @@ Rectangle {
             id: nameText
             x: glyph.x + glyph.width + Ui.Metrics.md
             anchors.verticalCenter: parent.verticalCenter
-            width: Math.max(0, Math.min(Ui.Metrics.small * 6 + Ui.Metrics.sm, topRow.width - x - chip.width - Ui.Metrics.sm))
+            width: Math.max(0, Math.min(Ui.Metrics.small * 6 + Ui.Metrics.sm, topRow.width - x - chip.width - Ui.Metrics.sm
+                - (patchChip.visible ? patchChip.width + Ui.Metrics.micro : 0)))
             text: header.name
             role: Ui.Typography.SansLabel
             elide: Text.ElideRight
+        }
+        // Source patching: Insert and Overwrite place that stream of the Source
+        // monitor's clip on this track. View state, not saved in the document.
+        Ui.EditorButton {
+            id: patchChip
+            objectName: "sourcePatch-" + header.trackId
+            visible: header.patchKind !== ""
+            x: nameText.x + nameText.width + Ui.Metrics.sm
+            anchors.verticalCenter: parent.verticalCenter
+            density: Ui.EditorButton.Compact
+            variant: Ui.EditorButton.Flat
+            checkable: true
+            active: header.patched
+            Binding { target: patchChip; property: "checked"; value: header.patched }
+            text: header.patchKind === "video" ? "V" : "A"
+            textRole: Ui.Typography.MonoCaption
+            textTone: header.patched ? Ui.Text.Primary : Ui.Text.Disabled
+            accessibleName: (header.patched ? "Unpatch source " : "Patch source ") + (header.patchKind === "video" ? "video" : "audio") + " to " + header.name
+            description: "Insert and Overwrite place Source " + (header.patchKind === "video" ? "video" : "audio") + " on this track"
+            onClicked: SourceViewerState.togglePatch(header.patchKind, header.trackId)
         }
         // The index chip doubles as the track-target toggle; a track is
         // targeted unless the person turned it off.
@@ -95,7 +119,7 @@ Rectangle {
             id: chip
             objectName: "trackTarget-" + header.trackId
             opacity: header.targeted ? 1 : 0.55
-            x: nameText.x + nameText.width + Ui.Metrics.sm
+            x: (patchChip.visible ? patchChip.x + patchChip.width + Ui.Metrics.micro : nameText.x + nameText.width + Ui.Metrics.sm)
             anchors.verticalCenter: parent.verticalCenter
             density: Ui.EditorButton.Compact
             variant: Ui.EditorButton.Flat

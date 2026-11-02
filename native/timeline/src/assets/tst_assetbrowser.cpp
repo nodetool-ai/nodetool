@@ -7,6 +7,7 @@
 #include "app/EditRegistry.h"
 #include "edit/tracks/TrackEdits.h"
 #include "edit/sourceEdit/SourceViewerState.h"
+#include "edit/sourceEdit/SourceEdit.h"
 #include "edit/targeting/TrackTargeting.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
@@ -311,6 +312,33 @@ private slots:
         QVERIFY(QFileInfo::exists(original));
         QVERIFY(preview != original);
         QCOMPARE(media.audioPath, media.originalMediaPath);
+    }
+    void sourcePlacementQueuesAndSettlesRangedAudio() {
+        auto parsed = nt::parseTimelineJson(R"({"fps":30,"width":640,"height":360,
+            "tracks":[{"id":"v","type":"video","index":0},{"id":"a","type":"audio","index":1}],"clips":[]})");
+        QVERIFY(parsed.timeline);
+        TimelineModel model; model.setTimeline(std::move(*parsed.timeline));
+        AssetBrowser browser; browser.setTimeline(&model); browser.m_target = nt::server::SaveTarget{};
+        QThread occupiedWorker; browser.m_thread = &occupiedWorker;
+        const auto clearWorker = qScopeGuard([&browser] { browser.m_thread.clear(); });
+        nt::sourceedit::Placement p;
+        p.asset = {{"id", "video"}, {"name", "Take"}, {"content_type", "video/mp4"}, {"duration", 20}};
+        p.videoTrackId = "v"; p.audioTrackId = "a"; p.inMs = 1000; p.outMs = 3000; p.mode = "overlap";
+        QVERIFY(browser.placeSource(nt::sourceedit::placementToJson(p)));
+        QCOMPARE(model.undoStack()->count(), 1); QCOMPARE(model.clipCount(), 2);
+        QCOMPARE(browser.m_requests.size(), size_t(2));
+        auto completion = std::move(browser.m_requests.back().done); browser.m_requests.clear(); QVERIFY(completion);
+        AssetBrowser::Result result;
+        result.settlement = {{"outcome", "audio"}, {"asset", QJsonObject{{"id", "extracted"}, {"duration", 20}}}};
+        completion(result);
+        const auto audio = model.clipsJson().last().toObject();
+        QCOMPARE(audio.value("status").toString(), QString("generated"));
+        QCOMPARE(audio.value("durationMs").toDouble(), 2000.0);
+        QCOMPARE(audio.value("inPointMs").toDouble(), 1000.0);
+        QCOMPARE(audio.value("outPointMs").toDouble(), 3000.0);
+        QCOMPARE(browser.m_requests.size(), size_t(1)); QCOMPARE(model.undoStack()->count(), 1);
+        model.undoStack()->undo(); QCOMPARE(model.clipCount(), 0);
+        model.undoStack()->redo(); QCOMPARE(model.clipsJson().last().toObject(), audio);
     }
     void linkedAudioTrackedDeletion_data() {
         QTest::addColumn<QString>("outcome");

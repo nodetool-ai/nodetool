@@ -82,6 +82,7 @@ public:
     Q_INVOKABLE bool canDrop(const QVariantMap& asset, const QString& trackId) const;
     Q_INVOKABLE bool drop(const QVariantMap& asset, const QString& trackId, double startMs,
                           const QString& mode, double snapMs);
+    Q_INVOKABLE bool placeSource(const QJsonObject& payload);
     Q_INVOKABLE void resolveClipMedia(const QVariantMap& asset, const QString& clipId);
     Q_INVOKABLE QUrl mediaUrl(const QString& path) const;
 signals:
@@ -125,7 +126,7 @@ private:
     QueuedImport takeNextImport();
     void pollProxies();
     void receive(const Result& result);
-    bool applyDrop(const QJsonObject& payload);
+    bool applyDrop(const QJsonObject& payload, const QString& editName = "assets.dropAsset");
     void queueMedia(const QJsonObject& asset, const QJsonObject& clip,
                     QPointer<TimelineModel> model, quint64 generation);
     void queueLinkedAudio(const QJsonObject& asset, const QString& audioClipId,
