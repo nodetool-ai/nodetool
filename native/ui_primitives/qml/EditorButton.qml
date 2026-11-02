@@ -89,9 +89,11 @@ Basic.Button {
     Ui.PressCancel { id: pressCancel }
     Item {
         id: disabledTarget
-        parent: root.parent
-        x: root.x; y: root.y; width: root.width; height: root.height
-        z: root.z + Metrics.layerOverlay
+        parent: tooltip.parent
+        x: tooltip.triggerBounds.x
+        y: tooltip.triggerBounds.y
+        width: tooltip.triggerBounds.width
+        height: tooltip.triggerBounds.height
         visible: root.visible && !root.enabled && root.disabledReason !== ""
         HoverHandler { id: disabledHover; onHoveredChanged: if (hovered) root.tooltipSuppressed = false }
     }

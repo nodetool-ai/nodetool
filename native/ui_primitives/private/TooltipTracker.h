@@ -10,6 +10,7 @@ class TooltipTracker : public QObject {
     Q_PROPERTY(QQuickItem* trigger READ trigger WRITE setTrigger NOTIFY triggerChanged)
     Q_PROPERTY(QQuickItem* overlay READ overlay WRITE setOverlay NOTIFY geometryChanged)
     Q_PROPERTY(QPointF anchor READ anchor NOTIFY geometryChanged)
+    Q_PROPERTY(QRectF bounds READ bounds NOTIFY geometryChanged)
     Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
 public:
     explicit TooltipTracker(QObject* parent = nullptr);
@@ -17,6 +18,7 @@ public:
     QQuickItem* trigger() const { return m_trigger; }
     QQuickItem* overlay() const { return m_overlay; }
     QPointF anchor() const;
+    QRectF bounds() const;
     bool active() const { return m_active; }
     void setTrigger(QQuickItem* trigger);
     void setOverlay(QQuickItem* overlay);

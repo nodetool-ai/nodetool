@@ -12,6 +12,14 @@ TooltipTracker::~TooltipTracker() {
 QPointF TooltipTracker::anchor() const {
     return m_trigger && m_overlay ? m_trigger->mapToItem(m_overlay, QPointF(0, m_trigger->height())) : QPointF();
 }
+QRectF TooltipTracker::bounds() const {
+    if (!m_trigger || !m_overlay) { return {}; }
+    auto bounds = m_trigger->mapRectToItem(m_overlay, m_trigger->boundingRect());
+    for (auto* item = m_trigger->parentItem(); item; item = item->parentItem()) {
+        if (item->clip()) { bounds = bounds.intersected(item->mapRectToItem(m_overlay, item->boundingRect())); }
+    }
+    return bounds;
+}
 void TooltipTracker::setTrigger(QQuickItem* trigger) {
     if (m_trigger == trigger) { return; }
     dismiss();
@@ -37,6 +45,7 @@ void TooltipTracker::watchAncestors() {
         m_connections.append(connect(item, &QQuickItem::heightChanged, this, moved));
         m_connections.append(connect(item, &QQuickItem::rotationChanged, this, moved));
         m_connections.append(connect(item, &QQuickItem::scaleChanged, this, moved));
+        m_connections.append(connect(item, &QQuickItem::clipChanged, this, moved));
         m_connections.append(connect(item, &QQuickItem::visibleChanged, this, moved));
         m_connections.append(connect(item, &QQuickItem::parentChanged, this, [this]() {
             dismiss(); watchAncestors(); emit geometryChanged();

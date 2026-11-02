@@ -12,6 +12,7 @@ ToolTip {
     width: parent ? Math.min(implicitWidth, parent.width) : implicitWidth
     height: parent ? Math.min(implicitHeight, parent.height) : implicitHeight
     readonly property point anchorPoint: tracker.anchor
+    readonly property rect triggerBounds: tracker.bounds
     x: Math.max(0, Math.min(parent ? parent.width - width : 0, anchorPoint.x))
     y: parent && anchorPoint.y + height <= parent.height ? anchorPoint.y : Math.max(0, anchorPoint.y - (trigger ? trigger.height : 0) - height)
     onAboutToShow: tracker.prepare()

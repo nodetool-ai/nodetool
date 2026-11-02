@@ -10,6 +10,15 @@ TestCase {
     height: 240
     Item { id: scrollContent; width: parent.width; height: parent.height }
     Component { id: secondWindow; Window { width: 400; height: 240; visible: true } }
+    Component {
+        id: disabledRow
+        Row {
+            y: 100
+            spacing: Ui.Metrics.micro
+            Ui.ToolbarIconButton { objectName: "disabledAction"; iconName: "add"; accessibleName: "Add"; enabled: false; disabledReason: "Unlock the track" }
+            Ui.ToolbarIconButton { objectName: "enabledAction"; iconName: "add"; accessibleName: "Other action" }
+        }
+    }
 
     Ui.ToolbarIconButton {
         id: action
@@ -95,5 +104,17 @@ TestCase {
         compare(tip.x, action.mapToItem(tip.parent, 0, action.height).x)
         tip.close()
         action.parent = scrollContent
+    }
+    function test_disabledHelpDoesNotParticipateInRowLayout() {
+        const row = createTemporaryObject(disabledRow, scrollContent)
+        verify(row)
+        const disabled = findChild(row, "disabledAction")
+        const enabled = findChild(row, "enabledAction")
+        waitForRendering(row)
+        compare(row.width, disabled.width + row.spacing + enabled.width)
+        mouseMove(disabled, disabled.width / 2, disabled.height / 2)
+        const tip = findChild(disabled, "nativeButtonTooltip")
+        tryVerify(() => tip.visible, 1500)
+        compare(tip.text, "Unlock the track")
     }
 }
