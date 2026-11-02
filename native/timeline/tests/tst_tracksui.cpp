@@ -2577,7 +2577,7 @@ private slots:
         const QVariantMap content = sheet->property("content").toMap();
         QCOMPARE(content.value("title").toString(), QStringLiteral("Keyboard shortcuts"));
         const QVariantList groups = webShortcutGroups(content);
-        QCOMPARE(groups.size(), 11);
+        QCOMPARE(groups.size(), 12);
         QCOMPARE(groups.first().toMap().value("title").toString(), QStringLiteral("Tools"));
         const QVariantMap cut = groups.first().toMap().value("rows").toList().at(6).toMap();
         QCOMPARE(cut.value("label").toString(), QStringLiteral("Cut (blade) tool"));
@@ -2589,7 +2589,7 @@ private slots:
         QCOMPARE(combos(cut), (QList<QStringList>{{"C"}}));
         int rows = 0;
         for (const QVariant& gv : groups) rows += gv.toMap().value("rows").toList().size();
-        QCOMPARE(rows, 112);
+        QCOMPARE(rows, 131);
         if (qEnvironmentVariableIsSet("NT_SHOT_DIR")) {
             view->resize(1600, 1000);
             sheetItem->setSize(region->size());
@@ -2599,8 +2599,10 @@ private slots:
         g->setKeyboardPreset(QStringLiteral("premiere"));
         sheet->setProperty("open", false);
         sheet->setProperty("open", true);
-        const QVariantMap redo = webShortcutGroups(sheet->property("content").toMap()).last().toMap()
-                                     .value("rows").toList().at(1).toMap();
+        QVariantMap redo;
+        for (const QVariant& gv : webShortcutGroups(sheet->property("content").toMap()))
+            for (const QVariant& rv : gv.toMap().value("rows").toList())
+                if (rv.toMap().value("id").toString() == QStringLiteral("redo")) redo = rv.toMap();
         QCOMPARE(combos(redo), (QList<QStringList>{{"Ctrl", "Shift", "Z"}, {"Ctrl", "Y"}}));
         view->resize(320, 480);
         sheetItem->setSize(region->size());
@@ -2989,7 +2991,7 @@ private slots:
         for (const QVariant& gv : webShortcutGroups(sheet))
             for (const QVariant& rv : gv.toMap().value("rows").toList())
                 available.insert(rv.toMap().value("id").toString(), rv.toMap().value("available").toBool());
-        QCOMPARE(available.size(), 112);
+        QCOMPARE(available.size(), 131);
         for (const char* yes : {"markClip", "cutTool", "markIn", "addMarker", "splitAtPlayhead", "undo", "playPause",
                                 "rollCut", "insertOnDrop", "disableSnapping", "toggleLoop", "playInToOut", "copy", "groupClips",
                                 "matchFrame", "selectEditPoint", "toggleScrubAudio"})

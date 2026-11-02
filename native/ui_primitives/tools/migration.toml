@@ -1381,13 +1381,13 @@ controls = ["Rectangle", "Canvas", "FrameImage", "Ui.Text"]
 signals = []
 test_host = "tst_colorpanel"
 test_scope = "interaction"
-qml_callers = ["native/timeline/qml/color/ScopesPanel.qml"]
+qml_callers = ["native/timeline/qml/color/ScopeGrid.qml"]
 replacement = "A scope plate that stays dark in both schemes, as media does"
 
 [[file]]
 path = "native/timeline/qml/color/ScopesPanel.qml"
 category = "chrome"
-controls = ["Rectangle", "Row", "Grid", "Ui.EditorButton", "Ui.Text", "ScopeTile"]
+controls = ["Rectangle", "Row", "Ui.EditorButton", "Ui.Text", "ScopeGrid"]
 signals = []
 test_host = "tst_colorpanel"
 test_scope = "interaction"
@@ -1921,7 +1921,7 @@ controls = ["Rectangle", "MouseArea", "Ui.Text", "Ui.TextField", "Ui.Tooltip"]
 signals = []
 test_host = "tst_monitorui"
 test_scope = "interaction"
-qml_callers = ["native/timeline/qml/SourceViewerPanel.qml", "native/timeline/qml/preview/PreviewArea.qml"]
+qml_callers = ["native/timeline/qml/SourceViewerPanel.qml", "native/timeline/qml/preview/PreviewArea.qml", "native/timeline/qml/reference/ComparisonView.qml", "native/timeline/qml/reference/ReferencePanel.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.TextField, Ui.Tooltip"
 
 [[file]]
@@ -2834,6 +2834,14 @@ test_scope = "build/import"
 qml_callers = []
 replacement = "Synthetic timeline hit-testing fixture; no product chrome"
 [[exception]]
+path = "native/timeline/qml/takes/TakeGridView.qml"
+object = "view/panel/cells/Repeater[0]/cell/press"
+binding = "onClicked"
+rule = "manual-control"
+owner = "Program monitor take grid"
+reason = "A take cell is a picture with a frame, name and key number. Left, Ctrl and right clicks choose switch, cut or the menu, and the cell exposes itself as an accessible button."
+
+[[exception]]
 path = "native/timeline/qml/TimelineVisuals.qml"
 object = "QtObject[0]"
 binding = "overlay"
@@ -3394,3 +3402,63 @@ binding = "onDoubleClicked"
 rule = "manual-control"
 owner = "Native color grading"
 reason = "A grading wheel resets on double click. No primitive draws a two-axis puck, and the dial also takes arrow keys and Delete."
+
+[[file]]
+path = "native/timeline/qml/takes/TakeBadge.qml"
+category = "chrome"
+controls = ["Rectangle", "Ui.Text"]
+signals = []
+test_host = "tst_takeswitchui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Clip body slot item: a small chip with Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/takes/TakeGridView.qml"
+category = "chrome"
+controls = ["Ui.EmptyState", "Ui.ToolbarIconButton", "Ui.EditorButton", "Ui.ContextMenu", "Ui.MenuItem", "Ui.Icon", "Ui.Text", "FrameImage", "MouseArea"]
+signals = []
+test_host = "tst_takeswitchui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives for chrome. FrameImage for the frames"
+
+[[file]]
+path = "native/timeline/qml/takes/TakeStatus.qml"
+category = "chrome"
+controls = ["Rectangle", "Ui.Status", "Ui.Text"]
+signals = []
+test_host = "tst_takeswitchui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Status, Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/color/ScopeGrid.qml"
+category = "chrome"
+controls = ["Grid", "Repeater", "ScopeTile"]
+signals = []
+test_host = "tst_colorpanel"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/color/ScopesPanel.qml", "native/timeline/qml/reference/ReferencePanel.qml"]
+replacement = "Scope tiles that share one area"
+
+[[file]]
+path = "native/timeline/qml/reference/ComparisonView.qml"
+category = "chrome"
+controls = ["Item", "Rectangle", "Row", "FrameImage", "TimecodeField", "Ui.ToolbarIconButton", "Ui.EditorButton", "Ui.Text"]
+signals = []
+test_host = "tst_reference"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/reference/ReferencePanel.qml"
+category = "chrome"
+controls = ["Rectangle", "Flow", "Row", "Repeater", "FrameImage", "ScopeGrid", "TimecodeField", "Ui.ToolbarIconButton", "Ui.EditorButton", "Ui.Select", "Ui.Text"]
+signals = []
+test_host = "tst_reference"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"

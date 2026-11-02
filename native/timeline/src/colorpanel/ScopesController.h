@@ -68,6 +68,8 @@ public:
     // Scope data as numbers for the frame at a time, for the agent tools. The numbers are computed
     // on the worker. The callback runs on this object's thread, once, unless this object goes first.
     void readNumbers(double timeMs, const nt::scopes::NumbersOptions& options, NumbersCallback callback);
+    // Computes the scopes of a frame that came from elsewhere, for a controller with no clock.
+    Q_INVOKABLE void showFrame(const QImage& frame, double timeMs) { compute(frame, timeMs); }
     // Frames handed to the worker and the thread that last computed, for tests.
     int computedFramesForTest() const { return m_computedFrames; }
     Qt::HANDLE lastComputeThreadForTest() const { return m_lastComputeThread; }
