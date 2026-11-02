@@ -83,3 +83,76 @@ export async function runTransformersJsModelDownload(
     }
   }
 }
+
+/** The model type prefix that routes a download to Wan2GP's own downloader. */
+export const WAN2GP_DOWNLOAD_PREFIX = "wangp.";
+
+/**
+ * Download a Wan2GP model's files into the installed Wan2GP with its own
+ * downloader, in the shape of the other download paths. Wan2GP does not
+ * announce a total, so progress carries the bytes written and the files in
+ * flight, with the write rate.
+ */
+export async function runWan2GPModelDownload(
+  repoId: string,
+  modelType: string,
+  signal: AbortSignal,
+  onProgress: ModelDownloadProgress
+): Promise<void> {
+  const { downloadWan2GPModel, findInstalledWan2GP } = await import("@nodetool-ai/runtime");
+  const started = Date.now();
+  const emit = (
+    status: ModelDownloadUpdate["status"],
+    extra: Partial<ModelDownloadUpdate> = {}
+  ): void => {
+    onProgress({
+      status,
+      repo_id: repoId,
+      path: null,
+      model_type: modelType,
+      downloaded_bytes: 0,
+      total_bytes: 0,
+      downloaded_files: 0,
+      current_files: [],
+      total_files: 0,
+      ...extra
+    });
+  };
+  const model = modelType.slice(WAN2GP_DOWNLOAD_PREFIX.length);
+  const install = await findInstalledWan2GP();
+  if (!install) {
+    emit("error", { error: "Wan2GP is not installed. Install it in the Package Manager first." });
+    return;
+  }
+  emit("start", { message: `Preparing Wan2GP model ${model}` });
+  let downloaded = 0;
+  try {
+    const status = await downloadWan2GPModel(install, model, {
+      signal,
+      onProgress: (progress) => {
+        downloaded = progress.downloadedBytes;
+        const elapsed = (Date.now() - started) / 1000;
+        emit("progress", {
+          downloaded_bytes: progress.downloadedBytes,
+          current_files: progress.currentFiles,
+          elapsed_seconds: elapsed,
+          bytes_per_second: elapsed > 0 ? progress.downloadedBytes / elapsed : 0
+        });
+      }
+    });
+    if (status === "available") {
+      emit("completed", { downloaded_bytes: downloaded, message: `Wan2GP model ${model} is ready` });
+    } else {
+      emit("error", {
+        downloaded_bytes: downloaded,
+        error: `Wan2GP still reports the files of ${model} as ${status} after the download.`
+      });
+    }
+  } catch (error) {
+    if (signal.aborted) {
+      emit("cancelled", { downloaded_bytes: downloaded });
+    } else {
+      emit("error", { downloaded_bytes: downloaded, error: error instanceof Error ? error.message : String(error) });
+    }
+  }
+}

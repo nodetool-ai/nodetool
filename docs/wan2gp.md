@@ -47,6 +47,16 @@ Other hardware fails the install with Wan2GP's message naming the GPU it
 found. Allow about 12 GB before any model. Each model's weights download the
 first time it runs, into `wan2gp/ckpts`, which an update keeps.
 
+### Download models
+
+With Wan2GP installed, the model menu marks each Wan2GP model as ready or to
+download, from the same file check Wan2GP's own model selector uses. **Download**
+fetches the model's weights with Wan2GP's own downloader into `wan2gp/ckpts`,
+and the bar shows the bytes written. A generation also downloads what its
+model lacks before it runs. A server you run yourself manages its own files.
+
+### The server
+
 NodeTool starts the installed server the first time a node or the provider
 needs it, on a free port on `127.0.0.1`. It stops the server after 15 minutes
 without calls, which frees the GPU memory Wan2GP holds, and when NodeTool
@@ -101,6 +111,12 @@ the prompt reaches the server. The list is empty while no server answers.
 | Reference to video | Reference images as `image_refs`. Reference videos and audio are refused: use the Generate node for those |
 | Text to image | The prompt with `image_mode` 1, which picks the image output on models that also make video |
 | Image to image | The image as `image_start` or as `image_refs`, whichever role the model declares |
+| Text to speech | The text as `prompt`, the voice (Qwen3 Custom Voice) or language as `model_mode`, the instructions or reference transcript as `alt_prompt`, and a reference voice as `audio_guide` on the models that take one |
+| Text to music | The lyrics as `prompt` and the style as `alt_prompt`, or `[Instrumental]` without lyrics. Stable Audio takes the style as `prompt`. The duration as `duration_seconds` |
+
+Speech models list their preset voices or languages. Music models that need a
+file, such as YuE2's score, run only through the Generate node. The
+transcription models are not offered.
 
 A resolution tier such as `720p` sets the short side, and the aspect ratio,
 `16:9` by default, sets the long one. Wan2GP aligns the size to its own block.

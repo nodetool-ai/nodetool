@@ -13,6 +13,7 @@ import {
   WAN2GP_MAX_MEDIA_BYTES,
   Wan2GPClient,
   loadMediaRefBytes,
+  markWan2GPModelAvailable,
   withWan2GPClient,
   wan2gpAudioFilename,
   wan2gpImageFilename,
@@ -259,6 +260,8 @@ abstract class Wan2GPNodeBase extends BaseNode {
         expected ? [expected] : ["image", "video", "audio", "3d"]
       );
       const kind = item.media_type as OutputKind;
+      // A finished run downloaded whatever the model lacked.
+      if (!connection.serverUrl) markWan2GPModelAvailable(String(settings.model_type));
       return { kind, ref: outputRef(kind, data, item.filename) };
     });
   }

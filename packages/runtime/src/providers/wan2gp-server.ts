@@ -47,8 +47,8 @@ let active = 0;
 let idleTimer: ReturnType<typeof setTimeout> | null = null;
 let exitHookInstalled = false;
 
-/** The installs NodeTool checks: the desktop app's, then the CLI's. */
-async function installedWan2GP(): Promise<Wan2GPInstallStatus | null> {
+/** The Wan2GP the Package Manager installed: the desktop app's, then the CLI's. */
+export async function findInstalledWan2GP(): Promise<Wan2GPInstallStatus | null> {
   const env = typeof process === "undefined" ? {} : process.env;
   const dirs = new Set<string>();
   try {
@@ -100,7 +100,7 @@ export async function withWan2GPClient<T>(
   if (explicit) {
     return runWith(await Wan2GPClient.connect(explicit, options), work);
   }
-  const install = await installedWan2GP();
+  const install = await findInstalledWan2GP();
   if (!install?.python || !install.sourceDir) {
     let client: Wan2GPClient;
     try {

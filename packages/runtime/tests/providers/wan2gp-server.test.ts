@@ -4,6 +4,8 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { missingRuntimePackageOf } from "@nodetool-ai/protocol";
 import { stopWan2GPServer, withWan2GPClient } from "../../src/providers/wan2gp-server.js";
+import { Wan2GPProvider, resetWan2GPListings } from "../../src/providers/wan2gp-provider.js";
+import { resetWan2GPFileStatus } from "../../src/providers/wan2gp-models.js";
 import { FakeWan2GP } from "./wan2gp-fake-server.js";
 
 /**
@@ -15,6 +17,11 @@ const FAKE_WGP = `#!/usr/bin/env node
 const http = require("node:http");
 const fs = require("node:fs");
 const args = process.argv.slice(2);
+if (args[0].endsWith("nodetool_wan2gp.py")) {
+  // NodeTool's helper: report one downloaded model and one missing.
+  process.stdout.write(JSON.stringify({ type: "status", models: { t2v_2_2: "available", t2v_1_3B: "missing" } }) + "\\n");
+  process.exit(0);
+}
 fs.appendFileSync(process.env.FAKE_WGP_LOG, JSON.stringify({ cwd: process.cwd(), args, pythonpath: process.env.PYTHONPATH ?? null }) + "\\n");
 const port = Number(args[args.indexOf("--mcp-port") + 1]);
 http.createServer((req, res) => {
@@ -28,7 +35,9 @@ http.createServer((req, res) => {
       ? { protocolVersion: "2025-06-18", capabilities: {}, serverInfo: { name: "fake" } }
       : msg.method === "tools/list"
         ? { tools: [{ name: "wangp_session", inputSchema: { type: "object" } }] }
-        : { structuredContent: { pid: process.pid }, content: [] };
+        : msg.params.name === "wangp_models"
+          ? { structuredContent: { has_more: false, models: ["t2v_2_2", "t2v_1_3B"].map((model_type) => ({ model_type, name: model_type, main_output: ["video"], capabilities: ["text_to_video"], media_inputs: {} })) }, content: [] }
+          : { structuredContent: { pid: process.pid }, content: [] };
     res.writeHead(200, { "Content-Type": "application/json", "Mcp-Session-Id": "s" });
     res.end(JSON.stringify({ jsonrpc: "2.0", id: msg.id, result }));
   });
@@ -122,6 +131,17 @@ describe.skipIf(process.platform === "win32")("managed Wan2GP server", () => {
     const { sourceDir } = await install();
     await writeFile(join(sourceDir, "env_uv", "bin", "python"), "#!/usr/bin/env bash\necho 'CUDA driver too old' >&2\nexit 4\n");
     await expect(withWan2GPClient({}, async () => undefined)).rejects.toThrow(/stopped before it was ready \(exit code 4\):\nCUDA driver too old/);
+  });
+
+  it("lists the installed Wan2GP's models with their download state", async () => {
+    await install();
+    resetWan2GPListings();
+    resetWan2GPFileStatus();
+    const models = await new Wan2GPProvider({}).getAvailableVideoModels();
+    expect(models.map((model) => [model.id, model.adapter])).toEqual([
+      ["t2v_2_2", { state: "installed", artifactRef: { source: "huggingface", repoId: "wangp/t2v_2_2", modelType: "wangp.t2v_2_2" }, filesPresent: true }],
+      ["t2v_1_3B", { state: "installed", artifactRef: { source: "huggingface", repoId: "wangp/t2v_1_3B", modelType: "wangp.t2v_1_3B" }, filesPresent: false }]
+    ]);
   });
 
   it("offers the install when nothing is installed and nothing answers", async () => {

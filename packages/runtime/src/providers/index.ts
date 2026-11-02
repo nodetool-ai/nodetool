@@ -260,8 +260,16 @@ export { GeminiProvider };
 export { LlamaProvider };
 export { NodeLlamaCppProvider };
 export { StableDiffusionCppProvider };
-export { Wan2GPProvider, wan2gpBaseSettings, wan2gpResolution } from "./wan2gp-provider.js";
-export { stopWan2GPServer, withWan2GPClient } from "./wan2gp-server.js";
+export { Wan2GPProvider, resetWan2GPListings, wan2gpBaseSettings, wan2gpResolution } from "./wan2gp-provider.js";
+export { findInstalledWan2GP, stopWan2GPServer, withWan2GPClient } from "./wan2gp-server.js";
+export {
+  WAN2GP_HELPER_SOURCE,
+  downloadWan2GPModel,
+  markWan2GPModelAvailable,
+  resetWan2GPFileStatus,
+  wan2gpFileStatus
+} from "./wan2gp-models.js";
+export type { Wan2GPDownloadProgress, Wan2GPFileStatus } from "./wan2gp-models.js";
 export type { Wan2GPConnection } from "./wan2gp-server.js";
 export {
   WAN2GP_CANCEL_TIMEOUT_MS,

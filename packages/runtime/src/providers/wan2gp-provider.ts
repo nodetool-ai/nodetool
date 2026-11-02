@@ -14,24 +14,32 @@
 import { createLogger } from "@nodetool-ai/config";
 import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
-import { withWan2GPClient } from "./wan2gp-server.js";
+import { findInstalledWan2GP, withWan2GPClient } from "./wan2gp-server.js";
+import { markWan2GPModelAvailable, wan2gpFileStatus, type Wan2GPFileStatus } from "./wan2gp-models.js";
 import {
   WAN2GP_MAX_MEDIA_BYTES,
   Wan2GPClient,
   Wan2GPError,
+  wan2gpAudioFilename,
   wan2gpImageFilename,
   type Wan2GPRecord
 } from "./wan2gp-client.js";
 import type {
+  EncodedAudioResult,
   ImageModel,
   ImageToImageParams,
   ImageToVideoParams,
   Message,
+  ModelAdapterInfo,
+  MusicModel,
   ProviderStreamItem,
   ReferenceToVideoInputs,
   ReferenceToVideoParams,
   TextToImageParams,
+  TextToMusicParams,
+  TextToSpeechParams,
   TextToVideoParams,
+  TTSModel,
   VideoModel
 } from "./types.js";
 
@@ -134,6 +142,45 @@ export function wan2gpBaseSettings(
   return settings;
 }
 
+/** How long one model listing is reused. Wan2GP's registry changes only on an update. */
+const LISTING_TTL_MS = 10 * 60 * 1000;
+const listings = new Map<string, { at: number; rows: Promise<Wan2GPRecord[]> }>();
+
+/** Forget cached model listings, for tests and after an install or update. */
+export function resetWan2GPListings(): void {
+  listings.clear();
+}
+
+function strings(value: unknown): string[] {
+  return Array.isArray(value) ? value.map(String) : [];
+}
+
+function mediaRoles(row: Wan2GPRecord, kind: string): string[] {
+  const inputs = row.media_inputs;
+  return typeof inputs === "object" && inputs !== null ? strings((inputs as Wan2GPRecord)[kind]) : [];
+}
+
+/** A model that cannot run without a file the provider has no field for, such as YuE2's score. */
+function needsCustomFile(row: Wan2GPRecord): boolean {
+  const inputs = row.media_inputs as Wan2GPRecord | undefined;
+  const custom = inputs?.custom_file as Wan2GPRecord | undefined;
+  return custom?.required === true;
+}
+
+function audioMime(filename: string | undefined): string {
+  const extension = filename?.split(".").pop()?.toLowerCase() ?? "";
+  return (
+    { mp3: "audio/mpeg", flac: "audio/flac", ogg: "audio/ogg", opus: "audio/ogg", m4a: "audio/mp4", aac: "audio/aac" }[
+      extension
+    ] ?? "audio/wav"
+  );
+}
+
+interface ModelModes {
+  label: string;
+  values: string[];
+}
+
 export class Wan2GPProvider extends BaseProvider {
   /** The configured server, or empty for the installed Wan2GP. */
   readonly serverUrl: string;
@@ -148,7 +195,15 @@ export class Wan2GPProvider extends BaseProvider {
   }
 
   protected override declaredCapabilities(): readonly ProviderCapability[] {
-    return ["text_to_video", "image_to_video", "reference_to_video", "text_to_image", "image_to_image"];
+    return [
+      "text_to_video",
+      "image_to_video",
+      "reference_to_video",
+      "text_to_image",
+      "image_to_image",
+      "text_to_speech",
+      "text_to_music"
+    ];
   }
 
   async generateMessage(_args: Parameters<BaseProvider["generateMessage"]>[0]): Promise<Message> {
@@ -169,26 +224,71 @@ export class Wan2GPProvider extends BaseProvider {
     );
   }
 
-  /** Models of one main output, with the tasks their capabilities enable. */
-  private async listModels(mainOutput: "video" | "image", tasks: ReadonlyArray<[Task, string]>) {
-    let rows: Wan2GPRecord[];
+  /** Every model the server offers, with capabilities, shared for a while across listings. */
+  private rows(): Promise<Wan2GPRecord[]> {
+    const key = this.serverUrl || "installed";
+    const cached = listings.get(key);
+    if (cached && Date.now() - cached.at < LISTING_TTL_MS) return cached.rows;
+    const rows = this.withClient(undefined, (client) => client.searchAllModels("", {}, 1000));
+    listings.set(key, { at: Date.now(), rows });
+    rows.catch(() => {
+      if (listings.get(key)?.rows === rows) listings.delete(key);
+    });
+    return rows;
+  }
+
+  private async safeRows(): Promise<Wan2GPRecord[]> {
     try {
-      rows = await this.withClient(undefined, (client) =>
-        client.searchAllModels("", { main_output: mainOutput })
-      );
+      return await this.rows();
     } catch (error) {
       // No server running is the ordinary case on a machine without one.
       // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log, not asserted.
       log.debug("Wan2GP model listing failed", { error: String(error) });
       return [];
     }
-    const models: Array<{ id: string; name: string; supportedTasks: Task[] }> = [];
+  }
+
+  private async row(modelType: string): Promise<Wan2GPRecord | undefined> {
+    return (await this.safeRows()).find((row) => row.model_type === modelType);
+  }
+
+  /**
+   * The download state of each model of the installed Wan2GP, for the model
+   * picker's Download button. A configured server manages its own files.
+   */
+  private async adapters(): Promise<(modelType: string) => ModelAdapterInfo | undefined> {
+    if (this.serverUrl) return () => undefined;
+    const install = await findInstalledWan2GP();
+    if (!install) return () => undefined;
+    let status: Map<string, Wan2GPFileStatus>;
+    try {
+      status = await wan2gpFileStatus(install);
+    } catch {
+      return () => undefined;
+    }
+    return (modelType) => ({
+      state: "installed",
+      // The weights come from Hugging Face, but Wan2GP's own downloader puts
+      // them in its ckpts folder. The wangp. model type routes the download
+      // there, as tjs. routes Transformers.js downloads.
+      artifactRef: { source: "huggingface", repoId: `wangp/${modelType}`, modelType: `wangp.${modelType}` },
+      filesPresent: status.get(modelType) === "available"
+    });
+  }
+
+  /** Models of one main output, with the tasks their capabilities enable. */
+  private async listModels(mainOutput: "video" | "image", tasks: ReadonlyArray<[Task, string]>) {
+    const rows = await this.safeRows();
+    const adapterFor = rows.length > 0 ? await this.adapters() : () => undefined;
+    const models: Array<{ id: string; name: string; supportedTasks: Task[]; adapter?: ModelAdapterInfo }> = [];
     for (const row of rows) {
-      const capabilities = new Set(Array.isArray(row.capabilities) ? row.capabilities.map(String) : []);
+      if (!strings(row.main_output).includes(mainOutput)) continue;
+      const capabilities = new Set(strings(row.capabilities));
       const supportedTasks = tasks.filter(([, capability]) => capabilities.has(capability)).map(([task]) => task);
       const id = String(row.model_type ?? "").trim();
       if (!id || supportedTasks.length === 0) continue;
-      models.push({ id, name: String(row.name ?? id), supportedTasks });
+      const adapter = adapterFor(id);
+      models.push({ id, name: String(row.name ?? id), supportedTasks, ...(adapter && { adapter }) });
     }
     return models;
   }
@@ -203,6 +303,102 @@ export class Wan2GPProvider extends BaseProvider {
     return models.map((model) => ({ ...model, provider: PROVIDER_IDS.WANGP }));
   }
 
+  /** Audio models of one family that make audio from text. */
+  private async audioRows(family: "tts" | "music"): Promise<Wan2GPRecord[]> {
+    return (await this.safeRows()).filter(
+      (row) =>
+        row.family === family &&
+        strings(row.main_output).includes("audio") &&
+        strings(row.capabilities).includes("text_to_audio") &&
+        !needsCustomFile(row)
+    );
+  }
+
+  /** A model's mode choices: the speaker presets or languages a speech model offers. */
+  private async modelModes(modelType: string): Promise<ModelModes | null> {
+    try {
+      const result = await this.withClient(undefined, (client) =>
+        client.callTool("wangp_model", { model_type: modelType, action: "definition", arguments: { property: "model_modes" } })
+      );
+      const modes = (result as Wan2GPRecord | null)?.model_modes as Wan2GPRecord | undefined;
+      const choices = Array.isArray(modes?.choices) ? modes.choices : [];
+      const values = choices.map((choice) => (Array.isArray(choice) ? String(choice[1]) : String(choice)));
+      return { label: String(modes?.label ?? "").toLowerCase(), values };
+    } catch {
+      // Most speech models declare no modes.
+      return null;
+    }
+  }
+
+  override async getAvailableTTSModels(): Promise<TTSModel[]> {
+    const rows = await this.audioRows("tts");
+    const adapterFor = rows.length > 0 ? await this.adapters() : () => undefined;
+    const models: TTSModel[] = [];
+    for (const row of rows) {
+      const id = String(row.model_type);
+      const base = String(row.base_model_type ?? id);
+      const capabilities = ["text_to_speech"];
+      if (mediaRoles(row, "audio").includes("prompt")) capabilities.push("voice_cloning");
+      if (["qwen3_tts_base", "omnivoice"].includes(base)) capabilities.push("reference_transcript");
+      if (["qwen3_tts_customvoice", "index_tts2", "index_tts25"].includes(base)) capabilities.push("instruction_control");
+      if (["qwen3_tts_voicedesign", "omnivoice"].includes(base)) capabilities.push("voice_design");
+      const model: TTSModel = { id, name: String(row.name ?? id), provider: PROVIDER_IDS.WANGP };
+      const modes = await this.modelModes(id);
+      if (modes?.label === "speaker") {
+        capabilities.push("preset_voice");
+        model.voices = modes.values;
+      } else if (modes?.label === "language") {
+        capabilities.push("language_selection");
+        model.languages = modes.values;
+      }
+      model.capabilities = capabilities;
+      const adapter = adapterFor(id);
+      if (adapter) model.adapter = adapter;
+      models.push(model);
+    }
+    return models;
+  }
+
+  override async getAvailableMusicModels(): Promise<MusicModel[]> {
+    const rows = await this.audioRows("music");
+    const adapterFor = rows.length > 0 ? await this.adapters() : () => undefined;
+    return rows.map((row) => {
+      const id = String(row.model_type);
+      const adapter = adapterFor(id);
+      return {
+        id,
+        name: String(row.name ?? id),
+        provider: PROVIDER_IDS.WANGP,
+        supportedTasks: ["text_to_music"],
+        ...(adapter && { adapter })
+      };
+    });
+  }
+
+  /** Submit settings, follow the job, and return the first gallery item of `output`. */
+  private async run(
+    settings: Wan2GPRecord,
+    output: "video" | "image" | "audio",
+    options: { signal?: AbortSignal; timeoutSeconds?: number | null },
+    media: (client: Wan2GPClient, settings: Wan2GPRecord) => Promise<void>
+  ): Promise<{ data: Uint8Array; filename?: string }> {
+    const timeoutMs = (options.timeoutSeconds ?? DEFAULT_TIMEOUT_SECONDS) * 1000;
+    const result = await this.withClient(options.signal, async (client) => {
+      await media(client, settings);
+      const jobId = await client.submit(settings);
+      const job = await client.pollUntilDone(jobId, {
+        intervalMs: POLL_INTERVAL_MS,
+        timeoutMs,
+        signal: options.signal
+      });
+      const { item, data } = await client.downloadFirstOutput(job, [output]);
+      return { data, filename: item.filename };
+    });
+    // A finished generation downloaded whatever the model lacked.
+    if (!this.serverUrl) markWan2GPModelAvailable(String(settings.model_type));
+    return result;
+  }
+
   /** Run one generation and return the bytes of its first gallery item. */
   private async generate(
     output: "video" | "image",
@@ -210,20 +406,58 @@ export class Wan2GPProvider extends BaseProvider {
     media: (client: Wan2GPClient, settings: Wan2GPRecord) => Promise<void>
   ): Promise<Uint8Array> {
     const settings = wan2gpBaseSettings(output, params);
-    const timeoutMs = (params.timeoutSeconds ?? DEFAULT_TIMEOUT_SECONDS) * 1000;
-    return this.withClient(params.signal, async (client) => {
-      await media(client, settings);
-      const jobId = await client.submit(settings);
-      const job = await client.pollUntilDone(jobId, {
-        intervalMs: POLL_INTERVAL_MS,
-        timeoutMs,
-        signal: params.signal
-      });
-      const { data } = await client.downloadFirstOutput(job, [output]);
-      return data;
-    });
+    return (await this.run(settings, output, params, media)).data;
   }
 
+  override async textToSpeechEncoded(args: TextToSpeechParams): Promise<EncodedAudioResult> {
+    const modelType = args.model.trim();
+    if (!modelType) throw new Wan2GPError("The request names no Wan2GP model.");
+    if (!args.text.trim()) throw new Wan2GPError("Text to speech needs text.");
+    const row = await this.row(modelType);
+    const base = String(row?.base_model_type ?? modelType);
+    const settings: Wan2GPRecord = { model_type: modelType, prompt: args.text };
+    const altPrompt = args.referenceText ?? args.instructions;
+    if (altPrompt) settings.alt_prompt = altPrompt;
+    const mode = base === "qwen3_tts_customvoice" ? args.voice : args.language;
+    if (mode) settings.model_mode = mode;
+    if (args.speed !== undefined && base === "index_tts25") {
+      settings.custom_settings = { speech_speed: args.speed };
+    }
+    const reference = args.referenceAudio;
+    const { data, filename } = await this.run(settings, "audio", { signal: args.signal }, async (client, current) => {
+      if (reference && reference.length > 0) {
+        if (row && !mediaRoles(row, "audio").includes("prompt")) {
+          throw new Wan2GPError(`Wan2GP model ${modelType} takes no reference voice.`);
+        }
+        current.audio_guide = await client.uploadMedia(wan2gpAudioFilename(reference), reference);
+      }
+    });
+    return { data, mimeType: audioMime(filename) };
+  }
+
+  override async textToMusic(params: TextToMusicParams): Promise<EncodedAudioResult> {
+    const modelType = params.model.id.trim();
+    if (!modelType) throw new Wan2GPError("The request names no Wan2GP model.");
+    const row = await this.row(modelType);
+    const base = String(row?.base_model_type ?? modelType);
+    const settings: Wan2GPRecord = { model_type: modelType };
+    if (base.startsWith("stable_audio3")) {
+      // Stable Audio takes the description as its prompt and sings nothing.
+      settings.prompt = params.prompt;
+    } else {
+      settings.prompt = params.lyrics?.trim() || "[Instrumental]";
+      settings.alt_prompt = params.prompt;
+    }
+    if (params.durationSeconds) settings.duration_seconds = params.durationSeconds;
+    if (params.seed !== null && params.seed !== undefined) settings.seed = params.seed;
+    const { data, filename } = await this.run(
+      settings,
+      "audio",
+      { signal: params.signal, timeoutSeconds: params.timeoutSeconds },
+      async () => undefined
+    );
+    return { data, mimeType: audioMime(filename) };
+  }
   override async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
     return this.generate("video", params, async () => undefined);
   }

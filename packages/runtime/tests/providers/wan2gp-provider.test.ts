@@ -4,6 +4,7 @@ import { getRegisteredProvider } from "../../src/providers/provider-registry.js"
 import "../../src/providers/index.js";
 import {
   Wan2GPProvider,
+  resetWan2GPListings,
   wan2gpBaseSettings,
   wan2gpResolution
 } from "../../src/providers/wan2gp-provider.js";
@@ -16,6 +17,7 @@ const videoModel = { id: "ti2v_2_2_fastwan", name: "FastWan", provider: "wangp" 
 const imageModel = { id: "flux", name: "Flux", provider: "wangp" as const };
 
 beforeEach(async () => {
+  resetWan2GPListings();
   fake = await new FakeWan2GP().start();
   fake.jobs = [wan2gpFixture("job_done")];
   provider = new Wan2GPProvider({ WAN2GP_MCP_URL: fake.url });
@@ -65,7 +67,7 @@ describe("models", () => {
     expect(models).toEqual([
       { id: "ti2v_2_2_fastwan", name: expect.any(String), provider: "wangp", supportedTasks: ["text_to_video", "image_to_video"] }
     ]);
-    expect(fake.calls[0].args).toEqual({ action: "search", arguments: { query: "", limit: 100, filters: { main_output: "video" } } });
+    expect(fake.calls[0].args).toEqual({ action: "search", arguments: { query: "", limit: 100 } });
   });
 
   it("lists image models", async () => {
@@ -183,5 +185,120 @@ describe("generation", () => {
     setTimeout(() => controller.abort(new Error("stopped")), 100);
     await expect(run).rejects.toThrow("stopped");
     expect(fake.toolNames().at(-1)).toBe("wangp_session:cancel_job");
+  });
+});
+
+describe("audio", () => {
+  const audio = wan2gpFixture("audio_models").models as Record<string, Record<string, unknown>>;
+
+  function audioJob(filename: string): Record<string, unknown> {
+    const job = wan2gpFixture("job_done");
+    (job.result as Record<string, unknown>).gallery_items = [{ media_id: "audio:out", media_type: "audio", filename }];
+    return job;
+  }
+
+  beforeEach(() => {
+    Object.assign(fake.capabilities, audio);
+    fake.modelPages = [{ models: Object.keys(audio).map((model_type) => ({ model_type })), has_more: false }];
+    fake.handlers.wangp_model = (args) => {
+      if (args.action === "capabilities") return fake.capabilities[String(args.model_type)];
+      if (args.action === "definition") {
+        if (args.model_type === "qwen3_tts_customvoice") {
+          return { model_modes: { label: "Speaker", choices: [["Aiden (English)", "aiden"], ["Serena (Chinese)", "serena"]] } };
+        }
+        if (args.model_type === "chatterbox") {
+          return { model_modes: { label: "Language", choices: [["English (en)", "en"], ["German (de)", "de"]] } };
+        }
+        throw new Error("Unknown model definition property: model_modes");
+      }
+      return { model_type: args.model_type };
+    };
+  });
+
+  it("lists speech models with their voices, languages and abilities", async () => {
+    const models = await provider.getAvailableTTSModels();
+    expect(models).toEqual([
+      {
+        id: "qwen3_tts_customvoice",
+        name: "TTS Qwen3 Custom Voice (12Hz) 1.7B",
+        provider: "wangp",
+        voices: ["aiden", "serena"],
+        capabilities: ["text_to_speech", "instruction_control", "preset_voice"]
+      },
+      {
+        id: "chatterbox",
+        name: "Chatterbox",
+        provider: "wangp",
+        languages: ["en", "de"],
+        capabilities: ["text_to_speech", "voice_cloning", "language_selection"]
+      }
+    ]);
+  });
+
+  it("lists music models and leaves out one that needs a score file", async () => {
+    const models = await provider.getAvailableMusicModels();
+    expect(models.map((model) => [model.id, model.supportedTasks])).toEqual([
+      ["ace_step_v1", ["text_to_music"]],
+      ["stable_audio3_small", ["text_to_music"]]
+    ]);
+  });
+
+  it("sends the text, voice and instructions for speech and returns the audio", async () => {
+    fake.jobs = [audioJob("speech.mp3")];
+    fake.downloadBody = new Uint8Array([1, 2, 3]);
+    const result = await provider.textToSpeechEncoded({
+      text: "Hello there",
+      model: "qwen3_tts_customvoice",
+      voice: "serena",
+      instructions: "calm"
+    });
+    expect(result).toEqual({ data: new Uint8Array([1, 2, 3]), mimeType: "audio/mpeg" });
+    expect(generated()).toEqual({ model_type: "qwen3_tts_customvoice", prompt: "Hello there", alt_prompt: "calm", model_mode: "serena" });
+  });
+
+  it("uploads a reference voice and sends the language", async () => {
+    fake.jobs = [audioJob("speech.wav")];
+    const wav = new Uint8Array([...Buffer.from("RIFF"), 0, 0, 0, 0, ...Buffer.from("WAVE")]);
+    await provider.textToSpeechEncoded({ text: "Hallo", model: "chatterbox", language: "de", referenceAudio: wav, referenceText: "Guten Tag" });
+    expect(fake.calls.find((call) => call.args.action === "create_gallery_upload")?.args).toEqual({
+      action: "create_gallery_upload",
+      arguments: { filename: "audio.wav" }
+    });
+    expect(generated()).toMatchObject({ prompt: "Hallo", model_mode: "de", alt_prompt: "Guten Tag", audio_guide: "visual:0a1b2c3d4e5f" });
+  });
+
+  it("refuses a reference voice for a model that takes none", async () => {
+    await expect(
+      provider.textToSpeechEncoded({ text: "x", model: "qwen3_tts_customvoice", referenceAudio: new Uint8Array([1]) })
+    ).rejects.toThrow(/takes no reference voice/);
+    expect(fake.calls.some((call) => call.name === "wangp_generate")).toBe(false);
+  });
+
+  it("sends lyrics and style for a song, and the style alone for Stable Audio", async () => {
+    fake.jobs = [audioJob("song.flac")];
+    const song = await provider.textToMusic({
+      model: { id: "ace_step_v1", name: "ACE", provider: "wangp" },
+      prompt: "dreamy synth-pop",
+      lyrics: "[Verse]\nNeon rain",
+      durationSeconds: 30,
+      seed: 0
+    });
+    expect(song.mimeType).toBe("audio/flac");
+    expect(generated()).toEqual({
+      model_type: "ace_step_v1",
+      prompt: "[Verse]\nNeon rain",
+      alt_prompt: "dreamy synth-pop",
+      duration_seconds: 30,
+      seed: 0
+    });
+    fake.calls = [];
+    await provider.textToMusic({ model: { id: "stable_audio3_small", name: "SA", provider: "wangp" }, prompt: "rain on a tin roof" });
+    expect(generated()).toEqual({ model_type: "stable_audio3_small", prompt: "rain on a tin roof" });
+  });
+
+  it("asks for an instrumental when no lyrics are given", async () => {
+    fake.jobs = [audioJob("song.wav")];
+    await provider.textToMusic({ model: { id: "ace_step_v1", name: "ACE", provider: "wangp" }, prompt: "lofi beat" });
+    expect(generated()).toMatchObject({ prompt: "[Instrumental]", alt_prompt: "lofi beat" });
   });
 });

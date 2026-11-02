@@ -57,7 +57,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | llama.cpp | ✅ | | | | | | |
 | llama.cpp local | ✅ | | | | | ✅ | |
 | stable-diffusion.cpp | | ✅ | | | | | |
-| Wan2GP | | ✅ | ✅ | | | | |
+| Wan2GP | | ✅ | ✅ | ✅ | | | |
 | Transformers.js | ✅ | | | ✅ | ✅ | ✅ | |
 | ElevenLabs | | | | ✅ | ✅³ | | |
 | Topaz | | ✅⁴ | | | | | |
@@ -274,12 +274,14 @@ It requires no native package. Local only.
 
 ## Wan2GP
 
-Wan2GP (provider id `wangp`) generates video and images with
+Wan2GP (provider id `wangp`) generates video, images, speech and music with
 [Wan2GP](wan2gp.md) over MCP: text-to-video, image-to-video,
-reference-to-video, text-to-image and image-to-image. Install it in
+reference-to-video, text-to-image, image-to-image, text-to-speech (with
+voice cloning on the models that take a reference voice) and text-to-music. Install it in
 **Settings › Packages**, or run `nodetool runtime add wan2gp`. NodeTool then
-starts its server on demand. `WAN2GP_MCP_URL` names a server you run instead.
-The model list is the server's own. Local only.
+starts its server on demand, and the model picker downloads each model's
+weights through Wan2GP's own downloader. `WAN2GP_MCP_URL` names a server you
+run instead. The model list is the server's own. Local only.
 
 ## stable-diffusion.cpp
 
