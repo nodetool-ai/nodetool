@@ -959,7 +959,10 @@ private slots:
         QCOMPARE(model->documentJson(), before);
         QTest::keyClick(view.get(), Qt::Key_Escape);
         QTRY_VERIFY(!menu->property("visible").toBool());
-        QTest::mouseClick(view.get(), Qt::RightButton, {}, first);
+        // The clip menu is taller than the default window, and this test clicks its last row.
+        view->resize(view->width(), 1400);
+        frame();
+        QTest::mouseClick(view.get(), Qt::RightButton, {}, clipPoint("c-0-2", 30));
         QTRY_VERIFY(menu->property("opened").toBool());
         frame();
         auto* remove = menu->findChild<QQuickItem*>("clipMenu-deleteSelected");
