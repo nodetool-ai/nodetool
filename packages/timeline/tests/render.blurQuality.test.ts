@@ -23,3 +23,11 @@ it("removes alternating bright lines instead of aliasing them at radius 40", () 
   applyCpuGaussianBlur({width, height: 1, data}, 40);
   for (let x = 64; x < 192; x++) expect(Math.abs(data[x * 4]! - 127.5)).toBeLessThanOrEqual(1);
 });
+
+it("uses the same 256-pixel limit as native rendering", () => {
+  const width = 1024, data = new Uint8ClampedArray(width * 4);
+  for (let x = 0; x < width; x++) { data.set([x < 512 ? 0 : 255, 0, 0, 255], x * 4); }
+  const limited = {width, height: 1, data: data.slice()}, oversized = {width, height: 1, data: data.slice()};
+  applyCpuGaussianBlur(limited, 256); applyCpuGaussianBlur(oversized, 512);
+  expect(oversized.data).toEqual(limited.data);
+});

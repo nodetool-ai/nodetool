@@ -194,6 +194,29 @@ class TestEffectResources : public QObject {
         QVERIFY(evicted.expired());
         QVERIFY(oldest.expired());
     }
+    void boundedCurveTablesAndRetirement() {
+        QRhiNullInitParams init;
+        auto rhi=std::unique_ptr<QRhi>(QRhi::create(QRhi::Null,&init)); QVERIFY(rhi);
+        Target source,output; QVERIFY(source.create(rhi.get(),{32,16})); QVERIFY(output.create(rhi.get(),{32,16}));
+        RetireQueue retire; QRhiCommandBuffer* commands=nullptr;
+        QCOMPARE(rhi->beginOffscreenFrame(&commands),QRhi::FrameOpSuccess);
+        const EffectContext ctx{rhi.get(),commands,1,&retire};
+        LayerFrame input; input.format=LayerFrame::Format::Rgba8Premultiplied;
+        input.size={32,16}; input.planes[0]=source.texture.get();
+        auto stage=std::make_unique<ClipEffectStage>();
+        const auto draw=[&](int value) {
+            const QJsonArray points{QJsonObject{{"x",0},{"y",0}},QJsonObject{{"x",0.5},{"y",(value+1)/14.}},QJsonObject{{"x",1},{"y",1}}};
+            const QJsonObject effect{{"id","curve"},{"type","curves"},{"enabled",true},{"master",points}};
+            return stage->render(ctx,input,*output.target,{{"clipEffects",QJsonArray{effect}}});
+        };
+        QVERIFY(draw(0)); const std::weak_ptr<void> first=stage->m_luts.front().second;
+        for (int i=1;i<12;++i) { QVERIFY(draw(i)); QCOMPARE(stage->m_luts.size(),size_t(std::min(8,i+1))); }
+        const std::weak_ptr<void> last=stage->m_luts.front().second;
+        QVERIFY(draw(11)); QVERIFY(last.lock()==stage->m_luts.front().second);
+        QVERIFY(!first.expired());
+        QCOMPARE(rhi->endOffscreenFrame(),QRhi::FrameOpSuccess); stage.reset();
+        retire.collect(3,2); QVERIFY(first.expired()); QVERIFY(last.expired());
+    }
 };
 } // namespace nt::effects
 QTEST_GUILESS_MAIN(nt::effects::TestEffectResources)

@@ -216,6 +216,20 @@ describe.skipIf(!device)("timeline effect behavior (GPU)", () => {
     }
   });
 
+  it("keeps a narrow explicit sigma finite inside a wide radius", async () => {
+    const out = await run(blurGaussianV1, {radius: 128, sigma: 0.01, direction: d.vec2f(1, 0)}, 64, 1,
+      makePixels(64, 1, x => [x === 32 ? 255 : 0, 0, 0, 255]));
+    expect(out.at(32, 0)).toEqual([255, 0, 0, 255]);
+    expect(out.at(31, 0)).toEqual([0, 0, 0, 255]);
+  });
+
+  it("caps radius and derived sigma together at the supported maximum", async () => {
+    const pixels = makePixels(512, 1, x => [x < 256 ? 0 : 255, 0, 0, 255]);
+    const limited = await run(blurGaussianV1, {radius: 256, sigma: 0, direction: d.vec2f(1, 0)}, 512, 1, pixels);
+    const oversized = await run(blurGaussianV1, {radius: 512, sigma: 0, direction: d.vec2f(1, 0)}, 512, 1, pixels);
+    for (let x = 0; x < 512; x++) { expect(oversized.at(x, 0)).toEqual(limited.at(x, 0)); }
+  });
+
   it("filters.sharpen.unsharpMask enhances an edge and leaves flats alone", async () => {
     // Left columns 100, right columns 160 → vertical edge at x=4.
     const out = await run(

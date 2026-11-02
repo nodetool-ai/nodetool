@@ -26,7 +26,7 @@ Check an item only after its implementation and relevant verification pass. Each
 - [x] F46: Provide controls or specific explanations for imported effects. Pixelate, Posterize, Directional Blur and Lens Distortion have controls and Add entries. LUT, Stylize and Generator explain their editing limits. Catalogue and native add/edit tests pass.
 - [x] F47: Edit imported Color effect instances. Inline controls target the authored ID and preserve other instances and unknown fields. Catalogue and native edit/undo/redo tests pass.
 - [x] F48: Support exact numeric entry for track effects. Native keyboard tests cover live entry, Enter, Escape, invalid ranges, undo/redo and suppression of playback shortcuts while typing.
-- [ ] F49: Add independent effect sensitivity and lifecycle checks.
+- [x] F49: Add independent effect sensitivity and lifecycle checks. CPU, GPU and native pixel expectations cover the repaired parameters. Native tests cover edit transactions, crop/alpha and bounded curve-table retirement. Disconnecting CPU curve dispatch makes the curve regression fail. See verification scope below.
 - [x] F50: Evaluate and document precision and color-space behavior. The retained native ramp exposes shadow quantization. Shared GPU/CPU precision bounds and CPU translucent-edge checks pass. See the measured limits below.
 
 ## Vignette findings
@@ -104,6 +104,14 @@ The shared Gaussian implementation and CPU fallback use the same sparse-sampling
 | F50 | **Check: precision and color-space quality need targeted evaluation.** Effect intermediates use RGBA8. This limits precision but does not by itself establish visible banding in footage. | Test dark ramps and repeated grading for banding/clipping, plus translucent edges over light/dark backgrounds. Specify which operations use encoded versus linear-light values. Consider higher-precision intermediates only after measuring a failure and checking all rendering paths. |
 
 The inspected vignette preserves alpha, and no new concrete defect was established in the examined chroma-key/spill or blend equations. Their broader quality remains a test question, not a clean bill of health for every configuration.
+
+### Verification scope (F49)
+
+[Native pixel tests](../src/preview/effects/tst_effectsblend.cpp) check curve bends, sharpen halo width, glow tint, vignette geometry, blur continuity, crop and alpha independently of export parity. [Clip inspector tests](../src/edit/clipeffects/tst_clipeffects.cpp) and [track inspector tests](../src/wiring/w/tst_wiringw.cpp) cover edits, reset, undo and cancellation. [Resource tests](../src/preview/effects/tst_effectresources.cpp) verify curve-table reuse, cache bounds and retirement after GPU use. Temporarily disconnecting CPU curve dispatch made [the regression](../../../packages/timeline/tests/render.curveFidelity.test.ts) fail, then it passed after restoration.
+
+The Gaussian recurrence removes per-tap exponentials while retaining dense sampling. GPU and CPU checks keep radius and derived sigma bounded together. Run `node packages/gpu/tests/bench-blur.mjs` from the repository root after building the GPU package to measure warm two-pass blur at 720p/1080p and radii 20/128/256. Results depend on the device and concurrent work.
+
+Native checks, inspector and affected-effect preview/export comparisons, package builds, typecheck and lint pass. Repository-wide verification is not green on this Windows checkout: affected-test and harness launchers encounter Windows command/symlink/tooling failures. The timeline suite also retains seven grain-parity failures reproduced with the pre-task renderer. These remain separate from the effects checklist and must be resolved before treating the branch as fully verified.
 
 ### Precision and color-space evaluation (F50)
 

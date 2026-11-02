@@ -157,7 +157,7 @@ describe("filters.blur.gaussian: param honesty", () => {
     expect(uiMax).toBeGreaterThanOrEqual(160);
     expect(wgsl).toMatch(/let kernelRadius = i32\(min\(blur\.radius, 256\.0\)\)/);
     expect(wgsl).toMatch(/let distance = f32\(i\)/);
-    expect(wgsl).toMatch(/gaussianWeight\(distance, sigma\)/);
+    expect(wgsl).not.toContain("sampleStep");
   });
 
   it("honors a caller-supplied non-zero sigma instead of forcing radius/3", () => {

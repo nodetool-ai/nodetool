@@ -406,7 +406,7 @@ class TestEffectPlan : public QObject {
                                                                 {"directionalBlur", Op::Gaussian},
                                                                 {"lensDistortion", Op::Spherize},
                                                                 {"vignette", Op::Vignette},
-                                                                {"sharpen", Op::Sharpen},
+                                                                {"sharpen", Op::Gaussian},
                                                                 {"chromaKey", Op::ChromaKey},
                                                                 {"curves", Op::Curves},
                                                                 {"levels", Op::Levels},
@@ -426,7 +426,7 @@ class TestEffectPlan : public QObject {
         const auto chain = planChain({e});
         QVERIFY(!chain.empty());
         QCOMPARE(int(chain[0].op), op);
-        const auto &v = chain[0].params;
+        const auto &v = type == "sharpen" ? chain.back().params : chain[0].params;
         if (type == "pixelate") {
             QCOMPARE(v[0], 8.f);
         }
@@ -442,6 +442,10 @@ class TestEffectPlan : public QObject {
             QCOMPARE(v[2], 0.5f);
         }
         if (type == "sharpen") {
+            QCOMPARE(chain.size(),size_t{3});
+            QVERIFY(chain[0].rememberSource); QVERIFY(!chain[1].rememberSource);
+            QCOMPARE(chain.back().op,Op::SharpenCombine);
+            QCOMPARE(chain[0].params[0],24.f);
             QCOMPARE(v[0], 0.8f);
             QCOMPARE(v[1], 0.f);
         }

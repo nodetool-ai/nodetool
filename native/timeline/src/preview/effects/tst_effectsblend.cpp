@@ -453,8 +453,10 @@ private slots:
         const auto key=effectStill({effect("chromaKey",{{"color","#4080c0"},{"tolerance",0.1},{"softness",0.1}})},source);
         QVERIFY(!key.isNull()); QCOMPARE(key.pixelColor(32,16),QColor(Qt::black));
         const auto poster=effectStill({effect("posterize",{{"levels",3}})},source);
-        // The current clip-posterize-midpoint golden writes midpoint byte 128.
-        QVERIFY(!poster.isNull()); QCOMPARE(poster.pixelColor(32,16),QColor(0,128,255));
+        // Half intensity can quantize to either adjacent byte across RHI backends.
+        QVERIFY(!poster.isNull()); QCOMPARE(poster.pixelColor(32,16).red(),0);
+        QVERIFY(std::abs(poster.pixelColor(32,16).green()-128)<=1);
+        QCOMPARE(poster.pixelColor(32,16).blue(),255);
     }
     void cropPixelsOnClip() {
         QImage source(64,32,QImage::Format_RGBA8888_Premultiplied); source.fill(Qt::green);

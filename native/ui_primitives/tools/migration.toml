@@ -1955,16 +1955,6 @@ qml_callers = ["native/timeline/qml/wiring/w/TrackEffectParams.qml"]
 replacement = "Feature composition through migrated native Ui wrappers"
 
 [[file]]
-path = "native/timeline/qml/wiring/w/VideoPreview.qml"
-category = "domain"
-controls = ["Rectangle", "Canvas"]
-signals = []
-test_host = "tst_wiringw"
-test_scope = "build/import"
-qml_callers = ["native/timeline/qml/wiring/w/VideoBlurEditor.qml", "native/timeline/qml/wiring/w/VignetteEditor.qml"]
-replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
-
-[[file]]
 path = "native/timeline/qml/wiring/w/VignetteEditor.qml"
 category = "chrome"
 controls = []
@@ -2672,30 +2662,6 @@ binding = "radius"
 rule = "metric"
 owner = "Timeline audio effects"
 reason = "The circular handle geometry represents frequency and gain in logarithmic EQ coordinates."
-
-[[exception]]
-path = "native/timeline/qml/wiring/w/VideoPreview.qml"
-object = "preview/baseImage"
-binding = "onPaint"
-rule = "gradient"
-owner = "Timeline effect preview"
-reason = "The bounded sample image previews effect output and is media content rather than application chrome."
-
-[[exception]]
-path = "native/timeline/qml/wiring/w/VideoPreview.qml"
-object = "preview/image"
-binding = "onPaint"
-rule = "gradient"
-owner = "Timeline effect preview"
-reason = "The bounded blur and vignette sample gradients visualize effect parameters rather than application surfaces."
-
-[[exception]]
-path = "native/timeline/qml/wiring/w/VideoPreview.qml"
-object = "preview/image"
-binding = "onPaint"
-rule = "color"
-owner = "Timeline effect preview"
-reason = "Black with effect-controlled alpha is the vignette sample content and must not follow the chrome palette."
 
 [[exception]]
 path = "native/timeline/src/edit/clipeffects/ToneCurveEditor.qml"

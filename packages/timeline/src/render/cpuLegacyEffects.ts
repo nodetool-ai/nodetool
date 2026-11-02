@@ -93,7 +93,7 @@ function coversSurface(bounds: PixelBounds, pixels: PixelBuffer): boolean {
 function gaussian(input: Uint8ClampedArray, width: number, height: number, radius: number): Uint8ClampedArray {
   if (radius < 0.5) return input;
   const taps = Math.floor(Math.min(radius, 256));
-  const sigma = radius / 3;
+  const sigma = Math.min(radius, 256) / 3;
   const weights = Array.from({ length: taps * 2 + 1 }, (_, i) => Math.exp(-Math.pow(i - taps, 2) / (2 * sigma * sigma)));
   const total = weights.reduce((a, b) => a + b, 0);
   let source = input;

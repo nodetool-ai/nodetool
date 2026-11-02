@@ -279,12 +279,13 @@ void main() {
     } else if (op==2) {
         if (p[0].x<0.5) { fragColor=src; return; }
         int radius=int(min(p[0].x,256)); float sigma=p[0].y<=0 ? p[0].x/3 : p[0].y;
-        vec4 sum=vec4(0); float weights=0;
-        for (int i=-radius;i<=radius;++i) {
+        vec4 sum=loadSource(ivec2(pixel)); float weights=1, weight=1;
+        float ratio=exp(-0.5/(sigma*sigma)), ratioStep=ratio*ratio;
+        for (int i=1;i<=radius;++i) {
+            weight*=ratio; ratio*=ratioStep;
             float distance=float(i);
             ivec2 offset=ivec2(round(p[0].zw*distance));
-            float w=exp(-(distance*distance)/(2*sigma*sigma))/(sqrt(2*3.14159265)*sigma);
-            sum+=loadSource(ivec2(pixel)+offset)*w; weights+=w;
+            sum+=(loadSource(ivec2(pixel)+offset)+loadSource(ivec2(pixel)-offset))*weight; weights+=2*weight;
         }
         fragColor=sum/weights; return;
     } else if (op==3) {
