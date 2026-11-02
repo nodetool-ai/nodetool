@@ -18,6 +18,9 @@
   ],
   "references": [
     {
+      "path": "../config"
+    },
+    {
       "path": "../server-minimal"
     },
     {

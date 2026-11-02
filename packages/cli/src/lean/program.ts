@@ -31,7 +31,8 @@ export const DEFAULT_LOCAL_USER_ID = "1";
 const QUICK_START = `
 Quick start (no server, no packs). Set the key of any provider you use:
   nodetool info                                 show each provider's credential state
-  nodetool providers list                       providers usable now (key set, pack installed, or claude CLI found)
+  nodetool providers list                       providers enabled by credentials, packs or local runtimes
+  nodetool providers list --all                 include providers that still need setup
   nodetool text "Write a haiku about rivers"    one-shot completion on an OpenAI-compatible endpoint (default model ${DEFAULT_TEXT_MODEL})
   echo "Summarize this" | nodetool text -m gpt-4.1 --system "Be brief"
   nodetool nodes --example > flow.json          workflow using only built-in nodes
@@ -39,7 +40,7 @@ Quick start (no server, no packs). Set the key of any provider you use:
   nodetool packs list                           optional features (chat, agents, media nodes)
 
 Pick a provider: \`nodetool agent run -p <provider> --objective "..."\` (cli-chat feature) works with
-any provider in \`nodetool providers list\`, for example anthropic, claude_agent_sdk or openrouter.
+chat-capable providers in \`nodetool providers list\`, for example anthropic, claude_agent_sdk or openrouter.
 \`nodetool generate <provider> <model> <prompt> --kind image|speech|video\` (cli-workflow feature) makes media.
 
 Environment: OPENAI_API_KEY, OPENAI_BASE_URL (any OpenAI-compatible endpoint),
@@ -263,10 +264,10 @@ export function createProgram(options: CliOptions = {}): Command {
   }
   const credentialStatus = (state: ProviderState): string => {
     if (state.source === "claude CLI") return "found";
-    if (state.source === "pack") return "installed";
+    if (state.source === "pack" || state.source === "runtime") return "installed";
     if (state.source) return `set (${state.source})`;
     if (state.requires === "claude CLI") return "not found";
-    return state.requires.startsWith("pack ") ? "not installed" : "not set";
+    return state.requires.startsWith("pack ") || state.requires.startsWith("runtime ") ? "not installed" : "not set";
   };
   const usableProviders = async (): Promise<ProviderState[]> => (await currentProviderStates()).filter(state => state.usable);
   program.command("info").description("Display system and environment information").option("--json", "Output as JSON").action(async (flags: { json?: boolean }) => {
@@ -347,9 +348,9 @@ export function createProgram(options: CliOptions = {}): Command {
     }));
   });
   const providers = program.command("providers").description("Inspect providers and their credential state");
-  providers.command("list").description("List usable providers: a key is set, a pack enables it, or it needs no key (claude_agent_sdk with the claude CLI)").option("--all", "Include providers that are not usable yet").action(async (flags: { all?: boolean }) => print(flags.all ? await currentProviderStates() : await usableProviders()));
+  providers.command("list").description("List usable providers: a key, pack, local runtime or logged-in CLI enables them").option("--all", "Include providers that are not usable yet").action(async (flags: { all?: boolean }) => print(flags.all ? await currentProviderStates() : await usableProviders()));
   providers.command("info [provider]").action(async (providerId = "openai") => {
-    if (providerId === "openai") { print((await currentProviderStates()).find(state => state.id === "openai")); return; }
+    if (providerId === "openai" || providerId === "stable_diffusion_cpp") { print((await currentProviderStates()).find(state => state.id === providerId)); return; }
     const feature = await loadInstalledCommandFeature(import.meta.url, "cli-models");
     await feature.run((options.argv ?? process.argv).slice(2));
   });

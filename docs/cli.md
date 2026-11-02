@@ -156,6 +156,17 @@ registers (`transformers_js`, `whisper_cpp`), and `claude_agent_sdk` when the
 providers that are not usable yet, with the credential each one needs.
 The output is JSON with `id`, `name`, `requires`, `usable` and `source`.
 
+`stable_diffusion_cpp` generates images locally through its provider, without
+an API key or the Integration node pack. It appears in the usable list when
+`sd-server` is executable at `SD_CPP_SERVER_PATH`, in the managed `sd-cpp`
+runtime directory, or on `PATH`. This checks installation, not GPU or model
+readiness. `nodetool info`, `nodetool providers list --all` and
+`nodetool providers info stable_diffusion_cpp` show it before installation.
+Install command support with `nodetool packs add cli-admin --yes`, then run
+`nodetool runtime add sd-cpp`. Image generation uses `cli-workflow`:
+`nodetool packs add cli-workflow --yes`, followed by
+`nodetool generate stable_diffusion_cpp <model> <prompt> --kind image`.
+
 **Options:**
 
 - `--json` — output as JSON.
