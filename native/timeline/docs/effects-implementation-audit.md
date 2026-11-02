@@ -16,7 +16,7 @@ Check an item only after its implementation and relevant verification pass. Each
 - [ ] F36: Add a compatible gradual vignette falloff.
 - [x] F37: Expose consistent vignette radius controls and units. The clip inspector now matches the track range/default. Catalogue regression passed after reproducing the missing control. Existing render geometry is unchanged.
 - [ ] F38: Add vignette center and roundness controls.
-- [ ] F39: Preview track effects live with commit/cancel transactions.
+- [x] F39: Preview track effects live with commit/cancel transactions. Native gesture tests verify model updates before release, cancel restoration and one undo entry. The preview entry-point regression also passes.
 - [ ] F40: Make sharpen radius affect rendering.
 - [x] F41: Apply glow color to the bloom contribution. Native D3D11, shared GPU and CPU halo tests pass. White/absent tint preserves source-colored glow, and the source image remains unchanged. GPU alpha checks pass.
 - [ ] F42: Render authored tone curves faithfully.

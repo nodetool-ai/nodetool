@@ -156,6 +156,27 @@ bool TimelineModel::previewClips(const QJsonArray& changed) {
     return patch(changed, true);
 }
 
+bool TimelineModel::previewTrackEffects(const QJsonArray& tracks) {
+    if (tracks == m_timeline->raw.value("tracks").toArray() || tracks.size() != qsizetype(m_timeline->tracks.size())) {
+        return false;
+    }
+    auto next = *m_timeline;
+    for (qsizetype i = 0; i < tracks.size(); ++i) {
+        const auto raw = tracks[i].toObject();
+        auto before = next.tracks[size_t(i)].raw;
+        auto after = raw;
+        before.remove("effects"); after.remove("effects");
+        if (before != after) { return false; }
+        next.tracks[size_t(i)].raw = raw;
+    }
+    next.raw.insert("tracks", tracks);
+    next.revision = nt::nextTimelineRevision();
+    m_timeline = std::make_shared<const nt::Timeline>(std::move(next));
+    m_tracks->rebind(m_timeline.get());
+    emit previewChanged();
+    return true;
+}
+
 void TimelineModel::settleTransient() {
     if (!m_transient) return;
     Transient pending = std::move(*m_transient);

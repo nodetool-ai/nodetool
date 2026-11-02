@@ -27,6 +27,7 @@ private:
     QJsonArray m_preview;
     QJsonObject m_payload;
     QString m_action;
+    QString m_collection = QStringLiteral("clips");
     quint64 m_generation = 0;
     bool m_gesture = false;
     bool m_cancelled = false;

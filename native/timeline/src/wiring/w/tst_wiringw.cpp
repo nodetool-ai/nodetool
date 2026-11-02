@@ -205,6 +205,8 @@ private slots:
         QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, from);
         QTest::mouseMove(view.get(), from - QPoint(0, 10), 20);
         QVERIFY(knob->property("dragging").toBool());
+        QVERIFY(doc() != before);
+        QCOMPARE(model.undoStack()->count(), undoCount);
         knob->setEnabled(false);
         QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, from - QPoint(0, 10));
         QCOMPARE(doc(), before);
@@ -286,6 +288,7 @@ private slots:
         QTest::mouseMove(view.get(), from - QPoint(0, 10), 20);
         QTest::mouseMove(view.get(), from - QPoint(0, 20), 20);
         QCOMPARE(model.undoStack()->count(), 3);
+        QVERIFY(effects()[0].toObject().value("gainDb").toDouble() != 0);
         QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, from - QPoint(0, 20));
         QTRY_VERIFY(effects()[0].toObject().value("gainDb").toDouble() != 0);
         QCOMPARE(model.undoStack()->count(), 4);

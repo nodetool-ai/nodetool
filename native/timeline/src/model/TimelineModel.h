@@ -81,6 +81,8 @@ public:
     // (previewChanged). The other listeners hear every transient change at
     // once on settleTransient, when the gesture ends.
     bool previewClips(const QJsonArray& changed);
+    // Updates only track effects in the render/audio snapshot, retaining the UI rows.
+    bool previewTrackEffects(const QJsonArray& tracks);
     void settleTransient();
     // O(1) through the snapshot's id index. Null: no such clip.
     const nt::Clip* findClip(const QString& clipId) const;

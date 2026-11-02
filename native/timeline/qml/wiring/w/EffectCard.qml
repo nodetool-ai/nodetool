@@ -15,12 +15,23 @@ Ui.Surface {
     objectName: "effect-" + effect.id
     width: effect.type === "fable" ? panel.reference.fableWidths[effect.kind] : panel.reference.widths[effect.type]
     opacity: panel.draggingIndex === effectIndex ? 0.4 : 1
-    function preview(patch) { draft = Object.assign({}, draft, patch) }
+    InspectorEdits { id: edits; model: card.panel.timeline }
+    function payload(patch) { return {trackId: panel.track.id, effectId: effect.id, patch: patch} }
+    function preview(patch) {
+        if (Object.keys(draft).length === 0) edits.beginGesture("updateTrackEffect", payload({}))
+        draft = Object.assign({}, draft, patch)
+        edits.preview(payload(draft))
+    }
+    function cancel() { edits.cancelGesture(); draft = ({}) }
+    Component.onDestruction: edits.cancelGesture()
+    onVisibleChanged: if (!visible && edits) cancel()
     function commit(patch) {
+        const wasPreviewing = Object.keys(draft).length > 0
         const finalPatch = Object.assign({}, draft, patch)
         draft = ({})
         if (Object.keys(finalPatch).length === 0) return
-        panel.timeline.applyEdit("updateTrackEffect", {trackId: panel.track.id, effectId: effect.id, patch: finalPatch})
+        if (wasPreviewing) edits.commit("updateTrackEffect", payload(finalPatch))
+        else edits.apply("updateTrackEffect", payload(finalPatch))
     }
     Rectangle {
         visible: card.panel.dropIndex === card.effectIndex || (card.effectIndex === card.panel.effects.length - 1 && card.panel.dropIndex === card.effectIndex + 1)
@@ -116,7 +127,7 @@ Ui.Surface {
             disabled: !card.effect.enabled
             onPreview: patch => card.preview(patch)
             onCommit: patch => card.commit(patch)
-            onEditCanceled: card.draft = ({})
+            onEditCanceled: card.cancel()
         }
     }
 }
