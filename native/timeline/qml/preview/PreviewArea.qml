@@ -48,6 +48,7 @@ Rectangle {
     MonitorViewState {
         id: viewState
         objectName: "monitorViewState"
+        owner: area.gestures
         viewportSize: Qt.size(area.pictureBounds.width, area.pictureBounds.height)
         canvasSize: Qt.size(area.timeline.canvasWidth, area.timeline.canvasHeight)
         devicePixelRatio: Screen.devicePixelRatio

@@ -2,6 +2,7 @@
 #pragma once
 #include <QObject>
 #include <QPointF>
+#include <QPointer>
 #include <QRectF>
 #include <QSizeF>
 #include <QStringList>
@@ -33,10 +34,16 @@ class MonitorViewState : public QObject {
     Q_PROPERTY(QRectF visibleCanvasRect READ visibleCanvasRect NOTIFY visibleCanvasRectChanged)
     Q_PROPERTY(bool canPan READ canPan NOTIFY canPanChanged)
     Q_PROPERTY(QVariantList guides READ guides NOTIFY guidesChanged)
+    // The editor's gesture controller, so a menu acts on the monitor of its own editor.
+    Q_PROPERTY(QObject* owner READ owner WRITE setOwner NOTIFY ownerChanged)
 public:
     explicit MonitorViewState(QObject* parent = nullptr);
     ~MonitorViewState() override;
     static MonitorViewState* current();
+    // The monitor owned by `owner`, or current() when no live monitor has that owner.
+    static MonitorViewState* forOwner(const QObject* owner);
+    QObject* owner() const { return m_owner; }
+    void setOwner(QObject* value);
     QSizeF viewportSize() const { return m_viewportSize; }
     void setViewportSize(QSizeF value);
     QSizeF canvasSize() const { return m_canvasSize; }
@@ -105,6 +112,7 @@ signals:
     void visibleCanvasRectChanged();
     void canPanChanged();
     void guidesChanged();
+    void ownerChanged();
 private:
     void recompute(std::optional<QPointF> pan = std::nullopt);
     std::optional<double> m_explicitZoom;
@@ -129,4 +137,5 @@ private:
     QRectF m_visibleCanvasRect = {};
     bool m_canPan = false;
     QVariantList m_guides = {};
+    QPointer<QObject> m_owner;
 };

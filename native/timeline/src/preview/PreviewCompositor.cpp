@@ -305,6 +305,8 @@ private:
     bool m_alphaDisplay = false;
     bool m_transparencyGrid = false;
     bool m_transparentCanvas = false;
+    // The scene has a group effect or a backdrop treatment (see render()).
+    bool m_sceneNeedsFullCanvas = false;
     QSize m_wantedCanvas{1920, 1080};
     double m_fps = 30.0;
     bool m_playing = false;
@@ -546,7 +548,7 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
     const double clockTime = item->m_clock ? item->m_clock->currentTimeMs() : 0.0;
     m_playing = item->m_clock && item->m_clock->playing();
     const bool capturePending = m_captureWanted || m_captureInFlight;
-    const int denominator = capturePending ? 1 : m_playing ? item->m_playbackResolution : item->m_pausedResolution;
+    const int denominator = capturePending || m_sceneNeedsFullCanvas ? 1 : m_playing ? item->m_playbackResolution : item->m_pausedResolution;
     m_wantedCanvas = QSize(std::max(1, qRound(double(m_documentSize.width()) / denominator)),
                            std::max(1, qRound(double(m_documentSize.height()) / denominator)));
     m_alphaDisplay = item->m_alphaDisplay && !capturePending;
@@ -554,7 +556,8 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
     const bool transparentCanvas = m_alphaDisplay || m_transparencyGrid;
     const bool clearChanged = transparentCanvas != m_transparentCanvas;
     m_transparentCanvas = transparentCanvas;
-    if (clearChanged) { m_previousValid = false; m_hasCompletedCanvas = false; }
+    // The canvas holds the other clear's pixels, so a held frame must not reuse it.
+    if (clearChanged) { m_previousValid = false; m_hasCompletedCanvas = false; m_canvasDrawn = false; }
     const auto seekSerial = item->m_clock ? item->m_clock->seekSerial() : 0;
     const double rate = item->m_clock ? item->m_clock->rate() : 1;
     const double frameMs = m_fps > 0 ? 1000.0 / m_fps : 1000.0 / 30.0;
@@ -1501,6 +1504,26 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     const qint64 startNs = m_clock.nsecsElapsed();
     ++m_frame;
 
+    // Group effects and backdrop treatments take sizes in document pixels and work on canvas-sized
+    // surfaces, so a reduced canvas would change their look. A scene with one composites at full size.
+    const bool needsFullCanvas =
+        std::ranges::any_of(m_precomposites, [this](const auto& group) {
+            return std::ranges::any_of(m_effectStages, [&](const auto& stage) { return stage->applies(group.ext); });
+        }) ||
+        std::ranges::any_of(m_adjustments, [this](const auto& adjustment) {
+            return std::ranges::any_of(m_backdropStages, [&](const auto& stage) { return stage->applies(adjustment.ext); });
+        });
+    const bool canvasDecisionChanged = needsFullCanvas != m_sceneNeedsFullCanvas;
+    m_sceneNeedsFullCanvas = needsFullCanvas;
+    if (needsFullCanvas && m_wantedCanvas != m_documentSize) {
+        m_wantedCanvas = m_documentSize;
+        if (m_canvasSize != m_wantedCanvas) {
+            // The accumulation restarts on the new surfaces.
+            m_blurIndex = 0;
+            m_blurComplete = false;
+        }
+    }
+
     ensureCanvas();
     ensureBlitPipeline();
 
@@ -1658,7 +1681,7 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     }
     m_lastRenderNs = startNs;
 
-    if (m_playing || (blurred && !m_blurComplete) || m_waitingForFrames || m_captureInFlight || missing > 0 || (!blurred && !allExact) || !m_retire.empty()) {
+    if (canvasDecisionChanged || m_playing || (blurred && !m_blurComplete) || m_waitingForFrames || m_captureInFlight || missing > 0 || (!blurred && !allExact) || !m_retire.empty()) {
         update();  // next frame at vsync; also while decoders catch up
     }
 }

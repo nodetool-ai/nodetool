@@ -37,6 +37,9 @@ is discovered automatically. Other QML needs `nt_qml_files(...)`.
   A view that fails to load logs a warning and returns the monitor to Composite. Frames other
   than the live one come from `export/FrameCapture.h` and `OffscreenFrames`.
   `MonitorViewState` is view state: never write it to the document or undo.
+- Reduced preview resolution: a scene with a group effect or a backdrop treatment (a stage that
+  applies to a canvas-sized surface) composites at full size, because those stages take sizes in
+  document pixels. A new stage on canvas-sized surfaces is covered through the same stage lists.
 - Header actions: reuse
   `nt::tracks::registerHeaderAction({id, url, order})` from
   `edit/tracks/TrackHeaderActions.h`. Set implicit dimensions. This existing

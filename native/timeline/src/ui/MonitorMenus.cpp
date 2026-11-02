@@ -21,20 +21,23 @@ QString zoomMenu() { return QStringLiteral("Monitor zoom"); }
 QString displayMenu() { return QStringLiteral("Monitor display"); }
 QString overlayMenu() { return QStringLiteral("Monitor overlays"); }
 
-bool hasMonitor(const Context&) { return MonitorViewState::current() != nullptr; }
+MonitorViewState* monitorFor(const Context& context) {
+    return MonitorViewState::forOwner(context.value(QStringLiteral("gestures")).value<QObject*>());
+}
+bool hasMonitor(const Context& context) { return monitorFor(context) != nullptr; }
 
 // Runs against the Program monitor. The menu bar exists with no editor open, and then this does nothing.
 nt::app::MenuPredicate onMonitor(std::function<void(MonitorViewState&)> action) {
-    return [action = std::move(action)](const Context&) {
-        auto* monitor = MonitorViewState::current();
+    return [action = std::move(action)](const Context& context) {
+        auto* monitor = monitorFor(context);
         if (!monitor) { return false; }
         action(*monitor);
         return true;
     };
 }
 nt::app::MenuPredicate whenMonitor(std::function<bool(const MonitorViewState&)> test) {
-    return [test = std::move(test)](const Context&) {
-        const auto* monitor = MonitorViewState::current();
+    return [test = std::move(test)](const Context& context) {
+        const auto* monitor = monitorFor(context);
         return monitor && test(*monitor);
     };
 }

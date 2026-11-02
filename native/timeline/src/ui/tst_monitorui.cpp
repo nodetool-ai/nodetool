@@ -210,6 +210,26 @@ private slots:
             QCOMPARE(timecode()->property("text").toString(), text);
         }
     }
+    void keysTheFieldIgnoresDoNotReachTheEditor() {
+        useSizedClip();
+        click("clip-c");
+        settle();
+        const auto before = model.documentJson();
+        const double time = clock.time();
+        typeInto(timecode(), "1");
+        QTest::keyClick(view.get(), Qt::Key_Home);
+        // Left at the start of the text, and the keys that seek between cuts.
+        for (const auto key : {Qt::Key_Left, Qt::Key_Left, Qt::Key_Up, Qt::Key_Down, Qt::Key_PageUp}) {
+            QTest::keyClick(view.get(), key);
+            settle();
+        }
+        QCOMPARE(model.documentJson(), before);
+        QCOMPARE(clock.time(), time);
+        QVERIFY(editor(timecode())->isVisible());
+        QTest::keyClick(view.get(), Qt::Key_Escape);
+        settle();
+        QCOMPARE(clock.time(), time);
+    }
     void dropFrameDisplayAndEntry() {
         useDocument(R"({"name":"F","fps":29.97,"dropFrame":true,"width":640,"height":360,"durationMs":100000,
           "tracks":[{"id":"v","name":"V","type":"video","index":0,"heightPx":80,"visible":true,"locked":false}],
@@ -524,6 +544,14 @@ private slots:
         QVERIFY(entry("monitorRulers").run(context));
         QVERIFY(monitor()->rulers());
         QVERIFY(!entry("monitorClearGuides").enabled(context));
+        // A second monitor, as a second editor would have, does not take this editor's menu actions.
+        MonitorViewState other;
+        QCOMPARE(MonitorViewState::current(), &other);
+        const QVariantMap ours{{"gestures", QVariant::fromValue<QObject*>(gestures())}};
+        QCOMPARE(MonitorViewState::forOwner(gestures()), monitor());
+        QVERIFY(entry("monitorZoom400").run(ours));
+        QCOMPARE(monitor()->zoom(), 4.0);
+        QVERIFY(other.fit());
     }
     void timecodeRulerFromTheMenu() {
         const auto before = gestures()->viewState()->rulerMode();

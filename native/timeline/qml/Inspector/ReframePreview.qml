@@ -6,6 +6,7 @@ Item {
     required property TimelineModel timeline
     required property PlaybackClock clock
     property var gestures: null
+    property MonitorViewState monitor: null
     readonly property var selection: gestures ? gestures.selection : []
     // Use the document read, so the compiled binding keeps it as a dependency.
     readonly property var state: edits.document ? edits.previewState(selection, clock.time) : ({})
@@ -22,6 +23,7 @@ Item {
         let editor = null
         for (let item = parent; item; item = item.parent) {
             if (item.timeline !== undefined && item.clock !== undefined) editor = item
+            if (item.monitor !== undefined) monitor = item.monitor
         }
         gestures = findGestures(editor)
     }
@@ -46,5 +48,6 @@ Item {
         sequenceHeight: root.state.sequenceHeight || 0
         frameWidth: root.width
         frameHeight: root.height
+        paintArea: root.monitor ? root.monitor.visibleItemRect : Qt.rect(0, 0, root.width, root.height)
     }
 }

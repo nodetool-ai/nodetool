@@ -30,6 +30,20 @@ MonitorViewState* MonitorViewState::current() {
     return liveInstances().empty() ? nullptr : liveInstances().back();
 }
 
+MonitorViewState* MonitorViewState::forOwner(const QObject* owner) {
+    if (owner) {
+        for (auto* instance : liveInstances()) {
+            if (instance->m_owner == owner) { return instance; }
+        }
+    }
+    return current();
+}
+void MonitorViewState::setOwner(QObject* value) {
+    if (m_owner == value) { return; }
+    m_owner = value;
+    emit ownerChanged();
+}
+
 void MonitorViewState::setViewportSize(QSizeF value) {
     if (!positiveSize(value) || value == m_viewportSize) { return; }
     m_viewportSize = value;

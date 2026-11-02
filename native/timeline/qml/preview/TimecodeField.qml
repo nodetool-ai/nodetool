@@ -51,7 +51,10 @@ Item {
         seekRequested(scrubBaselineMs)
     }
     Keys.onPressed: event => {
-        if (scrubbing && event.key === Qt.Key_Escape) {
+        // A key the text field ignores, such as Left at its start, must not reach the editor's shortcuts.
+        if (editing) {
+            event.accepted = event.key !== Qt.Key_Tab && event.key !== Qt.Key_Backtab
+        } else if (scrubbing && event.key === Qt.Key_Escape) {
             cancelScrub()
             event.accepted = true
         } else if (!editing && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)) {
