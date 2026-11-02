@@ -30,6 +30,7 @@ struct Drag {
     QPointF pointer;
     Geometry box;
     ClipTransform update(QPointF next, bool shift) const;
+    Geometry displayGeometry(const ClipTransform& next) const;
 };
 ClipTransform transformOf(const QJsonObject& clip);
 QJsonObject transformJson(const ClipTransform& transform);

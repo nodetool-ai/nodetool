@@ -100,6 +100,18 @@ void TransformGizmoController::setSelection(const QStringList& value) {
     emit bindingsChanged();
     refresh();
 }
+void TransformGizmoController::setAlignmentEnabled(bool value) {
+    if (m_alignmentEnabled == value) { return; }
+    m_alignmentEnabled = value;
+    emit optionsChanged();
+    if (m_drag) { move(m_lastPointer, m_lastShift, m_lastBypass); }
+}
+void TransformGizmoController::setGuideColor(const QColor& value) {
+    if (m_guideColor == value) { return; }
+    m_guideColor = value;
+    emit optionsChanged();
+    update();
+}
 void TransformGizmoController::discover() {
     QQuickItem* root = nullptr;
     for (auto* item = parentItem(); item; item = item->parentItem()) {
@@ -215,6 +227,8 @@ bool TransformGizmoController::begin(const QString& target, QPointF pointer) {
         if (value.toObject().value("id") == m_clipId) { m_startClip = value.toObject(); break; }
     }
     m_drag = nt::gizmo::Drag{target, m_stored, m_display, m_space, pointer, m_box};
+    m_lastPointer = pointer;
+    m_lastShift = m_lastBypass = false;
     m_dragCursor = cursorFor(target, m_box);
     m_hover = target;
     setCursor(QCursor(m_dragCursor));
@@ -237,8 +251,48 @@ void TransformGizmoController::write(const nt::ClipTransform& next) {
     m_timeline->replaceClips(after);
     m_writing = false;
 }
-void TransformGizmoController::move(QPointF pointer, bool shift) {
-    if (m_drag) { write(m_drag->update(pointer, shift)); }
+void TransformGizmoController::move(QPointF pointer, bool shift, bool bypass) {
+    if (!m_drag) { return; }
+    m_lastPointer = pointer;
+    m_lastShift = shift;
+    m_lastBypass = bypass;
+    auto next = m_drag->update(pointer, shift);
+    m_alignmentGuides.clear();
+    if (m_alignmentEnabled && !bypass && m_drag->target == "body") {
+        const auto bounds = polygon(m_drag->displayGeometry(next)).boundingRect();
+        const auto snap = [](std::array<double, 3> edges, double length) -> std::optional<std::pair<double, double>> {
+            double closest = 6;
+            std::optional<std::pair<double, double>> result;
+            for (const double target : {0.0, length / 2, length}) {
+                for (const double edge : edges) {
+                    const double delta = target - edge;
+                    if (std::abs(delta) < closest) { closest = std::abs(delta); result = {{delta, target}}; }
+                }
+            }
+            return result;
+        };
+        QPointF correction;
+        if (const auto x = snap({bounds.left(), bounds.center().x(), bounds.right()}, m_space.frame.width())) {
+            correction.setX(x->first);
+            m_alignmentGuides.insert("x", x->second);
+        }
+        if (const auto y = snap({bounds.top(), bounds.center().y(), bounds.bottom()}, m_space.frame.height())) {
+            correction.setY(y->first);
+            m_alignmentGuides.insert("y", y->second);
+        }
+        const auto delta = nt::gizmo::positionDelta(correction, m_space);
+        next.position.x += delta.x();
+        next.position.y += delta.y();
+    }
+    write(next);
+    if (!m_drag) { return; }
+    m_gestureFeedback = tr("X %1 px  Y %2 px  Scale %3%, %4%  Angle %5°")
+        .arg(m_display.position.x, 0, 'f', 1).arg(m_display.position.y, 0, 'f', 1)
+        .arg(m_display.scale.x * 100, 0, 'f', 1).arg(m_display.scale.y * 100, 0, 'f', 1)
+        .arg(m_display.rotation * 180 / std::numbers::pi, 0, 'f', 1);
+    if (!m_alignmentGuides.isEmpty()) { m_gestureFeedback += tr(" · Snapped"); }
+    emit gestureChanged();
+    update();
 }
 void TransformGizmoController::end() {
     clearPointerFeedback();
@@ -257,6 +311,9 @@ void TransformGizmoController::cancel() {
     }
 }
 void TransformGizmoController::clearPointerFeedback() {
+    m_alignmentGuides.clear();
+    m_gestureFeedback.clear();
+    emit gestureChanged();
     m_hover.clear();
     unsetCursor();
     setKeepMouseGrab(false);
@@ -312,6 +369,15 @@ void TransformGizmoController::paint(QPainter* painter) {
     if (!m_available) { return; }
     painter->setRenderHint(QPainter::Antialiasing);
     painter->translate(m_origin);
+    painter->setPen(QPen(m_guideColor, 1));
+    if (m_alignmentGuides.contains("x")) {
+        const double x = m_alignmentGuides.value("x").toDouble();
+        painter->drawLine(QPointF(x, 0), QPointF(x, m_space.frame.height()));
+    }
+    if (m_alignmentGuides.contains("y")) {
+        const double y = m_alignmentGuides.value("y").toDouble();
+        painter->drawLine(QPointF(0, y), QPointF(m_space.frame.width(), y));
+    }
     QPen boxPen(primary(0.8), 1);
     boxPen.setDashPattern({4, 4});
     painter->setPen(boxPen);
@@ -355,7 +421,10 @@ void TransformGizmoController::mousePressEvent(QMouseEvent* event) {
         event->accept();
     } else { event->ignore(); }
 }
-void TransformGizmoController::mouseMoveEvent(QMouseEvent* event) { move(event->position() - m_origin, event->modifiers().testFlag(Qt::ShiftModifier)); event->accept(); }
+void TransformGizmoController::mouseMoveEvent(QMouseEvent* event) {
+    move(event->position() - m_origin, event->modifiers().testFlag(Qt::ShiftModifier), event->modifiers().testFlag(Qt::AltModifier));
+    event->accept();
+}
 void TransformGizmoController::mouseReleaseEvent(QMouseEvent* event) { end(); setKeepMouseGrab(false); event->accept(); }
 void TransformGizmoController::mouseUngrabEvent() { cancel(); }
 void TransformGizmoController::hoverMoveEvent(QHoverEvent* event) {
@@ -366,8 +435,19 @@ void TransformGizmoController::hoverMoveEvent(QHoverEvent* event) {
 }
 void TransformGizmoController::hoverLeaveEvent(QHoverEvent*) { if (!m_drag) { clearPointerFeedback(); } }
 void TransformGizmoController::keyPressEvent(QKeyEvent* event) {
+    if (m_drag && event->key() == Qt::Key_Alt) {
+        move(m_lastPointer, m_lastShift, true);
+        event->accept();
+        return;
+    }
     if (handleKey(event->key(), event->modifiers().toInt())) { m_focusVisible = true; update(); event->accept(); }
     else { event->ignore(); }
+}
+void TransformGizmoController::keyReleaseEvent(QKeyEvent* event) {
+    if (m_drag && event->key() == Qt::Key_Alt) {
+        move(m_lastPointer, m_lastShift, false);
+        event->accept();
+    } else { event->ignore(); }
 }
 void TransformGizmoController::focusInEvent(QFocusEvent* event) {
     m_focusVisible = event->reason() == Qt::TabFocusReason || event->reason() == Qt::BacktabFocusReason ||

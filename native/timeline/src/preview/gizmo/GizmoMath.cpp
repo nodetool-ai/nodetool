@@ -153,6 +153,9 @@ QPointF positionDelta(QPointF delta, const Space& space) {
     }
     return {x * space.sequence.width() / 2, -y * space.sequence.height() / 2};
 }
+Geometry Drag::displayGeometry(const ClipTransform& next) const {
+    return geometry(toDisplay(next, start, display), space);
+}
 ClipTransform Drag::update(QPointF next, bool shift) const {
     auto candidate = twoDimensional(start);
     if (target == "body") {

@@ -4,6 +4,8 @@
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
 #include <QPointer>
+#include <QColor>
+#include <QVariantMap>
 #include <QSet>
 #include <QQuickPaintedItem>
 #include <QtQmlIntegration/qqmlintegration.h>
@@ -16,6 +18,11 @@ class TransformGizmoController : public QQuickPaintedItem {
     Q_PROPERTY(PlaybackClock* clock READ clock WRITE setClock NOTIFY bindingsChanged)
     Q_PROPERTY(QStringList selection READ selection WRITE setSelection NOTIFY bindingsChanged)
     Q_PROPERTY(bool available READ available NOTIFY geometryChanged)
+    Q_PROPERTY(bool alignmentEnabled READ alignmentEnabled WRITE setAlignmentEnabled NOTIFY optionsChanged)
+    Q_PROPERTY(QColor guideColor READ guideColor WRITE setGuideColor NOTIFY optionsChanged)
+    Q_PROPERTY(QVariantMap alignmentGuides READ alignmentGuides NOTIFY gestureChanged)
+    Q_PROPERTY(QString gestureFeedback READ gestureFeedback NOTIFY gestureChanged)
+    Q_PROPERTY(QPointF gesturePosition READ gesturePosition NOTIFY gestureChanged)
 public:
     explicit TransformGizmoController(QQuickItem* parent = nullptr);
     ~TransformGizmoController() override;
@@ -26,10 +33,17 @@ public:
     void setClock(PlaybackClock* value);
     void setSelection(const QStringList& value);
     bool available() const { return m_available; }
+    bool alignmentEnabled() const { return m_alignmentEnabled; }
+    void setAlignmentEnabled(bool value);
+    QColor guideColor() const { return m_guideColor; }
+    void setGuideColor(const QColor& value);
+    QVariantMap alignmentGuides() const { return m_alignmentGuides; }
+    QString gestureFeedback() const { return m_gestureFeedback; }
+    QPointF gesturePosition() const { return m_lastPointer + m_origin; }
     nt::gizmo::Geometry box() const { return m_box; }
     Q_INVOKABLE void discover();
     Q_INVOKABLE bool begin(const QString& target, QPointF pointer);
-    Q_INVOKABLE void move(QPointF pointer, bool shift = false);
+    Q_INVOKABLE void move(QPointF pointer, bool shift = false, bool bypass = false);
     Q_INVOKABLE void end();
     Q_INVOKABLE void cancel();
     Q_INVOKABLE void action(const QString& name);
@@ -39,6 +53,8 @@ public:
 signals:
     void bindingsChanged();
     void geometryChanged();
+    void optionsChanged();
+    void gestureChanged();
     void contextMenuRequested(QPointF point);
 protected:
     void mousePressEvent(QMouseEvent* event) override;
@@ -48,6 +64,7 @@ protected:
     void hoverMoveEvent(QHoverEvent* event) override;
     void hoverLeaveEvent(QHoverEvent* event) override;
     void keyPressEvent(QKeyEvent* event) override;
+    void keyReleaseEvent(QKeyEvent* event) override;
     void focusInEvent(QFocusEvent* event) override;
 private:
     void refresh();
@@ -76,6 +93,13 @@ private:
     quint64 m_generation = 0;
     QString m_hover;
     Qt::CursorShape m_dragCursor = Qt::ArrowCursor;
+    bool m_alignmentEnabled = true;
+    QColor m_guideColor = Qt::transparent;
+    QVariantMap m_alignmentGuides;
+    QString m_gestureFeedback;
+    QPointF m_lastPointer;
+    bool m_lastShift = false;
+    bool m_lastBypass = false;
     bool m_focusVisible = false;
     QHash<QString, QSize> m_dimensions;
     QSet<QString> m_probing;

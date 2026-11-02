@@ -175,6 +175,48 @@ TransformGizmoController { width: 300; height: 200; selection: ["picture"] })", 
         QCOMPARE(g->cursor().shape(), Qt::ArrowCursor);
         g->setParentItem(nullptr);
     }
+    void bodyMovementShowsAlignmentGuidesAndBypassesThem() {
+        TimelineModel model;
+        auto c = clip();
+        nt::ClipTransform transform;
+        transform.scale = {0.5, 0.5};
+        transform.position.x = 10;
+        c.insert("transform", transformJson(transform));
+        load(model, c);
+        PlaybackClock clock;
+        clock.setDurationMs(3000);
+        clock.seek(1100);
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData(R"(import QtQuick
+import NodeTool.Timeline
+TransformGizmoController { width: 200; height: 100; selection: ["picture"] })", QUrl());
+        std::unique_ptr<QObject> object(component.createWithInitialProperties({
+            {"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)}}));
+        QVERIFY2(object, qPrintable(component.errorString()));
+        auto* g = qobject_cast<TransformGizmoController*>(object.get());
+        QVERIFY(g);
+        QQuickWindow window;
+        window.resize(300, 200);
+        g->setParentItem(window.contentItem());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QTest::mousePress(&window, Qt::LeftButton, {}, {120, 60});
+        QTest::mouseMove(&window, {111, 60});
+        QVERIFY(std::abs(transformOf(model.clipsJson()[0].toObject()).position.x) < 0.00001);
+        QVERIFY(!g->property("alignmentGuides").toMap().isEmpty());
+        QVERIFY(!g->property("gestureFeedback").toString().isEmpty());
+        QTest::keyPress(&window, Qt::Key_Alt);
+        QTest::mouseEvent(QTest::MouseMove, &window, Qt::NoButton, Qt::AltModifier, {112, 60});
+        QCOMPARE(transformOf(model.clipsJson()[0].toObject()).position.x, 2.0);
+        QVERIFY(g->property("alignmentGuides").toMap().isEmpty());
+        QTest::keyRelease(&window, Qt::Key_Alt);
+        QTest::mouseRelease(&window, Qt::LeftButton, {}, {112, 60});
+        QCOMPARE(model.undoStack()->count(), 1);
+        QVERIFY(g->property("gestureFeedback").toString().isEmpty());
+        QVERIFY(g->property("alignmentGuides").toMap().isEmpty());
+        g->setParentItem(nullptr);
+    }
     void qmlPanelDiscoversEditorAndFollowsMonitor() {
         const auto panels = PanelRegistry().forSlot("preview");
         QVERIFY(std::any_of(panels.begin(), panels.end(), [](const auto& panel) {

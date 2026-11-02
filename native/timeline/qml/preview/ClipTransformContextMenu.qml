@@ -7,6 +7,8 @@ Ui.ContextMenu {
     id: menu
     objectName: "clipTransformContextMenu"
     signal action(string name)
+    property bool alignmentEnabled: true
+    signal alignmentToggled()
     modal: true
     focus: true
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
@@ -32,6 +34,15 @@ Ui.ContextMenu {
         text: qsTr("Reset")
         iconName: "reset"
         shortcutText: "."
+    }
+    TransformSeparator {}
+    Ui.MenuItem {
+        objectName: "alignmentGuidesToggle"
+        text: qsTr("Alignment guides")
+        checkable: true
+        checked: menu.alignmentEnabled
+        Accessible.description: qsTr("Snap to canvas edges and center. Hold Alt to bypass.")
+        onTriggered: menu.alignmentToggled()
     }
     TransformSeparator {}
     TransformMenuItem {

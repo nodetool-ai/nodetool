@@ -1,5 +1,6 @@
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 Item {
     id: overlay
@@ -8,6 +9,7 @@ Item {
         id: gizmo
         objectName: "transformGizmo"
         anchors.fill: parent
+        guideColor: Ui.Theme.statusWarning
         Accessible.role: Accessible.Grouping
         Accessible.name: qsTr("Transform handles: arrow keys move the clip (Shift for 10 px), period resets")
         Component.onCompleted: Qt.callLater(discover)
@@ -20,6 +22,26 @@ Item {
     }
     ClipTransformContextMenu {
         id: menu
+        alignmentEnabled: gizmo.alignmentEnabled
+        onAlignmentToggled: gizmo.alignmentEnabled = !gizmo.alignmentEnabled
         onAction: function(name) { gizmo.action(name) }
+    }
+    Ui.Surface {
+        objectName: "transformGestureFeedback"
+        variant: Ui.Surface.Overlay
+        visible: gizmo.gestureFeedback !== ""
+        width: Math.min(parent.width, feedback.implicitWidth + 2 * Ui.Metrics.md)
+        height: feedback.implicitHeight + 2 * Ui.Metrics.sm
+        x: Math.max(0, Math.min(parent.width - width, gizmo.gesturePosition.x + Ui.Metrics.lg))
+        y: Math.max(0, Math.min(parent.height - height, gizmo.gesturePosition.y + Ui.Metrics.lg))
+        Ui.Text {
+            id: feedback
+            x: Ui.Metrics.md
+            y: Ui.Metrics.sm
+            width: parent.width - 2 * Ui.Metrics.md
+            text: gizmo.gestureFeedback
+            role: Ui.Typography.MonoCaption
+            wrapMode: Text.Wrap
+        }
     }
 }
