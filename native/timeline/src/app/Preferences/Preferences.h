@@ -10,6 +10,7 @@
 #include <memory>
 
 class ClipGestureController;
+class PlaybackClock;
 
 namespace nt::app {
 class Preferences : public QObject {
@@ -23,6 +24,9 @@ class Preferences : public QObject {
     Q_PROPERTY(QString decoderMode READ decoderMode WRITE setDecoderMode NOTIFY changed)
     Q_PROPERTY(QString audioDevice READ audioDevice WRITE setAudioDevice NOTIFY changed)
     Q_PROPERTY(double trackHeaderWidth READ trackHeaderWidth WRITE setTrackHeaderWidth NOTIFY changed)
+    // Playback audio. Both default to on. PlaybackClock carries the live values.
+    Q_PROPERTY(bool scrubAudio READ scrubAudio WRITE setScrubAudio NOTIFY changed)
+    Q_PROPERTY(bool shuttleKeepsPitch READ shuttleKeepsPitch WRITE setShuttleKeepsPitch NOTIFY changed)
     Q_PROPERTY(QString themePreference READ themePreference WRITE setThemePreference NOTIFY changed)
     Q_PROPERTY(double uiScale READ uiScale WRITE setUiScale NOTIFY changed)
     Q_PROPERTY(double textScale READ textScale WRITE setTextScale NOTIFY changed)
@@ -40,6 +44,8 @@ public:
     QString decoderMode() const;
     QString audioDevice() const;
     double trackHeaderWidth() const;
+    bool scrubAudio() const;
+    bool shuttleKeepsPitch() const;
     QString themePreference() const;
     double uiScale() const;
     double textScale() const;
@@ -52,6 +58,8 @@ public:
     void setDecoderMode(const QString& value);
     void setAudioDevice(const QString& value);
     void setTrackHeaderWidth(double value);
+    void setScrubAudio(bool value);
+    void setShuttleKeepsPitch(bool value);
     void setThemePreference(const QString& value);
     void setUiScale(double value);
     void setTextScale(double value);
@@ -113,5 +121,6 @@ private:
     QPointer<QQuickItem> m_anchor;
     QPointer<Preferences> m_store;
     QList<QPointer<ClipGestureController>> m_controllers;
+    QList<QPointer<PlaybackClock>> m_clocks;
 };
 }

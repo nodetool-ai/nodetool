@@ -164,6 +164,12 @@ int main(int argc, char** argv) {
   } finally { rmSync(scratch, { recursive: true, force: true }); }
 });
 
+test('the document fonts load before the first QML, which a late font garbles', () => {
+  const main = readFileSync(new URL('../main.cpp', import.meta.url), 'utf8');
+  const fonts = main.indexOf('nt::render2d::loadTimelineFonts();');
+  assert.ok(fonts > main.indexOf('QGuiApplication app(argc, argv);'), 'loaded after the application exists');
+  assert.ok(fonts < main.lastIndexOf('view.loadFromModule('), 'loaded before the editor loads');
+});
 test('the FilmCraft notice is complete and ships in the macOS package', () => {
   const notice = readFileSync(new URL('../../licenses/FilmCraft-MIT.txt', import.meta.url), 'utf8');
   assert.match(notice, /Copyright \(c\) 2026 ArtCraft Team and the FilmCraft contributors/);

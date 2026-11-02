@@ -1595,6 +1595,66 @@ qml_callers = []
 replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.EditorButton"
 
 [[file]]
+path = "native/timeline/qml/remix/RemixDialog.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "Flickable", "Ui.ScrollBar", "ColumnLayout", "RowLayout", "GridLayout", "Ui.Text", "Ui.Progress", "Ui.Banner", "Ui.TextField", "Ui.EditorButton", "Ui.Slider", "RemixPlanStrip"]
+signals = []
+test_host = "tst_remixui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/remix/RemixHost.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.ScrollBar, Ui.Text, Ui.Progress, Ui.Banner, Ui.TextField, Ui.EditorButton, Ui.Slider"
+
+[[file]]
+path = "native/timeline/qml/remix/RemixHost.qml"
+category = "chrome"
+controls = ["RemixController", "RemixDialog", "Ui.Dialog", "Ui.Text", "Ui.EditorButton"]
+signals = []
+test_host = "tst_remixui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/remix/RemixPlanStrip.qml"
+category = "chrome"
+controls = ["Column", "Item", "Ui.Text", "Rectangle", "Repeater"]
+signals = []
+test_host = "tst_remixui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/remix/RemixDialog.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/transcript/TextPanel.qml"
+category = "chrome"
+controls = ["Ui.Surface", "ColumnLayout", "Row", "Repeater", "Ui.EditorButton", "Ui.Text"]
+signals = []
+test_host = "tst_textpanel"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.EditorButton, Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/transcript/TranscriptTab.qml"
+category = "chrome"
+controls = ["ColumnLayout", "RowLayout", "Ui.TextField", "Ui.Text", "Ui.ToolbarIconButton", "ListView", "Ui.ScrollBar", "Column", "TranscriptWords", "MouseArea", "Rectangle", "Ui.EditorButton", "Ui.EmptyState"]
+signals = []
+test_host = "tst_textpanel"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/transcript/TextPanel.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.TextField, Ui.Text, Ui.ToolbarIconButton, Ui.ScrollBar, Ui.EditorButton, Ui.EmptyState"
+
+[[file]]
+path = "native/timeline/qml/transcript/CaptionsTab.qml"
+category = "chrome"
+controls = ["TextMetrics", "ColumnLayout", "RowLayout", "Flow", "Ui.TextField", "Ui.Text", "Ui.ToolbarIconButton", "ListView", "Ui.ScrollBar", "Rectangle", "HoverHandler", "TapHandler", "Ui.EmptyState"]
+signals = []
+test_host = "tst_textpanel"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/transcript/TextPanel.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.TextField, Ui.Text, Ui.ToolbarIconButton, Ui.ScrollBar, Ui.EmptyState"
+
+[[file]]
 path = "native/timeline/qml/markers/MarkersPanel.qml"
 category = "chrome"
 controls = ["Ui.Surface", "ColumnLayout", "Ui.TextField", "Flow", "Rectangle", "Ui.Tooltip", "MouseArea", "HoverHandler", "ListView", "Ui.ScrollBar", "Ui.Text", "Ui.EmptyState", "Ui.EditorButton", "RegistryContextMenu"]
@@ -1853,6 +1913,26 @@ test_host = "tst_providerdialog"
 test_scope = "interaction"
 qml_callers = ["native/timeline/qml/Preferences/AppShell.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.BusyIndicator, Ui.Text, Ui.EditorButton, Ui.Select, Ui.TextField"
+
+[[file]]
+path = "native/timeline/qml/scenedetect/SceneEditDialog.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "SceneEditController", "ColumnLayout", "RowLayout", "Ui.Text", "Ui.Progress", "Ui.Slider", "Ui.NumberField", "Ui.EditorButton"]
+signals = []
+test_host = "tst_sceneedit"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/scenedetect/SceneEditHost.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.Progress, Ui.Slider, Ui.NumberField, Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/scenedetect/SceneEditHost.qml"
+category = "chrome"
+controls = ["SceneEditDialog", "Connections"]
+signals = []
+test_host = "tst_sceneedit"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Dialog"
 
 [[file]]
 path = "native/timeline/qml/storyworkspace/StoryWorkspaceEditor.qml"
@@ -3244,6 +3324,22 @@ binding = "onClicked"
 rule = "manual-control"
 owner = "Timeline marker colours"
 reason = "A colour filter chip shows the exact document colour it filters by, which no Ui control draws; it is a toggle with keyboard and accessibility actions."
+
+[[exception]]
+path = "native/timeline/qml/transcript/TranscriptTab.qml"
+object = "tab/ColumnLayout[0]/rowsView/paragraph/wordsItem/MouseArea[0]"
+binding = "onClicked"
+rule = "manual-control"
+owner = "Timeline text editing"
+reason = "One pointer area covers a paragraph drawn as one text layout. A click picks the word under the pointer and Shift extends the selection, which no Ui control reports."
+
+[[exception]]
+path = "native/timeline/qml/transcript/CaptionsTab.qml"
+object = "tab/ColumnLayout[0]/rowsView/row/TapHandler[0]"
+binding = "onTapped"
+rule = "manual-control"
+owner = "Timeline text editing"
+reason = "A caption row holds its own edit fields, so Ui.ListRow cannot draw it. A tap on the row's edge selects it for the toolbar and seeks, as focusing one of its fields does."
 
 [[exception]]
 path = "native/timeline/qml/markers/MarkersPanel.qml"

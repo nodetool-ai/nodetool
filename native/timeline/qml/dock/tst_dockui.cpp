@@ -136,7 +136,7 @@ private slots:
         render();
         QCOMPARE(store->workspace(), QString("Editing"));
         visible = dock->property("visiblePanels").toStringList();
-        QVERIFY2(visible.contains("storyboard") && visible.contains("inspector"), qPrintable(visible.join(',')));
+        QVERIFY2(visible.contains("transcript") && visible.contains("inspector"), qPrintable(visible.join(',')));
         // The editor holds the one frame capture that panels and tools share.
         auto* capture = editor->property("frameCapture").value<FrameCapture*>();
         QVERIFY(capture);
@@ -287,9 +287,9 @@ private slots:
             const bool inspectorVisible = i == 0 || i == 1;
             QCOMPARE(visible.contains("inspector"), inspectorVisible);
             QCOMPARE(visible.contains("assistant"), i == 2);
-            QCOMPARE(visible.contains("storyboard"), i == 0);
+            QCOMPARE(visible.contains("transcript"), i == 0);
             QCOMPARE(visible.contains("script"), i == 1);
-            for (const auto& unavailable : {"transcript", "shot", "instruments", "history", "code"}) {
+            for (const auto& unavailable : {"shot", "instruments", "history", "code"}) {
                 QVERIFY(!visible.contains(QString::fromLatin1(unavailable)));
             }
             QCOMPARE(dock->property("bottomExtent").toInt(), bottomSizes[i]);

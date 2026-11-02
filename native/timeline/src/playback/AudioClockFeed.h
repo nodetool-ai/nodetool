@@ -99,6 +99,7 @@ struct TransportCommand {
     // A paused seek made by dragging the playhead: the device plays a short
     // burst of the mix at `seekMs` so the drag is audible.
     bool scrub = false;
+    bool keepPitch = false;
 };
 
 // The mapping the callback renders with: device frame `frame` carries
@@ -112,6 +113,7 @@ struct AudioAnchor {
     double rate = 1.0;
     bool playing = false;
     bool seek = false;
+    bool keepPitch = false;
 };
 
 // The anchors the callback keeps: enough for every command whose frames can
@@ -184,6 +186,7 @@ public:
                 next.frame = m_framesRendered;
                 next.rate = cmd.rate;
                 next.playing = cmd.playing;
+                next.keepPitch = cmd.keepPitch;
                 next.seek = false;
                 startAnchor(next);
             } else {
@@ -196,6 +199,7 @@ public:
                     next.timelineMs = cmd.seekMs;
                     next.rate = cmd.rate;
                     next.playing = cmd.playing;
+                    next.keepPitch = cmd.keepPitch;
                     next.seek = true;
                     if (cmd.playing) {
                         m_lastStartNs = hostTimeNs;

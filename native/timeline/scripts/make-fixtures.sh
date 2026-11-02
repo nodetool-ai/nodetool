@@ -92,6 +92,16 @@ else
     kept numbered-a-proxy-960-intra.mp4
 fi
 
+# --- Scene edit detection: fixtures/video-cuts.json, A/B/C/A at 0/2/4/6 s ---
+scene_a="$(numbered testsrc2 640 360 2),trim=start=0:end=2,setpts=PTS-STARTPTS"
+scene_b="$(numbered smptehdbars 640 360 7),trim=start=5:end=7,setpts=PTS-STARTPTS"
+scene_c="$(numbered testsrc 640 360 3),trim=start=1:end=3,setpts=PTS-STARTPTS"
+scene_a2="$(numbered testsrc2 640 360 17),trim=start=15:end=17,setpts=PTS-STARTPTS"
+h264 scene-cuts-360p30.mp4 "${scene_a}[a];${scene_b}[b];${scene_c}[c];${scene_a2}[a2];[a][b][c][a2]concat=n=4:v=1:a=0"
+# One continuous shot panned fast, and one whose brightness ramps then flickers: neither has a cut.
+h264 scene-motion-360p30.mp4 "$(numbered testsrc2 640 360 10),scroll=horizontal=0.04"
+h264 scene-lighting-360p30.mp4 "$(numbered testsrc2 640 360 10),eq=brightness='if(lt(t,3),-0.35+0.2*t,0.25+0.12*sin(2*PI*(t-3)))':eval=frame"
+
 # --- seek tests (ctest): small numbered files --------------------------------
 h264 seek-360p30.mp4 "$(numbered testsrc2 640 360 10)"
 # Raw Annex-B H.264 with no container timestamps: the decoder must not rely

@@ -50,7 +50,7 @@ function(nt_preferences_tests)
         set_tests_properties(tst_appshell_${provider}_preferences PROPERTIES
             ENVIRONMENT "QT_QPA_PLATFORM=offscreen;NODETOOL_TIMELINE_PREFERENCES=${provider_ini}")
     endforeach()
-    add_test(NAME tst_appshell_preferences COMMAND tst_appshell preferencesStore cacheEnvironment keyboardSync preferencesDialog decoderLabels)
+    add_test(NAME tst_appshell_preferences COMMAND tst_appshell preferencesStore cacheEnvironment keyboardSync preferencesDialog playbackAudioSwitches decoderLabels)
     add_test(NAME tst_appshell_recents COMMAND tst_appshell recentOrdering recentMenu recentBatchSafety)
     set_tests_properties(tst_appshell_recents tst_appshell_preferences PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;NODETOOL_TIMELINE_PREFERENCES=${CMAKE_CURRENT_BINARY_DIR}/shell-test-startup.ini")
 endfunction()

@@ -24,6 +24,7 @@
 #include "ui/MonitorViewState.h"
 #include "app/startup/DecodeDefault.h"
 #include "app/startup/LocalDocumentSaver.h"
+#include "render2d/Rasterizer.h"
 #include "preview/FfmpegSource.h"
 #include "preview/SceneEval.h"
 #include "preview/hw/HwInterop.h"
@@ -699,6 +700,7 @@ int main(int argc, char** argv) {
 
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     QGuiApplication app(argc, argv);
+    nt::render2d::loadTimelineFonts();
     app.setApplicationName(QStringLiteral("nodetool-timeline"));
 
     QCommandLineParser parser;
