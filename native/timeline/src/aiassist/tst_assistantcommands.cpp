@@ -31,8 +31,7 @@ class TestAssistantCommands : public WiringFixture {
     std::unique_ptr<AssistantCommands> commands;
     std::unique_ptr<AssistantSession> session;
 
-    void openDocument() {
-        open();
+    void loadDocument() {
         const auto text = QStringLiteral(R"({"id":"%1","name":"Cut","fps":30,"width":640,"height":360,"durationMs":20000,
           "tracks":[{"id":"%2","name":"Video","type":"video","index":0,"heightPx":80,"visible":true,"locked":false},
                     {"id":"%3","name":"Audio","type":"audio","index":1,"heightPx":80,"visible":true,"locked":false,"muted":false,"solo":false}],
@@ -50,11 +49,11 @@ class TestAssistantCommands : public WiringFixture {
         model.setTimeline(std::move(*parsed.timeline));
         clock.setDurationMs(20000);
         clock.seek(1000);
+        gestures()->setSelection({});
+        gestures()->setLinkedSelection(true);
+        gestures()->viewState()->clearRange();
+        nt::edit::clipboard::clearClipClipboard();
         QCoreApplication::processEvents();
-        commands = std::make_unique<AssistantCommands>(model, clock);
-        commands->setEditor(view->rootObject());
-        session = std::make_unique<AssistantSession>();
-        session->setTimeline(&model);
     }
     QVariantMap run(const QString& command, const QVariantMap& params = {}) {
         return commands->execute("ui_timeline_run_command", {{"timeline_id", TIMELINE}, {"command", command}, {"params", params}});
@@ -82,12 +81,20 @@ class TestAssistantCommands : public WiringFixture {
     QJsonObject rawClip(const QString& id) { return clip(id); }
 
 private slots:
-    void init() { openDocument(); }
-    void cleanup() {
+    // A window takes seconds to open, so the tests share one and each gets a fresh document.
+    void initTestCase() {
+        open();
+        commands = std::make_unique<AssistantCommands>(model, clock);
+        commands->setEditor(view->rootObject());
+        session = std::make_unique<AssistantSession>();
+        session->setTimeline(&model);
+    }
+    void cleanupTestCase() {
         commands.reset();
         session.reset();
         view.reset();
     }
+    void init() { loadDocument(); }
 
     // Acceptance: a registered command that is neither allowed nor denied fails this test.
     void everyRegisteredCommandIsDecided() {
@@ -302,6 +309,7 @@ private slots:
         QTest::newRow("name null") << QVariantMap{{"name", QVariant::fromValue(nullptr)}};
         QTest::newRow("hidden text") << QVariantMap{{"hidden", "yes"}};
         QTest::newRow("unlocks") << QVariantMap{{"locked", false}};
+        QTest::newRow("huge radius") << QVariantMap{{"borderRadius", 1e300}};
     }
     void patchesKeepTheDocumentValid() {
         QFETCH(QVariantMap, patch);
@@ -322,6 +330,7 @@ private slots:
         QVERIFY(!run("patchClip", {{"clip_id", textId}, {"patch", QVariantMap{{"textStyle", QVariantMap{{"fontFamily", "/etc/passwd"}}}}}}).value("ok").toBool());
         QVERIFY(!run("patchClip", {{"clip_id", textId}, {"patch", QVariantMap{{"textStyle", QVariantMap{{"path", "x"}}}}}}).value("ok").toBool());
         QVERIFY(!run("patchClip", {{"clip_id", textId}, {"patch", QVariantMap{{"textStyle", QVariantMap{{"fontSizePx", "big"}}}}}}).value("ok").toBool());
+        QVERIFY(!run("patchClip", {{"clip_id", textId}, {"patch", QVariantMap{{"textStyle", QVariantMap{{"fontSizePx", 1e7}}}}}}).value("ok").toBool());
         QVERIFY(!run("patchClip", {{"clip_id", CLIP_A}, {"patch", QVariantMap{{"textStyle", QVariantMap{{"text", "Hi"}}}}}}).value("ok").toBool());
         QCOMPARE(doc(), before);
     }
@@ -354,6 +363,7 @@ private slots:
         QVERIFY(gestures()->trimMode()->active());
         QCOMPARE(doc(), before);
         QCOMPARE(model.undoStack()->count(), 0);
+        gestures()->trimMode()->leave();
     }
     void recordingRefuses() {
         auto* takes = TakeSwitcher::forTimeline(&model);
@@ -422,7 +432,8 @@ private slots:
     void noChangeOnSelectionIsAnError() {
         const auto before = doc();
         gestures()->setSelection({CLIP_B});
-        const auto result = run("removeFades", {{"clip_ids", QStringList{CLIP_A}}});
+        // Fades apply to sound and video, and this clip is a still.
+        const auto result = run("applyFades", {{"clip_ids", QStringList{CLIP_A}}});
         QVERIFY(!result.value("ok").toBool());
         QCOMPARE(gestures()->selection(), QStringList{CLIP_B});
         QCOMPARE(doc(), before);
@@ -437,6 +448,53 @@ private slots:
         QVERIFY2(result.value("ok").toBool(), qPrintable(result.value("error").toString()));
         QCOMPARE(clip(CLIP_A).value("speedMultiplier").toDouble(), 2.0);
         QVERIFY(clip(CLIP_AUDIO).value("speedMultiplier").toDouble(1.0) == 1.0);
+    }
+    // Volume in dB has its own bounded command: a huge one is infinite gain in the mixer.
+    void volumeIsBounded() {
+        const auto before = doc();
+        QVERIFY(!run("setClipAudio", {{"clip_id", CLIP_AUDIO}, {"field", "volumeDb"}, {"value", 10000}}).value("ok").toBool());
+        QVERIFY(!run("setClipsGain", {{"clip_ids", QStringList{CLIP_AUDIO}}, {"db", 10000}}).value("ok").toBool());
+        QCOMPARE(doc(), before);
+        QVERIFY(run("setClipsGain", {{"clip_ids", QStringList{CLIP_AUDIO}}, {"db", -6.0}, {"mode", "set"}}).value("ok").toBool());
+        QCOMPARE(clip(CLIP_AUDIO).value("volumeDb").toDouble(), -6.0);
+    }
+    void insertTrackGoesWhereAsked() {
+        QVERIFY(run("insertTrack", {{"type", "video"}, {"name", "Top"}, {"atIndex", 0}}).value("ok").toBool());
+        QCOMPARE(doc().value("tracks").toArray().first().toObject().value("name").toString(), QString("Top"));
+        // addTrack appends and has no position to ignore.
+        QVERIFY(!run("addTrack", {{"type", "video"}, {"atIndex", 0}}).value("ok").toBool());
+    }
+    // Captions go to the clip the time finds, so the command doesn't pretend to take one.
+    void captionAddHasNoClipParameter() {
+        QVERIFY(!run("captions.add", {{"clip_id", CLIP_AUDIO}, {"text", "Hi"}, {"atMs", 100}}).value("ok").toBool());
+    }
+    void refusedRangeKeepsTheView() {
+        QVERIFY(run("setTrackLocked", {{"track_id", TRACK_V}, {"locked", true}}).value("ok").toBool());
+        QVERIFY(run("setTrackLocked", {{"track_id", TRACK_A}, {"locked", true}}).value("ok").toBool());
+        gestures()->viewState()->setRangeIn(1000);
+        gestures()->viewState()->setRangeOut(2000);
+        clock.seek(5000);
+        const auto before = doc();
+        const auto result = run("extractRange");
+        QVERIFY(!result.value("ok").toBool());
+        QCOMPARE(doc(), before);
+        QCOMPARE(gestures()->viewState()->rangeInMs(), 1000.0);
+        QCOMPARE(gestures()->viewState()->rangeOutMs(), 2000.0);
+        QCOMPARE(clock.currentTimeMs(), 5000.0);
+    }
+    void locksFollowLinkedSelection() {
+        QVERIFY(run("linkClips", {{"clip_ids", QStringList{CLIP_A, CLIP_AUDIO}}}).value("ok").toBool());
+        QVERIFY(run("setTrackLocked", {{"track_id", TRACK_A}, {"locked", true}}).value("ok").toBool());
+        // The link makes the audio part of the edit, and it is locked.
+        QVERIFY(!run("patchClip", {{"clip_id", CLIP_A}, {"patch", QVariantMap{{"opacity", 0.5}}}}).value("ok").toBool());
+        gestures()->setLinkedSelection(false);
+        const auto result = run("patchClip", {{"clip_id", CLIP_A}, {"patch", QVariantMap{{"opacity", 0.5}}}});
+        QVERIFY2(result.value("ok").toBool(), qPrintable(result.value("error").toString()));
+    }
+    void loudnessWithNothingToDoIsAnError() {
+        const auto result = run("matchLoudness", {{"clip_ids", QStringList{CLIP_AUDIO}}});
+        QVERIFY(!result.value("ok").toBool());
+        QVERIFY(result.value("error").toString().contains("nothing to do"));
     }
     void rangeCommands() {
         const auto extract = run("extractRange", {{"inMs", 2000.0}, {"outMs", 4000.0}});
@@ -491,19 +549,16 @@ private slots:
         QCOMPARE(model.undoStack()->count(), 2);
     }
     void gestureInProgressRefuses() {
-        const auto* clipItem = item("clip-" + CLIP_C);
-        if (!clipItem) { QSKIP("The clip delegate is outside this window's view."); }
-        const auto from = center(const_cast<QQuickItem*>(clipItem));
-        QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, from);
-        QTest::mouseMove(view.get(), from + QPoint(40, 0), 20);
+        QVERIFY(gestures()->pressClip(CLIP_C, "body", 100, 100, Qt::NoModifier));
         QVERIFY(!gestures()->gestureKind().isEmpty());
+        const auto before = doc();
         const auto result = run("deleteSelected", {{"clip_ids", QStringList{CLIP_A}}});
         QVERIFY(!result.value("ok").toBool());
+        QVERIFY2(result.value("error").toString().contains("dragging"), qPrintable(result.value("error").toString()));
         QVERIFY(!gestures()->gestureKind().isEmpty());
-        QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, from + QPoint(40, 0));
-        QVERIFY(!clip(CLIP_A).isEmpty());
+        gestures()->cancelGesture();
+        QCOMPARE(doc(), before);
     }
-
     // Each exposed edit with parameters a model would pass. It must really edit, in one undo
     // entry, and undo must restore the document.
     void edits_data() {
@@ -525,8 +580,10 @@ private slots:
         add("setClipsSpeed", {{"clip_ids", QStringList{CLIP_B, CLIP_C}}, {"speed", 2.0}});
         add("setClipsGain", {{"clip_ids", QStringList{CLIP_AUDIO}}, {"db", -6.0}});
         add("setClipAudio", {{"clip_id", CLIP_AUDIO}, {"field", "fadeInMs"}, {"value", 500}});
+        add("captions.add", {{"text", "Hello there"}, {"atMs", 13500}});
         add("patchClip", {{"clip_id", CLIP_A}, {"patch", QVariantMap{{"opacity", 0.5}}}});
         add("addTrack", {{"type", "video"}, {"name", "Overlay"}});
+        add("insertTrack", {{"type", "video"}, {"name", "First"}, {"atIndex", 0}});
         add("duplicateTrack", {{"track_id", TRACK_V}});
         add("removeTrack", {{"track_id", TRACK_A}});
         add("reorderTracks", {{"track_ids", QStringList{TRACK_A, TRACK_V}}});

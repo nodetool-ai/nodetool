@@ -16,6 +16,8 @@ const P gapAt{"gap_at_ms", ParamKind::GapTime, false, "A time inside the gap, in
 const P editClip{"clip_id", ParamKind::EditClip, false, "With edge: the edit point to work on."};
 const P editEdge{"edge", ParamKind::EditEdge, false, "Which edge of clip_id.", {"start", "end"}};
 const P markerId{"marker_id", ParamKind::ContextMarker, false, "The marker. Defaults to the selected markers, else the one at the playhead.", {}, "markerId"};
+// One day. Large enough for any edit, and small enough not to overflow a later calculation.
+constexpr double MAX_LENGTH_MS = 86400000;
 const QList<P> clips{clipIds};
 const QList<P> seek{atMs};
 const QList<P> clipsAtTime{clipIds, atMs};
@@ -108,6 +110,8 @@ QList<Command> buildAllowed() {
     actions({"trimEditLeft", "trimEditRight", "trimEditLeftLarge", "trimEditRightLarge"}, editPoint, atEditPoint);
     // In and Out.
     actions({"liftRange", "extractRange"}, range);
+    // Both clear the range and move the playhead even when locks stop the edit.
+    out[out.size() - 1].mustChange = out[out.size() - 2].mustChange = true;
     actions({"markIn", "markOut"}, seek);
     actions({"markClip", "markSelection"}, clips);
     actions({"goToIn", "goToOut", "clearIn", "clearOut", "clearRange"});
@@ -180,7 +184,7 @@ QList<Command> buildAllowed() {
         c.linked = c.sourceLimit = true;
     }
     edit("slideClip", "Slide clip", {clip, P{"deltaMs", ParamKind::Number, true, "How far to move the clip between its neighbours, in timeline ms."}}).linked = true;
-    edit("rateStretchClip", "Rate stretch clip", {clip, edge, P{"durationMs", ParamKind::Number, true, "The clip's new length in ms.", {}, {}, 1}}).linked = true;
+    edit("rateStretchClip", "Rate stretch clip", {clip, edge, P{"durationMs", ParamKind::Number, true, "The clip's new length in ms.", {}, {}, 1, MAX_LENGTH_MS}}).linked = true;
     edit("moveClip", "Move clip", {clip, P{"deltaMs", ParamKind::Number, true, "How far to move the clip, in timeline ms."},
                                    P{"to_track_id", ParamKind::TrackId, false, "Move it to this track.", {}, "toTrackId"}}).linked = true;
     edit("splitClipAtTime", "Split clip at a time", {clip, P{"atMs", ParamKind::Number, true, "Where to split, in timeline ms.", {}, {}, 0}});
@@ -194,14 +198,16 @@ QList<Command> buildAllowed() {
     edit("setClipsGain", "Set audio gain", {P{"clip_ids", ParamKind::ClipIds, true, "The clips.", {}, "selectedIds"}, P{"db", ParamKind::Number, true, "Gain in dB.", {}, {}, -96, 24},
                                             P{"mode", ParamKind::Choice, false, "adjust adds to the current gain. set replaces it. Defaults to adjust.", {"adjust", "set"}}})
         .fixed = {{"mode", "adjust"}};
-    edit("setClipAudio", "Set a clip's volume or fade", {clip, P{"field", ParamKind::Choice, true, "The field.", {"volumeDb", "fadeInMs", "fadeOutMs"}},
-                                                         P{"value", ParamKind::Number, true, "dB for volumeDb, otherwise ms."}});
+    edit("setClipAudio", "Set a clip's fade", {clip, P{"field", ParamKind::Choice, true, "Which fade. For volume use setClipsGain.", {"fadeInMs", "fadeOutMs"}},
+                                               P{"value", ParamKind::Number, true, "Its length in ms.", {}, {}, 0, MAX_LENGTH_MS}});
     edit("patchClip", "Set clip properties",
          {clip, P{"patch", ParamKind::Patch, true, "Fields to set. textStyle changes only the fields it names. For position, scale and rotation use keyframes.input.",
                   {"name", "labelColor", "speaker", "opacity", "blendMode", "hidden", "muted", "borderRadius", "textStyle"}}});
     // Tracks.
-    edit("addTrack", "Add a track", {P{"type", ParamKind::Choice, true, "The kind of track.", {"video", "audio", "overlay"}}, P{"name", ParamKind::Text, false, "Its name."},
-                                     P{"atIndex", ParamKind::Number, false, "Where it goes among the tracks.", {}, {}, 0}});
+    const P trackType{"type", ParamKind::Choice, true, "The kind of track.", {"video", "audio", "overlay"}};
+    const P trackName{"name", ParamKind::Text, false, "Its name."};
+    edit("addTrack", "Add a track at the end", {trackType, trackName});
+    edit("insertTrack", "Insert a track", {trackType, trackName, P{"atIndex", ParamKind::Number, true, "Where it goes among the tracks, from 0.", {}, {}, 0}});
     edit("duplicateTrack", "Duplicate a track", {track});
     edit("removeTrack", "Remove a track and its clips", {track});
     edit("reorderTracks", "Reorder tracks", {P{"track_ids", ParamKind::TrackIds, true, "Every track id, in the new order.", {}, "orderedIds"}});
@@ -247,13 +253,13 @@ QList<Command> buildAllowed() {
     edit("captions.split", "Split a caption", {clip, firstWord, wordCount, P{"atWord", ParamKind::Number, true, "The word the second part starts with.", {}, {}, 0}});
     edit("captions.merge", "Merge a caption with the next", {clip, firstWord, wordCount});
     edit("captions.delete", "Delete a caption", {clip, firstWord, wordCount});
-    edit("captions.add", "Add a caption", {clip, P{"text", ParamKind::Text, true}, P{"atMs", ParamKind::Number, true, "Where, in timeline ms.", {}, {}, 0},
-                                           P{"durationMs", ParamKind::Number, false, "Its length in ms.", {}, {}, 1}});
+    edit("captions.add", "Add a caption to the clip under a time", {P{"text", ParamKind::Text, true}, P{"atMs", ParamKind::Number, true, "Where, in timeline ms. The clip with captions there gets it.", {}, {}, 0},
+                                                                    P{"durationMs", ParamKind::Number, false, "Its length in ms.", {}, {}, 1, MAX_LENGTH_MS}});
     // Frame holds, without their dialogs.
     const P holdClips{"clip_ids", ParamKind::ClipIds, true, "The clips.", {}, "clipIds"};
     edit("frameHold.add", "Hold a frame until the clip's end", {holdClips, P{"atMs", ParamKind::Number, true, "The frame to hold, in timeline ms.", {}, {}, 0}});
     edit("frameHold.insertSegment", "Insert a frame hold", {clip, P{"atMs", ParamKind::Number, true, "Where, in timeline ms.", {}, {}, 0},
-                                                            P{"durationMs", ParamKind::Number, true, "How long to hold, in ms.", {}, {}, 1}});
+                                                            P{"durationMs", ParamKind::Number, true, "How long to hold, in ms.", {}, {}, 1, MAX_LENGTH_MS}});
     edit("frameHold.options", "Set frame hold options", {holdClips, P{"enabled", ParamKind::Boolean, false, "False removes the hold."},
                                                          P{"holdOn", ParamKind::Choice, false, "Which frame to hold.", {"in", "out", "playhead", "sequenceTime", "sourceTime"}},
                                                          P{"playheadMs", ParamKind::Number, false, "With holdOn playhead, in timeline ms.", {}, {}, 0},
@@ -306,7 +312,7 @@ QHash<QString, QString> buildDenied() {
     deny({"updateTrackEffect", "updateMasterEffect", "patchClipAudioEffect"},
          "only the panels know each value's range, and a very large one can exhaust memory. Add or remove the effect instead");
     deny({"deleteMarker", "altDragCopy", "duplicateSelected", "moveSelectedClips", "nudge", "pasteClipAttributes", "removeRange", "resolveDropAction", "splitSelectedAtPlayhead",
-          "changeAudioTrackHeights", "insertTrack", "setClipFadeGrip", "setClipTimeRemap", "setClipsAudioRole", "setClipsVolumeDb", "applyDucking", "moveClipAudioEffect", "moveTrackEffect",
+          "changeAudioTrackHeights", "setClipFadeGrip", "setClipTimeRemap", "setClipsAudioRole", "setClipsVolumeDb", "applyDucking", "moveClipAudioEffect", "moveTrackEffect",
           "setTrackAutomation", "addClipReframeKeyframe", "setClipReframeSubject", "source.place", "clip.remix", "clip.remix.revert", "sceneEdit.cut", "sceneEdit.markers",
           "assets.dropAsset", "acceptExternalUnit", "restoreDocument",
           "keyframes.animations", "keyframes.bypass", "keyframes.deleteMany", "keyframes.easing", "keyframes.easingMany", "keyframes.field", "keyframes.move", "keyframes.moveMany", "keyframes.stopwatch"},

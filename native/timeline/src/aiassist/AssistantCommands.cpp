@@ -6,6 +6,7 @@
 #include "color/ScopeNumbers.h"
 #include "colorpanel/ScopesController.h"
 #include "edit/ClipGestureController.h"
+#include "edit/audioroles/AudioRoles.h"
 #include "edit/clipboard/RawDocument.h"
 #include "edit/trim/TrimMode.h"
 #include "export/FrameCapture.h"
@@ -193,18 +194,29 @@ QString patchFieldError(const QString& field, const QJsonValue& value) {
     if (flags.contains(field) && !value.isBool()) { return QStringLiteral("must be true or false"); }
     if (field == u"blendMode" && !blends.contains(value.toString())) { return QStringLiteral("must be one of %1").arg(blends.join(", ")); }
     if (field == u"opacity" && (!value.isDouble() || value.toDouble() < 0 || value.toDouble() > 1)) { return QStringLiteral("must be a number from 0 to 1"); }
-    if ((field == u"borderRadius" || field == u"timeMs" || field == u"durationMs") && (!value.isDouble() || value.toDouble() < 0)) {
+    if ((field == u"timeMs" || field == u"durationMs") && (!value.isDouble() || value.toDouble() < 0)) {
         return QStringLiteral("must be a number of at least 0");
+    }
+    if (field == u"borderRadius" && (!value.isDouble() || value.toDouble() < 0 || value.toDouble() > 10000)) {
+        return QStringLiteral("must be a number from 0 to 10000");
     }
     return {};
 }
 QString textStyleError(const QJsonObject& style) {
     static const QStringList words{"text", "fontFamily", "color"};
-    static const QStringList numbers{"fontSizePx", "fontWeight", "lineHeight", "letterSpacingPx"};
+    // The size decides how much memory a rendered title needs.
+    static const QHash<QString, std::pair<double, double>> numbers{
+        {"fontSizePx", {1, 2000}}, {"fontWeight", {1, 1000}}, {"lineHeight", {0.1, 10}}, {"letterSpacingPx", {-1000, 1000}}};
     static const QStringList aligns{"left", "center", "right"};
     for (auto it = style.begin(); it != style.end(); ++it) {
-        if (words.contains(it.key()) ? !it.value().isString() : numbers.contains(it.key()) ? !it.value().isDouble() : it.key() != u"align") {
-            return QStringLiteral("textStyle.%1 is not a field it can set, or has the wrong type. It can set %2.").arg(it.key(), (words + numbers + QStringList{"align"}).join(", "));
+        if (const auto range = numbers.constFind(it.key()); range != numbers.constEnd()) {
+            if (!it.value().isDouble() || it.value().toDouble() < range->first || it.value().toDouble() > range->second) {
+                return QStringLiteral("textStyle.%1 must be a number from %2 to %3.").arg(it.key()).arg(range->first).arg(range->second);
+            }
+            continue;
+        }
+        if (words.contains(it.key()) ? !it.value().isString() : it.key() != u"align") {
+            return QStringLiteral("textStyle.%1 is not a field it can set, or has the wrong type. It can set %2.").arg(it.key(), (words + numbers.keys() + QStringList{"align"}).join(", "));
         }
         if (it.key() == u"align" && !aligns.contains(it.value().toString())) { return QStringLiteral("textStyle.align must be one of %1.").arg(aligns.join(", ")); }
     }
@@ -422,6 +434,11 @@ public:
             }
         }
         return {};
+    }
+    // For a handler that changed the view itself before refusing.
+    void restoreAll() {
+        m_selected = m_ranged = m_seeked = true;
+        restore();
     }
     void restore() {
         if (m_selected) {
@@ -664,9 +681,17 @@ QJsonObject AssistantCommands::runCommand(const QJsonObject& args) {
     if (!prepared.error.isEmpty()) { return failure(prepared.error); }
     // A raw edit doesn't know about locks, and an action may check only the clip's. The panels and
     // menus check them before calling.
-    const auto anyLocked = [&before](const QStringList& ids) {
-        const auto locked = nt::edit::lockedUserTargetIds(nt::edit::structure::editDocument(before));
-        return std::ranges::any_of(ids, [&](const QString& id) { return locked.contains(id); });
+    const auto anyLocked = [&before, editor](const QStringList& ids) {
+        const auto doc = nt::edit::structure::editDocument(before);
+        if (editor->linkedSelection()) {
+            const auto locked = nt::edit::lockedUserTargetIds(doc);
+            return std::ranges::any_of(ids, [&](const QString& id) { return locked.contains(id); });
+        }
+        // With Linked Selection off, a command changes only the clips it names.
+        const auto lockedTracks = nt::edit::lockedTrackIds(doc);
+        return std::ranges::any_of(doc.clips, [&](const QJsonObject& clip) {
+            return ids.contains(nt::edit::clipId(clip)) && (clip.value("locked").toBool() || lockedTracks.contains(nt::edit::clipTrackId(clip)));
+        });
     };
     const QString lockedReason = QStringLiteral("That clip or its track is locked. Unlock it first.");
     if (command->runs == Runs::Edit) {
@@ -713,8 +738,16 @@ QJsonObject AssistantCommands::runCommand(const QJsonObject& args) {
         editor->setSelection(selection);
     }
     const int added = stack->index() - indexBefore;
+    if (command->background && !changed && added == 0) {
+        // The handler returns true even when it found nothing to work on and started no job.
+        auto* roles = AudioRoles::forTimeline(&m_model);
+        if (!roles || !roles->busy()) {
+            setup.restore();
+            return failure(QStringLiteral("%1 found nothing to do on these clips. Check their audio roles.").arg(id));
+        }
+    }
     if ((!ran || command->mustChange) && !changed && added == 0) {
-        setup.restore();
+        setup.restoreAll();
         return failure(command->runs == Runs::Edit || command->mustChange ? QStringLiteral("%1 changed nothing. Check clip locks, the ids and the values.").arg(id)
                                                    : QStringLiteral("%1 could not run on the current state. Check the selection, the playhead and clip locks.").arg(id));
     }
