@@ -63,10 +63,11 @@ public:
         return true;
     }
     void setClock(PlaybackClock* clock) { m_compositor->setClock(clock); }
-    QImage capture(int timeoutMs = 0) {
+    double captureTimeMs() const { return m_compositor->captureTimeMs(); }
+    QImage capture(int timeoutMs = 0, bool immediate = false) {
         QElapsedTimer timeout;
         timeout.start();
-        m_compositor->requestCapture();
+        m_compositor->requestCapture(immediate);
         for (int i = 0; i < 12 || timeout.elapsed() < timeoutMs; ++i) {
             m_compositor->update();
             QCoreApplication::processEvents();

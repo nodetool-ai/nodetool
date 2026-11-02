@@ -21,6 +21,19 @@ Item {
         if (!region || !browser || y >= region.lanesHeight - TimelineMetrics.toolbarHeight) return ""
         return browser.trackAt(region.rows, y + region.viewState.scrollTopPx)
     }
+    // A lift from the Source monitor carries the streams and the range it captured.
+    function placeSource(source, x, y) {
+        if (!region) return false
+        const view = region.viewState
+        const startMs = Math.max(0, Math.round((x + view.scrollLeftPx) * view.msPerPx))
+        const placed = SourceViewerState.place(region.gestures.dropMode, trackAt(y), startMs, 24 * view.msPerPx,
+            source.sourceStreams.video, source.sourceStreams.audio, source.sourceRange, region.gestures)
+        if (!placed) {
+            overlay.warning = SourceViewerState.lastError
+            dismiss.restart()
+        }
+        return placed
+    }
     function dropAt(asset, x, y) {
         if (!region || !browser) return false
         const view = region.viewState
@@ -38,9 +51,16 @@ Item {
         height: overlay.region ? overlay.region.lanesHeight : 0
         keys: ["application/x-nodetool-asset"]
         readonly property string targetTrackId: overlay.trackAt(drag.y)
-        readonly property bool dropAllowed: !!overlay.browser && !!drag.source
-            && overlay.browser.canDrop(drag.source.asset || {}, targetTrackId)
+        readonly property bool fromSource: !!drag.source && drag.source.sourceStreams !== undefined
+        readonly property bool dropAllowed: !!overlay.browser && !!drag.source && (fromSource
+            ? !!overlay.region && SourceViewerState.canPlace(targetTrackId, drag.source.sourceStreams.video, drag.source.sourceStreams.audio, overlay.region.gestures)
+            : overlay.browser.canDrop(drag.source.asset || {}, targetTrackId))
         onDropped: drop => {
+            if (drop.source && drop.source.sourceStreams !== undefined) {
+                overlay.warning = ""
+                if (overlay.placeSource(drop.source, drop.x, drop.y)) drop.acceptProposedAction()
+                return
+            }
             if (!drop.source || !drop.source.asset || Array.isArray(drop.source.asset)) {
                 overlay.warning = "Drop one asset at a time onto a track."
                 dismiss.restart()
@@ -66,7 +86,7 @@ Item {
                 Ui.Text {
                     id: hint
                     anchors.centerIn: parent
-                    text: "Drop onto this track"
+                    text: assetDrop.dropAllowed ? "Drop onto this track" : "This track cannot take this media"
                     role: Ui.Typography.SansLabel
                 }
             }
