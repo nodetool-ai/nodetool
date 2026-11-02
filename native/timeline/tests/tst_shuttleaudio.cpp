@@ -73,6 +73,10 @@ private slots:
         clock.scrub(1000); QVERIFY(!engine.feed().command.load().scrub); QTest::qWait(200);
         const auto silentEnd = engine.stats().framesRendered;
         clock.setScrubAudio(true); QCOMPARE(changed.size(), 2);
+        // Switching off cancels a burst that is still waiting for its PCM.
+        clock.scrub(1200); QVERIFY(engine.feed().command.load().scrub);
+        clock.setScrubAudio(false); QVERIFY(!engine.feed().command.load().scrub);
+        clock.setScrubAudio(true);
         clock.scrub(1500); QVERIFY(engine.feed().command.load().scrub); QTest::qWait(200);
         engine.stop(); const auto out = engine.recording();
         QVERIFY(rms(out, 0, static_cast<int>(silentEnd)) < 1e-6);

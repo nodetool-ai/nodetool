@@ -566,6 +566,8 @@ void PlaybackClock::setScrubAudio(bool enabled) {
         std::lock_guard lock(m_mutex);
         if (m_scrubAudio == enabled) return;
         m_scrubAudio = enabled;
+        // A burst still waiting for its PCM must not sound after the switch is off.
+        if (!enabled && m_feed && m_command.scrub) sendCommandLocked(false, 0.0, m_nowNs());
     }
     emit scrubAudioChanged();
 }
