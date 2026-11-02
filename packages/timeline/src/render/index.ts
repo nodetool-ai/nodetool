@@ -26,3 +26,4 @@ export * from "./temporal.js";
 export * from "./effects.js";
 export * from "./frameCompositor.js";
 export * from "./headlessRender.js";
+export { deflickerCurve } from "./clipAnalysis.js";

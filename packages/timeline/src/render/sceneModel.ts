@@ -46,6 +46,7 @@ import {
 } from "../animation/index.js";
 import { resolveAnimatedStyleTracks, resolveAnimatedTextContent, resolveAnimationLinks } from "../animation/index.js";
 import { clipSourceMsAt } from "../timeRemap.js";
+import { resolveAnalysisEffects } from "./clipAnalysis.js";
 import { effectiveAssetId } from "../clipAudio.js";
 import { resolveBeatAnimations } from "../animation/beat.js";
 import { textStyleSignature, type ResolvedCaption, type TextRenderStagger } from "./draw.js";
@@ -2148,7 +2149,7 @@ export function resolveAnimatedLayerProps(
       : clamp01(links.opacity * (layer.opacityCoverage ?? 1)),
     mask: s.mask,
     effects: seedAnimatedGrain(
-      composeAnimatedEffects(styles?.effects ?? clip.effects, s),
+      resolveAnalysisEffects(clip, composeAnimatedEffects(styles?.effects ?? clip.effects, s), currentTimeMs),
       currentTimeMs,
       fps,
       sequenceTimeMs
@@ -2211,7 +2212,7 @@ function staticProps(
   return {
     transform,
     opacity: layer.opacity,
-    effects: seedAnimatedGrain(layer.clip.effects, currentTimeMs, fps, sequenceTimeMs),
+    effects: seedAnimatedGrain(resolveAnalysisEffects(layer.clip, layer.clip.effects, currentTimeMs), currentTimeMs, fps, sequenceTimeMs),
     shapeStyle: layer.clip.shapeStyle,
     textStyle: layer.clip.textStyle,
     clipMask: layer.clip.mask,

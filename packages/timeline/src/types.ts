@@ -1986,6 +1986,7 @@ export type ClipEffect = KnownClipEffect | UnknownClipEffect;
 
 /** The effects this build applies, each spelled out field by field. */
 export type KnownClipEffect =
+  | ClipDeflickerEffect
   | ClipDebandEffect
   | ClipSecondaryColorEffect
   | ClipExposureEffect
@@ -2074,6 +2075,7 @@ export const isClipGrainEffect = (e: ClipEffect): e is ClipGrainEffect =>
  * and Canvas 2D names it in `unsupportedEffectTypes`.
  */
 export const CLIP_EFFECT_TYPES = [
+  "deflicker",
   "deband",
   "secondaryColor",
   "exposure",
@@ -2111,6 +2113,27 @@ export interface CurvePoint {
   x: number;
   y: number;
 }
+
+export interface ClipDeflickerAnalysis {
+  version: 1;
+  source: { assetId: string; mediaPath: string };
+  rangeStartMs: number;
+  rangeEndMs: number;
+  windowMs: number;
+  maxCorrection: number;
+  frameRate: number;
+  samples: { timeMs: number; stops: number }[];
+}
+export interface ClipDeflickerEffect {
+  id: string;
+  type: "deflicker";
+  enabled: boolean;
+  strength?: number;
+  windowMs?: number;
+  maxCorrection?: number;
+  analysis?: ClipDeflickerAnalysis;
+}
+export const isClipDeflickerEffect = (e: ClipEffect): e is ClipDeflickerEffect => e.type === "deflicker";
 
 export interface ClipDebandEffect {
   id: string;

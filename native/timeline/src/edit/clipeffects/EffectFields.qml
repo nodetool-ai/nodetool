@@ -14,6 +14,29 @@ Column {
     readonly property var definitions: Catalog.fields(effectType)
     Component.onDestruction: if (root.editor?.matteEffectId === root.effectId) root.editor.clearMatte()
     spacing: Ui.Metrics.micro
+    ClipAnalysisController {
+        id: analysis
+        objectName: "effects_" + root.effectId + "_analysisController"
+        model: root.editor.timelineModel
+        clipId: root.editor.clip.id || ""
+        effectId: root.effectId
+        locked: root.editor.locked
+    }
+    Ui.EditorButton {
+        objectName: "effects_" + root.effectId + "_analyze"
+        visible: root.effectType === "deflicker"
+        text: analysis.busy ? "Cancel analysis" : "Analyze source"
+        description: "Measure the original video and save source-time corrections. A completed analysis is one undoable edit."
+        density: Ui.EditorButton.Compact
+        enabled: !root.editor.locked && root.editor.clip.mediaType === "video"
+        onClicked: analysis.busy ? analysis.cancel() : analysis.analyze()
+    }
+    Sections.InspectorCaption {
+        objectName: "effects_" + root.effectId + "_analysisStatus"
+        visible: root.effectType === "deflicker"
+        width: parent.width
+        text: analysis.status
+    }
     Ui.EditorButton {
         objectName: "effects_" + root.effectId + "_softPreset"
         text: "Soft centered oval"

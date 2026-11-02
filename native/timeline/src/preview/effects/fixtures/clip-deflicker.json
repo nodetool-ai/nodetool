@@ -1,0 +1,443 @@
+{
+  "id": "seq-clip-deflicker",
+  "projectId": "native-prototype",
+  "name": "clip-deflicker",
+  "fps": 30,
+  "width": 64,
+  "height": 36,
+  "durationMs": 3000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "Video",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "deflicker",
+      "trackId": "t0",
+      "name": "Deflicker",
+      "startMs": 0,
+      "durationMs": 3000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 64,
+      "height": 36,
+      "mediaPath": "source-flicker.mp4",
+      "effects": [
+        {
+          "id": "deflicker",
+          "type": "deflicker",
+          "enabled": true,
+          "analysis": {
+            "version": 1,
+            "source": {
+              "assetId": "",
+              "mediaPath": "source-flicker.mp4"
+            },
+            "rangeStartMs": 0,
+            "rangeEndMs": 3000,
+            "frameRate": 30,
+            "windowMs": 500,
+            "maxCorrection": 1,
+            "samples": [
+              {
+                "timeMs": 0,
+                "stops": 0.33333333333333215
+              },
+              {
+                "timeMs": 33.333333333333336,
+                "stops": -0.5555555555555558
+              },
+              {
+                "timeMs": 66.66666666666667,
+                "stops": 0.424242424242423
+              },
+              {
+                "timeMs": 100,
+                "stops": -0.5454545454545463
+              },
+              {
+                "timeMs": 133.33333333333334,
+                "stops": 0.4685314685314679
+              },
+              {
+                "timeMs": 166.66666666666666,
+                "stops": -0.5384615384615383
+              },
+              {
+                "timeMs": 200,
+                "stops": 0.49230769230769234
+              },
+              {
+                "timeMs": 233.33333333333334,
+                "stops": -0.5333333333333332
+              },
+              {
+                "timeMs": 266.6666666666667,
+                "stops": 0.5333333333333337
+              },
+              {
+                "timeMs": 300,
+                "stops": -0.5333333333333337
+              },
+              {
+                "timeMs": 333.3333333333333,
+                "stops": 0.5333333333333332
+              },
+              {
+                "timeMs": 366.6666666666667,
+                "stops": -0.5333333333333332
+              },
+              {
+                "timeMs": 400,
+                "stops": 0.5333333333333332
+              },
+              {
+                "timeMs": 433.3333333333333,
+                "stops": -0.5333333333333337
+              },
+              {
+                "timeMs": 466.6666666666667,
+                "stops": 0.5333333333333332
+              },
+              {
+                "timeMs": 500,
+                "stops": -0.5333333333333323
+              },
+              {
+                "timeMs": 533.3333333333334,
+                "stops": 0.5333333333333345
+              },
+              {
+                "timeMs": 566.6666666666666,
+                "stops": -0.5333333333333314
+              },
+              {
+                "timeMs": 600,
+                "stops": 0.5333333333333354
+              },
+              {
+                "timeMs": 633.3333333333334,
+                "stops": -0.533333333333331
+              },
+              {
+                "timeMs": 666.6666666666666,
+                "stops": 0.5333333333333359
+              },
+              {
+                "timeMs": 700,
+                "stops": -0.5333333333333301
+              },
+              {
+                "timeMs": 733.3333333333334,
+                "stops": 0.5333333333333368
+              },
+              {
+                "timeMs": 766.6666666666666,
+                "stops": -0.492307692307691
+              },
+              {
+                "timeMs": 800,
+                "stops": 0.538461538461537
+              },
+              {
+                "timeMs": 833.3333333333334,
+                "stops": -0.468531468531475
+              },
+              {
+                "timeMs": 866.6666666666666,
+                "stops": 0.5454545454545294
+              },
+              {
+                "timeMs": 900,
+                "stops": -0.4242424242424563
+              },
+              {
+                "timeMs": 933.3333333333334,
+                "stops": 0.5555555555554892
+              },
+              {
+                "timeMs": 966.6666666666666,
+                "stops": -0.3333333333334281
+              },
+              {
+                "timeMs": 1000,
+                "stops": 0.3333333333333326
+              },
+              {
+                "timeMs": 1033.3333333333333,
+                "stops": -0.5555555555555576
+              },
+              {
+                "timeMs": 1066.6666666666667,
+                "stops": 0.424242424242423
+              },
+              {
+                "timeMs": 1100,
+                "stops": -0.5454545454545472
+              },
+              {
+                "timeMs": 1133.3333333333333,
+                "stops": 0.46853146853146743
+              },
+              {
+                "timeMs": 1166.6666666666667,
+                "stops": -0.5384615384615397
+              },
+              {
+                "timeMs": 1200,
+                "stops": 0.4923076923076919
+              },
+              {
+                "timeMs": 1233.3333333333333,
+                "stops": -0.5333333333333341
+              },
+              {
+                "timeMs": 1266.6666666666667,
+                "stops": 0.5333333333333323
+              },
+              {
+                "timeMs": 1300,
+                "stops": -0.5333333333333341
+              },
+              {
+                "timeMs": 1333.3333333333333,
+                "stops": 0.5333333333333323
+              },
+              {
+                "timeMs": 1366.6666666666667,
+                "stops": -0.5333333333333345
+              },
+              {
+                "timeMs": 1400,
+                "stops": 0.5333333333333319
+              },
+              {
+                "timeMs": 1433.3333333333333,
+                "stops": -0.5333333333333345
+              },
+              {
+                "timeMs": 1466.6666666666667,
+                "stops": 0.5333333333333328
+              },
+              {
+                "timeMs": 1500,
+                "stops": -0.5333333333333337
+              },
+              {
+                "timeMs": 1533.3333333333333,
+                "stops": 0.5333333333333337
+              },
+              {
+                "timeMs": 1566.6666666666667,
+                "stops": -0.5333333333333328
+              },
+              {
+                "timeMs": 1600,
+                "stops": 0.5333333333333345
+              },
+              {
+                "timeMs": 1633.3333333333333,
+                "stops": -0.5333333333333319
+              },
+              {
+                "timeMs": 1666.6666666666667,
+                "stops": 0.533333333333335
+              },
+              {
+                "timeMs": 1700,
+                "stops": -0.5333333333333306
+              },
+              {
+                "timeMs": 1733.3333333333333,
+                "stops": 0.5333333333333363
+              },
+              {
+                "timeMs": 1766.6666666666667,
+                "stops": -0.49230769230769056
+              },
+              {
+                "timeMs": 1800,
+                "stops": 0.5384615384615383
+              },
+              {
+                "timeMs": 1833.3333333333333,
+                "stops": -0.46853146853147365
+              },
+              {
+                "timeMs": 1866.6666666666667,
+                "stops": 0.5454545454545356
+              },
+              {
+                "timeMs": 1900,
+                "stops": -0.4242424242424421
+              },
+              {
+                "timeMs": 1933.3333333333333,
+                "stops": 0.5555555555555114
+              },
+              {
+                "timeMs": 1966.6666666666667,
+                "stops": -0.33333333333338944
+              },
+              {
+                "timeMs": 2000,
+                "stops": 0
+              },
+              {
+                "timeMs": 2033.3333333333333,
+                "stops": 0
+              },
+              {
+                "timeMs": 2066.6666666666665,
+                "stops": 0
+              },
+              {
+                "timeMs": 2100,
+                "stops": 0
+              },
+              {
+                "timeMs": 2133.3333333333335,
+                "stops": 0
+              },
+              {
+                "timeMs": 2166.6666666666665,
+                "stops": 0
+              },
+              {
+                "timeMs": 2200,
+                "stops": 0
+              },
+              {
+                "timeMs": 2233.3333333333335,
+                "stops": 0
+              },
+              {
+                "timeMs": 2266.6666666666665,
+                "stops": 0
+              },
+              {
+                "timeMs": 2300,
+                "stops": 0
+              },
+              {
+                "timeMs": 2333.3333333333335,
+                "stops": 0
+              },
+              {
+                "timeMs": 2366.6666666666665,
+                "stops": 0
+              },
+              {
+                "timeMs": 2400,
+                "stops": 0
+              },
+              {
+                "timeMs": 2433.3333333333335,
+                "stops": 0
+              },
+              {
+                "timeMs": 2466.6666666666665,
+                "stops": 0
+              },
+              {
+                "timeMs": 2500,
+                "stops": 0
+              },
+              {
+                "timeMs": 2533.3333333333335,
+                "stops": 0
+              },
+              {
+                "timeMs": 2566.6666666666665,
+                "stops": 0
+              },
+              {
+                "timeMs": 2600,
+                "stops": 0
+              },
+              {
+                "timeMs": 2633.3333333333335,
+                "stops": 0
+              },
+              {
+                "timeMs": 2666.6666666666665,
+                "stops": 0
+              },
+              {
+                "timeMs": 2700,
+                "stops": 0
+              },
+              {
+                "timeMs": 2733.3333333333335,
+                "stops": 0
+              },
+              {
+                "timeMs": 2766.6666666666665,
+                "stops": 0
+              },
+              {
+                "timeMs": 2800,
+                "stops": 0
+              },
+              {
+                "timeMs": 2833.3333333333335,
+                "stops": 0
+              },
+              {
+                "timeMs": 2866.6666666666665,
+                "stops": 0
+              },
+              {
+                "timeMs": 2900,
+                "stops": 0
+              },
+              {
+                "timeMs": 2933.3333333333335,
+                "stops": 0
+              },
+              {
+                "timeMs": 2966.6666666666665,
+                "stops": 0
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z",
+  "goldenFrames": [
+    {
+      "frame": 10,
+      "criterion": "F54 cached source-time corrections and fade preservation, PSNR >= 40 dB"
+    },
+    {
+      "frame": 11,
+      "criterion": "F54 cached source-time corrections and fade preservation, PSNR >= 40 dB"
+    },
+    {
+      "frame": 30,
+      "criterion": "F54 cached source-time corrections and fade preservation, PSNR >= 40 dB"
+    },
+    {
+      "frame": 31,
+      "criterion": "F54 cached source-time corrections and fade preservation, PSNR >= 40 dB"
+    },
+    {
+      "frame": 70,
+      "criterion": "F54 cached source-time corrections and fade preservation, PSNR >= 40 dB"
+    }
+  ]
+}

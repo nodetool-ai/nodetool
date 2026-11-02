@@ -24,6 +24,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { rebindAnalysisSource } from "../src/preview/effects/import-analysis.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = path.resolve(root, "..", "..");
@@ -136,6 +137,7 @@ for (const clip of doc.clips) {
   const dest = path.join(storeEnv.ASSET_FOLDER, key);
   fs.mkdirSync(path.dirname(dest), { recursive: true });
   fs.copyFileSync(file, dest);
+  if (clip.effects) { clip.effects = rebindAnalysisSource(clip, {assetId: asset.id, mediaPath: ""}); }
   clip.currentAssetId = asset.id;
   delete clip.mediaPath; // prototype-only field
   imported.push({ clipId: clip.id, assetId: asset.id, file: path.relative(repoRoot, file) });

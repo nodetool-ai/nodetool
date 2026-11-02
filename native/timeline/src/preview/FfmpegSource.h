@@ -119,7 +119,11 @@ public:
     // Render thread. Sets the target and returns the frame to show: the D17
     // pick when it is decoded, else the frame shown last (hold), or null
     // before the first frame. Never blocks on decode.
-    std::shared_ptr<DecodedFrame> frameAt(double targetSec);
+    enum class FrameAccess { Cached, Sequential };
+    std::shared_ptr<DecodedFrame> frameAt(double targetSec, FrameAccess access = FrameAccess::Cached);
+    // Sequential analysis consumes actual PTS, including variable-rate frames.
+    // After an exact sequential pick, null means end of stream.
+    std::optional<double> nextFrameSec() const { return m_nextFrameSec; }
 
     // Whether the last frameAt() returned the exact D17 pick: in one queue
     // snapshot, the shown frame was the pick of the current seek, and a later
@@ -227,6 +231,7 @@ private:
     // Render thread only.
     std::shared_ptr<DecodedFrame> m_shown;
     bool m_exact = false;
+    std::optional<double> m_nextFrameSec;
     // A jump of the target (a seek, not playback) holds the shown frame until
     // the exact pick lands, so the frames decoded on the way never show.
     bool m_settling = false;

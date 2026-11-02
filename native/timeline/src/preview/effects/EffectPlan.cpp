@@ -1,4 +1,5 @@
 #include "preview/effects/ClipEffects.h"
+#include "preview/effects/ClipAnalysis.h"
 #include "preview/effects/BlurBounds.h"
 #include "preview/layers/SceneHooks.h"
 #include "render2d/Paint.h"
@@ -482,6 +483,10 @@ void decorateEffects(QJsonObject &ext, const Clip &clip, double timeMs) {
     for (const auto &effect : clip.raw.value("effects").toArray()) {
         auto e = effect.toObject();
         if (e.value("enabled").toBool()) {
+            if (e.value("type")=="deflicker") {
+                e=QJsonObject{{"id",e.value("id")},{"type","exposure"},{"enabled",true},
+                              {"exposure",deflickerStops(clip,e,timeMs)}};
+            }
             if ((e.value("type") == "stylize" || e.value("type") == "generator") && e.value("animate").toBool()) {
                 e.insert("time", timeMs / 1000);
             }

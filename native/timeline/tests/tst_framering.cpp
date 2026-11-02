@@ -82,10 +82,12 @@ private slots:
         QCOMPARE(s.front->ptsSec, 2 / 30.0);
         QCOMPARE(s.size, 2);
         QVERIFY(s.frameAfter);
+        QCOMPARE(s.nextPts,std::optional<double>(3/30.));
         QVERIFY(!s.eof);
         QCOMPARE(s.generation, 1LL);
         s = ring.pick(0.2);
         QVERIFY(!s.frameAfter);
+        QVERIFY(!s.nextPts);
         ring.setEof(1);
         QVERIFY(ring.pick(0.2).eof);
         ring.reset(2);

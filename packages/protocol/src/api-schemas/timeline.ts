@@ -1155,6 +1155,22 @@ export const clipGrainEffect = z.object({
  * its chain on the next save.
  */
 export const secondaryCurvePoints = z.array(z.object({x: z.number().min(0).max(1), y: z.number().min(0).max(1)})).max(256);
+export const clipDeflickerAnalysis = z.object({
+  version: z.literal(1),
+  source: z.object({assetId: z.string(), mediaPath: z.string()}),
+  rangeStartMs: z.number().min(0), rangeEndMs: z.number().min(0),
+  windowMs: z.number().min(0).max(2000), maxCorrection: z.number().min(0).max(3),
+  frameRate: z.number().positive().max(240),
+  samples: z.array(z.object({timeMs: z.number().min(0), stops: z.number().min(-3).max(3)})).min(1).max(18000)
+}).refine(data => data.rangeEndMs >= data.rangeStartMs && data.samples.every((sample, index) =>
+  Math.abs(sample.stops) <= data.maxCorrection + 1e-6 && (index === 0
+    ? sample.timeMs <= data.rangeStartMs + 1e-6 : sample.timeMs > data.samples[index - 1]!.timeMs)),
+"Analysis samples must have ascending source times, cover the range start and respect the correction limit.");
+export const clipDeflickerEffect = z.object({
+  id: z.string(), type: z.literal("deflicker"), enabled: z.boolean(),
+  strength: z.number().min(0).max(1).optional(), windowMs: z.number().min(0).max(2000).optional(),
+  maxCorrection: z.number().min(0).max(3).optional(), analysis: clipDeflickerAnalysis.optional()
+});
 export const clipDebandEffect = z.object({
   id: z.string(), type: z.literal("deband"), enabled: z.boolean(),
   strength: z.number().min(0).max(1).optional(), range: z.number().int().min(1).max(64).optional(),
@@ -1185,6 +1201,7 @@ export const clipExposureEffect = z.object({
 });
 
 const knownClipEffect = z.discriminatedUnion("type", [
+  clipDeflickerEffect,
   clipDebandEffect,
   clipSecondaryColorEffect,
   clipExposureEffect,
@@ -1213,6 +1230,7 @@ const knownClipEffect = z.discriminatedUnion("type", [
  * a list for the same reason {@link KNOWN_TRANSITION_TYPE_LIST} is.
  */
 export const KNOWN_CLIP_EFFECT_TYPE_LIST = [
+  "deflicker",
   "deband",
   "secondaryColor",
   "exposure",

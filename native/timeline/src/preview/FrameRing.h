@@ -8,6 +8,7 @@
 #include <deque>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <vector>
 
 namespace nt {
@@ -62,6 +63,7 @@ public:
     struct Snapshot {
         Ptr front;                 // the newest frame that starts by the target, or the first queued
         bool frameAfter = false;   // a queued frame starts after the target
+        std::optional<double> nextPts;
         bool eof = false;          // the worker reached the end of this generation's stream
         long long generation = 0;  // the generation the queue holds
         int size = 0;
@@ -105,6 +107,7 @@ public:
         for (const auto& f : m_frames) {
             if (!frameStartsBy(f->ptsSec, targetSec)) {
                 s.frameAfter = true;
+                s.nextPts = f->ptsSec;
                 break;
             }
         }

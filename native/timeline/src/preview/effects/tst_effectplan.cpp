@@ -1,4 +1,5 @@
 #include "preview/effects/ClipEffects.h"
+#include "preview/effects/ClipAnalysis.h"
 #include "preview/layers/SceneHooks.h"
 #include "model/TimelineJson.h"
 #include <QJsonDocument>
@@ -36,6 +37,27 @@ QJsonObject adjustmentStyleDocument() {
 class TestEffectPlan : public QObject {
     Q_OBJECT
   private slots:
+    void deflickerAnalysis() {
+        std::vector<LuminanceSample> samples;
+        for (int i=0;i<90;++i) { samples.push_back({i*1000./30,-2+(i%2 ? .5 : -.5)}); }
+        const auto curve=deflickerCurve(samples,500,1);
+        for (int i=8;i<82;++i) { QVERIFY(std::abs(samples[i].logLuma+curve[i].toObject().value("stops").toDouble()+2)<.05); }
+        for (int i=0;i<90;++i) { samples[i].logLuma=-6+4*std::pow(i/89.,2); }
+        for (const auto& sample : deflickerCurve(samples,500,1)) { QCOMPARE(sample.toObject().value("stops").toDouble(),0.); }
+        for (int i=0;i<90;++i) { samples[i].logLuma=i<45 ? -4 : -1; samples[i].cut=i==45; }
+        for (const auto& sample : deflickerCurve(samples,500,1)) { QCOMPARE(sample.toObject().value("stops").toDouble(),0.); }
+        nt::Clip clip; clip.mediaType=nt::MediaType::Video; clip.startMs=1000; clip.durationMs=1000;
+        clip.raw.insert("currentAssetId","source");
+        auto e=effect("deflicker"), data=analysisKey(clip,e);
+        data.insert("version",1); data.insert("frameRate",30);
+        data.insert("samples",QJsonArray{QJsonObject{{"timeMs",0},{"stops",1}},QJsonObject{{"timeMs",40},{"stops",-1}}});
+        e.insert("analysis",data);
+        QCOMPARE(deflickerStops(clip,e,1040),-1.); QCOMPARE(deflickerStops(clip,e,1000),1.);
+        e.insert("strength",.25); QCOMPARE(deflickerStops(clip,e,1000),.25);
+        clip.raw.insert("effects",QJsonArray{e}); QJsonObject ext; decorateEffects(ext,clip,1000);
+        QCOMPARE(ext.value("clipEffects").toArray()[0].toObject().value("exposure").toDouble(),.25);
+        clip.raw.insert("currentAssetId","new-source"); QCOMPARE(deflickerStops(clip,e,1000),0.);
+    }
     void secondaryMatteDecoration() {
         nt::Timeline timeline;
         timeline.matteClipId="picture"; timeline.matteEffectId="secondary";

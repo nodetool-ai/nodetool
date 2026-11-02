@@ -170,7 +170,7 @@ F51–F56 continue the implementation checklist, with one commit per task. The c
 - [x] F51: Linear-light exposure, highlight roll-off and whites, with clip/track controls and native/export parity.
 - [ ] F52: Edge-preserving luma/chroma noise reduction, followed by motion-aware temporal reduction with deterministic seeking.
 - [x] F53: Soft HSL qualification, matte preview and hue-versus-hue/saturation curves.
-- [ ] F54: Cached deflicker analysis with scene cuts, fade preservation and backward-seek consistency.
+- [x] F54: Cached deflicker analysis with scene cuts, fade preservation and backward-seek consistency.
 - [x] F55: Thresholded debanding with deterministic dither, alpha and detail preservation.
 - [ ] F56: Cached camera-motion analysis, foreground rejection, smoothing and crop limits.
 
@@ -204,3 +204,11 @@ Selection matte is viewer state, excluded from saved documents and exports. It s
 Following the [thresholded-neighborhood approach](https://ffmpeg.org/ffmpeg-filters.html#deband), sample sixteen neighbors at two deterministic radii within a 1–64 pixel range. Smooth matching encoded RGB values, taper weights toward the threshold, exclude transparent samples and preserve center alpha. Strength zero bypasses processing. Optional monochrome dither uses a coordinate hash and stays fixed across seeks.
 
 The [fixture generator](../src/preview/effects/make-deband-fixture.mjs) retains an opaque RGB dark ramp and a hard edge. CPU/GPU/native checks cover recovered intermediate levels, edge preservation, alpha and repeatability. Dither may change quantized output by one byte. The [preview/export fixture](../src/preview/effects/fixtures/clip-deband.json) matches exactly on the tested D3D11 device. Source repair still uses the current 8-bit surfaces.
+
+### Deflicker contract (F54)
+
+Analyze original video on a cancellable worker, following actual source timestamps. Measure trimmed-mean linear luminance and detect structural/color cuts after exposure normalization. Fit a symmetric local exposure trend within each shot, preserve monotone fades, ignore near-black frames and cap correction in stops. This extends the [windowed luminance approach](https://ffmpeg.org/ffmpeg-filters.html#deflicker) with source-time sampling and cut/fade handling.
+
+Save the result as one undoable edit. Match its asset/local path, covered source interval and analysis settings before rendering. Strength stays interactive. Changing the window or correction limit requires analysis again. Failed, canceled or superseded work cannot replace the previous result. Analysis retains two reduced frames and at most 18,000 scalar samples. It uses the current SDR decode path.
+
+The [fixture](../src/preview/effects/fixtures/clip-deflicker.json) covers alternating exposure, a color cut and a fade. Native/export comparisons pass at 45 dB or better on the tested device. Tests also cover variable-rate decoding, backward sampling, trimming, stale sources, cancellation and undo.
