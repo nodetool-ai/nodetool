@@ -66,6 +66,27 @@ void MediaProtection::evict(const QString& root, qint64 budget, const QString& j
     nt::server::AssetCache::evictRoot(root, budget, justFetched, afterScan);
 }
 
+nt::server::FetchResult resolveOriginalMedia(nt::server::ServerClient& client, const QString& cacheRoot,
+                                              const QString& assetId, MediaProtection& protection) {
+    const auto fresh = client.getAsset(assetId);
+    if (!fresh.ok()) { return {{}, fresh.describe()}; }
+    QString error;
+    const auto original = nt::server::originalFile(client, fresh.data.toObject(), &error);
+    if (!original) { return {{}, error}; }
+    nt::server::AssetCache cache(cacheRoot, client.serverKey(), client.userKey(),
+        [&client](QNetworkRequest& request) { client.decorate(request); });
+    const auto budget = cache.budgetBytes();
+    cache.setBudgetBytes(0);
+    const auto fetched = cache.fetch(assetId, "original", *original, [&]() -> std::optional<nt::server::RemoteFile> {
+        const auto rechecked = client.getAsset(assetId);
+        if (!rechecked.ok()) { return std::nullopt; }
+        QString why;
+        return nt::server::originalFile(client, rechecked.data.toObject(), &why);
+    }, [&](const QString& path) { protection.protect(path); });
+    if (fetched.ok() && !fetched.hit) { protection.evict(cacheRoot, budget, fetched.path); }
+    return fetched;
+}
+
 nt::Clip resolveDroppedMedia(nt::server::ServerClient& client, const QString& cacheRoot,
                              const QJsonObject& asset, const QJsonObject& raw, MediaProtection& protection,
                              quint64 generation) {

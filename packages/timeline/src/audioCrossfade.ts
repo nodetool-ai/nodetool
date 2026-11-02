@@ -13,6 +13,7 @@
  */
 
 import { sourceRate } from "./sourceRate.js";
+import { isHoldRemap } from "./timeRemap.js";
 import { trimClip } from "./trimClip.js";
 import type { TimelineClip } from "./types.js";
 
@@ -33,7 +34,7 @@ function tailHandleMs(
   clip: TimelineClip,
   sourceDurationMs: number | undefined
 ): number {
-  if (sourceDurationMs === undefined) return Number.POSITIVE_INFINITY;
+  if (isHoldRemap(clip) || sourceDurationMs === undefined) return Number.POSITIVE_INFINITY;
   const rate = sourceRate(clip);
   const outMs = clip.outPointMs ?? (clip.inPointMs ?? 0) + clip.durationMs * rate;
   return Math.max(0, (sourceDurationMs - outMs) / rate);
@@ -103,7 +104,7 @@ export function applyAudioCrossfades(
       try {
         extended = trimClip(a, "end", overlapMs);
       } catch {
-        // A time-remapped clip cannot be trimmed; leave this cut alone.
+        // A remap curve cannot be trimmed.
         continue;
       }
       next.set(a.id, {

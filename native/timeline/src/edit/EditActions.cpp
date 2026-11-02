@@ -193,7 +193,7 @@ IdSet moveUnitIds(const ClipList& clips, const QStringList& rootIds, bool follow
 }
 
 double clampEndTrimDeltaToSource(const QJsonObject& clip, double deltaMs, std::optional<double> maxSourceDurationMs) {
-    if (!maxSourceDurationMs || deltaMs <= 0) return deltaMs;
+    if (isHoldRemap(clip) || !maxSourceDurationMs || deltaMs <= 0) return deltaMs;
     const double rate = sourceRate(clip);
     const double inPointMs = clip.value(u"inPointMs").isDouble() ? clip.value(u"inPointMs").toDouble() : 0.0;
     const double currentOut = clip.value(u"outPointMs").isDouble() ? clip.value(u"outPointMs").toDouble()

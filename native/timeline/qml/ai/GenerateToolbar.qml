@@ -46,6 +46,12 @@ Item {
         generation.open()
         dialog.open()
     }
+    // Generate with one Library image attached as a reference (Export Frame's route).
+    function openWithReference(assetId) {
+        root.mediaMode = "Video"
+        if (!root.referenceIds.includes(assetId)) root.referenceIds = [...root.referenceIds, assetId]
+        openReview()
+    }
     Component.onCompleted: registerHost()
     Component.onDestruction: if (registeredGestures) AiHostRegistry.unregisterHost(registeredGestures, root)
     onGesturesChanged: registerHost()

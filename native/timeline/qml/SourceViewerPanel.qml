@@ -401,6 +401,15 @@ Rectangle {
                         outlined: false
                         onClicked: SourceViewerState.clearMarks()
                     }
+                    Ui.ToolbarIconButton {
+                        objectName: "sourceExportFrame"
+                        visible: root.mediaType === "video"
+                        iconName: "photoCamera"
+                        accessibleName: "Export frame"
+                        description: "Export frame"
+                        enabled: root.monitor.ready && root.gestures !== null
+                        onClicked: root.gestures.runAction("exportFrame", {monitor: "source"})
+                    }
                     Repeater {
                         model: [
                             { id: "sourceDragVideo", icon: "videocam", label: "Drag video only to a track", video: true, audio: false },

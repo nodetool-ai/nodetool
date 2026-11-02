@@ -65,6 +65,7 @@ import {
   createTimeOrderedUuid,
   createMidiNote,
   hasTimeRemap,
+  isHoldRemap,
   MIDI_MAX_NOTES_PER_CLIP,
   quantizeNotes,
   msToTicks,
@@ -1657,7 +1658,7 @@ function clampEndTrimDeltaToSource(
   deltaMs: number,
   maxSourceDurationMs: number | undefined
 ): number {
-  if (maxSourceDurationMs === undefined || deltaMs <= 0) return deltaMs;
+  if (isHoldRemap(clip) || maxSourceDurationMs === undefined || deltaMs <= 0) return deltaMs;
   const rate = sourceRate(clip);
   const inPointMs = clip.inPointMs ?? 0;
   const currentOutPointMs =
