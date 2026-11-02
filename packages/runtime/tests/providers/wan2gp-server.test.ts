@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { missingRuntimePackageOf } from "@nodetool-ai/protocol";
-import { stopWan2GPServer, withWan2GPClient } from "../../src/providers/wan2gp-server.js";
+import { stopWan2GPServer, warmWan2GPServer, withWan2GPClient } from "../../src/providers/wan2gp-server.js";
 import { Wan2GPProvider, resetWan2GPListings } from "../../src/providers/wan2gp-provider.js";
 import { resetWan2GPFileStatus } from "../../src/providers/wan2gp-models.js";
 import { FakeWan2GP } from "./wan2gp-fake-server.js";
@@ -18,8 +18,11 @@ const http = require("node:http");
 const fs = require("node:fs");
 const args = process.argv.slice(2);
 if (args[0].endsWith("nodetool_wan2gp.py")) {
-  // NodeTool's helper: report one downloaded model and one missing.
-  process.stdout.write(JSON.stringify({ type: "status", models: { t2v_2_2: "available", t2v_1_3B: "missing" } }) + "\\n");
+  // NodeTool's helper: a catalog with one downloaded model and one missing.
+  fs.appendFileSync(process.env.FAKE_WGP_LOG, JSON.stringify({ helper: args[1] }) + "\\n");
+  const row = (model_type, status) => ({ model_type, name: model_type, main_output: ["video"], capabilities: ["text_to_video"], media_inputs: {}, status });
+  fs.writeFileSync(args[2], JSON.stringify({ version: 1, models: [row("t2v_2_2", "available"), row("t2v_1_3B", "missing")] }));
+  process.stdout.write(JSON.stringify({ type: "catalog", count: 2 }) + "\\n");
   process.exit(0);
 }
 fs.appendFileSync(process.env.FAKE_WGP_LOG, JSON.stringify({ cwd: process.cwd(), args, pythonpath: process.env.PYTHONPATH ?? null }) + "\\n");
@@ -134,7 +137,7 @@ describe.skipIf(process.platform === "win32")("managed Wan2GP server", () => {
   });
 
   it("lists the installed Wan2GP's models with their download state", async () => {
-    await install();
+    const { log } = await install();
     resetWan2GPListings();
     resetWan2GPFileStatus();
     const models = await new Wan2GPProvider({}).getAvailableVideoModels();
@@ -142,6 +145,59 @@ describe.skipIf(process.platform === "win32")("managed Wan2GP server", () => {
       ["t2v_2_2", { state: "installed", artifactRef: { source: "huggingface", repoId: "wangp/t2v_2_2", modelType: "wangp.t2v_2_2" }, filesPresent: true }],
       ["t2v_1_3B", { state: "installed", artifactRef: { source: "huggingface", repoId: "wangp/t2v_1_3B", modelType: "wangp.t2v_1_3B" }, filesPresent: false }]
     ]);
+    // An install without a catalog writes one. The server never starts for a listing.
+    expect((await readFile(log, "utf8")).trim().split("\n")).toEqual([JSON.stringify({ helper: "catalog" })]);
+    resetWan2GPFileStatus();
+    await new Wan2GPProvider({}).getAvailableImageModels();
+    expect((await readFile(log, "utf8")).trim().split("\n")).toHaveLength(1);
+  });
+
+  it("reads voices, languages and download state from a stored catalog without running Wan2GP", async () => {
+    const { sourceDir, log } = await install();
+    const tts = (model_type: string, status: string, model_modes?: { label: string; values: string[] }) => ({
+      model_type,
+      name: model_type,
+      family: "tts",
+      base_model_type: model_type,
+      main_output: ["audio"],
+      capabilities: ["text_to_audio"],
+      media_inputs: { audio: ["prompt", "output"] },
+      status,
+      ...(model_modes && { model_modes })
+    });
+    await writeFile(
+      join(sourceDir, "..", "catalog.json"),
+      JSON.stringify({
+        version: 1,
+        models: [
+          tts("qwen3_tts_customvoice", "available", { label: "Speaker", values: ["aiden", "vivian"] }),
+          tts("index_tts25", "missing", { label: "Language", values: ["EN", "ZH"] }),
+          tts("chatterbox", "partial")
+        ]
+      })
+    );
+    resetWan2GPFileStatus();
+    const models = await new Wan2GPProvider({}).getAvailableTTSModels();
+    expect(models.map((model) => [model.id, model.voices, model.languages, model.adapter?.filesPresent])).toEqual([
+      ["qwen3_tts_customvoice", ["aiden", "vivian"], undefined, true],
+      ["index_tts25", undefined, ["EN", "ZH"], false],
+      ["chatterbox", undefined, undefined, false]
+    ]);
+    expect(models[0].capabilities).toContain("preset_voice");
+    expect(models[1].capabilities).toContain("language_selection");
+    await expect(readFile(log, "utf8")).rejects.toThrow(/ENOENT/);
+  });
+
+  it("starts the installed server ahead of a generation, which then uses it", async () => {
+    await warmWan2GPServer();
+    const { log } = await install();
+    const starts = async (): Promise<number> =>
+      (await readFile(log, "utf8")).split("\n").filter((line) => line.includes("--mcp")).length;
+    await warmWan2GPServer();
+    expect(await starts()).toBe(1);
+    const pid = await withWan2GPClient({}, async (client) => client.callTool("wangp_session", { action: "get_job" }));
+    expect(pid).toMatchObject({ pid: expect.any(Number) });
+    expect(await starts()).toBe(1);
   });
 
   it("offers the install when nothing is installed and nothing answers", async () => {

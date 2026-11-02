@@ -3,7 +3,8 @@ import type { ModelDownloadUpdate } from "@nodetool-ai/runtime";
 
 const runtime = vi.hoisted(() => ({
   findInstalledWan2GP: vi.fn(),
-  downloadWan2GPModel: vi.fn()
+  downloadWan2GPModel: vi.fn(),
+  warmWan2GPServer: vi.fn(async () => undefined)
 }));
 vi.mock("@nodetool-ai/runtime", () => runtime);
 
@@ -25,7 +26,7 @@ beforeEach(() => {
 describe("Wan2GP model download", () => {
   it("downloads with Wan2GP's downloader and reports progress in the download manager's shape", async () => {
     runtime.downloadWan2GPModel.mockImplementation(async (_install, _model, options) => {
-      options.onProgress({ downloadedBytes: 2048, currentFiles: ["flux1-dev_bf16.safetensors"] });
+      options.onProgress({ downloadedBytes: 2048, totalBytes: 8192, currentFiles: ["flux1-dev_bf16.safetensors"] });
       return "available";
     });
     const updates = await run();
@@ -36,15 +37,18 @@ describe("Wan2GP model download", () => {
       model_type: "wangp.flux",
       downloaded_bytes: 2048,
       current_files: ["flux1-dev_bf16.safetensors"],
-      total_bytes: 0
+      total_bytes: 8192
     });
-    expect(updates[2]).toMatchObject({ downloaded_bytes: 2048 });
+    expect(updates[2]).toMatchObject({ downloaded_bytes: 2048, total_bytes: 2048 });
+    // A generation usually follows, so Wan2GP starts now.
+    expect(runtime.warmWan2GPServer).toHaveBeenCalledTimes(1);
   });
 
   it("fails when the files are still incomplete afterwards", async () => {
     runtime.downloadWan2GPModel.mockResolvedValue("partial");
     const updates = await run();
     expect(updates.at(-1)).toMatchObject({ status: "error", error: expect.stringMatching(/as partial/) });
+    expect(runtime.warmWan2GPServer).not.toHaveBeenCalled();
   });
 
   it("reports the downloader's error, and a cancel as cancelled", async () => {

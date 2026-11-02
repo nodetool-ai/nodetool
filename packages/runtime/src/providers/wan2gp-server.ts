@@ -122,6 +122,26 @@ export async function withWan2GPClient<T>(
   }
 }
 
+/**
+ * Start the installed Wan2GP's server ahead of a generation, such as right
+ * after a model download, so the generation does not wait for Wan2GP to
+ * start. The server stops after the usual quiet period if nothing uses it.
+ * Does nothing without an install or with a server already running.
+ */
+export async function warmWan2GPServer(): Promise<void> {
+  const install = await findInstalledWan2GP();
+  if (!install?.python || !install.sourceDir) return;
+  hold();
+  try {
+    await ensureServer({ python: install.python, sourceDir: install.sourceDir });
+  } catch (error) {
+    // The generation starts the server again and reports why it failed.
+    log.warn("Could not start the Wan2GP server ahead of a generation", { error: String(error) });
+  } finally {
+    release();
+  }
+}
+
 async function runWith<T>(client: Wan2GPClient, work: (client: Wan2GPClient) => Promise<T>): Promise<T> {
   try {
     return await work(client);

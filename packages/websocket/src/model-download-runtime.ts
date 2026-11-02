@@ -89,9 +89,9 @@ export const WAN2GP_DOWNLOAD_PREFIX = "wangp.";
 
 /**
  * Download a Wan2GP model's files into the installed Wan2GP with its own
- * downloader, in the shape of the other download paths. Wan2GP does not
- * announce a total, so progress carries the bytes written and the files in
- * flight, with the write rate.
+ * downloader, in the shape of the other download paths. The total is the
+ * size Hugging Face reports for the files still missing, or 0 when it is
+ * unknown.
  */
 export async function runWan2GPModelDownload(
   repoId: string,
@@ -99,7 +99,7 @@ export async function runWan2GPModelDownload(
   signal: AbortSignal,
   onProgress: ModelDownloadProgress
 ): Promise<void> {
-  const { downloadWan2GPModel, findInstalledWan2GP } = await import("@nodetool-ai/runtime");
+  const { downloadWan2GPModel, findInstalledWan2GP, warmWan2GPServer } = await import("@nodetool-ai/runtime");
   const started = Date.now();
   const emit = (
     status: ModelDownloadUpdate["status"],
@@ -134,6 +134,7 @@ export async function runWan2GPModelDownload(
         const elapsed = (Date.now() - started) / 1000;
         emit("progress", {
           downloaded_bytes: progress.downloadedBytes,
+          total_bytes: progress.totalBytes,
           current_files: progress.currentFiles,
           elapsed_seconds: elapsed,
           bytes_per_second: elapsed > 0 ? progress.downloadedBytes / elapsed : 0
@@ -141,7 +142,9 @@ export async function runWan2GPModelDownload(
       }
     });
     if (status === "available") {
-      emit("completed", { downloaded_bytes: downloaded, message: `Wan2GP model ${model} is ready` });
+      emit("completed", { downloaded_bytes: downloaded, total_bytes: downloaded, message: `Wan2GP model ${model} is ready` });
+      // A generation usually follows. Start Wan2GP now so it does not wait.
+      void warmWan2GPServer();
     } else {
       emit("error", {
         downloaded_bytes: downloaded,

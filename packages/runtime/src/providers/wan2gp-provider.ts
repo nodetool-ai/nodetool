@@ -15,7 +15,7 @@ import { createLogger } from "@nodetool-ai/config";
 import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { findInstalledWan2GP, withWan2GPClient } from "./wan2gp-server.js";
-import { markWan2GPModelAvailable, wan2gpFileStatus, type Wan2GPFileStatus } from "./wan2gp-models.js";
+import { markWan2GPModelAvailable, wan2gpCatalog } from "./wan2gp-models.js";
 import {
   WAN2GP_MAX_MEDIA_BYTES,
   Wan2GPClient,
@@ -224,9 +224,18 @@ export class Wan2GPProvider extends BaseProvider {
     );
   }
 
-  /** Every model the server offers, with capabilities, shared for a while across listings. */
-  private rows(): Promise<Wan2GPRecord[]> {
-    const key = this.serverUrl || "installed";
+  /**
+   * Every model, with capabilities. The installed Wan2GP's come from the
+   * catalog its install wrote, so listing does not start Wan2GP. A
+   * configured server answers its model search, shared for a while across
+   * listings.
+   */
+  private async rows(): Promise<Wan2GPRecord[]> {
+    if (!this.serverUrl) {
+      const install = await findInstalledWan2GP();
+      if (install) return wan2gpCatalog(install);
+    }
+    const key = this.serverUrl || "default";
     const cached = listings.get(key);
     if (cached && Date.now() - cached.at < LISTING_TTL_MS) return cached.rows;
     const rows = this.withClient(undefined, (client) => client.searchAllModels("", {}, 1000));
@@ -253,33 +262,27 @@ export class Wan2GPProvider extends BaseProvider {
   }
 
   /**
-   * The download state of each model of the installed Wan2GP, for the model
-   * picker's Download button. A configured server manages its own files.
+   * The download state of a model of the installed Wan2GP, for the model
+   * picker's Download button. Catalog rows carry it. A configured server's
+   * rows do not, because that server manages its own files.
    */
-  private async adapters(): Promise<(modelType: string) => ModelAdapterInfo | undefined> {
-    if (this.serverUrl) return () => undefined;
-    const install = await findInstalledWan2GP();
-    if (!install) return () => undefined;
-    let status: Map<string, Wan2GPFileStatus>;
-    try {
-      status = await wan2gpFileStatus(install);
-    } catch {
-      return () => undefined;
-    }
-    return (modelType) => ({
+  private adapter(row: Wan2GPRecord): ModelAdapterInfo | undefined {
+    const status = row.status;
+    if (this.serverUrl || typeof status !== "string") return undefined;
+    const modelType = String(row.model_type);
+    return {
       state: "installed",
       // The weights come from Hugging Face, but Wan2GP's own downloader puts
       // them in its ckpts folder. The wangp. model type routes the download
       // there, as tjs. routes Transformers.js downloads.
       artifactRef: { source: "huggingface", repoId: `wangp/${modelType}`, modelType: `wangp.${modelType}` },
-      filesPresent: status.get(modelType) === "available"
-    });
+      filesPresent: status === "available"
+    };
   }
 
   /** Models of one main output, with the tasks their capabilities enable. */
   private async listModels(mainOutput: "video" | "image", tasks: ReadonlyArray<[Task, string]>) {
     const rows = await this.safeRows();
-    const adapterFor = rows.length > 0 ? await this.adapters() : () => undefined;
     const models: Array<{ id: string; name: string; supportedTasks: Task[]; adapter?: ModelAdapterInfo }> = [];
     for (const row of rows) {
       if (!strings(row.main_output).includes(mainOutput)) continue;
@@ -287,7 +290,7 @@ export class Wan2GPProvider extends BaseProvider {
       const supportedTasks = tasks.filter(([, capability]) => capabilities.has(capability)).map(([task]) => task);
       const id = String(row.model_type ?? "").trim();
       if (!id || supportedTasks.length === 0) continue;
-      const adapter = adapterFor(id);
+      const adapter = this.adapter(row);
       models.push({ id, name: String(row.name ?? id), supportedTasks, ...(adapter && { adapter }) });
     }
     return models;
@@ -314,11 +317,22 @@ export class Wan2GPProvider extends BaseProvider {
     );
   }
 
-  /** A model's mode choices: the speaker presets or languages a speech model offers. */
-  private async modelModes(modelType: string): Promise<ModelModes | null> {
+  /**
+   * A model's mode choices: the speaker presets or languages a speech model
+   * offers. Catalog rows carry them. A configured server is asked per model.
+   */
+  private async modelModes(row: Wan2GPRecord): Promise<ModelModes | null> {
+    if (typeof row.status === "string") {
+      const modes = row.model_modes as ModelModes | undefined;
+      return modes ? { label: modes.label.toLowerCase(), values: modes.values } : null;
+    }
     try {
       const result = await this.withClient(undefined, (client) =>
-        client.callTool("wangp_model", { model_type: modelType, action: "definition", arguments: { property: "model_modes" } })
+        client.callTool("wangp_model", {
+          model_type: String(row.model_type),
+          action: "definition",
+          arguments: { property: "model_modes" }
+        })
       );
       const modes = (result as Wan2GPRecord | null)?.model_modes as Wan2GPRecord | undefined;
       const choices = Array.isArray(modes?.choices) ? modes.choices : [];
@@ -332,7 +346,6 @@ export class Wan2GPProvider extends BaseProvider {
 
   override async getAvailableTTSModels(): Promise<TTSModel[]> {
     const rows = await this.audioRows("tts");
-    const adapterFor = rows.length > 0 ? await this.adapters() : () => undefined;
     const models: TTSModel[] = [];
     for (const row of rows) {
       const id = String(row.model_type);
@@ -343,7 +356,7 @@ export class Wan2GPProvider extends BaseProvider {
       if (["qwen3_tts_customvoice", "index_tts2", "index_tts25"].includes(base)) capabilities.push("instruction_control");
       if (["qwen3_tts_voicedesign", "omnivoice"].includes(base)) capabilities.push("voice_design");
       const model: TTSModel = { id, name: String(row.name ?? id), provider: PROVIDER_IDS.WANGP };
-      const modes = await this.modelModes(id);
+      const modes = await this.modelModes(row);
       if (modes?.label === "speaker") {
         capabilities.push("preset_voice");
         model.voices = modes.values;
@@ -352,7 +365,7 @@ export class Wan2GPProvider extends BaseProvider {
         model.languages = modes.values;
       }
       model.capabilities = capabilities;
-      const adapter = adapterFor(id);
+      const adapter = this.adapter(row);
       if (adapter) model.adapter = adapter;
       models.push(model);
     }
@@ -361,10 +374,9 @@ export class Wan2GPProvider extends BaseProvider {
 
   override async getAvailableMusicModels(): Promise<MusicModel[]> {
     const rows = await this.audioRows("music");
-    const adapterFor = rows.length > 0 ? await this.adapters() : () => undefined;
     return rows.map((row) => {
       const id = String(row.model_type);
-      const adapter = adapterFor(id);
+      const adapter = this.adapter(row);
       return {
         id,
         name: String(row.name ?? id),

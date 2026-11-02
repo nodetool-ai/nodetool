@@ -4,10 +4,12 @@ import { join } from "node:path";
 import { deflateRawSync } from "node:zlib";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { readWan2GPCatalog } from "../src/wan2gp-helper.js";
 import {
   WAN2GP_COMMIT,
   WAN2GP_VERSION,
   installWan2GP,
+  installerFailure,
   uninstallWan2GP,
   wan2gpInstallStatus,
   type Wan2GPInstallEvent
@@ -80,17 +82,32 @@ function archive(commit: string, extra: Record<string, string> = {}): Buffer {
  * environment the installer sets, then does what setup.py --env uv does:
  * create env_uv with an interpreter.
  */
-async function fakePython(root: string, exitCode = 0): Promise<{ python: string; log: string }> {
+async function fakePython(
+  root: string,
+  failure?: { exit: number; stderr: string }
+): Promise<{ python: string; log: string }> {
   const log = join(root, "python.log");
   const python = join(root, "python3");
+  // The environment's interpreter answers the helper's catalog command.
+  const venvPython = join(root, "venv-python");
+  const row = { model_type: "flux", name: "Flux 1 Dev 12B", main_output: ["image"], capabilities: ["text_to_image"], media_inputs: {}, status: "missing" };
+  await writeFile(
+    venvPython,
+    [
+      "#!/usr/bin/env bash",
+      `echo "helper=$1 command=$2 cwd=$PWD" >> ${log}`,
+      `if [ "$2" = catalog ]; then echo '${JSON.stringify({ version: 1, models: [row] })}' > "$3"; echo '{"type":"catalog","count":1}'; fi`
+    ].join("\n")
+  );
+  await chmod(venvPython, 0o755);
   await writeFile(
     python,
     [
       "#!/usr/bin/env bash",
       `echo "cwd=$PWD args=$* uvpython=$UV_PYTHON_INSTALL_DIR pythonpath=\${PYTHONPATH:-unset} path=$PATH" >> ${log}`,
       'echo ">>> Running: uv venv --seed --python 3.11.14 env_uv"',
-      exitCode === 0 ? "mkdir -p env_uv/bin && touch env_uv/bin/python" : 'echo "No automatic profile for \"llvmpipe\"" >&2',
-      `exit ${exitCode}`
+      failure ? `echo "${failure.stderr}" >&2` : `mkdir -p env_uv/bin && cp ${venvPython} env_uv/bin/python`,
+      `exit ${failure?.exit ?? 0}`
     ].join("\n")
   );
   await chmod(python, 0o755);
@@ -131,6 +148,10 @@ describe.skipIf(process.platform === "win32")("Wan2GP runtime", () => {
       expect(call).toContain("path=/opt/conda/bin:");
       expect(events).toContainEqual({ type: "stage", label: "uv venv --seed --python 3.11.14 env_uv" });
       expect((await stat(join(sourceDir, "ckpts"))).isDirectory()).toBe(true);
+      // The last step writes the model catalog with the new environment.
+      expect(call).toContain(`helper=${join(installDir, WAN2GP_COMMIT.slice(0, 12), "nodetool_wan2gp.py")} command=catalog cwd=${sourceDir}`);
+      expect((await readWan2GPCatalog(sourceDir))?.map((model) => model.model_type)).toEqual(["flux"]);
+      expect(events).toContainEqual({ type: "log", line: "Wan2GP offers 1 models" });
     } finally {
       delete process.env.PYTHONPATH;
     }
@@ -169,11 +190,46 @@ describe.skipIf(process.platform === "win32")("Wan2GP runtime", () => {
   it("reports the installer's own error and leaves nothing current", async () => {
     const root = await tempDir();
     const installDir = join(root, "wan2gp");
-    const { python } = await fakePython(root, 2);
+    const { python } = await fakePython(root, { exit: 2, stderr: "uv: network unreachable" });
     await expect(
       installWan2GP({ installDir, platform: "linux", python, uv: "/usr/bin/uv", fetchImpl: serve(archive(WAN2GP_COMMIT)) })
-    ).rejects.toThrow(/installer failed \(2\):[\s\S]*No automatic profile/);
+    ).rejects.toThrow(/installer failed \(2\):[\s\S]*network unreachable/);
     expect(await wan2gpInstallStatus(installDir, "linux")).toEqual({ installed: false });
+  });
+
+  it("says in plain words that no supported graphics card was found", async () => {
+    const root = await tempDir();
+    const stderr = "usage: setup.py\nsetup.py: error: No automatic profile for 'Unknown'; select --profile from GTX_10, RTX_40, MPS";
+    const { python } = await fakePython(root, { exit: 2, stderr });
+    const install = installWan2GP({ installDir: join(root, "w"), platform: "linux", python, uv: "uv", fetchImpl: serve(archive(WAN2GP_COMMIT)) });
+    await expect(install).rejects.toThrow(
+      "Wan2GP found no supported graphics card on this computer. It runs on NVIDIA GeForce GTX 10 series and newer, AMD Radeon, and Apple silicon. If the card is there, update its driver and install again. To choose a profile yourself, run `nodetool runtime add wan2gp --profile <name>`, for example RTX_40. Profiles: GTX_10, RTX_40, MPS."
+    );
+    expect(installerFailure(2, ["setup.py: error: No automatic profile for 'Intel Arc A770'; select --profile from RTX_40"])).toMatch(
+      /^Wan2GP has no setup for the graphics card it found \(Intel Arc A770\)\./
+    );
+    expect(installerFailure(2, ["setup.py: error: Hardware profile MPS is not supported on linux"])).toMatch(
+      /^Wan2GP's MPS profile does not run on linux\./
+    );
+  });
+
+  it("finishes the install when the model catalog cannot be written yet", async () => {
+    const root = await tempDir();
+    const installDir = join(root, "wan2gp");
+    const { python } = await fakePython(root);
+    await writeFile(join(root, "venv-python"), "#!/usr/bin/env bash\necho 'No module named torch' >&2\nexit 1\n");
+    const events: Wan2GPInstallEvent[] = [];
+    const status = await installWan2GP({
+      installDir,
+      platform: "linux",
+      python,
+      uv: "uv",
+      fetchImpl: serve(archive(WAN2GP_COMMIT)),
+      onEvent: (event) => events.push(event)
+    });
+    expect(status.installed).toBe(true);
+    expect(await readWan2GPCatalog(status.sourceDir!)).toBeNull();
+    expect(events).toContainEqual({ type: "log", line: expect.stringMatching(/Could not read Wan2GP's model list yet[\s\S]*No module named torch/) });
   });
 
   it("refuses an archive entry outside its root", async () => {

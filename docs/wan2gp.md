@@ -43,22 +43,36 @@ reads the GPU and picks the Python, PyTorch and attention kernels for it:
 | AMD, Windows or Linux | Python 3.12, PyTorch 2.13 with ROCm 10 |
 | Apple Silicon | Python 3.11, PyTorch with MPS |
 
-Other hardware fails the install with Wan2GP's message naming the GPU it
-found. Allow about 12 GB before any model. Each model's weights download the
-first time it runs, into `wan2gp/ckpts`, which an update keeps.
+Without a supported graphics card the install stops with a message that
+names the card it found and the profiles to choose from. A missing driver is
+the usual cause. Allow about 12 GB before any model. Each model's weights
+download the first time it runs, into `wan2gp/ckpts`, which an update keeps.
+
+The install ends by writing the model catalog, `catalog.json` beside the
+release. It holds every model, the media it accepts, its voices or languages,
+and whether its weights are on disk. The model menus read this file, so they
+list Wan2GP's models without starting Wan2GP. An install made before the
+catalog existed writes it the first time a menu opens. A Package Manager
+install or uninstall reloads the model menus that are open.
 
 ### Download models
 
 With Wan2GP installed, the model menu marks each Wan2GP model as ready or to
 download, from the same file check Wan2GP's own model selector uses. **Download**
-fetches the model's weights with Wan2GP's own downloader into `wan2gp/ckpts`,
-and the bar shows the bytes written. A generation also downloads what its
-model lacks before it runs. A server you run yourself manages its own files.
+fetches the model's weights with Wan2GP's own downloader into `wan2gp/ckpts`.
+Before it starts, Hugging Face reports the size of the files still missing,
+so the bar shows how much is left. Wan2GP sometimes fetches small files the
+estimate leaves out, and past the estimate the bar shows the bytes written.
+A cancelled download starts the cut-off file again. A generation also
+downloads what its model lacks before it runs. A server you run yourself
+manages its own files.
 
 ### The server
 
 NodeTool starts the installed server the first time a node or the provider
-needs it, on a free port on `127.0.0.1`. It stops the server after 15 minutes
+needs it, on a free port on `127.0.0.1`. A finished model download starts it
+too, so the first generation does not wait for Wan2GP to start. Opening a
+model menu does not start it. It stops the server after 15 minutes
 without calls, which frees the GPU memory Wan2GP holds, and when NodeTool
 exits.
 

@@ -8,6 +8,8 @@
  * Python environment: it reads the GPU, picks the matching Python, PyTorch
  * and attention kernels, and installs Wan2GP's requirements with uv. NodeTool
  * starts the installed server on demand (`wan2gp-server.ts` in the runtime).
+ * The last step writes the model catalog (`wan2gp-helper.ts`), so the model
+ * menus list Wan2GP's models without starting it.
  *
  * Each release goes into its own directory, because the environment's
  * interpreter links into it by absolute path. `current.json` names the release
@@ -18,6 +20,7 @@
 import { z } from "zod";
 import { importNodeBuiltin, safeProcessEnv } from "./node-import.js";
 import { readZipEntries } from "./sd-cpp-runtime.js";
+import { writeWan2GPCatalog } from "./wan2gp-helper.js";
 
 /** Wan2GP v19.02, MCP API v2.1. */
 export const WAN2GP_COMMIT = "616e60506aff10086bbbde02a3bf4554c572adde";
@@ -109,6 +112,36 @@ function installerEnv(
   env.UV_PYTHON_PREFERENCE = "only-managed";
   env.PYTHONUNBUFFERED = "1";
   return env;
+}
+
+const PROFILE_HINT =
+  "To choose a profile yourself, run `nodetool runtime add wan2gp --profile <name>`, for example RTX_40.";
+
+/**
+ * The installer's error, in plain words for the cases a user can act on:
+ * no supported GPU found, or a profile this operating system cannot use.
+ */
+export function installerFailure(exit: number | string | null, tail: string[]): string {
+  const output = tail.join("\n");
+  const noProfile = /No automatic profile for '([^']*)'; select --profile from (.+)$/m.exec(output);
+  if (noProfile) {
+    const [, gpu, profiles] = noProfile;
+    const found =
+      gpu === "Unknown"
+        ? "Wan2GP found no supported graphics card on this computer."
+        : `Wan2GP has no setup for the graphics card it found (${gpu}).`;
+    return [
+      found,
+      "It runs on NVIDIA GeForce GTX 10 series and newer, AMD Radeon, and Apple silicon.",
+      "If the card is there, update its driver and install again.",
+      `${PROFILE_HINT} Profiles: ${profiles.trim()}.`
+    ].join(" ");
+  }
+  const unsupported = /Hardware profile (\S+) is not supported on (\S+)/.exec(output);
+  if (unsupported) {
+    return `Wan2GP's ${unsupported[1]} profile does not run on ${unsupported[2]}. ${PROFILE_HINT}`;
+  }
+  return `Wan2GP's installer failed (${exit}):\n${output}`;
 }
 
 /**
@@ -209,7 +242,7 @@ export async function installWan2GP(options: Wan2GPInstallOptions): Promise<Wan2
       } else if (code === 0) {
         resolve();
       } else {
-        reject(new Error(`Wan2GP's installer failed (${code ?? killSignal}):\n${tail.join("\n")}`));
+        reject(new Error(installerFailure(code ?? killSignal, tail)));
       }
     });
   });
@@ -217,6 +250,15 @@ export async function installWan2GP(options: Wan2GPInstallOptions): Promise<Wan2
   await fs.access(venvPython(sourceDir, platform, path.join)).catch(() => {
     throw new Error("Wan2GP's installer finished but created no env_uv environment");
   });
+  onEvent?.({ type: "stage", label: "Reading Wan2GP's model list" });
+  try {
+    const count = await writeWan2GPCatalog({ sourceDir, python: venvPython(sourceDir, platform, path.join) }, signal);
+    onEvent?.({ type: "log", line: `Wan2GP offers ${count} models` });
+  } catch (error) {
+    signal?.throwIfAborted();
+    // The model menus write the catalog on first use instead.
+    onEvent?.({ type: "log", line: `Could not read Wan2GP's model list yet: ${String(error)}` });
+  }
   await fs.writeFile(
     path.join(installDir, MARKER_FILE),
     `${JSON.stringify({ commit, version: WAN2GP_VERSION, release })}\n`
