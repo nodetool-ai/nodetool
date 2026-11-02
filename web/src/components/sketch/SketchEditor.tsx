@@ -100,6 +100,9 @@ import { useSketchWorkflowFreshnessCheck } from "../../hooks/sketch/useSketchWor
 import { ColorFieldPicker } from "./ColorFieldPicker";
 import { SKETCH_PRESET_SWATCHES, colorToHex6 } from "./types";
 import { useSketchStore } from "./state/useSketchStore";
+import { useSketchEditorMode } from "../../stores/sketch/SketchEditorMode";
+import { SimpleSketchSidebar } from "./simple/SimpleSketchSidebar";
+import { SimpleDocumentChips, SketchModeSwitch } from "./simple/SketchModeControls";
 
 const styles = (theme: Theme) =>
   css({
@@ -238,6 +241,10 @@ function SketchEditor({
   const panelsHidden = useSketchStore((s) => s.panelsHidden);
   const togglePanelsHidden = useSketchStore((s) => s.togglePanelsHidden);
   const assistantPanelOpen = useSketchStore((s) => s.assistantPanelOpen);
+  // Simple mode keeps the canvas, a short tool rail and a layer column.
+  // Expert mode is the full dock. The choice is remembered per user.
+  const { mode: editorMode, setMode: setEditorMode } = useSketchEditorMode();
+  const simpleMode = editorMode === "simple";
 
   // Measure the editor itself, including when embedded in a workspace pane.
   const containerRef = useRef<HTMLDivElement>(null);
@@ -469,12 +476,21 @@ function SketchEditor({
   }, [assistantDockHidden, assistantPanelOpen, setAssistantPanelOpen]);
 
   const layoutMenu = useMemo(
-    () =>
-      isMobile ? undefined : (
-        <DockLayoutMenu store={dockStore} panels={dockRegistrations} />
-      ),
-    [dockStore, dockRegistrations, isMobile]
+    () => (
+      <>
+        {!isMobile && simpleMode && <SimpleDocumentChips />}
+        <SketchModeSwitch mode={editorMode} onChange={setEditorMode} />
+        {!isMobile && !simpleMode && (
+          <DockLayoutMenu store={dockStore} panels={dockRegistrations} />
+        )}
+      </>
+    ),
+    [dockStore, dockRegistrations, isMobile, simpleMode, editorMode, setEditorMode]
   );
+  const openExpertMode = () => setEditorMode("expert");
+  const handleSimpleAddLayer = () => {
+    session.layerActions.handleAddLayer();
+  };
 
   // The panel bodies. The desktop dock shows each as its own panel; the
   // mobile bottom sheet stacks them as collapsible sections.
@@ -660,7 +676,7 @@ function SketchEditor({
         }}
       >
         <ConnectedToolTopBar
-          compactLayout={isMobile}
+          compactLayout={isMobile || simpleMode}
           adjBrightness={session.canvasActions.adjBrightness}
           adjContrast={session.canvasActions.adjContrast}
           adjSaturation={session.canvasActions.adjSaturation}
@@ -711,10 +727,13 @@ function SketchEditor({
     </FlexColumn>
   );
 
-  // The side panels sit in the dock on desktop. On a phone, and while Tab
-  // hides the chrome, only the canvas shows; the panels keep their places in
-  // the layout. The canvas never leaves the dock, so it never remounts.
-  const sidePanelsShown = !isMobile && !panelsHidden;
+  // The side panels sit in the dock on desktop. On a phone, in Simple mode,
+  // and while Tab hides the chrome, only the canvas shows; the panels keep
+  // their places in the layout. The canvas never leaves the dock, so it never
+  // remounts when the mode changes. Simple mode still docks the assistant
+  // while it is open.
+  const chromeShown = !isMobile && !panelsHidden;
+  const sidePanelsShown = chromeShown && !simpleMode;
   const dockViews: DockPanelView[] = [
     { id: "canvas", node: canvasPane },
     {
@@ -754,7 +773,7 @@ function SketchEditor({
           <SketchAgentPanel />
         </FlexColumn>
       ),
-      visible: sidePanelsShown
+      visible: chromeShown
     }
   ];
   const shownDockViews = dockViews.filter((view) => view.visible !== false);
@@ -784,7 +803,7 @@ function SketchEditor({
         sx={{ flex: 1, minHeight: 0, width: "100%", overflow: "hidden" }}
       >
         {/* ConnectedToolbar subscribes to its own state — no prop drilling */}
-        <ConnectedToolbar />
+        <ConnectedToolbar simple={simpleMode} />
 
         <FlexColumn
           ref={dockRoot}
@@ -798,6 +817,14 @@ function SketchEditor({
             tabless={!sidePanelsShown}
           />
         </FlexColumn>
+
+        {simpleMode && !isMobile && (
+          <SimpleSketchSidebar
+            onToggleVisibility={session.layerActions.handleToggleVisibility}
+            onAddLayer={handleSimpleAddLayer}
+            onOpenExpert={openExpertMode}
+          />
+        )}
       </FlexRow>
 
       {/* ── Mobile chrome ─────────────────────────────────────────────
@@ -840,7 +867,16 @@ function SketchEditor({
                 sx={{ minHeight: 0, overflow: "auto" }}
                 gap={0}
               >
-                {mobilePanelSections}
+                {simpleMode ? (
+                  <SimpleSketchSidebar
+                    sheet
+                    onToggleVisibility={session.layerActions.handleToggleVisibility}
+                    onAddLayer={handleSimpleAddLayer}
+                    onOpenExpert={openExpertMode}
+                  />
+                ) : (
+                  mobilePanelSections
+                )}
               </FlexColumn>
             </MobileBottomSheet>
           )}
@@ -866,7 +902,7 @@ function SketchEditor({
       )}
 
       {/* Full-width status bar — standalone editor only (gates internally). */}
-      <ConnectedStatusBar />
+      {!simpleMode && <ConnectedStatusBar />}
 
       <ConnectedContextMenu
         open={session.canvasActions.contextMenu !== null}

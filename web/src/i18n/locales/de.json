@@ -11712,6 +11712,23 @@
         "properties": "Eigenschaften",
         "noProperties": "Keine Eigenschaften",
         "noPropertiesDescription": "Wähle eine Vektorebene oder eine generierte Ebene, um ihre Eigenschaften hier zu bearbeiten."
+      },
+      "simple": {
+        "modeLabel": "Editormodus",
+        "simple": "Einfach",
+        "expert": "Experte",
+        "layerCount_one": "{{count}} Ebene",
+        "layerCount_other": "{{count}} Ebenen",
+        "canvasSize": "{{width}} × {{height}}",
+        "newLayer": "Neue Ebene",
+        "showLayer": "{{name}} einblenden",
+        "hideLayer": "{{name}} ausblenden",
+        "generatedLayer": "Generierte Ebene",
+        "layerPrompt": "Ebenen-Prompt",
+        "regenerateLayer": "Ebene neu generieren",
+        "generateLayer": "Ebene generieren",
+        "workflowLayer": "{{name}} stammt aus einem Workflow. Seine Eingaben findest du im Expertenmodus.",
+        "openInExpert": "Im Expertenmodus öffnen"
       }
     }
   },

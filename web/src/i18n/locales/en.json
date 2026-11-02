@@ -11712,6 +11712,23 @@
         "properties": "Properties",
         "noProperties": "No properties",
         "noPropertiesDescription": "Select a vector layer or a generated layer to edit its properties here."
+      },
+      "simple": {
+        "modeLabel": "Editor mode",
+        "simple": "Simple",
+        "expert": "Expert",
+        "layerCount_one": "{{count}} layer",
+        "layerCount_other": "{{count}} layers",
+        "canvasSize": "{{width}} × {{height}}",
+        "newLayer": "New layer",
+        "showLayer": "Show {{name}}",
+        "hideLayer": "Hide {{name}}",
+        "generatedLayer": "Generated layer",
+        "layerPrompt": "Layer prompt",
+        "regenerateLayer": "Regenerate layer",
+        "generateLayer": "Generate layer",
+        "workflowLayer": "{{name}} comes from a workflow. Its inputs are in Expert mode.",
+        "openInExpert": "Open in Expert mode"
       }
     }
   },
