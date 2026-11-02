@@ -47,6 +47,7 @@ function number(key, label, fallback, minimum, step = 1, extra = {}) {
 }
 function fields(type) {
     switch (type) {
+    case "color": return colorFields.map(field => Object.assign({kind: "slider", fallback: field.origin, resetValue: field.origin}, field));
     case "blur": return [slider("radius", "Radius", 8, 20, 0, 0.5, {unit: "px", decimals: 1, resetValue: 0})];
     case "glow": return [number("radius", "Radius", 8, 0), slider("intensity", "Intensity", 1, 2, 0, 0.01, {resetValue: 0}), {kind: "color", key: "color", label: "Color", fallback: "#ffffff"}];
     case "dropShadow": return [

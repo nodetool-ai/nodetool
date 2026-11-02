@@ -39,6 +39,17 @@ test("every clip effect slider resets to an explicit in-range default", () => {
   assert.equal(context.catalogue.fields("levels").find(field => field.key === "inWhite").resetValue, 1);
 });
 
+test("imported Color instances expose editable fields with neutral defaults", () => {
+  const source = fs.readFileSync(new URL("./ClipEffectsCatalog.js", import.meta.url), "utf8").replace(/^\.pragma library\s*/, "");
+  const context = vm.createContext({});
+  vm.runInContext(source + "\nglobalThis.fields = fields;", context);
+  const fields = context.fields("color");
+  assert.equal(fields.length, 8);
+  assert.ok(fields.every(field => field.kind === "slider" && Number.isFinite(field.fallback)));
+  assert.equal(fields.find(field => field.key === "brightness").fallback, 0);
+  assert.equal(fields.find(field => field.key === "contrast").fallback, 1);
+});
+
 test("the add catalogue writes exactly the web makeEffect defaults", () => {
   const native = fs.readFileSync(new URL("./ClipEffectsCatalog.js",import.meta.url),"utf8").replace(/^\.pragma library\s*/,"");
   const context = vm.createContext({});

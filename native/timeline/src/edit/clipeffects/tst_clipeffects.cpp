@@ -183,6 +183,7 @@ private slots:
     void collapsedRowsReleaseSpace();
     void parameterFields_data();
     void parameterFields();
+    void importedColorInstance();
     void invalidNumbersAndGestureCancellation();
     void curvePointEditing();
     void cancellationLocksAndPlayhead();
@@ -356,6 +357,30 @@ void TestClipEffects::parameterFields() {
         const auto after = e.model.documentJson(); e.model.undoStack()->undo(); QCOMPARE(e.model.documentJson(),before);
         e.model.undoStack()->redo(); QCOMPARE(e.model.documentJson(),after);
     }
+
+void TestClipEffects::importedColorInstance() {
+    Editor e; QVERIFY2(e.object, qPrintable(e.error));
+    const QJsonObject first{{"id", "first"}, {"type", "color"}, {"enabled", true}, {"brightness", 0.1}};
+    const QJsonObject second{{"id", "second"}, {"type", "color"}, {"enabled", true}, {"brightness", -0.1}, {"custom", "keep"}};
+    e.patch({{"effects", QJsonArray{first, second}}});
+    auto* section = e.item("clipEffectsList"); QVERIFY(section);
+    QVERIFY(QMetaObject::invokeMethod(section, "toggled", Q_ARG(bool, true)));
+    auto* expand = e.item("effectsExpand_second"); QVERIFY(expand); e.click(expand);
+    auto* brightness = e.item("effects_second_brightness"); QVERIFY(brightness);
+    const auto before = e.model.documentJson();
+    QVERIFY(QMetaObject::invokeMethod(brightness, "gestureStarted"));
+    QVERIFY(number(brightness, "preview", 0.25));
+    QCOMPARE(e.effects().size(), 2);
+    QCOMPARE(e.effects()[0], QJsonValue(first));
+    QCOMPARE(e.effects()[1].toObject()["brightness"].toDouble(), 0.25);
+    QCOMPARE(e.model.undoStack()->count(), 0);
+    QVERIFY(number(brightness, "change", 0.25));
+    QCOMPARE(e.model.undoStack()->count(), 1);
+    QCOMPARE(e.effects()[1].toObject()["custom"].toString(), QString("keep"));
+    const auto after = e.model.documentJson();
+    e.model.undoStack()->undo(); QCOMPARE(e.model.documentJson(), before);
+    e.model.undoStack()->redo(); QCOMPARE(e.model.documentJson(), after);
+}
 
 void TestClipEffects::invalidNumbersAndGestureCancellation() {
         Editor e; QVERIFY2(e.object,qPrintable(e.error)); QVERIFY(e.add("levels"));
