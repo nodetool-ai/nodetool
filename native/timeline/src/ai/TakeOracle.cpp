@@ -1,4 +1,5 @@
 #include "ai/Take.h"
+#include "takes/TakeSwitch.h"
 #include <QCoreApplication>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -11,6 +12,18 @@ int main(int argc, char** argv) {
     QJsonArray output;
     for (const auto& item : requests) {
         const auto request = item.toObject();
+        if (const auto op = request.value("op").toString(); op == "switch" || op == "cut") {
+            nt::edit::EditDoc doc;
+            for (const auto& clip : request.value("clips").toArray()) { doc.clips.push_back(clip.toObject()); }
+            const auto id = request.value("id").toString();
+            const int index = request.value("index").toInt();
+            const auto edit = op == "switch" ? nt::takes::switchTake(doc, id, index)
+                : nt::takes::cutToTake(doc, id, request.value("timeMs").toDouble(), index, true);
+            QJsonArray clips;
+            for (const auto& clip : edit.clips) { clips.append(clip); }
+            output.append(QJsonObject{{"clips", clips}, {"resultId", edit.resultId}, {"failed", !edit.error.isEmpty()}});
+            continue;
+        }
         const auto clip = request.value("clip").toObject();
         const auto id = request.value("id").toString();
         const auto op = request.value("op").toString();

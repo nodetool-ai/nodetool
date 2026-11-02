@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
-import { applyTakeToClip, deleteTake, makeClip, makeClipVersion, renameTake } from '@nodetool-ai/timeline';
+import { applyTakeToClip, deleteTake, makeClip, makeClipVersion, renameTake, splitClip } from '@nodetool-ai/timeline';
+import { timelineDocument } from '../../../../packages/protocol/src/api-schemas/timeline';
 
 const original = makeClipVersion({ createdAt: '2020-01-01T00:00:00.000Z', workflowUpdatedAt: '2020-01-01T00:00:00.000Z', id: 'original', assetId: 'asset-original', status: 'success',
   durationMs: 4000, dependencyHash: 'base', paramOverridesSnapshot: { seed: 1 } });
@@ -11,6 +12,41 @@ const clip = makeClip({ id: 'clip', name: 'Clip', mediaType: 'video', durationMs
   inPointMs: 200, outPointMs: 4200, versions: [original, candidate] });
 
 describe('native take operations against timeline rules', () => {
+  // Number keys build on the same take rules. Their documents must read back
+  // unchanged through the server schema, and give the clips the web computes.
+  it('switches and cuts to documents the web reads the same way', () => {
+    const shot = { ...clip, trackId: 'track', startMs: 1000, currentAssetId: 'asset-original', activeTakeId: 'original',
+      opacity: 0.5, fadeInMs: 100, fadeOutMs: 300, transform: { position: { x: 4, y: 8 }, scale: { x: 1, y: 1 }, rotation: 12, anchor: { x: 0.5, y: 0.5 } } };
+    const binary = process.env.NT_AI_TAKE_ORACLE;
+    if (!binary) throw new Error('NT_AI_TAKE_ORACLE is required');
+    const run = (request: Record<string, unknown>) => (JSON.parse(execFileSync(binary, [JSON.stringify([{ clips: [shot], id: 'clip', index: 1, ...request }])],
+      { encoding: 'utf8', timeout: 10000 })) as Array<{ clips: Array<typeof shot & { id: string }>; resultId: string; failed: boolean }>)[0]!;
+    const document = (clips: unknown[]) => ({ id: 'doc', projectId: 'project', name: 'Doc', fps: 30, width: 1920, height: 1080, durationMs: 9000,
+      tracks: [{ id: 'track', name: 'Video', type: 'video', index: 0, visible: true, locked: false, muted: false, solo: false, heightPx: 80 }], clips, markers: [] });
+    const readsBack = (clips: unknown[]) => {
+      const input = document(clips);
+      const parsed = timelineDocument.safeParse(input);
+      expect(parsed.success, parsed.success ? '' : parsed.error.message).toBe(true);
+      if (parsed.success) { expect(parsed.data.clips).toEqual(clips); }
+    };
+    const switched = run({ op: 'switch' });
+    expect(switched.failed).toBe(false);
+    expect(switched.clips).toEqual([applyTakeToClip(shot, 'candidate').clip]);
+    readsBack(switched.clips);
+
+    const cut = run({ op: 'cut', timeMs: 3000 });
+    expect(cut.failed).toBe(false);
+    expect(cut.clips).toHaveLength(2);
+    const [webLeft, webRight] = splitClip(applyTakeToClip(shot, 'candidate').clip, 3000);
+    const [originalLeft] = splitClip(shot, 3000);
+    const right = cut.clips.find((part) => part.id === cut.resultId)!;
+    const left = cut.clips.find((part) => part.id !== cut.resultId)!;
+    expect({ ...right, id: '' }).toEqual({ ...webRight, id: '' });
+    expect({ ...left, id: '' }).toEqual({ ...originalLeft, id: '' });
+    expect(webLeft.currentAssetId).toBe('asset-new');
+    readsBack(cut.clips);
+  });
+
   it('matches take application and history across accepted and refused cases', () => {
     const withCandidate = (patch: Record<string, unknown>) => ({ ...clip, versions: [original, { ...candidate, ...patch }] });
     const requests = [
