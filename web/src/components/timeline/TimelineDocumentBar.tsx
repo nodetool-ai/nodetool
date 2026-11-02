@@ -29,6 +29,7 @@ import { useDocumentDraftStore } from "../../stores/DocumentDraftStore";
 import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
 import type { WorkspaceTab } from "../../stores/WorkspaceTabsStore";
 import WorkspaceDocumentBar from "../workspace/WorkspaceDocumentBar";
+import type { TimelineEditorMode } from "../../stores/timeline/TimelineEditorMode";
 
 export interface TimelineDocumentBarProps {
   /** The workspace tab. Without one (the Studio page) the bar shows `title`. */
@@ -44,6 +45,12 @@ export interface TimelineDocumentBarProps {
    * first in the view slot.
    */
   modeControls?: React.ReactNode;
+  /**
+   * Simple or Expert. Without `modeControls` (phones, where the bar has no
+   * room for the switch) the choice sits in the ⋮ menu.
+   */
+  editorMode?: TimelineEditorMode;
+  onSetEditorMode?: (mode: TimelineEditorMode) => void;
   /** The Workspace menu (video or DAW, then the layouts). Omit on phones. */
   workspaceMenu?: React.ReactNode;
   /**
@@ -118,6 +125,8 @@ export const TimelineDocumentBar: React.FC<TimelineDocumentBarProps> = memo(
     isSaving = false,
     showHistory = true,
     modeControls,
+    editorMode = "expert",
+    onSetEditorMode,
     workspaceMenu,
     dawMode = false,
     onSetDawMode,
@@ -155,7 +164,8 @@ export const TimelineDocumentBar: React.FC<TimelineDocumentBarProps> = memo(
     );
     const showCode = hasCode && !!onOpenCode;
     const dawInMenu = !workspaceMenu && !!onSetDawMode;
-    const hasOverflowActions =
+    const modeInMenu = !modeControls && !!onSetEditorMode;
+    const hasOtherOverflowActions =
       dawInMenu ||
       !!onOpenSettings ||
       !!onAdaptFormat ||
@@ -164,6 +174,7 @@ export const TimelineDocumentBar: React.FC<TimelineDocumentBarProps> = memo(
       !!onExportPremiere ||
       !!onExportMedia ||
       showCode;
+    const hasOverflowActions = modeInMenu || hasOtherOverflowActions;
 
     const view =
       modeControls || workspaceMenu || onToggleTranscript || onToggleSidePanel ? (
@@ -222,6 +233,23 @@ export const TimelineDocumentBar: React.FC<TimelineDocumentBarProps> = memo(
                 onClose={closeOverflow}
               >
                 {/* A menu takes no Fragment children. */}
+                {modeInMenu && onSetEditorMode && [
+                  <MenuItemPrimitive
+                    key="simple"
+                    label={t("timelineSimpleMode.simple")}
+                    checkable="radio"
+                    checked={editorMode === "simple"}
+                    onClick={runFromMenu(() => onSetEditorMode("simple"))}
+                  />,
+                  <MenuItemPrimitive
+                    key="expert"
+                    label={t("timelineSimpleMode.expert")}
+                    checkable="radio"
+                    checked={editorMode === "expert"}
+                    dividerAfter={hasOtherOverflowActions}
+                    onClick={runFromMenu(() => onSetEditorMode("expert"))}
+                  />
+                ]}
                 {dawInMenu && onSetDawMode && [
                   <MenuItemPrimitive
                     key="video"

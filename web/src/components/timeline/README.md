@@ -58,7 +58,9 @@ a keyboard layout the user picks in the shortcut sheet (`?`):
 
 The editor opens in Simple mode. The document bar keeps the title, the save
 state, undo, the canvas size and frame rate chips (they open Project
-settings), the Simple / Expert switch and Export. The preview sits over the
+settings), the Simple / Expert switch and Export. On phones the bar has no
+room for the switch or the chips, so Simple and Expert sit in the ⋮ menu,
+which holds nothing else in Simple mode. The preview sits over the
 tracks with no dock and no status bar. Its bar keeps Go to start, Play, the
 timecode, mute and full screen. The tracks toolbar keeps Generate, Add track and
 zoom, and each track header is one row: glyph, name, index and one show or

@@ -1140,9 +1140,10 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
     allowInInputs: true
   });
 
-  const modeControls = (
+  // A phone's bar has no room for the switch, so the ⋮ menu carries the mode.
+  const modeControls = isMobile ? undefined : (
     <>
-      {simpleMode && !isMobile && !sequenceUnavailable && (
+      {simpleMode && !sequenceUnavailable && (
         <TimelineFormatChips onOpenSettings={handleOpenSettings} />
       )}
       <TimelineModeSwitch mode={editorMode} onChange={setEditorMode} />
@@ -1159,6 +1160,8 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       isSaving={isSaving}
       showHistory={!sequenceUnavailable}
       modeControls={modeControls}
+      editorMode={editorMode}
+      onSetEditorMode={setEditorMode}
       onExportVideo={sequenceUnavailable ? undefined : handleExportVideo}
       isExporting={isExporting}
     />
@@ -1170,6 +1173,8 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       isSaving={isSaving}
       showHistory={!sequenceUnavailable}
       modeControls={modeControls}
+      editorMode={editorMode}
+      onSetEditorMode={setEditorMode}
       workspaceMenu={workspaceMenu}
       dawMode={dawMode}
       onSetDawMode={sequenceUnavailable ? undefined : setDawMode}
