@@ -10,8 +10,7 @@ export default function NodeToolHero() {
       <div className="hero-rise mx-auto flex max-w-4xl flex-col items-center text-center">
         {/* The category line stays visible above the contrast, and the
             metadata stays category-led (NARRATIVE.md § Positioning line). */}
-        <p className="inline-flex items-center gap-2 max-w-full rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-blue-300 sm:text-[11px] sm:tracking-[0.18em]">
-          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400" aria-hidden="true" />
+        <p className="inline-flex max-w-full items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-blue-300 sm:text-[11px] sm:tracking-[0.18em]">
           Open-source agent-first creative workspace
         </p>
 
