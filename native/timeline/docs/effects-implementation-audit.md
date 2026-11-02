@@ -143,3 +143,18 @@ Start-Process ./build-windows/Release/nodetool-timeline.exe -Wait -WindowStyle H
 [KnobList]: ../qml/wiring/w/KnobList.qml
 [type contract]: ../../../packages/timeline/src/types.ts
 [SharedVignette]: ../../../packages/gpu/src/shaders/filters/vignette/v1/module.ts
+
+## Recommended additions after the audit fixes
+
+These are proposed follow-up features, outside the F35–F50 implementation checklist. The current effect catalogue already covers LUTs, RGB curves, levels, lift/gamma/gain, chroma key, grain, masks and several stylized effects. Prioritize correction and repair capabilities before adding more decorative effects.
+
+| ID | Priority | Missing timeline capability | Implementation direction |
+| --- | --- | --- | --- |
+| F51 | High | Exposure in stops and highlight roll-off. Brightness is not an exposure control. | Reuse the existing [exposure modules](../../../packages/gpu/src/shaders/color/exposureTone/v1/module.ts), define the working color space, and expose exposure, highlights and whites consistently in native preview/export. Preserve highlights in floating-point intermediates before display conversion. |
+| F52 | High | Noise reduction with separate luminance/chroma controls. | Start with an edge-preserving spatial filter. Add motion-aware temporal reduction with bounded neighboring-frame caches, scene-cut resets and deterministic seeking. Test moving edges for trails and fine detail for excessive smoothing. [Temporal denoising reference](https://docs.opencv.org/4.10.0/d1/d79/group__photo__denoise.html). |
+| F53 | High | Secondary color correction by hue/saturation/luminance range. | Add a range qualifier with soft boundaries, matte preview and hue/saturation/luma adjustments. Include hue-versus-hue and hue-versus-saturation curves. Preserve hue wraparound and avoid hard selection seams. RGB curves and chroma-key removal do not provide these controls. |
+| F54 | Medium | Deflicker for unwanted temporal brightness changes. | Analyze luminance over a bounded frame window and compensate gradually. Detect scene cuts and preserve intentional fades. Cache analysis by source/settings so backward scrubbing and export agree. [Deflicker reference](https://ffmpeg.org/ffmpeg-filters.html#deflicker). |
+| F55 | Medium | Debanding for gradients and compressed source footage. | Use thresholded edge-preserving smoothing with optional low-amplitude dither. Expose strength/range, preserve alpha and detail, and test dark ramps. Keep source repair separate from fixing precision loss in our own pipeline. [Debanding reference](https://ffmpeg.org/ffmpeg-filters.html#deband). |
+| F56 | Medium | Camera stabilization with motion analysis and crop control. | Estimate camera motion, reject independently moving foreground objects, and store a smoothed transform path. Expose smoothing/crop limits and an analysis state. Treat it as a clip analysis operation with cached results, not a stateless shader. [Two-pass stabilization reference](https://ffmpeg.org/ffmpeg-filters.html#vidstabdetect). |
+
+The implementation guidance above also applies to these proposed additions.
