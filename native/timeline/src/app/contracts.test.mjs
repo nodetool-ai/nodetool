@@ -163,3 +163,18 @@ int main(int argc, char** argv) {
     assert.match(malformed.stdout + malformed.stderr, /[Mm]alformed.*nt-panel/);
   } finally { rmSync(scratch, { recursive: true, force: true }); }
 });
+
+test('the FilmCraft notice is complete and ships in the macOS package', () => {
+  const notice = readFileSync(new URL('../../licenses/FilmCraft-MIT.txt', import.meta.url), 'utf8');
+  assert.match(notice, /Copyright \(c\) 2026 ArtCraft Team and the FilmCraft contributors/);
+  assert.match(notice, /Permission is hereby granted, free of charge/);
+  assert.match(notice, /IN THE\s+SOFTWARE\.\s*$/);
+  // The package copies named files, so a new file in licenses/ does not ship by itself.
+  const packaging = readFileSync(new URL('../../scripts/package-macos.sh', import.meta.url), 'utf8');
+  assert.match(packaging, /cp licenses\/FilmCraft-MIT\.txt "\$lic\/FilmCraft-MIT\.txt"/);
+  assert.match(packaging, /FilmCraft .*licenses\/FilmCraft-MIT\.txt/);
+  const check = readFileSync(new URL('../../scripts/check-package-macos.sh', import.meta.url), 'utf8');
+  const required = check.match(/for name in (Qt-LGPL-3\.0 [^;]*); do/);
+  assert.ok(required, 'the licence list of check-package-macos.sh must be inspected');
+  assert.ok(required[1].split(/\s+/).includes('FilmCraft-MIT'));
+});
