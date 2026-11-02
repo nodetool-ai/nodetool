@@ -40,6 +40,10 @@ export class FakeWan2GP {
   methods: string[] = [];
   uploads: Array<{ path: string; body: Buffer }> = [];
   deletes = 0;
+  /** When set, every request must carry `Authorization: Bearer <token>`. */
+  token: string | null = null;
+  /** The Authorization header of every request, in arrival order. */
+  authorizations: Array<string | undefined> = [];
   sessionHeaders: Array<string | undefined> = [];
   /** Job snapshots returned by successive get_job calls; the last one repeats. */
   jobs: Array<Record<string, unknown>> = [wan2gpFixture("job_running"), wan2gpFixture("job_done")];
@@ -158,6 +162,11 @@ export class FakeWan2GP {
 
   private async handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
+    this.authorizations.push(req.headers.authorization);
+    if (this.token !== null && req.headers.authorization !== `Bearer ${this.token}`) {
+      res.writeHead(401, { "WWW-Authenticate": "Bearer" }).end("Unauthorized");
+      return;
+    }
     if (url.pathname === "/mcp" && req.method === "DELETE") {
       this.deletes += 1;
       res.writeHead(200).end();

@@ -36,6 +36,28 @@ describe("Wan2GPClient.connect", () => {
     expect(fake.deletes).toBe(1);
   });
 
+  it("sends the bearer token on MCP calls and transfers", async () => {
+    fake.token = "s3cret";
+    const client = await Wan2GPClient.connect(fake.url, { token: " s3cret " });
+    await client.uploadMedia("image.png", wan2gpFixtureBytes("tiny.png"));
+    await client.downloadMedia("visual:9f8e7d6c5b4a");
+    await client.close();
+    expect(fake.uploads).toHaveLength(1);
+    expect(new Set(fake.authorizations)).toEqual(new Set(["Bearer s3cret"]));
+  });
+
+  it("names the token setting when the server refuses the request", async () => {
+    fake.token = "s3cret";
+    await expect(Wan2GPClient.connect(fake.url)).rejects.toThrow(/Set WAN2GP_MCP_TOKEN/);
+    await expect(Wan2GPClient.connect(fake.url, { token: "wrong" })).rejects.toThrow(/HTTP 401/);
+  });
+
+  it("sends no Authorization header without a token", async () => {
+    const client = await Wan2GPClient.connect(fake.url, { token: "  " });
+    await client.close();
+    expect(fake.authorizations.every((value) => value === undefined)).toBe(true);
+  });
+
   it("refuses a server that speaks MCP API v1", async () => {
     fake.legacy = true;
     await expect(Wan2GPClient.connect(fake.url)).rejects.toThrow(/MCP API v1/);

@@ -9,6 +9,7 @@ import {
   Wan2GPListModelsNode,
   Wan2GPTextToVideoNode,
   resolveWan2GPServerUrl,
+  resolveWan2GPToken,
   wan2gpCustomFilename,
   wan2gpLoraSettings,
   wan2gpMergedSettings,
@@ -82,6 +83,7 @@ const imageRef = { type: "image", uri: "", data: PNG.toString("base64") };
 
 beforeEach(() => {
   delete process.env["WAN2GP_MCP_URL"];
+  delete process.env["WAN2GP_MCP_TOKEN"];
 });
 
 afterEach(() => {
@@ -160,10 +162,15 @@ describe("TextToVideo", () => {
     const messages: unknown[] = [];
     const context = {
       postMessage: (message: unknown) => messages.push(message),
-      getSetting: async () => null
+      getSetting: async () => null,
+      getSecret: async (key: string) => (key === "WAN2GP_MCP_TOKEN" ? "tok" : null)
     } as unknown as ProcessingContext;
     const result = await node.process(context);
-    expect(connect).toHaveBeenCalledWith("http://127.0.0.1:7866/mcp", { maxTransferBytes: 512 * 1024 ** 2, signal: undefined });
+    expect(connect).toHaveBeenCalledWith("http://127.0.0.1:7866/mcp", {
+      maxTransferBytes: 512 * 1024 ** 2,
+      signal: undefined,
+      token: "tok"
+    });
     expect(submitted(calls)).toEqual({
       model_type: "t2v_2_2",
       prompt: "a fox",
@@ -280,6 +287,16 @@ describe("Generate", () => {
       new Wan2GPGenerateNode({ model_type: "wanmove", custom_file: { type: "asset", uri: "", data: "AA==" } }).process()
     ).rejects.toThrow(/Set custom_file_name/);
     expect(calls).toEqual([]);
+  });
+});
+
+describe("token", () => {
+  it("reads WAN2GP_MCP_TOKEN from the secret, then the environment", async () => {
+    expect(await resolveWan2GPToken()).toBe("");
+    process.env["WAN2GP_MCP_TOKEN"] = " env-token ";
+    expect(await resolveWan2GPToken()).toBe("env-token");
+    const context = { getSecret: async () => "saved" } as unknown as ProcessingContext;
+    expect(await resolveWan2GPToken(context)).toBe("saved");
   });
 });
 

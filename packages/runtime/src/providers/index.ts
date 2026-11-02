@@ -829,13 +829,14 @@ if (!_cloudProfile) {
     { access: "local_service", displayName: "stable-diffusion.cpp" }
   );
   // Wan2GP: a server the user runs, reached over MCP. WAN2GP_MCP_URL
-  // re-resolves on every getProvider() call, so a changed setting applies
-  // without a restart. The model list is empty while no server answers.
+  // and WAN2GP_MCP_TOKEN re-resolve on every getProvider() call, so a changed
+  // setting applies without a restart. The model list is empty while no
+  // server answers.
   registerBuiltinProvider(
     PROVIDER_IDS.WANGP,
     Wan2GPProvider,
     {},
-    { WAN2GP_MCP_URL: "" },
+    { WAN2GP_MCP_URL: "", WAN2GP_MCP_TOKEN: "" },
     { access: "local_service", displayName: "Wan2GP" }
   );
   // vLLM — base URL from Settings / env; optional API key defaults like LM Studio.

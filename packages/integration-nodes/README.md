@@ -85,7 +85,8 @@ installs. The cloud profile excludes this node by default.
 `python wgp.py --mcp --mcp-async --mcp-transport streamable-http`. The MCP
 client is `Wan2GPClient` in `@nodetool-ai/runtime`, which the `wangp` provider
 also uses. The server URL comes from the node's `server_url`, then the
-`WAN2GP_MCP_URL` setting, then `http://127.0.0.1:7866/mcp`. A timeout or a
+`WAN2GP_MCP_URL` setting, then `http://127.0.0.1:7866/mcp`. The
+`WAN2GP_MCP_TOKEN` secret, when set, is sent as a bearer token. A timeout or a
 cancelled run cancels the remote job. The cloud profile excludes these nodes.
 See [Wan2GP](../../docs/wan2gp.md).
 

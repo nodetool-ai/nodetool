@@ -161,6 +161,12 @@ function outputRef(kind: OutputKind, data: Uint8Array, filename: string | undefi
   return { type: kind, uri: "", data: base64, content_type: MIME_TYPES[extension] ?? fallback };
 }
 
+/** The WAN2GP_MCP_TOKEN secret, then the run's environment. Empty when unset. */
+export async function resolveWan2GPToken(context?: ProcessingContext): Promise<string> {
+  const token = context ? await context.getSecret("WAN2GP_MCP_TOKEN") : process.env["WAN2GP_MCP_TOKEN"];
+  return token?.trim() ?? "";
+}
+
 /** Shared connection fields and the submit, poll and download loop. */
 abstract class Wan2GPNodeBase extends BaseNode {
   static readonly autoSaveAsset = true;
@@ -234,7 +240,8 @@ abstract class Wan2GPNodeBase extends BaseNode {
     const signal = context?.signal;
     const client = await Wan2GPClient.connect(await resolveWan2GPServerUrl(this.server_url, context), {
       maxTransferBytes: this.max_media_bytes,
-      signal
+      signal,
+      token: await resolveWan2GPToken(context)
     });
     try {
       const settings = await buildSettings(client);
@@ -528,7 +535,10 @@ export class Wan2GPListModelsNode extends BaseNode {
   }
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const client = await Wan2GPClient.connect(await resolveWan2GPServerUrl(this.server_url, context), { signal: context?.signal });
+    const client = await Wan2GPClient.connect(await resolveWan2GPServerUrl(this.server_url, context), {
+      signal: context?.signal,
+      token: await resolveWan2GPToken(context)
+    });
     try {
       const models = await client.searchAllModels(this.query ?? "", this.filters(), this.limit);
       return {

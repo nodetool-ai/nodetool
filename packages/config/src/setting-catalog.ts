@@ -279,6 +279,11 @@ s(
   "Wan2GP",
   "MCP endpoint of the Wan2GP server the lib.wan2gp nodes and the wangp provider call (default: http://127.0.0.1:7866/mcp). A node's own server URL field overrides it."
 );
+sec(
+  "WAN2GP_MCP_TOKEN",
+  "Wan2GP",
+  "Bearer token for a Wan2GP server behind an authenticating proxy, such as the nodetool-wan2gp combined image. Leave empty for a server on your own machine."
+);
 s(
   "NODETOOL_TORCH_DEVICE",
   "PythonNodes",

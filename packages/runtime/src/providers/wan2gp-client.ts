@@ -338,6 +338,11 @@ async function readRpcResponse(response: Response, id: number): Promise<JsonRpcR
 export interface Wan2GPClientOptions {
   /** Largest media transfer in bytes. Defaults to 512 MiB, at most 8 GiB. */
   maxTransferBytes?: number;
+  /**
+   * Bearer token for a server behind an authenticating proxy, such as the
+   * nodetool-wan2gp combined image. Sent on every MCP and transfer request.
+   */
+  token?: string;
   /** Aborts every request this client makes. */
   signal?: AbortSignal;
 }
@@ -355,6 +360,7 @@ export class Wan2GPClient {
   readonly origin: string;
   readonly maxTransferBytes: number;
   private readonly signal?: AbortSignal;
+  private readonly authorization: Record<string, string>;
   private sessionId: string | null = null;
   private protocolVersion: string | null = null;
   private nextId = 1;
@@ -370,6 +376,8 @@ export class Wan2GPClient {
     }
     this.maxTransferBytes = max;
     this.signal = options.signal;
+    const token = options.token?.trim();
+    this.authorization = token ? { Authorization: `Bearer ${token}` } : {};
   }
 
   /** Open an MCP session and check that the server speaks API v2 or later. */
@@ -408,6 +416,7 @@ export class Wan2GPClient {
 
   private headers(): Record<string, string> {
     const headers: Record<string, string> = {
+      ...this.authorization,
       "Content-Type": "application/json",
       Accept: "application/json, text/event-stream"
     };
@@ -439,7 +448,9 @@ export class Wan2GPClient {
     if (!response.ok && response.status !== 202) {
       const detail = (await response.text()).slice(0, 500);
       throw new Wan2GPError(
-        `The Wan2GP MCP server returned HTTP ${response.status}${detail ? `: ${detail}` : ""}.`
+        response.status === 401
+          ? "The Wan2GP server refused the request (HTTP 401). Set WAN2GP_MCP_TOKEN to the token the server was started with."
+          : `The Wan2GP MCP server returned HTTP ${response.status}${detail ? `: ${detail}` : ""}.`
       );
     }
     return response;
@@ -567,7 +578,7 @@ export class Wan2GPClient {
     return withSpan("wan2gp.upload", { "http.request.method": "PUT" }, async () => {
       const response = await fetch(url, {
         method: "PUT",
-        headers: { "Content-Type": "application/octet-stream" },
+        headers: { ...this.authorization, "Content-Type": "application/octet-stream" },
         body: new Blob([new Uint8Array(data)]),
         redirect: "error",
         signal: this.requestSignal(REQUEST_TIMEOUT_MS * 10)
@@ -632,6 +643,7 @@ export class Wan2GPClient {
     return withSpan("wan2gp.download", { "http.request.method": "GET" }, async () => {
       const response = await fetch(url, {
         method: "GET",
+        headers: this.authorization,
         redirect: "error",
         signal: this.requestSignal(REQUEST_TIMEOUT_MS * 20)
       });

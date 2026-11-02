@@ -14,7 +14,8 @@ const PROVIDER_CREDENTIALS: Array<[envVar: string, readBy: string]> = [
   ["VAST_API_KEY", "packages/compute/src/manager.ts"],
   ["VERDA_CLIENT_ID", "packages/compute/src/manager.ts"],
   ["VERDA_CLIENT_SECRET", "packages/compute/src/manager.ts"],
-  ["LMSTUDIO_API_KEY", "packages/runtime/src/providers/lmstudio-provider.ts"]
+  ["LMSTUDIO_API_KEY", "packages/runtime/src/providers/lmstudio-provider.ts"],
+  ["WAN2GP_MCP_TOKEN", "packages/runtime/src/providers/wan2gp-provider.ts"]
 ];
 
 /** Non-secret local-inference settings the backend or the Python worker reads. */

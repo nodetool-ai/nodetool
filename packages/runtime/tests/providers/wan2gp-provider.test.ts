@@ -41,8 +41,16 @@ describe("registration", () => {
   it("registers wangp as a local service that stays off the cloud profile", () => {
     const registration = getRegisteredProvider("wangp");
     expect(registration?.metadata).toEqual({ access: "local_service", displayName: "Wan2GP" });
-    expect(registration?.optionalKwargs).toEqual({ WAN2GP_MCP_URL: "" });
+    expect(registration?.optionalKwargs).toEqual({ WAN2GP_MCP_URL: "", WAN2GP_MCP_TOKEN: "" });
     expect(isCloudProvider("wangp")).toBe(false);
+  });
+
+  it("authenticates with WAN2GP_MCP_TOKEN", async () => {
+    fake.token = "tok";
+    fake.modelPages = [{ models: [{ model_type: "flux" }], has_more: false }];
+    expect(await provider.getAvailableImageModels()).toEqual([]);
+    const authed = new Wan2GPProvider({ WAN2GP_MCP_URL: fake.url, WAN2GP_MCP_TOKEN: "tok" });
+    expect((await authed.getAvailableImageModels()).map((model) => model.id)).toEqual(["flux"]);
   });
 
   it("defaults to the local Wan2GP port", () => {

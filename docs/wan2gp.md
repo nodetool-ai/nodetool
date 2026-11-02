@@ -55,6 +55,11 @@ The `wangp` provider uses `WAN2GP_MCP_URL`, then the default. A server on the
 same machine at the default port needs no setting. A changed setting applies
 to the next call, without a restart.
 
+`WAN2GP_MCP_TOKEN` is a bearer token for a server behind an authenticating
+proxy, such as the combined GPU image below. The nodes and the provider send
+it on every request when it is set. A server that refuses the request names
+the setting in its error.
+
 ## Use presets with your server
 
 The nodes take a plain prompt. In the chat composer, the Create view and
@@ -78,10 +83,12 @@ A resolution tier such as `720p` sets the short side, and the aspect ratio,
 
 The [nodetool-wan2gp](https://github.com/nodetool-ai/nodetool-wan2gp)
 repository builds `Dockerfile.combined`, a GPU image that runs a pinned Wan2GP
-release with its MCP server. Point NodeTool at it like any other server:
+release with its MCP server behind a proxy that requires a bearer token. Point
+NodeTool at it with the token the container was started with:
 
 ```bash
 export WAN2GP_MCP_URL=http://<gpu-host>:7866/mcp
+export WAN2GP_MCP_TOKEN=<the container's WAN2GP_MCP_TOKEN>
 ```
 
 Build and run instructions are in the
@@ -103,5 +110,5 @@ before you redistribute or sell access to it.
 ## Related
 
 - [Supported Models](models.md): local engines and hardware
-- [Configuration](configuration.md): `WAN2GP_MCP_URL`
+- [Configuration](configuration.md): `WAN2GP_MCP_URL` and `WAN2GP_MCP_TOKEN`
 - [Node reference](nodes/lib/wan2gp/): the `lib.wan2gp` nodes

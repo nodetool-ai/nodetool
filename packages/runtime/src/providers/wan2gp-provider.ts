@@ -8,6 +8,8 @@
  * embedding it in a paid product.
  *
  * The server address is `WAN2GP_MCP_URL`, default `http://127.0.0.1:7866/mcp`.
+ * `WAN2GP_MCP_TOKEN` is the bearer token for a server behind an
+ * authenticating proxy, such as the nodetool-wan2gp combined image.
  * Start the server with `python wgp.py --mcp --mcp-async`.
  */
 
@@ -136,6 +138,7 @@ export function wan2gpBaseSettings(
 
 export class Wan2GPProvider extends BaseProvider {
   readonly serverUrl: string;
+  private readonly token: string;
 
   constructor(kwargs: Record<string, unknown> = {}) {
     super(PROVIDER_IDS.WANGP);
@@ -144,6 +147,8 @@ export class Wan2GPProvider extends BaseProvider {
       typeof configured === "string" && configured.trim()
         ? configured.trim()
         : WAN2GP_DEFAULT_SERVER_URL;
+    const token = kwargs["WAN2GP_MCP_TOKEN"];
+    this.token = typeof token === "string" ? token.trim() : "";
   }
 
   protected override declaredCapabilities(): readonly ProviderCapability[] {
@@ -162,7 +167,11 @@ export class Wan2GPProvider extends BaseProvider {
   }
 
   private connect(signal?: AbortSignal): Promise<Wan2GPClient> {
-    return Wan2GPClient.connect(this.serverUrl, { maxTransferBytes: WAN2GP_MAX_MEDIA_BYTES, signal });
+    return Wan2GPClient.connect(this.serverUrl, {
+      maxTransferBytes: WAN2GP_MAX_MEDIA_BYTES,
+      signal,
+      ...(this.token && { token: this.token })
+    });
   }
 
   private async withClient<T>(signal: AbortSignal | undefined, fn: (client: Wan2GPClient) => Promise<T>): Promise<T> {
