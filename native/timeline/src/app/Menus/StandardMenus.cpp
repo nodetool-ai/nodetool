@@ -68,6 +68,13 @@ const Need clipOrGap{[](const QVariantMap& c) {
 }, QStringLiteral("Select a clip or a gap first.")};
 const Need canUndo{[](const QVariantMap& c) { return hasEditor(c) && gestures(c)->timeline()->undoStack()->canUndo(); }, QStringLiteral("Nothing to undo.")};
 const Need canRedo{[](const QVariantMap& c) { return hasEditor(c) && gestures(c)->timeline()->undoStack()->canRedo(); }, QStringLiteral("Nothing to redo.")};
+const Need oneClip{[](const QVariantMap& c) { return clipTargets(c).size() == 1; }, QStringLiteral("Select one clip first.")};
+const Need playheadOnSelectedClip{[](const QVariantMap& c) {
+    const auto clips = menu::targetClips(c);
+    if (clips.size() != 1 || !gestures(c)->clock()) { return false; }
+    const double at = gestures(c)->clock()->currentTimeMs();
+    return clipStartMs(clips.first()) <= at && at <= clipEndMs(clips.first());
+}, QStringLiteral("Select one clip and move the playhead over it.")};
 const Need clipboardClips{[](const QVariantMap& c) { return hasEditor(c) && nt::edit::clipboard::hasClipboardClips(); }, QStringLiteral("Copy a clip first.")};
 const Need attributes{[](const QVariantMap& c) { return hasSelection(c) && nt::edit::clipboard::hasClipboardClips(); },
                       QStringLiteral("Copy a clip, then select the clips to paste onto.")};
@@ -131,24 +138,36 @@ std::vector<Group> table() {
         {"Edit", "history", 0, {{"undo", "Undo", canUndo}, {"redo", "Redo", canRedo}}},
         {"Edit", "clipboard", 10, {{"cut", "Cut", selection}, {"copy", "Copy", selection}, {"paste", "Paste", clipboardClips},
                                    {"pasteInsert", "Paste Insert", clipboardClips}, {"pasteAttributes", "Paste Attributes…", attributes}}},
-        {"Edit", "delete", 20, {{"deleteSelected", "Delete", clipOrGap}, {"rippleDeleteSelected", "Ripple Delete", clipOrGap}, {"duplicate", "Duplicate", selection}}},
+        {"Edit", "delete", 20, {{"deleteSelected", "Delete", clipOrGap}, {"rippleDeleteSelected", "Ripple Delete", clipOrGap}, {"duplicate", "Duplicate", selection},
+                                {"duplicateWithGap", "Duplicate with Gap", selection}}},
         {"Edit", "select", 30, {{"selectAll", "Select All", sequenceClips}, {"deselectAll", "Deselect All", selection},
-                                {"selectClipAtPlayhead", "Select Clips at Playhead", sequenceClips}}},
+                                {"selectClipAtPlayhead", "Select Clips at Playhead", sequenceClips},
+                                {"selectNextClip", "Select Next Clip", sequenceClips}, {"selectPrevClip", "Select Previous Clip", sequenceClips}}},
 
-        {"Clip", "speed", 0, {{"speedDuration", "Speed / Duration…", selection}, {"audioGain", "Audio Gain…", selection, {}, "Audio Options"}}},
-        {"Clip", "source", 10, {{"sourceInsert", "Insert", sourceRange}, {"sourceOverwrite", "Overwrite", sourceRange}, {"sourceAppend", "Append to End", sourceRange}}},
-        {"Clip", "state", 20, {{"toggleClipEnabled", "Enable", selection, [](const QVariantMap& c) { return allTargets(c, clipEnabled); }},
+        // Clip, in the order of a Premiere menu. Each module's entries use the orders of these
+        // groups: options 0 to 14, framing 15 to 16, remix 30, takes 60.
+        {"Clip", "options", 5, {{"audioGain", "Audio Gain…", selection, {}, "Audio Options"}}},
+        {"Clip", "options", 13, {{"speedDuration", "Speed / Duration…", selection}}},
+        {"Clip", "source", 20, {{"sourceInsert", "Insert", sourceRange}, {"sourceOverwrite", "Overwrite", sourceRange}, {"sourceAppend", "Append to End", sourceRange}}},
+        {"Clip", "state", 40, {{"toggleClipEnabled", "Enable", selection, [](const QVariantMap& c) { return allTargets(c, clipEnabled); }},
                                {"linkClips", "Link", linkable, [](const QVariantMap& c) { return allTargets(c, [](const QJsonObject& clip) { return !clipLinkId(clip).isEmpty(); }); }},
                                {"groupClips", "Group", twoClips}, {"ungroupClips", "Ungroup", groupSelected},
                                {"toggleClipLock", "Lock", selection, [](const QVariantMap& c) { return allTargets(c, [](const QJsonObject& clip) { return clip.value("locked").toBool(); }); }}}},
-        {"Clip", "reveal", 50, {{"revealInProject", "Reveal in Library", withAsset, {}, {}, [](const QVariantMap& c) {
+        {"Clip", "keyframes", 50, {{"addKeyframe", "Add or Remove Keyframe", playheadOnSelectedClip, {}, "Keyframes"},
+                                   {"nextKeyframe", "Next Keyframe", oneClip, {}, "Keyframes"}, {"prevKeyframe", "Previous Keyframe", oneClip, {}, "Keyframes"}}},
+        {"Clip", "reveal", 70, {{"revealInProject", "Reveal in Library", withAsset, {}, {}, [](const QVariantMap& c) {
             auto* g = gestures(c);
             return g && g->runAction("revealInProject", {{"clipIds", clipTargets(c)}});
         }}}},
 
         {"Sequence", "match", 0, {{"matchFrame", "Match Frame", assetAtPlayhead}}},
-        {"Sequence", "edit", 10, {{"splitAtPlayhead", "Add Edit", sequenceClips}, {"cutAllTracks", "Add Edit to All Tracks", sequenceClips},
-                                  {"extendEdit", "Extend Selected Edit to Playhead", editPoint}}},
+        {"Sequence", "edit", 10, {{"splitAtPlayhead", "Add Edit", sequenceClips}, {"cutAllTracks", "Add Edit to All Tracks", sequenceClips}}},
+        // The trim module's own entries use orders 15 to 17.
+        {"Sequence", "Trim", 18, {{"extendEdit", "Extend Selected Edit to Playhead", editPoint},
+                                  {"extendPrevEdit", "Extend Previous Edit to Playhead", sequenceClips},
+                                  {"extendNextEdit", "Extend Next Edit to Playhead", sequenceClips},
+                                  {"rippleTrimPrevToPlayhead", "Ripple Trim Previous Edit to Playhead", sequenceClips},
+                                  {"rippleTrimNextToPlayhead", "Ripple Trim Next Edit to Playhead", sequenceClips}}},
         {"Sequence", "transition", 20, {{"applyDefaultTransition", "Apply Video Transition", selection},
                                         {"applyDefaultAudioTransition", "Apply Audio Transition", selection},
                                         {"removeTransition", "Remove Transition", withTransition},
@@ -197,6 +216,7 @@ std::vector<Group> table() {
         {"Playback", "step", 20, {{"stepFrameBack", "Step Back 1 Frame", editor}, {"stepFrameForward", "Step Forward 1 Frame", editor},
                                   {"stepFramesBack", "Step Back 5 Frames", editor}, {"stepFramesForward", "Step Forward 5 Frames", editor}}},
         {"Playback", "goTo", 30, {{"prevCut", "Go to Previous Edit Point", editor}, {"nextCut", "Go to Next Edit Point", editor},
+                                  {"prevCutAnyTrack", "Go to Previous Edit on Any Track", editor}, {"nextCutAnyTrack", "Go to Next Edit on Any Track", editor},
                                   {"goToSequenceStart", "Go to Sequence Start", editor}, {"goToSequenceEnd", "Go to Sequence End", editor},
                                   {"goToSelectedStart", "Go to Selection Start", selection}, {"goToSelectedEnd", "Go to Selection End", selection}}},
 

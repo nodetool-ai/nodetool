@@ -54,12 +54,14 @@ const bool registered = [] {
             return setting(g, [&](ReferenceController& r) { r.useMarker(c.value("timeMs").toDouble(), label); return r.hasReference(); });
         }, group});
 
-    nt::app::registerMenuItem({"clip", "referenceClipFirstFrame", "Use first frame as reference", {}, hasPicture, "reference", 90});
-    nt::app::registerMenuItem({"clip", "referenceClipLastFrame", "Use last frame as reference", {}, hasPicture, "reference", 91});
+    const auto always = [](V) { return true; };
+    const QString useAsReference = QStringLiteral("Use as reference");
+    nt::app::registerMenuItem({"clip", "referenceClipFirstFrame", "First frame", {}, always, "reference", 90, {}, {}, useAsReference, hasPicture});
+    nt::app::registerMenuItem({"clip", "referenceClipLastFrame", "Last frame", {}, always, "reference", 91, {}, {}, useAsReference, hasPicture});
     nt::app::registerMenuItem({"clip", "referenceClipTake", "Compare another take", {},
-        [](V c) { return !ReferenceController::takesOf(rawClip(c)).isEmpty(); }, "reference", 92});
+        always, "reference", 92, {}, {}, useAsReference, [](V c) { return !ReferenceController::takesOf(rawClip(c)).isEmpty(); }});
     nt::app::registerMenuItem({"marker", "referenceMarker", "Use as reference", {}, [](V) { return true; }, "reference", 30});
-    nt::app::registerShellMenuItem({"View", "setReferenceFrame", "Set reference frame", {}, {}, "reference", 900,
+    nt::app::registerShellMenuItem({"View", "setReferenceFrame", "Set Reference Frame", {}, {}, "reference", 900,
         [](V c) { return c.value("gestures").value<QObject*>() != nullptr; }, {}, {}, QStringLiteral("Open a sequence to set a reference frame.")});
     return true;
 }();

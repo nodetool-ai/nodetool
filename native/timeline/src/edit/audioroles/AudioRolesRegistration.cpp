@@ -29,8 +29,8 @@ bool roleChecked(const QVariantMap& context, const QString& role) {
     return controller && gestures && controller->roleSummary(gestures->selection()).value("role").toString() == role;
 }
 
-// The Clip menu shows the built-in items first, then these as one group.
-constexpr int kMenuOrder = 100;
+// Audio Options and Audio Role sit together in the Clip menu's first group.
+constexpr int kMenuOrder = 8;
 
 const bool registered = [] {
     auto setRole = [](const QString& role) {
@@ -42,19 +42,22 @@ const bool registered = [] {
     int order = 0;
     for (const auto& role : roles()) {
         nt::wiring::registerKeyAction({"audioRole." + role, "Set audio role to " + roleLabel(role), {}, setRole(role), "Audio"});
-        nt::app::registerShellMenuItem({"Clip", "audioRole." + role, roleLabel(role), {}, "Audio role", "audio", kMenuOrder + order++,
-            [](const QVariantMap& context) { return soundingSelected(context) > 0; },
-            [role](const QVariantMap& context) { return roleChecked(context, role); }, {},
-            QStringLiteral("Select an audio clip first.")});
+        const QString reason = QStringLiteral("Select an audio clip first.");
+        const nt::app::MenuPredicate sounding = [](const QVariantMap& context) { return soundingSelected(context) > 0; };
+        const nt::app::MenuPredicate checked = [role](const QVariantMap& context) { return roleChecked(context, role); };
+        nt::app::registerShellMenuItem({"Clip", "audioRole." + role, roleLabel(role), {}, "Audio Role", "options", kMenuOrder + order, sounding, checked, {}, reason});
+        nt::app::registerMenuItem({"clip", "audioRole." + role, roleLabel(role), {}, sounding, {}, order++, checked, reason, "Audio role"});
     }
     nt::wiring::registerKeyAction({"audioRole.none", "Clear the audio role", {}, setRole({}), "Audio"});
-    nt::app::registerShellMenuItem({"Clip", "audioRole.none", "No role", {}, "Audio role", "audio", kMenuOrder + order,
-        [](const QVariantMap& context) {
-            // A generated voice or music clip keeps the role it was made with.
-            auto* controller = controllerOf(context);
-            auto* gestures = gesturesOf(context);
-            return controller && gestures && controller->roleSummary(gestures->selection()).value("explicitCount").toInt() > 0;
-        }, {}, {}, QStringLiteral("The selected clips have no audio role to clear.")});
+    const nt::app::MenuPredicate hasExplicitRole = [](const QVariantMap& context) {
+        // A generated voice or music clip keeps the role it was made with.
+        auto* controller = controllerOf(context);
+        auto* gestures = gesturesOf(context);
+        return controller && gestures && controller->roleSummary(gestures->selection()).value("explicitCount").toInt() > 0;
+    };
+    const QString noRole = QStringLiteral("The selected clips have no audio role to clear.");
+    nt::app::registerShellMenuItem({"Clip", "audioRole.none", "No Role", {}, "Audio Role", "options", kMenuOrder + order, hasExplicitRole, {}, {}, noRole});
+    nt::app::registerMenuItem({"clip", "audioRole.none", "No role", {}, hasExplicitRole, {}, order, {}, noRole, "Audio role"});
 
     nt::wiring::registerKeyAction({"matchLoudness", "Match loudness to the role targets", {},
         [](ClipGestureController& gestures, const QVariantMap&) {
@@ -74,10 +77,9 @@ const bool registered = [] {
         auto* controller = controllerOf(context);
         return controller && !controller->busy();
     };
-    nt::app::registerShellMenuItem({"Clip", "matchLoudness", "Match loudness", {}, {}, "audio", kMenuOrder + 10, idle, {}, {},
-        QStringLiteral("Select audio clips first, and wait for the running job.")});
-    nt::app::registerShellMenuItem({"Clip", "duckMusic", "Duck music under dialogue", {}, {}, "audio", kMenuOrder + 11, idle, {}, {},
-        QStringLiteral("Select audio clips first, and wait for the running job.")});
+    const QString busyReason = QStringLiteral("Select audio clips first, and wait for the running job.");
+    nt::app::registerShellMenuItem({"Clip", "matchLoudness", "Match Loudness", {}, "Audio Options", "options", 6, idle, {}, {}, busyReason});
+    nt::app::registerShellMenuItem({"Clip", "duckMusic", "Duck Music Under Dialogue", {}, "Audio Options", "options", 7, idle, {}, {}, busyReason});
     return true;
 }();
 

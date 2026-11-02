@@ -44,7 +44,7 @@ is discovered automatically. Other QML needs `nt_qml_files(...)`.
   `nt::tracks::registerHeaderAction({id, url, order})` from
   `edit/tracks/TrackHeaderActions.h`. Set implicit dimensions. This existing
   header slot does not inject properties.
-- Context menus: `nt::app::registerMenuItem({kind, action, label, shortcut, enabled, group, order, checked, disabledReason, submenu})`
+- Context menus: `nt::app::registerMenuItem({kind, action, label, shortcut, enabled, group, order, checked, disabledReason, submenu, applies})`
   from `app/MenuRegistry.h`. Kinds are `clip`, `track`, `lane`, `ruler`, `asset`,
   `marker`, `gap`, and `editPoint`. A kind with no menu that queries it shows nothing.
   Context includes `kind`, `editable`, and the target's `clipId`, `trackId`, or
@@ -54,7 +54,11 @@ is discovered automatically. Other QML needs `nt_qml_files(...)`.
   registration order. Setting `checked` makes the item show a checkmark. `disabledReason` shows
   under the label while `enabled` is false. The menu shows the active preset's key for the action,
   else `shortcut`. The context also holds `gestures`, so a predicate can read the editor.
-  `submenu` is honoured by the clip menu's `Label` submenu.
+  `submenu` makes the item part of a clip menu submenu of that name, after `Label`, and a submenu
+  with no enabled item is left out. In the clip menu, the groups `edit` and `state` join Split and
+  Duplicate, and Lock and Enable, at the top of the menu. Set `applies` to leave an item out for a
+  target it can never work on, such as a video command on an audio clip. A disabled item with a
+  reason is for a target the person can change.
 - Menu bar: `nt::app::registerShellMenuItem({menu, action, label, shortcut, submenu,
   group, order, enabled, checked, run, disabledReason})`, also from `app/MenuRegistry.h`.
   `app/Menus/StandardMenus.cpp` has the standard items as one table, and a new item is one

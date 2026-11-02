@@ -116,7 +116,6 @@ std::vector<Menu> shellMenuDescription(const QString& preset, const QVariantList
         {"File", {{"Open Recent", "recent", {}, {}, true, {}},
                   {"Open Timeline…", "openTimeline", "Ctrl+O", QKeySequence(Qt::CTRL | Qt::Key_O), true, {}},
                   {"New Timeline", "newTimeline", {}, {}, true, {}},
-                  {"Export…", "exportVideo", {}, {}, true, {}},
                   {"Settings…", "settings", "Ctrl+,", QKeySequence(Qt::CTRL | Qt::Key_Comma), true, {}},
                   {"Quit", "quit", {}, QKeySequence(QKeySequence::Quit), true, {}}}}};
     auto& recentItems = menus.front().items.front().children;
@@ -274,13 +273,6 @@ bool ShellMenus::trigger(const QString& action) {
     if (action == "quit") {
         QCoreApplication::quit();
         return true;
-    }
-    if (!m_anchor || !m_anchor->window()) {
-        return false;
-    }
-    if (action == "exportVideo") {
-        auto* panel = nt::wiring::w::windowItem(m_anchor, "exportPanel");
-        return panel && QMetaObject::invokeMethod(panel, "open");
     }
     return false;
 }

@@ -72,6 +72,79 @@ class TestMenus : public WiringFixture {
         model.setTimeline(std::move(*parsed.timeline));
         QCoreApplication::processEvents();
     }
+    // A key can run only what someone already knows about. These stay off the menus on purpose.
+    static const QSet<QString>& keyOnlyCommands() {
+        static const QSet<QString> commands = [] {
+            // Steps made to be pressed again and again. Premiere keeps them on the keyboard too.
+            QSet<QString> set{"nudgeLeft", "nudgeRight", "nudgeLeftLarge", "nudgeRightLarge", "slideLeft", "slideRight",
+                              "trimEditLeft", "trimEditRight", "trimEditLeftLarge", "trimEditRightLarge",
+                              "clipVolumeUp", "clipVolumeDown", "clipVolumeUpMore", "clipVolumeDownMore",
+                              // What a held key changes in a pointer gesture.
+                              "rollCut", "disableSnapping", "insertOnDrop", "selectEditPoint",
+                              // Backs out of whatever is under way.
+                              "escape",
+                              // A second way to something that has a menu item: the Audio workspace, and Ripple Delete on a gap.
+                              "toggleDawMode", "closeGapAt"};
+            // The number keys, while the Program monitor's take grid is the way to them with a pointer.
+            for (int number = 1; number <= 9; ++number) {
+                set.insert(QString("takeSwitch%1").arg(number));
+                set.insert(QString("takeCut%1").arg(number));
+            }
+            return set;
+        }();
+        return commands;
+    }
+    // The commands with no menu item, and the listed ones that have one or no longer exist.
+    static QStringList commandsOffTheMenus(const QSet<QString>& commands, const QSet<QString>& inMenus, const QSet<QString>& keyOnly) {
+        QStringList problems;
+        for (const auto& command : commands) {
+            if (!inMenus.contains(command) && !keyOnly.contains(command)) { problems << command + " is in no menu"; }
+        }
+        for (const auto& command : keyOnly) {
+            if (inMenus.contains(command)) { problems << command + " is in a menu and listed as key only"; }
+            if (!commands.contains(command)) { problems << command + " is listed as key only and does not exist"; }
+        }
+        problems.sort();
+        return problems;
+    }
+    // The menu bar's labels are in title case, as Premiere's are. A context menu's are in sentence case.
+    static QStringList labelsNotInTitleCase(const std::vector<nt::app::ShellMenuItem>& items) {
+        static const QSet<QString> smallWords{"a", "an", "and", "as", "at", "for", "from", "in", "of", "on", "or", "the", "to", "with"};
+        QStringList problems;
+        for (const auto& item : items) {
+            if (item.separator) { continue; }
+            const auto words = item.label.split(' ', Qt::SkipEmptyParts);
+            for (qsizetype i = 0; i < words.size(); ++i) {
+                if (words[i].front().isLower() && (i == 0 || !smallWords.contains(words[i]))) { problems << item.label; break; }
+            }
+            problems << labelsNotInTitleCase(item.children);
+        }
+        return problems;
+    }
+    static QStringList itemLabels(const std::vector<nt::app::ShellMenuItem>& items) {
+        QStringList labels;
+        for (const auto& item : items) { labels << (item.separator ? QString("---") : item.label); }
+        return labels;
+    }
+    std::vector<nt::app::Menu> openMenus(const QString& preset = "nodetool") {
+        return nt::app::shellMenuDescription(preset, {}, {{"kind", "shell"}, {"gestures", QVariant::fromValue<QObject*>(gestures())},
+                                                          {"timeline", QVariant::fromValue<QObject*>(&model)}});
+    }
+    static const std::vector<nt::app::ShellMenuItem>& itemsOf(const std::vector<nt::app::Menu>& menus, const QString& path) {
+        static const std::vector<nt::app::ShellMenuItem> none;
+        const auto parts = path.split(" > ");
+        for (const auto& menu : menus) {
+            if (menu.label != parts.front()) { continue; }
+            const auto* items = &menu.items;
+            for (qsizetype i = 1; i < parts.size(); ++i) {
+                const auto found = std::find_if(items->begin(), items->end(), [&](const auto& item) { return item.label == parts[i]; });
+                if (found == items->end()) { return none; }
+                items = &found->children;
+            }
+            return *items;
+        }
+        return none;
+    }
 private slots:
     // The items below change panels and workspaces, which the editor saves. They must
     // not reach the settings of the person running the test.
@@ -142,7 +215,8 @@ private slots:
         QFETCH(QJsonObject, fields); QFETCH(QStringList, middle);
         patch("c", fields);
         auto* menu = popup("clip", "clip-c"); QVERIFY(menu);
-        QStringList expected{"clipMenu-splitAtPlayhead:Split at playhead", "clipMenu-duplicate:Duplicate", "registryMenuGroup-clip-transition:"};
+        QStringList expected{"clipMenu-splitAtPlayhead:Split at playhead", "clipMenu-duplicate:Duplicate", "clipMenu-cut:Cut", "clipMenu-copy:Copy",
+                             "registryMenuGroup-clip-transition:"};
         bool stateStarted = false;
         for (const auto& value : middle) {
             if (!stateStarted && value.startsWith("toggleClipLock")) {
@@ -156,18 +230,13 @@ private slots:
                          "registryMenu-clip-speedDuration:Speed / Duration…", "registryMenuGroup-clip-frame:",
                          "registryMenu-clip-fitToFrame:Fit to frame", "registryMenu-clip-fillFrame:Fill frame",
                          "registryMenuGroup-clip-reveal:", "registryMenu-clip-revealInProject:Reveal in Library",
-                         "registryMenuGroup-clip-frameHold:",
-                         "registryMenu-clip-frameHoldOptions:Frame Hold Options…", "registryMenu-clip-frameHoldAdd:Add Frame Hold",
-                         "registryMenu-clip-frameHoldInsert:Insert Frame Hold Segment…",
-                         "registryMenuGroup-clip-reference:",
-                         "registryMenu-clip-referenceClipFirstFrame:Use first frame as reference",
-                         "registryMenu-clip-referenceClipLastFrame:Use last frame as reference",
-                         "registryMenu-clip-referenceClipTake:Compare another take",
-                         "clipMenu-deleteDivider:", "clipMenu-deleteSelected:Delete"});
+                         "clipMenu-deleteDivider:", "clipMenu-rippleDeleteSelected:Ripple delete", "clipMenu-deleteSelected:Delete"});
         // Features register their own clip items and groups: the list pins the built-in ones and those of this menu.
+        // clipMenuFollowsTheClip checks the rows that depend on the clip.
         auto actual = entries(menu);
         actual.removeIf([&expected](const QString& entry) {
-            return (entry.startsWith("registryMenu-clip-") || entry.startsWith("registryMenuGroup-clip-")) &&
+            return (entry.startsWith("registryMenu-clip-") || entry.startsWith("registryMenuGroup-clip-") ||
+                    entry.startsWith("clipMenu-Use as reference") || entry.startsWith("clipMenu-Audio role")) &&
                    !expected.contains(entry);
         });
         QCOMPARE(actual, expected);
@@ -856,8 +925,9 @@ private slots:
         }
         QVERIFY2(problems.isEmpty(), qPrintable(problems.join("\n")));
         QVERIFY(ran > 40);
-        // Toggle trim type and Exit trim mode are off until trim mode is on, even with everything available.
-        if (rich) { QVERIFY2(off < 10, qPrintable(QString::number(off))); } else { QVERIFY(off > 10); }
+        // Off even with everything available: the trim mode items until it is on, the keyframe items
+        // while two clips are selected, and Remove Filler Words with no filler word.
+        if (rich) { QVERIFY2(off < 15, qPrintable(QString::number(off))); } else { QVERIFY(off > 10); }
         source->setProperty("asset", QVariantMap{});
     }
     void toggleItemsShowACheckmark() {
@@ -912,16 +982,302 @@ private slots:
         QVERIFY(menus.trigger("workspace5"));
         QCOMPARE(store->workspace(), store->workspaces().at(4));
         QVERIFY(menus.trigger("workspace1"));
-        // A panel added since gets its row in the later pass, so one missing here only warns.
-        for (const auto& value : view->rootObject()->property("dockPanels").value<QJSValue>().toVariant().toList()) {
+        QStringList unlisted;
+        const auto panels = view->rootObject()->property("dockPanels").value<QJSValue>().toVariant().toList();
+        QVERIFY(panels.size() > 10);
+        for (const auto& value : panels) {
             const auto title = value.toMap().value("title").toString();
             const bool listed = std::any_of(entries.begin(), entries.end(), [&](const auto& entry) {
-                return entry.menu == "Window" && entry.label == title;
+                return entry.menu == "Window" && entry.submenu.isEmpty() && entry.label == title;
             });
-            if (!listed) { qWarning() << "The Window menu does not list the panel" << title; }
+            if (!listed) { unlisted << title; }
         }
+        QVERIFY2(unlisted.isEmpty(), qPrintable("The Window menu does not list " + unlisted.join(", ")));
         QVERIFY(menus.trigger("panelMarkers"));
         QTRY_VERIFY(!store->layout().value("hidden").toStringList().contains("markers"));
+    }
+    // The final check of the menu pass: a command is in a menu, or it is listed above with why it is not.
+    void everyCommandIsInAMenu() {
+        QSet<QString> inMenus;
+        for (const auto& entry : nt::app::shellMenuEntries()) { inMenus.insert(entry.action); }
+        for (const auto& entry : nt::app::menuItems()) { inMenus.insert(entry.action); }
+        // The lane menu builds this one in QML.
+        auto* menu = popup("lane", "trackLane-v", 400); QVERIFY(menu);
+        QTRY_VERIFY(menu->property("visible").toBool());
+        QVERIFY(entries(menu).contains("laneMenu-addText:Add text"));
+        inMenus.insert("addText");
+        const auto commands = ClipGestureController::availableActions();
+        const auto problems = commandsOffTheMenus(commands, inMenus, keyOnlyCommands());
+        QVERIFY2(problems.isEmpty(), qPrintable(problems.join("\n")));
+        // The check works: it finds a command with no item, a listed one with an item, and a stale one.
+        QCOMPARE(commandsOffTheMenus({"a", "b"}, {"b"}, {"b", "c"}), QStringList({"a is in no menu", "b is in a menu and listed as key only",
+                                                                                 "c is listed as key only and does not exist"}));
+    }
+    void menuBarLabelsAreInTitleCase() {
+        QStringList problems;
+        for (const auto& menu : openMenus()) { problems << labelsNotInTitleCase(menu.items); }
+        QVERIFY2(problems.isEmpty(), qPrintable(problems.join(", ")));
+        QCOMPARE(labelsNotInTitleCase({{"Exit trim mode"}, {"in Short"}, {"Go to In"}}), QStringList({"Exit trim mode", "in Short"}));
+    }
+    // With no timeline open, an item needs one to run, says so, or works without one.
+    void withNoTimelineOpenAnItemIsOffOrWorks() {
+        const QStringList worksAlone{"recent", "clearRecent", "openTimeline", "newTimeline", "settings", "quit"};
+        QStringList problems;
+        int off = 0;
+        const auto visit = [&](auto&& self, const std::vector<nt::app::ShellMenuItem>& items, const QString& path) -> void {
+            for (const auto& entry : items) {
+                if (entry.separator) { continue; }
+                const auto name = path + " > " + entry.label;
+                if (!entry.children.empty()) { self(self, entry.children, name); continue; }
+                if (entry.enabled) {
+                    if (!worksAlone.contains(entry.action)) { problems << name + " is on and has no timeline to work on"; }
+                } else {
+                    ++off;
+                    if (entry.disabledReason.isEmpty()) { problems << name + " is off with no reason"; }
+                }
+            }
+        };
+        for (const auto& menu : nt::app::shellMenuDescription("nodetool", {}, {{"kind", "shell"}})) { visit(visit, menu.items, menu.label); }
+        QVERIFY2(problems.isEmpty(), qPrintable(problems.join("\n")));
+        QVERIFY(off > 100);
+    }
+    // The registered items of the context menus, on the targets that turn the most of them off.
+    void contextItemsSayWhyTheyAreOff() {
+        MenuRegistry registry;
+        patch("e", {{"mediaType", "audio"}, {"locked", true}});
+        const QVariantMap base{{"gestures", QVariant::fromValue<QObject*>(gestures())}, {"timeline", QVariant::fromValue<QObject*>(&model)}};
+        const auto with = [&](const QVariantMap& fields) {
+            auto context = base;
+            for (auto it = fields.begin(); it != fields.end(); ++it) { context.insert(it.key(), it.value()); }
+            return context;
+        };
+        const QList<std::pair<QString, QVariantMap>> targets{
+            {"clip", with({{"clipId", "e"}, {"clipIds", QStringList{"e"}}, {"mediaType", "audio"}, {"editable", false},
+                           {"clip", clip("e").toVariantMap()}})},
+            {"ruler", base}, {"marker", with({{"markerId", "none"}, {"timeMs", 0}})}, {"gap", with({{"trackId", "v"}, {"timeMs", 0}})},
+            {"editPoint", with({{"leftId", ""}, {"rightId", ""}})}};
+        QStringList problems;
+        int off = 0;
+        for (const auto& [kind, context] : targets) {
+            for (const auto& value : registry.query(kind, context)) {
+                const auto entry = value.toMap();
+                if (entry.value("enabled").toBool()) { continue; }
+                ++off;
+                if (entry.value("reason").toString().isEmpty()) { problems << kind + ": " + entry.value("action").toString(); }
+            }
+        }
+        QVERIFY2(problems.isEmpty(), qPrintable(problems.join(", ")));
+        QVERIFY(off > 15);
+    }
+    // In a native menu bar, two items with one key fight over it. tst_appshell checks the
+    // standard items. This one has every module's.
+    void noTwoMenuBarItemsShareAKey() {
+        const auto visit = [](auto&& self, const std::vector<nt::app::ShellMenuItem>& items, QHash<QKeySequence, QString>& seen, QStringList& clashes) -> void {
+            for (const auto& item : items) {
+                if (!item.sequence.isEmpty()) {
+                    if (seen.contains(item.sequence)) { clashes << item.sequence.toString() + ": " + seen.value(item.sequence) + " and " + item.action; }
+                    seen.insert(item.sequence, item.action);
+                }
+                self(self, item.children, seen, clashes);
+            }
+        };
+        for (const QString preset : {"nodetool", "premiere", "fcp"}) {
+            QHash<QKeySequence, QString> seen;
+            QStringList clashes;
+            for (const auto& menu : openMenus(preset)) { visit(visit, menu.items, seen, clashes); }
+            QVERIFY2(clashes.isEmpty(), qPrintable(preset + ": " + clashes.join(", ")));
+            QVERIFY(seen.size() > 40);
+        }
+    }
+    // Where the commands the other modules added went, in the order of a Premiere menu.
+    void menuBarGroups_data() {
+        QTest::addColumn<QString>("path");
+        QTest::addColumn<QStringList>("labels");
+        QTest::newRow("file") << "File" << QStringList{"Open Recent", "Open Timeline…", "New Timeline", "---",
+            "Export…", "Quick Export…", "Export Frame…", "---", "Import Premiere XML…", "Export to Premiere Pro…", "---",
+            "Project Settings…", "---", "Settings…", "Quit"};
+        QTest::newRow("edit") << "Edit" << QStringList{"Undo", "Redo", "---", "Cut", "Copy", "Paste", "Paste Insert", "Paste Attributes…", "---",
+            "Delete", "Ripple Delete", "Duplicate", "Duplicate with Gap", "---",
+            "Select All", "Deselect All", "Select Clips at Playhead", "Select Next Clip", "Select Previous Clip", "---", "Label"};
+        QTest::newRow("clip") << "Clip" << QStringList{"Video Options", "Audio Options", "Audio Role", "Speed / Duration…", "Scene Edit Detection…", "---",
+            "Insert", "Overwrite", "Append to End", "---", "Remix…", "Revert Remix", "---",
+            "Enable", "Link", "Group", "Ungroup", "Lock", "---", "Keyframes", "---", "Takes", "---", "Reveal in Library"};
+        QTest::newRow("video-options") << "Clip > Video Options" << QStringList{"Frame Hold Options…", "Add Frame Hold", "Insert Frame Hold Segment…", "---", "Fit to Frame", "Fill Frame"};
+        QTest::newRow("audio-options") << "Clip > Audio Options" << QStringList{"Audio Gain…", "Match Loudness", "Duck Music Under Dialogue"};
+        QTest::newRow("audio-role") << "Clip > Audio Role" << QStringList{"Dialogue", "Music", "SFX", "Ambience", "No Role"};
+        QTest::newRow("keyframes") << "Clip > Keyframes" << QStringList{"Add or Remove Keyframe", "Next Keyframe", "Previous Keyframe"};
+        QTest::newRow("takes") << "Clip > Takes" << QStringList{"Show Takes in the Program Monitor", "Record Take Switches"};
+        QTest::newRow("sequence") << "Sequence" << QStringList{"Match Frame", "---", "Add Edit", "Add Edit to All Tracks", "---",
+            "Trim Edit", "Toggle Trim Type", "Exit Trim Mode", "Extend Selected Edit to Playhead", "Extend Previous Edit to Playhead", "Extend Next Edit to Playhead",
+            "Ripple Trim Previous Edit to Playhead", "Ripple Trim Next Edit to Playhead", "---",
+            "Apply Video Transition", "Apply Audio Transition", "Remove Transition", "Fade In and Out", "Remove Fades", "---",
+            "Lift", "Extract", "---", "Remove Filler Words", "---", "Zoom In", "Zoom Out", "Zoom to Fit Content", "---", "Go to Gap", "---", "Tools", "---",
+            "Snap in Timeline", "Linked Selection"};
+        QTest::newRow("view") << "View" << QStringList{"Monitor Display", "Monitor Zoom", "Playback Resolution", "Paused Resolution", "Monitor Overlays", "---",
+            "Program Monitor Full Screen", "---", "Timecode Ruler", "Make Tracks Taller", "Make Tracks Shorter", "Expand All Tracks", "Minimize All Tracks",
+            "Make Audio Tracks Taller", "Make Audio Tracks Shorter", "---", "Set Reference Frame"};  // Scrub Clips in the Library is linked only into the app.
+        QTest::newRow("playback-go-to") << "Playback" << QStringList{"Play / Pause", "Play In to Out", "Play In to Out with Preroll/Postroll", "Play to Out", "Play Around", "Loop", "---",
+            "Shuttle Left", "Shuttle Stop", "Shuttle Right", "Shuttle Slow Left", "Shuttle Slow Right", "---",
+            "Step Back 1 Frame", "Step Forward 1 Frame", "Step Back 5 Frames", "Step Forward 5 Frames", "---",
+            "Go to Previous Edit Point", "Go to Next Edit Point", "Go to Previous Edit on Any Track", "Go to Next Edit on Any Track",
+            "Go to Sequence Start", "Go to Sequence End", "Go to Selection Start", "Go to Selection End", "---",
+            "Play Audio While Scrubbing", "Keep Pitch While Shuttling"};
+        QTest::newRow("window") << "Window" << QStringList{"Workspaces", "---", "Maximize Frame", "Next Panel", "Previous Panel", "Left Panels", "Right Panels", "---",
+            "Library", "Source", "Timeline", "Program", "Reference", "Inspector", "Mixer", "Audio", "Scripts", "Storyboards", "Text", "Effect Controls", "Color", "Scopes",
+            "Entities", "Markers", "Assistant", "Activity"};
+    }
+    void menuBarGroups() {
+        QFETCH(QString, path);
+        QFETCH(QStringList, labels);
+        const auto menus = openMenus();
+        QCOMPARE(itemLabels(itemsOf(menus, path)).join(" | "), labels.join(" | "));
+    }
+    void projectSettingsAndTextPanelItemsRun() {
+        nt::app::ShellMenus menus;
+        menus.setAnchor(view->rootObject());
+        QVERIFY(menus.trigger("projectSettings"));
+        QTRY_VERIFY(item("ProjectSettingsDialog")->property("opened").toBool());
+        QVERIFY(QMetaObject::invokeMethod(item("ProjectSettingsDialog"), "close"));
+        QTRY_VERIFY(!item("ProjectSettingsDialog")->property("opened").toBool());
+        QVERIFY(menus.trigger("panelText"));
+        const auto store = qobject_cast<DockLayoutStore*>(view->rootObject()->property("dockStore").value<QObject*>());
+        QTRY_VERIFY(!store->layout().value("hidden").toStringList().contains("transcript"));
+    }
+    void removeFillerWordsIsOffUntilThereAreSome() {
+        const auto off = [&] {
+            const auto menus = openMenus();
+            const auto& items = itemsOf(menus, "Sequence");
+            const auto row = std::find_if(items.begin(), items.end(), [](const auto& item) { return item.action == "assist.removeFillers"; });
+            return row != items.end() && !row->enabled && !row->disabledReason.isEmpty();
+        };
+        QVERIFY(off());
+        patch("c", {{"caption", QJsonObject{{"words", QJsonArray{QJsonObject{{"word", "um"}, {"startMs", 1100}, {"endMs", 1200}}}}}}});
+        QVERIFY(!off());
+        nt::app::ShellMenus menus;
+        menus.setAnchor(view->rootObject());
+        const int before = model.undoStack()->count();
+        QVERIFY(menus.trigger("assist.removeFillers"));
+        QCOMPARE(model.undoStack()->count(), before + 1);
+    }
+    // What the clip's context menu adds in this pass, with real clicks. Each runs on the clicked clip.
+    void clipMenuCopyAndCutTheSelection() {
+        gestures()->setSelection({"c", "e"});
+        auto* menu = popup("clip", "clip-c"); QVERIFY(menu);
+        QVERIFY(!entries(menu).contains("clipMenu-pasteAttributes:Paste attributes…"));
+        trigger("clipMenu-copy");
+        QVERIFY(nt::edit::clipboard::hasClipboardClips());
+        menu = popup("clip", "clip-c"); QVERIFY(menu);
+        QVERIFY(entries(menu).contains("clipMenu-pasteAttributes:Paste attributes…"));
+        trigger("clipMenu-cut");
+        QVERIFY(clip("c").isEmpty());
+        QVERIFY(clip("e").isEmpty());
+        QCOMPARE(model.undoStack()->count(), 1);
+        nt::edit::clipboard::clearClipClipboard();
+    }
+    void clipMenuGroupsTheSelection() {
+        patch("e", {{"locked", false}});
+        auto* menu = popup("clip", "clip-c"); QVERIFY(menu);
+        QVERIFY(!entries(menu).contains("clipMenu-groupClips:Group"));
+        QVERIFY(QMetaObject::invokeMethod(menu, "close"));
+        QTRY_VERIFY(!menu->property("visible").toBool());
+        gestures()->setSelection({"c", "e"});
+        menu = popup("clip", "clip-c"); QVERIFY(menu);
+        trigger("clipMenu-groupClips");
+        QCOMPARE(gestures()->selection().size(), 1);
+        const auto group = gestures()->selection().first();
+        menu = popup("clip", "clip-" + group); QVERIFY(menu);
+        trigger("clipMenu-ungroupClips");
+        QVERIFY(gestures()->selection().isEmpty());
+        QCOMPARE(model.undoStack()->count(), 2);
+    }
+    // A row that can never work on this clip stays out of its menu. It keeps the menu short.
+    void clipMenuFollowsTheClip_data() {
+        QTest::addColumn<QString>("mediaType");
+        QTest::addColumn<QStringList>("present");
+        QTest::addColumn<QStringList>("absent");
+        QTest::newRow("video") << "video"
+            << QStringList{"clipMenu-Use as reference:Use as reference", "registryMenu-clip-frameHoldAdd:Add frame hold",
+                           "registryMenu-clip-audioGain:Audio gain…", "registryMenu-clip-sceneEditDetection:Scene edit detection…"}
+            << QStringList{"registryMenu-clip-remixClip:Remix…"};
+        QTest::newRow("audio") << "audio"
+            << QStringList{"clipMenu-Audio role:Audio role", "registryMenu-clip-audioGain:Audio gain…", "registryMenu-clip-remixClip:Remix…"}
+            << QStringList{"clipMenu-Use as reference:Use as reference", "registryMenu-clip-frameHoldAdd:Add frame hold",
+                           "registryMenu-clip-sceneEditDetection:Scene edit detection…"};
+        QTest::newRow("image") << "image"
+            << QStringList{"clipMenu-Use as reference:Use as reference"}
+            << QStringList{"clipMenu-Audio role:Audio role", "registryMenu-clip-frameHoldAdd:Add frame hold",
+                           "registryMenu-clip-audioGain:Audio gain…", "registryMenu-clip-remixClip:Remix…"};
+    }
+    void clipMenuFollowsTheClip() {
+        QFETCH(QString, mediaType);
+        QFETCH(QStringList, present);
+        QFETCH(QStringList, absent);
+        patch("c", {{"mediaType", mediaType}});
+        auto* menu = popup("clip", "clip-c"); QVERIFY(menu);
+        const auto list = entries(menu);
+        for (const auto& row : present) { QVERIFY2(list.contains(row), qPrintable(row + " in " + list.join(", "))); }
+        for (const auto& row : absent) { QVERIFY2(!list.contains(row), qPrintable(row)); }
+        // In a window of this size, nothing is cut off.
+        QTRY_VERIFY(menu->property("opened").toBool());
+        QVERIFY(menu->property("height").toDouble() < view->height());
+        QVERIFY2(menu->property("implicitHeight").toDouble() <= view->height(), qPrintable(QString::number(menu->property("implicitHeight").toDouble())));
+    }
+    void clipMenuAudioRoleSubmenu() {
+        patch("c", {{"mediaType", "audio"}});
+        auto* menu = popup("clip", "clip-c"); QVERIFY(menu);
+        QTRY_VERIFY(menu->property("opened").toBool());
+        QVERIFY(item("clipMenu-Audio role"));
+        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(item("clipMenu-Audio role")));
+        QTRY_VERIFY(item("clipSubmenu-audioRole.music") && item("clipSubmenu-audioRole.music")->isVisible());
+        QTRY_VERIFY(item("clipSubmenu-audioRole.music")->width() > 0);
+        QVERIFY(item("clipSubmenu-audioRole.music")->isEnabled());
+        QSignalSpy frame(view.get(), &QQuickWindow::frameSwapped);
+        view->update();
+        QVERIFY(!frame.isEmpty() || frame.wait(1000));
+        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(item("clipSubmenu-audioRole.music")));
+        QTRY_COMPARE(model.undoStack()->count(), 1);
+        QCOMPARE(clip("c").value("audioRole").toString(), QString("music"));
+    }
+    void clipMenuReferenceSubmenu() {
+        auto* menu = popup("clip", "clip-c"); QVERIFY(menu);
+        QTRY_VERIFY(menu->property("opened").toBool());
+        QVERIFY(item("clipMenu-Use as reference"));
+        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(item("clipMenu-Use as reference")));
+        QTRY_VERIFY(item("clipSubmenu-referenceClipFirstFrame") && item("clipSubmenu-referenceClipFirstFrame")->isVisible());
+        QCOMPARE(item("clipSubmenu-referenceClipFirstFrame")->property("text").toString(), QString("First frame"));
+        // A submenu's row stays once when the menu opens again on another clip.
+        QVERIFY(QMetaObject::invokeMethod(menu, "dismiss"));
+        QTRY_VERIFY(!menu->property("visible").toBool());
+        menu = popup("clip", "clip-c"); QVERIFY(menu);
+        QCOMPARE(entries(menu).count("clipMenu-Use as reference:Use as reference"), 1);
+    }
+    void clipMenuOpensAudioGain() {
+        patch("c", {{"mediaType", "audio"}});
+        auto* menu = popup("clip", "clip-c"); QVERIFY(menu);
+        trigger("registryMenu-clip-audioGain");
+        auto* host = item("audioGainHost"); QVERIFY(host);
+        auto* dialog = host->findChild<QObject*>("audioGainDialog"); QVERIFY(dialog);
+        QTRY_VERIFY(dialog->property("visible").toBool());
+    }
+    void clipMenuRippleDelete() {
+        auto* menu = popup("clip", "clip-c"); QVERIFY(menu);
+        trigger("clipMenu-rippleDeleteSelected");
+        QVERIFY(clip("c").isEmpty());
+        QCOMPARE(clip("d").value("startMs").toDouble(), 3000.0);
+        QCOMPARE(model.undoStack()->count(), 1);
+    }
+    void rulerMarkerRows() {
+        auto* menu = popup("ruler", "timeRuler"); QVERIFY(menu);
+        QTRY_VERIFY(menu->property("opened").toBool());
+        // With no In and Out, this is off and says why.
+        auto* inOut = item("registryMenu-ruler-addMarkerInOut"); QVERIFY(inOut);
+        QVERIFY(!inOut->isEnabled());
+        QVERIFY(!inOut->property("reasonText").toString().isEmpty());
+        // Remove filler words is left out until there is a filler word.
+        QVERIFY(!item("registryMenu-ruler-assist.removeFillers"));
+        trigger("registryMenu-ruler-addRangeMarker");
+        QCOMPARE(model.markersJson().size(), 1);
+        QVERIFY(model.markersJson().first().toObject().value("durationMs").toDouble() > 0);
     }
     // With NT_MENU_SHOTS set to a folder, saves how the new menus look, for a person to check.
     void menuPictures() {
@@ -1009,7 +1365,7 @@ private slots:
         const auto group = list.indexOf("registryMenuGroup-clip-zSelect:");
         QVERIFY2(group > 0, qPrintable(list.join(',')));
         QCOMPARE(list.at(group + 1), QString("registryMenu-clip-selectAll:Select all clips"));
-        QCOMPARE(list.mid(group + 2), QStringList({"clipMenu-deleteDivider:", "clipMenu-deleteSelected:Delete"}));
+        QCOMPARE(list.mid(group + 2), QStringList({"clipMenu-deleteDivider:", "clipMenu-rippleDeleteSelected:Ripple delete", "clipMenu-deleteSelected:Delete"}));
         trigger("registryMenu-clip-selectAll"); QCOMPARE(gestures()->selection().size(), 5);
         // The separator goes with its item when the menu's model changes.
         patch("c", {{"locked", true}});
