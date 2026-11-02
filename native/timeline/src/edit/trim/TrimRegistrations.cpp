@@ -31,15 +31,18 @@ const bool registered = [] {
     nt::app::registerShellMenuItem({menu, QStringLiteral("selectNearestEditPoint"), QStringLiteral("Trim nearest edit"),
         QStringLiteral("Shift+T"), {}, group, 0,
         [](const QVariantMap& context) { return trimOf(context) != nullptr; }, {},
-        [](const QVariantMap& context) { auto* trim = trimOf(context); return trim && trim->selectNearest(); }});
+        [](const QVariantMap& context) { auto* trim = trimOf(context); return trim && trim->selectNearest(); },
+        QStringLiteral("Open a sequence to trim an edit.")});
     nt::app::registerShellMenuItem({menu, QStringLiteral("toggleTrimType"), QStringLiteral("Toggle trim type"),
         QStringLiteral("Ctrl+T"), {}, group, 1,
         [](const QVariantMap& context) { auto* trim = trimOf(context); return trim && trim->active(); }, {},
-        [](const QVariantMap& context) { auto* trim = trimOf(context); return trim && trim->toggleKind(); }});
+        [](const QVariantMap& context) { auto* trim = trimOf(context); return trim && trim->toggleKind(); },
+        QStringLiteral("Select an edit point to start trimming.")});
     nt::app::registerShellMenuItem({menu, QStringLiteral("exitTrimMode"), QStringLiteral("Exit trim mode"),
         {}, {}, group, 2,
         [](const QVariantMap& context) { auto* trim = trimOf(context); return trim && trim->active(); }, {},
-        [](const QVariantMap& context) { auto* trim = trimOf(context); if (trim) trim->leave(); return trim != nullptr; }});
+        [](const QVariantMap& context) { auto* trim = trimOf(context); if (trim) trim->leave(); return trim != nullptr; },
+        QStringLiteral("Trim mode is not on.")});
     return true;
 }();
 }  // namespace

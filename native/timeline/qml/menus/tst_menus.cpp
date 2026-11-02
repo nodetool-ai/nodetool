@@ -853,7 +853,8 @@ private slots:
         }
         QVERIFY2(problems.isEmpty(), qPrintable(problems.join("\n")));
         QVERIFY(ran > 40);
-        if (rich) { QVERIFY2(off < 8, qPrintable(QString::number(off))); } else { QVERIFY(off > 10); }
+        // Toggle trim type and Exit trim mode are off until trim mode is on, even with everything available.
+        if (rich) { QVERIFY2(off < 10, qPrintable(QString::number(off))); } else { QVERIFY(off > 10); }
         source->setProperty("asset", QVariantMap{});
     }
     void toggleItemsShowACheckmark() {
