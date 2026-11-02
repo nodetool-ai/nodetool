@@ -5,6 +5,22 @@ import vm from "node:vm";
 import { test } from "node:test";
 import ts from "typescript";
 
+test("vignette radius uses the renderer default and the track control range", () => {
+  const source = fs.readFileSync(new URL("./ClipEffectsCatalog.js", import.meta.url), "utf8").replace(/^\.pragma library\s*/, "");
+  const context = vm.createContext({});
+  vm.runInContext(source + "\nglobalThis.fields = fields;", context);
+  const reference = JSON.parse(fs.readFileSync(new URL("../../wiring/w/TrackEffectsReference.json", import.meta.url), "utf8"));
+  const radius = context.fields("vignette").find(field => field.key === "radius");
+  assert.ok(radius, "Clip vignette needs a radius control");
+  const trackRadius = reference.knobs.vignette.find(field => field.key === "radius");
+  assert.equal(radius.min, trackRadius.min);
+  assert.equal(radius.max, trackRadius.max);
+  assert.equal(radius.step, trackRadius.step);
+  assert.equal(radius.fallback, 0.9);
+  assert.equal(radius.resetValue, 0.9);
+  assert.equal(radius.unit, undefined, "Radius is normalized, not pixels");
+});
+
 test("the add catalogue writes exactly the web makeEffect defaults", () => {
   const native = fs.readFileSync(new URL("./ClipEffectsCatalog.js",import.meta.url),"utf8").replace(/^\.pragma library\s*/,"");
   const context = vm.createContext({});

@@ -14,7 +14,7 @@ Check an item only after its implementation and relevant verification pass. Each
 
 - [ ] F35: Remove the duplicate Canvas effect preview.
 - [ ] F36: Add a compatible gradual vignette falloff.
-- [ ] F37: Expose consistent vignette radius controls and units.
+- [x] F37: Expose consistent vignette radius controls and units. The clip inspector now matches the track range/default. Catalogue regression passed after reproducing the missing control. Existing render geometry is unchanged.
 - [ ] F38: Add vignette center and roundness controls.
 - [ ] F39: Preview track effects live with commit/cancel transactions.
 - [ ] F40: Make sharpen radius affect rendering.

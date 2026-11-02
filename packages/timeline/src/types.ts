@@ -2251,7 +2251,8 @@ export interface ClipVignetteEffect {
   /** Falloff width, 0..1. */
   softness: number;
   /**
-   * Outer radius relative to the frame half-diagonal, 0.1..1.5. Absent means
+   * Outer radius in normalized frame coordinates, 0.1..1.5. Edge midpoints
+   * have distance 1 and corners sqrt(2), giving a frame-shaped ellipse. Absent means
    * `vignette@1`'s own default, which is where a clip vignette has always
    * started. Written by the track conversion, which carries a midpoint the
    * legacy spelling made mandatory.
