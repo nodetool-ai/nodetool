@@ -208,7 +208,7 @@ private slots:
         QCOMPARE(exported.label, QStringLiteral("Export to Premiere Pro…"));
         QCOMPARE(imported.label, QStringLiteral("Import Premiere XML…"));
         QCOMPARE(exported.group, imported.group);
-        QVERIFY(exported.order < imported.order);
+        QVERIFY(imported.order < exported.order);
         // Enabled whenever an editor is open, so a timeline from a file can say why it cannot run.
         QQuickItem editor;
         const QVariantMap open{{"gestures", QVariant::fromValue<QObject*>(&editor)}};

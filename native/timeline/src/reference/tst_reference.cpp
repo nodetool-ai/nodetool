@@ -676,9 +676,9 @@ private slots:
         QTest::mouseClick(&e.window, Qt::RightButton, Qt::NoModifier, clip->mapToScene(QPointF(clip->width() / 2, clip->height() / 2)).toPoint());
         e.settle();
         QQuickItem* entry = nullptr;
-        const auto findEntry = [&] {
+        const auto findEntry = [&](const QString& text) {
             std::function<QQuickItem*(QQuickItem*)> search = [&](QQuickItem* root) -> QQuickItem* {
-                if (root->property("text").toString() == "Use last frame as reference" && root->isVisible()) return root;
+                if (root->property("text").toString() == text && root->isVisible()) return root;
                 for (auto* child : root->childItems()) {
                     if (auto* found = search(child)) return found;
                 }
@@ -686,7 +686,10 @@ private slots:
             };
             return search(e.window.contentItem());
         };
-        QTRY_VERIFY((entry = findEntry()) != nullptr);
+        QTRY_VERIFY((entry = findEntry("Use as reference")) != nullptr);
+        e.click(entry);
+        QTRY_VERIFY((entry = findEntry("Last frame")) != nullptr);
+        e.settle();
         e.click(entry);
         QCOMPARE(r->timeMs(), 59 * 1000.0 / 30);
         QCOMPARE(r->description(), QStringLiteral("Last frame of b"));

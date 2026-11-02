@@ -925,8 +925,9 @@ private slots:
         }
         QVERIFY2(problems.isEmpty(), qPrintable(problems.join("\n")));
         QVERIFY(ran > 40);
-        // Toggle trim type and Exit trim mode are off until trim mode is on, even with everything available.
-        if (rich) { QVERIFY2(off < 10, qPrintable(QString::number(off))); } else { QVERIFY(off > 10); }
+        // Off even with everything available: the trim mode items until it is on, the keyframe items
+        // while two clips are selected, and Remove Filler Words with no filler word.
+        if (rich) { QVERIFY2(off < 15, qPrintable(QString::number(off))); } else { QVERIFY(off > 10); }
         source->setProperty("asset", QVariantMap{});
     }
     void toggleItemsShowACheckmark() {
