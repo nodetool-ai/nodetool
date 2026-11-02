@@ -6,6 +6,7 @@
 #include <QFontMetricsF>
 #include <QPainter>
 
+#include <algorithm>
 #include <cmath>
 
 RulerCanvas::RulerCanvas(QQuickItem* parent) : QQuickPaintedItem(parent) {
@@ -130,7 +131,9 @@ void RulerCanvas::paint(QPainter* painter) {
         const auto label = tick.value("label").toString();
         if (label.isEmpty()) { continue; }
         painter->setPen(m_text);
-        painter->drawText(QPointF(px + 3.0, 3.0 + metrics.ascent()), label);
+        const double textX = m_rulerMode == u"timecode"
+            ? std::max(0.0, std::min(px + 3.0, w - metrics.horizontalAdvance(label) - 3.0)) : px + 3.0;
+        painter->drawText(QPointF(textX, 3.0 + metrics.ascent()), label);
         ++labels;
     }
     // Markers: a full-height guide line; the flag is a QML item on top.

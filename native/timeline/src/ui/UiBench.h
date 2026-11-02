@@ -31,6 +31,7 @@ struct UiBenchOptions {
     QSize size{1920, 1080};
     int frames = 600;
     int warmup = 30;
+    int previewResolution = 1;
     bool windowed = false;
     // Fails the run when guiMs.p95 is at or over this; <= 0 means no budget.
     double guiP95BudgetMs = 0.0;

@@ -293,7 +293,7 @@ double TimelineViewState::troughClickScrollLeft(double pointerInTroughPx, double
 }
 
 void TimelineViewState::setRulerMode(const QString& mode) {
-    if ((mode != u"time" && mode != u"bars") || mode == m_rulerMode) { return; }
+    if ((mode != u"time" && mode != u"bars" && mode != u"timecode") || mode == m_rulerMode) { return; }
     m_rulerMode = mode;
     emit rulerModeChanged();
 }

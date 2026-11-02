@@ -18,7 +18,7 @@ function(nt_blur_pool_tests)
     target_link_libraries(tst_blurpool PRIVATE timeline_core timeline_decode
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::Test ${NT_APP_PLATFORM_LIBS})
     qt_add_shaders(tst_blurpool "blurpool_shaders" PREFIX "/shaders" BASE shaders
-        FILES shaders/composite.vert shaders/composite.frag)
+        FILES shaders/composite.vert shaders/composite.frag shaders/monitorview.frag)
     qt_add_shaders(tst_blurpool "blurpool_second_shaders" PREFIX "/s4" BASE src/preview/compose
         FILES src/preview/compose/testhook.vert src/preview/compose/luma.frag)
     add_test(NAME tst_blurpool COMMAND tst_blurpool)

@@ -11,7 +11,7 @@ function(nt_compose_hook_tests)
     target_link_libraries(tst_composehooks PRIVATE timeline_core timeline_decode
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::Test ${NT_APP_PLATFORM_LIBS})
     qt_add_shaders(tst_composehooks "s4_composite_shaders" PREFIX "/shaders" BASE shaders
-        FILES shaders/composite.vert shaders/composite.frag)
+        FILES shaders/composite.vert shaders/composite.frag shaders/monitorview.frag)
     qt_add_shaders(tst_composehooks "s4_hook_shaders" PREFIX "/s4" BASE src/preview/compose
         FILES src/preview/compose/testhook.vert src/preview/compose/multiply.frag src/preview/compose/border.frag
             src/preview/compose/alpha.frag src/preview/compose/luma.frag)

@@ -158,6 +158,18 @@ Rectangle {
                         accessibleName: "Source time"
                         density: Ui.EditorButton.Compact
                     }
+                    TimecodeField {
+                        objectName: "sourceTimecode"
+                        visible: root.mediaType === "video" || root.mediaType === "audio"
+                        height: visible ? implicitHeight : 0
+                        width: implicitWidth
+                        timeMs: root.playerTimeMs
+                        fps: root.editor && root.editor.timeline ? root.editor.timeline.fps : 30
+                        dropFrame: root.editor && root.editor.timeline ? root.editor.timeline.dropFrame : false
+                        maxMs: SourceViewerState.durationMs
+                        accessibleName: "Source timecode"
+                        onSeekRequested: ms => root.playerTimeMs = ms
+                    }
                     Ui.Text {
                         width: parent.width
                         visible: !root.mediaType

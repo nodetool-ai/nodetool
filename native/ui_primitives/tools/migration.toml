@@ -1565,14 +1565,74 @@ qml_callers = ["native/timeline/qml/preview/TransformGizmoOverlay.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.ContextMenu, Ui.MenuItem, Ui.Separator, Ui.Text"
 
 [[file]]
+path = "native/timeline/qml/preview/MonitorGuides.qml"
+category = "domain"
+controls = ["Rectangle", "MouseArea"]
+signals = []
+test_host = "tst_monitorui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/preview/PreviewArea.qml"]
+replacement = "Domain overlay drawn over the picture, scaled with the zoomed canvas"
+
+[[file]]
+path = "native/timeline/qml/preview/MonitorRulers.qml"
+category = "domain"
+controls = ["Rectangle", "MouseArea", "MonitorRulerCanvas"]
+signals = []
+test_host = "tst_monitorui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/preview/PreviewArea.qml"]
+replacement = "Domain overlay measured in canvas pixels; colours and metrics from Ui tokens"
+
+[[file]]
+path = "native/timeline/qml/preview/MonitorSafeMargins.qml"
+category = "domain"
+controls = ["Rectangle"]
+signals = []
+test_host = "tst_monitorui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/preview/PreviewArea.qml"]
+replacement = "Domain overlay drawn as fractions of the picture"
+
+[[file]]
+path = "native/timeline/qml/preview/MonitorSettingsMenu.qml"
+category = "chrome"
+controls = ["Ui.ContextMenu", "Ui.MenuItem", "Ui.Separator"]
+signals = []
+test_host = "tst_monitorui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/preview/PreviewArea.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.ContextMenu, Ui.MenuItem, Ui.Separator"
+
+[[file]]
+path = "native/timeline/qml/preview/MonitorZoomMenu.qml"
+category = "chrome"
+controls = ["Ui.MenuButton", "Ui.ContextMenu", "Ui.MenuItem"]
+signals = []
+test_host = "tst_monitorui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/preview/PreviewArea.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.MenuButton, Ui.ContextMenu, Ui.MenuItem"
+
+[[file]]
 path = "native/timeline/qml/preview/PreviewArea.qml"
 category = "chrome"
 controls = ["Rectangle", "Ui.ToolbarIconButton", "Ui.Text", "Ui.Slider"]
 signals = []
-test_host = "tst_gizmo"
-test_scope = "build/import"
+test_host = "tst_monitorui"
+test_scope = "interaction"
 qml_callers = ["native/timeline/qml/TimelineEditor.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.ToolbarIconButton, Ui.Text, Ui.Slider"
+
+[[file]]
+path = "native/timeline/qml/preview/TimecodeField.qml"
+category = "chrome"
+controls = ["Rectangle", "MouseArea", "Ui.Text", "Ui.TextField", "Ui.Tooltip"]
+signals = []
+test_host = "tst_monitorui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/SourceViewerPanel.qml", "native/timeline/qml/preview/PreviewArea.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.TextField, Ui.Tooltip"
 
 [[file]]
 path = "native/timeline/qml/preview/TransformGizmoOverlay.qml"
@@ -2400,6 +2460,26 @@ category = "chrome"
 controls = []
 signals = []
 test_host = "tst_wiringedit"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/ui/tests_qml/TestMonitorPictureView.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_monitorui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/ui/tests_qml/TestMonitorView.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_monitorui"
 test_scope = "build/import"
 qml_callers = []
 replacement = "Feature composition through migrated native Ui wrappers"

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QImage>
+#include <QRectF>
 #include <QQuickRhiItem>
 #include <QString>
 #include <QtQmlIntegration/qqmlintegration.h>
@@ -47,6 +48,8 @@ struct FrameStat {
     // 0. It covers the window's command buffer (QML too), belongs to an earlier
     // frame, and can repeat. It is an observation, not this frame's GPU time.
     double windowGpuObservationMs = -1.0;
+    int canvasWidth = 0;
+    int canvasHeight = 0;
     int layers = 0;
     int framesInFlight = 1;    // QRhi::FramesInFlight: how stale a GPU time can be
     // Media correctness, per frame (DESIGN.md D12, PLAN M1b exit 1 and 2):
@@ -92,6 +95,11 @@ class PreviewCompositor : public QQuickRhiItem {
     QML_ELEMENT
     Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY timelineChanged)
     Q_PROPERTY(PlaybackClock* clock READ clock WRITE setClock NOTIFY clockChanged)
+    Q_PROPERTY(QRectF canvasRegion READ canvasRegion WRITE setCanvasRegion NOTIFY canvasRegionChanged)
+    Q_PROPERTY(int playbackResolution READ playbackResolution WRITE setPlaybackResolution NOTIFY playbackResolutionChanged)
+    Q_PROPERTY(int pausedResolution READ pausedResolution WRITE setPausedResolution NOTIFY pausedResolutionChanged)
+    Q_PROPERTY(bool alphaDisplay READ alphaDisplay WRITE setAlphaDisplay NOTIFY alphaDisplayChanged)
+    Q_PROPERTY(bool transparencyGrid READ transparencyGrid WRITE setTransparencyGrid NOTIFY transparencyGridChanged)
 
 public:
     explicit PreviewCompositor(QQuickItem* parent = nullptr);
@@ -100,6 +108,19 @@ public:
     void setTimeline(TimelineModel* timeline);
     PlaybackClock* clock() const { return m_clock; }
     void setClock(PlaybackClock* clock);
+
+    QRectF canvasRegion() const { return m_canvasRegion; }
+    void setCanvasRegion(const QRectF& region);
+    int playbackResolution() const { return m_playbackResolution; }
+    void setPlaybackResolution(int denominator);
+    int pausedResolution() const { return m_pausedResolution; }
+    void setPausedResolution(int denominator);
+    bool alphaDisplay() const { return m_alphaDisplay; }
+    void setAlphaDisplay(bool on);
+    bool transparencyGrid() const { return m_transparencyGrid; }
+    void setTransparencyGrid(bool on);
+    // Last rendered size, delivered by synchronize() with the frame stats.
+    QSize lastCanvasSize() const { return m_lastCanvasSize; }
 
     // Per-frame stats are kept only while collection is on (the bench), so
     // normal playback does not grow memory. GUI thread.
@@ -133,6 +154,7 @@ public:
         m_captureImmediate = immediate;
         if (!immediate) ++m_captureRequest;
         m_capture = QImage();
+        update();
     }
     bool captureReady() const { return !m_capture.isNull(); }
     // The clock time of the frame the last capture shows.
@@ -142,13 +164,26 @@ public:
 signals:
     void timelineChanged();
     void clockChanged();
+    void canvasRegionChanged();
+    void playbackResolutionChanged();
+    void pausedResolutionChanged();
+    void alphaDisplayChanged();
+    void transparencyGridChanged();
 
 protected:
     QQuickRhiItemRenderer* createRenderer() override;
 
 private:
     friend class PreviewCompositorRenderer;
+    friend class MonitorCompositorTest;
 
+    QRectF m_canvasRegion{0, 0, 1, 1};
+    int m_playbackResolution = 1;
+    int m_pausedResolution = 1;
+    bool m_alphaDisplay = false;
+    bool m_transparencyGrid = false;
+    QSize m_lastCanvasSize;
+    bool m_monitorPipelineCreated = false;
     TimelineModel* m_timeline = nullptr;
     PlaybackClock* m_clock = nullptr;
     bool m_collectStats = false;

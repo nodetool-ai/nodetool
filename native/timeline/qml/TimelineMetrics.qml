@@ -11,6 +11,8 @@ QtObject {
     readonly property real sourceViewerPreferredWidth: 360 * Ui.Theme.uiScale
     readonly property real trackHeight: 64
     readonly property real transportHeight: 36 * Ui.Theme.uiScale
+    readonly property real transportDurationMinWidth: 640 * Ui.Theme.uiScale
+    readonly property real monitorRulerThickness: 16 * Ui.Theme.uiScale
     readonly property real documentBarHeight: 40 * Ui.Theme.uiScale
     readonly property real automationAddHeight: 40 * Ui.Theme.uiScale
     readonly property real compactDocumentBarWidth: 640 * Ui.Theme.uiScale

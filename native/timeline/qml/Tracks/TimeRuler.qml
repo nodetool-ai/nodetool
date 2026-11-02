@@ -68,7 +68,7 @@ Rectangle {
         }
         onPressed: mouse => {
             if (mouse.button === Qt.RightButton) {
-                rulerMenu.context = { timeMs: ruler.viewState.timeAtViewportX(mouse.x), editable: true }
+                rulerMenu.context = { timeMs: ruler.viewState.timeAtViewportX(mouse.x), editable: true, rulerMode: ruler.viewState.rulerMode }
                 if (MenuRegistry.query("ruler", rulerMenu.context).length > 0) rulerMenu.popup(mouse.x, mouse.y)
             } else seekTo(mouse.x)
         }

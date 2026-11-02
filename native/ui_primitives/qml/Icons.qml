@@ -28,6 +28,7 @@ QtObject {
     readonly property string keyframeDiamond: "M12 2 22 12 12 22 2 12z"
     readonly property string star: "M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
     readonly property string refresh: "M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.93 9h-2.02A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4z"
+    readonly property string wrench: "M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"
     readonly property string settings: "M19.14 12.94a7 7 0 0 0 0-1.88l2.03-1.58-2-3.46-2.39.96a7 7 0 0 0-1.63-.94L14.79 3h-4l-.36 3.04c-.6.23-1.14.55-1.63.94l-2.39-.96-2 3.46 2.03 1.58a7 7 0 0 0 0 1.88l-2.03 1.58 2 3.46 2.39-.96c.49.39 1.03.71 1.63.94l.36 3.04h4l.36-3.04c.6-.23 1.14-.55 1.63-.94l2.39.96 2-3.46zM12.79 15a3 3 0 1 1 0-6 3 3 0 0 1 0 6"
     readonly property string toolSelect: "M5 3.5 5 19.5 9.2 15.2 11.7 21 14.5 19.8 12 14.2 18 14.2 Z"
     readonly property string toolTrackSelect: "M5 5 V19 M9 12 H20 M16 8 L20 12 L16 16 M9 7 H14 M9 17 H14"
