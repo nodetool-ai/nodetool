@@ -500,6 +500,9 @@ void GenerationController::submit(const QString& mode, const QString& provider, 
         {"status", "draft"}, {"locked", false}, {"versions", QJsonArray{}}};
     if (mode == "video") { clip.insert("aspectRatio", aspect); clip.insert("resolution", resolution); if (!refIds.isEmpty()) clip.insert("referenceImageIds", refIds); if (!entityIds.isEmpty()) clip.insert("referenceEntityIds", entityIds); }
     if (mode == "audio" && !voice.isEmpty()) clip.insert("voice", voice);
+    // A new voice is Dialogue and new music is Music, so Match loudness and ducking know them at once.
+    if (mode == "audio") clip.insert("audioRole", "dialogue");
+    if (mode == "music") clip.insert("audioRole", "music");
     if (!m_timeline->applyEdit("ai.insertGeneration", clip)) { setError("Unlock a matching track to generate media."); return; }
     emit clipInserted(clipId);
     m_generation = m_timeline->documentGeneration();

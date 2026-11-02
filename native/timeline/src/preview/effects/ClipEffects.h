@@ -72,6 +72,8 @@ double channelMidtones(const QJsonArray &points);
 std::array<float, 1024> secondaryCurveTransfer(const QJsonObject &effect);
 std::array<float, 1024> curveTransfer(const QJsonObject &effect);
 std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEffects = {});
+// A track's document effects in the form planChain takes, without the disabled ones.
+QJsonArray convertTrackEffects(const QJsonArray &effects);
 QMargins chainOutset(const QJsonArray &effects);
 QRect cropPixels(const QJsonObject &ext, QSize inputSize);
 void decorateEffects(QJsonObject &ext, const Clip &clip, double timeMs = 0);

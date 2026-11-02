@@ -884,6 +884,7 @@ int main(int argc, char** argv) {
     clock.setDurationMs(model.durationMs());
     clock.seek(parser.value(seekOpt).toDouble());
     nt::audio::AppAudio audio;
+    audio.setPublishLoudness(true);
     {
         // From the parsed options, so `--opt=value` and `--opt value` agree.
         const QString mode = nt::audio::resolveAudioMode(parser);

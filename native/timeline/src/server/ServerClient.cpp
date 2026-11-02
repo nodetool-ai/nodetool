@@ -239,7 +239,8 @@ QueryResult ServerClient::preflightWorkflow(const QString& workflowId, const QJs
     return write(QStringLiteral("preflight"), request, &body, nullptr, {}, true);
 }
 
-QueryResult ServerClient::upload(const QJsonObject& json, const QString& filePath, const QString& contentType) {
+QueryResult ServerClient::upload(const QJsonObject& json, const QString& filePath, const QString& contentType,
+                                 const QString& endpoint) {
     auto multipart = std::make_unique<QHttpMultiPart>(QHttpMultiPart::FormDataType);
     auto* file = new QFile(filePath, multipart.get());
     if (!file->open(QIODevice::ReadOnly)) {
@@ -261,7 +262,75 @@ QueryResult ServerClient::upload(const QJsonObject& json, const QString& filePat
     media.setHeader(QNetworkRequest::ContentTypeHeader, contentType);
     media.setBodyDevice(file);
     multipart->append(media);
-    return write("upload", QNetworkRequest(m_base.resolved(QUrl("/api/assets"))), &fieldsJson, std::move(multipart), contentType);
+    return write("upload", QNetworkRequest(m_base.resolved(QUrl(endpoint))), &fieldsJson, std::move(multipart), contentType);
+}
+
+HttpResponse ServerClient::download(const QString& urlOrPath, QIODevice& out,
+                                    const std::function<void(qint64, qint64)>& onProgress) {
+    HttpResponse resp;
+    if (QThread::currentThread()->isInterruptionRequested()) {
+        resp.networkErrorCode = QStringLiteral("CANCELLED");
+        resp.networkError = QStringLiteral("Request cancelled.");
+        return resp;
+    }
+    QNetworkRequest request(resolve(urlOrPath));
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
+    decorate(request);
+    QNetworkReply* reply = m_nam->get(request);
+    QEventLoop loop;
+    bool aborted = false;
+    const auto abort = [&](const QString& code, const QString& message) {
+        if (aborted) return;
+        aborted = true;
+        resp.networkErrorCode = code;
+        resp.networkError = message;
+        reply->abort();
+    };
+    const auto status = [&] { return reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt(); };
+    QObject::connect(reply, &QNetworkReply::readyRead, &loop, [&] {
+        const QByteArray chunk = reply->readAll();
+        if (status() >= 200 && status() < 300) {
+            if (out.write(chunk) != chunk.size()) abort(QStringLiteral("DISK"), out.errorString());
+        } else if (resp.body.size() < 64 * 1024) {
+            resp.body.append(chunk.left(64 * 1024 - resp.body.size()));
+        }
+    });
+    if (onProgress) {
+        QObject::connect(reply, &QNetworkReply::downloadProgress, &loop, [&](qint64 received, qint64 total) {
+            onProgress(received, total);
+        });
+    }
+    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    QTimer interruption;
+    QObject::connect(&interruption, &QTimer::timeout, &loop, [&] {
+        if (QThread::currentThread()->isInterruptionRequested()) {
+            abort(QStringLiteral("CANCELLED"), QStringLiteral("Request cancelled."));
+        }
+    });
+    interruption.start(25);
+    if (!reply->isFinished()) loop.exec();
+    resp.status = status();
+    // Bytes that arrived with the finish are not announced by readyRead.
+    if (const QByteArray rest = reply->isOpen() ? reply->readAll() : QByteArray(); !rest.isEmpty() && !aborted) {
+        if (resp.status >= 200 && resp.status < 300) {
+            if (out.write(rest) != rest.size()) {
+                resp.networkErrorCode = QStringLiteral("DISK");
+                resp.networkError = out.errorString();
+            }
+        } else if (resp.body.size() < 64 * 1024) {
+            resp.body.append(rest.left(64 * 1024 - resp.body.size()));
+        }
+    }
+    for (const auto& pair : reply->rawHeaderPairs()) resp.headers.insert(pair.first.toLower(), pair.second);
+    if (resp.networkErrorCode.isEmpty() && reply->error() == QNetworkReply::TimeoutError) {
+        resp.networkErrorCode = QStringLiteral("TIMEOUT");
+        resp.networkError = QStringLiteral("Request timed out.");
+    }
+    if (reply->error() != QNetworkReply::NoError && resp.status == 0 && resp.networkError.isEmpty()) {
+        resp.networkError = reply->errorString();
+    }
+    reply->deleteLater();
+    return resp;
 }
 
 QueryResult ServerClient::write(const QString& procedure, QNetworkRequest request, const QByteArray* json,

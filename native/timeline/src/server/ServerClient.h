@@ -28,10 +28,12 @@
 #include <QString>
 #include <QUrl>
 
+#include <functional>
 #include <memory>
 #include <vector>
 
 class QHttpMultiPart;
+class QIODevice;
 
 namespace nt::server {
 
@@ -104,7 +106,19 @@ public:
     QueryResult createAsset(const QJsonObject& fields);
     // Side-effect-free SDK static preflight; pins the same server as writes.
     QueryResult preflightWorkflow(const QString& workflowId, const QJsonObject& inputs = {});
-    QueryResult upload(const QJsonObject& json, const QString& filePath, const QString& contentType);
+    // POST multipart: the `json` field and the file as `file`, to `/api/assets`
+    // or another endpoint that takes the same form (the Premiere import).
+    QueryResult upload(const QJsonObject& json, const QString& filePath, const QString& contentType,
+                       const QString& endpoint = QStringLiteral("/api/assets"));
+    // GET `urlOrPath` into `out` as the bytes arrive, so a large archive never
+    // sits in memory. `onProgress(received, total)` runs on this thread, with a
+    // total of -1 when the server sent no length. Only a 2xx body reaches
+    // `out`; an error body (up to 64 KiB) stays in the response. Reads carry
+    // no instance proof. The transfer timeout applies between bytes, not to
+    // the whole download. A requested thread interruption aborts it with the
+    // network error code CANCELLED.
+    HttpResponse download(const QString& urlOrPath, QIODevice& out,
+                          const std::function<void(qint64, qint64)>& onProgress = {});
     // Empty: no instance check.
     void setExpectedInstance(const QString& instance) { m_expectedInstance = instance.toUtf8(); }
     // An elapsed bound for one read batch or write (including instance proof).

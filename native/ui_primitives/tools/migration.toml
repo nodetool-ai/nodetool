@@ -125,6 +125,16 @@ qml_callers = []
 replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.EditorButton, Ui.Progress"
 
 [[file]]
+path = "native/timeline/qml/interchange/PremierePanel.qml"
+category = "chrome"
+controls = ["PremiereTransfer", "FileDialog", "Ui.Dialog", "Ui.Text", "Ui.Status", "ScrollView", "Repeater", "Ui.EditorButton", "Rectangle", "Ui.Progress", "Ui.BusyIndicator"]
+signals = []
+test_host = "tst_premiere"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.Status, Ui.EditorButton, Ui.Progress, Ui.BusyIndicator"
+
+[[file]]
 path = "native/timeline/qml/Inspector/AudioEffects.qml"
 category = "chrome"
 controls = ["InspectorSection", "Ui.EditorButton", "Ui.ContextMenu", "Ui.MenuItem", "Ui.Text", "AudioEffectsRow"]
@@ -167,7 +177,7 @@ replacement = "Feature composition through migrated native Ui wrappers"
 [[file]]
 path = "native/timeline/qml/Inspector/AudioGainDialog.qml"
 category = "chrome"
-controls = ["Ui.Dialog", "Ui.Text", "Ui.Select", "Ui.TextField", "Ui.EditorButton"]
+controls = ["Ui.Dialog", "Ui.Text", "Ui.Select", "Ui.TextField", "Ui.EditorButton", "Ui.Progress"]
 signals = []
 test_host = "tst_inspectorsections"
 test_scope = "build/import"
@@ -1303,6 +1313,66 @@ test_host = "tst_assetbrowser"
 test_scope = "build/import"
 qml_callers = ["native/timeline/qml/assets/AssetExplorer.qml", "native/timeline/qml/assets/LibraryActionDialog.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/color/ColorPanel.qml"
+category = "chrome"
+controls = ["Rectangle", "Flickable", "Column", "Row", "Ui.Text", "Ui.ScrollBar", "Ui.EditorButton", "InspectorSection", "InspectorSliderRow", "InspectorToggleRow", "ColorWheel", "FrameImage"]
+signals = []
+test_host = "tst_colorpanel"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/color/ColorWheel.qml"
+category = "chrome"
+controls = ["Canvas", "MouseArea", "Rectangle", "Ui.Text", "Ui.Slider"]
+signals = ["gestureStarted", "gestureCancelled", "patch"]
+test_host = "tst_colorpanel"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/color/ColorPanel.qml"]
+replacement = "A grading wheel over Ui.Slider and Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/color/ScopeTile.qml"
+category = "chrome"
+controls = ["Rectangle", "Canvas", "FrameImage", "Ui.Text"]
+signals = []
+test_host = "tst_colorpanel"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/color/ScopesPanel.qml"]
+replacement = "A scope plate that stays dark in both schemes, as media does"
+
+[[file]]
+path = "native/timeline/qml/color/ScopesPanel.qml"
+category = "chrome"
+controls = ["Rectangle", "Row", "Grid", "Ui.EditorButton", "Ui.Text", "ScopeTile"]
+signals = []
+test_host = "tst_colorpanel"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/audio/AudioPanel.qml"
+category = "chrome"
+controls = ["Ui.EmptyState", "Ui.Progress", "Ui.EditorButton", "Ui.Text", "Ui.Banner", "Ui.ScrollBar", "Ui.NumberField", "InspectorSliderRow", "InspectorSection", "InspectorRow", "InspectorToggleRow", "LoudnessMeterView", "Flickable", "Flow", "Repeater", "Rectangle"]
+signals = []
+test_host = "tst_audiorolesui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.EmptyState, Ui.Progress, Ui.EditorButton, Ui.Text, Ui.Banner, Ui.ScrollBar, Ui.NumberField"
+
+[[file]]
+path = "native/timeline/qml/audio/LoudnessMeterView.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.Status", "Ui.Select", "Ui.EditorButton"]
+signals = []
+test_host = "tst_audiorolesui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/audio/AudioPanel.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.Status, Ui.Select, Ui.EditorButton"
 
 [[file]]
 path = "native/timeline/qml/dock/DockCanvas.qml"
@@ -3090,3 +3160,11 @@ binding = "onDoubleClicked"
 rule = "manual-control"
 owner = "Timeline marker list"
 reason = "Double-clicking a row opens the Edit Marker dialog, with the same pointer area as the single click."
+
+[[exception]]
+path = "native/timeline/qml/color/ColorWheel.qml"
+object = "root/dial/MouseArea[0]"
+binding = "onDoubleClicked"
+rule = "manual-control"
+owner = "Native color grading"
+reason = "A grading wheel resets on double click. No primitive draws a two-axis puck, and the dial also takes arrow keys and Delete."
