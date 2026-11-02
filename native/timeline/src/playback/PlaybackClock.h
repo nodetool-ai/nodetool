@@ -97,6 +97,8 @@ signals:
     void rangeChanged();
     void fpsChanged();
     void playingInToOutChanged();
+    // A drag of the playhead is about to seek. While paused it also plays a burst of audio.
+    void scrubRequested();
 
 private:
     enum class Source { Monotonic, Audio };

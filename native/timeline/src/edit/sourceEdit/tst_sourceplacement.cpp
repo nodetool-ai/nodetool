@@ -70,6 +70,22 @@ private slots:
         QString error;
         QVERIFY(!placeSource(doc, {}, p, &error));
         QVERIFY(!error.isEmpty());
+        // A clip linked to a locked clip counts as locked and stays. An insert into the gap before it fits, and one that would run into it refuses.
+        p.startMs = 1000; const auto fitted = placeSource(doc, {}, p); QVERIFY(fitted);
+        for (const auto& value : fitted->doc.value("clips").toArray()) {
+            if (value.toObject().value("id") == "picture") { QCOMPARE(value.toObject().value("startMs").toDouble(), 5000.0); }
+        }
+        p.startMs = 4000; QVERIFY(!placeSource(doc, {}, p, &error));
+        // A pair across a track with sync lock off is not locked, but it cannot move together, so the ripple refuses.
+        auto unlocked = doc; tracks = unlocked.value("tracks").toArray();
+        locked = tracks[3].toObject(); locked.insert("locked", false); tracks[3] = locked; unlocked.insert("tracks", tracks);
+        nt::targeting::TargetingState syncOff; syncOff.syncLockOffTrackIds.insert("a2");
+        p.startMs = 1000;
+        QVERIFY(!placeSource(unlocked, syncOff, p, &error)); QVERIFY(!error.isEmpty());
+        p.audioTrackId.clear(); QVERIFY(!placeSource(unlocked, syncOff, p, &error));
+        // Nothing after the insert point: nothing has to move.
+        p.startMs = 7000; QVERIFY(placeSource(unlocked, syncOff, p));
+        p.audioTrackId = "a"; p.startMs = 5000;
         // A locked clip under an overwrite refuses the same way.
         auto lockedClip = raw; lockedClip.insert("clips", QJsonArray{
             QJsonObject{{"id", "kept"}, {"trackId", "v"}, {"mediaType", "video"}, {"startMs", 5000}, {"durationMs", 1000}, {"locked", true}}});

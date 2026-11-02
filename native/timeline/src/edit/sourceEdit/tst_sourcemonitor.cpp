@@ -99,6 +99,9 @@ private slots:
         const auto stopped = source->stats().playedFrames; const auto active = audio.engine()->stats().playedFrames;
         QTest::qWait(150); QCOMPARE(source->stats().playedFrames, stopped); QVERIFY(audio.engine()->stats().playedFrames > active);
         monitor.shuttle(1); QVERIFY(!program.playing()); program.shuttle(1); QVERIFY(!monitor.clock()->playing());
+        // A Program scrub sounds while Program is paused, so it stops Source too.
+        program.pause(); monitor.togglePlay(); QVERIFY(monitor.clock()->playing());
+        program.scrub(500); QVERIFY(!monitor.clock()->playing());
         monitor.setProgramClock(nullptr); program.pause(); monitor.shuttle(1); program.play(); QVERIFY(monitor.clock()->playing());
         monitor.pause();
         auto* temporary = new PlaybackClock; monitor.setProgramClock(temporary); delete temporary; monitor.togglePlay(); QVERIFY(monitor.clock()->playing());

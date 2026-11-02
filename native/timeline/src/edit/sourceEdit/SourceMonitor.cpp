@@ -42,6 +42,8 @@ void SourceMonitor::setProgramClock(PlaybackClock* clock) {
                 m_stoppingOther = true; m_clock->shuttleStop(); m_stoppingOther = false;
             }
         });
+        // Program sounds during a scrub without playing, and one monitor owns the sound.
+        connect(clock, &PlaybackClock::scrubRequested, this, [this] { if (m_clock->playing()) { m_clock->shuttleStop(); } });
         connect(clock, &QObject::destroyed, this, &SourceMonitor::programClockChanged);
         if (clock->playing() && m_clock->playing()) { m_clock->shuttleStop(); }
     }
