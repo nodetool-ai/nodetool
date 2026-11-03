@@ -3,6 +3,9 @@
 #include <QtTest>
 #include <cmath>
 #include <numbers>
+#ifdef Q_OS_LINUX
+#include <sys/prctl.h>
+#endif
 using namespace nt;
 using namespace nt::audio;
 namespace {
@@ -61,7 +64,20 @@ private slots:
         }
         QVERIFY(std::abs(peak/hz-1) < .015); QCOMPARE(st.underruns, 0);
         QVERIFY(st.waitBlocks <= 10); // At most 100 ms startup silence with the 480-frame null period.
-        if (keep) QVERIFY(st.shuttleFrames >= st.playedFrames-960);
+        // Only the startup blocks may be silent. Every later frame comes from the stretcher.
+        if (keep) QVERIFY(st.shuttleFrames >= st.playedFrames-st.waitBlocks*480);
+    }
+    // A worker that wakes every 15.6 ms, like one on Windows' default timer tick.
+    void pitchWithCoarseWakes_data() { pitch_data(); }
+    void pitchWithCoarseWakes() {
+#ifdef Q_OS_LINUX
+        const auto before = prctl(PR_GET_TIMERSLACK);
+        QCOMPARE(prctl(PR_SET_TIMERSLACK, 15'600'000UL), 0);
+        const auto restore = qScopeGuard([before] { prctl(PR_SET_TIMERSLACK, static_cast<unsigned long>(before)); });
+        pitch();
+#else
+        QSKIP("The other platforms' timers show this in the pitch cases themselves");
+#endif
     }
     void reverseAndScrub() {
         AudioEngine engine; engine.setTimeline(timeline()); AudioEngine::Options o; o.recordSeconds = 3;

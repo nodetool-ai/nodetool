@@ -333,7 +333,9 @@ private slots:
         for (int i = 1; i <= 6; ++i) { QTest::mouseMove(view.get(), from + (to - from) * i / 6); QCoreApplication::processEvents(); }
         state->markIn(2000);
         QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, to);
-        QTRY_COMPARE(model.undoStack()->count(), 1);
+        QTRY_VERIFY2(model.undoStack()->count() == 1, qPrintable(QString("undo entries %1, last error \"%2\", warning \"%3\", from (%4,%5) to (%6,%7)")
+            .arg(model.undoStack()->count()).arg(state->lastError(), item("assetDropOverlay")->property("warning").toString())
+            .arg(from.x()).arg(from.y()).arg(to.x()).arg(to.y())));
         const auto placed = doc().value("clips").toArray();
         QCOMPARE(gestures()->selection().size(), clips);
         QCOMPARE(placed.size(), beforeClips + clips);

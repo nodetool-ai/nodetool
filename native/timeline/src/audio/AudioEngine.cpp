@@ -580,30 +580,35 @@ struct AudioEngine::Impl {
             shuttleStamp.store(anchor.commandSeq, std::memory_order_release);
         }
         auto write = shuttleWrite.load(std::memory_order_relaxed);
-        const auto readState = shuttleRead.load();
-        const auto read = readState.commandSeq == anchor.commandSeq ? readState.frame : 0;
-        if (read > write) {
-            shuttleSkipped.fetch_add(read - write, std::memory_order_relaxed);
-            write = read;
-            shuttleFirst.store(read, std::memory_order_release);
-            shuttleWrite.store(write, std::memory_order_release);
-        }
         const auto lead = static_cast<std::int64_t>(sampleRate * std::min(.100, .900 / anchor.rate));
         const auto quantum = std::max<std::int64_t>(1, static_cast<std::int64_t>(sampleRate * .010));
-        const auto n = std::min({quantum, std::int64_t(kShuttleMaxRequestFrames), read + lead - write,
-                                 read + shuttleCapacity - write});
-        if (n <= 0) return;
-        ShuttleMixSource source(*this, *current);
-        stretcher->render(source, write, static_cast<int>(n), shuttleOutput.data());
-        // Reads that advanced during synthesis simply discard these late frames
-        // on their next block. Capacity is measured against the older read,
-        // so producing cannot catch and overwrite unread samples.
-        for (std::int64_t i = 0; i < n; ++i) {
-            const auto slot = static_cast<std::size_t>((write + i) & (shuttleCapacity - 1)) * 2;
-            shuttleRing[slot].store(shuttleOutput[2 * i], std::memory_order_relaxed);
-            shuttleRing[slot + 1].store(shuttleOutput[2 * i + 1], std::memory_order_relaxed);
+        // Fill the whole lead on each wake. Wakes can be 15.6 ms apart on Windows
+        // and further on a loaded macOS, so one quantum per wake falls behind the callback.
+        for (;;) {
+            const auto readState = shuttleRead.load();
+            const auto read = readState.commandSeq == anchor.commandSeq ? readState.frame : 0;
+            if (read > write) {
+                shuttleSkipped.fetch_add(read - write, std::memory_order_relaxed);
+                write = read;
+                shuttleFirst.store(read, std::memory_order_release);
+                shuttleWrite.store(write, std::memory_order_release);
+            }
+            const auto n = std::min({quantum, std::int64_t(kShuttleMaxRequestFrames), read + lead - write,
+                                     read + shuttleCapacity - write});
+            if (n <= 0) return;
+            ShuttleMixSource source(*this, *current);
+            stretcher->render(source, write, static_cast<int>(n), shuttleOutput.data());
+            // Reads that advanced during synthesis simply discard these late frames
+            // on their next block. Capacity is measured against the older read,
+            // so producing cannot catch and overwrite unread samples.
+            for (std::int64_t i = 0; i < n; ++i) {
+                const auto slot = static_cast<std::size_t>((write + i) & (shuttleCapacity - 1)) * 2;
+                shuttleRing[slot].store(shuttleOutput[2 * i], std::memory_order_relaxed);
+                shuttleRing[slot + 1].store(shuttleOutput[2 * i + 1], std::memory_order_relaxed);
+            }
+            write += n;
+            shuttleWrite.store(write, std::memory_order_release);
         }
-        shuttleWrite.store(write + n, std::memory_order_release);
     }
 
     std::uint64_t lastScrubArmed = 0;

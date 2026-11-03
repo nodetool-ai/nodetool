@@ -301,12 +301,15 @@ Item {
         QTest::qWait(50);
         auto& cache = nt::ui::MediaPreviewCache::instance();
         const int before = cache.decodeCount();
+        // The real dwell: mount's zero would let a rest on a tile decode before the first scroll step arrives.
+        scrub->setDwellMsForTesting(150);
         // The pointer rests over a video tile while the list scrolls under it.
         QTest::mouseMove(window.get(), QPoint(100, 100));
         QTest::qWait(30);
         auto* grid = view->property("view").value<QQuickItem*>();
         QList<qint64> steps;
         for (int i = 0; i < 40; ++i) {
+            QCoreApplication::processEvents();
             QElapsedTimer timer;
             timer.start();
             grid->setProperty("contentY", i * 60.0);

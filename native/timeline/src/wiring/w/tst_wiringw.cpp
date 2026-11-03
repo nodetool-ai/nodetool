@@ -56,7 +56,7 @@ class TestWiringW : public WiringFixture {
         return nullptr;
     }
     QJsonArray effects(const QString& id = "a") const { return track(id).value("effects").toArray(); }
-    QString effectId(int index = 0) const { return effects()[index].toObject().value("id").toString(); }
+    QString effectId(int index = 0) const { return effects().at(index).toObject().value("id").toString(); }
     void add(const QString& type) { click("fx-add-a"); click("fx-add-type-a-" + type); }
 private slots:
     void initTestCase() {
@@ -207,6 +207,11 @@ private slots:
         QSignalSpy requested(panel, SIGNAL(exportRequested(QVariant)));
         QVERIFY(QMetaObject::invokeMethod(panel, "confirmExport"));
         QCOMPARE(requested.count(), 1);
+        // Without a native file dialog this is a modal popup over the editor, as on any platform's offscreen plugin.
+        auto* saveDialog = object("exportSaveDialog"); QVERIFY(saveDialog);
+        QTRY_VERIFY(saveDialog->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(saveDialog, "close"));
+        QTRY_VERIFY(!saveDialog->property("visible").toBool());
         const auto sent = requested.first().first().toMap();
         QCOMPARE(sent.value("format").toString(), QString("webm"));
         QCOMPARE(sent.value("startMs").toDouble(), 1000.0);
@@ -222,6 +227,9 @@ private slots:
         QCOMPARE(quick.value("width").toInt(), 1080);
         QCOMPARE(quick.value("startMs").toDouble(), 1000.0);
         QCOMPARE(quick.value("endMs").toDouble(), 2500.0);
+        QTRY_VERIFY(saveDialog->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(saveDialog, "close"));
+        QTRY_VERIFY(!saveDialog->property("visible").toBool());
         clock.clearRange();
     }
     void panelPlacement() {

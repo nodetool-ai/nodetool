@@ -758,7 +758,7 @@ Export has no key.
 `--scale-mode`. A cancelled export process exits within `kCancelStopBudgetMs`, enforced by a watchdog in
 `ExportCli.cpp`. The editor waits at most `kShutdownGraceMs` plus 1 s on close.
 
-Tests: `tst_exportdialog`, `tst_exportqueue`, `tst_exportsnapshot`, `export_range`, `export_cancel`,
+Tests: `tst_exportdialog`, `tst_exportqueue`, `tst_exportsnapshot`, `export_range`, `export_range_bitrate`, `export_cancel`,
 `export_controller_cancel`, `export_golden`.
 
 ### Export Frame and Frame Hold

@@ -153,7 +153,12 @@ private slots:
 #endif
         const unsigned self = cpu::currentThread();
         const std::int64_t before = cpu::threadNs(self);
+#ifdef _WIN32
+        // GetThreadTimes moves in 15.6 ms ticks, so a thread that has only just started can read 0.
+        QVERIFY2(before >= 0, qPrintable(QStringLiteral("threadNs = %1").arg(before)));
+#else
         QVERIFY2(before > 0, qPrintable(QStringLiteral("threadNs = %1").arg(before)));
+#endif
         constexpr std::int64_t kWorkNs = 20'000'000;  // 20 ms of CPU time
         const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
         volatile std::uint64_t sink = 0;
