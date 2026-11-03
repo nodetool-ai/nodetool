@@ -173,7 +173,7 @@ std::vector<Group> table() {
                                         {"removeTransition", "Remove Transition", withTransition},
                                         {"applyFades", "Fade In and Out", selection}, {"removeFades", "Remove Fades", withFades}}},
         {"Sequence", "range", 30, {{"liftRange", "Lift", inAndOut}, {"extractRange", "Extract", inAndOut}}},
-        {"Sequence", "zoom", 40, {{"zoomIn", "Zoom In", editor}, {"zoomOut", "Zoom Out", editor}, {"zoomFit", "Zoom to Fit Content", editor}}},
+        {"Sequence", "zoom", 40, {{"zoomIn", "Zoom In", editor}, {"zoomOut", "Zoom Out", editor}, {"zoomFit", "Zoom to Fit Content", editor}, {"zoomSelection", "Zoom to Selection", selection}}},
         {"Sequence", "gap", 50, {{"nextGap", "Next in Sequence", sequenceClips, {}, "Go to Gap"}, {"prevGap", "Previous in Sequence", sequenceClips, {}, "Go to Gap"}}},
         {"Sequence", "tools", 60, {{"selectTool", "Select", editor, toolIs("select"), "Tools"},
                                    {"trackSelectTool", "Track Select Forward", editor, toolIs("trackSelect"), "Tools"},

@@ -159,6 +159,7 @@ A missing item may be out of scope: the issue that adds a feature adds its menu 
 - Sequence > Remove Fades
 - Sequence > Remove Filler Words
 - Sequence > Zoom to Fit Content
+- Sequence > Zoom to Selection
 - Sequence > Tools > Select
 - Sequence > Tools > Track Select Forward
 - Sequence > Tools > Track Select Backward

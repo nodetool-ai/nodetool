@@ -138,7 +138,7 @@ QList<Command> buildAllowed() {
              "nextCutAnyTrack", "goToSequenceStart", "goToSequenceEnd", "nextGap", "prevGap"});
     actions({"goToSelectedStart", "goToSelectedEnd"}, clips);
     // The view.
-    actions({"zoomIn", "zoomOut", "zoomFit", "expandTracks", "shrinkTracks", "expandAllTracks", "minimizeAllTracks", "audioTracksTaller",
+    actions({"zoomIn", "zoomOut", "zoomFit", "zoomSelection", "expandTracks", "shrinkTracks", "expandAllTracks", "minimizeAllTracks", "audioTracksTaller",
              "audioTracksShorter", "toggleTimecodeRuler", "nextPanel", "prevPanel", "toggleLeftPanels", "toggleRightPanels", "toggleDawMode"});
     actions(family("panel", {"Assets", "Source", "Timeline", "Program", "Reference", "Inspector", "Mixer", "Audio", "Script", "Storyboard",
                              "Text", "EffectControls", "Color", "Scopes", "Entities", "Markers", "Assistant", "Activity"}));

@@ -1111,7 +1111,7 @@ private slots:
             "Trim Edit", "Toggle Trim Type", "Exit Trim Mode", "Extend Selected Edit to Playhead", "Extend Previous Edit to Playhead", "Extend Next Edit to Playhead",
             "Ripple Trim Previous Edit to Playhead", "Ripple Trim Next Edit to Playhead", "---",
             "Apply Video Transition", "Apply Audio Transition", "Remove Transition", "Fade In and Out", "Remove Fades", "---",
-            "Lift", "Extract", "---", "Remove Filler Words", "---", "Zoom In", "Zoom Out", "Zoom to Fit Content", "---", "Go to Gap", "---", "Tools", "---",
+            "Lift", "Extract", "---", "Remove Filler Words", "---", "Zoom In", "Zoom Out", "Zoom to Fit Content", "Zoom to Selection", "---", "Go to Gap", "---", "Tools", "---",
             "Snap in Timeline", "Linked Selection"};
         QTest::newRow("view") << "View" << QStringList{"Monitor Display", "Monitor Zoom", "Playback Resolution", "Paused Resolution", "Monitor Overlays", "---",
             "Program Monitor Full Screen", "---", "Timecode Ruler", "Make Tracks Taller", "Make Tracks Shorter", "Expand All Tracks", "Minimize All Tracks",
