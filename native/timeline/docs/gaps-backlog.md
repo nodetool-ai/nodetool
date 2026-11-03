@@ -230,6 +230,7 @@ results rather than a review finding.
 | B82 | F1 merge: panel keys reach the actions while the Timeline tab is hidden | 31bcad2705 |
 | B84 | F1 merge: `maximizePanel` (backtick) and `resetWorkspace` (Alt+Shift+0 in Premiere) have handlers | 31bcad2705 |
 | B85 | A dock group lists hidden tabs in its menu | 937e1162ee |
+| B123 | Volume keys in keys-2, and numeric effect parameters in keys-4. What stays unkeyed is B206, B207 and B208 | 5bd3891453 |
 | B120 | Withdrawn by Astra in rounds 2 and 3. No change needed | 05ef189dbe |
 | B168 | Process note. The selection was rerun on integration at the F13B merge and the final checkpoint | 2bdf596356 |
 | B170 | Process note. The builds were killed, and no source changed | 2bdf596356 |
