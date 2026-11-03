@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
-import "../clipeffects" as Effects
 import "../../motion/controls" as Motion
 import NodeTool.UiPrimitives as Ui
 Column {
@@ -42,5 +41,4 @@ Column {
     }
     TimingSection { width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller; groupMode: true }
     Motion.GroupMotion { width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller }
-    Effects.ClipEffectsList { width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller }
 }

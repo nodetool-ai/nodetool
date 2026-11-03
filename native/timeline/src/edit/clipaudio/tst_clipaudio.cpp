@@ -140,16 +140,20 @@ private slots:
         QVERIFY2(e.object, qPrintable(e.error));
         QVERIFY(QTest::qWaitForWindowExposed(&e.window));
         e.gestures()->setSelection({"c"});
-        QTRY_VERIFY_WITH_TIMEOUT(e.item("audioEffectsSection"), 1000);
-        auto* section = e.item("audioEffectsSection");
-        QVERIFY(e.item("inspectorViewport")->isAncestorOf(section));
         auto* effectControls = e.item("effectControlsPanel"); QVERIFY(effectControls);
-        section->setProperty("open", true);
-        auto* add = findItem(section, "audioEffectsAdd");
-        QVERIFY(add);
-        QVERIFY(QMetaObject::invokeMethod(add, "clicked"));
-        QTRY_VERIFY(section->findChild<QObject*>("audioEffectsAdd-gain"));
-        QVERIFY(QMetaObject::invokeMethod(section->findChild<QObject*>("audioEffectsAdd-gain"), "triggered"));
+        // The Inspector has no add route. The Effects panel does, and Effect Controls edits the result.
+        QVERIFY(!e.item("audioEffectsSection"));
+        e.showPanel("effects");
+        auto* panel = e.item("effectsPanel"); QVERIFY(panel);
+        QTRY_VERIFY(panel->isVisible());
+        QVERIFY(QTest::qWaitForWindowActive(&e.window));
+        QTRY_VERIFY(findItem(panel, "audioEffectsAdd-gain"));
+        auto* add = findItem(panel, "audioEffectsAdd-gain");
+        QTRY_VERIFY(add->isVisible() && add->height() > 0);
+        auto* viewport = findItem(panel, "effectsPanelViewport"); QVERIFY(viewport);
+        viewport->setProperty("contentY", std::max(0.0, viewport->property("contentHeight").toDouble() - viewport->height()));
+        QTest::qWait(50);
+        QTest::mouseDClick(&e.window, Qt::LeftButton, Qt::NoModifier, add->mapToScene({add->width() / 2, add->height() / 2}).toPoint());
         QCOMPARE(e.model.undoStack()->count(), 1);
         auto effects = e.model.clipsJson()[0].toObject()["audioEffects"].toArray();
         QCOMPARE(effects.size(), 1);
@@ -513,8 +517,6 @@ MouseArea { width: 28; height: 28; property int pressCount: 0; onPressed: ++pres
         AudioEditor e(QJsonDocument(raw).toJson());
         QVERIFY2(e.object, qPrintable(e.error));
         e.gestures()->setSelection({"c"});
-        QTRY_VERIFY(e.item("audioEffectsSection"));
-        QTRY_COMPARE_WITH_TIMEOUT(e.item("audioEffectsSection")->isVisible(), sounding, 1000);
         // Effect Controls hosts Volume and the fades for a clip with sound.
         auto* effectControls = e.item("effectControlsPanel"); QVERIFY(effectControls);
         QTRY_COMPARE_WITH_TIMEOUT(findItem(effectControls, "effectControlsGroup_volume") != nullptr, sounding, 1000);

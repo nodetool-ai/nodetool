@@ -96,13 +96,17 @@ struct Editor {
         if (!QTest::qWaitForWindowExposed(&window)) { error = "Offscreen window did not expose"; object.reset(); return; }
         QCoreApplication::processEvents();
         // The dock layout is saved, so a case that showed another panel leaves it in front.
-        if (object && !showPanel("inspector")) { error = "The Inspector did not open"; object.reset(); return; }
+        if (object && !showPanel("effectControls")) { error = "Effect Controls did not open"; object.reset(); return; }
         if (object) { select("picture"); }
     }
     QQuickItem* item(const QString& name) {
         QCoreApplication::processEvents();
         QQuickTest::qWaitForPolish(&window);
         return find(window.contentItem(), name);
+    }
+    // The Color panel holds the same controls by name, in a tab that may be behind this one.
+    QQuickItem* inEffectControls(const QString& name) {
+        return find(item("effectControlsPanel"), name);
     }
     void select(const QString& id) {
         object->findChild<ClipGestureController*>("clipGestures")->setSelection({id});
@@ -157,35 +161,25 @@ struct Editor {
             .arg(itemsAt(window.contentItem(), at).join('\n'));
         QVERIFY2(clicked.count() == 1, qPrintable(diagnostic));
     }
-    // A grade, which the add list leaves to the Color panel, with its row in the Inspector open.
+    // A grade, which the Effects panel leaves to the Color panel.
     bool addGrade(const QString& id, const QJsonObject& grade) {
         auto next = effects();
         auto effect = grade;
         effect.insert("id", id);
         next.append(effect);
-        if (!model.applyEdit("patchClip", {{"clipId", "picture"}, {"patch", QJsonObject{{"effects", next}}}})) { return false; }
-        auto* section = item("clipEffectsList");
-        if (!section || !QMetaObject::invokeMethod(section, "toggled", Q_ARG(bool, true))) { return false; }
-        auto* expand = item("effectsExpand_" + id);
-        if (!expand) { return false; }
-        click(expand);
-        return true;
+        return model.applyEdit("patchClip", {{"clipId", "picture"}, {"patch", QJsonObject{{"effects", next}}}}) != 0;
     }
+    // Through the panel, as a person does it: a double-click on its row.
     bool add(const QString& type) {
-        auto* section = item("clipEffectsList");
-        if (!section) { return false; }
-        if (!QMetaObject::invokeMethod(section, "toggled", Q_ARG(bool, true))) { return false; }
-        auto* add = item("effectsAdd");
-        if (!add) { return false; }
-        click(add);
-        QQuickTest::qWaitForPolish(&window);
-        if (!QTest::qWaitFor([&] { return item("effectsAdd_"+type) != nullptr; })) { return false; }
-        auto* button = item("effectsAdd_"+type);
-        if (!button) { return false; }
-        // The popover owns its own visual parent, outside the Flickable.
-        QTest::mouseClick(&window,Qt::LeftButton,Qt::NoModifier,
-            button->mapToScene(QPointF(button->width()/2,button->height()/2)).toPoint());
+        if (!showPanel("effects")) { return false; }
+        if (!QTest::qWaitFor([&] { auto* row = item("effectsAdd_"+type); return row && row->isVisible(); })) { return false; }
+        auto* row = item("effectsAdd_"+type);
+        reveal(row);
+        window.requestActivate();
+        if (!QTest::qWaitForWindowActive(&window)) { return false; }
+        QTest::mouseDClick(&window,Qt::LeftButton,Qt::NoModifier,row->mapToScene(QPointF(row->width()/2,row->height()/2)).toPoint());
         QCoreApplication::processEvents();
+        QQuickTest::qWaitForPolish(&window);
         return true;
     }
     void patch(const QJsonObject& patch) {
@@ -299,15 +293,10 @@ void TestClipEffects::analysisLifecycle() {
 void TestClipEffects::registration() {
         InspectorSectionRegistry registry;
         const auto sections = registry.sections();
-        // The Color panel owns the grades, so the Inspector has no Color section.
-        QVERIFY(std::none_of(sections.begin(), sections.end(), [](const QVariant& entry) { return entry.toMap()["id"] == "color"; }));
-        for (const auto& expected : {QPair<QString,int>{"effects",60}}) {
-            bool found = false;
-            for (const auto& entry : sections) {
-                const auto section = entry.toMap();
-                if (section["id"] == expected.first) { QCOMPARE(section["order"].toInt(),expected.second); found = true; }
-            }
-            QVERIFY2(found,qPrintable("Missing Inspector section: " + expected.first));
+        // The Color panel owns the grades and the Effects panel adds the rest, so the Inspector has neither section.
+        QVERIFY(!sections.isEmpty());
+        for (const auto* id : {"color", "effects", "audioEffects"}) {
+            QVERIFY2(std::none_of(sections.begin(), sections.end(), [&](const QVariant& entry) { return entry.toMap()["id"].toString() == id; }), id);
         }
     }
 
@@ -324,9 +313,7 @@ void TestClipEffects::listActionsAndParameterGesture_data() {
 
 void TestClipEffects::gradesAreNotAddable() {
         Editor e; QVERIFY2(e.object,qPrintable(e.error));
-        auto* section = e.item("clipEffectsList"); QVERIFY(section);
-        QVERIFY(QMetaObject::invokeMethod(section, "toggled", Q_ARG(bool, true)));
-        auto* add = e.item("effectsAdd"); QVERIFY(add); e.click(add);
+        QVERIFY(e.showPanel("effects"));
         QVERIFY(QTest::qWaitFor([&] { return e.item("effectsAdd_blur") != nullptr; }));
         for (const auto* type : {"color", "curves", "liftGammaGain", "vignette"}) {
             QVERIFY2(!e.item("effectsAdd_" + QString::fromLatin1(type)), type);
@@ -436,7 +423,7 @@ void TestClipEffects::listActionsAndParameterGesture() {
         Editor e; QVERIFY2(e.object,qPrintable(e.error));
         QFETCH(int, scrollBarWidth);
         if (scrollBarWidth > 0) {
-            auto* scrollBar = e.item("inspectorScrollBar"); QVERIFY(scrollBar);
+            auto* scrollBar = e.item("effectControlsRowsScroll"); QVERIFY(scrollBar);
             scrollBar->setProperty("implicitWidth", scrollBarWidth);
             scrollBar->setWidth(scrollBarWidth);
             scrollBar->setProperty("policy", 2); // ScrollBar.AlwaysOn
@@ -448,9 +435,8 @@ void TestClipEffects::listActionsAndParameterGesture() {
             QJsonObject{{"id","inspector:color"},{"type","color"},{"enabled",true},{"contrast",1.3}},
             QJsonObject{{"id","future"},{"type","futureEffect"},{"enabled",true},{"opaque",QJsonObject{{"x",7}}}},
             QJsonObject{{"id","b"},{"type","vignette"},{"enabled",false},{"amount",0.4},{"softness",0.5}}}}});
-        auto* section = e.item("clipEffectsList"); QVERIFY(section);
-        QVERIFY(QMetaObject::invokeMethod(section, "toggled", Q_ARG(bool, true)));
-        QVERIFY(!e.item("effectRow_inspector:color"));
+        QVERIFY(QTest::qWaitFor([&] { return e.item("effectControlsGroup_effect:inspector:color") != nullptr; }));
+        QVERIFY(!e.item("effectsReorder_inspector:color")->isVisible());
         const auto before = e.model.documentJson();
         auto* reorder = e.item("effectsReorder_a"); QVERIFY(reorder); reorder->forceActiveFocus();
         QTest::keyClick(&e.window,Qt::Key_Down,Qt::AltModifier);
@@ -460,9 +446,8 @@ void TestClipEffects::listActionsAndParameterGesture() {
         QCOMPARE(e.model.undoStack()->count(),1);
         const auto moved = e.model.documentJson(); e.model.undoStack()->undo(); QCOMPARE(e.model.documentJson(),before);
         e.model.undoStack()->redo(); QCOMPARE(e.model.documentJson(),moved);
-        auto* enabled = e.item("effectsEnabled_b"); QVERIFY(enabled); e.click(enabled);
+        auto* enabled = e.item("effectControlsEnable_effect:b"); QVERIFY(enabled); e.click(enabled);
         QCOMPARE(e.effects()[3].toObject()["enabled"].toBool(),true); QCOMPARE(e.model.undoStack()->count(),2);
-        auto* expand = e.item("effectsExpand_a"); QVERIFY(expand); e.click(expand);
         auto* radius = e.item("effects_a_radius"); QVERIFY(radius);
         QVERIFY(QMetaObject::invokeMethod(radius,"gestureStarted"));
         QVERIFY(number(radius,"preview",10)); QVERIFY(number(radius,"preview",12.5));
@@ -536,9 +521,6 @@ void TestClipEffects::importedColorInstance() {
     const QJsonObject first{{"id", "first"}, {"type", "color"}, {"enabled", true}, {"brightness", 0.1}};
     const QJsonObject second{{"id", "second"}, {"type", "color"}, {"enabled", true}, {"brightness", -0.1}, {"custom", "keep"}};
     e.patch({{"effects", QJsonArray{first, second}}});
-    auto* section = e.item("clipEffectsList"); QVERIFY(section);
-    QVERIFY(QMetaObject::invokeMethod(section, "toggled", Q_ARG(bool, true)));
-    auto* expand = e.item("effectsExpand_second"); QVERIFY(expand); e.click(expand);
     auto* brightness = e.item("effects_second_brightness"); QVERIFY(brightness);
     const auto before = e.model.documentJson();
     QVERIFY(QMetaObject::invokeMethod(brightness, "gestureStarted"));
@@ -596,8 +578,9 @@ void TestClipEffects::fixedProcessingStages() {
         QJsonObject{{"id","v"},{"type","vignette"},{"enabled",true},{"amount",0.5}}
     }}});
     const auto before=e.model.documentJson();
-    QVERIFY(QMetaObject::invokeMethod(e.item("clipEffectsList"),"toggled",Q_ARG(bool,true)));
-    auto* v=e.item("effectRow_v"); auto* color=e.item("effectRow_color"); auto* blur=e.item("effectRow_blur");
+    QVERIFY(QTest::qWaitFor([&] { return e.item("effectControlsGroup_effect:blur") != nullptr; }));
+    QQuickTest::qWaitForPolish(&e.window);
+    auto* v=e.item("effectControlsGroup_effect:v")->parentItem(); auto* color=e.item("effectControlsGroup_effect:color")->parentItem(); auto* blur=e.item("effectControlsGroup_effect:blur")->parentItem();
     QVERIFY(v && color && blur);
     QVERIFY(v->y()<color->y()); QVERIFY(color->y()<blur->y());
     QVERIFY(e.item("effectsReorder_v")->isVisible());
@@ -649,7 +632,7 @@ void TestClipEffects::secondaryColorEditing() {
 
 void TestClipEffects::curvePointEditing() {
         Editor e; QVERIFY2(e.object,qPrintable(e.error)); QVERIFY(e.addGrade("curve",identityCurves()));
-        auto* graph = e.item("toneCurveGraph"); QVERIFY(graph); e.reveal(graph);
+        auto* graph = e.inEffectControls("toneCurveGraph"); QVERIFY(graph); e.reveal(graph);
         const auto before = e.model.documentJson();
         const auto pointAt = [&](double x,double y) { return graph->mapToScene({x*graph->width(),(1-y)*graph->height()}).toPoint(); };
         QTest::mouseClick(&e.window,Qt::LeftButton,Qt::NoModifier,pointAt(0.5,0.7));
@@ -669,17 +652,17 @@ void TestClipEffects::curvePointEditing() {
         QVERIFY(qAbs(points[1].toObject()["y"].toDouble()-0.85)<0.01);
         e.model.undoStack()->undo(); QCOMPARE(e.model.documentJson(),added);
         e.model.undoStack()->redo(); QCOMPARE(e.model.documentJson(),dragged);
-        auto* point = e.item("toneCurvePoint_1"); QVERIFY(point); point->forceActiveFocus();
+        auto* point = e.inEffectControls("toneCurvePoint_1"); QVERIFY(point); point->forceActiveFocus();
         QTest::keyClick(&e.window,Qt::Key_Left,Qt::ShiftModifier); QCOMPARE(e.model.undoStack()->count(),4);
         QVERIFY(qAbs(e.effects()[0].toObject()["master"].toArray()[1].toObject()["x"].toDouble()-0.6)<0.01);
         QTest::keyClick(&e.window,Qt::Key_Delete); QCOMPARE(e.model.undoStack()->count(),5);
         QCOMPARE(e.effects()[0].toObject()["master"].toArray().size(),2);
         e.model.undoStack()->undo(); QCOMPARE(e.effects()[0].toObject()["master"].toArray().size(),3);
-        auto* reset = e.item("toneCurveReset"); QVERIFY(reset); e.click(reset);
+        auto* reset = e.inEffectControls("toneCurveReset"); QVERIFY(reset); e.click(reset);
         QCOMPARE(e.effects()[0].toObject()["master"],QJsonValue(QJsonArray{QJsonObject{{"x",0},{"y",0}},QJsonObject{{"x",1},{"y",1}}}));
         e.model.undoStack()->undo(); QVERIFY(e.effects()[0].toObject()["master"].toArray().size()==3);
         // RGB reset removes the optional channel, rather than writing null or identity.
-        auto* red = e.item("toneCurveChannel_r"); QVERIFY(red); e.click(red); e.reveal(graph);
+        auto* red = e.inEffectControls("toneCurveChannel_r"); QVERIFY(red); e.click(red); e.reveal(graph);
         QTest::mouseClick(&e.window,Qt::LeftButton,Qt::NoModifier,pointAt(0.5,0.4));
         QVERIFY(e.effects()[0].toObject().contains("r")); e.click(reset);
         QVERIFY(!e.effects()[0].toObject().contains("r"));
@@ -714,12 +697,13 @@ void TestClipEffects::cancellationLocksAndPlayhead() {
 
 void TestClipEffects::groupSections() {
         Editor e; QVERIFY2(e.object,qPrintable(e.error)); e.patch({{"mediaType","group"}});
+        QVERIFY(e.showPanel("inspector"));
         auto* panel = e.item("clipGroupPanel"); QVERIFY(panel); QVERIFY(panel->isVisible());
         // The Color panel grades a group, in place of the web's Color section in ClipGroupPanel.
         QVERIFY(!find(panel,"clipAdjustments"));
-        auto* effects = find(panel,"clipEffectsList");
-        QVERIFY2(effects,"Group clips need the same Effects section as web ClipGroupPanel");
-        QVERIFY(effects->isVisible());
+        // Effect Controls lists a group's effects, in place of the web's Effects section in ClipGroupPanel.
+        QVERIFY(!find(panel,"clipEffectsList"));
+        QVERIFY(QTest::qWaitFor([&] { return e.item("effectControlsGroup_motion") != nullptr; }));
         QVERIFY(e.showPanel("color"));
         auto* color = e.item("colorBasicSection");
         QVERIFY(color); QTRY_VERIFY(color->isVisible()); QVERIFY(toggle(color,"checkedChangedByUser",true));
@@ -770,15 +754,19 @@ int main(int argc, char** argv) {
 
 void TestClipEffects::foldsAndSearch() {
     Editor e; QVERIFY2(e.object,qPrintable(e.error));
-    auto* list = e.item("clipEffectsList"); QVERIFY(list);
-    QVERIFY(QMetaObject::invokeMethod(list,"toggled",Q_ARG(bool,true)));
-    QCOMPARE(list->property("open").toBool(),true);
+    const auto cornersOpen = [](Editor& editor) { return editor.item("effectControlsCollapse_borderRadius")->property("iconName").toString() == "arrowDropDown"; };
+    QVERIFY(QTest::qWaitFor([&] { return e.item("effectControlsCollapse_borderRadius") != nullptr; }));
+    QVERIFY(!cornersOpen(e));
+    e.click(e.item("effectControlsCollapse_borderRadius"));
+    QVERIFY(cornersOpen(e));
     e.patch({{"mediaType","group"}});
-    auto* groupList = find(e.item("clipGroupPanel"),"clipEffectsList"); QVERIFY(groupList);
-    QCOMPARE(groupList->property("open").toBool(),true);
+    QVERIFY(QTest::qWaitFor([&] { return e.item("effectControlsCollapse_borderRadius") != nullptr && cornersOpen(e); }));
     e.patch({{"mediaType","image"}});
-    Editor restored; QVERIFY(restored.object); QCOMPARE(restored.item("clipEffectsList")->property("open").toBool(),true);
-    auto* add = restored.item("effectsAdd"); QVERIFY(add); restored.click(add);
+    Editor restored; QVERIFY(restored.object);
+    QVERIFY(QTest::qWaitFor([&] { return restored.item("effectControlsCollapse_borderRadius") != nullptr; }));
+    QVERIFY(cornersOpen(restored));
+    restored.click(restored.item("effectControlsCollapse_borderRadius"));
+    QVERIFY(restored.showPanel("effects"));
     QQuickTest::qWaitForPolish(&restored.window);
     auto* search = restored.item("effectsSearch"); QVERIFY(search); search->forceActiveFocus();
     for (const char key : QByteArray("gRAin")) { QTest::keyClick(&restored.window,key); }
@@ -786,7 +774,8 @@ void TestClipEffects::foldsAndSearch() {
     QVERIFY(restored.item("effectsAdd_grain")); QVERIFY(!restored.item("effectsAdd_blur"));
     QCOMPARE(restored.model.undoStack()->count(),0);
     auto* grain = restored.item("effectsAdd_grain");
-    QTest::mouseClick(&restored.window,Qt::LeftButton,Qt::NoModifier,grain->mapToScene({grain->width()/2,grain->height()/2}).toPoint());
+    QTest::mouseDClick(&restored.window,Qt::LeftButton,Qt::NoModifier,grain->mapToScene({grain->width()/2,grain->height()/2}).toPoint());
+    QCoreApplication::processEvents();
     QCOMPARE(restored.effects().size(),1); QCOMPARE(restored.effects()[0].toObject()["type"].toString(),QString("grain"));
     QCOMPARE(restored.model.undoStack()->count(),1);
 }
@@ -825,11 +814,13 @@ void TestClipEffects::dragReorder() {
         QJsonObject{{"id","a"},{"type","glow"},{"enabled",true},{"radius",8},{"intensity",1}},owned,
         QJsonObject{{"id","b"},{"type","vignette"},{"enabled",true},{"amount",0.4},{"softness",0.5}},
         QJsonObject{{"id","c"},{"type","grain"},{"enabled",true},{"amount",0.25}}}}});
-    auto* section = e.item("clipEffectsList"); QVERIFY(section); section->setProperty("open",true);
+    QVERIFY(QTest::qWaitFor([&] { return e.item("effectsReorder_a") != nullptr; }));
+    QQuickTest::qWaitForPolish(&e.window);
     auto* handle = e.item("effectsReorder_a"); QVERIFY(handle); e.reveal(handle);
-    auto* target = e.item("effectsExpand_c"); QVERIFY(target);
+    auto* target = e.item("effectControlsGroup_effect:c"); QVERIFY(target);
     const auto start = handle->mapToScene({handle->width()/2,handle->height()/2}).toPoint();
-    const auto end = target->mapToScene({target->width()/2,target->height()/2}).toPoint();
+    // Past the heading: the drag's threshold leaves the proxy behind the pointer, and the whole group takes a drop.
+    const auto end = target->mapToScene({target->width()/2,target->height()+20}).toPoint();
     const auto before = e.model.documentJson();
     QTest::mousePress(&e.window,Qt::LeftButton,Qt::NoModifier,start);
     QTest::mouseMove(&e.window,start+QPoint(0,15)); QTest::mouseMove(&e.window,end);
@@ -844,13 +835,17 @@ void TestClipEffects::dragReorder() {
 
 void TestClipEffects::collapsedRowsReleaseSpace() {
     Editor e; QVERIFY2(e.object,qPrintable(e.error)); QVERIFY(e.addGrade("curve",identityCurves()));
-    const auto curvesId = e.effects()[0].toObject()["id"].toString();
-    auto* curveRow = e.item("effectRow_"+curvesId); QVERIFY(curveRow);
-    QQuickTest::qWaitForPolish(&e.window); QVERIFY(curveRow->height()>300);
+    QVERIFY(QTest::qWaitFor([&] { return e.item("effectControlsGroup_effect:curve") != nullptr; }));
     QVERIFY(e.add("glow")); QQuickTest::qWaitForPolish(&e.window);
-    QVERIFY2(curveRow->height()<80,"Collapsed Curves row retains the tone graph's height");
-    const auto vignetteId = e.effects()[1].toObject()["id"].toString();
-    auto* vignetteRow = e.item("effectRow_"+vignetteId); QVERIFY(vignetteRow);
-    QVERIFY(vignetteRow->y()-curveRow->y()<80);
+    const auto glowId = e.effects()[1].toObject()["id"].toString();
+    QVERIFY(QTest::qWaitFor([&] { return e.item("effectControlsGroup_effect:" + glowId) != nullptr; }));
+    auto* curveHeading = e.item("effectControlsGroup_effect:curve"); QVERIFY(curveHeading);
+    auto* glowHeading = e.item("effectControlsGroup_effect:" + glowId); QVERIFY(glowHeading);
+    QQuickTest::qWaitForPolish(&e.window);
+    const auto gap = [&] { return glowHeading->mapToScene({}).y() - curveHeading->mapToScene({}).y(); };
+    QVERIFY2(gap() > 300, "The open Curves group holds the tone graph");
+    e.click(e.item("effectControlsCollapse_effect:curve"));
+    QQuickTest::qWaitForPolish(&e.window);
+    QVERIFY2(gap() < 80, "A collapsed Curves group retains the tone graph's height");
 }
 #include "tst_clipeffects.moc"

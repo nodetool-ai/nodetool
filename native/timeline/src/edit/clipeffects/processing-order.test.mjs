@@ -22,7 +22,7 @@ function editor() {
 test("fixed color and blur stages follow the ordered clip effects", () => {
   const state = editor();
   const ids = JSON.parse(vm.runInContext("JSON.stringify(orderedEffects().map(effect => effect.id))", state));
-  assert.deepEqual(ids, ["a", "b", "color", "blur"]);
+  assert.deepEqual(ids, ["a", "b", "color", "inspector:color", "blur"]);
   assert.equal(state.effects[0].id, "blur", "Displaying stages does not rewrite the document");
 });
 

@@ -77,7 +77,7 @@ Rectangle {
     // The group list changes only with these ids, which keeps the rows and any drag alive
     // while a value previews.
     readonly property string groupIdentity: {
-        const visual = (clipData.effects || []).map(effect => effect.id)
+        const visual = effectEdits.orderedEffects().map(effect => effect.id)
         const sound = (clipData.audioEffects || []).map(effect => effect.id)
         return JSON.stringify([clipData.id || "", clipData.mediaType || "", visual, sound])
     }
@@ -85,7 +85,7 @@ Rectangle {
     property var groups: []
     onGroupIdentityChanged: syncGroups()
     function syncGroups() {
-        groups = !hasClip ? [] : Model.groups(clipData, inspector.rows, clipData.effects || [], clipData.audioEffects || [], ownSections)
+        groups = !hasClip ? [] : Model.groups(clipData, inspector.rows, effectEdits.orderedEffects(), clipData.audioEffects || [], ownSections)
         if (gestures && Model.rowIds(groups).indexOf(gestures.keyframeRow) < 0) {
             const ids = Model.rowIds(groups)
             if (ids.length) gestures.keyframeRow = ids[0]
@@ -383,6 +383,23 @@ Rectangle {
                         width: rowsColumn.width
                         panel: root
                         group: modelData
+                    }
+                }
+                Item {
+                    width: rowsColumn.width
+                    height: addEffect.height + 2 * Ui.Metrics.sm
+                    Ui.EditorButton {
+                        id: addEffect
+                        objectName: "effectControlsAddEffect"
+                        x: Ui.Metrics.md
+                        y: Ui.Metrics.sm
+                        text: "Add an effect"
+                        iconName: "add"
+                        density: Ui.EditorButton.Compact
+                        variant: Ui.EditorButton.Flat
+                        accessibleName: "Add an effect from the Effects panel"
+                        description: accessibleName
+                        onClicked: root.revealPanel("effects")
                     }
                 }
             }

@@ -34,6 +34,54 @@ QQuickItem* named(QQuickItem* root, const QString& name) {
     }
     return nullptr;
 }
+// An editor with two pictures and a sound, and the panels as the app registers them.
+struct PanelEditor {
+    TimelineModel model;
+    PlaybackClock clock;
+    QQmlEngine engine;
+    QQuickWindow window;
+    std::unique_ptr<QObject> editor;
+    QString error;
+    PanelEditor() {
+        auto parsed = nt::parseTimelineJson(R"({"name":"Panels","width":640,"height":360,"fps":30,"durationMs":10000,
+            "tracks":[{"id":"v","name":"Video","type":"video","index":0},{"id":"a","name":"Audio","type":"audio","index":1}],
+            "clips":[{"id":"picture","name":"Shot 12","trackId":"v","mediaType":"video","startMs":0,"durationMs":4000,"width":1920,"height":1080,"currentAssetId":"asset-12",
+                      "effects":[{"id":"glow","type":"glow","enabled":true,"radius":8,"intensity":1},{"id":"curve","type":"curves","enabled":true,"master":[{"x":0,"y":0},{"x":1,"y":1}]}]},
+                     {"id":"sound","name":"Line 4","trackId":"a","mediaType":"audio","startMs":0,"durationMs":4000,"volumeDb":-6,
+                      "audioEffects":[{"id":"g","type":"gain","enabled":true,"gainDb":0}]},
+                     {"id":"second","name":"Second","trackId":"v","mediaType":"image","startMs":4000,"durationMs":3000,"width":640,"height":360}]})");
+        if (!parsed.timeline) { error = "Invalid test document"; return; }
+        model.setTimeline(std::move(*parsed.timeline));
+        window.resize(1800, 1100);
+        QQmlComponent component(&engine);
+        component.loadFromModule("NodeTool.Timeline", "TimelineEditor");
+        if (!component.isReady()) { error = component.errorString(); return; }
+        editor.reset(component.createWithInitialProperties({
+            {"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)},
+            {"width", 1800}, {"height", 1100}}));
+        error = component.errorString();
+        if (!editor) { return; }
+        root()->setParentItem(window.contentItem());
+        window.show();
+    }
+    QQuickItem* root() const { return qobject_cast<QQuickItem*>(editor.get()); }
+    ClipGestureController* gestures() const { return editor->findChild<ClipGestureController*>("clipGestures"); }
+    DockLayoutStore* store() const { return qobject_cast<DockLayoutStore*>(editor->property("dockStore").value<QObject*>()); }
+    bool show(const QString& panel) {
+        QVariant shown;
+        return QMetaObject::invokeMethod(editor.get(), "focusPanel", Q_RETURN_ARG(QVariant, shown), Q_ARG(QVariant, panel)) && shown.toBool();
+    }
+    QPoint center(QQuickItem* item) const { return item->mapToScene({item->width() / 2, item->height() / 2}).toPoint(); }
+    // NT_PANEL_SCREENSHOTS saves a panel as the person sees it, for a review by eye.
+    bool grab(QQuickItem* panel, const QString& name) {
+        const auto folder = qEnvironmentVariable("NT_PANEL_SCREENSHOTS");
+        if (folder.isEmpty()) { return true; }
+        QCoreApplication::processEvents();
+        QTest::qWait(100);
+        const auto area = panel->mapRectToScene(QRectF(0, 0, panel->width(), panel->height())).toRect();
+        return window.grabWindow().copy(area).save(folder + "/" + name + ".png");
+    }
+};
 }
 class TestDockUi : public QObject {
     Q_OBJECT
@@ -46,46 +94,16 @@ private slots:
     }
     // The real registrations, so one test sees every panel and which of them holds which control.
     void panelsOfASelectedClip() {
-        TimelineModel model;
-        auto parsed = nt::parseTimelineJson(R"({"name":"Panels","width":640,"height":360,"fps":30,"durationMs":10000,
-            "tracks":[{"id":"v","name":"Video","type":"video","index":0},{"id":"a","name":"Audio","type":"audio","index":1}],
-            "clips":[{"id":"picture","name":"Shot 12","trackId":"v","mediaType":"video","startMs":0,"durationMs":4000,"width":1920,"height":1080,"currentAssetId":"asset-12",
-                      "effects":[{"id":"glow","type":"glow","enabled":true,"radius":8,"intensity":1},{"id":"curve","type":"curves","enabled":true,"master":[{"x":0,"y":0},{"x":1,"y":1}]}]},
-                     {"id":"sound","name":"Line 4","trackId":"a","mediaType":"audio","startMs":0,"durationMs":4000,"volumeDb":-6,
-                      "audioEffects":[{"id":"g","type":"gain","enabled":true,"gainDb":0}]}]})");
-        QVERIFY(parsed.timeline);
-        model.setTimeline(std::move(*parsed.timeline));
-        PlaybackClock clock;
-        QQmlEngine engine;
-        QQuickWindow window;
-        window.resize(1800, 1100);
-        QQmlComponent component(&engine);
-        component.loadFromModule("NodeTool.Timeline", "TimelineEditor");
-        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
-        std::unique_ptr<QObject> editor(component.createWithInitialProperties({
-            {"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)},
-            {"width", 1800}, {"height", 1100}}));
-        QVERIFY2(editor, qPrintable(component.errorString()));
-        auto* root = qobject_cast<QQuickItem*>(editor.get());
-        root->setParentItem(window.contentItem());
-        window.show();
-        QVERIFY(QTest::qWaitForWindowExposed(&window));
-        auto* gestures = editor->findChild<ClipGestureController*>("clipGestures");
+        PanelEditor e;
+        QVERIFY2(e.editor, qPrintable(e.error));
+        QVERIFY(QTest::qWaitForWindowExposed(&e.window));
+        auto* root = e.root();
+        auto* gestures = e.gestures();
         QVERIFY(gestures);
-        auto* store = qobject_cast<DockLayoutStore*>(editor->property("dockStore").value<QObject*>());
+        auto* store = e.store();
         QVERIFY(store);
-        const auto show = [&](const QString& panel) {
-            QVariant shown;
-            return QMetaObject::invokeMethod(editor.get(), "focusPanel", Q_RETURN_ARG(QVariant, shown), Q_ARG(QVariant, panel)) && shown.toBool();
-        };
-        const auto grab = [&](QQuickItem* panel, const QString& name) {
-            const auto folder = qEnvironmentVariable("NT_PANEL_SCREENSHOTS");
-            if (folder.isEmpty()) { return true; }
-            QCoreApplication::processEvents();
-            QTest::qWait(100);
-            const auto area = panel->mapRectToScene(QRectF(0, 0, panel->width(), panel->height())).toRect();
-            return window.grabWindow().copy(area).save(folder + "/" + name + ".png");
-        };
+        const auto show = [&](const QString& panel) { return e.show(panel); };
+        const auto grab = [&](QQuickItem* panel, const QString& name) { return e.grab(panel, name); };
         // Effect Controls is a tab right after the Inspector, which stays in front.
         const auto rightTabs = store->layout().value("regions").toMap().value("right").toList().first().toMap().value("panels").toStringList();
         QCOMPARE(rightTabs.at(rightTabs.indexOf("inspector") + 1), QString("effectControls"));
@@ -125,6 +143,160 @@ private slots:
         QVERIFY(!named(effectControls, "effectControlsGroup_motion"));
         QVERIFY(grab(effectControls, "effect-controls-audio-clip"));
         QVERIFY(show("inspector"));
+    }
+    void effectsPanelIsTabbedWithTheLibrary() {
+        PanelEditor e;
+        QVERIFY2(e.editor, qPrintable(e.error));
+        QVERIFY(QTest::qWaitForWindowExposed(&e.window));
+        const auto left = e.store()->layout().value("regions").toMap().value("left").toList().first().toMap();
+        const auto tabs = left.value("panels").toStringList();
+        QCOMPARE(tabs.at(tabs.indexOf("assets") + 1), QString("effects"));
+        // It does not take the place of the tab that opens first.
+        QCOMPARE(left.value("activePanelId").toString(), QString("transcript"));
+        QVERIFY(!e.store()->layout().value("hidden").toStringList().contains("effects"));
+        QTRY_VERIFY(!named(e.root(), "effectsPanel")->isVisible());
+    }
+    void effectsPanelSaysWhyNothingHappened() {
+        PanelEditor e;
+        QVERIFY2(e.editor, qPrintable(e.error));
+        QVERIFY(QTest::qWaitForWindowExposed(&e.window));
+        QVERIFY(QTest::qWaitForWindowActive(&e.window));
+        QVERIFY(e.show("effects"));
+        auto* panel = named(e.root(), "effectsPanel");
+        QTRY_VERIFY(panel->isVisible());
+        auto* blur = named(panel, "effectsAdd_blur"); QVERIFY(blur);
+        auto* gain = named(panel, "audioEffectsAdd-gain"); QVERIFY(gain);
+        auto* status = named(panel, "effectsPanelStatus"); QVERIFY(status);
+        QVERIFY(e.grab(panel, "effects-panel"));
+        const auto before = e.model.documentJson();
+        QCOMPARE(blur->property("reason").toString(), QString("Select a clip on the timeline first."));
+        QTest::mouseDClick(&e.window, Qt::LeftButton, Qt::NoModifier, e.center(blur));
+        QTRY_COMPARE(status->property("text").toString(), QString("Select a clip on the timeline first."));
+        QCOMPARE(e.model.documentJson(), before);
+        e.gestures()->setSelection({"sound"});
+        QTRY_COMPARE(blur->property("reason").toString(), QString("Select a video, image or text clip for this effect."));
+        QCOMPARE(gain->property("reason").toString(), QString());
+        e.gestures()->setSelection({"picture"});
+        QTRY_COMPARE(gain->property("reason").toString(), QString("Select an audio clip for this effect."));
+        QCOMPARE(blur->property("reason").toString(), QString());
+        QVERIFY(e.model.applyEdit("patchClip", {{"clipId", "picture"}, {"patch", QJsonObject{{"locked", true}}}}));
+        QTRY_COMPARE(blur->property("reason").toString(), QString("Unlock the clip or its track first."));
+    }
+    void effectsPanelAddsToTheSelectionInOneStep() {
+        PanelEditor e;
+        QVERIFY2(e.editor, qPrintable(e.error));
+        QVERIFY(QTest::qWaitForWindowExposed(&e.window));
+        QVERIFY(QTest::qWaitForWindowActive(&e.window));
+        QVERIFY(e.show("effects"));
+        auto* panel = named(e.root(), "effectsPanel");
+        QTRY_VERIFY(panel->isVisible());
+        const auto effects = [&](const QString& id, const char* field = "effects") {
+            for (const auto& value : e.model.clipsJson()) {
+                if (value.toObject()["id"] == id) { return value.toObject()[QLatin1String(field)].toArray(); }
+            }
+            return QJsonArray{};
+        };
+        // Selected: two pictures and a sound. The picture effect reaches only the pictures.
+        e.gestures()->setSelection({"picture", "second", "sound"});
+        auto* blur = named(panel, "effectsAdd_blur"); QVERIFY(blur);
+        QTRY_COMPARE(blur->property("reason").toString(), QString());
+        const auto before = e.model.documentJson();
+        const auto count = e.model.undoStack()->count();
+        QTest::mouseDClick(&e.window, Qt::LeftButton, Qt::NoModifier, e.center(blur));
+        QTRY_COMPARE(effects("picture").size(), 3);
+        QCOMPARE(effects("second").size(), 1);
+        QCOMPARE(effects("second")[0].toObject()["type"].toString(), QString("blur"));
+        QVERIFY(effects("picture")[2].toObject()["id"] != effects("second")[0].toObject()["id"]);
+        QCOMPARE(effects("sound").size(), 0);
+        QCOMPARE(e.model.undoStack()->count(), count + 1);
+        e.model.undoStack()->undo();
+        QCOMPARE(e.model.documentJson(), before);
+        // A sound effect takes the C++ defaults of addClipAudioEffect.
+        auto* gain = named(panel, "audioEffectsAdd-gain"); QVERIFY(gain);
+        QTest::mouseDClick(&e.window, Qt::LeftButton, Qt::NoModifier, e.center(gain));
+        QTRY_COMPARE(effects("sound", "audioEffects").size(), 2);
+        QCOMPARE(effects("sound", "audioEffects")[1].toObject()["gainDb"].toDouble(), 0.0);
+        QCOMPARE(effects("picture", "audioEffects").size(), 0);
+        QCOMPARE(e.model.undoStack()->count(), count + 1);
+        e.model.undoStack()->undo();
+        QCOMPARE(e.model.documentJson(), before);
+        // Effect Controls lists what was added, once a single clip is selected.
+        e.gestures()->setSelection({"second"});
+        QTRY_VERIFY(blur->property("reason").toString().isEmpty());
+        QTest::mouseDClick(&e.window, Qt::LeftButton, Qt::NoModifier, e.center(blur));
+        QTRY_COMPARE(effects("second").size(), 1);
+        const auto id = effects("second")[0].toObject()["id"].toString();
+        auto* effectControls = named(e.root(), "effectControlsPanel");
+        QTRY_VERIFY(named(effectControls, "effectControlsGroup_effect:" + id));
+        QVERIFY(named(panel, "effectsPanelStatus")->property("text").toString().contains("Second"));
+    }
+    void effectsPanelSearches() {
+        PanelEditor e;
+        QVERIFY2(e.editor, qPrintable(e.error));
+        QVERIFY(QTest::qWaitForWindowExposed(&e.window));
+        QVERIFY(e.show("effects"));
+        auto* panel = named(e.root(), "effectsPanel");
+        QTRY_VERIFY(panel->isVisible());
+        auto* search = named(panel, "effectsSearch"); QVERIFY(search);
+        QTRY_VERIFY(named(panel, "effectsAdd_blur"));
+        QVERIFY(named(panel, "effectsPanelVideo")->isVisible());
+        QVERIFY(named(panel, "effectsPanelAudio")->isVisible());
+        for (const auto* grade : {"color", "curves", "liftGammaGain", "vignette"}) {
+            QVERIFY2(!named(panel, "effectsAdd_" + QString::fromLatin1(grade)), grade);
+        }
+        search->setProperty("text", "gRAin");
+        QTRY_VERIFY(!named(panel, "effectsAdd_blur"));
+        QVERIFY(named(panel, "effectsAdd_grain"));
+        QVERIFY(!named(panel, "effectsPanelAudio")->isVisible());
+        search->setProperty("text", "reverb");
+        QTRY_VERIFY(named(panel, "audioEffectsAdd-reverb"));
+        QVERIFY(!named(panel, "effectsPanelVideo")->isVisible());
+        search->setProperty("text", "nothing like this");
+        QTRY_VERIFY(named(panel, "effectsPanelNoMatch")->isVisible());
+        search->setProperty("text", "");
+        QTRY_VERIFY(named(panel, "effectsAdd_blur"));
+        QVERIFY(!named(panel, "effectsPanelNoMatch")->isVisible());
+    }
+    void effectDragsOntoAClip() {
+        PanelEditor e;
+        QVERIFY2(e.editor, qPrintable(e.error));
+        QVERIFY(QTest::qWaitForWindowExposed(&e.window));
+        QVERIFY(QTest::qWaitForWindowActive(&e.window));
+        QVERIFY(e.show("effects"));
+        auto* panel = named(e.root(), "effectsPanel");
+        QTRY_VERIFY(panel->isVisible());
+        auto* blur = named(panel, "effectsAdd_blur"); QVERIFY(blur);
+        const auto drag = [&](QQuickItem* source, QQuickItem* target) {
+            const auto from = e.center(source);
+            const auto to = e.center(target);
+            QTest::mousePress(&e.window, Qt::LeftButton, Qt::NoModifier, from);
+            for (int step = 1; step <= 8; ++step) {
+                QTest::mouseMove(&e.window, from + (to - from) * step / 8);
+            }
+            QTest::qWait(30);
+            QTest::mouseRelease(&e.window, Qt::LeftButton, Qt::NoModifier, to);
+            QCoreApplication::processEvents();
+        };
+        // No selection is needed, and the selection does not change.
+        e.gestures()->setSelection({"picture"});
+        QTRY_VERIFY(named(e.root(), "clip-second"));
+        auto* second = named(e.root(), "clip-second");
+        const auto before = e.model.documentJson();
+        const auto step = e.model.undoStack()->index();
+        drag(blur, second);
+        const auto clipEffects = [&](int index) { return e.model.clipsJson()[index].toObject()["effects"].toArray(); };
+        QTRY_COMPARE(clipEffects(2).size(), 1);
+        QCOMPARE(clipEffects(0).size(), 2);
+        QCOMPARE(e.gestures()->selection(), QStringList({"picture"}));
+        QCOMPARE(e.model.undoStack()->index(), step + 1);
+        e.model.undoStack()->undo();
+        QCOMPARE(e.model.documentJson(), before);
+        // A clip of the wrong kind refuses, and says so.
+        auto* sound = named(e.root(), "clip-sound"); QVERIFY(sound);
+        drag(blur, sound);
+        QTRY_VERIFY(named(e.root(), "effectDropWarning")->isVisible());
+        QCOMPARE(e.model.documentJson(), before);
+        QCOMPARE(e.model.undoStack()->index(), step);
     }
     void aSavedLayoutFromBeforeKeepsItsTabsAndMeetsNewPanels() {
         // Saved before this restructure: Effect Controls at the end of the group.

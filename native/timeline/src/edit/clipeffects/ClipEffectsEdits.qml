@@ -132,7 +132,7 @@ QtObject {
     }
     function processingStage(effect) { return effect.type === "denoise" ? -2 : effect.type === "stabilize" ? -1 : effect.type === "color" ? 1 : effect.type === "blur" ? 2 : 0 }
     function orderedEffects() {
-        return effects.filter(effect => effect.id !== "inspector:color")
+        return effects
             .map((effect, index) => ({effect: effect, index: index}))
             .sort((a, b) => processingStage(a.effect) - processingStage(b.effect) || a.index - b.index)
             .map(entry => entry.effect)

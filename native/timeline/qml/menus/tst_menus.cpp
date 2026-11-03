@@ -1123,7 +1123,7 @@ private slots:
             "Go to Sequence Start", "Go to Sequence End", "Go to Selection Start", "Go to Selection End", "---",
             "Play Audio While Scrubbing", "Keep Pitch While Shuttling"};
         QTest::newRow("window") << "Window" << QStringList{"Workspaces", "---", "Maximize Frame", "Next Panel", "Previous Panel", "Left Panels", "Right Panels", "---",
-            "Library", "Source", "Timeline", "Program", "Reference", "Inspector", "Mixer", "Audio", "Scripts", "Storyboards", "Text", "Effect Controls", "Color", "Scopes",
+            "Library", "Effects", "Source", "Timeline", "Program", "Reference", "Inspector", "Mixer", "Audio", "Scripts", "Storyboards", "Text", "Effect Controls", "Color", "Scopes",
             "Entities", "Markers", "Assistant", "Activity"};
     }
     void menuBarGroups() {
