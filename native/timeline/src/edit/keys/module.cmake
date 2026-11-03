@@ -11,10 +11,9 @@ function(nt_keyboard_tests)
         FILES src/server/sync/ExternalConflictsBanner.qml)
     add_test(NAME tst_keyboardpresets COMMAND tst_keyboardpresets)
     set_tests_properties(tst_keyboardpresets PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
-    # everyBindingRuns reloads a document for each action, about 9 minutes under ASan on two cores.
-    if(NT_SANITIZE)
-        set_tests_properties(tst_keyboardpresets PROPERTIES TIMEOUT 1500)
-        set_property(TEST tst_keyboardpresets APPEND PROPERTY ENVIRONMENT "QTEST_FUNCTION_TIMEOUT=1200000")
-    endif()
+    # everyBindingRuns reloads a document for each action. That takes close to QtTest's 5 minutes
+    # per function on hosted macOS and Windows runners, and about 9 minutes under ASan on two cores.
+    set_tests_properties(tst_keyboardpresets PROPERTIES TIMEOUT 1500)
+    set_property(TEST tst_keyboardpresets APPEND PROPERTY ENVIRONMENT "QTEST_FUNCTION_TIMEOUT=1200000")
 endfunction()
 nt_tests(nt_keyboard_tests)
