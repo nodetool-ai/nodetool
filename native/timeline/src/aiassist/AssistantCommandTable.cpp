@@ -309,6 +309,8 @@ QHash<QString, QString> buildDenied() {
     deny({"editMarker"}, dialog + ". Use markers.update");
     deny({"resetWorkspace", "maximizePanel", "toggleProgramFullscreen"}, window);
     // Steps of other features. An edit with the same id as an action above runs through that action.
+    deny({"applyClipEffects"},
+        QStringLiteral("The Effects panel's batch add takes whole effects. Use patchClip or addClipAudioEffect for one clip."));
     deny({"updateTrackEffect", "updateMasterEffect", "patchClipAudioEffect"},
          "only the panels know each value's range, and a very large one can exhaust memory. Add or remove the effect instead");
     deny({"deleteMarker", "altDragCopy", "duplicateSelected", "moveSelectedClips", "nudge", "pasteClipAttributes", "removeRange", "resolveDropAction", "splitSelectedAtPlayhead",
