@@ -13,7 +13,6 @@
  */
 
 import { Buffer } from "node:buffer";
-import { createHash } from "node:crypto";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
@@ -53,7 +52,8 @@ export function fetchComfyObjectInfo(
   apiKey: string,
   options: { signal?: AbortSignal; fetchImpl?: typeof fetch } = {}
 ): Promise<ComfyObjectInfo> {
-  const key = createHash("sha256").update(apiKey).digest("hex");
+  // In-memory only, so the key itself is the cache key; nothing is persisted.
+  const key = apiKey;
   const cached = objectInfoCache.get(key);
   if (cached && Date.now() - cached.at < OBJECT_INFO_TTL_MS) {
     return cached.info;

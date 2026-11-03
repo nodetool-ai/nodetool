@@ -19,6 +19,7 @@
  */
 
 import type { NodeMetadata, OutputSlot, Property, PropertyTypeMetadata } from "./api-types.js";
+import { isNumber, isString } from "./predicates.js";
 
 /** The run mode that marks a workflow as a Comfy workflow. */
 export const COMFY_RUN_MODE = "comfy";
@@ -106,7 +107,7 @@ const EDITOR_ONLY_TYPES = new Set([
 ]);
 
 export function isComfyNodeType(type: unknown): type is string {
-  return typeof type === "string" && type.startsWith(COMFY_NODE_PREFIX);
+  return isString(type) && type.startsWith(COMFY_NODE_PREFIX);
 }
 
 /** The ComfyUI class name behind a `comfy.<ClassName>` node type. */
@@ -121,7 +122,7 @@ export function comfyClassType(nodeType: string): string {
 export function isComfyGraph(graph: { nodes: ReadonlyArray<{ type?: unknown }> }): boolean {
   let comfy = 0;
   for (const node of graph.nodes) {
-    if (typeof node.type === "string" && EDITOR_ONLY_TYPES.has(node.type)) continue;
+    if (isString(node.type) && EDITOR_ONLY_TYPES.has(node.type)) continue;
     if (!isComfyNodeType(node.type)) return false;
     comfy += 1;
   }
@@ -136,7 +137,7 @@ function socketType(name: string): PropertyTypeMetadata {
 }
 
 function safeNumber(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) && Math.abs(value) <= Number.MAX_SAFE_INTEGER
+  return isNumber(value) && Number.isFinite(value) && Math.abs(value) <= Number.MAX_SAFE_INTEGER
     ? value
     : null;
 }
@@ -157,9 +158,9 @@ function enumProperty(
     name,
     type: { type: "enum", optional: !required, values, type_args: [] },
     default:
-      typeof def === "string" || typeof def === "number" ? def : fallback,
+      isString(def) || isNumber(def) ? def : fallback,
     title: name,
-    description: typeof opts.tooltip === "string" ? opts.tooltip : null,
+    description: isString(opts.tooltip) ? opts.tooltip : null,
     values,
     required
   };
@@ -179,19 +180,19 @@ function inputProperties(
   if (!Array.isArray(spec) || spec.length === 0) return [];
   const kind = spec[0];
   const opts = isRecord(spec[1]) ? spec[1] : {};
-  const description = typeof opts.tooltip === "string" ? opts.tooltip : null;
+  const description = isString(opts.tooltip) ? opts.tooltip : null;
 
   if (Array.isArray(kind)) {
     const values = kind.filter(
-      (v): v is string | number => typeof v === "string" || typeof v === "number"
+      (v): v is string | number => isString(v) || isNumber(v)
     );
     return [enumProperty(name, values, opts, required)];
   }
-  if (typeof kind !== "string") return [];
+  if (!isString(kind)) return [];
 
   if (kind === "COMBO" && Array.isArray(opts.options)) {
     const values = opts.options.filter(
-      (v): v is string | number => typeof v === "string" || typeof v === "number"
+      (v): v is string | number => isString(v) || isNumber(v)
     );
     return [enumProperty(name, values, opts, required)];
   }
@@ -200,7 +201,7 @@ function inputProperties(
     const options = opts.options.filter(isRecord);
     const keys = options
       .map((o) => o.key)
-      .filter((k): k is string => typeof k === "string");
+      .filter((k): k is string => isString(k));
     const out = [enumProperty(name, keys, opts, required)];
     const selected = String(opts.default ?? keys[0] ?? "");
     const chosen = options.find((o) => o.key === selected);
@@ -230,7 +231,7 @@ function inputProperties(
     }
     const extra: Record<string, unknown> = {};
     if (opts.multiline === true) extra.multiline = true;
-    if (typeof opts.step === "number") extra.step = opts.step;
+    if (isNumber(opts.step)) extra.step = opts.step;
     return [
       {
         name,
@@ -267,17 +268,25 @@ export function comfyOutputNames(entry: ComfyObjectInfoEntry): string[] {
   const names = Array.isArray(entry.output_name) ? entry.output_name : [];
   const seen = new Map<string, number>();
   return types.map((type, index) => {
-    const base = String(names[index] ?? (typeof type === "string" ? type : `output_${index}`));
+    const base = String(names[index] ?? (isString(type) ? type : `output_${index}`));
     const count = seen.get(base) ?? 0;
     seen.set(base, count + 1);
     return count === 0 ? base : `${base}_${count + 1}`;
   });
 }
 
+function trimUnderscores(value: string): string {
+  let start = 0;
+  let end = value.length;
+  while (start < end && value[start] === "_") start += 1;
+  while (end > start && value[end - 1] === "_") end -= 1;
+  return value.slice(start, end);
+}
+
 function namespaceFor(category: string | undefined): string {
   const parts = (category ?? "")
     .split("/")
-    .map((p) => p.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, ""))
+    .map((p) => trimUnderscores(p.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_")))
     .filter((p) => p.length > 0);
   return ["comfy", ...(parts.length > 0 ? parts : ["other"])].join(".");
 }
@@ -314,7 +323,7 @@ export function comfyEntryToMetadata(
     const type = types[index];
     return {
       name,
-      type: typeof type === "string" ? socketType(type) : { type: "any", optional: true, type_args: [] },
+      type: isString(type) ? socketType(type) : { type: "any", optional: true, type_args: [] },
       stream: false
     };
   });
@@ -337,7 +346,7 @@ export function comfyEntryToMetadata(
     }
   }
   const title = entry.display_name || entry.name || className;
-  return {
+  const metadata: NodeMetadata = {
     title,
     description: [entry.description ?? "", `ComfyUI node ${className}`, "comfy, comfyui"]
       .filter((s) => s.length > 0)
@@ -347,7 +356,6 @@ export function comfyEntryToMetadata(
     layout: "default",
     properties,
     outputs,
-    ...(primaryOutput ? { primary_output: primaryOutput } : {}),
     recommended_models: [],
     // Sockets are wired, widgets are edited on the node, as in ComfyUI.
     input_fields: properties
@@ -364,6 +372,8 @@ export function comfyEntryToMetadata(
     deprecated: entry.deprecated === true,
     platforms: ["node"]
   };
+  if (primaryOutput) metadata.primary_output = primaryOutput;
+  return metadata;
 }
 
 /** NodeTool metadata for every class in a ComfyUI `/api/object_info` map. */
@@ -404,14 +414,12 @@ export function buildComfyPrompt(
       if (key.startsWith("_")) continue;
       inputs[key] = value;
     }
-    const title = isRecord(node.ui_properties) && typeof node.ui_properties.title === "string"
+    const title = isRecord(node.ui_properties) && isString(node.ui_properties.title)
       ? node.ui_properties.title
       : undefined;
-    prompt[node.id] = {
-      class_type: comfyClassType(node.type),
-      inputs,
-      ...(title ? { _meta: { title } } : {})
-    };
+    const entry: ComfyApiPrompt[string] = { class_type: comfyClassType(node.type), inputs };
+    if (title) entry._meta = { title };
+    prompt[node.id] = entry;
   }
   for (const edge of graph.edges) {
     const source = byId.get(edge.source);
@@ -420,8 +428,10 @@ export function buildComfyPrompt(
     const names = outputNames(comfyClassType(source.type)) ?? [];
     let index = names.indexOf(edge.sourceHandle);
     if (index < 0) {
-      const numeric = /(\d+)$/.exec(edge.sourceHandle);
-      index = numeric && names.length === 0 ? Number(numeric[1]) : 0;
+      // Without the catalog an imported edge keeps its `output_<n>` handle.
+      const prefix = "output_";
+      const tail = edge.sourceHandle.startsWith(prefix) ? Number(edge.sourceHandle.slice(prefix.length)) : NaN;
+      index = names.length === 0 && Number.isInteger(tail) && tail >= 0 ? tail : 0;
     }
     target.inputs[edge.targetHandle] = [edge.source, index];
   }
@@ -432,8 +442,8 @@ function isLink(value: unknown): value is [string | number, number] {
   return (
     Array.isArray(value) &&
     value.length === 2 &&
-    (typeof value[0] === "string" || typeof value[0] === "number") &&
-    typeof value[1] === "number"
+    (isString(value[0]) || isNumber(value[0])) &&
+    isNumber(value[1])
   );
 }
 
@@ -468,7 +478,7 @@ export function comfyPromptToGraph(
   const edges: ComfyGraphEdge[] = [];
   for (const id of ids) {
     const entry = prompt[id];
-    if (!entry || typeof entry.class_type !== "string") continue;
+    if (!entry || !isString(entry.class_type)) continue;
     const column = depthOf(id);
     const row = rows.get(column) ?? 0;
     rows.set(column, row + 1);
