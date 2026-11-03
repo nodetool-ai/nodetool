@@ -140,30 +140,21 @@ private slots:
     void bitrateExport() {
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
-        // Opaque: the compositor draws a placeholder for media with an alpha channel.
-        QImage image(256, 256, QImage::Format_RGB888);
-        quint32 noise = 1;
-        for (int y = 0; y < image.height(); ++y) {
-            for (int x = 0; x < image.width(); ++x) {
-                noise = noise * 1664525u + 1013904223u;
-                image.setPixelColor(x, y, QColor((noise >> 24) & 255, (noise >> 16) & 255, (noise >> 8) & 255));
-            }
-        }
-        QVERIFY(image.save(dir.filePath("noise.png")));
-        const QJsonObject doc{{"width", 256}, {"height", 256}, {"fps", 30}, {"durationMs", 1000},
+        // A moving picture: a still is one key frame, which no rate control can shrink below its lowest quality.
+        const QJsonObject doc{{"width", 640}, {"height", 360}, {"fps", 30}, {"durationMs", 3000},
             {"tracks", QJsonArray{QJsonObject{{"id", "v"}, {"type", "video"}}}},
-            {"clips", QJsonArray{QJsonObject{{"id", "c"}, {"trackId", "v"}, {"mediaType", "image"},
-                {"status", "generated"}, {"durationMs", 1000}, {"width", 256}, {"height", 256},
-                {"mediaPath", dir.filePath("noise.png")}}}}};
+            {"clips", QJsonArray{QJsonObject{{"id", "c"}, {"trackId", "v"}, {"mediaType", "video"},
+                {"status", "generated"}, {"durationMs", 3000}, {"outPointMs", 3000},
+                {"mediaPath", QDir(QStringLiteral(NT_EXPORT_FIXTURES)).filePath("media/numbered-a-1080p30.mp4")}}}}};
         // The export child decodes in software like the editor's export does.
-        QFile document(dir.filePath("noise.json"));
+        QFile document(dir.filePath("moving.json"));
         QVERIFY(document.open(QIODevice::WriteOnly));
         document.write(QJsonDocument(doc).toJson());
         document.close();
         const auto run = [&](const QString& name, const QStringList& extra) {
             QProcess process;
             // The default encoder, as the app exports: the LGPL FFmpeg of the packages has no libx264.
-            process.start(QStringLiteral(NT_EXPORT_BINARY), QStringList{dir.filePath("noise.json"), "--export", dir.filePath(name),
+            process.start(QStringLiteral(NT_EXPORT_BINARY), QStringList{dir.filePath("moving.json"), "--export", dir.filePath(name),
                 "--format", "mp4"} + extra);
             if (!process.waitForFinished(60000) || process.exitCode() != 0) {
                 qWarning().noquote() << name << "failed:" << process.readAllStandardError();
