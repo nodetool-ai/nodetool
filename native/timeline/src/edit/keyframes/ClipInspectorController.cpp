@@ -123,6 +123,7 @@ QVariantMap ClipInspectorController::rowState(const QString& row) const {
 QVariantMap ClipInspectorController::rowDocument(const QString& row) const {
     const auto c = nt::keyframes::withBypassRestored(selected());
     return {{"keyframed", nt::keyframes::helper("isRowKeyframed", {c, row}).toBool()},
+            {"blocked", nt::keyframes::rowDrivenElsewhere(c, row)},
             {"times", nt::keyframes::times(c, nt::keyframes::properties(row)).toVariantList()}};
 }
 QVariantMap ClipInspectorController::rowLive(const QString& row) const {

@@ -17,6 +17,8 @@ QStringList properties(const QString& row);
 int inputCount(const QString& row);
 double inputValue(const QJsonObject& clip, const QString& row, int index, double atMs);
 QJsonObject transform(const QJsonObject& clip);
+// Another kind of animation already drives this row's value, so the row takes no keys.
+bool rowDrivenElsewhere(const QJsonObject& clip, const QString& row);
 // What a keyable effect parameter defaults to and how far it goes, empty for any other parameter.
 QJsonObject effectParamSpec(const QString& type, const QString& key);
 QStringList keyableEffectParams(const QString& type);

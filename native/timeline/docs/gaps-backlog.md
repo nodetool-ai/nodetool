@@ -115,7 +115,6 @@ results rather than a review finding.
 | B119 | P2 | F5 (#7080) r3 F10 | `src/edit/audioroles/` | Same cause as the previous entry, for clearing the role of a generated clip. | F5 |
 | B121 | P2 | F5 (#7080) | `src/edit/audioroles/` | A video clip with an extracted-audio partner (`linkId`) is measured as if it had its own sound, so matching it sets a volume on a clip the mix does not play. | F5 |
 | B122 | P2 | F5 (#7080) | `src/edit/audioroles/README.md` | Ducking lowers the whole track, so Music and Ambience should be on tracks of their own. The panel and the README say so. | F5 |
-| B123 | P2 | F7 (#7082) | `qml/effectcontrols/` | Effect rows have no keyframes, because the document has no keyframes for effect parameters. | F7 |
 | B124 | P2 | F7 (#7082) | `qml/effectcontrols/` | Transitions are not listed in the panel (out of scope in the issue). | F7 |
 | B125 | P2 | F7 (#7082) | `src/edit/keyframes/ClipInspectorController.cpp` | Editing Motion, Opacity or Volume elsewhere (Inspector, gizmo) while the group is switched off is overwritten by the stored values when the group is switched back on. | F7 |
 | B126 | P2 | F7 (#7082) | `src/edit/keyframes/` | Trimming or splitting a clip while a group is switched off leaves its stored curves in normalized time, so they stretch to the new length, and both halves of a split carry the stored values. | F7 |

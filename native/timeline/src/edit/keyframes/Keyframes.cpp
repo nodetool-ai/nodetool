@@ -338,17 +338,19 @@ struct EffectParam {
     double fallback;
     double min;
     double max;
+    // The schema takes only whole numbers here, so the static value has to be one.
+    bool whole = false;
 };
 constexpr EffectParam kEffectParams[] = {
     {"denoise", "lumaStrength", 0, 0, 1},
     {"denoise", "chromaStrength", 0, 0, 1},
     {"denoise", "temporalStrength", 0, 0, 1},
-    {"denoise", "radius", 2, 1, 4},
+    {"denoise", "radius", 2, 1, 4, true},
     {"stabilize", "strength", 1, 0, 1},
     {"stabilize", "maxZoom", 1.1, 1, 1.5},
     {"deflicker", "strength", 1, 0, 1},
     {"deband", "strength", 0, 0, 1},
-    {"deband", "range", 16, 1, 64},
+    {"deband", "range", 16, 1, 64, true},
     {"deband", "threshold", 0.02, 0, 0.1},
     {"deband", "dither", 0.5, 0, 1},
     {"secondaryColor", "hueCenter", 0, 0, 360},
@@ -418,10 +420,28 @@ QJsonObject effectOfRow(const QJsonObject& clip, const QString& row) {
     const int index = effectIndex(effects, name->effectId);
     return index < 0 ? QJsonObject{} : effects[index].toObject();
 }
-// The row names a parameter this build can key, on an effect the clip has.
+// An enabled style track already animates this parameter, in a document from the web.
+bool effectParamHasStyleTrack(const QJsonObject& clip, const QString& effectId, const QString& param) {
+    const auto target = QStringLiteral("effect.%1.%2").arg(effectId, param);
+    for (const auto& value : clip["animations"].toArray()) {
+        const auto animation = value.toObject();
+        if (!animation["enabled"].toBool(true)) {
+            continue;
+        }
+        for (const auto& track : animation["styleTracks"].toArray()) {
+            if (track.toObject()["target"].toString() == target) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+// The row names a parameter this build can key, on an effect the clip has, with nothing else
+// animating it. A key would hide a style track, and the row could not start from the value on show.
 bool effectRowUsable(const QJsonObject& clip, const QString& row) {
     const auto name = nt::scene::parseEffectCurveName(row);
-    return name && findEffectParam(effectOfRow(clip, row)["type"].toString(), name->param);
+    return name && findEffectParam(effectOfRow(clip, row)["type"].toString(), name->param) &&
+           !effectParamHasStyleTrack(clip, name->effectId, name->param);
 }
 struct Input {
     QString property;
@@ -508,7 +528,8 @@ QJsonObject basePatch(const QJsonObject& clip, const Input& i, double value) {
         if (index < 0) {
             return {};
         }
-        effects[index] = merged(effects[index].toObject(), {{i.member, value}});
+        const auto* param = findEffectParam(effects[index].toObject()["type"].toString(), i.member);
+        effects[index] = merged(effects[index].toObject(), {{i.member, param && param->whole ? std::round(value) : value}});
         return {{"effects", effects}};
     }
     if (i.group == "crop") {
@@ -922,6 +943,9 @@ bool rowSwitchedOff(const QJsonObject& clip, const QString& row) {
     }
     return false;
 }
+bool rowRefusesEdits(const QJsonObject& clip, const QString& row) {
+    return rowSwitchedOff(clip, row) || (nt::scene::parseEffectCurveName(row) && !effectRowUsable(clip, row));
+}
 QJsonObject restoredGroup(QJsonObject clip, const QJsonObject& stash) {
     for (auto i = stash.begin(); i != stash.end(); ++i) {
         if (i.key() != "curves") {
@@ -1062,6 +1086,10 @@ std::vector<double> displayScales(const QString& row) {
     return result;
 }
 } // namespace
+bool rowDrivenElsewhere(const QJsonObject& clip, const QString& row) {
+    const auto name = nt::scene::parseEffectCurveName(row);
+    return name && effectParamHasStyleTrack(clip, name->effectId, name->param);
+}
 QJsonObject effectParamSpec(const QString& type, const QString& key) {
     const auto* param = findEffectParam(type, key);
     if (!param) {
@@ -1437,8 +1465,14 @@ QJsonObject edit(QJsonObject document, const QJsonObject& payload) {
         const auto row = payload["row"].toString();
         const auto at = payload.contains("atMs") ? payload["atMs"] : QJsonValue(QJsonValue::Null);
         // A switched-off group shows its rows disabled, and Alt+K and the assistant respect that.
-        if (rowSwitchedOff(c, row) || (nt::scene::parseEffectCurveName(row) && !effectRowUsable(c, row))) {
+        if (rowRefusesEdits(c, row)) {
             return document;
+        }
+        // A selection can outlast the switch.
+        for (const auto& key : payload["keys"].toArray()) {
+            if (rowRefusesEdits(c, key.toObject()["row"].toString())) {
+                return document;
+            }
         }
         QJsonValue patch;
         if (action == "input") {

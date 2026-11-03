@@ -863,6 +863,68 @@ class TestKeyframes : public QObject {
         QCOMPARE(c["animations"], keyed["clips"].toArray()[0].toObject()["animations"]);
         QCOMPARE(nt::keyframes::edit(document, {{"clipId", "c"}, {"action", "toggle"}, {"row", "effect:e:radius"}, {"atMs", 500}}), document);
     }
+    // Review findings on effect rows.
+    void wholeNumberParamsStayWholeOffTheKeys() {
+        auto document = fixture().raw;
+        auto clips = document["clips"].toArray();
+        auto c = clips[0].toObject();
+        c.insert("effects", QJsonArray{QJsonObject{{"id", "n"}, {"type", "denoise"}, {"enabled", true}, {"radius", 1}, {"lumaStrength", 0.5}}});
+        clips[0] = c;
+        document.insert("clips", clips);
+        const QString row = "effect:n:radius";
+        document = nt::keyframes::edit(document, {{"clipId", "c"}, {"action", "stopwatch"}, {"row", row}, {"atMs", 0}});
+        document = nt::keyframes::edit(document, {{"clipId", "c"}, {"action", "input"}, {"row", row}, {"input", 0}, {"value", 4}, {"atMs", 1000}});
+        // Stopping at a time between the keys rounds the static value the schema reads.
+        document = nt::keyframes::edit(document, {{"clipId", "c"}, {"action", "stopwatch"}, {"row", row}, {"atMs", 500}});
+        const auto radius = document["clips"].toArray()[0].toObject()["effects"].toArray()[0].toObject()["radius"].toDouble();
+        QCOMPARE(radius, std::round(radius));
+        QVERIFY(radius == 2 || radius == 3);
+    }
+    void bulkEditsRefuseASwitchedOffEffect() {
+        auto document = fixture().raw;
+        auto clips = document["clips"].toArray();
+        auto c = clips[0].toObject();
+        c.insert("effects", QJsonArray{QJsonObject{{"id", "e"}, {"type", "blur"}, {"enabled", true}, {"radius", 4}}});
+        clips[0] = c;
+        document.insert("clips", clips);
+        const QString row = "effect:e:radius";
+        document = nt::keyframes::edit(document, {{"clipId", "c"}, {"action", "stopwatch"}, {"row", row}, {"atMs", 0}});
+        document = nt::keyframes::edit(document, {{"clipId", "c"}, {"action", "input"}, {"row", row}, {"input", 0}, {"value", 12}, {"atMs", 1000}});
+        clips = document["clips"].toArray();
+        c = clips[0].toObject();
+        auto effects = c["effects"].toArray();
+        auto effect = effects[0].toObject();
+        effect.insert("enabled", false);
+        effects[0] = effect;
+        c.insert("effects", effects);
+        clips[0] = c;
+        document.insert("clips", clips);
+        const QJsonArray keys{QJsonObject{{"row", row}, {"atMs", 1000}}};
+        QCOMPARE(nt::keyframes::edit(document, {{"clipId", "c"}, {"action", "deleteMany"}, {"keys", keys}}), document);
+        QCOMPARE(nt::keyframes::edit(document, {{"clipId", "c"}, {"action", "moveMany"}, {"keys", keys}, {"deltaMs", 100}}), document);
+        QCOMPARE(nt::keyframes::edit(document, {{"clipId", "c"}, {"action", "easingMany"}, {"keys", keys}, {"easing", "hold"}}), document);
+    }
+    void styleTrackedParamTakesNoKeys() {
+        auto document = fixture().raw;
+        auto clips = document["clips"].toArray();
+        auto c = clips[0].toObject();
+        c.insert("effects", QJsonArray{QJsonObject{{"id", "e"}, {"type", "blur"}, {"enabled", true}, {"radius", 8}}});
+        c.insert("animations", QJsonArray{QJsonObject{{"id", "style"}, {"role", "emphasis"}, {"preset", "custom"}, {"durationMs", 2000}, {"enabled", true},
+            {"styleTracks", QJsonArray{QJsonObject{{"target", "effect.e.radius"}, {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", 0}}, QJsonObject{{"t", 1}, {"value", 20}}}}}}}}});
+        clips[0] = c;
+        document.insert("clips", clips);
+        QVERIFY(nt::keyframes::rowDrivenElsewhere(c, "effect:e:radius"));
+        QCOMPARE(nt::keyframes::edit(document, {{"clipId", "c"}, {"action", "stopwatch"}, {"row", "effect:e:radius"}, {"atMs", 500}}), document);
+        QCOMPARE(nt::keyframes::edit(document, {{"clipId", "c"}, {"action", "input"}, {"row", "effect:e:radius"}, {"input", 0}, {"value", 4}, {"atMs", 500}}), document);
+        // Switching the track off gives the parameter back.
+        auto off = c;
+        auto animations = off["animations"].toArray();
+        auto animation = animations[0].toObject();
+        animation.insert("enabled", false);
+        animations[0] = animation;
+        off.insert("animations", animations);
+        QVERIFY(!nt::keyframes::rowDrivenElsewhere(off, "effect:e:radius"));
+    }
     void splitAndTrimKeepEffectKeys() {
         QJsonObject clip{{"id", "c"}, {"startMs", 0}, {"durationMs", 2000}, {"mediaType", "video"},
             {"effects", QJsonArray{QJsonObject{{"id", "e"}, {"type", "blur"}, {"enabled", true}, {"radius", 4}}}},

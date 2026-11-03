@@ -53,6 +53,7 @@ Column {
             panel.clearSelection()
             controller.write({action: "bypass", group: group.id, enabled: on})
         } else if (group.kind === "effect") {
+            panel.clearSelection()
             panel.effectEdits.patch(group.effectId, {enabled: on})
         } else if (group.kind === "audioEffect") {
             controller.timeline.applyEdit("patchClipAudioEffect", {clipId: panel.clipData.id, effectId: group.effectId, patch: {enabled: on}})
