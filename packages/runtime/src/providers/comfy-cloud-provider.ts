@@ -20,9 +20,10 @@
 
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import {
-  COMFY_WAN22_TI2V_MODEL_ID,
-  isComfyWorkflowModel,
-  runWan22Workflow
+  COMFY_RESTRICTED_MODELS_ENV,
+  comfyWorkflowModel,
+  listedComfyWorkflowModels,
+  runComfyWorkflowModel
 } from "./comfy-workflow-models.js";
 import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import {
@@ -311,19 +312,19 @@ export class ComfyCloudProvider extends BaseProvider {
   }
 
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
-    const workflowModel: VideoModel = {
-      id: COMFY_WAN22_TI2V_MODEL_ID,
-      name: "Wan 2.2 TI2V 5B (ComfyUI workflow, open weights)",
+    const workflowModels: VideoModel[] = listedComfyWorkflowModels(process.env).map((model) => ({
+      id: model.id,
+      name: model.name,
       provider: PROVIDER_IDS.COMFY_CLOUD,
       supportedTasks: ["image_to_video"]
-    };
+    }));
     const router = (await this.entries("video")).map((entry) => ({
       id: entry.id,
       name: routerModelName(entry.id),
       provider: PROVIDER_IDS.COMFY_CLOUD,
       supportedTasks: [...entry.tasks]
     }));
-    return [workflowModel, ...router];
+    return [...workflowModels, ...router];
   }
 
   override async getAvailableTTSModels(): Promise<TTSModel[]> {
@@ -552,9 +553,15 @@ export class ComfyCloudProvider extends BaseProvider {
 
   override async imageToVideo(image: Uint8Array, params: ImageToVideoParams): Promise<Uint8Array> {
     const modelId = params.model.id;
-    if (isComfyWorkflowModel(modelId)) {
-      // The pinned ComfyUI graph, not a Comfy Router model.
-      return runWan22Workflow({
+    const workflowModel = comfyWorkflowModel(modelId);
+    if (workflowModel) {
+      // A pinned ComfyUI graph, not a Comfy Router model.
+      if (!listedComfyWorkflowModels(process.env).includes(workflowModel)) {
+        throw new Error(
+          `${workflowModel.name} is off. ${workflowModel.licenseNote ?? ""} Set ${COMFY_RESTRICTED_MODELS_ENV}=1 on the server only where its license permits use.`
+        );
+      }
+      return runComfyWorkflowModel(workflowModel, {
         apiKey: this.requireApiKey(),
         image,
         imageMime: sniffMime(image, "image/png"),

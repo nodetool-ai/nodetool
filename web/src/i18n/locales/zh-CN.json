@@ -3225,7 +3225,7 @@
         "stillModel": "静帧模型",
         "stillRequired": "此镜头需要为静帧添加动画。请先渲染静帧，或将镜头设置为直接根据提示词渲染。",
         "comfyWorkflow": {
-          "note": "在 Comfy Cloud 上运行开放权重的 Wan 2.2 TI2V 5B ComfyUI 工作流：仅使用 ComfyUI 核心节点，每个 5 秒镜头约需 90 秒。镜头预设用于引导提示词，并非几何镜头控制。",
+          "note": "在 Comfy Cloud 上运行固定的 ComfyUI 工作流，仅使用 ComfyUI 核心节点。每个 5 秒镜头约需一到两分钟。镜头预设用于引导提示词，并非几何镜头控制。",
           "open": "打开 ComfyUI 工作流"
         }
       },

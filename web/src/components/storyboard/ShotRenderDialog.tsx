@@ -52,7 +52,10 @@ import {
 } from "../../stores/lastModelStore";
 import type { ImageModelValue, VideoModelValue } from "../../stores/ApiTypes";
 import { VIDEO_RESOLUTIONS } from "../../stores/MediaGenerationStore";
-import { isComfyWorkflowModel } from "../../lib/storyboard/comfyWorkflowModel";
+import {
+  comfyWorkflowExampleName,
+  isComfyWorkflowModel
+} from "../../lib/storyboard/comfyWorkflowModel";
 import { useOpenComfyWorkflow } from "../../hooks/storyboard/useOpenComfyWorkflow";
 
 export type ShotRenderStep = "still" | "clip";
@@ -74,20 +77,39 @@ const rememberedRef = (
 
 /**
  * The ComfyUI workflow clip model's note and the action that opens an editable
- * copy of its graph. Mounted only for that model, so the dialog itself does
- * not need a router.
+ * copy of its graph in a workspace tab, then closes the dialog so the graph is
+ * in view. Mounted only for that model, so the dialog itself does not need a
+ * router.
  */
-const ComfyWorkflowNote: React.FC = () => {
+const ComfyWorkflowNote: React.FC<{
+  modelId: string;
+  onOpened: () => void;
+}> = ({ modelId, onOpened }) => {
   const { t } = useTranslation();
-  const { open, opening, error } = useOpenComfyWorkflow();
+  const { open, opening, error } = useOpenComfyWorkflow(modelId);
+  const hasExample = comfyWorkflowExampleName(modelId) !== null;
   return (
     <FlexColumn gap={SPACING.xs}>
       <Caption color="secondary">
         {t("i18n-cont-storyboard-04.storyboard.shotRender.comfyWorkflow.note")}
       </Caption>
-      <EditorButton variant="outlined" disabled={opening} onClick={() => void open()}>
-        {t("i18n-cont-storyboard-04.storyboard.shotRender.comfyWorkflow.open")}
-      </EditorButton>
+      {hasExample && (
+        <EditorButton
+          variant="outlined"
+          disabled={opening}
+          onClick={() => {
+            void open().then((opened) => {
+              if (opened) {
+                onOpened();
+              }
+            });
+          }}
+        >
+          {t(
+            "i18n-cont-storyboard-04.storyboard.shotRender.comfyWorkflow.open"
+          )}
+        </EditorButton>
+      )}
       {error && <AlertBanner severity="error">{error}</AlertBanner>}
     </FlexColumn>
   );
@@ -283,7 +305,12 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
                 onChange={setPickedClip}
               />
             </FormField>
-            {comfyWorkflow && <ComfyWorkflowNote />}
+            {comfyWorkflow && clipSelection?.id && (
+              <ComfyWorkflowNote
+                modelId={clipSelection.id}
+                onOpened={onClose}
+              />
+            )}
             <SelectField
               label={t("i18n-cont-storyboard-04.storyboard.shotRender.resolution")}
               value={resolution}

@@ -3225,7 +3225,7 @@
         "stillModel": "Standbildmodell",
         "stillRequired": "Diese Einstellung animiert ihr Standbild. Rendere zuerst ein Standbild oder stelle ein, dass die Einstellung direkt aus ihrem Prompt gerendert wird.",
         "comfyWorkflow": {
-          "note": "Führt den Open-Weights-ComfyUI-Workflow Wan 2.2 TI2V 5B in der Comfy Cloud aus: nur ComfyUI-Kernknoten, etwa 90 Sekunden pro 5-Sekunden-Take. Kamera-Presets lenken den Prompt, sie sind keine geometrische Kamerasteuerung.",
+          "note": "Führt einen festgelegten ComfyUI-Workflow in der Comfy Cloud aus, nur mit ComfyUI-Kernknoten. Ein 5-Sekunden-Take dauert etwa ein bis zwei Minuten. Kamera-Presets lenken den Prompt, sie sind keine geometrische Kamerasteuerung.",
           "open": "ComfyUI-Workflow öffnen"
         }
       },

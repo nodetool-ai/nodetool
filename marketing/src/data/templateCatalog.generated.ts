@@ -984,6 +984,28 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "shot-director-ltx-2-3",
+        "name": "Shot Director (LTX-2.3)",
+        "description": "Direct a cinematic take from one still and render it on Comfy Cloud with a pinned LTX-2.3 workflow (open weights, with audio). The same graph runs behind the Storyboard clip model \"LTX-2.3 (ComfyUI workflow)\".",
+        "tags": [
+          "video",
+          "comfy",
+          "camera-moves",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "shot-director-wan-2-2-14b",
+        "name": "Shot Director (Wan 2.2 14B)",
+        "description": "Direct a cinematic take from one still and render it on Comfy Cloud with a pinned Wan 2.2 I2V A14B workflow (open weights, 4-step lightx2v). The same graph runs behind the Storyboard clip model \"Wan 2.2 I2V A14B (ComfyUI workflow)\".",
+        "tags": [
+          "video",
+          "comfy",
+          "camera-moves",
+          "open-weights"
+        ]
+      },
+      {
         "slug": "shot-director",
         "name": "Shot Director",
         "description": "Direct a cinematic take from one still: pick an open camera preset, describe the shot, and render it on Comfy Cloud with a pinned Wan 2.2 workflow. Every take records its preset, prompt, seed and Comfy job id.",

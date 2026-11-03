@@ -42,8 +42,11 @@ it("reserves explicit default and local-wan selectors", () => {
   expect(modelFamily("local-wan")).not.toBe("wan");
   expect(modelFamily("default-model")).toBeNull();
 });
-it("maps the pinned Wan 2.2 ComfyUI workflow model to local-wan", () => {
+it("maps the pinned ComfyUI workflow models to their families", () => {
   expect(modelFamily("comfyui-workflow/wan2.2-ti2v-5b")).toBe("local-wan");
+  expect(modelFamily("comfyui-workflow/wan2.2-i2v-a14b")).toBe("local-wan");
+  expect(modelFamily("comfyui-workflow/ltx-2.3-i2v")).toBe("ltx");
+  expect(modelFamily("comfyui-workflow/minimax-h3-i2v")).toBe("minimax");
   expect(modelFamily("comfyui-workflow/other-graph")).toBeNull();
 });
 

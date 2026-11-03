@@ -1,20 +1,33 @@
 /**
- * The pinned open-weights ComfyUI workflow behind the "Wan 2.2 TI2V 5B
- * (ComfyUI workflow)" clip model, run on Comfy Cloud through the Comfy API v2.
+ * Pinned open-weights ComfyUI workflows that the `comfy_cloud` provider lists
+ * as image-to-video models and runs on Comfy Cloud through the Comfy API v2.
  *
- * This path submits a real ComfyUI graph (core nodes, Wan 2.2 weights) and is
- * separate from Comfy Router, which calls partner models by id. The same
- * graph ships in the "Shot Director" example workflow so it can be opened and
- * edited; `tests/providers/comfy-workflow-models.test.ts` keeps the two equal.
+ * This path submits real ComfyUI graphs (core nodes, open weights) and is
+ * separate from Comfy Router, which calls partner models by id. Each graph
+ * also ships in an editable "Shot Director" example workflow;
+ * `tests/providers/comfy-workflow-models.test.ts` keeps them equal.
  */
 
 import { Comfy } from "@comfyorg/sdk";
 
-/** Model id the storyboard's clip picker lists and the preset compiler maps to `local-wan`. */
+import {
+  LTX23_I2V_GRAPH,
+  MINIMAX_H3_I2V_GRAPH,
+  WAN22_I2V_A14B_GRAPH
+} from "./comfy-workflow-graphs.js";
+
+export type ComfyApiGraph = Readonly<
+  Record<string, { class_type: string; inputs: Record<string, unknown> }>
+>;
+type MutableGraph = Record<string, { class_type: string; inputs: Record<string, unknown> }>;
+
 export const COMFY_WAN22_TI2V_MODEL_ID = "comfyui-workflow/wan2.2-ti2v-5b";
+export const COMFY_WAN22_I2V_A14B_MODEL_ID = "comfyui-workflow/wan2.2-i2v-a14b";
+export const COMFY_LTX23_I2V_MODEL_ID = "comfyui-workflow/ltx-2.3-i2v";
+export const COMFY_MINIMAX_H3_I2V_MODEL_ID = "comfyui-workflow/minimax-h3-i2v";
 
 /** ComfyUI API-format graph: Wan 2.2 TI2V 5B image-to-video. */
-export const WAN22_TI2V_GRAPH: Readonly<Record<string, { class_type: string; inputs: Record<string, unknown> }>> = {
+export const WAN22_TI2V_GRAPH: ComfyApiGraph = {
   "3": {
     "class_type": "KSampler",
     "inputs": {
@@ -153,37 +166,164 @@ export const WAN22_TI2V_GRAPH: Readonly<Record<string, { class_type: string; inp
   }
 };
 
-/** Graph node ids the shot's still, prompt, seed and size are written into. */
-const NODE = {
-  sampler: "3",
-  positive: "6",
-  latent: "55",
-  image: "56",
-  video: "58"
-} as const;
+type Canvas = { width: number; height: number };
 
-const FPS = 24;
-/** Wan 2.2 TI2V 5B is trained for up to 121 frames (5 s at 24 fps). */
-const MAX_FRAMES = 121;
+/** Where one pinned graph takes a shot's inputs, and the clip shapes it can make. */
+export interface ComfyWorkflowModel {
+  id: string;
+  name: string;
+  graph: ComfyApiGraph;
+  fps: number;
+  maxFrames: number;
+  /** Frame counts the model's latent accepts: `step * n + offset`. */
+  frameGrid: { step: number; offset: number };
+  canvas: { landscape: Canvas; portrait: Canvas; square: Canvas };
+  prompt: [node: string, input: string];
+  /** Every noise seed in the graph; the first takes the shot's seed. */
+  seeds: Array<[node: string, input: string]>;
+  image: [node: string, input: string];
+  video: string;
+  /** Write the canvas and frame count into the graph. */
+  shape: (graph: MutableGraph, canvas: Canvas, frames: number) => void;
+  /** Set only for models whose license restricts where they may be used. */
+  licenseNote?: string;
+}
+
+export const COMFY_WORKFLOW_MODELS: readonly ComfyWorkflowModel[] = [
+  {
+    id: COMFY_WAN22_TI2V_MODEL_ID,
+    name: "Wan 2.2 TI2V 5B (ComfyUI workflow, open weights)",
+    graph: WAN22_TI2V_GRAPH,
+    fps: 24,
+    maxFrames: 121,
+    frameGrid: { step: 4, offset: 1 },
+    canvas: {
+      landscape: { width: 1280, height: 704 },
+      portrait: { width: 704, height: 1280 },
+      square: { width: 960, height: 960 }
+    },
+    prompt: ["6", "text"],
+    seeds: [["3", "seed"]],
+    image: ["56", "image"],
+    video: "58",
+    shape: (graph, { width, height }, frames) => {
+      Object.assign(graph["55"].inputs, { width, height, length: frames });
+    }
+  },
+  {
+    id: COMFY_WAN22_I2V_A14B_MODEL_ID,
+    name: "Wan 2.2 I2V A14B (ComfyUI workflow, open weights)",
+    graph: WAN22_I2V_A14B_GRAPH,
+    fps: 16,
+    maxFrames: 81,
+    frameGrid: { step: 4, offset: 1 },
+    canvas: {
+      landscape: { width: 832, height: 480 },
+      portrait: { width: 480, height: 832 },
+      square: { width: 640, height: 640 }
+    },
+    prompt: ["93", "text"],
+    seeds: [["86", "noise_seed"]],
+    image: ["56", "image"],
+    video: "58",
+    shape: (graph, { width, height }, frames) => {
+      Object.assign(graph["98"].inputs, { width, height, length: frames });
+    }
+  },
+  {
+    id: COMFY_LTX23_I2V_MODEL_ID,
+    name: "LTX-2.3 22B (ComfyUI workflow, open weights, with audio)",
+    graph: LTX23_I2V_GRAPH,
+    fps: 24,
+    maxFrames: 241,
+    frameGrid: { step: 8, offset: 1 },
+    canvas: {
+      landscape: { width: 1280, height: 704 },
+      portrait: { width: 704, height: 1280 },
+      square: { width: 960, height: 960 }
+    },
+    prompt: ["6", "text"],
+    seeds: [["16", "noise_seed"], ["26", "noise_seed"]],
+    image: ["56", "image"],
+    video: "58",
+    // The first pass renders at half size; the latent upscaler doubles it.
+    shape: (graph, { width, height }, frames) => {
+      Object.assign(graph["10"].inputs, { width, height });
+      Object.assign(graph["12"].inputs, { width: width / 2, height: height / 2, length: frames });
+      graph["14"].inputs.frames_number = frames;
+    }
+  },
+  {
+    id: COMFY_MINIMAX_H3_I2V_MODEL_ID,
+    name: "MiniMax H3 (ComfyUI workflow, restricted license, with audio)",
+    graph: MINIMAX_H3_I2V_GRAPH,
+    fps: 24,
+    maxFrames: 362,
+    frameGrid: { step: 17, offset: 5 },
+    canvas: {
+      landscape: { width: 864, height: 480 },
+      portrait: { width: 480, height: 864 },
+      square: { width: 640, height: 640 }
+    },
+    prompt: ["104", "prompt"],
+    seeds: [["15", "noise_seed"]],
+    image: ["56", "image"],
+    video: "58",
+    shape: (graph, { width, height }, frames) => {
+      Object.assign(graph["104"].inputs, { width, height, length: frames });
+    },
+    licenseNote:
+      "The MiniMax H3 Community License excludes the European Union, the United Kingdom, the United States and South Korea."
+  }
+];
+
+/** Opt-in for models with a territorial license, such as MiniMax H3. */
+export const COMFY_RESTRICTED_MODELS_ENV = "NODETOOL_COMFY_ENABLE_RESTRICTED_LICENSE_MODELS";
+
+export function comfyWorkflowModel(modelId: string): ComfyWorkflowModel | undefined {
+  return COMFY_WORKFLOW_MODELS.find((model) => model.id === modelId);
+}
 
 export function isComfyWorkflowModel(modelId: string): boolean {
-  return modelId === COMFY_WAN22_TI2V_MODEL_ID;
+  return comfyWorkflowModel(modelId) !== undefined;
 }
 
-/** Wan latents need 4n+1 frames. */
-export function wanFrameCount(durationSeconds: number | null | undefined): number {
+/** The models to list: restricted-license ones only when opted in. */
+export function listedComfyWorkflowModels(env: Record<string, string | undefined>): ComfyWorkflowModel[] {
+  const restricted = env[COMFY_RESTRICTED_MODELS_ENV] === "1";
+  return COMFY_WORKFLOW_MODELS.filter((model) => restricted || !model.licenseNote);
+}
+
+/** The longest frame count on the model's grid that fits the shot's duration and the model's limit. */
+export function workflowFrameCount(
+  model: ComfyWorkflowModel,
+  durationSeconds: number | null | undefined
+): number {
+  const { step, offset } = model.frameGrid;
   const seconds = durationSeconds && durationSeconds > 0 ? durationSeconds : 5;
-  const raw = Math.min(MAX_FRAMES, Math.round(seconds * FPS) + 1);
-  return Math.max(5, Math.floor((raw - 1) / 4) * 4 + 1);
+  const raw = Math.min(model.maxFrames, Math.round(seconds * model.fps) + offset);
+  return Math.max(step + offset, Math.floor((raw - offset) / step) * step + offset);
 }
 
-/** The model's native 1280x704 canvas, turned for portrait and square shots. */
-export function wanCanvas(aspectRatio: string | null | undefined): { width: number; height: number } {
+/** Wan latents need 4n+1 frames; kept for the 5B model's callers. */
+export function wanFrameCount(durationSeconds: number | null | undefined): number {
+  return workflowFrameCount(COMFY_WORKFLOW_MODELS[0], durationSeconds);
+}
+
+/** The model's canvas for the board's aspect ratio. */
+export function workflowCanvas(model: ComfyWorkflowModel, aspectRatio: string | null | undefined): Canvas {
   const [w, h] = (aspectRatio ?? "16:9").split(":").map(Number);
-  if (!w || !h || w === h) {
-    return w && h ? { width: 960, height: 960 } : { width: 1280, height: 704 };
+  if (!w || !h) {
+    return model.canvas.landscape;
   }
-  return w > h ? { width: 1280, height: 704 } : { width: 704, height: 1280 };
+  if (w === h) {
+    return model.canvas.square;
+  }
+  return w > h ? model.canvas.landscape : model.canvas.portrait;
+}
+
+export function wanCanvas(aspectRatio: string | null | undefined): Canvas {
+  return workflowCanvas(COMFY_WORKFLOW_MODELS[0], aspectRatio);
 }
 
 export interface ComfyWorkflowRunInput {
@@ -198,28 +338,31 @@ export interface ComfyWorkflowRunInput {
   signal?: AbortSignal;
 }
 
-/** Fill the pinned graph with one shot's inputs. Pure, so tests can check the mapping. */
-export function wan22Graph(
-  input: Omit<ComfyWorkflowRunInput, "apiKey" | "image" | "imageMime" | "signal" | "timeoutSeconds">
-): Record<string, { class_type: string; inputs: Record<string, unknown> }> {
-  const graph = JSON.parse(JSON.stringify(WAN22_TI2V_GRAPH)) as Record<
-    string,
-    { class_type: string; inputs: Record<string, unknown> }
-  >;
-  const { width, height } = wanCanvas(input.aspectRatio);
-  graph[NODE.positive].inputs.text = input.prompt;
-  graph[NODE.sampler].inputs.seed =
-    input.seed != null && input.seed >= 0
-      ? Math.floor(input.seed)
-      : Math.floor(Math.random() * 2 ** 31);
-  graph[NODE.latent].inputs.width = width;
-  graph[NODE.latent].inputs.height = height;
-  graph[NODE.latent].inputs.length = wanFrameCount(input.durationSeconds);
+type GraphInput = Omit<ComfyWorkflowRunInput, "apiKey" | "image" | "imageMime" | "signal" | "timeoutSeconds">;
+
+/** Fill a pinned graph with one shot's inputs. Pure, so tests can check the mapping. */
+export function workflowGraph(model: ComfyWorkflowModel, input: GraphInput): MutableGraph {
+  const graph = JSON.parse(JSON.stringify(model.graph)) as MutableGraph;
+  const [promptNode, promptInput] = model.prompt;
+  graph[promptNode].inputs[promptInput] = input.prompt;
+  const seed =
+    input.seed != null && input.seed >= 0 ? Math.floor(input.seed) : Math.floor(Math.random() * 2 ** 31);
+  for (const [node, name] of model.seeds) {
+    graph[node].inputs[name] = seed;
+  }
+  model.shape(graph, workflowCanvas(model, input.aspectRatio), workflowFrameCount(model, input.durationSeconds));
   return graph;
 }
 
-/** Run the pinned graph on Comfy Cloud and return the MP4 bytes. */
-export async function runWan22Workflow(input: ComfyWorkflowRunInput): Promise<Uint8Array> {
+export function wan22Graph(input: GraphInput): MutableGraph {
+  return workflowGraph(COMFY_WORKFLOW_MODELS[0], input);
+}
+
+/** Run a pinned graph on Comfy Cloud and return the MP4 bytes. */
+export async function runComfyWorkflowModel(
+  model: ComfyWorkflowModel,
+  input: ComfyWorkflowRunInput
+): Promise<Uint8Array> {
   if (!input.prompt.trim()) {
     throw new Error("The ComfyUI workflow needs a prompt.");
   }
@@ -227,11 +370,12 @@ export async function runWan22Workflow(input: ComfyWorkflowRunInput): Promise<Ui
     throw new Error("The ComfyUI workflow needs the shot's still. Generate or pick a still first.");
   }
   const client = new Comfy({ apiKey: input.apiKey, clientInfo: "nodetool-storyboard" });
-  const workflow = client.workflows.fromJson(wan22Graph(input));
+  const workflow = client.workflows.fromJson(workflowGraph(model, input));
   const ext = input.imageMime === "image/jpeg" ? "jpg" : input.imageMime === "image/webp" ? "webp" : "png";
+  const [imageNode, imageInput] = model.image;
   workflow.setInput(
-    NODE.image,
-    "image",
+    imageNode,
+    imageInput,
     client.assets.fromBytes(input.image, { filename: `shot-still.${ext}`, contentType: input.imageMime })
   );
   const job = await client.submit(workflow);
@@ -252,7 +396,7 @@ export async function runWan22Workflow(input: ComfyWorkflowRunInput): Promise<Ui
   }
   // Comfy Cloud labels SaveVideo files `type: "image"`, so match on the node and content type.
   const output =
-    job.getOutputs(NODE.video).find((o) => o.contentType.startsWith("video/")) ??
+    job.getOutputs(model.video).find((o) => o.contentType.startsWith("video/")) ??
     job.outputs.find((o) => o.contentType.startsWith("video/"));
   if (!output) {
     throw new Error(`Comfy job ${job.id} finished without a video output`);
