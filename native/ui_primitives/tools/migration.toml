@@ -689,7 +689,7 @@ controls = ["Ui.Separator", "Ui.EditorButton"]
 signals = ["toggled", "checkedChangedByUser"]
 test_host = "tst_inspectorprimitives"
 test_scope = "interaction"
-qml_callers = ["native/timeline/qml/Inspector/AudioEffects.qml", "native/timeline/qml/Inspector/AudioSection.qml", "native/timeline/qml/Inspector/CaptionStyle.qml", "native/timeline/qml/Inspector/KeyframeAnimations.qml", "native/timeline/qml/Inspector/MotionFields.qml", "native/timeline/qml/Inspector/ReframeCrop.qml", "native/timeline/qml/Inspector/ReframeSection.qml", "native/timeline/qml/Inspector/ShapeSection.qml", "native/timeline/qml/Inspector/SpeedTimeRemap.qml", "native/timeline/qml/Inspector/TextStyleSection.qml", "native/timeline/qml/Inspector/TransitionSection.qml", "native/timeline/qml/Preferences/PreferencesDialog.qml", "native/timeline/qml/ai/AiInspectorSection.qml", "native/timeline/src/edit/clipeffects/ClipAdjustments.qml", "native/timeline/src/edit/clipeffects/ClipEffectsList.qml", "native/timeline/src/edit/inspectorsections/ClipGroupPanel.qml", "native/timeline/src/edit/inspectorsections/MediaSection.qml", "native/timeline/src/edit/inspectorsections/TimingSection.qml", "native/timeline/src/motion/blurcontrols/MotionBlur.qml", "native/timeline/src/motion/controls/AdvancedMotion.qml", "native/timeline/src/motion/controls/BorderRadius.qml", "native/timeline/src/motion/tracking/TrackBinding.qml"]
+qml_callers = ["native/timeline/qml/Inspector/AudioEffects.qml", "native/timeline/qml/Inspector/AudioSection.qml", "native/timeline/qml/Inspector/CaptionStyle.qml", "native/timeline/qml/Inspector/KeyframeAnimations.qml", "native/timeline/qml/Inspector/MotionFields.qml", "native/timeline/qml/Inspector/ReframeCrop.qml", "native/timeline/qml/Inspector/ReframeSection.qml", "native/timeline/qml/Inspector/ShapeSection.qml", "native/timeline/qml/Inspector/SpeedTimeRemap.qml", "native/timeline/qml/Inspector/TextStyleSection.qml", "native/timeline/qml/Inspector/TransitionSection.qml", "native/timeline/qml/Preferences/PreferencesDialog.qml", "native/timeline/qml/ai/AiInspectorSection.qml", "native/timeline/src/edit/clipeffects/ClipEffectsList.qml", "native/timeline/src/edit/inspectorsections/ClipGroupPanel.qml", "native/timeline/src/edit/inspectorsections/MediaSection.qml", "native/timeline/src/edit/inspectorsections/TimingSection.qml", "native/timeline/src/motion/blurcontrols/MotionBlur.qml", "native/timeline/src/motion/controls/AdvancedMotion.qml", "native/timeline/src/motion/controls/BorderRadius.qml", "native/timeline/src/motion/tracking/TrackBinding.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Separator, Ui.EditorButton"
 
 [[file]]
@@ -719,7 +719,7 @@ controls = ["Ui.Text", "Ui.Slider"]
 signals = ["gestureStarted", "preview", "change", "canceled"]
 test_host = "tst_inspectorprimitives"
 test_scope = "interaction"
-qml_callers = ["native/timeline/qml/Inspector/AudioEffectsFields.qml", "native/timeline/qml/Inspector/AudioSection.qml", "native/timeline/qml/Inspector/MotionAnimationParam.qml", "native/timeline/qml/Inspector/MotionFields.qml", "native/timeline/qml/Inspector/ReframeCrop.qml", "native/timeline/qml/Inspector/ReframeSection.qml", "native/timeline/qml/Inspector/ShapeSection.qml", "native/timeline/qml/Inspector/TransitionSection.qml", "native/timeline/qml/mixer/EffectDevicePopover.qml", "native/timeline/src/edit/clipeffects/ClipAdjustments.qml", "native/timeline/src/edit/clipeffects/EffectFields.qml", "native/timeline/src/motion/controls/BorderRadius.qml", "native/timeline/src/motion/tracking/TrackBinding.qml"]
+qml_callers = ["native/timeline/qml/Inspector/AudioEffectsFields.qml", "native/timeline/qml/Inspector/AudioSection.qml", "native/timeline/qml/Inspector/MotionAnimationParam.qml", "native/timeline/qml/Inspector/MotionFields.qml", "native/timeline/qml/Inspector/ReframeCrop.qml", "native/timeline/qml/Inspector/ReframeSection.qml", "native/timeline/qml/Inspector/ShapeSection.qml", "native/timeline/qml/Inspector/TransitionSection.qml", "native/timeline/qml/mixer/EffectDevicePopover.qml", "native/timeline/src/edit/clipeffects/EffectFields.qml", "native/timeline/src/motion/controls/BorderRadius.qml", "native/timeline/src/motion/tracking/TrackBinding.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.Slider"
 
 [[file]]
@@ -2423,23 +2423,13 @@ qml_callers = []
 replacement = "Feature composition through migrated native Ui wrappers"
 
 [[file]]
-path = "native/timeline/src/edit/clipeffects/ClipAdjustments.qml"
-category = "chrome"
-controls = ["InspectorSection", "InspectorSliderRow"]
-signals = []
-test_host = "tst_clipeffects"
-test_scope = "build/import"
-qml_callers = ["native/timeline/src/edit/inspectorsections/ClipGroupPanel.qml"]
-replacement = "Feature composition through migrated native Ui wrappers"
-
-[[file]]
 path = "native/timeline/src/edit/clipeffects/ClipEffectsEdits.qml"
 category = "domain"
 controls = []
 signals = []
 test_host = "tst_clipeffects"
 test_scope = "build/import"
-qml_callers = ["native/timeline/src/edit/clipeffects/ClipAdjustments.qml", "native/timeline/src/edit/clipeffects/ClipEffectsList.qml"]
+qml_callers = ["native/timeline/src/edit/clipeffects/ClipEffectsList.qml"]
 replacement = "Domain state and edit behavior; presentation lives in shared Ui controls"
 
 [[file]]

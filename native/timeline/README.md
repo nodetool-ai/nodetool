@@ -575,9 +575,12 @@ graded frame, in Rec. 709 at 8 bits. It computes only while shown, on its own wo
 thread, with one capture in flight. `ScopesController::readNumbers` needs only `capture`
 set.
 
-The Color panel maps onto existing effects: Basic Correction is the Inspector's `color`
+The Color panel maps onto existing effects: Basic Correction is the `color`
 effect, Wheels the first `liftGammaGain`, Curves the first `curves` and Vignette the first
 `vignette`. A section switch is its effect's `enabled` field, and Reset removes the effect.
+The Color panel owns these grades, so the Inspector has no Color section and the add-effect list
+leaves out `color`, `curves`, `liftGammaGain` and `vignette`. Effect Controls still lists them to
+see, enable and key them, and each has an action that opens this panel.
 Basic Correction is listed first but renders last, because the renderer runs color effects
 after the rest of the chain. Drag a wheel's puck or use the arrow keys. A held key is one
 undo entry, Escape cancels, and double click or Delete resets it.

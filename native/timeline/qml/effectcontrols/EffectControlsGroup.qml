@@ -74,6 +74,16 @@ Column {
                 role: Ui.Typography.SansLabel
                 tone: root.groupOn ? Ui.Text.Primary : Ui.Text.Secondary
             }
+            Ui.ToolbarIconButton {
+                objectName: "effectControlsOpenColor_" + root.group.effectId
+                visible: root.group.kind === "effect" && Catalog.gradedInColorPanel(root.group.effectType)
+                Layout.preferredWidth: Ui.Metrics.iconLg
+                Layout.preferredHeight: Ui.Metrics.iconLg
+                iconName: "brightness"
+                accessibleName: "Open " + root.label + " in the Color panel"
+                description: accessibleName
+                onClicked: root.panel.revealPanel("color")
+            }
         }
         Ui.Separator { y: parent.height - height; width: parent.width }
     }

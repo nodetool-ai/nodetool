@@ -123,7 +123,7 @@ InspectorSection {
     Sections.InspectorCaption {
         width: parent.width
         visible: root.listed.length === 0
-        text: "Add a blur, glow, shadow, vignette, chroma key or grade."
+        text: "Add a blur, glow, shadow or chroma key. The Color panel holds grades."
     }
     Repeater {
         model: rows

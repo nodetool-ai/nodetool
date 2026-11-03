@@ -24,9 +24,9 @@ test("vignette radius uses the renderer default and the track control range", ()
 test("every clip effect slider resets to an explicit in-range default", () => {
   const source = fs.readFileSync(new URL("./ClipEffectsCatalog.js", import.meta.url), "utf8").replace(/^\.pragma library\s*/, "");
   const context = vm.createContext({});
-  vm.runInContext(source + "\nglobalThis.catalogue = {fields, addableEffects};", context);
+  vm.runInContext(source + "\nglobalThis.catalogue = {fields, effectLabels};", context);
   let checked = 0;
-  for (const {value: type} of context.catalogue.addableEffects) {
+  for (const {value: type} of context.catalogue.effectLabels) {
     for (const field of context.catalogue.fields(type).filter(field => field.kind === "slider")) {
       assert.ok(Number.isFinite(field.resetValue), `${type}.${field.key} has a reset value`);
       assert.ok(field.resetValue >= field.min && field.resetValue <= field.max, `${type}.${field.key} resets within its range`);
@@ -67,15 +67,19 @@ test("imported effects have parameter fields or a specific read-only explanation
 test("effects shared with the web retain the same creation defaults", () => {
   const native = fs.readFileSync(new URL("./ClipEffectsCatalog.js",import.meta.url),"utf8").replace(/^\.pragma library\s*/,"");
   const context = vm.createContext({});
-  vm.runInContext(native+"\nglobalThis.catalogue = {makeEffect, addableEffects};",context);
+  vm.runInContext(native+"\nglobalThis.catalogue = {makeEffect, addableEffects, effectLabels};",context);
   const web = fs.readFileSync(new URL("../../../../../web/src/components/timeline/Inspector/ClipEffectsList.tsx",import.meta.url),"utf8");
   const functionSource = web.slice(web.indexOf("function makeEffect("),web.indexOf("const SCRUB_PX"));
   const defaults = [...web.matchAll(/^const DEFAULT_\w+ = [^;]+;/gm)].map(match => match[0]).join("\n");
   const oracle = vm.createContext({crypto});
   vm.runInContext(ts.transpileModule(defaults+"\n"+functionSource,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,oracle);
   const types = ["blur","glow","dropShadow","vignette","sharpen","chromaKey","curves","levels","liftGammaGain","grain"];
+  assert.deepEqual(JSON.parse(JSON.stringify(context.catalogue.effectLabels)).map(item => item.value),
+    ["denoise", "stabilize", "deflicker", "deband", "secondaryColor", "exposure", ...types, "pixelate", "posterize", "directionalBlur", "lensDistortion"]);
+  // The Color panel creates these grades, so the add list leaves them out and keeps the rest.
+  const grades = ["curves", "liftGammaGain", "vignette"];
   assert.deepEqual(JSON.parse(JSON.stringify(context.catalogue.addableEffects)).map(item => item.value),
-    ["stabilize", "deflicker", "deband", "secondaryColor", "exposure", ...types, "pixelate", "posterize", "directionalBlur", "lensDistortion"]);
+    JSON.parse(JSON.stringify(context.catalogue.effectLabels)).map(item => item.value).filter(type => !grades.includes(type)));
   for (const type of types) {
     const actual = JSON.parse(JSON.stringify(context.catalogue.makeEffect(type,"native-id")));
     const expected = JSON.parse(JSON.stringify(oracle.makeEffect(type)));

@@ -1,7 +1,8 @@
 // nt-panel: slot=right id=color order=5 title="Color"
 // Grades the selected clip through ordinary effects, so the web editor renders the same result:
-// Basic Correction is the Inspector's color effect, Wheels a liftGammaGain, Curves a curves and
-// Vignette a vignette. A section's switch is its effect's enabled field.
+// Basic Correction is a color effect, Wheels a liftGammaGain, Curves a curves and Vignette a
+// vignette. A section's switch is its effect's enabled field. This panel owns these grades, and
+// Effect Controls lists them to see, enable and key them.
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
@@ -135,6 +136,7 @@ Rectangle {
         boundsBehavior: Flickable.StopAtBounds
         ScrollBar.vertical: Ui.ScrollBar {
             id: scrollBar
+            objectName: "colorPanelScrollBar"
         }
         Column {
             id: content

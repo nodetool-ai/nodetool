@@ -31,7 +31,7 @@ QQuickItem* find(QQuickItem* root, const QString& name) {
 }
 QQuickItem* resetAction(QQuickItem* root) {
     if (!root) { return nullptr; }
-    if (root->inherits("QQuickAbstractButton") && root->property("accessibleName").toString() == "Reset color") { return root; }
+    if (root->inherits("QQuickAbstractButton") && root->property("accessibleName").toString() == "Reset Basic Correction") { return root; }
     for (auto* child : root->childItems()) {
         if (auto* found = resetAction(child)) { return found; }
     }
@@ -69,6 +69,9 @@ bool text(QObject* item, const char* signal, const QString& value) {
 bool toggle(QObject* item, const char* signal, bool value) {
     return item && QMetaObject::invokeMethod(item, signal, Q_ARG(bool, value));
 }
+QJsonObject identityCurves() {
+    return {{"type", "curves"}, {"enabled", true}, {"master", QJsonArray{QJsonObject{{"x", 0}, {"y", 0}}, QJsonObject{{"x", 1}, {"y", 1}}}}};
+}
 struct Editor {
     TimelineModel model;
     PlaybackClock clock;
@@ -92,6 +95,8 @@ struct Editor {
         window.show(); // Only the offscreen Qt platform is allowed by main().
         if (!QTest::qWaitForWindowExposed(&window)) { error = "Offscreen window did not expose"; object.reset(); return; }
         QCoreApplication::processEvents();
+        // The dock layout is saved, so a case that showed another panel leaves it in front.
+        if (object && !showPanel("inspector")) { error = "The Inspector did not open"; object.reset(); return; }
         if (object) { select("picture"); }
     }
     QQuickItem* item(const QString& name) {
@@ -105,10 +110,20 @@ struct Editor {
     }
     QJsonObject clip() const { return model.clipsJson()[0].toObject(); }
     QJsonArray effects() const { return clip()["effects"].toArray(); }
+    // Brings a panel to the front through the same call as the Window menu.
+    bool showPanel(const QString& id) {
+        QVariant shown;
+        if (!QMetaObject::invokeMethod(object.get(), "focusPanel", Q_RETURN_ARG(QVariant, shown), Q_ARG(QVariant, id)) || !shown.toBool()) { return false; }
+        QCoreApplication::processEvents();
+        QQuickTest::qWaitForPolish(&window);
+        return true;
+    }
     void reveal(QQuickItem* target) {
         QCoreApplication::processEvents();
         QQuickTest::qWaitForPolish(&window);
-        auto* viewport = item("inspectorViewport");
+        QQuickItem* viewport = target;
+        while (viewport && !viewport->property("contentY").isValid()) { viewport = viewport->parentItem(); }
+        if (!viewport) { return; }
         const auto y = target->mapToItem(viewport,QPointF{}).y();
         const double maximum = std::max(0.0, viewport->property("contentHeight").toDouble() - viewport->height());
         const double next = viewport->property("contentY").toDouble() + y - 10;
@@ -141,6 +156,20 @@ struct Editor {
             .arg(targetName).arg(at.x()).arg(at.y())
             .arg(itemsAt(window.contentItem(), at).join('\n'));
         QVERIFY2(clicked.count() == 1, qPrintable(diagnostic));
+    }
+    // A grade, which the add list leaves to the Color panel, with its row in the Inspector open.
+    bool addGrade(const QString& id, const QJsonObject& grade) {
+        auto next = effects();
+        auto effect = grade;
+        effect.insert("id", id);
+        next.append(effect);
+        if (!model.applyEdit("patchClip", {{"clipId", "picture"}, {"patch", QJsonObject{{"effects", next}}}})) { return false; }
+        auto* section = item("clipEffectsList");
+        if (!section || !QMetaObject::invokeMethod(section, "toggled", Q_ARG(bool, true))) { return false; }
+        auto* expand = item("effectsExpand_" + id);
+        if (!expand) { return false; }
+        click(expand);
+        return true;
     }
     bool add(const QString& type) {
         auto* section = item("clipEffectsList");
@@ -175,6 +204,8 @@ private slots:
             "(InspectorActionButton|InspectorSectionTitle)\\.qml:.*does not support customization"));
     }
     void registration();
+    void gradesAreNotAddable();
+    void effectControlsOpensTheColorPanel();
     void colorGestureUndoReset_data();
     void colorGestureUndoReset();
     void colorRangesAndPointerGesture();
@@ -268,7 +299,9 @@ void TestClipEffects::analysisLifecycle() {
 void TestClipEffects::registration() {
         InspectorSectionRegistry registry;
         const auto sections = registry.sections();
-        for (const auto& expected : {QPair<QString,int>{"color",50}, {"effects",60}}) {
+        // The Color panel owns the grades, so the Inspector has no Color section.
+        QVERIFY(std::none_of(sections.begin(), sections.end(), [](const QVariant& entry) { return entry.toMap()["id"] == "color"; }));
+        for (const auto& expected : {QPair<QString,int>{"effects",60}}) {
             bool found = false;
             for (const auto& entry : sections) {
                 const auto section = entry.toMap();
@@ -289,24 +322,62 @@ void TestClipEffects::listActionsAndParameterGesture_data() {
     colorGestureUndoReset_data();
 }
 
+void TestClipEffects::gradesAreNotAddable() {
+        Editor e; QVERIFY2(e.object,qPrintable(e.error));
+        auto* section = e.item("clipEffectsList"); QVERIFY(section);
+        QVERIFY(QMetaObject::invokeMethod(section, "toggled", Q_ARG(bool, true)));
+        auto* add = e.item("effectsAdd"); QVERIFY(add); e.click(add);
+        QVERIFY(QTest::qWaitFor([&] { return e.item("effectsAdd_blur") != nullptr; }));
+        for (const auto* type : {"color", "curves", "liftGammaGain", "vignette"}) {
+            QVERIFY2(!e.item("effectsAdd_" + QString::fromLatin1(type)), type);
+        }
+    }
+
+void TestClipEffects::effectControlsOpensTheColorPanel() {
+        Editor e; QVERIFY2(e.object,qPrintable(e.error));
+        e.patch({{"effects",QJsonArray{
+            QJsonObject{{"id","inspector:color"},{"type","color"},{"enabled",true}},
+            QJsonObject{{"id","c"},{"type","curves"},{"enabled",true},{"master",QJsonArray{}}},
+            QJsonObject{{"id","l"},{"type","liftGammaGain"},{"enabled",true}},
+            QJsonObject{{"id","v"},{"type","vignette"},{"enabled",true}},
+            QJsonObject{{"id","b"},{"type","blur"},{"enabled",true},{"radius",8}}}}});
+        QVERIFY(e.showPanel("effectControls"));
+        QVERIFY(QTest::qWaitFor([&] { auto* row = e.item("effectControlsGroup_effect:c"); return row && row->isVisible(); }));
+        QVERIFY(!e.item("effectControlsOpenColor_b")->isVisible());
+        if (const auto screenshot = qEnvironmentVariable("NT_EFFECT_CONTROLS_SCREENSHOT"); !screenshot.isEmpty()) {
+            QVERIFY(e.window.grabWindow().save(screenshot));
+        }
+        const auto before = e.model.documentJson();
+        for (const auto* id : {"inspector:color", "c", "l", "v"}) {
+            QVERIFY(e.showPanel("effectControls"));
+            auto* open = e.item("effectControlsOpenColor_" + QString::fromLatin1(id)); QVERIFY2(open, id);
+            QTRY_VERIFY2(open->isVisible(), id);
+            QVERIFY(!e.item("colorPanel")->isVisible());
+            e.click(open);
+            QTRY_VERIFY2(e.item("colorPanel")->isVisible(), id);
+        }
+        QCOMPARE(e.model.documentJson(),before);
+    }
+
 void TestClipEffects::colorGestureUndoReset() {
         Editor e; QVERIFY2(e.object,qPrintable(e.error));
+        QVERIFY(e.showPanel("color"));
         QFETCH(int, scrollBarWidth);
         if (scrollBarWidth > 0) {
-            auto* scrollBar = e.item("inspectorScrollBar"); QVERIFY(scrollBar);
+            auto* scrollBar = e.item("colorPanelScrollBar"); QVERIFY(scrollBar);
             scrollBar->setProperty("implicitWidth", scrollBarWidth);
             scrollBar->setWidth(scrollBarWidth);
             scrollBar->setProperty("policy", 2); // ScrollBar.AlwaysOn
             scrollBar->setProperty("active", true);
             QCOMPARE(scrollBar->width(), qreal(scrollBarWidth));
         }
-        auto* color = e.item("clipAdjustments"); QVERIFY2(color,"ClipAdjustments must be in the Inspector");
+        auto* color = e.item("colorBasicSection"); QVERIFY(color);
         QVERIFY(QMetaObject::invokeMethod(color, "toggled", Q_ARG(bool, true)));
         const auto original = e.model.documentJson();
         QVERIFY(toggle(color,"checkedChangedByUser",true));
         QCOMPARE(e.effects(),QJsonArray({QJsonObject{{"id","inspector:color"},{"type","color"},{"enabled",true}}}));
         QCOMPARE(e.model.undoStack()->count(),1);
-        auto* brightness = e.item("adjustBrightness"); QVERIFY(brightness);
+        auto* brightness = e.item("colorBasic_brightness"); QVERIFY(brightness);
         QVERIFY(QMetaObject::invokeMethod(brightness,"gestureStarted"));
         QVERIFY(number(brightness,"preview",0.1)); QVERIFY(number(brightness,"preview",0.25));
         QCOMPARE(e.model.undoStack()->count(),1);
@@ -316,7 +387,7 @@ void TestClipEffects::colorGestureUndoReset() {
         e.model.undoStack()->undo(); QVERIFY(!e.effects()[0].toObject().contains("brightness"));
         e.model.undoStack()->undo(); QCOMPARE(e.model.documentJson(),original);
         e.model.undoStack()->redo(); e.model.undoStack()->redo(); QCOMPARE(e.model.documentJson(),edited);
-        auto* reset = resetAction(e.item("clipAdjustments")); QVERIFY(reset);
+        auto* reset = resetAction(e.item("colorBasicSection")); QVERIFY(reset);
         e.click(reset); QCOMPARE(e.effects().size(),0);
         QCOMPARE(e.model.undoStack()->count(),3);
         e.model.undoStack()->undo(); QCOMPARE(e.model.documentJson(),edited);
@@ -337,12 +408,9 @@ void TestClipEffects::catalogue_data() {
             R"({"type":"blur","enabled":true,"radius":8})",
             R"({"type":"glow","enabled":true,"radius":8,"intensity":1})",
             R"({"type":"dropShadow","enabled":true,"offsetX":8,"offsetY":8,"blur":12,"color":"#000000","opacity":0.6})",
-            R"({"type":"vignette","enabled":true,"amount":0.4,"softness":0.5})",
             R"({"type":"sharpen","enabled":true,"amount":0.5,"radius":1})",
             R"({"type":"chromaKey","enabled":true,"color":"#00ff00","tolerance":0.2,"softness":0.1,"spill":0.5})",
-            R"({"type":"curves","enabled":true,"master":[{"x":0,"y":0},{"x":1,"y":1}]})",
             R"({"type":"levels","enabled":true,"inBlack":0,"inWhite":1,"gamma":1,"outBlack":0,"outWhite":1})",
-            R"({"type":"liftGammaGain","enabled":true,"lift":[0,0,0],"gamma":[1,1,1],"gain":[1,1,1]})",
             R"({"type":"grain","enabled":true,"amount":0.25,"size":1,"colorAmount":0,"roughness":0.5,"softness":0.25,"animate":true})",
             R"({"type":"pixelate","enabled":true,"cellSize":8})",
             R"({"type":"posterize","enabled":true,"levels":4})",
@@ -449,7 +517,8 @@ void TestClipEffects::parameterFields() {
         QFETCH(QString,type); QFETCH(QString,field); QFETCH(QString,input); QFETCH(QByteArray,expected);
         Editor e; QVERIFY2(e.object,qPrintable(e.error));
         if (type=="denoise") { e.patch({{"mediaType","video"}}); e.model.undoStack()->clear(); }
-        QVERIFY(e.add(type));
+        if (type == "liftGammaGain") { QVERIFY(e.addGrade("grade",{{"type",type},{"enabled",true},{"lift",QJsonArray{0,0,0}},{"gamma",QJsonArray{1,1,1}},{"gain",QJsonArray{1,1,1}}})); }
+        else { QVERIFY(e.add(type)); }
         const auto id = e.effects()[0].toObject()["id"].toString();
         auto* control = e.item("effects_"+id+"_"+field); QVERIFY(control);
         const auto before = e.model.documentJson();
@@ -506,7 +575,7 @@ void TestClipEffects::invalidNumbersAndGestureCancellation() {
     }
 
 void TestClipEffects::softVignettePreset() {
-    Editor e; QVERIFY2(e.object,qPrintable(e.error)); QVERIFY(e.add("vignette"));
+    Editor e; QVERIFY2(e.object,qPrintable(e.error)); QVERIFY(e.addGrade("soft",{{"type","vignette"},{"enabled",true},{"amount",0.4},{"softness",0.5}}));
     const auto original=e.effects()[0].toObject();
     const auto before=e.model.documentJson();
     auto* preset=e.item("effects_"+original["id"].toString()+"_softPreset"); QVERIFY(preset);
@@ -579,7 +648,7 @@ void TestClipEffects::secondaryColorEditing() {
 }
 
 void TestClipEffects::curvePointEditing() {
-        Editor e; QVERIFY2(e.object,qPrintable(e.error)); QVERIFY(e.add("curves"));
+        Editor e; QVERIFY2(e.object,qPrintable(e.error)); QVERIFY(e.addGrade("curve",identityCurves()));
         auto* graph = e.item("toneCurveGraph"); QVERIFY(graph); e.reveal(graph);
         const auto before = e.model.documentJson();
         const auto pointAt = [&](double x,double y) { return graph->mapToScene({x*graph->width(),(1-y)*graph->height()}).toPoint(); };
@@ -621,10 +690,11 @@ void TestClipEffects::curvePointEditing() {
 
 void TestClipEffects::cancellationLocksAndPlayhead() {
         Editor e; QVERIFY2(e.object,qPrintable(e.error));
-        auto* color = e.item("clipAdjustments"); QVERIFY(color); color->setProperty("open",true);
+        QVERIFY(e.showPanel("color"));
+        auto* color = e.item("colorBasicSection"); QVERIFY(color); color->setProperty("open",true);
         QVERIFY(toggle(color,"checkedChangedByUser",true)); e.model.undoStack()->clear();
         const auto before = e.model.documentJson();
-        auto* brightness = e.item("adjustBrightness"); QVERIFY(brightness);
+        auto* brightness = e.item("colorBasic_brightness"); QVERIFY(brightness);
         QVERIFY(QMetaObject::invokeMethod(brightness,"gestureStarted")); QVERIFY(number(brightness,"preview",0.4));
         e.select("other"); QCOMPARE(e.model.documentJson(),before);
         QVERIFY(number(brightness,"change",0.4)); QCOMPARE(e.model.documentJson(),before);
@@ -645,12 +715,15 @@ void TestClipEffects::cancellationLocksAndPlayhead() {
 void TestClipEffects::groupSections() {
         Editor e; QVERIFY2(e.object,qPrintable(e.error)); e.patch({{"mediaType","group"}});
         auto* panel = e.item("clipGroupPanel"); QVERIFY(panel); QVERIFY(panel->isVisible());
-        auto* color = find(panel,"clipAdjustments"); QVERIFY2(color,"Group clips need the same Color section as web ClipGroupPanel");
-        QVERIFY(color->isVisible()); QVERIFY(toggle(color,"checkedChangedByUser",true));
-        QCOMPARE(e.effects()[0].toObject()["enabled"].toBool(),true); QCOMPARE(e.model.undoStack()->count(),1);
+        // The Color panel grades a group, in place of the web's Color section in ClipGroupPanel.
+        QVERIFY(!find(panel,"clipAdjustments"));
         auto* effects = find(panel,"clipEffectsList");
         QVERIFY2(effects,"Group clips need the same Effects section as web ClipGroupPanel");
         QVERIFY(effects->isVisible());
+        QVERIFY(e.showPanel("color"));
+        auto* color = e.item("colorBasicSection");
+        QVERIFY(color); QTRY_VERIFY(color->isVisible()); QVERIFY(toggle(color,"checkedChangedByUser",true));
+        QCOMPARE(e.effects()[0].toObject()["enabled"].toBool(),true); QCOMPARE(e.model.undoStack()->count(),1);
     }
 
 void TestClipEffects::exportDocuments() {
@@ -661,29 +734,30 @@ void TestClipEffects::exportDocuments() {
         const auto save = [&](const QString& name) {
             QFile file(directory.filePath(name+".json"));
             if (!file.open(QIODevice::WriteOnly)) { return false; }
-            if (name == "curves" || name == "effects") { e.reveal(e.item("clipEffectsList")); }
+            if (name == "curves") { e.reveal(e.item("colorCurvesSection")); }
+            if (name == "effects") { e.reveal(e.item("colorVignetteSection")); }
             QQuickTest::qWaitForPolish(&e.window);
             if (!e.window.grabWindow().save(directory.filePath(name+"-ui.png"))) { return false; }
             return file.write(e.model.documentJson())>0;
         };
         QVERIFY(save("base"));
-        auto* color = e.item("clipAdjustments"); QVERIFY(color); color->setProperty("open",true);
+        QVERIFY(e.showPanel("color"));
+        auto* color = e.item("colorBasicSection"); QVERIFY(color); color->setProperty("open",true);
         QVERIFY(toggle(color,"checkedChangedByUser",true));
-        QVERIFY(number(e.item("adjustBrightness"),"change",0.15));
-        QVERIFY(number(e.item("adjustContrast"),"change",1.2)); QVERIFY(save("color"));
-        QVERIFY(e.add("curves")); auto* graph = e.item("toneCurveGraph"); QVERIFY(graph); e.reveal(graph);
+        QVERIFY(number(e.item("colorBasic_brightness"),"change",0.15));
+        QVERIFY(number(e.item("colorBasic_contrast"),"change",1.2)); QVERIFY(save("color"));
+        auto* graph = e.item("toneCurveGraph"); QVERIFY(graph); e.reveal(graph);
         QTest::mouseClick(&e.window,Qt::LeftButton,Qt::NoModifier,graph->mapToScene({graph->width()*0.5,graph->height()*0.3}).toPoint());
         QCOMPARE(e.effects()[1].toObject()["master"].toArray().size(),3); QVERIFY(save("curves"));
-        QVERIFY(e.add("vignette")); const auto id = e.effects()[2].toObject()["id"].toString();
-        QVERIFY(number(e.item("effects_"+id+"_amount"),"change",0.7)); QVERIFY(save("effects"));
+        QVERIFY(number(e.item("colorVignette_amount"),"change",0.7)); QVERIFY(save("effects"));
+        QCOMPARE(e.effects()[2].toObject()["type"].toString(),QString("vignette"));
         // Select the group through the normal Inspector. Its image remains a child.
         auto clips = e.model.clipsJson(); auto child = clips[0].toObject();
         auto group = child; group.insert("id","group"); group.insert("mediaType","group"); group.remove("mediaPath");
         child.insert("parentId","group"); child.remove("effects"); clips[0] = child; clips.append(group);
         e.model.replaceClips(clips); e.select("group");
-        auto* panel = e.item("clipGroupPanel"); QVERIFY(panel);
-        auto* groupColor = find(panel,"clipAdjustments"); QVERIFY(groupColor); groupColor->setProperty("open",true);
-        QVERIFY(number(find(panel,"adjustSaturation"),"change",0.5)); QVERIFY(save("group"));
+        QVERIFY(e.item("clipGroupPanel"));
+        QVERIFY(number(e.item("colorBasic_saturation"),"change",0.5)); QVERIFY(save("group"));
     }
 
 int main(int argc, char** argv) {
@@ -696,15 +770,14 @@ int main(int argc, char** argv) {
 
 void TestClipEffects::foldsAndSearch() {
     Editor e; QVERIFY2(e.object,qPrintable(e.error));
-    auto* color = e.item("clipAdjustments"); QVERIFY(color);
-    QVERIFY(QMetaObject::invokeMethod(color,"toggled",Q_ARG(bool,true)));
-    QCOMPARE(color->property("open").toBool(),true);
+    auto* list = e.item("clipEffectsList"); QVERIFY(list);
+    QVERIFY(QMetaObject::invokeMethod(list,"toggled",Q_ARG(bool,true)));
+    QCOMPARE(list->property("open").toBool(),true);
     e.patch({{"mediaType","group"}});
-    auto* groupColor = find(e.item("clipGroupPanel"),"clipAdjustments"); QVERIFY(groupColor);
-    QCOMPARE(groupColor->property("open").toBool(),true);
+    auto* groupList = find(e.item("clipGroupPanel"),"clipEffectsList"); QVERIFY(groupList);
+    QCOMPARE(groupList->property("open").toBool(),true);
     e.patch({{"mediaType","image"}});
-    Editor restored; QVERIFY(restored.object); QCOMPARE(restored.item("clipAdjustments")->property("open").toBool(),true);
-    auto* effects = restored.item("clipEffectsList"); QVERIFY(effects); effects->setProperty("open",true);
+    Editor restored; QVERIFY(restored.object); QCOMPARE(restored.item("clipEffectsList")->property("open").toBool(),true);
     auto* add = restored.item("effectsAdd"); QVERIFY(add); restored.click(add);
     QQuickTest::qWaitForPolish(&restored.window);
     auto* search = restored.item("effectsSearch"); QVERIFY(search); search->forceActiveFocus();
@@ -720,20 +793,21 @@ void TestClipEffects::foldsAndSearch() {
 
 void TestClipEffects::colorRangesAndPointerGesture() {
     Editor e; QVERIFY2(e.object,qPrintable(e.error));
-    auto* color = e.item("clipAdjustments"); QVERIFY(color); color->setProperty("open",true);
+    QVERIFY(e.showPanel("color"));
+    auto* color = e.item("colorBasicSection"); QVERIFY(color); color->setProperty("open",true);
     QVERIFY(toggle(color,"checkedChangedByUser",true));
     struct Range { QString name; double min; double max; double step; double origin; };
     const QList<Range> ranges{{"Brightness",-1,1,0.01,0},{"Contrast",0,4,0.01,1},
         {"Saturation",0,4,0.01,1},{"Hue",-180,180,1,0},{"Temperature",-1,1,0.01,0},
         {"Tint",-1,1,0.01,0},{"Shadows",-1,1,0.01,0},{"Highlights",-1,1,0.01,0}};
     for (const auto& range : ranges) {
-        auto* field = e.item("adjust"+range.name); QVERIFY(field);
+        auto* field = e.item("colorBasic_"+range.name.toLower()); QVERIFY(field);
         QCOMPARE(field->property("min").toDouble(),range.min); QCOMPARE(field->property("max").toDouble(),range.max);
         QCOMPARE(field->property("step").toDouble(),range.step); QCOMPARE(field->property("origin").toDouble(),range.origin);
         QCOMPARE(field->property("value").toDouble(),range.origin);
     }
     const auto before = e.model.documentJson();
-    auto* slider = sliderControl(e.item("adjustBrightness")); QVERIFY(slider); e.reveal(slider);
+    auto* slider = sliderControl(e.item("colorBasic_brightness")); QVERIFY(slider); e.reveal(slider);
     const auto at = [&](double x) { return slider->mapToScene({slider->width()*x,slider->height()/2}).toPoint(); };
     QTest::mousePress(&e.window,Qt::LeftButton,Qt::NoModifier,at(0.5));
     QTest::mouseMove(&e.window,at(0.6)); QTest::mouseMove(&e.window,at(0.7));
@@ -769,11 +843,11 @@ void TestClipEffects::dragReorder() {
 }
 
 void TestClipEffects::collapsedRowsReleaseSpace() {
-    Editor e; QVERIFY2(e.object,qPrintable(e.error)); QVERIFY(e.add("curves"));
+    Editor e; QVERIFY2(e.object,qPrintable(e.error)); QVERIFY(e.addGrade("curve",identityCurves()));
     const auto curvesId = e.effects()[0].toObject()["id"].toString();
     auto* curveRow = e.item("effectRow_"+curvesId); QVERIFY(curveRow);
     QQuickTest::qWaitForPolish(&e.window); QVERIFY(curveRow->height()>300);
-    QVERIFY(e.add("vignette")); QQuickTest::qWaitForPolish(&e.window);
+    QVERIFY(e.add("glow")); QQuickTest::qWaitForPolish(&e.window);
     QVERIFY2(curveRow->height()<80,"Collapsed Curves row retains the tone graph's height");
     const auto vignetteId = e.effects()[1].toObject()["id"].toString();
     auto* vignetteRow = e.item("effectRow_"+vignetteId); QVERIFY(vignetteRow);
