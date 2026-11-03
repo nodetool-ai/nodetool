@@ -1,0 +1,169 @@
+{
+  "_note": "Recorded from wangp_models rows of WanGP v19.02 (616e605), trimmed to the fields the provider reads.",
+  "models": {
+    "qwen3_tts_customvoice": {
+      "metadata": {
+        "model_type": "qwen3_tts_customvoice",
+        "name": "TTS Qwen3 Custom Voice (12Hz) 1.7B",
+        "family": "tts",
+        "base_model_type": "qwen3_tts_customvoice",
+        "main_output": [
+          "audio"
+        ],
+        "outputs": [
+          "audio"
+        ],
+        "capabilities": [
+          "text_to_audio",
+          "audio_output",
+          "lora"
+        ],
+        "media_inputs": {
+          "audio": [
+            "output"
+          ]
+        }
+      }
+    },
+    "chatterbox": {
+      "metadata": {
+        "model_type": "chatterbox",
+        "name": "Chatterbox",
+        "family": "tts",
+        "base_model_type": "chatterbox",
+        "main_output": [
+          "audio"
+        ],
+        "outputs": [
+          "audio"
+        ],
+        "capabilities": [
+          "text_to_audio",
+          "audio_to_audio",
+          "audio_output",
+          "lora"
+        ],
+        "media_inputs": {
+          "audio": [
+            "prompt",
+            "output"
+          ]
+        }
+      }
+    },
+    "ace_step_v1": {
+      "metadata": {
+        "model_type": "ace_step_v1",
+        "name": "Music ACE-Step v1.0 3.5B",
+        "family": "music",
+        "base_model_type": "ace_step_v1",
+        "main_output": [
+          "audio"
+        ],
+        "outputs": [
+          "audio"
+        ],
+        "capabilities": [
+          "text_to_audio",
+          "audio_to_audio",
+          "audio_output",
+          "lora"
+        ],
+        "media_inputs": {
+          "audio": [
+            "prompt",
+            "output"
+          ]
+        }
+      }
+    },
+    "stable_audio3_small": {
+      "metadata": {
+        "model_type": "stable_audio3_small",
+        "name": "Stable Audio 3 Small",
+        "family": "music",
+        "base_model_type": "stable_audio3_small",
+        "main_output": [
+          "audio"
+        ],
+        "outputs": [
+          "audio"
+        ],
+        "capabilities": [
+          "text_to_audio",
+          "audio_to_audio",
+          "audio_output",
+          "lora"
+        ],
+        "media_inputs": {
+          "audio": [
+            "prompt",
+            "output"
+          ]
+        }
+      }
+    },
+    "yue2": {
+      "metadata": {
+        "model_type": "yue2",
+        "name": "Music YuE2 3B",
+        "family": "music",
+        "base_model_type": "yue2",
+        "main_output": [
+          "audio"
+        ],
+        "outputs": [
+          "audio"
+        ],
+        "capabilities": [
+          "text_to_audio",
+          "audio_to_audio",
+          "audio_output",
+          "lora"
+        ],
+        "media_inputs": {
+          "custom_file": {
+            "name": "ABC Score",
+            "kinds": [
+              "file"
+            ],
+            "file_types": [
+              ".abc"
+            ],
+            "required": true,
+            "audio_prompt_type": "1"
+          },
+          "audio": [
+            "prompt",
+            "output"
+          ]
+        }
+      }
+    },
+    "nemotron_transcribe": {
+      "metadata": {
+        "model_type": "nemotron_transcribe",
+        "name": "Nemotron",
+        "family": "transcription",
+        "base_model_type": "nemotron_transcribe",
+        "main_output": [
+          "audio"
+        ],
+        "outputs": [
+          "audio"
+        ],
+        "capabilities": [
+          "audio_output",
+          "audio_to_text"
+        ],
+        "media_inputs": {
+          "audio": [
+            "prompt",
+            "soundtrack",
+            "output"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -234,6 +234,7 @@ export const NON_CLOUD_PROVIDER_IDS: readonly string[] = [
   "llama_cpp",
   "node_llama_cpp",
   "stable_diffusion_cpp",
+  "wangp",
   "whisper_cpp",
   "whisper_cpp_server",
   "vllm",

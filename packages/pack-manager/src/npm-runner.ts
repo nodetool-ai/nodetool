@@ -69,6 +69,20 @@ export function npmInstallFlags(
   ];
 }
 
+/**
+ * Flags for the installer's own pack project. npm resolves the project from
+ * its package.json and package-lock.json, so these only fix the tree shape and
+ * keep install scripts off until verification has passed.
+ */
+export function projectInstallFlags(): string[] {
+  return [
+    "--ignore-scripts", "--omit=dev", "--include=prod", "--include=optional",
+    "--strict-peer-deps", "--legacy-peer-deps=false", "--install-strategy=hoisted", "--prefer-dedupe",
+    "--package-lock=true", "--global=false", "--workspaces=false",
+    "--force=false", "--dry-run=false", "--no-audit", "--no-fund", "--update-notifier=false"
+  ];
+}
+
 export function assertInstallerModuleIdentity(
   execArgv: readonly string[] = process.execArgv,
   nodeOptions: string = process.env["NODE_OPTIONS"] ?? ""
@@ -159,19 +173,17 @@ export async function runNpm(
   await npmCall(cli, [...args, ...npmInstallFlags(options.mode, options.scriptPolicy)], root, false, options.signal);
 }
 
-/** Installer commands retain forced policy while returning machine-readable output. */
+/** Run npm in a pack project with the forced installer policy and capture its output. */
 export async function runInstallerNpm(
   root: string, args: readonly string[],
-  options: { readonly mode: NpmInstallMode; readonly dryRun?: boolean; readonly rebuild?: boolean; readonly signal?: AbortSignal; readonly onWarning?: (warning: string) => void }
+  options: { readonly rebuild?: boolean; readonly signal?: AbortSignal; readonly onWarning?: (warning: string) => void } = {}
 ): Promise<string> {
   assertInstallerModuleIdentity();
   const cli = findNpmCli();
   const warning = checkNpmVersion(await npmCall(cli, ["--version"], root, true, options.signal));
   if (warning) { (options.onWarning ?? ((value: string) => process.stderr.write(value + "\n")))(warning); }
-  const flags = npmInstallFlags(options.mode).filter((flag) => flag !== "--dry-run=false" &&
-    (!options.rebuild || flag !== "--ignore-scripts"));
-  return npmCall(cli, [...args, ...flags, `--dry-run=${String(options.dryRun ?? false)}`,
-    ...(options.rebuild ? ["--ignore-scripts=false", "--foreground-scripts"] : [])], root, true, options.signal);
+  const flags = projectInstallFlags().filter((flag) => !options.rebuild || flag !== "--ignore-scripts");
+  return npmCall(cli, [...args, ...flags, ...(options.rebuild ? ["--ignore-scripts=false", "--foreground-scripts"] : [])], root, true, options.signal);
 }
 
 export async function installerNpmVersion(root: string, signal?: AbortSignal, onWarning?: (warning: string) => void): Promise<string> {

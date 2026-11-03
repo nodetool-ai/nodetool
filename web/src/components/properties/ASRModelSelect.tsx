@@ -16,6 +16,8 @@ interface ASRModelSelection {
 }
 
 interface ASRModelSelectProps {
+  /** Only these providers' models are offered. */
+  allowedProviders?: string[];
   onChange: (value: ASRModelSelection) => void;
   value: string;
   provider?: string;
@@ -24,6 +26,7 @@ interface ASRModelSelectProps {
 }
 
 const ASRModelSelect: React.FC<ASRModelSelectProps> = ({
+  allowedProviders,
   onChange,
   value,
   provider,
@@ -62,6 +65,7 @@ const ASRModelSelect: React.FC<ASRModelSelectProps> = ({
         onClick={handleClick}
       />
       <ASRModelMenuDialog
+        allowedProviders={allowedProviders}
         open={!!anchorEl}
         anchorEl={anchorEl}
         onClose={handleClose}

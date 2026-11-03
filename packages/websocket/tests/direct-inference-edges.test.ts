@@ -1345,3 +1345,33 @@ describe("entity reference helpers", () => {
     );
   });
 });
+
+describe("direct lipsync", () => {
+  const mediaReq = (overrides: Partial<DirectMediaGenerationRequest>): DirectMediaGenerationRequest => ({
+    mode: "audio_to_video", provider: "fake", model: "fake-video", prompt: "Hello", ...overrides
+  });
+  beforeEach(() => { closeDb(); initTestDb(); });
+  it("requires consent and both owned inputs before calling a provider", async () => {
+    const { handler } = makeHandler(asProvider({}));
+    await expect(handler.runDirectMediaGeneration(mediaReq({ mode: "audio_to_video", personConsent: { real_person: true, confirmed: false } }))).rejects.toThrow("consent");
+    await expect(handler.runDirectMediaGeneration(mediaReq({ mode: "audio_to_video" }))).rejects.toThrow("audio_asset_id");
+  });
+  it("refuses foreign or wrongly typed inputs", async () => {
+    const foreign = await createStoredAsset("2", "image/png", PNG_1x1);
+    const audio = await createStoredAsset("1", "audio/wav", new Uint8Array([1, 2]));
+    const { handler } = makeHandler(asProvider({}));
+    await expect(handler.runDirectMediaGeneration(mediaReq({ sourceAssetId: foreign, audioAssetId: audio }))).rejects.toThrow("owned image and audio");
+    await expect(handler.runDirectMediaGeneration(mediaReq({ sourceAssetId: audio, audioAssetId: audio }))).rejects.toThrow("owned image and audio");
+  });
+  it("passes the image MIME and records full input ids and consent on the ledger", async () => {
+    const image = await createStoredAsset("1", "image/png", PNG_1x1);
+    const audio = await createStoredAsset("1", "audio/wav", new Uint8Array([1, 2]));
+    let mime: string | undefined;
+    const { handler } = makeHandler(asProvider({ lipSync: async (_bytes: Uint8Array, params: { visualMimeType: string }) => { mime = params.visualMimeType; return PNG_1x1; } }));
+    const result = await handler.runDirectMediaGeneration(mediaReq({ mode: "audio_to_video", sourceAssetId: image, audioAssetId: audio, personConsent: { real_person: true, confirmed: true } }));
+    expect(result.asset_ids).toHaveLength(1);
+    expect(mime).toBe("image/png");
+    const [rows] = await Prediction.paginate("1", {});
+    expect(rows[0].parameters).toMatchObject({ source_asset_id: image, audio_asset_id: audio, person_consent: { real_person: true, confirmed: true } });
+  });
+});

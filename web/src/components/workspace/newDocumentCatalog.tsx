@@ -20,6 +20,10 @@ import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import DataObjectOutlinedIcon from "@mui/icons-material/DataObjectOutlined";
 import RecordVoiceOverOutlinedIcon from "@mui/icons-material/RecordVoiceOverOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
+import { COMFY_RUN_MODE } from "@nodetool-ai/protocol";
+import { comfyStarterGraph } from "../../lib/comfy/comfyStarterGraph";
+import type { Workflow } from "../../stores/ApiTypes";
 
 import { useCreateTimeline } from "../../hooks/useTimelineSequence";
 import {
@@ -37,6 +41,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import type { MediaMode } from "../../stores/MediaGenerationStore";
 import {
+  CREATE_REF,
   creationProjectId,
   useWorkspaceTabsStore,
   type WorkspaceTabType
@@ -257,6 +262,25 @@ export const useNewDocumentCatalog = (
     [runCreate, createNew, openTab]
   );
 
+  const createComfyWorkflow = useCallback(
+    () =>
+      runCreate("Comfy workflow", async (destinationProjectId) => {
+        const workflow = await createNew(destinationProjectId, {
+          name: "New Comfy Workflow",
+          run_mode: COMFY_RUN_MODE,
+          graph: comfyStarterGraph() as Workflow["graph"]
+        });
+        openTab({
+          type: "workflow",
+          ref: workflow.id,
+          mode: "edit",
+          title: workflow.name,
+          projectId: destinationProjectId
+        });
+      }),
+    [runCreate, createNew, openTab]
+  );
+
   const createChat = useCallback(
     (mode: MediaMode) =>
       runCreate("chat", async (destinationProjectId) => {
@@ -457,6 +481,19 @@ export const useNewDocumentCatalog = (
     [runCreate, createSkill, openGlobalTab]
   );
 
+  const openCreateView = useCallback(
+    () =>
+      runCreate("Create view", async () => {
+        openGlobalTab({
+          type: "create",
+          ref: CREATE_REF,
+          mode: "view",
+          title: "Create"
+        });
+      }),
+    [runCreate, openGlobalTab]
+  );
+
   const createModel = useCallback(
     () =>
       runCreate("3D model", async (destinationProjectId) => {
@@ -482,12 +519,28 @@ export const useNewDocumentCatalog = (
       create: createWorkflow
     },
     {
+      key: "comfy-workflow",
+      label: "Comfy workflow",
+      menuLabel: "New Comfy workflow",
+      type: "workflow",
+      icon: <HubOutlinedIcon fontSize="small" />,
+      create: createComfyWorkflow
+    },
+    {
       key: "chat",
       label: "Chat",
       menuLabel: "New chat…",
       type: "chat",
       icon: <ForumOutlinedIcon fontSize="small" />,
       submenu: "chats"
+    },
+    {
+      key: "create",
+      label: "Create",
+      menuLabel: "Create images and videos",
+      type: "create",
+      icon: <AutoAwesomeOutlinedIcon fontSize="small" />,
+      create: openCreateView
     },
     {
       key: "text",

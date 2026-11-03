@@ -1,0 +1,41 @@
+{
+  "id": "camera.pedestal-up",
+  "version": 1,
+  "kind": "camera",
+  "name": "pedestal up",
+  "description": "Camera rises vertically without tilting.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "camera.pedestal-down"
+  ],
+  "aliases": [
+    "pedestal up"
+  ],
+  "prompt": {
+    "default": "Camera rises vertically without tilting.",
+    "kling": "Camera rises vertically without tilting.",
+    "seedance": "Camera rises vertically without tilting throughout one continuous shot.",
+    "veo": "Camera rises vertically without tilting.",
+    "wan": "Camera rises vertically without tilting.",
+    "local-wan": "The level camera rises straight upward. The viewing direction stays horizontal as the subject moves lower within the frame and higher details become visible. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pedestal-up/bb8c5289e1432e24707959e54cc8ac2d3e75894b35ca53f3ed2b243579fb8316.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pedestal-up/bb8c5289e1432e24707959e54cc8ac2d3e75894b35ca53f3ed2b243579fb8316.png",
+    "run": "runs/camera.pedestal-up.json"
+  }
+}

@@ -53,7 +53,11 @@ export type WorkspaceTabType =
   | "guided-flow"
   // The surface a project is started from. One per workspace — `ref` is the
   // constant below, and the tab closes once the project it described exists.
-  | "project-new";
+  | "project-new"
+  // The Create view: a prompt bar over a grid of image and video generations.
+  // One per workspace — `ref` is `CREATE_REF`. It holds no document, so it is
+  // global and is not restored with a project.
+  | "create";
 
 export type WorkspaceTabMode = "view" | "edit";
 
@@ -116,6 +120,7 @@ export const isGlobalWorkspaceTab = (tab: WorkspaceTab): boolean =>
   tab.type === "page" ||
   tab.type === "project-list" ||
   tab.type === "project-new" ||
+  tab.type === "create" ||
   tab.type === "example-app" ||
   tab.type === "skill";
 
@@ -246,6 +251,9 @@ export const PROJECT_LIST_REF = "projects";
 
 /** The new-project surface is one tab, so its `ref` is a constant too. */
 export const PROJECT_NEW_REF = "new";
+
+/** The Create view is one tab, so its `ref` is a constant too. */
+export const CREATE_REF = "create";
 
 export const tabId = (type: WorkspaceTabType, ref: string, instanceId?: string): string =>
   type === "application" && instanceId ? `${type}:${ref}:instance:${instanceId}` : `${type}:${ref}`;

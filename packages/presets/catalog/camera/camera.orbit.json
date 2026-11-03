@@ -1,0 +1,40 @@
+{
+  "id": "camera.orbit",
+  "version": 1,
+  "kind": "camera",
+  "name": "orbit",
+  "description": "Camera completes a full circle around the subject at a steady distance.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [
+    "orbit",
+    "360 orbit"
+  ],
+  "prompt": {
+    "default": "Camera completes a full circle around the subject at a steady distance.",
+    "kling": "Camera completes a full circle around the subject at a steady distance.",
+    "seedance": "Camera completes a full circle around the subject at a steady distance throughout one continuous shot.",
+    "veo": "Camera completes a full circle around the subject at a steady distance.",
+    "wan": "Camera completes a full circle around the subject at a steady distance.",
+    "local-wan": "The camera circles all the way around the subject at a steady height and distance, revealing front, side, back and front again in a continuous shot. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.orbit/5f909c6c5e25291eee3edd4615f5303b54caaf91901dd0dd4d67a9c2011fb5d4.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.orbit/5f909c6c5e25291eee3edd4615f5303b54caaf91901dd0dd4d67a9c2011fb5d4.png",
+    "run": "runs/camera.orbit.json"
+  }
+}

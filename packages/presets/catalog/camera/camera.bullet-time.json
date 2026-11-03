@@ -1,0 +1,39 @@
+{
+  "id": "camera.bullet-time",
+  "version": 1,
+  "kind": "camera",
+  "name": "bullet time",
+  "description": "Camera arcs around the subject while the action hangs nearly frozen in time.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "bullet time"
+  ],
+  "prompt": {
+    "default": "Camera arcs around the subject while the action hangs nearly frozen in time.",
+    "kling": "Camera arcs around the subject while the action hangs nearly frozen in time.",
+    "seedance": "Camera arcs around the subject while the action hangs nearly frozen in time throughout one continuous shot.",
+    "veo": "Camera arcs around the subject while the action hangs nearly frozen in time.",
+    "wan": "Camera arcs around the subject while the action hangs nearly frozen in time.",
+    "local-wan": "The action slows almost to a standstill. The camera circles smoothly around the suspended subject as the surroundings rotate behind it. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.bullet-time/d29d66c81102599ac1cfec0d1afa4f7d21733c991a70caa7d4bff90a69cea011.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.bullet-time/d29d66c81102599ac1cfec0d1afa4f7d21733c991a70caa7d4bff90a69cea011.png",
+    "run": "runs/camera.bullet-time.json"
+  }
+}

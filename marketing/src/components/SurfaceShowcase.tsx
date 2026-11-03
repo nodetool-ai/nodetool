@@ -43,6 +43,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { usePrefersReducedMotion } from "../lib/useGridParallax";
+import { STAGE_COSTS } from "../data/stageCosts";
 
 interface Surface {
   id: string;
@@ -59,8 +60,8 @@ const SURFACES: Surface[] = [
     id: "storyboard",
     label: "Storyboard",
     icon: Clapperboard,
-    headline: "Visual storyboards",
-    body: "Plan the film one shot at a time. Generate quick still images to settle the look, then turn only the shots you approve into video.",
+    headline: "Cheap stages first",
+    body: `Settle the framing and the cast on stills before you pay for video. A ${STAGE_COSTS.stillModel} still costs ${STAGE_COSTS.stillPrice}. Five seconds of ${STAGE_COSTS.clipModel} costs ${STAGE_COSTS.clipPrice}. Only the shots you approve become clips. (${STAGE_COSTS.attribution})`,
     asset: "surface-storyboard",
   },
   {
@@ -68,7 +69,7 @@ const SURFACES: Surface[] = [
     label: "Script & voice",
     icon: FileText,
     headline: "Scripting & casting",
-    body: "Write the dialogue, pick an AI voice for each character, and compare different readings of a line. Edit a line and its recording is marked out of date, so you can see what needs recording again.",
+    body: "Cast an AI voice for each character and compare readings of a line. Change a word and that line's recording is marked out of date, so Voice all skips every line that is already up to date.",
     asset: "surface-script",
   },
   {
@@ -76,7 +77,7 @@ const SURFACES: Surface[] = [
     label: "Timeline",
     icon: Film,
     headline: "Multi-track timeline",
-    body: "Arrange, trim, and layer video and audio clips on separate tracks, down to a single frame. Ask the agent to tighten the opening and it edits the same timeline.",
+    body: "Trim and layer video and audio on separate tracks, down to a single frame. Ask for shot 3 darker with rain, and a video-to-video model renders a new take of that clip. You decide whether it replaces the old one. The rest of the cut stays as it was.",
     asset: "surface-timeline",
   },
   {
@@ -92,7 +93,7 @@ const SURFACES: Surface[] = [
     label: "3D",
     icon: BoxIcon,
     headline: "3D scene layout",
-    body: "Lay out a scene with simple 3D shapes and lights, by hand or by asking the agent. Render it from any angle and use the image as a guide for a shot.",
+    body: "Block out a scene with simple 3D shapes and lights, by hand or by asking the agent. Render it from the angle you want and use the image as the guide for a shot, so the composition is set before a model draws it.",
     asset: "surface-3d",
   },
   {
@@ -108,7 +109,7 @@ const SURFACES: Surface[] = [
     label: "Nodes",
     icon: Workflow,
     headline: "The node editor underneath",
-    body: "Underneath, every project is a chain of connected steps called a node graph. Connect the steps, press Run, and check the result of each one, from the first text prompt to the finished clip.",
+    body: "Underneath, every project is a chain of connected steps called a node graph. Open it to rewire a step, swap a provider, or check what each step produced, from the first text prompt to the finished clip.",
     asset: "surface-nodes",
   },
 ];
@@ -121,9 +122,9 @@ interface SurfaceShowcaseProps {
 
 export default function SurfaceShowcase({
   surfaceIds,
-  heading = "Seven editors. One project.",
+  heading = "Seven editors. The agent works in all of them.",
   intro =
-    "Whatever the agent makes, you can open and change by hand. Each part of a project has its own editor, and the agent works in the same editors you do.",
+    "The agent is not stuck in a chat panel. Each editor exposes its actions to the agent as tools, so when you ask it to tighten the opening cut or recast a voice, it changes the document you have open. Take over at any point and hand it back.",
 }: SurfaceShowcaseProps) {
   const surfaces = useMemo(
     () =>
@@ -291,7 +292,7 @@ export default function SurfaceShowcase({
       ref={sectionRef}
       id="surfaces"
       aria-labelledby="surfaces-title"
-      className="relative py-24 overflow-clip-safe"
+      className="relative py-16 sm:py-24 overflow-clip-safe"
     >
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mb-10 text-center max-w-3xl mx-auto">

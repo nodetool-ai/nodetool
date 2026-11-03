@@ -7,7 +7,7 @@ import type { ImageRef } from "../types.js";
 export type ImageToTextInputs = {
   image?: Connectable<ImageRef>;
   prompt?: Connectable<string>;
-  model?: Connectable<string>;
+  model?: Connectable<unknown>;
   temperature?: Connectable<number>;
   max_tokens?: Connectable<number>;
 };

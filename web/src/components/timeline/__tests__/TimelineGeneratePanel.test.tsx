@@ -73,6 +73,32 @@ jest.mock("../../model_menu/TTSModelMenuDialog", () => ({
     </button>
   )
 }));
+// The `@` picker lists one entity; its menu is a single button.
+jest.mock(
+  "../../node_types/editing/promptComposer/useAssetMentionSearch",
+  () => ({
+    useAssetMentionSearch: (query: string | null) => ({
+      activeTab: "saved",
+      setActiveTab: jest.fn(),
+      entities:
+        query === null
+          ? []
+          : [{ type: "entity", id: "e1", kind: "character", name: "Marta" }],
+      displayedAssets: [],
+      hasMoreSaved: false,
+      loadMoreSaved: jest.fn(),
+      handleRename: jest.fn()
+    })
+  })
+);
+jest.mock("../../node_types/editing/promptComposer/AssetMentionMenu", () => ({
+  AssetMentionMenu: ({ onSelect }: { onSelect: (index: number) => void }) => (
+    <button type="button" data-testid="pick-entity" onClick={() => onSelect(0)}>
+      Marta
+    </button>
+  )
+}));
+
 let mockCatalogVideoModel: unknown;
 jest.mock("../../../hooks/useMediaModelConstraints", () => ({
   useCatalogVideoModel: () => mockCatalogVideoModel
@@ -109,6 +135,12 @@ import {
 import { useLastModelStore } from "../../../stores/lastModelStore";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { __resetGenerationWatchesForTests } from "../../../lib/websocket/generationWatch";
+
+// The prompt box offers `@` entities from the library, which reads TanStack
+// Query; these tests mount no QueryClientProvider.
+jest.mock("../../../serverState/useEntities", () => ({
+  useEntities: () => ({ data: [] })
+}));
 
 let instance: TimelineInstance;
 
@@ -386,6 +418,35 @@ describe("TimelineGeneratePanel", () => {
     expect(
       screen.getByRole("button", { name: "Test speech" })
     ).toBeInTheDocument();
+  });
+
+  it("adds an entity picked with @ to the video clip's references", async () => {
+    renderPrompt();
+    await userEvent.click(screen.getByRole("button", { name: "Select model" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Pick video model" })
+    );
+    const prompt = screen.getByRole("textbox");
+    await userEvent.type(prompt, "A close-up of @mar");
+    await userEvent.click(await screen.findByTestId("pick-entity"));
+    expect(prompt).toHaveValue("A close-up of Marta ");
+
+    await userEvent.type(prompt, "smiling{enter}");
+    expect(instance.doc.getState().clips[0]).toMatchObject({
+      bindingKind: "text-to-video",
+      prompt: "A close-up of Marta smiling",
+      referenceEntityIds: ["e1"]
+    });
+  });
+
+  it("does not offer @ entities in a speech prompt", async () => {
+    renderPrompt();
+    await chooseSpeech();
+    await userEvent.type(
+      screen.getByRole("textbox", { name: "Quick text-to-audio prompt" }),
+      "Hello @mar"
+    );
+    expect(screen.queryByTestId("pick-entity")).not.toBeInTheDocument();
   });
 
   it("limits the remembered model's settings to its catalog ranges", async () => {

@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/cli",
-  "version": "0.8.4",
+  "version": "0.8.10",
   "description": "Lean NodeTool command line client and execution server",
   "type": "module",
   "engines": {
@@ -19,6 +19,7 @@
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
+    "@nodetool-ai/config": "*",
     "commander": "^12.1.0",
     "@nodetool-ai/server-minimal": "*",
     "@nodetool-ai/nodes-core": "*",

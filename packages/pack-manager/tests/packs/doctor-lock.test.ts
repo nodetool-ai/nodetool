@@ -8,8 +8,8 @@ import { inspectPackInstallLock } from "../../src/packs/doctor-lock.js";
 const roots: string[] = [];
 afterEach(async () => { await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))); });
 async function fixture() {
-  const root = await mkdtemp(join(tmpdir(), "pack-lock-report-")); roots.push(root); const modules = join(root, "node_modules"); await mkdir(modules);
-  return { file: join(modules, ".nodetool-packs.lock"), mode: { kind: "local" as const, installRoot: root, cliRoot: root, nodeModulesRoot: modules, coreVersion: "1", pathStyle: "posix" as const } };
+  const root = await mkdtemp(join(tmpdir(), "pack-lock-report-")); roots.push(root);
+  return { file: join(root, ".nodetool-packs.lock"), mode: { kind: "local" as const, packsRoot: root, legacyInstallRoot: root, cliRoot: root, coreVersion: "1", pathStyle: "posix" as const } };
 }
 it("reports an actual exited installer owner without needing a desired dirty marker", async () => {
   const f = await fixture(); const child = await promisify(execFile)(process.execPath, ["-e", "process.stdout.write(String(process.pid))"]);

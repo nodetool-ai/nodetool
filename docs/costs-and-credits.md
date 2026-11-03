@@ -129,6 +129,10 @@ The cost cap works as admission. A turn whose worst case would cross the cap is 
 
 A published [mini app](mini-apps.md#publishing-and-sharing) has a **Spend budget** in its Settings: a period (per day, per month, or lifetime), a maximum spend in USD, and a maximum number of runs. An empty field means no limit. Runs of the released app are checked before they reach a provider, and Settings shows what has been used. A public link requires a budget with at least one finite limit, because visitors run the app on your account. Recent invocations list their cost, marked "est." until the actual cost is known.
 
+### Workflow runs
+
+An Agent node caps its own spend with its **Cost Cap (USD)** property, which defaults to 5. A node that a chat turn starts reserves against that turn's budget instead. Other nodes, such as image and video generators, have no dollar cap when a workflow runs on your own provider keys. Set a spending limit in each provider's dashboard.
+
 ### Storyboards
 
 In the [creative agent](creative-agent.md#the-storyboard-plan-pick-a-still-then-spend), spend is gated shot by shot. You approve a still before the clip is generated from it, and the cheap stage (stills) comes before the expensive one (clips).

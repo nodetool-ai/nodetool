@@ -15,6 +15,7 @@ import {
   type ComfyProgressEvent
 } from "@nodetool-ai/runtime";
 import { ComfyCloudWorkflowNode } from "./comfy-cloud.js";
+import { ComfyCloudGraphNode } from "./comfy-graph-cloud.js";
 import {
   extFromUri,
   isMediaRef,
@@ -863,5 +864,6 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
 export const COMFY_NODES = tagAsServer([
   ComfyWorkflowNode,
   ComfyWorkerWorkflowNode,
-  ComfyCloudWorkflowNode
+  ComfyCloudWorkflowNode,
+  ComfyCloudGraphNode
 ]);

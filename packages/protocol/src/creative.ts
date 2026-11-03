@@ -311,6 +311,8 @@ export type ShotStatus =
   | "rendered" // final clip generated
   | "failed";
 
+export const cameraPresetIdsSchema = z.array(z.string()).max(3);
+
 /** Camera direction for a shot, kept structured so a router/UI can reason on it. */
 export interface CameraDirection {
   /** e.g. "wide", "medium", "close-up", "extreme close-up", "establishing". */
@@ -321,6 +323,8 @@ export interface CameraDirection {
   angle?: string;
   /** e.g. "static", "slow push in", "handheld", "crane up". */
   movement?: string;
+  /** Camera preset stack, at most three ids. Movement remains free text. */
+  preset_ids?: string[];
   /**
    * What the camera is on: handheld, tripod, steadicam, gimbal, dolly, slider,
    * crane, drone. Kept separate from {@link movement} because the rig is what a
@@ -344,8 +348,21 @@ export interface CameraDirection {
  * stale.
  */
 export interface RenderInputs {
+  /** Exact composed prompt and graph-compatible settings submitted for this take. */
+  generation?: {
+    mode:
+      | "image"
+      | "image_edit"
+      | "video"
+      | "image_to_video"
+      | "reference_to_video"
+      | "video_edit";
+    provider: string;
+    prompt: string;
+    params: Record<string, unknown>;
+  };
   kind: "keyframe" | "clip";
-  /** sha-256 of the composed prompt (PRD 7.7.5). */
+  /** sha-256 of the composed base prompt. Camera preset selection is recorded separately. */
   prompt_hash: string;
   /** provider/model id. */
   model: string;
@@ -357,6 +374,9 @@ export interface RenderInputs {
   /** Fingerprint of the still's effective entity descriptors and images. */
   entity_conditioning_hash?: string;
   render_mode?: ShotRenderMode;
+  /** Ordered camera preset selection used for this clip. */
+  camera_preset_ids?: string[];
+  look_preset_ids?: string[];
   recorded_at: string;
 }
 
@@ -514,6 +534,8 @@ export interface StoryboardMotionDesign {
 
 /** One shot in a {@link Screenplay}. */
 export interface Shot {
+  /** Empty or absent inherits the board look. */
+  look_preset_ids?: string[];
   production?: ProductionRequirement;
   type: "shot";
   id: string;

@@ -1,0 +1,41 @@
+{
+  "id": "camera.crash-zoom-out",
+  "version": 1,
+  "kind": "camera",
+  "name": "crash zoom out",
+  "description": "Lens zooms rapidly out from the subject from a fixed camera position.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "camera.crash-zoom-in"
+  ],
+  "aliases": [
+    "crash zoom out"
+  ],
+  "prompt": {
+    "default": "Lens zooms rapidly out from the subject from a fixed camera position.",
+    "kling": "Lens zooms rapidly out from the subject from a fixed camera position.",
+    "seedance": "Lens zooms rapidly out from the subject from a fixed camera position throughout one continuous shot.",
+    "veo": "Lens zooms rapidly out from the subject from a fixed camera position.",
+    "wan": "Lens zooms rapidly out from the subject from a fixed camera position.",
+    "local-wan": "A sudden fast lens zoom widens from the subject to its surroundings. The viewpoint stays fixed as the subject rapidly becomes smaller in frame. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.crash-zoom-out/f45fbea52933efb176d8c70f2529dc20d6c8c9ca41a497a1572b4171cc8f8f4a.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.crash-zoom-out/f45fbea52933efb176d8c70f2529dc20d6c8c9ca41a497a1572b4171cc8f8f4a.png",
+    "run": "runs/camera.crash-zoom-out.json"
+  }
+}

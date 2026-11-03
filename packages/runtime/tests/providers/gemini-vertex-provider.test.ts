@@ -377,3 +377,43 @@ describe("google-cloud-auth", () => {
     ).toThrow("Unsupported Google Cloud credentials (type: external_account)");
   });
 });
+
+describe("GeminiVertexProvider endpoint for nodes", () => {
+  it("posts a node's request body to the project's model method with a bearer token", async () => {
+    const fetchFn = fakeFetch(() => json({ embedding: { values: [1, 2] } }));
+    const p = provider(fetchFn);
+    const res = await p.postModel("gemini-embedding-2", "embedContent", {
+      content: { parts: [{ text: "hi" }] }
+    });
+    expect(await res.json()).toEqual({ embedding: { values: [1, 2] } });
+    const [[url, init]] = apiCalls(fetchFn);
+    expect(url).toBe(
+      "https://aiplatform.googleapis.com/v1beta1/projects/my-project/locations/global/publishers/google/models/gemini-embedding-2:embedContent"
+    );
+    expect(init.method).toBe("POST");
+    expect(init.headers.Authorization).toBe("Bearer ya29.token");
+    expect(JSON.parse(String(init.body))).toEqual({
+      content: { parts: [{ text: "hi" }] }
+    });
+  });
+
+  it("polls a video operation with fetchPredictOperation", async () => {
+    const fetchFn = fakeFetch(() => json({ done: true }));
+    const p = provider(fetchFn);
+    await p.getVideoOperation("veo-3.1-generate-001", "projects/x/operations/1");
+    const [[url, init]] = apiCalls(fetchFn);
+    expect(url).toMatch(/veo-3\.1-generate-001:fetchPredictOperation$/);
+    expect(JSON.parse(String(init.body))).toEqual({
+      operationName: "projects/x/operations/1"
+    });
+  });
+
+  it("sends credentials only to its own host for media downloads", async () => {
+    const p = provider(fakeFetch());
+    expect(
+      await p.mediaHeaders("https://aiplatform.googleapis.com/v1/files/a")
+    ).toEqual({ Authorization: "Bearer ya29.token" });
+    expect(await p.mediaHeaders("https://example.com/video.mp4")).toBeUndefined();
+    expect(await p.mediaHeaders("not a url")).toBeUndefined();
+  });
+});

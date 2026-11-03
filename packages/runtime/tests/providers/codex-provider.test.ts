@@ -385,3 +385,82 @@ describe("CodexProvider", () => {
     expect(String(failure)).toMatch(/sign in to Codex again/);
   });
 });
+
+describe("CodexProvider.webSearch", () => {
+  const sse = (...events: unknown[]) =>
+    events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join("");
+
+  it("sends the built-in web_search tool and returns the answer with its cited pages", async () => {
+    const body = sse(
+      { type: "response.output_item.done", item: { type: "web_search_call", status: "completed" } },
+      { type: "response.output_text.delta", delta: "It is " },
+      { type: "response.output_text.delta", delta: "sunny." },
+      {
+        type: "response.output_item.done",
+        item: {
+          type: "message",
+          content: [
+            {
+              type: "output_text",
+              text: "It is sunny.",
+              annotations: [
+                { type: "url_citation", url: "https://weather.example/a", title: "Weather" },
+                { type: "url_citation", url: "https://weather.example/a", title: "Weather" }
+              ]
+            }
+          ]
+        }
+      },
+      { type: "response.completed", response: {} }
+    );
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async () => new Response(body, { status: 200 }));
+    const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
+    const result = await provider.webSearch({ query: "weather?", model: "gpt-5.5" });
+    expect(result).toEqual({
+      text: "It is sunny.",
+      sources: [{ title: "Weather", url: "https://weather.example/a" }]
+    });
+    const [url, init] = fetchSpy.mock.calls[0];
+    expect(String(url)).toBe(`${CODEX_BACKEND_BASE_URL}/responses`);
+    const sent = JSON.parse(String(init?.body)) as Record<string, unknown>;
+    expect(sent.model).toBe("gpt-5.5");
+    expect(sent.tools).toEqual([{ type: "web_search" }]);
+    expect(sent.stream).toBe(true);
+    expect(sent.store).toBe(false);
+  });
+
+  it("falls back to the streamed text when no message item arrives", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      async () =>
+        new Response(sse({ type: "response.output_text.delta", delta: "Partial" }), {
+          status: 200
+        })
+    );
+    const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
+    const result = await provider.webSearch({ query: "q", model: "gpt-5.5" });
+    expect(result).toEqual({ text: "Partial", sources: [] });
+  });
+
+  it("surfaces a failed response", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      async () =>
+        new Response(
+          sse({ type: "response.failed", response: { error: { message: "tool not allowed" } } }),
+          { status: 200 }
+        )
+    );
+    const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
+    await expect(
+      provider.webSearch({ query: "q", model: "gpt-5.5" })
+    ).rejects.toThrow("tool not allowed");
+  });
+
+  it("rejects an empty query without a request", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
+    await expect(provider.webSearch({ query: "  " })).rejects.toThrow("empty");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});

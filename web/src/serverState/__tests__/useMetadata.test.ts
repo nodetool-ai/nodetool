@@ -5,6 +5,10 @@
 import { stub } from "../../test-utils/doubles";
 import { loadMetadata, prefetchMetadata, WORKFLOW_NODE_TYPE } from "../useMetadata";
 
+jest.mock("../../lib/presets/loadRuntimeCatalog", () => ({
+  loadRuntimePresetCatalog: jest.fn().mockResolvedValue(undefined)
+}));
+
 jest.mock("../../lib/rest-fetch", () => ({
   restFetch: jest.fn()
 }));
@@ -44,6 +48,18 @@ const mockRestFetch = jest.mocked(restFetch);
 describe("loadMetadata", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it("still boots on the built-in presets when the runtime catalogue fails to load", async () => {
+    const { loadRuntimePresetCatalog } = jest.requireMock("../../lib/presets/loadRuntimeCatalog");
+    const consoleError = jest.spyOn(console, "error").mockImplementation(() => undefined);
+    loadRuntimePresetCatalog.mockRejectedValueOnce(new Error("Failed to load preset catalogue"));
+    (restFetch as jest.Mock).mockResolvedValueOnce(
+      stub<Response>({ ok: true, json: async () => [] })
+    );
+    await expect(loadMetadata()).resolves.toBe("success");
+    expect(consoleError).toHaveBeenCalled();
+    consoleError.mockRestore();
   });
 
   it("returns 'error' when fetch fails", async () => {

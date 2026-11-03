@@ -1,0 +1,39 @@
+{
+  "id": "camera.low-angle-hero-rise",
+  "version": 1,
+  "kind": "camera",
+  "name": "low-angle hero rise",
+  "description": "Camera rises from ground level toward a low-angle view of the subject.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [
+    "low-angle hero rise"
+  ],
+  "prompt": {
+    "default": "Camera rises from ground level toward a low-angle view of the subject.",
+    "kling": "Camera rises from ground level toward a low-angle view of the subject.",
+    "seedance": "Camera rises from ground level toward a low-angle view of the subject throughout one continuous shot.",
+    "veo": "Camera rises from ground level toward a low-angle view of the subject.",
+    "wan": "Camera rises from ground level toward a low-angle view of the subject.",
+    "local-wan": "The camera starts near the ground looking upward at the subject, then rises slowly. The subject towers above the lens as more of its upper body enters view. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.low-angle-hero-rise/b1b854da18dba4e29327b9a8605c4539cb005fa51c274991e63802540046f6d9.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.low-angle-hero-rise/b1b854da18dba4e29327b9a8605c4539cb005fa51c274991e63802540046f6d9.png",
+    "run": "runs/camera.low-angle-hero-rise.json"
+  }
+}

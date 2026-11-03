@@ -1,0 +1,37 @@
+{
+  "id": "look.kodak-5219",
+  "version": 1,
+  "kind": "look",
+  "name": "Kodak Vision3 500T",
+  "description": "Kodak Vision3 5219 500T tungsten-negative emulation: warm practical bulbs, cyan shadow separation, fine grain and soft highlight halation.",
+  "tags": [
+    "look",
+    "stock"
+  ],
+  "slot": "stock",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video",
+    "image"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "Kodak Vision3 5219 500T tungsten-negative emulation: warm practical bulbs, cyan shadow separation, fine grain and soft highlight halation.",
+    "kling": "Kodak Vision3 5219 500T tungsten-negative emulation: warm practical bulbs, cyan shadow separation, fine grain and soft highlight halation. Maintain this rendering consistently across the scene.",
+    "seedance": "Kodak Vision3 5219 500T tungsten-negative emulation: warm practical bulbs, cyan shadow separation, fine grain and soft highlight halation. Preserve this appearance throughout one continuous shot.",
+    "veo": "Kodak Vision3 5219 500T tungsten-negative emulation: warm practical bulbs, cyan shadow separation, fine grain and soft highlight halation. Keep the lighting and color response consistent between frames.",
+    "wan": "Kodak Vision3 5219 500T tungsten-negative emulation: warm practical bulbs, cyan shadow separation, fine grain and soft highlight halation. Retain natural subject detail under this visual treatment."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.kodak-5219/809432dc4cf9da485086a58c696c663b31be47e84458fa8532500a2e8e8a0c4d.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.kodak-5219/809432dc4cf9da485086a58c696c663b31be47e84458fa8532500a2e8e8a0c4d-late.png",
+    "run": "runs/look.kodak-5219.json"
+  }
+}

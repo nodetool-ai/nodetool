@@ -21,6 +21,7 @@ export const MAX_UNDERSTAND_VIDEO_TOKENS = 8192;
 export const GENERATE_IMAGE_SCHEMA: JsonSchema = {
   type: "object" as const,
   properties: {
+    preset_ids: { type: "array", items: { type: "string" }, maxItems: 3 },
     background: {
       type: "boolean" as const,
       description:
@@ -63,6 +64,7 @@ export const GENERATE_IMAGE_SCHEMA: JsonSchema = {
 export const EDIT_IMAGE_SCHEMA: JsonSchema = {
   type: "object" as const,
   properties: {
+    preset_ids: { type: "array", items: { type: "string" }, maxItems: 3 },
     background: {
       type: "boolean" as const,
       description:
@@ -179,6 +181,7 @@ export const SEGMENT_IMAGE_SCHEMA: JsonSchema = {
 export const GENERATE_VIDEO_SCHEMA: JsonSchema = {
   type: "object" as const,
   properties: {
+    preset_ids: { type: "array", items: { type: "string" }, maxItems: 3 },
     background: {
       type: "boolean" as const,
       description:
@@ -216,6 +219,7 @@ export const GENERATE_VIDEO_SCHEMA: JsonSchema = {
 export const ANIMATE_IMAGE_SCHEMA: JsonSchema = {
   type: "object" as const,
   properties: {
+    preset_ids: { type: "array", items: { type: "string" }, maxItems: 3 },
     background: {
       type: "boolean" as const,
       description:

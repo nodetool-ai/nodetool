@@ -6,7 +6,7 @@ export default function ProjectSection() {
     <section
       id="projects"
       aria-labelledby="projects-title"
-      className="relative py-24 overflow-clip-safe"
+      className="relative py-16 sm:py-24 overflow-clip-safe"
     >
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         {/* The header shares the player's 5xl column so the copy lines up with

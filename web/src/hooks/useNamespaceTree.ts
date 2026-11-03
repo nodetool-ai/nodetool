@@ -2,7 +2,7 @@ import { useCallback, useMemo } from "react";
 import { isProduction } from "../lib/env";
 import useMetadataStore from "../stores/MetadataStore";
 import useOptionalNodePacksStore from "../stores/OptionalNodePacksStore";
-import { useSecrets } from "./useSecrets";
+import { useCredentialCheck } from "./useCredentialCheck";
 import { isNamespaceHiddenByOptionalPacks } from "../config/optionalNodePacks";
 import { namespaceNeedsMissingKey } from "../utils/providerPacks";
 import { useSettingsStore } from "../stores/SettingsStore";
@@ -32,12 +32,19 @@ export interface NamespaceTree {
  * namespaces are hidden until their API key is set, unless the user chose to
  * see nodes that need a key. Namespaces are sorted enabled-first.
  */
-const useNamespaceTree = (): NamespaceTree => {
+const isComfyNamespace = (namespace: string): boolean =>
+  namespace === "comfy" || namespace.startsWith("comfy.");
+
+/**
+ * `comfyMode` is true in a Comfy workflow: the tree then holds only the
+ * ComfyUI node classes (`comfy.*`), and otherwise never holds them.
+ */
+const useNamespaceTree = (comfyMode = false): NamespaceTree => {
   const metadata = useMetadataStore((state) => state.metadata);
   const enabledPackIds = useOptionalNodePacksStore(
     (state) => state.enabledPackIds
   );
-  const { isApiKeySet } = useSecrets();
+  const { isCredentialSet } = useCredentialCheck();
   const showNodesWithoutKey = useSettingsStore(
     (state) => state.settings.showNodesWithoutKey
   );
@@ -56,9 +63,9 @@ const useNamespaceTree = (): NamespaceTree => {
       if (!requiredSecret) {
         return false;
       }
-      return !isApiKeySet(requiredSecret);
+      return !isCredentialSet(requiredSecret);
     },
-    [isApiKeySet]
+    [isCredentialSet]
   );
 
   // Get unique namespaces and sort them (enabled first, then disabled).
@@ -75,6 +82,9 @@ const useNamespaceTree = (): NamespaceTree => {
         continue;
       }
       seen.add(namespace);
+      if (isComfyNamespace(namespace) !== comfyMode) {
+        continue;
+      }
       if (isNamespaceHiddenByOptionalPacks(namespace, enabledPacks)) {
         continue;
       }
@@ -82,7 +92,7 @@ const useNamespaceTree = (): NamespaceTree => {
       // namespace until its key is set. Locally-run packs are never gated.
       if (
         !showNodesWithoutKey &&
-        namespaceNeedsMissingKey(namespace, isApiKeySet)
+        namespaceNeedsMissingKey(namespace, isCredentialSet)
       ) {
         continue;
       }
@@ -99,8 +109,9 @@ const useNamespaceTree = (): NamespaceTree => {
     });
   }, [
     metadata,
+    comfyMode,
     isNamespaceDisabled,
-    isApiKeySet,
+    isCredentialSet,
     enabledPacks,
     showNodesWithoutKey
   ]);

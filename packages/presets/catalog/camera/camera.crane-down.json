@@ -1,0 +1,41 @@
+{
+  "id": "camera.crane-down",
+  "version": 1,
+  "kind": "camera",
+  "name": "crane down",
+  "description": "Camera cranes downward and tilts up to keep the subject framed.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "camera.crane-up"
+  ],
+  "aliases": [
+    "crane down"
+  ],
+  "prompt": {
+    "default": "Camera cranes downward and tilts up to keep the subject framed.",
+    "kling": "Camera cranes downward and tilts up to keep the subject framed.",
+    "seedance": "Camera cranes downward and tilts up to keep the subject framed throughout one continuous shot.",
+    "veo": "Camera cranes downward and tilts up to keep the subject framed.",
+    "wan": "Camera cranes downward and tilts up to keep the subject framed.",
+    "local-wan": "The camera descends from above toward eye level, tilting upward gradually to hold the subject in the center as foreground details rise into view. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.crane-down/d89e1e60f1c3dfca657f0549a9290bd2030b8dc8d6918002263da78835f4712f.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.crane-down/d89e1e60f1c3dfca657f0549a9290bd2030b8dc8d6918002263da78835f4712f.png",
+    "run": "runs/camera.crane-down.json"
+  }
+}

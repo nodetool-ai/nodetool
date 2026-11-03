@@ -19,7 +19,7 @@
 #
 # Options:
 #   --prefix DIR    Installation directory (overrides NODETOOL_HOME)
-#   --pack NAME     Also install a Python pack: huggingface, mlx or wan2gp (repeatable)
+#   --pack NAME     Also install a Python pack: huggingface or mlx (repeatable)
 #   -y, --yes       Non-interactive mode, skip confirmation prompts
 #   --help          Show this help message
 #
@@ -377,7 +377,6 @@ pack_distribution() {
     case "$1" in
         huggingface) echo "nodetool-huggingface" ;;
         mlx) echo "nodetool-mlx" ;;
-        wan2gp) echo "nodetool-wan2gp" ;;
         *) return 1 ;;
     esac
 }
@@ -401,10 +400,6 @@ pack_supported() {
             else
                 return 0
             fi
-            ;;
-        wan2gp)
-            # The nodes call a Wan2GP server over MCP and load no model.
-            return 0
             ;;
         *)
             return 1
@@ -430,7 +425,7 @@ install_python_packages() {
     local pack dist
     for pack in "${PACKS[@]+${PACKS[@]}}"; do
         if ! dist="$(pack_distribution "$pack")"; then
-            die "Unknown pack: $pack. Available packs: huggingface, mlx, wan2gp"
+            die "Unknown pack: $pack. Available packs: huggingface, mlx"
         fi
         if ! pack_supported "$pack"; then
             die "The $pack pack does not support $PLATFORM. MLX and HuggingFace on a Mac need Apple Silicon and macOS 14 or newer."
@@ -504,7 +499,7 @@ Usage: $0 [OPTIONS]
 
 Options:
     --prefix DIR    Installation directory (default: ~/.local/share/nodetool)
-    --pack NAME     Also install a Python pack: huggingface, mlx or wan2gp (repeatable)
+    --pack NAME     Also install a Python pack: huggingface or mlx (repeatable)
     -y, --yes       Non-interactive mode, skip confirmation prompts
     --help          Show this help message
 

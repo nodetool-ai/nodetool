@@ -97,14 +97,33 @@ Select a card to open the shot inspector under the grid. It repeats **Edit**, **
 | Description | "What the shot shows" |
 | Dialogue | "What is said in shot". Edit it in place, or jump to the linked script |
 | In this shot | The entities that appear. Pick a character, location, style, or prop to keep it consistent. See [Entities](entities.md) |
-| Size, Focal length, Perspective, Movement, Equipment | Camera setup, chosen from lists |
+| Size, Focal length, Perspective, Equipment | Camera setup, chosen from lists |
+| Movement | Free text, or camera presets from the picker. See [Camera movement presets](#camera-movement-presets) |
 | Duration (seconds) | The length of the clip. With a linked script, the chip reads **From voice takes** or **Set by hand**. Click it to switch between the two. The shot card shows the duration next to the shot number |
 | Shot title | Optional, placeholder "Untitled shot" |
 | Render mode | **Keyframe** (still first, then animate it), **Direct** (clip straight from the prompt), or **Reference** |
 | Notes | Text the render should not read as direction |
 | Composition mode, graphic direction | **None**, **Overlay**, **Graphics first**, or **Hybrid** for on-screen text and graphics |
 
-Title, render mode, notes, and graphics sit under **Advanced**. **Prompts** shows the still prompt and clip prompt the render will send, so you can check them before you spend anything. The **Regenerate** button renders a new still. The **More shot actions** menu holds **Render clip** (or **Re-render clip**), **Move earlier in scene**, and **Move later in scene**. A clip in keyframe mode needs a still first.
+Type `@` in **Description**, **Motion**, or **End** to pick an entity from the library. Its name goes into the text and the entity joins **In this shot**, the same as picking it there. A picked entity also joins the board. It joins the shot at once, even before you save the text.
+
+Title, render mode, notes, and graphics sit under **Advanced**. **Prompts** shows the still prompt and clip prompt the render will send, so you can check them before you spend anything. When the shot has camera presets, the clip prompt shows the camera wording compiled for the board's video model, and a note lists any preset that has no wording tuned for that model. The **Regenerate** button renders a new still. The **More shot actions** menu holds **Render clip** (or **Re-render clip**), **Move earlier in scene**, and **Move later in scene**. A clip in keyframe mode needs a still first.
+
+### Look presets
+
+Open **Change Style** and choose a **Board look**. In the shot editor, **Choose look** overrides that selection for one shot. An empty selection inherits the board look. Looks apply to still and clip prompts when they support that generation mode. Video-only speed ramps skip stills. Camera and effective look selections share a three-preset limit. **Prompts** shows the compiled look for the selected models. Changes preserve existing takes and mark affected renders stale.
+
+### Camera movement presets
+
+The **Movement** field takes typed words or opens a picker of camera presets: named moves such as a dolly zoom or a whip pan, rigs such as handheld or steadicam, and speed ramps. Pick up to three. A preset in each slot (move, rig, speed) can combine. The picker disables a card that conflicts with one already chosen and says which one.
+
+- Picking presets saves their ids on the shot and writes their names into **Movement**, so the screenplay camera pass and the CSV export still read one text string.
+- Typing in the field replaces the movement with your words and detaches the presets. A render uses the presets in place of the text, so keeping both would ignore what you typed.
+- A rig preset also replaces **Equipment** in the clip prompt. A move or speed preset leaves it alone.
+- A board saved before presets opens with the card whose alias matches the saved movement already selected. Nothing is saved until you change the field.
+- A shot with only typed movement renders as it always did.
+
+At render time the presets compile for the board's video model, so the same move is worded differently for each model family. The **Prompts** section shows that wording before you spend anything. Details are in [Presets](presets.md).
 
 ---
 

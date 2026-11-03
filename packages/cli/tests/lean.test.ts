@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -6,6 +7,8 @@ import { createSqliteRepository } from "@nodetool-ai/database-sqlite";
 import { encrypt } from "@nodetool-ai/security-core";
 import { loadInstalledCommandFeature } from "@nodetool-ai/pack-manager";
 import { DEFAULT_TEXT_MODEL, createProgram, exampleWorkflow, runCli } from "../src/lean/program.js";
+
+const cliVersion = (JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string }).version;
 
 vi.mock("@nodetool-ai/pack-manager", async importOriginal => ({
   ...await importOriginal<typeof import("@nodetool-ai/pack-manager")>(),
@@ -49,6 +52,31 @@ describe("lean execution CLI", () => {
       ]));
       expect(output.join("")).not.toContain("private-fal");
     } finally { await rm(bin, { recursive: true, force: true }); }
+  });
+  it("exposes stable-diffusion.cpp installation requirements without loading a feature", async () => {
+    const home = await mkdtemp(join(tmpdir(), "nodetool-sdcpp-missing-"));
+    try {
+      for (const command of [["providers", "list", "--all"], ["providers", "info", "stable_diffusion_cpp"], ["info", "--json"]]) {
+        const output: string[] = [];
+        await createProgram({ env: { HOME: home, PATH: "" }, stdout: value => output.push(value) })
+          .parseAsync(["node", "nodetool", ...command]);
+        expect(output.join("")).toContain("stable_diffusion_cpp");
+        expect(output.join("")).toContain("nodetool runtime add sd-cpp");
+      }
+    } finally { await rm(home, { recursive: true, force: true }); }
+  });
+  it.each([["providers", "list"], ["models", "providers"]])("lists the installed image provider with %s %s", async (...command) => {
+    const home = await mkdtemp(join(tmpdir(), "nodetool-sdcpp-installed-"));
+    try {
+      const binary = join(home, process.platform === "win32" ? "sd-server.exe" : "sd-server");
+      await writeFile(binary, "fixture", { mode: 0o755 });
+      const output: string[] = [];
+      await createProgram({ env: { HOME: home, PATH: "", SD_CPP_SERVER_PATH: binary }, stdout: value => output.push(value) })
+        .parseAsync(["node", "nodetool", ...command]);
+      expect(JSON.parse(output.join(""))).toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: "stable_diffusion_cpp", usable: true, source: "runtime" })
+      ]));
+    } finally { await rm(home, { recursive: true, force: true }); }
   });
   it("selects one admitted feature for overlapping optional command flags", async () => {
     const run = vi.fn(async (_argv: readonly string[]) => {});
@@ -159,7 +187,7 @@ describe("lean execution CLI", () => {
     const program = createProgram({ env: {}, stdout: text => output.push(text), fetch: async () => { requested = true; return Response.json({}); } }).exitOverride();
     expect(program.helpInformation()).toContain("workflows");
     await expect(program.parseAsync(["node", "nodetool", "--version"])).rejects.toMatchObject({ code: "commander.version" });
-    expect(output.join("")).toMatch(/^0\.8\.4\n$/);
+    expect(output.join("")).toBe(`${cliVersion}\n`);
     expect(requested).toBe(false);
   });
   it("sends native workflow commands with authenticated HTTP and preserved IDs", async () => {

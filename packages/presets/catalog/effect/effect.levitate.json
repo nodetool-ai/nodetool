@@ -1,0 +1,38 @@
+{
+  "id": "effect.levitate",
+  "version": 1,
+  "kind": "effect",
+  "name": "Levitate",
+  "description": "Animates the subject to levitate and float upward in zero gravity.",
+  "tags": [
+    "effect",
+    "motion",
+    "physics"
+  ],
+  "slot": "effect",
+  "modes": [
+    "image_to_video"
+  ],
+  "inputs": [
+    "image"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "levitate and float upward in zero gravity"
+  ],
+  "prompt": {
+    "default": "The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+    "kling": "The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. Physically accurate motion, steady locked camera.",
+    "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. Physically accurate motion.",
+    "veo": "The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. Cinematic lighting, realistic physics, locked camera.",
+    "wan": "The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. Locked camera, smooth realistic motion, high detail.",
+    "local-wan": "The subject lifts slowly away from the ground and floats upward. A widening gap opens beneath it while its contact shadow becomes softer and fainter."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.levitate/f346b1092c269dcf33fdc9fe7c051a249946801e84093f32c7e0385803d99fc8.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.levitate/f346b1092c269dcf33fdc9fe7c051a249946801e84093f32c7e0385803d99fc8.png",
+    "run": "runs/effect.levitate.json"
+  }
+}

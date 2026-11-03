@@ -4,7 +4,7 @@ import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.j
 
 // Chat Complete — xai.text.ChatComplete
 export type ChatCompleteInputs = {
-  model?: Connectable<string>;
+  model?: Connectable<unknown>;
   prompt?: Connectable<string>;
   system_prompt?: Connectable<string>;
   temperature?: Connectable<number>;
@@ -21,7 +21,7 @@ export function chatComplete(inputs: ChatCompleteInputs, options?: NodeOptions):
 
 // Web Search — xai.text.WebSearch
 export type WebSearchInputs = {
-  model?: Connectable<string>;
+  model?: Connectable<unknown>;
   query?: Connectable<string>;
   search_mode?: Connectable<"auto" | "on" | "off">;
   max_results?: Connectable<number>;

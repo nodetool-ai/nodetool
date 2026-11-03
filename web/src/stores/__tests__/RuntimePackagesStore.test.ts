@@ -1,4 +1,5 @@
 import useRuntimePackagesStore from "../RuntimePackagesStore";
+import { queryClient } from "../../queryClient";
 import { installGlobal } from "../../test-utils/doubles";
 
 const STATUSES = [
@@ -76,6 +77,26 @@ describe("RuntimePackagesStore", () => {
     const ok = await useRuntimePackagesStore.getState().uninstall("python");
     expect(ok).toBe(true);
     expect(api.uninstallRuntime).toHaveBeenCalledWith("python");
+  });
+
+  it("reloads the provider and model lists after an install or uninstall", async () => {
+    const invalidate = jest
+      .spyOn(queryClient, "invalidateQueries")
+      .mockResolvedValue(undefined);
+    const keys = () =>
+      invalidate.mock.calls.map((call) => call[0]?.queryKey?.[0]);
+    await useRuntimePackagesStore.getState().install("wan2gp");
+    expect(keys()).toEqual(
+      expect.arrayContaining(["providers", "video-models", "tts-models", "music-models"])
+    );
+    invalidate.mockClear();
+    await useRuntimePackagesStore.getState().uninstall("wan2gp");
+    expect(keys()).toContain("image-models");
+    invalidate.mockClear();
+    api.installRuntime.mockResolvedValueOnce({ success: false, message: "boom" });
+    await useRuntimePackagesStore.getState().install("wan2gp");
+    expect(invalidate).not.toHaveBeenCalled();
+    invalidate.mockRestore();
   });
 
   it("surfaces a failure message when install fails", async () => {

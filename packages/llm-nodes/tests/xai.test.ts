@@ -43,7 +43,7 @@ describe("ChatComplete", () => {
 
   it("returns expected defaults", () => {
     const d = new ChatComplete().serialize();
-    expect(d.model).toBe("grok-4");
+    expect(d.model).toMatchObject({ id: "grok-4" });
     expect(d.prompt).toBe("");
     expect(d.temperature).toBe(0.7);
     expect(d.max_tokens).toBe(1024);

@@ -10,6 +10,7 @@ The `packages/` directory contains the TypeScript backend — a set of npm works
 
 | Package | Description |
 |---------|-------------|
+| `@nodetool-ai/presets` | Browser-safe preset schemas, model families and prompt compilation |
 | `@nodetool-ai/protocol` | Shared message types, Zod schemas, protocol definitions |
 | `@nodetool-ai/config` | Configuration loading and logging utilities |
 | `@nodetool-ai/security-core` | Shared secret encryption without keychain dependencies |
@@ -60,6 +61,7 @@ Command implementations import the domain services directly. Keep `pack-host` fr
 Each of these adds package-specific rules on top of this file. Read this file
 first, then the overlay for the package you are touching.
 
+- [`presets`](presets/AGENTS.md) — shared preset schemas, model families and compiler
 - [`agents`](agents/AGENTS.md) — planning, execution, capabilities, evals
 - [`atlascloud-nodes`](atlascloud-nodes/AGENTS.md) — AtlasCloud API wrapper
 - [`audio-nodes`](audio-nodes/AGENTS.md) — audio editing & DSP
@@ -148,6 +150,7 @@ former full-runtime dependency through a lean package's public types.
 
 | Consumer | Shared implementation or selected adapter |
 |---|---|
+| [`presets`](presets/README.md), consumed by agents and browser previews | Protocol and Zod only, with host-injected catalogue loading |
 | [`nodes-core`](nodes-core/README.md) | [`execution-core`](execution-core/README.md) actors and [`runtime-core`](runtime-core/README.md) services |
 | Full `kernel`, `runtime`, `models` and `security` | Compatibility exports or composition of the shared core implementations |
 | [`database-sqlite`](database-sqlite/README.md), [`database-postgres`](database-postgres/README.md) | [`models-core`](models-core/README.md) with the selected database driver |
@@ -167,6 +170,7 @@ sandbox feature, and its dependency compiler remains separately selected.
 Run separate normal-script packed-consumer checks after dependency changes:
 
 ```bash
+node scripts/minimal-packed-consumer.mjs @nodetool-ai/presets /tmp/nodetool-presets-check
 node scripts/minimal-packed-consumer.mjs @nodetool-ai/cli /tmp/nodetool-cli-check
 node scripts/minimal-packed-consumer.mjs @nodetool-ai/server-minimal /tmp/nodetool-server-check
 ```

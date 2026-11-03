@@ -20,7 +20,12 @@ import type { HttpApiOptions } from "../http-api.js";
 import { resolveWorkflowWorkspace } from "../lib/workflow-workspace.js";
 import { packWebSocketMessage } from "../messagepack.js";
 import type { SdkLiveRunnerRegistry } from "../sdk/sdk-live-runner-registry.js";
-import { runTransformersJsModelDownload } from "../model-download-runtime.js";
+import {
+  WAN2GP_DOWNLOAD_PREFIX,
+  runTransformersJsModelDownload,
+  runWan2GPModelDownload,
+  type ModelDownloadProgress
+} from "../model-download-runtime.js";
 import type { FrontendRendererRegistry } from "../frontend-renderer-registry.js";
 import { runNeedsPythonBridge } from "../python-bridge-gate.js";
 
@@ -59,12 +64,10 @@ async function resolveProvider(providerId: string, userId: string) {
 const isProduction = process.env["NODETOOL_ENV"] === "production";
 
 /**
- * Drive a Transformers.js download to completion, forwarding progress events
- * to the connected websocket in the same shape the HF download manager emits.
- *
- * The TJS runtime gives us per-file progress (file/loaded/total). We sum
- * loaded/total across files we've seen so the UI's aggregate bar tracks the
- * total bytes pulled from the Hub.
+ * Drive a download that runs outside the HF download manager to completion,
+ * forwarding progress to the connected websocket in the manager's shape:
+ * Transformers.js by default, or the runner passed in (Wan2GP's downloader).
+ * The runners sum per-file progress so the UI's aggregate bar tracks it.
  */
 interface WsSendable {
   send: (data: string) => void;
@@ -74,12 +77,18 @@ async function handleTjsDownload(
   socket: WsSendable,
   repoId: string,
   modelType: string,
-  aborts: Map<string, AbortController>
+  aborts: Map<string, AbortController>,
+  run: (
+    repoId: string,
+    modelType: string,
+    signal: AbortSignal,
+    onProgress: ModelDownloadProgress
+  ) => Promise<void> = runTransformersJsModelDownload
 ): Promise<void> {
   const abort = new AbortController();
   aborts.set(repoId, abort);
   try {
-    await runTransformersJsModelDownload(
+    await run(
       repoId,
       modelType,
       abort.signal,
@@ -290,6 +299,10 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
                 }
                 if (modelType && modelType.startsWith("tjs.")) {
                   await handleTjsDownload(socket, repoId, modelType, tjsAborts);
+                  return;
+                }
+                if (modelType && modelType.startsWith(WAN2GP_DOWNLOAD_PREFIX)) {
+                  await handleTjsDownload(socket, repoId, modelType, tjsAborts, runWan2GPModelDownload);
                   return;
                 }
                 const userId = req.userId ?? "1";

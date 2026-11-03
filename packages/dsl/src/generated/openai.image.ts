@@ -6,7 +6,7 @@ import type { ImageRef } from "../types.js";
 // Create Image — openai.image.CreateImage
 export type CreateImageInputs = {
   prompt?: Connectable<string>;
-  model?: Connectable<"gpt-image-1">;
+  model?: Connectable<unknown>;
   size?: Connectable<"1024x1024" | "1536x1024" | "1024x1536">;
   background?: Connectable<"transparent" | "opaque" | "auto">;
   quality?: Connectable<"high" | "medium" | "low">;
@@ -25,7 +25,7 @@ export type EditImageInputs = {
   image?: Connectable<ImageRef>;
   mask?: Connectable<ImageRef>;
   prompt?: Connectable<string>;
-  model?: Connectable<"gpt-image-1">;
+  model?: Connectable<unknown>;
   size?: Connectable<"1024x1024" | "1536x1024" | "1024x1536">;
   quality?: Connectable<"high" | "medium" | "low">;
 };

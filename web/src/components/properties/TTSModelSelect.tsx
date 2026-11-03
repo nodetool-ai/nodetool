@@ -20,6 +20,8 @@ import { SPACING, getSpacingPx } from "../ui_primitives";
 import { isString } from "../../utils/typePredicates";
 
 interface TTSModelSelectProps {
+  /** Only these providers' models are offered. */
+  allowedProviders?: string[];
   onChange: (value: TTSModelValue) => void;
   value: string | TTSModelValue; // Can be string (legacy) or TTSModelValue object
   recommendedModels?: UnifiedModel[];
@@ -29,6 +31,7 @@ interface TTSModelSelectProps {
 }
 
 const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
+  allowedProviders,
   onChange,
   value,
   recommendedModels,
@@ -211,6 +214,7 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
       )}
 
       <TTSModelMenuDialog
+        allowedProviders={allowedProviders}
         open={!!anchorEl}
         anchorEl={anchorEl}
         onClose={handleClose}

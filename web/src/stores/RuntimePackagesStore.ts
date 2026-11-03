@@ -12,6 +12,7 @@
  */
 import { create } from "zustand";
 
+import { queryClient } from "../queryClient";
 import { createErrorMessage } from "../utils/errorHandling";
 import { trpcClient } from "../trpc/client";
 import {
@@ -20,6 +21,28 @@ import {
   type PackageConsoleSlice,
   type PackageOpState
 } from "./packageStorePlumbing";
+
+/**
+ * Query keys of the provider and model lists. A runtime such as Wan2GP adds
+ * or removes a whole provider's models, so the pickers read them again.
+ */
+const MODEL_LIST_QUERY_KEYS = [
+  "providers",
+  "models",
+  "language-models",
+  "image-models",
+  "video-models",
+  "tts-models",
+  "asr-models",
+  "music-models",
+  "allModels"
+] as const;
+
+function refreshModelLists(): void {
+  for (const key of MODEL_LIST_QUERY_KEYS) {
+    void queryClient.invalidateQueries({ queryKey: [key] });
+  }
+}
 
 /** Display names for the runtimes the server reports (it sends bare ids). */
 const SERVER_RUNTIME_LABELS: Record<string, string> = {
@@ -119,7 +142,7 @@ const useRuntimePackagesStore = create<RuntimePackagesStore>((set, get) => ({
   install: async (id) => {
     const api = runtimeApi();
     if (!api) return false;
-    return runPackageOp(
+    const ok = await runPackageOp(
       set,
       get,
       [id],
@@ -127,12 +150,14 @@ const useRuntimePackagesStore = create<RuntimePackagesStore>((set, get) => ({
       "Failed to install runtime",
       false
     );
+    if (ok) refreshModelLists();
+    return ok;
   },
 
   uninstall: async (id) => {
     const api = runtimeApi();
     if (!api?.uninstallRuntime) return false;
-    return runPackageOp(
+    const ok = await runPackageOp(
       set,
       get,
       [id],
@@ -140,6 +165,8 @@ const useRuntimePackagesStore = create<RuntimePackagesStore>((set, get) => ({
       "Failed to uninstall runtime",
       false
     );
+    if (ok) refreshModelLists();
+    return ok;
   },
 
   update: async (id) => {

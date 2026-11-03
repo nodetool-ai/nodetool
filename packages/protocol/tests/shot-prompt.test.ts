@@ -219,3 +219,24 @@ describe("sceneForShot", () => {
     expect(sceneForShot(shot({ scene_id: "sc_1" }))).toBeNull();
   });
 });
+
+describe("compiled camera context", () => {
+  const target = shot({ motion: "she runs", camera: { movement: "slow push in", equipment: "tripod" } });
+
+  it("keeps legacy free-text prompts byte-identical", () => {
+    expect([clipPrompt(target), directClipPrompt(target)]).toMatchInlineSnapshot(`
+      [
+        "she runs, Sophia pulls the door shut behind her, slow push in, tripod",
+        "Sophia pulls the door shut behind her, she runs, slow push in, tripod",
+      ]
+    `);
+  });
+
+  it("replaces movement and only replaces equipment for a rig", () => {
+    const compiledCamera = { clause: "Camera approaches.", replacesEquipment: false };
+    expect(clipPrompt(target, { compiledCamera })).toBe("she runs, Sophia pulls the door shut behind her, Camera approaches., tripod");
+    compiledCamera.replacesEquipment = true;
+    expect(directClipPrompt(target, { compiledCamera })).toBe("Sophia pulls the door shut behind her, she runs, Camera approaches.");
+    expect(keyframePrompt(target, { compiledCamera })).toBe(ACTION);
+  });
+});

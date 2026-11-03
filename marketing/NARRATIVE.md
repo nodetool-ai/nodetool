@@ -11,8 +11,10 @@ same change. The page is edited more often than this file, so when in doubt
 the page is the newer of the two. Bring the doc up to it, then fix the page.
 
 The homepage, README, and docs share the primary tagline and intro in
-`BRAND.md`. The homepage hero paragraph restates the intro in plain words:
-what NodeTool makes, what the agent does, and what the reader keeps. Film production is a showcase of the broader workspace.
+`BRAND.md`. On the homepage the tagline is the line above the `<h1>`, and the
+`<h1>` names the contrast: "Stop prompting slot machines. Direct the agent."
+The hero paragraph says what the slot machine is (a paid roll that returns a
+flat MP4), what the agent does, and what the reader keeps. Film production is a showcase of the broader workspace.
 
 ## The register
 
@@ -41,8 +43,9 @@ Describe what you want, let the agent build it, then take over whenever you
 like.
 
 Use "agent-first" in supporting copy to explain how agents build and revise
-workflows and documents that creators can inspect and edit. Keep the primary
-homepage headline and metadata category-led. Edition and audience pages use
+workflows and documents that creators can inspect and edit. Keep the homepage
+metadata category-led, and keep the category line visible directly above the
+homepage `<h1>`. Edition and audience pages use
 distinct headlines that answer the reason to choose that route: Studio makes
 and revises production work, Cloud evaluates the workspace without an install,
 and Agents builds reusable automation around editable artifacts.
@@ -200,8 +203,13 @@ price worked through, not a brand name and a column of red crosses.
 
 If a claim only works by making someone else look bad, it is not our claim. The
 one about them that is both true and ours to make is narrow: what a hosted
-platform keeps is the editable project and the model list. State it once, in the
-ownership section, without a logo next to it.
+platform keeps is the editable project and the model list. The hero states it
+once as a category ("most AI video apps"), and the comparison section states it
+again with the table. Neither names a product or shows a logo.
+
+Keep the contrast plain. "Slot machine" and "flat MP4" are fine because a
+reader can check them. Coined labels are not: no "model sovereignty",
+"arbitrage", "bidirectional harness", "entity bibles", or "wrapper tax".
 
 Two carve-outs on the homepage, both navigation rather than argument: the
 footer's Compare column and the link line under the comparison table may name a
@@ -229,6 +237,11 @@ difference between a viable margin and none to a team making a hundred.
 State provider pricing once in the main page copy. Keep detailed costs and the
 calculator on `/pricing`.
 
+One exception: the storyboard tab prices one still against five seconds of
+video, because that gap is the reason to settle shots on stills first. It and
+the `/node-based-workflows` paid-run line read their numbers from the
+calculator catalog through `src/data/stageCosts.ts`, so they move with it.
+
 - **Cost.** "Studio is free. You pay providers directly, at their published
   prices." Never imply a NodeTool credit exists.
 - **Cloud.** Studio is the full product; Cloud is the zero-install preview and is
@@ -241,7 +254,8 @@ calculator on `/pricing`.
   is free. Future Cloud pricing has not been announced. Do not promise a plan,
   price, or billing model before the deployment owner confirms it.
 - **Subscriptions.** A reader who already pays for ChatGPT, Claude, or Gemini
-  can run NodeTool on that plan, which is the cheapest way in. The homepage
+  (about $20 a month) can run NodeTool on that plan, which is the cheapest way
+  in. The homepage
   says so right under the hero, and `/studio`, `/pricing`, `/agents`, and
   `/node-based-workflows` repeat the same section (`SubscriptionSection`).
   State the limits with the claim: subscriptions run in Studio, and Gemini and

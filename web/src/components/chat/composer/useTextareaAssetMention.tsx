@@ -100,14 +100,24 @@ interface UseTextareaAssetMentionOptions {
   value: string;
   /** Replace the textarea value (used to strip the `@query` on selection). */
   setValue: (next: string) => void;
-  /** Called with the picked asset once the `@query` has been removed. */
-  onSelectAsset: (asset: Asset) => void;
   /**
-   * Offer library entities alongside assets. A picked entity is written into
-   * the text as its `entity://<id>` token, so unlike an asset the host has
-   * nothing to attach and there is no selection callback.
+   * Called with the picked asset once the `@query` has been removed. Leave it
+   * out for a prompt box that takes no assets: the picker then lists entities
+   * only and runs no asset search.
+   */
+  onSelectAsset?: (asset: Asset) => void;
+  /**
+   * Offer library entities alongside assets. By default a picked entity is
+   * written into the text as its `entity://<id>` token, so the host has
+   * nothing to attach.
    */
   includeEntities?: boolean;
+  /**
+   * For a host with its own entity list, such as a shot's cast. The picked
+   * entity's name replaces the `@query` and the host attaches the entity here,
+   * instead of the text carrying an `entity://` token.
+   */
+  onSelectEntity?: (entity: Entity) => void;
 }
 
 /**
@@ -122,7 +132,8 @@ export const useTextareaAssetMention = ({
   value,
   setValue,
   onSelectAsset,
-  includeEntities = false
+  includeEntities = false,
+  onSelectEntity
 }: UseTextareaAssetMentionOptions): UseTextareaAssetMention => {
   const addRecentAsset = useRecentAssetsStore((state) => state.addRecentAsset);
 
@@ -145,7 +156,12 @@ export const useTextareaAssetMention = ({
     hasMoreSaved,
     loadMoreSaved,
     handleRename
-  } = useAssetMentionSearch(trigger ? trigger.query : null);
+  } = useAssetMentionSearch(
+    trigger ? trigger.query : null,
+    undefined,
+    undefined,
+    !!onSelectAsset
+  );
   // The shared empty array keeps the identity stable when entities are off; a
   // fresh `[]` per render invalidated `selectIndex` and the portaled menu's
   // memo on every keystroke.
@@ -266,7 +282,7 @@ export const useTextareaAssetMention = ({
         pendingCaretRef.current = head.length;
         setValue(head + tail);
       }
-      onSelectAsset(asset);
+      onSelectAsset?.(asset);
       addRecentAsset(asset);
       close();
     },
@@ -277,19 +293,21 @@ export const useTextareaAssetMention = ({
   // the `@query` was — as the `entity://<id>` token the Prompt composer also
   // stores. The server resolves it per turn into the entity's name, its
   // descriptor and its reference image, so a later rename or re-description
-  // reaches messages that were already sent.
+  // reaches messages that were already sent. A host that keeps its own entity
+  // list gets the name in the text and the entity through `onSelectEntity`.
   const selectEntity = useCallback(
     (entity: Entity) => {
       if (trigger) {
-        const inserted = `${entityToUri(entity)} `;
+        const inserted = `${onSelectEntity ? entity.name : entityToUri(entity)} `;
         pendingCaretRef.current = trigger.start + inserted.length;
         setValue(
           value.slice(0, trigger.start) + inserted + value.slice(trigger.end)
         );
       }
+      onSelectEntity?.(entity);
       close();
     },
-    [trigger, value, setValue, close]
+    [trigger, value, setValue, onSelectEntity, close]
   );
 
   // Combined selection order: entities first, then the active asset bucket.
@@ -362,6 +380,7 @@ export const useTextareaAssetMention = ({
           onSelect={selectIndex}
           onHighlight={setSelectedIndex}
           onRename={handleRename}
+          entitiesOnly={!onSelectAsset}
           queryString={trigger.query}
           hasMore={hasMoreSaved}
           onLoadMore={loadMoreSaved}
@@ -380,7 +399,8 @@ export const useTextareaAssetMention = ({
     selectIndex,
     handleRename,
     hasMoreSaved,
-    loadMoreSaved
+    loadMoreSaved,
+    onSelectAsset
   ]);
 
   return { mentionMenu, handleKeyDown };

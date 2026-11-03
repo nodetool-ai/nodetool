@@ -37,7 +37,8 @@ export const SUPPORTS_BOTH_MODES = {
   "project-list": false,
   project: false,
   "guided-flow": false,
-  "project-new": false
+  "project-new": false,
+  create: false
 } satisfies Record<WorkspaceTabType, boolean>;
 
 interface ViewEditSwitchProps {

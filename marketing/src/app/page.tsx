@@ -214,7 +214,7 @@ export default function Home() {
 
         {/* The plan the reader already pays for, right under the hero: the
             cheapest way in (NARRATIVE.md § Cost, once) */}
-        <SubscriptionSection className="mt-20" />
+        <SubscriptionSection className="mt-16 sm:mt-20" />
 
         {/* What the reader controls once the agent has built something: the
             seven editors, each over a loop of the real thing (#surface-<id>) */}
@@ -304,7 +304,7 @@ export default function Home() {
             FAQPage schema, emitted from these exact rows. */}
         <FaqBlock
           surface="landing"
-          className="mt-24"
+          className="mt-16 sm:mt-24"
           linkToStandalone
           emitSchema
         />
@@ -319,7 +319,7 @@ export default function Home() {
         <ContactSection />
 
         {/* Closing CTA — end the page on the product, not the mailbox */}
-        <section aria-labelledby="closing-cta-title" className="relative py-24">
+        <section aria-labelledby="closing-cta-title" className="relative py-16 sm:py-24">
           <div className={`scroll-fade ${sectionNarrow} text-center`}>
             <h2
               id="closing-cta-title"

@@ -78,6 +78,33 @@ export {
 } from "./sd-cpp-runtime.js";
 
 export {
+  WAN2GP_COMMIT,
+  WAN2GP_VERSION,
+  installWan2GP,
+  uninstallWan2GP,
+  wan2gpInstallStatus,
+  type Wan2GPInstallEvent,
+  type Wan2GPInstallOptions,
+  type Wan2GPInstallStatus
+} from "./wan2gp-runtime.js";
+
+export {
+  WAN2GP_HELPER_SOURCE,
+  Wan2GPCatalogRowSchema,
+  Wan2GPHelperLineSchema,
+  Wan2GPFileStatusSchema,
+  readWan2GPCatalog,
+  runWan2GPHelper,
+  setWan2GPCatalogStatus,
+  wan2gpCatalogPath,
+  writeWan2GPCatalog,
+  type Wan2GPCatalogRow,
+  type Wan2GPFileStatus,
+  type Wan2GPHelperLine,
+  type Wan2GPHelperTarget
+} from "./wan2gp-helper.js";
+
+export {
   PACKAGE_RUNTIME_ASSETS,
   PACKAGE_RUNTIME_ASSET_DIRS,
   SHIPPED_SANDBOX_PACKS_SOURCE_DIR,

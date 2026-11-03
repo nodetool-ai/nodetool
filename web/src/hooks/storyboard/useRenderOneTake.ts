@@ -131,7 +131,9 @@ export const planOneTake = (
   const compiled = compileOneTake({
     shots: board.shots,
     oneTake: board.oneTake,
-    entities
+    entities,
+    scenes: board.screenplay?.scenes,
+    style: board.style
   });
   const firstShotId = compiled.steps[0]?.shot_id;
   const firstShot = board.shots.find((shot) => shot.id === firstShotId);
@@ -184,7 +186,9 @@ export const resolveOneTakeSettings = (
   const direction = board?.oneTake;
   const compiled = compileOneTake({
     shots: board?.shots ?? [],
-    oneTake: direction
+    oneTake: direction,
+    scenes: board?.screenplay?.scenes,
+    style: board?.style
   });
 
   let model: ShotModelRef | null = direction?.model ?? null;

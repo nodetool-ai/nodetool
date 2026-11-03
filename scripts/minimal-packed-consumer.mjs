@@ -85,7 +85,7 @@ export async function packedConsumer(packageName, output, { guard = true, baseli
     }
     if (guard) {
       const smokePath = join(consumer, "packed-smoke.mjs");
-      const smokeScript = packageName === "@nodetool-ai/cli" ? "minimal-cli-packed-smoke.mjs" : "minimal-packed-smoke.mjs";
+      const smokeScript = packageName === "@nodetool-ai/presets" ? "presets-packed-smoke.mjs" : packageName === "@nodetool-ai/cli" ? "minimal-cli-packed-smoke.mjs" : "minimal-packed-smoke.mjs";
       writeFileSync(smokePath, readFileSync(join(root, "scripts", smokeScript), "utf8"));
       if (scopedServices) { writeFileSync(join(consumer, "scoped-packed-smoke.mjs"), readFileSync(join(root, "scripts/minimal-scoped-packed-smoke.mjs"), "utf8")); }
       const smoke = spawnSync(process.execPath, [smokePath, packageName, ...features], { cwd: consumer, encoding: "utf8", timeout: installPacks.length ? 300000 : 120000, env: { ...process.env,

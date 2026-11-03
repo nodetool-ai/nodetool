@@ -7,7 +7,7 @@ import { callNode } from "../guest-core.js";
 // Embedding — mistral.embeddings.Embedding
 export type EmbeddingInputs = {
   input?: string;
-  model?: "mistral-embed";
+  model?: unknown;
   chunk_size?: number;
 };
 

@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import React from "react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -225,12 +226,104 @@ describe("WorkersPanel", () => {
 
     // Dialog opens; the profile select defaults to the only profile.
     await userEvent.click(
-      screen.getByRole("button", { name: /^provision$/i })
+      screen.getByRole("button", { name: /^start$/i })
     );
 
     await waitFor(() => {
       expect(value.provision).toHaveBeenCalledWith("hf-a40");
     });
+  });
+
+  it("offers worker setup when there are no profiles yet", async () => {
+    mockUseWorkers.mockReturnValue(
+      makeHookValue({ profiles: [], instances: [] })
+    );
+    renderPanel();
+
+    expect(screen.getByText(/run graphs on a rented gpu/i)).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: /^set up a worker$/i })
+    );
+    // The setup form opens directly, not an empty profile picker.
+    expect(
+      screen.getByRole("button", { name: /^create and start$/i })
+    ).toBeInTheDocument();
+  });
+
+  it("Start worker opens the setup form when there are no profiles", async () => {
+    mockUseWorkers.mockReturnValue(
+      makeHookValue({ profiles: [], instances: [] })
+    );
+    renderPanel();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /^start worker$/i })
+    );
+    expect(
+      screen.getByRole("button", { name: /^create and start$/i })
+    ).toBeInTheDocument();
+  });
+
+  it("asks for the provider key before starting a worker without one", async () => {
+    mockUseWorkers.mockReturnValue(
+      makeHookValue({
+        instances: [],
+        apiKeyStatus: { runpod: false, vast: true, verda: true }
+      })
+    );
+    renderPanel();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /^start worker$/i })
+    );
+    expect(screen.getByText(/add your runpod api key/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^start$/i })).toBeDisabled();
+  });
+
+  it("attaches a worker it started once the worker answers", async () => {
+    // A health probe the test can flip, re-rendering the rows that read it.
+    let healthy = false;
+    const listeners = new Set<() => void>();
+    mockUseWorkerHealth.mockImplementation(() => {
+      const [, rerender] = React.useReducer((n: number) => n + 1, 0);
+      React.useEffect(() => {
+        listeners.add(rerender);
+        return () => {
+          listeners.delete(rerender);
+        };
+      }, []);
+      return healthResult({ healthy });
+    });
+    const value = makeHookValue({
+      instances: [makeInstance({ status: "running" })]
+    });
+    mockUseWorkers.mockReturnValue(value);
+    renderPanel();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /^start worker$/i })
+    );
+    await userEvent.click(screen.getByRole("button", { name: /^start$/i }));
+    await waitFor(() => expect(value.provision).toHaveBeenCalledWith("hf-a40"));
+
+    // Still booting: nothing to attach to yet.
+    expect(screen.getByText(/attaches when it is ready/i)).toBeInTheDocument();
+    expect(value.attach).not.toHaveBeenCalled();
+
+    act(() => {
+      healthy = true;
+      listeners.forEach((notify) => notify());
+    });
+
+    await waitFor(() => expect(value.attach).toHaveBeenCalledWith("i-1"));
+    expect(value.attach).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not attach on its own when the user started nothing", () => {
+    const value = makeHookValue();
+    mockUseWorkers.mockReturnValue(value);
+    renderPanel();
+    expect(value.attach).not.toHaveBeenCalled();
   });
 
   it("shows an empty hint when no workers are live", () => {

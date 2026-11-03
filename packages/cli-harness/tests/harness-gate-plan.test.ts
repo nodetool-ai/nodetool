@@ -257,3 +257,11 @@ describe("node catalog drift gate", () => {
     expect(plan.unmappedFiles).toEqual([]);
   });
 });
+
+
+describe("preset workflow ejection gate", () => {
+  it.each(["packages/presets/src/eject.ts", "packages/presets/catalog/camera/new.json"])("selects catalogue validation for %s", file => {
+    const plan = planGate([file]);
+    expect(plan.checks.some(check => check.harnessId === "preset-ejection")).toBe(true);
+  });
+});

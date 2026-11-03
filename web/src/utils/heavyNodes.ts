@@ -1,6 +1,7 @@
 import type { Node } from "@xyflow/react";
 import type { NodeData } from "../stores/NodeData";
 import type { NodeMetadata } from "../stores/ApiTypes";
+import { COMFY_NODE_PREFIX } from "@nodetool-ai/protocol";
 
 /**
  * A node is "heavy" when executing it hits a provider/API/model rather than
@@ -33,10 +34,18 @@ export function countHeavyNodes(
   nodes: Node<NodeData>[],
   getMetadata: (nodeType: string) => NodeMetadata | undefined
 ): number {
-  return nodes.reduce((count, node) => {
+  // ComfyUI nodes (`comfy.*`) run together as one Comfy Cloud job, so they
+  // count once however many the graph has.
+  let comfy = false;
+  const count = nodes.reduce((total, node) => {
     if (node.data?.bypassed) {
-      return count;
+      return total;
     }
-    return isHeavyNode(getMetadata(node.type ?? "")) ? count + 1 : count;
+    if (node.type?.startsWith(COMFY_NODE_PREFIX)) {
+      comfy = true;
+      return total;
+    }
+    return isHeavyNode(getMetadata(node.type ?? "")) ? total + 1 : total;
   }, 0);
+  return comfy ? count + 1 : count;
 }

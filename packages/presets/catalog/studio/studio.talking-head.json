@@ -1,0 +1,15 @@
+{
+  "id": "studio.talking-head",
+  "version": 1,
+  "kind": "studio",
+  "name": "Talking head",
+  "description": "A picture of a person speaking your line in a chosen voice, lip-synced.",
+  "tags": [
+    "lipsync",
+    "voice"
+  ],
+  "target": {
+    "type": "lipsync"
+  },
+  "preset_ids": []
+}

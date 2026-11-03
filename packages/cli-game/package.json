@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/cli-game",
-  "version": "0.8.4",
+  "version": "0.8.10",
   "description": "Independent game command feature for NodeTool",
   "type": "module",
   "engines": {

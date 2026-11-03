@@ -120,7 +120,8 @@
     "packages/pack-host",
     "packages/workflow-services",
     "packages/project-services",
-    "packages/error-trace-services"
+    "packages/error-trace-services",
+    "packages/presets"
   ],
   "scripts": {
     "postinstall": "node electron/scripts/rebuild-native.mjs",

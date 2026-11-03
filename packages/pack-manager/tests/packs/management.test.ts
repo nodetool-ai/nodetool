@@ -10,8 +10,9 @@ function pack(id: string, requires: string[] = [], runtimeLibraries: string[] = 
 const catalog: NodeCatalogIndex = { schemaVersion: 1, coreVersion: "1.2.3", owners: { "fixture.Game": "game" },
   packs: [pack("core"), pack("video"), pack("game", ["video"], ["rapier"]), pack("scene", ["game"])] };
 function snapshot(ids: string[]): InstalledPackSnapshot {
-  return { mode: { kind: "local", cliRoot: "/project/node_modules/@nodetool-ai/cli", installRoot: "/project", nodeModulesRoot: "/project/node_modules", coreVersion: "1.2.3", pathStyle: "posix" },
-    packs: ids.map(id => ({ id, npm: `@nodetool-ai/${id}-nodes`, version: "1.2.3", packageRoot: `/project/node_modules/@nodetool-ai/${id}-nodes`, realPackageRoot: `/project/node_modules/@nodetool-ai/${id}-nodes`, providedPackages: [] })),
+  return { mode: { kind: "local", cliRoot: "/project/node_modules/@nodetool-ai/cli", packsRoot: "/data/packs/1.2.3", legacyInstallRoot: "/project", coreVersion: "1.2.3", pathStyle: "posix" },
+    projectRoot: "/data/packs/1.2.3/g-0-0000000000000000", resolution: null,
+    packs: ids.map(id => ({ id, npm: `@nodetool-ai/${id}-nodes`, version: "1.2.3", packageRoot: `/data/packs/1.2.3/g-0-0000000000000000/node_modules/@nodetool-ai/${id}-nodes`, realPackageRoot: `/data/packs/1.2.3/g-0-0000000000000000/node_modules/@nodetool-ai/${id}-nodes`, providedPackages: [] })),
     wrongVersions: [], invalidPackages: [] };
 }
 

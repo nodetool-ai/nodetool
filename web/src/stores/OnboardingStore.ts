@@ -7,7 +7,8 @@
  * localStorage so progress survives reloads. The "connect a provider" step
  * is derived live from configured secrets and is not stored here — only the
  * fact that the first-run sign-in offer was already made, so a user who
- * declined it is not asked again on every launch.
+ * declined it is not asked again on every launch. It also counts active usage
+ * time for the one-time GitHub star prompt.
  */
 
 import { create } from "zustand";
@@ -48,10 +49,16 @@ interface OnboardingStore {
    * running an example without describing anything does not tick it.
    */
   ideaDescribed: boolean;
+  /** Milliseconds the app was open and focused, summed across sessions. */
+  activeUsageMs: number;
+  /** The GitHub star prompt has been shown once already. */
+  githubStarPromptShown: boolean;
   markStep: (step: OnboardingStepId) => void;
   markIdeaDescribed: () => void;
   dismiss: () => void;
   markProviderSignInOffered: () => void;
+  addActiveUsage: (ms: number) => void;
+  markGithubStarPromptShown: () => void;
 }
 
 export const useOnboardingStore = create<OnboardingStore>()(
@@ -61,6 +68,8 @@ export const useOnboardingStore = create<OnboardingStore>()(
       dismissed: false,
       providerSignInOffered: false,
       ideaDescribed: false,
+      activeUsageMs: 0,
+      githubStarPromptShown: false,
 
       markStep: (step: OnboardingStepId) => {
         set((state) =>
@@ -80,6 +89,14 @@ export const useOnboardingStore = create<OnboardingStore>()(
 
       markProviderSignInOffered: () => {
         set({ providerSignInOffered: true });
+      },
+
+      addActiveUsage: (ms: number) => {
+        set((state) => ({ activeUsageMs: state.activeUsageMs + ms }));
+      },
+
+      markGithubStarPromptShown: () => {
+        set({ githubStarPromptShown: true });
       }
     }),
     {

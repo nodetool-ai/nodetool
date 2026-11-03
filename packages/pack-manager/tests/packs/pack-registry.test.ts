@@ -3,7 +3,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseNpmPidMarker, setupPackRegistry, disposePackRegistryFixtures } from "../_helpers/pack-registry.js";
-import { snapshotInstallTree } from "../../src/packs/install-tree.js";
 
 afterEach(async () => { vi.unstubAllEnvs(); await disposePackRegistryFixtures(); });
 
@@ -32,7 +31,8 @@ it("uses canonical fixture paths when the OS temporary directory has a symlink a
   try {
     const fixture = await setupPackRegistry();
     expect(fixture.directory).toBe(await realpath(fixture.directory));
-    expect((await snapshotInstallTree(fixture.root)).map(entry => entry.name)).toContain("fixture-baseline");
+    expect(fixture.cliRoot).toBe(await realpath(fixture.cliRoot));
+    expect(fixture.packsRoot.startsWith(fixture.directory)).toBe(true);
   } finally {
     await disposePackRegistryFixtures();
     await rm(parent, { recursive: true, force: true });

@@ -1,0 +1,37 @@
+{
+  "id": "look.silent-1920s",
+  "version": 1,
+  "kind": "look",
+  "name": "1920s silent cinema",
+  "description": "Use a 1920s silent-cinema finish: monochrome orthochromatic-like tonality, luminous skin, dark reds, mild corner falloff and irregular fine scratches. Preserve the described scene and wardrobe.",
+  "tags": [
+    "look",
+    "era"
+  ],
+  "slot": "era",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video",
+    "image"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "Use a 1920s silent-cinema finish: monochrome orthochromatic-like tonality, luminous skin, dark reds, mild corner falloff and irregular fine scratches. Preserve the described scene and wardrobe.",
+    "kling": "Use a 1920s silent-cinema finish: monochrome orthochromatic-like tonality, luminous skin, dark reds, mild corner falloff and irregular fine scratches. Preserve the described scene and wardrobe. Maintain this rendering consistently across the scene.",
+    "seedance": "Use a 1920s silent-cinema finish: monochrome orthochromatic-like tonality, luminous skin, dark reds, mild corner falloff and irregular fine scratches. Preserve the described scene and wardrobe. Preserve this appearance throughout one continuous shot.",
+    "veo": "Use a 1920s silent-cinema finish: monochrome orthochromatic-like tonality, luminous skin, dark reds, mild corner falloff and irregular fine scratches. Preserve the described scene and wardrobe. Keep the lighting and color response consistent between frames.",
+    "wan": "Use a 1920s silent-cinema finish: monochrome orthochromatic-like tonality, luminous skin, dark reds, mild corner falloff and irregular fine scratches. Preserve the described scene and wardrobe. Retain natural subject detail under this visual treatment."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.silent-1920s/4f85c76ac2e03a7912567e39e44ea0a659ac51d4b04703868555c4ed67fa43a1.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.silent-1920s/4f85c76ac2e03a7912567e39e44ea0a659ac51d4b04703868555c4ed67fa43a1-late.png",
+    "run": "runs/look.silent-1920s.json"
+  }
+}

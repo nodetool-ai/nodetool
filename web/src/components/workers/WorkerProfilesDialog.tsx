@@ -18,8 +18,7 @@ import {
   SelectField,
   CollapsibleSection,
   AlertBanner,
-  InspectorSectionTitle,
-  EmptyState
+  InspectorSectionTitle
 } from "../ui_primitives";
 import type {
   CreateWorkerProfileInput,
@@ -28,14 +27,7 @@ import type {
   WorkerTarget,
   TokenPolicy
 } from "../../hooks/useWorkers";
-
-// The secrets each provider's API needs before a worker can be provisioned.
-// Verda authenticates with an OAuth2 client id AND secret, so this is a list.
-const API_KEYS_BY_TARGET = {
-  runpod: ["RUNPOD_API_KEY"],
-  vast: ["VAST_API_KEY"],
-  verda: ["VERDA_CLIENT_ID", "VERDA_CLIENT_SECRET"]
-} satisfies Record<WorkerTarget, readonly string[]>;
+import WorkerApiKeySetup, { WORKER_PROVIDER_LABEL } from "./WorkerApiKeySetup";
 
 // A profile is a reusable template (target, image, GPU spec, token policy,
 // lifecycle limits); provisioning rents a GPU box from it.
@@ -149,6 +141,37 @@ interface WorkerProfilesDialogProps {
    * server. `undefined` while loading — we only warn on an explicit `false`.
    */
   apiKeyStatus?: Record<WorkerTarget, boolean>;
+  /**
+   * Starts a worker from a profile. When given, the dialog offers "Create and
+   * start" so a first worker takes one click after the form. Rejects with the
+   * provider's error, which the dialog shows.
+   */
+  onStart?: (profileName: string) => Promise<void>;
+}
+
+/** Short machine name for a GPU option: "A40" from "A40 · 48 GB". */
+function machineLabel(
+  options: ReadonlyArray<{ value: string; label?: string }>,
+  gpu: string,
+  customGpu: string,
+  isCpuMachine: boolean
+): string {
+  if (isCpuMachine) return "CPU";
+  if (gpu === CUSTOM_GPU) return customGpu.trim() || "GPU";
+  const option = options.find((o) => o.value === gpu);
+  return option?.label?.split(" · ")[0] ?? "GPU";
+}
+
+/**
+ * A profile name nobody has to type: "RunPod A40", with a number appended
+ * when an existing profile already uses it.
+ */
+function suggestProfileName(base: string, existing: WorkerProfile[]): string {
+  const taken = new Set(existing.map((profile) => profile.name));
+  if (!taken.has(base)) return base;
+  let suffix = 2;
+  while (taken.has(`${base} ${suffix}`)) suffix += 1;
+  return `${base} ${suffix}`;
 }
 
 function parseMinutes(raw: string): number | undefined {
@@ -164,7 +187,8 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
   profiles,
   createProfile,
   deleteProfile,
-  apiKeyStatus
+  apiKeyStatus,
+  onStart
 }) => {
   const { t } = useTranslation();
   const [name, setName] = useState("");
@@ -182,13 +206,11 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Warn (don't block: a profile is just a template) when the selected
-  // provider's API key isn't available yet — provisioning would fail without it.
-  // `apiKeyStatus` reflects store OR env (the same resolution provisioning uses),
-  // so an env-provided key does NOT false-warn. Only warn on an explicit false.
-  const apiKeyName = API_KEYS_BY_TARGET[target].join(
-    t("screens4_8.workers.profiles.keySeparator")
-  );
+  // Ask for the key inline (don't block saving: a profile is just a template)
+  // when the selected provider's API key isn't available yet — provisioning
+  // would fail without it. `apiKeyStatus` reflects store OR env (the same
+  // resolution provisioning uses), so an env-provided key does NOT false-warn.
+  // Only ask on an explicit false.
   const apiKeyMissing = apiKeyStatus?.[target] === false;
 
   const gpuOptions =
@@ -206,8 +228,15 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
   // only" and Vast "Any" (both empty) are valid selections.
   const gpuOk = gpu !== CUSTOM_GPU || resolvedGpu.length > 0;
 
-  const canCreate =
-    name.trim().length > 0 && image.trim().length > 0 && gpuOk && !busy;
+  // A blank name falls back to this, so the form works without typing.
+  const suggestedName = suggestProfileName(
+    `${WORKER_PROVIDER_LABEL[target]} ${machineLabel(gpuOptions, gpu, customGpu, isCpuMachine)}`,
+    profiles
+  );
+  const profileName = name.trim() || suggestedName;
+
+  const canCreate = image.trim().length > 0 && gpuOk && !busy;
+  const canStart = canCreate && onStart !== undefined && !apiKeyMissing;
 
   // GPU ids are provider-specific, so switching target invalidates the current
   // pick — reset it to that target's default.
@@ -230,10 +259,10 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
     setMaxLifetime("");
   }, []);
 
-  const handleCreate = useCallback(async () => {
+  const handleCreate = useCallback(async (start: boolean) => {
     if (!canCreate) return;
     const input: CreateWorkerProfileInput = {
-      name: name.trim(),
+      name: profileName,
       target,
       image: image.trim(),
       token_policy: tokenPolicy
@@ -274,12 +303,23 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
       setError(t("screens4_8.workers.profiles.createError", {
         message: err instanceof Error ? err.message : String(err)
       }));
-    } finally {
       setBusy(false);
+      return;
     }
+    if (start && onStart) {
+      try {
+        await onStart(input.name);
+        onClose();
+      } catch (err) {
+        setError(t("screens4_8.workers.profiles.startError", {
+          message: err instanceof Error ? err.message : String(err)
+        }));
+      }
+    }
+    setBusy(false);
   }, [
     canCreate,
-    name,
+    profileName,
     target,
     image,
     resolvedGpu,
@@ -291,6 +331,8 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
     maxLifetime,
     createProfile,
     resetForm,
+    onStart,
+    onClose,
     t
   ]);
 
@@ -315,7 +357,11 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
     <Dialog
       open={open}
       onClose={onClose}
-      title={t("screens4_8.workers.profiles.title")}
+      title={
+        profiles.length === 0
+          ? t("screens4_8.workers.profiles.setupTitle")
+          : t("screens4_8.workers.profiles.title")
+      }
       maxWidth="sm"
       fullWidth
       actions={
@@ -324,12 +370,21 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
             {t("screens4_8.workers.common.close")}
           </Button>
           <Button
-            variant="contained"
-            onClick={handleCreate}
+            variant={onStart ? "outlined" : "contained"}
+            onClick={() => void handleCreate(false)}
             disabled={!canCreate}
           >
             {t("screens4_8.workers.profiles.create")}
           </Button>
+          {onStart && (
+            <Button
+              variant="contained"
+              onClick={() => void handleCreate(true)}
+              disabled={!canStart}
+            >
+              {t("screens4_8.workers.profiles.createAndStart")}
+            </Button>
+          )}
         </>
       }
     >
@@ -344,16 +399,11 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
           </AlertBanner>
         )}
 
-        <FlexColumn gap={SPACING.xs}>
-          <SectionHeader size="small" title={t("screens4_8.workers.profiles.existingHeading")} />
-          {profiles.length === 0 ? (
-            <EmptyState
-              size="small"
-              title={t("screens4_8.workers.profiles.emptyTitle")}
-              description={t("screens4_8.workers.profiles.emptyDescription")}
-            />
-          ) : (
-            profiles.map((profile) => (
+        {/* A first-time user has nothing to manage yet: go straight to the form. */}
+        {profiles.length > 0 && (
+          <FlexColumn gap={SPACING.xs}>
+            <SectionHeader size="small" title={t("screens4_8.workers.profiles.existingHeading")} />
+            {profiles.map((profile) => (
               <Card key={profile.id} variant="outlined" padding="compact">
                 <FlexRow align="center" justify="space-between" gap={SPACING.md}>
                   <FlexColumn gap={SPACING.micro}>
@@ -376,23 +426,14 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
                   </EditorButton>
                 </FlexRow>
               </Card>
-            ))
-          )}
-        </FlexColumn>
+            ))}
+          </FlexColumn>
+        )}
 
         <FormSection label={t("screens4_8.workers.profiles.createSection")}>
           <Caption size="small">
             {t("screens4_8.workers.profiles.intro")}
           </Caption>
-
-          <TextInput
-            label={t("screens4_8.workers.profiles.nameLabel")}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            helperText={t("screens4_8.workers.profiles.nameHelp")}
-            fullWidth
-            compact
-          />
 
           <SelectField
             label={t("screens4_8.workers.profiles.providerLabel")}
@@ -404,17 +445,7 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
             description={t("screens4_8.workers.profiles.providerHelp")}
           />
 
-          {apiKeyMissing && (
-            <AlertBanner
-              severity="warning"
-              compact
-              title={t("screens4_8.workers.profiles.missingApiKeyTitle", { key: apiKeyName })}
-            >
-              {t("screens4_8.workers.profiles.missingApiKeyDescription", {
-                provider: target === "runpod" ? "RunPod" : target === "vast" ? "Vast.ai" : "Verda"
-              })}
-            </AlertBanner>
-          )}
+          {apiKeyMissing && <WorkerApiKeySetup target={target} />}
 
           <SelectField
             label={t("screens4_8.workers.profiles.gpuLabel")}
@@ -481,6 +512,16 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
             value={idleTimeout}
             onChange={(e) => setIdleTimeout(e.target.value)}
             helperText={t("screens4_8.workers.profiles.idleTimeoutHelp")}
+            fullWidth
+            compact
+          />
+
+          <TextInput
+            label={t("screens4_8.workers.profiles.nameLabel")}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={suggestedName}
+            helperText={t("screens4_8.workers.profiles.nameHelp", { name: suggestedName })}
             fullWidth
             compact
           />

@@ -28,7 +28,6 @@ Search the web using Google's Gemini API with grounding capabilities.
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | query | `str` | The search query to execute | `` |
-| model | `enum` | The Gemini model to use for search | `gemini-3.5-flash` |
 
 ## Outputs
 

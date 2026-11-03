@@ -476,6 +476,11 @@ export { MESSAGING_NODES } from "@nodetool-ai/integration-nodes/nodes/messaging"
 export { MISTRAL_NODES } from "@nodetool-ai/llm-nodes/nodes/mistral";
 export { OPENAI_NODES } from "@nodetool-ai/llm-nodes/nodes/openai";
 export { XAI_NODES } from "@nodetool-ai/llm-nodes/nodes/xai";
+export { CODEX_NODES } from "@nodetool-ai/llm-nodes/nodes/codex";
+export {
+  ANTHROPIC_NODES,
+  CLAUDE_CODE_NODES
+} from "@nodetool-ai/llm-nodes/nodes/anthropic";
 import { CONTROL_NODES } from "@nodetool-ai/core-nodes/nodes/control";
 import { VARIABLE_NODES } from "@nodetool-ai/core-nodes/nodes/variable";
 import { TEXT_EXTRA_NODES } from "@nodetool-ai/text-nodes/nodes/text-extra";
@@ -532,10 +537,17 @@ import { GEMINI_NODES } from "@nodetool-ai/llm-nodes/nodes/gemini";
 import { COMFY_NODES } from "@nodetool-ai/integration-nodes/nodes/comfy";
 import { STABLE_DIFFUSION_CPP_NODES } from "@nodetool-ai/integration-nodes/nodes/stable-diffusion-cpp";
 export { StableDiffusionCppGenerateNode, STABLE_DIFFUSION_CPP_NODES } from "@nodetool-ai/integration-nodes/nodes/stable-diffusion-cpp";
+import { WAN2GP_NODES } from "@nodetool-ai/integration-nodes/nodes/wan2gp";
+export { WAN2GP_NODES } from "@nodetool-ai/integration-nodes/nodes/wan2gp";
 import { MESSAGING_NODES } from "@nodetool-ai/integration-nodes/nodes/messaging";
 import { MISTRAL_NODES } from "@nodetool-ai/llm-nodes/nodes/mistral";
 import { OPENAI_NODES } from "@nodetool-ai/llm-nodes/nodes/openai";
 import { XAI_NODES } from "@nodetool-ai/llm-nodes/nodes/xai";
+import { CODEX_NODES } from "@nodetool-ai/llm-nodes/nodes/codex";
+import {
+  ANTHROPIC_NODES,
+  CLAUDE_CODE_NODES
+} from "@nodetool-ai/llm-nodes/nodes/anthropic";
 import { LIB_IMAGE_EFFECTS_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-effects";
 import { LIB_IMAGE_KEYER_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-keyer";
 import { LIB_IMAGE_MASK_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-mask";
@@ -601,10 +613,14 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...GEMINI_NODES,
   ...COMFY_NODES,
   ...STABLE_DIFFUSION_CPP_NODES,
+  ...WAN2GP_NODES,
   ...MESSAGING_NODES,
   ...MISTRAL_NODES,
   ...OPENAI_NODES,
   ...XAI_NODES,
+  ...CODEX_NODES,
+  ...ANTHROPIC_NODES,
+  ...CLAUDE_CODE_NODES,
   ...LIB_IMAGE_EFFECTS_NODES,
   ...LIB_IMAGE_KEYER_NODES,
   ...LIB_IMAGE_MASK_NODES,

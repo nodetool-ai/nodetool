@@ -9,13 +9,13 @@
     "source": "github",
     "subfolder": "packages/cli-mcp"
   },
-  "version": "0.8.4",
+  "version": "0.8.10",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@nodetool-ai/cli-mcp",
-      "version": "0.8.4",
+      "version": "0.8.10",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"

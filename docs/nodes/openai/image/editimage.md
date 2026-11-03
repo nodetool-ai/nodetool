@@ -25,7 +25,6 @@ Edit images using OpenAI's gpt-image-1 model.
 | image | `image` | The image to edit. | `{"type":"image","uri":"","asset_id":null,"data"...` |
 | mask | `image` | Optional mask image. White areas will be edited, black areas preserved. | `{"type":"image","uri":"","asset_id":null,"data"...` |
 | prompt | `str` | The prompt describing the desired edit. | `` |
-| model | `enum` | The model to use for image editing. | `gpt-image-1` |
 | size | `enum` | The size of the output image. | `1024x1024` |
 | quality | `enum` | The quality of the generated image. | `high` |
 

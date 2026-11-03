@@ -1,0 +1,60 @@
+{
+  "job_id": "3d9a1c0e5b7f4a2d8c6e0f1a2b3c4d5e",
+  "done": true,
+  "cancel_requested": false,
+  "webui_submission_ready": false,
+  "webui_load_queue_token": "",
+  "created_at": 1710000000.0,
+  "updated_at": 1710000030.0,
+  "events": [
+    {
+      "kind": "progress",
+      "timestamp": 1710000028.0,
+      "data": {
+        "phase": "saving",
+        "status": "Saving",
+        "progress": 100,
+        "current_step": 30,
+        "total_steps": 30,
+        "raw_phase": "Saving",
+        "unit": null
+      }
+    },
+    {
+      "kind": "completed",
+      "timestamp": 1710000030.0,
+      "data": {
+        "success": true,
+        "cancelled": false,
+        "generated_files": ["/home/user/wan2gp/outputs/clip_001.mp4"],
+        "errors": [],
+        "total_tasks": 1,
+        "successful_tasks": 1,
+        "failed_tasks": 0,
+        "artifacts": []
+      }
+    }
+  ],
+  "result": {
+    "success": true,
+    "cancelled": false,
+    "generated_files": ["/home/user/wan2gp/outputs/clip_001.mp4"],
+    "errors": [],
+    "total_tasks": 1,
+    "successful_tasks": 1,
+    "failed_tasks": 0,
+    "artifacts": [],
+    "gallery_items": [
+      {
+        "media_id": "visual:9f8e7d6c5b4a",
+        "gallery": "visual",
+        "media_type": "video",
+        "filename": "clip_001.mp4",
+        "description": "A large orange octopus",
+        "source": "WanGP",
+        "selected": true,
+        "in_gallery": true
+      }
+    ]
+  }
+}

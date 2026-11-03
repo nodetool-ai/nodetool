@@ -6,7 +6,7 @@ import { callNode } from "../guest-core.js";
 
 // Chat Complete — mistral.text.ChatComplete
 export type ChatCompleteInputs = {
-  model?: "mistral-large-latest" | "mistral-medium-latest" | "mistral-small-latest" | "pixtral-large-latest" | "codestral-latest" | "ministral-8b-latest" | "ministral-3b-latest";
+  model?: unknown;
   prompt?: string;
   system_prompt?: string;
   temperature?: number;

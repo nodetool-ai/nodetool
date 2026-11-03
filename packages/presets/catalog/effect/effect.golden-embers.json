@@ -1,0 +1,38 @@
+{
+  "id": "effect.golden-embers",
+  "version": 1,
+  "kind": "effect",
+  "name": "Golden embers",
+  "description": "Animates the subject to ignite in rising golden embers and heat shimmer.",
+  "tags": [
+    "effect",
+    "fire",
+    "particles"
+  ],
+  "slot": "effect",
+  "modes": [
+    "image_to_video"
+  ],
+  "inputs": [
+    "image"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "ignite in rising golden embers and heat shimmer"
+  ],
+  "prompt": {
+    "default": "The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. The subject glows from within like hot coals and the embers grow denser until the end of the shot, sparks drifting upward through warm heat distortion. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+    "kling": "The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. The subject glows from within like hot coals and the embers grow denser until the end of the shot, sparks drifting upward through warm heat distortion. Physically accurate motion, steady locked camera.",
+    "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. The subject glows from within like hot coals and the embers grow denser until the end of the shot, sparks drifting upward through warm heat distortion. Physically accurate motion.",
+    "veo": "The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. The subject glows from within like hot coals and the embers grow denser until the end of the shot, sparks drifting upward through warm heat distortion. Cinematic lighting, realistic physics, locked camera.",
+    "wan": "The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. The subject glows from within like hot coals and the embers grow denser until the end of the shot, sparks drifting upward through warm heat distortion. Locked camera, smooth realistic motion, high detail.",
+    "local-wan": "A warm orange glow spreads through the subject. Golden sparks lift from its surface and rise in growing streams while heat ripples shimmer above it."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.golden-embers/9f1b6d2f1c8ebeb395ffc3a78eb0297d1c143d4925c02a7722b19892966bb4c3.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.golden-embers/9f1b6d2f1c8ebeb395ffc3a78eb0297d1c143d4925c02a7722b19892966bb4c3.png",
+    "run": "runs/effect.golden-embers.json"
+  }
+}

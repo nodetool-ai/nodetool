@@ -2,6 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
+import { useAllowedProviderModels } from "../../hooks/useAllowedProviderModels";
 import type { ASRModel, ModelPack, UnifiedModel } from "../../stores/ApiTypes";
 import {
   useASRModelMenuStore
@@ -13,6 +14,8 @@ import { trpc } from "../../lib/trpc";
 const LOCAL_CAPABILITIES = ["automatic_speech_recognition"];
 
 interface ASRModelMenuDialogProps {
+  /** Only these providers' models are listed. */
+  allowedProviders?: string[];
   open: boolean;
   onClose: () => void;
   onModelChange?: (model: ASRModel) => void;
@@ -22,6 +25,7 @@ interface ASRModelMenuDialogProps {
 }
 
 function ASRModelMenuDialog({
+  allowedProviders,
   open,
   onClose,
   onModelChange,
@@ -30,7 +34,10 @@ function ASRModelMenuDialog({
   modelPacks
 }: ASRModelMenuDialogProps) {
   const { t } = useTranslation();
-  const modelData = useASRModelsByProvider();
+  const modelData = useAllowedProviderModels(
+    useASRModelsByProvider(),
+    allowedProviders
+  );
   // Local providers such as whisper.cpp list only the files on disk. Without
   // the recommended list a caller that passes none offers nothing to download.
   const needsFallback =

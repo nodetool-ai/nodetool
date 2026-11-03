@@ -29,7 +29,6 @@ Extract text from images using Mistral AI's Pixtral models.
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | image | `image` | The image to extract text from | `{"type":"image","uri":"","asset_id":null,"data"...` |
-| model | `enum` | The Pixtral model to use for OCR | `pixtral-large-latest` |
 
 ## Outputs
 

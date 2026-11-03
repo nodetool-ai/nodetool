@@ -7,7 +7,7 @@ import type { ImageRef } from "../types.js";
 export type ImageToTextInputs = {
   image?: Connectable<ImageRef>;
   prompt?: Connectable<string>;
-  model?: Connectable<"pixtral-large-latest" | "pixtral-12b-2409">;
+  model?: Connectable<unknown>;
   temperature?: Connectable<number>;
   max_tokens?: Connectable<number>;
 };
@@ -23,7 +23,7 @@ export function imageToText(inputs: ImageToTextInputs, options?: NodeOptions): N
 // OCR — mistral.vision.OCR
 export type OCRInputs = {
   image?: Connectable<ImageRef>;
-  model?: Connectable<"pixtral-large-latest" | "pixtral-12b-2409">;
+  model?: Connectable<unknown>;
 };
 
 export interface OCROutputs {

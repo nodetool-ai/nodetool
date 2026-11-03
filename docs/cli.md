@@ -156,6 +156,17 @@ registers (`transformers_js`, `whisper_cpp`), and `claude_agent_sdk` when the
 providers that are not usable yet, with the credential each one needs.
 The output is JSON with `id`, `name`, `requires`, `usable` and `source`.
 
+`stable_diffusion_cpp` generates images locally through its provider, without
+an API key or the Integration node pack. It appears in the usable list when
+`sd-server` is executable at `SD_CPP_SERVER_PATH`, in the managed `sd-cpp`
+runtime directory, or on `PATH`. This checks installation, not GPU or model
+readiness. `nodetool info`, `nodetool providers list --all` and
+`nodetool providers info stable_diffusion_cpp` show it before installation.
+Install command support with `nodetool packs add cli-admin --yes`, then run
+`nodetool runtime add sd-cpp`. Image generation uses `cli-workflow`:
+`nodetool packs add cli-workflow --yes`, followed by
+`nodetool generate stable_diffusion_cpp <model> <prompt> --kind image`.
+
 **Options:**
 
 - `--json` — output as JSON.
@@ -2942,19 +2953,25 @@ checkouts support diagnostics but refuse installation changes.
 | `packs compile [--json] [--force]` | Compile installed sandbox pack modules. See [sandbox compilation](#nodetool-packs-compile). |
 | `packs list [--json]` | Show available packs, installation state and size estimates. |
 | `packs add <ids...> [--yes]` | Install the pinned packs or runtime libraries and their requirements. |
-| `packs add --restore [--yes]` | Restore the desired set recorded for this install root. |
+| `packs add --restore [--yes]` | Restore the desired set recorded by an earlier CLI version. |
 | `packs add --for <workflow-or-file> [--yes]` | Install missing requirements of a saved workflow or an explicitly named local file. |
-| `packs remove <ids...>` | Remove packages owned exclusively by the selection while preserving retained requirements. |
+| `packs remove <ids...>` | Remove the selection while keeping packs that another installed pack requires. |
 | `packs doctor [--json] [--installed] [--pack <ids...>]` | Check the mode, versions, integrity and installation state. Registration checks use a fresh child process. |
-| `packs doctor --repair` | Repair a dirty installation after verifying its pinned cohort. |
+| `packs doctor --repair` | Rebuild the pack project from its recorded selection and lockfile. |
 | `packs why <node_type-or-id>` | Explain ownership, requirements and installation state. |
 
-Add commands prompt with package versions, size estimates, approved scripts
-and local manifest changes. Use `--yes` in a non-interactive terminal. Local
-installation updates package.json and package-lock.json. Restart running
-servers after adding or removing packs. After upgrading the CLI, use
-`nodetool packs add --restore` to reinstall the recorded pack and runtime set
-for that installation root.
+Packs install into an npm project the installer owns,
+`<data dir>/packs/<core version>/`, never into the CLI's own directory. Each
+change builds a new copy of that project from its lockfile, verifies the
+integrity pins and loads the packs in a fresh process, then switches to it.
+A failed change leaves the previous packs in place. Deleting
+`<data dir>/packs` removes every pack. The next `packs add` starts again.
+
+Add commands prompt with package versions, size estimates and approved
+scripts. Use `--yes` in a non-interactive terminal. Restart running servers
+after adding or removing packs. Packs for one core version are not reused by
+another. After upgrading the CLI, use `nodetool packs add --restore` to
+install the recorded pack and runtime set for the new version.
 
 `run`, `debug`, `node run` and `workflows run` accept `--install-missing`.
 `NODETOOL_AUTO_INSTALL=1` also authorizes those commands. They install missing
@@ -3222,3 +3239,19 @@ again, and a person can read the transcript before any model proposes anything.
 - Set `NODETOOL_API_URL` environment variable to avoid specifying `--api-url` on every command.
 - Use `nodetool serve` to start the local backend server before running API commands.
 - See [Environment Variables](configuration.md#environment-variables-index) for a complete list of configurable variables.
+
+## Generation presets
+
+Install the `cli-models` command feature to browse and compile the shipped catalogue.
+
+```bash
+nodetool presets list --kind camera --mode video --family kling
+nodetool presets show camera.bullet-time
+nodetool presets compile camera.bullet-time --model fal-ai/kling-video/v3/pro/text-to-video
+nodetool presets eject camera.bullet-time --model fal-ai/kling-video/v3/pro/text-to-video --provider fal --out workflow.json
+```
+
+Compilation accepts up to three ids, `--mode` (default `video`), `--prompt` and
+`--provider` for managed model delegation. It prints JSON containing `prompt`,
+`params`, `applied` and `warnings`. Ejection accepts `--mode` and prints workflow
+JSON when `--out` is omitted.

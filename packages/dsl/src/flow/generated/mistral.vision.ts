@@ -9,7 +9,7 @@ import type { ImageRef } from "../../types.js";
 export type ImageToTextInputs = {
   image?: ImageRef;
   prompt?: string;
-  model?: "pixtral-large-latest" | "pixtral-12b-2409";
+  model?: unknown;
   temperature?: number;
   max_tokens?: number;
 };
@@ -25,7 +25,7 @@ export function imageToText(inputs: ImageToTextInputs): Promise<ImageToTextOutpu
 // OCR — mistral.vision.OCR
 export type OCRInputs = {
   image?: ImageRef;
-  model?: "pixtral-large-latest" | "pixtral-12b-2409";
+  model?: unknown;
 };
 
 export interface OCROutputs {

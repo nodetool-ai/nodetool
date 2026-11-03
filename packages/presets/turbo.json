@@ -1,0 +1,13 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    // The catalogue is the package's main data. It lives outside src, so it must
+    // invalidate this package's build and tests and everything that depends on it.
+    "build": {
+      "inputs": ["$TURBO_EXTENDS$", "catalog/**"]
+    },
+    "test": {
+      "inputs": ["$TURBO_EXTENDS$", "catalog/**", "runs/**", "preset-catalog.json", "preset.schema.json"]
+    }
+  }
+}

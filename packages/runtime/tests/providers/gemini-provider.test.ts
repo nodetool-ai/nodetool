@@ -1317,3 +1317,56 @@ describe("GeminiProvider", () => {
     ).rejects.toThrow("invalid candidates");
   });
 });
+
+describe("GeminiProvider – live media model listings", () => {
+  const listing = {
+    models: [
+      { name: "models/gemini-3.1-flash-image", displayName: "Flash Image", supportedGenerationMethods: ["generateContent"] },
+      { name: "models/gemini-4-image", displayName: "Gemini 4 Image", supportedGenerationMethods: ["generateContent"] },
+      { name: "models/imagen-5.0-generate", displayName: "Imagen 5", supportedGenerationMethods: ["predict"] },
+      { name: "models/gemini-4-flash-tts", displayName: "Gemini 4 Flash TTS", supportedGenerationMethods: ["generateContent"] },
+      { name: "models/gemini-embedding-2", displayName: "Embedding 2", supportedGenerationMethods: ["embedContent"] },
+      { name: "models/gemini-embedding-3", displayName: "Embedding 3", supportedGenerationMethods: ["embedContent"] },
+      { name: "models/gemini-3.5-flash", displayName: "Gemini 3.5 Flash", supportedGenerationMethods: ["generateContent"] }
+    ]
+  };
+  const provider = () =>
+    new GeminiProvider(
+      { GEMINI_API_KEY: "test-key" },
+      { fetchFn: vi.fn().mockResolvedValue(new Response(JSON.stringify(listing))) }
+    );
+
+  it("lists the image models the API serves, keeping known metadata", async () => {
+    const models = await provider().getAvailableImageModels();
+    expect(models.map((m) => m.id)).toEqual([
+      "gemini-3.1-flash-image",
+      "gemini-4-image",
+      "imagen-5.0-generate"
+    ]);
+    expect(models[0].resolutions).toEqual(["1K", "2K", "4K"]);
+    expect(models[2].supportedTasks).toEqual(["text_to_image"]);
+  });
+
+  it("lists the TTS models the API serves, with the Gemini voices", async () => {
+    const models = await provider().getAvailableTTSModels();
+    expect(models.map((m) => m.id)).toEqual(["gemini-4-flash-tts"]);
+    expect(models[0].voices).toContain("Puck");
+  });
+
+  it("lists the embedding models the API serves", async () => {
+    const models = await provider().getAvailableEmbeddingModels();
+    expect(models.map((m) => m.id)).toEqual(["gemini-embedding-2", "gemini-embedding-3"]);
+    expect(models[0].dimensions).toBe(3072);
+  });
+
+  it("falls back to the known models when the listing fails", async () => {
+    const failing = new GeminiProvider(
+      { GEMINI_API_KEY: "test-key" },
+      { fetchFn: vi.fn().mockResolvedValue(new Response("nope", { status: 500 })) }
+    );
+    expect((await failing.getAvailableEmbeddingModels()).map((m) => m.id)).toEqual([
+      "gemini-embedding-2",
+      "gemini-embedding-001"
+    ]);
+  });
+});

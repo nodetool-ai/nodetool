@@ -13,6 +13,7 @@
 
 import React, { memo, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import type { Entity } from "@nodetool-ai/protocol";
 import {
   Box,
   Chip,
@@ -25,16 +26,19 @@ import {
   TextArea,
   TextInput,
   SPACING,
-  Tooltip
+  Tooltip,
+  type TextAreaProps
 } from "../ui_primitives";
+import EntityMentionTextArea from "../entities/EntityMentionTextArea";
 import {
   ANGLE_OPTIONS,
   EQUIPMENT_OPTIONS,
   FRAMING_OPTIONS,
   LENS_OPTIONS,
-  MOVEMENT_OPTIONS,
   cameraOptions
 } from "./cameraOptions";
+import ShotMovementField from "./ShotMovementField";
+import ShotLookField from "./ShotLookField";
 import {
   isDurationInvalid,
   withDuration,
@@ -56,6 +60,14 @@ interface ShotEditTableProps {
   focusDialogue?: boolean;
   /** Opens the linked script at this shot's first line. Set when linked. */
   onEditInScript?: () => void;
+  /** The model the clip renders with, so the preset picker marks its family. */
+  videoModelId?: string | null;
+  boardLookIds?: readonly string[];
+  /**
+   * Attach an entity the person picks with `@` in a prompt field. Without it
+   * the fields are plain text boxes.
+   */
+  onMentionEntity?: (entity: Entity) => void;
 }
 
 /** Two fields to a row, as the specs read in pairs. */
@@ -74,6 +86,16 @@ const RENDER_MODE_OPTIONS = [
 
 const chipSx = { alignSelf: "flex-start" } as const;
 
+/** A prompt field: `@` picks an entity when the editor can attach one. */
+const ShotPromptField: React.FC<
+  TextAreaProps & { onMentionEntity?: (entity: Entity) => void }
+> = ({ onMentionEntity, ...props }) =>
+  onMentionEntity && !props.disabled ? (
+    <EntityMentionTextArea {...props} onMentionEntity={onMentionEntity} />
+  ) : (
+    <TextArea {...props} />
+  );
+
 const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
   draft,
   onChange,
@@ -82,7 +104,10 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
   takesDuration,
   readOnly,
   focusDialogue,
-  onEditInScript
+  onEditInScript,
+  videoModelId,
+  boardLookIds,
+  onMentionEntity
 }) => {
   const { t, i18n } = useTranslation();
   const set = useCallback(
@@ -118,22 +143,7 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
     "bird's eye": t("screens4_16.shotEditTable.camera.angle.birdsEye"),
     "worm's eye": t("screens4_16.shotEditTable.camera.angle.wormsEye"),
     "dutch angle": t("screens4_16.shotEditTable.camera.angle.dutch"),
-    static: t("screens4_16.shotEditTable.camera.movement.static"),
-    "slow push in": t("screens4_16.shotEditTable.camera.movement.slowPushIn"),
-    "slow pull out": t("screens4_16.shotEditTable.camera.movement.slowPullOut"),
-    "pan left": t("screens4_16.shotEditTable.camera.movement.panLeft"),
-    "pan right": t("screens4_16.shotEditTable.camera.movement.panRight"),
-    "tilt up": t("screens4_16.shotEditTable.camera.movement.tiltUp"),
-    "tilt down": t("screens4_16.shotEditTable.camera.movement.tiltDown"),
-    "dolly in": t("screens4_16.shotEditTable.camera.movement.dollyIn"),
-    "dolly out": t("screens4_16.shotEditTable.camera.movement.dollyOut"),
-    tracking: t("screens4_16.shotEditTable.camera.movement.tracking"),
     handheld: t("screens4_16.shotEditTable.camera.equipment.handheld"),
-    "crane up": t("screens4_16.shotEditTable.camera.movement.craneUp"),
-    "crane down": t("screens4_16.shotEditTable.camera.movement.craneDown"),
-    orbit: t("screens4_16.shotEditTable.camera.movement.orbit"),
-    "zoom in": t("screens4_16.shotEditTable.camera.movement.zoomIn"),
-    "zoom out": t("screens4_16.shotEditTable.camera.movement.zoomOut"),
     tripod: t("screens4_16.shotEditTable.camera.equipment.tripod"),
     steadicam: t("screens4_16.shotEditTable.camera.equipment.steadicam"),
     gimbal: t("screens4_16.shotEditTable.camera.equipment.gimbal"),
@@ -154,7 +164,6 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
   );
   const framingOptions = translateOptions(FRAMING_OPTIONS, draft.framing);
   const angleOptions = translateOptions(ANGLE_OPTIONS, draft.angle);
-  const movementOptions = translateOptions(MOVEMENT_OPTIONS, draft.movement);
   const equipmentOptions = translateOptions(EQUIPMENT_OPTIONS, draft.equipment);
   const lensOptions = translateOptions(LENS_OPTIONS, draft.lens);
   const formatDuration = useMemo(
@@ -167,7 +176,8 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
   return (
     <FlexColumn gap={SPACING.xl} data-testid="shot-edit-table">
       <FormSection>
-        <TextArea
+        <ShotPromptField
+          onMentionEntity={onMentionEntity}
           compact
           size="small"
           minRows={1}
@@ -177,7 +187,8 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
           value={draft.action}
           onChange={(value) => set({ action: value })}
         />
-        <TextArea
+        <ShotPromptField
+          onMentionEntity={onMentionEntity}
           compact
           size="small"
           minRows={1}
@@ -187,7 +198,8 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
           value={draft.motion}
           onChange={(value) => set({ motion: value })}
         />
-        <TextArea
+        <ShotPromptField
+          onMentionEntity={onMentionEntity}
           compact
           size="small"
           minRows={1}
@@ -269,13 +281,22 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
             onChange={(value) => set({ angle: value })}
             options={angleOptions}
           />
-          <SelectField
-            size="small"
+          <ShotMovementField
             label={t("screens4_16.shotEditTable.movement")}
-            disabled={readOnly}
-            value={draft.movement}
-            onChange={(value) => set({ movement: value })}
-            options={movementOptions}
+            draft={draft}
+            onChange={onChange}
+            boardLookIds={boardLookIds}
+            videoModelId={videoModelId}
+            renderMode={draft.renderMode}
+            readOnly={readOnly}
+          />
+          <ShotLookField
+            draft={draft}
+            onChange={onChange}
+            boardLookIds={boardLookIds}
+            videoModelId={videoModelId}
+            renderMode={draft.renderMode}
+            readOnly={readOnly}
           />
           <SelectField
             size="small"

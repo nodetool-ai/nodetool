@@ -23,7 +23,8 @@ const RENAME_STRATEGIES = {
   page: null,
   "project-list": null,
   "guided-flow": null,
-  "project-new": null
+  "project-new": null,
+  create: null
 } as const satisfies Record<WorkspaceTabType, string | null>;
 
 export const renameStrategy = (type: WorkspaceTabType) =>

@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/pack-manager",
-  "version": "0.8.4",
+  "version": "0.8.10",
   "description": "Authorized npm pack management and installed CLI feature loading",
   "type": "module",
   "engines": {
@@ -48,6 +48,7 @@
     "@nodetool-ai/protocol": "*",
     "zod": "^4.4.3",
     "commander": "^12.1.0",
-    "@nodetool-ai/pack-core": "*"
+    "@nodetool-ai/pack-core": "*",
+    "@nodetool-ai/presets": "*"
   }
 }

@@ -33,6 +33,9 @@ import type {
 import { formatPredictionElapsed } from "../../../core/chat/mediaPrediction";
 import { formatClockTime } from "../../../utils/formatUtils";
 import { notifyMutationError } from "../../../utils/notifyMutationError";
+import OpenAsWorkflowAction from "./OpenAsWorkflowAction";
+import { presetCatalog } from "../../../lib/presets/catalog";
+import { presetText } from "../../../utils/presetText";
 
 const KIND_ICON: Record<GenerationMediaKind, React.ReactNode> = {
   image: <ImageOutlinedIcon />,
@@ -90,10 +93,22 @@ const GenerationTile = memo(function GenerationTile({
   const sourceLabel =
     source?.title ||
     (source ? t(`generations.source.${source.type}`, { defaultValue: "" }) : "");
+  // A run from a preset often sends no prompt of its own, so the tile names
+  // the presets it used before it falls back to the kind.
+  const presetTitle = (generation.preset_ids ?? [])
+    .map((id) => presetCatalog.getPreset(id))
+    .filter((preset): preset is NonNullable<typeof preset> => Boolean(preset))
+    .map((preset) => presetText(t, preset).name)
+    .join(" + ");
   const title =
     generation.prompt ||
+    presetTitle ||
     t("generations.untitled", { kind: t(`generations.kind.${generation.kind}`) });
   const assetId = generation.assetIds[0];
+  const presetIds = generation.preset_ids ?? [];
+  const canOpenAsWorkflow =
+    presetIds.length > 0 &&
+    (generation.kind === "image" || generation.kind === "video");
 
   const handleOpen = useCallback(() => {
     if (!source) {
@@ -169,14 +184,24 @@ const GenerationTile = memo(function GenerationTile({
         </StatusPill>
       }
       actions={
-        canStop ? (
-          <ToolbarIconButton
-            icon={<StopIcon fontSize="inherit" />}
-            tooltip={t("generations.stop")}
-            ariaLabel={t("generations.stop")}
-            loading={stopping}
-            onClick={handleStop}
-          />
+        canStop || canOpenAsWorkflow ? (
+          <>
+            {canOpenAsWorkflow ? (
+              <OpenAsWorkflowAction
+                generation={generation}
+                presetIds={presetIds}
+              />
+            ) : null}
+            {canStop ? (
+              <ToolbarIconButton
+                icon={<StopIcon fontSize="inherit" />}
+                tooltip={t("generations.stop")}
+                ariaLabel={t("generations.stop")}
+                loading={stopping}
+                onClick={handleStop}
+              />
+            ) : null}
+          </>
         ) : undefined
       }
     />

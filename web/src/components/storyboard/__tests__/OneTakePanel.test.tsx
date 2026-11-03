@@ -188,7 +188,7 @@ describe("OneTakePanel", () => {
     expect(screen.getByLabelText("Your prompt")).toHaveValue("Harbour Co");
   });
 
-  it("compiles STEP lines, REFS and AUDIO from the board", () => {
+  it("compiles REFS and the SHOTS JSON from the board", () => {
     seed(SHOTS, { prompt: "Warm light." }, ["mark"]);
     renderPanel();
 
@@ -198,12 +198,19 @@ describe("OneTakePanel", () => {
     );
     // The board's entity sends no image: only the stills are referenced.
     expect(text).not.toContain("[Image 3]");
-    expect(text).toContain("STEP_01: 0-5s. A lighthouse at dusk.");
-    expect(text).toContain(
-      "STEP_02: 5-11s. The keeper climbs the stairs. Slow dolly up. End: The lamp room door."
-    );
-    expect(text).toContain("STEP_03: 11-15s. Lamp turns.");
-    expect(text).toContain("AUDIO: <footsteps> at 5-11s");
+    const shots = JSON.parse(text.slice(text.indexOf("SHOTS:\n") + 7));
+    expect(shots[0]).toMatchObject({
+      window: "0-5s",
+      action: "A lighthouse at dusk"
+    });
+    expect(shots[1]).toMatchObject({
+      window: "5-11s",
+      action: "The keeper climbs the stairs",
+      motion: "Slow dolly up",
+      end_state: "The lamp room door",
+      sound: "footsteps"
+    });
+    expect(shots[2]).toMatchObject({ window: "11-15s", action: "Lamp turns" });
     // The creator's prompt is not part of the compiled block.
     expect(text).not.toContain("Warm light.");
     expect(screen.getByTestId("one-take-duration")).toHaveTextContent("15 seconds");
@@ -306,7 +313,7 @@ describe("OneTakePanel", () => {
 
     expect(stored()).toEqual({ prompt: "Warm light.", duration_seconds: 30 });
     expect(screen.getByText("Shot windows scale to fit.")).toBeInTheDocument();
-    expect(compiled()).toContain("STEP_03: 22-30s. Lamp turns.");
+    expect(compiled()).toContain('"window": "22-30s"');
     expect(screen.getByTestId("one-take-duration")).toHaveTextContent("30 seconds");
 
     await pick("Duration", "Shot total (15 seconds)");

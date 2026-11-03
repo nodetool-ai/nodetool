@@ -283,7 +283,10 @@ export const RESOURCE_CHANGE_OUTBOX_DDL: readonly string[] = [
   'CREATE INDEX IF NOT EXISTS "idx_resource_change_outbox_created_at" ON "resource_change_outbox" ("created_at")'
 ];
 
-export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OUTBOX_DDL,...ERROR_TRACES_DDL,...BUG_REPORTS_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ...ANALYTICS_DDL, ...DOCUMENT_SHARING_DDL];
+export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OUTBOX_DDL,...ERROR_TRACES_DDL,...BUG_REPORTS_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ...ANALYTICS_DDL, ...DOCUMENT_SHARING_DDL,
+  "ALTER TABLE nodetool_predictions ADD COLUMN preset_ids TEXT",
+  "ALTER TABLE nodetool_predictions ADD COLUMN preset_warnings TEXT"
+];
 
 export const migrations: MigrationDef[] = [
   // ── 001: Create workflows ──────────────────────────────────────────
@@ -4268,6 +4271,22 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_dshare_token");
       await db.execute("DROP INDEX IF EXISTS idx_dshare_document");
       await db.execute("DROP TABLE IF EXISTS nodetool_document_shares");
+    }
+  },
+  {
+    version: "20261031_000000",
+    name: "generation_presets",
+    createsTables: [],
+    modifiesTables: ["nodetool_predictions"],
+    async up(db) {
+      for (const column of ["preset_ids", "preset_warnings"]) {
+        if (!(await db.columnExists("nodetool_predictions", column))) {
+          await db.execute(`ALTER TABLE nodetool_predictions ADD COLUMN ${column} TEXT`);
+        }
+      }
+    },
+    async down() {
+      // Preserve generation provenance on rollback.
     }
   }
 ];

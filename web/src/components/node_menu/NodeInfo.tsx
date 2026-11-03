@@ -132,10 +132,7 @@ const nodeInfoStyles = (theme: Theme) =>
       paddingBottom: getSpacingPx(SPACING.xl)
     },
     ".inputs-outputs h4": {
-      fontFamily: theme.fontFamily2,
-      fontSize: "var(--fontSizeNormal)",
       lineHeight: "2em",
-      color: theme.vars.palette.text.secondary,
       textTransform: "uppercase",
       letterSpacing: "0.5px"
     },
@@ -317,7 +314,9 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
       {showConnections && (
         <div className="inputs-outputs">
           <div className="inputs">
-            <Text size="big">{t("i18n-next50-node-menu.nodeInfo.inputs")}</Text>
+            <Text component="h4" size="smaller" color="secondary">
+              {t("i18n-next50-node-menu.nodeInfo.inputs")}
+            </Text>
             {nodeMetadata.properties.map((property) => (
               <div key={property.name} className="item">
                 <Tooltip
@@ -325,6 +324,8 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
                   title={property.description}
                 >
                   <Text
+                    size="small"
+                    weight={400}
                     className={
                       property.description ? "property description" : "property"
                     }
@@ -337,6 +338,8 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
                   title={descriptionForType(property.type.type || "")}
                 >
                   <Text
+                    size="small"
+                    weight={400}
                     className="type"
                     style={{
                       borderColor: hexToRgba(colorForType(property.type.type), 0.4)
@@ -349,15 +352,21 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
             ))}
           </div>
           <div className="outputs">
-            <Text size="big">{t("i18n-next50-node-menu.nodeInfo.outputs")}</Text>
+            <Text component="h4" size="smaller" color="secondary">
+              {t("i18n-next50-node-menu.nodeInfo.outputs")}
+            </Text>
             {nodeMetadata.outputs.map((property) => (
               <div key={property.name} className="item">
-                <Text className="property">{property.name}</Text>
+                <Text size="small" weight={400} className="property">
+                  {property.name}
+                </Text>
                 <Tooltip
                   placement="top-end"
                   title={descriptionForType(property.type.type || "")}
                 >
                   <Text
+                    size="small"
+                    weight={400}
                     className="type"
                     style={{
                       borderColor: hexToRgba(colorForType(property.type.type), 0.4)

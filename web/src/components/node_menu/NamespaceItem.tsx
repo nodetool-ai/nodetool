@@ -4,6 +4,7 @@ import RenderNamespaces from "./RenderNamespaces";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
 import NamespaceIcon from "./NamespaceIcon";
 import { useActivateOnKey } from "../../hooks/useActivateOnKey";
+import { getNamespaceDisplayName } from "../../utils/nodeProvider";
 
 interface NamespaceItemProps {
   namespace: string;
@@ -16,6 +17,10 @@ interface NamespaceItemProps {
 }
 
 const formatNamespaceLabel = (value: string): string => {
+  const displayName = getNamespaceDisplayName(value);
+  if (displayName) {
+    return displayName;
+  }
   const normalized = value.replaceAll("_", " ");
   if (normalized.toLowerCase() === "openai") {
     return "OpenAI";

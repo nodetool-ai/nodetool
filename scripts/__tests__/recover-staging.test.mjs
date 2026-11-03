@@ -171,7 +171,13 @@ describe("original artifact recovery", () => {
     expect(options.loadDist).toHaveBeenCalledTimes(names.length);
   });
 
-  it("refuses stable dispatch recovery, empty or incomplete source sets, and existing artifact directories", async () => {
+  it("restores a stable release dispatched from main", async () => {
+    const dispatched = { ...original, ref: "refs/heads/main" };
+    const { options, pins } = fixture("0.8.10", dispatched);
+    await expect(restoreOriginalArtifacts(dispatched, names, "0.8.10", directory(), options)).resolves.toHaveProperty("artifacts", pins);
+  });
+
+  it("refuses stable dispatch recovery off main, empty or incomplete source sets, and existing artifact directories", async () => {
     const { options } = fixture();
     await expect(restoreOriginalArtifacts(original, names, "0.8.4", directory(), options)).rejects.toThrow("explicit prerelease");
     for (const incomplete of [[], [names[0]], [...names, names[0]]]) {

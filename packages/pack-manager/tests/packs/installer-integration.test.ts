@@ -1,114 +1,127 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-import { writeFile, readFile } from "node:fs/promises";
+import { readdir, readFile, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { installPacks as installAuthorizedPacks, type InstallPacksRequest, type InstallerOperations } from "../../src/packs/installer.js";
+import { removePacks as removeAuthorizedPacks } from "../../src/packs/removal.js";
 import { authorizePackInstallCommand } from "../../src/commands/pack-install-authorization.js";
+import { readDesiredState } from "../../src/packs/install-state.js";
+import { readInstallTree } from "../../src/packs/install-tree.js";
+import { currentProject } from "../../src/packs/project.js";
+import { readInstalledPacks } from "../../src/packs/installed.js";
+import { setupPackRegistry as setup, disposePackRegistryFixtures } from "../_helpers/pack-registry.js";
+
 async function installPacks(request: InstallPacksRequest, operations: InstallerOperations) {
   const authorization = await authorizePackInstallCommand({ request, command: "packs-add" });
   if (!authorization) { throw new Error("Missing fixture authorization"); }
   return installAuthorizedPacks(request, authorization, operations);
 }
-import { snapshotInstallTree, readInstallTree, installTreeRestored } from "../../src/packs/install-tree.js";
-import { detectInstallMode } from "../../src/packs/mode.js";
-import { setupPackRegistry as setup, disposePackRegistryFixtures } from "../_helpers/pack-registry.js";
+async function removePacks(request: InstallPacksRequest, operations: InstallerOperations) {
+  const authorization = await authorizePackInstallCommand({ request, command: "packs-remove" });
+  if (!authorization) { throw new Error("Missing fixture authorization"); }
+  return removeAuthorizedPacks(request, authorization, operations);
+}
+async function generations(packsRoot: string): Promise<string[]> {
+  return (await readdir(packsRoot)).filter((name) => name.startsWith("g-")).sort();
+}
+async function listing(directory: string): Promise<string[]> {
+  return (await readdir(directory, { recursive: true })).sort();
+}
+function withSecondPack(f: Awaited<ReturnType<typeof setup>>, requires: readonly string[] = []) {
+  const pin = f.tarballs.get("@nodetool-ai/fixture2-nodes@1.0.0")!;
+  return { ...f.request.catalog, packs: [...f.request.catalog.packs, { ...f.request.catalog.packs[0], id: "fixture2", requires,
+    npm: { name: pin.name, version: pin.version, integrity: pin.integrity } }] };
+}
 
-const exec = promisify(execFile);
 afterEach(async () => { vi.unstubAllEnvs(); await disposePackRegistryFixtures(); });
 
+it("installs into its own npm project with an exact dependency, a lockfile and no scripts, leaving the CLI untouched", async () => {
+  const f = await setup();
+  const cliBefore = await listing(f.cliRoot);
+  const desired = await installPacks(f.request, f.operations);
+  const project = f.project();
+  const manifest = JSON.parse(await readFile(join(project, "package.json"), "utf8"));
+  expect(manifest).toMatchObject({ name: "nodetool-packs", private: true, dependencies: { "@nodetool-ai/fixture-nodes": "1.0.0" },
+    nodetool: { coreVersion: "1.0.0", packs: ["fixture"], runtimeLibraries: [] } });
+  const lock = JSON.parse(await readFile(join(project, "package-lock.json"), "utf8"));
+  expect(lock.packages["node_modules/@nodetool-ai/fixture-nodes"].integrity).toBe(f.request.catalog.packs[0].npm.integrity);
+  await expect(stat(join(project, "node_modules/@nodetool-ai/fixture-nodes/SCRIPT_RAN"))).rejects.toMatchObject({ code: "ENOENT" });
+  expect(await listing(f.cliRoot)).toEqual(cliBefore);
+  expect(desired).toMatchObject({ root: join(f.directory, "packs"), packs: ["fixture"], requestedPacks: ["fixture"] });
+  expect((await readDesiredState(f.request.stateFile))[join(f.directory, "packs")]?.packs).toEqual(["fixture"]);
+  expect(readInstalledPacks(f.request.mode, f.request.catalog).packs.map((pack) => pack.id)).toEqual(["fixture"]);
+}, 60_000);
 
-it("real local registry additive install ignores scripts and saves exact dependency", async () => {
-  const f = await setup(); await installPacks(f.request, f.operations);
-  expect(JSON.parse(await readFile(join(f.root, "package.json"), "utf8")).dependencies["@nodetool-ai/fixture-nodes"]).toBe("1.0.0");
-  await expect(readFile(join(f.root, "node_modules/@nodetool-ai/fixture-nodes/SCRIPT_RAN"))).rejects.toMatchObject({ code: "ENOENT" });
-}, 30000);
-it("real conflicting dependency plan is refused before mutation", async () => {
-  const f = await setup(true); const before = await snapshotInstallTree(f.root);
-  await expect(installPacks(f.request, f.operations)).rejects.toThrow(/changes|removes/);
-  expect(await snapshotInstallTree(f.root)).toEqual(before);
-}, 30000);
-it("real failing child load check rolls back the installed tree", async () => {
-  const f = await setup(); const before = await snapshotInstallTree(f.root);
-  const manifest = await readFile(join(f.root, "package.json"));
-  const lock = await readFile(join(f.root, "package-lock.json"));
-  const operations = { ...f.operations, loadCheck: async () => { await exec(process.execPath, ["-e", "throw new Error('fixture load failed')"]); } };
-  await expect(installPacks(f.request, operations)).rejects.toThrow(/fixture load failed/);
-  expect(await snapshotInstallTree(f.root)).toEqual(before);
-  expect(await readFile(join(f.root, "package.json"))).toEqual(manifest);
-  expect(await readFile(join(f.root, "package-lock.json"))).toEqual(lock);
-}, 30000);
-it("real wrong catalog integrity fails before child imports and rolls back", async () => {
-  const f = await setup(); const before = await snapshotInstallTree(f.root); const load = vi.fn(async () => {});
+it("a failed load check deletes the staged generation and keeps the active project byte for byte", async () => {
+  const f = await setup();
+  await expect(installPacks(f.request, { ...f.operations, loadCheck: async () => { throw new Error("fixture load failed"); } })).rejects.toThrow("fixture load failed");
+  expect(currentProject(f.packsRoot)).toBeNull();
+  expect(await generations(f.packsRoot)).toEqual([]);
+  await installPacks(f.request, f.operations);
+  const active = f.project();
+  const before = { tree: await readInstallTree(active), manifest: await readFile(join(active, "package.json")), lock: await readFile(join(active, "package-lock.json")) };
+  const catalog = withSecondPack(f);
+  await expect(installPacks({ ...f.request, catalog, packs: ["fixture2"] }, { ...f.operations, loadCheck: async () => { throw new Error("second load failed"); } })).rejects.toThrow("second load failed");
+  expect(f.project()).toBe(active);
+  expect(await generations(f.packsRoot)).toHaveLength(1);
+  expect(await readInstallTree(active)).toEqual(before.tree);
+  expect(await readFile(join(active, "package.json"))).toEqual(before.manifest);
+  expect(await readFile(join(active, "package-lock.json"))).toEqual(before.lock);
+}, 60_000);
+
+it("a wrong catalog integrity fails before the load check and switches nothing", async () => {
+  const f = await setup();
+  const load = vi.fn(async () => {});
   const catalog = { ...f.request.catalog, packs: f.request.catalog.packs.map((pack) => ({ ...pack, npm: { ...pack.npm, integrity: "sha512-wrong" } })) };
   await expect(installPacks({ ...f.request, catalog }, { ...f.operations, loadCheck: load })).rejects.toThrow(/integrity/);
-  expect(load).not.toHaveBeenCalled(); expect(await snapshotInstallTree(f.root)).toEqual(before);
-}, 30000);
-it("real global known pinned replay adds another pack and retains the full desired set", async () => {
-  const f = await setup(); const mode = { ...f.request.mode, kind: "global" as const };
-  const pin = f.tarballs.get("@nodetool-ai/fixture2-nodes@1.0.0")!;
-  const catalog = { ...f.request.catalog, packs: [...f.request.catalog.packs, { ...f.request.catalog.packs[0], id: "fixture2", npm: { name: pin.name, version: pin.version, integrity: pin.integrity } }] };
-  const manifest = await readFile(join(f.root, "package.json"));
-  await installPacks({ ...f.request, mode, catalog }, f.operations);
-  const before = await snapshotInstallTree(f.root);
-  const desired = await installPacks({ ...f.request, mode, catalog, packs: ["fixture2"] }, f.operations);
+  expect(load).not.toHaveBeenCalled();
+  expect(currentProject(f.packsRoot)).toBeNull();
+  expect(await generations(f.packsRoot)).toEqual([]);
+}, 60_000);
+
+it("adding a second pack keeps the first through the lockfile and prunes all but the previous generation", async () => {
+  const f = await setup();
+  const catalog = withSecondPack(f);
+  await installPacks({ ...f.request, catalog }, f.operations);
+  const first = f.project();
+  const desired = await installPacks({ ...f.request, catalog, packs: ["fixture2"] }, f.operations);
   expect(desired.packs).toEqual(["fixture", "fixture2"]);
-  expect(installTreeRestored(before, (await snapshotInstallTree(f.root)).filter((entry) => entry.name !== pin.name))).toBe(true);
-  expect(await readFile(join(f.root, "package.json"))).toEqual(manifest);
-}, 30000);
-it("real empty-global-desired rollback explicitly prunes additions and restores the snapshot", async () => {
-  const f = await setup(); const before = await snapshotInstallTree(f.root);
-  await expect(installPacks({ ...f.request, mode: { ...f.request.mode, kind: "global" } }, {
-    ...f.operations, loadCheck: async () => { throw new Error("global child failed"); }
-  })).rejects.toThrow("global child failed");
-  expect(await snapshotInstallTree(f.root)).toEqual(before);
-}, 30000);
+  const second = f.project();
+  expect(second).not.toBe(first);
+  expect(JSON.parse(await readFile(join(second, "package.json"), "utf8")).dependencies).toEqual({
+    "@nodetool-ai/fixture-nodes": "1.0.0", "@nodetool-ai/fixture2-nodes": "1.0.0" });
+  expect(await generations(f.packsRoot)).toEqual([first, second].map((path) => path.slice(f.packsRoot.length + 1)).sort());
+  await installPacks({ ...f.request, catalog, packs: [], runtimeLibraries: [] }, f.operations);
+  expect(f.project()).toBe(second);
+  await removePacks({ ...f.request, catalog, packs: ["fixture2"] }, f.operations);
+  expect(await generations(f.packsRoot)).not.toContain(first.slice(f.packsRoot.length + 1));
+}, 90_000);
 
-async function actualGlobalFixture(olderTransitiveDependency = false) {
-  const f = await setup(false, { olderTransitiveDependency }); const prefix = join(f.directory, "global-prefix");
-  await exec(process.execPath, [f.npm, "install", "--global", `--prefix=${prefix}`, `--registry=${f.registry}`, `--cache=${join(f.directory, "cache")}`,
-    "--ignore-scripts", "--strict-peer-deps", "--legacy-peer-deps=false", "--package-lock=false", "--no-audit", "--no-fund", "@nodetool-ai/cli@1.0.0"]);
-  const modules = process.platform === "win32" ? join(prefix, "node_modules") : join(prefix, "lib/node_modules");
-  const cliRoot = join(modules, "@nodetool-ai/cli");
-  const mode = detectInstallMode(join(cliRoot, "index.js"), { globalNodeModulesRoots: [modules] });
-  expect(mode.kind).toBe("global");
-  await expect(readFile(join(cliRoot, "node_modules/.package-lock.json"))).rejects.toMatchObject({ code: "ENOENT" });
-  const before = await readInstallTree(cliRoot, true); expect(before.missingLock).toBe(true); expect(before.packages).toHaveLength(1);
-  return { ...f, request: { ...f.request, mode }, cliRoot, before };
-}
-it("global pack addition keeps a newer installed dependency when the pack needs an older compatible copy", async () => {
-  const f = await actualGlobalFixture(true);
-  expect(f.before.packages[0].version).toBe("1.1.0");
-  vi.stubEnv("npm_config_prefer_dedupe", "true");
+it("removal drops the pack from package.json and node_modules, and keeps a pack another one requires", async () => {
+  const f = await setup();
+  const catalog = withSecondPack(f, ["fixture"]);
+  await installPacks({ ...f.request, catalog, packs: ["fixture2"] }, f.operations);
+  expect(readInstalledPacks(f.request.mode, catalog).packs.map((pack) => pack.id)).toEqual(["fixture", "fixture2"]);
+  const kept = await removePacks({ ...f.request, catalog, packs: ["fixture"] }, f.operations);
+  expect(kept).toMatchObject({ removed: [], kept: ["fixture"] });
+  const removed = await removePacks({ ...f.request, catalog, packs: ["fixture2"] }, f.operations);
+  expect(removed).toMatchObject({ removed: ["fixture", "fixture2"], kept: [] });
+  const project = f.project();
+  expect(JSON.parse(await readFile(join(project, "package.json"), "utf8")).dependencies).toEqual({});
+  expect(readInstalledPacks(f.request.mode, catalog).packs).toEqual([]);
+  expect((await readDesiredState(f.request.stateFile))[join(f.directory, "packs")]?.packs).toEqual([]);
+}, 90_000);
+
+it("allowlisted install scripts run only after verification, inside the staged project", async () => {
+  const f = await setup(false, { allowScript: true });
   await installPacks(f.request, f.operations);
-  const after = await snapshotInstallTree(f.cliRoot);
-  const previous = after.filter(entry => entry.path === f.before.packages[0].path);
-  expect(installTreeRestored(f.before.packages, previous, true)).toBe(true);
-  expect(after.find(entry => entry.path === "node_modules/fixture-extractor/node_modules/fixture-baseline")?.version).toBe("1.0.0");
-  expect(after.find(entry => entry.name === "@nodetool-ai/fixture-nodes")?.integrity).toBe(f.request.catalog.packs[0].npm.integrity);
-  await expect(readFile(join(f.cliRoot, "node_modules/fixture-extractor/SCRIPT_RAN"))).rejects.toMatchObject({ code: "ENOENT" });
-}, 30000);
+  expect(await readFile(join(f.project(), "node_modules/@nodetool-ai/fixture-nodes/SCRIPT_RAN"), "utf8")).toBe("bad");
+}, 60_000);
 
-it("actual npm global prefix without hidden lock bootstraps an additive verified pack install", async () => {
-  const f = await actualGlobalFixture(); await installPacks(f.request, f.operations);
-  const after = await snapshotInstallTree(f.cliRoot);
-  expect(after.map((entry) => entry.name)).toContain("@nodetool-ai/fixture-nodes");
-  expect(after.find((entry) => entry.name === "@nodetool-ai/fixture-nodes")?.integrity).toBe(f.request.catalog.packs[0].npm.integrity);
-  const baseline = after.filter((entry) => entry.name === "fixture-baseline");
-  expect(installTreeRestored(f.before.packages, baseline, true)).toBe(true);
-}, 30000);
-it("actual npm global prefix rollback compares identities when baseline hashes were unavailable", async () => {
-  const f = await actualGlobalFixture();
-  await expect(installPacks(f.request, { ...f.operations, loadCheck: async () => { throw new Error("global bootstrap child failed"); } })).rejects.toThrow("global bootstrap child failed");
-  const after = await snapshotInstallTree(f.cliRoot);
-  expect(installTreeRestored(f.before.packages, after, true)).toBe(true);
-}, 30000);
-it("actual npm global prefix adds a second pack without changing known prior package identities", async () => {
-  const f = await actualGlobalFixture(); await installPacks(f.request, f.operations);
-  const before = await snapshotInstallTree(f.cliRoot);
-  const pin = f.tarballs.get("@nodetool-ai/fixture2-nodes@1.0.0")!;
-  const catalog = { ...f.request.catalog, packs: [...f.request.catalog.packs, { ...f.request.catalog.packs[0], id: "fixture2", npm: { name: pin.name, version: pin.version, integrity: pin.integrity } }] };
-  const result = await installPacks({ ...f.request, catalog, packs: ["fixture2"] }, f.operations);
-  expect(result.packs).toEqual(["fixture", "fixture2"]);
-  expect(installTreeRestored(before, (await snapshotInstallTree(f.cliRoot)).filter((entry) => entry.name !== pin.name))).toBe(true);
-}, 30000);
+it("deleting the packs directory recovers: the next install starts a fresh project", async () => {
+  const f = await setup();
+  await installPacks(f.request, f.operations);
+  await rm(join(f.directory, "packs"), { recursive: true });
+  expect(readInstalledPacks(f.request.mode, f.request.catalog).packs).toEqual([]);
+  await installPacks(f.request, f.operations);
+  expect(readInstalledPacks(f.request.mode, f.request.catalog).packs.map((pack) => pack.id)).toEqual(["fixture"]);
+}, 60_000);

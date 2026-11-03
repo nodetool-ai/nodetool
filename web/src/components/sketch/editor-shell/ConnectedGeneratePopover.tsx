@@ -34,10 +34,10 @@ import {
   FlexColumn,
   FlexRow,
   Popover,
-  TextArea,
   SPACING,
   getSpacingPx
 } from "../../ui_primitives";
+import EntityMentionTextArea from "../../entities/EntityMentionTextArea";
 import MediaControlChip from "../../chat/composer/MediaControlChip";
 import MediaAspectRatioMenu from "../../chat/composer/MediaAspectRatioMenu";
 import MediaOptionMenu from "../../chat/composer/MediaOptionMenu";
@@ -256,7 +256,7 @@ const ConnectedGeneratePopoverInner: React.FC<ConnectedGeneratePopoverProps> = (
           gap={1}
           sx={{ padding: getSpacingPx(SPACING.md) }}
         >
-          <TextArea
+          <EntityMentionTextArea
             value={prompt}
             onChange={(value) => setPrompt(value)}
             placeholder={t("i18n-next52.sketch.generate.prompt")}

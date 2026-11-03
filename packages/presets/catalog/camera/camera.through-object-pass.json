@@ -1,0 +1,39 @@
+{
+  "id": "camera.through-object-pass",
+  "version": 1,
+  "kind": "camera",
+  "name": "through-object pass",
+  "description": "Camera advances through an opening in the foreground object to reveal the subject beyond.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [
+    "through-object pass"
+  ],
+  "prompt": {
+    "default": "The camera pushes forward through a gap between foreground elements that are already in the scene, such as leaves, an archway or a doorway, which sweep past the lens and out of frame to reveal the subject beyond. No new objects appear.",
+    "kling": "The camera pushes forward through a gap between foreground elements that are already in the scene, such as leaves, an archway or a doorway, which sweep past the lens and out of frame to reveal the subject beyond. No new objects appear.",
+    "seedance": "The camera pushes forward through a gap between foreground elements that are already in the scene, such as leaves, an archway or a doorway, which sweep past the lens and out of frame to reveal the subject beyond. No new objects appear. One continuous shot.",
+    "veo": "The camera pushes forward through a gap between foreground elements that are already in the scene, such as leaves, an archway or a doorway, which sweep past the lens and out of frame to reveal the subject beyond. No new objects appear.",
+    "wan": "The camera pushes forward through a gap between foreground elements that are already in the scene, such as leaves, an archway or a doorway, which sweep past the lens and out of frame to reveal the subject beyond. No new objects appear.",
+    "local-wan": "The camera advances through an existing opening in the foreground. Its edges sweep past the lens, uncovering the subject beyond in the same continuous shot. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.through-object-pass/a35391d5e2eed0bb13f92303745583bb75ec9f76093858b086c0d65564b28f92.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.through-object-pass/a35391d5e2eed0bb13f92303745583bb75ec9f76093858b086c0d65564b28f92.png",
+    "run": "runs/camera.through-object-pass.json"
+  }
+}

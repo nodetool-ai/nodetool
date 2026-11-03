@@ -1,0 +1,31 @@
+{
+  "id": "effect.restyle-watercolor",
+  "version": 1,
+  "kind": "effect",
+  "name": "Watercolor restyle",
+  "description": "Restyle the video as watercolor animation with translucent washes, soft pigment edges and textured paper.",
+  "tags": [
+    "restyle",
+    "watercolor"
+  ],
+  "slot": "effect",
+  "modes": [
+    "video_edit"
+  ],
+  "inputs": [
+    "video"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "Repaint every frame, from the very first, as a watercolor painting: translucent washes, bleeding pigment edges and visible paper grain, with white paper showing through. No photographic texture remains. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames.",
+    "local-wan": "From the first frame, the entire scene is rebuilt as a moving watercolor illustration on textured paper. Translucent washes, bleeding pigment edges and exposed white paper form every figure, object and background. The layout and movement follow the source video, with this treatment sustained in every frame."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-watercolor/73fbf3ab7f3370e9009e34af15559cb5b9acaebb3f91097a54c2a1c7d704f994.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-watercolor/73fbf3ab7f3370e9009e34af15559cb5b9acaebb3f91097a54c2a1c7d704f994-late.png",
+    "run": "runs/effect.restyle-watercolor.json"
+  }
+}

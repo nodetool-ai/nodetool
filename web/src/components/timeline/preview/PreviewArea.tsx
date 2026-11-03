@@ -85,6 +85,7 @@ import { DawTransport } from "../daw/transport/DawTransport";
 import { EditableTimecode } from "../EditableTimecode";
 import { Metronome } from "../daw/transport/metronome";
 import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
+import { useTimelineSimpleMode } from "../../../stores/timeline/TimelineEditorMode";
 import "../daw/devices/registerFablesynthDevices";
 
 /** Space is bound by the preview itself (useCombo below), not the keymap. */
@@ -268,6 +269,9 @@ const fpsStyles = (theme: Theme) =>
     userSelect: "none"
   });
 
+/** Simple mode's bar has no scrubber; this pushes mute and full screen right. */
+const spacerStyles = css({ flex: "1 1 auto" });
+
 const scrubberStyles = (theme: Theme) =>
   css({
     flex: "1 1 auto",
@@ -389,6 +393,8 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
   }) => {
     const theme = useTheme();
     const { t } = useTranslation();
+    // Simple mode: go to start, play, the timecode, mute and full screen.
+    const simple = useTimelineSimpleMode();
 
     const {
       currentTimeMs,
@@ -1542,6 +1548,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             size="small"
           />
 
+          {!simple && (
           <ToolbarIconButton
             icon={<NavigateBeforeIcon />}
             tooltip={withActionShortcut(t("i18n-next6.preview.stepBackOneFrame"), keyboardPreset, "stepFrameBack")}
@@ -1551,6 +1558,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             size="small"
             className="timeline-preview__secondary-control"
           />
+          )}
 
           <ToolbarIconButton
             icon={isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
@@ -1561,6 +1569,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             size="small"
           />
 
+          {!simple && (
           <ToolbarIconButton
             icon={<StopIcon />}
             tooltip={t("i18n-next6.preview.stopAndReturnToStart")}
@@ -1568,7 +1577,9 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             aria-label={t("i18n-next6.preview.stop")}
             size="small"
           />
+          )}
 
+          {!simple && (
           <ToolbarIconButton
             icon={<RepeatIcon />}
             tooltip={withActionShortcut(
@@ -1585,7 +1596,9 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             size="small"
             className="timeline-preview__secondary-control"
           />
+          )}
 
+          {!simple && (
           <ToolbarIconButton
             icon={<NavigateNextIcon />}
             tooltip={withActionShortcut(t("i18n-next6.preview.stepForwardOneFrame"), keyboardPreset, "stepFrameForward")}
@@ -1595,7 +1608,9 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             size="small"
             className="timeline-preview__secondary-control"
           />
+          )}
 
+          {!simple && (
           <ToolbarIconButton
             icon={<SkipNextIcon />}
             tooltip={`${t("i18n-next6.preview.goToEnd")} (End)`}
@@ -1604,10 +1619,14 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             size="small"
             className="timeline-preview__secondary-control"
           />
+          )}
 
           {showTimecode && (
             <EditableTimecode css={timecodeCss} fps={fps} />
           )}
+          {simple ? (
+            <div css={spacerStyles} />
+          ) : (
           <div css={scrubberCss}>
             <PlaybackScrubber
               max={scrubMax}
@@ -1619,17 +1638,19 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
               onChangeCommitted={handleScrubCommit}
             />
           </div>
+          )}
           {showDuration && (
             <Caption css={durationCss} className="timeline-preview__duration">
               /{durationTimecode}
             </Caption>
           )}
-          {showFps && (
+          {showFps && !simple && (
             <Caption css={fpsCss} className="timeline-preview__fps">
               {t("i18n-next6.preview.framesPerSecond", { count: fps })}
             </Caption>
           )}
 
+          {!simple && (
           <SelectField
             label={t("i18n-next6.preview.previewQuality")}
             hideLabel
@@ -1648,6 +1669,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             ]}
             className="timeline-preview__quality"
           />
+          )}
 
           <ToolbarIconButton
             icon={
@@ -1665,6 +1687,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             aria-pressed={isSilent}
             size="small"
           />
+          {!simple && (
           <div className="timeline-preview__volume">
             <Slider
               aria-label={t("i18n-next6.preview.volume")}
@@ -1677,7 +1700,9 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
               density="compact"
             />
           </div>
+          )}
 
+          {!simple && (
           <ToolbarIconButton
             icon={<FilterBAndWOutlinedIcon />}
             tooltip={t("i18n-next6.preview.showSubjectMatte")}
@@ -1689,6 +1714,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             size="small"
             className="timeline-preview__matte-view"
           />
+          )}
 
           <ToolbarIconButton
             icon={isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}

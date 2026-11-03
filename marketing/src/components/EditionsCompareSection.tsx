@@ -113,7 +113,7 @@ function EditionRows({ kind }: { kind: "studio" | "cloud" }) {
       {rows.map((row) => (
         <div
           key={`${kind}-${row.label}`}
-          className="grid gap-1 py-4 sm:grid-cols-[140px_1fr] sm:gap-4"
+          className="grid grid-cols-[7rem_1fr] gap-3 py-3 sm:grid-cols-[140px_1fr] sm:gap-4 sm:py-4"
         >
           <dt className="text-xs font-semibold uppercase tracking-wider text-slate-400">
             {row.label}
@@ -134,7 +134,7 @@ export default function EditionsCompareSection({
     <section
       id="editions"
       aria-labelledby="editions-title"
-      className="relative py-24 scroll-mt-24"
+      className="relative py-16 sm:py-24 scroll-mt-24"
     >
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <header className="mb-10 max-w-3xl">

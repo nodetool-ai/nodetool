@@ -20,6 +20,28 @@ guides, and public production media. Follow the repository
 - Record only measured media facts. Read dimensions, duration, frame rate,
   codecs, and audio channels from the final files before updating claims.
 
+## Preset Showcase
+
+`/presets` lists every camera, look and effect preset that has a preview, with
+the poster, a hover or focus loop and the model that rendered it.
+
+- Treat `src/data/presetShowcase.generated.ts` as generated output. Run
+  `npm run gen:presets` after changing `packages/presets/catalog` or
+  `packages/presets/runs`. Verify drift with `npm run gen:presets -- --check`,
+  which `npm run seo:check` also runs.
+- The generator builds each entry from an allow-list of fields. Run records
+  hold `output_path` (a local path), `credits` and `cost_usd`, and none of them
+  may reach the page or the generated file. Dreamina credits are not a list
+  price. `npm run test:preset-showcase` pins this.
+- The previews are drafts or edits rendered on Dreamina, mostly at 480p. State
+  only what the record holds: the model, the resolution and the render mode.
+  Make no quality, resolution or cost claim beyond that, and no BYOK claim.
+- A video restyle renders as reference-to-video from another preset's preview
+  (`source_url`), not as the `VideoToVideo` graph that eject builds. The page
+  says so.
+- A model id the generator has no display name for fails the run. Add its name
+  to `MODEL_LABELS` in `scripts/generate-preset-showcase.mjs`.
+
 ## Guided Step Images
 
 Every recipe step must have an image that explains that step. Prefer a real
@@ -174,3 +196,13 @@ Run the repository-level checks required by the root
 If an unrelated working-tree change expands `test:affected` to the full suite,
 report that scope and rerun any isolated failure before attributing it to the
 marketing change.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

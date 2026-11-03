@@ -17,7 +17,8 @@ import { BaseProvider } from "../src/providers/base-provider.js";
 import type {
   Message,
   ProviderStreamItem,
-  StreamingAudioChunk
+  StreamingAudioChunk,
+  ImageToVideoParams
 } from "../src/providers/types.js";
 import { registerProvider } from "../src/providers/provider-registry.js";
 import { FakeProvider } from "../src/providers/fake-provider.js";
@@ -2225,10 +2226,12 @@ describe("ProcessingContext – dispatchCapability edge cases", () => {
   });
 
   it("dispatches image_to_video with a list of images", async () => {
+    let receivedSeed: number | null | undefined;
     let received: Uint8Array | undefined;
     class I2VProvider extends MockProvider {
-      override async imageToVideo(image: Uint8Array): Promise<Uint8Array> {
+      override async imageToVideo(image: Uint8Array, params: ImageToVideoParams): Promise<Uint8Array> {
         received = image;
+        receivedSeed = params.seed;
         return new Uint8Array([7]);
       }
     }
@@ -2238,10 +2241,11 @@ describe("ProcessingContext – dispatchCapability edge cases", () => {
       provider: "i2v",
       capability: "image_to_video",
       model: "m",
-      params: { images: [new Uint8Array([1])] }
+      params: { images: [new Uint8Array([1])], seed: 20261031 }
     });
     expect(result).toEqual(new Uint8Array([7]));
     expect(received).toEqual(new Uint8Array([1]));
+    expect(receivedSeed).toBe(20261031);
   });
 
   it("dispatches ordered reference image and video inputs and rejects empties", async () => {

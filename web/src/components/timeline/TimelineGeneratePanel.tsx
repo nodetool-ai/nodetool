@@ -12,6 +12,7 @@ import React, {
   useState
 } from "react";
 import { useTranslation } from "react-i18next";
+import type { Entity } from "@nodetool-ai/protocol";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import ModelChip from "../chat/composer/ModelChip";
@@ -49,6 +50,7 @@ import MediaControlChip from "../chat/composer/MediaControlChip";
 import MediaOptionMenu from "../chat/composer/MediaOptionMenu";
 import MediaAspectRatioMenu from "../chat/composer/MediaAspectRatioMenu";
 import VideoModelMenuDialog from "../model_menu/VideoModelMenuDialog";
+import EntityMentionTextArea from "../entities/EntityMentionTextArea";
 import TimelineReferencesField, {
   EMPTY_TIMELINE_REFERENCES,
   type TimelineReferences
@@ -332,29 +334,45 @@ export const TimelineGeneratePanel: React.FC<TimelineGeneratePanelProps> = memo(
     setVideoModelOpen(false);
   }, []);
 
-  const promptField = (
-    <TextArea
-      value={prompt}
-      onChange={(value) => setPrompt(value)}
-      onKeyDown={handleKeyDown}
-      placeholder={
-        mode === "music"
-          ? t("timeline.generate.musicPlaceholder")
-          : mode === "audio"
-            ? t("timeline.generate.audioPlaceholder")
-            : t("timeline.generate.videoPlaceholder")
-      }
-      minRows={4}
-      maxRows={12}
-      fullWidth
-      autoFocus
-      disabled={busy}
-      inputProps={{
-        "aria-label": t("timeline.generate.promptAria", { kind: bindingKind }),
-        "data-testid": "topbar-prompt-input"
-      }}
-    />
-  );
+  // An entity picked with `@` joins the clip's references, where the field
+  // below the prompt lists it. Only a video clip has references to carry it.
+  const addReferenceEntity = useCallback((entity: Entity) => {
+    setReferences((current) =>
+      current.entities.some((item) => item.id === entity.id)
+        ? current
+        : { ...current, entities: [...current.entities, entity] }
+    );
+  }, []);
+
+  const promptFieldProps = {
+    value: prompt,
+    onChange: setPrompt,
+    onKeyDown: handleKeyDown,
+    placeholder:
+      mode === "music"
+        ? t("timeline.generate.musicPlaceholder")
+        : mode === "audio"
+          ? t("timeline.generate.audioPlaceholder")
+          : t("timeline.generate.videoPlaceholder"),
+    minRows: 4,
+    maxRows: 12,
+    fullWidth: true,
+    autoFocus: true,
+    disabled: busy,
+    inputProps: {
+      "aria-label": t("timeline.generate.promptAria", { kind: bindingKind }),
+      "data-testid": "topbar-prompt-input"
+    }
+  };
+  const promptField =
+    mode === "video" ? (
+      <EntityMentionTextArea
+        {...promptFieldProps}
+        onMentionEntity={addReferenceEntity}
+      />
+    ) : (
+      <TextArea {...promptFieldProps} />
+    );
 
   // Price the same binding that Generate will create.
   const costEstimate = useClipCostEstimate({
