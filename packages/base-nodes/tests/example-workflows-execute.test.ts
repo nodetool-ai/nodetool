@@ -161,11 +161,14 @@ function loadWorkflows(): WorkflowFile[] {
  * connections (WebSocket, raw HTTP) using API keys directly. The fake
  * context cannot intercept these — running them would either time out
  * or hit the real endpoint with a junk key. Workflows that contain any
- * of these nodes are skipped.
+ * of these nodes are skipped. `lib.comfy.RunWorkflowOnCloud` submits its
+ * graph through the Comfy API v2 SDK with `COMFY_API_KEY`, not through a
+ * provider.
  */
 const NETWORK_BYPASSING_NODES = new Set<string>([
   "openai.agents.RealtimeAgent",
-  "openai.agents.LiveAgent"
+  "openai.agents.LiveAgent",
+  "lib.comfy.RunWorkflowOnCloud"
 ]);
 
 /**

@@ -3223,7 +3223,11 @@
         "resolution": "Auflösung",
         "stillDescription": "Wähle das Modell für das Standbild dieser Einstellung. Deine Auswahl bleibt für den nächsten Render dieser Einstellung gespeichert.",
         "stillModel": "Standbildmodell",
-        "stillRequired": "Diese Einstellung animiert ihr Standbild. Rendere zuerst ein Standbild oder stelle ein, dass die Einstellung direkt aus ihrem Prompt gerendert wird."
+        "stillRequired": "Diese Einstellung animiert ihr Standbild. Rendere zuerst ein Standbild oder stelle ein, dass die Einstellung direkt aus ihrem Prompt gerendert wird.",
+        "comfyWorkflow": {
+          "note": "Führt einen festgelegten ComfyUI-Workflow in der Comfy Cloud aus, nur mit ComfyUI-Kernknoten. Ein 5-Sekunden-Take dauert etwa ein bis zwei Minuten. Kamera-Presets lenken den Prompt, sie sind keine geometrische Kamerasteuerung.",
+          "open": "ComfyUI-Workflow öffnen"
+        }
       },
       "takesGallery": {
         "clips": "Clips",

@@ -19,6 +19,12 @@
  */
 
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
+import {
+  COMFY_RESTRICTED_MODELS_ENV,
+  comfyWorkflowModel,
+  listedComfyWorkflowModels,
+  runComfyWorkflowModel
+} from "./comfy-workflow-models.js";
 import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import {
   ComfyRouterClient,
@@ -248,6 +254,16 @@ export class ComfyCloudProvider extends BaseProvider {
     return { COMFY_API_KEY: this.apiKey };
   }
 
+  private requireApiKey(): string {
+    const apiKey = this.apiKey.trim();
+    if (!apiKey) {
+      throw new Error(
+        "COMFY_API_KEY is required for Comfy models. Add it in Settings; get a key at https://platform.comfy.org."
+      );
+    }
+    return apiKey;
+  }
+
   /** Split out so tests can inject a client with a fake `fetch`. */
   protected createRouter(): ComfyRouterClient {
     const apiKey = this.apiKey.trim();
@@ -296,12 +312,19 @@ export class ComfyCloudProvider extends BaseProvider {
   }
 
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
-    return (await this.entries("video")).map((entry) => ({
+    const workflowModels: VideoModel[] = listedComfyWorkflowModels(process.env).map((model) => ({
+      id: model.id,
+      name: model.name,
+      provider: PROVIDER_IDS.COMFY_CLOUD,
+      supportedTasks: ["image_to_video"]
+    }));
+    const router = (await this.entries("video")).map((entry) => ({
       id: entry.id,
       name: routerModelName(entry.id),
       provider: PROVIDER_IDS.COMFY_CLOUD,
       supportedTasks: [...entry.tasks]
     }));
+    return [...workflowModels, ...router];
   }
 
   override async getAvailableTTSModels(): Promise<TTSModel[]> {
@@ -530,6 +553,26 @@ export class ComfyCloudProvider extends BaseProvider {
 
   override async imageToVideo(image: Uint8Array, params: ImageToVideoParams): Promise<Uint8Array> {
     const modelId = params.model.id;
+    const workflowModel = comfyWorkflowModel(modelId);
+    if (workflowModel) {
+      // A pinned ComfyUI graph, not a Comfy Router model.
+      if (!listedComfyWorkflowModels(process.env).includes(workflowModel)) {
+        throw new Error(
+          `${workflowModel.name} is off. ${workflowModel.licenseNote ?? ""} Set ${COMFY_RESTRICTED_MODELS_ENV}=1 on the server only where its license permits use.`
+        );
+      }
+      return runComfyWorkflowModel(workflowModel, {
+        apiKey: this.requireApiKey(),
+        image,
+        imageMime: sniffMime(image, "image/png"),
+        prompt: params.prompt ?? "",
+        seed: params.seed,
+        durationSeconds: params.durationSeconds,
+        aspectRatio: params.aspectRatio,
+        timeoutSeconds: params.timeoutSeconds,
+        signal: params.signal
+      });
+    }
     const b = await this.builder(modelId, params.signal);
     this.setCommon(b, params);
     this.setVideoTiming(b, params.durationSeconds, params.numFrames);
