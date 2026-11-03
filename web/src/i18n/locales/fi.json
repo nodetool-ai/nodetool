@@ -19610,6 +19610,9 @@
     "simple": "Yksinkertainen",
     "expert": "Asiantuntija",
     "canvasSize": "{{width}} × {{height}}",
-    "frameRate": "{{fps}} fps"
+    "frameRate": "{{fps}} fps",
+    "showAssistant": "Näytä avustaja",
+    "hideAssistant": "Piilota avustaja",
+    "resizeAssistant": "Muuta aikajanan avustajan kokoa"
   }
 }

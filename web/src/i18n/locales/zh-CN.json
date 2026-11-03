@@ -19610,6 +19610,9 @@
     "simple": "简单",
     "expert": "专家",
     "canvasSize": "{{width}} × {{height}}",
-    "frameRate": "{{fps}} 帧/秒"
+    "frameRate": "{{fps}} 帧/秒",
+    "showAssistant": "显示助手",
+    "hideAssistant": "隐藏助手",
+    "resizeAssistant": "调整时间线助手大小"
   }
 }

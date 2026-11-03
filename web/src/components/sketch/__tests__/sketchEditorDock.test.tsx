@@ -142,6 +142,25 @@ describe("SketchEditor dock", () => {
       expect(document.querySelector(".sketch-editor__canvas-region")).toBeInTheDocument();
     });
 
+    it("shows the open assistant in a column at the right edge, not in the dock", () => {
+      renderDesktopEditor();
+      act(() => {
+        useSketchStore.getState().setAssistantPanelOpen(true, { persist: false });
+      });
+      const panel = screen.getByTestId("assistant-panel");
+      const column = screen.getByTestId("assistant-side-dock");
+      expect(column).toContainElement(panel);
+      expect(document.querySelector(".sketch-editor__dock")).not.toContainElement(panel);
+      // The column is the body's last child, right of the layer column.
+      expect(document.querySelector(".sketch-editor__body")?.lastElementChild).toBe(column);
+      expect(screen.getAllByTestId("assistant-panel")).toHaveLength(1);
+
+      act(() => {
+        useSketchStore.getState().setAssistantPanelOpen(false, { persist: false });
+      });
+      expect(screen.queryByTestId("assistant-panel")).not.toBeInTheDocument();
+    });
+
     it("switches to Expert mode and remembers it", () => {
       renderDesktopEditor();
       fireEvent.click(screen.getByRole("button", { name: "Expert" }));
