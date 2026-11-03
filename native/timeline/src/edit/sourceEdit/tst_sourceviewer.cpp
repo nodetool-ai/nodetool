@@ -328,9 +328,13 @@ private slots:
         QTest::mouseMove(view.get(), to); QCoreApplication::processEvents();
         QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, to);
         QCOMPARE(doc(), before); QCOMPARE(model.undoStack()->count(), 0);
-        // The range is captured when the lift starts.
-        QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, from);
-        for (int i = 1; i <= 6; ++i) { QTest::mouseMove(view.get(), from + (to - from) * i / 6); QCoreApplication::processEvents(); }
+        // The range is captured when the lift starts. The panel may have laid out again since the first press.
+        const QPoint grip = center(source);
+        QTest::mouseMove(view.get(), grip); QCoreApplication::processEvents();
+        QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, grip);
+        for (int i = 1; i <= 6; ++i) { QTest::mouseMove(view.get(), grip + (to - grip) * i / 6); QCoreApplication::processEvents(); }
+        QVERIFY2(item("assetLaneDropArea")->property("containsDrag").toBool(),
+                 qPrintable(QString("no lift: first press at (%1,%2), second at (%3,%4)").arg(from.x()).arg(from.y()).arg(grip.x()).arg(grip.y())));
         state->markIn(2000);
         QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, to);
         QTRY_VERIFY2(model.undoStack()->count() == 1, qPrintable(QString("undo entries %1, last error \"%2\", warning \"%3\", from (%4,%5) to (%6,%7)")
