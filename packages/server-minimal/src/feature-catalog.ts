@@ -2420,6 +2420,7 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
     ],
     "nodeTypes": [
       "kie.dynamic_schema.KieAI",
+      "lib.comfy.RunComfyGraphOnCloud",
       "lib.comfy.RunWorkflow",
       "lib.comfy.RunWorkflowOnCloud",
       "lib.comfy.RunWorkflowOnWorker",

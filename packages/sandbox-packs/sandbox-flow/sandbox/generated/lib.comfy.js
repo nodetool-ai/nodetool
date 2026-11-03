@@ -18,7 +18,14 @@ function runWorkflowOnCloud(inputs) {
 runWorkflowOnCloud.stream = function(inputs) {
   return streamNode("lib.comfy.RunWorkflowOnCloud", inputs);
 };
+function runComfyGraphOnCloud(inputs) {
+  return callNode("lib.comfy.RunComfyGraphOnCloud", inputs);
+}
+runComfyGraphOnCloud.stream = function(inputs) {
+  return streamNode("lib.comfy.RunComfyGraphOnCloud", inputs);
+};
 export {
+  runComfyGraphOnCloud,
   runWorkflow,
   runWorkflowOnCloud,
   runWorkflowOnWorker

@@ -6297,6 +6297,7 @@
         "renderedExampleShots_other": "已渲染 {{count}} 个镜头",
         "blankEntries": {
           "workflow": "工作流",
+          "comfy-workflow": "Comfy 工作流",
           "chat": "聊天",
           "text": "文本",
           "image": "草图",
