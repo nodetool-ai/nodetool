@@ -58,6 +58,7 @@ import {
   FlexRow,
   InspectorSectionTitle,
   MobileBottomSheet,
+  ResizableDock,
   Tooltip,
   Z_INDEX
 } from "../ui_primitives";
@@ -162,6 +163,9 @@ const ConnectedColorPanel = memo(function ConnectedColorPanel() {
 });
 
 /** Mounts before its first activation, so the canvas is ready under any layout. */
+/** Width of Simple mode's assistant column, in px. Matches the other editors. */
+const SIMPLE_ASSISTANT_WIDTH = 340;
+
 const EAGER_DOCK_PANELS: readonly SketchPanelId[] = ["canvas"];
 
 /** Scrolling body of a docked side panel. The dock tab names the panel. */
@@ -730,10 +734,12 @@ function SketchEditor({
   // The side panels sit in the dock on desktop. On a phone, in Simple mode,
   // and while Tab hides the chrome, only the canvas shows; the panels keep
   // their places in the layout. The canvas never leaves the dock, so it never
-  // remounts when the mode changes. Simple mode still docks the assistant
-  // while it is open.
+  // remounts when the mode changes. Simple mode shows the assistant in a
+  // column at the right edge instead, like the other editors.
   const chromeShown = !isMobile && !panelsHidden;
   const sidePanelsShown = chromeShown && !simpleMode;
+  const simpleAssistantShown =
+    chromeShown && simpleMode && assistantPanelOpen;
   const dockViews: DockPanelView[] = [
     { id: "canvas", node: canvasPane },
     {
@@ -773,7 +779,7 @@ function SketchEditor({
           <SketchAgentPanel />
         </FlexColumn>
       ),
-      visible: chromeShown
+      visible: sidePanelsShown
     }
   ];
   const shownDockViews = dockViews.filter((view) => view.visible !== false);
@@ -824,6 +830,23 @@ function SketchEditor({
             onAddLayer={handleSimpleAddLayer}
             onOpenExpert={openExpertMode}
           />
+        )}
+
+        {simpleAssistantShown && (
+          <ResizableDock
+            storageKey="sketch_simple_assistant"
+            defaultWidth={SIMPLE_ASSISTANT_WIDTH}
+            ariaLabel={t("i18n-next4.sketch.resizeAssistant")}
+          >
+            <FlexColumn
+              className="sketch-editor__assistant-panel"
+              gap={0}
+              fullWidth
+              sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}
+            >
+              <SketchAgentPanel />
+            </FlexColumn>
+          </ResizableDock>
         )}
       </FlexRow>
 

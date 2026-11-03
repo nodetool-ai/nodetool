@@ -19610,6 +19610,9 @@
     "simple": "Simple",
     "expert": "Expert",
     "canvasSize": "{{width}} × {{height}}",
-    "frameRate": "{{fps}} fps"
+    "frameRate": "{{fps}} fps",
+    "showAssistant": "Show assistant",
+    "hideAssistant": "Hide assistant",
+    "resizeAssistant": "Resize timeline assistant"
   }
 }

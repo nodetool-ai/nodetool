@@ -20230,6 +20230,9 @@
     "simple": "Простой",
     "expert": "Эксперт",
     "canvasSize": "{{width}} × {{height}}",
-    "frameRate": "{{fps}} к/с"
+    "frameRate": "{{fps}} к/с",
+    "showAssistant": "Показать ассистента",
+    "hideAssistant": "Скрыть ассистента",
+    "resizeAssistant": "Изменить размер ассистента таймлайна"
   }
 }
