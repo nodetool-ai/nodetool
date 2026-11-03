@@ -1,5 +1,6 @@
+import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
-import { ComfyCloudProvider } from "../../src/providers/comfy-cloud-provider.js";
+import { ComfyCloudProvider, mp4DurationSeconds } from "../../src/providers/comfy-cloud-provider.js";
 import {
   ComfyRouterClient,
   RouterArgsBuilder,
@@ -104,6 +105,20 @@ class TestProvider extends ComfyCloudProvider {
 const IMAGE_MODEL = { id: "bfl/flux-2-pro", name: "Flux 2 Pro", provider: PROVIDER_IDS.COMFY_CLOUD } as const;
 const VIDEO_MODEL = { id: "kling/kling-v3", name: "Kling v3", provider: PROVIDER_IDS.COMFY_CLOUD } as const;
 
+/** A real Router input schema, saved from `/v2/models/{id}/openapi.json`. */
+function realSchema(id: string): unknown {
+  const file = new URL(`../fixtures/comfy-router-schemas/${id.replace("/", "__")}.json`, import.meta.url);
+  return JSON.parse(readFileSync(file, "utf8"));
+}
+
+/** Run one call against a real schema and return the body it submitted. */
+async function submittedBody(id: string, call: (p: TestProvider, model: { id: string; name: string; provider: "comfy_cloud" }) => Promise<unknown>): Promise<Record<string, unknown>> {
+  const { fetchFn, calls } = fakeRouter({ [id]: { schema: realSchema(id), result: { image: "https://cdn.test/out.png", video: "https://cdn.test/out.mp4" } } });
+  await call(new TestProvider(fetchFn), { id, name: id, provider: PROVIDER_IDS.COMFY_CLOUD });
+  const submit = calls.find((c) => c.method === "POST" && c.url.endsWith("/requests"));
+  return submit?.body as Record<string, unknown>;
+}
+
 describe("ComfyCloudProvider — metadata", () => {
   it("reports provider id and required secrets", () => {
     const p = new ComfyCloudProvider({ COMFY_API_KEY: "k" });
@@ -122,12 +137,12 @@ describe("ComfyCloudProvider — metadata", () => {
 
 describe("ComfyCloudProvider — catalog", () => {
   it("lists every catalog kind, filtered by the live listing", async () => {
-    const { fetchFn } = fakeRouter({}, { live: ["bfl/flux-2-pro", "kling/kling-v3", "elevenlabs/eleven_v3", "anthropic/claude-sonnet-5"] });
+    const { fetchFn } = fakeRouter({}, { live: ["bfl/flux-2-pro", "veo/veo-3.1-generate-001", "elevenlabs/eleven_v3", "anthropic/claude-sonnet-5"] });
     const p = new TestProvider(fetchFn);
     expect((await p.getAvailableImageModels()).map((m) => m.id)).toEqual(["bfl/flux-2-pro"]);
     const video = await p.getAvailableVideoModels();
     expect(video).toEqual([
-      expect.objectContaining({ id: "kling/kling-v3", provider: "comfy_cloud", supportedTasks: ["text_to_video", "image_to_video"] })
+      expect.objectContaining({ id: "veo/veo-3.1-generate-001", provider: "comfy_cloud", supportedTasks: ["text_to_video", "image_to_video"] })
     ]);
     expect((await p.getAvailableTTSModels()).map((m) => m.id)).toEqual(["elevenlabs/eleven_v3"]);
     expect((await p.getAvailableLanguageModels()).map((m) => m.id)).toEqual(["anthropic/claude-sonnet-5"]);
@@ -143,14 +158,19 @@ describe("ComfyCloudProvider — catalog", () => {
     expect(ids.length).toBe(COMFY_ROUTER_CATALOG.filter((e) => e.kind === "video").length);
   });
 
-  it("derives tasks from model names", () => {
+  it("takes each model's tasks from its schema modalities", () => {
     const tasks = Object.fromEntries(COMFY_ROUTER_CATALOG.map((e) => [e.id, e.tasks]));
     expect(tasks["wan/wan2.7-i2v"]).toEqual(["image_to_video"]);
     expect(tasks["wan/wan2.7-t2v"]).toEqual(["text_to_video"]);
     expect(tasks["wan/wan2.7-r2v"]).toEqual(["reference_to_video"]);
-    expect(tasks["bria/image-edit-relight"]).toEqual(["image_to_image"]);
     expect(tasks["runway/aleph2"]).toEqual(["video_to_video"]);
+    expect(tasks["runway/gen4_turbo"]).toEqual(["image_to_video"]);
     expect(tasks["bfl/flux-2-pro"]).toEqual(["text_to_image", "image_to_image"]);
+    // Text-only input: no image-to-image.
+    expect(tasks["luma/photon-flash-1"]).toEqual(["text_to_image"]);
+    // 3D output and mask-only editors have no NodeTool task.
+    expect(tasks["meshy/meshy-6"]).toBeUndefined();
+    expect(tasks["bria/image-edit-erase"]).toBeUndefined();
   });
 
   it("declares the media capabilities it implements", () => {
@@ -317,7 +337,75 @@ describe("ComfyCloudProvider — chat", () => {
   });
 });
 
+describe("ComfyCloudProvider — real Router schemas", () => {
+  it("Veo: one Vertex instance with the prompt and a base64 start frame", async () => {
+    const body = await submittedBody("veo/veo-3.1-generate-001", (p, model) =>
+      p.imageToVideo(PNG, { model, prompt: "a fox", aspectRatio: "16:9", durationSeconds: 8 })
+    );
+    expect(body.instances).toEqual([
+      { prompt: "a fox", image: { bytesBase64Encoded: Buffer.from(PNG).toString("base64"), mimeType: "image/png" } }
+    ]);
+    expect(body.parameters).toMatchObject({ aspectRatio: "16:9", durationSeconds: 8 });
+  });
+
+  it("Qwen image: a single user message in input.messages", async () => {
+    const body = await submittedBody("qwen/qwen-image-3.0", (p, model) => p.textToImage({ model, prompt: "a leaf" }));
+    expect(body.input).toEqual({ messages: [{ role: "user", content: [{ text: "a leaf" }] }] });
+  });
+
+  it("Wan 2.7: the start frame as a typed media item, with a billing resolution", async () => {
+    const body = await submittedBody("wan/wan2.7-i2v", (p, model) =>
+      p.imageToVideo(PNG, { model, prompt: "waves", durationSeconds: 5 })
+    );
+    const input = body.input as Record<string, unknown>;
+    expect(input.prompt).toBe("waves");
+    expect(input.img_url).toBeUndefined();
+    expect(input.media).toEqual([{ type: "first_frame", url: expect.stringMatching(/^data:image\/png;base64,/) }]);
+    expect(body.parameters).toMatchObject({ duration: 5, resolution: "720P" });
+  });
+
+  it("Seedance: prompt and first frame as content parts", async () => {
+    const body = await submittedBody("byteplus/dreamina-seedance-2-0-260128", (p, model) =>
+      p.imageToVideo(PNG, { model, prompt: "dolly in" })
+    );
+    expect(body.content).toEqual([
+      { type: "text", text: "dolly in" },
+      { type: "image_url", image_url: { url: expect.stringMatching(/^data:image\/png;base64,/) }, role: "first_frame" }
+    ]);
+  });
+
+  it("Gemini Interactions: a string input, or typed parts with an image", async () => {
+    const id = "gemini-interactions/gemini-omni-1.1-flash";
+    const text = await submittedBody(id, (p, model) => p.textToImage({ model, prompt: "a cat" }));
+    expect(text.input).toBe("a cat");
+    const edit = await submittedBody(id, (p, model) => p.imageToImage([PNG], { model, prompt: "make it blue" }));
+    expect(edit.input).toEqual([
+      { type: "text", text: "make it blue" },
+      { type: "image", data: Buffer.from(PNG).toString("base64"), mime_type: "image/png" }
+    ]);
+  });
+
+  it("ElevenLabs v4: one dialogue turn with a default voice", async () => {
+    const id = "elevenlabs/eleven_v4";
+    const { fetchFn, calls } = fakeRouter({ [id]: { schema: realSchema(id), result: new Uint8Array([1, 2, 3]), contentType: "audio/mpeg" } });
+    const audio = await new TestProvider(fetchFn).textToSpeechEncoded({ model: id, text: "hello" });
+    expect(audio?.mimeType).toBe("audio/mpeg");
+    const submit = calls.find((c) => c.method === "POST" && c.url.endsWith("/requests"));
+    expect((submit?.body as Record<string, unknown>).inputs).toEqual([{ text: "hello", voice_id: expect.any(String) }]);
+  });
+});
+
 describe("comfy-router helpers", () => {
+  it("mp4DurationSeconds reads the movie header", () => {
+    const mvhd = new Uint8Array(40);
+    const view = new DataView(mvhd.buffer);
+    mvhd.set([0x6d, 0x76, 0x68, 0x64], 4); // "mvhd", version 0 at offset 8
+    view.setUint32(20, 1000); // timescale
+    view.setUint32(24, 4500); // duration
+    expect(mp4DurationSeconds(mvhd)).toBe(4.5);
+    expect(mp4DurationSeconds(MP4)).toBeUndefined();
+  });
+
   it("parseInputSchema resolves $ref, required and enums", () => {
     const schema = parseInputSchema(openapi({ a: { type: "integer" }, b: { enum: ["x"] } }, ["a"]));
     expect(schema.fields.get("a")).toMatchObject({ type: "integer", required: true });

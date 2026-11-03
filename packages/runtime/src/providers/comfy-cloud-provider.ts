@@ -6,7 +6,7 @@
  * chat. Calls use the Router's queue, and each request body is built from the
  * model's published input schema (see `comfy-router.ts`).
  *
- * The model list is the catalog snapshot in `comfy-router-catalog.ts`,
+ * The model list is the generated table in `comfy-router-catalog.ts`,
  * intersected with the live listing when it can be read.
  *
  * Running an arbitrary ComfyUI graph on Comfy Cloud stays with the `lib.comfy`
@@ -23,13 +23,15 @@ import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import {
   ComfyRouterClient,
   RouterArgsBuilder,
+  dataUri,
   sniffMime,
   type MediaInput
 } from "./comfy-router.js";
 import {
   COMFY_ROUTER_CATALOG,
   routerModelName,
-  type RouterCatalogEntry
+  type RouterCatalogEntry,
+  type RouterTask
 } from "./comfy-router-catalog.js";
 import type {
   EncodedAudioResult,
@@ -51,13 +53,15 @@ import type {
   VideoToVideoParams
 } from "./types.js";
 
-const PROMPT_FIELDS = ["prompt", "text_prompt", "prompt_text", "promptText", "text", "instruction", "description"] as const;
+const PROMPT_FIELDS = [
+  "prompt", "text_prompt", "prompt_text", "promptText", "positivePrompt", "text", "instruction", "description"
+] as const;
 const NEGATIVE_FIELDS = ["negative_prompt", "negativePrompt", "negative_text"] as const;
 const IMAGE_FIELDS = [
-  "image_url", "image", "input_image", "image_urls", "images", "input_images", "init_image",
+  "image_url", "img_url", "image", "input_image", "image_urls", "images", "input_images", "init_image",
   "imageUrl", "image_base64", "input_image_url", "first_frame_image", "first_frame",
   "start_image", "start_image_url", "first_frame_url", "image_input", "reference_image",
-  "reference_images", "promptImage", "prompt_image", "source_image"
+  "reference_images", "promptImage", "prompt_image", "source_image", "image_prompt"
 ] as const;
 const END_IMAGE_FIELDS = ["end_image_url", "end_image", "last_frame_image", "last_frame", "tail_image_url", "image_tail", "last_frame_url"] as const;
 const REFERENCE_FIELDS = ["reference_images", "reference_image_urls", "image_urls", "images", "references", "subject_images", "reference_image"] as const;
@@ -72,7 +76,7 @@ const GUIDANCE_FIELDS = ["guidance_scale", "guidance", "cfg_scale", "cfg"] as co
 const FRAMES_FIELDS = ["num_frames", "frames", "frame_count"] as const;
 const QUALITY_FIELDS = ["quality"] as const;
 const STRENGTH_FIELDS = ["strength", "image_strength", "prompt_strength"] as const;
-const SPEECH_TEXT_FIELDS = ["text", "input", "prompt"] as const;
+const SPEECH_TEXT_FIELDS = ["text", "text_prompt", "input", "prompt"] as const;
 const VOICE_FIELDS = ["voice_id", "voice", "speaker", "voice_type"] as const;
 
 const IMAGE_SIZES: Record<string, string> = {
@@ -84,6 +88,109 @@ const IMAGE_SIZES: Record<string, string> = {
   "3:2": "1216x832",
   "2:3": "832x1216"
 };
+
+const base64 = (media: MediaInput): string => Buffer.from(media.bytes).toString("base64");
+
+/** A premade ElevenLabs voice, used when the caller names none. */
+const ELEVENLABS_DEFAULT_VOICE = "21m00Tcm4TlvDq8ikWAM";
+
+/** Duration of an MP4/MOV from its `mvhd` box, or undefined if absent. */
+export function mp4DurationSeconds(bytes: Uint8Array): number | undefined {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  for (let i = 4; i + 32 <= bytes.length; i++) {
+    if (bytes[i] !== 0x6d || bytes[i + 1] !== 0x76 || bytes[i + 2] !== 0x68 || bytes[i + 3] !== 0x64) continue;
+    const version = bytes[i + 4];
+    const timescale = view.getUint32(i + (version === 1 ? 24 : 16));
+    const duration =
+      version === 1 ? Number(view.getBigUint64(i + 28)) : view.getUint32(i + 20);
+    return timescale > 0 ? duration / timescale : undefined;
+  }
+  return undefined;
+}
+
+interface PresetInput {
+  task: RouterTask;
+  images: MediaInput[];
+  video?: MediaInput;
+}
+
+/**
+ * Request fields a schema requires but cannot describe: free-text strings
+ * whose allowed values sit only in the field description, and inputs under
+ * names no generic rule maps. A preset returns true when it placed the
+ * request's media itself.
+ */
+const MODEL_PRESETS: Record<string, (b: RouterArgsBuilder, input: PresetInput) => boolean> = {
+  "krea/krea-3": (b) => {
+    if (!b.isSet("resolution")) b.put("resolution", "1k");
+    return false;
+  },
+  "fal/h3-max": (b) => {
+    b.put("prompt_expansion_mode", "balanced");
+    return false;
+  },
+  "fal/h3-max-turbo": (b) => {
+    b.put("prompt_expansion_mode", "balanced");
+    return false;
+  },
+  "bfl/flux-3-video": (b, { task, images }) => {
+    b.put("mode", task === "image_to_video" ? "i2v" : "t2v");
+    if (images.length === 0) return false;
+    b.put("keyframes", images.length === 1 ? base64(images[0]) : images.map(base64));
+    return true;
+  },
+  "bfl/vto-v1": (b, { images }) => {
+    if (images[0]) b.put("person", base64(images[0]));
+    if (images[1]) b.put("garment", base64(images[1]));
+    return images.length > 0;
+  },
+  "wavespeed/flashvsr": (b, { video }) => {
+    const seconds = video ? mp4DurationSeconds(video.bytes) : undefined;
+    if (seconds !== undefined) b.put("duration", Math.round(seconds * 100) / 100);
+    return false;
+  },
+  "bria/video-edit-replace-background": (b, { images }) => {
+    if (images[0]) b.put("background_url", dataUri(images[0]));
+    return false;
+  },
+  "elevenlabs/eleven_sfx_v2": (b) => {
+    if (!b.isSet("duration_seconds")) b.put("duration_seconds", null);
+    return false;
+  },
+  "beeble/switchx": (b, { images, video }) => {
+    b.put("generation_type", "video");
+    if (!b.isSet("alpha_mode")) b.put("alpha_mode", "auto");
+    if (video) b.put("source_uri", dataUri(video));
+    if (images[0]) b.put("reference_image_uri", dataUri(images[0]));
+    return video !== undefined;
+  }
+};
+
+/**
+ * Wan and HappyHorse (DashScope). The Router bills by `resolution`, so one is
+ * always sent, and `ratio` exists only on Wan 2.7 and 3.0. Those two and
+ * HappyHorse take images as typed `input.media` items (`first_frame`,
+ * `reference_image`); Wan 2.5 and 2.6 take the first frame in `img_url`.
+ */
+function wanPreset(modelId: string): (b: RouterArgsBuilder, input: PresetInput) => boolean {
+  const typedMedia = /^wan\/(happyhorse-|wan2\.7-|wan3\.0-)/.test(modelId);
+  const takesRatio = /^wan\/(wan2\.7-|wan3\.0-)/.test(modelId);
+  return (b, { task, images }) => {
+    if (b.declares("resolution") && !b.isSet("resolution")) b.set("resolution", "720P");
+    const params = b.body.parameters;
+    if (!takesRatio && isRecord(params)) delete params.ratio;
+    if (!typedMedia || images.length === 0 || !b.declares("media")) return false;
+    const type = task === "image_to_video" ? "first_frame" : "reference_image";
+    b.put("media", images.map((img) => ({ type, url: dataUri(img) })));
+    return true;
+  };
+}
+
+function presetFor(modelId: string): ((b: RouterArgsBuilder, input: PresetInput) => boolean) | undefined {
+  if (MODEL_PRESETS[modelId]) return MODEL_PRESETS[modelId];
+  if (/^wan\/(happyhorse-|wan\d)/.test(modelId)) return wanPreset(modelId);
+  return undefined;
+}
 
 function textOf(content: Message["content"]): string {
   if (typeof content === "string") return content;
@@ -223,6 +330,11 @@ export class ComfyCloudProvider extends BaseProvider {
     return new RouterArgsBuilder(await this.getRouter().inputSchema(modelId, signal));
   }
 
+  /** Run the model's preset, if any. True when the preset placed the media. */
+  private applyPreset(b: RouterArgsBuilder, modelId: string, input: PresetInput): boolean {
+    return presetFor(modelId)?.(b, input) ?? false;
+  }
+
   private finish(b: RouterArgsBuilder, modelId: string): Record<string, unknown> {
     b.fillRequiredDefaults();
     const missing = b.missingRequired();
@@ -232,6 +344,86 @@ export class ComfyCloudProvider extends BaseProvider {
       );
     }
     return b.body;
+  }
+
+  /**
+   * Put the prompt and input images where this model's schema wants them:
+   * a `content[]` part list (Seedance, MiniMax), Gemini `contents[]`, or a
+   * named image field. Returns whether the images found a home.
+   */
+  private attachPromptAndImages(
+    b: RouterArgsBuilder,
+    prompt: string | null | undefined,
+    images: MediaInput[],
+    names: readonly string[] = IMAGE_FIELDS
+  ): boolean {
+    if (images.length > 0 && b.schema.inputModalities && !b.schema.inputModalities.includes("image")) {
+      return false;
+    }
+    const content = b.field("content");
+    if (content?.type === "array" && content.items && !b.firstDeclared(PROMPT_FIELDS)) {
+      const parts: unknown[] = [];
+      if (prompt) parts.push({ type: "text", text: prompt });
+      images.forEach((img, i) =>
+        parts.push({
+          type: "image_url",
+          image_url: { url: dataUri(img) },
+          ...(i === 0 && images.length === 1 ? { role: "first_frame" } : { role: "reference_image" })
+        })
+      );
+      b.put("content", parts);
+      return true;
+    }
+    const contents = b.field("contents");
+    if (contents?.type === "array" && !b.firstDeclared(PROMPT_FIELDS)) {
+      const parts: unknown[] = [];
+      if (prompt) parts.push({ text: prompt });
+      for (const img of images) {
+        parts.push({ inlineData: { mimeType: img.mimeType, data: Buffer.from(img.bytes).toString("base64") } });
+      }
+      b.put("contents", [{ role: "user", parts }]);
+      return true;
+    }
+    // Vertex predict shape (Veo): `instances: [{ prompt, image }]`.
+    const instances = b.field("instances");
+    if (instances?.type === "array" && isRecord(instances.items?.properties) && "prompt" in instances.items.properties) {
+      const item: Record<string, unknown> = {};
+      if (prompt) item.prompt = prompt;
+      if (images[0]) item.image = { bytesBase64Encoded: base64(images[0]), mimeType: images[0].mimeType };
+      b.put("instances", [item]);
+      return true;
+    }
+    // DashScope multimodal shape (Qwen image): `input.messages[0].content`.
+    const messages = b.field("messages");
+    if (messages?.type === "array" && messages.path.length > 1) {
+      const content: unknown[] = images.map((img) => ({ image: dataUri(img) }));
+      if (prompt) content.push({ text: prompt });
+      b.put("messages", [{ role: "user", content }]);
+      return true;
+    }
+    // Gemini Interactions: `input` is a prompt string or typed content parts.
+    const input = b.field("input");
+    if (input && input.type === undefined && input.path.length === 1 && !b.firstDeclared(PROMPT_FIELDS)) {
+      if (images.length === 0) {
+        b.put("input", prompt ?? "");
+      } else {
+        const parts: unknown[] = prompt ? [{ type: "text", text: prompt }] : [];
+        for (const img of images) parts.push({ type: "image", data: base64(img), mime_type: img.mimeType });
+        b.put("input", parts);
+      }
+      return true;
+    }
+    if (prompt) b.setFirst(PROMPT_FIELDS, prompt);
+    if (images.length === 0) return true;
+    if (b.attachMedia(names, images)) return true;
+    // Last resort: a declared field whose name says it takes an input image.
+    const guess = [...b.schema.fields.values()].find(
+      (f) =>
+        /(^|_|[a-z])(img|image|images|frame|media)(_|$|[A-Z]|s$)/i.test(f.name) &&
+        !/mask|end|last|tail|size|count|num|format|strength|weight|prompt|aspect|resolution|type/i.test(f.name) &&
+        (f.type === "string" || f.type === "array" || f.type === undefined)
+    );
+    return guess ? b.attachMedia([guess.name], images) !== undefined : false;
   }
 
   private image(bytes: Uint8Array): MediaInput {
@@ -250,7 +442,7 @@ export class ComfyCloudProvider extends BaseProvider {
       guidanceScale?: number | null;
     }
   ): void {
-    if (params.prompt) b.setFirst(PROMPT_FIELDS, params.prompt);
+    this.attachPromptAndImages(b, params.prompt, []);
     b.setFirst(NEGATIVE_FIELDS, params.negativePrompt);
     b.setFirst(ASPECT_FIELDS, params.aspectRatio);
     b.setFirst(RESOLUTION_FIELDS, params.resolution);
@@ -279,7 +471,7 @@ export class ComfyCloudProvider extends BaseProvider {
       if (name) {
         b.set(name, durationSeconds);
         // Enum durations are often strings such as "5s".
-        if (!(name in b.body)) b.set(name, `${durationSeconds}s`);
+        if (!b.isSet(name)) b.set(name, `${durationSeconds}s`);
       }
     }
     if (numFrames && numFrames > 0) b.setFirst(FRAMES_FIELDS, numFrames);
@@ -293,6 +485,7 @@ export class ComfyCloudProvider extends BaseProvider {
     this.setCommon(b, params);
     this.setImageSize(b, params.width, params.height, params.aspectRatio);
     b.setFirst(QUALITY_FIELDS, params.quality);
+    this.applyPreset(b, modelId, { task: "text_to_image", images: [] });
     const result = await this.getRouter().run(modelId, this.finish(b, modelId), "image", {
       signal: params.signal
     });
@@ -307,8 +500,13 @@ export class ComfyCloudProvider extends BaseProvider {
     this.setImageSize(b, params.targetWidth, params.targetHeight, params.aspectRatio);
     b.setFirst(QUALITY_FIELDS, params.quality);
     b.setFirst(STRENGTH_FIELDS, params.strength);
-    const attached = b.attachMedia(IMAGE_FIELDS, images.map((img) => this.image(img)));
-    if (!attached) throw new Error(`Comfy model ${modelId} takes no input image`);
+    const media = images.map((img) => this.image(img));
+    if (
+      !this.applyPreset(b, modelId, { task: "image_to_image", images: media }) &&
+      !this.attachPromptAndImages(b, params.prompt, media)
+    ) {
+      throw new Error(`Comfy model ${modelId} takes no input image`);
+    }
     const result = await this.getRouter().run(modelId, this.finish(b, modelId), "image", {
       signal: params.signal
     });
@@ -322,6 +520,7 @@ export class ComfyCloudProvider extends BaseProvider {
     const b = await this.builder(modelId, params.signal);
     this.setCommon(b, params);
     this.setVideoTiming(b, params.durationSeconds, params.numFrames);
+    this.applyPreset(b, modelId, { task: "text_to_video", images: [] });
     const result = await this.getRouter().run(modelId, this.finish(b, modelId), "video", {
       signal: params.signal,
       timeoutSeconds: params.timeoutSeconds
@@ -334,8 +533,13 @@ export class ComfyCloudProvider extends BaseProvider {
     const b = await this.builder(modelId, params.signal);
     this.setCommon(b, params);
     this.setVideoTiming(b, params.durationSeconds, params.numFrames);
-    const attached = b.attachMedia(IMAGE_FIELDS, [this.image(image)]);
-    if (!attached) throw new Error(`Comfy model ${modelId} takes no start image`);
+    const start = [this.image(image)];
+    if (
+      !this.applyPreset(b, modelId, { task: "image_to_video", images: start }) &&
+      !this.attachPromptAndImages(b, params.prompt, start)
+    ) {
+      throw new Error(`Comfy model ${modelId} takes no start image`);
+    }
     if (params.endImage) b.attachMedia(END_IMAGE_FIELDS, [this.image(params.endImage)]);
     const result = await this.getRouter().run(modelId, this.finish(b, modelId), "video", {
       signal: params.signal,
@@ -352,7 +556,13 @@ export class ComfyCloudProvider extends BaseProvider {
     const b = await this.builder(modelId, params.signal);
     this.setCommon(b, params);
     this.setVideoTiming(b, params.durationSeconds, params.numFrames);
-    if (inputs.images.length > 0) b.attachMedia(REFERENCE_FIELDS, inputs.images.map((img) => this.image(img)));
+    const references = inputs.images.map((img) => this.image(img));
+    if (
+      !this.applyPreset(b, modelId, { task: "reference_to_video", images: references }) &&
+      references.length > 0
+    ) {
+      b.attachMedia(REFERENCE_FIELDS, references);
+    }
     if (inputs.videos.length > 0) {
       b.attachMedia(VIDEO_FIELDS, inputs.videos.map((bytes) => ({ bytes, mimeType: sniffMime(bytes, "video/mp4") })));
     }
@@ -370,10 +580,13 @@ export class ComfyCloudProvider extends BaseProvider {
     const modelId = params.model.id;
     const b = await this.builder(modelId, params.signal);
     this.setCommon(b, { ...params, prompt: params.prompt ?? undefined });
-    const attached = b.attachMedia(VIDEO_FIELDS, [{ bytes: video, mimeType: sniffMime(video, "video/mp4") }]);
-    if (!attached) throw new Error(`Comfy model ${modelId} takes no input video`);
-    if (params.referenceImages?.length) {
-      b.attachMedia(REFERENCE_FIELDS, params.referenceImages.map((img) => this.image(img)));
+    const source = { bytes: video, mimeType: sniffMime(video, "video/mp4") };
+    const references = (params.referenceImages ?? []).map((img) => this.image(img));
+    if (!this.applyPreset(b, modelId, { task: "video_to_video", images: references, video: source })) {
+      if (!b.attachMedia(VIDEO_FIELDS, [source], "video")) {
+        throw new Error(`Comfy model ${modelId} takes no input video`);
+      }
+      if (references.length) b.attachMedia(REFERENCE_FIELDS, references);
     }
     const result = await this.getRouter().run(modelId, this.finish(b, modelId), "video", {
       signal: params.signal
@@ -386,8 +599,17 @@ export class ComfyCloudProvider extends BaseProvider {
   override async textToSpeechEncoded(args: TextToSpeechParams): Promise<EncodedAudioResult | null> {
     const modelId = args.model;
     const b = await this.builder(modelId, args.signal);
-    b.setFirst(SPEECH_TEXT_FIELDS, args.text);
-    b.setFirst(VOICE_FIELDS, args.voice);
+    const voice = args.voice || (modelId.startsWith("elevenlabs/") ? ELEVENLABS_DEFAULT_VOICE : undefined);
+    const inputs = b.field("inputs");
+    if (inputs?.type === "array" && isRecord(inputs.items?.properties) && "text" in inputs.items.properties) {
+      // ElevenLabs v3+ dialogue shape: one `{ text, voice_id }` turn.
+      const turn: Record<string, string> = { text: args.text };
+      if (voice) turn.voice_id = voice;
+      b.put("inputs", [turn]);
+    } else {
+      b.setFirst(SPEECH_TEXT_FIELDS, args.text);
+      b.setFirst(VOICE_FIELDS, voice);
+    }
     b.setFirst(["speed"], args.speed);
     b.setFirst(["language_code", "language"], args.language);
     b.setFirst(["instructions", "style"], args.instructions);
@@ -396,6 +618,7 @@ export class ComfyCloudProvider extends BaseProvider {
         { bytes: args.referenceAudio, mimeType: "audio/wav" }
       ]);
     }
+    this.applyPreset(b, modelId, { task: "text_to_speech", images: [] });
     const result = await this.getRouter().run(modelId, this.finish(b, modelId), "audio", {
       signal: args.signal
     });

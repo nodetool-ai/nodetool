@@ -66,23 +66,31 @@ function modelPath(modelId: string): string {
 // ── Input schema ────────────────────────────────────────────────────────────
 
 export interface SchemaField {
+  /** Leaf name, the key callers address the field by. */
   name: string;
+  /** Where the field sits in the body: `["prompt"]` or `["input", "prompt"]`. */
+  path: string[];
   type?: string;
   format?: string;
   enum?: unknown[];
   itemsType?: string;
+  /** Item schema of an array field, when its items are objects. */
+  items?: Json;
   required: boolean;
   default?: unknown;
   minimum?: number;
   maximum?: number;
   contentEncoding?: string;
+  description?: string;
 }
 
-/** The flat input fields a model declares, or null when its schema is open. */
+/** The input fields a model declares, flattened one envelope level deep. */
 export interface InputSchema {
   fields: Map<string, SchemaField>;
   /** `x-comfy-input-schema-authored: false`: the Router accepts any object. */
   open: boolean;
+  /** `x-comfy-router-input-modalities`, when the schema publishes it. */
+  inputModalities?: string[];
 }
 
 function resolveRef(doc: Json, node: unknown, depth = 0): Json | undefined {
@@ -93,38 +101,72 @@ function resolveRef(doc: Json, node: unknown, depth = 0): Json | undefined {
     for (const part of ref.slice(2).split("/")) {
       cur = isRecord(cur) ? cur[part.replace(/~1/g, "/").replace(/~0/g, "~")] : undefined;
     }
-    return resolveRef(doc, cur, depth + 1);
+    const target = resolveRef(doc, cur, depth + 1);
+    return target && node.default !== undefined ? { ...target, default: node.default } : target;
   }
-  // A single-branch allOf/anyOf wrapper, common in generated schemas.
   for (const key of ["allOf", "anyOf", "oneOf"] as const) {
     const branches = node[key];
-    if (Array.isArray(branches)) {
+    if (Array.isArray(branches) && !node.type && !node.properties) {
       const concrete = branches
         .map((b) => resolveRef(doc, b, depth + 1))
         .filter((b): b is Json => b !== undefined && b.type !== "null");
-      if (concrete.length >= 1 && !node.type && !node.properties) {
-        if (key === "allOf") {
-          return concrete.reduce<Json>(
-            (acc, b) => ({
-              ...acc,
-              ...b,
-              properties: { ...(acc.properties as Json | undefined), ...(b.properties as Json | undefined) },
-              required: [
-                ...((acc.required as string[] | undefined) ?? []),
-                ...((b.required as string[] | undefined) ?? [])
-              ]
-            }),
-            {}
-          );
-        }
-        return { ...concrete[0], description: node.description ?? concrete[0].description };
+      if (concrete.length === 0) continue;
+      // `oneOf: [{const: "a"}, {const: "b"}]` is an enum.
+      if (concrete.every((b) => "const" in b)) {
+        return { ...node, type: "enum", enum: concrete.map((b) => b.const) };
       }
+      if (key === "allOf") {
+        return concrete.reduce<Json>(
+          (acc, b) => ({
+            ...acc,
+            ...b,
+            properties: { ...(acc.properties as Json | undefined), ...(b.properties as Json | undefined) },
+            required: [
+              ...((acc.required as string[] | undefined) ?? []),
+              ...((b.required as string[] | undefined) ?? [])
+            ]
+          }),
+          {}
+        );
+      }
+      const first = concrete[0];
+      return {
+        ...first,
+        description: node.description ?? first.description,
+        default: node.default ?? first.default
+      };
     }
   }
+  if ("const" in node && !node.enum) return { ...node, enum: [node.const] };
   return node;
 }
 
-/** Read the request body schema out of a model's OpenAPI document. */
+function toField(doc: Json, name: string, raw: unknown, path: string[], required: boolean): SchemaField {
+  const prop = resolveRef(doc, raw) ?? {};
+  const items = resolveRef(doc, prop.items);
+  return {
+    name,
+    path,
+    type: typeof prop.type === "string" ? prop.type : Array.isArray(prop.enum) ? "enum" : undefined,
+    format: typeof prop.format === "string" ? prop.format : undefined,
+    enum: Array.isArray(prop.enum) ? prop.enum : undefined,
+    itemsType: typeof items?.type === "string" ? items.type : undefined,
+    items: items && (items.type === "object" || isRecord(items.properties)) ? items : undefined,
+    required,
+    default: prop.default,
+    minimum: typeof prop.minimum === "number" ? prop.minimum : undefined,
+    maximum: typeof prop.maximum === "number" ? prop.maximum : undefined,
+    contentEncoding: typeof prop.contentEncoding === "string" ? prop.contentEncoding : undefined,
+    description: typeof prop.description === "string" ? prop.description : undefined
+  };
+}
+
+/**
+ * Read the request body schema out of a model's OpenAPI document. Object
+ * properties (`input: {prompt, img_url}`, `parameters: {duration, seed}`)
+ * are flattened one level so callers address leaves by name; a top-level
+ * field wins a name clash.
+ */
 export function parseInputSchema(doc: unknown): InputSchema {
   const empty: InputSchema = { fields: new Map(), open: true };
   if (!isRecord(doc)) return empty;
@@ -140,27 +182,32 @@ export function parseInputSchema(doc: unknown): InputSchema {
     }
   }
   if (!body) return empty;
-  const authored = doc["x-comfy-input-schema-authored"] ?? body["x-comfy-input-schema-authored"];
+  const ext = (key: string): unknown => doc[key] ?? body?.[key];
+  const authored = ext("x-comfy-input-schema-authored");
+  const modalities = ext("x-comfy-router-input-modalities");
   const props = isRecord(body.properties) ? body.properties : {};
   const required = new Set(Array.isArray(body.required) ? (body.required as string[]) : []);
   const fields = new Map<string, SchemaField>();
+  const nested: SchemaField[] = [];
   for (const [name, raw] of Object.entries(props)) {
     const prop = resolveRef(doc, raw) ?? {};
-    const items = resolveRef(doc, prop.items);
-    fields.set(name, {
-      name,
-      type: typeof prop.type === "string" ? prop.type : Array.isArray(prop.enum) ? "enum" : undefined,
-      format: typeof prop.format === "string" ? prop.format : undefined,
-      enum: Array.isArray(prop.enum) ? prop.enum : undefined,
-      itemsType: typeof items?.type === "string" ? items.type : undefined,
-      required: required.has(name),
-      default: prop.default,
-      minimum: typeof prop.minimum === "number" ? prop.minimum : undefined,
-      maximum: typeof prop.maximum === "number" ? prop.maximum : undefined,
-      contentEncoding: typeof prop.contentEncoding === "string" ? prop.contentEncoding : undefined
-    });
+    if (isRecord(prop.properties) && Object.keys(prop.properties).length > 0) {
+      const innerRequired = new Set(Array.isArray(prop.required) ? (prop.required as string[]) : []);
+      for (const [leaf, leafRaw] of Object.entries(prop.properties)) {
+        nested.push(toField(doc, leaf, leafRaw, [name, leaf], required.has(name) && innerRequired.has(leaf)));
+      }
+      continue;
+    }
+    fields.set(name, toField(doc, name, raw, [name], required.has(name)));
   }
-  return { fields, open: authored === false && fields.size === 0 };
+  for (const field of nested) {
+    if (!fields.has(field.name)) fields.set(field.name, field);
+  }
+  return {
+    fields,
+    open: authored === false && fields.size === 0,
+    inputModalities: Array.isArray(modalities) ? modalities.map(String) : undefined
+  };
 }
 
 // ── Request body builder ────────────────────────────────────────────────────
@@ -179,14 +226,19 @@ export function sniffMime(bytes: Uint8Array, fallback: string): string {
   return fallback;
 }
 
+export function dataUri(media: MediaInput): string {
+  return `data:${media.mimeType};base64,${Buffer.from(media.bytes).toString("base64")}`;
+}
+
 /**
  * Sets fields only when the schema declares them (or the schema is open),
- * coercing numbers and enum values to the declared type.
+ * coercing numbers and enum values to the declared type, and writing nested
+ * fields at their path.
  */
 export class RouterArgsBuilder {
   readonly body: Json = {};
 
-  constructor(private readonly schema: InputSchema) {}
+  constructor(readonly schema: InputSchema) {}
 
   has(name: string): boolean {
     return this.schema.open || this.schema.fields.has(name);
@@ -196,40 +248,55 @@ export class RouterArgsBuilder {
     return this.schema.fields.has(name);
   }
 
+  field(name: string): SchemaField | undefined {
+    return this.schema.fields.get(name);
+  }
+
   firstDeclared(names: readonly string[]): string | undefined {
     return names.find((n) => this.schema.fields.has(n));
+  }
+
+  private pathOf(name: string): string[] {
+    return this.schema.fields.get(name)?.path ?? [name];
+  }
+
+  isSet(name: string): boolean {
+    let cur: unknown = this.body;
+    for (const key of this.pathOf(name)) {
+      if (!isRecord(cur) || !(key in cur)) return false;
+      cur = cur[key];
+    }
+    return true;
+  }
+
+  /** Write a value at a field's path without coercion. */
+  put(name: string, value: unknown): this {
+    const path = this.pathOf(name);
+    let cur: Json = this.body;
+    for (const key of path.slice(0, -1)) {
+      if (!isRecord(cur[key])) cur[key] = {};
+      cur = cur[key] as Json;
+    }
+    cur[path[path.length - 1]] = value;
+    return this;
   }
 
   set(name: string, value: unknown): this {
     if (value === undefined || value === null || value === "") return this;
     if (!this.has(name)) return this;
     const field = this.schema.fields.get(name);
-    if (!field) {
-      this.body[name] = value;
-      return this;
-    }
+    if (!field) return this.put(name, value);
     if (field.enum) {
       const hit = field.enum.find((e) => String(e) === String(value));
-      if (hit === undefined) return this;
-      this.body[name] = hit;
-      return this;
+      return hit === undefined ? this : this.put(name, hit);
     }
-    if ((field.type === "integer" || field.type === "number") && typeof value !== "number") {
-      const n = Number(value);
+    if (field.type === "integer" || field.type === "number") {
+      const n = typeof value === "number" ? value : Number(value);
       if (!Number.isFinite(n)) return this;
-      this.body[name] = field.type === "integer" ? Math.round(n) : n;
-      return this;
+      return this.put(name, field.type === "integer" ? Math.round(n) : n);
     }
-    if (field.type === "integer" && typeof value === "number") {
-      this.body[name] = Math.round(value);
-      return this;
-    }
-    if (field.type === "string" && typeof value === "number") {
-      this.body[name] = String(value);
-      return this;
-    }
-    this.body[name] = value;
-    return this;
+    if (field.type === "string" && typeof value === "number") return this.put(name, String(value));
+    return this.put(name, value);
   }
 
   setFirst(names: readonly string[], value: unknown): this {
@@ -241,41 +308,61 @@ export class RouterArgsBuilder {
   /**
    * Attach media to the first declared field in `names`. The Router has no
    * upload route, so media goes inline: base64 for fields that say so, a
-   * data URI otherwise. Array fields get a one-element list.
+   * data URI otherwise. Array fields get a list; an array of objects gets
+   * `{url}` items (plus `type` when the item declares one).
    */
-  attachMedia(names: readonly string[], media: MediaInput[]): string | undefined {
+  attachMedia(names: readonly string[], media: MediaInput[], kind: "image" | "video" | "audio" = "image"): string | undefined {
     if (media.length === 0) return undefined;
     const name = this.firstDeclared(names) ?? (this.schema.open ? names[0] : undefined);
     if (!name) return undefined;
     const field = this.schema.fields.get(name);
     const raw =
       field?.contentEncoding === "base64" || field?.format === "byte" || /base64|b64/i.test(name);
-    const encode = (m: MediaInput): string => {
-      const b64 = Buffer.from(m.bytes).toString("base64");
-      return raw ? b64 : `data:${m.mimeType};base64,${b64}`;
-    };
+    const encode = (m: MediaInput): string => (raw ? Buffer.from(m.bytes).toString("base64") : dataUri(m));
     if (field?.type === "array") {
-      this.body[name] = media.map(encode);
+      const itemProps = field.items && isRecord(field.items.properties) ? field.items.properties : null;
+      if (itemProps) {
+        const urlKey = ["url", "image_url", "uri", "data"].find((k) => k in itemProps) ?? "url";
+        const typed = "type" in itemProps;
+        this.put(
+          name,
+          media.map((m) => {
+            const item: Record<string, string> = { [urlKey]: encode(m) };
+            if (typed) item.type = kind;
+            return item;
+          })
+        );
+      } else {
+        this.put(name, media.map(encode));
+      }
     } else {
-      this.body[name] = encode(media[0]);
+      this.put(name, encode(media[0]));
     }
     return name;
   }
 
-  /** Fill required fields the caller left unset from their schema defaults. */
+  /**
+   * Fill required fields the caller left unset: the schema default, else the
+   * first enum value, else a random seed for a seed field.
+   */
   fillRequiredDefaults(): this {
     for (const field of this.schema.fields.values()) {
-      if (!field.required || field.name in this.body) continue;
-      if (field.default !== undefined) this.body[field.name] = field.default;
-      else if (field.enum && field.enum.length > 0) this.body[field.name] = field.enum[0];
+      if (!field.required || this.isSet(field.name)) continue;
+      if (field.default !== undefined) this.put(field.name, field.default);
+      else if (field.enum && field.enum.length > 0) this.put(field.name, field.enum[0]);
+      else if (/seed/i.test(field.name) && (field.type === "integer" || field.type === "number")) {
+        const max = field.maximum ?? 2 ** 31 - 1;
+        const min = field.minimum ?? 0;
+        this.put(field.name, min + Math.floor(Math.random() * Math.max(1, max - min)));
+      } else if (field.type === "boolean") this.put(field.name, false);
     }
     return this;
   }
 
   missingRequired(): string[] {
     return [...this.schema.fields.values()]
-      .filter((f) => f.required && !(f.name in this.body))
-      .map((f) => f.name);
+      .filter((f) => f.required && !this.isSet(f.name))
+      .map((f) => f.path.join("."));
   }
 }
 
