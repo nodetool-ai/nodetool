@@ -649,14 +649,19 @@ export class ComfyRouterClient {
     signal: AbortSignal
   ): Promise<{ bytes: Uint8Array; mimeType: string } | null> {
     const all = findMedia(result);
+    // Field names can mislabel media (an mp4 under an `image` key), so other
+    // kinds are tried last and kept only when the bytes say they match.
     const ordered = [
       ...all.filter((m) => m.kind === kind),
-      ...all.filter((m) => m.kind === null)
+      ...all.filter((m) => m.kind === null),
+      ...all.filter((m) => m.kind !== null && m.kind !== kind)
     ];
     for (const candidate of ordered) {
       if (candidate.base64) {
         const bytes = new Uint8Array(Buffer.from(candidate.base64, "base64"));
-        return { bytes, mimeType: candidate.mimeType ?? sniffMime(bytes, `${kind}/*`) };
+        const mimeType = candidate.mimeType ?? sniffMime(bytes, `${kind}/*`);
+        if (candidate.kind !== null && candidate.kind !== kind && kindFromMime(sniffMime(bytes, mimeType)) !== kind) continue;
+        return { bytes, mimeType };
       }
       if (candidate.url) {
         // Output URLs may be on the provider's host: never send the key there.

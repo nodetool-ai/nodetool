@@ -395,6 +395,16 @@ describe("ComfyCloudProvider — real Router schemas", () => {
   });
 });
 
+describe("ComfyCloudProvider — mislabelled output", () => {
+  it("takes an mp4 stored under an image key when the task wants video", async () => {
+    const { fetchFn } = fakeRouter({
+      "kling/kling-v3": { schema: openapi({ prompt: { type: "string" } }), result: { images: [{ url: "https://cdn.test/clip" }] } }
+    });
+    const bytes = await new TestProvider(fetchFn).textToVideo({ model: { ...VIDEO_MODEL }, prompt: "x" });
+    expect(Array.from(bytes)).toEqual(Array.from(MP4));
+  });
+});
+
 describe("comfy-router helpers", () => {
   it("mp4DurationSeconds reads the movie header", () => {
     const mvhd = new Uint8Array(40);
