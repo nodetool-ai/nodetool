@@ -3,6 +3,7 @@
 #include "audio/AudioSource.h"
 #include "remix/RemixDsp.h"
 #include "remix/RemixFile.h"
+#include "platform/SanitizerBuild.h"
 #include <QElapsedTimer>
 #include <QFile>
 #include <QTemporaryDir>
@@ -756,7 +757,10 @@ void RemixTest::fileTenMinutes() {
     qInfo("10-minute file: %lld ms CPU %.3f s peak %lld KiB growth %lld KiB", static_cast<long long>(time.elapsed()),
           static_cast<double>(std::clock() - cpuStart) / CLOCKS_PER_SEC, static_cast<long long>(after),
           static_cast<long long>(after - before));
+#ifndef NT_SANITIZED
+    // ASan's quarantine and redzones add to the peak, so only the plain build holds this bound.
     QVERIFY(after - before < 250 * 1024);
+#endif
 #endif
 }
 QTEST_GUILESS_MAIN(RemixTest)

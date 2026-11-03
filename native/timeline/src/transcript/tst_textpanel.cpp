@@ -4,6 +4,7 @@
 #include "transcript/TranscriptSession.h"
 #include "transcript/TranscriptWords.h"
 #include "wiring/WiringFixture.h"
+#include "platform/SanitizerBuild.h"
 #include <QElapsedTimer>
 #include <QSignalSpy>
 #include <QUndoStack>
@@ -410,7 +411,10 @@ private slots:
         const auto worst = frames.back();
         qInfo() << "scroll step us p50" << frames[frames.size() / 2] << "p95" << p95 << "max" << worst << "delegates" << most;
         QVERIFY2(p95 < 8000, qPrintable(QString::number(p95)));
+#ifndef NT_SANITIZED
+        // One slow step is what a sanitizer's allocator adds, so only the plain build holds it to a frame.
         QVERIFY2(worst < 16000, qPrintable(QString::number(worst)));
+#endif
         QVERIFY2(most > 2 && most < 60, qPrintable(QString::number(most)));
         shot("long-transcript");
     }
