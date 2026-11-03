@@ -1,6 +1,7 @@
 #include "interchange/PremiereTransfer.h"
 
 #include "interchange/PremiereArchive.h"
+#include "scene/SideCurves.h"
 #include "server/ServerClient.h"
 #include "server/ServerSource.h"
 
@@ -46,6 +47,27 @@ QString uploadMessage(const nt::server::QueryResult& result) {
 QString networkMessage(const nt::server::HttpResponse& response) {
     if (response.networkErrorCode == u"TIMEOUT") return QStringLiteral("The server stopped answering.");
     return response.networkError.isEmpty() ? QStringLiteral("The server could not be reached.") : response.networkError;
+}
+// Web's export reads only the keyframe animation, so it cannot report side curves.
+QString sideCurveNote(const nt::Timeline& timeline) {
+    QStringList names;
+    int clips = 0;
+    for (const auto& clip : timeline.clips) {
+        const auto curves = nt::scene::sideCurveList(clip.raw.value(u"animations").toArray());
+        clips += curves.isEmpty() ? 0 : 1;
+        for (const auto& curve : curves) {
+            const auto property = curve.toObject().value(u"property").toString();
+            const QString name = property == u"volumeDb"      ? QStringLiteral("Volume")
+                                 : property == u"depthPx"     ? QStringLiteral("Depth")
+                                 : property == u"perspective" ? QStringLiteral("Perspective")
+                                                              : property;
+            if (!names.contains(name)) names.append(name);
+        }
+    }
+    if (clips == 0) return {};
+    names.sort();
+    return QStringLiteral("Premiere XML has no keyframes for %1 on %2 %3, so the XML carries the static values.")
+        .arg(names.join(QStringLiteral(", ")), QString::number(clips), clips == 1 ? QStringLiteral("clip") : QStringLiteral("clips"));
 }
 }  // namespace
 
@@ -187,7 +209,8 @@ void PremiereTransfer::exportTo(const QString& location) {
     }
     if (QFileInfo(path).suffix().isEmpty()) path += QStringLiteral(".zip");
     const auto target = *m_target;
-    run([target, path](const std::function<void(Progress)>& progress) {
+    const QString keysNote = m_timeline ? sideCurveNote(m_timeline->timeline()) : QString();
+    run([target, path, keysNote](const std::function<void(Progress)>& progress) {
         Outcome outcome;
         QSaveFile file(path);
         if (!file.open(QIODevice::WriteOnly)) {
@@ -228,6 +251,7 @@ void PremiereTransfer::exportTo(const QString& location) {
         outcome.clipsExported = object.value("clipsExported").toInt();
         outcome.omitted = object.value("omitted").toInt();
         for (const auto& message : object.value("warnings").toArray()) outcome.notes.append(message.toString());
+        if (!keysNote.isEmpty()) outcome.notes.append(keysNote);
         return outcome;
     });
 }

@@ -359,6 +359,9 @@ std::vector<Input> inputs(const QString& row) {
     if (row == "opacity") {
         return {{"opacity", {}, "opacity", 1, 0, 1}};
     }
+    if (row == "volume") {
+        return {{"volumeDb", {}, "volumeDb", 0, -60, 12}};
+    }
     if (row == "cameraOrbit") {
         return {{"cameraAzimuth", "camera", "azimuthDeg", 45}, {"cameraElevation", "camera", "elevationDeg", 25}};
     }
@@ -371,8 +374,8 @@ std::vector<Input> inputs(const QString& row) {
     return {};
 }
 double base(const QJsonObject& clip, const Input& i) {
-    if (i.property == "opacity") {
-        return clip["opacity"].toDouble(1);
+    if (i.property == "opacity" || i.property == "volumeDb") {
+        return clip[i.member].toDouble(i.defaultValue);
     }
     const auto from = i.group == "camera" ? cameraStyle(clip)["camera"].toObject()
                       : i.group.isEmpty() ? transform(clip)
@@ -380,8 +383,8 @@ double base(const QJsonObject& clip, const Input& i) {
     return from[i.member].toDouble(i.defaultValue);
 }
 QJsonObject basePatch(const QJsonObject& clip, const Input& i, double value) {
-    if (i.property == "opacity") {
-        return {{"opacity", value}};
+    if (i.property == "opacity" || i.property == "volumeDb") {
+        return {{i.member, value}};
     }
     if (i.group == "camera") {
         auto style = cameraStyle(clip);
@@ -748,6 +751,8 @@ std::optional<FixedGroup> fixedGroup(const QString& group) {
     if (group == "opacity") {
         return FixedGroup{{"opacity"}, {"opacity"}};
     }
+    // Volume's keys stay on their side animation while it is off, and the mixer skips them. The
+    // web's schema would strip `curves` from the Volume stash on a save.
     if (group == "volume") {
         return FixedGroup{{"volumeDb"}, {}};
     }
@@ -1347,6 +1352,14 @@ QJsonArray rowSpecs() {
                                                       {"displayScale", 100},
                                                       {"min", 0},
                                                       {"max", 100}}}}},
+        QJsonObject{{"id", "volume"},
+                    {"label", "Level"},
+                    {"inputs", QJsonArray{QJsonObject{{"label", "Volume level"},
+                                                      {"unit", "dB"},
+                                                      {"decimals", 1},
+                                                      {"step", 0.5},
+                                                      {"min", -60},
+                                                      {"max", 12}}}}},
         QJsonObject{
             {"id", "cameraOrbit"},
             {"label", "Orbit"},

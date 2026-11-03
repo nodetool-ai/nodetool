@@ -1,5 +1,6 @@
 #include "edit/clipboard/ClipboardOps.h"
 #include "edit/clipboard/RawDocument.h"
+#include "scene/SideCurves.h"
 #include "app/EditRegistry.h"
 #include <QHash>
 #include <algorithm>
@@ -201,6 +202,44 @@ bool attributeGroupApplies(const QString &group, const QJsonObject &target) {
     }
     return type != u"audio" && type != u"midi";
 }
+namespace {
+// The Paste Attributes group whose parameter a side curve keys.
+QString curveGroup(const QString &property) {
+    return property == u"volumeDb" ? QStringLiteral("volume") : QStringLiteral("animations");
+}
+// Side curves travel with the group they belong to, not with the animations around them. So a
+// volume key reaches a sound clip, which takes no animations, and pasting animations leaves
+// the target's own volume keys alone.
+void patchSideCurves(AttributePatch &patch, const QJsonObject &source, const QJsonObject &target, const IdSet &groups) {
+    const auto sourceAnimations = source.value("animations").toArray();
+    const auto targetAnimations = target.value("animations").toArray();
+    const auto sourceCurves = scene::sideCurveList(sourceAnimations);
+    const auto targetCurves = scene::sideCurveList(targetAnimations);
+    // A document with no side curves pastes exactly as the web does.
+    if (sourceCurves.isEmpty() && targetCurves.isEmpty()) {
+        return;
+    }
+    const auto taken = [&](const QString &group) { return groups.count(group) > 0 && attributeGroupApplies(group, target); };
+    QJsonArray curves;
+    for (const auto &value : targetCurves) {
+        if (!taken(curveGroup(value.toObject().value("property").toString()))) {
+            curves.append(value);
+        }
+    }
+    for (const auto &value : sourceCurves) {
+        if (taken(curveGroup(value.toObject().value("property").toString()))) {
+            curves.append(value);
+        }
+    }
+    QJsonArray others;
+    for (const auto &value : taken("animations") ? sourceAnimations : targetAnimations) {
+        if (!scene::isSideCurveAnimation(value.toObject())) {
+            others.append(value);
+        }
+    }
+    patch.insert("animations", scene::withSideCurves(others, curves, target.value("durationMs").toDouble()));
+}
+}  // namespace
 AttributePatch attributePatch(const QJsonObject &source, const QJsonObject &target, const IdSet &groups) {
     AttributePatch patch;
     for (const auto &group : groups) {
@@ -211,6 +250,7 @@ AttributePatch attributePatch(const QJsonObject &source, const QJsonObject &targ
             patch.insert(field, source.value(field));
         }
     }
+    patchSideCurves(patch, source, target, groups);
     return patch;
 }
 QStringList marqueeSelection(const ClipList &clips, const std::vector<TrackBounds> &rows, double startMs, double endMs,

@@ -1,5 +1,7 @@
 #include "audio/Mixer.h"
 #include "audio/effects/Effects.h"
+#include "scene/Animation.h"
+#include "scene/ClipScene.h"
 
 #include <algorithm>
 #include <array>
@@ -65,6 +67,73 @@ double sourceRateOf(const Clip& clip) {
     return clip.speedBaked ? 1.0 : std::max(0.0001, clip.speedMultiplier);
 }
 
+// A clip's keyed Volume (`volumeDb` side curve), in dB on top of its static level. The plan stage
+// bakes the curve to straight gain ramps, so the audio thread only searches a table and
+// interpolates, and the gain never jumps between samples.
+class ClipVolumeEnvelope final : public ParameterSource {
+public:
+    ClipVolumeEnvelope(const scene::SideCurves::Curve& curve, double startMs, double durationMs) {
+        // A hold still has to arrive somewhere, so its step takes this long.
+        constexpr double kHoldRampMs = 5;
+        constexpr double kMaxStepMs = 10;
+        constexpr double kMaxStepDb = 0.25;
+        constexpr double kMaxStepsPerSegment = 65536;
+        const auto add = [&](double t, double db) { m_points.push_back({startMs + t * durationMs, std::pow(10.0, db / 20.0)}); };
+        const auto& points = curve.points;
+        add(points.front().t, points.front().value);
+        for (std::size_t i = 1; i < points.size(); ++i) {
+            const auto& from = points[i - 1];
+            const auto& to = points[i];
+            const double spanMs = (to.t - from.t) * durationMs;
+            if (spanMs <= 0 || to.value == from.value) {
+                if (spanMs > 0) add(to.t, to.value);
+                continue;
+            }
+            if (to.easing == "hold") {
+                const double rampT = std::min(kHoldRampMs, spanMs) / durationMs;
+                add(to.t - rampT, from.value);
+                add(to.t, to.value);
+                continue;
+            }
+            const bool straight = to.easing.empty() || to.easing == "linear";
+            const double byTime = std::ceil(spanMs / kMaxStepMs);
+            const double byLevel = std::ceil(std::abs(to.value - from.value) / kMaxStepDb);
+            const int steps = static_cast<int>(std::clamp(straight ? std::min(byTime, byLevel) : byTime, 1.0, kMaxStepsPerSegment));
+            const std::string easing = straight ? std::string("linear") : to.easing;
+            for (int step = 1; step <= steps; ++step) {
+                const double f = static_cast<double>(step) / steps;
+                add(from.t + (to.t - from.t) * f, from.value + (to.value - from.value) * scene::ease(easing, f));
+            }
+        }
+    }
+    double valueAt(double timeMs, double base) const noexcept override {
+        const auto next = std::upper_bound(m_points.begin(), m_points.end(), timeMs,
+                                           [](double t, const Point& point) { return t < point.timeMs; });
+        if (next == m_points.begin()) return base * next->gain;
+        const auto& previous = *(next - 1);
+        if (next == m_points.end()) return base * previous.gain;
+        const double f = (timeMs - previous.timeMs) / (next->timeMs - previous.timeMs);
+        return base * (previous.gain + (next->gain - previous.gain) * f);
+    }
+
+private:
+    struct Point {
+        double timeMs;
+        double gain;
+    };
+    std::vector<Point> m_points;
+};
+
+// Null when the clip has no Volume keys, or its Volume is switched off.
+std::shared_ptr<const ParameterSource> clipVolumeEnvelope(const Clip& clip) {
+    if (!clip.scene || !clip.scene->sideCurves || clip.durationMs <= 0 ||
+        clip.raw.value(u"bypassedFixedEffects").toObject().contains(u"volume")) {
+        return nullptr;
+    }
+    const auto* curve = clip.scene->sideCurves->find(u"volumeDb");
+    return curve ? std::make_shared<const ClipVolumeEnvelope>(*curve, clip.startMs, clip.durationMs) : nullptr;
+}
+
 VoicePlan voiceFor(const Clip& clip) {
     VoicePlan v;
     v.clipId = clip.id;
@@ -74,6 +143,7 @@ VoicePlan voiceFor(const Clip& clip) {
     v.inPointMs = clip.inPointMs;
     v.sourceRate = sourceRateOf(clip);
     v.clipGain = clip.volumeDb != 0.0 ? std::pow(10.0, clip.volumeDb / 20.0) : 1.0;
+    v.gainSource = clipVolumeEnvelope(clip);
     v.fades = resolveClipFades(clip.fadeInMs, clip.fadeOutMs, parseFadeShape(clip.fadeInShape),
                                parseFadeShape(clip.fadeOutShape), clip.durationMs);
     return v;

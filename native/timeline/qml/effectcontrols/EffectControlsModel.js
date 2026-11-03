@@ -41,7 +41,7 @@ function groups(clip, rowSpecs, visualEffects, audioEffects, sections) {
     }
     if (sound) {
         const level = registered("audio");
-        result.push({id: "volume", kind: "fixed", label: "Volume", rows: [], source: level ? level.source : ""});
+        result.push({id: "volume", kind: "fixed", label: "Volume", rows: rows(["volume"]), source: level ? level.source : ""});
     }
     for (const effect of audioEffects) {
         result.push({id: "audioEffect:" + effect.id, kind: "audioEffect", effectId: effect.id, effectType: effect.type, rows: []});

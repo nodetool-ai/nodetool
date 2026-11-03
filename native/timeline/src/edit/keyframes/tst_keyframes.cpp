@@ -618,6 +618,55 @@ class TestKeyframes : public QObject {
         patched.insert("animations", patch["animations"]);
         QCOMPARE(nt::keyframes::inputValue(patched, "anchor", 0, 0), 0.75);
     }
+    void volumeRowAddsToTheStaticLevel() {
+        auto parsed = nt::parseTimelineJson(
+            R"({"name":"Sound","width":640,"height":360,"fps":30,"durationMs":2000,"tracks":[{"id":"a","type":"audio","name":"Audio"}],"clips":[{"id":"c","trackId":"a","mediaType":"audio","name":"Voice","startMs":0,"durationMs":2000,"volumeDb":-6}]})");
+        TimelineModel model;
+        model.setTimeline(std::move(*parsed.timeline));
+        const auto clip = [&] { return model.clipsJson()[0].toObject(); };
+        const auto before = model.documentJson();
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "volume"}, {"atMs", 0}}));
+        QCOMPARE(model.undoStack()->count(), 1);
+        QCOMPARE(nt::keyframes::inputValue(clip(), "volume", 0, 0), -6.0);
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "volume"}, {"input", 0}, {"value", -18}, {"atMs", 2000}}));
+        QCOMPARE(clip()["volumeDb"].toDouble(), -6.0);
+        QCOMPARE(nt::keyframes::inputValue(clip(), "volume", 0, 2000), -18.0);
+        QCOMPARE(nt::keyframes::inputValue(clip(), "volume", 0, 1000), -12.0);
+        // Volume has no channel on the web, so it is on a side animation.
+        const auto animations = clip()["animations"].toArray();
+        QCOMPARE(animations.size(), 1);
+        QVERIFY(nt::scene::isSideCurveAnimation(animations[0].toObject()));
+        // A split cuts the curve at the value it holds there.
+        const auto [left, right] = nt::edit::splitClip(clip(), 1000);
+        QCOMPARE(nt::keyframes::inputValue(left, "volume", 0, 1000), -12.0);
+        QCOMPARE(nt::keyframes::inputValue(right, "volume", 0, 0), -12.0);
+        QCOMPARE(nt::keyframes::inputValue(right, "volume", 0, 1000), -18.0);
+        // The switch sets the level aside, leaves the keys in place, and restores the same picture.
+        QVERIFY(model.applyEdit("keyframes.bypass", {{"clipId", "c"}, {"group", "volume"}, {"enabled", false}}));
+        QVERIFY(!clip().contains("volumeDb"));
+        QCOMPARE(nt::keyframes::times(clip(), {"volumeDb"}), (QJsonArray{0, 2000}));
+        const auto [offLeft, offRight] = nt::edit::splitClip(clip(), 1000);
+        QCOMPARE(nt::keyframes::times(offLeft, {"volumeDb"}), (QJsonArray{0, 1000}));
+        QCOMPARE(nt::keyframes::times(offRight, {"volumeDb"}), (QJsonArray{0, 1000}));
+        const auto shown = nt::keyframes::withBypassRestored(clip());
+        QCOMPARE(nt::keyframes::inputValue(shown, "volume", 0, 2000), -18.0);
+        QVERIFY(model.applyEdit("keyframes.bypass", {{"clipId", "c"}, {"group", "volume"}, {"enabled", true}}));
+        QCOMPARE(nt::keyframes::inputValue(clip(), "volume", 0, 2000), -18.0);
+        // Stopping the row keeps the level at the playhead.
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "volume"}, {"atMs", 2000}}));
+        QCOMPARE(clip()["volumeDb"].toDouble(), -18.0);
+        QVERIFY(!clip().contains("animations") || clip()["animations"].toArray().isEmpty());
+        while (model.undoStack()->canUndo()) { model.undoStack()->undo(); }
+        QCOMPARE(model.documentJson(), before);
+        // A lock refuses the edit.
+        auto document = model.timeline().raw;
+        auto clips = document["clips"].toArray();
+        auto locked = clips[0].toObject();
+        locked.insert("locked", true);
+        clips[0] = locked;
+        document.insert("clips", clips);
+        QCOMPARE(nt::keyframes::edit(document, {{"clipId", "c"}, {"action", "stopwatch"}, {"row", "volume"}, {"atMs", 0}}), document);
+    }
     void bypassVolumeOnSoundOnly() {
         auto parsed = nt::parseTimelineJson(
             R"({"name":"Sound","width":640,"height":360,"fps":30,"durationMs":2000,"tracks":[{"id":"a","type":"audio","name":"Audio"}],"clips":[{"id":"c","trackId":"a","mediaType":"audio","name":"Voice","startMs":0,"durationMs":2000,"volumeDb":-6}]})");
