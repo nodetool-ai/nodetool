@@ -28,7 +28,7 @@ function(nt_remixoracle_tests)
     qt_add_executable(nt_remix_oracle src/remix/clip/RemixOracle.cpp)
     target_link_libraries(nt_remix_oracle PRIVATE timeline_core)
     set_target_properties(nt_remix_oracle PROPERTIES MACOSX_BUNDLE FALSE)
-    add_test(NAME remix_oracle COMMAND "${NT_REMIX_REPO}/node_modules/.bin/vitest" run
+    add_test(NAME remix_oracle COMMAND node "${NT_REMIX_REPO}/node_modules/vitest/vitest.mjs" run
         --config "${CMAKE_CURRENT_SOURCE_DIR}/scripts/conformance/vitest.config.mts")
     set_tests_properties(remix_oracle PROPERTIES ENVIRONMENT "NT_CONFORMANCE_TESTS=${CMAKE_CURRENT_SOURCE_DIR}/src/remix/clip/remix-oracle.test.ts;NT_REMIX_ORACLE=$<TARGET_FILE:nt_remix_oracle>" TIMEOUT 120)
 endfunction()

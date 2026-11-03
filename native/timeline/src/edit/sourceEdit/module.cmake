@@ -16,7 +16,7 @@ function(nt_sourceedit_tests)
     target_link_libraries(sourceedit-ops PRIVATE timeline_core)
     set_target_properties(sourceedit-ops PROPERTIES MACOSX_BUNDLE FALSE)
     get_filename_component(NT_SOURCEEDIT_REPO "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
-    add_test(NAME sourceedit_oracle COMMAND "${NT_SOURCEEDIT_REPO}/node_modules/.bin/vitest" run
+    add_test(NAME sourceedit_oracle COMMAND node "${NT_SOURCEEDIT_REPO}/node_modules/vitest/vitest.mjs" run
         --config "${CMAKE_CURRENT_SOURCE_DIR}/scripts/conformance/vitest.store.config.mts")
     set_tests_properties(sourceedit_oracle PROPERTIES
         ENVIRONMENT "NT_CONFORMANCE_TESTS=${CMAKE_CURRENT_SOURCE_DIR}/src/edit/sourceEdit/sourceEdit-oracle.test.ts;NT_SOURCEEDIT_OPS=$<TARGET_FILE:sourceedit-ops>"

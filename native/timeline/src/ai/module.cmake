@@ -10,10 +10,10 @@ function(nt_ai_tests)
         target_link_libraries(nt_ai_${oracle} PRIVATE timeline_core)
         set_target_properties(nt_ai_${oracle} PROPERTIES MACOSX_BUNDLE FALSE)
     endforeach()
-    add_test(NAME ai_oracle COMMAND "${NT_AI_REPO}/node_modules/.bin/vitest" run
+    add_test(NAME ai_oracle COMMAND node "${NT_AI_REPO}/node_modules/vitest/vitest.mjs" run
         --config "${CMAKE_CURRENT_SOURCE_DIR}/scripts/conformance/vitest.config.mts")
     set_tests_properties(ai_oracle PROPERTIES ENVIRONMENT "NT_CONFORMANCE_TESTS=${CMAKE_CURRENT_SOURCE_DIR}/scripts/conformance/suites/ai.test.ts;NT_AI_ORACLE=$<TARGET_FILE:nt_ai_AiOracle>" TIMEOUT 120)
-    add_test(NAME ai_take_oracle COMMAND "${NT_AI_REPO}/node_modules/.bin/vitest" run
+    add_test(NAME ai_take_oracle COMMAND node "${NT_AI_REPO}/node_modules/vitest/vitest.mjs" run
         --config "${CMAKE_CURRENT_SOURCE_DIR}/scripts/conformance/vitest.config.mts")
     set_tests_properties(ai_take_oracle PROPERTIES ENVIRONMENT "NT_CONFORMANCE_TESTS=${CMAKE_CURRENT_SOURCE_DIR}/src/ai/take-oracle.test.ts;NT_AI_TAKE_ORACLE=$<TARGET_FILE:nt_ai_TakeOracle>" TIMEOUT 120)
     qt_add_executable(tst_ai_take src/ai/tst_take.cpp)
