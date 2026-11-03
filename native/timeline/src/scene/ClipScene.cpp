@@ -23,6 +23,7 @@ std::shared_ptr<const ClipScene> parseClipScene(const QJsonObject& c) {
         if (e.toObject().value(u"enabled").toBool(false)) s->anyEnabledEffect = true;
     }
     s->animations = std::make_shared<const std::vector<AnimationDef>>(parseAnimations(c.value(u"animations").toArray()));
+    s->sideCurves = SideCurves::parse(c.value(u"animations").toArray());
     if (c.value(u"repeater").isObject()) {
         const QJsonObject r = c.value(u"repeater").toObject();
         Repeater rep;

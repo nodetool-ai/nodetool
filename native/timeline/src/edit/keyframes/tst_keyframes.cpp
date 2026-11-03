@@ -4,7 +4,9 @@
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
 #include "preview/SceneEval.h"
+#include "edit/ClipOps.h"
 #include "scene/Animation.h"
+#include "scene/SideCurves.h"
 #include <QCoreApplication>
 #include <QElapsedTimer>
 #include <QFile>
@@ -410,6 +412,211 @@ class TestKeyframes : public QObject {
         QCOMPARE(nt::keyframes::inputValue(restored, "opacity", 0, 1000), 0.5);
         for (int i = 0; i < 4; ++i) { model.undoStack()->undo(); }
         QCOMPARE(model.documentJson(), doc);
+    }
+    // A row whose fold replaces its base starts from that base, and hands the value back.
+    void motionRowsReplaceFromTheBase() {
+        TimelineModel model;
+        model.setTimeline(fixture());
+        ClipInspectorController controller;
+        controller.setTimeline(&model);
+        controller.setClipId("c");
+        QVERIFY(model.applyEdit("keyframes.field", {{"clipId", "c"}, {"field", "anchorX"}, {"value", 0.25}}));
+        const auto before = model.documentJson();
+        const auto undoable = model.undoStack()->count();
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "anchor"}, {"atMs", 0}}));
+        QCOMPARE(model.undoStack()->count(), undoable + 1);
+        const auto clip = [&] { return model.clipsJson()[0].toObject(); };
+        QCOMPARE(nt::keyframes::inputValue(clip(), "anchor", 0, 0), 0.25);
+        QCOMPARE(nt::keyframes::inputValue(clip(), "anchor", 1, 0), 0.5);
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "anchor"}, {"input", 0}, {"value", 0.75}, {"atMs", 1000}}));
+        QCOMPARE(nt::keyframes::inputValue(clip(), "anchor", 0, 500), 0.5);
+        const auto layer = [&](double t) { return *nt::evaluateScene(*model.snapshot(), t).layers[0].transform; };
+        QCOMPARE(layer(1000).anchor.x, 0.75);
+        QCOMPARE(layer(1000).anchor.y, 0.5);
+        // Stopping the row keeps the value at the playhead as the static one.
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "anchor"}, {"atMs", 1000}}));
+        QCOMPARE(controller.fieldValue("anchorX"), 0.75);
+        QVERIFY(!nt::keyframes::helper("isRowKeyframed", {clip(), "anchor"}).toBool());
+        for (int i = 0; i < 3; ++i) { model.undoStack()->undo(); }
+        QCOMPARE(model.documentJson(), before);
+    }
+    // These channels are in the shared model, so the web draws them from the keyframe animation.
+    void motionChannelsStayOnTheKeyframeAnimation() {
+        TimelineModel model;
+        model.setTimeline(fixture());
+        for (const auto* row : {"anchor", "rotationX", "rotationY"}) {
+            QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", row}, {"atMs", 0}}));
+        }
+        const auto animations = model.clipsJson()[0].toObject()["animations"].toArray();
+        QCOMPARE(animations.size(), 1);
+        QVERIFY(!nt::scene::isSideCurveAnimation(animations[0].toObject()));
+        QCOMPARE(animations[0].toObject()["custom"].toObject()["curves"].toArray().size(), 4);
+    }
+    // Perspective and Depth have no channel, so a web build keeps them apart from what it draws.
+    void motionRowsWithNoChannelStayOffTheKeyframeAnimation() {
+        TimelineModel model;
+        model.setTimeline(fixture());
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "position"}, {"atMs", 0}}));
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "position"}, {"input", 0}, {"value", 30}, {"atMs", 1000}}));
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "perspective"}, {"atMs", 0}}));
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "perspective"}, {"input", 0}, {"value", 500}, {"atMs", 1000}}));
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "depth"}, {"atMs", 0}}));
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "depth"}, {"input", 0}, {"value", 40}, {"atMs", 1000}}));
+        const auto clip = [&] { return model.clipsJson()[0].toObject(); };
+        auto animations = clip()["animations"].toArray();
+        QCOMPARE(animations.size(), 2);
+        const auto main = animations[0].toObject();
+        QCOMPARE(main["custom"].toObject()["curves"].toArray().size(), 2);
+        const auto side = animations[1].toObject();
+        QVERIFY(nt::scene::isSideCurveAnimation(side));
+        QCOMPARE(side["enabled"].toBool(true), false);
+        QCOMPARE(side["custom"].toObject()["curves"].toArray().size(), 2);
+        // Compiling keeps the channels and leaves the side animation out.
+        const auto defs = nt::scene::parseAnimations(animations);
+        QCOMPARE(nt::scene::compileAnimations(defs, 2000, {}).size(), size_t(1));
+        const auto scene = [&](double t) { return *nt::evaluateScene(*model.snapshot(), t).layers[0].transform; };
+        QCOMPARE(scene(0).perspective.value_or(0), 1000.0);
+        QCOMPARE(scene(1000).perspective.value_or(0), 500.0);
+        QCOMPARE(scene(1000).depthPx.value_or(0), 40.0);
+        // Previous, next, moving, easing and deleting read the side curve like any other.
+        QCOMPARE(nt::keyframes::times(clip(), nt::keyframes::properties("perspective")), (QJsonArray{0, 1000}));
+        QCOMPARE(nt::keyframes::helper("adjacentKeyframeMs", {clip(), QJsonArray{"perspective"}, 0, 1}).toDouble(), 1000.0);
+        QVERIFY(model.applyEdit("keyframes.easing", {{"clipId", "c"}, {"row", "perspective"}, {"atMs", 1000}, {"easing", "hold"}}));
+        QCOMPARE(scene(999).perspective.value_or(0), 1000.0);
+        QCOMPARE(nt::keyframes::helper("keyframeEasingAt", {clip(), "perspective", 1000}).toString(), QString("hold"));
+        QVERIFY(model.applyEdit("keyframes.easingMany", {{"clipId", "c"}, {"keys", QJsonArray{QJsonObject{{"row", "perspective"}, {"atMs", 1000}}}}, {"easing", "cubic-bezier(0.1,0.2,0.3,0.4)"}}));
+        QCOMPARE(nt::keyframes::helper("keyframeEasingAt", {clip(), "perspective", 1000}).toString(), QString("cubic-bezier(0.1,0.2,0.3,0.4)"));
+        QVERIFY(model.applyEdit("keyframes.moveMany", {{"clipId", "c"}, {"keys", QJsonArray{QJsonObject{{"row", "depth"}, {"atMs", 1000}}}}, {"deltaMs", 500}}));
+        QCOMPARE(nt::keyframes::times(clip(), {"depthPx"}), (QJsonArray{0, 1500}));
+        const auto graph = nt::keyframes::rowGraph(clip(), "depth", 0, 1500, 15);
+        QCOMPARE(graph["curves"].toArray()[0].toObject()["values"].toArray().last().toDouble(), 40.0);
+        QCOMPARE(graph["keys"].toArray().size(), 2);
+        QVERIFY(model.applyEdit("keyframes.toggle", {{"clipId", "c"}, {"row", "depth"}, {"atMs", 700}}));
+        QCOMPARE(nt::keyframes::times(clip(), {"depthPx"}).size(), 3);
+        QVERIFY(model.applyEdit("keyframes.deleteMany", {{"clipId", "c"}, {"keys", QJsonArray{QJsonObject{{"row", "depth"}, {"atMs", 700}}}}}));
+        QCOMPARE(nt::keyframes::times(clip(), {"depthPx"}).size(), 2);
+        // The last curve on a side animation takes the animation with it.
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "perspective"}, {"atMs", 0}}));
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "depth"}, {"atMs", 0}}));
+        animations = clip()["animations"].toArray();
+        QCOMPARE(animations.size(), 1);
+        QVERIFY(!nt::scene::isSideCurveAnimation(animations[0].toObject()));
+    }
+    // A clip with only side curves has no keyframe animation for an easing edit to index.
+    void easingWithNoKeyframeAnimation() {
+        TimelineModel model;
+        model.setTimeline(fixture());
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "depth"}, {"atMs", 0}}));
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "depth"}, {"input", 0}, {"value", 40}, {"atMs", 1000}}));
+        QCOMPARE(model.clipsJson()[0].toObject()["animations"].toArray().size(), 1);
+        QVERIFY(model.applyEdit("keyframes.easing", {{"clipId", "c"}, {"row", "depth"}, {"atMs", 1000}, {"easing", "easeIn"}}));
+        const auto clip = model.clipsJson()[0].toObject();
+        QCOMPARE(nt::keyframes::helper("keyframeEasingAt", {clip, "depthPx", 1000}).toString(), QString("easeIn"));
+        QCOMPARE(clip["animations"].toArray().size(), 1);
+    }
+    // An easing on the keyframe animation shapes only its own curves.
+    void animationEasingLeavesSideCurves() {
+        TimelineModel model;
+        model.setTimeline(fixture());
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "position"}, {"atMs", 0}}));
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "position"}, {"input", 0}, {"value", 100}, {"atMs", 1000}}));
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "depth"}, {"atMs", 0}}));
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "depth"}, {"input", 0}, {"value", 100}, {"atMs", 1000}}));
+        auto clip = model.clipsJson()[0].toObject();
+        auto animations = clip["animations"].toArray();
+        auto main = animations[0].toObject();
+        main.insert("easing", "hold");
+        animations[0] = main;
+        clip.insert("animations", animations);
+        QCOMPARE(nt::keyframes::inputValue(clip, "position", 0, 500), 0.0);
+        QCOMPARE(nt::keyframes::inputValue(clip, "depth", 0, 500), 50.0);
+    }
+    void moreCurvesThanOneAnimationHolds() {
+        QJsonArray curves;
+        for (int i = 0; i < 17; ++i) {
+            curves.append(QJsonObject{{"property", QString("custom:%1").arg(i)}, {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", i}}}}});
+        }
+        const auto animations = nt::scene::withSideCurves({}, curves, 2000);
+        QCOMPARE(animations.size(), 2);
+        QCOMPARE(animations[0].toObject()["custom"].toObject()["curves"].toArray().size(), 16);
+        QCOMPARE(animations[1].toObject()["custom"].toObject()["curves"].toArray().size(), 1);
+        QCOMPARE(nt::scene::sideCurveList(animations), curves);
+        const auto again = nt::scene::withSideCurves(animations, curves, 2000);
+        QCOMPARE(again[0].toObject()["id"], animations[0].toObject()["id"]);
+        QVERIFY(nt::scene::withSideCurves(animations, {}, 2000).isEmpty());
+    }
+    void splitSlicesEveryMotionCurve() {
+        TimelineModel model;
+        model.setTimeline(fixture());
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "rotationX"}, {"atMs", 0}}));
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "rotationX"}, {"input", 0}, {"value", 40}, {"atMs", 2000}}));
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "depth"}, {"atMs", 0}}));
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "depth"}, {"input", 0}, {"value", 40}, {"atMs", 2000}}));
+        const auto clip = model.clipsJson()[0].toObject();
+        const auto [left, right] = nt::edit::splitClip(clip, 1000);
+        QCOMPARE(nt::keyframes::inputValue(left, "rotationX", 0, 1000), 20.0);
+        QCOMPARE(nt::keyframes::inputValue(right, "rotationX", 0, 0), 20.0);
+        QCOMPARE(nt::keyframes::inputValue(right, "rotationX", 0, 1000), 40.0);
+        QCOMPARE(nt::keyframes::inputValue(left, "depth", 0, 1000), 20.0);
+        QCOMPARE(nt::keyframes::inputValue(right, "depth", 0, 0), 20.0);
+        QCOMPARE(nt::keyframes::inputValue(right, "depth", 0, 1000), 40.0);
+        const auto sideId = [](const QJsonObject& c) {
+            for (const auto& a : c["animations"].toArray()) {
+                if (nt::scene::isSideCurveAnimation(a.toObject())) { return a.toObject()["id"].toString(); }
+            }
+            return QString();
+        };
+        QVERIFY(!sideId(left).isEmpty());
+        QVERIFY(sideId(left) != sideId(right));
+        // A trim stretches keys with the clip, as every normalized keyframe does.
+        const auto trimmed = nt::edit::trimClip(clip, "end", -1000, std::nullopt);
+        QCOMPARE(nt::keyframes::inputValue(trimmed, "depth", 0, 500), 20.0);
+    }
+    void lockedClipRefusesNewRows() {
+        auto document = fixture().raw;
+        auto clips = document["clips"].toArray();
+        auto locked = clips[0].toObject();
+        locked.insert("locked", true);
+        clips[0] = locked;
+        document.insert("clips", clips);
+        for (const auto* row : {"anchor", "rotationX", "rotationY", "perspective", "depth"}) {
+            const auto result = nt::keyframes::edit(document, {{"clipId", "c"}, {"action", "stopwatch"}, {"row", row}, {"atMs", 0}});
+            QCOMPARE(result, document);
+        }
+    }
+    void motionSwitchHoldsEveryMotionCurve() {
+        TimelineModel model;
+        model.setTimeline(fixture());
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "anchor"}, {"atMs", 0}}));
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "anchor"}, {"input", 0}, {"value", 0.9}, {"atMs", 1000}}));
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "depth"}, {"atMs", 0}}));
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "depth"}, {"input", 0}, {"value", 40}, {"atMs", 1000}}));
+        const auto clip = [&] { return model.clipsJson()[0].toObject(); };
+        const auto before = clip();
+        QVERIFY(model.applyEdit("keyframes.bypass", {{"clipId", "c"}, {"group", "motion"}, {"enabled", false}}));
+        QVERIFY(!clip().contains("animations") || clip()["animations"].toArray().isEmpty());
+        const auto off = nt::evaluateScene(*model.snapshot(), 1000).layers[0].transform;
+        QVERIFY(!off || (off->anchor.x == 0.5 && !off->depthPx));
+        const auto shown = nt::keyframes::withBypassRestored(clip());
+        QCOMPARE(nt::keyframes::inputValue(shown, "anchor", 0, 1000), 0.9);
+        QCOMPARE(nt::keyframes::inputValue(shown, "depth", 0, 1000), 40.0);
+        QVERIFY(model.applyEdit("keyframes.bypass", {{"clipId", "c"}, {"group", "motion"}, {"enabled", true}}));
+        QCOMPARE(nt::keyframes::inputValue(clip(), "anchor", 0, 1000), 0.9);
+        QCOMPARE(nt::keyframes::inputValue(clip(), "depth", 0, 1000), 40.0);
+        QCOMPARE(nt::evaluateScene(*model.snapshot(), 1000).layers[0].transform->depthPx.value_or(0), 40.0);
+    }
+    void gizmoWritesAKeyedAnchorAsAKey() {
+        TimelineModel model;
+        model.setTimeline(fixture());
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "anchor"}, {"atMs", 0}}));
+        const auto clip = model.clipsJson()[0].toObject();
+        auto next = nt::keyframes::transform(clip);
+        next.insert("anchor", QJsonObject{{"x", 0.75}, {"y", 0.5}});
+        const auto patch = nt::keyframes::helper("gizmoTransformPatch", {clip, next, 0}).toObject();
+        QCOMPARE(patch["transform"].toObject()["anchor"].toObject()["x"].toDouble(0.5), 0.5);
+        auto patched = clip;
+        patched.insert("animations", patch["animations"]);
+        QCOMPARE(nt::keyframes::inputValue(patched, "anchor", 0, 0), 0.75);
     }
     void bypassVolumeOnSoundOnly() {
         auto parsed = nt::parseTimelineJson(

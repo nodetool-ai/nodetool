@@ -18,7 +18,7 @@ function groups(clip, rowSpecs, visualEffects, audioEffects, sections) {
         }
     };
     if (!sound && type !== "adjustment") {
-        result.push({id: "motion", kind: "fixed", label: "Motion", rows: rows(["position", "scale", "rotation"]), hasTransformFields: true});
+        result.push({id: "motion", kind: "fixed", label: "Motion", rows: rows(["position", "scale", "rotation", "anchor", "rotationX", "rotationY", "perspective", "depth"])});
     }
     if (type === "model3d") {
         result.push({id: "camera", kind: "camera", label: "Camera", rows: rows(["cameraOrbit", "cameraFov", "cameraZoom"])});

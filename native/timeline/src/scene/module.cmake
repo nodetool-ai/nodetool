@@ -3,6 +3,8 @@ nt_sources(core
     src/scene/Animation.cpp
     src/scene/ClipScene.h
     src/scene/ClipScene.cpp
+    src/scene/SideCurves.h
+    src/scene/SideCurves.cpp
     src/scene/FlexLayout.h
     src/scene/FlexLayout.cpp
     src/scene/SvgPath.h

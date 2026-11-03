@@ -585,8 +585,8 @@ Effect Controls owns what a selected clip does on screen and on the speakers. It
 after the Inspector, so Transform is one click away. Open it from its tab, Window > Effect
 Controls or Shift+5 in the Premiere preset, where the Inspector moved to Shift+9.
 
-The groups follow Premiere's fixed effects. Motion holds Transform and the clip's anchor, 3D
-rotation, perspective and depth, and Camera follows it on 3D clips. Then come Opacity, Time
+The groups follow Premiere's fixed effects. Motion holds Position, Scale, Rotation, Anchor, Rotation
+X, Rotation Y, Perspective and Depth, each keyed, and Camera follows it on 3D clips. Then come Opacity, Time
 Remapping, Crop, Corners, Motion blur and the clip's effects. Under audio come Volume, with the
 fades, and the audio effects. Each effect has its chain order and Remove in its heading, and a
 grade also has an action that opens the Color panel. A group clip lists Motion, Opacity, Corners,
@@ -599,7 +599,9 @@ The Program monitor's transform handles edit the same document, so a drag shows 
 at once.
 
 The Inspector answers what the item is, and this differs from the web editor, whose Inspector still
-holds Render, Transform and the rest. No document, schema or protocol field differs between them.
+holds Render, Transform and the rest. No schema or protocol field differs between them. Native keys
+some parameters web does not, stored so web keeps them and draws the static value. See
+[web-followups.md](docs/web-followups.md).
 Sections are separate components registered with `registerInspectorSection`, and its `panel`
 argument says which panel hosts one, so a quick section can return to the Inspector with one word.
 
@@ -614,7 +616,7 @@ navigation covers every row.
 A new Editing layout puts the tab right after the Inspector. A saved layout that already places it
 keeps its place until Reset to Saved Layout, and a layout with no place for it gets the same one.
 
-Tests: `tst_keyframes`, `tst_dockui`, and `tst_keyframesui`, which runs `src/edit/keyframes/qmltests/tst_effectcontrols.qml`.
+Tests: `tst_keyframes`, `tst_dockui`, `tst_keyedrender`, which compares keyed frames between the preview compositor and the export's offscreen frames, and `tst_keyframesui`, which runs `src/edit/keyframes/qmltests/tst_effectcontrols.qml`.
 
 ### Color and scopes
 

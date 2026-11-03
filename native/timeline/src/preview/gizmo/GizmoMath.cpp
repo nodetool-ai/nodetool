@@ -263,6 +263,12 @@ QJsonObject transformPatch(const QJsonObject& startClip, const ClipTransform& ne
         entries.emplace_back("rotation", valueAt(animation, "rotation", t) + next.rotation - base.rotation);
         transform.rotation = base.rotation;
     }
+    if (keyed("anchorX") || keyed("anchorY")) {
+        const auto anchorValue = [&](const QString& p, double fallback) { return keyed(p) ? valueAt(animation, p, t) : fallback; };
+        entries.emplace_back("anchorX", anchorValue("anchorX", base.anchor.x) + next.anchor.x - base.anchor.x);
+        entries.emplace_back("anchorY", anchorValue("anchorY", base.anchor.y) + next.anchor.y - base.anchor.y);
+        transform.anchor = base.anchor;
+    }
     if (entries.empty()) { return patch; }
     const auto existing = animation;
     for (const auto& [property, value] : entries) { setKey(animation, property, value, t); }

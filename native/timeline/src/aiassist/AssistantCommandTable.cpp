@@ -238,7 +238,7 @@ QList<Command> buildAllowed() {
     edit("markers.update", "Change markers", {markers, P{"patch", ParamKind::Patch, true, "Fields to set. A time or duration needs a single marker.", {"label", "note", "color", "timeMs", "durationMs"}}});
     edit("markers.remove", "Remove markers", {markers});
     // Keyframes, in ms from the clip's start.
-    const P row{"row", ParamKind::Text, true, "The property row, such as opacity, position, scale or rotation."};
+    const P row{"row", ParamKind::Text, true, "The property row: position, scale, rotation, anchor, rotationX, rotationY, perspective, depth or opacity, and cameraOrbit, cameraFov or cameraZoom on a 3D clip."};
     const P clipTime{"atMs", ParamKind::Number, true, "Time from the clip's start, in ms.", {}, {}, 0};
     edit("keyframes.toggle", "Add or remove a keyframe", {clip, row, clipTime});
     edit("keyframes.input", "Set a property's value", {clip, row, P{"input", ParamKind::Number, true, "Which value of the row, from 0.", {}, {}, 0}, P{"value", ParamKind::Number, true},

@@ -220,17 +220,6 @@ Column {
             }
         }
         Loader {
-            objectName: "effectControlsTransformFields"
-            active: !!root.group.hasTransformFields
-            visible: active
-            x: Ui.Metrics.md
-            width: root.panel.listWidth - x - Ui.Metrics.md
-            sourceComponent: TransformFields {
-                controller: root.controller
-                disabled: root.panel.locked || !root.groupOn
-            }
-        }
-        Loader {
             id: sectionLoader
             objectName: "effectControlsSection_" + root.group.id
             active: !!root.group.source
