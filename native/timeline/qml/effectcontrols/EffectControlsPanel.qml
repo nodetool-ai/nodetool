@@ -45,6 +45,9 @@ Rectangle {
     }
     Component.onCompleted: Qt.callLater(attach)
     onParentChanged: Qt.callLater(attach)
+    function revealPanel(id) {
+        if (editor && editor.focusPanel) editor.focusPanel(id)
+    }
 
     readonly property var selectionIds: gestures ? gestures.selection : []
     readonly property alias controller: inspector

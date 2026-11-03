@@ -42,6 +42,5 @@ Column {
     }
     TimingSection { width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller; groupMode: true }
     Motion.GroupMotion { width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller }
-    Effects.ClipAdjustments { width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller }
     Effects.ClipEffectsList { width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller }
 }

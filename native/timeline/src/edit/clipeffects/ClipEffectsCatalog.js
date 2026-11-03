@@ -2,7 +2,7 @@
 
 const softVignette = {radius: 1.5, softness: 1, centerX: 0.5, centerY: 0.5, roundness: 0};
 
-const addableEffects = [
+const effectLabels = [
     {value: "denoise", label: "Noise reduction"},
     {value: "stabilize", label: "Stabilization"},
     {value: "deflicker", label: "Deflicker"},
@@ -17,6 +17,12 @@ const addableEffects = [
     {value: "pixelate", label: "Pixelate"}, {value: "posterize", label: "Posterize"},
     {value: "directionalBlur", label: "Directional blur"}, {value: "lensDistortion", label: "Lens distortion"}
 ];
+// The Color panel creates and edits these grades. They stay in the catalog so a clip that has one
+// still names and draws it, and Effect Controls lists it.
+function gradedInColorPanel(type) {
+    return ["color", "curves", "liftGammaGain", "vignette"].includes(type);
+}
+const addableEffects = effectLabels.filter(effect => !gradedInColorPanel(effect.value));
 function makeEffect(type, id) {
     const base = {id, type, enabled: true};
     switch (type) {
@@ -44,7 +50,7 @@ function makeEffect(type, id) {
     return null;
 }
 function name(type) {
-    return type === "color" ? "Color" : (addableEffects.find(item => item.value === type)?.label || type);
+    return type === "color" ? "Color" : (effectLabels.find(item => item.value === type)?.label || type);
 }
 function known(type) {
     return ["denoise", "stabilize", "deflicker", "deband", "secondaryColor", "exposure", "color", "blur", "glow", "dropShadow", "vignette", "sharpen", "chromaKey", "curves", "levels", "liftGammaGain", "grain", "pixelate", "posterize", "directionalBlur", "lensDistortion", "stylize", "generator", "lut"].includes(type);
