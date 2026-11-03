@@ -129,11 +129,46 @@ returns for this model, the coffee still, 5 s, 16:9, seed 21.
 The provider does not return the Comfy job id to the caller, so this run has
 no job id on record.
 
+## Job 7: a storyboard shot rendered from the browser
+
+A three-shot board created through `storyboards.create`, with the coffee still
+on each shot, `camera.dolly-in` on shot 2 and the board's video model set to
+`comfyui-workflow/wan2.2-ti2v-5b`. Driven with Playwright against `npm run dev`:
+open the board, open **Render clip** on shot 2, press **Render clip**.
+
+| Field | Value |
+| --- | --- |
+| Click to shot status `rendered` | 123.7 s |
+| Shot after the render | `clip` set to a new video asset, `clip_versions` length 1 |
+| Output | H.264 MP4, 1280×704, 121 frames, 5.04 s |
+
+The render dialog showed the ComfyUI workflow note and **Open ComfyUI
+workflow**. Pressing it opened an editable copy of the Shot Director example
+with 10 nodes, including **Run ComfyUI Workflow (Comfy Cloud)**. The dialog now
+closes after the copy opens, so the graph is in view.
+
+## Jobs 8 and 9: the Wan 2.2 14B and LTX-2.3 graphs
+
+Both graphs submitted through the Comfy API v2 SDK with the coffee still, the
+compiled `camera.dolly-in` clause, seed 42.
+
+| Model | Comfy job id | Submit to finished | Output |
+| --- | --- | --- | --- |
+| Wan 2.2 I2V A14B, 4-step lightx2v | `000d3078-57b1-4a16-8601-10169b3f9289` | 36.6 s | H.264, 832×480, 81 frames, 16 fps, 5.06 s |
+| LTX-2.3 22B, two-pass | `3e3e5873-8e1a-4038-8d53-dc9fbca52fe7` | 42.0 s | H.264 1280×704, 121 frames, 24 fps, 5.04 s, plus AAC audio |
+
+Wan 14B holds the still and pushes toward the cup. LTX-2.3 adds rising steam
+and an audio track, and drifts away from the still in its last second.
+
+MiniMax H3 has not been run. Its community license excludes the EU, the UK,
+the US and South Korea, so its graph is checked against Comfy Cloud's node
+schemas and model list only.
+
 ## Not yet verified
 
-- A storyboard shot rendered with the ComfyUI workflow model in the browser,
-  including the take appearing in the gallery and the timeline following the
-  picked take. Job 6 covers the provider call that render makes.
-- "Open ComfyUI workflow" in the render dialog against a running server.
+- The Director agent writing shots from a brief, the timeline following a
+  picked take, and export, all in the browser.
+- A storyboard render with the Wan 2.2 14B or LTX-2.3 models through the
+  provider. Jobs 8 and 9 ran the same graphs straight through the SDK.
 - A full workflow run that shows the take on the `take` output end to end.
   The fix is verified by replaying job 4, not by a new run.
