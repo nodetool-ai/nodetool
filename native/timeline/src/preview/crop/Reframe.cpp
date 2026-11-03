@@ -1,5 +1,6 @@
 #include "Reframe.h"
 #include "preview/SceneEval.h"
+#include "scene/ClipScene.h"
 #include <QJsonArray>
 #include <algorithm>
 #include <array>
@@ -42,6 +43,36 @@ QJsonObject cropRectPx(const QJsonObject& crop, double w, double h) {
              std::max(
                  1., std::min(std::floor((1 - crop.value("top").toDouble() - crop.value("bottom").toDouble()) * h + .5),
                               h - y))}};
+}
+QJsonObject cropAt(const nt::Clip& clip, double timeMs) {
+    auto crop = clip.raw.value("crop").toObject();
+    const auto curves = clip.scene ? clip.scene->sideCurves : nullptr;
+    if (!curves || clip.durationMs <= 0) {
+        return crop;
+    }
+    const double t = std::clamp((timeMs - clip.startMs) / clip.durationMs, 0.0, 1.0);
+    bool keyed = false;
+    for (const auto& [edge, property] : {std::pair{"left", u"cropLeft"}, std::pair{"right", u"cropRight"}, std::pair{"top", u"cropTop"}, std::pair{"bottom", u"cropBottom"}}) {
+        if (const auto value = curves->value(property, t)) {
+            crop.insert(edge, std::clamp(*value, 0.0, 0.95));
+            keyed = true;
+        } else if (!crop.contains(edge)) {
+            crop.insert(edge, 0);
+        }
+    }
+    if (!keyed) {
+        return clip.raw.value("crop").toObject();
+    }
+    // Opposite edges are keyed at their own times, so between keys they can meet. They leave 5% of the
+    // picture, as the crop edit does, rather than make the crop unusable and show the whole frame.
+    for (const auto& [a, b] : {std::pair{"left", "right"}, std::pair{"top", "bottom"}}) {
+        const double total = crop.value(a).toDouble() + crop.value(b).toDouble();
+        if (total > 0.95) {
+            crop.insert(a, crop.value(a).toDouble() * 0.95 / total);
+            crop.insert(b, crop.value(b).toDouble() * 0.95 / total);
+        }
+    }
+    return crop;
 }
 double cropMax(const QJsonObject& crop, const QString& edge) {
     const auto it = std::ranges::find(edges, edge);

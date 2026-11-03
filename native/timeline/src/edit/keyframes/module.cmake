@@ -33,6 +33,7 @@ nt_tests(nt_keyframe_ui_tests)
 function(nt_keyed_render_tests)
     qt_add_executable(tst_keyedrender src/edit/keyframes/tst_keyedrender.cpp
         src/edit/keyframes/KeyframeEdits.cpp
+        src/preview/crop/CropDecorator.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp
         src/playback/PlaybackClock.h src/playback/PlaybackClock.cpp

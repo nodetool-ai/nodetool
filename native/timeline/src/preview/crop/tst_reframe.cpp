@@ -137,13 +137,11 @@ class TestReframe : public QObject {
     void sectionRegistration() {
         InspectorSectionRegistry registry;
         const auto sections = registry.sections();
-        int cropOrder = -1, reframeOrder = -1;
+        int reframeOrder = -1;
         for (const auto& value : sections) {
             const auto section = value.toMap();
-            if (section["id"] == "crop") { cropOrder = section["order"].toInt(); }
             if (section["id"] == "reframe") { reframeOrder = section["order"].toInt(); }
         }
-        QCOMPARE(cropOrder, 40);
         QCOMPARE(reframeOrder, 87);
         PanelRegistry panels;
         for (const auto& value : panels.forSlot("right")) {
@@ -254,12 +252,11 @@ class TestReframe : public QObject {
         QVERIFY(section->implicitHeight() > 0);
         // Effect Controls hosts Crop, as a group for a clip that can be cropped.
         auto* effectControls = findItem(root, "effectControlsPanel"); QVERIFY(effectControls);
-        QTRY_VERIFY(findItem(effectControls, "inspectorCrop"));
-        QVERIFY(!within(findItem(effectControls, "inspectorCrop"), "timelineInspector"));
-        QVERIFY(findItem(effectControls, "inspectorCrop")->implicitHeight() > 0);
+        QTRY_VERIFY(findItem(effectControls, "effectControlsStopwatch_cropLeft"));
+        QVERIFY(!within(findItem(effectControls, "effectControlsStopwatch_cropLeft"), "timelineInspector"));
         gestures->setSelection({});
         QCOMPARE(section->implicitHeight(), 0.);
-        QTRY_VERIFY(!findItem(effectControls, "inspectorCrop"));
+        QTRY_VERIFY(!findItem(effectControls, "effectControlsStopwatch_cropLeft"));
     }
     void qmlInteractions() {
         auto doc = document();
@@ -457,7 +454,7 @@ class TestReframe : public QObject {
     }
     void qmlSections() {
         QQmlEngine engine;
-        for (const auto& name : {"ReframeSection", "ReframeCrop", "ReframeFocusOverlay"}) {
+        for (const auto& name : {"ReframeSection", "ReframeFocusOverlay"}) {
             QQmlComponent component(&engine);
             component.loadFromModule("NodeTool.Timeline", name);
             QVERIFY2(component.isReady(), qPrintable(component.errorString()));

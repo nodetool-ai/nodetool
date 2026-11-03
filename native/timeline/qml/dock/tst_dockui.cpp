@@ -122,7 +122,7 @@ private slots:
         }
         QVERIFY(named(effectControls, "effectControls_anchor_input_0"));
         QVERIFY(named(effectControls, "effectControls_depth_input_0"));
-        for (const auto* control : {"effectControls_anchor_input_0", "effectControls_depth_input_0", "position-input-0", "inspectorCrop", "borderRadiusSlider",
+        for (const auto* control : {"effectControls_anchor_input_0", "effectControls_depth_input_0", "position-input-0", "effectControlsStopwatch_cropLeft", "effectControlsStopwatch_borderRadius",
                                     "motionBlurEnabled", "inspectorTimeRemap", "audioSection"}) {
             QVERIFY2(!named(inspector, QString::fromLatin1(control)), control);
         }

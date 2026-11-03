@@ -57,10 +57,12 @@ QString sideCurveNote(const nt::Timeline& timeline) {
         clips += curves.isEmpty() ? 0 : 1;
         for (const auto& curve : curves) {
             const auto property = curve.toObject().value(u"property").toString();
-            const QString name = property == u"volumeDb"      ? QStringLiteral("Volume")
-                                 : property == u"depthPx"     ? QStringLiteral("Depth")
-                                 : property == u"perspective" ? QStringLiteral("Perspective")
-                                                              : property;
+            const QString name = property == u"volumeDb"       ? QStringLiteral("Volume")
+                                 : property == u"depthPx"      ? QStringLiteral("Depth")
+                                 : property == u"perspective"  ? QStringLiteral("Perspective")
+                                 : property.startsWith(u"crop") ? QStringLiteral("Crop")
+                                 : property == u"borderRadius" ? QStringLiteral("Corners")
+                                                               : property;
             if (!names.contains(name)) names.append(name);
         }
     }

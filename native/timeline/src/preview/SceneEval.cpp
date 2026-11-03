@@ -263,6 +263,7 @@ AnimatedProps resolveAnimated(const Clip& clip, const std::optional<ClipTransfor
             }
         }
     }
+    if (const auto keyedRadius = sideCurveAt(clip, u"borderRadius", t)) props.borderRadius = std::max(0.0, *keyedRadius);
     const auto keyedPerspective = sideCurveAt(clip, u"perspective", t);
     const auto keyedDepth = sideCurveAt(clip, u"depthPx", t);
     if (keyedPerspective || keyedDepth) {

@@ -7,7 +7,7 @@ import "../../src/edit/clipeffects" as ClipFx
 import "../../src/edit/clipeffects/ClipEffectsCatalog.js" as Catalog
 import "../Inspector/AudioEffectsKnobs.js" as AudioKnobs
 // One collapsible block: a fixed effect (Motion, Opacity, Volume), the camera of a 3D clip, a
-// section with no keyframes (Time Remapping, Crop, Corners, Motion blur), or an effect on the
+// section (Time Remapping and Motion blur have no keyframes, Crop and Corners do), or an effect on the
 // clip's chain. Whatever it holds sits in the list column, so the lanes beside it stay empty.
 Column {
     id: root
