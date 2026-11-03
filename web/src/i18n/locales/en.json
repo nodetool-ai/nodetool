@@ -7922,14 +7922,18 @@
         "remove": "Remove scene clip",
         "cancel": "Cancel",
         "render": "Render scene clip{{cost}}",
-        "description": "Renders these shots as one continuous clip. The clip lands on the first shot, and each other shot plays its window of it, so the cut keeps its order.",
+        "description": "Renders these shots as one continuous clip. The clip lands on the first shot, and each other shot plays its window of it. Each shot's action, camera, lighting and sound are sent automatically, so a re-render gets the same direction.",
         "from": "From",
         "length": "Length",
         "shotStillAlt": "Shot still",
         "imageReference": "[Image {{number}}] ",
-        "promptLabel": "Your prompt",
-        "promptPlaceholder": "One continuous move from the doorway to the window.",
-        "promptHelp": "Optional. The shots' actions, motion and sound are added after it. Refer to stills as [Image N].",
+        "references": "Reference images",
+        "referencesHelp": "Stills fix framing and pose. Entity images fix who and where.",
+        "stills": "Stills",
+        "entities": "Entities",
+        "addEntity": "Add from library",
+        "noStill": "No still",
+        "noEntityImage": "No image",
         "renderSettings": "Render settings",
         "videoModel": "Video model",
         "duration": "Duration",
@@ -7942,6 +7946,7 @@
           "addShot": "Add a shot to the board first.",
           "renderStill": "Render a still for at least one shot.",
           "addEntityImage": "Give an entity on the board a reference image first.",
+          "noReference": "Pick at least one reference image.",
           "noVideoModel": "No video model chosen.",
           "imageLimit": "{{imageCount}} images is over the limit of {{limit}}. Remove {{remove}}.",
           "durationUnavailable": "{{model}} does not offer a {{duration}} clip. Pick one of {{choices}}.",
@@ -7949,7 +7954,8 @@
           "shotRange": "A scene clip covers {{min}} to {{max}} shots."
         },
         "playTitle": "Rendered clip",
-        "playLabel": "Scene clip"
+        "playLabel": "Scene clip",
+        "downloadClip": "Download clip"
       }
     }
   },
