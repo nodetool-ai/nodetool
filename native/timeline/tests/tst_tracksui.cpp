@@ -2843,11 +2843,11 @@ private slots:
                 view->grabWindow().copy(0, 0, 900, 200).save(qEnvironmentVariable("NT_SHOT_DIR") + "/save-" + name + ".png");
         };
         QCOMPARE(label(), QStringLiteral("Saved"));
-        QCOMPARE(find("saveDot")->property("color").value<QColor>(), QColor("#80DCA0"));
+        QCOMPARE(find("saveDot")->property("color").value<QColor>(), QColor("#50fa7b"));
         shot("saved");
         saver->setProperty("dirty", true);
         QCOMPARE(label(), QStringLiteral("Unsaved changes"));
-        QCOMPARE(find("saveDot")->property("color").value<QColor>(), QColor("#FFD08A"));
+        QCOMPARE(find("saveDot")->property("color").value<QColor>(), QColor("#ffb86c"));
         saver->setProperty("saving", true);
         QCOMPARE(label(), QStringLiteral("Saving…"));
         QVERIFY(find("saveSpinner")->isVisible());
