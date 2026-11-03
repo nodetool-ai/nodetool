@@ -10,6 +10,9 @@
 #include "audio/FadeCurves.h"
 #include "audio/Mixer.h"
 #include "audio/PcmRing.h"
+#include "audio/TestAllocationCounter.h"
+#include "scene/ClipScene.h"
+#include "scene/SideCurves.h"
 
 #include <QFileInfo>
 #include <QProcess>
@@ -74,6 +77,28 @@ std::vector<float> mix(const MixPlan& plan, const std::vector<float>& pcm, doubl
 double frameMs(int frame) {
     return frame * 1000.0 / kRate;
 }
+
+// A clip keyed on its Volume through the side curve the Effect Controls row writes.
+Clip keyedClip(const std::string& id, const std::string& trackId, double durationMs, double staticDb,
+               const QJsonArray& keys) {
+    Clip c = clip(id, trackId, MediaType::Audio, 0.0, durationMs);
+    c.volumeDb = staticDb;
+    const QJsonObject curve{{"property", "volumeDb"}, {"keyframes", keys}};
+    c.raw = QJsonObject{{"id", QString::fromStdString(id)}, {"volumeDb", staticDb},
+                        {"animations", scene::withSideCurves({}, QJsonArray{curve}, durationMs)}};
+    c.scene = scene::parseClipScene(c.raw);
+    return c;
+}
+QJsonObject key(double t, double value, const QString& easing = {}) {
+    QJsonObject k{{"t", t}, {"value", value}};
+    if (!easing.isEmpty()) k.insert("easing", easing);
+    return k;
+}
+// A held level, so the output is the gain.
+std::vector<float> steady(std::int64_t frames, float level = 0.5f) {
+    return std::vector<float>(static_cast<std::size_t>(frames) * 2, level);
+}
+double db(double value) { return std::pow(10.0, value / 20.0); }
 
 }  // namespace
 
@@ -371,6 +396,174 @@ private slots:
         double energy = 0.0;
         for (float x : mixed) energy += static_cast<double>(x) * x;
         QVERIFY(energy > 1.0);
+    }
+
+    // Two times, two levels: the key sits on top of the static level, in the mix.
+    void keyedVolumeSetsTheGain() {
+        Timeline tl;
+        tl.tracks = {track("a", TrackType::Audio)};
+        tl.clips = {keyedClip("c", "a", 1000.0, -6.0, {key(0, 0), key(1, -12)})};
+        tl.durationMs = 1000.0;
+        const auto plan = buildMixPlan(tl);
+        QCOMPARE(plan.voices.size(), std::size_t(1));
+        const auto pcm = steady(48000);
+        const auto at = [&](double ms) { return mix(plan, pcm, ms, 2)[0]; };
+        QCOMPARE_LE(std::abs(at(0.0) - 0.5 * db(-6)), 1e-5);
+        QCOMPARE_LE(std::abs(at(500.0) - 0.5 * db(-12)), 2e-4);
+        QCOMPARE_LE(std::abs(at(999.0) - 0.5 * db(-18)), 2e-4);
+    }
+    // Clip keys and track automation multiply, as Premiere's clip and track volume do (D20).
+    void keyedVolumeMultipliesWithTheTrack() {
+        Timeline tl;
+        Track a = track("a", TrackType::Audio);
+        a.volumeDb = -3.0;
+        tl.tracks = {a};
+        tl.clips = {keyedClip("c", "a", 1000.0, 0.0, {key(0, -6), key(1, -6)})};
+        tl.durationMs = 1000.0;
+        const auto plan = buildMixPlan(tl);
+        const auto pcm = steady(48000);
+        QCOMPARE_LE(std::abs(mix(plan, pcm, 500.0, 2)[0] - 0.5 * db(-9)), 1e-5);
+    }
+    // No two samples differ by much, even across a hold, where the value changes in one instant.
+    void keyedVolumeNeverClicks_data() {
+        QTest::addColumn<QString>("easing");
+        for (const auto* easing : {"linear", "easeInOut", "hold", "easeOutBounce", "cubic-bezier(0.9,0,0.1,1)"}) {
+            QTest::newRow(easing) << QString::fromLatin1(easing);
+        }
+    }
+    void keyedVolumeNeverClicks() {
+        QFETCH(QString, easing);
+        Timeline tl;
+        tl.tracks = {track("a", TrackType::Audio)};
+        tl.clips = {keyedClip("c", "a", 1000.0, 0.0, {key(0, 0), key(0.5, -40, easing), key(1, 0, easing)})};
+        tl.durationMs = 1000.0;
+        const auto plan = buildMixPlan(tl);
+        const auto pcm = steady(48000);
+        const auto out = mix(plan, pcm, 0.0, 48000);
+        double largest = 0;
+        for (std::size_t i = 2; i + 2 < out.size(); i += 2) {
+            largest = std::max(largest, std::abs(static_cast<double>(out[i]) - out[i - 2]));
+        }
+        // 40 dB moves a 0.5 level by 0.495. Over the ramp, 5 ms or 240 frames, a step is about 0.002.
+        QVERIFY2(largest < 0.0035, qPrintable(QString::number(largest)));
+        // The keys were reached.
+        QCOMPARE_LE(std::abs(out[0] - 0.5), 1e-4);
+        QCOMPARE_LE(std::abs(out[48000] - 0.5 * db(-40)), 1e-3);
+    }
+    // Two keys at one instant: the later value wins, after a ramp.
+    void keyedVolumeRepeatedTime() {
+        Timeline tl;
+        tl.tracks = {track("a", TrackType::Audio)};
+        tl.clips = {keyedClip("c", "a", 1000.0, 0.0, {key(0, -40), key(0.5, -40), key(0.5, 0), key(1, 0)})};
+        tl.durationMs = 1000.0;
+        const auto plan = buildMixPlan(tl);
+        const auto pcm = steady(48000);
+        const auto out = mix(plan, pcm, 0.0, 48000);
+        QCOMPARE_LE(std::abs(out[2 * 12000] - 0.5 * db(-40)), 1e-4);
+        QCOMPARE_LE(std::abs(out[2 * 36000] - 0.5), 1e-4);
+        double largest = 0;
+        for (std::size_t i = 2; i + 2 < out.size(); i += 2) { largest = std::max(largest, std::abs(static_cast<double>(out[i]) - out[i - 2])); }
+        QVERIFY2(largest < 0.0035, qPrintable(QString::number(largest)));
+    }
+    // A hold between keys far closer together than the ramp still ramps.
+    void keyedVolumeCloseHoldKeys() {
+        Timeline tl;
+        tl.tracks = {track("a", TrackType::Audio)};
+        tl.clips = {keyedClip("c", "a", 1000.0, 0.0, {key(0, 0), key(0.5, 0), key(0.50001, -40, "hold"), key(1, -40)})};
+        tl.durationMs = 1000.0;
+        const auto plan = buildMixPlan(tl);
+        const auto pcm = steady(48000);
+        const auto out = mix(plan, pcm, 0.0, 48000);
+        QCOMPARE_LE(std::abs(out[2 * 12000] - 0.5), 1e-4);
+        QCOMPARE_LE(std::abs(out[2 * 36000] - 0.5 * db(-40)), 1e-4);
+        double largest = 0;
+        for (std::size_t i = 2; i + 2 < out.size(); i += 2) { largest = std::max(largest, std::abs(static_cast<double>(out[i]) - out[i - 2])); }
+        QVERIFY2(largest < 0.0035, qPrintable(QString::number(largest)));
+    }
+    // The same plan in any block size, as the device and the export ask for it.
+    void keyedVolumeIgnoresBlockSize() {
+        Timeline tl;
+        tl.tracks = {track("a", TrackType::Audio)};
+        tl.clips = {keyedClip("c", "a", 1000.0, -3.0, {key(0, 0), key(0.3, -24, "easeIn"), key(1, 6, "hold")})};
+        tl.durationMs = 1000.0;
+        const auto plan = buildMixPlan(tl);
+        const auto pcm = steady(48000);
+        const auto whole = mix(plan, pcm, 0.0, 48000);
+        for (const int block : {128, 137, 4096}) {
+            std::vector<float> pieces;
+            for (int at = 0; at < 48000; at += block) {
+                const int n = std::min(block, 48000 - at);
+                const auto part = mix(plan, pcm, frameMs(at), n);
+                pieces.insert(pieces.end(), part.begin(), part.end());
+            }
+            QCOMPARE(pieces.size(), whole.size());
+            for (std::size_t i = 0; i < pieces.size(); ++i) {
+                if (std::abs(pieces[i] - whole[i]) > 1e-5f) { QFAIL(qPrintable(QString("sample %1 at block %2").arg(i).arg(block))); }
+            }
+        }
+    }
+    // The audio thread only reads the plan.
+    void keyedVolumeAllocatesNothing() {
+        Timeline tl;
+        tl.tracks = {track("a", TrackType::Audio)};
+        tl.clips = {keyedClip("c", "a", 1000.0, 0.0, {key(0, 0), key(1, -24, "easeInOut")})};
+        tl.durationMs = 1000.0;
+        const auto plan = buildMixPlan(tl);
+        prepareMixPlan(plan, kRate);
+        const auto pcm = steady(48000);
+        VoicePcm view;
+        view.linear = pcm.data();
+        view.linearCount = 48000;
+        std::vector<float> out(2 * 128);
+        MixStats stats;
+        nt::testing::allocations = 0;
+        nt::testing::countAllocations = true;
+        for (int block = 0; block < 100; ++block) {
+            mixBlock(plan, &view, kRate, frameMs(block * 128), 1000.0 / kRate, 128, out.data(), stats);
+        }
+        nt::testing::countAllocations = false;
+        QCOMPARE(std::size_t{nt::testing::allocations}, std::size_t{0});
+    }
+    // The export's render and a block mix of the same PCM give the same samples.
+    void keyedVolumeOfflineMatchesTheBlockMix() {
+        const std::string tone = NT_FIXTURES_DIR "/media/tone-220-48k-mono.wav";
+        Timeline tl;
+        tl.tracks = {track("a", TrackType::Audio)};
+        Clip c = keyedClip("c", "a", 1000.0, -3.0, {key(0, 0), key(1, -24)});
+        c.mediaPath = tone;
+        tl.clips = {c};
+        tl.durationMs = 1000.0;
+        std::vector<std::string> problems;
+        const auto rendered = renderOffline(tl, 48000, 0.0, 1000.0, &problems);
+        QVERIFY2(problems.empty(), problems.empty() ? "" : problems.front().c_str());
+        std::string error;
+        const auto source = AudioSource::open(tone, 48000, &error)->readAll();
+        const auto plan = buildMixPlan(tl);
+        std::vector<float> live;
+        for (int at = 0; at < 48000; at += 128) {
+            const auto part = mix(plan, source, frameMs(at), std::min(128, 48000 - at));
+            live.insert(live.end(), part.begin(), part.end());
+        }
+        QCOMPARE(rendered.size(), live.size());
+        double energyStart = 0, energyEnd = 0;
+        for (std::size_t i = 0; i < rendered.size(); ++i) {
+            if (std::abs(rendered[i] - live[i]) > 1e-5f) { QFAIL(qPrintable(QString("sample %1").arg(i))); }
+            (i < rendered.size() / 2 ? energyStart : energyEnd) += static_cast<double>(rendered[i]) * rendered[i];
+        }
+        // The level falls over the clip in the rendered output.
+        QVERIFY(energyStart > energyEnd * 4);
+    }
+    // A switched-off Volume sets aside its keys as well as its level.
+    void keyedVolumeStopsWithTheSwitch() {
+        Timeline tl;
+        tl.tracks = {track("a", TrackType::Audio)};
+        Clip c = keyedClip("c", "a", 1000.0, 0.0, {key(0, -20), key(1, -20)});
+        c.raw.insert("bypassedFixedEffects", QJsonObject{{"volume", QJsonObject{}}});
+        tl.clips = {c};
+        tl.durationMs = 1000.0;
+        const auto plan = buildMixPlan(tl);
+        const auto pcm = steady(48000);
+        QCOMPARE_LE(std::abs(mix(plan, pcm, 500.0, 2)[0] - 0.5), 1e-6);
     }
 
     // AudioSource: a float WAV decodes to the samples ffmpeg writes as raw

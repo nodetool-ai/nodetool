@@ -657,14 +657,19 @@ std::optional<std::string> effectiveAssetId(const Clip& clip) {
     return std::nullopt;
 }
 
-double depthOf(const Clip& c, double timeMs) {
+// `layerTime` gives a clip's own time in this shutter sample, as its transform reads it. It is only
+// asked of a clip with side curves.
+template <typename LayerTime>
+double depthOf(const Clip& c, const LayerTime& layerTime) {
     const double base = c.transform && c.transform->depthPx ? *c.transform->depthPx : 0.0;
-    return base + sideCurveAt(c, u"depthPx", steppedTime(c, timeMs)).value_or(0.0);
+    if (!sceneOf(c).sideCurves) return base;
+    return base + sideCurveAt(c, u"depthPx", steppedTime(c, layerTime(c))).value_or(0.0);
 }
 bool isEcho(const Clip& c) { return c.id.find(":echo:") != std::string::npos; }
 
-bool drawOrderLess(const Clip* a, const Clip* b, double timeMs) {
-    const double depth = depthOf(*a, timeMs) - depthOf(*b, timeMs);
+template <typename LayerTime>
+bool drawOrderLess(const Clip* a, const Clip* b, const LayerTime& layerTime) {
+    const double depth = depthOf(*a, layerTime) - depthOf(*b, layerTime);
     if (depth != 0) return depth < 0;
     const int ae = isEcho(*a) ? 0 : 1;
     const int be = isEcho(*b) ? 0 : 1;
@@ -1044,7 +1049,7 @@ SceneFrame evaluateSceneTap(const Timeline& timeline, double timeMs, double fram
             active.push_back(c);
         }
         std::stable_sort(active.begin(), active.end(), [](const Clip* a, const Clip* b) { return a->startMs < b->startMs; });
-        std::stable_sort(active.begin(), active.end(), [timeMs](const Clip* a, const Clip* b) { return drawOrderLess(a, b, timeMs); });
+        std::stable_sort(active.begin(), active.end(), [&layerTime](const Clip* a, const Clip* b) { return drawOrderLess(a, b, layerTime); });
 
         for (const Clip* clipPtr : active) {
             const Clip& clip = *clipPtr;
@@ -1225,7 +1230,7 @@ SceneFrame evaluateSceneTap(const Timeline& timeline, double timeMs, double fram
             for (const Clip* c : clipsByTrack[t.id]) {
                 if (c->mediaType != MediaType::Adjustment) ordered.push_back(c);
             }
-            std::stable_sort(ordered.begin(), ordered.end(), [timeMs](const Clip* a, const Clip* b) { return drawOrderLess(a, b, timeMs); });
+            std::stable_sort(ordered.begin(), ordered.end(), [&layerTime](const Clip* a, const Clip* b) { return drawOrderLess(a, b, layerTime); });
             for (size_t i = 0; i < ordered.size(); i++) stackOrder[ordered[i]->id] = static_cast<int>(i);
         }
         for (Pending& p : drawn) {

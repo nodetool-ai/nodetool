@@ -54,6 +54,8 @@ Item {
         icon: "volumeUp"
         InspectorSliderRow {
             objectName: "audioVolume"
+            // In Effect Controls the Level row above owns this value.
+            visible: !root.embedded
             width: parent.width
             label: "Volume"
             min: -60

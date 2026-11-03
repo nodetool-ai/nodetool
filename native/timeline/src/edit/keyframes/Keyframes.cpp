@@ -359,6 +359,9 @@ std::vector<Input> inputs(const QString& row) {
     if (row == "opacity") {
         return {{"opacity", {}, "opacity", 1, 0, 1}};
     }
+    if (row == "volume") {
+        return {{"volumeDb", {}, "volumeDb", 0, -60, 12}};
+    }
     if (row == "cameraOrbit") {
         return {{"cameraAzimuth", "camera", "azimuthDeg", 45}, {"cameraElevation", "camera", "elevationDeg", 25}};
     }
@@ -371,8 +374,8 @@ std::vector<Input> inputs(const QString& row) {
     return {};
 }
 double base(const QJsonObject& clip, const Input& i) {
-    if (i.property == "opacity") {
-        return clip["opacity"].toDouble(1);
+    if (i.property == "opacity" || i.property == "volumeDb") {
+        return clip[i.member].toDouble(i.defaultValue);
     }
     const auto from = i.group == "camera" ? cameraStyle(clip)["camera"].toObject()
                       : i.group.isEmpty() ? transform(clip)
@@ -380,8 +383,8 @@ double base(const QJsonObject& clip, const Input& i) {
     return from[i.member].toDouble(i.defaultValue);
 }
 QJsonObject basePatch(const QJsonObject& clip, const Input& i, double value) {
-    if (i.property == "opacity") {
-        return {{"opacity", value}};
+    if (i.property == "opacity" || i.property == "volumeDb") {
+        return {{i.member, value}};
     }
     if (i.group == "camera") {
         auto style = cameraStyle(clip);
@@ -748,10 +751,27 @@ std::optional<FixedGroup> fixedGroup(const QString& group) {
     if (group == "opacity") {
         return FixedGroup{{"opacity"}, {"opacity"}};
     }
+    // Volume's keys stay on their side animation while it is off, and the mixer skips them. The
+    // web's schema would strip `curves` from the Volume stash on a save.
     if (group == "volume") {
         return FixedGroup{{"volumeDb"}, {}};
     }
     return std::nullopt;
+}
+bool rowSwitchedOff(const QJsonObject& clip, const QString& row) {
+    const auto stash = clip["bypassedFixedEffects"].toObject();
+    for (const auto* group : {"motion", "opacity", "volume"}) {
+        if (!stash.contains(group)) {
+            continue;
+        }
+        const auto spec = fixedGroup(group);
+        for (const auto& property : properties(row)) {
+            if (spec->curveProperties.contains(property) || (property == "volumeDb" && QLatin1StringView(group) == "volume")) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 QJsonObject restoredGroup(QJsonObject clip, const QJsonObject& stash) {
     for (auto i = stash.begin(); i != stash.end(); ++i) {
@@ -761,7 +781,17 @@ QJsonObject restoredGroup(QJsonObject clip, const QJsonObject& stash) {
     }
     const auto saved = stash["curves"].toArray();
     if (!saved.isEmpty()) {
-        auto all = curves(clip);
+        // The stored keys win over any curve a document grew for the same property meanwhile.
+        QSet<QString> restoring;
+        for (const auto& curve : saved) {
+            restoring.insert(curve.toObject()["property"].toString());
+        }
+        QJsonArray all;
+        for (const auto& curve : curves(clip)) {
+            if (!restoring.contains(curve.toObject()["property"].toString())) {
+                all.append(curve);
+            }
+        }
         for (const auto& curve : saved) {
             all.append(curve);
         }
@@ -795,13 +825,13 @@ std::optional<QJsonObject> bypass(QJsonObject clip, const QJsonObject& payload) 
             }
         }
         // An animation-wide easing stays on the animation, so each saved key takes it along.
-        const QJsonValue override = animation(clip).value("easing");
         QJsonArray savedCurves;
         for (const auto& value : curves(clip)) {
             auto curve = value.toObject();
             if (!spec->curveProperties.contains(curve["property"].toString())) {
                 continue;
             }
+            const auto override = easingOverride(clip, curve["property"].toString());
             if (!override.isUndefined()) {
                 QJsonArray kfs;
                 for (const auto& k : curve["keyframes"].toArray()) {
@@ -1233,6 +1263,10 @@ QJsonObject edit(QJsonObject document, const QJsonObject& payload) {
         const auto action = payload["action"].toString();
         const auto row = payload["row"].toString();
         const auto at = payload.contains("atMs") ? payload["atMs"] : QJsonValue(QJsonValue::Null);
+        // A switched-off group shows its rows disabled, and Alt+K and the assistant respect that.
+        if (rowSwitchedOff(c, row)) {
+            return document;
+        }
         QJsonValue patch;
         if (action == "input") {
             patch = commit(c, row, payload["input"].toInt(),
@@ -1347,6 +1381,14 @@ QJsonArray rowSpecs() {
                                                       {"displayScale", 100},
                                                       {"min", 0},
                                                       {"max", 100}}}}},
+        QJsonObject{{"id", "volume"},
+                    {"label", "Level"},
+                    {"inputs", QJsonArray{QJsonObject{{"label", "Volume level"},
+                                                      {"unit", "dB"},
+                                                      {"decimals", 1},
+                                                      {"step", 0.5},
+                                                      {"min", -60},
+                                                      {"max", 12}}}}},
         QJsonObject{
             {"id", "cameraOrbit"},
             {"label", "Orbit"},

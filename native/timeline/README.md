@@ -587,8 +587,8 @@ Controls or Shift+5 in the Premiere preset, where the Inspector moved to Shift+9
 
 The groups follow Premiere's fixed effects. Motion holds Position, Scale, Rotation, Anchor, Rotation
 X, Rotation Y, Perspective and Depth, each keyed, and Camera follows it on 3D clips. Then come Opacity, Time
-Remapping, Crop, Corners, Motion blur and the clip's effects. Under audio come Volume, with the
-fades, and the audio effects. Each effect has its chain order and Remove in its heading, and a
+Remapping, Crop, Corners, Motion blur and the clip's effects. Under audio come Volume, with its keyed
+Level row and the fades, and the audio effects. Each effect has its chain order and Remove in its heading, and a
 grade also has an action that opens the Color panel. A group clip lists Motion, Opacity, Corners,
 Motion blur and its effects. A control that cannot be keyframed is a row in the
 same list over an empty lane, so the panel has one shape. Groups collapse, and fixed groups and

@@ -4,6 +4,7 @@
 #include "interchange/PremiereTransfer.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
+#include "scene/SideCurves.h"
 
 #include <QDir>
 #include <QFile>
@@ -358,6 +359,31 @@ private slots:
         QVERIFY(transfer.mode().isEmpty());
     }
 
+    // The server's report cannot see side curves, so the note comes from the open document.
+    void exportNamesTheKeysTheXmlLeavesOut() {
+        QTemporaryDir dir;
+        Server server;
+        server.setHandler([&](const Request& request) -> Reply {
+            if (request.target == "/api/timelines/abc123/export-premiere") {
+                return {200, "PK\3\4", {{"content-type", "application/zip"}, {"x-nodetool-export-report", reportHeader(1, {}, 0)}}, 0, 0};
+            }
+            return {404, R"({"detail":"Not found"})", {}, 0, 0};
+        });
+        TimelineModel model;
+        model.setTimeline(*nt::parseTimelineJson(QJsonDocument(QJsonObject{
+            {"name", "Keys"}, {"width", 64}, {"height", 64}, {"fps", 30}, {"durationMs", 1000},
+            {"tracks", QJsonArray{QJsonObject{{"id", "a"}, {"type", "audio"}}}},
+            {"clips", QJsonArray{QJsonObject{{"id", "c"}, {"trackId", "a"}, {"mediaType", "audio"}, {"startMs", 0}, {"durationMs", 1000},
+                {"animations", nt::scene::withSideCurves({}, QJsonArray{QJsonObject{{"property", "volumeDb"},
+                    {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", -6}}}}}}, 1000)}}}}}).toJson()).timeline);
+        PremiereTransfer transfer;
+        transfer.setTimeline(&model);
+        transfer.setTarget(targetFor(server));
+        transfer.exportTo(QUrl::fromLocalFile(dir.filePath("keys.zip")).toString());
+        QTRY_VERIFY_WITH_TIMEOUT(!transfer.running(), 20000);
+        QVERIFY2(transfer.error().isEmpty(), qPrintable(transfer.error()));
+        QCOMPARE(transfer.notes(), QStringList{"Premiere XML has no keyframes for Volume on 1 clip, so the XML carries the static values."});
+    }
     void exportFailureKeepsTheFileThatWasThere() {
         QTemporaryDir dir;
         const QString path = dir.filePath("keep.zip");

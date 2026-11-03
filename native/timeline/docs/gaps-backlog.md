@@ -115,7 +115,7 @@ results rather than a review finding.
 | B119 | P2 | F5 (#7080) r3 F10 | `src/edit/audioroles/` | Same cause as the previous entry, for clearing the role of a generated clip. | F5 |
 | B121 | P2 | F5 (#7080) | `src/edit/audioroles/` | A video clip with an extracted-audio partner (`linkId`) is measured as if it had its own sound, so matching it sets a volume on a clip the mix does not play. | F5 |
 | B122 | P2 | F5 (#7080) | `src/edit/audioroles/README.md` | Ducking lowers the whole track, so Music and Ambience should be on tracks of their own. The panel and the README say so. | F5 |
-| B123 | P2 | F7 (#7082) | `qml/effectcontrols/` | Effect rows have no keyframes, because the document has no keyframes for effect parameters. Volume has no clip keyframes either (track automation only), so it shows a level field only. | F7 |
+| B123 | P2 | F7 (#7082) | `qml/effectcontrols/` | Effect rows have no keyframes, because the document has no keyframes for effect parameters. | F7 |
 | B124 | P2 | F7 (#7082) | `qml/effectcontrols/` | Transitions are not listed in the panel (out of scope in the issue). | F7 |
 | B125 | P2 | F7 (#7082) | `src/edit/keyframes/ClipInspectorController.cpp` | Editing Motion, Opacity or Volume elsewhere (Inspector, gizmo) while the group is switched off is overwritten by the stored values when the group is switched back on. | F7 |
 | B126 | P2 | F7 (#7082) | `src/edit/keyframes/` | Trimming or splitting a clip while a group is switched off leaves its stored curves in normalized time, so they stretch to the new length, and both halves of a split carry the stored values. | F7 |
@@ -192,6 +192,8 @@ results rather than a review finding.
 | B201 | P2 | inspector-3 | `src/edit/clipeffects/ToneCurveEditor.qml` | At the default 360 px dock, Effect Controls' list column is too narrow for the curve editor's channel buttons, which collapse. The Color panel shows them, and widening the dock brings them back. | inspector-3 |
 | B199 | P2 | inspector-2 Astra | `qml/Inspector/primitives/InspectorRow.qml:30` | At Effect Controls' narrowest list width, about 145 px, a fade row's input and shape selector together are wider than the column, and the input clips on the left. They should wrap or shrink. | inspector-2 |
 | B202 | P2 | notes (keys-1) | `src/edit/keyframes/Keyframes.cpp` | An unset Perspective draws flat but its row shows 1000, as the old field did. Keying it on a turned clip therefore starts a perspective at 1000 instead of keeping the flat picture. | keys-1 |
+| B203 | P2 | notes (keys-2) | `qml/effectcontrols/EffectControlsModel.js` | A video clip with its own sound has no Volume group in Effect Controls, so its level and keys cannot be set there. The mixer already applies Volume keys to its voices, and Paste Attributes can bring them. | keys-2 |
+| B204 | P2 | keys-2 r1 | `src/edit/ClipOps.cpp`, `src/edit/keyframes/Keyframes.cpp` | Keyframe times use a tolerance of 1e-4 of the clip, as the web does. On a 10-minute clip that is 60 ms, so a split can take in a key near the cut on the keyframe animation, and adding a key near another replaces it on any curve. Side curves keep keys near a cut. | keys-2 |
 
 ## Closed
 

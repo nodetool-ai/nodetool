@@ -1,3 +1,5 @@
+#include "edit/clipboard/ClipboardOps.h"
+#include "scene/SideCurves.h"
 #include "app/EditRegistry.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
@@ -211,6 +213,40 @@ class TestFClipboard : public QObject {
             QVERIFY2(checkbox, qPrintable(it.key()));
             QCOMPARE(checkbox->property("text").toString(), it.value());
         }
+    }
+    // Volume keys go with Volume, which an audio clip takes, and not with the animations.
+    void pasteMovesVolumeKeysWithVolume() {
+        const auto curve = [](const QString &property, double value) {
+            return QJsonObject{{"property", property}, {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", value}}}}};
+        };
+        const auto keys = [](const auto &clip) {
+            QStringList names;
+            for (const auto &value : nt::scene::sideCurveList(clip.value("animations").toArray())) {
+                names.append(value.toObject().value("property").toString());
+            }
+            return names;
+        };
+        const QJsonObject source{{"id", "s"}, {"mediaType", "audio"}, {"durationMs", 1000}, {"volumeDb", -6},
+            {"animations", nt::scene::withSideCurves({}, QJsonArray{curve("volumeDb", -6)}, 1000)}};
+        QJsonObject target{{"id", "t"}, {"mediaType", "audio"}, {"durationMs", 500}};
+        auto patch = nt::edit::clipboard::attributePatch(source, target, {"volume"});
+        QCOMPARE(patch.value("volumeDb").toDouble(), -6.0);
+        QCOMPARE(keys(patch), QStringList{"volumeDb"});
+        // Another group leaves them alone.
+        QVERIFY(nt::edit::clipboard::attributePatch(source, target, {"audioEffects"}).value("animations").toArray().isEmpty());
+        // Pasting a level with no keys clears the target's keys.
+        auto keyed = target;
+        keyed.insert("animations", source.value("animations"));
+        const QJsonObject plain{{"id", "p"}, {"mediaType", "audio"}, {"durationMs", 1000}, {"volumeDb", -3}};
+        patch = nt::edit::clipboard::attributePatch(plain, keyed, {"volume"});
+        QVERIFY(patch.value("animations").toArray().isEmpty());
+        QVERIFY(patch.contains("animations"));
+        // Animations from a video clip leave the target's volume keys in place, and bring depth.
+        const QJsonObject mover{{"id", "m"}, {"mediaType", "video"}, {"durationMs", 1000},
+            {"animations", nt::scene::withSideCurves({}, QJsonArray{curve("depthPx", 4)}, 1000)}};
+        auto video = keyed;
+        video.insert("mediaType", "video");
+        QCOMPARE(keys(nt::edit::clipboard::attributePatch(mover, video, {"animations"})), (QStringList{"volumeDb", "depthPx"}));
     }
     void dialogSmallWindow() {
         QQmlEngine engine;

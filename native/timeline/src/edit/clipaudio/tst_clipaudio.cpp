@@ -554,7 +554,8 @@ MouseArea { width: 28; height: 28; property int pressCount: 0; onPressed: ++pres
             std::max(0.0, viewport->property("contentHeight").toDouble() - viewport->height())));
         QCoreApplication::processEvents();
         const auto rect = audio->mapRectToItem(viewport, QRectF(0, 0, audio->width(), audio->height()));
-        QVERIFY2(QRectF(0, 0, viewport->width(), viewport->height()).contains(rect), "Audio section lies outside the Effect Controls viewport");
+        // Mapping through the rows can leave a rounding error at the edge.
+        QVERIFY2(QRectF(0, 0, viewport->width(), viewport->height()).adjusted(-1, -1, 1, 1).contains(rect), "Audio section lies outside the Effect Controls viewport");
         QVERIFY(viewport->property("contentY").toDouble() > 0);
         QCOMPARE(audio->property("timelineModel").value<QObject*>(), &e.model);
         QCOMPARE(audio->property("gestures").value<QObject*>(), e.gestures());

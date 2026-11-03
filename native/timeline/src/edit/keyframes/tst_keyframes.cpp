@@ -618,6 +618,143 @@ class TestKeyframes : public QObject {
         patched.insert("animations", patch["animations"]);
         QCOMPARE(nt::keyframes::inputValue(patched, "anchor", 0, 0), 0.75);
     }
+    void volumeRowAddsToTheStaticLevel() {
+        auto parsed = nt::parseTimelineJson(
+            R"({"name":"Sound","width":640,"height":360,"fps":30,"durationMs":2000,"tracks":[{"id":"a","type":"audio","name":"Audio"}],"clips":[{"id":"c","trackId":"a","mediaType":"audio","name":"Voice","startMs":0,"durationMs":2000,"volumeDb":-6}]})");
+        TimelineModel model;
+        model.setTimeline(std::move(*parsed.timeline));
+        const auto clip = [&] { return model.clipsJson()[0].toObject(); };
+        const auto before = model.documentJson();
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "volume"}, {"atMs", 0}}));
+        QCOMPARE(model.undoStack()->count(), 1);
+        QCOMPARE(nt::keyframes::inputValue(clip(), "volume", 0, 0), -6.0);
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "volume"}, {"input", 0}, {"value", -18}, {"atMs", 2000}}));
+        QCOMPARE(clip()["volumeDb"].toDouble(), -6.0);
+        QCOMPARE(nt::keyframes::inputValue(clip(), "volume", 0, 2000), -18.0);
+        QCOMPARE(nt::keyframes::inputValue(clip(), "volume", 0, 1000), -12.0);
+        // Volume has no channel on the web, so it is on a side animation.
+        const auto animations = clip()["animations"].toArray();
+        QCOMPARE(animations.size(), 1);
+        QVERIFY(nt::scene::isSideCurveAnimation(animations[0].toObject()));
+        // A split cuts the curve at the value it holds there.
+        const auto [left, right] = nt::edit::splitClip(clip(), 1000);
+        QCOMPARE(nt::keyframes::inputValue(left, "volume", 0, 1000), -12.0);
+        QCOMPARE(nt::keyframes::inputValue(right, "volume", 0, 0), -12.0);
+        QCOMPARE(nt::keyframes::inputValue(right, "volume", 0, 1000), -18.0);
+        // The switch sets the level aside, leaves the keys in place, and restores the same picture.
+        QVERIFY(model.applyEdit("keyframes.bypass", {{"clipId", "c"}, {"group", "volume"}, {"enabled", false}}));
+        QVERIFY(!clip().contains("volumeDb"));
+        QCOMPARE(nt::keyframes::times(clip(), {"volumeDb"}), (QJsonArray{0, 2000}));
+        const auto [offLeft, offRight] = nt::edit::splitClip(clip(), 1000);
+        QCOMPARE(nt::keyframes::times(offLeft, {"volumeDb"}), (QJsonArray{0, 1000}));
+        QCOMPARE(nt::keyframes::times(offRight, {"volumeDb"}), (QJsonArray{0, 1000}));
+        const auto shown = nt::keyframes::withBypassRestored(clip());
+        QCOMPARE(nt::keyframes::inputValue(shown, "volume", 0, 2000), -18.0);
+        QVERIFY(model.applyEdit("keyframes.bypass", {{"clipId", "c"}, {"group", "volume"}, {"enabled", true}}));
+        QCOMPARE(nt::keyframes::inputValue(clip(), "volume", 0, 2000), -18.0);
+        // Stopping the row keeps the level at the playhead.
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "volume"}, {"atMs", 2000}}));
+        QCOMPARE(clip()["volumeDb"].toDouble(), -18.0);
+        QVERIFY(!clip().contains("animations") || clip()["animations"].toArray().isEmpty());
+        while (model.undoStack()->canUndo()) { model.undoStack()->undo(); }
+        QCOMPARE(model.documentJson(), before);
+        // A lock refuses the edit.
+        auto document = model.timeline().raw;
+        auto clips = document["clips"].toArray();
+        auto locked = clips[0].toObject();
+        locked.insert("locked", true);
+        clips[0] = locked;
+        document.insert("clips", clips);
+        QCOMPARE(nt::keyframes::edit(document, {{"clipId", "c"}, {"action", "stopwatch"}, {"row", "volume"}, {"atMs", 0}}), document);
+    }
+    // Review findings on the side curves of a long clip and the group switch.
+    void splitKeepsSideKeysNearTheCut() {
+        const QJsonObject curve{{"property", "volumeDb"},
+            {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", 0}}, QJsonObject{{"t", 0.5}, {"value", -40}, {"easing", "hold"}},
+                                     QJsonObject{{"t", 1}, {"value", -40}}}}};
+        const QJsonObject clip{{"id", "c"}, {"startMs", 0}, {"durationMs", 600000}, {"mediaType", "audio"},
+            {"animations", nt::scene::withSideCurves({}, QJsonArray{curve}, 600000)}};
+        const auto [left, right] = nt::edit::splitClip(clip, 299966.67);
+        QCOMPARE(nt::keyframes::times(left, {"volumeDb"}).size(), 2);
+        // The key is 33 ms after the cut, so it stays, and the drop stays at its time.
+        QCOMPARE(nt::keyframes::times(right, {"volumeDb"}).size(), 3);
+        QVERIFY(std::abs(nt::keyframes::times(right, {"volumeDb"})[1].toDouble() - 33) < 1);
+        QCOMPARE(nt::keyframes::inputValue(right, "volume", 0, 34), -40.0);
+        QCOMPARE(nt::keyframes::inputValue(right, "volume", 0, 30), 0.0);
+    }
+    void switchedOffRowsRefuseEdits() {
+        TimelineModel model;
+        model.setTimeline(fixture());
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "depth"}, {"atMs", 0}}));
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "depth"}, {"input", 0}, {"value", 100}, {"atMs", 1000}}));
+        QVERIFY(model.applyEdit("keyframes.bypass", {{"clipId", "c"}, {"group", "motion"}, {"enabled", false}}));
+        // Alt+K on the row of a switched-off group changes nothing.
+        QVERIFY(!model.applyEdit("keyframes.toggle", {{"clipId", "c"}, {"row", "depth"}, {"atMs", 500}}));
+        QVERIFY(!model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "position"}, {"input", 0}, {"value", 5}, {"atMs", 500}}));
+        // Other groups' rows still work.
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "opacity"}, {"atMs", 0}}));
+        QVERIFY(model.applyEdit("keyframes.bypass", {{"clipId", "c"}, {"group", "motion"}, {"enabled", true}}));
+        const auto clip = model.clipsJson()[0].toObject();
+        QCOMPARE(nt::keyframes::times(clip, {"depthPx"}), (QJsonArray{0, 1000}));
+        QCOMPARE(nt::keyframes::inputValue(clip, "depth", 0, 500), 50.0);
+    }
+    // A curve a document grew while the group was off cannot shadow the stored one.
+    void restoringAGroupReplacesALiveCurve() {
+        TimelineModel model;
+        model.setTimeline(fixture());
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "depth"}, {"atMs", 0}}));
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "depth"}, {"input", 0}, {"value", 100}, {"atMs", 1000}}));
+        QVERIFY(model.applyEdit("keyframes.bypass", {{"clipId", "c"}, {"group", "motion"}, {"enabled", false}}));
+        auto clip = model.clipsJson()[0].toObject();
+        clip.insert("animations", nt::scene::withSideCurves({}, QJsonArray{QJsonObject{{"property", "depthPx"},
+            {"keyframes", QJsonArray{QJsonObject{{"t", 0.25}, {"value", 7}}}}}}, 2000));
+        const auto shown = nt::keyframes::withBypassRestored(clip);
+        QCOMPARE(nt::keyframes::times(shown, {"depthPx"}), (QJsonArray{0, 1000}));
+        QCOMPARE(nt::scene::sideCurveList(shown["animations"].toArray()).size(), 1);
+    }
+    // An animation-wide easing goes onto the Motion keys it shapes, and no further.
+    void bypassLeavesSideCurveEasing() {
+        TimelineModel model;
+        model.setTimeline(fixture());
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "position"}, {"atMs", 0}}));
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "depth"}, {"atMs", 0}}));
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "depth"}, {"input", 0}, {"value", 100}, {"atMs", 1000}}));
+        auto raw = model.timeline().raw;
+        auto clips = raw["clips"].toArray();
+        auto clip = clips[0].toObject();
+        auto animations = clip["animations"].toArray();
+        for (qsizetype i = 0; i < animations.size(); ++i) {
+            auto a = animations[i].toObject();
+            if (!nt::scene::isSideCurveAnimation(a)) { a.insert("easing", "hold"); animations[i] = a; }
+        }
+        clip.insert("animations", animations);
+        clips[0] = clip;
+        raw.insert("clips", clips);
+        const auto off = nt::keyframes::edit(raw, {{"clipId", "c"}, {"action", "bypass"}, {"group", "motion"}, {"enabled", false}});
+        const auto on = nt::keyframes::edit(off, {{"clipId", "c"}, {"action", "bypass"}, {"group", "motion"}, {"enabled", true}});
+        QCOMPARE(nt::keyframes::inputValue(on["clips"].toArray()[0].toObject(), "depth", 0, 500), 50.0);
+    }
+    // One clip's motion blur does not move another clip through the stack early.
+    void depthOrderReadsEachClipsOwnTime() {
+        const QJsonObject curve{{"property", "depthPx"},
+            {"keyframes", QJsonArray{QJsonObject{{"t", 0.5}, {"value", -1}}, QJsonObject{{"t", 0.505}, {"value", 1}}}}};
+        const auto tile = [](const QString& id) {
+            return QJsonObject{{"id", id}, {"trackId", "v"}, {"mediaType", "shape"}, {"startMs", 0}, {"durationMs", 2000},
+                               {"shapeStyle", QJsonObject{{"kind", "rect"}}}};
+        };
+        auto keyed = tile("a");
+        keyed.insert("animations", nt::scene::withSideCurves({}, QJsonArray{curve}, 2000));
+        auto blurred = tile("b");
+        blurred.insert("motionBlur", QJsonObject{{"samplesPerFrame", 4}, {"shutterAngle", 360}});
+        const auto parsed = nt::parseTimelineJson(QJsonDocument(QJsonObject{{"name", "Order"}, {"width", 64}, {"height", 64}, {"fps", 30}, {"durationMs", 2000},
+            {"tracks", QJsonArray{QJsonObject{{"id", "v"}, {"type", "video"}}}}, {"clips", QJsonArray{keyed, blurred}}}).toJson());
+        QVERIFY(parsed.timeline.has_value());
+        // The last sample of the frame at 1000 ms reads B's time 25 ms on, past A's keys. A holds
+        // the frame's time, at depth -1, so it stays under B.
+        const auto frame = nt::evaluateSceneTap(*parsed.timeline, 1025, 1000, 3, 4);
+        QCOMPARE(frame.layers.size(), size_t(2));
+        QCOMPARE(frame.layers.front().clipId, std::string("a"));
+    }
     void bypassVolumeOnSoundOnly() {
         auto parsed = nt::parseTimelineJson(
             R"({"name":"Sound","width":640,"height":360,"fps":30,"durationMs":2000,"tracks":[{"id":"a","type":"audio","name":"Audio"}],"clips":[{"id":"c","trackId":"a","mediaType":"audio","name":"Voice","startMs":0,"durationMs":2000,"volumeDb":-6}]})");

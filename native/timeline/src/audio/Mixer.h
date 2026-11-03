@@ -8,7 +8,9 @@
 // track fader and pan (audio and midi tracks only; a video track's chain
 // keeps unity gain and centre pan, as AudioGraph never sets it), then
 // master.volumeDb. `mixBlock` renders that plan sample by sample. The device
-// callback and the offline render both call it, so they cannot disagree.
+// callback and the offline render both call it, so they cannot disagree. A clip's
+// keyed Volume is a `gainSource` on its voices, baked to gain ramps here, and it
+// multiplies with the track's automation on the bus.
 //
 // Not mixed: midi clips (no instrument yet),
 // automation, and time remaps. A clip speed reads the source at
