@@ -559,7 +559,8 @@ private slots:
         QTest::newRow("Shift+5") << int(Qt::Key_Percent) << QString("effectControls");
         QTest::newRow("Shift+9") << int(Qt::Key_ParenLeft) << QString("inspector");
         QTest::newRow("Shift+6") << int(Qt::Key_AsciiCircum) << QString("mixer");
-        QTest::newRow("Shift+7") << int(Qt::Key_Ampersand) << QString("script");
+        QTest::newRow("Shift+7") << int(Qt::Key_Ampersand) << QString("effects");
+        QTest::newRow("Shift+0") << int(Qt::Key_ParenRight) << QString("script");
         QTest::newRow("Shift+8") << int(Qt::Key_Asterisk) << QString("storyboard");
     }
     void panelKeys() {

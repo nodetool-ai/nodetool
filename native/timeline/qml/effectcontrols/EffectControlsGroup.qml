@@ -93,6 +93,50 @@ Column {
                 tone: root.groupOn ? Ui.Text.Primary : Ui.Text.Secondary
             }
             Ui.ToolbarIconButton {
+                id: reorder
+                objectName: "effectsReorder_" + root.group.effectId
+                visible: root.group.kind === "effect" && root.panel.effectEdits.processingStage(root.effect) === 0
+                enabled: !root.panel.locked
+                Layout.preferredWidth: Ui.Metrics.iconLg
+                Layout.preferredHeight: Ui.Metrics.iconLg
+                iconName: "dragIndicator"
+                accessibleName: "Reorder " + root.label
+                description: "Drag to reorder, or use Alt + arrow keys"
+                Keys.onPressed: event => {
+                    if ((event.modifiers & Qt.AltModifier) && (event.key === Qt.Key_Up || event.key === Qt.Key_Down)) {
+                        root.panel.effectEdits.move(root.group.effectId, event.key === Qt.Key_Up ? -1 : 1)
+                        event.accepted = true
+                    }
+                }
+                Item {
+                    id: reorderProxy
+                    width: reorder.width
+                    height: reorder.height
+                    Drag.active: reorderDrag.drag.active
+                    Drag.source: root
+                    Drag.keys: ["clip-effect"]
+                    Drag.hotSpot.x: width / 2
+                    Drag.hotSpot.y: height / 2
+                }
+                MouseArea {
+                    id: reorderDrag
+                    anchors.fill: parent
+                    drag.target: reorderProxy
+                    preventStealing: true
+                    onPressed: reorder.forceActiveFocus()
+                    onReleased: {
+                        reorderProxy.Drag.drop()
+                        reorderProxy.x = 0
+                        reorderProxy.y = 0
+                    }
+                    onCanceled: {
+                        reorderProxy.Drag.cancel()
+                        reorderProxy.x = 0
+                        reorderProxy.y = 0
+                    }
+                }
+            }
+            Ui.ToolbarIconButton {
                 objectName: "effectControlsOpenColor_" + root.group.effectId
                 visible: root.group.kind === "effect" && Catalog.gradedInColorPanel(root.group.effectType)
                 Layout.preferredWidth: Ui.Metrics.iconLg
@@ -125,6 +169,17 @@ Column {
                 onClicked: root.moveAudioEffect(1)
             }
             Ui.ToolbarIconButton {
+                objectName: "effectsRemove_" + root.group.effectId
+                visible: root.group.kind === "effect"
+                enabled: !root.panel.locked
+                Layout.preferredWidth: Ui.Metrics.iconLg
+                Layout.preferredHeight: Ui.Metrics.iconLg
+                iconName: "close"
+                accessibleName: "Remove " + root.label + " effect"
+                description: accessibleName
+                onClicked: root.panel.effectEdits.remove(root.group.effectId)
+            }
+            Ui.ToolbarIconButton {
                 objectName: "audioEffectRemove-" + root.group.effectId
                 visible: root.group.kind === "audioEffect"
                 enabled: !root.panel.locked
@@ -137,6 +192,19 @@ Column {
             }
         }
         Ui.Separator { y: parent.height - height; width: parent.width }
+        // It reaches past this heading, over the group's rows, so a drop anywhere on the group lands.
+        DropArea {
+            width: parent.width
+            height: root.height
+            enabled: root.group.kind === "effect" && root.panel.effectEdits.processingStage(root.effect) === 0
+            keys: ["clip-effect"]
+            onDropped: drop => {
+                if (drop.source && drop.source.group && !root.panel.locked) {
+                    root.panel.effectEdits.drop(drop.source.group.effectId, root.group.effectId)
+                    drop.acceptProposedAction()
+                }
+            }
+        }
     }
     Column {
         width: root.width
@@ -178,6 +246,17 @@ Column {
                     embedded: true
                 })
             }
+        }
+        Ui.Text {
+            objectName: "effectsStage_" + root.group.effectId
+            readonly property int stage: root.group.kind === "effect" ? root.panel.effectEdits.processingStage(root.effect) : 0
+            visible: stage !== 0
+            x: Ui.Metrics.md
+            width: root.panel.listWidth - x - Ui.Metrics.md
+            wrapMode: Text.WordWrap
+            role: Ui.Typography.SansCaption
+            tone: Ui.Text.Secondary
+            text: stage === -2 ? "Source noise reduction before stabilization" : stage === -1 ? "Source stabilization before clip effects" : stage === 1 ? "Combined color grade after clip effects" : "Combined blur after color grade"
         }
         Loader {
             active: root.group.kind === "effect" && root.open

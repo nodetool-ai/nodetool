@@ -60,7 +60,8 @@ inline constexpr const char* KEYMAP_OVERLAY_JSON = R"overlay({"premiere":[
 ["panelEffectControls",[{"key":"5","shift":true}]],
 ["panelInspector",[{"key":"9","shift":true}]],
 ["panelMixer",[{"key":"6","shift":true}]],
-["panelScript",[{"key":"7","shift":true}]],
+["panelEffects",[{"key":"7","shift":true}]],
+["panelScript",[{"key":"0","shift":true}]],
 ["panelStoryboard",[{"key":"8","shift":true}]],
 ["nextPanel",[{"key":".","ctrl":true,"shift":true}]],
 ["prevPanel",[{"key":",","ctrl":true,"shift":true}]]

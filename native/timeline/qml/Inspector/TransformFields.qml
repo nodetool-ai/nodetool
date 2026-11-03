@@ -39,7 +39,7 @@ Column {
             controlMinWidth: 0
             InspectorPillInput {
                 objectName: spatialRow.modelData.field + "-input"
-                minWidth: Ui.Metrics.touch * 1.8
+                minWidth: Ui.Metrics.touch * 2.1
                 value: { const clip = root.controller.clip; return (root.controller.fieldValue(spatialRow.modelData.field)*spatialRow.modelData.scale).toFixed(1) }
                 unit: spatialRow.modelData.unit
                 ariaLabel: spatialRow.modelData.label

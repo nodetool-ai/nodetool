@@ -140,7 +140,7 @@ QList<Command> buildAllowed() {
     // The view.
     actions({"zoomIn", "zoomOut", "zoomFit", "zoomSelection", "expandTracks", "shrinkTracks", "expandAllTracks", "minimizeAllTracks", "audioTracksTaller",
              "audioTracksShorter", "toggleTimecodeRuler", "nextPanel", "prevPanel", "toggleLeftPanels", "toggleRightPanels", "toggleDawMode"});
-    actions(family("panel", {"Assets", "Source", "Timeline", "Program", "Reference", "Inspector", "Mixer", "Audio", "Script", "Storyboard",
+    actions(family("panel", {"Assets", "Effects", "Source", "Timeline", "Program", "Reference", "Inspector", "Mixer", "Audio", "Script", "Storyboard",
                              "Text", "EffectControls", "Color", "Scopes", "Entities", "Markers", "Assistant", "Activity"}));
     actions(numbered("workspace", 6));
     actions(family("monitorZoom", {"Fit", "10", "25", "50", "75", "100", "150", "200", "400", "800", "1600"}));
@@ -309,6 +309,8 @@ QHash<QString, QString> buildDenied() {
     deny({"editMarker"}, dialog + ". Use markers.update");
     deny({"resetWorkspace", "maximizePanel", "toggleProgramFullscreen"}, window);
     // Steps of other features. An edit with the same id as an action above runs through that action.
+    deny({"applyClipEffects"},
+        "it is the Effects panel's add for several clips. Use patchClip or addClipAudioEffect for one clip");
     deny({"updateTrackEffect", "updateMasterEffect", "patchClipAudioEffect"},
          "only the panels know each value's range, and a very large one can exhaust memory. Add or remove the effect instead");
     deny({"deleteMarker", "altDragCopy", "duplicateSelected", "moveSelectedClips", "nudge", "pasteClipAttributes", "removeRange", "resolveDropAction", "splitSelectedAtPlayhead",

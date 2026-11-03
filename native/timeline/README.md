@@ -551,6 +551,19 @@ document bar for 6 seconds and change nothing.
 
 Tests: `tst_takeswitch`, `tst_takeswitchui`.
 
+### Effects panel
+
+The Effects panel is a tab beside the Library, and Window > Effects or Shift+7 in the Premiere preset
+opens it. It lists every effect that is not a grade, in Video and Audio groups, with a search field.
+Double-click an effect to add it to the selection, in one undo step. A video effect skips sound clips
+and an audio effect skips everything else, and locked clips are skipped. With nothing to act on, the
+row is dimmed, its tooltip says why, and a double-click puts the same reason in the panel's status
+line. Dragging an effect onto a clip adds it to that clip, with or without a selection. Transitions
+keep their own route through the clip menu and the edit point menu. Scripts moved to Shift+0, because
+Premiere's preset uses Shift+7 for Effects.
+
+Tests: `tst_dockui`, `tst_clipeffects`, `tst_clipaudio`.
+
 ### Effect Controls
 
 Effect Controls owns what a selected clip does on screen and on the speakers. It is the tab right
@@ -560,8 +573,9 @@ Controls or Shift+5 in the Premiere preset, where the Inspector moved to Shift+9
 The groups follow Premiere's fixed effects. Motion holds Transform and the clip's anchor, 3D
 rotation, perspective and depth, and Camera follows it on 3D clips. Then come Opacity, Time
 Remapping, Crop, Corners, Motion blur and the clip's effects. Under audio come Volume, with the
-fades, and the audio effects, each with its chain order and Remove in its heading. A group clip
-lists Motion, Opacity, Corners and Motion blur. A control that cannot be keyframed is a row in the
+fades, and the audio effects. Each effect has its chain order and Remove in its heading, and a
+grade also has an action that opens the Color panel. A group clip lists Motion, Opacity, Corners,
+Motion blur and its effects. A control that cannot be keyframed is a row in the
 same list over an empty lane, so the panel has one shape. Groups collapse, and fixed groups and
 sections remember that across clips. All but Camera and the sections without one have an enable
 switch, and Time Remapping's switch is in its heading.
