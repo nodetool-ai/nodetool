@@ -73,7 +73,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "direction",
-          "value": "Warm steam rises gently from the ceramic cup under soft morning window light.",
+          "value": "Steam curls up from the espresso cup on the dark wooden table among scattered coffee beans, warm low light.",
           "description": "What happens in the frame, the mood and the light.",
           "line_mode": "multi_line"
         },

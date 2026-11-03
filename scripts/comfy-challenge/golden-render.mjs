@@ -29,7 +29,7 @@ if (!apiKey) throw new Error("COMFY_API_KEY is required");
 
 const imagePath = flag("image", path.join(ROOT, "packages/base-nodes/nodetool/assets/nodetool-base/recipe-inputs/coffee.jpg"));
 const move = flag("move", "dolly in");
-const direction = flag("direction", "Warm steam rises gently from the ceramic cup under soft morning window light.");
+const direction = flag("direction", "Steam curls up from the espresso cup on the dark wooden table among scattered coffee beans, warm low light.");
 const seed = Number(flag("seed", "42"));
 const outDir = path.resolve(flag("out", path.join(ROOT, "out/comfy-golden")));
 fs.mkdirSync(outDir, { recursive: true });
@@ -56,7 +56,7 @@ const started = new Date();
 console.log(`submitting: move=${move} seed=${seed}`);
 const job = await client.submit(workflow);
 console.log(`job ${job.id} submitted`);
-await job.wait(15 * 60 * 1000);
+await job.wait(30 * 60 * 1000);
 const finished = new Date();
 console.log(`job ${job.id} ${job.status} in ${((finished - started) / 1000).toFixed(1)}s`);
 
@@ -82,7 +82,7 @@ const record = {
 
 if (job.status === "succeeded") {
   for (const output of job.getOutputs("58")) {
-    const file = path.join(outDir, `${preset.id}-seed${seed}-${job.id}${path.extname(output.filename ?? ".mp4") || ".mp4"}`);
+    const file = path.join(outDir, `${preset.id}-seed${seed}-${job.id}${path.extname(output.name ?? "") || ".mp4"}`);
     await output.toFile(file);
     record.outputs.push({ file: path.basename(file), bytes: fs.statSync(file).size, contentType: output.contentType ?? null });
   }

@@ -439,7 +439,7 @@
             "type": "nodetool.input.StringInput",
             "data": {
               "name": "direction",
-              "value": "Warm steam rises gently from the ceramic cup under soft morning window light.",
+              "value": "Steam curls up from the espresso cup on the dark wooden table among scattered coffee beans, warm low light.",
               "description": "What happens in the frame, the mood and the light.",
               "line_mode": "multi_line"
             },
@@ -506,13 +506,13 @@
   ],
   "values": {
     "op:takeA/in:camera_move": "dolly in",
-    "op:takeA/in:direction": "Warm steam rises gently from the ceramic cup under soft morning window light.",
+    "op:takeA/in:direction": "Steam curls up from the espresso cup on the dark wooden table among scattered coffee beans, warm low light.",
     "op:takeA/in:seed": 42,
     "op:takeA/out:take": {
       "$demo": "video"
     },
     "op:takeB/in:camera_move": "dolly in",
-    "op:takeB/in:direction": "Warm steam rises gently from the ceramic cup under soft morning window light.",
+    "op:takeB/in:direction": "Steam curls up from the espresso cup on the dark wooden table among scattered coffee beans, warm low light.",
     "op:takeB/in:seed": 42,
     "op:takeB/out:take": {
       "$demo": "video"

@@ -23,7 +23,7 @@ Direction ────┤          │
 Seed ─────────┘          ▼
               Run on Comfy Cloud  (pinned ComfyUI API workflow, Comfy API v2)
                          │
-                         ├─▶ take          (video asset, saved automatically)
+                         ├─▶ take          (the rendered video)
                          ├─▶ comfy_job     (job id, status, output manifest)
                          └─▶ run_settings  (preset id + version, prompt, seed, model)
 ```
@@ -35,8 +35,8 @@ Seed ─────────┘          ▼
    fragment to your direction and emits a JSON run record.
 2. **Run on Comfy Cloud** injects the image, prompt and seed into a pinned
    ComfyUI API-format graph and submits it through the Comfy API v2 SDK. Media
-   inputs are uploaded as Comfy assets first. Outputs stream back and are saved
-   as NodeTool assets.
+   inputs are uploaded as Comfy assets first. The rendered video streams back
+   on the node's `58:video` output.
 3. The app runs the same workflow as two operations, **Take A** and **Take B**,
    each with its own result slot, so a revision never overwrites the first take.
 
@@ -67,12 +67,20 @@ open-weights.
    **Generate Take A**. Change the move or direction and press
    **Generate Take B**.
 
-Headless, from the repository:
+Headless, from the repository. Pass the still as a `file://` ref, because the
+CLI run context does not resolve the default `package://` sample:
 
 ```bash
-COMFY_API_KEY=... npm run dev:nodetool -- workflows run \
+COMFY_API_KEY=... npm run dev:nodetool -- run \
   "packages/base-nodes/nodetool/examples/nodetool-base/Shot Director.json" \
-  --params '{"camera_move":"orbit","direction":"A ceramic cup on a sunlit table","seed":7}' --json
+  --params '{"camera_move":"orbit","seed":7,"source_image":{"type":"image","uri":"file:///path/to/still.jpg"}}'
+```
+
+The golden-render script submits the same pinned graph straight through the
+Comfy API v2 SDK and writes the video plus a run record:
+
+```bash
+COMFY_API_KEY=... node scripts/comfy-challenge/golden-render.mjs --move "dolly in" --seed 42 --out out/comfy-golden
 ```
 
 ## What is and isn't claimed
@@ -81,6 +89,6 @@ COMFY_API_KEY=... npm run dev:nodetool -- workflows run \
   control. Motion quality varies per input.
 - Comfy Cloud reports no per-job cost to NodeTool, so the run record holds the
   job id but no price.
-- Evidence of real renders (job ids, outputs, latency) is listed in
-  [`evidence.md`](evidence.md) once recorded. Nothing there is filled in from
-  estimates.
+- Real renders (job ids, outputs, latency) are listed in
+  [`evidence.md`](evidence.md), including what has not been verified yet.
+  A render on Comfy Cloud took 88 to 95 seconds from submit to finished.
