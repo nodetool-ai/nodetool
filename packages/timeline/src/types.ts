@@ -1408,6 +1408,12 @@ export interface TimelineClip {
    * only. Must also exist on the protocol zod schema or PATCH would strip it.
    */
   animations?: ClipAnimation[];
+  /**
+   * Keys for parameters with no animated channel (see `paramCurves.ts`). The
+   * native editor reads them. Other readers keep the field and draw the static
+   * values. Must also exist on the protocol zod schema or PATCH would strip it.
+   */
+  paramCurves?: ClipParamCurve[];
   /** Declarative links and deterministic wiggle evaluated while rendering. */
   animationLinks?: import("./animation/links.js").AnimationLink[];
   /**
@@ -1867,12 +1873,13 @@ export interface ClipLightLeakTransition {
  * - `anchor` is the rotation/scale pivot in normalized [0,1] coords (0.5 = center).
  */
 /** A property curve as it is stored on a custom clip animation. */
+export type ClipParamCurve = ClipBypassedCurve;
 export type ClipBypassedCurve = { property: string; keyframes: { t: number; value: number; easing?: string; sourceMs?: number }[] };
 /** See {@link TimelineClip.bypassedFixedEffects}. */
 export interface ClipBypassedFixedEffects {
   motion?: { transform?: ClipTransform; curves?: ClipBypassedCurve[] };
   opacity?: { opacity?: number; curves?: ClipBypassedCurve[] };
-  volume?: { volumeDb?: number };
+  volume?: { volumeDb?: number; curves?: ClipBypassedCurve[] };
 }
 
 export interface ClipTransform {

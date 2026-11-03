@@ -2,7 +2,6 @@
 // server open against an in-process HTTP server that answers like NodeTool.
 
 #include "server/AssetCache.h"
-#include "scene/SideCurves.h"
 #include "server/FieldAudit.h"
 #include "server/ServerClient.h"
 #include "server/ServerTimeline.h"
@@ -178,13 +177,11 @@ private slots:
             QCOMPARE(auditTimelineFields(sequence).value(u"fields").toObject(), QJsonObject{});
         }
     }
-    // Native draws side curves itself, whatever each one names.
-    void auditPassesSideCurves() {
+    // Native reads `paramCurves` itself, and a name it does not read does no harm.
+    void auditPassesParamCurves() {
         const QJsonObject curve{{"property", "depthPx"}, {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", 1}}}}};
-        const QJsonObject sequence{{"clips", QJsonArray{QJsonObject{
-            {"id", "c"}, {"mediaType", "video"},
-            {"animations", nt::scene::withSideCurves({}, QJsonArray{curve}, 1000)}}}}};
-        QCOMPARE(auditTimelineFields(sequence).value(u"fields").toObject().contains("animations.effectChannels"), false);
+        const QJsonObject sequence{{"clips", QJsonArray{QJsonObject{{"id", "c"}, {"mediaType", "video"}, {"paramCurves", QJsonArray{curve}}}}}};
+        QCOMPARE(auditTimelineFields(sequence).value(u"fields").toObject(), QJsonObject{});
     }
     void inactivityTimeoutIsTypedAfterAnyHeaders_data() {
         QTest::addColumn<bool>("headers");

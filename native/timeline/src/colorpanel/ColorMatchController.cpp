@@ -24,7 +24,7 @@ QJsonObject nt::colorpanel::isolatedClipDocument(const QJsonObject& snapshot, co
         if (value.toObject().value("id").toString() == clipId) clip = value.toObject();
     }
     for (const auto* field : {"transform", "layout", "flexItem", "repeater", "opacity", "blendMode", "parentId", "hidden",
-                              "transitionIn", "animations", "animationLinks", "fadeInMs", "fadeOutMs", "temporalEcho",
+                              "transitionIn", "animations", "paramCurves", "animationLinks", "fadeInMs", "fadeOutMs", "temporalEcho",
                               "motionBlur", "borderRadius", "caption"}) {
         clip.remove(QLatin1String(field));
     }

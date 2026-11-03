@@ -1,56 +1,58 @@
 # Web follow-ups for the native timeline
 
-The native timeline keys parameters the web editor does not. The document schema is unchanged, so
-web opens and saves these documents. Each entry below says what native does, what web does with the
-same document, what web needs, and where. Add an entry in the same commit as the native behaviour.
-Ids are stable. Move a finished entry to [Done](#done) and keep its id.
-
-Web here means `web/` and `packages/`. Nothing in them has changed for this work.
+The native timeline keys parameters the web editor does not. Each entry below says what native does, what web does with the same document, what web needs, and where. Add an entry in the same commit as the native behaviour. Ids are stable. Move a finished entry to [Done](#done) and keep its id.
 
 ## How these keys are stored
 
-Curves with a name in `ANIMATED_PROPERTIES` (`packages/timeline/src/animation/types.ts`) go on the
-clip's keyframe animation, the one with `params.keyframed`, and web draws them.
+Curves with a name in `ANIMATED_PROPERTIES` (`packages/timeline/src/animation/types.ts`) go on the clip's keyframe animation, the one with `params.keyframed`, and web draws them.
 
-Curves with any other name go on side animations (`src/scene/SideCurves.h`). A side animation looks
-like this:
+Curves with any other name go in the clip's optional `paramCurves` field (`timelineClip.paramCurves` in `packages/protocol/src/api-schemas/timeline.ts`, `src/scene/ParamCurves.h` in native):
 
 ```json
-{"id": "...", "role": "loop", "preset": "breathe", "durationMs": 2000, "delayMs": 0, "enabled": false,
- "params": {"intensity": 0, "sideCurves": true},
- "custom": {"curves": [{"property": "depthPx", "keyframes": [{"t": 0, "value": 0}]}]}}
+"paramCurves": [
+  {"property": "volumeDb", "keyframes": [{"t": 0, "value": 0}, {"t": 1, "value": -12, "easing": "easeIn"}]},
+  {"property": "effect:<effectId>:radius", "keyframes": [{"t": 0, "value": 4}]}
+]
 ```
 
-Each animation holds at most 16 curves, and a clip has as many as it needs. The shape comes from
-these web behaviours, each checked against this branch's sources by importing them:
+The curve shape and clock are those of a custom animation's curves, with `t` normalized over the clip. The list holds at most `MAX_PARAM_CURVES` (`packages/timeline/src/paramCurves.ts`) and a curve at most `MAX_CUSTOM_KEYFRAMES` keys, pinned in `packages/execution/tests/timeline-schema-bounds.test.ts`. Any name parses and validates, and a name no reader knows is kept and ignored. The animation compiler never reads the field, so nothing here can affect the keys on the keyframe animation.
 
-- `customClipAnimation.curves` accepts any property name but refuses more than 16 curves, and
-  `clipAnimation` keeps `custom` on any preset. So parsing and saving keep the curves.
-- `normalizeCustomCurves` refuses a whole curve list for one unknown name, and `compileClipAnimations`
-  then skips that animation. The comment on `animationPropertyCurve` says only the one curve is
-  dropped, which is not what the code does. A new name on the keyframe animation would stop web
-  drawing every key on that clip.
-- `validateTimelineSequence` reports an error for an unknown preset and for an invalid custom list,
-  whether or not the animation is enabled. `set_timeline_document` and the agent bake refuse to write
-  a document with errors. So the side animation names a stock preset and is switched off.
-- `breathe` at intensity 0 draws nothing, so switching the row on in web changes nothing.
+| Name | Fold | Keys |
+|---|---|---|
+| `volumeDb` | Adds to the static level, in dB | Volume |
+| `perspective` | Replaces the static value | Motion |
+| `depthPx` | Adds to the static value | Motion |
+| `cropLeft`, `cropTop`, `cropRight`, `cropBottom` | Replaces the static edge | Crop |
+| `borderRadius` | Replaces the static value | Corners |
+| `effect:<effectId>:<param>` | Replaces the effect's static value | A numeric effect parameter |
 
-A curve name on a side animation is a parameter name. An effect parameter is `effect:<effectId>:<param>`.
+A switched-off Motion, Opacity or Volume group holds its curves in `bypassedFixedEffects.<group>.curves`.
+
+### What web does today
+
+Web keeps the field through open and save and shows no rows for it. These operations handle it, in `packages/timeline` and `web/src/stores/timeline`:
+
+- A split slices each curve at its value, a merge joins the halves back, and a trim stretches keys with the clip, as a hand-set keyframe does.
+- Removing an effect, through `patchClip` or the `set_effects` op, removes its `effect:<id>:*` curves.
+- Paste Attributes moves a curve with the group its parameter belongs to: effect keys with Video effects, volume keys with Volume, the others with Animations and keyframes.
+
+Web draws the static values, so a clip's picture and sound differ from native while these keys are on.
 
 ## Open
 
 | ID | Native | Web today | Web needs | Where |
 |---|---|---|---|---|
-| W1 | Side animations hold keys for parameters with no channel, and the native Inspector hides them. | Keeps them through open and save. Lists each as a switched-off Breathe row in the clip's animations. Deleting that row deletes the keys. A split gives both halves the whole curve, stretched over each half. | Hide rows with `params.sideCurves`. Slice their curves in a split, as `sliceKeyframeAnimation` does. | `web/src/components/timeline/Inspector/ClipAnimations.tsx`, `packages/timeline/src/splitClip.ts` |
 | W2 | Anchor X/Y and Rotation X/Y have stopwatches, on channels web already has. | Draws the animated values, since the channels are shared. Its Inspector has no row for them, so it shows the static value and no keys. The Premiere XML report says they require baking. | Rows for these channels. | `web/src/components/timeline/Inspector/keyframeRows.ts`, `KEYFRAME_PROPERTIES` in `packages/timeline/src/keyframes.ts` |
-| W3 | Perspective (`perspective`, replaces the static value) and Depth (`depthPx`, adds to it) are keyed on side curves. Depth also reorders the stack per frame. | Keeps the curves and draws the static values, so the picture differs from native while either is keyed. | Read the side curves in the animated layer props and in the draw order, and add rows. | `resolveAnimatedLayerProps` in `packages/timeline/src/render/sceneModel.ts`, `keyframeRows.ts` |
-| W4 | `scripts/plan-conformance.mjs` compares perspective, depth and the draw matrix per layer, and that matrix depends on the cropped size. | The oracle uses web's code, so a document with W3 or W7 keys reports a mismatch. No fixture has such keys, and no example timeline can, since only native writes them. | Nothing until W3 and W7. Then add a fixture. | `scripts/plan-conformance.mjs`, `fixtures/` |
-| W5 | Clip Volume is keyed on a `volumeDb` side curve, in dB on top of `volumeDb`. Preview and export multiply it with track automation, as Premiere's clip and track volume do. | Keeps the curve and plays the static `volumeDb`, so the mix differs from native while it is keyed. Saving keeps it, including while the Volume switch is off, because the curve stays on the side animation. | A per-sample gain from the curve, and a row. | `web/src/components/timeline/preview/AudioGraph.ts`, `render/renderAudio.ts`, `keyframeRows.ts` |
-| W6 | The Premiere report notes that Volume keys are left out, from the open document. | The XML writer puts the static level and fade keys in Audio Levels and does not read side curves, so its own report says nothing about them. | Write the `volumeDb` curve into Audio Levels with the fade keys, and report side curves. Then remove the native note. | `packages/timeline/src/interchange.ts`, `interchangeMotion.ts`, `src/interchange/PremiereTransfer.cpp` |
-| W7 | Crop is keyed per edge on `cropLeft`, `cropTop`, `cropRight` and `cropBottom` side curves, which replace the static edge. Opposite edges keep 5% of the picture between keys. | Keeps the curves and draws the static `crop`, so the picture differs from native while they are keyed. | Sample the edges where the crop is read, and add rows. | `cropRectPx` callers in `packages/timeline/src/render/`, `keyframeRows.ts` |
-| W8 | Corners are keyed on a `borderRadius` side curve, which replaces the static value. | Keeps the curve and draws the static `borderRadius`. Web can animate it through a `clip.borderRadius` style track instead, which native also reads, and that track is a separate store. | Read the side curve or migrate it to a style track, and add a row. | `packages/timeline/src/render/sceneModel.ts`, `keyframeRows.ts` |
-| W9 | Numeric parameters of video effects from the Effects panel are keyed on `effect:<effectId>:<param>` side curves, one generic path. Each replaces the effect's static value at render time. Removing an effect removes its curves, and Paste Attributes moves them with the effects. A parameter a web style track already animates takes no keys in native. | Keeps the curves and draws the static values. A web edit that removes an effect leaves its curves behind, which do nothing. | Apply the curves where effects are read. A web `styleTracks` target `effect.<id>.<param>` already animates a parameter, so these could migrate to it. Add rows. | `packages/timeline/src/render/sceneModel.ts`, `web/src/components/timeline/Inspector/` |
+| W3 | Perspective and Depth are keyed in `paramCurves`. Depth also reorders the stack per frame. | Keeps the curves and draws the static values. | Read the curves in the animated layer props and in the draw order, and add rows. | `resolveAnimatedLayerProps` in `packages/timeline/src/render/sceneModel.ts`, `keyframeRows.ts` |
+| W4 | `scripts/plan-conformance.mjs` compares perspective, depth and the draw matrix per layer, and that matrix depends on the cropped size. Effect chains are not compared. | The oracle uses web's code, so a document with W3 or W7 keys reports a mismatch. No fixture has such keys, and no example timeline can, since only native writes them. | Nothing until W3 and W7. Then add a fixture. | `scripts/plan-conformance.mjs`, `fixtures/` |
+| W5 | Clip Volume is keyed on `volumeDb`. Preview and export multiply it with track automation, as Premiere's clip and track volume do. | Keeps the curve, including in the Volume stash while the switch is off, and plays the static `volumeDb`. | A per-sample gain from the curve, and a row. | `web/src/components/timeline/preview/AudioGraph.ts`, `render/renderAudio.ts`, `keyframeRows.ts` |
+| W6 | The Premiere report notes that `paramCurves` keys are left out, from the open document. | The XML writer puts the static level and fade keys in Audio Levels and does not read `paramCurves`, so its own report says nothing about them. | Write the `volumeDb` curve into Audio Levels with the fade keys, and report the other curves. Then remove the native note. | `packages/timeline/src/interchange.ts`, `interchangeMotion.ts`, `src/interchange/PremiereTransfer.cpp` |
+| W7 | Crop is keyed per edge. Opposite edges keep 5% of the picture between keys. | Keeps the curves and draws the static `crop`. | Sample the edges where the crop is read, and add rows. | `cropRectPx` callers in `packages/timeline/src/render/`, `keyframeRows.ts` |
+| W8 | Corners are keyed on `borderRadius`. | Keeps the curve and draws the static `borderRadius`. Web can animate it through a `clip.borderRadius` style track, which native also reads, and that track is a separate store. | Read the curve or migrate it to a style track, and add a row. | `packages/timeline/src/render/sceneModel.ts`, `keyframeRows.ts` |
+| W9 | Numeric parameters of effects from the Effects panel are keyed on `effect:<effectId>:<param>`. A parameter a web style track already animates takes no keys in native. | Keeps the curves and draws the static values. | Apply the curves where effects are read, and add rows. A web `styleTracks` target `effect.<id>.<param>` already animates a parameter, so these could migrate to it. | `packages/timeline/src/render/sceneModel.ts`, `web/src/components/timeline/Inspector/` |
 
 ## Done
 
-None yet.
+| ID | What it was | How it closed |
+|---|---|---|
+| W1 | Keys for parameters with no channel sat on carrier animations, which web listed as switched-off rows and duplicated whole on a split. | Replaced by the `paramCurves` field, so there are no rows, and a split slices the curves. |

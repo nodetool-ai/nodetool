@@ -103,6 +103,14 @@ leftClip.fadeOutMs`, `delete rightClip.fadeInMs`/`transitionIn`. A full spread
   extends the abutting predecessor under it by the transition length, so a
   hard cut becomes a dissolve rather than a fade from transparent. It never
   exceeds the shorter of the two clips.
+- **`paramCurves` hold keys for parameters with no channel** (`src/paramCurves.ts`):
+  a clip's volume, crop edges, corner radius, perspective, depth and
+  `effect:<effectId>:<param>`, in the curve shape of a custom animation. The
+  native editor reads them, this package only keeps them correct: a split
+  slices them, a merge joins them, and removing an effect removes its curves.
+  Any name parses and validates. A name outside `ANIMATED_PROPERTIES` must stay
+  out of a custom animation, because `normalizeCustomCurves` refuses the whole
+  list for it. See [web follow-ups](../../native/timeline/docs/web-followups.md).
 - **Hand-set keyframes are one custom animation** (`src/keyframes.ts`):
   `preset: "custom"`, role `emphasis`, `params.keyframed`, duration equal to
   the clip's, one curve per property. The sampler plays it like any custom

@@ -36,11 +36,11 @@ Ui.Dialog {
         case "effects":
             return (source.effects?.length ?? 0) > 0;
         case "animations":
-            return (source.animations?.length ?? 0) > 0;
+            return (source.animations?.length ?? 0) > 0 || (source.paramCurves || []).some(curve => curve.property !== "volumeDb" && !curve.property.startsWith("effect:"));
         case "speed":
             return (source.speedBaked ? 1 : Math.max(0.0001, source.speedMultiplier ?? 1)) !== 1;
         case "volume":
-            return (source.volumeDb ?? 0) !== 0;
+            return (source.volumeDb ?? 0) !== 0 || (source.paramCurves || []).some(curve => curve.property === "volumeDb");
         case "audioEffects":
             return (source.audioEffects?.length ?? 0) > 0;
         }

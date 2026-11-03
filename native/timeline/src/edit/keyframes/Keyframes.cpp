@@ -1,6 +1,6 @@
 #include "Keyframes.h"
 #include "scene/Animation.h"
-#include "scene/SideCurves.h"
+#include "scene/ParamCurves.h"
 
 #include <QHash>
 #include <QRegularExpression>
@@ -49,10 +49,10 @@ QJsonObject animation(const QJsonObject& clip) {
     const int index = animationIndex(clip);
     return index < 0 ? QJsonObject{} : clip["animations"].toArray()[index].toObject();
 }
-// Every curve of the clip, on the keyframe animation and on the side animations.
+// Every curve of the clip, on the keyframe animation and in `paramCurves`.
 QJsonArray curves(const QJsonObject& clip) {
     auto all = animation(clip)["custom"].toObject()["curves"].toArray();
-    for (const auto& curve : nt::scene::sideCurveList(clip["animations"].toArray())) {
+    for (const auto& curve : clip["paramCurves"].toArray()) {
         all.append(curve);
     }
     return all;
@@ -134,9 +134,9 @@ double curveValue(const QJsonArray& kfs, double t) {
     }
     return last["value"].toDouble();
 }
-// An easing on the keyframe animation overrides its segments. Side curves are not on it.
+// An easing on the keyframe animation overrides its segments. Param curves are not on it.
 QJsonValue easingOverride(const QJsonObject& clip, const QString& p) {
-    return nt::scene::isSideCurveProperty(p) ? QJsonValue(QJsonValue::Undefined) : animation(clip).value("easing");
+    return nt::scene::isParamCurveProperty(p) ? QJsonValue(QJsonValue::Undefined) : animation(clip).value("easing");
 }
 double valueAt(const QJsonObject& clip, const QString& p, double ms) {
     auto kfs = sorted(keys(clip, p));
@@ -152,23 +152,30 @@ double valueAt(const QJsonObject& clip, const QString& p, double ms) {
     }
     return curveValue(kfs, toT(clip, ms));
 }
-QJsonArray withCurves(const QJsonObject& clip, const QJsonArray& updated) {
+// The patch holding `paramCurves`, when the clip has or gets any. `edit` removes an empty list.
+QJsonObject withParamCurves(QJsonObject patch, const QJsonObject& clip, const QJsonArray& list) {
+    if (!list.isEmpty() || clip.contains("paramCurves")) {
+        patch.insert("paramCurves", list);
+    }
+    return patch;
+}
+// The patch that stores `updated`: names with a channel on the keyframe animation, others in `paramCurves`.
+QJsonObject withCurves(const QJsonObject& clip, const QJsonArray& updated) {
     auto animations = clip["animations"].toArray();
     const int index = animationIndex(clip);
     QJsonArray live;
-    QJsonArray side;
+    QJsonArray params;
     for (const auto& curve : updated) {
         if (curve.toObject()["keyframes"].toArray().isEmpty()) {
             continue;
         }
-        (nt::scene::isSideCurveProperty(curve.toObject()["property"].toString()) ? side : live).append(curve);
+        (nt::scene::isParamCurveProperty(curve.toObject()["property"].toString()) ? params : live).append(curve);
     }
-    const double duration = clip["durationMs"].toDouble();
     if (live.isEmpty()) {
         if (index >= 0) {
             animations.removeAt(index);
         }
-        return nt::scene::withSideCurves(animations, side, duration);
+        return withParamCurves({{"animations", animations}}, clip, params);
     }
     auto next = animation(clip);
     if (!next.contains("id")) {
@@ -186,9 +193,31 @@ QJsonArray withCurves(const QJsonObject& clip, const QJsonArray& updated) {
     } else {
         animations.append(next);
     }
-    return nt::scene::withSideCurves(animations, side, duration);
+    return withParamCurves({{"animations", animations}}, clip, params);
 }
-QJsonArray set(const QJsonObject& clip, const QString& p, double ms, double value) {
+// A list the schema would refuse cannot be saved, so a key past its limits does not land.
+bool paramKeyFits(const QJsonObject& clip, const QString& p, double t) {
+    if (!nt::scene::isParamCurveProperty(p)) {
+        return true;
+    }
+    const auto list = clip["paramCurves"].toArray();
+    for (const auto& value : list) {
+        const auto curve = value.toObject();
+        if (curve["property"] != p) {
+            continue;
+        }
+        const auto kfs = curve["keyframes"].toArray();
+        if (kfs.size() < nt::scene::kMaxParamCurveKeys) {
+            return true;
+        }
+        return std::any_of(kfs.begin(), kfs.end(), [t](const QJsonValueConstRef k) { return std::abs(k.toObject()["t"].toDouble() - t) < epsilon; });
+    }
+    return list.size() < nt::scene::kMaxParamCurves;
+}
+QJsonObject set(const QJsonObject& clip, const QString& p, double ms, double value) {
+    if (!paramKeyFits(clip, p, toT(clip, ms))) {
+        return withCurves(clip, curves(clip));
+    }
     QJsonArray others;
     QJsonArray existing;
     bool found = false;
@@ -220,14 +249,16 @@ QJsonArray set(const QJsonObject& clip, const QString& p, double ms, double valu
     others.append(QJsonObject{{"property", p}, {"keyframes", sorted(kept)}});
     return withCurves(clip, others);
 }
-QJsonArray setMany(QJsonObject clip, const QJsonArray& entries, double ms) {
+QJsonObject setMany(QJsonObject clip, const QJsonArray& entries, double ms) {
+    QJsonObject patch;
     for (const auto& entry : entries) {
         const auto e = entry.toObject();
-        clip.insert("animations", set(clip, e["property"].toString(), ms, e["value"].toDouble()));
+        patch = merged(patch, set(clip, e["property"].toString(), ms, e["value"].toDouble()));
+        clip = merged(clip, patch);
     }
-    return clip["animations"].toArray();
+    return patch.isEmpty() ? QJsonObject{{"animations", clip["animations"].toArray()}} : patch;
 }
-QJsonArray update(const QJsonObject& clip, const QStringList& ps, const QString& action, double ms, double toMs = 0,
+QJsonObject update(const QJsonObject& clip, const QStringList& ps, const QString& action, double ms, double toMs = 0,
                   const QString& easing = {}) {
     const double t = toT(clip, ms);
     const double target = toT(clip, toMs);
@@ -277,11 +308,11 @@ QJsonArray update(const QJsonObject& clip, const QStringList& ps, const QString&
 }
 // Stores curves whose keys now carry every easing themselves: an easing on the keyframe
 // animation is written onto its keys, and leaves the animation.
-QJsonArray withEasedCurves(const QJsonObject& clip, const QJsonArray& result) {
+QJsonObject withEasedCurves(const QJsonObject& clip, const QJsonArray& result) {
     QJsonArray own;
-    QJsonArray side;
+    QJsonArray params;
     for (const auto& curve : result) {
-        (nt::scene::isSideCurveProperty(curve.toObject()["property"].toString()) ? side : own).append(curve);
+        (nt::scene::isParamCurveProperty(curve.toObject()["property"].toString()) ? params : own).append(curve);
     }
     auto animations = clip["animations"].toArray();
     if (const int index = animationIndex(clip); index >= 0) {
@@ -290,12 +321,12 @@ QJsonArray withEasedCurves(const QJsonObject& clip, const QJsonArray& result) {
         a.insert("custom", merged(a["custom"].toObject(), {{"curves", own}}));
         animations[index] = a;
     }
-    return nt::scene::withSideCurves(animations, side, clip["durationMs"].toDouble());
+    return withParamCurves({{"animations", animations}}, clip, params);
 }
-QJsonArray setEasing(const QJsonObject& clip, const QStringList& ps, double ms, const QString& easing) {
+QJsonObject setEasing(const QJsonObject& clip, const QStringList& ps, double ms, const QString& easing) {
     const auto all = curves(clip);
     if (all.isEmpty() && !animation(clip)["custom"].isObject()) {
-        return clip["animations"].toArray();
+        return {{"animations", clip["animations"].toArray()}};
     }
     QJsonArray result;
     for (const auto& value : all) {
@@ -591,7 +622,7 @@ QJsonValue stopwatch(const QJsonObject& clip, const QString& row, const QJsonVal
         for (const auto& p : ps) {
             entries.append(QJsonObject{{"property", p}, {"value", keyValue(clip, row, p, at.toDouble())}});
         }
-        return QJsonObject{{"animations", setMany(clip, entries, at.toDouble())}};
+        return setMany(clip, entries, at.toDouble());
     }
     auto working = clip;
     QJsonObject patch;
@@ -601,7 +632,7 @@ QJsonValue stopwatch(const QJsonObject& clip, const QString& row, const QJsonVal
         working = merged(working, next);
         patch = merged(patch, next);
     }
-    patch.insert("animations", update(working, ps, "clear", 0));
+    patch = merged(patch, update(working, ps, "clear", 0));
     return patch;
 }
 QJsonValue toggle(const QJsonObject& clip, const QString& row, const QJsonValue& at) {
@@ -615,7 +646,7 @@ QJsonValue toggle(const QJsonObject& clip, const QString& row, const QJsonValue&
         for (const auto& p : ps) {
             entries.append(QJsonObject{{"property", p}, {"value", keyValue(clip, row, p, ms)}});
         }
-        return QJsonObject{{"animations", setMany(clip, entries, ms)}};
+        return setMany(clip, entries, ms);
     }
     bool remaining = false;
     for (const auto& t : times(clip, ps)) {
@@ -623,7 +654,7 @@ QJsonValue toggle(const QJsonObject& clip, const QString& row, const QJsonValue&
             remaining = true;
         }
     }
-    return remaining ? QJsonValue(QJsonObject{{"animations", update(clip, ps, "remove", ms)}})
+    return remaining ? QJsonValue(update(clip, ps, "remove", ms))
                      : stopwatch(clip, row, at);
 }
 QJsonValue commit(const QJsonObject& clip, const QString& row, int index, double value, const QJsonValue& at) {
@@ -663,7 +694,7 @@ QJsonValue commit(const QJsonObject& clip, const QString& row, int index, double
         patch = basePatch(working, input, 1);
         working = merged(working, patch);
         for (const auto& t : ts) {
-            working.insert("animations", set(working, input.property, t.toDouble(), 0));
+            working = merged(working, set(working, input.property, t.toDouble(), 0));
         }
         kf = composed;
     }
@@ -672,7 +703,7 @@ QJsonValue commit(const QJsonObject& clip, const QString& row, int index, double
         entries.append(QJsonObject{
             {"property", p}, {"value", p == input.property ? kf.toDouble() : keyValue(working, row, p, at.toDouble())}});
     }
-    patch.insert("animations", setMany(working, entries, at.toDouble()));
+    patch = merged(patch, setMany(working, entries, at.toDouble()));
     return patch;
 }
 QJsonObject gizmo(const QJsonObject& clip, const QJsonObject& next, const QJsonValue& at) {
@@ -713,7 +744,7 @@ QJsonObject gizmo(const QJsonObject& clip, const QJsonObject& next, const QJsonV
         t.insert("anchor", b["anchor"]);
     }
     return entries.isEmpty() ? QJsonObject{{"transform", next}}
-                             : QJsonObject{{"transform", t}, {"animations", setMany(clip, entries, ms)}};
+                             : merged({{"transform", t}}, setMany(clip, entries, ms));
 }
 // A set of keyframes named by row and clip time, per curve property, with the lookups a
 // large selection needs: one sort, then a binary search per stored keyframe.
@@ -818,7 +849,7 @@ QJsonValue moveMany(const QJsonObject& clip, const QJsonObject& payload) {
         curve.insert("keyframes", moved.empty() ? kept : sorted(kept));
         result.append(curve);
     }
-    return QJsonObject{{"animations", withCurves(clip, result)}};
+    return withCurves(clip, result);
 }
 QJsonValue easingMany(const QJsonObject& clip, const QJsonObject& payload) {
     const auto selection = keySet(clip, payload["keys"]);
@@ -845,7 +876,7 @@ QJsonValue easingMany(const QJsonObject& clip, const QJsonObject& payload) {
         c.insert("keyframes", kfs);
         result.append(c);
     }
-    return QJsonObject{{"animations", withEasedCurves(clip, result)}};
+    return withEasedCurves(clip, result);
 }
 // Deletes per row, as toggling each key off would: a row left with no key stops animating
 // at the value of its last key.
@@ -889,7 +920,7 @@ QJsonValue deleteMany(const QJsonObject& clip, const QJsonObject& payload) {
                 }
                 result.append(curve);
             }
-            step = {{"animations", withCurves(working, result)}};
+            step = withCurves(working, result);
         } else {
             const auto stopped = stopwatch(working, row.key(), removing.back());
             if (!stopped.isObject()) {
@@ -918,12 +949,19 @@ std::optional<FixedGroup> fixedGroup(const QString& group) {
     if (group == "opacity") {
         return FixedGroup{{"opacity"}, {"opacity"}};
     }
-    // Volume's keys stay on their side animation while it is off, and the mixer skips them. The
-    // web's schema would strip `curves` from the Volume stash on a save.
     if (group == "volume") {
-        return FixedGroup{{"volumeDb"}, {}};
+        return FixedGroup{{"volumeDb"}, {"volumeDb"}};
     }
     return std::nullopt;
+}
+// A clip with no keys left carries no empty `paramCurves` or `animations`.
+QJsonObject tidied(QJsonObject clip) {
+    for (const auto* field : {"paramCurves", "animations"}) {
+        if (clip.contains(field) && clip[field].toArray().isEmpty()) {
+            clip.remove(field);
+        }
+    }
+    return clip;
 }
 bool rowSwitchedOff(const QJsonObject& clip, const QString& row) {
     if (nt::scene::parseEffectCurveName(row)) {
@@ -936,7 +974,7 @@ bool rowSwitchedOff(const QJsonObject& clip, const QString& row) {
         }
         const auto spec = fixedGroup(group);
         for (const auto& property : properties(row)) {
-            if (spec->curveProperties.contains(property) || (property == "volumeDb" && QLatin1StringView(group) == "volume")) {
+            if (spec->curveProperties.contains(property)) {
                 return true;
             }
         }
@@ -968,7 +1006,7 @@ QJsonObject restoredGroup(QJsonObject clip, const QJsonObject& stash) {
         for (const auto& curve : saved) {
             all.append(curve);
         }
-        clip.insert("animations", withCurves(clip, all));
+        clip = tidied(merged(clip, withCurves(clip, all)));
     }
     return clip;
 }
@@ -1018,7 +1056,7 @@ std::optional<QJsonObject> bypass(QJsonObject clip, const QJsonObject& payload) 
         }
         if (!savedCurves.isEmpty()) {
             saved.insert("curves", savedCurves);
-            clip.insert("animations", update(clip, spec->curveProperties, "clear", 0));
+            clip = tidied(merged(clip, update(clip, spec->curveProperties, "clear", 0)));
         }
         stash.insert(group, saved);
     }
@@ -1352,25 +1390,25 @@ QJsonValue helper(const QString& name, const QJsonArray& a) {
         return !keys(c, p).isEmpty();
     }
     if (name == "setKeyframe") {
-        return set(c, p, ms, a[3].toDouble());
+        return set(c, p, ms, a[3].toDouble()).value("animations");
     }
     if (name == "setKeyframes") {
-        return setMany(c, a[1].toArray(), ms);
+        return setMany(c, a[1].toArray(), ms).value("animations");
     }
     if (name == "removeKeyframe") {
-        return update(c, {p}, "remove", ms);
+        return update(c, {p}, "remove", ms).value("animations");
     }
     if (name == "removeKeyframes") {
-        return update(c, strings(a[1]), "remove", ms);
+        return update(c, strings(a[1]), "remove", ms).value("animations");
     }
     if (name == "clearKeyframes") {
-        return update(c, strings(a[1]), "clear", 0);
+        return update(c, strings(a[1]), "clear", 0).value("animations");
     }
     if (name == "moveKeyframes") {
-        return update(c, strings(a[1]), "move", ms, a[3].toDouble());
+        return update(c, strings(a[1]), "move", ms, a[3].toDouble()).value("animations");
     }
     if (name == "setKeyframeEasing") {
-        return setEasing(c, strings(a[1]), ms, a[3].toString());
+        return setEasing(c, strings(a[1]), ms, a[3].toString()).value("animations");
     }
     if (name == "adjacentKeyframeMs") {
         const auto ts = times(c, strings(a[1]));
@@ -1491,10 +1529,8 @@ QJsonObject edit(QJsonObject document, const QJsonObject& payload) {
                     ps.append(v.toObject()["property"].toString());
                 }
             }
-            patch = QJsonObject{
-                {"animations", action == "move"
-                                   ? update(c, ps, "move", payload["fromMs"].toDouble(), payload["toMs"].toDouble())
-                                   : setEasing(c, ps, at.toDouble(), payload["easing"].toString())}};
+            patch = action == "move" ? update(c, ps, "move", payload["fromMs"].toDouble(), payload["toMs"].toDouble())
+                                     : setEasing(c, ps, at.toDouble(), payload["easing"].toString());
         } else if (action == "field") {
             const auto field = payload["field"].toString();
             const double value = payload["value"].toDouble(std::numeric_limits<double>::quiet_NaN());
@@ -1536,6 +1572,12 @@ QJsonObject edit(QJsonObject document, const QJsonObject& payload) {
                 if (crop["left"].toDouble() == 0 && crop["right"].toDouble() == 0 && crop["top"].toDouble() == 0 && crop["bottom"].toDouble() == 0) {
                     next.remove("crop");
                 }
+            }
+            if (next["paramCurves"].toArray().isEmpty()) {
+                next.remove("paramCurves");
+            }
+            if (!c.contains("animations") && next["animations"].toArray().isEmpty()) {
+                next.remove("animations");
             }
             clips[i] = next;
             document.insert("clips", clips);

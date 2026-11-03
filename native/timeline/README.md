@@ -600,8 +600,8 @@ at once.
 
 The Inspector answers what the item is, and this differs from the web editor, whose Inspector still
 holds Render, Transform and the rest. No schema or protocol field differs between them. Native keys
-some parameters web does not, stored so web keeps them and draws the static value. See
-[web-followups.md](docs/web-followups.md).
+some parameters web does not, in a clip's `paramCurves` field, which web keeps and draws at the static
+value. See [web-followups.md](docs/web-followups.md).
 Sections are separate components registered with `registerInspectorSection`, and its `panel`
 argument says which panel hosts one, so a quick section can return to the Inspector with one word.
 
@@ -616,7 +616,7 @@ navigation covers every row.
 A new Editing layout puts the tab right after the Inspector. A saved layout that already places it
 keeps its place until Reset to Saved Layout, and a layout with no place for it gets the same one.
 
-Tests: `tst_keyframes`, `tst_dockui`, `tst_keyedrender`, which compares keyed frames between the preview compositor and the export's offscreen frames, and `tst_keyframesui`, which runs `src/edit/keyframes/qmltests/tst_effectcontrols.qml`.
+Tests: `tst_keyframes`, `tst_dockui`, `tst_keyedrender`, which compares keyed frames between the preview compositor and the export's offscreen frames, and `tst_keyframesui`, which runs `src/edit/keyframes/qmltests/tst_effectcontrols.qml`. `tst_keyframes` compares what the edits write with `src/edit/keyframes/fixtures/param-curves.json`, and `packages/execution/tests/timeline-param-curves.test.ts` parses that file with the schema, so a saved document's curves are checked on both sides.
 
 ### Color and scopes
 

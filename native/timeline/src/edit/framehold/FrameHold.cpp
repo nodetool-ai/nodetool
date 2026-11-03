@@ -184,7 +184,7 @@ Result insertFrameHoldSegment(const QJsonObject& raw, const QString& id, double 
     segment.insert("inPointMs", inside ? source : originalIn);
     segment.insert("outPointMs", inside ? std::min(source + duration * sourceRate(original), originalOut) : originalOut);
     segment.insert("timeRemap", holdRemap(source));
-    for (const auto* key : {"linkId", "caption", "animations", "transitionIn", "transitionOut", "transitions",
+    for (const auto* key : {"linkId", "caption", "animations", "paramCurves", "transitionIn", "transitionOut", "transitions",
                             "fadeInMs", "fadeOutMs", "fadeInShape", "fadeOutShape", "markers"}) {
         segment.remove(key);
     }

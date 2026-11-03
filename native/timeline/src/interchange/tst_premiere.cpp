@@ -4,7 +4,6 @@
 #include "interchange/PremiereTransfer.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
-#include "scene/SideCurves.h"
 
 #include <QDir>
 #include <QFile>
@@ -359,7 +358,7 @@ private slots:
         QVERIFY(transfer.mode().isEmpty());
     }
 
-    // The server's report cannot see side curves, so the note comes from the open document.
+    // The server's report cannot see param curves, so the note comes from the open document.
     void exportNamesTheKeysTheXmlLeavesOut() {
         QTemporaryDir dir;
         Server server;
@@ -374,8 +373,8 @@ private slots:
             {"name", "Keys"}, {"width", 64}, {"height", 64}, {"fps", 30}, {"durationMs", 1000},
             {"tracks", QJsonArray{QJsonObject{{"id", "a"}, {"type", "audio"}}}},
             {"clips", QJsonArray{QJsonObject{{"id", "c"}, {"trackId", "a"}, {"mediaType", "audio"}, {"startMs", 0}, {"durationMs", 1000},
-                {"animations", nt::scene::withSideCurves({}, QJsonArray{QJsonObject{{"property", "volumeDb"},
-                    {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", -6}}}}}}, 1000)}}}}}).toJson()).timeline);
+                {"paramCurves", QJsonArray{QJsonObject{{"property", "volumeDb"},
+                    {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", -6}}}}}}}}}}}).toJson()).timeline);
         PremiereTransfer transfer;
         transfer.setTimeline(&model);
         transfer.setTarget(targetFor(server));

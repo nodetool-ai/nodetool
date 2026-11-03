@@ -46,7 +46,7 @@ QJsonObject cropRectPx(const QJsonObject& crop, double w, double h) {
 }
 QJsonObject cropAt(const nt::Clip& clip, double timeMs) {
     auto crop = clip.raw.value("crop").toObject();
-    const auto curves = clip.scene ? clip.scene->sideCurves : nullptr;
+    const auto curves = clip.scene ? clip.scene->paramCurves : nullptr;
     if (!curves || clip.durationMs <= 0) {
         return crop;
     }

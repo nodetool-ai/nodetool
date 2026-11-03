@@ -1,5 +1,4 @@
 #include "edit/clipboard/ClipboardOps.h"
-#include "scene/SideCurves.h"
 #include "app/EditRegistry.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
@@ -221,29 +220,29 @@ class TestFClipboard : public QObject {
         };
         const auto keys = [](const auto &clip) {
             QStringList names;
-            for (const auto &value : nt::scene::sideCurveList(clip.value("animations").toArray())) {
+            for (const auto &value : clip.value("paramCurves").toArray()) {
                 names.append(value.toObject().value("property").toString());
             }
             return names;
         };
         const QJsonObject source{{"id", "s"}, {"mediaType", "audio"}, {"durationMs", 1000}, {"volumeDb", -6},
-            {"animations", nt::scene::withSideCurves({}, QJsonArray{curve("volumeDb", -6)}, 1000)}};
+            {"paramCurves", QJsonArray{curve("volumeDb", -6)}}};
         QJsonObject target{{"id", "t"}, {"mediaType", "audio"}, {"durationMs", 500}};
         auto patch = nt::edit::clipboard::attributePatch(source, target, {"volume"});
         QCOMPARE(patch.value("volumeDb").toDouble(), -6.0);
         QCOMPARE(keys(patch), QStringList{"volumeDb"});
         // Another group leaves them alone.
-        QVERIFY(nt::edit::clipboard::attributePatch(source, target, {"audioEffects"}).value("animations").toArray().isEmpty());
+        QVERIFY(nt::edit::clipboard::attributePatch(source, target, {"audioEffects"}).value("paramCurves").toArray().isEmpty());
         // Pasting a level with no keys clears the target's keys.
         auto keyed = target;
-        keyed.insert("animations", source.value("animations"));
+        keyed.insert("paramCurves", source.value("paramCurves"));
         const QJsonObject plain{{"id", "p"}, {"mediaType", "audio"}, {"durationMs", 1000}, {"volumeDb", -3}};
         patch = nt::edit::clipboard::attributePatch(plain, keyed, {"volume"});
-        QVERIFY(patch.value("animations").toArray().isEmpty());
-        QVERIFY(patch.contains("animations"));
+        QVERIFY(patch.contains("paramCurves"));
+        QVERIFY(patch.value("paramCurves").isUndefined());
         // Animations from a video clip leave the target's volume keys in place, and bring depth.
         const QJsonObject mover{{"id", "m"}, {"mediaType", "video"}, {"durationMs", 1000},
-            {"animations", nt::scene::withSideCurves({}, QJsonArray{curve("depthPx", 4)}, 1000)}};
+            {"paramCurves", QJsonArray{curve("depthPx", 4)}}};
         auto video = keyed;
         video.insert("mediaType", "video");
         QCOMPARE(keys(nt::edit::clipboard::attributePatch(mover, video, {"animations"})), (QStringList{"volumeDb", "depthPx"}));
@@ -252,13 +251,13 @@ class TestFClipboard : public QObject {
     void duplicateKeepsEffectKeys() {
         const QJsonObject source{{"id", "s"}, {"trackId", "v"}, {"mediaType", "video"}, {"durationMs", 1000},
             {"effects", QJsonArray{QJsonObject{{"id", "a"}, {"type", "blur"}, {"enabled", true}}}},
-            {"animations", nt::scene::withSideCurves({}, QJsonArray{QJsonObject{{"property", "effect:a:radius"},
-                {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", 1}}}}}}, 1000)}};
+            {"paramCurves", QJsonArray{QJsonObject{{"property", "effect:a:radius"},
+                {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", 1}}}}}}}};
         const auto copies = nt::edit::clipboard::cloneClips({source});
         QCOMPARE(copies.size(), std::size_t(1));
         QCOMPARE(copies[0].value("effects").toArray()[0].toObject().value("id").toString(), QString("a"));
-        QCOMPARE(nt::scene::sideCurveList(copies[0].value("animations").toArray()).size(), 1);
-        QCOMPARE(nt::scene::sideCurveList(copies[0].value("animations").toArray())[0].toObject().value("property").toString(), QString("effect:a:radius"));
+        QCOMPARE(copies[0].value("paramCurves").toArray().size(), 1);
+        QCOMPARE(copies[0].value("paramCurves").toArray()[0].toObject().value("property").toString(), QString("effect:a:radius"));
     }
     // Effect keys go with the effects, by the id the pasted effect keeps.
     void pasteMovesEffectKeysWithEffects() {
@@ -267,17 +266,17 @@ class TestFClipboard : public QObject {
         };
         const auto names = [](const auto &clip) {
             QStringList list;
-            for (const auto &value : nt::scene::sideCurveList(clip.value("animations").toArray())) {
+            for (const auto &value : clip.value("paramCurves").toArray()) {
                 list.append(value.toObject().value("property").toString());
             }
             return list;
         };
         const QJsonObject source{{"id", "s"}, {"mediaType", "video"}, {"durationMs", 1000},
             {"effects", QJsonArray{QJsonObject{{"id", "a"}, {"type", "blur"}, {"enabled", true}}}},
-            {"animations", nt::scene::withSideCurves({}, QJsonArray{curve("effect:a:radius"), curve("depthPx")}, 1000)}};
+            {"paramCurves", QJsonArray{curve("effect:a:radius"), curve("depthPx")}}};
         const QJsonObject target{{"id", "t"}, {"mediaType", "video"}, {"durationMs", 500},
             {"effects", QJsonArray{QJsonObject{{"id", "b"}, {"type", "blur"}, {"enabled", true}}}},
-            {"animations", nt::scene::withSideCurves({}, QJsonArray{curve("effect:b:radius"), curve("volumeDb")}, 500)}};
+            {"paramCurves", QJsonArray{curve("effect:b:radius"), curve("volumeDb")}}};
         // The effects replace the target's, so its effect keys go and the volume keys stay.
         auto patch = nt::edit::clipboard::attributePatch(source, target, {"effects"});
         QCOMPARE(names(patch), (QStringList{"volumeDb", "effect:a:radius"}));

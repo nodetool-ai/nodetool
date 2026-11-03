@@ -1,7 +1,6 @@
 #include "interchange/PremiereTransfer.h"
 
 #include "interchange/PremiereArchive.h"
-#include "scene/SideCurves.h"
 #include "server/ServerClient.h"
 #include "server/ServerSource.h"
 
@@ -48,12 +47,12 @@ QString networkMessage(const nt::server::HttpResponse& response) {
     if (response.networkErrorCode == u"TIMEOUT") return QStringLiteral("The server stopped answering.");
     return response.networkError.isEmpty() ? QStringLiteral("The server could not be reached.") : response.networkError;
 }
-// Web's export reads only the keyframe animation, so it cannot report side curves.
-QString sideCurveNote(const nt::Timeline& timeline) {
+// Web's export reads only the keyframe animation, so it cannot report `paramCurves`.
+QString paramCurveNote(const nt::Timeline& timeline) {
     QStringList names;
     int clips = 0;
     for (const auto& clip : timeline.clips) {
-        const auto curves = nt::scene::sideCurveList(clip.raw.value(u"animations").toArray());
+        const auto curves = clip.raw.value(u"paramCurves").toArray();
         clips += curves.isEmpty() ? 0 : 1;
         for (const auto& curve : curves) {
             const auto property = curve.toObject().value(u"property").toString();
@@ -212,7 +211,7 @@ void PremiereTransfer::exportTo(const QString& location) {
     }
     if (QFileInfo(path).suffix().isEmpty()) path += QStringLiteral(".zip");
     const auto target = *m_target;
-    const QString keysNote = m_timeline ? sideCurveNote(m_timeline->timeline()) : QString();
+    const QString keysNote = m_timeline ? paramCurveNote(m_timeline->timeline()) : QString();
     run([target, path, keysNote](const std::function<void(Progress)>& progress) {
         Outcome outcome;
         QSaveFile file(path);

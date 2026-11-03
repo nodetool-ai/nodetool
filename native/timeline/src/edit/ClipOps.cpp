@@ -1,6 +1,6 @@
 #include "edit/ClipOps.h"
 #include "scene/Animation.h"
-#include "scene/SideCurves.h"
+#include "scene/ParamCurves.h"
 
 #include <QJsonArray>
 #include <QUuid>
@@ -211,17 +211,11 @@ double curveValueAtT(const std::vector<QJsonObject>& keyframes, double t) {
     return last.value(u"value").toDouble();
 }
 
-QJsonObject sliceKeyframeAnimation(const QJsonObject& animation, double fromT, double toT, double durationMs,
-                                   double tEpsilon = T_EPSILON) {
+// Curves restricted to fromT..toT and renormalized over that span, for one half of a split.
+QJsonArray sliceCurves(const QJsonArray& list, double fromT, double toT, double tEpsilon) {
     const double span = toT - fromT;
-    QJsonObject next = animation;
-    next.insert(QStringLiteral("durationMs"), durationMs);
-    if (!present(animation, "custom") || span <= 0) {
-        return next;
-    }
-    QJsonObject custom = animation.value(u"custom").toObject();
     QJsonArray curves;
-    for (const QJsonValue& value : custom.value(u"curves").toArray()) {
+    for (const QJsonValue& value : list) {
         QJsonObject curve = value.toObject();
         const QJsonArray keyframes = curve.value(u"keyframes").toArray();
         if (keyframes.isEmpty()) {
@@ -261,7 +255,17 @@ QJsonObject sliceKeyframeAnimation(const QJsonObject& animation, double fromT, d
         curve.insert(QStringLiteral("keyframes"), normalized);
         curves.append(curve);
     }
-    custom.insert(QStringLiteral("curves"), curves);
+    return curves;
+}
+
+QJsonObject sliceKeyframeAnimation(const QJsonObject& animation, double fromT, double toT, double durationMs) {
+    QJsonObject next = animation;
+    next.insert(QStringLiteral("durationMs"), durationMs);
+    if (!present(animation, "custom") || toT - fromT <= 0) {
+        return next;
+    }
+    QJsonObject custom = animation.value(u"custom").toObject();
+    custom.insert(QStringLiteral("curves"), sliceCurves(custom.value(u"curves").toArray(), fromT, toT, T_EPSILON));
     next.insert(QStringLiteral("custom"), custom);
     return next;
 }
@@ -329,14 +333,11 @@ std::pair<QJsonArray, QJsonArray> splitAnimations(const QJsonArray& animations, 
             QJsonObject r = sliceSourceAnimation(anim, source.rightInMs, source.outPointMs, source.rightDurationMs);
             r.insert(QStringLiteral("id"), newId());
             right.append(r);
-        } else if (isKeyframeAnimation(anim) || scene::isSideCurveAnimation(anim)) {
+        } else if (isKeyframeAnimation(anim)) {
             const double totalMs = source.leftDurationMs + source.rightDurationMs;
             const double cutT = totalMs > 0 ? splitMs / totalMs : 0;
-            // The keyframe animation follows the web's tolerance, which on a long clip takes in
-            // nearby keys. Side curves are native's alone, so they keep any key half a millisecond away.
-            const double tolerance = scene::isSideCurveAnimation(anim) && totalMs > 0 ? 0.5 / totalMs : T_EPSILON;
-            left.append(sliceKeyframeAnimation(anim, 0, cutT, source.leftDurationMs, tolerance));
-            QJsonObject r = sliceKeyframeAnimation(anim, cutT, 1, source.rightDurationMs, tolerance);
+            left.append(sliceKeyframeAnimation(anim, 0, cutT, source.leftDurationMs));
+            QJsonObject r = sliceKeyframeAnimation(anim, cutT, 1, source.rightDurationMs);
             r.insert(QStringLiteral("id"), newId());
             right.append(r);
         } else if (role == u"in") {
@@ -607,6 +608,11 @@ std::pair<QJsonObject, QJsonObject> splitClip(const QJsonObject& clip, double at
         left.insert(QStringLiteral("caption"), caption);
     }
     if (animations) left.insert(QStringLiteral("animations"), animations->first);
+    // `sliceParamCurves` in splitClip.ts keeps the same half millisecond: a key near the cut stays.
+    const QJsonArray paramCurves = clip.value(u"paramCurves").toArray();
+    const double cutT = leftDurationMs / clipDurationMs(clip);
+    const double paramTolerance = 0.5 / clipDurationMs(clip);
+    if (!paramCurves.isEmpty()) left.insert(QStringLiteral("paramCurves"), sliceCurves(paramCurves, 0, cutT, paramTolerance));
 
     QJsonObject right = clip;
     right.insert(QStringLiteral("id"), newId());
@@ -625,6 +631,7 @@ std::pair<QJsonObject, QJsonObject> splitClip(const QJsonObject& clip, double at
         right.insert(QStringLiteral("caption"), caption);
     }
     if (animations) right.insert(QStringLiteral("animations"), animations->second);
+    if (!paramCurves.isEmpty()) right.insert(QStringLiteral("paramCurves"), sliceCurves(paramCurves, cutT, 1, paramTolerance));
     return {left, right};
 }
 

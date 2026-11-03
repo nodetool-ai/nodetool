@@ -1348,9 +1348,11 @@ export const animationKeyframe = z.object({
 export type AnimationKeyframe = z.infer<typeof animationKeyframe>;
 
 /**
- * One baked property curve. `property` is a plain string on the wire: a curve
- * naming a property this build does not animate parses fine and is dropped at
- * compile time, the same forward compat `preset` has.
+ * One baked property curve. `property` is a plain string on the wire, so any
+ * name parses. On a custom animation the compiler's gate
+ * (`normalizeCustomCurves`) then refuses the whole list for a name outside
+ * `ANIMATED_PROPERTIES`, and skips that animation. In `timelineClip.paramCurves`
+ * any name is kept and the compiler never reads it.
  */
 export const animationPropertyCurve = z.object({
   property: z.string(),
@@ -1434,7 +1436,12 @@ export const clipBypassedFixedEffects = z.object({
       curves: z.array(animationPropertyCurve).max(16).optional()
     })
     .optional(),
-  volume: z.object({ volumeDb: z.number().optional() }).optional()
+  volume: z
+    .object({
+      volumeDb: z.number().optional(),
+      curves: z.array(animationPropertyCurve).max(16).optional()
+    })
+    .optional()
 });
 export type ClipBypassedFixedEffects = z.infer<typeof clipBypassedFixedEffects>;
 
@@ -2042,6 +2049,15 @@ export const timelineClip = z.object({
   /** Motion-design animations. Without this field Zod strips it on every
    * PATCH, so autosave erases animations. */
   animations: z.array(clipAnimation).optional(),
+  /**
+   * Keys for parameters with no animated channel: `volumeDb`, the crop edges,
+   * `borderRadius`, `perspective`, `depthPx` and `effect:<effectId>:<param>`.
+   * One curve per name, with `t` normalized over the clip like a hand-set
+   * keyframe. The native editor reads them. Other readers keep the field and
+   * draw the static values, and a name no reader knows is kept and ignored.
+   * Bounded to `MAX_PARAM_CURVES`; see `animationPropertyCurve.keyframes`.
+   */
+  paramCurves: z.array(animationPropertyCurve).max(256).optional(),
   animationLinks: z.array(z.union([
     z.object({
       target: z.enum(["positionX", "positionY", "scale", "rotation", "opacity"]),

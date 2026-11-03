@@ -67,12 +67,12 @@ double sourceRateOf(const Clip& clip) {
     return clip.speedBaked ? 1.0 : std::max(0.0001, clip.speedMultiplier);
 }
 
-// A clip's keyed Volume (`volumeDb` side curve), in dB on top of its static level. The plan stage
+// A clip's keyed Volume (`volumeDb` param curve), in dB on top of its static level. The plan stage
 // bakes the curve to straight gain ramps, so the audio thread only searches a table and
 // interpolates, and the gain never jumps between samples.
 class ClipVolumeEnvelope final : public ParameterSource {
 public:
-    ClipVolumeEnvelope(const scene::SideCurves::Curve& curve, double startMs, double durationMs) {
+    ClipVolumeEnvelope(const scene::ParamCurves::Curve& curve, double startMs, double durationMs) {
         constexpr double kMaxStepMs = 10;
         constexpr double kMaxStepDb = 0.25;
         constexpr double kMaxStepsPerSegment = 65536;
@@ -132,13 +132,12 @@ private:
     std::vector<Point> m_points;
 };
 
-// Null when the clip has no Volume keys, or its Volume is switched off.
+// Null when the clip has no Volume keys. A switched-off Volume has moved them to its stash.
 std::shared_ptr<const ParameterSource> clipVolumeEnvelope(const Clip& clip) {
-    if (!clip.scene || !clip.scene->sideCurves || clip.durationMs <= 0 ||
-        clip.raw.value(u"bypassedFixedEffects").toObject().contains(u"volume")) {
+    if (!clip.scene || !clip.scene->paramCurves || clip.durationMs <= 0) {
         return nullptr;
     }
-    const auto* curve = clip.scene->sideCurves->find(u"volumeDb");
+    const auto* curve = clip.scene->paramCurves->find(u"volumeDb");
     return curve ? std::make_shared<const ClipVolumeEnvelope>(*curve, clip.startMs, clip.durationMs) : nullptr;
 }
 

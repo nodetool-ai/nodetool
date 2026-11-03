@@ -4,6 +4,7 @@
 
 export * from "./types.js";
 export * from "./defaults.js";
+export * from "./paramCurves.js";
 export * from "./authoring.js";
 export * from "./authoredStyles.js";
 export * from "./trackOrder.js";

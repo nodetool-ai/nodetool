@@ -1,6 +1,6 @@
 #include "app/EditRegistry.h"
 #include "edit/clipboard/RawDocument.h"
-#include "scene/SideCurves.h"
+#include "scene/ParamCurves.h"
 #include <QHash>
 #include <algorithm>
 #include <cmath>
@@ -20,9 +20,10 @@ QJsonObject patchClip(QJsonObject raw, const QJsonObject& payload) {
             else { clip.insert(it.key(), it.value()); }
         }
         // Keys go with the effect they belong to. An undo brings both back.
-        if (patch.contains("effects") && clip.contains("animations")) {
-            clip.insert("animations", nt::scene::withoutOrphanEffectCurves(clip.value("animations").toArray(),
-                clip.value("effects").toArray(), clip.value("durationMs").toDouble()));
+        if (patch.contains("effects") && clip.contains("paramCurves")) {
+            const auto curves = nt::scene::withoutOrphanEffectCurves(clip.value("paramCurves").toArray(), clip.value("effects").toArray());
+            if (curves.isEmpty()) { clip.remove("paramCurves"); }
+            else { clip.insert("paramCurves", curves); }
         }
         clips[i] = clip;
         break;

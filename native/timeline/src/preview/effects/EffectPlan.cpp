@@ -568,7 +568,7 @@ QJsonValue interpolateStyle(const QJsonValue &from, const QJsonValue &to, double
 
 // `effects` with their keyed parameters at this frame.
 QJsonArray keyedEffects(const Clip &clip, QJsonArray effects, double timeMs) {
-    const auto curves = clip.scene ? clip.scene->sideCurves : nullptr;
+    const auto curves = clip.scene ? clip.scene->paramCurves : nullptr;
     if (!curves || clip.durationMs <= 0) { return effects; }
     return curves->keyedEffects(std::move(effects), std::clamp((timeMs - clip.startMs) / clip.durationMs, 0., 1.));
 }

@@ -212,9 +212,9 @@ std::shared_ptr<const std::vector<scene::CompiledAnimation>> compiledFor(
     return compiled;
 }
 
-// A side curve of `clip` at `timeMs`, or nothing when the parameter has no keys.
-std::optional<double> sideCurveAt(const Clip& clip, QStringView property, double timeMs) {
-    const auto& curves = sceneOf(clip).sideCurves;
+// A param curve of `clip` at `timeMs`, or nothing when the parameter has no keys.
+std::optional<double> paramCurveAt(const Clip& clip, QStringView property, double timeMs) {
+    const auto& curves = sceneOf(clip).paramCurves;
     if (!curves || clip.durationMs <= 0) return std::nullopt;
     return curves->value(property, clamp01((timeMs - clip.startMs) / clip.durationMs));
 }
@@ -263,9 +263,9 @@ AnimatedProps resolveAnimated(const Clip& clip, const std::optional<ClipTransfor
             }
         }
     }
-    if (const auto keyedRadius = sideCurveAt(clip, u"borderRadius", t)) props.borderRadius = std::max(0.0, *keyedRadius);
-    const auto keyedPerspective = sideCurveAt(clip, u"perspective", t);
-    const auto keyedDepth = sideCurveAt(clip, u"depthPx", t);
+    if (const auto keyedRadius = paramCurveAt(clip, u"borderRadius", t)) props.borderRadius = std::max(0.0, *keyedRadius);
+    const auto keyedPerspective = paramCurveAt(clip, u"perspective", t);
+    const auto keyedDepth = paramCurveAt(clip, u"depthPx", t);
     if (keyedPerspective || keyedDepth) {
         auto transform = props.transform.value_or(identityTransform());
         // The fold of `perspective` is a replace, and of `depthPx` an add, as the keyframe rows compose them.
@@ -659,12 +659,12 @@ std::optional<std::string> effectiveAssetId(const Clip& clip) {
 }
 
 // `layerTime` gives a clip's own time in this shutter sample, as its transform reads it. It is only
-// asked of a clip with side curves.
+// asked of a clip with param curves.
 template <typename LayerTime>
 double depthOf(const Clip& c, const LayerTime& layerTime) {
     const double base = c.transform && c.transform->depthPx ? *c.transform->depthPx : 0.0;
-    if (!sceneOf(c).sideCurves) return base;
-    return base + sideCurveAt(c, u"depthPx", steppedTime(c, layerTime(c))).value_or(0.0);
+    if (!sceneOf(c).paramCurves) return base;
+    return base + paramCurveAt(c, u"depthPx", steppedTime(c, layerTime(c))).value_or(0.0);
 }
 bool isEcho(const Clip& c) { return c.id.find(":echo:") != std::string::npos; }
 

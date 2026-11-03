@@ -12,7 +12,6 @@
 #include "audio/PcmRing.h"
 #include "audio/TestAllocationCounter.h"
 #include "scene/ClipScene.h"
-#include "scene/SideCurves.h"
 
 #include <QFileInfo>
 #include <QProcess>
@@ -78,14 +77,14 @@ double frameMs(int frame) {
     return frame * 1000.0 / kRate;
 }
 
-// A clip keyed on its Volume through the side curve the Effect Controls row writes.
+// A clip keyed on its Volume through the param curve the Effect Controls row writes.
 Clip keyedClip(const std::string& id, const std::string& trackId, double durationMs, double staticDb,
                const QJsonArray& keys) {
     Clip c = clip(id, trackId, MediaType::Audio, 0.0, durationMs);
     c.volumeDb = staticDb;
     const QJsonObject curve{{"property", "volumeDb"}, {"keyframes", keys}};
     c.raw = QJsonObject{{"id", QString::fromStdString(id)}, {"volumeDb", staticDb},
-                        {"animations", scene::withSideCurves({}, QJsonArray{curve}, durationMs)}};
+                        {"paramCurves", QJsonArray{curve}}};
     c.scene = scene::parseClipScene(c.raw);
     return c;
 }
@@ -553,19 +552,6 @@ private slots:
         // The level falls over the clip in the rendered output.
         QVERIFY(energyStart > energyEnd * 4);
     }
-    // A switched-off Volume sets aside its keys as well as its level.
-    void keyedVolumeStopsWithTheSwitch() {
-        Timeline tl;
-        tl.tracks = {track("a", TrackType::Audio)};
-        Clip c = keyedClip("c", "a", 1000.0, 0.0, {key(0, -20), key(1, -20)});
-        c.raw.insert("bypassedFixedEffects", QJsonObject{{"volume", QJsonObject{}}});
-        tl.clips = {c};
-        tl.durationMs = 1000.0;
-        const auto plan = buildMixPlan(tl);
-        const auto pcm = steady(48000);
-        QCOMPARE_LE(std::abs(mix(plan, pcm, 500.0, 2)[0] - 0.5), 1e-6);
-    }
-
     // AudioSource: a float WAV decodes to the samples ffmpeg writes as raw
     // f32le, mono goes to both channels at unity, and a seek is sample exact.
     void sourceDecodeAndSeek() {
