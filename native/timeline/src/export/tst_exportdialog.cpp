@@ -162,9 +162,14 @@ private slots:
         document.close();
         const auto run = [&](const QString& name, const QStringList& extra) {
             QProcess process;
+            // The default encoder, as the app exports: the LGPL FFmpeg of the packages has no libx264.
             process.start(QStringLiteral(NT_EXPORT_BINARY), QStringList{dir.filePath("noise.json"), "--export", dir.filePath(name),
-                "--format", "mp4", "--video-encoder", "libx264"} + extra);
-            return process.waitForFinished(60000) && process.exitCode() == 0 ? QFileInfo(dir.filePath(name)).size() : qint64(-1);
+                "--format", "mp4"} + extra);
+            if (!process.waitForFinished(60000) || process.exitCode() != 0) {
+                qWarning().noquote() << name << "failed:" << process.readAllStandardError();
+                return qint64(-1);
+            }
+            return QFileInfo(dir.filePath(name)).size();
         };
         const auto qualitySize = run("quality.mp4", {});
         const auto bitrateSize = run("bitrate.mp4", {"--video-bitrate", "200"});
