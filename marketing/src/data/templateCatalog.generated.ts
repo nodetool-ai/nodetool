@@ -984,6 +984,17 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "shot-director",
+        "name": "Shot Director",
+        "description": "Direct a cinematic take from one still: pick an open camera preset, describe the shot, and render it on Comfy Cloud with a pinned Wan 2.2 workflow. Every take records its preset, prompt, seed and Comfy job id.",
+        "tags": [
+          "video",
+          "comfy",
+          "camera-moves",
+          "open-weights"
+        ]
+      },
+      {
         "slug": "shot-list-from-a-synopsis",
         "name": "Shot List from a Synopsis",
         "description": "A synopsis becomes numbered shots with framing and duration — the document a generation pipeline can iterate over, where prose is not.",
