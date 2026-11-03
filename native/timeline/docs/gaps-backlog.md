@@ -199,6 +199,8 @@ results rather than a review finding.
 | B208 | P2 | notes (keys-4) | `src/preview/effects/ClipAnalysis.h` | The Smoothing and Analysis window of Stabilization and Deflicker, and Deflicker's Correction limit, have no keys. They are read when the analysis runs and are part of the key the stored analysis must match, so a keyed value would invalidate the analysis. | keys-4 |
 | B209 | P2 | notes (keys-4) | `src/colorpanel/ColorMatchController.cpp`, `src/edit/trim/TrimMonitorFrames.cpp` | The Trim monitor and Color Match render an isolated clip with its animations removed, so they show effect parameters at their static values while keys are on. Motion keys were already left out this way. | keys-4 |
 | B210 | P2 | notes (keys-4) | `qml/effectcontrols/EffectControlsRow.qml` | Keyed fields are pill inputs. The sliders they replace had a double-click reset to the field's default value, and these rows have no reset. | keys-4 |
+| B211 | P2 | notes (fix-ci-2) | `../ui_primitives/qml/ProviderIcon.qml` | Every `EditorButton` holds a `ProviderIcon`, and each one builds its own `providerFiles` table even with no provider set. In a QML trace of selecting a clip in Effect Controls this is one of the largest bindings. A table shared by all instances, or a `Loader` in the button, would remove it. | fix-ci-2 |
+| B212 | P2 | notes (fix-ci-2) | `qml/effectcontrols/EffectControlsRow.qml` | A row with no keys still builds its graph, previous, toggle and next buttons at opacity 0. Those are four of the five buttons in a row, and most rows have no keys, so building them on the first key would lower the cost of selecting a clip. | fix-ci-2 |
 
 ## Closed
 

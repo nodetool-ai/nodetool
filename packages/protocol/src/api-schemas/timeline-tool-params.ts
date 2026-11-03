@@ -1398,10 +1398,20 @@ export function buildEffect(
   switch (input.type) {
     case "denoise":
       return {...base, type: "denoise", lumaStrength: input.lumaStrength ?? 0, chromaStrength: input.chromaStrength ?? 0, temporalStrength: input.temporalStrength ?? 0, radius: input.radius ?? 2};
-    case "stabilize":
-      return {...base, type: "stabilize", strength: input.strength ?? 1, windowMs: input.windowMs ?? 500, maxZoom: input.maxZoom ?? 1.1, ...(input.analysis && "kind" in input.analysis ? {analysis: input.analysis} : {})};
-    case "deflicker":
-      return {...base, type: "deflicker", strength: input.strength ?? 1, windowMs: input.windowMs ?? 500, maxCorrection: input.maxCorrection ?? 1, ...(input.analysis && !("kind" in input.analysis) ? {analysis: input.analysis} : {})};
+    case "stabilize": {
+      const effect: Extract<KnownClipEffect, { type: "stabilize" }> = {...base, type: "stabilize", strength: input.strength ?? 1, windowMs: input.windowMs ?? 500, maxZoom: input.maxZoom ?? 1.1};
+      if (input.analysis && "kind" in input.analysis) {
+        effect.analysis = input.analysis;
+      }
+      return effect;
+    }
+    case "deflicker": {
+      const effect: Extract<KnownClipEffect, { type: "deflicker" }> = {...base, type: "deflicker", strength: input.strength ?? 1, windowMs: input.windowMs ?? 500, maxCorrection: input.maxCorrection ?? 1};
+      if (input.analysis && !("kind" in input.analysis)) {
+        effect.analysis = input.analysis;
+      }
+      return effect;
+    }
     case "deband":
       return {...base, type: "deband", strength: input.strength ?? 0, range: input.range ?? 16, threshold: input.threshold ?? 0.02, dither: input.dither ?? 0.5};
     case "secondaryColor":

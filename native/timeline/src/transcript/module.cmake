@@ -21,7 +21,7 @@ function(nt_textpanel_tests)
 endfunction()
 nt_tests(nt_textpanel_tests)
 function(nt_transcript_oracle)
-    add_test(NAME transcript_oracle COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/../../node_modules/.bin/vitest" run --config ${CMAKE_CURRENT_SOURCE_DIR}/scripts/conformance/vitest.store.config.mts)
+    add_test(NAME transcript_oracle COMMAND node "${CMAKE_CURRENT_SOURCE_DIR}/../../node_modules/vitest/vitest.mjs" run --config ${CMAKE_CURRENT_SOURCE_DIR}/scripts/conformance/vitest.store.config.mts)
     set_tests_properties(transcript_oracle PROPERTIES ENVIRONMENT
         "NT_CONFORMANCE_TESTS=${CMAKE_CURRENT_SOURCE_DIR}/scripts/conformance/suites/transcript.test.ts;NT_ASSIST_BINARY=$<TARGET_FILE:nt_assist_oracle>;NT_TARGETING_OPS=$<TARGET_FILE:targeting-ops>" TIMEOUT 300)
 endfunction()

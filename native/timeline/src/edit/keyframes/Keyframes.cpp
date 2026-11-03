@@ -1586,8 +1586,8 @@ QJsonObject edit(QJsonObject document, const QJsonObject& payload) {
     }
     return document;
 }
-QJsonArray rowSpecs() {
-    return {
+const QJsonArray& rowSpecs() {
+    static const QJsonArray specs = {
         QJsonObject{
             {"id", "position"},
             {"label", "Position"},
@@ -1708,5 +1708,6 @@ QJsonArray rowSpecs() {
             {"label", "Zoom"},
             {"inputs", QJsonArray{QJsonObject{
                            {"label", "Camera zoom"}, {"unit", "×"}, {"decimals", 2}, {"step", 0.01}, {"min", 0.05}}}}}};
+    return specs;
 }
 } // namespace nt::keyframes
