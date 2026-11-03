@@ -2,6 +2,7 @@
 // Ported from FilmCraft (https://github.com/storytold/filmcraft), crates/audio-dsp/src/oversample.rs, MIT. See licenses/FilmCraft-MIT.txt.
 #include "audio/loudness/Loudness.h"
 #include "audio/loudness/LiveLoudness.h"
+#include "audio/TestAllocationCounter.h"
 
 #include <QDir>
 #include <QFile>
@@ -9,16 +10,12 @@
 #include <algorithm>
 #include <bit>
 #include <cmath>
-#include <cstdlib>
-#include <new>
+#include <memory>
 #include <numbers>
-#if defined(_MSC_VER)
-#include <malloc.h>
-#endif
 
 namespace {
-thread_local bool countAllocations = false;
-thread_local std::size_t allocations = 0;
+using nt::testing::allocations;
+using nt::testing::countAllocations;
 constexpr double pi = std::numbers::pi;
 constexpr double none = -std::numeric_limits<double>::infinity();
 double gain(double db) {
@@ -148,65 +145,6 @@ void writeWav(const QString& dir, const Signal& s) {
     QCOMPARE(f.error(), QFileDevice::NoError);
 }
 }
-void* operator new(std::size_t n) {
-    if (countAllocations) {
-        ++allocations;
-    }
-    if (void* p = std::malloc(std::max(n, std::size_t{1}))) {
-        return p;
-    }
-    throw std::bad_alloc();
-}
-void* operator new[](std::size_t n) {
-    return ::operator new(n);
-}
-void operator delete(void* p) noexcept {
-    std::free(p);
-}
-void operator delete[](void* p) noexcept {
-    std::free(p);
-}
-void operator delete(void* p, std::size_t) noexcept {
-    std::free(p);
-}
-void operator delete[](void* p, std::size_t) noexcept {
-    std::free(p);
-}
-void* operator new(std::size_t n, std::align_val_t alignment) {
-    if (countAllocations) {
-        ++allocations;
-    }
-#if defined(_MSC_VER)
-    if (void* p = _aligned_malloc(std::max(n, std::size_t{1}), static_cast<std::size_t>(alignment))) {
-        return p;
-    }
-#else
-    void* p = nullptr;
-    if (posix_memalign(&p, static_cast<std::size_t>(alignment), std::max(n, std::size_t{1})) == 0) {
-        return p;
-    }
-#endif
-    throw std::bad_alloc();
-}
-void* operator new[](std::size_t n, std::align_val_t a) {
-    return ::operator new(n, a);
-}
-void operator delete(void* p, std::align_val_t) noexcept {
-#if defined(_MSC_VER)
-    _aligned_free(p);
-#else
-    std::free(p);
-#endif
-}
-void operator delete[](void* p, std::align_val_t a) noexcept {
-    ::operator delete(p, a);
-}
-void operator delete(void* p, std::size_t, std::align_val_t a) noexcept {
-    ::operator delete(p, a);
-}
-void operator delete[](void* p, std::size_t, std::align_val_t a) noexcept {
-    ::operator delete(p, a);
-}
 
 using nt::audio::LoudnessMeter;
 class TestLoudness : public QObject {
@@ -333,7 +271,13 @@ private slots:
     }
     void blockAndLayoutEquality() {
         const auto s = referenceSignal(2);
-        LoudnessMeter big(s.sr, 2), planar(s.sr, 2), tiny(s.sr, 2);
+        // A meter holds about 290 KB of histograms, so these go on the heap: five of them would overflow Windows' 1 MB stack.
+        const auto bigOwner = std::make_unique<LoudnessMeter>(s.sr, 2);
+        const auto planarOwner = std::make_unique<LoudnessMeter>(s.sr, 2);
+        const auto tinyOwner = std::make_unique<LoudnessMeter>(s.sr, 2);
+        LoudnessMeter& big = *bigOwner;
+        LoudnessMeter& planar = *planarOwner;
+        LoudnessMeter& tiny = *tinyOwner;
         std::vector<float> left(s.data.size() / 2), right(left.size());
         for (std::size_t i = 0; i < left.size(); ++i) {
             left[i] = s.data[2 * i];
@@ -354,7 +298,10 @@ private slots:
         same(big, tiny);
         for (double sr : {44100., 48000., 96000.}) {
             const auto x = sine(sr, 440, 4, -18);
-            LoudnessMeter mono(sr, 1), small(sr, 1);
+            const auto monoOwner = std::make_unique<LoudnessMeter>(sr, 1);
+            const auto smallOwner = std::make_unique<LoudnessMeter>(sr, 1);
+            LoudnessMeter& mono = *monoOwner;
+            LoudnessMeter& small = *smallOwner;
             mono.processInterleaved(x.data(), x.size());
             for (const float& v : x) {
                 small.processInterleaved(&v, 1);
