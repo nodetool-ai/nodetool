@@ -23,19 +23,32 @@
 #endif
 
 namespace nt::testing {
-inline thread_local bool countAllocations = false;
-inline thread_local std::size_t allocations = 0;
+// Volatile because GCC assumes new and delete leave globals alone, so it would drop plain
+// stores around an allocation (-fassume-sane-operators-new-delete).
+inline thread_local volatile bool countAllocations = false;
+inline thread_local volatile std::size_t allocations = 0;
 inline void noteAllocation() noexcept {
     if (countAllocations) {
-        ++allocations;
+        allocations = allocations + 1;
     }
+}
+// The check's own control: a zero count means nothing unless this returns true.
+inline bool countsAnAllocation() {
+    static int* volatile sink = nullptr;
+    allocations = 0;
+    countAllocations = true;
+    sink = new int(1);
+    delete sink;
+    countAllocations = false;
+    return allocations > 0;
 }
 }  // namespace nt::testing
 
 #ifdef NT_SANITIZED
 namespace {
+// The runtime refuses a pair with a null hook.
 const int ntAllocationHooksInstalled = __sanitizer_install_malloc_and_free_hooks(
-    [](const volatile void*, std::size_t) { nt::testing::noteAllocation(); }, nullptr);
+    [](const volatile void*, std::size_t) { nt::testing::noteAllocation(); }, [](const volatile void*) {});
 }
 #else
 void* operator new(std::size_t n) {

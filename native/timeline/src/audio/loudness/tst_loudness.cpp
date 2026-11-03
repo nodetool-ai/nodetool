@@ -338,6 +338,7 @@ private slots:
         QCOMPARE(nt::audio::normalizeGainDb(std::numeric_limits<double>::quiet_NaN(), -23), 0.0);
     }
     void zeroAllocations() {
+        QVERIFY(nt::testing::countsAnAllocation());
         LoudnessMeter meter(48000, 2);
         nt::audio::LoudnessReadout out;
         nt::audio::LiveLoudness live(out);
@@ -358,7 +359,7 @@ private slots:
         live.process(s.data.data(), 480);
         (void)out.read();
         countAllocations = false;
-        QCOMPARE(allocations, std::size_t{0});
+        QCOMPARE(std::size_t{allocations}, std::size_t{0});
     }
     void ffmpegReferences_data() {
         QTest::addColumn<int>("id");

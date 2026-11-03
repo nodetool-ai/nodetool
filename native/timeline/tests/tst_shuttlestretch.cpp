@@ -118,6 +118,7 @@ private slots:
         }
     }
     void noAllocation() {
+        QVERIFY(nt::testing::countsAnAllocation());
         for (int sr : {48000, 96000}) for (double rate : {.1, .25, 2., 8.}) {
             Tone source; source.anchor = 123; source.sr = sr;
             ShuttleStretcher stretch(sr); std::array<float, 1024> out{};
@@ -127,9 +128,9 @@ private slots:
             for (int i = 0; i < 2 * sr; i += 512) stretch.render(source, i, 512, out.data());
             countAllocations = false;
             const double cpuMs = double(std::clock() - started) * 1000 / CLOCKS_PER_SEC;
-            qInfo("%d Hz, %gx: 2 s output, %.2f ms CPU (%.2f%% core), %zu allocations", sr, rate, cpuMs, cpuMs / 20, allocations);
+            qInfo("%d Hz, %gx: 2 s output, %.2f ms CPU (%.2f%% core), %zu allocations", sr, rate, cpuMs, cpuMs / 20, std::size_t{allocations});
             QVERIFY(source.valid);
-            QCOMPARE(allocations, std::size_t{0});
+            QCOMPARE(std::size_t{allocations}, std::size_t{0});
             // A sanitizer's slowdown says nothing about the plain build.
 #ifndef NT_SANITIZED
             QVERIFY2(cpuMs < 200, "stretcher exceeds 10% of one core");
