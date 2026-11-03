@@ -49749,8 +49749,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: undefined,
-    input_fields: undefined,
+    inline_fields: [],
+    input_fields: [],
     required_settings: [ 'COMFY_API_KEY' ],
     required_runtimes: [],
     is_streaming_input: false,
