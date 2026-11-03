@@ -541,6 +541,7 @@ export async function* runComfyWorkflow(
 
   let terminalStatus: string | null = null;
   let fileCount = 0;
+  const emitted = new Set<string>();
   try {
     for await (const event of job.events(signal)) {
       switch (event.kind) {
@@ -590,6 +591,7 @@ export async function* runComfyWorkflow(
           break;
         case "outputReady": {
           fileCount += 1;
+          emitted.add(event.output.id);
           logLine(
             `Output from #${event.output.nodeId} (${event.output.name}, ${event.output.contentType})`
           );
@@ -622,6 +624,15 @@ export async function* runComfyWorkflow(
     const error = status === "failed" ? jobFailure(job) : new Error(`Comfy job ${job.id} ended ${status}`);
     logLine(error.message, "error");
     throw error;
+  }
+
+  // Comfy Cloud can finish a job without sending `outputReady` events, so
+  // every output on the finished job that the stream did not deliver is
+  // emitted here, or a downstream node wired to `<node>:video` gets nothing.
+  for (const output of job.outputs) {
+    if (emitted.has(output.id)) continue;
+    fileCount += 1;
+    yield await outputFrame(output, signal);
   }
 
   logLine(

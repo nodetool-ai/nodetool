@@ -313,6 +313,24 @@ describe("runComfyWorkflow — outputs", () => {
     expect(frames[0]["58:video"]).toMatchObject({ type: "video", mimeType: "video/mp4" });
   });
 
+  it("emits outputs from the finished job when the stream sent no outputReady", async () => {
+    // Comfy Cloud job 1b27be8f…: the stream ended with no outputReady, the
+    // finished job held the SaveVideo file.
+    const video = fakeOutput({
+      nodeId: "58",
+      id: "asset-video",
+      name: "video/shot-director_00001_.mp4",
+      type: "image",
+      contentType: "video/mp4"
+    });
+    const job = new FakeJob([succeeded], "succeeded", null, [video]);
+    const frames = await drain(run(makeTransport(job)));
+
+    expect(Object.keys(frames[0])).toEqual(["58:video"]);
+    expect(frames).toHaveLength(2);
+    expect(Object.keys(frames[1])).toEqual(["output"]);
+  });
+
   it("decodes a text output to a string and routes file outputs to a document ref", async () => {
     const job = new FakeJob([
       {

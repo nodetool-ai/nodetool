@@ -55,14 +55,34 @@ empty: Comfy Cloud reports the SaveVideo file with `type: "image"`, so the node
 emitted it on `58:image` and the workflow's `58:video` edge never fired. The
 video above was downloaded from the finished job by id. The fix
 (`outputKind` in `packages/integration-nodes/src/nodes/comfy-sdk.ts`) routes
-by content type, with a test built from the real manifest. The fix has not
-been re-run against Comfy yet.
+by content type, with a test built from the real manifest. Job 4 below found
+a second cause.
 
 Two earlier submissions failed in Comfy's input validation within 3 seconds and
 rendered nothing (`eb10e018-6e6e-4858-9a6d-140b240b9508`,
 `c880ece0-832f-40c9-9c64-fabb65f7719f`): the source image could not be read, the
 node skipped it silently, and Comfy rejected the placeholder `input.png`. The
 node now refuses to submit when a connected media ref cannot be read.
+
+## Job 4: the workflow again, after the output fix
+
+Same command as job 2 with `"camera_move":"crane up","seed":11`.
+
+| Field | Value |
+| --- | --- |
+| Comfy job id | `1b27be8f-cfb6-4b66-8c05-08897324ac60` |
+| Status | `succeeded` |
+| Workflow wall time | 106 s (13:08:34 to 13:10:20 UTC) |
+| Preset | `camera.crane-up` v1 |
+| Output | H.264 MP4, 1280×704, 121 frames, 5.04 s, 2,852,572 bytes |
+
+The `take` was still empty. The job's event stream ended without any
+`outputReady` event, and the node only emitted files from that stream. The node
+now also emits every output on the finished job that the stream did not
+deliver. Replaying this finished job through the fixed node, with no new
+submit, yields `58:video` (`video/mp4`, 2,852,572 bytes) followed by the
+`output` manifest. The motion reads as a tilt down into the beans more than a
+crane up, which is within the "prompt guidance, not camera control" caveat.
 
 ## Job 3: Comfy Router provider, text to image
 
@@ -80,6 +100,8 @@ The Router path is a partner API, not part of the open-weights render path.
 
 ## Not yet verified
 
+- A full workflow run that shows the take on the `take` output end to end.
+  The fix is verified by replaying job 4, not by a new run.
 - The app's Take A and Take B operations in the NodeTool UI, including the take
   being saved as an asset.
 - A Comfy Router video model through the provider.
