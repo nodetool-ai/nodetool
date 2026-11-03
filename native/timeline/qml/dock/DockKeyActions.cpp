@@ -117,9 +117,11 @@ const bool registered = [] {
         {"panelScript", "Go to Scripts", "script", "Scripts"}, {"panelStoryboard", "Go to Storyboards", "storyboard", "Storyboards"},
         {"panelText", "Go to Text", "transcript", "Text"},
         {"panelEffectControls", "Go to Effect Controls", "effectControls", "Effect Controls"},
+        {"panelMotion", "Go to Motion", "motion", "Motion"},
         {"panelColor", "Go to Color", "color", "Color"}, {"panelScopes", "Go to Scopes", "scopes", "Scopes"},
         {"panelEntities", "Go to Entities", "entities", "Entities"}, {"panelMarkers", "Go to Markers", "markers", "Markers"},
-        {"panelAssistant", "Go to the Assistant", "assistant", "Assistant"}, {"panelActivity", "Go to Activity", "activity", "Activity"}};
+        {"panelAssistant", "Go to the Assistant", "assistant", "Assistant"}, {"panelAi", "Go to AI", "ai", "AI"},
+        {"panelActivity", "Go to Activity", "activity", "Activity"}};
     int panelOrder = 100;
     for (const auto& entry : panels) {
         const QString panel = entry.panel;

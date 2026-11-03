@@ -79,6 +79,9 @@ private slots:
         QVERIFY(generation);
         generation->m_target = nt::server::SaveTarget{server.base(), {}, "timeline", cache.path()};
         gestures->setSelection({QStringLiteral("clip")});
+        QVariant aiShown;
+        QVERIFY(QMetaObject::invokeMethod(editor.get(), "focusPanel", Q_RETURN_ARG(QVariant, aiShown), Q_ARG(QVariant, QStringLiteral("ai"))));
+        QVERIFY(aiShown.toBool());
         const std::function<QQuickItem*(QQuickItem*, const QString&)> findNamed = [&](QQuickItem* item, const QString& name) -> QQuickItem* {
             if (item->objectName() == name) return item;
             for (auto* child : item->childItems()) if (auto* found = findNamed(child, name)) return found;

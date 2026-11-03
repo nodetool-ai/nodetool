@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
-import "../../motion/controls" as Motion
 import NodeTool.UiPrimitives as Ui
 Column {
     id: root
@@ -40,5 +39,4 @@ Column {
         }
     }
     TimingSection { width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller; groupMode: true }
-    Motion.GroupMotion { width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller }
 }

@@ -259,7 +259,7 @@ controls = ["InspectorSection", "InspectorSelect", "Ui.EditorButton", "Ui.Text"]
 signals = []
 test_host = "tst_inspectorsections"
 test_scope = "build/import"
-qml_callers = ["native/timeline/qml/Inspector/TimelineInspector.qml", "native/timeline/src/motion/controls/GroupMotion.qml"]
+qml_callers = ["native/timeline/qml/Inspector/TimelineInspector.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.EditorButton, Ui.Text"
 
 [[file]]
@@ -1193,6 +1193,16 @@ qml_callers = []
 replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.Text, Ui.EditorButton, Ui.TextField, Ui.Select, Ui.ScrollBar, Ui.TextArea, Ui.Progress"
 
 [[file]]
+path = "native/timeline/qml/ai/AiPanel.qml"
+category = "chrome"
+controls = ["Ui.EmptyState", "Ui.ScrollBar", "AiInspectorSection"]
+signals = []
+test_host = "tst_dockui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
 path = "native/timeline/qml/ai/AiInspectorSection.qml"
 category = "chrome"
 controls = ["P.InspectorSection", "Ui.EditorButton"]
@@ -1601,6 +1611,16 @@ test_host = "tst_fxcontrols"
 test_scope = "build/import"
 qml_callers = ["native/timeline/qml/wiring/w/FilterEditor.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.ToolbarIconButton, Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/motionpanel/MotionPanel.qml"
+category = "chrome"
+controls = ["Ui.EmptyState", "Ui.ScrollBar", "KeyframeAnimations"]
+signals = []
+test_host = "tst_dockui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
 
 [[file]]
 path = "native/timeline/qml/markers/MarkerEditDialog.qml"
@@ -2569,7 +2589,7 @@ controls = ["InspectorSection", "InspectorToggleRow", "InspectorRow", "Inspector
 signals = []
 test_host = "tst_motionblurcontrols"
 test_scope = "build/import"
-qml_callers = ["native/timeline/src/motion/controls/GroupMotion.qml"]
+qml_callers = []
 replacement = "Feature composition through migrated native Ui wrappers"
 
 [[file]]
@@ -2609,7 +2629,7 @@ controls = ["InspectorSection", "InspectorToggleRow", "InspectorRow", "Inspector
 signals = []
 test_host = "tst_followpathui"
 test_scope = "build/import"
-qml_callers = ["native/timeline/src/motion/controls/GroupMotion.qml"]
+qml_callers = []
 replacement = "NodeTool.UiPrimitives: Ui.EditorButton"
 
 [[file]]
@@ -2619,17 +2639,7 @@ controls = ["InspectorSection", "InspectorSliderRow"]
 signals = []
 test_host = "tst_followpathui"
 test_scope = "build/import"
-qml_callers = ["native/timeline/src/motion/controls/GroupMotion.qml"]
-replacement = "Feature composition through migrated native Ui wrappers"
-
-[[file]]
-path = "native/timeline/src/motion/controls/GroupMotion.qml"
-category = "chrome"
-controls = []
-signals = []
-test_host = "tst_followpathui"
-test_scope = "build/import"
-qml_callers = ["native/timeline/src/edit/inspectorsections/ClipGroupPanel.qml"]
+qml_callers = []
 replacement = "Feature composition through migrated native Ui wrappers"
 
 [[file]]
@@ -2699,7 +2709,7 @@ controls = ["InspectorSection", "InspectorRow", "InspectorPillInput", "Inspector
 signals = []
 test_host = "tracking_ui"
 test_scope = "build/import"
-qml_callers = ["native/timeline/src/motion/controls/GroupMotion.qml"]
+qml_callers = []
 replacement = "Feature composition through migrated native Ui wrappers"
 
 [[file]]

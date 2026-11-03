@@ -1,4 +1,6 @@
 // nt-panel: slot=right id=inspector order=0 title="Inspector"
+// What this item is: its identity card, Media and Timing, and Text, Shape, Caption or Transition
+// for an item of that kind. Every other control has one owner in its own panel.
 // PanelSlot supplies no properties. Follow the visual parent chain to the
 // TimelineEditor (timeline + clock), then its TracksRegion (gestures).
 // All lookups are guarded. Outside an editor this panel shows No selection.
@@ -41,12 +43,14 @@ Rectangle {
     Component.onCompleted: Qt.callLater(attach)
     onParentChanged: Qt.callLater(attach)
     readonly property var selection: gestures ? gestures.selection : []
+    // A transition lives at a clip's start, so its edit point can select the item with no clip selected.
+    readonly property string transitionClipId: selection.length === 0 && gestures && gestures.selectedEdit && gestures.selectedEdit.edge === "start" ? gestures.selectedEdit.clipId : ""
     ClipInspectorController {
         id: inspector
         objectName: "clipInspectorController"
         timeline: root.editor ? root.editor.timeline : null
         clock: root.editor ? root.editor.clock : null
-        clipId: root.selection.length === 1 ? root.selection[0] : ""
+        clipId: root.selection.length === 1 ? root.selection[0] : root.transitionClipId
         onRowEdited: row => { if (root.gestures) root.gestures.keyframeRow = row }
     }
     readonly property var timelineModel: inspector.timeline
@@ -72,7 +76,7 @@ Rectangle {
             width: viewport.width - scrollBar.width
             Column {
                 width: parent.width
-                visible: root.selection.length === 0
+                visible: root.selection.length === 0 && !root.transitionClipId
                 topPadding: Ui.Metrics.xl
                 spacing: Ui.Metrics.md
                 Ui.Text { width: parent.width; text: "No selection"; horizontalAlignment: Text.AlignHCenter; role: Ui.Typography.SansLabel }
@@ -137,7 +141,6 @@ Rectangle {
                     gestures: root.gestures
                     controller: inspector
                 }
-                KeyframeAnimations { width: parent.width; controller: inspector }
             }
             Sections.ClipGroupPanel {
                 width: parent.width

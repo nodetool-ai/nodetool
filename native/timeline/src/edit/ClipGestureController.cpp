@@ -1259,6 +1259,16 @@ void ClipGestureController::finishGesture(bool completed, Qt::KeyboardModifiers 
     } else if (g.kind == u"move" && completed && m_tool != u"trackSelect" && m_tool != u"trackSelectBackward") {
         // A track-select tool chose the selection at the press.
         clickSelect(g.clipId, modifiers);
+        // A click on the incoming transition's wedge selects the transition, which sits at the clip's start.
+        if (m_selection == QStringList{g.clipId}) {
+            const EditDoc doc = editDoc();
+            if (const QJsonObject* clip = findClip(doc.clips, g.clipId)) {
+                const double intoClipMs = laneMsAt(g.startX) - clipStartMs(*clip);
+                if (intoClipMs >= 0 && intoClipMs < clip->value(u"transitionIn").toObject().value(u"durationMs").toDouble()) {
+                    selectEdit(g.clipId, QStringLiteral("start"));
+                }
+            }
+        }
     } else if (completed) {
         selectEditPoint(g);
     }

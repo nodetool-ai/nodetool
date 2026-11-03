@@ -144,7 +144,7 @@ class TestReframe : public QObject {
             if (section["id"] == "reframe") { reframeOrder = section["order"].toInt(); }
         }
         QCOMPARE(cropOrder, 40);
-        QCOMPARE(reframeOrder, 84);
+        QCOMPARE(reframeOrder, 87);
         PanelRegistry panels;
         for (const auto& value : panels.forSlot("right")) {
             QVERIFY(!value.toMap()["id"].toString().startsWith("inspectorCrop"));
@@ -241,11 +241,11 @@ class TestReframe : public QObject {
         QCoreApplication::processEvents();
         auto* section = findItem(root, "inspectorReframe");
         QVERIFY(section);
-        const auto inInspector = [](QQuickItem* item) {
-            while (item && item->objectName() != "timelineInspector") { item = item->parentItem(); }
+        const auto within = [](QQuickItem* item, const char* panel) {
+            while (item && item->objectName() != panel) { item = item->parentItem(); }
             return item != nullptr;
         };
-        QVERIFY(inInspector(section));
+        QVERIFY(within(section, "motionPanel"));
         auto* gestures = object->findChild<ClipGestureController*>();
         QVERIFY(gestures);
         gestures->setSelection({"c"});
@@ -255,7 +255,7 @@ class TestReframe : public QObject {
         // Effect Controls hosts Crop, as a group for a clip that can be cropped.
         auto* effectControls = findItem(root, "effectControlsPanel"); QVERIFY(effectControls);
         QTRY_VERIFY(findItem(effectControls, "inspectorCrop"));
-        QVERIFY(!inInspector(findItem(effectControls, "inspectorCrop")));
+        QVERIFY(!within(findItem(effectControls, "inspectorCrop"), "timelineInspector"));
         QVERIFY(findItem(effectControls, "inspectorCrop")->implicitHeight() > 0);
         gestures->setSelection({});
         QCOMPARE(section->implicitHeight(), 0.);

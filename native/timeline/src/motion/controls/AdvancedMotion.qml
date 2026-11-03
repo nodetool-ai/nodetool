@@ -15,6 +15,7 @@ InspectorSection {
     readonly property string linkIdentity: (clip.id || "") + ":" + links.length
     readonly property string repeaterIdentity: clip.id && clip.repeater ? clip.id : ""
     readonly property string echoIdentity: clip.id && clip.temporalEcho ? clip.id : ""
+    objectName: "advancedMotion"
     title: "Advanced motion"
     defaultOpen: false
     visible: !!clip.id && clip.mediaType !== "audio" && clip.mediaType !== "midi"

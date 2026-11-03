@@ -104,9 +104,11 @@ private slots:
         for (const auto& moved : {QString("Render"), QString("Transform"), QString("Camera"), QString("Crop"), QString("Corners"), QString("Time remap"), QString("Motion blur"), QString("Audio")}) {
             QVERIFY2(!section(panel, moved), qPrintable(moved));
         }
-        auto* animate = section(panel, "Animate"); QVERIFY(animate);
+        // One owner per control: these have panels of their own.
+        for (const auto& moved : {QString("Animate"), QString("Advanced motion"), QString("Follow object"), QString("Smart reframe"), QString("AI"), QString("Effects")}) {
+            QVERIFY2(!section(panel, moved), qPrintable(moved));
+        }
         QTRY_VERIFY(probe->mapToItem(panel, QPointF{}).y() >= timing->mapToItem(panel, QPointF{}).y() + timing->height());
-        QVERIFY(probe->mapToItem(panel, QPointF{}).y() < animate->mapToItem(panel, QPointF{}).y());
         QCOMPARE(probe->property("timelineModel").value<QObject*>(), &e.model);
         QCOMPARE(probe->property("gestures").value<QObject*>(), e.gestures());
         QCOMPARE(probe->property("controller").value<QObject*>(), panel->findChild<QObject*>("clipInspectorController"));
@@ -119,9 +121,13 @@ private slots:
         e.gestures()->setSelection({"b"});
         auto* viewport = flickable(e.inspector()); QVERIFY(viewport);
         QTRY_COMPARE(e.inspector()->findChild<QObject*>("clipInspectorController")->property("clipId").toString(), QString("b"));
-        for (const auto& title : {QString("Media"), QString("Timing"), QString("Animate")}) {
+        e.gestures()->selectEdit("b", "start");
+        for (const auto& title : {QString("Media"), QString("Timing")}) {
             if (auto* s = section(e.inspector(), title)) { s->setProperty("open", true); }
         }
+        // Short enough that the Inspector has to scroll to the section under test.
+        e.window.resize(1280, 360);
+        e.root()->setHeight(360);
         QTest::qWait(30);
         // Scroll even on the old layout: a sibling panel cannot be brought in
         // by scrolling the Inspector's content.
@@ -130,7 +136,7 @@ private slots:
         QCoreApplication::processEvents();
         const auto inWindow = transition->mapRectToScene(QRectF(0, 0, transition->width(), std::max(1.0, transition->height())));
         qInfo() << "Transition window rectangle" << inWindow << "window" << e.window.size();
-        QVERIFY2(QRectF(0, 0, 1280, 800).contains(inWindow), "Transition section lies outside the window");
+        QVERIFY2(QRectF(0, 0, 1280, 360).contains(inWindow), "Transition section lies outside the window");
         QTRY_VERIFY(transition->implicitHeight() > 0);
         const auto inViewport = transition->mapRectToItem(viewport, QRectF(0, 0, transition->width(), transition->height()));
         QVERIFY2(QRectF(0, 0, viewport->width(), viewport->height()).contains(inViewport), "Transition section lies outside the Inspector viewport");
@@ -172,7 +178,7 @@ private slots:
         QVERIFY2(group, "B31: selected group needs ClipGroupPanel"); QTRY_VERIFY(group->isVisible());
         QCOMPARE(findItem(group, "groupChildren")->property("value").toString(), QString("2"));
         QVERIFY(!section(e.inspector(), "Transform"));
-        QVERIFY(!section(e.inspector(), "Animate")->isVisible());
+        QVERIFY(!section(e.inspector(), "Animate"));
         QCOMPARE(findItem(group, "groupTrimHint")->property("text").toString(), QString("Trimming the group pulls its children inside the window that leaves."));
         auto* groupTiming = section(group, "Timing"); QVERIFY(groupTiming);
         groupTiming->setProperty("open", true);
@@ -202,7 +208,6 @@ private slots:
         auto* media = section(e.inspector(), "Media"); QVERIFY2(media, "B32: Media section is missing");
         auto* timing = section(e.inspector(), "Timing"); QVERIFY2(timing, "B32: Timing section is missing");
         QVERIFY(media->mapToItem(e.inspector(), QPointF{}).y() < timing->mapToItem(e.inspector(), QPointF{}).y());
-        QVERIFY(timing->mapToItem(e.inspector(), QPointF{}).y() < section(e.inspector(), "Animate")->mapToItem(e.inspector(), QPointF{}).y());
         media->setProperty("open", true); timing->setProperty("open", true);
         QCOMPARE(findItem(media, "mediaType")->property("value").toString(), QString("image"));
         QCOMPARE(findItem(media, "mediaAsset")->property("value").toString(), QString("asset-b"));

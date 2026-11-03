@@ -1,7 +1,7 @@
 nt_sources(core src/ai/Take.h src/ai/Take.cpp src/ai/ClipRequests.h src/ai/ClipRequests.cpp src/ai/Extension.h src/ai/Extension.cpp src/ai/WorkflowInputs.h src/ai/WorkflowInputs.cpp)
 nt_sources(server src/ai/GenerationTransport.h src/ai/GenerationTransport.cpp src/ai/WorkflowGeneration.h src/ai/WorkflowGeneration.cpp src/ai/WorkflowCost.h src/ai/WorkflowCost.cpp)
 nt_qml_sources(src/ai/GenerationController.h src/ai/GenerationController.cpp
-    src/ai/AiHostRegistry.h src/ai/AiHostRegistry.cpp src/ai/AiInspectorRegistration.cpp)
+    src/ai/AiHostRegistry.h src/ai/AiHostRegistry.cpp)
 
 function(nt_ai_tests)
     get_filename_component(NT_AI_REPO "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
