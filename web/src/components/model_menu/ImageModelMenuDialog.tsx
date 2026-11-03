@@ -1,6 +1,7 @@
 import { memo, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
+import { useAllowedProviderModels } from "../../hooks/useAllowedProviderModels";
 import type { ImageModel, ModelPack, UnifiedModel } from "../../stores/ApiTypes";
 import { useImageModelMenuStore } from "../../stores/ModelMenuStore";
 import { imageTaskCapabilities } from "../../hooks/useProviders";
@@ -10,6 +11,8 @@ import {
 } from "../../hooks/useModelsByProvider";
 
 interface ImageModelMenuDialogProps {
+  /** Only these providers' models are listed. */
+  allowedProviders?: string[];
   open: boolean;
   onClose: () => void;
   onModelChange?: (model: ImageModel) => void;
@@ -22,6 +25,7 @@ interface ImageModelMenuDialogProps {
 }
 
 function ImageModelMenuDialog({
+  allowedProviders,
   open,
   onClose,
   onModelChange,
@@ -32,7 +36,10 @@ function ImageModelMenuDialog({
   selectedModel
 }: ImageModelMenuDialogProps) {
   const { t } = useTranslation();
-  const modelData = useImageModelsByProvider({ task });
+  const modelData = useAllowedProviderModels(
+    useImageModelsByProvider({ task }),
+    allowedProviders
+  );
   const localCapabilities = useMemo(
     () => imageTaskCapabilities(task === undefined ? undefined : [task].flat()),
     [task]

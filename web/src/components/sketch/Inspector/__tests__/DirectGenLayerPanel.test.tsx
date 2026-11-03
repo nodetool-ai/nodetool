@@ -8,6 +8,12 @@ import mockTheme from "../../../../__mocks__/themeMock";
 import { DirectGenLayerPanel } from "../DirectGenLayerPanel";
 import type { Layer } from "../../types";
 
+// The prompt box offers `@` entities from the library, which reads TanStack
+// Query; these tests mount no QueryClientProvider.
+jest.mock("../../../../serverState/useEntities", () => ({
+  useEntities: () => ({ data: [] })
+}));
+
 jest.mock("../../../properties/ImageModelSelect", () => ({
   __esModule: true,
   default: () => null

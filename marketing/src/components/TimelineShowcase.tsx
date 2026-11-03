@@ -36,7 +36,7 @@ export default function TimelineShowcase() {
   };
 
   return (
-    <section id="example-timelines" aria-labelledby="timeline-showcase-title" className="relative scroll-mt-28 py-24">
+    <section id="example-timelines" aria-labelledby="timeline-showcase-title" className="relative scroll-mt-28 py-16 sm:py-24">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mb-10 max-w-3xl">
           <h2 id="timeline-showcase-title" className="text-3xl font-semibold tracking-tight text-slate-100 md:text-5xl">
@@ -47,7 +47,7 @@ export default function TimelineShowcase() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6" role="group" aria-label="Example films">
+        <div className="-mx-6 flex snap-x snap-mandatory gap-3 overflow-x-auto px-6 pb-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:snap-none sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-6" role="group" aria-label="Example films">
           {timelineExamples.map((example) => (
             <button
               key={example.slug}
@@ -62,14 +62,14 @@ export default function TimelineShowcase() {
                   setPlaybackError(false);
                 }
               }}
-              className={`focus-ring overflow-hidden rounded-xl border text-left motion-safe:transition-colors ${example.slug === selected.slug ? "border-amber-300 bg-slate-800" : "border-slate-700 bg-slate-950 hover:border-slate-400"}`}
+              className={`focus-ring w-[42%] shrink-0 snap-start scroll-ml-6 overflow-hidden rounded-xl border text-left sm:w-auto motion-safe:transition-colors ${example.slug === selected.slug ? "border-amber-300 bg-slate-800" : "border-slate-700 bg-slate-950 hover:border-slate-400"}`}
             >
               <Image
                 src={`/timelines/${example.slug}/poster.webp`}
                 alt=""
                 width={1280}
                 height={720}
-                sizes="(min-width: 640px) 240px, 50vw"
+                sizes="(min-width: 640px) 240px, 42vw"
                 className="aspect-video w-full object-cover"
               />
               <span className="block px-3 pb-3 pt-2">

@@ -1,0 +1,39 @@
+{
+  "id": "camera.pull-back-reveal",
+  "version": 1,
+  "kind": "camera",
+  "name": "pull back reveal",
+  "description": "Camera pulls back from a close view to reveal the surroundings.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [
+    "pull back reveal"
+  ],
+  "prompt": {
+    "default": "Camera pulls back from a close view to reveal the surroundings.",
+    "kling": "Camera pulls back from a close view to reveal the surroundings.",
+    "seedance": "Camera pulls back from a close view to reveal the surroundings throughout one continuous shot.",
+    "veo": "Camera pulls back from a close view to reveal the surroundings.",
+    "wan": "Camera pulls back from a close view to reveal the surroundings.",
+    "local-wan": "Beginning close to the subject, the camera retreats smoothly into a wide shot. Surrounding scenery progressively enters at the edges and reveals the larger setting. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pull-back-reveal/ddb3f1acc5d2a0faef1541e739fc2f8bf0b8cb61bb45ea81bade69f731db71ce.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pull-back-reveal/ddb3f1acc5d2a0faef1541e739fc2f8bf0b8cb61bb45ea81bade69f731db71ce.png",
+    "run": "runs/camera.pull-back-reveal.json"
+  }
+}

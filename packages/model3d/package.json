@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/model3d",
-  "version": "0.8.4",
+  "version": "0.8.10",
   "description": "Shared 3D scene document: glTF read/write, primitive geometry, the editor's scene operations, and validation",
   "type": "module",
   "engines": {

@@ -60,14 +60,18 @@ export default function SubscriptionSection({
                 id={titleId}
                 className="mt-3 text-balance text-3xl font-semibold tracking-tight text-white md:text-4xl"
               >
-                Run NodeTool on the AI plan you already pay for.
+                Run the agent on the $20 AI plan you already pay for.
               </h2>
               <p className="mt-4 text-lg leading-relaxed text-slate-300">
                 Sign in with ChatGPT or Claude, and the agent runs on your
-                subscription. Your ChatGPT and Gemini plans also generate
-                images, and Gemini generates video. No API key, and no
-                pay-per-call bill for those runs. They count against your
-                plan&apos;s own limits.
+                subscription instead of a metered API bill. Your ChatGPT and
+                Gemini plans also generate images, and Gemini generates video.
+                Those runs count against your plan&apos;s own limits.
+              </p>
+              <p className="mt-4 leading-relaxed text-slate-400">
+                For a model your plan doesn&apos;t cover, add your own key for
+                fal.ai, Kie.ai, Replicate, or OpenAI and pay that provider its
+                list price. NodeTool adds nothing on top.
               </p>
             </div>
             <div className="lg:col-span-6">

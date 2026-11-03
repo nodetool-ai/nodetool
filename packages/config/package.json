@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/config",
-  "version": "0.8.4",
+  "version": "0.8.10",
   "type": "module",
   "engines": {
     "node": ">=22.0.0"
@@ -37,6 +37,12 @@
       "types": "./dist/sd-cpp-runtime.d.ts",
       "import": "./dist/sd-cpp-runtime.js",
       "default": "./dist/sd-cpp-runtime.js"
+    },
+    "./wan2gp-runtime": {
+      "nodetool-dev": "./src/wan2gp-runtime.ts",
+      "types": "./dist/wan2gp-runtime.d.ts",
+      "import": "./dist/wan2gp-runtime.js",
+      "default": "./dist/wan2gp-runtime.js"
     },
     "./threadpool": {
       "nodetool-dev": "./src/threadpool.ts",

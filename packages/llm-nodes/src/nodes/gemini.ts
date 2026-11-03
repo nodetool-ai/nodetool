@@ -4,6 +4,12 @@ import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import { loadMediaRefBytes, safeFetch } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { sleep } from "@nodetool-ai/runtime/provider-transport";
+import { PROVIDER_IDS } from "@nodetool-ai/protocol";
+import {
+  modelIdOf,
+  providerModelProp,
+  type ModelFieldValue
+} from "./provider-model-prop.js";
 import {
   isNonEmptyString,
   isObjectLike,
@@ -16,6 +22,101 @@ function getGeminiApiKey(secrets: Record<string, string>): string {
   const key = secrets.GEMINI_API_KEY || process.env.GEMINI_API_KEY || "";
   if (!key) throw new Error("GEMINI_API_KEY is not configured");
   return key;
+}
+
+/**
+ * Where a Gemini node sends its requests. The request and response bodies are
+ * the same on the Gemini Developer API and on Vertex AI, so a node builds them
+ * once and only the endpoint differs.
+ */
+export interface GeminiEndpoint {
+  /** Names the API in error messages. */
+  readonly label: string;
+  postModel(
+    model: string,
+    method: string,
+    body: unknown,
+    signal?: AbortSignal
+  ): Promise<Response>;
+  getVideoOperation(
+    model: string,
+    operationName: string,
+    signal?: AbortSignal
+  ): Promise<Response>;
+  mediaHeaders(uri: string): Promise<Record<string, string> | undefined>;
+}
+
+/** The Gemini Developer API, authenticated with an AI Studio key. */
+function apiKeyEndpoint(apiKey: string): GeminiEndpoint {
+  return {
+    label: "Gemini API",
+    postModel: (model, method, body, signal) =>
+      fetch(`${GEMINI_API_BASE}/models/${model}:${method}?key=${apiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal
+      }),
+    getVideoOperation: (_model, operationName, signal) =>
+      fetch(`${GEMINI_API_BASE}/${operationName}?key=${apiKey}`, { signal }),
+    mediaHeaders: async (uri) =>
+      new URL(uri).hostname === "generativelanguage.googleapis.com"
+        ? { "x-goog-api-key": apiKey }
+        : undefined
+  };
+}
+
+function isGeminiEndpoint(value: unknown): value is Omit<GeminiEndpoint, "label"> {
+  if (!isObjectLike(value)) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.postModel === "function" &&
+    typeof v.getVideoOperation === "function" &&
+    typeof v.mediaHeaders === "function"
+  );
+}
+
+/**
+ * A node's model: an enum id on the Gemini nodes, or a model picked from the
+ * provider's own listing on the Vertex AI nodes.
+ */
+type GeminiModelValue = ModelFieldValue;
+
+function requireModelId(value: GeminiModelValue): string {
+  const id = modelIdOf(value);
+  if (!id) throw new Error("Select a model");
+  return id;
+}
+
+/** A Gemini node class. Vertex AI subclasses set `geminiProvider`. */
+type GeminiNodeClass = { geminiProvider?: string };
+
+/**
+ * The endpoint a Gemini node uses: the AI Studio key by default, or the
+ * registry provider a subclass names, which brings its own credentials.
+ */
+async function geminiEndpoint(
+  node: BaseNode,
+  secrets: Record<string, string>,
+  context?: ProcessingContext
+): Promise<GeminiEndpoint> {
+  const providerId = (node.constructor as GeminiNodeClass).geminiProvider;
+  if (!providerId) return apiKeyEndpoint(getGeminiApiKey(secrets));
+  if (!context) {
+    throw new Error(`${providerId} nodes need a processing context`);
+  }
+  const provider = await context.getProvider(providerId);
+  if (!isGeminiEndpoint(provider)) {
+    throw new Error(`Provider ${providerId} does not serve Gemini requests`);
+  }
+  return {
+    label: "Vertex AI",
+    postModel: (model, method, body, signal) =>
+      provider.postModel(model, method, body, signal),
+    getVideoOperation: (model, operationName, signal) =>
+      provider.getVideoOperation(model, operationName, signal),
+    mediaHeaders: (uri) => provider.mediaHeaders(uri)
+  };
 }
 
 type MediaRefLike = { uri?: string; asset_id?: string | null; data?: unknown };
@@ -52,13 +153,13 @@ type GroundedSearchNodeOutputs = {
 };
 
 export class GroundedSearchNode extends BaseNode {
-  static readonly nodeType = "gemini.text.GroundedSearch";
+  static readonly nodeType: string = "gemini.text.GroundedSearch";
   static readonly body = "content_card";
   static readonly primaryOutput = "text";
   static readonly title = "Grounded Search";
   static readonly inlineFields = [];
   static readonly inputFields: string[] = ["query"];
-  static readonly description =
+  static readonly description: string =
     "Search the web using Google's Gemini API with grounding capabilities.\n    google, search, grounded, web, gemini, ai\n\n    This node uses Google's Gemini API to perform web searches and return structured results\n    with source information. Requires a Gemini API key.\n\n    Use cases:\n    - Research current events and latest information\n    - Find reliable sources for fact-checking\n    - Gather web-based information with citations\n    - Get up-to-date information beyond the model's training data";
   static readonly metadataOutputTypes = {
     results: "list[str]",
@@ -75,30 +176,24 @@ export class GroundedSearchNode extends BaseNode {
   })
   declare query: string;
 
-  @prop({
-    type: "enum",
-    default: "gemini-3.5-flash",
-    title: "Model",
-    description: "The Gemini model to use for search",
-    values: [
-      "gemini-3.5-flash",
-      "gemini-3.1-pro-preview",
-      "gemini-3.1-flash-lite",
-      "gemini-2.5-pro",
-      "gemini-2.5-flash",
-      "gemini-2.5-flash-lite"
-    ]
-  })
-  declare model: string;
+  @providerModelProp(
+    "language_model",
+    PROVIDER_IDS.GEMINI,
+    "gemini-3.5-flash",
+    "The Gemini model to use for search"
+  )
+  declare model: ModelFieldValue;
 
-  async process(): Promise<GroundedSearchNodeOutputs> {
-    const apiKey = getGeminiApiKey(this._secrets);
+  async process(
+    context?: ProcessingContext
+  ): Promise<GroundedSearchNodeOutputs> {
+    const endpoint = await geminiEndpoint(this, this._secrets, context);
     const query = this.query;
-    const model = this.model;
+    const model = requireModelId(this.model);
 
     if (!query) throw new Error("Search query is required");
 
-    const url = `${GEMINI_API_BASE}/models/${model}:generateContent?key=${apiKey}`;
+    const method = "generateContent";
     const body = {
       contents: [{ parts: [{ text: query }] }],
       tools: [{ google_search: {} }],
@@ -107,15 +202,11 @@ export class GroundedSearchNode extends BaseNode {
       }
     };
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
+    const res = await endpoint.postModel(model, method, body);
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`Gemini API error ${res.status}: ${errText}`);
+      throw new Error(`${endpoint.label} error ${res.status}: ${errText}`);
     }
 
     const data = (await res.json()) as Record<string, unknown>;
@@ -170,11 +261,11 @@ export class GroundedSearchNode extends BaseNode {
 }
 
 export class EmbeddingNode extends BaseNode {
-  static readonly nodeType = "gemini.text.Embedding";
+  static readonly nodeType: string = "gemini.text.Embedding";
   static readonly title = "Embedding";
   static readonly inlineFields = ["input"];
   static readonly inputFields: string[] = [];
-  static readonly description =
+  static readonly description: string =
     "Generate vector representations of text for semantic analysis using Google's Gemini API.\n    embeddings, similarity, search, clustering, classification, gemini\n\n    Uses Google's text embedding models to create dense vector representations of text.\n    These vectors capture semantic meaning, enabling:\n    - Semantic search\n    - Text clustering\n    - Document classification\n    - Recommendation systems\n    - Anomaly detection\n    - Measuring text similarity and diversity";
   static readonly metadataOutputTypes = {
     output: "list"
@@ -189,37 +280,34 @@ export class EmbeddingNode extends BaseNode {
   })
   declare input: string;
 
-  @prop({
-    type: "enum",
-    default: "gemini-embedding-2",
-    title: "Model",
-    description: "The embedding model to use",
-    values: ["gemini-embedding-2"]
-  })
-  declare model: string;
+  @providerModelProp(
+    "embedding_model",
+    PROVIDER_IDS.GEMINI,
+    "gemini-embedding-2",
+    "The embedding model to use"
+  )
+  declare model: ModelFieldValue;
 
-  async process(): Promise<Record<string, unknown>> {
-    const apiKey = getGeminiApiKey(this._secrets);
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    const endpoint = await geminiEndpoint(this, this._secrets, context);
     const input = this.input;
-    const model = this.model;
+    const model = requireModelId(this.model);
 
     if (!input)
       throw new Error("Input text is required for embedding generation");
 
-    const url = `${GEMINI_API_BASE}/models/${model}:embedContent?key=${apiKey}`;
+    const method = "embedContent";
     const body = {
       content: { parts: [{ text: input }] }
     };
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
+    const res = await endpoint.postModel(model, method, body);
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`Gemini API error ${res.status}: ${errText}`);
+      throw new Error(`${endpoint.label} error ${res.status}: ${errText}`);
     }
 
     const data = (await res.json()) as Record<string, unknown>;
@@ -240,12 +328,12 @@ type ImageGenerationNodeOutputs = {
 };
 
 export class ImageGenerationNode extends BaseNode {
-  static readonly nodeType = "gemini.image.ImageGeneration";
+  static readonly nodeType: string = "gemini.image.ImageGeneration";
   static readonly body = "content_card";
   static readonly title = "Image Generation";
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt", "image"];
-  static readonly description =
+  static readonly description: string =
     "Generate an image using Google's Imagen model via the Gemini API.\n    google, image generation, ai, imagen\n\n    Use cases:\n    - Create images from text descriptions\n    - Generate assets for creative projects\n    - Explore AI-powered image synthesis";
   static readonly metadataOutputTypes = {
     output: "image"
@@ -261,20 +349,13 @@ export class ImageGenerationNode extends BaseNode {
   })
   declare prompt: string;
 
-  @prop({
-    type: "enum",
-    default: "gemini-3.1-flash-image",
-    title: "Model",
-    description: "The image generation model to use",
-    values: [
-      "gemini-3.1-flash-image",
-      "gemini-nano-banana-2.1",
-      "gemini-3.1-flash-lite-image",
-      "gemini-3-pro-image",
-      "imagen-4.0-generate-001"
-    ]
-  })
-  declare model: string;
+  @providerModelProp(
+    "image_model",
+    PROVIDER_IDS.GEMINI,
+    "gemini-3.1-flash-image",
+    "The image generation model to use"
+  )
+  declare model: ModelFieldValue;
 
   @prop({
     type: "image",
@@ -326,9 +407,9 @@ export class ImageGenerationNode extends BaseNode {
   async process(
     context?: ProcessingContext
   ): Promise<ImageGenerationNodeOutputs> {
-    const apiKey = getGeminiApiKey(this._secrets);
+    const endpoint = await geminiEndpoint(this, this._secrets, context);
     const prompt = this.prompt;
-    const model = this.model;
+    const model = requireModelId(this.model);
     const image = this.image;
     const aspectRatio = this.aspect_ratio;
     const resolution = this.resolution;
@@ -353,7 +434,7 @@ export class ImageGenerationNode extends BaseNode {
         });
       }
 
-      const url = `${GEMINI_API_BASE}/models/${model}:generateContent?key=${apiKey}`;
+      const method = "generateContent";
       const body = {
         contents: [{ parts: contentParts }],
         generationConfig: {
@@ -365,15 +446,11 @@ export class ImageGenerationNode extends BaseNode {
         }
       };
 
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
+      const res = await endpoint.postModel(model, method, body);
 
       if (!res.ok) {
         const errText = await res.text();
-        throw new Error(`Gemini API error ${res.status}: ${errText}`);
+        throw new Error(`${endpoint.label} error ${res.status}: ${errText}`);
       }
 
       const data = (await res.json()) as Record<string, unknown>;
@@ -412,21 +489,17 @@ export class ImageGenerationNode extends BaseNode {
       throw new Error("No image bytes returned in response");
     }
 
-    const url = `${GEMINI_API_BASE}/models/${model}:predict?key=${apiKey}`;
+    const method = "predict";
     const body = {
       instances: [{ prompt }],
       parameters: { sampleCount: 1, aspectRatio }
     };
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
+    const res = await endpoint.postModel(model, method, body);
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`Gemini API error ${res.status}: ${errText}`);
+      throw new Error(`${endpoint.label} error ${res.status}: ${errText}`);
     }
 
     const data = (await res.json()) as Record<string, unknown>;
@@ -465,12 +538,12 @@ type TextToVideoGeminiNodeOutputs = {
 };
 
 export class TextToVideoGeminiNode extends BaseNode {
-  static readonly nodeType = "gemini.video.TextToVideo";
+  static readonly nodeType: string = "gemini.video.TextToVideo";
   static readonly body = "content_card";
   static readonly title = "Text To Video";
   static readonly inlineFields = [];
   static readonly inputFields: string[] = ["prompt"];
-  static readonly description =
+  static readonly description: string =
     "Generate videos from text prompts using Google's Veo models.\n    google, video, generation, text-to-video, veo, ai\n\n    This node uses Google's Veo models to generate high-quality videos from text descriptions.\n    Supports 720p resolution at 24fps with 8-second duration and native audio generation.";
   static readonly metadataOutputTypes = {
     output: "video"
@@ -486,18 +559,13 @@ export class TextToVideoGeminiNode extends BaseNode {
   })
   declare prompt: string;
 
-  @prop({
-    type: "enum",
-    default: "veo-3.1-generate-preview",
-    title: "Model",
-    description: "The Veo model to use for video generation",
-    values: [
-      "veo-3.1-generate-preview",
-      "veo-3.1-fast-generate-preview",
-      "veo-3.1-lite-generate-preview"
-    ]
-  })
-  declare model: string;
+  @providerModelProp(
+    "video_model",
+    PROVIDER_IDS.GEMINI,
+    "veo-3.1-generate-preview",
+    "The Veo model to use for video generation"
+  )
+  declare model: ModelFieldValue;
 
   @prop({
     type: "enum",
@@ -528,16 +596,16 @@ export class TextToVideoGeminiNode extends BaseNode {
   async process(
     context?: ProcessingContext
   ): Promise<TextToVideoGeminiNodeOutputs> {
-    const apiKey = getGeminiApiKey(this._secrets);
+    const endpoint = await geminiEndpoint(this, this._secrets, context);
     const prompt = this.prompt;
-    const model = this.model;
+    const model = requireModelId(this.model);
     const aspectRatio = this.aspect_ratio;
     const negativePrompt = this.negative_prompt;
     const resolution = this.resolution;
 
     if (!prompt) throw new Error("Video generation prompt is required");
 
-    const url = `${GEMINI_API_BASE}/models/${model}:predictLongRunning?key=${apiKey}`;
+    const method = "predictLongRunning";
     const parameters: Record<string, unknown> = {};
     if (aspectRatio) parameters.aspectRatio = aspectRatio;
     if (negativePrompt) parameters.negativePrompt = negativePrompt;
@@ -548,21 +616,17 @@ export class TextToVideoGeminiNode extends BaseNode {
     };
     if (Object.keys(parameters).length > 0) body.parameters = parameters;
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      signal: context?.signal
-    });
+    const res = await endpoint.postModel(model, method, body, context?.signal);
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`Gemini API error ${res.status}: ${errText}`);
+      throw new Error(`${endpoint.label} error ${res.status}: ${errText}`);
     }
 
     const operation = (await res.json()) as Record<string, unknown>;
     const videoData = await pollVideoOperation(
-      apiKey,
+      endpoint,
+      model,
       operation,
       context?.signal
     );
@@ -576,12 +640,12 @@ type ImageToVideoGeminiNodeOutputs = {
 };
 
 export class ImageToVideoGeminiNode extends BaseNode {
-  static readonly nodeType = "gemini.video.ImageToVideo";
+  static readonly nodeType: string = "gemini.video.ImageToVideo";
   static readonly body = "content_card";
   static readonly title = "Image To Video";
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt", "image"];
-  static readonly description =
+  static readonly description: string =
     "Generate videos from images using Google's Veo models.\n    google, video, generation, image-to-video, veo, ai, animation\n\n    This node uses Google's Veo models to animate static images into dynamic videos.\n    Supports 720p resolution at 24fps with 8-second duration and native audio generation.";
   static readonly metadataOutputTypes = {
     output: "video"
@@ -611,18 +675,13 @@ export class ImageToVideoGeminiNode extends BaseNode {
   })
   declare prompt: string;
 
-  @prop({
-    type: "enum",
-    default: "veo-3.1-generate-preview",
-    title: "Model",
-    description: "The Veo model to use for video generation",
-    values: [
-      "veo-3.1-generate-preview",
-      "veo-3.1-fast-generate-preview",
-      "veo-3.1-lite-generate-preview"
-    ]
-  })
-  declare model: string;
+  @providerModelProp(
+    "video_model",
+    PROVIDER_IDS.GEMINI,
+    "veo-3.1-generate-preview",
+    "The Veo model to use for video generation"
+  )
+  declare model: ModelFieldValue;
 
   @prop({
     type: "enum",
@@ -653,10 +712,10 @@ export class ImageToVideoGeminiNode extends BaseNode {
   async process(
     context?: ProcessingContext
   ): Promise<ImageToVideoGeminiNodeOutputs> {
-    const apiKey = getGeminiApiKey(this._secrets);
+    const endpoint = await geminiEndpoint(this, this._secrets, context);
     const image = this.image;
     const prompt = this.prompt;
-    const model = this.model;
+    const model = requireModelId(this.model);
     const aspectRatio = this.aspect_ratio;
     const negativePrompt = this.negative_prompt;
     const resolution = this.resolution;
@@ -671,7 +730,7 @@ export class ImageToVideoGeminiNode extends BaseNode {
     if (negativePrompt) parameters.negativePrompt = negativePrompt;
     if (resolution) parameters.resolution = resolution;
 
-    const url = `${GEMINI_API_BASE}/models/${model}:predictLongRunning?key=${apiKey}`;
+    const method = "predictLongRunning";
     const body: Record<string, unknown> = {
       instances: [
         {
@@ -685,21 +744,17 @@ export class ImageToVideoGeminiNode extends BaseNode {
     };
     if (Object.keys(parameters).length > 0) body.parameters = parameters;
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      signal: context?.signal
-    });
+    const res = await endpoint.postModel(model, method, body, context?.signal);
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`Gemini API error ${res.status}: ${errText}`);
+      throw new Error(`${endpoint.label} error ${res.status}: ${errText}`);
     }
 
     const operation = (await res.json()) as Record<string, unknown>;
     const videoData = await pollVideoOperation(
-      apiKey,
+      endpoint,
+      model,
       operation,
       context?.signal
     );
@@ -708,7 +763,8 @@ export class ImageToVideoGeminiNode extends BaseNode {
 }
 
 async function pollVideoOperation(
-  apiKey: string,
+  endpoint: GeminiEndpoint,
+  model: string,
   operation: Record<string, unknown>,
   signal?: AbortSignal
 ): Promise<string> {
@@ -719,7 +775,7 @@ async function pollVideoOperation(
     );
   }
   if (operation.done) {
-    return extractVideoFromResponse(apiKey, operation);
+    return extractVideoFromResponse(endpoint, operation);
   }
 
   const opName = operation.name as string | undefined;
@@ -732,8 +788,7 @@ async function pollVideoOperation(
     await sleep(5000, signal);
     signal?.throwIfAborted();
 
-    const pollUrl = `https://generativelanguage.googleapis.com/v1beta/${opName}?key=${apiKey}`;
-    const pollRes = await fetch(pollUrl, { signal });
+    const pollRes = await endpoint.getVideoOperation(model, opName, signal);
     if (!pollRes.ok) {
       const errText = await pollRes.text();
       throw new Error(`Gemini poll error ${pollRes.status}: ${errText}`);
@@ -747,7 +802,7 @@ async function pollVideoOperation(
       );
     }
     if (pollData.done) {
-      return extractVideoFromResponse(apiKey, pollData);
+      return extractVideoFromResponse(endpoint, pollData);
     }
   }
 
@@ -755,10 +810,21 @@ async function pollVideoOperation(
 }
 
 async function extractVideoFromResponse(
-  apiKey: string,
+  endpoint: GeminiEndpoint,
   data: Record<string, unknown>
 ): Promise<string> {
   const response = (data.response ?? data) as Record<string, unknown>;
+  // Vertex AI returns the video inline: `response.videos[].bytesBase64Encoded`.
+  const vertexVideos = response.videos as
+    | Array<{ bytesBase64Encoded?: unknown; gcsUri?: unknown }>
+    | undefined;
+  const inlineVideo = vertexVideos?.[0]?.bytesBase64Encoded;
+  if (isNonEmptyString(inlineVideo)) return inlineVideo;
+  if (vertexVideos?.[0]?.gcsUri) {
+    throw new Error(
+      "Vertex AI wrote the video to Cloud Storage, which this node cannot read"
+    );
+  }
   const directVideos = response.generatedVideos as
     | Array<Record<string, unknown>>
     | undefined;
@@ -781,15 +847,12 @@ async function extractVideoFromResponse(
 
   const videoUri = video.uri as string | undefined;
   if (videoUri) {
-    const headers =
-      new URL(videoUri).hostname === "generativelanguage.googleapis.com"
-        ? { "x-goog-api-key": apiKey }
-        : undefined;
+    const headers = await endpoint.mediaHeaders(videoUri);
     const dlRes = await safeFetch(videoUri, {
       headers
     });
     if (!dlRes.ok) {
-      throw new Error(`Gemini video download failed ${dlRes.status}`);
+      throw new Error(`${endpoint.label} video download failed ${dlRes.status}`);
     }
     return Buffer.from(await dlRes.arrayBuffer()).toString("base64");
   }
@@ -805,12 +868,12 @@ type TextToSpeechGeminiNodeOutputs = {
 };
 
 export class TextToSpeechGeminiNode extends BaseNode {
-  static readonly nodeType = "gemini.audio.TextToSpeech";
+  static readonly nodeType: string = "gemini.audio.TextToSpeech";
   static readonly body = "content_card";
   static readonly title = "Text To Speech";
   static readonly inlineFields = [];
   static readonly inputFields: string[] = ["text"];
-  static readonly description =
+  static readonly description: string =
     "Generate speech audio from text using Google's Gemini text-to-speech models.\n    google, text-to-speech, tts, audio, speech, voice, ai\n\n    This node converts text input into natural-sounding speech audio using Google's\n    advanced text-to-speech models with support for multiple voices and speech styles.\n\n    Supported voices:\n    - achernar, achird, algenib, algieba, alnilam\n    - aoede, autonoe, callirrhoe, charon, despina\n    - enceladus, erinome, fenrir, gacrux, iapetus\n    - kore, laomedeia, leda, orus, puck\n    - pulcherrima, rasalgethi, sadachbia, sadaltager, schedar\n    - sulafat, umbriel, vindemiatrix, zephyr, zubenelgenubi\n\n    Use cases:\n    - Create voiceovers for videos and presentations\n    - Generate audio content for podcasts and audiobooks\n    - Add voice narration to applications\n    - Create accessibility features with speech output\n    - Generate multilingual audio content";
   static readonly metadataOutputTypes = {
     output: "audio"
@@ -826,20 +889,13 @@ export class TextToSpeechGeminiNode extends BaseNode {
   })
   declare text: string;
 
-  @prop({
-    type: "enum",
-    default: "gemini-3.8-flash-tts",
-    title: "Model",
-    description: "The text-to-speech model to use",
-    values: [
-      "gemini-3.8-flash-tts",
-      "gemini-3.8-flash-lite-tts",
-      "gemini-3.1-flash-tts-preview",
-      "gemini-2.5-flash-preview-tts",
-      "gemini-2.5-pro-preview-tts"
-    ]
-  })
-  declare model: string;
+  @providerModelProp(
+    "tts_model",
+    PROVIDER_IDS.GEMINI,
+    "gemini-3.8-flash-tts",
+    "The text-to-speech model to use"
+  )
+  declare model: ModelFieldValue;
 
   @prop({
     type: "enum",
@@ -890,10 +946,12 @@ export class TextToSpeechGeminiNode extends BaseNode {
   })
   declare style_prompt: string;
 
-  async process(): Promise<TextToSpeechGeminiNodeOutputs> {
-    const apiKey = getGeminiApiKey(this._secrets);
+  async process(
+    context?: ProcessingContext
+  ): Promise<TextToSpeechGeminiNodeOutputs> {
+    const endpoint = await geminiEndpoint(this, this._secrets, context);
     const text = this.text;
-    const model = this.model;
+    const model = requireModelId(this.model);
     const stylePrompt = this.style_prompt;
 
     const VALID_VOICES = [
@@ -914,7 +972,7 @@ export class TextToSpeechGeminiNode extends BaseNode {
       content = `${stylePrompt}: ${text}`;
     }
 
-    const url = `${GEMINI_API_BASE}/models/${model}:generateContent?key=${apiKey}`;
+    const method = "generateContent";
     const body = {
       contents: [{ parts: [{ text: content }] }],
       generationConfig: {
@@ -929,15 +987,11 @@ export class TextToSpeechGeminiNode extends BaseNode {
       }
     };
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
+    const res = await endpoint.postModel(model, method, body);
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`Gemini API error ${res.status}: ${errText}`);
+      throw new Error(`${endpoint.label} error ${res.status}: ${errText}`);
     }
 
     const data = (await res.json()) as Record<string, unknown>;
@@ -986,12 +1040,12 @@ type TranscribeGeminiNodeOutputs = {
 };
 
 export class TranscribeGeminiNode extends BaseNode {
-  static readonly nodeType = "gemini.audio.Transcribe";
+  static readonly nodeType: string = "gemini.audio.Transcribe";
   static readonly body = "content_card";
   static readonly title = "Transcribe";
   static readonly inlineFields: string[] = [];
   static readonly inputFields = ["audio", "prompt"];
-  static readonly description =
+  static readonly description: string =
     "Transcribe audio to text using Google's Gemini models.\n    google, transcription, speech-to-text, audio, whisper, ai\n\n    This node converts audio input into text using Google's multimodal Gemini models.\n    Supports various audio formats and provides accurate speech-to-text transcription.\n\n    Use cases:\n    - Convert recorded audio to text\n    - Transcribe podcasts and interviews\n    - Generate subtitles from audio tracks\n    - Create meeting notes from audio recordings\n    - Analyze speech content in audio files";
   static readonly metadataOutputTypes = {
     output: "str"
@@ -1012,14 +1066,13 @@ export class TranscribeGeminiNode extends BaseNode {
   })
   declare audio: AudioRef;
 
-  @prop({
-    type: "enum",
-    default: "gemini-3.5-flash",
-    title: "Model",
-    description: "The Gemini model to use for transcription",
-    values: ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
-  })
-  declare model: string;
+  @providerModelProp(
+    "asr_model",
+    PROVIDER_IDS.GEMINI,
+    "gemini-3.5-flash",
+    "The Gemini model to use for transcription"
+  )
+  declare model: ModelFieldValue;
 
   @prop({
     type: "str",
@@ -1034,9 +1087,9 @@ export class TranscribeGeminiNode extends BaseNode {
   async process(
     context?: ProcessingContext
   ): Promise<TranscribeGeminiNodeOutputs> {
-    const apiKey = getGeminiApiKey(this._secrets);
+    const endpoint = await geminiEndpoint(this, this._secrets, context);
     const audio = this.audio;
-    const model = this.model;
+    const model = requireModelId(this.model);
     const prompt = this.prompt;
 
     if (!isRefSet(audio))
@@ -1048,7 +1101,7 @@ export class TranscribeGeminiNode extends BaseNode {
     // Detect MIME type from first bytes (simple magic-number check)
     const mimeType = detectAudioMime(audioBytes);
 
-    const url = `${GEMINI_API_BASE}/models/${model}:generateContent?key=${apiKey}`;
+    const method = "generateContent";
     const body = {
       contents: [
         {
@@ -1068,15 +1121,11 @@ export class TranscribeGeminiNode extends BaseNode {
       }
     };
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
+    const res = await endpoint.postModel(model, method, body);
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`Gemini API error ${res.status}: ${errText}`);
+      throw new Error(`${endpoint.label} error ${res.status}: ${errText}`);
     }
 
     const data = (await res.json()) as Record<string, unknown>;
@@ -1190,6 +1239,92 @@ function writeString(view: DataView, offset: number, str: string): void {
   }
 }
 
+// ── Vertex AI ───────────────────────────────────────────────────────────────
+//
+// The same nodes, sent to Gemini on Vertex AI (the "Gemini (Google Cloud)"
+// provider) and billed to a Google Cloud project. Each keeps its parent's
+// fields and request bodies. Only the endpoint, the credentials and the model
+// field change: the model is picked from the Vertex AI provider's own listing
+// instead of a fixed list.
+
+const VERTEX = PROVIDER_IDS.GEMINI_VERTEX;
+const VERTEX_SETTINGS = ["GOOGLE_CLOUD_PROJECT"];
+const VERTEX_TAGS = "vertex, google cloud, gcp, gemini";
+
+/** A model field whose picker lists only the Vertex AI provider's models. */
+const vertexModel = (type: string, id: string, description: string) =>
+  providerModelProp(type, VERTEX, id, description);
+
+export class VertexGroundedSearchNode extends GroundedSearchNode {
+  static readonly nodeType = "vertex.text.GroundedSearch";
+  static readonly geminiProvider = VERTEX;
+  static readonly requiredSettings = VERTEX_SETTINGS;
+  static readonly description = `Search the web with Gemini on Vertex AI, grounded in Google Search results, billed to your Google Cloud project.\n    ${VERTEX_TAGS}, search, grounding, web, sources`;
+
+  @vertexModel("language_model", "gemini-3.5-flash", "The Gemini model that searches.")
+  declare model: GeminiModelValue;
+}
+
+export class VertexEmbeddingNode extends EmbeddingNode {
+  static readonly nodeType = "vertex.text.Embedding";
+  static readonly geminiProvider = VERTEX;
+  static readonly requiredSettings = VERTEX_SETTINGS;
+  static readonly description = `Embed text as a vector with Gemini embedding models on Vertex AI, billed to your Google Cloud project.\n    ${VERTEX_TAGS}, embeddings, similarity, search, clustering`;
+
+  @vertexModel("embedding_model", "gemini-embedding-2", "The embedding model.")
+  declare model: GeminiModelValue;
+}
+
+export class VertexImageGenerationNode extends ImageGenerationNode {
+  static readonly nodeType = "vertex.image.ImageGeneration";
+  static readonly geminiProvider = VERTEX;
+  static readonly requiredSettings = VERTEX_SETTINGS;
+  static readonly description = `Generate or edit an image with Gemini image models or Imagen on Vertex AI, billed to your Google Cloud project.\n    ${VERTEX_TAGS}, image, generation, nano banana, imagen`;
+
+  @vertexModel("image_model", "gemini-3.1-flash-image", "The image model.")
+  declare model: GeminiModelValue;
+}
+
+export class VertexTextToVideoNode extends TextToVideoGeminiNode {
+  static readonly nodeType = "vertex.video.TextToVideo";
+  static readonly geminiProvider = VERTEX;
+  static readonly requiredSettings = VERTEX_SETTINGS;
+  static readonly description = `Generate a video from a text prompt with Veo on Vertex AI, billed to your Google Cloud project.\n    ${VERTEX_TAGS}, video, generation, veo, text-to-video`;
+
+  @vertexModel("video_model", "veo-3.1-generate-preview", "The Veo model.")
+  declare model: GeminiModelValue;
+}
+
+export class VertexImageToVideoNode extends ImageToVideoGeminiNode {
+  static readonly nodeType = "vertex.video.ImageToVideo";
+  static readonly geminiProvider = VERTEX;
+  static readonly requiredSettings = VERTEX_SETTINGS;
+  static readonly description = `Animate an image into a video with Veo on Vertex AI, billed to your Google Cloud project.\n    ${VERTEX_TAGS}, video, generation, veo, image-to-video`;
+
+  @vertexModel("video_model", "veo-3.1-generate-preview", "The Veo model.")
+  declare model: GeminiModelValue;
+}
+
+export class VertexTextToSpeechNode extends TextToSpeechGeminiNode {
+  static readonly nodeType = "vertex.audio.TextToSpeech";
+  static readonly geminiProvider = VERTEX;
+  static readonly requiredSettings = VERTEX_SETTINGS;
+  static readonly description = `Generate speech from text with Gemini text-to-speech models on Vertex AI, billed to your Google Cloud project.\n    ${VERTEX_TAGS}, text-to-speech, tts, audio, voice`;
+
+  @vertexModel("tts_model", "gemini-3.8-flash-tts", "The text-to-speech model.")
+  declare model: GeminiModelValue;
+}
+
+export class VertexTranscribeNode extends TranscribeGeminiNode {
+  static readonly nodeType = "vertex.audio.Transcribe";
+  static readonly geminiProvider = VERTEX;
+  static readonly requiredSettings = VERTEX_SETTINGS;
+  static readonly description = `Transcribe audio to text with Gemini on Vertex AI, billed to your Google Cloud project.\n    ${VERTEX_TAGS}, transcription, speech-to-text, audio`;
+
+  @vertexModel("asr_model", "gemini-3.5-flash", "The Gemini model that transcribes.")
+  declare model: GeminiModelValue;
+}
+
 // ── Exports ─────────────────────────────────────────────────────────────────
 
 export const GEMINI_NODES = tagAsServer([
@@ -1199,5 +1334,12 @@ export const GEMINI_NODES = tagAsServer([
   TextToVideoGeminiNode,
   ImageToVideoGeminiNode,
   TextToSpeechGeminiNode,
-  TranscribeGeminiNode
+  TranscribeGeminiNode,
+  VertexGroundedSearchNode,
+  VertexEmbeddingNode,
+  VertexImageGenerationNode,
+  VertexTextToVideoNode,
+  VertexImageToVideoNode,
+  VertexTextToSpeechNode,
+  VertexTranscribeNode
 ]);

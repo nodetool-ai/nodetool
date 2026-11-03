@@ -5,8 +5,10 @@ title: "openai.text Nodes"
 
 This namespace contains 3 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[Embedding](embedding.md)** - Generate vector representations of text for semantic analysis.
-- **[Moderation](moderation.md)** - Check text content for potential policy violations using OpenAI's moderation ...
-- **[Web Search](websearch.md)** - Search the web with OpenAI's web-search models to answer queries from current...
+- **[Embedding](embedding.md)**
+- **[Moderation](moderation.md)**
+- **[Web Search](websearch.md)**
+
+[Back to all nodes](../../)

@@ -39,12 +39,10 @@ export const MEDIA_ONLY_EXEMPTIONS: Record<string, string> = {
     "own cassette covers the contract. An id outside the curated catalog " +
     "(like the contract model) rejects cleanly.",
   fal_ai: "Image/video generation provider; generateMessage(s) always throws.",
-  comfy_cloud:
-    "Credentials-only provider for the lib.comfy nodes (they submit ComfyUI " +
-    "graphs to cloud.comfy.org); generateMessage(s) always throws.",
   elevenlabs: "Text-to-speech provider; generateMessage(s) always throws.",
   topaz: "Image upscaling provider; generateMessage(s) always throws.",
   reve: "Image generation provider; generateMessage(s) always throws.",
+  wangp: "Wan2GP video and image generation over MCP; generateMessage(s) always throws.",
   stable_diffusion_cpp:
     "Local image generation through a spawned sd-server; generateMessage(s) always throws.",
   higgsfield:

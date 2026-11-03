@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
+import { getHfHubCacheDir } from "@nodetool-ai/config";
 import {
   _candidateRepoKeys,
-  getDefaultHfCacheDir,
   HfFastCache
 } from "../src/hf-cache.js";
 
@@ -34,44 +34,44 @@ afterEach(() => {
 });
 
 // ---------------------------------------------------------------------------
-// getDefaultHfCacheDir
+// getHfHubCacheDir
 // ---------------------------------------------------------------------------
 
-describe("getDefaultHfCacheDir", () => {
+describe("getHfHubCacheDir", () => {
   it("returns default path when no env vars are set", () => {
-    const dir = getDefaultHfCacheDir();
+    const dir = getHfHubCacheDir();
     expect(dir).toContain("huggingface");
     expect(dir).toContain("hub");
   });
 
   it("uses HF_HUB_CACHE when set", () => {
     process.env["HF_HUB_CACHE"] = "/custom/hf/cache";
-    const dir = getDefaultHfCacheDir();
+    const dir = getHfHubCacheDir();
     expect(dir).toBe("/custom/hf/cache");
   });
 
   it("uses HF_HOME/hub when HF_HOME is set", () => {
     process.env["HF_HOME"] = "/custom/hf_home";
-    const dir = getDefaultHfCacheDir();
+    const dir = getHfHubCacheDir();
     expect(dir).toBe(path.join("/custom/hf_home", "hub"));
   });
 
   it("prefers HF_HUB_CACHE over HF_HOME", () => {
     process.env["HF_HUB_CACHE"] = "/explicit/cache";
     process.env["HF_HOME"] = "/hf/home";
-    const dir = getDefaultHfCacheDir();
+    const dir = getHfHubCacheDir();
     expect(dir).toBe("/explicit/cache");
   });
 
   it("expands leading ~ in HF_HUB_CACHE", () => {
     process.env["HF_HUB_CACHE"] = "~/my/cache";
-    const dir = getDefaultHfCacheDir();
+    const dir = getHfHubCacheDir();
     expect(dir).toBe(path.join(os.homedir(), "my/cache"));
   });
 
   it("expands leading ~ in HF_HOME", () => {
     process.env["HF_HOME"] = "~/my_hf";
-    const dir = getDefaultHfCacheDir();
+    const dir = getHfHubCacheDir();
     expect(dir).toBe(path.join(os.homedir(), "my_hf", "hub"));
   });
 });
@@ -86,14 +86,14 @@ describe("HfFastCache", () => {
     expect(cache.cacheDir).toBe("/tmp/test-cache");
   });
 
-  it("falls back to getDefaultHfCacheDir when no cacheDir given", () => {
-    const expected = getDefaultHfCacheDir();
+  it("falls back to getHfHubCacheDir when no cacheDir given", () => {
+    const expected = getHfHubCacheDir();
     const cache = new HfFastCache();
     expect(cache.cacheDir).toBe(expected);
   });
 
   it("accepts null as cacheDir and uses default", () => {
-    const expected = getDefaultHfCacheDir();
+    const expected = getHfHubCacheDir();
     const cache = new HfFastCache(null);
     expect(cache.cacheDir).toBe(expected);
   });

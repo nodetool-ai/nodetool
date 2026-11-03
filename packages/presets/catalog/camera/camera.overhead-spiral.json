@@ -1,0 +1,39 @@
+{
+  "id": "camera.overhead-spiral",
+  "version": 1,
+  "kind": "camera",
+  "name": "overhead spiral",
+  "description": "Camera ascends in a widening spiral while looking down at the subject.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "overhead spiral"
+  ],
+  "prompt": {
+    "default": "Camera ascends in a widening spiral while looking down at the subject.",
+    "kling": "Camera ascends in a widening spiral while looking down at the subject.",
+    "seedance": "Camera ascends in a widening spiral while looking down at the subject throughout one continuous shot.",
+    "veo": "Camera ascends in a widening spiral while looking down at the subject.",
+    "wan": "Camera ascends in a widening spiral while looking down at the subject.",
+    "local-wan": "Looking downward at the subject, the camera spirals outward and upward. The ground rotates gently below as the widening view reveals the surroundings. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.overhead-spiral/e0c3403e1efed5f276e877e5f01e9479e6011e05fe1a0f02c94a7652b8178ee5.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.overhead-spiral/e0c3403e1efed5f276e877e5f01e9479e6011e05fe1a0f02c94a7652b8178ee5.png",
+    "run": "runs/camera.overhead-spiral.json"
+  }
+}

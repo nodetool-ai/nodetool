@@ -1,0 +1,55 @@
+{
+  "metadata": {
+    "model_type": "flux",
+    "name": "Flux 1 Dev 12B",
+    "family": "flux",
+    "family_label": "Flux 1",
+    "base_model_type": "flux",
+    "finetune": false,
+    "main_output": [
+      "image"
+    ],
+    "outputs": [
+      "image"
+    ],
+    "inputs": [
+      "text",
+      "image"
+    ],
+    "capabilities": [
+      "text_to_image",
+      "inpainting",
+      "outpainting",
+      "lora"
+    ],
+    "specialities": [
+      {
+        "name": "image inpainting",
+        "aliases": [
+          "masked image editing"
+        ]
+      }
+    ],
+    "resolution_budget": 2088960,
+    "vae_block_size": 16,
+    "media_inputs": {
+      "image": [
+        "mask"
+      ]
+    },
+    "description": "FLUX.1 Dev is a 12 billion parameter rectified flow transformer capable of generating images from text descriptions.",
+    "accelerated": "profiles"
+  },
+  "input_guidance": {
+    "action": "definition",
+    "arguments": {
+      "property": "infos"
+    }
+  },
+  "prompt_guidance": {
+    "action": "definition",
+    "arguments": {
+      "property": "prompt_infos"
+    }
+  }
+}

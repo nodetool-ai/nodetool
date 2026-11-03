@@ -178,7 +178,8 @@ authorization response (success and error) per RFC 9207, so the flag is true.
 A URL-shaped `client_id` (https, with a path) is fetched by the AS at
 authorize time and validated: the document's `client_id` must equal the URL
 exactly, the structure must carry `client_id`, `client_name`, `redirect_uris`,
-and the request's `redirect_uri` must exactly match one of them. The fetch goes
+and the request's `redirect_uri` must match one of them (see the loopback
+port rule under [Dynamic registration](#dynamic-registration-fallback)). The fetch goes
 through `safeFetch` from `@nodetool-ai/runtime` — the SSRF guard the spec's
 security considerations call for already exists and is mandatory repo policy
 for any URL somebody else chose
@@ -202,7 +203,12 @@ tick.
 
 Redirect URIs at registration and at authorize time must be `https://…` or
 loopback (`http://127.0.0.1[:port]/…`, `http://localhost[:port]/…`); anything
-else is rejected.
+else is rejected. At authorize time the match against the registered values is
+exact, except that a loopback redirect matches a registered one with the same
+host, path and query on any port (RFC 8252 §7.3). A native client binds an
+ephemeral port per session: Claude Code's metadata document lists
+`http://localhost/callback` and redirects to `http://localhost:<port>/callback`.
+`127.0.0.1` and `localhost` never stand in for each other.
 
 ## Authorize and consent
 
@@ -300,7 +306,7 @@ escape hatch for an operator who wants token-paste only.
 ## Security checklist (spec MUSTs → where enforced)
 
 - PKCE S256 mandatory, `plain` rejected — token endpoint.
-- Exact redirect_uri match, registered values only — authorize + token.
+- Exact redirect_uri match against registered values, port-agnostic for loopback only — authorize. The token request must repeat the authorize request's URI exactly — token.
 - Single-use codes; reuse revokes issued tokens — token endpoint.
 - Refresh rotation + reuse detection for public clients — token endpoint.
 - `iss` on all authorization responses — authorize.

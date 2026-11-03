@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/analytics",
-  "version": "0.8.4",
+  "version": "0.8.10",
   "description": "Opt-in, anonymous product analytics for NodeTool: the shared event schema, privacy validation, bucketing and client core",
   "type": "module",
   "engines": {

@@ -1,3 +1,7 @@
+jest.mock("../../../contexts/WorkflowManagerContext", () => ({
+  useWorkflowManager: (select: (state: unknown) => unknown) =>
+    select({ createNew: jest.fn() })
+}));
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";

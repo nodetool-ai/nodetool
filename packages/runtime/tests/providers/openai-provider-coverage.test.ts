@@ -1232,9 +1232,10 @@ describe("OpenAIProvider – getAvailableLanguageModels", () => {
 });
 
 describe("OpenAIProvider – audio model discovery", () => {
+  // No live listing, so the known models are returned.
   const provider = new OpenAIProvider(
     { OPENAI_API_KEY: "k" },
-    { client: {} as any }
+    { client: {} as any, fetchFn: vi.fn().mockResolvedValue({ ok: false, status: 401 }) as any }
   );
 
   it("lists the current transcription models", async () => {
@@ -1258,6 +1259,57 @@ describe("OpenAIProvider – audio model discovery", () => {
     );
     expect(tts1?.voices).toHaveLength(9);
     expect(tts1?.voices).not.toContain("marin");
+  });
+});
+
+describe("OpenAIProvider – live media model listings", () => {
+  const listing = {
+    data: [
+      { id: "gpt-image-2" },
+      { id: "gpt-image-3" },
+      { id: "gpt-image-1-2025-04-15" },
+      { id: "tts-1" },
+      { id: "gpt-5-tts" },
+      { id: "tts-1-1106" },
+      { id: "whisper-1" },
+      { id: "gpt-5-transcribe" },
+      { id: "text-embedding-3-small" },
+      { id: "text-embedding-4" },
+      { id: "gpt-5.5" }
+    ]
+  };
+  const provider = () =>
+    new OpenAIProvider(
+      { OPENAI_API_KEY: "k" },
+      {
+        client: {} as any,
+        fetchFn: vi.fn().mockResolvedValue(new Response(JSON.stringify(listing))) as any
+      }
+    );
+
+  it("lists the image models the API serves, without dated snapshots", async () => {
+    expect((await provider().getAvailableImageModels()).map((m) => m.id)).toEqual([
+      "gpt-image-2",
+      "gpt-image-3"
+    ]);
+  });
+
+  it("keeps known voices and gives new speech models the newest voices", async () => {
+    const models = await provider().getAvailableTTSModels();
+    expect(models.map((m) => m.id)).toEqual(["tts-1", "gpt-5-tts"]);
+    expect(models[0].voices).toHaveLength(9);
+    expect(models[1].voices).toContain("marin");
+  });
+
+  it("lists the transcription and embedding models the API serves", async () => {
+    expect((await provider().getAvailableASRModels()).map((m) => m.id)).toEqual([
+      "whisper-1",
+      "gpt-5-transcribe"
+    ]);
+    expect((await provider().getAvailableEmbeddingModels()).map((m) => m.id)).toEqual([
+      "text-embedding-3-small",
+      "text-embedding-4"
+    ]);
   });
 });
 

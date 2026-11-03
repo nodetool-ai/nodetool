@@ -22,6 +22,8 @@ import {
 } from "../../studio/curatedModels";
 
 interface VideoModelSelectProps {
+  /** Only these providers' models are offered. */
+  allowedProviders?: string[];
   onChange: (value: VideoModelValue) => void;
   value: string;
   provider?: string;
@@ -31,6 +33,7 @@ interface VideoModelSelectProps {
 }
 
 const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
+  allowedProviders,
   onChange,
   value,
   provider,
@@ -83,6 +86,7 @@ const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
         onClick={handleClick}
       />
       <VideoModelMenuDialog
+        allowedProviders={allowedProviders}
         open={!!anchorEl}
         anchorEl={anchorEl}
         onClose={handleClose}

@@ -197,6 +197,7 @@ export const generateMediaDataSchema = z
      * "upscale" = enlarge `source_asset_id` by `scale`;
      * "outpaint" = extend `source_asset_id` by `padding` or to `aspect_ratio`;
      * "video" = text-to-video; "audio" = text-to-speech.
+     * "audio_to_video" = animate source image with audio_asset_id.
      */
     mode: z
       .enum([
@@ -206,6 +207,7 @@ export const generateMediaDataSchema = z
         "upscale",
         "outpaint",
         "video",
+        "audio_to_video",
         "video_edit",
         "video_extend",
         "audio",
@@ -215,6 +217,7 @@ export const generateMediaDataSchema = z
     provider: z.string().optional(),
     model: z.string().optional(),
     prompt: z.string().optional(),
+    preset_ids: z.array(z.string().min(1)).max(3).optional(),
     capability: z.literal("reference_to_video").optional(),
     reference_asset_ids: z.array(z.string().trim().min(1)).optional(),
     entity_ids: z.array(z.string().trim().min(1)).optional(),
@@ -246,6 +249,10 @@ export const generateMediaDataSchema = z
      * are loaded server-side.
      */
     source_asset_id: z.string().optional(),
+    /** Owned speech asset driving audio_to_video. */
+    audio_asset_id: z.string().optional(),
+    /** Recorded in prediction params. Real-person references require consent. */
+    person_consent: z.object({ real_person: z.boolean(), confirmed: z.boolean() }).optional(),
     timeline_context: z.object({
       sequence_id: z.string().min(1),
       source_clip_id: z.string().min(1).optional(),

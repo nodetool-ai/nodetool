@@ -1,0 +1,156 @@
+{
+  "request": {
+    "query": "fastwan",
+    "filters": {
+      "main_output": "video",
+      "inputs": "image"
+    },
+    "limit": 1
+  },
+  "pages": [
+    {
+      "status": "done",
+      "match": "exact",
+      "preferences": {
+        "speed": "any",
+        "size": "any"
+      },
+      "models": [
+        {
+          "model_type": "ovi_fastwan",
+          "name": "Wan2.2 Ovi v1.0 FastWan 5s 10B",
+          "family": "wan2_2",
+          "family_label": "Wan2.2",
+          "base_model_type": "ovi",
+          "finetune": false,
+          "main_output": [
+            "video"
+          ],
+          "outputs": [
+            "video",
+            "audio"
+          ],
+          "inputs": [
+            "text",
+            "image",
+            "video"
+          ],
+          "capabilities": [
+            "text_to_video",
+            "image_to_video",
+            "video_to_video",
+            "audio_output",
+            "video_continuation",
+            "sliding_window",
+            "lora"
+          ],
+          "accelerated": "profiles",
+          "specialities": [
+            "audio-video generation"
+          ],
+          "resolution_budget": 2088960,
+          "vae_block_size": 32,
+          "media_inputs": {
+            "image": [
+              "start"
+            ],
+            "video": [
+              "continue",
+              "last"
+            ],
+            "audio": [
+              "output"
+            ]
+          }
+        }
+      ],
+      "count": 1,
+      "has_more": true,
+      "next_cursor": "MzE2MjJhYWZkOGI5Mzc0MTM3MTY4OWIxOjU2Mi6HEE10M3B_3OYuQT8",
+      "next_call": {
+        "action": "search",
+        "arguments": {
+          "query": "fastwan",
+          "filters": {
+            "main_output": "video",
+            "inputs": "image"
+          },
+          "limit": 1,
+          "cursor": "MzE2MjJhYWZkOGI5Mzc0MTM3MTY4OWIxOjU2Mi6HEE10M3B_3OYuQT8"
+        }
+      }
+    },
+    {
+      "status": "done",
+      "match": "exact",
+      "preferences": {
+        "speed": "any",
+        "size": "any"
+      },
+      "models": [
+        {
+          "model_type": "ovi_1_1_10s_fastwan",
+          "name": "Wan2.2 Ovi v1.1 FastWan 10s 10B",
+          "family": "wan2_2",
+          "family_label": "Wan2.2",
+          "base_model_type": "ovi",
+          "finetune": false,
+          "main_output": [
+            "video"
+          ],
+          "outputs": [
+            "video",
+            "audio"
+          ],
+          "inputs": [
+            "text",
+            "image",
+            "video"
+          ],
+          "capabilities": [
+            "text_to_video",
+            "image_to_video",
+            "video_to_video",
+            "audio_output",
+            "video_continuation",
+            "sliding_window",
+            "lora"
+          ],
+          "accelerated": "profiles",
+          "specialities": [
+            "audio-video generation"
+          ],
+          "resolution_budget": 2088960,
+          "vae_block_size": 32,
+          "media_inputs": {
+            "image": [
+              "start"
+            ],
+            "video": [
+              "continue",
+              "last"
+            ],
+            "audio": [
+              "output"
+            ]
+          }
+        }
+      ],
+      "count": 1,
+      "has_more": true,
+      "next_cursor": "MzE2MjJhYWZkOGI5Mzc0MTM3MTY4OWIxOjExMzMubJFqICvuWd3ardN3",
+      "next_call": {
+        "action": "search",
+        "arguments": {
+          "query": "fastwan",
+          "filters": {
+            "main_output": "video",
+            "inputs": "image"
+          },
+          "limit": 1,
+          "cursor": "MzE2MjJhYWZkOGI5Mzc0MTM3MTY4OWIxOjExMzMubJFqICvuWd3ardN3"
+        }
+      }
+    }
+  ]
+}

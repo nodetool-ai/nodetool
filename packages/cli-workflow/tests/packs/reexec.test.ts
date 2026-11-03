@@ -25,7 +25,8 @@ describe("install and re-execute missing packs", () => {
         install: async () => { throw new Error("re-executed child must not install"); }
       });
       if (repeated !== null) throw new Error("Re-executed child retried installation");
-      const installed = JSON.parse(readFileSync(${JSON.stringify(join(fixture.root, "node_modules/@nodetool-ai/fixture-nodes/package.json"))}, "utf8"));
+      const generation = JSON.parse(readFileSync(${JSON.stringify(join(fixture.packsRoot, "current.json"))}, "utf8")).generation;
+      const installed = JSON.parse(readFileSync(${JSON.stringify(fixture.packsRoot)} + "/" + generation + "/node_modules/@nodetool-ai/fixture-nodes/package.json", "utf8"));
       writeFileSync(${JSON.stringify(marker)}, JSON.stringify({ flag: process.env.NODETOOL_PACKS_REEXEC, argv: process.argv.slice(1), installed: installed.version }));
       process.exit(23);`);
     const argv = process.argv;
@@ -44,7 +45,7 @@ describe("install and re-execute missing packs", () => {
     const write = vi.fn();
     try {
       const exit = await installMissingPacksAndReexec(missing, { command: "run", stateFile: fixture.request.stateFile, catalog, prompt }, {
-        snapshot: async () => ({ mode: fixture.request.mode, packs: [], wrongVersions: [], invalidPackages: [] }), install, write
+        snapshot: async () => ({ mode: fixture.request.mode, projectRoot: null, resolution: null, packs: [], wrongVersions: [], invalidPackages: [] }), install, write
       });
       expect(exit).toBe(23);
       expect(prompt).toHaveBeenCalledOnce();
@@ -63,13 +64,13 @@ describe("install and re-execute missing packs", () => {
   it("authorizes an npm runtime-only failure and restarts with the original command", async () => {
     const fixture = await setupPackRegistry();
     vi.stubEnv("NODETOOL_PACKS_REEXEC", undefined);
-    const install = vi.fn<typeof installPacks>(async () => ({ root: fixture.root, coreVersion: "1.0.0", packs: [], runtimeLibraries: ["imaging"] }));
+    const install = vi.fn<typeof installPacks>(async () => ({ root: fixture.packsRoot, coreVersion: "1.0.0", packs: [], runtimeLibraries: ["imaging"] }));
     const spawn = vi.fn<typeof import("node:child_process").spawnSync>();
     spawn.mockReturnValue({ status: 17, signal: null, output: [], pid: 1, stdout: null, stderr: null });
     const exit = await installMissingPacksAndReexec(missingRuntimePackageError("sharp", "imaging"), {
       command: "run", installMissing: true, stateFile: fixture.request.stateFile, catalog: fixture.request.catalog
     }, {
-      snapshot: async () => ({ mode: fixture.request.mode, packs: [], wrongVersions: [], invalidPackages: [] }),
+      snapshot: async () => ({ mode: fixture.request.mode, projectRoot: null, resolution: null, packs: [], wrongVersions: [], invalidPackages: [] }),
       install, spawn, write: vi.fn()
     });
     expect(exit).toBe(17);

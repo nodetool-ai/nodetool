@@ -32,7 +32,7 @@ it("rejects spawn and both pipe errors without unhandled stream exceptions", asy
 it("Windows long roots launch a fixed bootstrap with the root and npm arguments passed as data", async () => {
   Object.defineProperty(process, "platform", { value: "win32", configurable: true });
   const root = "C:\\fixture\\" + Array.from({ length: 7 }, (_, i) => `segment-${i}-${"x".repeat(35)}`).join("\\");
-  await runInstallerNpm(root, ["install", "example@1"], { mode: "global", dryRun: true });
+  await runInstallerNpm(root, ["install"]);
   expect(mock.calls).toHaveLength(2);
   for (const call of mock.calls) {
     expect(call.cwd).toBe(win32.toNamespacedPath(root));
@@ -40,7 +40,7 @@ it("Windows long roots launch a fixed bootstrap with the root and npm arguments 
     expect(call.args[1]).not.toContain(root); expect(call.args[2]).toBe(root);
     expect(call.args.some(arg => arg.startsWith("--prefix="))).toBe(false);
   }
-  expect(mock.calls[1].args).toContain("--dry-run=true");
+  expect(mock.calls[1].args).toContain("--dry-run=false");
   expect(mock.calls[1].args).toContain("--ignore-scripts");
   expect(mock.calls[1].args).toContain("--global=false");
 });

@@ -22,7 +22,6 @@ Generate videos from text prompts using Google's Veo models.
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | prompt | `str` | The text prompt describing the video to generate | `` |
-| model | `enum` | The Veo model to use for video generation | `veo-3.1-generate-preview` |
 | aspect_ratio | `enum` | The aspect ratio of the generated video | `16:9` |
 | negative_prompt | `str` | Negative prompt to guide what to avoid in the video | `` |
 | resolution | `enum` | The output video resolution | `720p` |

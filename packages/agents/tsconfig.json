@@ -84,6 +84,12 @@
     },
     {
       "path": "../sandbox-runtime"
+    },
+    {
+      "path": "../presets"
+    },
+    {
+      "path": "../pack-core"
     }
   ]
 }

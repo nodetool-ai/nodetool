@@ -95,6 +95,21 @@ describe("checkCredential", () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
+  it("probes RunPod's pod listing with a bearer key", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(respond(401));
+    const result = await checkCredential("RUNPOD_API_KEY", "rp-key", {
+      fetchImpl: fetchImpl as unknown as typeof fetch
+    });
+
+    expect(result.status).toBe("invalid");
+    expect(result.message).toContain("RunPod");
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toBe("https://rest.runpod.io/v1/pods");
+    expect((init as RequestInit).headers).toEqual({
+      Authorization: "Bearer rp-key"
+    });
+  });
+
   it("keys a URL-authenticated provider on the value instead of a header", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(respond(200));
     await checkCredential("GEMINI_API_KEY", "abc/123", {

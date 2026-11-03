@@ -729,6 +729,13 @@ export class WorkflowRunner {
 
       // Initialize inboxes
       this._initializeInboxes();
+      // A cancel() that landed before the inboxes existed could not close
+      // them. Close them now so no value is dispatched and no actor waits.
+      if (this._cancelled) {
+        for (const inbox of this._inboxes.values()) {
+          void inbox.closeAll();
+        }
+      }
 
       // Initialize all nodes (Python parity: initialize_graph)
       await this._initializeGraph();
@@ -1218,7 +1225,7 @@ export class WorkflowRunner {
         await executor.finalize();
       } catch (err) {
         // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
-        log.warn("Executor finalize failed during initialization rollback", {
+        log.warn("Executor finalize failed", {
           error: err instanceof Error ? err.message : String(err)
         });
       }
@@ -1360,6 +1367,9 @@ export class WorkflowRunner {
     params: Record<string, unknown>
   ): Promise<void> {
     for (const node of this._graph.nodes) {
+      // Input process() can transform or upload the value. A cancelled run
+      // delivers nothing, so it must not run.
+      if (this._cancelled) return;
       const incoming = this._graph.findDataEdges(node.id);
       if (incoming.length > 0) continue; // not an input node
       // A node with an incoming control edge is run by its actor in
@@ -1508,6 +1518,7 @@ export class WorkflowRunner {
     this._installQuiescenceDetection();
 
     const actorPromises: Array<Promise<void>> = [];
+    const inputExecutors: NodeExecutor[] = [];
     /** Parallel to `actorPromises` — maps a settled index back to its node. */
     const actorNodeIds: string[] = [];
 
@@ -1524,7 +1535,11 @@ export class WorkflowRunner {
         incomingControl.length === 0 &&
         this._isExternalInputNode(node)
       ) {
-        continue; // pure input node, already dispatched
+        // Pure input node, already dispatched. It has no actor to finalize
+        // its executor, so the runner does it once every actor has settled
+        // (pushInputValue keeps calling its process() until then).
+        inputExecutors.push(this._resolveExecutor(node));
+        continue;
       }
 
       const inbox = this._inboxes.get(node.id)!;
@@ -1613,8 +1628,12 @@ export class WorkflowRunner {
               if (!this._outputs.has(name)) {
                 this._outputs.set(name, []);
               }
-              if (result.outputs) {
-                for (const val of Object.values(result.outputs)) {
+              // One entry per invocation, so a fan-out into an Output node
+              // keeps every item rather than only the last one.
+              for (const outputs of result.invocationOutputs ?? [
+                result.outputs
+              ]) {
+                for (const val of Object.values(outputs ?? {})) {
                   this._outputs.get(name)!.push(val);
                 }
               }
@@ -1653,6 +1672,8 @@ export class WorkflowRunner {
         this._nodeErrors.set(nodeId, message);
       }
     }
+
+    await this._finalizeExecutors(inputExecutors);
 
     // Backstop: release any reader still waiting on a channel (e.g. a writer
     // that errored before publishing). Non-cyclic graphs are already closed by
@@ -1788,6 +1809,22 @@ export class WorkflowRunner {
     }
 
     if (routingHints.skipInvocation) {
+      // A skipped controlled invocation produces no output, so the waiter for
+      // it must settle here. Left queued, the next invocation's output would
+      // resolve it and every later caller would get its predecessor's answer.
+      // A controlError above already settled this invocation's waiter.
+      if (!routingHints.controlError) {
+        const pendingQueue = this._pendingControlResponses.get(sourceNodeId);
+        const pending = pendingQueue?.shift();
+        if (pendingQueue?.length === 0) {
+          this._pendingControlResponses.delete(sourceNodeId);
+        }
+        pending?.reject(
+          new Error(
+            `Controlled node ${sourceNodeId} skipped this invocation without output`
+          )
+        );
+      }
       this._skipInvocationOutputs(
         sourceNodeId,
         routingHints.invocationLineage ?? {}

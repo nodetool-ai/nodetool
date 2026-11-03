@@ -1,0 +1,37 @@
+{
+  "id": "look.vhs-1990s",
+  "version": 1,
+  "kind": "look",
+  "name": "1990s VHS",
+  "description": "Use a 1990s VHS transfer finish: limited chroma resolution, slight horizontal color bleed, interlaced edge texture and soft tape noise. Preserve the described scene and wardrobe.",
+  "tags": [
+    "look",
+    "era"
+  ],
+  "slot": "era",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video",
+    "image"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "Use a 1990s VHS transfer finish: limited chroma resolution, slight horizontal color bleed, interlaced edge texture and soft tape noise. Preserve the described scene and wardrobe.",
+    "kling": "Use a 1990s VHS transfer finish: limited chroma resolution, slight horizontal color bleed, interlaced edge texture and soft tape noise. Preserve the described scene and wardrobe. Maintain this rendering consistently across the scene.",
+    "seedance": "Use a 1990s VHS transfer finish: limited chroma resolution, slight horizontal color bleed, interlaced edge texture and soft tape noise. Preserve the described scene and wardrobe. Preserve this appearance throughout one continuous shot.",
+    "veo": "Use a 1990s VHS transfer finish: limited chroma resolution, slight horizontal color bleed, interlaced edge texture and soft tape noise. Preserve the described scene and wardrobe. Keep the lighting and color response consistent between frames.",
+    "wan": "Use a 1990s VHS transfer finish: limited chroma resolution, slight horizontal color bleed, interlaced edge texture and soft tape noise. Preserve the described scene and wardrobe. Retain natural subject detail under this visual treatment."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.vhs-1990s/595da2d4e951967c5dbb2ac28549860648eaa306f44a15c2bce831c19d7be9a2.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.vhs-1990s/595da2d4e951967c5dbb2ac28549860648eaa306f44a15c2bce831c19d7be9a2-late.png",
+    "run": "runs/look.vhs-1990s.json"
+  }
+}

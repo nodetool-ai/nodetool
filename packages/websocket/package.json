@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/websocket",
-  "version": "0.8.4",
+  "version": "0.8.10",
   "type": "module",
   "engines": {
     "node": ">=22.0.0"
@@ -49,6 +49,7 @@
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/presets": "*",
     "@nodetool-ai/runtime": "*",
     "@nodetool-ai/sandbox-compiler": "*",
     "@nodetool-ai/security": "*",
@@ -69,7 +70,8 @@
     "@nodetool-ai/workflow-services": "*",
     "@nodetool-ai/pack-host": "*",
     "@nodetool-ai/project-services": "*",
-    "@nodetool-ai/error-trace-services": "*"
+    "@nodetool-ai/error-trace-services": "*",
+    "@nodetool-ai/pack-core": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

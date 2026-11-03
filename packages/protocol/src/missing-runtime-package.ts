@@ -16,6 +16,7 @@ export type RuntimePackageId =
   | "rust"
   | "manimgx"
   | "sd-cpp"
+  | "wan2gp"
   | "transformers-js"
   | "tensorflow-js"
   | "node-llama-cpp"
@@ -43,6 +44,7 @@ export const RUNTIME_PACKAGE_NAMES: Readonly<Record<RuntimePackageId, string>> =
   rust: "Rust",
   manimgx: "ManimGX",
   "sd-cpp": "stable-diffusion.cpp",
+  wan2gp: "Wan2GP",
   "transformers-js": "Transformers.js",
   "tensorflow-js": "TensorFlow.js Models",
   "node-llama-cpp": "llama.cpp (in-process)",
@@ -136,6 +138,10 @@ export function missingRuntimePackageDetails(
     if (host === "cli") { managed = "nodetool runtime add sd-cpp"; }
     if (host === "source") { managed = "npm run dev:nodetool -- runtime add sd-cpp"; }
     bringYourOwn = "Or set SD_CPP_SERVER_PATH to an sd-server binary from https://github.com/leejet/stable-diffusion.cpp/releases.";
+  } else if (runtimePackage === "wan2gp") {
+    if (host === "cli") { managed = "nodetool runtime add wan2gp"; }
+    if (host === "source") { managed = "npm run dev:nodetool -- runtime add wan2gp"; }
+    bringYourOwn = "Or set WAN2GP_MCP_URL to the MCP endpoint of a Wan2GP server you run (python wgp.py --mcp --mcp-async --mcp-transport streamable-http).";
   } else if (runtimePackage === "manimgx") {
     bringYourOwn = "Or put manimgx on PATH (uv tool install manimgx).";
   } else if (runtimePackage === "rust") {

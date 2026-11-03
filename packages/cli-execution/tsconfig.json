@@ -56,6 +56,9 @@
       "path": "../pack-manager"
     },
     {
+      "path": "../presets"
+    },
+    {
       "path": "../protocol"
     },
     {

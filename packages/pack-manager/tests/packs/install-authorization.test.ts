@@ -22,17 +22,31 @@ afterEach(async () => {
 });
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), "packs-auth-")); roots.push(root);
-  await mkdir(join(root, "node_modules"));
-  await writeFile(join(root, "package.json"), '{"name":"fixture","version":"1"}');
-  await writeFile(join(root, "node_modules/.package-lock.json"), '{"packages":{}}');
+  await writeFile(join(root, "package.json"), '{"name":"@nodetool-ai/cli","version":"1"}');
   const catalog: NodeCatalogIndex = { schemaVersion: 1, coreVersion: "1", owners: {}, packs: [{
     id: "fixture", kind: "node-pack", npm: { name: "@nodetool-ai/fixture-nodes", version: "1", integrity: "sha512-fixture" },
     registrar: "register", provides: [], requires: [], runtimeLibraries: [], scriptAllowlist: [], secrets: [], installBytes: 12345, nodeCount: 0
   }] };
-  const request = { mode: { kind: "local" as const, installRoot: root, nodeModulesRoot: join(root, "node_modules"), cliRoot: root, coreVersion: "1", pathStyle: "posix" as const },
+  const request = { mode: { kind: "local" as const, packsRoot: join(root, "packs", "1"), legacyInstallRoot: root, cliRoot: root, coreVersion: "1", pathStyle: "posix" as const },
     packs: ["fixture"], catalog, stateFile: join(root, "cli-packs.json") };
   const operations: InstallerOperations = { npmVersion: vi.fn(async () => "11.16.0"), npm: vi.fn(async () => ""), loadCheck: vi.fn(async () => {}) };
   return { root, request, catalog, operations };
+}
+/** Write an active pack project with these selected and installed packs, as another process would. */
+async function activeProject(packsRoot: string, selected: readonly string[], installed: readonly { name: string; version: string; integrity: string }[]): Promise<string> {
+  const generation = `g-${Date.now().toString(36)}-0000000000000000`;
+  const project = join(packsRoot, generation);
+  await mkdir(join(project, "node_modules"), { recursive: true });
+  await writeFile(join(project, "package.json"), JSON.stringify({ name: "nodetool-packs", nodetool: { coreVersion: "1", packs: selected, runtimeLibraries: [] } }));
+  const lock: Record<string, { version: string; integrity: string }> = {};
+  for (const entry of installed) {
+    await mkdir(join(project, "node_modules", entry.name), { recursive: true });
+    await writeFile(join(project, "node_modules", entry.name, "package.json"), JSON.stringify({ name: entry.name, version: entry.version }));
+    lock[`node_modules/${entry.name}`] = { version: entry.version, integrity: entry.integrity };
+  }
+  await writeFile(join(project, "node_modules/.package-lock.json"), JSON.stringify({ packages: lock }));
+  await writeFile(join(packsRoot, "current.json"), JSON.stringify({ schemaVersion: 1, generation }));
+  return project;
 }
 function terminal(): void {
   Object.defineProperty(process.stdin, "isTTY", { value: true, configurable: true });
@@ -59,14 +73,14 @@ describe("CLI install authorization", () => {
     expect(await authorizePackInstallCommand({ request: f.request, command, installMissing: true, prompt })).toBeNull();
     expect(prompt).not.toHaveBeenCalled(); expect(f.operations.npmVersion).not.toHaveBeenCalled();
   });
-  it("TTY prompt defaults No and describes versions, estimates, scripts and local files", async () => {
+  it("TTY prompt defaults No and describes versions, estimates, scripts and the pack project", async () => {
     const f = await fixture(); terminal();
     const catalog = { ...f.catalog, packs: f.catalog.packs.map((pack) => ({ ...pack, runtimeLibraries: ["typescript"], scriptAllowlist: [{ name: "native", version: "2", integrity: "sha512-native" }] })) };
     const prompt = vi.fn(async () => false);
     expect(await authorizePackInstallCommand({ request: { ...f.request, catalog }, command: "run", prompt })).toBeNull();
     expect(prompt.mock.calls[0][0]).toMatchObject({ default: false });
     const message = prompt.mock.calls[0][0].message;
-    for (const value of ["fixture-nodes@1", "12,345 bytes", "typescript@npm:", "native@2", "package.json", "package-lock.json", "not final disk usage"]) { expect(message).toContain(value); }
+    for (const value of ["fixture-nodes@1", "12,345 bytes", "typescript@npm:", "native@2", "Installs into", "CLI's own directory is not changed", "not final disk usage"]) { expect(message).toContain(value); }
     const yes = await authorizePackInstallCommand({ request: f.request, command: "run", prompt: async () => true }); expect(yes).not.toBeNull();
   });
   it("CI and missing either TTY suppress the prompt", async () => {
@@ -88,7 +102,7 @@ describe("CLI install authorization", () => {
       await expect(installPacks(f.request, forged, f.operations)).rejects.toThrow(/live CLI/);
     }
     expect(f.operations.npmVersion).not.toHaveBeenCalled();
-    await expect(readFile(join(f.request.mode.nodeModulesRoot, ".nodetool-packs.lock"))).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(readFile(join(f.request.mode.packsRoot, ".nodetool-packs.lock"))).rejects.toMatchObject({ code: "ENOENT" });
   });
   it("rejects additional packs, transitive dependencies, runtime groups, scripts, and root/core/mode changes before npm", async () => {
     const f = await fixture(); const authorization = (await authorizePackInstallCommand({ request: f.request, command: "packs-add" }))!;
@@ -111,16 +125,17 @@ describe("CLI install authorization", () => {
     vi.stubEnv("NODETOOL_AUTO_INSTALL", "1");
     const authorization = await authorizePackInstallCommand({ request: f.request, command: "run" });
     expect(authorization).not.toBeNull();
-    const operations = { ...f.operations, npm: vi.fn<InstallerOperations["npm"]>(async (_root, _args, options) => {
-      if (options.dryRun) { return '{"add":[{"name":"@nodetool-ai/fixture-nodes","version":"1"}],"change":[],"remove":[]}'; }
-      await mkdir(join(f.root, "node_modules/@nodetool-ai/fixture-nodes"), { recursive: true });
-      await writeFile(join(f.root, "node_modules/@nodetool-ai/fixture-nodes/package.json"), '{"name":"@nodetool-ai/fixture-nodes","version":"1"}');
-      await writeFile(join(f.root, "node_modules/.package-lock.json"), '{"packages":{"node_modules/@nodetool-ai/fixture-nodes":{"version":"1","integrity":"sha512-fixture"}}}');
+    const operations = { ...f.operations, npm: vi.fn<InstallerOperations["npm"]>(async (root) => {
+      await mkdir(join(root, "node_modules/@nodetool-ai/fixture-nodes"), { recursive: true });
+      await writeFile(join(root, "node_modules/@nodetool-ai/fixture-nodes/package.json"), '{"name":"@nodetool-ai/fixture-nodes","version":"1"}');
+      await writeFile(join(root, "node_modules/.package-lock.json"), '{"packages":{"node_modules/@nodetool-ai/fixture-nodes":{"version":"1","integrity":"sha512-fixture"}}}');
       return "";
     }) };
     const result = await installPacks(f.request, authorization!, operations);
-    expect(result.packs).toEqual(["fixture", "obsolete"]); expect(result.runtimeLibraries).toEqual(["imaging"]);
-    expect(operations.npm).toHaveBeenCalledWith(f.root, ["install", "@nodetool-ai/fixture-nodes@1", "--json"], expect.anything());
+    expect(result.packs).toEqual(["fixture"]); expect(result.runtimeLibraries).toEqual([]);
+    expect(operations.npm).toHaveBeenCalledWith(expect.stringContaining(f.request.mode.packsRoot), ["install"], expect.anything());
+    const project = operations.npm.mock.calls[0][0];
+    expect(JSON.parse(await readFile(join(project, "package.json"), "utf8")).dependencies).toEqual({ "@nodetool-ai/fixture-nodes": "1" });
   });
 });
 
@@ -221,12 +236,7 @@ it("explicit add confirmation binds the displayed selection while another pack a
   const request = { ...f.request, catalog: { ...f.catalog, packs: [...f.catalog.packs, extra] } };
   const prompt = vi.fn(async ({ message }: { message: string; default: false }) => {
     expect(message).not.toContain("Pack other:");
-    const directory = join(f.root, "node_modules/@nodetool-ai/other-nodes");
-    await mkdir(directory, { recursive: true });
-    await writeFile(join(directory, "package.json"), JSON.stringify({ name: extra.npm.name, version: extra.npm.version }));
-    await writeFile(join(f.root, "node_modules/.package-lock.json"), JSON.stringify({ packages: {
-      "node_modules/@nodetool-ai/other-nodes": { version: extra.npm.version, integrity: extra.npm.integrity }
-    } }));
+    await activeProject(f.request.mode.packsRoot, ["other"], [extra.npm]);
     return true;
   });
   const token = (await authorizePackInstallCommand({ request, command: "packs-add", confirm: true, prompt }))!;

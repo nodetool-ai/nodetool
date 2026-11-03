@@ -173,7 +173,15 @@ describe("useRenderOneTake", () => {
       [
         "Warm dusk light. No cuts.",
         "REFS: [Image 1] is the still of shot 1 at 0-4s.",
-        "STEP_01: 0-4s. beat 1.\nSTEP_02: 4-10s. beat 2.\nSTEP_03: 10-14s. beat 3."
+        `SHOTS:\n${JSON.stringify(
+          [
+            { shot: 1, window: "0-4s", action: "beat 1" },
+            { shot: 2, window: "4-10s", action: "beat 2" },
+            { shot: 3, window: "10-14s", action: "beat 3" }
+          ],
+          null,
+          2
+        )}`
       ].join("\n\n")
     );
 
@@ -314,7 +322,7 @@ describe("useRenderOneTake", () => {
       duration: 10
     });
     expect(send.mock.calls[0][0].data.prompt).toContain(
-      "STEP_02: 2.9-7.1s. beat 2."
+      '"window": "2.9-7.1s"'
     );
 
     completeTake("take-scaled");

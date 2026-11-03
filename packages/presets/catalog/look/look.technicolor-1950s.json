@@ -1,0 +1,40 @@
+{
+  "id": "look.technicolor-1950s",
+  "version": 1,
+  "kind": "look",
+  "name": "1950s dye-transfer print",
+  "description": "Use a 1950s three-strip dye-transfer print finish: rich reds, separated emerald greens, luminous skin and dense stable blacks. Preserve the described scene and wardrobe.",
+  "tags": [
+    "look",
+    "era"
+  ],
+  "slot": "era",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video",
+    "image"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "look.kodak-tri-x",
+    "look.silver-monochrome"
+  ],
+  "aliases": [],
+  "prompt": {
+    "default": "Use a 1950s three-strip dye-transfer print finish: rich reds, separated emerald greens, luminous skin and dense stable blacks. Preserve the described scene and wardrobe.",
+    "kling": "Use a 1950s three-strip dye-transfer print finish: rich reds, separated emerald greens, luminous skin and dense stable blacks. Preserve the described scene and wardrobe. Maintain this rendering consistently across the scene.",
+    "seedance": "Use a 1950s three-strip dye-transfer print finish: rich reds, separated emerald greens, luminous skin and dense stable blacks. Preserve the described scene and wardrobe. Preserve this appearance throughout one continuous shot.",
+    "veo": "Use a 1950s three-strip dye-transfer print finish: rich reds, separated emerald greens, luminous skin and dense stable blacks. Preserve the described scene and wardrobe. Keep the lighting and color response consistent between frames.",
+    "wan": "Use a 1950s three-strip dye-transfer print finish: rich reds, separated emerald greens, luminous skin and dense stable blacks. Preserve the described scene and wardrobe. Retain natural subject detail under this visual treatment."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.technicolor-1950s/665ff5194658a204fd4ce0e85616ac21b59d5be5f6df992b666fc59dff0a07ab.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.technicolor-1950s/665ff5194658a204fd4ce0e85616ac21b59d5be5f6df992b666fc59dff0a07ab-late.png",
+    "run": "runs/look.technicolor-1950s.json"
+  }
+}

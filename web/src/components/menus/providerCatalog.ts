@@ -417,7 +417,7 @@ export const PROVIDER_META: ProviderMeta[] = [
     providerId: PROVIDER_IDS.COMFY_CLOUD,
     name: "Comfy Cloud",
     description:
-      "Run ComfyUI workflows on Comfy's hosted GPUs with your own key.",
+      "Image, video, speech and chat models through the Comfy Router, and ComfyUI workflows on Comfy's hosted GPUs, with one key.",
     section: "media",
     docsUrl: "https://platform.comfy.org",
     icon: comfyuiIcon,

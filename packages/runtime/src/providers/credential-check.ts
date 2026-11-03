@@ -136,6 +136,13 @@ const PROBES: Record<string, CredentialProbe> = {
     label: "ElevenLabs",
     url: () => "https://api.elevenlabs.io/v1/user",
     headers: (v) => ({ "xi-api-key": v })
+  },
+  // Lists the account's pods: the same REST base the worker provider uses
+  // (`packages/compute/src/providers/runpod-rest.ts`). Read-only.
+  RUNPOD_API_KEY: {
+    label: "RunPod",
+    url: () => "https://rest.runpod.io/v1/pods",
+    headers: (v) => ({ Authorization: `Bearer ${v}` })
   }
 };
 

@@ -2,8 +2,8 @@
   "schemaVersion": 3,
   "source": "https://genspend.io/api/v1/export",
   "attribution": "Prices via genspend.io",
-  "updatedAt": "2026-10-26T09:12:38.889Z",
-  "catalogGeneratedAt": "2026-10-26T09:12:37.728Z",
+  "updatedAt": "2026-11-01T10:43:05.218Z",
+  "catalogGeneratedAt": "2026-11-01T10:43:04.139Z",
   "etag": "\"363cbe11286573b29e5168540f6d2da959d39eab\"",
   "catalogModels": 168,
   "catalogOfferings": 571,
@@ -19,7 +19,7 @@
     "together",
     "xai"
   ],
-  "pricedModels": 363,
+  "pricedModels": 361,
   "prices": {
     "atlascloud:alibaba/happyhorse-1.0/reference-to-video": {
       "unit_price": 0.14,
@@ -2092,7 +2092,7 @@
       }
     },
     "atlascloud:z-image/turbo": {
-      "unit_price": 0.005,
+      "unit_price": 0.015,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "z-image-turbo",
@@ -2102,7 +2102,7 @@
       "tier": "turbo",
       "variants": [
         {
-          "price_usd": 0.005,
+          "price_usd": 0.015,
           "unit_class": "per-image",
           "tier": "turbo",
           "is_base": true
@@ -3957,24 +3957,6 @@
       "match": "catalog",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/qwen-image-edit"
-    },
-    "fal_ai:fal-ai/qwen-image-max/edit": {
-      "unit_price": 0.075,
-      "billing_unit": "images",
-      "unit_class": "per-image",
-      "model_slug": "qwen-image-max",
-      "match": "provider-id",
-      "live": true,
-      "source_url": "https://fal.ai/models/fal-ai/qwen-image-max/edit"
-    },
-    "fal_ai:fal-ai/qwen-image-max/text-to-image": {
-      "unit_price": 0.075,
-      "billing_unit": "images",
-      "unit_class": "per-image",
-      "model_slug": "qwen-image-max",
-      "match": "catalog",
-      "live": true,
-      "source_url": "https://fal.ai/models/fal-ai/qwen-image-max/edit"
     },
     "fal_ai:fal-ai/qwen-image/image-to-image": {
       "unit_price": 0.03,

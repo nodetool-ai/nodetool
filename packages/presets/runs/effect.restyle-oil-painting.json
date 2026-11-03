@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "id": "effect.restyle-oil-painting",
+  "status": "completed",
+  "workflow": {
+    "nodes": [
+      {
+        "id": "prompt",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "prompt",
+          "value": ""
+        },
+        "position": {
+          "x": 80,
+          "y": 80
+        }
+      },
+      {
+        "id": "template",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "{{ prompt }} The source video remade from scratch as a moving oil painting on canvas. Every object, the architecture, the plants, the ground and the sky are built from thick visible impasto brushstrokes, with loose simplified forms, broken color and ridged paint. Not live action, not a photograph, not CGI. Only the layout, action and camera move of the source video stay the same."
+        },
+        "position": {
+          "x": 380,
+          "y": 80
+        }
+      },
+      {
+        "id": "generate",
+        "type": "nodetool.video.ReferenceToVideo",
+        "data": {
+          "model": {
+            "provider": "dreamina",
+            "id": "dreamina_seedance_45_pro_draft",
+            "type": "video_model",
+            "name": "dreamina_seedance_45_pro_draft"
+          },
+          "seed": 20261031,
+          "duration": 4,
+          "resolution": "480p"
+        },
+        "position": {
+          "x": 680,
+          "y": 80
+        }
+      },
+      {
+        "id": "output",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "result"
+        },
+        "position": {
+          "x": 980,
+          "y": 80
+        }
+      },
+      {
+        "id": "video",
+        "type": "nodetool.input.VideoInput",
+        "data": {
+          "name": "video"
+        },
+        "position": {
+          "x": 80,
+          "y": 560
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "prompt-template",
+        "source": "prompt",
+        "sourceHandle": "output",
+        "target": "template",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "template-generate",
+        "source": "template",
+        "sourceHandle": "output",
+        "target": "generate",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "generate-output",
+        "source": "generate",
+        "sourceHandle": "output",
+        "target": "output",
+        "targetHandle": "value"
+      },
+      {
+        "id": "video-generate",
+        "source": "video",
+        "sourceHandle": "output",
+        "target": "generate",
+        "targetHandle": "reference_videos"
+      }
+    ]
+  },
+  "workflow_hash": "b7ab6ab130ffde0118b2a0a083f8f1a1c8e2a3456ed34a961f91488a5a89e859",
+  "provider": "dreamina",
+  "model": "dreamina_seedance_45_pro_draft",
+  "seed": 20261031,
+  "prompt": "The source video remade from scratch as a moving oil painting on canvas. Every object, the architecture, the plants, the ground and the sky are built from thick visible impasto brushstrokes, with loose simplified forms, broken color and ridged paint. Not live action, not a photograph, not CGI. Only the layout, action and camera move of the source video stay the same.",
+  "source_hash": "6355a4c168b5136eb1442682cb678d77b8333929ba76755a5395b953ab6dd700",
+  "source_url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.dolly-in/f71a51ff8637b65add4e4fb86cf57aa8ab9bce70cc6024f2c6d903fb5ff5ea90.mp4",
+  "credits": null,
+  "cost_usd": null,
+  "started_at": "2026-11-01T12:34:36.329Z",
+  "finished_at": "2026-11-01T12:36:25.882Z",
+  "output_path": "/home/mg/.cache/nodetool/preset-previews/effect.restyle-oil-painting-dreamina_seedance_45_pro_draft.mp4"
+}

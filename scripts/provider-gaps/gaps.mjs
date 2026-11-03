@@ -14,11 +14,11 @@ export function parseConfigIds(source) {
   return ids;
 }
 
-/** Image model ids in `GeminiProvider.getAvailableImageModels()`. */
+/** Image model ids in `GeminiProvider.knownImageModels()`. */
 export function parseGeminiShippedIds(source) {
-  const start = source.indexOf("async getAvailableImageModels()");
+  const start = source.indexOf("private knownImageModels()");
   if (start === -1) return [];
-  const end = source.indexOf("async getAvailableTTSModels()", start);
+  const end = source.indexOf("private knownTTSModels()", start);
   const body = source.slice(start, end === -1 ? undefined : end);
   return [...body.matchAll(/\bid:\s*"([^"]+)"/g)].map((m) => m[1]);
 }

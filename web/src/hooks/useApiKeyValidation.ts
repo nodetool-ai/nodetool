@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useSecrets } from "./useSecrets";
+import { useCredentialCheck } from "./useCredentialCheck";
 import {
   getRequiredSecretKeyForNamespace,
   getSecretDisplayName
@@ -11,7 +11,7 @@ import {
  * @returns The missing API key display name if not found, or null if found
  */
 export const useApiKeyValidation = (nodeNamespace: string): string | null => {
-  const { isApiKeySet, isLoading } = useSecrets();
+  const { isCredentialSet, isLoading } = useCredentialCheck();
 
   return useMemo(() => {
     if (isLoading) {
@@ -23,10 +23,10 @@ export const useApiKeyValidation = (nodeNamespace: string): string | null => {
       return null;
     }
 
-    if (!isApiKeySet(requiredSecretKey)) {
+    if (!isCredentialSet(requiredSecretKey)) {
       return getSecretDisplayName(requiredSecretKey);
     }
 
     return null;
-  }, [nodeNamespace, isApiKeySet, isLoading]);
+  }, [nodeNamespace, isCredentialSet, isLoading]);
 };

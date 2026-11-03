@@ -1,0 +1,39 @@
+{
+  "id": "camera.snorricam",
+  "version": 1,
+  "kind": "camera",
+  "name": "snorricam",
+  "description": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts.",
+  "tags": [
+    "camera",
+    "rig"
+  ],
+  "slot": "rig",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "snorricam"
+  ],
+  "prompt": {
+    "default": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts.",
+    "kling": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts.",
+    "seedance": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts throughout one continuous shot.",
+    "veo": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts.",
+    "wan": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts.",
+    "local-wan": "A camera attached to the subject faces its face. The face holds a fixed position and size while walking makes the background sway and shift behind it. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.snorricam/0148da2bc19ac3e7d839fdfa23e292b5d30edf7d0e4665b8fac5d201333319e8.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.snorricam/0148da2bc19ac3e7d839fdfa23e292b5d30edf7d0e4665b8fac5d201333319e8.png",
+    "run": "runs/camera.snorricam.json"
+  }
+}

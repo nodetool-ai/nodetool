@@ -54,6 +54,27 @@ a keyboard layout the user picks in the shortcut sheet (`?`):
   `trimModeFor`; the body tools (Cut, Slip, Track select) act in
   `useClipDrag`.
 
+## Simple and Expert modes
+
+The editor opens in Simple mode. The document bar keeps the title, the save
+state, undo, the canvas size and frame rate chips (they open Project
+settings), the Simple / Expert switch and Export. On phones the bar has no
+room for the switch or the chips, so Simple and Expert sit in the ⋮ menu,
+which holds nothing else in Simple mode. The preview sits over the
+tracks with no dock and no status bar. Its bar keeps Go to start, Play, the
+timecode, mute and full screen. The tracks toolbar keeps Generate, Add track and
+zoom, and each track header is one row: glyph, name, index and one show or
+mute toggle. The context menus and keyboard shortcuts work as in Expert mode,
+except Alt+M, because DAW mode is Expert mode's.
+
+Expert mode is the full editor that the rest of this page describes: the dock
+and its workspaces, DAW mode, the full toolbars, the track controls and the
+status bar. The choice is kept per user in localStorage
+(`stores/timeline/TimelineEditorMode.ts`). The editor provides
+`TimelineSimpleModeContext`, so `TracksRegion`, `TrackHeader` and
+`PreviewArea` drop their expert controls only inside a Simple-mode editor. The
+lab shows both modes (`daw-lab.html?view=editor`, add `&mode=expert`).
+
 ## Workspaces
 
 On desktop the panels sit in the shared dock (`web/src/components/dock/`).

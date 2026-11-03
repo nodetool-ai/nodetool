@@ -52,6 +52,9 @@ const invalidateProviderDependentCaches = (): void => {
   queryClient.invalidateQueries({ queryKey: ["video-models"] });
   queryClient.invalidateQueries({ queryKey: ["music-models"] });
   queryClient.invalidateQueries({ queryKey: ["3d-models"] });
+  // The Workers panel asks for a provider key until this status says it
+  // resolves (`useWorkers`).
+  queryClient.invalidateQueries({ queryKey: ["workers", "api-key-status"] });
   // A node's "Required setting … is not configured" warning reads this list,
   // which otherwise stays as it was when the app started.
   useRemoteSettingsStore

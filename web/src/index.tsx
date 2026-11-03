@@ -83,6 +83,7 @@ const InstallRuntimePackageDialog = React.lazy(
   () => import("./components/packages/InstallRuntimePackageDialog")
 );
 import FirstRunProviderSignIn from "./components/provider_onboarding/FirstRunProviderSignIn";
+import GitHubStarPrompt from "./components/onboarding/GitHubStarPrompt";
 import HelpDialogHost from "./components/content/Help/HelpDialogHost";
 import BugReportDialogHost from "./components/support/BugReportDialogHost";
 import AnalyticsConsentPrompt from "./components/privacy/AnalyticsConsentPrompt";
@@ -854,6 +855,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
                       <ProviderSignInDialog />
                       <InstallRuntimePackageDialog />
                       <FirstRunProviderSignIn />
+                      <GitHubStarPrompt />
                       <CommandMenuHost />
                       <ConfirmDialogHost />
                       <AnalyticsConsentPrompt />

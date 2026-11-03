@@ -1,0 +1,41 @@
+{
+  "id": "camera.orbit-left",
+  "version": 1,
+  "kind": "camera",
+  "name": "orbit left",
+  "description": "Camera arcs left around the subject at a steady distance.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "camera.orbit-right"
+  ],
+  "aliases": [
+    "orbit left"
+  ],
+  "prompt": {
+    "default": "Camera arcs left around the subject at a steady distance.",
+    "kling": "Camera arcs left around the subject at a steady distance.",
+    "seedance": "Camera arcs left around the subject at a steady distance throughout one continuous shot.",
+    "veo": "Camera arcs left around the subject at a steady distance.",
+    "wan": "Camera arcs left around the subject at a steady distance.",
+    "local-wan": "The camera travels left around the subject along a curved path at a steady distance. The subject stays centered while its visible side and background change smoothly. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.orbit-left/c8abdd660883288424f77d0d4f23a2b4c9776c7a64a198915df07a7f07fe0db5.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.orbit-left/c8abdd660883288424f77d0d4f23a2b4c9776c7a64a198915df07a7f07fe0db5.png",
+    "run": "runs/camera.orbit-left.json"
+  }
+}

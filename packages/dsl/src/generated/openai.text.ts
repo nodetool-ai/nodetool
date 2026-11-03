@@ -5,7 +5,7 @@ import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.j
 // Embedding — openai.text.Embedding
 export type EmbeddingInputs = {
   input?: Connectable<string>;
-  model?: Connectable<"text-embedding-3-large" | "text-embedding-3-small">;
+  model?: Connectable<unknown>;
   chunk_size?: Connectable<number>;
 };
 

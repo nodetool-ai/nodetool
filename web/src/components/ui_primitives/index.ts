@@ -424,6 +424,11 @@ export type {
 
 // Phase 3 - Additional primitives
 
+export { PresetCard, presetFamilies } from "./PresetCard";
+export type { PresetCardProps } from "./PresetCard";
+export { PresetPicker } from "./PresetPicker";
+export type { PresetPickerProps } from "./PresetPicker";
+
 export { Tooltip } from "./Tooltip";
 export type { TooltipProps } from "./Tooltip";
 

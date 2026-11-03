@@ -105,7 +105,8 @@ describe("example storyboards", () => {
 
     expect(installed.name).toBe(bundle.name);
     expect(installed.projectId).toBe("default");
-    expect(installed.document).toEqual(bundle.document);
+    // Reading a stored document fills in the look list older bundles lack.
+    expect(installed.document).toEqual({ look_preset_ids: [], ...bundle.document });
 
     const stored = await Storyboard.findById(installed.id);
     expect(stored?.user_id).toBe(USER_ID);

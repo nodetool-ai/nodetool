@@ -681,3 +681,64 @@ describe("ShotCard stills mode", () => {
     expect(screen.getByRole("img")).toBeInTheDocument();
   });
 });
+
+describe("ShotCard scene clip generation", () => {
+  const ownerJob = {
+    shotId: "owner",
+    boardId: "board-1",
+    jobId: "job-scene",
+    kind: "clip" as const,
+    status: "running" as const,
+    progress: 40,
+    oneTake: {
+      steps: [
+        { shot_id: "owner", start_seconds: 0, end_seconds: 1 },
+        { shot_id: "covered", start_seconds: 1, end_seconds: 2 }
+      ]
+    }
+  };
+
+  beforeEach(() => {
+    act(() => useStoryboardGenerationStore.setState({ shotJobs: {} }));
+  });
+
+  it("shows a covered shot as generating while the scene clip renders on the first shot", () => {
+    act(() => {
+      useStoryboardGenerationStore.setState({
+        shotJobs: { owner: ownerJob }
+      });
+    });
+    renderCard(makeShot({ id: "covered", index: 1 }));
+
+    expect(document.querySelector('[data-shot-id="covered"]')).toHaveAttribute(
+      "data-generating",
+      "true"
+    );
+  });
+
+  it("stops showing it once the scene clip job settles", () => {
+    act(() => {
+      useStoryboardGenerationStore.setState({
+        shotJobs: { owner: { ...ownerJob, status: "completed" } }
+      });
+    });
+    renderCard(makeShot({ id: "covered", index: 1 }));
+
+    expect(document.querySelector('[data-shot-id="covered"]')).not.toHaveAttribute(
+      "data-generating"
+    );
+  });
+
+  it("leaves a shot outside the run alone", () => {
+    act(() => {
+      useStoryboardGenerationStore.setState({
+        shotJobs: { owner: ownerJob }
+      });
+    });
+    renderCard(makeShot({ id: "elsewhere", index: 5 }));
+
+    expect(document.querySelector('[data-shot-id="elsewhere"]')).not.toHaveAttribute(
+      "data-generating"
+    );
+  });
+});

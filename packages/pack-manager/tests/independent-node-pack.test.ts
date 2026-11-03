@@ -4,18 +4,21 @@ import { join } from "node:path";
 import { expect, it } from "vitest";
 import { verifyPackLoads } from "../src/packs/installer-load-check.js";
 import type { CatalogPack, NodeCatalogIndex } from "@nodetool-ai/pack-core";
-import type { InstalledPackSnapshot } from "../src/packs/installed.js";
+import { readInstalledPacks, type InstalledPackSnapshot } from "../src/packs/installed.js";
 
 it.each(["node-pack", "core"] as const)("verifies independently installed %s nodes and rejects SDK identity and catalog mismatches", async (kind) => {
-  const root = await mkdtemp(join(tmpdir(), "independent-node-pack-"));
+  const base = await mkdtemp(join(tmpdir(), "independent-node-pack-"));
+  const root = join(base, "project");
+  const cliRoot = join(base, "cli");
   const sdkRoot = join(root, "node_modules/@nodetool-ai/node-sdk");
   const packRoot = join(root, "node_modules/@nodetool-ai/fixture-nodes");
   const version = "0.8.4";
   const pack: CatalogPack = { id: "fixture", kind, npm: { name: "@nodetool-ai/fixture-nodes", version, integrity: "sha512-fixture" }, registrar: "register", provides: [], requires: [], runtimeLibraries: [], secrets: [], scriptAllowlist: [], installBytes: 0, nodeCount: 1 };
   const catalog: NodeCatalogIndex = { schemaVersion: 1, coreVersion: version, packs: [pack], owners: { "fixture.Node": "fixture" }, installPins: [{ name: "@nodetool-ai/node-sdk", version, integrity: "sha512-sdk", shared: true }] };
-  const mode = { kind: "local" as const, cliRoot: root, installRoot: root, nodeModulesRoot: join(root, "node_modules"), coreVersion: version, pathStyle: "posix" as const };
-  const snapshot: InstalledPackSnapshot = { mode, packs: [{ id: pack.id, npm: pack.npm.name, version, packageRoot: packRoot, realPackageRoot: packRoot, providedPackages: [] }], wrongVersions: [], invalidPackages: [] };
+  const mode = { kind: "local" as const, cliRoot, packsRoot: base, legacyInstallRoot: cliRoot, coreVersion: version, pathStyle: "posix" as const };
   try {
+    await mkdir(cliRoot, { recursive: true });
+    await writeFile(join(cliRoot, "package.json"), JSON.stringify({ name: "@nodetool-ai/cli", version }));
     await mkdir(sdkRoot, { recursive: true });
     await mkdir(packRoot, { recursive: true });
     const sdkEntry = new URL("../../node-sdk/dist/index.js", import.meta.url).href;
@@ -28,6 +31,8 @@ it.each(["node-pack", "core"] as const)("verifies independently installed %s nod
     await writeFile(join(root, "package.json"), '{"name":"independent-fixture"}');
     const lock = JSON.stringify({ packages: { "node_modules/@nodetool-ai/node-sdk": { version, integrity: "sha512-sdk" }, "node_modules/@nodetool-ai/fixture-nodes": { version, integrity: "sha512-fixture" } } });
     await writeFile(join(root, "node_modules/.package-lock.json"), lock);
+    const snapshot: InstalledPackSnapshot = readInstalledPacks(mode, catalog, { projectRoot: root });
+    expect(snapshot.packs.map((entry) => entry.id)).toEqual([pack.id]);
     await expect(verifyPackLoads(snapshot, catalog, [pack.id])).resolves.toBeUndefined();
     await expect(verifyPackLoads(snapshot, { ...catalog, owners: { "fixture.Missing": "fixture" } }, [pack.id])).rejects.toThrow("owned node types differ");
     await expect(verifyPackLoads(snapshot, { ...catalog, installPins: [{ name: "@nodetool-ai/node-sdk", version, integrity: "sha512-wrong", shared: true }] }, [pack.id])).rejects.toThrow("SDK integrity");
@@ -38,9 +43,9 @@ it.each(["node-pack", "core"] as const)("verifies independently installed %s nod
     const parsed = JSON.parse(lock);
     parsed.packages["node_modules/@nodetool-ai/fixture-nodes/node_modules/@nodetool-ai/node-sdk"] = { version, integrity: "sha512-sdk" };
     await writeFile(join(root, "node_modules/.package-lock.json"), JSON.stringify(parsed));
-    await expect(verifyPackLoads(snapshot, catalog, [pack.id])).rejects.toThrow("exactly one admitted node-sdk");
+    await expect(verifyPackLoads(snapshot, catalog, [pack.id])).rejects.toThrow("Pack resolves another node-sdk");
     expect(await readFile(join(root, "package.json"), "utf8")).toBe('{"name":"independent-fixture"}');
   } finally {
-    await rm(root, { recursive: true, force: true });
+    await rm(base, { recursive: true, force: true });
   }
 });

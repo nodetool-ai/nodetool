@@ -87,6 +87,38 @@ function codexHttpError(message: string, status: number): Error {
   return Object.assign(new Error(message), { status });
 }
 
+/** Parse a Responses SSE stream into its JSON events. */
+async function* readSseEvents(
+  body: ReadableStream<Uint8Array>
+): AsyncGenerator<Record<string, unknown>> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let sep: number;
+      while ((sep = buffer.indexOf("\n\n")) !== -1) {
+        const rawEvent = buffer.slice(0, sep);
+        buffer = buffer.slice(sep + 2);
+        const dataLine = rawEvent.split("\n").find((l) => l.startsWith("data:"));
+        if (!dataLine) continue;
+        const payload = dataLine.slice("data:".length).trim();
+        if (!payload || payload === "[DONE]") continue;
+        try {
+          yield JSON.parse(payload) as Record<string, unknown>;
+        } catch {
+          continue;
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 /**
  * The id Codex groups one conversation's requests under. The Codex CLI sends
  * its conversation id as both the `session_id` header and `prompt_cache_key`,
@@ -132,7 +164,7 @@ function codexDefaultHeaders(
 }
 
 export class CodexProvider extends OpenAIProvider {
-  private imageOrchestratorModel: Promise<string> | null = null;
+  private defaultModel: Promise<string> | null = null;
 
   protected override declaredCapabilities(): readonly ProviderCapability[] {
     return [
@@ -242,15 +274,16 @@ export class CodexProvider extends OpenAIProvider {
   }
 
   /**
-   * The chat model that calls the `image_generation` tool. The Codex backend
-   * has no images endpoint, and the models it serves change by account and
-   * over time, so use the first model of the live listing.
+   * The chat model that calls a built-in tool (`image_generation`,
+   * `web_search`). The Codex backend has no images or search endpoint, and the
+   * models it serves change by account and over time, so use the first model
+   * of the live listing.
    */
-  private resolveImageOrchestratorModel(): Promise<string> {
-    this.imageOrchestratorModel ??= this.getAvailableLanguageModels().then(
+  private resolveDefaultModel(): Promise<string> {
+    this.defaultModel ??= this.getAvailableLanguageModels().then(
       (models) => models[0]?.id ?? CODEX_FALLBACK_MODELS[0].id
     );
-    return this.imageOrchestratorModel;
+    return this.defaultModel;
   }
 
   /**
@@ -280,7 +313,7 @@ export class CodexProvider extends OpenAIProvider {
     if (params.quality) imageTool.quality = params.quality;
 
     const body = {
-      model: await this.resolveImageOrchestratorModel(),
+      model: await this.resolveDefaultModel(),
       instructions:
         "Generate the image the user describes by calling the image_generation tool. Do not ask clarifying questions.",
       input: [
@@ -360,6 +393,87 @@ export class CodexProvider extends OpenAIProvider {
       throw new Error("Codex image generation returned no image data.");
     }
     return Uint8Array.from(Buffer.from(b64, "base64"));
+  }
+
+  // --- Web search (via the Responses web_search tool) --------------------
+
+  /**
+   * Answer a query with the Responses built-in `web_search` tool. The Codex
+   * backend runs the search server-side, as it does for the Codex CLI.
+   * Returns the answer and the pages it cites.
+   */
+  async webSearch(args: {
+    query: string;
+    model?: string;
+    signal?: AbortSignal;
+  }): Promise<{ text: string; sources: Array<{ title: string; url: string }> }> {
+    const query = sanitizeCodexControlTokens(args.query).trim();
+    if (!query) throw new Error("Search query cannot be empty");
+
+    const body = {
+      model: args.model || (await this.resolveDefaultModel()),
+      instructions:
+        "Search the web to answer the user's query from current information. Cite the pages you used.",
+      input: [
+        {
+          type: "message",
+          role: "user",
+          content: [{ type: "input_text", text: query }]
+        }
+      ],
+      tools: [{ type: "web_search" }],
+      tool_choice: "auto",
+      store: false,
+      stream: true
+    };
+
+    const res = await fetch(`${CODEX_BACKEND_BASE_URL}/responses`, {
+      method: "POST",
+      headers: this.buildHeaders(),
+      body: JSON.stringify(body),
+      signal: args.signal
+    });
+    if (!res.ok || !res.body) {
+      const detail = await res.text().catch(() => "");
+      throw codexHttpError(
+        `Codex web search failed (${res.status}): ${detail.slice(0, 300)}`,
+        res.status
+      );
+    }
+
+    let streamed = "";
+    const messages: string[] = [];
+    const sources: Array<{ title: string; url: string }> = [];
+    for await (const event of readSseEvents(res.body)) {
+      if (event.type === "response.output_text.delta" && isString(event.delta)) {
+        streamed += event.delta;
+      } else if (event.type === "response.output_item.done") {
+        const item = event.item as Record<string, unknown> | undefined;
+        if (item?.type !== "message" || !Array.isArray(item.content)) continue;
+        for (const part of item.content as Array<Record<string, unknown>>) {
+          if (part.type !== "output_text" || !isString(part.text)) continue;
+          messages.push(part.text);
+          const annotations = Array.isArray(part.annotations)
+            ? (part.annotations as Array<Record<string, unknown>>)
+            : [];
+          for (const a of annotations) {
+            if (a.type !== "url_citation" || !isString(a.url)) continue;
+            if (sources.some((s) => s.url === a.url)) continue;
+            sources.push({ title: isString(a.title) ? a.title : a.url, url: a.url });
+          }
+        }
+      } else if (event.type === "response.failed" || event.type === "error") {
+        const response = event.response as Record<string, unknown> | undefined;
+        const error = (response?.error ?? event.error ?? event) as Record<string, unknown>;
+        throw new Error(
+          `Codex web search failed: ${isString(error.message) ? error.message : "unknown error"}`
+        );
+      }
+    }
+
+    const text = messages.length > 0 ? messages.join("\n") : streamed;
+    if (!text) throw new Error("Codex web search returned no answer.");
+    return { text, sources };
   }
 
   // --- Responses API transport -------------------------------------------

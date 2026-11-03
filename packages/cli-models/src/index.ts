@@ -1,3 +1,4 @@
+import { registerPresetCommands } from "./commands/presets.js";
 import {initializeCliRuntime} from "@nodetool-ai/cli-common/runtime-env";
 import {configureCliPackHost} from "@nodetool-ai/pack-manager/packs/host";
 import { Command, InvalidArgumentError } from "commander";
@@ -11,6 +12,7 @@ import { registerHfCommands } from "./commands/models-hf.js";
 import { createApiClient } from "./api-client.js";
 export function createProgram(): Command {
 const program = new Command().name("nodetool");
+registerPresetCommands(program);
 const models = program.command("models").description("Model management");
 
 const modelKinds = [

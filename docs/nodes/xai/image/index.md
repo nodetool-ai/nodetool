@@ -5,6 +5,8 @@ title: "xai.image Nodes"
 
 This namespace contains 1 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[Generate Image](generateimage.md)** - Generate images from text using xAI's Grok image models.
+- **[Generate Image](generateimage.md)**
+
+[Back to all nodes](../../)

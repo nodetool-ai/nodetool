@@ -1,0 +1,38 @@
+{
+  "id": "effect.bioluminescent-dissolve",
+  "version": 1,
+  "kind": "effect",
+  "name": "Bioluminescent dissolve",
+  "description": "Animates the subject to dissolve into swirling bioluminescent particles.",
+  "tags": [
+    "effect",
+    "particles",
+    "glow"
+  ],
+  "slot": "effect",
+  "modes": [
+    "image_to_video"
+  ],
+  "inputs": [
+    "image"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "dissolve into swirling bioluminescent particles"
+  ],
+  "prompt": {
+    "default": "The subject begins still, then proceeds to dissolve into swirling bioluminescent particles. Glowing blue-green motes spiral away into darkness. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+    "kling": "The subject begins still, then proceeds to dissolve into swirling bioluminescent particles. Glowing blue-green motes spiral away into darkness. Physically accurate motion, steady locked camera.",
+    "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to dissolve into swirling bioluminescent particles. Glowing blue-green motes spiral away into darkness. Physically accurate motion.",
+    "veo": "The subject begins still, then proceeds to dissolve into swirling bioluminescent particles. Glowing blue-green motes spiral away into darkness. Cinematic lighting, realistic physics, locked camera.",
+    "wan": "The subject begins still, then proceeds to dissolve into swirling bioluminescent particles. Glowing blue-green motes spiral away into darkness. Locked camera, smooth realistic motion, high detail.",
+    "local-wan": "The subject breaks apart gradually into glowing turquoise particles. Bright motes peel from its edges, spiral outward and drift into the dark as its solid shape disappears."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.bioluminescent-dissolve/a719585f74ed1b149c01c8dba91aaecbd20fd901ad66e453fef90c1496af10e6.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.bioluminescent-dissolve/a719585f74ed1b149c01c8dba91aaecbd20fd901ad66e453fef90c1496af10e6.png",
+    "run": "runs/effect.bioluminescent-dissolve.json"
+  }
+}

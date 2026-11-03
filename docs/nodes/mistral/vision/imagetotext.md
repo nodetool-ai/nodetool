@@ -31,7 +31,6 @@ Analyze images and generate text descriptions using Mistral AI's Pixtral models.
 |----------|------|-------------|---------|
 | image | `image` | The image to analyze | `{"type":"image","uri":"","asset_id":null,"data"...` |
 | prompt | `str` | The prompt/question about the image | `Describe this image in detail.` |
-| model | `enum` | The Pixtral model to use for vision tasks | `pixtral-large-latest` |
 | temperature | `float` | Sampling temperature for response generation | `0.3` |
 | max_tokens | `int` | Maximum number of tokens to generate | `1024` |
 

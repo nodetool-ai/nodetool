@@ -52,3 +52,18 @@ export interface RunWorkflowOnCloudOutputs {
 export function runWorkflowOnCloud(inputs: RunWorkflowOnCloudInputs, options?: NodeOptions): NodeWithOutputs<RunWorkflowOnCloudOutputs, "output"> {
   return createNode("lib.comfy.RunWorkflowOnCloud", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"dict[str, any]"}, defaultOutput: "output", streaming: true });
 }
+
+// Run Comfy Workflow (Comfy Cloud) — lib.comfy.RunComfyGraphOnCloud
+export type RunComfyGraphOnCloudInputs = {
+  nodes?: Connectable<Record<string, unknown>[]>;
+  edges?: Connectable<Record<string, unknown>[]>;
+  timeout?: Connectable<number>;
+};
+
+export interface RunComfyGraphOnCloudOutputs {
+  output: Record<string, unknown>;
+}
+
+export function runComfyGraphOnCloud(inputs: RunComfyGraphOnCloudInputs, options?: NodeOptions): NodeWithOutputs<RunComfyGraphOnCloudOutputs, "output"> {
+  return createNode("lib.comfy.RunComfyGraphOnCloud", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"dict[str, any]"}, defaultOutput: "output", streaming: true });
+}

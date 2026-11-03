@@ -18,7 +18,6 @@ Converts text to speech using OpenAI TTS models.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| model | `enum` |  | `tts-1` |
 | voice | `enum` |  | `alloy` |
 | input | `str` |  | `` |
 | speed | `float` |  | `1` |

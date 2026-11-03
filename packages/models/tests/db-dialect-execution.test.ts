@@ -101,6 +101,17 @@ describe("model execution on SQLite and PostgreSQL", () => {
     });
   }, DIALECT_TEST_TIMEOUT_MS);
 
+  it("round-trips preset provenance as JSON text in both dialects", async () => {
+    await onBothDialects(async () => {
+      const row = await Prediction.create<Prediction>({ user_id: OWNER,
+        preset_ids: ["camera.dolly-in"], preset_warnings: ["default fragment used"] });
+      const loaded = await Prediction.findForUser(OWNER, row.id);
+      expect(loaded?.preset_ids).toEqual(["camera.dolly-in"]);
+      expect(loaded?.preset_warnings).toEqual(["default fragment used"]);
+      return { ids: loaded?.preset_ids, warnings: loaded?.preset_warnings };
+    });
+  }, DIALECT_TEST_TIMEOUT_MS);
+
   it("pages a project's document cards and sums their spend in SQL", async () => {
     await onBothDialects(async () => {
       const projectId = "dialect-project";

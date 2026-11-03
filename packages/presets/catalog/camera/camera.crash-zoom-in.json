@@ -1,0 +1,41 @@
+{
+  "id": "camera.crash-zoom-in",
+  "version": 1,
+  "kind": "camera",
+  "name": "crash zoom in",
+  "description": "Lens zooms rapidly into the subject from a fixed camera position.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "camera.crash-zoom-out"
+  ],
+  "aliases": [
+    "crash zoom in"
+  ],
+  "prompt": {
+    "default": "Lens zooms rapidly into the subject from a fixed camera position.",
+    "kling": "Lens zooms rapidly into the subject from a fixed camera position.",
+    "seedance": "Lens zooms rapidly into the subject from a fixed camera position throughout one continuous shot.",
+    "veo": "Lens zooms rapidly into the subject from a fixed camera position.",
+    "wan": "Lens zooms rapidly into the subject from a fixed camera position.",
+    "local-wan": "A sudden fast lens zoom enlarges the subject from a wide view to a tight close-up. The viewpoint stays fixed and the zoom settles on the subject. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.crash-zoom-in/797d3805a53496a5c2ea7fd2922b884789a8fdd3db1667b4cd133085f7b17d33.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.crash-zoom-in/797d3805a53496a5c2ea7fd2922b884789a8fdd3db1667b4cd133085f7b17d33.png",
+    "run": "runs/camera.crash-zoom-in.json"
+  }
+}

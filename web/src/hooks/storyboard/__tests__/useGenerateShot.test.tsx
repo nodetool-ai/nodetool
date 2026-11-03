@@ -1448,3 +1448,25 @@ describe("still variants", () => {
     ]);
   });
 });
+
+it("sends inherited and overridden look ids with camera ids for server compilation", async () => {
+  const store = useStoryboardStore.getState();
+  store.setLookPresetIds(BOARD, ["look.arri-alexa"]);
+  store.setVideoModel(BOARD, null);
+  store.setImageModel(BOARD, null);
+  const { result } = renderHook(() => useGenerateShot());
+  await act(async () => {
+    await result.current.generateKeyframe(BOARD, { ...shot, id: "look-still" });
+    await result.current.generateClip(BOARD, {
+      ...shot,
+      id: "look-clip",
+      render_mode: "direct",
+      camera: { movement: "legacy move", preset_ids: ["camera.dolly-in"] },
+      look_preset_ids: ["look.bleach-bypass"]
+    });
+  });
+  expect(send.mock.calls[0][0].data.preset_ids).toEqual(["look.arri-alexa"]);
+  expect(send.mock.calls[1][0].data.preset_ids).toEqual(["camera.dolly-in", "look.bleach-bypass"]);
+  expect(send.mock.calls[1][0].data.prompt).not.toContain("legacy move");
+  store.setLookPresetIds(BOARD, []);
+});

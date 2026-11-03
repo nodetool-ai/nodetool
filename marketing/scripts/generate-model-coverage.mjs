@@ -66,6 +66,50 @@ const MODELS = {
   flux: { kind: "image", keywords: ["flux"] },
   "gpt-image": { kind: "image", keywords: ["gpt-image", "gpt image"] },
   imagen: { kind: "image", keywords: ["imagen"] },
+  "nano-banana": {
+    kind: "image",
+    keywords: ["nano-banana", "nano banana", "gemini-2.5-flash-image"],
+  },
+  // "recraft-v" and the version paths skip Recraft's utility nodes (remove
+  // background, upscale, vectorize), which are not the image models.
+  recraft: {
+    kind: "image",
+    keywords: ["recraft-v", "recraft/v3", "recraft/v4", "recraft-20b"],
+  },
+  ideogram: { kind: "image", keywords: ["ideogram"] },
+  "qwen-image": { kind: "image", keywords: ["qwen-image"] },
+  "stable-diffusion-3-5": {
+    kind: "image",
+    keywords: ["stable-diffusion-3.5", "stable-diffusion-3-5", "sd3.5"],
+  },
+  // "reve/" and "/reve" keep out words that merely contain "reve".
+  reve: { kind: "image", keywords: ["reve/", "/reve"] },
+  "krea-2": { kind: "image", keywords: ["krea-2", "krea 2"] },
+  hidream: { kind: "image", keywords: ["hidream"] },
+  "hunyuan-image": {
+    kind: "image",
+    keywords: ["hunyuan-image", "hunyuan image", "hunyuanimage"],
+  },
+  "grok-imagine-image": { kind: "image", keywords: ["grok-imagine-image"] },
+  "gen4-image": { kind: "image", keywords: ["gen4-image", "gen4 image"] },
+  riverflow: { kind: "image", keywords: ["riverflow"] },
+  // Bria also ships eraser and background utilities, which are not listed.
+  bria: {
+    kind: "image",
+    keywords: ["bria/fibo", "bria/image", "bria/text-to-image"],
+  },
+  "leonardo-ai": { kind: "image", keywords: ["leonardo"] },
+  "minimax-image-01": { kind: "image", keywords: ["image-01"] },
+  photon: { kind: "image", keywords: ["photon"] },
+  "p-image": { kind: "image", keywords: ["p-image"] },
+  "z-image": { kind: "image", keywords: ["z-image"] },
+  "sana-sprint": { kind: "image", keywords: ["sana-sprint", "sana sprint"] },
+  dreamina: { kind: "image", keywords: ["dreamina"] },
+  bagel: { kind: "image", keywords: ["bagel"] },
+  "retro-diffusion": {
+    kind: "image",
+    keywords: ["retro-diffusion", "retro diffusion"],
+  },
 };
 
 /** outputType values that count for each model kind (mirrors buildImageModels/buildVideoModels). */

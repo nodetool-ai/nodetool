@@ -1,0 +1,41 @@
+{
+  "id": "camera.tilt-down",
+  "version": 1,
+  "kind": "camera",
+  "name": "tilt down",
+  "description": "Camera tilts downward from a fixed position.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "camera.tilt-up"
+  ],
+  "aliases": [
+    "tilt down"
+  ],
+  "prompt": {
+    "default": "Camera tilts downward from a fixed position.",
+    "kling": "Camera tilts downward from a fixed position.",
+    "seedance": "Camera tilts downward from a fixed position throughout one continuous shot.",
+    "veo": "Camera tilts downward from a fixed position.",
+    "wan": "Camera tilts downward from a fixed position.",
+    "local-wan": "From a fixed camera position, the lens turns slowly downward. Upper scenery leaves the top of the frame as lower details enter from below. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.tilt-down/caa8dc58b88fe65030135f856ace9db90a0b2e8204acb6f8460b964ce1229661.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.tilt-down/caa8dc58b88fe65030135f856ace9db90a0b2e8204acb6f8460b964ce1229661.png",
+    "run": "runs/camera.tilt-down.json"
+  }
+}

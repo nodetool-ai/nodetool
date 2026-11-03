@@ -715,7 +715,7 @@ describe("Node defaults coverage", () => {
     const node = new EmbeddingNode();
     const d = node.serialize();
     expect(d.input).toBe("");
-    expect(d.model).toBe("text-embedding-3-small");
+    expect(d.model).toMatchObject({ id: "text-embedding-3-small" });
     expect(d.chunk_size).toBe(4096);
   });
 
@@ -735,7 +735,7 @@ describe("Node defaults coverage", () => {
     const node = new CreateImageNode();
     const d = node.serialize();
     expect(d.prompt).toBe("");
-    expect(d.model).toBe("gpt-image-1");
+    expect(d.model).toMatchObject({ id: "gpt-image-1" });
     expect(d.size).toBe("1024x1024");
     expect(d.background).toBe("auto");
     expect(d.quality).toBe("high");
@@ -745,13 +745,13 @@ describe("Node defaults coverage", () => {
     const node = new EditImageNode();
     const d = node.serialize();
     expect(d.prompt).toBe("");
-    expect(d.model).toBe("gpt-image-1");
+    expect(d.model).toMatchObject({ id: "gpt-image-1" });
   });
 
   it("TextToSpeechNode defaults", () => {
     const node = new TextToSpeechNode();
     const d = node.serialize();
-    expect(d.model).toBe("tts-1");
+    expect(d.model).toMatchObject({ id: "tts-1" });
     expect(d.voice).toBe("alloy");
     expect(d.speed).toBe(1.0);
   });
@@ -764,7 +764,7 @@ describe("Node defaults coverage", () => {
   it("TranscribeNode defaults", () => {
     const node = new TranscribeNode();
     const d = node.serialize();
-    expect(d.model).toBe("whisper-1");
+    expect(d.model).toMatchObject({ id: "whisper-1" });
     expect(d.language).toBe("auto_detect");
     expect(d.timestamps).toBe(false);
   });

@@ -40,6 +40,7 @@ import type {
   AudioFormat,
   ExtendDirection,
   MediaMode,
+  PresetMediaMode,
   VideoModelSelection
 } from "../../../stores/MediaGenerationStore";
 import type { MusicModel, VideoModel } from "../../../stores/ApiTypes";
@@ -47,6 +48,7 @@ import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
 import ModelChip, { type ModelPickerHandle } from "./ModelChip";
 import OptionChip from "./OptionChip";
 import { type MediaOption } from "./MediaOptionMenu";
+import { MediaPresetChip } from "./MediaSettingChips";
 import {
   buildImageEditOptions,
   buildImageModelOptions,
@@ -94,10 +96,42 @@ interface ModeChipsProps {
   mode: MediaMode;
   /** Lets the composer open the mode's model picker when a send is refused. */
   openModelPickerRef: React.Ref<ModelPickerHandle>;
+  /**
+   * Leave out the image variations chip. The Create view counts takes itself
+   * and asks each request for one image.
+   */
+  hideVariations?: boolean;
 }
 
 interface ClusterProps {
   openModelPickerRef: React.Ref<ModelPickerHandle>;
+  hideVariations?: boolean;
+}
+
+const NO_PRESETS: string[] = [];
+
+/** The preset chip of a video mode, bound to that mode's own selection. */
+function ModePresetChip({
+  mode,
+  model
+}: {
+  mode: PresetMediaMode;
+  model: { id: string; provider?: string | null } | null;
+}) {
+  const value = useMediaGenerationStore((s) => s.presetIds[mode]) ?? NO_PRESETS;
+  const setPresetIds = useMediaGenerationStore((s) => s.setPresetIds);
+  const handleChange = useCallback(
+    (ids: string[]) => setPresetIds(mode, ids),
+    [mode, setPresetIds]
+  );
+  return (
+    <MediaPresetChip
+      mode={mode}
+      model={model}
+      value={value}
+      onChange={handleChange}
+    />
+  );
 }
 
 function MusicModeChips({ openModelPickerRef }: ClusterProps) {
@@ -144,7 +178,7 @@ function MusicModeChips({ openModelPickerRef }: ClusterProps) {
   );
 }
 
-function ImageModeChips({ openModelPickerRef }: ClusterProps) {
+function ImageModeChips({ openModelPickerRef, hideVariations }: ClusterProps) {
   const { t } = useTranslation();
   const params = useMediaGenerationStore((s) => s.image);
   const setParams = useMediaGenerationStore((s) => s.setImageParams);
@@ -169,6 +203,7 @@ function ImageModeChips({ openModelPickerRef }: ClusterProps) {
           }
         }}
       />
+      <ModePresetChip mode="image" model={params.model} />
       <OptionChip
         menu="option"
         icon={<DisplaySettingsIcon fontSize="small" />}
@@ -186,15 +221,17 @@ function ImageModeChips({ openModelPickerRef }: ClusterProps) {
         options={aspectOptions}
         onChange={(aspectRatio) => setParams({ aspectRatio })}
       />
-      <OptionChip
-        menu="option"
-        icon={<AppsIcon fontSize="small" />}
-        label={`${params.variations}`}
-        header={t("i18n-next54.composer.numberOfVariations")}
-        value={params.variations}
-        options={VARIATIONS_OPTIONS}
-        onChange={(variations) => setParams({ variations })}
-      />
+      {!hideVariations && (
+        <OptionChip
+          menu="option"
+          icon={<AppsIcon fontSize="small" />}
+          label={`${params.variations}`}
+          header={t("i18n-next54.composer.numberOfVariations")}
+          value={params.variations}
+          options={VARIATIONS_OPTIONS}
+          onChange={(variations) => setParams({ variations })}
+        />
+      )}
     </>
   );
 }
@@ -242,6 +279,7 @@ function ImageEditModeChips({ openModelPickerRef }: ClusterProps) {
           }
         }}
       />
+      <ModePresetChip mode="image_edit" model={params.model} />
       <OptionChip
         menu="option"
         icon={<DisplaySettingsIcon fontSize="small" />}
@@ -315,6 +353,7 @@ function VideoModeChips({ openModelPickerRef }: ClusterProps) {
           }
         }}
       />
+      <ModePresetChip mode="video" model={params.model} />
       <OptionChip
         menu="option"
         icon={<AccessTimeIcon fontSize="small" />}
@@ -387,6 +426,7 @@ function ImageToVideoModeChips({ openModelPickerRef }: ClusterProps) {
           }
         }}
       />
+      <ModePresetChip mode="image_to_video" model={params.model} />
       <OptionChip
         menu="option"
         icon={<AccessTimeIcon fontSize="small" />}
@@ -455,6 +495,7 @@ function ReferenceToVideoModeChips({ openModelPickerRef }: ClusterProps) {
           }
         }}
       />
+      <ModePresetChip mode="reference_to_video" model={params.model} />
       <OptionChip
         menu="option"
         icon={<AccessTimeIcon fontSize="small" />}
@@ -512,19 +553,22 @@ function RetakeModeChips({ openModelPickerRef }: ClusterProps) {
   const addRecentModel = useModelPreferencesStore((s) => s.addRecent);
 
   return (
-    <ModelChip
-      openRef={openModelPickerRef}
-      icon={<ReplayIcon fontSize="small" />}
-      label={params.model?.name || t("i18n-next54.composer.selectRetakeModel")}
-      picker={{
-        kind: "video",
-        task: "video_to_video",
-        onPick: (model) => {
-          setParams({ model: videoModelSelection(model) });
-          addRecentModel(recentModelEntry(model));
-        }
-      }}
-    />
+    <>
+      <ModelChip
+        openRef={openModelPickerRef}
+        icon={<ReplayIcon fontSize="small" />}
+        label={params.model?.name || t("i18n-next54.composer.selectRetakeModel")}
+        picker={{
+          kind: "video",
+          task: "video_to_video",
+          onPick: (model) => {
+            setParams({ model: videoModelSelection(model) });
+            addRecentModel(recentModelEntry(model));
+          }
+        }}
+      />
+      <ModePresetChip mode="retake" model={params.model} />
+    </>
   );
 }
 
@@ -675,9 +719,18 @@ function AudioModeChips({ openModelPickerRef }: ClusterProps) {
   );
 }
 
-export function ModeChips({ mode, openModelPickerRef }: ModeChipsProps) {
+export function ModeChips({
+  mode,
+  openModelPickerRef,
+  hideVariations
+}: ModeChipsProps) {
   if (mode === "image") {
-    return <ImageModeChips openModelPickerRef={openModelPickerRef} />;
+    return (
+      <ImageModeChips
+        openModelPickerRef={openModelPickerRef}
+        hideVariations={hideVariations}
+      />
+    );
   }
   if (mode === "image_edit") {
     return <ImageEditModeChips openModelPickerRef={openModelPickerRef} />;

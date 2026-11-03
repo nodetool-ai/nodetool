@@ -68,6 +68,8 @@
       url: "/ai-video-production"
     - title: "Storyboard Editor"
       url: "/storyboard-editor"
+    - title: "Presets"
+      url: "/presets"
     - title: "Script Editor"
       url: "/script-editor"
     - title: "Video Editor"

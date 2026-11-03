@@ -136,6 +136,8 @@ interface SketchToolbarProps {
   onBackgroundColorChange: (color: string) => void;
   onSwapColors: () => void;
   onResetColors: () => void;
+  /** The tool groups to show. Default: every tool. */
+  toolGroups?: readonly ToolDefinition[][];
 }
 
 const SketchToolbar: React.FC<SketchToolbarProps> = ({
@@ -147,7 +149,8 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   onForegroundColorChange,
   onBackgroundColorChange,
   onSwapColors,
-  onResetColors
+  onResetColors,
+  toolGroups = TOOLBAR_TOOL_GROUPS
 }) => {
   const theme = useTheme();
   const { t } = useTranslation();
@@ -164,7 +167,7 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   return (
     <FlexColumn className="sketch-toolbar" css={styles(theme)}>
       <FlexColumn className="tool-sections">
-        {TOOLBAR_TOOL_GROUPS.map((group) => (
+        {toolGroups.map((group) => (
           <FlexColumn
             key={group.map((def) => def.tool).join("-")}
             className="tool-section"

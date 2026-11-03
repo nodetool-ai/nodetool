@@ -87,6 +87,16 @@ function model(c: ModelContent): ModelEntry {
   };
 }
 
+/** Closing paragraph shared by the image-model pages. */
+const BYOK_BLURB = (name: string): string =>
+  `NodeTool is bring-your-own-key, so you call ${name} through a provider you already use and pay that provider's list price. The table below lists the providers that serve it and the model ids their \`--list-models\` output reports.`;
+
+/** Cost question shared by the image-model pages. */
+const COST_FAQ = (name: string): ModelFaq => ({
+  q: `What does ${name} cost in NodeTool?`,
+  a: `NodeTool adds no per-image fee. You pay the provider that serves ${name} at its list price, with your own key.`,
+});
+
 export const modelEntries: ModelEntry[] = [
   model({
     slug: "veo-3",
@@ -455,6 +465,725 @@ export const modelEntries: ModelEntry[] = [
     ],
     showcaseSlugs: ["imagen", "imagen-3", "imagen-4", "imagen4"],
     templateSlug: "movie-posters",
+  }),
+  model({
+    slug: "nano-banana",
+    name: "Nano Banana",
+    vendor: "Google",
+    modality: "text-to-image",
+    accent: "amber",
+    tagline:
+      "Run Google's Nano Banana in a visual AI workflow: text-to-image and conversational editing with reference images, at provider list price.",
+    blurb: [
+      "Nano Banana is Google's Gemini image model family. The original Nano Banana is Gemini 2.5 Flash Image. Nano Banana 2 adds fast generation, conversational editing, multi-image fusion, and character consistency. Nano Banana 2 Lite is the fastest and lowest-cost tier, and Nano Banana Pro is Google's top-tier generation and editing model.",
+      "Every tier takes reference images, so one node covers both generating from text and editing an existing picture. In a NodeTool graph you can feed a reference from an upstream node, chain the result into an upscaler or a layout step, and swap tiers by changing the node.",
+      BYOK_BLURB("Nano Banana"),
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image and image editing" },
+      {
+        label: "Tiers",
+        value: "Nano Banana, Nano Banana 2, 2 Lite, and Pro",
+      },
+      { label: "Inputs", value: "Text prompt plus reference images" },
+      {
+        label: "Nano Banana 2 extras",
+        value: "Multi-image fusion, character consistency, search grounding",
+      },
+    ],
+    faq: [
+      {
+        q: "Is Nano Banana the same as Gemini 2.5 Flash Image?",
+        a: "Yes. Nano Banana is the original Gemini 2.5 Flash Image model. Nano Banana 2, 2 Lite, and Pro are later tiers in the same family.",
+      },
+      {
+        q: "Can Nano Banana edit an existing image?",
+        a: "Yes. Pass one or more images as reference input with an instruction, and the node returns the edited result.",
+      },
+      COST_FAQ("Nano Banana"),
+    ],
+    showcaseSlugs: ["nano-banana"],
+  }),
+  model({
+    slug: "recraft",
+    name: "Recraft",
+    vendor: "Recraft",
+    modality: "text-to-image",
+    accent: "violet",
+    tagline:
+      "Run Recraft V3 and V4 in a visual AI workflow: design-led text-to-image and SVG vector output, at provider list price.",
+    blurb: [
+      "Recraft builds image models around design work. V3 generates long text and a wide list of styles. V4 and V4.1 add art-directed composition, strong prompt accuracy, and integrated text rendering. The Pro variants render at about 2048px for print-ready and large-scale work, and the Utility variants are lighter and faster for high-volume pipelines.",
+      "Recraft also ships SVG variants that return vector graphics such as logotypes and icons, with editable paths and structured layers. In NodeTool the raster and vector models are separate nodes, so a graph can generate a logo as SVG and the same brief as a raster mockup side by side.",
+      BYOK_BLURB("Recraft"),
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image and text-to-SVG" },
+      { label: "Versions", value: "V3, V4, and V4.1" },
+      {
+        label: "Variants",
+        value: "Standard, Pro (~2048px), Utility, and SVG",
+      },
+      { label: "Inputs", value: "Prompt, aspect ratio, and size" },
+    ],
+    faq: [
+      {
+        q: "Can Recraft generate SVG vector graphics?",
+        a: "Yes. The SVG variants of V3, V4, and V4.1 return vector images with editable paths, suited to logos and icons.",
+      },
+      {
+        q: "Which Recraft variant should I pick?",
+        a: "Use the standard model for most work, Pro when you need about 2048px output, Utility for high-volume runs, and an SVG variant when you need vectors.",
+      },
+      COST_FAQ("Recraft"),
+    ],
+    showcaseSlugs: ["recraft"],
+  }),
+  model({
+    slug: "ideogram",
+    name: "Ideogram",
+    vendor: "Ideogram",
+    modality: "text-to-image",
+    accent: "rose",
+    tagline:
+      "Run Ideogram v3 and v4 in a visual AI workflow: text-to-image with style references and speed tiers, at provider list price.",
+    blurb: [
+      "Ideogram v3 comes in three tiers. Turbo is the fastest and cheapest, Balanced trades speed against quality and cost, and Quality is the highest-quality tier. Ideogram v4 ships Balanced and Quality tiers. Both generations target realistic images, creative designs, and consistent styles.",
+      "The v3 nodes accept style presets, style reference images, and an inpainting mask, so one model handles generation and masked edits. The v4 nodes take a JSON prompt and an optional copyright-detection flag.",
+      BYOK_BLURB("Ideogram"),
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image, with v3 image editing" },
+      { label: "Versions", value: "v3 (Turbo, Balanced, Quality), v4 (Balanced, Quality)" },
+      {
+        label: "v3 inputs",
+        value: "Style presets, style reference images, inpainting mask",
+      },
+      { label: "v4 inputs", value: "JSON prompt, resolution, copyright detection" },
+    ],
+    faq: [
+      {
+        q: "What is the difference between the Ideogram tiers?",
+        a: "Turbo is the fastest and cheapest v3 tier, Balanced trades speed against quality and cost, and Quality is the highest-quality tier. v4 offers Balanced and Quality.",
+      },
+      {
+        q: "Can Ideogram use a reference style?",
+        a: "Yes. The v3 nodes accept style reference images and style presets alongside the prompt.",
+      },
+      COST_FAQ("Ideogram"),
+    ],
+    showcaseSlugs: ["ideogram"],
+  }),
+  model({
+    slug: "qwen-image",
+    name: "Qwen Image",
+    vendor: "Alibaba Qwen",
+    modality: "text-to-image",
+    accent: "cyan",
+    tagline:
+      "Run Alibaba's Qwen Image in a visual AI workflow: text-to-image and editing with accurate in-image text, at provider list price.",
+    blurb: [
+      "Qwen Image is the image family from Alibaba's Qwen team, built around complex text rendering. Qwen Image 2512 improves human realism and fine textures. Qwen Image 2 and 2 Pro generate and edit images, with strong text rendering and particular strength in Chinese. Qwen Image 3 and 3 Pro add dense, accurate text, complex multi-element layouts, and photographic detail.",
+      "The original Qwen Image node also accepts LoRA weights, so a fine-tuned style can load inside the graph. In NodeTool the 2 and 3 generations take an input image for editing, which lets one node cover generation and edits.",
+      BYOK_BLURB("Qwen Image"),
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image and image editing" },
+      {
+        label: "Versions",
+        value: "Qwen Image, 2512, 2 and 2 Pro, 3 and 3 Pro",
+      },
+      { label: "Strength", value: "Text rendering inside images, including Chinese" },
+      { label: "Inputs", value: "Prompt, negative prompt, optional input image" },
+    ],
+    faq: [
+      {
+        q: "What is Qwen Image best at?",
+        a: "Rendering text inside images, including dense layouts and Chinese. Qwen Image 3 Pro targets the densest text and multi-element layouts.",
+      },
+      {
+        q: "Can Qwen Image edit images?",
+        a: "Yes. Qwen Image 2, 2 Pro, 3, and 3 Pro take an input image with an instruction and return an edited image.",
+      },
+      COST_FAQ("Qwen Image"),
+    ],
+    showcaseSlugs: ["qwen-image"],
+  }),
+  model({
+    slug: "stable-diffusion-3-5",
+    name: "Stable Diffusion 3.5",
+    vendor: "Stability AI",
+    modality: "text-to-image",
+    accent: "emerald",
+    tagline:
+      "Run Stability AI's Stable Diffusion 3.5 in a visual AI workflow: Large, Large Turbo, and Medium text-to-image, at provider list price.",
+    blurb: [
+      "Stable Diffusion 3.5 is Stability AI's text-to-image family. Large generates high-resolution images with fine detail across artistic styles and produces varied outputs from the same prompt, thanks to Query-Key Normalization. Large Turbo targets fewer inference steps. Medium is a 2.5 billion parameter model with an improved MMDiT-X architecture.",
+      "Each node takes a prompt, a negative prompt, a seed, and a guidance value. An optional input image and prompt strength turn the same node into an image-to-image step.",
+      BYOK_BLURB("Stable Diffusion 3.5"),
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image and image-to-image" },
+      { label: "Models", value: "Large, Large Turbo, and Medium" },
+      { label: "Medium size", value: "2.5 billion parameters" },
+      { label: "Inputs", value: "Prompt, negative prompt, seed, guidance, optional image" },
+    ],
+    faq: [
+      {
+        q: "Which Stable Diffusion 3.5 model should I use?",
+        a: "Large for detail, Large Turbo when you want fewer inference steps, and Medium when you want the smaller 2.5 billion parameter model.",
+      },
+      {
+        q: "Does Stable Diffusion 3.5 support negative prompts?",
+        a: "Yes. All three nodes take a negative prompt, a seed, and a guidance value.",
+      },
+      COST_FAQ("Stable Diffusion 3.5"),
+    ],
+    showcaseSlugs: ["stable-diffusion-3-5", "sd3-5"],
+  }),
+  model({
+    slug: "reve",
+    name: "Reve",
+    vendor: "Reve",
+    modality: "text-to-image",
+    accent: "violet",
+    tagline:
+      "Run Reve in a visual AI workflow: generation, editing, and multi-reference remixing from one model family, at provider list price.",
+    blurb: [
+      "Reve is an image model family with separate nodes for each job. Create generates from a prompt. Edit changes an existing image from an instruction, and Edit Fast is the quick variant. Remix takes several reference images and combines them. Reve 2.1 generates and edits from text and reference images in one node.",
+      "In a NodeTool graph you can chain them: create with Reve, edit the result, then remix it with other references, all in one run you can repeat.",
+      BYOK_BLURB("Reve"),
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image and image editing" },
+      { label: "Nodes", value: "Create, Edit, Edit Fast, Remix, and Reve 2.1" },
+      { label: "Inputs", value: "Prompt, optional reference images" },
+      { label: "Remix", value: "Takes multiple reference images" },
+    ],
+    faq: [
+      {
+        q: "What is the difference between Reve Edit and Remix?",
+        a: "Edit changes one image from an instruction. Remix generates a new image from several reference images and a prompt.",
+      },
+      {
+        q: "Which Reve node should I start with?",
+        a: "Reve 2.1 if you want generation and editing from text and reference images in one node. Use Create, Edit, or Remix for the earlier single-purpose nodes.",
+      },
+      COST_FAQ("Reve"),
+    ],
+    showcaseSlugs: ["reve"],
+  }),
+  model({
+    slug: "krea-2",
+    name: "Krea 2",
+    vendor: "Krea",
+    modality: "text-to-image",
+    accent: "rose",
+    tagline:
+      "Run Krea 2 in a visual AI workflow: expressive text-to-image with style references and moodboards, at provider list price.",
+    blurb: [
+      "Krea 2 is Krea's foundation image model, in two sizes. Large is the flagship, larger and more flexible, with particular strength in photorealism and expressive artistic styles. Medium is tuned for expressive illustration, anime, and painterly styles, and stays consistent across artistic directions.",
+      "Both nodes take style reference images, a moodboard id, and a creativity setting, so a house style can travel with the graph instead of living in the prompt.",
+      BYOK_BLURB("Krea 2"),
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image" },
+      { label: "Sizes", value: "Large and Medium" },
+      { label: "Large strength", value: "Photorealism and expressive artistic styles" },
+      { label: "Medium strength", value: "Illustration, anime, and painterly styles" },
+    ],
+    faq: [
+      {
+        q: "Should I use Krea 2 Large or Medium?",
+        a: "Large for photorealism and the widest stylistic range. Medium for illustration, anime, and painterly looks.",
+      },
+      {
+        q: "Does Krea 2 support style references?",
+        a: "Yes. The nodes take style reference images with a strength value, plus a moodboard id and strength.",
+      },
+      COST_FAQ("Krea 2"),
+    ],
+    showcaseSlugs: ["krea-2"],
+  }),
+  model({
+    slug: "hidream",
+    name: "HiDream",
+    vendor: "HiDream.ai",
+    modality: "text-to-image",
+    accent: "blue",
+    tagline:
+      "Run HiDream in a visual AI workflow: Dev, Fast, and Full text-to-image variants, at provider list price.",
+    blurb: [
+      "HiDream is a text-to-image model family. The Replicate listings run optimised builds from Pruna AI of the Full, Dev, and Fast variants, tuned with the Pruna optimisation toolkit. Newer HiDream models are also served by other providers.",
+      "The nodes expose a resolution, a seed, an output format and quality, and a speed mode, so you can trade latency against detail per run.",
+      BYOK_BLURB("HiDream"),
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image" },
+      { label: "Variants", value: "L1 Full, L1 Dev, L1 Fast" },
+      { label: "Replicate builds", value: "Optimised by Pruna AI" },
+      { label: "Inputs", value: "Prompt, resolution, seed, speed mode" },
+    ],
+    faq: [
+      {
+        q: "What are the HiDream L1 variants?",
+        a: "Full, Dev, and Fast. The Replicate listings are Pruna AI optimised builds of each.",
+      },
+      {
+        q: "Can I change speed per run?",
+        a: "Yes. The nodes have a speed mode input along with resolution and seed.",
+      },
+      COST_FAQ("HiDream"),
+    ],
+    showcaseSlugs: ["hidream"],
+  }),
+  model({
+    slug: "hunyuan-image",
+    name: "Hunyuan Image",
+    vendor: "Tencent",
+    modality: "text-to-image",
+    accent: "emerald",
+    tagline:
+      "Run Tencent's Hunyuan Image in a visual AI workflow: 2K text-to-image from Hunyuan Image 2.1 and 3, at provider list price.",
+    blurb: [
+      "Hunyuan Image is Tencent's image family. Hunyuan Image 2.1 generates 2K resolution images from text prompts. Hunyuan Image 3 is a native multimodal model for image generation, and its Replicate listing is a build optimised by Pruna AI.",
+      "Providers also list instruct and edit variants of Hunyuan Image 3. In NodeTool each is a node with the same prompt, aspect ratio, and seed inputs.",
+      BYOK_BLURB("Hunyuan Image"),
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image" },
+      { label: "Versions", value: "Hunyuan Image 2.1 and 3" },
+      { label: "2.1 output", value: "2K resolution" },
+      { label: "Inputs", value: "Prompt, aspect ratio, seed, output format" },
+    ],
+    faq: [
+      {
+        q: "What is the difference between Hunyuan Image 2.1 and 3?",
+        a: "2.1 generates 2K images from text. 3 is a native multimodal model for image generation, and its Replicate listing is a Pruna AI optimised build.",
+      },
+      {
+        q: "Does Hunyuan Image edit images?",
+        a: "Some providers list instruct and edit variants of Hunyuan Image 3. The provider table shows which ids each one serves.",
+      },
+      COST_FAQ("Hunyuan Image"),
+    ],
+    showcaseSlugs: ["hunyuan-image"],
+  }),
+  model({
+    slug: "grok-imagine-image",
+    name: "Grok Imagine Image",
+    vendor: "xAI",
+    modality: "text-to-image",
+    accent: "cyan",
+    tagline:
+      "Run xAI's Grok Imagine Image in a visual AI workflow: text-to-image and editing with a higher-quality 2K tier, at provider list price.",
+    blurb: [
+      "Grok Imagine Image is xAI's image model. The Quality tier gives sharper details, better text rendering, and 2K output. Both tiers take an aspect ratio and an optional input image for editing.",
+      "In NodeTool it is one node per tier, so a graph can draft with the base tier and render the final with Quality.",
+      BYOK_BLURB("Grok Imagine Image"),
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image and image editing" },
+      { label: "Tiers", value: "Standard and Quality" },
+      { label: "Quality output", value: "Up to 2K" },
+      { label: "Inputs", value: "Prompt, aspect ratio, optional image" },
+    ],
+    faq: [
+      {
+        q: "What does the Quality tier change?",
+        a: "Sharper details, better text rendering, and 2K output, according to the model listing.",
+      },
+      {
+        q: "Can Grok Imagine Image edit an existing picture?",
+        a: "Yes. The nodes take an input image alongside the prompt.",
+      },
+      COST_FAQ("Grok Imagine Image"),
+    ],
+    showcaseSlugs: ["grok-imagine-image"],
+  }),
+  model({
+    slug: "gen4-image",
+    name: "Gen-4 Image",
+    vendor: "Runway",
+    modality: "text-to-image",
+    accent: "amber",
+    tagline:
+      "Run Runway's Gen-4 Image in a visual AI workflow: reference-guided text-to-image with up to three reference images, at provider list price.",
+    blurb: [
+      "Gen-4 Image is Runway's image model with references. You give it up to three reference images, tag each one, and describe the scene, and it builds the image around those subjects. Gen-4 Image Turbo is cheaper and 2.5 times faster.",
+      "References are a good fit for graphs: a character or product image from an upstream node feeds in, and the same references can drive many shots.",
+      BYOK_BLURB("Gen-4 Image"),
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image with reference images" },
+      { label: "References", value: "Up to 3, with tags" },
+      { label: "Turbo", value: "Cheaper and 2.5x faster" },
+      { label: "Inputs", value: "Prompt, aspect ratio, resolution, seed" },
+    ],
+    faq: [
+      {
+        q: "How many reference images can Gen-4 Image use?",
+        a: "Up to three, each with a tag you can refer to in the prompt.",
+      },
+      {
+        q: "Gen-4 Image or Turbo?",
+        a: "Turbo is cheaper and 2.5 times faster. Use Gen-4 Image when you want the full model.",
+      },
+      COST_FAQ("Gen-4 Image"),
+    ],
+    showcaseSlugs: ["gen4-image"],
+  }),
+  model({
+    slug: "riverflow",
+    name: "Riverflow",
+    vendor: "Sourceful",
+    modality: "text-to-image",
+    accent: "blue",
+    tagline:
+      "Run Sourceful's Riverflow in a visual AI workflow: agentic image generation with font control, at provider list price.",
+    blurb: [
+      "Riverflow is Sourceful's agentic image model. Riverflow 2.0 Fast is optimised for fast, high-quality generations and 2.0 Pro for high-precision ones. Riverflow 2.5 adds multi-step reasoning, candidate scoring, and adjustable thinking effort on Pro, with a speed-optimised Fast variant.",
+      "The nodes support font control through font texts and font URLs, transparent output, and initial images for editing, which suits design and packaging work.",
+      BYOK_BLURB("Riverflow"),
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image and image editing" },
+      { label: "Versions", value: "2.0 and 2.5, each in Fast and Pro" },
+      { label: "Font control", value: "Font texts and font URLs" },
+      { label: "2.5 Pro", value: "Candidate scoring, adjustable thinking effort" },
+    ],
+    faq: [
+      {
+        q: "What makes Riverflow agentic?",
+        a: "Riverflow 2.5 Pro reasons in several steps and scores candidates, with an adjustable thinking level.",
+      },
+      {
+        q: "Can Riverflow use my fonts?",
+        a: "Yes. The nodes take font texts and font URLs for font control.",
+      },
+      COST_FAQ("Riverflow"),
+    ],
+    showcaseSlugs: ["riverflow"],
+  }),
+  model({
+    slug: "bria",
+    name: "Bria",
+    vendor: "Bria",
+    modality: "text-to-image",
+    accent: "emerald",
+    tagline:
+      "Run Bria's Image 3.2 and FIBO in a visual AI workflow: text-to-image trained on licensed data, at provider list price.",
+    blurb: [
+      "Bria trains its image models on licensed data. Bria Image 3.2 is a 4B parameter text-to-image model built for commercial use, with strong aesthetics and text rendering. FIBO is an open model that turns intent into structured control, and FIBO Edit applies the same structured prompt approach to image editing.",
+      "FIBO takes a structured prompt, and FIBO Edit takes an instruction, an optional mask, and a structured instruction. In NodeTool that makes edits repeatable, because the structure travels with the graph.",
+      BYOK_BLURB("Bria"),
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image and image editing" },
+      { label: "Models", value: "Image 3.2, FIBO, and FIBO Edit" },
+      { label: "Training data", value: "Licensed data" },
+      { label: "Image 3.2 size", value: "4B parameters" },
+    ],
+    faq: [
+      {
+        q: "Is Bria trained on licensed data?",
+        a: "Bria describes Image 3.2 as trained entirely on licensed data and FIBO as trained on licensed data.",
+      },
+      {
+        q: "What is FIBO?",
+        a: "An open Bria model that uses a structured prompt for precise control. FIBO Edit does the same for editing, with an instruction and optional mask.",
+      },
+      COST_FAQ("Bria"),
+    ],
+    showcaseSlugs: ["bria"],
+  }),
+  model({
+    slug: "leonardo-ai",
+    name: "Leonardo.Ai",
+    vendor: "Leonardo.Ai",
+    modality: "text-to-image",
+    accent: "violet",
+    tagline:
+      "Run Leonardo.Ai's Phoenix and Lucid Origin in a visual AI workflow: text-to-image with style and contrast controls, at provider list price.",
+    blurb: [
+      "Phoenix 1.0 is Leonardo.Ai's first foundational model. It produces images up to 5 megapixels in fast, quality, and ultra modes. Lucid Origin targets artistic, high-quality visuals with better prompt adherence, diversity, and definition.",
+      "Both nodes take a style, a contrast setting, a generation mode, and a prompt-enhance toggle, and can return several images per run.",
+      BYOK_BLURB("Leonardo.Ai"),
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image" },
+      { label: "Models", value: "Phoenix 1.0 and Lucid Origin" },
+      { label: "Phoenix output", value: "Up to 5 megapixels" },
+      { label: "Inputs", value: "Prompt, style, contrast, generation mode" },
+    ],
+    faq: [
+      {
+        q: "What are the Phoenix generation modes?",
+        a: "Fast, quality, and ultra. Higher modes trade latency for fidelity.",
+      },
+      {
+        q: "Phoenix or Lucid Origin?",
+        a: "Phoenix is the foundational model with output up to 5 megapixels. Lucid Origin targets artistic visuals with better prompt adherence and definition.",
+      },
+      COST_FAQ("Leonardo.Ai"),
+    ],
+    showcaseSlugs: ["leonardo-ai"],
+  }),
+  model({
+    slug: "minimax-image-01",
+    name: "MiniMax Image-01",
+    vendor: "MiniMax",
+    modality: "text-to-image",
+    accent: "rose",
+    tagline:
+      "Run MiniMax Image-01 in a visual AI workflow: text-to-image with character reference, at provider list price.",
+    blurb: [
+      "Image-01 is MiniMax's first image model. Its distinguishing input is a subject reference, which keeps a character recognisable across generations.",
+      "The node also has a prompt optimizer and a count for how many images to return per run. In NodeTool a character image from one node can feed Image-01 and then the video models that animate it.",
+      BYOK_BLURB("MiniMax Image-01"),
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image" },
+      { label: "Reference", value: "Subject (character) reference" },
+      { label: "Inputs", value: "Prompt, aspect ratio, image count" },
+      { label: "Prompt help", value: "Optional prompt optimizer" },
+    ],
+    faq: [
+      {
+        q: "Can Image-01 keep a character consistent?",
+        a: "Yes. Pass a subject reference image and the model uses it to keep the character recognisable.",
+      },
+      {
+        q: "Does Image-01 rewrite my prompt?",
+        a: "Only if you turn on the prompt optimizer input.",
+      },
+      COST_FAQ("MiniMax Image-01"),
+    ],
+    showcaseSlugs: ["minimax-image-01"],
+  }),
+  model({
+    slug: "photon",
+    name: "Photon",
+    vendor: "Luma",
+    modality: "text-to-image",
+    accent: "cyan",
+    tagline:
+      "Run Luma's Photon in a visual AI workflow: fast text-to-image with image, style, and character references, at provider list price.",
+    blurb: [
+      "Photon is Luma's image model. Photon Flash is the accelerated variant that prioritises speed while keeping quality.",
+      "The node accepts an image reference, a style reference, and a character reference, each with its own weight for the first two. That lets a graph pin a look or a character and vary only the prompt.",
+      BYOK_BLURB("Photon"),
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image with references" },
+      { label: "Variant", value: "Photon Flash, tuned for speed" },
+      { label: "References", value: "Image, style, and character" },
+      { label: "Weights", value: "Image and style reference weights" },
+    ],
+    faq: [
+      {
+        q: "What is Photon Flash?",
+        a: "The accelerated variant of Photon. It prioritises speed while maintaining quality.",
+      },
+      {
+        q: "Can Photon use a style reference?",
+        a: "Yes, with a style reference image and a weight. It also takes image and character references.",
+      },
+      COST_FAQ("Photon"),
+    ],
+    showcaseSlugs: ["photon"],
+  }),
+  model({
+    slug: "p-image",
+    name: "P-Image",
+    vendor: "Pruna AI",
+    modality: "text-to-image",
+    accent: "amber",
+    tagline:
+      "Run Pruna AI's P-Image in a visual AI workflow: sub-second text-to-image and multi-image editing, at provider list price.",
+    blurb: [
+      "P-Image is a text-to-image model from Pruna AI built for production use, with generation under one second. P-Image Edit handles multi-image editing at the same speed.",
+      "Both have LoRA variants that load trained LoRAs from Hugging Face, so a custom style or subject can run through the same fast path.",
+      BYOK_BLURB("P-Image"),
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image and image editing" },
+      { label: "Speed", value: "Under 1 second per generation" },
+      { label: "Models", value: "P-Image, Edit, and LoRA variants of both" },
+      { label: "Inputs", value: "Prompt, size, seed, LoRA weights" },
+    ],
+    faq: [
+      {
+        q: "How fast is P-Image?",
+        a: "Pruna AI lists it as a sub-one-second text-to-image model for production use.",
+      },
+      {
+        q: "Can P-Image use my own LoRA?",
+        a: "Yes. The LoRA variants load trained weights from Hugging Face, including ones trained with Pruna's trainers.",
+      },
+      COST_FAQ("P-Image"),
+    ],
+    showcaseSlugs: ["p-image"],
+  }),
+  model({
+    slug: "z-image",
+    name: "Z-Image",
+    vendor: "Tongyi-MAI",
+    modality: "text-to-image",
+    accent: "emerald",
+    tagline:
+      "Run Z-Image Turbo in a visual AI workflow: a 6B parameter text-to-image model built for speed, at provider list price.",
+    blurb: [
+      "Z-Image Turbo is a 6B parameter text-to-image model from Tongyi-MAI, listed as super fast. The Replicate node exposes a go-fast switch, a step count, and a guidance value.",
+      "Other providers also serve Z-Image, including image-to-image, inpaint, and ControlNet variants. In NodeTool each is its own node.",
+      BYOK_BLURB("Z-Image"),
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image" },
+      { label: "Size", value: "6B parameters" },
+      { label: "Variants", value: "Turbo, plus provider-specific edit and control variants" },
+      { label: "Inputs", value: "Prompt, width, height, steps, guidance" },
+    ],
+    faq: [
+      {
+        q: "What is Z-Image Turbo?",
+        a: "A 6B parameter text-to-image model from Tongyi-MAI, described as super fast.",
+      },
+      {
+        q: "Can I use ControlNet or inpainting with Z-Image?",
+        a: "Some providers list ControlNet and inpaint variants of Z-Image Turbo. The provider table shows which.",
+      },
+      COST_FAQ("Z-Image"),
+    ],
+    showcaseSlugs: ["z-image"],
+  }),
+  model({
+    slug: "sana-sprint",
+    name: "SANA-Sprint",
+    vendor: "NVIDIA",
+    modality: "text-to-image",
+    accent: "blue",
+    tagline:
+      "Run NVIDIA's SANA-Sprint in a visual AI workflow: one-step text-to-image diffusion, at provider list price.",
+    blurb: [
+      "SANA-Sprint is NVIDIA's 1.6B parameter text-to-image model. It uses continuous-time consistency distillation to generate in a single step.",
+      "The node exposes inference steps, an intermediate timesteps setting, guidance, width, height, and a seed, so you can move between one-step previews and a few-step render.",
+      BYOK_BLURB("SANA-Sprint"),
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image" },
+      { label: "Size", value: "1.6B parameters" },
+      { label: "Method", value: "Continuous-time consistency distillation" },
+      { label: "Steps", value: "One-step generation" },
+    ],
+    faq: [
+      {
+        q: "What does one-step mean?",
+        a: "SANA-Sprint is distilled so it can produce an image in a single diffusion step, instead of the dozens a standard model uses.",
+      },
+      {
+        q: "Can I use more than one step?",
+        a: "Yes. The node has an inference steps input.",
+      },
+      COST_FAQ("SANA-Sprint"),
+    ],
+    showcaseSlugs: ["sana-sprint"],
+  }),
+  model({
+    slug: "dreamina",
+    name: "Dreamina 3.1",
+    vendor: "ByteDance",
+    modality: "text-to-image",
+    accent: "rose",
+    tagline:
+      "Run ByteDance's Dreamina 3.1 in a visual AI workflow: 4MP cinematic text-to-image with precise style control, at provider list price.",
+    blurb: [
+      "Dreamina 3.1 is ByteDance's text-to-image model. It generates at up to 4MP with cinematic-quality output, precise style control, improved text rendering, and optimisation for commercial design.",
+      "The node takes an aspect ratio or explicit width and height, a resolution, a seed, and a `use_pre_llm` toggle.",
+      BYOK_BLURB("Dreamina 3.1"),
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image" },
+      { label: "Resolution", value: "Up to 4MP" },
+      { label: "Strengths", value: "Style control, text rendering, commercial design" },
+      { label: "Inputs", value: "Prompt, aspect ratio or size, resolution, seed" },
+    ],
+    faq: [
+      {
+        q: "What resolution does Dreamina 3.1 generate?",
+        a: "Up to 4MP, according to the model listing.",
+      },
+      {
+        q: "Can I set exact dimensions?",
+        a: "Yes. The node takes an explicit width and height, or an aspect ratio with a resolution.",
+      },
+      COST_FAQ("Dreamina 3.1"),
+    ],
+    showcaseSlugs: ["dreamina"],
+  }),
+  model({
+    slug: "bagel",
+    name: "BAGEL",
+    vendor: "ByteDance Seed",
+    modality: "text-to-image",
+    accent: "amber",
+    tagline:
+      "Run ByteDance Seed's BAGEL in a visual AI workflow: one 7B model that generates, edits, and understands images, at provider list price.",
+    blurb: [
+      "BAGEL is a unified multimodal model from ByteDance Seed. A single 7B parameter model generates images, edits images, and understands images.",
+      "The node has a task input to choose between those modes, and a thinking toggle. That makes it a compact option when a graph needs both a generation step and an image understanding step.",
+      BYOK_BLURB("BAGEL"),
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image, editing, and understanding" },
+      { label: "Size", value: "7B parameters" },
+      { label: "Modes", value: "Chosen with a task input" },
+      { label: "Inputs", value: "Prompt, optional image, thinking toggle" },
+    ],
+    faq: [
+      {
+        q: "What can BAGEL do?",
+        a: "Generate images, edit images, and answer questions about images, all from one 7B parameter model.",
+      },
+      {
+        q: "How do I switch between generating and editing?",
+        a: "Set the task input on the node and pass an image when you want to edit or ask about one.",
+      },
+      COST_FAQ("BAGEL"),
+    ],
+    showcaseSlugs: ["bagel"],
+  }),
+  model({
+    slug: "retro-diffusion",
+    name: "Retro Diffusion",
+    vendor: "Retro Diffusion",
+    modality: "text-to-image",
+    accent: "emerald",
+    tagline:
+      "Run Retro Diffusion in a visual AI workflow: pixel art and tileset generation with palette control, at provider list price.",
+    blurb: [
+      "Retro Diffusion generates pixel art. RD Fast is the quick option and RD Plus targets high quality, authentic pixel art. RD Tile generates pixel art tilesets.",
+      "The nodes take an input palette, a style, a background removal toggle, and tiling options on the x and y axes, which makes them useful for sprites and game assets.",
+      BYOK_BLURB("Retro Diffusion"),
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image (pixel art)" },
+      { label: "Models", value: "RD Fast, RD Plus, and RD Tile" },
+      { label: "Control", value: "Input palette, style, background removal" },
+      { label: "Tiling", value: "Tile on x and y axes" },
+    ],
+    faq: [
+      {
+        q: "Which Retro Diffusion model should I use?",
+        a: "RD Fast for quick drafts, RD Plus for quality, and RD Tile when you need a tileset.",
+      },
+      {
+        q: "Can I force a color palette?",
+        a: "Yes. RD Fast and RD Plus accept an input palette image.",
+      },
+      COST_FAQ("Retro Diffusion"),
+    ],
+    showcaseSlugs: ["retro-diffusion"],
   }),
 ];
 

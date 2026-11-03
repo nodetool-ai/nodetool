@@ -36,6 +36,7 @@ export type ImageToVideoInputs = {
   resolution?: string;
   duration?: number;
   timeout_seconds?: number;
+  seed?: number;
 };
 
 export interface ImageToVideoOutputs {
@@ -530,6 +531,7 @@ export type LipSyncInputs = {
   model?: unknown;
   video?: VideoRef;
   audio?: AudioRef;
+  image?: ImageRef;
 };
 
 export interface LipSyncOutputs {

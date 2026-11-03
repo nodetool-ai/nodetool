@@ -16,7 +16,7 @@ export interface InstallPackagePin extends PinnedPackage {
 
 export interface CatalogPack {
   readonly id: string;
-  readonly kind: "core" | "node-pack" | "cli-feature";
+  readonly kind: "core" | "node-pack" | "cli-feature" | "preset-pack";
   readonly npm: PinnedPackage;
   readonly registrar: string;
   readonly provides: readonly string[];

@@ -43,6 +43,8 @@ import { getAssetAdapter } from "../lib/storage.js";
 import { isFiniteNumber, isRecord, isString } from "../lib/wire-values.js";
 import type { ClientSession } from "./client-session.js";
 import {
+  compileMediaPresets,
+  mediaPresetSettings,
   createGenerationRun,
   generateSpeechBytes,
   generateMusicBytes
@@ -51,6 +53,7 @@ import {
 const log = createLogger("nodetool.websocket.runner");
 
 export interface DirectMediaGenerationRequest {
+  presetIds?: string[];
   mode:
     | "image"
     | "image_edit"
@@ -58,6 +61,7 @@ export interface DirectMediaGenerationRequest {
     | "upscale"
     | "outpaint"
     | "video"
+    | "audio_to_video"
     | "video_edit"
     | "video_extend"
     | "audio"
@@ -66,6 +70,8 @@ export interface DirectMediaGenerationRequest {
   model: string;
   prompt: string;
   sourceAssetId?: string;
+  audioAssetId?: string;
+  personConsent?: { real_person: boolean; confirmed: boolean };
   maskAssetId?: string;
   width?: number;
   height?: number;
@@ -761,9 +767,19 @@ export class DirectInferenceHandler {
     if (!req.model) {
       throw new Error("model is required");
     }
+    if (req.personConsent?.real_person && !req.personConsent.confirmed) {
+      throw new Error("Confirm the person's consent before generating.");
+    }
+    if (req.mode === "audio_to_video" && (!req.sourceAssetId || !req.audioAssetId)) {
+      throw new Error("audio_to_video requires source_asset_id and audio_asset_id");
+    }
     // An upscale or a reframe works from the image alone; the prompt is an
-    // optional hint there.
-    const promptOptional = req.mode === "upscale" || req.mode === "outpaint";
+    // optional hint there. A preset supplies its own text, so a request that
+    // names one needs no prompt of its own (the effects gallery sends none).
+    const promptOptional =
+      req.mode === "upscale" ||
+      req.mode === "outpaint" ||
+      Boolean(req.presetIds?.length);
     if (!promptOptional && (!req.prompt || !req.prompt.trim())) {
       throw new Error("prompt is required");
     }
@@ -800,6 +816,20 @@ export class DirectInferenceHandler {
         "Reference inputs require the reference_to_video capability"
       );
     }
+    const presetMode = req.capability === "reference_to_video" ? "reference_to_video"
+      : req.mode === "video" && req.sourceAssetId ? "image_to_video" : req.mode;
+    const presets = compileMediaPresets(req.presetIds, req.provider, req.model, presetMode, req.prompt);
+    const settings = mediaPresetSettings(presets, presetMode);
+    req = { ...req, prompt: presets.prompt,
+      ...(typeof settings.width === "number" && { width: settings.width }),
+      ...(typeof settings.height === "number" && { height: settings.height }),
+      ...(typeof settings.aspect_ratio === "string" && { aspectRatio: settings.aspect_ratio }),
+      ...(typeof settings.resolution === "string" && { resolution: settings.resolution }),
+      ...(typeof settings.duration_seconds === "number" && { durationSeconds: settings.duration_seconds }),
+      ...(typeof settings.strength === "number" && { strength: settings.strength }),
+      ...(typeof settings.num_inference_steps === "number" && { numInferenceSteps: settings.num_inference_steps }),
+      ...(typeof settings.seed === "number" && { seed: settings.seed })
+    };
     const userId = this.session.requireUserId();
     if (req.projectId && req.projectId !== "default") {
       await Project.requireOwned(userId, req.projectId);
@@ -878,7 +908,7 @@ export class DirectInferenceHandler {
     if (req.provider !== "nodetool") {
       // BYOK: the user's own keys, never metered.
       try {
-        return await this.runDirectMediaGenerationInner(req, provider, undefined, videoEditReferences);
+        return await this.runDirectMediaGenerationInner(req, provider, presets, undefined, videoEditReferences);
       } catch (error) {
         if (error instanceof GenerationAlreadyAcceptedError) {
           return {
@@ -936,7 +966,7 @@ export class DirectInferenceHandler {
       const generationIds: string[] = [];
       let result: DirectMediaGenerationResult;
       try {
-        result = await this.runDirectMediaGenerationInner(req, provider, {
+        result = await this.runDirectMediaGenerationInner(req, provider, presets, {
           generationIds,
           statedCost: (tracked) => {
             const cost = Math.max(tracked, estimatedUsd);
@@ -983,6 +1013,7 @@ export class DirectInferenceHandler {
   private async runDirectMediaGenerationInner(
     req: DirectMediaGenerationRequest,
     provider: BaseProvider,
+    presets: ReturnType<typeof compileMediaPresets>,
     metering?: {
       /** The charge to state on the row, given what the delegate tracked. */
       statedCost: (
@@ -998,6 +1029,7 @@ export class DirectInferenceHandler {
 
     req.signal?.throwIfAborted();
     const { generate, seamAssetId, storeAsset } = createGenerationRun({
+      presets,
       userId,
       providerId: req.provider,
       signal: req.signal,
@@ -1108,6 +1140,7 @@ export class DirectInferenceHandler {
                 durationSeconds: req.durationSeconds ?? null,
                 aspectRatio: req.aspectRatio ?? null,
                 resolution: req.resolution ?? null,
+                numInferenceSteps: req.numInferenceSteps ?? null,
                 useReferenceVideoAudio: req.useReferenceVideoAudio,
                 signal: abort
               }
@@ -1126,7 +1159,8 @@ export class DirectInferenceHandler {
           references: videoReferences,
           aspectRatio: req.aspectRatio ?? null,
           resolution: req.resolution ?? null,
-          durationSeconds: req.durationSeconds ?? null
+          durationSeconds: req.durationSeconds ?? null,
+          numInferenceSteps: req.numInferenceSteps ?? null
         };
         generated = await generate(
           "image_to_video",
@@ -1140,7 +1174,10 @@ export class DirectInferenceHandler {
           model: videoModel,
           prompt,
           references: videoReferences,
-          durationSeconds: req.durationSeconds ?? null
+          durationSeconds: req.durationSeconds ?? null,
+          aspectRatio: req.aspectRatio ?? null,
+          resolution: req.resolution ?? null,
+          numInferenceSteps: req.numInferenceSteps ?? null
         };
         generated = await generate(
           "text_to_video",
@@ -1153,6 +1190,29 @@ export class DirectInferenceHandler {
         seamAssetId(generated) ??
         (await storeAsset(generated.output, "video/mp4", "mp4"));
       return { asset_ids: [assetId] };
+    }
+
+    if (req.mode === "audio_to_video") {
+      if (!req.sourceAssetId || !req.audioAssetId) {
+        throw new Error("audio_to_video requires source_asset_id and audio_asset_id");
+      }
+      const source = await Asset.find(userId, req.sourceAssetId);
+      const audio = await Asset.find(userId, req.audioAssetId);
+      if (!source?.content_type.startsWith("image/") || !audio?.content_type.startsWith("audio/")) {
+        throw new Error("Lipsync requires an owned image and audio asset");
+      }
+      const [imageBytes, audioBytes] = await Promise.all([
+        retrieveSourceAssetBytes(userId, source.id),
+        retrieveSourceAssetBytes(userId, audio.id)
+      ]);
+      const generated = await generate("lip_sync", {
+        prompt, source_asset_id: source.id, audio_asset_id: audio.id,
+        person_consent: req.personConsent, duration_seconds: req.durationSeconds
+      }, { mime: "video/mp4" }, () => provider.lipSync(imageBytes, {
+        model: { id: req.model, name: req.model, provider: req.provider },
+        audio: audioBytes, visualMimeType: source.content_type, audioMimeType: audio.content_type
+      }));
+      return { asset_ids: [seamAssetId(generated) ?? await storeAsset(generated.output, "video/mp4", "mp4")] };
     }
 
     if (req.mode === "video_edit" || req.mode === "video_extend") {
@@ -1278,6 +1338,7 @@ export class DirectInferenceHandler {
           ? { prompt, duration_seconds: req.durationSeconds }
           : {
               text: prompt,
+              person_consent: req.personConsent,
               voice: req.voice,
               speed: req.speed,
               language: req.language,
@@ -1335,7 +1396,8 @@ export class DirectInferenceHandler {
         aspectRatio: req.aspectRatio ?? null,
         resolution: req.resolution ?? null,
         strength: req.strength ?? null,
-        numInferenceSteps: req.numInferenceSteps ?? null
+        numInferenceSteps: req.numInferenceSteps ?? null,
+        seed: req.seed ?? null
       };
       generated = await generate(
         "image_to_image",
@@ -1528,7 +1590,8 @@ export class DirectInferenceHandler {
         aspectRatio: req.aspectRatio ?? null,
         resolution: req.resolution ?? null,
         strength: req.strength ?? null,
-        numInferenceSteps: req.numInferenceSteps ?? null
+        numInferenceSteps: req.numInferenceSteps ?? null,
+        seed: req.seed ?? null
       };
       generated = await generate(
         "image_to_image",

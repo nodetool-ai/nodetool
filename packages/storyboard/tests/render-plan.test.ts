@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { createCatalog } from "@nodetool-ai/presets";
 import { describe, expect, it } from "vitest";
 import {
   currentRenderInputs,
@@ -347,4 +349,104 @@ describe("per-shot model selection", () => {
       ]);
     }
   );
+});
+
+
+describe("camera preset render prompts", () => {
+  const catalog = createCatalog(JSON.parse(readFileSync(new URL("../../presets/preset-catalog.json", import.meta.url), "utf8")));
+  for (const [model, clause] of [
+    ["kling-v3", "Camera dollies smoothly toward the subject with visible depth change. Camera is stabilized on a Steadicam with smooth floating motion."],
+    ["dreamina_seedance_45_pro", "Camera dollies smoothly toward the subject with visible depth change throughout one continuous shot. Camera is stabilized on a Steadicam with smooth floating motion throughout one continuous shot."]
+  ]) {
+    for (const mode of ["keyframe", "direct", "reference"] as const) {
+      it(`compiles a move and rig for ${model} in ${mode} mode`, () => {
+        const target = shot({ id: "s1", index: 0, render_mode: mode, motion: "The actor walks", camera: {
+          movement: "legacy movement", equipment: "legacy rig", preset_ids: ["camera.dolly-in", "camera.steadicam"]
+        } });
+        const [plan] = planShotRenders(board([target]), [], "clip", undefined, { model, presetCatalog: catalog });
+        expect(plan.prompt).toBe(mode === "keyframe"
+          ? `The actor walks, action 0, ${clause}`
+          : `action 0, The actor walks, ${clause}, moody neon`);
+      });
+    }
+  }
+});
+
+describe("storyboard looks", () => {
+  const catalog = createCatalog(
+    JSON.parse(
+      readFileSync(
+        new URL("../../presets/preset-catalog.json", import.meta.url),
+        "utf8"
+      )
+    )
+  );
+  it("inherits board looks, overrides per shot, and compiles alongside camera", () => {
+    const doc = board([
+      shot({
+        id: "inherited",
+        index: 0,
+        camera: { preset_ids: ["camera.dolly-in"] }
+      }),
+      shot({
+        id: "override",
+        index: 1,
+        look_preset_ids: ["look.bleach-bypass"],
+        camera: { preset_ids: ["camera.dolly-in"] }
+      }),
+      shot({ id: "empty", index: 2, look_preset_ids: [] })
+    ]);
+    doc.look_preset_ids = ["look.arri-alexa"];
+    for (const model of ["kling-v3", "seedance-2"]) {
+      for (const kind of ["keyframe", "clip"] as const) {
+        const plans = planShotRenders(doc, [], kind, undefined, {
+          model,
+          presetCatalog: catalog
+        });
+        expect(plans[0].renderInputs.look_preset_ids).toEqual([
+          "look.arri-alexa"
+        ]);
+        expect(plans[1].renderInputs.look_preset_ids).toEqual([
+          "look.bleach-bypass"
+        ]);
+        expect(plans[2].renderInputs.look_preset_ids).toEqual([
+          "look.arri-alexa"
+        ]);
+        expect(plans[0].prompt).not.toBe(plans[1].prompt);
+        expect(plans[0].prompt).toMatch(/Alexa|ARRI|highlight/i);
+        if (kind === "clip") expect(plans[0].prompt).toMatch(/doll(?:y|ies)|forward/i);
+      }
+    }
+  });
+  it("rejects more than three effective camera and look presets together", () => {
+    const doc = board([
+      shot({
+        id: "s",
+        index: 0,
+        camera: { preset_ids: ["camera.dolly-in", "camera.handheld"] }
+      })
+    ]);
+    doc.look_preset_ids = ["look.arri-alexa", "look.bleach-bypass"];
+    expect(() =>
+      planShotRenders(doc, [], "clip", undefined, { presetCatalog: catalog })
+    ).toThrow(/three/);
+  });
+  it("omits video-only ramps from still prompts and records look changes as stale", () => {
+    const doc = board([shot({ id: "s", index: 0 })]);
+    doc.look_preset_ids = ["look.fast-slow-fast"];
+    const [plan] = planShotRenders(doc, [], "keyframe", undefined, {
+      presetCatalog: catalog
+    });
+    expect(plan.prompt).not.toMatch(/ramp|speed/i);
+    const before = currentRenderInputs(
+      doc.shots[0],
+      boardRenderContext(doc, []),
+      "keyframe"
+    );
+    doc.look_preset_ids = ["look.arri-alexa"];
+    expect(
+      currentRenderInputs(doc.shots[0], boardRenderContext(doc, []), "keyframe")
+        .look_preset_ids
+    ).not.toEqual(before.look_preset_ids);
+  });
 });

@@ -57,7 +57,7 @@ function ConceptGrid({ concepts }: { concepts: AdConceptSummary[] }) {
 
 function CompactOverview() {
   return (
-    <section aria-labelledby="ad-library-title" className="relative py-24">
+    <section aria-labelledby="ad-library-title" className="relative py-16 sm:py-24">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div className="max-w-3xl">

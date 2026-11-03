@@ -9,7 +9,7 @@ export {
 } from "./hf-auth.js";
 export type { SecretReader } from "./hf-auth.js";
 
-export { HfFastCache, getDefaultHfCacheDir } from "./hf-cache.js";
+export { HfFastCache } from "./hf-cache.js";
 
 export type { UnifiedModel } from "./hf-models.js";
 export {
@@ -52,7 +52,6 @@ export { getHuggingfaceFileInfos } from "./hf-file-info.js";
 export {
   asyncHfDownload,
   hfHubFileUrl,
-  hfCacheRoot,
   hfRepoCacheDir
 } from "./hf-downloader.js";
 
@@ -70,7 +69,6 @@ export {
 } from "./hf-download-manager.js";
 
 export {
-  getLlamaCppCacheDir,
   getLlamaCppModelFilename,
   getLlamaCppModelPath,
   isLlamaCppModelCached,

@@ -168,7 +168,14 @@ describe("get_storyboard_one_take", () => {
     ]);
     expect(result.compiled).toBe(
       "REFS: [Image 1] is the still of shot 1 at 0-5s. [Image 2] is the still of shot 2 at 5-8s.\n\n" +
-        "STEP_01: 0-5s. beat 0. Push in.\nSTEP_02: 5-8s. beat 1."
+        `SHOTS:\n${JSON.stringify(
+          [
+            { shot: 1, window: "0-5s", action: "beat 0", motion: "Push in" },
+            { shot: 2, window: "5-8s", action: "beat 1" }
+          ],
+          null,
+          2
+        )}`
     );
     expect(result.full_prompt).toBe(result.compiled);
     expect(result.settings).toEqual({
@@ -187,6 +194,34 @@ describe("get_storyboard_one_take", () => {
       model: null
     });
     expect(result.warnings).toEqual([NO_MODEL]);
+  });
+
+  it("leaves blank shot fields and an all-blank camera out of the SHOTS JSON", async () => {
+    const board = await makeBoard([
+      shot({
+        id: "s1",
+        index: 0,
+        motion: "   ",
+        sound: "",
+        camera: { framing: "  ", lens: "" },
+        keyframe: still("k1")
+      }),
+      shot({ id: "s2", index: 1, camera: { framing: "close-up", lens: " " } })
+    ]);
+
+    const result = await call("get_storyboard_one_take", { storyboard_id: board.id });
+
+    expect(result.error).toBeUndefined();
+    expect(result.compiled).toContain(
+      `SHOTS:\n${JSON.stringify(
+        [
+          { shot: 1, window: "0-5s", action: "beat 0" },
+          { shot: 2, window: "5-10s", action: "beat 1", camera: { framing: "close-up" } }
+        ],
+        null,
+        2
+      )}`
+    );
   });
 
   it("refuses a board the caller does not own", async () => {
@@ -257,8 +292,20 @@ describe("update_storyboard_one_take", () => {
       [
         "Brand: Acme. [Image 1] stays on screen.",
         "REFS: [Image 1] is the still of opening at 0-5s.",
-        "STEP_01: 0-5s. beat 0. End: The fox looks up.\nSTEP_02: 5-10s. beat 1.",
-        "AUDIO: <wind> at 0-5s · <a bark> at 5-10s"
+        `SHOTS:\n${JSON.stringify(
+          [
+            {
+              shot: 1,
+              window: "0-5s",
+              action: "beat 0",
+              end_state: "The fox looks up",
+              sound: "wind"
+            },
+            { shot: 2, window: "5-10s", action: "beat 1", sound: "a bark" }
+          ],
+          null,
+          2
+        )}`
       ].join("\n\n")
     );
     expect(result.references.map((r) => [r["marker"], r["asset_id"]])).toEqual([

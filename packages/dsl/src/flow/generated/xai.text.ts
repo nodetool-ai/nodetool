@@ -6,7 +6,7 @@ import { callNode } from "../guest-core.js";
 
 // Chat Complete — xai.text.ChatComplete
 export type ChatCompleteInputs = {
-  model?: string;
+  model?: unknown;
   prompt?: string;
   system_prompt?: string;
   temperature?: number;
@@ -23,7 +23,7 @@ export function chatComplete(inputs: ChatCompleteInputs): Promise<ChatCompleteOu
 
 // Web Search — xai.text.WebSearch
 export type WebSearchInputs = {
-  model?: string;
+  model?: unknown;
   query?: string;
   search_mode?: "auto" | "on" | "off";
   max_results?: number;

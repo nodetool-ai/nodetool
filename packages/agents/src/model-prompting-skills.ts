@@ -1,3 +1,5 @@
+import { MODEL_LINE_PATTERNS, modelFamily, type ModelFamily } from "@nodetool-ai/presets";
+
 /**
  * Which shipped prompting skill covers a model line.
  *
@@ -26,6 +28,7 @@
 export interface ModelPromptingSkill {
   /** The system skill's name, as `load_skill` takes it. */
   readonly skill: string;
+  readonly family?: ModelFamily;
   /** The line, spelled the way a person says it. */
   readonly line: string;
   /** Matched against a lowercased model id. */
@@ -47,42 +50,46 @@ export const MODEL_PROMPTING_SKILLS: readonly ModelPromptingSkill[] = [
     skill: "nano-banana-pro-prompting",
     line: "Nano Banana Pro",
     // Gemini's own API serves the same model as `gemini-3-pro-image`.
-    pattern: /nano-banana-pro|gemini-3-pro-image/
+    pattern: MODEL_LINE_PATTERNS.nanoBanana
   },
   {
     skill: "gpt-image-2-prompting",
     line: "GPT Image 2",
     // GPT Image 2.5 is a different release with no guide: `gpt-image-2.5`
     // on fal, AtlasCloud and OpenAI, `gpt-image-2-5-` on kie.
-    pattern: /gpt-image-2(?![.\d]|-5-)/
+    pattern: MODEL_LINE_PATTERNS.gptImage
   },
   {
     skill: "flux-2-klein-prompting",
     line: "FLUX.2 [klein]",
-    pattern: /flux-2[/-]klein/
+    pattern: MODEL_LINE_PATTERNS.flux
   },
   {
     skill: "seedance-2-prompting",
+    family: "seedance",
     line: "Seedance 2",
-    pattern: /seedance-2(?!\d)/
+    pattern: MODEL_LINE_PATTERNS.seedance
   },
   {
     skill: "veo-3-prompting",
+    family: "veo",
     line: "Veo 3",
-    pattern: /veo-?3(?!\d)/
+    pattern: MODEL_LINE_PATTERNS.veo
   },
   {
     skill: "minimax-h3-prompting",
+    family: "minimax",
     line: "MiniMax H3",
     // kie spells the family `minimax-h3/…`.
-    pattern: /minimax[/-]h3(?![a-z0-9.])/
+    pattern: MODEL_LINE_PATTERNS.minimax
   },
   {
     skill: "wan-2-6-prompting",
+    family: "wan",
     line: "Wan 2.6",
     // The video routes only; AtlasCloud's Wan 2.6 image routes take a
     // different prompt.
-    pattern: /wan-?2[.-]6(?!\/(?:text-to-image|image-edit))/
+    pattern: MODEL_LINE_PATTERNS.wan
   },
   {
     // Kling from 2.5-turbo on: the versions with a shot list, tagged elements
@@ -90,8 +97,9 @@ export const MODEL_PROMPTING_SKILLS: readonly ModelPromptingSkill[] = [
     // and requiring a version right after the family name is what keeps
     // `kling-image` — a different model with different rules — out too.
     skill: "kling-video-prompting",
+    family: "kling",
     line: "Kling video 2.5-turbo and later",
-    pattern: /kling(?:-video)?[-/]v?(?:2[.-][56]|3(?:\.0)?|o[13])(?![.\d])/
+    pattern: MODEL_LINE_PATTERNS.kling
   },
   {
     // MiniMax's earlier video line. H3 is a separate guide, and no Hailuo id
@@ -99,20 +107,21 @@ export const MODEL_PROMPTING_SKILLS: readonly ModelPromptingSkill[] = [
     // direct MiniMax provider names the video-01 Director and subject models
     // `T2V-01-Director`, `I2V-01-Director` and `S2V-01`.
     skill: "hailuo-prompting",
+    family: "minimax",
     line: "MiniMax Hailuo",
-    pattern: /hailuo|minimax\/video-01|^[ist]2v-01(?![\d])/
+    pattern: MODEL_LINE_PATTERNS.hailuo
   },
   {
     skill: "seedream-prompting",
     line: "Seedream 4 and 5",
-    pattern: /seedream[/-]v?[45](?![\d])/
+    pattern: MODEL_LINE_PATTERNS.seedream
   },
   {
     // The whole Qwen-Image family — text-to-image, the edit checkpoints and
     // the layered variants share one set of house rules for typography.
     skill: "qwen-image-prompting",
     line: "Qwen-Image",
-    pattern: /qwen-image/
+    pattern: MODEL_LINE_PATTERNS.qwen
   },
   {
     // Only the endpoints that take a prompt. Scribe, dubbing, isolation and
@@ -121,14 +130,13 @@ export const MODEL_PROMPTING_SKILLS: readonly ModelPromptingSkill[] = [
     // The direct provider's ids are `eleven_<model>`; v1 is left out.
     skill: "elevenlabs-audio-prompting",
     line: "ElevenLabs speech, dialogue, sound effects and music",
-    pattern:
-      /elevenlabs\/(?:tts\/(?!eleven-v4)|music(?!\/v2)|sound-effects|text-to-speech|text-to-dialogue|v3|v2-multilingual|turbo|flash)|^eleven_(?:v3|multilingual_v2|turbo_v2|flash_v2)/
+    pattern: MODEL_LINE_PATTERNS.elevenlabs
   },
   {
     // 2.5 and 3. The original `fal-ai/stable-audio` is a different model.
     skill: "stable-audio-prompting",
     line: "Stable Audio",
-    pattern: /stable-audio-(?:25|2\.5|3)(?![\d.])/
+    pattern: MODEL_LINE_PATTERNS.stableAudio
   }
 ];
 
@@ -141,7 +149,8 @@ const TRAINER = /trainer/;
 /** The skill covering `modelId`, or null when no shipped guide claims it. */
 export function promptingSkillFor(modelId: string): string | null {
   const id = modelId.toLowerCase();
-  if (TRAINER.test(id)) return null;
-  const hit = MODEL_PROMPTING_SKILLS.find((entry) => entry.pattern.test(id));
+  if (TRAINER.test(id)) { return null; }
+  const family = modelFamily(id);
+  const hit = MODEL_PROMPTING_SKILLS.find((entry) => (!entry.family || entry.family === family) && entry.pattern.test(id));
   return hit ? hit.skill : null;
 }

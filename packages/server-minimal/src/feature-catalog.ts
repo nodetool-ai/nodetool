@@ -2420,10 +2420,15 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
     ],
     "nodeTypes": [
       "kie.dynamic_schema.KieAI",
+      "lib.comfy.RunComfyGraphOnCloud",
       "lib.comfy.RunWorkflow",
       "lib.comfy.RunWorkflowOnCloud",
       "lib.comfy.RunWorkflowOnWorker",
       "lib.stable_diffusion_cpp.GenerateImage",
+      "lib.wan2gp.Generate",
+      "lib.wan2gp.ImageToVideo",
+      "lib.wan2gp.ListModels",
+      "lib.wan2gp.TextToVideo",
       "messaging.discord.DiscordBotTrigger",
       "messaging.telegram.TelegramBotTrigger"
     ]
@@ -2630,6 +2635,10 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
       "nodes:llm"
     ],
     "nodeTypes": [
+      "anthropic.text.WebSearch",
+      "claude_code.text.WebSearch",
+      "codex.image.CreateImage",
+      "codex.text.WebSearch",
       "gemini.audio.TextToSpeech",
       "gemini.audio.Transcribe",
       "gemini.image.ImageGeneration",
@@ -2671,6 +2680,13 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
       "openai.text.Embedding",
       "openai.text.Moderation",
       "openai.text.WebSearch",
+      "vertex.audio.TextToSpeech",
+      "vertex.audio.Transcribe",
+      "vertex.image.ImageGeneration",
+      "vertex.text.Embedding",
+      "vertex.text.GroundedSearch",
+      "vertex.video.ImageToVideo",
+      "vertex.video.TextToVideo",
       "xai.image.GenerateImage",
       "xai.text.ChatComplete",
       "xai.text.WebSearch",

@@ -71,7 +71,7 @@ export const BUILTIN_NODE_PACKS: readonly BuiltinNodePack[] = [
     description:
       "Core nodes for text, data, documents, images, audio, video, agents, and LLM chat.",
     required: true,
-    namespaces: ["gemini", "kie", "lib", "messaging", "mistral", "nodetool", "openai", "vector", "xai"]
+    namespaces: ["anthropic", "claude_code", "codex", "gemini", "kie", "lib", "messaging", "mistral", "nodetool", "openai", "vector", "vertex", "xai"]
   },
   {
     id: "elevenlabs",

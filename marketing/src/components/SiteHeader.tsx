@@ -56,6 +56,7 @@ const NAV: NavEntry[] = [
     links: [
       { name: "Templates", href: "/templates" },
       { name: "Recipes", href: "/recipes" },
+      { name: "Presets", href: "/presets" },
       { name: "Ad library", href: "/ad-library" },
       { name: "Compare alternatives", href: "/alternatives" },
       { name: "FAQ", href: "/faq" },

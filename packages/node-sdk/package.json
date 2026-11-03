@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=22.0.0"
   },
-  "version": "0.8.4",
+  "version": "0.8.10",
   "description": "Node SDK: BaseNode, NodeRegistry, and example nodes",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -22,10 +22,11 @@
   "dependencies": {
     "@nodetool-ai/config": "*",
     "@nodetool-ai/kernel": "*",
+    "@nodetool-ai/pack-core": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
     "acorn": "^8.16.0",
-    "@nodetool-ai/pack-core": "*"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@stryker-mutator/core": "^9.6.1",

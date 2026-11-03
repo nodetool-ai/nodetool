@@ -15,6 +15,10 @@ import SketchEditor from "../SketchEditor";
 import { SketchProvider } from "../../../stores/sketch/SketchInstance";
 import { getSketchDockLayoutStore } from "../../../stores/sketch/useSketchDockLayoutStore";
 import { useSketchStore } from "../state/useSketchStore";
+import {
+  sketchEditorModeKey,
+  useSketchEditorModeStore
+} from "../../../stores/sketch/SketchEditorMode";
 
 jest.mock("../../../hooks/useResolvedMediaUri");
 
@@ -41,13 +45,17 @@ describe("SketchEditor dock", () => {
       };
     }) as unknown as typeof ResizeObserver;
     getSketchDockLayoutStore(null).getState().selectLayout("Essentials");
+    localStorage.clear();
+    useSketchEditorModeStore.setState({
+      modes: { [sketchEditorModeKey(null)]: "expert" }
+    });
   });
 
   afterEach(() => {
     global.ResizeObserver = original;
   });
 
-  function renderDesktopEditor() {
+  function renderDesktopEditor(width = 1400) {
     const view = render(
       <ThemeProvider theme={mockTheme}>
         <SketchProvider>
@@ -61,7 +69,7 @@ describe("SketchEditor dock", () => {
       for (const { callback, targets } of observers) {
         if (targets.includes(editor)) {
           callback(
-            [{ target: editor, contentRect: { width: 1400, height: 900 } } as unknown as ResizeObserverEntry],
+            [{ target: editor, contentRect: { width, height: 900 } } as unknown as ResizeObserverEntry],
             {} as ResizeObserver
           );
         }
@@ -114,5 +122,60 @@ describe("SketchEditor dock", () => {
     expect(screen.queryByRole("tab")).not.toBeInTheDocument();
     expect(document.querySelector(".sketch-editor__canvas-region")).toBeInTheDocument();
     act(() => useSketchStore.getState().togglePanelsHidden());
+  });
+
+  describe("Simple mode", () => {
+    beforeEach(() => {
+      useSketchEditorModeStore.setState({ modes: {} });
+    });
+
+    it("is the default: a short tool rail and a layer column, without dock tabs", () => {
+      renderDesktopEditor();
+      expect(screen.getByTestId("sketch-simple-sidebar")).toBeInTheDocument();
+      expect(screen.getAllByTestId("sketch-simple-layer").length).toBeGreaterThan(0);
+      expect(screen.queryByRole("tab")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("sketch-status-bar")).not.toBeInTheDocument();
+      const tools = document.querySelectorAll(".sketch-toolbar .MuiToggleButton-root");
+      expect(Array.from(tools).map((b) => b.getAttribute("value"))).toEqual([
+        "select", "brush", "eraser", "shape", "move"
+      ]);
+      expect(document.querySelector(".sketch-editor__canvas-region")).toBeInTheDocument();
+    });
+
+    it("switches to Expert mode and remembers it", () => {
+      renderDesktopEditor();
+      fireEvent.click(screen.getByRole("button", { name: "Expert" }));
+      expect(screen.getByRole("tab", { name: /^Layers/ })).toBeInTheDocument();
+      expect(screen.queryByTestId("sketch-simple-sidebar")).not.toBeInTheDocument();
+      expect(localStorage.getItem(sketchEditorModeKey(null))).toBe("expert");
+
+      fireEvent.click(screen.getByRole("button", { name: "Simple" }));
+      expect(screen.getByTestId("sketch-simple-sidebar")).toBeInTheDocument();
+      expect(localStorage.getItem(sketchEditorModeKey(null))).toBe("simple");
+    });
+
+    it("puts the layer list in the phone sheet", () => {
+      renderDesktopEditor(390);
+      expect(screen.queryByTestId("sketch-simple-sidebar")).not.toBeInTheDocument();
+      fireEvent.click(document.querySelector(".sketch-editor__mobile-panels-fab")!);
+      expect(screen.getByTestId("sketch-simple-sidebar")).toBeInTheDocument();
+      expect(document.querySelector(".sketch-editor__layers-section")).not.toBeInTheDocument();
+    });
+
+    it("selects a layer from the list and adds a new one", () => {
+      renderDesktopEditor();
+      const before = useSketchStore.getState().document.layers.length;
+      fireEvent.click(screen.getByTestId("sketch-simple-add-layer"));
+      expect(useSketchStore.getState().document.layers.length).toBe(before + 1);
+
+      const rows = screen.getAllByTestId("sketch-simple-layer");
+      const last = rows[rows.length - 1];
+      fireEvent.click(last);
+      const name = last.getAttribute("aria-label");
+      const active = useSketchStore.getState().document.layers.find(
+        (layer) => layer.id === useSketchStore.getState().document.activeLayerId
+      );
+      expect(active?.name).toBe(name);
+    });
   });
 });

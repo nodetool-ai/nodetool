@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=22.0.0"
   },
-  "version": "0.8.4",
+  "version": "0.8.10",
   "description": "Local whisper.cpp speech recognition providers and streaming transcription",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -16,10 +16,11 @@
   },
   "dependencies": {
     "@nodetool-ai/config": "*",
+    "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
     "@nodetool-ai/transformers-js-nodes": "*",
-    "@nodetool-ai/node-sdk": "*"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

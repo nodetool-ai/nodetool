@@ -359,6 +359,9 @@ function assistantContentWithImages(
   return blocks;
 }
 
+/** A dated model snapshot such as `tts-1-1106` or `gpt-image-1-2025-04-15`. */
+const DATED_SNAPSHOT = /-\d{4}(-\d{2}-\d{2})?$/;
+
 export class OpenAIProvider extends BaseProvider {
   static requiredSecrets(): string[] {
     return ["OPENAI_API_KEY"];
@@ -506,7 +509,86 @@ export class OpenAIProvider extends BaseProvider {
     return models;
   }
 
+  /**
+   * Model ids `/v1/models` lists for this key, without dated snapshots, or
+   * null when the listing fails.
+   */
+  private async listModelIds(): Promise<string[] | null> {
+    try {
+      const response = await this._fetch("https://api.openai.com/v1/models", {
+        headers: { Authorization: `Bearer ${this.apiKey}` }
+      });
+      if (!response.ok) return null;
+      const body = (await response.json()) as { data?: unknown };
+      if (!Array.isArray(body.data)) return null;
+      return body.data
+        .map((row: unknown) => (isRecord(row) && isString(row.id) ? row.id : ""))
+        .filter((id) => id.length > 0 && !DATED_SNAPSHOT.test(id));
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * The live listing's models that match `select`. A model this file
+   * describes keeps its known metadata and its place at the top. Without a
+   * live listing the known models are returned unchanged.
+   */
+  private async liveCatalog<T extends { id: string }>(
+    known: T[],
+    select: (id: string) => boolean,
+    create: (id: string) => T
+  ): Promise<T[]> {
+    if (!this.servesOpenAICatalog()) return [];
+    const ids = await this.listModelIds();
+    if (!ids) return known;
+    const live = new Set(ids.filter(select));
+    if (live.size === 0) return known;
+    const kept = known.filter((model) => live.has(model.id));
+    const keptIds = new Set(kept.map((model) => model.id));
+    return [...kept, ...[...live].filter((id) => !keptIds.has(id)).sort().map(create)];
+  }
+
   async getAvailableTTSModels(): Promise<TTSModel[]> {
+    const known = this.knownTTSModels();
+    return this.liveCatalog(known, (id) => /tts/.test(id), (id) => ({
+      id,
+      name: id,
+      provider: this.provider,
+      voices: known[0]?.voices
+    }));
+  }
+
+  async getAvailableASRModels(): Promise<ASRModel[]> {
+    return this.liveCatalog(
+      this.knownASRModels(),
+      (id) => /^whisper|transcribe/.test(id),
+      (id) => ({ id, name: id, provider: this.provider })
+    );
+  }
+
+  async getAvailableImageModels(): Promise<ImageModel[]> {
+    return this.liveCatalog(
+      this.knownImageModels(),
+      (id) => /^gpt-image/.test(id),
+      (id) => ({
+        id,
+        name: id,
+        provider: this.provider,
+        supportedTasks: ["text_to_image", "image_to_image"]
+      })
+    );
+  }
+
+  async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
+    return this.liveCatalog(
+      this.knownEmbeddingModels(),
+      (id) => /^text-embedding/.test(id),
+      (id) => ({ id, name: id, provider: this.provider })
+    );
+  }
+
+  private knownTTSModels(): TTSModel[] {
     if (!this.servesOpenAICatalog()) return [];
     const legacyVoices = [
       "alloy",
@@ -555,7 +637,7 @@ export class OpenAIProvider extends BaseProvider {
     ];
   }
 
-  async getAvailableASRModels(): Promise<ASRModel[]> {
+  private knownASRModels(): ASRModel[] {
     if (!this.servesOpenAICatalog()) return [];
     return [
       {
@@ -605,7 +687,7 @@ export class OpenAIProvider extends BaseProvider {
     ];
   }
 
-  async getAvailableImageModels(): Promise<ImageModel[]> {
+  private knownImageModels(): ImageModel[] {
     if (!this.servesOpenAICatalog()) return [];
     return [
       {
@@ -647,7 +729,7 @@ export class OpenAIProvider extends BaseProvider {
     ];
   }
 
-  async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
+  private knownEmbeddingModels(): EmbeddingModel[] {
     if (!this.servesOpenAICatalog()) return [];
     return [
       {

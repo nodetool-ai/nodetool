@@ -143,6 +143,7 @@ import RecentChats from "./RecentChats";
 import RecentProjects from "./RecentProjects";
 import ExploreExamples from "./ExploreExamples";
 import StartCreationTypes, { type CreationTypeCard } from "./StartCreationTypes";
+import StartStudios from "./StartStudios";
 import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
 import ReportBugButton from "../support/ReportBugButton";
 import { openExamplesTab, openPageTab } from "../workspace/openPageTab";
@@ -160,6 +161,14 @@ import { newScriptSetupDocument } from "../setup/script/useScriptSetupFlow";
 import { MAX_IMAGE_REFERENCES } from "../setup/image/setupContext";
 import { useCreateScript } from "../../hooks/script/useScripts";
 import { MEDIA_MODES } from "../chat/composer/mediaModes";
+import ModeChips from "../chat/composer/ModeChips";
+import ModeSelectChip from "../chat/composer/ModeSelectChip";
+import type { ModelPickerHandle } from "../chat/composer/ModelChip";
+import { buildMediaGenerationRequest } from "../chat/composer/mediaGenerationRequest";
+import type { MediaGenerationRequest } from "../chat/types/media.types";
+import useMediaGenerationStore, {
+  type MediaMode
+} from "../../stores/MediaGenerationStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { trpcClient } from "../../trpc/client";
 import {
@@ -180,6 +189,7 @@ import {
   estimateFromHistory,
   formatEstimate,
   invokedStarter,
+  invokesStarter,
   projectNameFromPrompt,
   promptWithoutStarter,
   rankStarters,
@@ -632,6 +642,10 @@ const NewProjectSurface = ({
   const providerReadiness = useLanguageProviderReadiness();
   const hasConfiguredProvider = providerReadiness.ready;
   const selectedModel = useGlobalChatStore((state) => state.selectedModel);
+  // The start page opens in chat. Another mode sends the first turn as a
+  // generation, with that mode's own chips.
+  const [mode, setMode] = useState<MediaMode>("chat");
+  const modelPickerRef = useRef<ModelPickerHandle>(null);
   const createNewThread = useGlobalChatStore((state) => state.createNewThread);
   const setSelectedModel = useGlobalChatStore(
     (state) => state.setSelectedModel
@@ -842,54 +856,75 @@ const NewProjectSurface = ({
     if (text.length === 0 || starting || isUploading) {
       return;
     }
-    // The first chat turn needs a model; route key-less users
-    // through provider onboarding first and resume the start once connected.
-    if (providerReadiness.loading) {
-      addNotification({
-        type: "info",
-        alert: true,
-        content: t("pass3_32.projects.home.checkingModels")
-      });
-      return;
-    }
-    if (!hasConfiguredProvider) {
-      setPendingStart(true);
-      openProviderOnboarding({
-        capability: "generate_message",
-        reason: t("pass3_32.projects.home.chatNeedsModel")
-      });
-      return;
-    }
-    // A configured provider is not a picked model: the chat's model selection
-    // starts on the "empty" sentinel, and a send with it never leaves the
-    // client. Open this surface's own model menu rather than point at a
-    // composer that is not on this screen, and start once a model is picked.
-    // The Settings default language model counts: a connected account starts
-    // the chat at once, and the model menu stays a way to change it.
-    let sendModel = selectedModel;
-    if (!isModelSelected(sendModel)) {
-      const languageDefault =
-        useModelPreferencesStore.getState().defaults["language_model"];
-      if (languageDefault) {
-        sendModel = {
-          type: "language_model",
-          provider: languageDefault.provider,
-          id: languageDefault.id,
-          name: languageDefault.name
-        } as LanguageModel;
-        setSelectedModel(sendModel);
+    const isMedia = mode !== "chat";
+    let mediaRequest: MediaGenerationRequest | null = null;
+    if (isMedia) {
+      // A generation runs on a media model, not the language model.
+      mediaRequest = buildMediaGenerationRequest(
+        mode,
+        useMediaGenerationStore.getState()
+      );
+      if (!mediaRequest.model) {
+        modelPickerRef.current?.open();
+        addNotification({
+          type: "info",
+          alert: true,
+          content: t("pass3_32.projects.home.pickMediaModel"),
+          dedupeKey: PICK_MODEL_NOTICE_KEY
+        });
+        return;
       }
     }
-    if (!isModelSelected(sendModel)) {
-      setPendingModelStart(true);
-      setModelAnchor(modelButtonRef.current);
-      addNotification({
-        type: "info",
-        alert: true,
-        content: t("pass3_32.projects.home.pickModelToStartChat"),
-        dedupeKey: PICK_MODEL_NOTICE_KEY
-      });
-      return;
+    if (!isMedia) {
+      // The first chat turn needs a model; route key-less users
+      // through provider onboarding first and resume the start once connected.
+      if (providerReadiness.loading) {
+        addNotification({
+          type: "info",
+          alert: true,
+          content: t("pass3_32.projects.home.checkingModels")
+        });
+        return;
+      }
+      if (!hasConfiguredProvider) {
+        setPendingStart(true);
+        openProviderOnboarding({
+          capability: "generate_message",
+          reason: t("pass3_32.projects.home.chatNeedsModel")
+        });
+        return;
+      }
+      // A configured provider is not a picked model: the chat's model selection
+      // starts on the "empty" sentinel, and a send with it never leaves the
+      // client. Open this surface's own model menu rather than point at a
+      // composer that is not on this screen, and start once a model is picked.
+      // The Settings default language model counts: a connected account starts
+      // the chat at once, and the model menu stays a way to change it.
+      let sendModel = selectedModel;
+      if (!isModelSelected(sendModel)) {
+        const languageDefault =
+          useModelPreferencesStore.getState().defaults["language_model"];
+        if (languageDefault) {
+          sendModel = {
+            type: "language_model",
+            provider: languageDefault.provider,
+            id: languageDefault.id,
+            name: languageDefault.name
+          } as LanguageModel;
+          setSelectedModel(sendModel);
+        }
+      }
+      if (!isModelSelected(sendModel)) {
+        setPendingModelStart(true);
+        setModelAnchor(modelButtonRef.current);
+        addNotification({
+          type: "info",
+          alert: true,
+          content: t("pass3_32.projects.home.pickModelToStartChat"),
+          dedupeKey: PICK_MODEL_NOTICE_KEY
+        });
+        return;
+      }
     }
     setStarting(true);
     try {
@@ -906,7 +941,10 @@ const NewProjectSurface = ({
       ];
       const { projectId, created } = await resolveStartProject();
       const threadId = await createNewThread(undefined, null, { projectId });
-      stageChatTurn(threadId, content);
+      stageChatTurn(threadId, content, mediaRequest);
+      if (isMedia) {
+        useMediaGenerationStore.getState().setThreadMode(threadId, mode);
+      }
       // A chat started in a new project opens that project, or its tab
       // would be filed where it cannot be seen.
       if (
@@ -943,6 +981,7 @@ const NewProjectSurface = ({
     createNewThread,
     flowRef,
     getFileContents,
+    mode,
     hasConfiguredProvider,
     isUploading,
     providerReadiness.loading,
@@ -1717,6 +1756,22 @@ const NewProjectSurface = ({
     handleEntryCard(id);
   };
 
+  // A skill studio picks its starter, as the starter pill does, but never
+  // lets one go: the tile always means "start from this".
+  const handleStudioSkill = useCallback(
+    (name: string) => {
+      // Before the skill list loads, `starter` cannot see a `/name` already typed.
+      if (invokesStarter(prompt, name)) {
+        promptRef.current?.focus();
+        return;
+      }
+      const next = toggleStarterInPrompt(prompt, starter?.name ?? null, name);
+      pendingCaretRef.current = next.length;
+      setPrompt(next);
+    },
+    [prompt, starter]
+  );
+
   /**
    * The flow's last step wrote stage `done`: hand the finished board its own
    * tab and let this one go.
@@ -2418,6 +2473,19 @@ const NewProjectSurface = ({
                   </FlexRow>
                 )}
 
+                {/* A generation's own settings get a row of their own, so the
+                    context pills and the send button keep one steady line. */}
+                {mode !== "chat" && (
+                  <FlexRow
+                    align="center"
+                    gap={SPACING.sm}
+                    wrap
+                    sx={{ px: SPACING.lg, pt: SPACING.md }}
+                  >
+                    <ModeChips mode={mode} openModelPickerRef={modelPickerRef} />
+                  </FlexRow>
+                )}
+
                 {/* The context a turn carries sits quietly on the left as
                     pills; the one primary action is the round send on the
                     right. */}
@@ -2461,6 +2529,8 @@ const NewProjectSurface = ({
                           entities: selectedEntities.map((entity) => entity.name).join(", ")
                         })}
                   </EditorButton>
+                  <ModeSelectChip mode={mode} onChange={setMode} />
+                  {mode === "chat" && (
                   <EditorButton
                     ref={modelButtonRef}
                     variant="text"
@@ -2477,6 +2547,7 @@ const NewProjectSurface = ({
                         })
                       : t("pass3_32.projects.home.selectModel")}
                   </EditorButton>
+                  )}
                   {/* Off: the work files into the open project. On: the next
                       send or card makes a project named after the prompt. */}
                   <Tooltip
@@ -2638,6 +2709,10 @@ const NewProjectSurface = ({
               />
             </Box>
           </FlexColumn>
+
+          {/* Studios name an outcome and open an existing surface with
+              presets chosen. */}
+          <StartStudios onSkill={handleStudioSkill} onFlow={handleCreationCard} />
 
           <RecentProjects />
 

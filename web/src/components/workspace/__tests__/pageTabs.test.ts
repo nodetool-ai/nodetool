@@ -14,6 +14,7 @@ describe("PAGE_TAB_TITLES", () => {
       "packages",
       "collections",
       "workspaces",
+      "effects",
       "settings"
     ];
     for (const key of expected) {
@@ -34,6 +35,7 @@ describe("isPageTabKey", () => {
     expect(isPageTabKey("settings")).toBe(true);
     expect(isPageTabKey("models")).toBe(true);
     expect(isPageTabKey("costs")).toBe(true);
+    expect(isPageTabKey("effects")).toBe(true);
   });
 
   it("returns false for invalid keys", () => {

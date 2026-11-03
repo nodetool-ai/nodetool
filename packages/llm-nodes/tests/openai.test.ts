@@ -40,7 +40,7 @@ describe("EmbeddingNode (OpenAI)", () => {
   it("returns expected defaults", () => {
     const d = new EmbeddingNode().serialize();
     expect(d.input).toBe("");
-    expect(d.model).toBe("text-embedding-3-small");
+    expect(d.model).toMatchObject({ id: "text-embedding-3-small" });
     expect(d.chunk_size).toBe(4096);
   });
 
@@ -221,7 +221,7 @@ describe("CreateImageNode", () => {
   it("returns expected defaults", () => {
     const d = new CreateImageNode().serialize();
     expect(d.prompt).toBe("");
-    expect(d.model).toBe("gpt-image-1");
+    expect(d.model).toMatchObject({ id: "gpt-image-1" });
     expect(d.size).toBe("1024x1024");
     expect(d.quality).toBe("high");
   });
@@ -290,7 +290,7 @@ describe("EditImageNode", () => {
   it("returns expected defaults", () => {
     const d = new EditImageNode().serialize();
     expect(d.prompt).toBe("");
-    expect(d.model).toBe("gpt-image-1");
+    expect(d.model).toMatchObject({ id: "gpt-image-1" });
   });
 
   it("throws when prompt is empty", async () => {
@@ -356,7 +356,7 @@ describe("TextToSpeechNode", () => {
 
   it("returns expected defaults", () => {
     const d = new TextToSpeechNode().serialize();
-    expect(d.model).toBe("tts-1");
+    expect(d.model).toMatchObject({ id: "tts-1" });
     expect(d.voice).toBe("alloy");
     expect(d.speed).toBe(1.0);
   });
@@ -437,7 +437,7 @@ describe("TranscribeNode", () => {
 
   it("returns expected defaults", () => {
     const d = new TranscribeNode().serialize();
-    expect(d.model).toBe("whisper-1");
+    expect(d.model).toMatchObject({ id: "whisper-1" });
     expect(d.language).toBe("auto_detect");
     expect(d.timestamps).toBe(false);
   });

@@ -19,7 +19,7 @@ export default function StoryboardExamplesSection() {
     <section
       id="storyboard-examples"
       aria-labelledby="storyboard-examples-title"
-      className="relative py-24"
+      className="relative py-16 sm:py-24"
     >
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-end">
@@ -100,20 +100,22 @@ export default function StoryboardExamplesSection() {
                     )}
                   </div>
                 </div>
+                {/* Below `sm` the shots scroll sideways in one row, so each
+                    board is one screen tall instead of three. */}
                 <ol
-                  className={`grid grid-cols-2 gap-3 sm:gap-4 ${board.shots.length >= 5 ? "lg:grid-cols-5" : board.shots.length > 3 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}
+                  className={`-mx-6 flex snap-x snap-mandatory gap-3 overflow-x-auto px-6 pb-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 ${board.shots.length >= 5 ? "lg:grid-cols-5" : board.shots.length > 3 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}
                 >
                   {board.shots.map((shot, index) => (
                     <li
                       key={shot.slug}
-                      className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/60"
+                      className="w-[68%] shrink-0 snap-start scroll-ml-6 overflow-hidden rounded-xl border border-slate-800 bg-slate-900/60 sm:w-auto"
                     >
                       <Image
                         src={shot.image}
                         alt={shot.action}
                         width={board.still.width}
                         height={board.still.height}
-                        sizes="(min-width: 1024px) 20vw, 50vw"
+                        sizes="(min-width: 1024px) 20vw, (min-width: 640px) 50vw, 68vw"
                         className="h-auto w-full"
                       />
                       <div className="px-3 pb-3 pt-2 sm:px-4 sm:pb-4 sm:pt-3">

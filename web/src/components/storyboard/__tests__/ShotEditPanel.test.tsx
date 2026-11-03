@@ -8,7 +8,13 @@
  * to put every edited field back, which a mocked `updateShot` cannot show.
  */
 import React from "react";
-import { act, render, screen, within } from "@testing-library/react";
+import {
+  act,
+  render,
+  screen,
+  waitForElementToBeRemoved,
+  within
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import type { Scene, Shot } from "@nodetool-ai/protocol";
@@ -73,8 +79,37 @@ jest.mock("../../../trpc/client", () => ({
   trpcClient: {}
 }));
 
+const MARTA = {
+  type: "entity",
+  id: "e1",
+  kind: "character",
+  name: "Marta",
+  descriptor: "detective"
+};
 jest.mock("../../../serverState/useEntities", () => ({
-  useEntities: () => ({ data: [] })
+  useEntities: () => ({ data: [MARTA] })
+}));
+// The `@` picker lists the library's entity; its menu is a single button.
+jest.mock(
+  "../../node_types/editing/promptComposer/useAssetMentionSearch",
+  () => ({
+    useAssetMentionSearch: (query: string | null) => ({
+      activeTab: "saved",
+      setActiveTab: jest.fn(),
+      entities: query === null ? [] : [MARTA],
+      displayedAssets: [],
+      hasMoreSaved: false,
+      loadMoreSaved: jest.fn(),
+      handleRename: jest.fn()
+    })
+  })
+);
+jest.mock("../../node_types/editing/promptComposer/AssetMentionMenu", () => ({
+  AssetMentionMenu: ({ onSelect }: { onSelect: (index: number) => void }) => (
+    <button type="button" data-testid="pick-entity" onClick={() => onSelect(0)}>
+      Marta
+    </button>
+  )
 }));
 
 // Pricing reaches the provider catalogs; the cost line has no bearing here.
@@ -285,7 +320,7 @@ describe("ShotEditPanel fields (criterion 14)", () => {
     await typeInto("Shot duration in seconds", "7");
     await choose("Shot size", "Wide");
     await choose("Camera angle", "Low angle");
-    await choose("Camera movement", "Pan left");
+    await typeInto("Camera movement", "pan left");
     await choose("Camera equipment", "Steadicam");
     await choose("Focal length", "35mm");
     await userEvent.click(screen.getByText("Advanced"));
@@ -314,6 +349,50 @@ describe("ShotEditPanel fields (criterion 14)", () => {
         lens: "35mm"
       }
     });
+  }, 30_000);
+
+  it("opens a pre-preset board with its movement card selected and unsaved", async () => {
+    seed([baseShot({ camera: { movement: "slow push in" } })]);
+    renderPanel();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Browse presets" })
+    );
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).getByRole("option", { name: "dolly in" })
+    ).toHaveAttribute("aria-selected", "true");
+    // Looking at the card is not an edit: nothing to save, nothing written.
+    expect(
+      screen.getByRole("button", { name: "Save", hidden: true })
+    ).toBeDisabled();
+    expect(storedShot().camera).toEqual({ movement: "slow push in" });
+  });
+
+  it("saves two stacked presets as preset_ids and the joined names", async () => {
+    seed([baseShot()]);
+    renderPanel();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Browse presets" })
+    );
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.click(
+      within(dialog).getByRole("option", { name: "dolly in" })
+    );
+    await userEvent.click(
+      within(dialog).getByRole("option", { name: "handheld" })
+    );
+    await userEvent.click(within(dialog).getByRole("button", { name: "Done" }));
+    await waitForElementToBeRemoved(() => screen.queryByRole("dialog"));
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(storedShot().camera).toEqual({
+      movement: "dolly in, handheld",
+      preset_ids: ["camera.dolly-in", "camera.handheld"]
+    });
+    // The picker lists every camera preset, and role queries over its cards
+    // take most of the 10 s default on CI.
   }, 30_000);
 
   it("puts every edited field back with a single undo", async () => {
@@ -672,5 +751,25 @@ describe("ShotEditPanel placement (it is a row of the board, not a dialog)", () 
     expect(
       screen.queryByRole("button", { name: "Next shot" })
     ).not.toBeInTheDocument();
+  });
+
+  it("attaches an entity picked with @ in the description to the shot", async () => {
+    seed([baseShot()]);
+    useStoryboardStore.getState().setEntityIds(BOARD, []);
+    renderPanel();
+
+    const description = screen.getByLabelText("Description");
+    await userEvent.clear(description);
+    await userEvent.type(description, "Close on @mar");
+    await userEvent.click(await screen.findByTestId("pick-entity"));
+
+    // The name reads in the draft. The entity joins the board and the shot.
+    expect(description).toHaveValue("Close on Marta ");
+    expect(storedShot().entity_ids).toEqual(["e1"]);
+    expect(
+      useStoryboardStore.getState().boards[BOARD]?.entityIds
+    ).toEqual(["e1"]);
+    // The text is still a draft until Save.
+    expect(storedShot().action).toBe("A lighthouse at dusk");
   });
 });

@@ -8,7 +8,7 @@ import type { ImageRef, VideoRef } from "../../types.js";
 // Text To Video — gemini.video.TextToVideo
 export type TextToVideoInputs = {
   prompt?: string;
-  model?: "veo-3.1-generate-preview" | "veo-3.1-fast-generate-preview" | "veo-3.1-lite-generate-preview";
+  model?: unknown;
   aspect_ratio?: "16:9" | "9:16";
   negative_prompt?: string;
   resolution?: "720p" | "1080p" | "4k";
@@ -26,7 +26,7 @@ export function textToVideo(inputs: TextToVideoInputs): Promise<TextToVideoOutpu
 export type ImageToVideoInputs = {
   image?: ImageRef;
   prompt?: string;
-  model?: "veo-3.1-generate-preview" | "veo-3.1-fast-generate-preview" | "veo-3.1-lite-generate-preview";
+  model?: unknown;
   aspect_ratio?: "16:9" | "9:16";
   negative_prompt?: string;
   resolution?: "720p" | "1080p" | "4k";

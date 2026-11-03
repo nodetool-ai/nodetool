@@ -1,4 +1,8 @@
 // Built from @nodetool-ai/dsl by scripts/build.mjs — do not edit
+import * as anthropicText from "./anthropic.text.js";
+import * as claude_codeText from "./claude_code.text.js";
+import * as codexImage from "./codex.image.js";
+import * as codexText from "./codex.text.js";
 import * as geminiAudio from "./gemini.audio.js";
 import * as geminiImage from "./gemini.image.js";
 import * as geminiText from "./gemini.text.js";
@@ -25,6 +29,7 @@ import * as libSqlite from "./lib.sqlite.js";
 import * as libStable_diffusion_cpp from "./lib.stable_diffusion_cpp.js";
 import * as libSvg from "./lib.svg.js";
 import * as libVideoDownload from "./lib.video.download.js";
+import * as libWan2gp from "./lib.wan2gp.js";
 import * as messagingDiscord from "./messaging.discord.js";
 import * as messagingTelegram from "./messaging.telegram.js";
 import * as mistralEmbeddings from "./mistral.embeddings.js";
@@ -68,17 +73,25 @@ import * as openaiAudio from "./openai.audio.js";
 import * as openaiImage from "./openai.image.js";
 import * as openaiText from "./openai.text.js";
 import * as vector from "./vector.js";
+import * as vertexAudio from "./vertex.audio.js";
+import * as vertexImage from "./vertex.image.js";
+import * as vertexText from "./vertex.text.js";
+import * as vertexVideo from "./vertex.video.js";
 import * as whisper_cpp from "./whisper_cpp.js";
 import * as xaiImage from "./xai.image.js";
 import * as xaiText from "./xai.text.js";
 import * as xaiVision from "./xai.vision.js";
 export {
   agents,
+  anthropicText,
   audio,
   audioRealtime,
   audioSynth,
   blender,
+  claude_codeText,
   code,
+  codexImage,
+  codexText,
   compare,
   constant,
   control,
@@ -117,6 +130,7 @@ export {
   libStable_diffusion_cpp,
   libSvg,
   libVideoDownload,
+  libWan2gp,
   manimgx,
   messagingDiscord,
   messagingTelegram,
@@ -137,6 +151,10 @@ export {
   triggers,
   variable,
   vector,
+  vertexAudio,
+  vertexImage,
+  vertexText,
+  vertexVideo,
   video,
   whisper_cpp,
   workflowsApp_node,

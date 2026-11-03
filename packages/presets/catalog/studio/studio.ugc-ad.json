@@ -1,0 +1,16 @@
+{
+  "id": "studio.ugc-ad",
+  "version": 1,
+  "kind": "studio",
+  "name": "Creator testimonial",
+  "description": "A phone-shot creator video for a product: the spoken pitch, captions and a branded end card.",
+  "tags": [
+    "ad",
+    "ugc"
+  ],
+  "target": {
+    "type": "app",
+    "app": "ugc-product-video"
+  },
+  "preset_ids": []
+}

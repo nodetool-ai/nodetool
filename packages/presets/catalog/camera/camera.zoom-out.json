@@ -1,0 +1,41 @@
+{
+  "id": "camera.zoom-out",
+  "version": 1,
+  "kind": "camera",
+  "name": "zoom out",
+  "description": "Lens zooms out from a fixed camera position.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "camera.zoom-in"
+  ],
+  "aliases": [
+    "zoom out"
+  ],
+  "prompt": {
+    "default": "Lens zooms out from a fixed camera position.",
+    "kling": "Lens zooms out from a fixed camera position.",
+    "seedance": "Lens zooms out from a fixed camera position throughout one continuous shot.",
+    "veo": "Lens zooms out from a fixed camera position.",
+    "wan": "Lens zooms out from a fixed camera position.",
+    "local-wan": "From a fixed viewpoint, the lens slowly zooms wider. The subject becomes smaller and more of the surrounding scene appears at the frame edges. One continuous shot."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.zoom-out/215010eb92a634e6e755ee45080418a7003a066e836f265ad1a079c11c3d805b.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.zoom-out/215010eb92a634e6e755ee45080418a7003a066e836f265ad1a079c11c3d805b.png",
+    "run": "runs/camera.zoom-out.json"
+  }
+}

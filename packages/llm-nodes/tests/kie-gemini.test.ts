@@ -1149,28 +1149,28 @@ describe("Node defaults coverage", () => {
     const node = new GroundedSearchNode();
     const d = node.serialize();
     expect(d.query).toBe("");
-    expect(d.model).toBe("gemini-3.5-flash");
+    expect(d.model).toMatchObject({ id: "gemini-3.5-flash" });
   });
 
   it("EmbeddingNode defaults", () => {
     const node = new EmbeddingNode();
     const d = node.serialize();
     expect(d.input).toBe("");
-    expect(d.model).toBe("gemini-embedding-2");
+    expect(d.model).toMatchObject({ id: "gemini-embedding-2" });
   });
 
   it("ImageGenerationNode defaults", () => {
     const node = new ImageGenerationNode();
     const d = node.serialize();
     expect(d.prompt).toBe("");
-    expect(d.model).toBe("gemini-3.1-flash-image");
+    expect(d.model).toMatchObject({ id: "gemini-3.1-flash-image" });
   });
 
   it("TextToVideoGeminiNode defaults", () => {
     const node = new TextToVideoGeminiNode();
     const d = node.serialize();
     expect(d.prompt).toBe("");
-    expect(d.model).toBe("veo-3.1-generate-preview");
+    expect(d.model).toMatchObject({ id: "veo-3.1-generate-preview" });
     expect(d.aspect_ratio).toBe("16:9");
     expect(d.negative_prompt).toBe("");
   });
@@ -1179,14 +1179,14 @@ describe("Node defaults coverage", () => {
     const node = new ImageToVideoGeminiNode();
     const d = node.serialize();
     expect(d.prompt).toBe("");
-    expect(d.model).toBe("veo-3.1-generate-preview");
+    expect(d.model).toMatchObject({ id: "veo-3.1-generate-preview" });
   });
 
   it("TextToSpeechGeminiNode defaults", () => {
     const node = new TextToSpeechGeminiNode();
     const d = node.serialize();
     expect(d.text).toBe("");
-    expect(d.model).toBe("gemini-3.8-flash-tts");
+    expect(d.model).toMatchObject({ id: "gemini-3.8-flash-tts" });
     expect(d.voice_name).toBe("kore");
     expect(d.style_prompt).toBe("");
   });
@@ -1194,7 +1194,7 @@ describe("Node defaults coverage", () => {
   it("TranscribeGeminiNode defaults", () => {
     const node = new TranscribeGeminiNode();
     const d = node.serialize();
-    expect(d.model).toBe("gemini-3.5-flash");
+    expect(d.model).toMatchObject({ id: "gemini-3.5-flash" });
   });
 
   it("TextToSpeechGeminiNode throws when no parts", async () => {
