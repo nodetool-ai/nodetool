@@ -38,15 +38,6 @@ interface _RepoState {
 // Default cache directory
 // ---------------------------------------------------------------------------
 
-/**
- * Return the default Hugging Face Hub cache directory. Delegates to
- * `getHfHubCacheDir` in `@nodetool-ai/config`, the one resolver every reader
- * and writer of the hub cache shares.
- */
-export function getDefaultHfCacheDir(): string {
-  return getHfHubCacheDir();
-}
-
 // ---------------------------------------------------------------------------
 // HfFastCache
 // ---------------------------------------------------------------------------
@@ -65,7 +56,7 @@ export class HfFastCache {
   private _repos: Map<string, _RepoState> = new Map();
 
   constructor(cacheDir?: string | null) {
-    this.cacheDir = cacheDir ?? getDefaultHfCacheDir();
+    this.cacheDir = cacheDir ?? getHfHubCacheDir();
   }
 
   // -----------------------------------------------------------------------
