@@ -402,7 +402,7 @@ export function describeComfyError(err: unknown): Error {
   return err;
 }
 
-function jobFailure(job: ComfyJob): Error {
+export function jobFailure(job: ComfyJob): Error {
   const error = job.error;
   if (!error) {
     return new Error(`Comfy job ${job.id} failed`);
@@ -427,7 +427,7 @@ export function outputKind(output: Pick<ComfyOutput, "type" | "contentType">): s
 }
 
 /** Map one finished output onto its dynamic slot name and frame value. */
-async function outputFrame(
+export async function outputFrame(
   output: ComfyOutput,
   signal: AbortSignal
 ): Promise<Record<string, unknown>> {

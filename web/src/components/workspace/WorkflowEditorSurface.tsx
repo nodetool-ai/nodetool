@@ -72,6 +72,8 @@ import { useBrowserPreviewsOnLoad } from "../../hooks/nodes/useBrowserPreviewsOn
 import WorkflowGraphPreview from "../version/WorkflowGraphPreview";
 import { WorkflowLandingChecklist } from "../setup/workflow/WorkflowLandingChecklist";
 import WorkflowDocumentBar from "./WorkflowDocumentBar";
+import { COMFY_RUN_MODE } from "@nodetool-ai/protocol";
+import { useComfyNodeMetadata } from "../../serverState/useComfyNodeMetadata";
 import { WithDocumentBar } from "./documentBarParts";
 
 // Floating editor status message: sits above the canvas and node overlays but
@@ -112,6 +114,20 @@ const WorkflowEditorSurface = ({
     state.getNodeStore(workflowId)
   );
   const workflow = useWorkflowManager((state) => state.getWorkflow(workflowId));
+  // A Comfy workflow edits ComfyUI node classes; load Comfy Cloud's catalog.
+  const comfyCatalog = useComfyNodeMetadata(
+    workflow?.run_mode === COMFY_RUN_MODE
+  );
+  const comfyCatalogError =
+    comfyCatalog.status === "error" ? comfyCatalog.error : null;
+  useEffect(() => {
+    if (!comfyCatalogError) return;
+    useNotificationStore.getState().addNotification({
+      type: "error",
+      alert: true,
+      content: `Comfy nodes could not load: ${comfyCatalogError}`
+    });
+  }, [comfyCatalogError]);
   useBrowserPreviewsOnLoad(nodeStore, active && mode !== "view");
   const fetchWorkflow = useWorkflowManager((state) => state.fetchWorkflow);
   const createWorkflow = useWorkflowManager((state) => state.create);
