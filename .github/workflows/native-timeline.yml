@@ -255,6 +255,23 @@ jobs:
           grep -A1 "Adapter [0-9]*: 'Microsoft Basic Render Driver'" "$RUNNER_TEMP/render.log" | grep "using this adapter" > /dev/null ||
             { echo "::error::the render tests did not run on WARP"; exit 1; }
 
+      - name: Diagnose macOS entity panel crash
+        if: failure() && runner.os == 'macOS'
+        continue-on-error: true
+        timeout-minutes: 3
+        env:
+          QT_QPA_PLATFORM: offscreen
+          QT_QUICK_BACKEND: software
+        run: |
+          failed=native/timeline/build-ci/Testing/Temporary/LastTestsFailed.log
+          if [[ ! -f "$failed" ]] || ! grep -q ':tst_entitypanel$' "$failed"; then
+            exit 0
+          fi
+          # Run the whole fixture to preserve the state preceding the crash.
+          export XDG_CONFIG_HOME="$(mktemp -d "$RUNNER_TEMP/entitypanel-config.XXXXXX")"
+          xcrun lldb --batch -o run -k 'thread backtrace all' \
+            -- native/timeline/build-ci/tst_entitypanel
+
       - name: Diagnose Linux matte crash
         if: failure() && runner.os == 'Linux'
         continue-on-error: true
