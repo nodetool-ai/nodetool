@@ -275,10 +275,29 @@ private slots:
     void clickedClipScope() {
         QFETCH(QString, action);
         if (action == "linkClips") { patch("c", {{"linkId", "pair"}}); patch("s", {{"linkId", "pair"}}); }
-        const auto other = clip("e");
+        const auto before = doc();
+        const auto unselected = clip("d");
+        auto other = clip("e");
         gestures()->setSelection({"c", "e"});
         popup("clip", "clip-c"); trigger("clipMenu-" + action);
+        // 43499b8e26 made a selected clip's menu act on the whole selection.
+        if (action == "splitAtPlayhead" || action == "deleteSelected") {
+            other = {};
+        } else if (action == "applyDefaultTransition") {
+            other.insert("transitionIn", QJsonObject{{"type", "crossfade"}, {"durationMs", 500}});
+        } else if (action == "toggleClipEnabled") {
+            other.insert("hidden", true);
+            other.insert("muted", true);
+        } else if (action == "linkClips") {
+            const auto link = clip("c").value("linkId").toString();
+            QVERIFY(!link.isEmpty());
+            QVERIFY(link != "pair");
+            other.insert("linkId", link);
+        }
         QCOMPARE(clip("e"), other); QCOMPARE(model.undoStack()->count(), 1);
+        QCOMPARE(clip("d"), unselected);
+        model.undoStack()->undo();
+        QCOMPARE(doc(), before);
     }
     void deleteWithRippleMode_data() {
         QTest::addColumn<bool>("contextMenu");
