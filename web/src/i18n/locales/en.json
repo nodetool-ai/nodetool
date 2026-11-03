@@ -3223,7 +3223,11 @@
         "resolution": "Resolution",
         "stillDescription": "Choose the model for this shot's still. The shot will keep your choice for its next render.",
         "stillModel": "Still model",
-        "stillRequired": "This shot animates its still. Render a still first, or set the shot to render directly from its prompt."
+        "stillRequired": "This shot animates its still. Render a still first, or set the shot to render directly from its prompt.",
+        "comfyWorkflow": {
+          "note": "Runs the open-weights Wan 2.2 TI2V 5B ComfyUI workflow on Comfy Cloud: core ComfyUI nodes, about 90 seconds per 5-second take. Camera presets guide the prompt; they are not geometric camera control.",
+          "open": "Open ComfyUI workflow"
+        }
       },
       "takesGallery": {
         "clips": "Clips",

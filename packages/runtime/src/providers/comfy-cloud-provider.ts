@@ -19,6 +19,11 @@
  */
 
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
+import {
+  COMFY_WAN22_TI2V_MODEL_ID,
+  isComfyWorkflowModel,
+  runWan22Workflow
+} from "./comfy-workflow-models.js";
 import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import {
   ComfyRouterClient,
@@ -248,6 +253,16 @@ export class ComfyCloudProvider extends BaseProvider {
     return { COMFY_API_KEY: this.apiKey };
   }
 
+  private requireApiKey(): string {
+    const apiKey = this.apiKey.trim();
+    if (!apiKey) {
+      throw new Error(
+        "COMFY_API_KEY is required for Comfy models. Add it in Settings; get a key at https://platform.comfy.org."
+      );
+    }
+    return apiKey;
+  }
+
   /** Split out so tests can inject a client with a fake `fetch`. */
   protected createRouter(): ComfyRouterClient {
     const apiKey = this.apiKey.trim();
@@ -296,12 +311,19 @@ export class ComfyCloudProvider extends BaseProvider {
   }
 
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
-    return (await this.entries("video")).map((entry) => ({
+    const workflowModel: VideoModel = {
+      id: COMFY_WAN22_TI2V_MODEL_ID,
+      name: "Wan 2.2 TI2V 5B (ComfyUI workflow, open weights)",
+      provider: PROVIDER_IDS.COMFY_CLOUD,
+      supportedTasks: ["image_to_video"]
+    };
+    const router = (await this.entries("video")).map((entry) => ({
       id: entry.id,
       name: routerModelName(entry.id),
       provider: PROVIDER_IDS.COMFY_CLOUD,
       supportedTasks: [...entry.tasks]
     }));
+    return [workflowModel, ...router];
   }
 
   override async getAvailableTTSModels(): Promise<TTSModel[]> {
@@ -530,6 +552,20 @@ export class ComfyCloudProvider extends BaseProvider {
 
   override async imageToVideo(image: Uint8Array, params: ImageToVideoParams): Promise<Uint8Array> {
     const modelId = params.model.id;
+    if (isComfyWorkflowModel(modelId)) {
+      // The pinned ComfyUI graph, not a Comfy Router model.
+      return runWan22Workflow({
+        apiKey: this.requireApiKey(),
+        image,
+        imageMime: sniffMime(image, "image/png"),
+        prompt: params.prompt ?? "",
+        seed: params.seed,
+        durationSeconds: params.durationSeconds,
+        aspectRatio: params.aspectRatio,
+        timeoutSeconds: params.timeoutSeconds,
+        signal: params.signal
+      });
+    }
     const b = await this.builder(modelId, params.signal);
     this.setCommon(b, params);
     this.setVideoTiming(b, params.durationSeconds, params.numFrames);

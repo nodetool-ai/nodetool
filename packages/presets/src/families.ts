@@ -25,6 +25,8 @@ export type ModelFamily = (typeof MODEL_FAMILIES)[number];
 const FAMILY_PATTERNS: ReadonlyArray<readonly [ModelFamily, RegExp]> = [
   ["local-wan", MODEL_LINE_PATTERNS.localWan],
   ["local-wan", /^local-wan(?:[/:]|$)/],
+  // The pinned Wan 2.2 TI2V 5B ComfyUI graph runs the same weights as Wan2GP's `ti2v_2_2`.
+  ["local-wan", /^comfyui-workflow\/wan2\.2-ti2v-5b$/],
   ["kling", MODEL_LINE_PATTERNS.kling],
   ["seedance", MODEL_LINE_PATTERNS.seedance],
   ["veo", MODEL_LINE_PATTERNS.veo],

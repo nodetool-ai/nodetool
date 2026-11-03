@@ -42,6 +42,10 @@ it("reserves explicit default and local-wan selectors", () => {
   expect(modelFamily("local-wan")).not.toBe("wan");
   expect(modelFamily("default-model")).toBeNull();
 });
+it("maps the pinned Wan 2.2 ComfyUI workflow model to local-wan", () => {
+  expect(modelFamily("comfyui-workflow/wan2.2-ti2v-5b")).toBe("local-wan");
+  expect(modelFamily("comfyui-workflow/other-graph")).toBeNull();
+});
 
 it.each([
   [

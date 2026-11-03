@@ -3223,7 +3223,11 @@
         "resolution": "Resoluutio",
         "stillDescription": "Valitse malli tämän otoksen pysäytyskuvalle. Otos säilyttää valintasi seuraavaa renderöintiä varten.",
         "stillModel": "Pysäytyskuvamalli",
-        "stillRequired": "Tämä otos animoi pysäytyskuvansa. Renderöi ensin pysäytyskuva tai aseta otos renderöitymään suoraan kehotteestaan."
+        "stillRequired": "Tämä otos animoi pysäytyskuvansa. Renderöi ensin pysäytyskuva tai aseta otos renderöitymään suoraan kehotteestaan.",
+        "comfyWorkflow": {
+          "note": "Ajaa avoimien painojen Wan 2.2 TI2V 5B -ComfyUI-työnkulun Comfy Cloudissa: vain ComfyUI:n ydinsolmut, noin 90 sekuntia 5 sekunnin ottoa kohden. Kameraesiasetukset ohjaavat kehotetta, ne eivät ole geometristä kameran ohjausta.",
+          "open": "Avaa ComfyUI-työnkulku"
+        }
       },
       "takesGallery": {
         "clips": "Leikkeet",

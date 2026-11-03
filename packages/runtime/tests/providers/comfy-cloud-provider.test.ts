@@ -142,6 +142,8 @@ describe("ComfyCloudProvider — catalog", () => {
     expect((await p.getAvailableImageModels()).map((m) => m.id)).toEqual(["bfl/flux-2-pro"]);
     const video = await p.getAvailableVideoModels();
     expect(video).toEqual([
+      // The pinned ComfyUI workflow is not a Router model, so the listing never filters it.
+      expect.objectContaining({ id: "comfyui-workflow/wan2.2-ti2v-5b", supportedTasks: ["image_to_video"] }),
       expect.objectContaining({ id: "veo/veo-3.1-generate-001", provider: "comfy_cloud", supportedTasks: ["text_to_video", "image_to_video"] })
     ]);
     expect((await p.getAvailableTTSModels()).map((m) => m.id)).toEqual(["elevenlabs/eleven_v3"]);
@@ -155,7 +157,7 @@ describe("ComfyCloudProvider — catalog", () => {
     const p = new TestProvider(failing);
     const ids = (await p.getAvailableVideoModels()).map((m) => m.id);
     expect(ids).toContain("veo/veo-3.1-generate-001");
-    expect(ids.length).toBe(COMFY_ROUTER_CATALOG.filter((e) => e.kind === "video").length);
+    expect(ids.length).toBe(COMFY_ROUTER_CATALOG.filter((e) => e.kind === "video").length + 1);
   });
 
   it("takes each model's tasks from its schema modalities", () => {
