@@ -4,7 +4,8 @@
  * challenge on an unauthenticated `/mcp` request, the full
  * register → authorize → approve → token → authenticated-`/mcp` flow, the
  * `nta_` audience restriction to `/mcp` only, `ntk_` continuing to work
- * alongside it, and `NODETOOL_DISABLE_MCP_OAUTH` turning all of it off.
+ * alongside it, `NODETOOL_DISABLE_MCP_OAUTH` turning all of it off, and the
+ * Client ID Metadata Documents that claude.ai and Claude Code publish.
  *
  * `server.ts` is a bootstrapping entry point (opens a database connection,
  * binds a port on import) and cannot be imported into a test — the same
@@ -19,7 +20,7 @@
  * Run with:
  *   npm run test --workspace=packages/websocket -- mcp-oauth-integration
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import Fastify, { type FastifyInstance } from "fastify";
 import { createHash, randomBytes } from "node:crypto";
 import {
@@ -39,6 +40,35 @@ import { handleMcpHttpRequest } from "../src/mcp-server.js";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
+
+// Claude's Client ID Metadata Documents, verbatim as claude.ai serves them.
+// Claude picks CIMD over DCR because the AS metadata advertises both
+// `client_id_metadata_document_supported` and the `none` auth method.
+const CLAUDE_CIMD_URL = "https://claude.ai/oauth/mcp-oauth-client-metadata";
+const CLAUDE_CODE_CIMD_URL = "https://claude.ai/oauth/claude-code-client-metadata";
+const CLAUDE_CLIENT_DOCUMENTS: Record<string, string> = {
+  [CLAUDE_CIMD_URL]:
+    '{"client_id":"https://claude.ai/oauth/mcp-oauth-client-metadata","client_name":"Claude","client_uri":"https://claude.ai","redirect_uris":["https://claude.ai/api/mcp/auth_callback"],"grant_types":["authorization_code","refresh_token","urn:ietf:params:oauth:grant-type:jwt-bearer"],"response_types":["code"],"token_endpoint_auth_method":"none"}',
+  [CLAUDE_CODE_CIMD_URL]:
+    '{"client_id":"https://claude.ai/oauth/claude-code-client-metadata","client_name":"Claude Code","client_uri":"https://claude.ai","redirect_uris":["http://localhost/callback","http://127.0.0.1/callback"],"grant_types":["authorization_code","refresh_token"],"response_types":["code"],"token_endpoint_auth_method":"none"}'
+};
+
+vi.mock("@nodetool-ai/runtime", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@nodetool-ai/runtime")>()),
+  safeFetch: async (url: string): Promise<Response> => {
+    const doc = CLAUDE_CLIENT_DOCUMENTS[url];
+    if (doc === undefined) {
+      throw new Error(`unexpected fetch in test: ${url}`);
+    }
+    return new Response(doc, {
+      status: 200,
+      headers: {
+        "content-type": "application/json",
+        "cache-control": "public, max-age=300"
+      }
+    });
+  }
+}));
 
 const PUBLIC_URL = "https://nodetool.example";
 const createCaller = createCallerFactory(appRouter);
@@ -445,5 +475,143 @@ describe("(e) NODETOOL_DISABLE_MCP_OAUTH=1", () => {
       url: "/oauth/authorize?client_id=ntc_x&redirect_uri=https://client.example/cb&response_type=code&code_challenge=abc&code_challenge_method=S256"
     });
     expect(authorizeRes.statusCode).toBe(404);
+  });
+});
+
+/** Authorize → approve → token as a CIMD client, the path Claude takes. */
+async function connectCimdClient(
+  app: FastifyInstance,
+  input: { clientId: string; redirectUri: string; userId: string }
+): Promise<{ accessToken: string; refreshToken: string }> {
+  const { verifier, challenge } = pkcePair();
+  const authorizeRes = await app.inject({
+    method: "GET",
+    url: `/oauth/authorize?${new URLSearchParams({
+      client_id: input.clientId,
+      redirect_uri: input.redirectUri,
+      response_type: "code",
+      code_challenge: challenge,
+      code_challenge_method: "S256",
+      scope: "mcp",
+      resource: `${PUBLIC_URL}/mcp`,
+      state: "claude-state"
+    }).toString()}`
+  });
+  expect(authorizeRes.statusCode).toBe(302);
+  const consentLocation = new URL(
+    authorizeRes.headers.location as string,
+    "http://localhost"
+  );
+  expect(consentLocation.pathname).toBe("/oauth/consent");
+  const requestId = consentLocation.searchParams.get("request_id")!;
+
+  const caller = createCaller(makeCtx(input.userId));
+  const { redirect_url: approvalRedirect } =
+    await caller.agentAccess.approveOauthRequest({ request_id: requestId });
+  const approvalUrl = new URL(approvalRedirect);
+  expect(approvalUrl.origin + approvalUrl.pathname).toBe(
+    new URL(input.redirectUri).origin + new URL(input.redirectUri).pathname
+  );
+  expect(approvalUrl.searchParams.get("state")).toBe("claude-state");
+  expect(approvalUrl.searchParams.get("iss")).toBe(PUBLIC_URL);
+
+  const tokenRes = await app.inject({
+    method: "POST",
+    url: "/oauth/token",
+    payload: new URLSearchParams({
+      grant_type: "authorization_code",
+      code: approvalUrl.searchParams.get("code")!,
+      client_id: input.clientId,
+      redirect_uri: input.redirectUri,
+      code_verifier: verifier,
+      resource: `${PUBLIC_URL}/mcp`
+    }).toString(),
+    headers: { "content-type": "application/x-www-form-urlencoded" }
+  });
+  expect(tokenRes.statusCode).toBe(200);
+  const body = tokenRes.json();
+  return { accessToken: body.access_token, refreshToken: body.refresh_token };
+}
+
+describe("(f) Claude's published clients", () => {
+  it("advertises what Claude requires before it picks CIMD", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/.well-known/oauth-authorization-server"
+    });
+    const body = res.json();
+    expect(body.client_id_metadata_document_supported).toBe(true);
+    expect(body.token_endpoint_auth_methods_supported).toContain("none");
+    expect(body.code_challenge_methods_supported).toEqual(["S256"]);
+  });
+
+  it("claude.ai connects through its CIMD and calls /mcp", async () => {
+    const app = await buildApp();
+    const { accessToken, refreshToken } = await connectCimdClient(app, {
+      clientId: CLAUDE_CIMD_URL,
+      redirectUri: "https://claude.ai/api/mcp/auth_callback",
+      userId: "user-claude-ai"
+    });
+
+    const mcpRes = await app.inject({
+      method: "POST",
+      url: "/mcp",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+        authorization: `Bearer ${accessToken}`
+      },
+      payload: initializeBody
+    });
+    expect(mcpRes.statusCode).toBe(200);
+    expect(mcpRes.headers["mcp-session-id"]).toBeTruthy();
+
+    // Claude refreshes with the same form encoding and client_id.
+    const refreshRes = await app.inject({
+      method: "POST",
+      url: "/oauth/token",
+      payload: new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: refreshToken,
+        client_id: CLAUDE_CIMD_URL,
+        resource: `${PUBLIC_URL}/mcp`
+      }).toString(),
+      headers: { "content-type": "application/x-www-form-urlencoded" }
+    });
+    expect(refreshRes.statusCode).toBe(200);
+    expect(refreshRes.json().access_token.startsWith("nta_")).toBe(true);
+  });
+
+  it("Claude Code connects on an ephemeral loopback port its CIMD does not name", async () => {
+    const app = await buildApp();
+    for (const redirectUri of [
+      "http://localhost:3118/callback",
+      "http://127.0.0.1:52011/callback"
+    ]) {
+      const { accessToken } = await connectCimdClient(app, {
+        clientId: CLAUDE_CODE_CIMD_URL,
+        redirectUri,
+        userId: "user-claude-code"
+      });
+      expect(accessToken.startsWith("nta_")).toBe(true);
+    }
+  });
+
+  it("refuses a claude.ai redirect the CIMD does not list, in-page", async () => {
+    const app = await buildApp();
+    const { challenge } = pkcePair();
+    const res = await app.inject({
+      method: "GET",
+      url: `/oauth/authorize?${new URLSearchParams({
+        client_id: CLAUDE_CIMD_URL,
+        redirect_uri: "https://evil.example/api/mcp/auth_callback",
+        response_type: "code",
+        code_challenge: challenge,
+        code_challenge_method: "S256"
+      }).toString()}`
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.headers.location).toBeUndefined();
   });
 });

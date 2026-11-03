@@ -6,6 +6,7 @@ import {
 import { buildBearerChallenge } from "../src/oauth/www-authenticate.js";
 import {
   isAllowedRedirectUri,
+  isRegisteredRedirectUri,
   canonicalResource,
   resourceMatches,
   validateScope
@@ -118,6 +119,57 @@ describe("isAllowedRedirectUri", () => {
 
   it("rejects an unparseable URI", () => {
     expect(isAllowedRedirectUri("not a url")).toBe(false);
+  });
+});
+
+describe("isRegisteredRedirectUri", () => {
+  const claudeCode = ["http://localhost/callback", "http://127.0.0.1/callback"];
+
+  it("matches a registered URI exactly", () => {
+    expect(
+      isRegisteredRedirectUri("https://claude.ai/api/mcp/auth_callback", [
+        "https://claude.ai/api/mcp/auth_callback"
+      ])
+    ).toBe(true);
+  });
+
+  it("matches a loopback redirect on any port (RFC 8252 §7.3)", () => {
+    expect(isRegisteredRedirectUri("http://localhost:3118/callback", claudeCode)).toBe(true);
+    expect(isRegisteredRedirectUri("http://127.0.0.1:52011/callback", claudeCode)).toBe(true);
+  });
+
+  it("ignores a registered port too", () => {
+    expect(
+      isRegisteredRedirectUri("http://127.0.0.1:9000/cb", ["http://127.0.0.1:8000/cb"])
+    ).toBe(true);
+  });
+
+  it("does not let a loopback host stand in for the other one", () => {
+    expect(
+      isRegisteredRedirectUri("http://127.0.0.1:3118/callback", ["http://localhost/callback"])
+    ).toBe(false);
+  });
+
+  it("rejects a different loopback path or query", () => {
+    expect(isRegisteredRedirectUri("http://localhost:3118/other", claudeCode)).toBe(false);
+    expect(isRegisteredRedirectUri("http://localhost:3118/callback?x=1", claudeCode)).toBe(false);
+  });
+
+  it("keeps https redirects exact — no port leniency", () => {
+    expect(
+      isRegisteredRedirectUri("https://claude.ai:8443/api/mcp/auth_callback", [
+        "https://claude.ai/api/mcp/auth_callback"
+      ])
+    ).toBe(false);
+  });
+
+  it("rejects a non-loopback http URI even with a matching path", () => {
+    expect(isRegisteredRedirectUri("http://evil.example:3118/callback", claudeCode)).toBe(false);
+  });
+
+  it("rejects loopback URIs carrying credentials or a fragment", () => {
+    expect(isRegisteredRedirectUri("http://u:p@localhost:3118/callback", claudeCode)).toBe(false);
+    expect(isRegisteredRedirectUri("http://localhost:3118/callback#x", claudeCode)).toBe(false);
   });
 });
 
