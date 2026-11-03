@@ -60,20 +60,38 @@ const SHOTS: Shot[] = [
 ];
 
 describe("compileOneTake", () => {
-  it("compiles the board into REFS, STEPS and AUDIO after the creator's prompt", () => {
+  it("compiles the board into REFS and a SHOTS JSON block after the creator's prompt", () => {
     const out = compileOneTake({
       shots: SHOTS,
       oneTake: { prompt: "BRAND: AURELI, slow-roasted coffee." }
     });
 
+    const shots = [
+      {
+        shot: 1,
+        window: "0-5s",
+        action: "Extreme close-up: the cup reaches her lips",
+        motion: "The camera pushes over the rim into the glowing steam",
+        end_state: "the camera inside the drifting steam",
+        sound: "city murmur, a deep breath"
+      },
+      {
+        shot: 2,
+        window: "5-14s",
+        action: "Below, the steam opens onto a dense cloud forest at dawn.",
+        motion: "The camera skims fast and low over the canopy",
+        sound: "wind, wing beats, dripping leaves"
+      },
+      {
+        shot: 3,
+        window: "14-30s",
+        action: "She sets the cup down beside the AURELI pouch",
+        end_state: "exactly the last frame"
+      }
+    ];
     const compiled = [
       "REFS: [Image 1] is the still of Café at 0-5s. [Image 2] is the still of Packshot at 14-30s.",
-      [
-        "STEP_01: 0-5s. Extreme close-up: the cup reaches her lips. The camera pushes over the rim into the glowing steam. End: the camera inside the drifting steam.",
-        "STEP_02: 5-14s. Below, the steam opens onto a dense cloud forest at dawn. The camera skims fast and low over the canopy.",
-        "STEP_03: 14-30s. She sets the cup down beside the AURELI pouch. End: exactly the last frame."
-      ].join("\n"),
-      "AUDIO: <city murmur, a deep breath> at 0-5s · <wind, wing beats, dripping leaves> at 5-14s"
+      `SHOTS:\n${JSON.stringify(shots, null, 2)}`
     ].join("\n\n");
     expect(out.compiled).toBe(compiled);
     expect(out.prompt).toBe(`BRAND: AURELI, slow-roasted coffee.\n\n${compiled}`);
@@ -147,7 +165,7 @@ describe("compileOneTake", () => {
       [2.5, 7],
       [7, 15]
     ]);
-    expect(out.compiled).toContain("STEP_02: 2.5-7s.");
+    expect(out.compiled).toContain('"window": "2.5-7s"');
     expect(out.references[1]?.label).toBe("the still of Packshot at 7-15s");
   });
 
@@ -236,7 +254,7 @@ describe("compileOneTake with entity references", () => {
       oneTake: { prompt: "", reference_source: "entities" }
     });
     expect(out.references).toEqual([]);
-    expect(out.compiled.startsWith("STEP_01")).toBe(true);
+    expect(out.compiled.startsWith("SHOTS:")).toBe(true);
   });
 
   it("keeps sending stills when the board holds entities but the source is stills", () => {
@@ -414,5 +432,69 @@ describe("sceneClipRun", () => {
         ]
       }).success
     ).toBe(false);
+  });
+});
+
+describe("compileOneTake shot JSON", () => {
+  it("sends camera, dialogue and narration and leaves overlay graphics out", () => {
+    const out = compileOneTake({
+      shots: [
+        shot("a", 0, {
+          duration_seconds: 2,
+          action: "A man shouts into a phone",
+          camera: { framing: "close-up", lens: "85mm", movement: "static" },
+          dialogue: "Hello?",
+          narration: "Rush hour.",
+          graphics: {
+            mode: "overlay",
+            elements: [{ id: "t", kind: "text", text: "[Mann telefoniert]" }]
+          }
+        })
+      ],
+      oneTake: { prompt: "" }
+    });
+    const json = JSON.parse(out.compiled.replace(/^SHOTS:\n/, ""));
+    expect(json).toEqual([
+      {
+        shot: 1,
+        window: "0-2s",
+        action: "A man shouts into a phone",
+        camera: { framing: "close-up", lens: "85mm", movement: "static" },
+        dialogue: "Hello?",
+        narration: "Rush hour."
+      }
+    ]);
+    expect(out.compiled).not.toContain("Mann telefoniert");
+  });
+});
+
+describe("compileOneTake lighting and style", () => {
+  it("sends the board style once and each shot's scene lighting", () => {
+    const out = compileOneTake({
+      shots: [
+        shot("a", 0, { duration_seconds: 1, action: "A", scene_id: "s1" }),
+        shot("b", 1, { duration_seconds: 1, action: "B", scene_id: "s2" }),
+        shot("c", 2, { duration_seconds: 1, action: "C" })
+      ],
+      scenes: [
+        { type: "scene", id: "s1", slugline: "INT. METRO", lighting: "cold fluorescent" },
+        { type: "scene", id: "s2", slugline: "EXT. STREET" }
+      ],
+      style: "  brush-inked panels  ",
+      oneTake: { prompt: "" }
+    });
+    expect(out.compiled.startsWith("STYLE: brush-inked panels\n\nSHOTS:")).toBe(true);
+    const json = JSON.parse(out.compiled.slice(out.compiled.indexOf("SHOTS:\n") + 7));
+    expect(json.map((entry: { lighting?: string }) => entry.lighting)).toEqual([
+      "cold fluorescent",
+      undefined,
+      undefined
+    ]);
+    expect(out.compiled.match(/brush-inked/g)).toHaveLength(1);
+  });
+
+  it("drops STYLE when the board has none", () => {
+    const out = compileOneTake({ shots: [shot("a", 0, { action: "A" })], oneTake: { prompt: "" } });
+    expect(out.compiled).not.toContain("STYLE");
   });
 });

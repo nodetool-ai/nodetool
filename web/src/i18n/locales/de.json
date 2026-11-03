@@ -7947,7 +7947,9 @@
           "durationUnavailable": "{{model}} bietet keinen {{duration}}-Clip an. Wähle eine dieser Optionen: {{choices}}.",
           "durationLimit": "Die Aufnahme dauert {{duration}}. Bei einer Einstellung werden höchstens {{limit}} gerendert.",
           "shotRange": "Ein Szenenclip umfasst {{min}} bis {{max}} Einstellungen."
-        }
+        },
+        "playTitle": "Gerenderter Clip",
+        "playLabel": "Szenen-Clip"
       }
     }
   },
@@ -19591,5 +19593,12 @@
     "chooseItem": "Wähle einen Eintrag und dann das Feld mit dem Schlüssel.",
     "noFields": "Dieser Eintrag hat keine Felder.",
     "pickedHelp": "Aus 1Password: {{path}}. NodeTool liest ihn bei jeder Verwendung des Schlüssels."
+  },
+  "timelineSimpleMode": {
+    "modeLabel": "Editormodus",
+    "simple": "Einfach",
+    "expert": "Experte",
+    "canvasSize": "{{width}} × {{height}}",
+    "frameRate": "{{fps}} fps"
   }
 }

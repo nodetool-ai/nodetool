@@ -7947,7 +7947,9 @@
           "durationUnavailable": "{{model}} ei tarjoa {{duration}} pituista leikettä. Valitse jokin seuraavista: {{choices}}.",
           "durationLimit": "Oton kesto on {{duration}}. Yksi otto renderöi enintään {{limit}}.",
           "shotRange": "Kohtausleike kattaa {{min}}–{{max}} otosta."
-        }
+        },
+        "playTitle": "Renderöity klippi",
+        "playLabel": "Kohtauksen klippi"
       }
     }
   },
@@ -19591,5 +19593,12 @@
     "chooseItem": "Valitse kohde ja sitten kenttä, jossa avain on.",
     "noFields": "Tässä kohteessa ei ole kenttiä.",
     "pickedHelp": "1Passwordista: {{path}}. NodeTool lukee sen aina, kun avainta käytetään."
+  },
+  "timelineSimpleMode": {
+    "modeLabel": "Editorin tila",
+    "simple": "Yksinkertainen",
+    "expert": "Asiantuntija",
+    "canvasSize": "{{width}} × {{height}}",
+    "frameRate": "{{fps}} fps"
   }
 }

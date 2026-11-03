@@ -7947,7 +7947,9 @@
         "shot_other": "镜头 {{number}}",
         "shots_other": "{{number}} 个镜头",
         "shot_one": "镜头 {{number}}",
-        "shots_one": "{{number}} 个镜头"
+        "shots_one": "{{number}} 个镜头",
+        "playTitle": "已渲染的片段",
+        "playLabel": "场景片段"
       }
     }
   },
@@ -19591,5 +19593,12 @@
     "chooseItem": "选择一个项目，然后选择存放密钥的字段。",
     "noFields": "此项目没有字段。",
     "pickedHelp": "来自 1Password：{{path}}。每次使用密钥时 NodeTool 都会读取它。"
+  },
+  "timelineSimpleMode": {
+    "modeLabel": "编辑器模式",
+    "simple": "简单",
+    "expert": "专家",
+    "canvasSize": "{{width}} × {{height}}",
+    "frameRate": "{{fps}} 帧/秒"
   }
 }

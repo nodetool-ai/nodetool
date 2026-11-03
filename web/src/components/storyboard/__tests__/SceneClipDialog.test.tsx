@@ -40,6 +40,12 @@ jest.mock("../../properties/VideoModelSelect", () => ({
   default: () => <div data-testid="video-model-select" />
 }));
 
+jest.mock("../../ui_primitives/VideoPlayer", () => ({
+  __esModule: true,
+  VideoPlayer: () => <div data-testid="video-player" />,
+  default: () => <div data-testid="video-player" />
+}));
+
 import SceneClipDialog from "../SceneClipDialog";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import { useLastModelStore } from "../../../stores/lastModelStore";
@@ -79,7 +85,10 @@ const seed = (): void => {
   shots.forEach((shot) => store.upsertShot(BOARD, shot));
 };
 
-const renderDialog = (onClose = jest.fn()) =>
+const renderDialog = (
+  onClose = jest.fn(),
+  props: Partial<React.ComponentProps<typeof SceneClipDialog>> = {}
+) =>
   render(
     <QueryClientProvider client={new QueryClient()}>
       <ThemeProvider theme={mockTheme}>
@@ -89,6 +98,7 @@ const renderDialog = (onClose = jest.fn()) =>
           clip={draft}
           saved={false}
           onClose={onClose}
+          {...props}
         />
       </ThemeProvider>
     </QueryClientProvider>
@@ -173,5 +183,45 @@ describe("SceneClipDialog", () => {
     expect(screen.getByTestId("scene-clip-summary")).toHaveTextContent(
       "1 of 9 images"
     );
+  });
+
+  describe("rendered clip", () => {
+    const saved: SceneClipDirection = {
+      id: "clip-saved",
+      prompt: "",
+      shot_ids: ["s1", "s2", "s3"]
+    };
+    const rendered: Shot[] = shots.map((shot, index) => {
+      if (index === 0) {
+        return {
+          ...shot,
+          clip: { type: "video", uri: "asset://clip-1", asset_id: "clip-1" }
+        };
+      }
+      return index < 3
+        ? { ...shot, covered_by: { shot_id: "s1", start_seconds: index * 2, end_seconds: index * 2 + 2 } }
+        : shot;
+    });
+
+    it("plays the clip of a saved run that has rendered", () => {
+      renderDialog(jest.fn(), { sceneShots: rendered, clip: saved, saved: true });
+      expect(screen.getByTestId("scene-clip-player")).toBeInTheDocument();
+    });
+
+    it("shows no player for a new draft", () => {
+      renderDialog(jest.fn(), { sceneShots: rendered });
+      expect(screen.queryByTestId("scene-clip-player")).not.toBeInTheDocument();
+    });
+
+    it("shows no player before the run has a clip", () => {
+      renderDialog(jest.fn(), { clip: saved, saved: true });
+      expect(screen.queryByTestId("scene-clip-player")).not.toBeInTheDocument();
+    });
+
+    it("hides the player once the run changes", async () => {
+      renderDialog(jest.fn(), { sceneShots: rendered, clip: saved, saved: true });
+      await pick("Length", "2 shots");
+      expect(screen.queryByTestId("scene-clip-player")).not.toBeInTheDocument();
+    });
   });
 });

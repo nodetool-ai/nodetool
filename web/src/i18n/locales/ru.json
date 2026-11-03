@@ -8197,7 +8197,9 @@
           "durationUnavailable": "{{model}} не поддерживает клип длительностью {{duration}}. Выберите одно из значений: {{choices}}.",
           "durationLimit": "Длительность дубля — {{duration}}. «Один дубль» рендерит не более {{limit}}.",
           "shotRange": "Клип сцены охватывает от {{min}} до {{max}} планов."
-        }
+        },
+        "playTitle": "Отрендеренный клип",
+        "playLabel": "Клип сцены"
       }
     }
   },
@@ -20211,5 +20213,12 @@
     "chooseItem": "Выберите элемент, затем поле с ключом.",
     "noFields": "У этого элемента нет полей.",
     "pickedHelp": "Из 1Password: {{path}}. NodeTool считывает его при каждом использовании ключа."
+  },
+  "timelineSimpleMode": {
+    "modeLabel": "Режим редактора",
+    "simple": "Простой",
+    "expert": "Эксперт",
+    "canvasSize": "{{width}} × {{height}}",
+    "frameRate": "{{fps}} к/с"
   }
 }

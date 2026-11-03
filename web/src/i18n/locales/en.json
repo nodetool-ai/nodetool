@@ -7947,7 +7947,9 @@
           "durationUnavailable": "{{model}} does not offer a {{duration}} clip. Pick one of {{choices}}.",
           "durationLimit": "The take runs {{duration}}. One take renders at most {{limit}}.",
           "shotRange": "A scene clip covers {{min}} to {{max}} shots."
-        }
+        },
+        "playTitle": "Rendered clip",
+        "playLabel": "Scene clip"
       }
     }
   },
@@ -19591,5 +19593,12 @@
     "chooseItem": "Choose an item, then the field that holds the key.",
     "noFields": "This item has no fields.",
     "pickedHelp": "From 1Password: {{path}}. NodeTool reads it each time the key is used."
+  },
+  "timelineSimpleMode": {
+    "modeLabel": "Editor mode",
+    "simple": "Simple",
+    "expert": "Expert",
+    "canvasSize": "{{width}} × {{height}}",
+    "frameRate": "{{fps}} fps"
   }
 }

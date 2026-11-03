@@ -132,7 +132,14 @@ describe("useRenderSceneClip", () => {
       [
         "One move from the door to the window.",
         "REFS: [Image 1] is the still of shot 2 at 0-3s. [Image 2] is the still of shot 3 at 3-7s.",
-        "STEP_01: 0-3s. beat 2.\nSTEP_02: 3-7s. beat 3."
+        `SHOTS:\n${JSON.stringify(
+          [
+            { shot: 1, window: "0-3s", action: "beat 2" },
+            { shot: 2, window: "3-7s", action: "beat 3" }
+          ],
+          null,
+          2
+        )}`
       ].join("\n\n")
     );
     // The job runs as the run's first shot's clip.
