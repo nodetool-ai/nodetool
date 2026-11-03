@@ -73,12 +73,21 @@ double sourceRateOf(const Clip& clip) {
 class ClipVolumeEnvelope final : public ParameterSource {
 public:
     ClipVolumeEnvelope(const scene::SideCurves::Curve& curve, double startMs, double durationMs) {
-        // A hold still has to arrive somewhere, so its step takes this long.
-        constexpr double kHoldRampMs = 5;
         constexpr double kMaxStepMs = 10;
         constexpr double kMaxStepDb = 0.25;
         constexpr double kMaxStepsPerSegment = 65536;
-        const auto add = [&](double t, double db) { m_points.push_back({startMs + t * durationMs, std::pow(10.0, db / 20.0)}); };
+        // However close the keys, a change this size takes 5 ms per 40 dB. It moves later keys
+        // along if it has to, since the level has to arrive before the next one leaves.
+        constexpr double kMaxDbPerMs = 8;
+        double lastMs = 0;
+        double lastDb = 0;
+        const auto add = [&](double t, double db) {
+            const double wanted = startMs + t * durationMs;
+            const double timeMs = m_points.empty() ? wanted : std::max(wanted, lastMs + std::abs(db - lastDb) / kMaxDbPerMs);
+            m_points.push_back({timeMs, std::pow(10.0, db / 20.0)});
+            lastMs = timeMs;
+            lastDb = db;
+        };
         const auto& points = curve.points;
         add(points.front().t, points.front().value);
         for (std::size_t i = 1; i < points.size(); ++i) {
@@ -86,23 +95,22 @@ public:
             const auto& to = points[i];
             const double spanMs = (to.t - from.t) * durationMs;
             if (spanMs <= 0 || to.value == from.value) {
-                if (spanMs > 0) add(to.t, to.value);
-                continue;
-            }
-            if (to.easing == "hold") {
-                const double rampT = std::min(kHoldRampMs, spanMs) / durationMs;
-                add(to.t - rampT, from.value);
                 add(to.t, to.value);
-                continue;
-            }
-            const bool straight = to.easing.empty() || to.easing == "linear";
-            const double byTime = std::ceil(spanMs / kMaxStepMs);
-            const double byLevel = std::ceil(std::abs(to.value - from.value) / kMaxStepDb);
-            const int steps = static_cast<int>(std::clamp(straight ? std::min(byTime, byLevel) : byTime, 1.0, kMaxStepsPerSegment));
-            const std::string easing = straight ? std::string("linear") : to.easing;
-            for (int step = 1; step <= steps; ++step) {
-                const double f = static_cast<double>(step) / steps;
-                add(from.t + (to.t - from.t) * f, from.value + (to.value - from.value) * scene::ease(easing, f));
+            } else if (to.easing == "hold") {
+                // Holds until the ramp that arrives at the key has to start.
+                const double rampMs = std::abs(to.value - from.value) / kMaxDbPerMs;
+                add(std::max(from.t, to.t - rampMs / durationMs), from.value);
+                add(to.t, to.value);
+            } else {
+                const bool straight = to.easing.empty() || to.easing == "linear";
+                const double byTime = std::ceil(spanMs / kMaxStepMs);
+                const double byLevel = std::ceil(std::abs(to.value - from.value) / kMaxStepDb);
+                const int steps = static_cast<int>(std::clamp(straight ? std::min(byTime, byLevel) : byTime, 1.0, kMaxStepsPerSegment));
+                const std::string easing = straight ? std::string("linear") : to.easing;
+                for (int step = 1; step <= steps; ++step) {
+                    const double f = static_cast<double>(step) / steps;
+                    add(from.t + (to.t - from.t) * f, from.value + (to.value - from.value) * scene::ease(easing, f));
+                }
             }
         }
     }

@@ -211,7 +211,8 @@ double curveValueAtT(const std::vector<QJsonObject>& keyframes, double t) {
     return last.value(u"value").toDouble();
 }
 
-QJsonObject sliceKeyframeAnimation(const QJsonObject& animation, double fromT, double toT, double durationMs) {
+QJsonObject sliceKeyframeAnimation(const QJsonObject& animation, double fromT, double toT, double durationMs,
+                                   double tEpsilon = T_EPSILON) {
     const double span = toT - fromT;
     QJsonObject next = animation;
     next.insert(QStringLiteral("durationMs"), durationMs);
@@ -239,12 +240,12 @@ QJsonObject sliceKeyframeAnimation(const QJsonObject& animation, double fromT, d
             {{QStringLiteral("t"), fromT}, {QStringLiteral("value"), curveValueAtT(sorted, fromT)}}};
         for (const auto& keyframe : sorted) {
             const double t = keyframe.value(u"t").toDouble();
-            if (t > fromT + T_EPSILON && t < toT - T_EPSILON) {
+            if (t > fromT + tEpsilon && t < toT - tEpsilon) {
                 sliced.push_back(keyframe);
             }
         }
-        const auto tailSource = std::find_if(sorted.begin(), sorted.end(), [toT](const QJsonObject& keyframe) {
-            return keyframe.value(u"t").toDouble() >= toT - T_EPSILON;
+        const auto tailSource = std::find_if(sorted.begin(), sorted.end(), [toT, tEpsilon](const QJsonObject& keyframe) {
+            return keyframe.value(u"t").toDouble() >= toT - tEpsilon;
         });
         QJsonObject tail{{QStringLiteral("t"), toT}, {QStringLiteral("value"), curveValueAtT(sorted, toT)}};
         if (tailSource != sorted.end() && !tailSource->value(u"easing").isUndefined()) {
@@ -331,8 +332,11 @@ std::pair<QJsonArray, QJsonArray> splitAnimations(const QJsonArray& animations, 
         } else if (isKeyframeAnimation(anim) || scene::isSideCurveAnimation(anim)) {
             const double totalMs = source.leftDurationMs + source.rightDurationMs;
             const double cutT = totalMs > 0 ? splitMs / totalMs : 0;
-            left.append(sliceKeyframeAnimation(anim, 0, cutT, source.leftDurationMs));
-            QJsonObject r = sliceKeyframeAnimation(anim, cutT, 1, source.rightDurationMs);
+            // The keyframe animation follows the web's tolerance, which on a long clip takes in
+            // nearby keys. Side curves are native's alone, so they keep any key half a millisecond away.
+            const double tolerance = scene::isSideCurveAnimation(anim) && totalMs > 0 ? 0.5 / totalMs : T_EPSILON;
+            left.append(sliceKeyframeAnimation(anim, 0, cutT, source.leftDurationMs, tolerance));
+            QJsonObject r = sliceKeyframeAnimation(anim, cutT, 1, source.rightDurationMs, tolerance);
             r.insert(QStringLiteral("id"), newId());
             right.append(r);
         } else if (role == u"in") {

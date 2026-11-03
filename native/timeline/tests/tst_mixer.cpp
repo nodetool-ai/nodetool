@@ -444,11 +444,41 @@ private slots:
         for (std::size_t i = 2; i + 2 < out.size(); i += 2) {
             largest = std::max(largest, std::abs(static_cast<double>(out[i]) - out[i - 2]));
         }
-        // 40 dB moves a 0.5 level by 0.495. Over the shortest ramp, 5 ms or 240 frames, a step is about 0.002.
+        // 40 dB moves a 0.5 level by 0.495. Over the ramp, 5 ms or 240 frames, a step is about 0.002.
         QVERIFY2(largest < 0.0035, qPrintable(QString::number(largest)));
         // The keys were reached.
         QCOMPARE_LE(std::abs(out[0] - 0.5), 1e-4);
         QCOMPARE_LE(std::abs(out[48000] - 0.5 * db(-40)), 1e-3);
+    }
+    // Two keys at one instant: the later value wins, after a ramp.
+    void keyedVolumeRepeatedTime() {
+        Timeline tl;
+        tl.tracks = {track("a", TrackType::Audio)};
+        tl.clips = {keyedClip("c", "a", 1000.0, 0.0, {key(0, -40), key(0.5, -40), key(0.5, 0), key(1, 0)})};
+        tl.durationMs = 1000.0;
+        const auto plan = buildMixPlan(tl);
+        const auto pcm = steady(48000);
+        const auto out = mix(plan, pcm, 0.0, 48000);
+        QCOMPARE_LE(std::abs(out[2 * 12000] - 0.5 * db(-40)), 1e-4);
+        QCOMPARE_LE(std::abs(out[2 * 36000] - 0.5), 1e-4);
+        double largest = 0;
+        for (std::size_t i = 2; i + 2 < out.size(); i += 2) { largest = std::max(largest, std::abs(static_cast<double>(out[i]) - out[i - 2])); }
+        QVERIFY2(largest < 0.0035, qPrintable(QString::number(largest)));
+    }
+    // A hold between keys far closer together than the ramp still ramps.
+    void keyedVolumeCloseHoldKeys() {
+        Timeline tl;
+        tl.tracks = {track("a", TrackType::Audio)};
+        tl.clips = {keyedClip("c", "a", 1000.0, 0.0, {key(0, 0), key(0.5, 0), key(0.50001, -40, "hold"), key(1, -40)})};
+        tl.durationMs = 1000.0;
+        const auto plan = buildMixPlan(tl);
+        const auto pcm = steady(48000);
+        const auto out = mix(plan, pcm, 0.0, 48000);
+        QCOMPARE_LE(std::abs(out[2 * 12000] - 0.5), 1e-4);
+        QCOMPARE_LE(std::abs(out[2 * 36000] - 0.5 * db(-40)), 1e-4);
+        double largest = 0;
+        for (std::size_t i = 2; i + 2 < out.size(); i += 2) { largest = std::max(largest, std::abs(static_cast<double>(out[i]) - out[i - 2])); }
+        QVERIFY2(largest < 0.0035, qPrintable(QString::number(largest)));
     }
     // The same plan in any block size, as the device and the export ask for it.
     void keyedVolumeIgnoresBlockSize() {

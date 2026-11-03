@@ -193,6 +193,7 @@ results rather than a review finding.
 | B199 | P2 | inspector-2 Astra | `qml/Inspector/primitives/InspectorRow.qml:30` | At Effect Controls' narrowest list width, about 145 px, a fade row's input and shape selector together are wider than the column, and the input clips on the left. They should wrap or shrink. | inspector-2 |
 | B202 | P2 | notes (keys-1) | `src/edit/keyframes/Keyframes.cpp` | An unset Perspective draws flat but its row shows 1000, as the old field did. Keying it on a turned clip therefore starts a perspective at 1000 instead of keeping the flat picture. | keys-1 |
 | B203 | P2 | notes (keys-2) | `qml/effectcontrols/EffectControlsModel.js` | A video clip with its own sound has no Volume group in Effect Controls, so its level and keys cannot be set there. The mixer already applies Volume keys to its voices, and Paste Attributes can bring them. | keys-2 |
+| B204 | P2 | keys-2 r1 | `src/edit/ClipOps.cpp`, `src/edit/keyframes/Keyframes.cpp` | Keyframe times use a tolerance of 1e-4 of the clip, as the web does. On a 10-minute clip that is 60 ms, so a split can take in a key near the cut on the keyframe animation, and adding a key near another replaces it on any curve. Side curves keep keys near a cut. | keys-2 |
 
 ## Closed
 
