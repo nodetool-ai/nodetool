@@ -18,7 +18,6 @@ Rectangle {
     Canvas {
         id: scale
         anchors.fill: parent
-        renderStrategy: Canvas.Cooperative
         onWidthChanged: requestPaint()
         onHeightChanged: requestPaint()
         onPaint: {

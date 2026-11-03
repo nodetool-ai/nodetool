@@ -96,7 +96,6 @@ Column {
             id: ring
             anchors.fill: parent
             opacity: root.disabled ? 0.4 : 1
-            renderStrategy: Canvas.Cooperative
             onWidthChanged: requestPaint()
             onHeightChanged: requestPaint()
             onPaint: {

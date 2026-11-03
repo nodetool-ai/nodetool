@@ -11,6 +11,7 @@
 #include <QQmlEngine>
 #include <QPointingDevice>
 #include <QSignalSpy>
+#include <QStyleHints>
 #include <QWheelEvent>
 #include <qpa/qwindowsysteminterface.h>
 
@@ -248,9 +249,11 @@ private slots:
         settle();
         const auto before = model.documentJson();
         const QPoint from = center(timecode());
-        pointerDrag(Qt::LeftButton, from, from + QPoint(9, 0));
+        // The scrub starts past the platform's drag distance, 10 px by default and 8 px on GTK.
+        const int dx = QGuiApplication::styleHints()->startDragDistance() + 2;
+        pointerDrag(Qt::LeftButton, from, from + QPoint(dx, 0));
         QVERIFY(!editor(timecode())->isVisible());
-        QCOMPARE(qRound(clock.time() * 30 / 1000), 39);
+        QCOMPARE(qRound(clock.time() * 30 / 1000), 30 + dx);
         QCOMPARE(model.documentJson(), before);
         QCOMPARE(model.undoStack()->count(), 0);
     }

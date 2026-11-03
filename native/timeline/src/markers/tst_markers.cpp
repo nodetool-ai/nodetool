@@ -254,8 +254,14 @@ private slots:
         const auto origin = ruler->mapToScene(QPointF(0, 0)).toPoint();
         const auto inside = QColor(image.pixel(origin.x() + 545, origin.y() + 6));
         const auto outside = QColor(image.pixel(origin.x() + 650, origin.y() + 6));
-        // The band is the marker's red at a low alpha over the ruler, so green and blue drop.
-        QVERIFY2(inside.green() < outside.green() - 15, qPrintable(QString("%1 vs %2").arg(inside.name(), outside.name())));
+        // The band is the marker's colour at 22% alpha over the ruler. The ruler is dark
+        // or light with the platform's colour scheme, so the check follows its colour.
+        const QColor marker("#E5484D");
+        const auto blended = [](int under, int over) { return under + (over - under) * 0.22; };
+        const auto close = [&](int actual, int under, int over) { return qAbs(actual - blended(under, over)) < 3; };
+        QVERIFY2(close(inside.red(), outside.red(), marker.red()) && close(inside.green(), outside.green(), marker.green())
+                     && close(inside.blue(), outside.blue(), marker.blue()),
+                 qPrintable(QString("%1 over %2").arg(inside.name(), outside.name())));
         QVERIFY(inside.red() > inside.green());
         // The point markers beside it shade nothing.
         const auto pointMarkerSpan = QColor(image.pixel(origin.x() + 270, origin.y() + 6));

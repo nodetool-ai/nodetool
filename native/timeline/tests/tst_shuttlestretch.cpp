@@ -1,37 +1,17 @@
 #include "audio/ShuttleStretch.h"
+#include "audio/TestAllocationCounter.h"
 #include <QtTest>
 #include <array>
-#include <atomic>
 #include <cmath>
-#include <cstdlib>
 #include <ctime>
 #include <limits>
-#include <new>
 #include <numbers>
 #include <vector>
 
 // Test cases adapted from FilmCraft (https://github.com/storytold/filmcraft), crates/ui-egui/src/shuttle.rs, MIT. See licenses/FilmCraft-MIT.txt.
-namespace {
-std::atomic<int> allocations{0};
-std::atomic<bool> countAllocations{false};
-}
-// A sanitizer owns the allocator, so the counting replacement and the CPU bound apply to plain builds only.
-#if defined(__SANITIZE_ADDRESS__) || defined(__SANITIZE_THREAD__)
-#define NT_SANITIZED 1
-#endif
-#ifndef NT_SANITIZED
-void* operator new(std::size_t n) {
-    if (countAllocations.load()) ++allocations;
-    if (void* p = std::malloc(std::max(n, std::size_t(1)))) return p;
-    throw std::bad_alloc();
-}
-void* operator new[](std::size_t n) { return ::operator new(n); }
-void operator delete(void* p) noexcept { std::free(p); }
-void operator delete[](void* p) noexcept { std::free(p); }
-void operator delete(void* p, std::size_t) noexcept { std::free(p); }
-void operator delete[](void* p, std::size_t) noexcept { std::free(p); }
-#endif
 using namespace nt::audio;
+using nt::testing::allocations;
+using nt::testing::countAllocations;
 namespace {
 struct Tone : ShuttleSource {
     double sr = 48000, hz = 440, anchor = 0, last = -1e300, lastEnd = -1e300;
@@ -138,19 +118,21 @@ private slots:
         }
     }
     void noAllocation() {
+        QVERIFY(nt::testing::countsAnAllocation());
         for (int sr : {48000, 96000}) for (double rate : {.1, .25, 2., 8.}) {
             Tone source; source.anchor = 123; source.sr = sr;
             ShuttleStretcher stretch(sr); std::array<float, 1024> out{};
             const auto started = std::clock();
-            allocations.store(0); countAllocations.store(true);
+            allocations = 0; countAllocations = true;
             stretch.begin(rate, 123);
             for (int i = 0; i < 2 * sr; i += 512) stretch.render(source, i, 512, out.data());
-            countAllocations.store(false);
+            countAllocations = false;
             const double cpuMs = double(std::clock() - started) * 1000 / CLOCKS_PER_SEC;
-            qInfo("%d Hz, %gx: 2 s output, %.2f ms CPU (%.2f%% core), %d allocations", sr, rate, cpuMs, cpuMs / 20, allocations.load());
+            qInfo("%d Hz, %gx: 2 s output, %.2f ms CPU (%.2f%% core), %zu allocations", sr, rate, cpuMs, cpuMs / 20, std::size_t{allocations});
             QVERIFY(source.valid);
+            QCOMPARE(std::size_t{allocations}, std::size_t{0});
+            // A sanitizer's slowdown says nothing about the plain build.
 #ifndef NT_SANITIZED
-            QCOMPARE(allocations.load(), 0);
             QVERIFY2(cpuMs < 200, "stretcher exceeds 10% of one core");
 #endif
         }
