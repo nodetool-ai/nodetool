@@ -9,6 +9,7 @@ Item {
     property var clock: testClock
     property var gestures: testGestures
     Component { id: effectControlsComponent; EffectControlsPanel { anchors.fill: parent } }
+    Component { id: motionComponent; MotionPanel { anchors.fill: parent } }
     Component {
         id: inspectorController
         ClipInspectorController { timeline: testTimeline; clock: testClock; clipId: "g" }
@@ -64,8 +65,10 @@ Item {
         }
         function test_animationLinksRepeaterAndSeek() {
             const controller = createTemporaryObject(inspectorController, host)
-            const panel = mount("qrc:/qt/qml/NodeTool/Timeline/src/motion/controls/GroupMotion.qml", controller)
-            const animations = findChild(panel, "groupAnimations")
+            const panel = createTemporaryObject(motionComponent, host)
+            testGestures.selection = ["g"]
+            tryVerify(() => findChild(panel, "motionPanelController").clipId === "g" && findChild(panel, "motionRepeater_count") !== null)
+            const animations = findChild(panel, "motionPanelAnimate")
             verify(animations)
             animations.patch("ga", {durationMs:900}, "")
             compare(testHarness.undoIndex(), 1)
@@ -77,7 +80,7 @@ Item {
             repeater.gestureStarted()
             repeater.preview("3")
             compare(testHarness.undoIndex(), 1)
-            findChild(panel, "groupAdvancedMotion").cancel()
+            findChild(panel, "advancedMotion").cancel()
             compare(testHarness.documentJson(), before)
             repeater.gestureStarted()
             repeater.preview("3")
@@ -110,10 +113,11 @@ Item {
             verify(!group().animationLinks)
         }
         function test_componentAvailable() {
-            const controller = createTemporaryObject(inspectorController, host)
-            const panel = mount("qrc:/qt/qml/NodeTool/Timeline/src/motion/controls/GroupMotion.qml", controller)
-            verify(findChild(panel, "groupAdvancedMotion"))
-            verify(findChild(panel, "groupAnimations"))
+            const panel = createTemporaryObject(motionComponent, host)
+            testGestures.selection = ["g"]
+            tryVerify(() => findChild(panel, "motionPanelController").clipId === "g")
+            verify(findChild(panel, "advancedMotion"))
+            verify(findChild(panel, "motionPanelAnimate"))
         }
     }
 }

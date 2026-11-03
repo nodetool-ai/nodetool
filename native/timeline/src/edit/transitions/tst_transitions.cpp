@@ -15,6 +15,7 @@
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QtQuickTest/quicktest.h>
+#include <QStyleHints>
 #include <QtTest>
 #include <cstdio>
 #include <memory>
@@ -72,17 +73,59 @@ private slots:
         };
         auto* section = findPanel(qobject_cast<QQuickItem*>(editor.get())); QVERIFY(section);
         QCOMPARE(section->property("implicitHeight").toDouble(), 0.0);
+        // Selecting the clip is not selecting its transition.
         gestures->setSelection({"cut-b"});
+        QCoreApplication::processEvents();
+        QCOMPARE(section->property("implicitHeight").toDouble(), 0.0);
+        gestures->selectEdit("cut-b", "start");
         QTRY_VERIFY(section->property("implicitHeight").toDouble() > 0);
         QVERIFY(textSignal(control(section, "transitionType"), "change", "wipe"));
         QCOMPARE(transition(model).value("type").toString(), QString("wipe"));
         gestures->setSelection({"cut-a", "cut-b"});
         QTRY_COMPARE(section->property("implicitHeight").toDouble(), 0.0);
     }
+    // A click on the wedge selects the transition, and a click elsewhere on the clip leaves it.
+    void clickingTheWedgeSelectsTheTransition() {
+        TimelineModel model; load(model, fixture()); PlaybackClock clock;
+        QVERIFY(model.applyEdit("setClipTransition", {{"clipId", "cut-b"}, {"mode", "wipe"}}));
+        QQmlEngine engine;
+        QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/TimelineEditor.qml"));
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        std::unique_ptr<QObject> editor(component.createWithInitialProperties({
+            {"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)}, {"width", 1000}, {"height", 700}}));
+        QVERIFY2(editor, qPrintable(component.errorString()));
+        QQuickWindow window;
+        window.resize(1000, 700);
+        auto* root = qobject_cast<QQuickItem*>(editor.get());
+        root->setParentItem(window.contentItem());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QVERIFY(QTest::qWaitForWindowActive(&window));
+        auto* gestures = editor->findChild<ClipGestureController*>("clipGestures"); QVERIFY(gestures);
+        const std::function<QQuickItem*(QQuickItem*, const QString&)> named = [&](QQuickItem* item, const QString& name) -> QQuickItem* {
+            if (item->objectName() == name) { return item; }
+            for (auto* child : item->childItems()) { if (auto* found = named(child, name)) { return found; } }
+            return nullptr;
+        };
+        QTRY_VERIFY(named(root, "clip-cut-b"));
+        auto* clip = named(root, "clip-cut-b");
+        QTRY_VERIFY(named(clip, "transitionWedge"));
+        auto* wedge = named(clip, "transitionWedge");
+        auto* section = named(root, "inspectorTransition"); QVERIFY(section);
+        QTRY_VERIFY(wedge->width() > 8);
+        QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier, wedge->mapToScene({2, wedge->height() / 2}).toPoint());
+        QTRY_COMPARE(gestures->selectedEdit().value("clipId").toString(), QString("cut-b"));
+        QCOMPARE(gestures->selection(), QStringList({"cut-b"}));
+        QTRY_VERIFY(section->property("implicitHeight").toDouble() > 0);
+        QTest::qWait(QGuiApplication::styleHints()->mouseDoubleClickInterval() + 20);
+        QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier, clip->mapToScene({clip->width() - 8, clip->height() / 2}).toPoint());
+        QTRY_VERIFY(gestures->selectedEdit().isEmpty());
+        QTRY_COMPARE(section->property("implicitHeight").toDouble(), 0.0);
+    }
     void pointerAndKeyboard() {
         TimelineModel model; load(model, fixture());
         QVERIFY(model.applyEdit("setClipTransition", {{"clipId", "cut-b"}, {"mode", "wipe"}}));
-        QQmlEngine engine; auto* gestures = QQmlPropertyMap::create(&engine); gestures->insert("selection", QVariantList{QString("cut-b")});
+        QQmlEngine engine; auto* gestures = QQmlPropertyMap::create(&engine); gestures->insert("selection", QVariantList{QString("cut-b")}); gestures->insert("selectedEdit", QVariantMap{{"clipId", "cut-b"}, {"edge", "start"}});
         auto root = panel(engine, model, *gestures); QVERIFY(root);
         auto* item = qobject_cast<QQuickItem*>(root.get()); QVERIFY(item);
         QQuickWindow window; window.resize(360, 900); item->setParentItem(window.contentItem());
@@ -115,7 +158,7 @@ private slots:
     void softnessKeyboard() {
         TimelineModel model; load(model, fixture());
         QVERIFY(model.applyEdit("setClipTransition", {{"clipId", "cut-b"}, {"mode", "wipe"}}));
-        QQmlEngine engine; auto* gestures = QQmlPropertyMap::create(&engine); gestures->insert("selection", QVariantList{QString("cut-b")});
+        QQmlEngine engine; auto* gestures = QQmlPropertyMap::create(&engine); gestures->insert("selection", QVariantList{QString("cut-b")}); gestures->insert("selectedEdit", QVariantMap{{"clipId", "cut-b"}, {"edge", "start"}});
         auto root = panel(engine, model, *gestures); QVERIFY(root);
         auto* item = qobject_cast<QQuickItem*>(root.get()); QVERIFY(item);
         QQuickWindow window; window.resize(360, 900); item->setParentItem(window.contentItem());
@@ -154,7 +197,7 @@ private slots:
         QFETCH(QString, expectedText);
         TimelineModel model; load(model, fixture());
         QVERIFY(model.applyEdit("setClipTransition", {{"clipId", "cut-b"}, {"mode", "wipe"}}));
-        QQmlEngine engine; auto* gestures = QQmlPropertyMap::create(&engine); gestures->insert("selection", QVariantList{QString("cut-b")});
+        QQmlEngine engine; auto* gestures = QQmlPropertyMap::create(&engine); gestures->insert("selection", QVariantList{QString("cut-b")}); gestures->insert("selectedEdit", QVariantMap{{"clipId", "cut-b"}, {"edge", "start"}});
         auto root = panel(engine, model, *gestures); QVERIFY(root);
         auto* caption = root->findChild<QObject*>(objectName); QVERIFY(caption);
         QCOMPARE(caption->property("text").toString(), expectedText);
@@ -243,6 +286,7 @@ private slots:
         auto parsed = nt::parseTimelineJson(QJsonDocument(fixture).toJson()); QVERIFY(parsed.timeline);
         model.setTimeline(std::move(*parsed.timeline)); QCoreApplication::processEvents();
         click("clip-c"); QCoreApplication::processEvents();
+        gestures()->selectEdit("c", "start"); QCoreApplication::processEvents();
         // Selection reveals nested Inspector positioners whose geometry needs polish.
         QVERIFY(QQuickTest::qWaitForPolish(view.get()));
         auto* softness = item("transitionSoftness"); QVERIFY(softness);
@@ -270,7 +314,7 @@ private slots:
     void softnessPointer() {
         TimelineModel model; load(model, fixture());
         QVERIFY(model.applyEdit("setClipTransition", {{"clipId", "cut-b"}, {"mode", "wipe"}}));
-        QQmlEngine engine; auto* gestures = QQmlPropertyMap::create(&engine); gestures->insert("selection", QVariantList{QString("cut-b")});
+        QQmlEngine engine; auto* gestures = QQmlPropertyMap::create(&engine); gestures->insert("selection", QVariantList{QString("cut-b")}); gestures->insert("selectedEdit", QVariantMap{{"clipId", "cut-b"}, {"edge", "start"}});
         auto root = panel(engine, model, *gestures); QVERIFY(root);
         auto* item = qobject_cast<QQuickItem*>(root.get()); QVERIFY(item);
         QQuickWindow window; window.resize(360, 900); item->setParentItem(window.contentItem());
@@ -339,7 +383,7 @@ private slots:
     void uiUndo() {
         TimelineModel model; load(model, fixture());
         QQmlEngine engine;
-        auto* gestures = QQmlPropertyMap::create(&engine); gestures->insert("selection", QVariantList{QString("cut-b")});
+        auto* gestures = QQmlPropertyMap::create(&engine); gestures->insert("selection", QVariantList{QString("cut-b")}); gestures->insert("selectedEdit", QVariantMap{{"clipId", "cut-b"}, {"edge", "start"}});
         auto root = panel(engine, model, *gestures);
         QVERIFY2(root, "TransitionSection must load");
         const auto action = [&](const std::function<bool()>& edit) {
@@ -372,17 +416,17 @@ private slots:
             action([&] { return textSignal(control(root.get(), "transitionType"), "change", QString::fromLatin1(mode)); });
         }
         QVERIFY(!::clip(model).contains("transitionIn"));
-        gestures->insert("selection", QVariantList{}); QCoreApplication::processEvents();
+        gestures->insert("selection", QVariantList{}); gestures->insert("selectedEdit", QVariantMap{}); QCoreApplication::processEvents();
         QCOMPARE(root->property("implicitHeight").toDouble(), 0.0);
         auto audio = fixture(); auto clips = audio.value("clips").toArray(); auto c = clips[1].toObject();
         c.insert("mediaType", "audio"); clips[1] = c; audio.insert("clips", clips); load(model, audio);
-        gestures->insert("selection", QVariantList{QString("cut-b")}); QCoreApplication::processEvents();
+        gestures->insert("selection", QVariantList{QString("cut-b")}); gestures->insert("selectedEdit", QVariantMap{{"clipId", "cut-b"}, {"edge", "start"}}); QCoreApplication::processEvents();
         QCOMPARE(root->property("implicitHeight").toDouble(), 0.0);
     }
     void locksAndGestures() {
         TimelineModel model; load(model, fixture());
         QVERIFY(model.applyEdit("setClipTransition", {{"clipId", "cut-b"}, {"mode", "wipe"}}));
-        QQmlEngine engine; auto* gestures = QQmlPropertyMap::create(&engine); gestures->insert("selection", QVariantList{QString("cut-b")});
+        QQmlEngine engine; auto* gestures = QQmlPropertyMap::create(&engine); gestures->insert("selection", QVariantList{QString("cut-b")}); gestures->insert("selectedEdit", QVariantMap{{"clipId", "cut-b"}, {"edge", "start"}});
         auto root = panel(engine, model, *gestures); QVERIFY(root);
         for (const auto& name : {"transitionDuration", "transitionSoftness"}) {
             auto* field = control(root.get(), name); QVERIFY(field);

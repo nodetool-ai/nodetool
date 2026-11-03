@@ -15,8 +15,9 @@ P.InspectorSection {
     readonly property var clip: controller ? controller.clip : ({})
     title: "AI"
     defaultOpen: true
-    visible: !!host && !!clip.id && (clip.mediaType === "video" || clip.mediaType === "image" ||
+    readonly property bool eligible: !!host && !!clip.id && (clip.mediaType === "video" || clip.mediaType === "image" ||
              (clip.mediaType === "audio" && (!!clip.workflowId || !!clip.scriptLineId || !!clip.bindingKind)))
+    visible: eligible
     Loader {
         width: parent.width
         active: !!root.host && !!root.timelineModel && !!root.gestures

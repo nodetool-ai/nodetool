@@ -126,6 +126,16 @@ private slots:
                                     "motionBlurEnabled", "inspectorTimeRemap", "audioSection"}) {
             QVERIFY2(!named(inspector, QString::fromLatin1(control)), control);
         }
+        // D8: identity card, Media and Timing, and nothing else for a plain video clip.
+        QVERIFY(named(inspector, "clipIdentityCard")->isVisible());
+        QTRY_VERIFY(named(inspector, "inspectorMedia")->isVisible());
+        // A second Timing waits, hidden, in the group panel.
+        QTRY_VERIFY(named(inspector, "timingDuration") != nullptr);
+        QCOMPARE(inspector->property("groupSelected").toBool(), false);
+        for (const auto* gone : {"inspectorAiSection", "inspectorReframe", "advancedMotion", "clipEffectsList", "audioEffectsSection"}) {
+            QVERIFY2(!named(inspector, QString::fromLatin1(gone)), gone);
+        }
+        QTRY_COMPARE(named(inspector, "inspectorTransition")->property("implicitHeight").toDouble(), 0.0);
         QVERIFY(grab(inspector, "inspector-video-clip"));
         QVERIFY(show("effectControls"));
         QTRY_VERIFY(effectControls->isVisible());
@@ -143,6 +153,81 @@ private slots:
         QVERIFY(!named(effectControls, "effectControlsGroup_motion"));
         QVERIFY(grab(effectControls, "effect-controls-audio-clip"));
         QVERIFY(show("inspector"));
+    }
+    void motionPanelOwnsAnimationAndFollowsTheSelection() {
+        PanelEditor e;
+        QVERIFY2(e.editor, qPrintable(e.error));
+        QVERIFY(QTest::qWaitForWindowExposed(&e.window));
+        const auto tabs = e.store()->layout().value("regions").toMap().value("right").toList().first().toMap().value("panels").toStringList();
+        QCOMPARE(tabs.at(tabs.indexOf("effectControls") + 1), QString("motion"));
+        QVERIFY(e.show("motion"));
+        auto* panel = named(e.root(), "motionPanel"); QVERIFY(panel);
+        QTRY_VERIFY(panel->isVisible());
+        auto* empty = named(panel, "motionPanelEmpty"); QVERIFY(empty);
+        QCOMPARE(empty->property("title").toString(), QString("No clip selected"));
+        QVERIFY(empty->isVisible());
+        e.gestures()->setSelection({"picture"});
+        auto* animate = named(panel, "motionPanelAnimate"); QVERIFY(animate);
+        QTRY_VERIFY(animate->isVisible());
+        QVERIFY(!empty->isVisible());
+        for (const auto* name : {"advancedMotion", "inspectorReframe"}) { QVERIFY2(named(panel, QString::fromLatin1(name)), name); }
+        auto* inspector = named(e.root(), "timelineInspector");
+        for (const auto* name : {"motionPanelAnimate", "advancedMotion", "inspectorReframe"}) { QVERIFY2(!named(inspector, QString::fromLatin1(name)), name); }
+        QVERIFY(e.grab(panel, "motion-video-clip"));
+        // One edit from the panel, one undo step.
+        const auto before = e.model.documentJson();
+        const auto step = e.model.undoStack()->index();
+        auto* repeater = named(panel, "motionRepeaterEnabled"); QVERIFY(repeater);
+        QVERIFY(QMetaObject::invokeMethod(repeater, "change", Q_ARG(bool, true)));
+        QCOMPARE(e.model.undoStack()->index(), step + 1);
+        QVERIFY(e.model.documentJson() != before);
+        QVERIFY(e.model.clipsJson()[0].toObject().contains("repeater"));
+        e.model.undoStack()->undo();
+        QCOMPARE(e.model.documentJson(), before);
+        // A sound has nothing to animate, and the empty state says so.
+        e.gestures()->setSelection({"sound"});
+        QTRY_VERIFY(empty->isVisible());
+        QCOMPARE(empty->property("title").toString(), QString("This clip has no picture"));
+        e.gestures()->setSelection({"picture", "second"});
+        QTRY_COMPARE(empty->property("title").toString(), QString("Several clips selected"));
+    }
+    void aiPanelSitsBesideTheAssistant() {
+        PanelEditor e;
+        QVERIFY2(e.editor, qPrintable(e.error));
+        QVERIFY(QTest::qWaitForWindowExposed(&e.window));
+        const auto tabs = e.store()->layout().value("regions").toMap().value("right").toList().first().toMap().value("panels").toStringList();
+        QCOMPARE(tabs.at(tabs.indexOf("assistant") + 1), QString("ai"));
+        QVERIFY(e.show("ai"));
+        auto* panel = named(e.root(), "aiPanel"); QVERIFY(panel);
+        QTRY_VERIFY(panel->isVisible());
+        auto* empty = named(panel, "aiPanelEmpty"); QVERIFY(empty);
+        QVERIFY(empty->isVisible());
+        QCOMPARE(empty->property("title").toString(), QString("No clip selected"));
+        e.gestures()->setSelection({"picture"});
+        QTRY_VERIFY(!empty->isVisible());
+        auto* section = named(panel, "inspectorAiSection"); QVERIFY(section);
+        QVERIFY(section->isVisible());
+        QTRY_VERIFY(named(section, "inspectorReviewTakes"));
+        QVERIFY(!named(named(e.root(), "timelineInspector"), "inspectorAiSection"));
+        QVERIFY(e.grab(panel, "ai-video-clip"));
+        e.gestures()->setSelection({"sound"});
+        QTRY_VERIFY(empty->isVisible());
+        QCOMPARE(empty->property("title").toString(), QString("No AI tools for this clip"));
+    }
+    void reviewHidesTheNewPanels() {
+        PanelEditor e;
+        QVERIFY2(e.editor, qPrintable(e.error));
+        QVERIFY(QTest::qWaitForWindowExposed(&e.window));
+        e.store()->switchWorkspace(3);
+        const auto hidden = e.store()->layout().value("hidden").toStringList();
+        for (const auto* panel : {"effectControls", "effects", "motion", "ai"}) { QVERIFY2(hidden.contains(QString::fromLatin1(panel)), panel); }
+        e.store()->switchWorkspace(0);
+        e.store()->resetWorkspace();
+        const auto shown = e.store()->layout().value("hidden").toStringList();
+        for (const auto* panel : {"effectControls", "effects", "motion", "ai"}) { QVERIFY2(!shown.contains(QString::fromLatin1(panel)), panel); }
+        const auto tabs = e.store()->layout().value("regions").toMap().value("right").toList().first().toMap().value("panels").toStringList();
+        QCOMPARE(tabs.at(tabs.indexOf("inspector") + 1), QString("effectControls"));
+        QCOMPARE(tabs.at(tabs.indexOf("assistant") + 1), QString("ai"));
     }
     void effectsPanelIsTabbedWithTheLibrary() {
         PanelEditor e;
@@ -337,8 +422,16 @@ private slots:
         // What the person arranged is kept: the active tab and the place of Effect Controls.
         QCOMPARE(group("right").value("activePanelId").toString(), QString("color"));
         const auto tabs = group("right").value("panels").toStringList();
-        QCOMPARE(tabs.mid(0, 4), QStringList({"inspector", "assistant", "color", "effectControls"}));
+        QVERIFY(tabs.indexOf("inspector") < tabs.indexOf("assistant"));
+        QVERIFY(tabs.indexOf("assistant") < tabs.indexOf("color"));
+        QVERIFY(tabs.indexOf("color") < tabs.indexOf("effectControls"));
         QCOMPARE(store->layout().value("sizes").toMap().value("right").toDouble(), 420.0);
+        // The new panels each land beside their neighbour, and in the Window menu's reach.
+        QCOMPARE(tabs.at(tabs.indexOf("effectControls") + 1), QString("motion"));
+        QCOMPARE(tabs.at(tabs.indexOf("assistant") + 1), QString("ai"));
+        const auto left = group("left").value("panels").toStringList();
+        QCOMPARE(left.at(left.indexOf("assets") + 1), QString("effects"));
+        QVERIFY(store->layout().value("hidden").toStringList().isEmpty());
     }
     void colorAndAudioWorkspaces() {
         TimelineModel model;

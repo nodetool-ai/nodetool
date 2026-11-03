@@ -118,7 +118,7 @@ Item {
         if (view)
             view.scrollLeftPx = Math.max(0, payload.startMs / view.msPerPx - view.viewportWidthPx / 4)
         closeDialog()
-        gestures.runAction("panelInspector")
+        gestures.runAction("panelAi")
     }
     function useAsReference() {
         const assetId = frameExporter.savedAsset.id
@@ -303,7 +303,7 @@ Item {
                     Ui.Text {
                         Layout.fillWidth: true
                         visible: root.destination === "library"
-                        text: "Generate a new shot from this frame. The start frame goes at the end of the sequence and the Inspector opens on image to video. A reference opens Generate with the frame attached."
+                        text: "Generate a new shot from this frame. The start frame goes at the end of the sequence and the AI panel opens on image to video. A reference opens Generate with the frame attached."
                         role: Ui.Typography.SansCaption
                         tone: Ui.Text.Secondary
                         wrapMode: Text.Wrap

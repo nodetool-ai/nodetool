@@ -9,10 +9,10 @@ var sidePanels = ["inspector", "shot", "instruments", "assistant", "history", "c
 var requiredPanels = ["program", "tracks"];
 // Panels only this editor has, which a ported preset would otherwise show. Review leaves the
 // right side empty for the picture, and the port above keeps its own list of what it hides.
-var nativeHidden = {Review: ["effectControls", "effects", "color", "audio"]};
+var nativeHidden = {Review: ["effectControls", "effects", "motion", "ai", "color", "audio"]};
 // The tab a native panel takes its place beside when a layout first meets it. A panel the layout
 // already places, as a saved layout may, stays where it is.
-var nativeNeighbours = {effectControls: "inspector", effects: "assets"};
+var nativeNeighbours = {effectControls: "inspector", motion: "effectControls", effects: "assets", ai: "assistant"};
 
 // Field-for-field port of TimelineDockLayout.ts, checked by dock-conformance.mjs.
 function createLayout(name) {

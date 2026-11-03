@@ -10,13 +10,14 @@ Item {
     Item { property var gestures: testGestures }
     LaneClipModel { id: laneModel; timeline: testTimeline; trackId: "v" }
     TimelineInspector { id: panel; width: 360; height: 800 }
+    MotionPanel { id: motionPanel; x: 360; width: 140; height: 800 }
     TestCase {
         name: "InspectorPanel"
         when: windowShown
         function init() { testHarness.reset() }
         function test_presetDropsOptionalFields() {
             testGestures.selection = ["c"]
-            const controller = findChild(panel,"clipInspectorController")
+            const controller = findChild(motionPanel,"motionPanelController")
             tryCompare(controller,"clipId","c")
             controller.write({action:"animations",animations:[{id:"a",role:"in",preset:"custom",durationMs:800,custom:{curves:[]},params:{old:1},easing:"hold"}]})
             function findSection(item) {
@@ -25,7 +26,7 @@ Item {
                 for (let i = 0; i < children.length; ++i) { const found = findSection(children[i]); if (found) return found }
                 return null
             }
-            const section = findSection(panel)
+            const section = findSection(motionPanel)
             verify(section)
             section.patch("a",section.presetPatch("fade"),"")
             compare(controller.clip.animations[0].preset,"fade")
