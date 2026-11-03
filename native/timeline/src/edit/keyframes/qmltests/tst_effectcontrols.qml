@@ -429,8 +429,15 @@ Item {
         }
         function test_sectionsAreClosedUntilOpenedAndStayOpenAcrossClips() {
             const corners = child("effectControlsCollapse_borderRadius")
+            // A closed group builds no rows.
+            verify(!findChild(panel, "effectControlsRow_borderRadius"))
+            click(corners)
             const radius = child("effectControlsStopwatch_borderRadius")
-            verify(!radius.visible)
+            tryCompare(radius, "visible", true)
+            // A fold keeps the rows it built.
+            click(corners)
+            tryCompare(radius, "visible", false)
+            verify(child("effectControlsStopwatch_borderRadius") === radius)
             click(corners)
             tryCompare(radius, "visible", true)
             testGestures.selection = []

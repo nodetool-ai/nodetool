@@ -42,6 +42,11 @@ Column {
         if (remembersFold) ClipEffectsUi.setFold(foldKey, next)
         else localOpen = next
     }
+    // A group that starts closed builds its rows when first opened, and a fold keeps them after that,
+    // with any graphs they have open. Rows are what makes a clip slow to select.
+    property bool hasBeenOpen: false
+    onOpenChanged: if (open) hasBeenOpen = true
+    Component.onCompleted: hasBeenOpen = open
     readonly property int audioEffectIndex: group.kind === "audioEffect" ? (panel.clipData.audioEffects || []).findIndex(e => e.id === group.effectId) : -1
     function moveAudioEffect(delta) {
         controller.timeline.applyEdit("moveClipAudioEffect", {clipId: panel.clipData.id, effectId: group.effectId, delta: delta})
@@ -211,7 +216,7 @@ Column {
         width: root.width
         visible: root.open
         Repeater {
-            model: root.group.rows
+            model: root.open || root.hasBeenOpen ? root.group.rows : []
             delegate: EffectControlsRow {
                 required property var modelData
                 width: root.width

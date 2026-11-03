@@ -252,11 +252,11 @@ class TestReframe : public QObject {
         QVERIFY(section->implicitHeight() > 0);
         // Effect Controls hosts Crop, as a group for a clip that can be cropped.
         auto* effectControls = findItem(root, "effectControlsPanel"); QVERIFY(effectControls);
-        QTRY_VERIFY(findItem(effectControls, "effectControlsStopwatch_cropLeft"));
-        QVERIFY(!within(findItem(effectControls, "effectControlsStopwatch_cropLeft"), "timelineInspector"));
+        QTRY_VERIFY(findItem(effectControls, "effectControlsGroup_crop"));
+        QVERIFY(!within(findItem(effectControls, "effectControlsGroup_crop"), "timelineInspector"));
         gestures->setSelection({});
         QCOMPARE(section->implicitHeight(), 0.);
-        QTRY_VERIFY(!findItem(effectControls, "effectControlsStopwatch_cropLeft"));
+        QTRY_VERIFY(!findItem(effectControls, "effectControlsGroup_crop"));
     }
     void qmlInteractions() {
         auto doc = document();
