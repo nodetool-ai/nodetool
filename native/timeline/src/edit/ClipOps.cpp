@@ -1,5 +1,6 @@
 #include "edit/ClipOps.h"
 #include "scene/Animation.h"
+#include "scene/SideCurves.h"
 
 #include <QJsonArray>
 #include <QUuid>
@@ -327,7 +328,7 @@ std::pair<QJsonArray, QJsonArray> splitAnimations(const QJsonArray& animations, 
             QJsonObject r = sliceSourceAnimation(anim, source.rightInMs, source.outPointMs, source.rightDurationMs);
             r.insert(QStringLiteral("id"), newId());
             right.append(r);
-        } else if (isKeyframeAnimation(anim)) {
+        } else if (isKeyframeAnimation(anim) || scene::isSideCurveAnimation(anim)) {
             const double totalMs = source.leftDurationMs + source.rightDurationMs;
             const double cutT = totalMs > 0 ? splitMs / totalMs : 0;
             left.append(sliceKeyframeAnimation(anim, 0, cutT, source.leftDurationMs));

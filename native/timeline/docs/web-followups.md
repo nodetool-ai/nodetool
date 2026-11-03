@@ -1,0 +1,51 @@
+# Web follow-ups for the native timeline
+
+The native timeline keys parameters the web editor does not. The document schema is unchanged, so
+web opens and saves these documents. Each entry below says what native does, what web does with the
+same document, what web needs, and where. Add an entry in the same commit as the native behaviour.
+Ids are stable. Move a finished entry to [Done](#done) and keep its id.
+
+Web here means `web/` and `packages/`. Nothing in them has changed for this work.
+
+## How these keys are stored
+
+Curves with a name in `ANIMATED_PROPERTIES` (`packages/timeline/src/animation/types.ts`) go on the
+clip's keyframe animation, the one with `params.keyframed`, and web draws them.
+
+Curves with any other name go on side animations (`src/scene/SideCurves.h`). A side animation looks
+like this:
+
+```json
+{"id": "...", "role": "loop", "preset": "breathe", "durationMs": 2000, "delayMs": 0, "enabled": false,
+ "params": {"intensity": 0, "sideCurves": true},
+ "custom": {"curves": [{"property": "depthPx", "keyframes": [{"t": 0, "value": 0}]}]}}
+```
+
+Each animation holds at most 16 curves, and a clip has as many as it needs. The shape comes from
+these web behaviours, each checked against this branch's sources by importing them:
+
+- `customClipAnimation.curves` accepts any property name but refuses more than 16 curves, and
+  `clipAnimation` keeps `custom` on any preset. So parsing and saving keep the curves.
+- `normalizeCustomCurves` refuses a whole curve list for one unknown name, and `compileClipAnimations`
+  then skips that animation. The comment on `animationPropertyCurve` says only the one curve is
+  dropped, which is not what the code does. A new name on the keyframe animation would stop web
+  drawing every key on that clip.
+- `validateTimelineSequence` reports an error for an unknown preset and for an invalid custom list,
+  whether or not the animation is enabled. `set_timeline_document` and the agent bake refuse to write
+  a document with errors. So the side animation names a stock preset and is switched off.
+- `breathe` at intensity 0 draws nothing, so switching the row on in web changes nothing.
+
+A curve name on a side animation is a parameter name. An effect parameter is `effect:<effectId>:<param>`.
+
+## Open
+
+| ID | Native | Web today | Web needs | Where |
+|---|---|---|---|---|
+| W1 | Side animations hold keys for parameters with no channel, and the native Inspector hides them. | Keeps them through open and save. Lists each as a switched-off Breathe row in the clip's animations. Deleting that row deletes the keys. A split gives both halves the whole curve, stretched over each half. | Hide rows with `params.sideCurves`. Slice their curves in a split, as `sliceKeyframeAnimation` does. | `web/src/components/timeline/Inspector/ClipAnimations.tsx`, `packages/timeline/src/splitClip.ts` |
+| W2 | Anchor X/Y and Rotation X/Y have stopwatches, on channels web already has. | Draws the animated values, since the channels are shared. Its Inspector has no row for them, so it shows the static value and no keys. The Premiere XML report says they require baking. | Rows for these channels. | `web/src/components/timeline/Inspector/keyframeRows.ts`, `KEYFRAME_PROPERTIES` in `packages/timeline/src/keyframes.ts` |
+| W3 | Perspective (`perspective`, replaces the static value) and Depth (`depthPx`, adds to it) are keyed on side curves. Depth also reorders the stack per frame. | Keeps the curves and draws the static values, so the picture differs from native while either is keyed. | Read the side curves in the animated layer props and in the draw order, and add rows. | `resolveAnimatedLayerProps` in `packages/timeline/src/render/sceneModel.ts`, `keyframeRows.ts` |
+| W4 | `scripts/plan-conformance.mjs` compares perspective and depth per layer. | The oracle compiles with web's code, so a document with W3 keys reports a mismatch. No fixture has such keys, and no example timeline can, since only native writes them. | Nothing until W3. Then add a fixture. | `scripts/plan-conformance.mjs`, `fixtures/` |
+
+## Done
+
+None yet.

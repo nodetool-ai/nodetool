@@ -178,18 +178,18 @@ Item {
             compare(controller.rowState("position").values[0], 20)
             testTimeline.undoStack.undo()
             compare(controller.rowState("position").values[0], 0)
-            const slider = child("anchorX-slider")
-            slider.gestureStarted()
-            slider.preview(0.3)
+            const anchor = child("effectControls_anchor_input_0")
+            anchor.gestureStarted()
+            anchor.preview("0.3")
             compare(controller.fieldValue("anchorX"), 0.3)
             compare(testHarness.undoCount(), 1)
-            slider.change(0.3)
+            anchor.commit("0.3")
             compare(testHarness.undoCount(), 1)
             testTimeline.undoStack.undo()
             compare(controller.fieldValue("anchorX"), 0.5)
         }
-        function test_transformFieldsWriteAndFollowTheSwitch() {
-            const depth = child("depthPx-input")
+        function test_motionFieldsWriteAndFollowTheSwitch() {
+            const depth = child("effectControls_depth_input_0")
             depth.commit("12")
             compare(controller.fieldValue("depthPx"), 12)
             const undoable = testHarness.undoCount()
@@ -197,13 +197,43 @@ Item {
             verify(!depth.disabled)
             const toggle = child("effectControlsEnable_motion")
             click(toggle)
-            verify(child("anchorX-slider").disabled)
+            verify(child("effectControls_anchor_input_0").disabled)
             tryCompare(depth, "disabled", true)
             // A switched-off value stays on show.
-            compare(depth.value, "12.0")
+            compare(depth.value, "12")
             click(toggle)
             tryCompare(depth, "disabled", false)
             compare(controller.fieldValue("depthPx"), 12)
+        }
+        function test_everyMotionRowHasAStopwatch_data() {
+            return [{tag: "anchor", row: "anchor"}, {tag: "rotationX", row: "rotationX"}, {tag: "rotationY", row: "rotationY"},
+                    {tag: "perspective", row: "perspective"}, {tag: "depth", row: "depth"}]
+        }
+        function test_everyMotionRowHasAStopwatch(data) {
+            testClock.seek(0)
+            const stopwatch = child("effectControlsStopwatch_" + data.row)
+            const count = testHarness.undoCount()
+            click(stopwatch)
+            tryVerify(() => controller.rowDocument(data.row).keyframed)
+            compare(testHarness.undoCount(), count + 1)
+            compare(panel.activeRow, data.row)
+            compare(times(data.row), [0])
+            // Alt+K's row, the next and previous keys and the value graph all read this row.
+            testClock.seek(1000)
+            tryVerify(() => controller.playheadMs === 1000)
+            click(child("effectControlsToggle_" + data.row))
+            tryCompare(controller.rowDocument(data.row).times, "length", 2)
+            testClock.seek(500)
+            tryVerify(() => controller.rowLive(data.row).hasNext)
+            click(child("effectControlsNext_" + data.row))
+            tryVerify(() => controller.playheadMs === 1000)
+            click(child("effectControlsPrev_" + data.row))
+            tryVerify(() => controller.playheadMs === 0)
+            click(child("effectControlsGraphs_" + data.row))
+            tryVerify(() => child("effectControlsGraphLoader_" + data.row).item)
+            testTimeline.undoStack.undo()
+            testTimeline.undoStack.undo()
+            tryVerify(() => !controller.rowDocument(data.row).keyframed)
         }
         function test_fieldsWithNoKeysKeepTheRowShape() {
             openSection("crop")
@@ -213,7 +243,7 @@ Item {
             const left = crop.mapToItem(panel, 0, 0).x
             verify(left >= 0)
             verify(left + crop.width <= panel.listWidth, "A control stays in the list column")
-            const anchor = child("anchorX-slider")
+            const anchor = child("effectControls_anchor_input_1")
             verify(anchor.mapToItem(panel, 0, 0).x + anchor.width <= panel.listWidth)
             closeSection("crop")
         }

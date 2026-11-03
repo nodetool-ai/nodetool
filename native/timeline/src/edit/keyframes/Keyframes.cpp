@@ -1,5 +1,6 @@
 #include "Keyframes.h"
 #include "scene/Animation.h"
+#include "scene/SideCurves.h"
 
 #include <QHash>
 #include <QRegularExpression>
@@ -48,7 +49,14 @@ QJsonObject animation(const QJsonObject& clip) {
     const int index = animationIndex(clip);
     return index < 0 ? QJsonObject{} : clip["animations"].toArray()[index].toObject();
 }
-QJsonArray curves(const QJsonObject& clip) { return animation(clip)["custom"].toObject()["curves"].toArray(); }
+// Every curve of the clip, on the keyframe animation and on the side animations.
+QJsonArray curves(const QJsonObject& clip) {
+    auto all = animation(clip)["custom"].toObject()["curves"].toArray();
+    for (const auto& curve : nt::scene::sideCurveList(clip["animations"].toArray())) {
+        all.append(curve);
+    }
+    return all;
+}
 QJsonArray keys(const QJsonObject& clip, const QString& property) {
     for (const auto& value : curves(clip)) {
         const auto curve = value.toObject();
@@ -80,8 +88,9 @@ bool multiply(const QString& p) {
     return QStringList{"scale", "scaleX", "scaleY", "opacity", "saturation", "contrast", "cameraZoom"}.contains(p);
 }
 bool replace(const QString& p) {
-    return QStringList{"positionX", "positionY", "anchorX", "anchorY", "trimStart", "trimEnd", "wipeProgress"}.contains(
-        p);
+    return QStringList{"positionX", "positionY", "anchorX",      "anchorY",
+                       "trimStart", "trimEnd",   "wipeProgress", "perspective"}
+        .contains(p);
 }
 double identity(const QString& p) { return multiply(p) ? 1 : 0; }
 double compose(const QString& p, double base, double value) {
@@ -124,16 +133,19 @@ double curveValue(const QJsonArray& kfs, double t) {
     }
     return last["value"].toDouble();
 }
+// An easing on the keyframe animation overrides its segments. Side curves are not on it.
+QJsonValue easingOverride(const QJsonObject& clip, const QString& p) {
+    return nt::scene::isSideCurveProperty(p) ? QJsonValue(QJsonValue::Undefined) : animation(clip).value("easing");
+}
 double valueAt(const QJsonObject& clip, const QString& p, double ms) {
     auto kfs = sorted(keys(clip, p));
     if (kfs.isEmpty()) {
         return identity(p);
     }
-    const auto a = animation(clip);
-    if (a.contains("easing")) {
+    if (const auto override = easingOverride(clip, p); !override.isUndefined()) {
         for (qsizetype i = 0; i < kfs.size(); ++i) {
             auto kf = kfs[i].toObject();
-            kf.insert("easing", a["easing"]);
+            kf.insert("easing", override);
             kfs[i] = kf;
         }
     }
@@ -143,16 +155,19 @@ QJsonArray withCurves(const QJsonObject& clip, const QJsonArray& updated) {
     auto animations = clip["animations"].toArray();
     const int index = animationIndex(clip);
     QJsonArray live;
+    QJsonArray side;
     for (const auto& curve : updated) {
-        if (!curve.toObject()["keyframes"].toArray().isEmpty()) {
-            live.append(curve);
+        if (curve.toObject()["keyframes"].toArray().isEmpty()) {
+            continue;
         }
+        (nt::scene::isSideCurveProperty(curve.toObject()["property"].toString()) ? side : live).append(curve);
     }
+    const double duration = clip["durationMs"].toDouble();
     if (live.isEmpty()) {
         if (index >= 0) {
             animations.removeAt(index);
         }
-        return animations;
+        return nt::scene::withSideCurves(animations, side, duration);
     }
     auto next = animation(clip);
     if (!next.contains("id")) {
@@ -170,7 +185,7 @@ QJsonArray withCurves(const QJsonObject& clip, const QJsonArray& updated) {
     } else {
         animations.append(next);
     }
-    return animations;
+    return nt::scene::withSideCurves(animations, side, duration);
 }
 QJsonArray set(const QJsonObject& clip, const QString& p, double ms, double value) {
     QJsonArray others;
@@ -259,32 +274,46 @@ QJsonArray update(const QJsonObject& clip, const QStringList& ps, const QString&
     }
     return withCurves(clip, result);
 }
+// Stores curves whose keys now carry every easing themselves: an easing on the keyframe
+// animation is written onto its keys, and leaves the animation.
+QJsonArray withEasedCurves(const QJsonObject& clip, const QJsonArray& result) {
+    QJsonArray own;
+    QJsonArray side;
+    for (const auto& curve : result) {
+        (nt::scene::isSideCurveProperty(curve.toObject()["property"].toString()) ? side : own).append(curve);
+    }
+    auto animations = clip["animations"].toArray();
+    if (const int index = animationIndex(clip); index >= 0) {
+        auto a = animation(clip);
+        a.remove("easing");
+        a.insert("custom", merged(a["custom"].toObject(), {{"curves", own}}));
+        animations[index] = a;
+    }
+    return nt::scene::withSideCurves(animations, side, clip["durationMs"].toDouble());
+}
 QJsonArray setEasing(const QJsonObject& clip, const QStringList& ps, double ms, const QString& easing) {
-    auto a = animation(clip);
-    if (!a["custom"].isObject()) {
+    const auto all = curves(clip);
+    if (all.isEmpty() && !animation(clip)["custom"].isObject()) {
         return clip["animations"].toArray();
     }
     QJsonArray result;
-    for (const auto& value : curves(clip)) {
+    for (const auto& value : all) {
         auto c = value.toObject();
+        const auto override = easingOverride(clip, c["property"].toString());
         QJsonArray kfs;
         for (const auto& item : c["keyframes"].toArray()) {
             auto k = item.toObject();
             if (ps.contains(c["property"].toString()) && std::abs(k["t"].toDouble() - toT(clip, ms)) < epsilon) {
                 k.insert("easing", easing);
-            } else if (a.contains("easing")) {
-                k.insert("easing", a["easing"]);
+            } else if (!override.isUndefined()) {
+                k.insert("easing", override);
             }
             kfs.append(k);
         }
         c.insert("keyframes", kfs);
         result.append(c);
     }
-    a.remove("easing");
-    a.insert("custom", merged(a["custom"].toObject(), {{"curves", result}}));
-    auto animations = clip["animations"].toArray();
-    animations[animationIndex(clip)] = a;
-    return animations;
+    return withEasedCurves(clip, result);
 }
 QJsonObject cameraStyle(const QJsonObject& clip) {
     if (clip["model3dStyle"].isObject()) {
@@ -314,6 +343,18 @@ std::vector<Input> inputs(const QString& row) {
     }
     if (row == "rotation") {
         return {{"rotation", {}, "rotation"}};
+    }
+    if (row == "anchor") {
+        return {{"anchorX", "anchor", "x", 0.5, 0, 1}, {"anchorY", "anchor", "y", 0.5, 0, 1}};
+    }
+    if (row == "rotationX" || row == "rotationY") {
+        return {{row, {}, row}};
+    }
+    if (row == "perspective") {
+        return {{"perspective", {}, "perspective", 1000, 1}};
+    }
+    if (row == "depth") {
+        return {{"depthPx", {}, "depthPx"}};
     }
     if (row == "opacity") {
         return {{"opacity", {}, "opacity", 1, 0, 1}};
@@ -357,6 +398,19 @@ QJsonObject basePatch(const QJsonObject& clip, const Input& i, double value) {
     }
     return {{"transform", t}};
 }
+// What a property's new key holds, so that adding it changes nothing on screen. A property
+// that replaces its base has to start from that base rather than from the identity.
+double keyValue(const QJsonObject& clip, const QString& row, const QString& p, double ms) {
+    if (!keys(clip, p).isEmpty() || !replace(p)) {
+        return valueAt(clip, p, ms);
+    }
+    for (const auto& input : inputs(row)) {
+        if (input.property == p) {
+            return base(clip, input);
+        }
+    }
+    return identity(p);
+}
 bool rowKeyed(const QJsonObject& clip, const QString& row) {
     for (const auto& p : properties(row)) {
         if (!keys(clip, p).isEmpty()) {
@@ -381,8 +435,7 @@ QJsonValue stopwatch(const QJsonObject& clip, const QString& row, const QJsonVal
     if (!rowKeyed(clip, row)) {
         QJsonArray entries;
         for (const auto& p : ps) {
-            entries.append(QJsonObject{
-                {"property", p}, {"value", keys(clip, p).isEmpty() ? identity(p) : valueAt(clip, p, at.toDouble())}});
+            entries.append(QJsonObject{{"property", p}, {"value", keyValue(clip, row, p, at.toDouble())}});
         }
         return QJsonObject{{"animations", setMany(clip, entries, at.toDouble())}};
     }
@@ -406,7 +459,7 @@ QJsonValue toggle(const QJsonObject& clip, const QString& row, const QJsonValue&
     if (!rowHas(clip, row, ms)) {
         QJsonArray entries;
         for (const auto& p : ps) {
-            entries.append(QJsonObject{{"property", p}, {"value", valueAt(clip, p, ms)}});
+            entries.append(QJsonObject{{"property", p}, {"value", keyValue(clip, row, p, ms)}});
         }
         return QJsonObject{{"animations", setMany(clip, entries, ms)}};
     }
@@ -447,7 +500,7 @@ QJsonValue commit(const QJsonObject& clip, const QString& row, int index, double
     QJsonArray entries;
     for (const auto& p : properties(row)) {
         entries.append(QJsonObject{
-            {"property", p}, {"value", p == input.property ? kf.toDouble() : valueAt(working, p, at.toDouble())}});
+            {"property", p}, {"value", p == input.property ? kf.toDouble() : keyValue(working, row, p, at.toDouble())}});
     }
     patch.insert("animations", setMany(working, entries, at.toDouble()));
     return patch;
@@ -481,6 +534,13 @@ QJsonObject gizmo(const QJsonObject& clip, const QJsonObject& next, const QJsonV
     if (!keys(clip, "rotation").isEmpty()) {
         push("rotation", valueAt(clip, "rotation", ms) + next["rotation"].toDouble() - b["rotation"].toDouble());
         t.insert("rotation", b["rotation"]);
+    }
+    if (!keys(clip, "anchorX").isEmpty() || !keys(clip, "anchorY").isEmpty()) {
+        const auto from = b["anchor"].toObject();
+        const auto to = next["anchor"].toObject();
+        push("anchorX", keyValue(clip, "anchor", "anchorX", ms) + to["x"].toDouble() - from["x"].toDouble());
+        push("anchorY", keyValue(clip, "anchor", "anchorY", ms) + to["y"].toDouble() - from["y"].toDouble());
+        t.insert("anchor", b["anchor"]);
     }
     return entries.isEmpty() ? QJsonObject{{"transform", next}}
                              : QJsonObject{{"transform", t}, {"animations", setMany(clip, entries, ms)}};
@@ -592,33 +652,30 @@ QJsonValue moveMany(const QJsonObject& clip, const QJsonObject& payload) {
 }
 QJsonValue easingMany(const QJsonObject& clip, const QJsonObject& payload) {
     const auto selection = keySet(clip, payload["keys"]);
-    auto a = animation(clip);
-    if (!selection || !a["custom"].isObject() || !payload["easing"].isString()) {
+    const auto all = curves(clip);
+    if (!selection || (all.isEmpty() && !animation(clip)["custom"].isObject()) || !payload["easing"].isString()) {
         return QJsonValue::Null;
     }
     const auto easing = payload["easing"].toString();
     QJsonArray result;
-    for (const auto& value : curves(clip)) {
+    for (const auto& value : all) {
         auto c = value.toObject();
         const auto requests = selection->constFind(c["property"].toString());
+        const auto override = easingOverride(clip, c["property"].toString());
         QJsonArray kfs;
         for (const auto& item : c["keyframes"].toArray()) {
             auto k = item.toObject();
             if (requests != selection->constEnd() && findRequest(*requests, k["t"].toDouble())) {
                 k.insert("easing", easing);
-            } else if (a.contains("easing")) {
-                k.insert("easing", a["easing"]);
+            } else if (!override.isUndefined()) {
+                k.insert("easing", override);
             }
             kfs.append(k);
         }
         c.insert("keyframes", kfs);
         result.append(c);
     }
-    a.remove("easing");
-    a.insert("custom", merged(a["custom"].toObject(), {{"curves", result}}));
-    auto animations = clip["animations"].toArray();
-    animations[animationIndex(clip)] = a;
-    return QJsonObject{{"animations", animations}};
+    return QJsonObject{{"animations", withEasedCurves(clip, result)}};
 }
 // Deletes per row, as toggling each key off would: a row left with no key stops animating
 // at the value of its last key.
@@ -684,7 +741,9 @@ struct FixedGroup {
 };
 std::optional<FixedGroup> fixedGroup(const QString& group) {
     if (group == "motion") {
-        return FixedGroup{{"transform"}, {"offsetX", "offsetY", "scale", "rotation"}};
+        return FixedGroup{{"transform"},
+                          {"offsetX", "offsetY", "scale", "rotation", "anchorX", "anchorY", "rotationX", "rotationY",
+                           "perspective", "depthPx"}};
     }
     if (group == "opacity") {
         return FixedGroup{{"opacity"}, {"opacity"}};
@@ -774,7 +833,7 @@ class SampledCurve {
     SampledCurve(const QJsonObject& clip, const Input& input, double scale)
         : m_property(input.property), m_base(base(clip, input)), m_scale(scale) {
         const auto kfs = sorted(keys(clip, input.property));
-        const QJsonValue override = animation(clip).value("easing");
+        const QJsonValue override = easingOverride(clip, input.property);
         m_points.reserve(static_cast<size_t>(kfs.size()));
         for (const auto& value : kfs) {
             const auto k = value.toObject();
@@ -853,7 +912,7 @@ QJsonObject rowGraphSamples(const QJsonObject& clip, const QString& row, double 
     QJsonArray curvesOut;
     std::vector<std::vector<double>> plotted;
     for (size_t input = 0; input < specs.size(); ++input) {
-        const SampledCurve curve(clip, specs[input], scales[input]);
+        const SampledCurve curve(clip, specs[input], input < scales.size() ? scales[input] : 1);
         QJsonArray values;
         std::vector<double> plot;
         plot.reserve(static_cast<size_t>(count) + 1);
@@ -894,7 +953,7 @@ QJsonObject rowGraphKeys(const QJsonObject& clip, const QString& row) {
     std::vector<SampledCurve> sampled;
     sampled.reserve(specs.size());
     for (size_t input = 0; input < specs.size(); ++input) {
-        sampled.emplace_back(clip, specs[input], scales[input]);
+        sampled.emplace_back(clip, specs[input], input < scales.size() ? scales[input] : 1);
         for (int i = 0; i <= fitSamples; ++i) {
             const double value = sampled[input].at(static_cast<double>(i) / fitSamples);
             lo = std::min(lo, value);
@@ -1109,12 +1168,11 @@ QJsonValue helper(const QString& name, const QJsonArray& a) {
         return rowGraph(c, p, ms, a[3].toDouble(), a[4].toInt())["curves"];
     }
     if (name == "keyframeEasingAt") {
-        const auto anim = animation(c);
+        const auto override = easingOverride(c, p);
         for (const auto& k : keys(c, p)) {
             const auto kf = k.toObject();
             if (std::abs(kf["t"].toDouble() - toT(c, ms)) < epsilon) {
-                return anim["easing"].isUndefined() ? QJsonValue(kf["easing"].toString("linear"))
-                                                    : QJsonValue(anim["easing"]);
+                return override.isUndefined() ? QJsonValue(kf["easing"].toString("linear")) : override;
             }
         }
         return QJsonValue::Null;
@@ -1259,6 +1317,27 @@ QJsonArray rowSpecs() {
                                                       {"decimals", 1},
                                                       {"step", 0.5},
                                                       {"displayScale", 180 / std::acos(-1.0)}}}}},
+        QJsonObject{
+            {"id", "anchor"},
+            {"label", "Anchor"},
+            {"inputs", QJsonArray{
+                           QJsonObject{{"label", "Anchor X"}, {"unit", ""}, {"decimals", 2}, {"step", 0.01}, {"min", 0}, {"max", 1}},
+                           QJsonObject{{"label", "Anchor Y"}, {"unit", ""}, {"decimals", 2}, {"step", 0.01}, {"min", 0}, {"max", 1}}}}},
+        QJsonObject{{"id", "rotationX"},
+                    {"label", "Rotation X"},
+                    {"inputs", QJsonArray{QJsonObject{
+                                   {"label", "Rotation X in degrees"}, {"unit", "°"}, {"decimals", 1}, {"step", 0.5}}}}},
+        QJsonObject{{"id", "rotationY"},
+                    {"label", "Rotation Y"},
+                    {"inputs", QJsonArray{QJsonObject{
+                                   {"label", "Rotation Y in degrees"}, {"unit", "°"}, {"decimals", 1}, {"step", 0.5}}}}},
+        QJsonObject{{"id", "perspective"},
+                    {"label", "Perspective"},
+                    {"inputs", QJsonArray{QJsonObject{
+                                   {"label", "Perspective"}, {"unit", "px"}, {"decimals", 0}, {"step", 1}, {"min", 1}}}}},
+        QJsonObject{{"id", "depth"},
+                    {"label", "Depth"},
+                    {"inputs", QJsonArray{QJsonObject{{"label", "Depth"}, {"unit", "px"}, {"decimals", 0}, {"step", 1}}}}},
         QJsonObject{{"id", "opacity"},
                     {"label", "Opacity"},
                     {"inputs", QJsonArray{QJsonObject{{"label", "Opacity"},

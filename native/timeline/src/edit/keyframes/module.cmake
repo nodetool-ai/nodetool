@@ -30,3 +30,22 @@ function(nt_keyframe_ui_tests)
     set_tests_properties(tst_keyframesui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endfunction()
 nt_tests(nt_keyframe_ui_tests)
+function(nt_keyed_render_tests)
+    qt_add_executable(tst_keyedrender src/edit/keyframes/tst_keyedrender.cpp
+        src/edit/keyframes/KeyframeEdits.cpp
+        src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/model/TrackListModel.h src/model/TrackListModel.cpp
+        src/playback/PlaybackClock.h src/playback/PlaybackClock.cpp
+        src/export/OffscreenFrames.h src/export/OffscreenFrames.cpp
+        src/preview/PreviewCompositor.h src/preview/PreviewCompositor.cpp
+        src/preview/hw/HwWindow.h src/preview/hw/HwWindow.cpp)
+    set_target_properties(tst_keyedrender PROPERTIES MACOSX_BUNDLE FALSE)
+    target_compile_options(tst_keyedrender PRIVATE ${NT_WARNINGS})
+    target_link_libraries(tst_keyedrender PRIVATE timeline_core timeline_decode
+        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::Test ${NT_APP_PLATFORM_LIBS})
+    qt_add_shaders(tst_keyedrender "keyed_composite_shaders" PREFIX "/shaders" BASE shaders
+        FILES shaders/composite.vert shaders/composite.frag shaders/monitorview.frag)
+    add_test(NAME tst_keyedrender COMMAND tst_keyedrender)
+    set_tests_properties(tst_keyedrender PROPERTIES LABELS render)
+endfunction()
+nt_tests(nt_keyed_render_tests)

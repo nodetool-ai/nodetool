@@ -573,16 +573,6 @@ qml_callers = ["native/timeline/src/edit/keyframes/qmltests/tst_inspector.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.ScrollBar, Ui.Text"
 
 [[file]]
-path = "native/timeline/qml/Inspector/TransformFields.qml"
-category = "chrome"
-controls = ["InspectorSliderRow", "InspectorRow", "InspectorPillInput"]
-signals = []
-test_host = "tst_keyframesui"
-test_scope = "interaction"
-qml_callers = ["native/timeline/qml/effectcontrols/EffectControlsGroup.qml"]
-replacement = "Feature composition through migrated native Ui wrappers"
-
-[[file]]
 path = "native/timeline/qml/Inspector/TransitionEasingField.qml"
 category = "chrome"
 controls = ["InspectorRow", "InspectorPillInput", "Ui.Text"]

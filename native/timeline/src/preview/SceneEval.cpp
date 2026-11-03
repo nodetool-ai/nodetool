@@ -212,6 +212,13 @@ std::shared_ptr<const std::vector<scene::CompiledAnimation>> compiledFor(
     return compiled;
 }
 
+// A side curve of `clip` at `timeMs`, or nothing when the parameter has no keys.
+std::optional<double> sideCurveAt(const Clip& clip, QStringView property, double timeMs) {
+    const auto& curves = sceneOf(clip).sideCurves;
+    if (!curves || clip.durationMs <= 0) return std::nullopt;
+    return curves->value(property, clamp01((timeMs - clip.startMs) / clip.durationMs));
+}
+
 struct AnimatedProps {
     std::optional<ClipTransform> transform;
     double opacity = 1;
@@ -255,6 +262,15 @@ AnimatedProps resolveAnimated(const Clip& clip, const std::optional<ClipTransfor
                 props.mask = s.mask;
             }
         }
+    }
+    const auto keyedPerspective = sideCurveAt(clip, u"perspective", t);
+    const auto keyedDepth = sideCurveAt(clip, u"depthPx", t);
+    if (keyedPerspective || keyedDepth) {
+        auto transform = props.transform.value_or(identityTransform());
+        // The fold of `perspective` is a replace, and of `depthPx` an add, as the keyframe rows compose them.
+        if (keyedPerspective && *keyedPerspective > 0) transform.perspective = *keyedPerspective;
+        if (keyedDepth) transform.depthPx = transform.depthPx.value_or(0) + *keyedDepth;
+        props.transform = transform;
     }
     if (const auto offset = motion::resolveTrackBinding(clip, mediaTracks, sources, t, w, h)) {
         auto transform = props.transform.value_or(identityTransform());
@@ -641,11 +657,14 @@ std::optional<std::string> effectiveAssetId(const Clip& clip) {
     return std::nullopt;
 }
 
-double depthOf(const Clip& c) { return c.transform && c.transform->depthPx ? *c.transform->depthPx : 0.0; }
+double depthOf(const Clip& c, double timeMs) {
+    const double base = c.transform && c.transform->depthPx ? *c.transform->depthPx : 0.0;
+    return base + sideCurveAt(c, u"depthPx", steppedTime(c, timeMs)).value_or(0.0);
+}
 bool isEcho(const Clip& c) { return c.id.find(":echo:") != std::string::npos; }
 
-bool drawOrderLess(const Clip* a, const Clip* b) {
-    const double depth = depthOf(*a) - depthOf(*b);
+bool drawOrderLess(const Clip* a, const Clip* b, double timeMs) {
+    const double depth = depthOf(*a, timeMs) - depthOf(*b, timeMs);
     if (depth != 0) return depth < 0;
     const int ae = isEcho(*a) ? 0 : 1;
     const int be = isEcho(*b) ? 0 : 1;
@@ -1025,7 +1044,7 @@ SceneFrame evaluateSceneTap(const Timeline& timeline, double timeMs, double fram
             active.push_back(c);
         }
         std::stable_sort(active.begin(), active.end(), [](const Clip* a, const Clip* b) { return a->startMs < b->startMs; });
-        std::stable_sort(active.begin(), active.end(), drawOrderLess);
+        std::stable_sort(active.begin(), active.end(), [timeMs](const Clip* a, const Clip* b) { return drawOrderLess(a, b, timeMs); });
 
         for (const Clip* clipPtr : active) {
             const Clip& clip = *clipPtr;
@@ -1206,7 +1225,7 @@ SceneFrame evaluateSceneTap(const Timeline& timeline, double timeMs, double fram
             for (const Clip* c : clipsByTrack[t.id]) {
                 if (c->mediaType != MediaType::Adjustment) ordered.push_back(c);
             }
-            std::stable_sort(ordered.begin(), ordered.end(), drawOrderLess);
+            std::stable_sort(ordered.begin(), ordered.end(), [timeMs](const Clip* a, const Clip* b) { return drawOrderLess(a, b, timeMs); });
             for (size_t i = 0; i < ordered.size(); i++) stackOrder[ordered[i]->id] = static_cast<int>(i);
         }
         for (Pending& p : drawn) {

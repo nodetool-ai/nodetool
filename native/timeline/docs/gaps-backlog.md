@@ -2,7 +2,8 @@
 
 AI workflow parity is tracked separately in
 [AI-WORKFLOWS.md](AI-WORKFLOWS.md). The original editing milestones and review
-backlog do not establish AI completion.
+backlog do not establish AI completion. What web still needs for native-only
+behaviour is in [web-followups.md](web-followups.md).
 
 Only P0 and P1 review findings block a merge in the gap run. Every P2 finding
 still open in a package's last Codex review is listed here when the package
@@ -190,6 +191,7 @@ results rather than a review finding.
 | B200 | P2 | inspector-3 | `qml/effects/EffectsPanel.qml` | The Effects panel does not list transitions. They keep their route through the clip menu and the edit point menu. | inspector-3 |
 | B201 | P2 | inspector-3 | `src/edit/clipeffects/ToneCurveEditor.qml` | At the default 360 px dock, Effect Controls' list column is too narrow for the curve editor's channel buttons, which collapse. The Color panel shows them, and widening the dock brings them back. | inspector-3 |
 | B199 | P2 | inspector-2 Astra | `qml/Inspector/primitives/InspectorRow.qml:30` | At Effect Controls' narrowest list width, about 145 px, a fade row's input and shape selector together are wider than the column, and the input clips on the left. They should wrap or shrink. | inspector-2 |
+| B202 | P2 | notes (keys-1) | `src/edit/keyframes/Keyframes.cpp` | An unset Perspective draws flat but its row shows 1000, as the old field did. Keying it on a turned clip therefore starts a perspective at 1000 instead of keeping the flat picture. | keys-1 |
 
 ## Closed
 

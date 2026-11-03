@@ -120,9 +120,9 @@ private slots:
         for (const auto* group : {"motion", "opacity", "timeRemap", "crop", "borderRadius", "motionBlur", "effect:glow", "effect:curve"}) {
             QVERIFY2(named(effectControls, "effectControlsGroup_" + QString::fromLatin1(group)), group);
         }
-        QVERIFY(named(effectControls, "anchorX-slider"));
-        QVERIFY(named(effectControls, "depthPx-input"));
-        for (const auto* control : {"anchorX-slider", "depthPx-input", "position-input-0", "inspectorCrop", "borderRadiusSlider",
+        QVERIFY(named(effectControls, "effectControls_anchor_input_0"));
+        QVERIFY(named(effectControls, "effectControls_depth_input_0"));
+        for (const auto* control : {"effectControls_anchor_input_0", "effectControls_depth_input_0", "position-input-0", "inspectorCrop", "borderRadiusSlider",
                                     "motionBlurEnabled", "inspectorTimeRemap", "audioSection"}) {
             QVERIFY2(!named(inspector, QString::fromLatin1(control)), control);
         }
