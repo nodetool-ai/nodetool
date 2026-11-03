@@ -50,7 +50,7 @@ function(nt_export_tests)
     add_test(NAME tst_exportdialog COMMAND tst_exportdialog dialog panelContext controllerCancelBeforeFrames
         snapshotKeepsRelativeMatte refusesUnavailableServerOriginal audioOnlyExportAllowsMissingPictureOriginal
         cancelExportDuringAudio cancelBlockedAudio cancelOfflineMix stuckChildTeardownCleansStaging
-        rangeResolution fitFrameModes bitrateExport)
+        fitFrameModes)
     set_tests_properties(tst_exportdialog PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
     qt_add_executable(tst_framecapture src/export/tst_framecapture.cpp src/export/OffscreenFrames.cpp src/preview/hw/HwWindow.cpp)
     set_target_properties(tst_framecapture PROPERTIES MACOSX_BUNDLE FALSE)
@@ -71,6 +71,13 @@ function(nt_export_tests)
     # RenderControl needs the platform RHI; Linux/Windows inherit the same
     # headless render backend as the other render-labelled tests.
     set_tests_properties(export_original_pixels PROPERTIES LABELS render FIXTURES_REQUIRED media RUN_SERIAL TRUE
+        ENVIRONMENT_MODIFICATION "QT_QUICK_BACKEND=unset:")
+    # These two render frames, so they need the platform RHI as well.
+    add_test(NAME export_range_bitrate COMMAND tst_exportdialog rangeResolution bitrateExport)
+    if(APPLE)
+        set_tests_properties(export_range_bitrate PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=cocoa")
+    endif()
+    set_tests_properties(export_range_bitrate PROPERTIES LABELS render FIXTURES_REQUIRED media RUN_SERIAL TRUE
         ENVIRONMENT_MODIFICATION "QT_QUICK_BACKEND=unset:")
     add_test(NAME export_controller_cancel COMMAND tst_exportdialog controllerCancel)
     set_tests_properties(export_controller_cancel PROPERTIES LABELS render FIXTURES_REQUIRED media)

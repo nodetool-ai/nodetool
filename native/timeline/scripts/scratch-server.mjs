@@ -76,6 +76,8 @@ export function createScratchSession({ work, repo, assertInWork, log = () => {},
   
   async function startServer(name, port, extra = {}) {
     if (port === USER_PORT) throw new Error("refusing to start on 7777");
+    // Ownership checks need process groups and lsof or ss. Starting anyway would leave a server no one can stop.
+    if (process.platform === "win32") throw new Error(`${name}: scratch servers need POSIX process groups`);
     if (listenerPids(port).length > 0) throw new Error(`port ${port} is already in use; refusing to start ${name}`);
     const dir = assertInWork(path.join(work, name));
     if (fs.existsSync(dir)) throw new Error(`${dir} exists already`);

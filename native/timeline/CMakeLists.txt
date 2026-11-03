@@ -201,6 +201,11 @@ add_library(timeline_audio STATIC ${NT_audio})
 target_include_directories(timeline_audio PRIVATE third_party)
 target_link_libraries(timeline_audio PUBLIC timeline_core PkgConfig::FFMPEG ${NT_AUDIO_PLATFORM_LIBS})
 target_compile_options(timeline_audio PRIVATE ${NT_WARNINGS})
+# Clang on arm64 contracts by default, which changes a remix's features and plan from every other platform's.
+if(NOT MSVC)
+    set_source_files_properties(src/remix/RemixDsp.cpp
+        TARGET_DIRECTORY timeline_audio PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
+endif()
 # Third-party code: its own warnings are not ours to fix.
 set_source_files_properties(src/audio/miniaudio.cpp PROPERTIES COMPILE_OPTIONS "${NT_NO_WARNINGS}")
 
