@@ -318,6 +318,24 @@ export function comfyEntryToMetadata(
       stream: false
     };
   });
+  // A save/preview node gets a media slot of the kind it saves, appended after
+  // its sockets, so the editor has somewhere to show the file the job returns.
+  // It is display only: prompts link sockets by `comfyOutputNames`.
+  let primaryOutput: string | undefined;
+  if (entry.output_node === true) {
+    const sockets = new Set(properties.map((p) => p.type.type));
+    const kind = sockets.has(`${COMFY_SOCKET_PREFIX}VIDEO`)
+      ? "video"
+      : sockets.has(`${COMFY_SOCKET_PREFIX}AUDIO`)
+        ? "audio"
+        : sockets.has(`${COMFY_SOCKET_PREFIX}IMAGE`)
+          ? "image"
+          : null;
+    if (kind) {
+      outputs.push({ name: "output", type: { type: kind, optional: true, type_args: [] }, stream: false });
+      primaryOutput = "output";
+    }
+  }
   const title = entry.display_name || entry.name || className;
   return {
     title,
@@ -329,8 +347,15 @@ export function comfyEntryToMetadata(
     layout: "default",
     properties,
     outputs,
+    ...(primaryOutput ? { primary_output: primaryOutput } : {}),
     recommended_models: [],
-    inline_fields: [],
+    // Sockets are wired, widgets are edited on the node, as in ComfyUI.
+    input_fields: properties
+      .filter((p) => p.type.type === "any" || p.type.type.startsWith(COMFY_SOCKET_PREFIX))
+      .map((p) => p.name),
+    inline_fields: properties
+      .filter((p) => !(p.type.type === "any" || p.type.type.startsWith(COMFY_SOCKET_PREFIX)))
+      .map((p) => p.name),
     required_settings: ["COMFY_API_KEY"],
     supports_dynamic_inputs: false,
     supports_dynamic_outputs: false,
@@ -466,7 +491,7 @@ export function comfyPromptToGraph(
       }
     }
     const ui: Record<string, unknown> = {
-      position: { x: column * 340, y: row * 260 },
+      position: { x: column * 340, y: row * 330 },
       width: 280
     };
     if (entry._meta?.title) ui.title = entry._meta.title;

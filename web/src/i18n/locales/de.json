@@ -6297,6 +6297,7 @@
         "renderedExampleShots_other": "{{count}} Einstellungen, bereits gerendert",
         "blankEntries": {
           "workflow": "Workflow",
+          "comfy-workflow": "Comfy-Workflow",
           "chat": "Chat",
           "text": "Text",
           "image": "Skizze",

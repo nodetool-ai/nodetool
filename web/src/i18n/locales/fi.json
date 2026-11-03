@@ -6297,6 +6297,7 @@
         "renderedExampleShots_other": "{{count}} otosta, jo renderöity",
         "blankEntries": {
           "workflow": "Työnkulku",
+          "comfy-workflow": "Comfy-työnkulku",
           "chat": "Keskustelu",
           "text": "Teksti",
           "image": "Luonnos",

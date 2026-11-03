@@ -272,10 +272,14 @@ export class ComfyCloudGraphNode extends BaseNode {
       output: Parameters<typeof outputFrame>[0]
     ): Promise<Record<string, unknown>> => {
       const frame = await outputFrame(output, signal);
-      const value = Object.values(frame)[0];
+      const value = Object.values(frame)[0] as
+        | { type?: string; data?: string; mimeType?: string }
+        | string
+        | undefined;
+      // The editor shows the file inline on the Comfy node that saved it.
       const shown =
-        value && typeof value === "object" && context
-          ? await context.normalizeOutputValue(value)
+        value && typeof value === "object" && value.data
+          ? { type: value.type, uri: `data:${value.mimeType ?? "application/octet-stream"};base64,${value.data}` }
           : value;
       done.add(output.nodeId);
       nodeUpdate(output.nodeId, "completed", { result: { output: shown } });

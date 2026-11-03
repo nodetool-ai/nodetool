@@ -6469,6 +6469,7 @@
         "renderedExampleShots_other": "{{count}} кадра, уже отрендерены",
         "blankEntries": {
           "workflow": "Рабочий процесс",
+          "comfy-workflow": "Comfy-процесс",
           "chat": "Чат",
           "text": "Текст",
           "image": "Эскиз",

@@ -64,5 +64,9 @@ const OUTPUTS: Record<string, string[]> = {
   SaveImage: []
 };
 
-export const comfyStarterGraph = (): ComfyGraph =>
-  comfyPromptToGraph(STARTER_PROMPT, (cls) => OUTPUTS[cls]);
+/** A fresh seed per workflow, so a first run is never a cached result. */
+export const comfyStarterGraph = (): ComfyGraph => {
+  const prompt: ComfyApiPrompt = structuredClone(STARTER_PROMPT);
+  prompt["3"].inputs.seed = Math.floor(Math.random() * 2 ** 31);
+  return comfyPromptToGraph(prompt, (cls) => OUTPUTS[cls]);
+};
