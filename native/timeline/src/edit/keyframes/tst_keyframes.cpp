@@ -7,7 +7,7 @@
 #include "edit/ClipOps.h"
 #include "preview/crop/Reframe.h"
 #include "scene/Animation.h"
-#include "scene/SideCurves.h"
+#include "scene/ParamCurves.h"
 #include <QCoreApplication>
 #include <QElapsedTimer>
 #include <QFile>
@@ -450,7 +450,7 @@ class TestKeyframes : public QObject {
         }
         const auto animations = model.clipsJson()[0].toObject()["animations"].toArray();
         QCOMPARE(animations.size(), 1);
-        QVERIFY(!nt::scene::isSideCurveAnimation(animations[0].toObject()));
+        QVERIFY(!model.clipsJson()[0].toObject().contains("paramCurves"));
         QCOMPARE(animations[0].toObject()["custom"].toObject()["curves"].toArray().size(), 4);
     }
     // Perspective and Depth have no channel, so a web build keeps them apart from what it draws.
@@ -465,21 +465,17 @@ class TestKeyframes : public QObject {
         QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "depth"}, {"input", 0}, {"value", 40}, {"atMs", 1000}}));
         const auto clip = [&] { return model.clipsJson()[0].toObject(); };
         auto animations = clip()["animations"].toArray();
-        QCOMPARE(animations.size(), 2);
-        const auto main = animations[0].toObject();
-        QCOMPARE(main["custom"].toObject()["curves"].toArray().size(), 2);
-        const auto side = animations[1].toObject();
-        QVERIFY(nt::scene::isSideCurveAnimation(side));
-        QCOMPARE(side["enabled"].toBool(true), false);
-        QCOMPARE(side["custom"].toObject()["curves"].toArray().size(), 2);
-        // Compiling keeps the channels and leaves the side animation out.
+        QCOMPARE(animations.size(), 1);
+        QCOMPARE(animations[0].toObject()["custom"].toObject()["curves"].toArray().size(), 2);
+        QCOMPARE(clip()["paramCurves"].toArray().size(), 2);
+        // Compiling draws the channels and knows nothing of the param curves.
         const auto defs = nt::scene::parseAnimations(animations);
         QCOMPARE(nt::scene::compileAnimations(defs, 2000, {}).size(), size_t(1));
         const auto scene = [&](double t) { return *nt::evaluateScene(*model.snapshot(), t).layers[0].transform; };
         QCOMPARE(scene(0).perspective.value_or(0), 1000.0);
         QCOMPARE(scene(1000).perspective.value_or(0), 500.0);
         QCOMPARE(scene(1000).depthPx.value_or(0), 40.0);
-        // Previous, next, moving, easing and deleting read the side curve like any other.
+        // Previous, next, moving, easing and deleting read the param curve like any other.
         QCOMPARE(nt::keyframes::times(clip(), nt::keyframes::properties("perspective")), (QJsonArray{0, 1000}));
         QCOMPARE(nt::keyframes::helper("adjacentKeyframeMs", {clip(), QJsonArray{"perspective"}, 0, 1}).toDouble(), 1000.0);
         QVERIFY(model.applyEdit("keyframes.easing", {{"clipId", "c"}, {"row", "perspective"}, {"atMs", 1000}, {"easing", "hold"}}));
@@ -496,27 +492,27 @@ class TestKeyframes : public QObject {
         QCOMPARE(nt::keyframes::times(clip(), {"depthPx"}).size(), 3);
         QVERIFY(model.applyEdit("keyframes.deleteMany", {{"clipId", "c"}, {"keys", QJsonArray{QJsonObject{{"row", "depth"}, {"atMs", 700}}}}}));
         QCOMPARE(nt::keyframes::times(clip(), {"depthPx"}).size(), 2);
-        // The last curve on a side animation takes the animation with it.
+        // The last param curve takes the field with it, and the keyframe animation stays.
         QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "perspective"}, {"atMs", 0}}));
         QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "depth"}, {"atMs", 0}}));
-        animations = clip()["animations"].toArray();
-        QCOMPARE(animations.size(), 1);
-        QVERIFY(!nt::scene::isSideCurveAnimation(animations[0].toObject()));
+        QCOMPARE(clip()["animations"].toArray().size(), 1);
+        QVERIFY(!clip().contains("paramCurves"));
     }
-    // A clip with only side curves has no keyframe animation for an easing edit to index.
+    // A clip with only param curves has no keyframe animation for an easing edit to index.
     void easingWithNoKeyframeAnimation() {
         TimelineModel model;
         model.setTimeline(fixture());
         QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "depth"}, {"atMs", 0}}));
         QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "depth"}, {"input", 0}, {"value", 40}, {"atMs", 1000}}));
-        QCOMPARE(model.clipsJson()[0].toObject()["animations"].toArray().size(), 1);
+        QVERIFY(!model.clipsJson()[0].toObject().contains("animations"));
         QVERIFY(model.applyEdit("keyframes.easing", {{"clipId", "c"}, {"row", "depth"}, {"atMs", 1000}, {"easing", "easeIn"}}));
         const auto clip = model.clipsJson()[0].toObject();
         QCOMPARE(nt::keyframes::helper("keyframeEasingAt", {clip, "depthPx", 1000}).toString(), QString("easeIn"));
-        QCOMPARE(clip["animations"].toArray().size(), 1);
+        QVERIFY(!clip.contains("animations"));
+        QCOMPARE(clip["paramCurves"].toArray().size(), 1);
     }
     // An easing on the keyframe animation shapes only its own curves.
-    void animationEasingLeavesSideCurves() {
+    void animationEasingLeavesParamCurves() {
         TimelineModel model;
         model.setTimeline(fixture());
         QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "position"}, {"atMs", 0}}));
@@ -532,19 +528,94 @@ class TestKeyframes : public QObject {
         QCOMPARE(nt::keyframes::inputValue(clip, "position", 0, 500), 0.0);
         QCOMPARE(nt::keyframes::inputValue(clip, "depth", 0, 500), 50.0);
     }
-    void moreCurvesThanOneAnimationHolds() {
-        QJsonArray curves;
-        for (int i = 0; i < 17; ++i) {
-            curves.append(QJsonObject{{"property", QString("custom:%1").arg(i)}, {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", i}}}}});
+    // One animation holds 16 curves. The field holds what the schema allows, and refuses more.
+    void paramCurvesStopAtTheSchemaLimit() {
+        QJsonArray list;
+        for (int i = 0; i < nt::scene::kMaxParamCurves; ++i) {
+            list.append(QJsonObject{{"property", QString("future:%1").arg(i)}, {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", i}}}}});
         }
-        const auto animations = nt::scene::withSideCurves({}, curves, 2000);
-        QCOMPARE(animations.size(), 2);
-        QCOMPARE(animations[0].toObject()["custom"].toObject()["curves"].toArray().size(), 16);
-        QCOMPARE(animations[1].toObject()["custom"].toObject()["curves"].toArray().size(), 1);
-        QCOMPARE(nt::scene::sideCurveList(animations), curves);
-        const auto again = nt::scene::withSideCurves(animations, curves, 2000);
-        QCOMPARE(again[0].toObject()["id"], animations[0].toObject()["id"]);
-        QVERIFY(nt::scene::withSideCurves(animations, {}, 2000).isEmpty());
+        auto document = fixture().raw;
+        auto clips = document["clips"].toArray();
+        auto c = clips[0].toObject();
+        c.insert("paramCurves", list);
+        clips[0] = c;
+        document.insert("clips", clips);
+        // A new curve past the limit does not land, and the names this build does not read stay.
+        const auto refused = nt::keyframes::edit(document, {{"clipId", "c"}, {"action", "stopwatch"}, {"row", "depth"}, {"atMs", 0}});
+        QCOMPARE(refused["clips"].toArray()[0].toObject()["paramCurves"].toArray(), list);
+        // Below it, an edit keeps every other curve.
+        list.removeLast();
+        c.insert("paramCurves", list);
+        clips[0] = c;
+        document.insert("clips", clips);
+        const auto edited = nt::keyframes::edit(document, {{"clipId", "c"}, {"action", "stopwatch"}, {"row", "depth"}, {"atMs", 0}});
+        QCOMPARE(edited["clips"].toArray()[0].toObject()["paramCurves"].toArray().size(), nt::scene::kMaxParamCurves);
+    }
+    // A name this build does not read stays through edits and changes nothing else.
+    void unknownParamCurveNamesStay() {
+        const QJsonObject future{{"property", "future:thing"}, {"keyframes", QJsonArray{QJsonObject{{"t", 0.5}, {"value", 3}}}}};
+        auto document = fixture().raw;
+        auto clips = document["clips"].toArray();
+        auto c = clips[0].toObject();
+        c.insert("paramCurves", QJsonArray{future});
+        clips[0] = c;
+        document.insert("clips", clips);
+        auto next = nt::keyframes::edit(document, {{"clipId", "c"}, {"action", "stopwatch"}, {"row", "depth"}, {"atMs", 0}});
+        next = nt::keyframes::edit(next, {{"clipId", "c"}, {"action", "stopwatch"}, {"row", "depth"}, {"atMs", 0}});
+        QCOMPARE(next["clips"].toArray()[0].toObject()["paramCurves"].toArray(), QJsonArray{future});
+        const auto parsed = nt::parseTimeline(next);
+        QVERIFY(parsed.timeline.has_value());
+        QCOMPARE(nt::evaluateScene(*parsed.timeline, 0).layers.size(), size_t(1));
+    }
+    // What native writes, against the shape packages/execution/tests/timeline-param-curves.test.ts
+    // parses with the schema. The same file on both sides is the boundary.
+    void savedDocumentMatchesTheSchemaFixture() {
+        QFile file(QStringLiteral(NT_KEYFRAME_FIXTURES) + "/param-curves.json");
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto expected = QJsonDocument::fromJson(file.readAll()).object();
+        QVERIFY(!expected.isEmpty());
+        // Off the fixture's static values, the same edits write the same curves.
+        auto start = expected;
+        auto clips = start["clips"].toArray();
+        const auto keyed = clips[0].toObject();
+        auto stripped = keyed;
+        stripped.remove("paramCurves");
+        clips[0] = stripped;
+        start.insert("clips", clips);
+        auto parsedStart = nt::parseTimeline(start);
+        QVERIFY(parsedStart.timeline.has_value());
+        TimelineModel built;
+        built.setTimeline(std::move(*parsedStart.timeline));
+        const QJsonValue id = stripped["id"];
+        const auto key = [&](const char* row, double first, double second) {
+            QVERIFY(built.applyEdit("keyframes.stopwatch", {{"clipId", id}, {"row", row}, {"atMs", 0}}));
+            // No change when the new key already holds the value.
+            built.applyEdit("keyframes.input", {{"clipId", id}, {"row", row}, {"input", 0}, {"value", first}, {"atMs", 0}});
+            QVERIFY(built.applyEdit("keyframes.input", {{"clipId", id}, {"row", row}, {"input", 0}, {"value", second}, {"atMs", 1000}}));
+        };
+        key("volume", -6, -18);
+        key("cropLeft", 0, 0.25);
+        key("borderRadius", 0, 24);
+        key("perspective", 1000, 400);
+        key("depth", 0, 40);
+        key("effect:blur1:radius", 4, 12);
+        QCOMPARE(built.clipsJson()[0].toObject().value("paramCurves"), keyed.value("paramCurves"));
+        // A save and a reload keep them, and they still draw.
+        const auto saved = QJsonDocument::fromJson(built.documentJson()).object();
+        auto reloaded = nt::parseTimeline(saved);
+        QVERIFY(reloaded.timeline.has_value());
+        TimelineModel again;
+        again.setTimeline(std::move(*reloaded.timeline));
+        QCOMPARE(again.clipsJson()[0].toObject().value("paramCurves"), keyed.value("paramCurves"));
+        const auto layer = nt::evaluateScene(*again.snapshot(), 1000).layers.at(0);
+        QCOMPARE(layer.transform->depthPx.value_or(0), 40.0);
+        // Volume's switch moves its curve to the stash the schema now keeps, and back.
+        QVERIFY(built.applyEdit("keyframes.bypass", {{"clipId", id}, {"group", "volume"}, {"enabled", false}}));
+        const auto off = built.clipsJson()[0].toObject();
+        QCOMPARE(off["bypassedFixedEffects"].toObject()["volume"].toObject()["curves"].toArray().size(), 1);
+        QCOMPARE(off["paramCurves"].toArray().size(), 5);
+        QVERIFY(built.applyEdit("keyframes.bypass", {{"clipId", id}, {"group", "volume"}, {"enabled", true}}));
+        QCOMPARE(built.clipsJson()[0].toObject()["paramCurves"].toArray().size(), 6);
     }
     void splitSlicesEveryMotionCurve() {
         TimelineModel model;
@@ -561,14 +632,6 @@ class TestKeyframes : public QObject {
         QCOMPARE(nt::keyframes::inputValue(left, "depth", 0, 1000), 20.0);
         QCOMPARE(nt::keyframes::inputValue(right, "depth", 0, 0), 20.0);
         QCOMPARE(nt::keyframes::inputValue(right, "depth", 0, 1000), 40.0);
-        const auto sideId = [](const QJsonObject& c) {
-            for (const auto& a : c["animations"].toArray()) {
-                if (nt::scene::isSideCurveAnimation(a.toObject())) { return a.toObject()["id"].toString(); }
-            }
-            return QString();
-        };
-        QVERIFY(!sideId(left).isEmpty());
-        QVERIFY(sideId(left) != sideId(right));
         // A trim stretches keys with the clip, as every normalized keyframe does.
         const auto trimmed = nt::edit::trimClip(clip, "end", -1000, std::nullopt);
         QCOMPARE(nt::keyframes::inputValue(trimmed, "depth", 0, 500), 20.0);
@@ -633,22 +696,19 @@ class TestKeyframes : public QObject {
         QCOMPARE(clip()["volumeDb"].toDouble(), -6.0);
         QCOMPARE(nt::keyframes::inputValue(clip(), "volume", 0, 2000), -18.0);
         QCOMPARE(nt::keyframes::inputValue(clip(), "volume", 0, 1000), -12.0);
-        // Volume has no channel on the web, so it is on a side animation.
-        const auto animations = clip()["animations"].toArray();
-        QCOMPARE(animations.size(), 1);
-        QVERIFY(nt::scene::isSideCurveAnimation(animations[0].toObject()));
+        // Volume has no channel on the web, so it is a param curve.
+        QVERIFY(!clip().contains("animations"));
+        QCOMPARE(clip()["paramCurves"].toArray()[0].toObject()["property"].toString(), QString("volumeDb"));
         // A split cuts the curve at the value it holds there.
         const auto [left, right] = nt::edit::splitClip(clip(), 1000);
         QCOMPARE(nt::keyframes::inputValue(left, "volume", 0, 1000), -12.0);
         QCOMPARE(nt::keyframes::inputValue(right, "volume", 0, 0), -12.0);
         QCOMPARE(nt::keyframes::inputValue(right, "volume", 0, 1000), -18.0);
-        // The switch sets the level aside, leaves the keys in place, and restores the same picture.
+        // The switch stashes the level and the keys, and restores the same picture.
         QVERIFY(model.applyEdit("keyframes.bypass", {{"clipId", "c"}, {"group", "volume"}, {"enabled", false}}));
         QVERIFY(!clip().contains("volumeDb"));
-        QCOMPARE(nt::keyframes::times(clip(), {"volumeDb"}), (QJsonArray{0, 2000}));
-        const auto [offLeft, offRight] = nt::edit::splitClip(clip(), 1000);
-        QCOMPARE(nt::keyframes::times(offLeft, {"volumeDb"}), (QJsonArray{0, 1000}));
-        QCOMPARE(nt::keyframes::times(offRight, {"volumeDb"}), (QJsonArray{0, 1000}));
+        QVERIFY(!clip().contains("paramCurves"));
+        QCOMPARE(clip()["bypassedFixedEffects"].toObject()["volume"].toObject()["curves"].toArray().size(), 1);
         const auto shown = nt::keyframes::withBypassRestored(clip());
         QCOMPARE(nt::keyframes::inputValue(shown, "volume", 0, 2000), -18.0);
         QVERIFY(model.applyEdit("keyframes.bypass", {{"clipId", "c"}, {"group", "volume"}, {"enabled", true}}));
@@ -668,13 +728,13 @@ class TestKeyframes : public QObject {
         document.insert("clips", clips);
         QCOMPARE(nt::keyframes::edit(document, {{"clipId", "c"}, {"action", "stopwatch"}, {"row", "volume"}, {"atMs", 0}}), document);
     }
-    // Review findings on the side curves of a long clip and the group switch.
-    void splitKeepsSideKeysNearTheCut() {
+    // Review findings on the param curves of a long clip and the group switch.
+    void splitKeepsParamKeysNearTheCut() {
         const QJsonObject curve{{"property", "volumeDb"},
             {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", 0}}, QJsonObject{{"t", 0.5}, {"value", -40}, {"easing", "hold"}},
                                      QJsonObject{{"t", 1}, {"value", -40}}}}};
         const QJsonObject clip{{"id", "c"}, {"startMs", 0}, {"durationMs", 600000}, {"mediaType", "audio"},
-            {"animations", nt::scene::withSideCurves({}, QJsonArray{curve}, 600000)}};
+            {"paramCurves", QJsonArray{curve}}};
         const auto [left, right] = nt::edit::splitClip(clip, 299966.67);
         QCOMPARE(nt::keyframes::times(left, {"volumeDb"}).size(), 2);
         // The key is 33 ms after the cut, so it stays, and the drop stays at its time.
@@ -707,14 +767,14 @@ class TestKeyframes : public QObject {
         QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "depth"}, {"input", 0}, {"value", 100}, {"atMs", 1000}}));
         QVERIFY(model.applyEdit("keyframes.bypass", {{"clipId", "c"}, {"group", "motion"}, {"enabled", false}}));
         auto clip = model.clipsJson()[0].toObject();
-        clip.insert("animations", nt::scene::withSideCurves({}, QJsonArray{QJsonObject{{"property", "depthPx"},
-            {"keyframes", QJsonArray{QJsonObject{{"t", 0.25}, {"value", 7}}}}}}, 2000));
+        clip.insert("paramCurves", QJsonArray{QJsonObject{{"property", "depthPx"},
+            {"keyframes", QJsonArray{QJsonObject{{"t", 0.25}, {"value", 7}}}}}});
         const auto shown = nt::keyframes::withBypassRestored(clip);
         QCOMPARE(nt::keyframes::times(shown, {"depthPx"}), (QJsonArray{0, 1000}));
-        QCOMPARE(nt::scene::sideCurveList(shown["animations"].toArray()).size(), 1);
+        QCOMPARE(shown["paramCurves"].toArray().size(), 1);
     }
     // An animation-wide easing goes onto the Motion keys it shapes, and no further.
-    void bypassLeavesSideCurveEasing() {
+    void bypassLeavesParamCurveEasing() {
         TimelineModel model;
         model.setTimeline(fixture());
         QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "position"}, {"atMs", 0}}));
@@ -726,7 +786,8 @@ class TestKeyframes : public QObject {
         auto animations = clip["animations"].toArray();
         for (qsizetype i = 0; i < animations.size(); ++i) {
             auto a = animations[i].toObject();
-            if (!nt::scene::isSideCurveAnimation(a)) { a.insert("easing", "hold"); animations[i] = a; }
+            a.insert("easing", "hold");
+            animations[i] = a;
         }
         clip.insert("animations", animations);
         clips[0] = clip;
@@ -744,7 +805,7 @@ class TestKeyframes : public QObject {
                                {"shapeStyle", QJsonObject{{"kind", "rect"}}}};
         };
         auto keyed = tile("a");
-        keyed.insert("animations", nt::scene::withSideCurves({}, QJsonArray{curve}, 2000));
+        keyed.insert("paramCurves", QJsonArray{curve});
         auto blurred = tile("b");
         blurred.insert("motionBlur", QJsonObject{{"samplesPerFrame", 4}, {"shutterAngle", 360}});
         const auto parsed = nt::parseTimelineJson(QJsonDocument(QJsonObject{{"name", "Order"}, {"width", 64}, {"height", 64}, {"fps", 30}, {"durationMs", 2000},
@@ -790,7 +851,7 @@ class TestKeyframes : public QObject {
         const auto end = nt::reframe::cropAt(c, 1000);
         QVERIFY(std::abs(end["left"].toDouble() - 0.9) < 1e-9);
         QVERIFY(std::abs(end["right"].toDouble() - 0.05) < 1e-9);
-        // The side curves come from an edit, and a split cuts them at their value.
+        // The curves come from an edit, and a split cuts them at their value.
         const auto [left, right] = nt::edit::splitClip(model.clipsJson()[0].toObject(), 500);
         QCOMPARE(nt::keyframes::inputValue(right, "cropLeft", 0, 0), nt::keyframes::inputValue(left, "cropLeft", 0, 500));
         QCOMPARE(nt::keyframes::inputValue(right, "cropLeft", 0, 500), 0.9);
@@ -823,7 +884,7 @@ class TestKeyframes : public QObject {
         QCOMPARE(nt::keyframes::inputValue(clip(), row, 0, 1000), 20.0);
         // The static value stays where it was, and the curve is apart from the keyframe animation.
         QCOMPARE(clip()["effects"].toArray()[0].toObject()["radius"].toDouble(), 6.0);
-        QVERIFY(nt::scene::isSideCurveAnimation(clip()["animations"].toArray()[0].toObject()));
+        QVERIFY(!clip().contains("animations"));
         QCOMPARE(nt::keyframes::times(clip(), nt::keyframes::properties(row)), (QJsonArray{0, 1000}));
         QCOMPARE(nt::keyframes::helper("adjacentKeyframeMs", {clip(), QJsonArray{row}, 0, 1}).toDouble(), 1000.0);
         const auto graph = nt::keyframes::rowGraph(clip(), row, 0, 1000, 10);
@@ -928,8 +989,8 @@ class TestKeyframes : public QObject {
     void splitAndTrimKeepEffectKeys() {
         QJsonObject clip{{"id", "c"}, {"startMs", 0}, {"durationMs", 2000}, {"mediaType", "video"},
             {"effects", QJsonArray{QJsonObject{{"id", "e"}, {"type", "blur"}, {"enabled", true}, {"radius", 4}}}},
-            {"animations", nt::scene::withSideCurves({}, QJsonArray{QJsonObject{{"property", "effect:e:radius"},
-                {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", 0}}, QJsonObject{{"t", 1}, {"value", 20}}}}}}, 2000)}};
+            {"paramCurves", QJsonArray{QJsonObject{{"property", "effect:e:radius"},
+                {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", 0}}, QJsonObject{{"t", 1}, {"value", 20}}}}}}}};
         const auto [left, right] = nt::edit::splitClip(clip, 1000);
         QCOMPARE(nt::keyframes::inputValue(left, "effect:e:radius", 0, 1000), 10.0);
         QCOMPARE(nt::keyframes::inputValue(right, "effect:e:radius", 0, 0), 10.0);
@@ -941,9 +1002,7 @@ class TestKeyframes : public QObject {
         const auto curve = [](const QString& property) {
             return QJsonObject{{"property", property}, {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", 1}}}}};
         };
-        const auto animations = nt::scene::withSideCurves({}, QJsonArray{curve("effect:a:radius"), curve("effect:b:radius"), curve("volumeDb")}, 1000);
-        const auto left = nt::scene::withoutOrphanEffectCurves(animations, QJsonArray{QJsonObject{{"id", "b"}}}, 1000);
-        const auto list = nt::scene::sideCurveList(left);
+        const auto list = nt::scene::withoutOrphanEffectCurves(QJsonArray{curve("effect:a:radius"), curve("effect:b:radius"), curve("volumeDb")}, QJsonArray{QJsonObject{{"id", "b"}}});
         QCOMPARE(list.size(), 2);
         QCOMPARE(list[0].toObject()["property"].toString(), QString("effect:b:radius"));
         QCOMPARE(list[1].toObject()["property"].toString(), QString("volumeDb"));

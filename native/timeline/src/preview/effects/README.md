@@ -166,4 +166,4 @@ ctest --test-dir build -R '^(tst_masks|tst_effectplan|tst_effectresources|effect
 `tst_effectresources` uses QRhi’s Null backend to check cache reuse, bounded
 LUT eviction and resource lifetime without a GPU.
 
-A numeric parameter from the Effects panel can be keyed. Its curve is the side curve `effect:<effectId>:<param>` (`src/scene/SideCurves.h`). `decorateEffects` writes the value at the frame over the effect's static one, so the plan reads a plain number. `kEffectParams` in `src/edit/keyframes/Keyframes.cpp` lists what can be keyed, and `tst_effectplan` checks that each one reaches the plan.
+A numeric parameter from the Effects panel can be keyed. Its curve is the `paramCurves` entry `effect:<effectId>:<param>` (`src/scene/ParamCurves.h`). `decorateEffects` writes the value at the frame over the effect's static one, so the plan reads a plain number. `kEffectParams` in `src/edit/keyframes/Keyframes.cpp` lists what can be keyed, and `tst_effectplan` checks that each one reaches the plan.

@@ -5,7 +5,6 @@
 #include <QStringList>
 
 #include "scene/Animation.h"
-#include "scene/SideCurves.h"
 
 #include <map>
 #include <set>
@@ -42,7 +41,7 @@ const Fields kClipInert = {
     QStringLiteral("versions"), QStringLiteral("speaker"), QStringLiteral("paragraphId"),
     QStringLiteral("sourceScene"), QStringLiteral("outPointMs"), QStringLiteral("audioRole"),
     // Values set aside by the Effect Controls switches. The clip's own fields hold the identity.
-    QStringLiteral("bypassedFixedEffects"),
+    QStringLiteral("bypassedFixedEffects"), QStringLiteral("paramCurves"),
     // The colour of the clip's label: the clip's look in the Timeline, not in the picture.
     QStringLiteral("labelColor"),
 };
@@ -162,8 +161,6 @@ void auditClip(const QJsonObject& c, Collector& out) {
                 QStringLiteral("positionY"), QStringLiteral("anchorX"), QStringLiteral("anchorY")};
             for (const QJsonValue& a : v.toArray()) {
                 const QJsonObject o = a.toObject();
-                // Drawn by the side curve readers, whatever parameter each curve names.
-                if (nt::scene::isSideCurveAnimation(o)) continue;
                 if (!o.value(u"styleTracks").toArray().isEmpty() || o.value(u"textAnimator").isObject()) {
                     if (seen.insert("styleTracks").second) out.add(QStringLiteral("animations.styleTracks"), "pixels");
                 }

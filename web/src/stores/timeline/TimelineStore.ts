@@ -88,7 +88,9 @@ import {
   renameTake as renameTakeOnClip,
   deleteTake as deleteTakeOnClip,
   addReframeKeyframe as addReframeKeyframeOnClip,
-  clearReframe as clearReframeOnClip
+  clearReframe as clearReframeOnClip,
+  joinParamCurves,
+  paramCurvesForEffects
 } from "@nodetool-ai/timeline";
 import type {
   AnimatedProperty,
@@ -1930,6 +1932,8 @@ function mergeClipsAtTime(
         )
       ];
     }
+    const paramCurves = joinParamCurves(base.paramCurves, right.paramCurves, base.durationMs, right.durationMs);
+    if (paramCurves) merged.paramCurves = paramCurves;
     replaced.set(left.id, merged);
     removed.add(right.id);
   }
@@ -4277,9 +4281,17 @@ export const createTimelineStore = (
               return state;
             }
             return {
-              clips: state.clips.map((c) =>
-                c.id === clipId ? { ...c, ...patch } : c
-              )
+              clips: state.clips.map((c) => {
+                if (c.id !== clipId) return c;
+                const next = { ...c, ...patch };
+                // An effect's keys go when the effect goes.
+                if ("effects" in patch && next.paramCurves) {
+                  const curves = paramCurvesForEffects(next.paramCurves, next.effects);
+                  if (curves) next.paramCurves = curves;
+                  else delete next.paramCurves;
+                }
+                return next;
+              })
             };
           }),
 

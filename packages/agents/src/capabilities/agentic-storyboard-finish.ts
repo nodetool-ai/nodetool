@@ -203,7 +203,8 @@ function composition(document: FinishedStoryboardDocument): string {
         effects: clip.effects,
         animations: (clip.animations ?? []).map(
           ({ id: _id, ...animation }) => animation
-        )
+        ),
+        paramCurves: clip.paramCurves
       }))
       .sort((a, b) => a.id.localeCompare(b.id))
   );
@@ -408,6 +409,7 @@ function reuseAcceptedPresentation(
         crop: prior.crop,
         effects: prior.effects,
         animations: prior.animations,
+        paramCurves: prior.paramCurves,
         transitionIn: prior.transitionIn
       })
     );

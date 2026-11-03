@@ -1,7 +1,6 @@
 #include "edit/keyframes/Keyframes.h"
 #include "preview/effects/ClipEffects.h"
 #include "scene/ClipScene.h"
-#include "scene/SideCurves.h"
 #include "preview/effects/ClipAnalysis.h"
 #include "preview/effects/Stabilization.h"
 #include "preview/effects/Denoise.h"
@@ -103,8 +102,8 @@ class TestEffectPlan : public QObject {
         const double high = spec.contains("max") ? spec["max"].toDouble() : 16;
         const double first = low + (high - low) * 0.3, second = low + (high - low) * 0.7;
         clip.raw.insert("effects", QJsonArray{e});
-        clip.raw.insert("animations", nt::scene::withSideCurves({}, QJsonArray{QJsonObject{{"property", nt::scene::effectCurveName("e", param)},
-            {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", first}}, QJsonObject{{"t", 1}, {"value", second}}}}}}, 1000));
+        clip.raw.insert("paramCurves", QJsonArray{QJsonObject{{"property", nt::scene::effectCurveName("e", param)},
+            {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", first}}, QJsonObject{{"t", 1}, {"value", second}}}}}});
         clip.scene = nt::scene::parseClipScene(clip.raw);
         nt::Timeline timeline;
         timeline.width = 64;
@@ -132,8 +131,8 @@ class TestEffectPlan : public QObject {
     // Adjustment clips and group surfaces read their keys as a clip does.
     void keyedEffectsOnAdjustmentAndGroup() {
         const QJsonObject e{{"id", "e"}, {"type", "blur"}, {"enabled", true}, {"radius", 1}};
-        const auto animations = nt::scene::withSideCurves({}, QJsonArray{QJsonObject{{"property", "effect:e:radius"},
-            {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", 2}}, QJsonObject{{"t", 1}, {"value", 10}}}}}}, 1000);
+        const QJsonArray curves{QJsonObject{{"property", "effect:e:radius"},
+            {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", 2}}, QJsonObject{{"t", 1}, {"value", 10}}}}}};
         nt::Timeline timeline;
         timeline.width = 64;
         timeline.height = 64;
@@ -144,7 +143,7 @@ class TestEffectPlan : public QObject {
             clip.mediaType = type;
             clip.durationMs = 1000;
             clip.raw.insert("effects", QJsonArray{e});
-            clip.raw.insert("animations", animations);
+            clip.raw.insert("paramCurves", curves);
             clip.scene = nt::scene::parseClipScene(clip.raw);
             QJsonObject ext;
             decorateEffects(ext, clip, {timeline, nullptr, 500, 500, 30, 15});

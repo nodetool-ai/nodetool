@@ -7,7 +7,7 @@
 #include "playback/PlaybackClock.h"
 #include "preview/SceneEval.h"
 #include "preview/crop/Reframe.h"
-#include "scene/SideCurves.h"
+#include "scene/ParamCurves.h"
 #include "preview/layers/TestStill.h"
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -196,11 +196,11 @@ private slots:
         TimelineModel model;
         model.setTimeline(document({clip}));
         keyRow(model, "effect:e:exposure", 0, -2, 2);
-        const auto animations = model.clipsJson()[0].toObject().value("animations");
+        const auto curves = model.clipsJson()[0].toObject().value("paramCurves");
         auto next = model.clipsJson()[0].toObject();
         next.insert("effects", QJsonArray{QJsonObject{{"id", "e"}, {"type", "exposure"}, {"enabled", false}}});
         QVERIFY(model.replaceClips(QJsonArray{next}));
-        QCOMPARE(model.clipsJson()[0].toObject().value("animations"), animations);
+        QCOMPARE(model.clipsJson()[0].toObject().value("paramCurves"), curves);
         const auto start = exported(model, 0), end = exported(model, kEndMs - 1);
         QCOMPARE(changed(start, end), 0);
     }

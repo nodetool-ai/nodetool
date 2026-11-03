@@ -98,10 +98,22 @@ describe("native editor fields", () => {
         curves: [{ property: "rotation", keyframes: [{ t: 0, value: 1, easing: "cubic-bezier(0.2,0,0.8,1)" }] }]
       },
       opacity: { opacity: 0.5 },
-      volume: { volumeDb: -6 }
+      volume: { volumeDb: -6, curves: [{ property: "volumeDb", keyframes: [{ t: 0, value: -3 }] }] }
     };
     expect(timelineClip.parse(clip).bypassedFixedEffects).toBeUndefined();
     expect(timelineClip.parse({ ...clip, bypassedFixedEffects }).bypassedFixedEffects).toEqual(bypassedFixedEffects);
+  });
+
+  it("keeps param curves under any name, in the keyframe shape", () => {
+    const clip = model3dClip;
+    expect(timelineClip.parse(clip).paramCurves).toBeUndefined();
+    const paramCurves = [
+      { property: "volumeDb", keyframes: [{ t: 0, value: -3, easing: "hold" }, { t: 1, value: 0 }] },
+      { property: "effect:abc:radius", keyframes: [{ t: 0.5, value: 4 }] },
+      { property: "some.name.from.a.newer.build", keyframes: [{ t: 0, value: 1 }] }
+    ];
+    expect(timelineClip.parse({ ...clip, paramCurves }).paramCurves).toEqual(paramCurves);
+    expect(timelineClip.safeParse({ ...clip, paramCurves: [{ property: "x", keyframes: [{ t: 0 }] }] }).success).toBe(false);
   });
 
   it("keeps a clip's audio role and refuses an unknown one", () => {

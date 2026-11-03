@@ -6,6 +6,7 @@ import {
 } from "./animation/sourceCurves.js";
 import { sourceRate } from "./sourceRate.js";
 import { isKeyframeAnimation, sliceKeyframeAnimation } from "./keyframes.js";
+import { sliceParamCurves } from "./paramCurves.js";
 import { assertNotTimeRemapped, isHoldRemap } from "./timeRemap.js";
 import type { ClipAnimation } from "./animation/types.js";
 import type { CaptionWord, TimelineClip } from "./types.js";
@@ -219,6 +220,9 @@ export function splitClip(clip: TimelineClip, atMs: number): [TimelineClip, Time
   if (captions) {
     leftClip.caption = { ...clip.caption, words: captions.left };
   }
+  if (clip.paramCurves) {
+    leftClip.paramCurves = sliceParamCurves(clip.paramCurves, 0, leftDurationMs / clip.durationMs, clip.durationMs);
+  }
   if (animations) {
     leftClip.animations = animations.left;
   }
@@ -241,6 +245,9 @@ export function splitClip(clip: TimelineClip, atMs: number): [TimelineClip, Time
   delete rightClip.transitionIn;
   if (captions) {
     rightClip.caption = { ...clip.caption, words: captions.right };
+  }
+  if (clip.paramCurves) {
+    rightClip.paramCurves = sliceParamCurves(clip.paramCurves, leftDurationMs / clip.durationMs, 1, clip.durationMs);
   }
   if (animations) {
     rightClip.animations = animations.right;

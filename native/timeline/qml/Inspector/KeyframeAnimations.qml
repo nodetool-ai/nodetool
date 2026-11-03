@@ -18,7 +18,7 @@ InspectorSection {
         const key = JSON.stringify(ids)
         if (key !== editorIdsKey) { editorIdsKey = key; editorIds = ids }
     }
-    readonly property var grouped: roleOptions.reduce((list,role) => list.concat(animations.filter(a => a.role === role.value && !(a.params && a.params.sideCurves))),[])
+    readonly property var grouped: roleOptions.reduce((list,role) => list.concat(animations.filter(a => a.role === role.value)),[])
     readonly property real inOutSpan: {
         const longest = role => animations.filter(a => a.role === role && a.enabled !== false).reduce((max,a) => Math.max(max,a.durationMs+(a.delayMs || 0)),0)
         return longest("in")+longest("out")
