@@ -187,11 +187,12 @@ private slots:
         const auto start = clip->mapToScene({bypass ? 4 : clip->width() / 2, clip->height() / 2}).toPoint();
         const auto end = start + QPoint(160, 0);
         QTest::mousePress(view.get(), Qt::LeftButton, modifiers, start);
-        QTest::mouseMove(view.get(), end, 20);
+        QTest::mouseEvent(QTest::MouseMove, view.get(), Qt::NoButton, modifiers, end, 20);
         QTest::mouseRelease(view.get(), Qt::LeftButton, modifiers, end);
         QCOMPARE(model.clipsJson()[0].toObject().value("startMs").toDouble(), enabled && !bypass ? 2640.0 : 2600.0);
         QCOMPARE(model.undoStack()->count(), 1);
-        if (enabled && !bypass) {
+        // 263d91f70d gathers candidates at press so Alt can change during a drag.
+        if (enabled) {
             QCOMPARE(snapCalls, calls + 1);
             QCOMPARE(lastSnapRequest.excludedClipIds, QStringList{"c"});
             QCOMPARE(lastSnapRequest.gridDivision, QString("beat"));
