@@ -7922,14 +7922,18 @@
         "remove": "Szenenclip entfernen",
         "cancel": "Abbrechen",
         "render": "Szenenclip rendern{{cost}}",
-        "description": "Rendert diese Einstellungen als einen durchgehenden Clip. Der Clip liegt auf der ersten Einstellung, und jede weitere Einstellung verwendet ihr Zeitfenster daraus, damit der Schnitt in der richtigen Reihenfolge bleibt.",
+        "description": "Rendert diese Einstellungen als einen durchgehenden Clip. Der Clip liegt auf der ersten Einstellung, und jede weitere spielt ihr Zeitfenster daraus. Handlung, Kamera, Licht und Ton jeder Einstellung werden automatisch gesendet, sodass ein erneutes Rendern dieselbe Regie erhält.",
         "from": "Von",
         "length": "Länge",
         "shotStillAlt": "Standbild der Einstellung",
         "imageReference": "[Bild {{number}}] ",
-        "promptLabel": "Dein Prompt",
-        "promptPlaceholder": "Eine durchgehende Bewegung von der Tür zum Fenster.",
-        "promptHelp": "Optional. Die Aktionen, Bewegungen und Geräusche der Einstellungen werden danach hinzugefügt. Verweise auf Standbilder mit [Bild N].",
+        "references": "Referenzbilder",
+        "referencesHelp": "Standbilder legen Bildausschnitt und Pose fest. Entitätsbilder legen fest, wer und wo.",
+        "stills": "Standbilder",
+        "entities": "Entitäten",
+        "addEntity": "Aus Bibliothek hinzufügen",
+        "noStill": "Kein Standbild",
+        "noEntityImage": "Kein Bild",
         "renderSettings": "Rendereinstellungen",
         "videoModel": "Videomodell",
         "duration": "Dauer",
@@ -7942,6 +7946,7 @@
           "addShot": "Füge zuerst eine Einstellung zum Board hinzu.",
           "renderStill": "Rendere mindestens ein Standbild.",
           "addEntityImage": "Gib zuerst einer Entität auf dem Board ein Referenzbild.",
+          "noReference": "Wähle mindestens ein Referenzbild aus.",
           "noVideoModel": "Kein Videomodell ausgewählt.",
           "imageLimit": "{{imageCount}} Bilder überschreiten das Limit von {{limit}}. Entferne {{remove}}.",
           "durationUnavailable": "{{model}} bietet keinen {{duration}}-Clip an. Wähle eine dieser Optionen: {{choices}}.",
@@ -7949,7 +7954,8 @@
           "shotRange": "Ein Szenenclip umfasst {{min}} bis {{max}} Einstellungen."
         },
         "playTitle": "Gerenderter Clip",
-        "playLabel": "Szenen-Clip"
+        "playLabel": "Szenen-Clip",
+        "downloadClip": "Clip herunterladen"
       }
     }
   },

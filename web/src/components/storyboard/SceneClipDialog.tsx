@@ -2,41 +2,46 @@
  * SceneClipDialog
  *
  * Sets up and confirms a scene clip: a run of 2 to 5 consecutive shots in one
- * scene rendered as one clip. The creator picks the run, writes an optional
- * prompt and may override the model, duration and resolution; an unset
- * setting falls back to the board's one-take setting. The dialog shows the
- * stills the clip conditions on, the cost and anything that blocks the
- * render.
+ * scene rendered as one clip. The creator picks the run, the stills and entity
+ * images sent as references, and may override the model, duration and
+ * resolution; an unset setting falls back to the board's one-take setting. The
+ * prompt is compiled from the shots and takes no free text, so a re-render
+ * sends the same direction. The dialog also shows the cost and anything that
+ * blocks the render.
  *
  * Nothing is written until Render: confirming saves the scene clip on the
  * board and starts the render, so a cancelled draft leaves no trace.
  */
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   SCENE_CLIP_MAX_SHOTS,
   SCENE_CLIP_MIN_SHOTS
 } from "@nodetool-ai/protocol";
-import type { SceneClipDirection, Shot } from "@nodetool-ai/protocol";
+import AddIcon from "@mui/icons-material/AddOutlined";
+import type { Entity, SceneClipDirection, Shot } from "@nodetool-ai/protocol";
 
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import VideoModelSelect from "../properties/VideoModelSelect";
+import EntityPicker from "../entities/EntityPicker";
+import SceneClipReferenceTile from "./SceneClipReferenceTile";
 import {
   AlertBanner,
   Box,
   Button,
   Caption,
   Dialog,
+  DownloadButton,
+  EditorButton,
   FlexColumn,
   FlexRow,
   FormField,
   FormSection,
-  ResponsiveImage,
+  Popover,
   SelectField,
   Text,
-  TextArea,
   VideoPlayer,
   BORDER_RADIUS,
   SPACING
@@ -47,10 +52,15 @@ import {
   ONE_TAKE_MAX_IMAGES,
   ONE_TAKE_TASK
 } from "../../hooks/storyboard/useRenderOneTake";
-import { useRenderSceneClip } from "../../hooks/storyboard/useRenderSceneClip";
+import {
+  SCENE_CLIP_NO_REFERENCE_BLOCKER,
+  useRenderSceneClip
+} from "../../hooks/storyboard/useRenderSceneClip";
 import { priceRenderStep } from "../../hooks/storyboard/shotCostPricing";
 import type { VideoModelValue } from "../../stores/ApiTypes";
+import { useResolvedMediaUri } from "../../hooks/useResolvedMediaUri";
 import { modelFieldSx } from "./shotRenderModels";
+import { downloadResolvedMedia, sceneClipDownloadName } from "./shotMediaDownload";
 
 export interface SceneClipDialogProps {
   boardId: string;
@@ -63,15 +73,21 @@ export interface SceneClipDialogProps {
   onClose: () => void;
 }
 
-const thumbSx = {
-  width: "4.5rem",
-  flex: "0 0 auto",
-  overflow: "hidden",
-  borderRadius: BORDER_RADIUS.sm,
-  bgcolor: "c_overlay_subtle"
-} as const;
-
 const settingSx = { flex: "1 1 8rem", minWidth: 0 } as const;
+
+// Stacks on a narrow window. From md up the player stays in view beside the
+// form while the form scrolls.
+const renderedLayoutSx = {
+  display: "grid",
+  gap: SPACING.xl,
+  gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "minmax(0, 1.2fr) minmax(0, 1fr)" },
+  alignItems: "start"
+} as const;
+const playerColumnSx = {
+  minWidth: 0,
+  position: { md: "sticky" },
+  top: { md: 0 }
+} as const;
 
 const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
   boardId,
@@ -115,6 +131,9 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
     }
     if (blocker === "Give an entity on the board a reference image first.") {
       return t("screens4_14.storyboard.sceneClip.blockers.addEntityImage");
+    }
+    if (blocker === SCENE_CLIP_NO_REFERENCE_BLOCKER) {
+      return t("screens4_14.storyboard.sceneClip.blockers.noReference");
     }
     if (blocker === "No video model chosen.") {
       return t("screens4_14.storyboard.sceneClip.blockers.noVideoModel");
@@ -166,7 +185,7 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
   const [draft, setDraft] = useState<SceneClipDirection>(clip);
   const setSceneClip = useStoryboardStore((state) => state.setSceneClip);
   const removeSceneClip = useStoryboardStore((state) => state.removeSceneClip);
-  const { plan, settings, blockers, renderSceneClip } = useRenderSceneClip(
+  const { plan, settings, blockers, cast, renderSceneClip } = useRenderSceneClip(
     boardId,
     draft
   );
@@ -183,7 +202,18 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
       const shotIds = sceneShots
         .slice(start, start + length)
         .map((shot) => shot.id);
-      setDraft((current) => ({ ...current, shot_ids: shotIds }));
+      setDraft((current) => ({
+        ...current,
+        shot_ids: shotIds,
+        // A shot that joins the run starts on, as every shot does by default.
+        reference_shot_ids: current.reference_shot_ids
+          ? shotIds.filter(
+              (id) =>
+                !current.shot_ids.includes(id) ||
+                current.reference_shot_ids?.includes(id)
+            )
+          : current.reference_shot_ids
+      }));
     },
     [sceneShots]
   );
@@ -231,13 +261,6 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
   const handleCountChange = useCallback(
     (value: string) => setRun(startIndex, Number(value)),
     [setRun, startIndex]
-  );
-  const handlePromptChange = useCallback(
-    (value: string) => {
-      const prompt = value;
-      setDraft((current) => ({ ...current, prompt }));
-    },
-    []
   );
   const handleModelChange = useCallback((value: VideoModelValue) => {
     setDraft((current) => ({
@@ -342,11 +365,68 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
     return covered ? first?.clip : undefined;
   }, [saved, draft.shot_ids, clip.shot_ids, sceneShots]);
 
-  const references = plan?.compiled.references ?? [];
+  const renderedClipUrl = useResolvedMediaUri(renderedClip);
+  const handleDownload = useCallback(() => {
+    if (renderedClipUrl) {
+      void downloadResolvedMedia(
+        renderedClipUrl,
+        sceneClipDownloadName(startIndex, count, renderedClipUrl)
+      );
+    }
+  }, [renderedClipUrl, startIndex, count]);
+
+  const references = useMemo(() => plan?.compiled.references ?? [], [plan]);
   const steps = plan?.compiled.steps ?? [];
-  // With entity images as the references the stills above are not sent, so
-  // the images that are get their own row.
-  const sendsEntities = plan?.compiled.reference_source === "entities";
+
+  // Entities picked in this dialog keep their tile after being turned off.
+  const [pickedEntities, setPickedEntities] = useState<Entity[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const addEntityRef = useRef<HTMLButtonElement | null>(null);
+  const entityTiles = useMemo(() => {
+    const inCast = new Set(cast.map((entity) => entity.id));
+    return [
+      ...cast,
+      ...pickedEntities.filter((entity) => !inCast.has(entity.id))
+    ];
+  }, [cast, pickedEntities]);
+
+  // The first toggle turns the images now resolved into the clip's stored
+  // choice, so it stops following the board's reference source.
+  const toggleReference = useCallback(
+    (kind: "shot" | "entity", id: string) => {
+      const chosenIds = (key: "shot_id" | "entity_id"): string[] =>
+        references.flatMap((reference) => reference[key] ?? []);
+      const shotIds = chosenIds("shot_id");
+      const entityIds = chosenIds("entity_id");
+      const toggled = (ids: string[]): string[] =>
+        ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id];
+      setDraft((current) => ({
+        ...current,
+        reference_shot_ids: kind === "shot" ? toggled(shotIds) : shotIds,
+        reference_entity_ids: kind === "entity" ? toggled(entityIds) : entityIds
+      }));
+    },
+    [references]
+  );
+  const handlePickEntity = useCallback(
+    (entity: Entity) => {
+      setPickedEntities((current) =>
+        current.some((item) => item.id === entity.id)
+          ? current
+          : [...current, entity]
+      );
+      if (entity.reference_images?.[0]?.asset_id) {
+        toggleReference("entity", entity.id);
+      }
+    },
+    [toggleReference]
+  );
+  const imageLabel = (index: number): string | undefined =>
+    index >= 0
+      ? t("screens4_14.storyboard.sceneClip.imageReference", {
+          number: new Intl.NumberFormat(i18n.language).format(index + 1)
+        }).trim()
+      : undefined;
 
   return (
     <Dialog
@@ -354,7 +434,7 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
       onClose={onClose}
       title={t("screens4_14.storyboard.sceneClip.dialogTitle")}
       fullWidth
-      maxWidth="sm"
+      maxWidth={renderedClip ? "lg" : "sm"}
       actions={
         <>
           {saved && (
@@ -389,172 +469,220 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
         </>
       }
     >
-      <FlexColumn gap={SPACING.lg} data-testid="scene-clip-dialog">
-        <Caption color="secondary">
-          {t("screens4_14.storyboard.sceneClip.description")}
-        </Caption>
-
+      <Box sx={renderedClip ? renderedLayoutSx : undefined}>
         {renderedClip && (
-          <FormSection label={t("screens4_14.storyboard.sceneClip.playTitle")}>
-            <Box
-              data-testid="scene-clip-player"
-              sx={{ borderRadius: BORDER_RADIUS.md, overflow: "hidden" }}
-            >
-              <VideoPlayer
-                locator={renderedClip}
-                label={t("screens4_14.storyboard.sceneClip.playLabel")}
-              />
-            </Box>
-          </FormSection>
-        )}
-
-        <FlexRow gap={SPACING.lg} wrap>
-          <Box sx={settingSx}>
-            <SelectField
-              label={t("screens4_14.storyboard.sceneClip.from")}
-              size="small"
-              value={String(startIndex)}
-              onChange={handleStartChange}
-              options={startOptions}
-            />
-          </Box>
-          <Box sx={settingSx}>
-            <SelectField
-              label={t("screens4_14.storyboard.sceneClip.length")}
-              size="small"
-              value={String(count)}
-              onChange={handleCountChange}
-              options={countOptions}
-            />
-          </Box>
-        </FlexRow>
-
-        {steps.length > 0 && (
-          <FlexRow gap={SPACING.sm} wrap data-testid="scene-clip-shots">
-            {steps.map((step) => {
-              const shot = sceneShots.find((s) => s.id === step.shot_id);
-              const imageIndex = references.findIndex(
-                (reference) => reference.shot_id === step.shot_id
-              );
-              const assetId = shot?.keyframe?.asset_id;
-              return (
-                <FlexColumn key={step.shot_id} gap={SPACING.micro} sx={thumbSx}>
-                  {assetId ? (
-                    <ResponsiveImage
-                      locator={{ asset_id: assetId }}
-                      preferThumbnail
-                      loading="lazy"
-                      alt={shot?.slug ?? t("screens4_14.storyboard.sceneClip.shotStillAlt")}
-                      aspectRatio="16 / 9"
-                      fit="cover"
-                    />
-                  ) : (
-                    <Box sx={{ aspectRatio: "16 / 9" }} />
-                  )}
-                  <Caption color="secondary" sx={{ px: SPACING.micro }}>
-                    {`${imageIndex >= 0 ? t("screens4_14.storyboard.sceneClip.imageReference", { number: new Intl.NumberFormat(i18n.language).format(imageIndex + 1) }) : ""}${seconds(step.start_seconds)}–${seconds(step.end_seconds)}`}
-                  </Caption>
-                </FlexColumn>
-              );
-            })}
-          </FlexRow>
-        )}
-
-        {sendsEntities && references.length > 0 && (
-          <FlexRow gap={SPACING.sm} wrap data-testid="scene-clip-entity-images">
-            {references.map((reference, index) => (
-              <FlexColumn
-                key={`${reference.entity_id}-${reference.asset_id}`}
-                gap={SPACING.micro}
-                sx={thumbSx}
+          <Box sx={playerColumnSx}>
+            <FormSection label={t("screens4_14.storyboard.sceneClip.playTitle")}>
+              <Box
+                data-testid="scene-clip-player"
+                sx={{
+                  aspectRatio: settings.aspect_ratio.replace(":", " / "),
+                  maxHeight: "70vh",
+                  width: "100%",
+                  borderRadius: BORDER_RADIUS.md,
+                  overflow: "hidden"
+                }}
               >
-                <ResponsiveImage
-                  locator={{ asset_id: reference.asset_id }}
-                  preferThumbnail
-                  loading="lazy"
-                  alt={reference.label}
-                  aspectRatio="1 / 1"
-                  fit="cover"
+                <VideoPlayer
+                  locator={renderedClip}
+                  label={t("screens4_14.storyboard.sceneClip.playLabel")}
                 />
-                <Caption color="secondary" sx={{ px: SPACING.micro }}>
-                  {`${t("screens4_14.storyboard.sceneClip.imageReference", {
-                    number: new Intl.NumberFormat(i18n.language).format(
-                      index + 1
-                    )
-                  })}${reference.label}`}
-                </Caption>
-              </FlexColumn>
-            ))}
-          </FlexRow>
+              </Box>
+              <FlexRow justify="flex-end">
+                <DownloadButton
+                  label={t("screens4_14.storyboard.sceneClip.downloadClip")}
+                  tooltip={t("screens4_14.storyboard.sceneClip.downloadClip")}
+                  onClick={handleDownload}
+                  disabled={!renderedClipUrl}
+                />
+              </FlexRow>
+            </FormSection>
+          </Box>
         )}
+        <FlexColumn gap={SPACING.lg} data-testid="scene-clip-dialog">
+          <Caption color="secondary">
+            {t("screens4_14.storyboard.sceneClip.description")}
+          </Caption>
 
-        <TextArea
-          minRows={3}
-          size="small"
-          label={t("screens4_14.storyboard.sceneClip.promptLabel")}
-          placeholder={t("screens4_14.storyboard.sceneClip.promptPlaceholder")}
-          helperText={t("screens4_14.storyboard.sceneClip.promptHelp")}
-          value={draft.prompt}
-          onChange={handlePromptChange}
-        />
-
-        <FormSection label={t("screens4_14.storyboard.sceneClip.renderSettings")}>
-          <FormField label={t("screens4_14.storyboard.sceneClip.videoModel")} sx={modelFieldSx}>
-            <VideoModelSelect
-              value={model?.id ?? ""}
-              provider={model?.provider}
-              task={ONE_TAKE_TASK}
-              onChange={handleModelChange}
-            />
-          </FormField>
           <FlexRow gap={SPACING.lg} wrap>
             <Box sx={settingSx}>
               <SelectField
-                label={t("screens4_14.storyboard.sceneClip.duration")}
+                label={t("screens4_14.storyboard.sceneClip.from")}
                 size="small"
-                value={
-                  draft.duration_seconds ? String(draft.duration_seconds) : ""
-                }
-                onChange={handleDurationChange}
-                options={durationOptions}
+                value={String(startIndex)}
+                onChange={handleStartChange}
+                options={startOptions}
               />
             </Box>
             <Box sx={settingSx}>
               <SelectField
-                label={t("screens4_14.storyboard.sceneClip.resolution")}
+                label={t("screens4_14.storyboard.sceneClip.length")}
                 size="small"
-                value={draft.resolution ?? ""}
-                onChange={handleResolutionChange}
-                options={resolutionOptions}
+                value={String(count)}
+                onChange={handleCountChange}
+                options={countOptions}
               />
             </Box>
           </FlexRow>
-          <Text size="small" data-testid="scene-clip-summary">
-            {t("screens4_14.storyboard.sceneClip.summary", {
-              duration: seconds(duration_seconds),
-              aspectRatio: settings.aspect_ratio,
-              resolution,
-              imageCount: new Intl.NumberFormat(i18n.language).format(references.length),
-              maxImages: new Intl.NumberFormat(i18n.language).format(ONE_TAKE_MAX_IMAGES)
-            })}
-          </Text>
-          <Text size="small">
-            {priced
-              ? t("screens4_14.storyboard.renderCost.estimatedFull", {
-                  cost: formatUsd(cost ?? 0)
-                })
-              : t("screens4_14.storyboard.renderCost.selectPricedModel")}
-          </Text>
-        </FormSection>
 
-        {blockers.length > 0 && (
-          <AlertBanner severity="error">
-            {blockers.map((blocker) => (
-              <div key={blocker}>{translateBlocker(blocker)}</div>
-            ))}
-          </AlertBanner>
-        )}
-      </FlexColumn>
+          <FormSection label={t("screens4_14.storyboard.sceneClip.references")}>
+            <Caption color="secondary">
+              {t("screens4_14.storyboard.sceneClip.referencesHelp")}
+            </Caption>
+            <FormField label={t("screens4_14.storyboard.sceneClip.stills")}>
+              <FlexRow gap={SPACING.sm} wrap data-testid="scene-clip-shots">
+                {steps.map((step) => {
+                  const shot = sceneShots.find((s) => s.id === step.shot_id);
+                  const index = references.findIndex(
+                    (reference) => reference.shot_id === step.shot_id
+                  );
+                  const assetId = shot?.keyframe?.asset_id;
+                  return (
+                    <SceneClipReferenceTile
+                      key={step.shot_id}
+                      assetId={assetId ?? undefined}
+                      alt={
+                        shot?.slug ??
+                        t("screens4_14.storyboard.sceneClip.shotStillAlt")
+                      }
+                      selected={index >= 0}
+                      unavailableText={
+                        assetId
+                          ? undefined
+                          : t("screens4_14.storyboard.sceneClip.noStill")
+                      }
+                      imageLabel={imageLabel(index)}
+                      detail={`${seconds(step.start_seconds)}–${seconds(step.end_seconds)}`}
+                      onToggle={() => toggleReference("shot", step.shot_id)}
+                      testId={`scene-clip-still-${step.shot_id}`}
+                    />
+                  );
+                })}
+              </FlexRow>
+            </FormField>
+            <FormField label={t("screens4_14.storyboard.sceneClip.entities")}>
+              <FlexColumn gap={SPACING.sm}>
+                {entityTiles.length > 0 && (
+                  <FlexRow gap={SPACING.sm} wrap data-testid="scene-clip-entities">
+                    {entityTiles.map((entity) => {
+                      const index = references.findIndex(
+                        (reference) => reference.entity_id === entity.id
+                      );
+                      const assetId = entity.reference_images?.[0]?.asset_id;
+                      return (
+                        <SceneClipReferenceTile
+                          key={entity.id}
+                          assetId={assetId ?? undefined}
+                          alt={entity.name}
+                          selected={index >= 0}
+                          unavailableText={
+                            assetId
+                              ? undefined
+                              : t("screens4_14.storyboard.sceneClip.noEntityImage")
+                          }
+                          imageLabel={imageLabel(index)}
+                          detail={entity.name}
+                          onToggle={() => toggleReference("entity", entity.id)}
+                          testId={`scene-clip-entity-${entity.id}`}
+                        />
+                      );
+                    })}
+                  </FlexRow>
+                )}
+                <Box>
+                  <EditorButton
+                    ref={addEntityRef}
+                    variant="outlined"
+                    startIcon={<AddIcon />}
+                    onClick={() => setPickerOpen(true)}
+                    aria-haspopup="dialog"
+                    aria-expanded={pickerOpen}
+                  >
+                    {t("screens4_14.storyboard.sceneClip.addEntity")}
+                  </EditorButton>
+                </Box>
+                {pickerOpen && (
+                  <Popover
+                    open
+                    anchorEl={addEntityRef.current}
+                    onClose={() => setPickerOpen(false)}
+                    placement="bottom-left"
+                    maxWidth="28rem"
+                  >
+                    <Box sx={{ p: SPACING.md, width: "28rem", maxWidth: "100%" }}>
+                      <EntityPicker
+                        onSelect={handlePickEntity}
+                        selectedIds={references.flatMap(
+                          (reference) => reference.entity_id ?? []
+                        )}
+                        height="20rem"
+                        autoFocus
+                      />
+                    </Box>
+                  </Popover>
+                )}
+              </FlexColumn>
+            </FormField>
+          </FormSection>
+
+          <FormSection label={t("screens4_14.storyboard.sceneClip.renderSettings")}>
+            <FormField label={t("screens4_14.storyboard.sceneClip.videoModel")} sx={modelFieldSx}>
+              <VideoModelSelect
+                value={model?.id ?? ""}
+                provider={model?.provider}
+                task={ONE_TAKE_TASK}
+                onChange={handleModelChange}
+              />
+            </FormField>
+            <FlexRow gap={SPACING.lg} wrap>
+              <Box sx={settingSx}>
+                <SelectField
+                  label={t("screens4_14.storyboard.sceneClip.duration")}
+                  size="small"
+                  value={
+                    draft.duration_seconds ? String(draft.duration_seconds) : ""
+                  }
+                  onChange={handleDurationChange}
+                  options={durationOptions}
+                />
+              </Box>
+              <Box sx={settingSx}>
+                <SelectField
+                  label={t("screens4_14.storyboard.sceneClip.resolution")}
+                  size="small"
+                  value={draft.resolution ?? ""}
+                  onChange={handleResolutionChange}
+                  options={resolutionOptions}
+                />
+              </Box>
+            </FlexRow>
+            <Text size="small" data-testid="scene-clip-summary">
+              {t("screens4_14.storyboard.sceneClip.summary", {
+                duration: seconds(duration_seconds),
+                aspectRatio: settings.aspect_ratio,
+                resolution,
+                imageCount: new Intl.NumberFormat(i18n.language).format(references.length),
+                maxImages: new Intl.NumberFormat(i18n.language).format(ONE_TAKE_MAX_IMAGES)
+              })}
+            </Text>
+            <Text size="small">
+              {priced
+                ? t("screens4_14.storyboard.renderCost.estimatedFull", {
+                    cost: formatUsd(cost ?? 0)
+                  })
+                : t("screens4_14.storyboard.renderCost.selectPricedModel")}
+            </Text>
+          </FormSection>
+
+          {blockers.length > 0 && (
+            <AlertBanner severity="error">
+              {blockers.map((blocker) => (
+                <div key={blocker}>{translateBlocker(blocker)}</div>
+              ))}
+            </AlertBanner>
+          )}
+        </FlexColumn>
+      </Box>
     </Dialog>
   );
 };

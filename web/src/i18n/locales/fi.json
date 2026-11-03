@@ -7922,14 +7922,18 @@
         "remove": "Poista kohtausleike",
         "cancel": "Peruuta",
         "render": "Renderöi kohtausleike{{cost}}",
-        "description": "Renderöi nämä otokset yhtenä jatkuvana leikkeenä. Leike sijoitetaan ensimmäiseen otokseen, ja jokainen muu otos toistaa siitä oman ikkunansa, joten leikkauksen järjestys säilyy.",
+        "description": "Renderöi nämä otokset yhdeksi yhtenäiseksi klipiksi. Klippi sijoittuu ensimmäiseen otokseen, ja muut otokset toistavat siitä oman aikaikkunansa. Jokaisen otoksen toiminta, kamera, valaistus ja ääni lähetetään automaattisesti, joten uusi renderöinti saa saman ohjauksen.",
         "from": "Alkaen",
         "length": "Pituus",
         "shotStillAlt": "Otoksen stillkuva",
         "imageReference": "[Image {{number}}] ",
-        "promptLabel": "Kehotteesi",
-        "promptPlaceholder": "Yksi jatkuva liike ovelta ikkunalle.",
-        "promptHelp": "Valinnainen. Otosten toiminnot, liike ja ääni lisätään sen perään. Viittaa stillkuviin muodossa [Image N].",
+        "references": "Viitekuvat",
+        "referencesHelp": "Stillkuvat määräävät rajauksen ja asennon. Entiteettikuvat määräävät, kuka ja missä.",
+        "stills": "Stillkuvat",
+        "entities": "Entiteetit",
+        "addEntity": "Lisää kirjastosta",
+        "noStill": "Ei stillkuvaa",
+        "noEntityImage": "Ei kuvaa",
         "renderSettings": "Renderöintiasetukset",
         "videoModel": "Videomalli",
         "duration": "Kesto",
@@ -7942,6 +7946,7 @@
           "addShot": "Lisää ensin otos tauluun.",
           "renderStill": "Renderöi stillkuva vähintään yhdelle otokselle.",
           "addEntityImage": "Anna ensin jollekin taulun entiteetille viitekuva.",
+          "noReference": "Valitse vähintään yksi viitekuva.",
           "noVideoModel": "Videomallia ei ole valittu.",
           "imageLimit": "{{imageCount}} kuvaa ylittää rajan {{limit}}. Poista {{remove}}.",
           "durationUnavailable": "{{model}} ei tarjoa {{duration}} pituista leikettä. Valitse jokin seuraavista: {{choices}}.",
@@ -7949,7 +7954,8 @@
           "shotRange": "Kohtausleike kattaa {{min}}–{{max}} otosta."
         },
         "playTitle": "Renderöity klippi",
-        "playLabel": "Kohtauksen klippi"
+        "playLabel": "Kohtauksen klippi",
+        "downloadClip": "Lataa klippi"
       }
     }
   },
