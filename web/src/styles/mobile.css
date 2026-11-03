@@ -553,6 +553,27 @@
     min-width: 32px !important;
   }
 
+  /* A document bar is one 40px row of 28px controls: the View/Edit switch is
+     a 28px segmented group that clips its options, and the bar's buttons sit
+     side by side. The blanket 44px minimum above pushed the switch icons out
+     of their box and grew the buttons past the row until they overlapped.
+     32px keeps every control tappable (above the 24x24 minimum) and lets the
+     bar wrap onto a second row instead of overlapping. */
+  .mobile .document-bar button,
+  .mobile .document-bar .MuiIconButton-root,
+  .mobile .document-bar .MuiButton-root {
+    min-height: 32px !important;
+    min-width: 32px !important;
+  }
+
+  .mobile .document-bar .MuiToggleButtonGroup-root {
+    height: 32px !important;
+  }
+
+  .mobile .document-bar .MuiToggleButtonGroup-grouped {
+    min-height: 0 !important;
+  }
+
   /* Output/preview action buttons (download, add to assets, copy) overlay the
      rendered output and size their icon to fill the button, so the blanket
      44px rule above turned them into full-width icons. Give them a tappable
