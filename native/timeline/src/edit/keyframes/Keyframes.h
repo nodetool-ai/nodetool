@@ -11,7 +11,7 @@
 namespace nt::keyframes {
 QJsonValue helper(const QString& name, const QJsonArray& args);
 QJsonObject edit(QJsonObject document, const QJsonObject& payload);
-QJsonArray rowSpecs();
+const QJsonArray& rowSpecs();
 QJsonArray times(const QJsonObject& clip, const QStringList& properties = {});
 QStringList properties(const QString& row);
 int inputCount(const QString& row);

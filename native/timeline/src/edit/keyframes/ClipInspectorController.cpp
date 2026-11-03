@@ -92,7 +92,11 @@ double ClipInspectorController::playheadMs() const {
     const double relative = m_clock->currentTimeMs() - c["startMs"].toDouble();
     return relative < 0 || relative > c["durationMs"].toDouble() ? -1 : relative;
 }
-QVariantList ClipInspectorController::rows() const { return nt::keyframes::rowSpecs().toVariantList(); }
+// QML reads this property again for each entry it touches, so the list is built once.
+QVariantList ClipInspectorController::rows() const {
+    static const QVariantList specs = nt::keyframes::rowSpecs().toVariantList();
+    return specs;
+}
 namespace {
 // The clip-relative time a row reads: the playhead held to the clip, as the web's does.
 double heldMs(const QJsonObject& clip, double relative) {
