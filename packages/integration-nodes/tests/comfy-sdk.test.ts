@@ -215,6 +215,26 @@ describe("runComfyWorkflow — input injection", () => {
     expect(transport.submitted[0]["3"].inputs.steps).toBe(20);
     expect(transport.submitted[0]["77"]).toBeUndefined();
   });
+
+  it("keeps the graph's value for an empty media ref", async () => {
+    const transport = makeTransport(new FakeJob([succeeded]));
+    await drain(run(transport, [["5:image", { type: "image", uri: "" }]]));
+
+    expect(transport.uploads).toHaveLength(0);
+    expect(transport.submitted[0]["5"].inputs.image).toBe("");
+  });
+
+  it("refuses to submit when a connected media ref cannot be read", async () => {
+    const transport = makeTransport(new FakeJob([succeeded]));
+    await expect(
+      drain(
+        run(transport, [
+          ["5:image", { type: "image", uri: "package://missing-pack/none.png" }]
+        ])
+      )
+    ).rejects.toThrow("Could not read the image connected to 5:image");
+    expect(transport.submitted).toHaveLength(0);
+  });
 });
 
 describe("runComfyWorkflow — outputs", () => {
@@ -269,6 +289,28 @@ describe("runComfyWorkflow — outputs", () => {
         ]
       }
     });
+  });
+
+  it("routes a SaveVideo file that Comfy Cloud labels image to the video slot", async () => {
+    // Comfy Cloud's real manifest for SaveVideo: type "image", content type video/mp4.
+    const mp4 = new Uint8Array([0, 0, 0, 24, 102, 116, 121, 112]);
+    const job = new FakeJob([
+      {
+        kind: "outputReady",
+        output: fakeOutput({
+          nodeId: "58",
+          name: "video/shot-director_00001_.mp4",
+          type: "image",
+          contentType: "video/mp4",
+          bytes: mp4
+        })
+      },
+      succeeded
+    ]);
+    const frames = await drain(run(makeTransport(job)));
+
+    expect(Object.keys(frames[0])).toEqual(["58:video"]);
+    expect(frames[0]["58:video"]).toMatchObject({ type: "video", mimeType: "video/mp4" });
   });
 
   it("decodes a text output to a string and routes file outputs to a document ref", async () => {

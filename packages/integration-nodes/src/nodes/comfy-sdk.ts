@@ -415,6 +415,17 @@ function jobFailure(job: ComfyJob): Error {
   return new Error(`Comfy job ${job.id} failed${where}: ${error.message} [${error.code}]`);
 }
 
+/**
+ * The media kind of an output. Comfy Cloud reports SaveVideo and SaveAudio
+ * files with `type: "image"`, so a video or audio content type wins over it.
+ */
+export function outputKind(output: Pick<ComfyOutput, "type" | "contentType">): string {
+  const mime = (output.contentType ?? "").toLowerCase();
+  if (mime.startsWith("video/")) return "video";
+  if (mime.startsWith("audio/")) return "audio";
+  return output.type;
+}
+
 /** Map one finished output onto its dynamic slot name and frame value. */
 async function outputFrame(
   output: ComfyOutput,
@@ -422,14 +433,13 @@ async function outputFrame(
 ): Promise<Record<string, unknown>> {
   // Signed output URLs expire, so the bytes are pulled during the run.
   const bytes = await output.toBytes({ signal });
-  const slot = `${output.nodeId}:${output.type}`;
-  if (output.type === "text") {
+  const type = outputKind(output);
+  const slot = `${output.nodeId}:${type}`;
+  if (type === "text") {
     return { [slot]: Buffer.from(bytes).toString("utf-8") };
   }
   const kind =
-    output.type === "image" || output.type === "audio" || output.type === "video"
-      ? output.type
-      : "document";
+    type === "image" || type === "audio" || type === "video" ? type : "document";
   return {
     [slot]: {
       type: kind,
@@ -484,7 +494,17 @@ export async function* runComfyWorkflow(
     }
     if (isMediaRef(value)) {
       const bytes = await loadMediaRefBytes(value, context);
-      if (!bytes) continue;
+      if (!bytes) {
+        // An empty ref leaves the graph's own value in place.
+        if (!value.uri && !value.asset_id && !value.data) continue;
+        // Skipping a ref that points somewhere would submit the graph's
+        // placeholder filename, and Comfy would fail with a misleading
+        // "file doesn't exist" error.
+        throw new Error(
+          `Could not read the ${value.type ?? "media"} connected to ${handle}. ` +
+            "Pick the file again or connect a different one."
+        );
+      }
       const { filename, contentType } = uploadNaming(comfyNodeId, field, value);
       target.inputs[field] = transport.assetFromBytes(
         bytes,
