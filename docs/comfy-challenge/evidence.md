@@ -1,6 +1,6 @@
-# Shot Director — render evidence
+# NodeTool on Comfy — render evidence
 
-Real Comfy runs behind the [Shot Director entry](shot-director.md), recorded on
+Real Comfy runs behind the [challenge entry](shot-director.md), recorded on
 2026-11-03 from a cloud container with a Comfy API key. Every value below comes
 from a job response or a file on disk. Nothing is estimated.
 
@@ -114,9 +114,26 @@ The take holds the source still and pushes in on the cup as prompted.
 
 The Router path is a partner API, not part of the open-weights render path.
 
+## Job 6: the storyboard clip model through the provider
+
+`ComfyCloudProvider.imageToVideo` with model `comfyui-workflow/wan2.2-ti2v-5b`,
+the path a storyboard shot render takes after `generate_media`. The prompt was
+the default direction plus the clause `compileCameraPresets(["camera.dolly-in"])`
+returns for this model, the coffee still, 5 s, 16:9, seed 21.
+
+| Field | Value |
+| --- | --- |
+| End to end | 90.5 s |
+| Output | H.264 MP4, 1280×704, 121 frames, 24 fps, 5.04 s, 4,267,129 bytes |
+
+The provider does not return the Comfy job id to the caller, so this run has
+no job id on record.
+
 ## Not yet verified
 
+- A storyboard shot rendered with the ComfyUI workflow model in the browser,
+  including the take appearing in the gallery and the timeline following the
+  picked take. Job 6 covers the provider call that render makes.
+- "Open ComfyUI workflow" in the render dialog against a running server.
 - A full workflow run that shows the take on the `take` output end to end.
   The fix is verified by replaying job 4, not by a new run.
-- The app's Take A and Take B operations in the NodeTool UI, including the take
-  being saved as an asset.

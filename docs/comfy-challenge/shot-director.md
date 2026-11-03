@@ -1,44 +1,48 @@
-# Shot Director — Open Source Higgsfield challenge entry
+# NodeTool on Comfy — Open Source Higgsfield challenge entry
 
-**NodeTool Shot Director: open cinematic presets, editable takes, rendered on Comfy.**
+**NodeTool: the open-source AI filmmaking studio, rendering on ComfyUI.**
 
-Pick a camera move, describe the shot, and render a 5-second cinematic take
-from one still on **Comfy Cloud**. Revise into Take B without losing Take A,
-compare the two, and open the NodeTool workflow and the pinned ComfyUI graph
-behind both.
+Direct a film shot by shot in NodeTool's Storyboard. Pick a camera move for
+each shot, render it on **Comfy Cloud** with a pinned, open-weights Wan 2.2
+ComfyUI workflow, keep every take, and choose the take that goes into the
+timeline. The ComfyUI graph behind every render is one click away and editable.
 
-- App bundle: [`packages/base-nodes/nodetool/examples/apps/shot-director.app.json`](https://github.com/nodetool-ai/nodetool/blob/main/packages/base-nodes/nodetool/examples/apps/shot-director.app.json)
-- Workflow: [`packages/base-nodes/nodetool/examples/nodetool-base/Shot Director.json`](https://github.com/nodetool-ai/nodetool/blob/main/packages/base-nodes/nodetool/examples/nodetool-base/Shot%20Director.json)
+- Clip model: `comfyui-workflow/wan2.2-ti2v-5b` on the `comfy_cloud` provider,
+  in [`comfy-workflow-models.ts`](https://github.com/nodetool-ai/nodetool/blob/main/packages/runtime/src/providers/comfy-workflow-models.ts)
+- Editable graph: the [`Shot Director` example workflow](https://github.com/nodetool-ai/nodetool/blob/main/packages/base-nodes/nodetool/examples/nodetool-base/Shot%20Director.json).
+  A test keeps it equal to the graph the provider runs.
 - Camera presets (open JSON): [`packages/presets/catalog/camera/`](https://github.com/nodetool-ai/nodetool/tree/main/packages/presets/catalog/camera)
-- Comfy node: `lib.comfy.RunWorkflowOnCloud` in
-  [`packages/integration-nodes/src/nodes/comfy-cloud.ts`](https://github.com/nodetool-ai/nodetool/blob/main/packages/integration-nodes/src/nodes/comfy-cloud.ts),
-  using the Comfy API v2 SDK (`comfy-sdk.ts`).
+- Comfy node for graph authors: `lib.comfy.RunWorkflowOnCloud` in
+  [`comfy-cloud.ts`](https://github.com/nodetool-ai/nodetool/blob/main/packages/integration-nodes/src/nodes/comfy-cloud.ts),
+  using the Comfy API v2 SDK.
 
 ## How it works
 
 ```text
-Source still ─┐
-Camera move ──┼─▶ Compose Shot (open preset → effective prompt + run record)
-Direction ────┤          │
-Seed ─────────┘          ▼
-              Run on Comfy Cloud  (pinned ComfyUI API workflow, Comfy API v2)
-                         │
-                         ├─▶ take          (the rendered video)
-                         ├─▶ comfy_job     (job id, status, output manifest)
-                         └─▶ run_settings  (preset id + version, prompt, seed, model)
+Storyboard shot ─▶ Render dialog: clip model "Wan 2.2 TI2V 5B (ComfyUI workflow)"
+  still + camera preset          │
+                                 ▼
+  shot prompt + compiled preset clause (local-wan) ─▶ generate_media
+                                 │
+                                 ▼
+  ComfyCloudProvider.imageToVideo ─▶ pinned graph, Comfy API v2 SDK
+                                 │
+                                 ▼
+  take added to the shot ─▶ pick a take ─▶ timeline clip follows the pick
 ```
 
-1. **Compose Shot** looks up the chosen camera preset from the open catalogue
-   (`camera.dolly-in`, `camera.orbit`, `camera.crane-up`,
-   `camera.pull-back-reveal`, `camera.handheld`, `camera.static`) and uses its
-   `local-wan` prompt fragment, which is written for Wan models. It appends the
-   fragment to your direction and emits a JSON run record.
-2. **Run on Comfy Cloud** injects the image, prompt and seed into a pinned
-   ComfyUI API-format graph and submits it through the Comfy API v2 SDK. Media
-   inputs are uploaded as Comfy assets first. The rendered video streams back
-   on the node's `58:video` output.
-3. The app runs the same workflow as two operations, **Take A** and **Take B**,
-   each with its own result slot, so a revision never overwrites the first take.
+1. The shot's still is the first frame. The camera preset compiles to its
+   `local-wan` clause, written for Wan models, and joins the shot prompt.
+2. The provider writes prompt, seed, size (from the board's aspect ratio) and
+   frame count (from the shot duration, at most 121 frames at 24 fps) into the
+   pinned graph, uploads the still and submits the job. Cancelling the render
+   cancels the Comfy job.
+3. The result is a take on the shot. Earlier takes stay, and the timeline clip
+   changes only when you pick a take in the gallery.
+
+The Router partner models on the same provider (Seedance, Kling, Veo and others)
+are a separate path. They are partner APIs and are not part of the open-weights
+render path.
 
 ## The pinned Comfy workflow
 
@@ -61,13 +65,13 @@ open-weights.
 
 1. Get a Comfy API key at <https://platform.comfy.org> and add it as
    `COMFY_API_KEY` in NodeTool Settings (it stays server-side).
-2. In NodeTool, open **Apps → Examples → Shot Director** and install it, or
-   open the **Shot Director** workflow from the templates.
-3. Upload a landscape still, pick a camera move, write a direction, and press
-   **Generate Take A**. Change the move or direction and press
-   **Generate Take B**.
+2. Open a storyboard, give a shot a still and a camera move, and open
+   **Render clip**. Choose **Wan 2.2 TI2V 5B (ComfyUI workflow, open weights)**
+   under Comfy Cloud and render. Render again for another take.
+3. **Open ComfyUI workflow** in the render dialog opens an editable copy of the
+   graph.
 
-Headless, from the repository. Pass the still as a `file://` ref, because the
+The example workflow also runs on its own. Headless, from the repository. Pass the still as a `file://` ref, because the
 CLI run context does not resolve the default `package://` sample:
 
 ```bash
@@ -91,4 +95,4 @@ COMFY_API_KEY=... node scripts/comfy-challenge/golden-render.mjs --move "dolly i
   job id but no price.
 - Real renders (job ids, outputs, latency) are listed in
   [`evidence.md`](evidence.md), including what has not been verified yet.
-  A render on Comfy Cloud took 88 to 95 seconds from submit to finished.
+  A render on Comfy Cloud took 88 to 106 seconds from submit to finished.
