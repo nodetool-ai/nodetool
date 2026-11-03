@@ -590,7 +590,7 @@ X, Rotation Y, Perspective and Depth, each keyed, and Camera follows it on 3D cl
 Remapping, Crop, Corners, Motion blur and the clip's effects. Under audio come Volume, with its keyed
 Level row and the fades, and the audio effects. Each effect has its chain order and Remove in its heading, and a
 grade also has an action that opens the Color panel. A group clip lists Motion, Opacity, Corners,
-Motion blur and its effects. Crop and Corners are keyed rows. A control that cannot be keyframed is a row in the
+Motion blur and its effects. Crop, Corners and the numeric parameters of effects from the Effects panel are keyed rows. A control that cannot be keyframed is a row in the
 same list over an empty lane, so the panel has one shape. Groups collapse, and fixed groups and
 sections remember that across clips. All but Camera and the sections without one have an enable
 switch, and Time Remapping's switch is in its heading.

@@ -14,8 +14,14 @@ QJsonObject edit(QJsonObject document, const QJsonObject& payload);
 QJsonArray rowSpecs();
 QJsonArray times(const QJsonObject& clip, const QStringList& properties = {});
 QStringList properties(const QString& row);
+int inputCount(const QString& row);
 double inputValue(const QJsonObject& clip, const QString& row, int index, double atMs);
 QJsonObject transform(const QJsonObject& clip);
+// Another kind of animation already drives this row's value, so the row takes no keys.
+bool rowDrivenElsewhere(const QJsonObject& clip, const QString& row);
+// What a keyable effect parameter defaults to and how far it goes, empty for any other parameter.
+QJsonObject effectParamSpec(const QString& type, const QString& key);
+QStringList keyableEffectParams(const QString& type);
 // The clip as its panel shows it: what a switched-off group holds, back in place. Read only.
 QJsonObject withBypassRestored(const QJsonObject& clip);
 // One row sampled for its value and velocity graphs, in the units its fields show.

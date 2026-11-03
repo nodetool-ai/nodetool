@@ -11,7 +11,9 @@ Column {
     required property string effectId
     readonly property var effect: editor.effects.find(effect => effect.id === effectId) || ({})
     readonly property string effectType: effect.type || ""
-    readonly property var definitions: Catalog.fields(effectType)
+    // Keyed fields are rows above these, with their lanes.
+    readonly property var allDefinitions: Catalog.fields(effectType)
+    readonly property var definitions: allDefinitions.filter(field => !Catalog.keyed(effectType, field))
     Component.onDestruction: if (root.editor?.matteEffectId === root.effectId) root.editor.clearMatte()
     spacing: Ui.Metrics.micro
     ClipAnalysisController {
@@ -227,7 +229,7 @@ Column {
         onPatch: (change, phase) => root.editor.patch(root.effectId, change, phase)
     }
     Sections.InspectorCaption {
-        visible: root.definitions.length === 0 && root.effectType !== "curves"
+        visible: root.allDefinitions.length === 0 && root.effectType !== "curves"
         width: parent.width
         text: Catalog.readOnlyDescription(root.effectType)
     }

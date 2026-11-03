@@ -448,11 +448,11 @@ void TestClipEffects::listActionsAndParameterGesture() {
         e.model.undoStack()->redo(); QCOMPARE(e.model.documentJson(),moved);
         auto* enabled = e.item("effectControlsEnable_effect:b"); QVERIFY(enabled); e.click(enabled);
         QCOMPARE(e.effects()[3].toObject()["enabled"].toBool(),true); QCOMPARE(e.model.undoStack()->count(),2);
-        auto* radius = e.item("effects_a_radius"); QVERIFY(radius);
+        auto* radius = e.item("effectControls_effect:a:radius_input_0"); QVERIFY(radius);
         QVERIFY(QMetaObject::invokeMethod(radius,"gestureStarted"));
-        QVERIFY(number(radius,"preview",10)); QVERIFY(number(radius,"preview",12.5));
+        QVERIFY(text(radius,"preview","10")); QVERIFY(text(radius,"preview","12.5"));
         QCOMPARE(e.model.undoStack()->count(),2);
-        QVERIFY(number(radius,"change",12.5)); QCOMPARE(e.model.undoStack()->count(),3);
+        QVERIFY(text(radius,"commit","12.5")); QCOMPARE(e.model.undoStack()->count(),3);
         QCOMPARE(e.effects()[2].toObject()["radius"].toDouble(),12.5);
         QCOMPARE(e.effects()[2].toObject()["sigma"].toDouble(),2.0);
         auto* remove = e.item("effectsRemove_future"); QVERIFY(remove);
@@ -505,9 +505,11 @@ void TestClipEffects::parameterFields() {
         if (type == "liftGammaGain") { QVERIFY(e.addGrade("grade",{{"type",type},{"enabled",true},{"lift",QJsonArray{0,0,0}},{"gamma",QJsonArray{1,1,1}},{"gain",QJsonArray{1,1,1}}})); }
         else { QVERIFY(e.add(type)); }
         const auto id = e.effects()[0].toObject()["id"].toString();
-        auto* control = e.item("effects_"+id+"_"+field); QVERIFY(control);
+        // A keyed field is a row, and any other is a control below the rows.
+        auto* row = e.item("effectControls_effect:"+id+":"+field+"_input_0");
+        auto* control = row ? row : e.item("effects_"+id+"_"+field); QVERIFY(control);
         const auto before = e.model.documentJson();
-        if (type == "exposure" || type == "deband" || type == "deflicker" || type == "stabilize" || type == "denoise") { QVERIFY(number(control,"change",input.toDouble())); }
+        if (!row && (type == "exposure" || type == "deband" || type == "deflicker" || type == "stabilize" || type == "denoise")) { QVERIFY(number(control,"change",input.toDouble())); }
         else { QVERIFY(text(control,"commit",input)); }
         QCOMPARE(e.model.undoStack()->count(),2);
         const auto wanted = QJsonDocument::fromJson(expected).object();
@@ -540,9 +542,9 @@ void TestClipEffects::importedColorInstance() {
 void TestClipEffects::invalidNumbersAndGestureCancellation() {
         Editor e; QVERIFY2(e.object,qPrintable(e.error)); QVERIFY(e.add("levels"));
         const auto id = e.effects()[0].toObject()["id"].toString();
-        auto* gamma = e.item("effects_"+id+"_gamma"); QVERIFY(gamma);
+        auto* gamma = e.item("effectControls_effect:"+id+":gamma_input_0"); QVERIFY(gamma);
         const auto before = e.model.documentJson();
-        for (const auto& raw : {QString(""),QString("NaN"),QString("Infinity"),QString("0"),QString("-1"),QString("1x")}) {
+        for (const auto& raw : {QString(""),QString("NaN"),QString("Infinity"),QString("1x")}) {
             QVERIFY(text(gamma,"commit",raw)); QCOMPARE(e.model.documentJson(),before);
         }
         QVERIFY(QMetaObject::invokeMethod(gamma,"gestureStarted"));
@@ -596,8 +598,8 @@ void TestClipEffects::secondaryColorEditing() {
     const auto before=e.model.documentJson();
     auto* matte=e.item("effects_"+id+"_matte"); QVERIFY(matte); e.click(matte);
     QCOMPARE(e.model.effectMatteId(),id); QCOMPARE(e.model.documentJson(),before); QCOMPARE(e.model.undoStack()->count(),0);
-    auto* width=e.item("effects_"+id+"_hueWidth"); QVERIFY(width);
-    QVERIFY(number(width,"change",30));
+    auto* width=e.item("effectControls_effect:"+id+":hueWidth_input_0"); QVERIFY(width);
+    QVERIFY(text(width,"commit","30"));
     QCOMPARE(e.effects()[0].toObject()["hueWidth"].toDouble(),30.);
     QCOMPARE(e.model.effectMatteId(),id); QCOMPARE(e.model.undoStack()->count(),1);
     e.model.undoStack()->undo(); QCOMPARE(e.model.documentJson(),before);

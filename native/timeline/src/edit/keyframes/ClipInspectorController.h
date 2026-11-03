@@ -56,6 +56,7 @@ class ClipInspectorController : public QObject {
     Q_INVOKABLE QString newAnimationId() const { return QUuid::createUuid().toString(QUuid::WithoutBraces); }
     Q_INVOKABLE QString easingAt(const QString& row, double atMs) const;
     Q_INVOKABLE bool validEasing(const QString& easing) const;
+    Q_INVOKABLE QVariantMap effectParamSpec(const QString& type, const QString& key) const;
   signals:
     void changed();
     void playheadChanged();

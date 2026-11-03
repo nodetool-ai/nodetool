@@ -115,7 +115,6 @@ results rather than a review finding.
 | B119 | P2 | F5 (#7080) r3 F10 | `src/edit/audioroles/` | Same cause as the previous entry, for clearing the role of a generated clip. | F5 |
 | B121 | P2 | F5 (#7080) | `src/edit/audioroles/` | A video clip with an extracted-audio partner (`linkId`) is measured as if it had its own sound, so matching it sets a volume on a clip the mix does not play. | F5 |
 | B122 | P2 | F5 (#7080) | `src/edit/audioroles/README.md` | Ducking lowers the whole track, so Music and Ambience should be on tracks of their own. The panel and the README say so. | F5 |
-| B123 | P2 | F7 (#7082) | `qml/effectcontrols/` | Effect rows have no keyframes, because the document has no keyframes for effect parameters. | F7 |
 | B124 | P2 | F7 (#7082) | `qml/effectcontrols/` | Transitions are not listed in the panel (out of scope in the issue). | F7 |
 | B125 | P2 | F7 (#7082) | `src/edit/keyframes/ClipInspectorController.cpp` | Editing Motion, Opacity or Volume elsewhere (Inspector, gizmo) while the group is switched off is overwritten by the stored values when the group is switched back on. | F7 |
 | B126 | P2 | F7 (#7082) | `src/edit/keyframes/` | Trimming or splitting a clip while a group is switched off leaves its stored curves in normalized time, so they stretch to the new length, and both halves of a split carry the stored values. | F7 |
@@ -195,6 +194,11 @@ results rather than a review finding.
 | B203 | P2 | notes (keys-2) | `qml/effectcontrols/EffectControlsModel.js` | A video clip with its own sound has no Volume group in Effect Controls, so its level and keys cannot be set there. The mixer already applies Volume keys to its voices, and Paste Attributes can bring them. | keys-2 |
 | B204 | P2 | keys-2 r1 | `src/edit/ClipOps.cpp`, `src/edit/keyframes/Keyframes.cpp` | Keyframe times use a tolerance of 1e-4 of the clip, as the web does. On a 10-minute clip that is 60 ms, so a split can take in a key near the cut on the keyframe animation, and adding a key near another replaces it on any curve. Side curves keep keys near a cut. | keys-2 |
 | B205 | P2 | notes (keys-3) | `src/motion/blur/Shutter.h`, `src/motion/blurcontrols/MotionBlur.qml` | Motion blur has no keys. It does not share the per-layer path of Crop and Corners: `frameShutter` reads the shutter of every clip from its JSON, before the scene is evaluated, to choose the frame's samples. Shutter angle could be keyed by sampling a side curve there and in `layerShutterTime`. Samples per frame is a quality setting and whole, so it should stay unkeyed. | keys-3 |
+| B206 | P2 | notes (keys-4) | `src/edit/clipeffects/ClipEffectsCatalog.js` | Some effect parameters have no keys. A colour (glow, drop shadow, chroma key) needs a curve of colours, and curves hold numbers. A choice or switch (Animate on film grain) has no value between keys. A tone or hue curve is a list of points, so one number cannot key it. Audio effect parameters reach the mix through `BlockProcessor::setParameter`, which track automation drives on the bus, and clip inserts have no such link yet. | keys-4 |
+| B207 | P2 | notes (keys-4) | `src/edit/clipeffects/ClipEffectsCatalog.js`, `qml/color/` | The Color panel's grades (Color, Curves, Lift/gamma/gain, Vignette) have no keys. That panel owns their values and has no lanes, so a key set in Effect Controls would silently override what it shows. | keys-4 |
+| B208 | P2 | notes (keys-4) | `src/preview/effects/ClipAnalysis.h` | The Smoothing and Analysis window of Stabilization and Deflicker, and Deflicker's Correction limit, have no keys. They are read when the analysis runs and are part of the key the stored analysis must match, so a keyed value would invalidate the analysis. | keys-4 |
+| B209 | P2 | notes (keys-4) | `src/colorpanel/ColorMatchController.cpp`, `src/edit/trim/TrimMonitorFrames.cpp` | The Trim monitor and Color Match render an isolated clip with its animations removed, so they show effect parameters at their static values while keys are on. Motion keys were already left out this way. | keys-4 |
+| B210 | P2 | notes (keys-4) | `qml/effectcontrols/EffectControlsRow.qml` | Keyed fields are pill inputs. The sliders they replace had a double-click reset to the field's default value, and these rows have no reset. | keys-4 |
 
 ## Closed
 
@@ -226,6 +230,7 @@ results rather than a review finding.
 | B82 | F1 merge: panel keys reach the actions while the Timeline tab is hidden | 31bcad2705 |
 | B84 | F1 merge: `maximizePanel` (backtick) and `resetWorkspace` (Alt+Shift+0 in Premiere) have handlers | 31bcad2705 |
 | B85 | A dock group lists hidden tabs in its menu | 937e1162ee |
+| B123 | Volume keys in keys-2, and numeric effect parameters in keys-4. What stays unkeyed is B206, B207 and B208 | 5bd3891453 |
 | B120 | Withdrawn by Astra in rounds 2 and 3. No change needed | 05ef189dbe |
 | B168 | Process note. The selection was rerun on integration at the F13B merge and the final checkpoint | 2bdf596356 |
 | B170 | Process note. The builds were killed, and no source changed | 2bdf596356 |

@@ -1,4 +1,7 @@
+#include "edit/keyframes/Keyframes.h"
 #include "preview/effects/ClipEffects.h"
+#include "scene/ClipScene.h"
+#include "scene/SideCurves.h"
 #include "preview/effects/ClipAnalysis.h"
 #include "preview/effects/Stabilization.h"
 #include "preview/effects/Denoise.h"
@@ -39,6 +42,117 @@ QJsonObject adjustmentStyleDocument() {
 class TestEffectPlan : public QObject {
     Q_OBJECT
   private slots:
+    // Every parameter with a stopwatch reaches the plan: its key at two times gives two sets of passes.
+    void everyKeyableParamReachesThePlan_data() {
+        QTest::addColumn<QString>("type");
+        QTest::addColumn<QString>("param");
+        for (const auto* type : {"denoise", "stabilize", "deflicker", "deband", "secondaryColor", "exposure", "blur", "glow", "dropShadow",
+                                 "sharpen", "chromaKey", "levels", "grain", "pixelate", "posterize", "directionalBlur", "lensDistortion"}) {
+            const auto params = nt::keyframes::keyableEffectParams(type);
+            QVERIFY2(!params.isEmpty(), type);
+            for (const auto& param : params) {
+                QTest::newRow(qPrintable(QString(type) + ":" + param)) << QString(type) << param;
+            }
+        }
+    }
+    void everyKeyableParamReachesThePlan() {
+        QFETCH(QString, type);
+        QFETCH(QString, param);
+        const auto spec = nt::keyframes::effectParamSpec(type, param);
+        QVERIFY(!spec.isEmpty());
+        // Values the other parameters need for this one to matter.
+        QJsonObject e{{"id", "e"}, {"type", type}, {"enabled", true}};
+        const QHash<QString, QJsonObject> settings{
+            {"denoise", {{"lumaStrength", .5}, {"chromaStrength", .5}, {"temporalStrength", .5}, {"radius", 2}}},
+            {"deband", {{"strength", .5}, {"range", 16}, {"threshold", .02}, {"dither", .5}}},
+            {"secondaryColor", {{"hueCenter", 90}, {"hueWidth", 60}, {"hueSoftness", 15}, {"saturationMin", .1}, {"saturationMax", .9}, {"lightnessMin", .1}, {"lightnessMax", .9}, {"rangeSoftness", .1}, {"hueShift", 30}, {"saturation", 1.5}, {"lightness", .1}}},
+            {"exposure", {{"exposure", 1}, {"rolloff", .5}, {"whites", .5}}},
+            {"blur", {{"radius", 4}}},
+            {"glow", {{"radius", 4}, {"intensity", 1}}},
+            {"dropShadow", {{"offsetX", 4}, {"offsetY", 4}, {"blur", 4}, {"opacity", .5}, {"color", "#000000"}}},
+            {"sharpen", {{"amount", 1}, {"radius", 1}}},
+            {"chromaKey", {{"color", "#00ff00"}, {"tolerance", .3}, {"softness", .1}, {"spill", .5}}},
+            {"levels", {{"inBlack", .1}, {"inWhite", .9}, {"gamma", 1.2}, {"outBlack", .1}, {"outWhite", .9}}},
+            {"grain", {{"amount", .5}, {"size", 2}, {"roughness", .5}, {"softness", .25}, {"colorAmount", .5}}},
+            {"pixelate", {{"cellSize", 4}}},
+            {"posterize", {{"levels", 8}}},
+            {"directionalBlur", {{"radius", 8}, {"angle", 30}}},
+            {"lensDistortion", {{"amount", .25}}}};
+        const auto chosen = settings.value(type);
+        for (auto i = chosen.begin(); i != chosen.end(); ++i) { e.insert(i.key(), i.value()); }
+        nt::Clip clip;
+        clip.id = "c";
+        clip.mediaType = nt::MediaType::Video;
+        clip.startMs = 0;
+        clip.durationMs = 1000;
+        clip.raw.insert("currentAssetId", "source");
+        if (type == "stabilize" || type == "deflicker") {
+            auto data = analysisKey(clip, e);
+            data.insert("version", 1);
+            if (type == "stabilize") {
+                data.insert("width", 256); data.insert("height", 256); data.insert("requiredZoom", 1.3);
+                data.insert("samples", QJsonArray{QJsonObject{{"timeMs", 0}, {"x", .02}, {"y", .01}, {"angle", .02}, {"scale", 1.02}}, QJsonObject{{"timeMs", 1000}, {"x", .02}, {"y", .01}, {"angle", .02}, {"scale", 1.02}}});
+            } else {
+                data.insert("frameRate", 30);
+                data.insert("samples", QJsonArray{QJsonObject{{"timeMs", 0}, {"stops", 1}}, QJsonObject{{"timeMs", 1000}, {"stops", 1}}});
+            }
+            e.insert("analysis", data);
+        }
+        // Two values inside the parameter's bounds, and away from its identity.
+        const double low = spec.contains("min") ? spec["min"].toDouble() : -8;
+        const double high = spec.contains("max") ? spec["max"].toDouble() : 16;
+        const double first = low + (high - low) * 0.3, second = low + (high - low) * 0.7;
+        clip.raw.insert("effects", QJsonArray{e});
+        clip.raw.insert("animations", nt::scene::withSideCurves({}, QJsonArray{QJsonObject{{"property", nt::scene::effectCurveName("e", param)},
+            {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", first}}, QJsonObject{{"t", 1}, {"value", second}}}}}}, 1000));
+        clip.scene = nt::scene::parseClipScene(clip.raw);
+        nt::Timeline timeline;
+        timeline.width = 64;
+        timeline.height = 64;
+        timeline.fps = 30;
+        const auto at = [&](double ms) {
+            QJsonObject ext;
+            decorateEffects(ext, clip, {timeline, nullptr, ms, ms, 30, 0});
+            return ext.value("clipEffects").toArray();
+        };
+        const auto start = at(0), end = at(1000);
+        // Outsets are the plan of an effect that spreads past the layer, so they count too.
+        const auto plan = [](const QJsonArray& effects) {
+            QStringList words;
+            for (const auto& pass : planChain(effects)) {
+                words.append(QString::number(int(pass.op)));
+                for (const float value : pass.params) { words.append(QString::number(value, 'g', 6)); }
+            }
+            const auto outset = chainOutset(effects);
+            words << QString::number(outset.left()) << QString::number(outset.top()) << QString::number(outset.right()) << QString::number(outset.bottom());
+            return words.join(' ');
+        };
+        QVERIFY2(plan(start) != plan(end), qPrintable(plan(start)));
+    }
+    // Adjustment clips and group surfaces read their keys as a clip does.
+    void keyedEffectsOnAdjustmentAndGroup() {
+        const QJsonObject e{{"id", "e"}, {"type", "blur"}, {"enabled", true}, {"radius", 1}};
+        const auto animations = nt::scene::withSideCurves({}, QJsonArray{QJsonObject{{"property", "effect:e:radius"},
+            {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", 2}}, QJsonObject{{"t", 1}, {"value", 10}}}}}}, 1000);
+        nt::Timeline timeline;
+        timeline.width = 64;
+        timeline.height = 64;
+        timeline.fps = 30;
+        for (const auto type : {nt::MediaType::Adjustment, nt::MediaType::Group}) {
+            nt::Clip clip;
+            clip.id = "c";
+            clip.mediaType = type;
+            clip.durationMs = 1000;
+            clip.raw.insert("effects", QJsonArray{e});
+            clip.raw.insert("animations", animations);
+            clip.scene = nt::scene::parseClipScene(clip.raw);
+            QJsonObject ext;
+            decorateEffects(ext, clip, {timeline, nullptr, 500, 500, 30, 15});
+            QCOMPARE(ext.value("clipEffects").toArray()[0].toObject().value("radius").toDouble(), 6.0);
+            // The static value in the document stays as it was.
+            QCOMPARE(clip.raw.value("effects").toArray()[0].toObject().value("radius").toDouble(), 1.0);
+        }
+    }
     void noiseReductionPlan() {
         auto noise=effect("denoise");QVERIFY(planChain({noise}).empty());
         noise.insert("lumaStrength",.7);noise.insert("chromaStrength",.8);noise.insert("temporalStrength",.9);noise.insert("radius",3);

@@ -566,6 +566,12 @@ QJsonValue interpolateStyle(const QJsonValue &from, const QJsonValue &to, double
     return t < 1 ? from : to;
 }
 
+// `effects` with their keyed parameters at this frame.
+QJsonArray keyedEffects(const Clip &clip, QJsonArray effects, double timeMs) {
+    const auto curves = clip.scene ? clip.scene->sideCurves : nullptr;
+    if (!curves || clip.durationMs <= 0) { return effects; }
+    return curves->keyedEffects(std::move(effects), std::clamp((timeMs - clip.startMs) / clip.durationMs, 0., 1.));
+}
 Clip resolveAnimatedTreatments(const Clip &clip, const SceneDecorationContext &context) {
     Clip animated = clip;
     auto effects = clip.raw.value("effects").toArray();
@@ -623,6 +629,7 @@ Clip resolveAnimatedTreatments(const Clip &clip, const SceneDecorationContext &c
             }
         }
     }
+    effects = keyedEffects(clip, std::move(effects), context.timeMs);
     const auto sample = scene::sampleAnimations(compiled, localMs, clipSourceMsAt(clip, context.timeMs));
     if (sample.brightness != 0 || sample.saturation != 1 || sample.contrast != 1 || sample.hue != 0 ||
         sample.temperature != 0 || sample.tint != 0) {
@@ -641,7 +648,12 @@ Clip resolveAnimatedTreatments(const Clip &clip, const SceneDecorationContext &c
 
 void decorateEffects(QJsonObject &ext, const Clip &clip, const SceneDecorationContext &context) {
     const bool group = clip.mediaType == MediaType::Group || ext.value("effectGroupSurface").toBool();
-    const auto animated = group ? clip : resolveAnimatedTreatments(clip, context);
+    auto animated = clip;
+    if (group) {
+        animated.raw.insert("effects", keyedEffects(clip, clip.raw.value("effects").toArray(), context.timeMs));
+    } else {
+        animated = resolveAnimatedTreatments(clip, context);
+    }
     decorateEffects(ext, animated, context.timeMs);
     if (group) {
         ext.remove("shapeMask");

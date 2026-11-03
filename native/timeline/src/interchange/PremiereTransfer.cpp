@@ -62,6 +62,7 @@ QString sideCurveNote(const nt::Timeline& timeline) {
                                  : property == u"perspective"  ? QStringLiteral("Perspective")
                                  : property.startsWith(u"crop") ? QStringLiteral("Crop")
                                  : property == u"borderRadius" ? QStringLiteral("Corners")
+                                 : property.startsWith(u"effect:") ? QStringLiteral("effect parameters")
                                                                : property;
             if (!names.contains(name)) names.append(name);
         }

@@ -2,6 +2,7 @@
 
 #include "scene/Animation.h"
 
+#include <QSet>
 #include <QUuid>
 
 #include <algorithm>
@@ -57,6 +58,53 @@ QJsonArray withSideCurves(const QJsonArray& animations, const QJsonArray& curves
                                 {"custom", QJsonObject{{"curves", chunk}}}});
     }
     return kept;
+}
+
+QString effectCurveName(const QString& effectId, const QString& param) {
+    return QStringLiteral("effect:%1:%2").arg(effectId, param);
+}
+
+std::optional<EffectCurveName> parseEffectCurveName(const QString& property) {
+    if (!property.startsWith(u"effect:")) return std::nullopt;
+    const auto split = property.lastIndexOf(u':');
+    if (split <= 6 || split + 1 >= property.size()) return std::nullopt;
+    return EffectCurveName{property.mid(7, split - 7), property.mid(split + 1)};
+}
+
+QJsonArray withoutOrphanEffectCurves(const QJsonArray& animations, const QJsonArray& effects, double clipDurationMs) {
+    QSet<QString> ids;
+    for (const auto& effect : effects) {
+        ids.insert(effect.toObject().value(u"id").toString());
+    }
+    QJsonArray kept;
+    bool dropped = false;
+    for (const auto& curve : sideCurveList(animations)) {
+        const auto name = parseEffectCurveName(curve.toObject().value(u"property").toString());
+        if (name && !ids.contains(name->effectId)) {
+            dropped = true;
+        } else {
+            kept.append(curve);
+        }
+    }
+    return dropped ? withSideCurves(animations, kept, clipDurationMs) : animations;
+}
+
+QJsonArray SideCurves::keyedEffects(QJsonArray effects, double t) const {
+    for (const auto& curve : m_curves) {
+        const auto name = parseEffectCurveName(curve.property);
+        if (!name) {
+            continue;
+        }
+        for (qsizetype i = 0; i < effects.size(); ++i) {
+            auto effect = effects[i].toObject();
+            if (effect.value(u"id").toString() == name->effectId) {
+                effect.insert(name->param, valueOf(curve, t));
+                effects[i] = effect;
+                break;
+            }
+        }
+    }
+    return effects;
 }
 
 std::shared_ptr<const SideCurves> SideCurves::parse(const QJsonArray& animations) {

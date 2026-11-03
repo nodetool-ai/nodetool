@@ -16,7 +16,7 @@ Column {
     readonly property string docKey: { const revision = controller.revision; return JSON.stringify(controller.rowDocument(rowId)) }
     readonly property var doc: JSON.parse(docKey)
     readonly property var live: { const revision = controller.revision; const playhead = controller.playheadMs; return controller.rowLive(rowId) }
-    readonly property bool editable: !panel.locked && !bypassed
+    readonly property bool editable: !panel.locked && !bypassed && !doc.blocked
     readonly property bool active: panel.activeRow === rowId
     property bool graphsOpen: false
     readonly property real laneCenterY: controls.height / 2
@@ -66,7 +66,8 @@ Column {
                 iconName: "timer"
                 active: root.doc.keyframed
                 enabled: root.editable && root.controller.playheadMs >= 0
-                label: root.controller.playheadMs < 0 ? "Move the playhead onto the clip to animate" : (root.doc.keyframed ? "Stop animating " : "Animate ") + root.row.label
+                label: root.doc.blocked ? "An animation on this clip drives " + root.row.label
+                    : root.controller.playheadMs < 0 ? "Move the playhead onto the clip to animate" : (root.doc.keyframed ? "Stop animating " : "Animate ") + root.row.label
                 onClicked: { root.selectRow(); root.controller.write({action: "stopwatch", row: root.rowId}) }
             }
             Ui.Text {

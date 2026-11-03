@@ -205,11 +205,14 @@ bool attributeGroupApplies(const QString &group, const QJsonObject &target) {
 namespace {
 // The Paste Attributes group whose parameter a side curve keys.
 QString curveGroup(const QString &property) {
+    if (scene::parseEffectCurveName(property)) {
+        return QStringLiteral("effects");
+    }
     return property == u"volumeDb" ? QStringLiteral("volume") : QStringLiteral("animations");
 }
 // Side curves travel with the group they belong to, not with the animations around them. So a
-// volume key reaches a sound clip, which takes no animations, and pasting animations leaves
-// the target's own volume keys alone.
+// volume key reaches a sound clip, which takes no animations, an effect's keys arrive with the
+// effect, and pasting animations leaves the target's own volume and effect keys alone.
 void patchSideCurves(AttributePatch &patch, const QJsonObject &source, const QJsonObject &target, const IdSet &groups) {
     const auto sourceAnimations = source.value("animations").toArray();
     const auto targetAnimations = target.value("animations").toArray();
