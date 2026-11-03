@@ -187,6 +187,7 @@ results rather than a review finding.
 | B196 | P2 | F13B (#7088) notes | `src/takes/TakeActions.cpp` | Take switching by number has no menu rows. | F13B |
 | B197 | P2 | Final pass | `src/edit/audioroles/` | `RoleAnalysis` measures through `buildMixPlan`, which does not mix time remaps, so a time-remapped clip is measured at its rate. | F5 |
 | B198 | P2 | Final pass | `native/timeline` | Fixes after the last allowed Astra round have no independent review in F3, F4, F5, F8 and F12, as recorded for F2 and F14 above. | F3, F4, F5, F8, F12 |
+| B199 | P2 | inspector-2 Astra | `qml/Inspector/primitives/InspectorRow.qml:30` | At Effect Controls' narrowest list width, about 145 px, a fade row's input and shape selector together are wider than the column, and the input clips on the left. They should wrap or shrink. | inspector-2 |
 
 ## Closed
 

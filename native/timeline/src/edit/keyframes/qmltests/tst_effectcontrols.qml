@@ -114,6 +114,12 @@ Item {
             click(effect)
             compare(controller.clip.audioEffects[0].enabled, false)
             compare(testHarness.undoCount(), count + 4)
+            // A locked clip's level and fades stay as they are.
+            testTimeline.applyEdit("patchClip", {clipId: "c", patch: {locked: true}})
+            tryVerify(() => controller.locked)
+            verify(input.disabled)
+            verify(child("audioFadeIn").disabled)
+            verify(child("audioFadeOutShape").disabled)
         }
         function topOf(name) { return child(name).mapToItem(panel, 0, 0).y }
         function openSection(id) {

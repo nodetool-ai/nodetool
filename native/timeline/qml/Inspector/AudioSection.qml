@@ -16,6 +16,7 @@ Item {
     property alias embedded: section.embedded
     // The Volume switch in Effect Controls sets the level aside, and it stays on show here.
     readonly property var heldVolume: (clip.bypassedFixedEffects || {}).volume
+    readonly property bool locked: !!controller && controller.locked
     visible: !!clip.id && (clip.mediaType === "audio" || clip.mediaType === "midi")
     implicitWidth: visible ? TimelineMetrics.trackHeaderWidth : 0
     implicitHeight: visible ? section.implicitHeight : 0
@@ -61,7 +62,7 @@ Item {
             origin: 0
             value: root.displayed("volumeDb")
             display: value.toFixed(1) + " dB"
-            disabled: !!root.heldVolume
+            disabled: !!root.heldVolume || root.locked
             onGestureStarted: root.begin("volumeDb")
             onPreview: value => root.preview("volumeDb", value)
             onChange: value => root.commit("volumeDb", value)
@@ -75,6 +76,7 @@ Item {
                 value: (root.displayed("fadeInMs") / 1000).toFixed(2)
                 unit: "s"
                 ariaLabel: "Fade in (seconds)"
+                disabled: root.locked
                 scrub: ({step: 0.02, min: 0})
                 onGestureStarted: root.begin("fadeInMs")
                 onPreview: text => { const ms = Helpers.parseSeconds(text); if (ms !== null) root.preview("fadeInMs", ms) }
@@ -84,6 +86,7 @@ Item {
             InspectorSelect {
                 objectName: "audioFadeInShape"
                 label: "Fade-in shape"
+                disabled: root.locked
                 value: FadeShapes.parseClipFadeShape(root.clip.fadeInShape)
                 options: FadeShapes.options
                 onChange: value => root.commit("fadeInShape", FadeShapes.parseClipFadeShape(value))
@@ -97,6 +100,7 @@ Item {
                 value: (root.displayed("fadeOutMs") / 1000).toFixed(2)
                 unit: "s"
                 ariaLabel: "Fade out (seconds)"
+                disabled: root.locked
                 scrub: ({step: 0.02, min: 0})
                 onGestureStarted: root.begin("fadeOutMs")
                 onPreview: text => { const ms = Helpers.parseSeconds(text); if (ms !== null) root.preview("fadeOutMs", ms) }
@@ -106,6 +110,7 @@ Item {
             InspectorSelect {
                 objectName: "audioFadeOutShape"
                 label: "Fade-out shape"
+                disabled: root.locked
                 value: FadeShapes.parseClipFadeShape(root.clip.fadeOutShape)
                 options: FadeShapes.options
                 onChange: value => root.commit("fadeOutShape", FadeShapes.parseClipFadeShape(value))
