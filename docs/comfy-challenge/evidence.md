@@ -96,6 +96,22 @@ model `luma/photon-flash-1`, aspect ratio 16:9.
 | End to end | 13.8 s |
 | Output | JPEG, 2048×1152, 116,274 bytes |
 
+## Job 5: Comfy Router provider, image to video
+
+`ComfyCloudProvider.imageToVideo` from `feat/comfy-router-provider` at
+`3038072d`, model `byteplus/seedance-1-0-pro-fast-251015`, the coffee still as
+first frame, 5 s, 16:9.
+
+| Field | Value |
+| --- | --- |
+| Router request id | `64e17545-0150-4048-817c-682868f52c65` |
+| Request body | `content[]` with the text prompt and the image as `first_frame`, `ratio` 16:9, `duration` 5 |
+| Path | `POST …/requests` 201, 8 status polls, result 200, video fetched from the signed URL |
+| End to end | 57.5 s |
+| Output | H.264 MP4, 1920×1088, 121 frames, 24 fps, 5.04 s, 15,642,432 bytes |
+
+The take holds the source still and pushes in on the cup as prompted.
+
 The Router path is a partner API, not part of the open-weights render path.
 
 ## Not yet verified
@@ -104,4 +120,3 @@ The Router path is a partner API, not part of the open-weights render path.
   The fix is verified by replaying job 4, not by a new run.
 - The app's Take A and Take B operations in the NodeTool UI, including the take
   being saved as an asset.
-- A Comfy Router video model through the provider.
