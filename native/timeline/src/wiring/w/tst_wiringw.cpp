@@ -94,6 +94,12 @@ private slots:
     void cleanup() {
         const bool failed = QTest::currentTestFailed();
         checkpoint("assertions");
+        // On a platform with no native file dialog this is a modal popup, which would take every
+        // click of the next case.
+        if (auto* saveDialog = object("exportSaveDialog"); saveDialog && saveDialog->property("visible").toBool()) {
+            QVERIFY(QMetaObject::invokeMethod(saveDialog, "close"));
+            QTRY_VERIFY(!saveDialog->property("visible").toBool());
+        }
         // Close dialogs, menus and the shortcut sheet through their real keys.
         QTest::keyClick(view.get(), Qt::Key_Escape);
         QTest::keyClick(view.get(), Qt::Key_Escape);
