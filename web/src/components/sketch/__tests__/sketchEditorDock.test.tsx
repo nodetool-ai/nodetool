@@ -162,6 +162,21 @@ describe("SketchEditor dock", () => {
       expect(document.querySelector(".sketch-editor__layers-section")).not.toBeInTheDocument();
     });
 
+    it("is the only mode on a phone, even when Expert is remembered", () => {
+      useSketchEditorModeStore.setState({
+        modes: { [sketchEditorModeKey(null)]: "expert" }
+      });
+      renderDesktopEditor(390);
+      expect(screen.queryByRole("button", { name: "Expert" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Simple" })).not.toBeInTheDocument();
+      fireEvent.click(document.querySelector(".sketch-editor__mobile-panels-fab")!);
+      expect(screen.getByTestId("sketch-simple-sidebar")).toBeInTheDocument();
+      expect(document.querySelector(".sketch-editor__layers-section")).not.toBeInTheDocument();
+      expect(useSketchEditorModeStore.getState().modes[sketchEditorModeKey(null)]).toBe(
+        "expert"
+      );
+    });
+
     it("selects a layer from the list and adds a new one", () => {
       renderDesktopEditor();
       const before = useSketchStore.getState().document.layers.length;

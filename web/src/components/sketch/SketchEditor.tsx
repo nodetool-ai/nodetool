@@ -241,14 +241,16 @@ function SketchEditor({
   const panelsHidden = useSketchStore((s) => s.panelsHidden);
   const togglePanelsHidden = useSketchStore((s) => s.togglePanelsHidden);
   const assistantPanelOpen = useSketchStore((s) => s.assistantPanelOpen);
-  // Simple mode keeps the canvas, a short tool rail and a layer column.
-  // Expert mode is the full dock. The choice is remembered per user.
-  const { mode: editorMode, setMode: setEditorMode } = useSketchEditorMode();
-  const simpleMode = editorMode === "simple";
-
   // Measure the editor itself, including when embedded in a workspace pane.
   const containerRef = useRef<HTMLDivElement>(null);
   const isMobile = useSketchIsMobile(containerRef);
+
+  // Simple mode keeps the canvas, a short tool rail and a layer column.
+  // Expert mode is the full dock. The choice is remembered per user. The
+  // mobile layout is always Simple and offers no switch; the remembered
+  // choice comes back once the editor is wide again.
+  const { mode: storedEditorMode, setMode: setEditorMode } = useSketchEditorMode();
+  const simpleMode = isMobile || storedEditorMode === "simple";
   const mobilePanelsOpen = useSketchStore((s) => s.mobilePanelsOpen);
   const setMobilePanelsOpen = useSketchStore((s) => s.setMobilePanelsOpen);
   const setAssistantPanelOpen = useSketchStore((s) => s.setAssistantPanelOpen);
@@ -479,13 +481,22 @@ function SketchEditor({
     () => (
       <>
         {!isMobile && simpleMode && <SimpleDocumentChips />}
-        <SketchModeSwitch mode={editorMode} onChange={setEditorMode} />
+        {!isMobile && (
+          <SketchModeSwitch mode={storedEditorMode} onChange={setEditorMode} />
+        )}
         {!isMobile && !simpleMode && (
           <DockLayoutMenu store={dockStore} panels={dockRegistrations} />
         )}
       </>
     ),
-    [dockStore, dockRegistrations, isMobile, simpleMode, editorMode, setEditorMode]
+    [
+      dockStore,
+      dockRegistrations,
+      isMobile,
+      simpleMode,
+      storedEditorMode,
+      setEditorMode
+    ]
   );
   const openExpertMode = () => setEditorMode("expert");
   const handleSimpleAddLayer = () => {
@@ -872,7 +883,6 @@ function SketchEditor({
                     sheet
                     onToggleVisibility={session.layerActions.handleToggleVisibility}
                     onAddLayer={handleSimpleAddLayer}
-                    onOpenExpert={openExpertMode}
                   />
                 ) : (
                   mobilePanelSections
