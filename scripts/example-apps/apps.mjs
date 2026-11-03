@@ -89,6 +89,75 @@ const NANO_BANANA_EDIT = {
 export const EXAMPLE_APPS = [
   {slug: "product-price-drop", name: "Product Price Drop", description: PRODUCT_PRICE_DROP_BUNDLE.description, tagline: "Exact product, editable prices, deterministic motion.", workflows: {}, featured: true, bundle: PRODUCT_PRICE_DROP_BUNDLE, debugInteractions: PRODUCT_PRICE_DROP_DEBUG_INTERACTIONS},
   ...AD_LIBRARY_APPS,
+  // ── Shot Director (Comfy Cloud) ─────────────────────────────────────────────
+  {
+    slug: "shot-director",
+    name: "Shot Director",
+    emoji: "🎬",
+    featured: true,
+    tagline: "Pick a camera move, direct the shot, keep every take.",
+    description:
+      "Turn one still into a cinematic take with an open camera preset, rendered on Comfy Cloud with a pinned Wan 2.2 workflow. Revise into Take B without losing Take A, compare them side by side, and open the workflow behind both.",
+    note: "Renders on Comfy Cloud and needs `COMFY_API_KEY`. Comfy Cloud bills GPU time on your plan.",
+    workflows: { shot: "Shot Director" },
+    variables: [
+      { id: "sourceImage", name: "Source still", scope: "instance", type: "image" }
+    ],
+    operations: [
+      {
+        id: "takeA",
+        name: "Take A",
+        workflow: "shot",
+        policy: "replace",
+        timeoutMs: 900000,
+        inputs: { source_image: { from: "variable", variableId: "sourceImage" } }
+      },
+      {
+        id: "takeB",
+        name: "Take B",
+        workflow: "shot",
+        policy: "replace",
+        timeoutMs: 900000,
+        inputs: { source_image: { from: "variable", variableId: "sourceImage" } }
+      }
+    ],
+    sections: [
+      {
+        title: "Take A",
+        op: "takeA",
+        controls: [
+          { image: "sourceImage", label: "Source still" },
+          { select: "camera_move", op: "takeA", label: "Camera move", options: ["dolly in", "orbit", "crane up", "pull back reveal", "handheld", "static"] },
+          { text: "direction", op: "takeA", label: "Direction", multiline: true },
+          { number: "seed", op: "takeA", label: "Seed" },
+          { run: ["takeA"], label: "Generate Take A" }
+        ],
+        results: [
+          { progress: "takeA", label: "Rendering on Comfy Cloud (about 1 to 3 minutes)…" },
+          { error: "takeA" },
+          { show: "take", op: "takeA", as: "Video", label: "Take A", demo: VIDEO },
+          { show: "run_settings", op: "takeA", as: "Markdown", label: "Run settings" }
+        ]
+      },
+      {
+        title: "Take B",
+        op: "takeB",
+        controls: [
+          { select: "camera_move", op: "takeB", label: "Camera move", options: ["dolly in", "orbit", "crane up", "pull back reveal", "handheld", "static"] },
+          { text: "direction", op: "takeB", label: "Revised direction", multiline: true },
+          { number: "seed", op: "takeB", label: "Seed" },
+          { run: ["takeB"], label: "Generate Take B" }
+        ],
+        results: [
+          { progress: "takeB", label: "Rendering on Comfy Cloud (about 1 to 3 minutes)…" },
+          { error: "takeB" },
+          { show: "take", op: "takeB", as: "Video", label: "Take B", demo: VIDEO },
+          { show: "run_settings", op: "takeB", as: "Markdown", label: "Run settings" }
+        ]
+      }
+    ]
+  },
+
   // ── 1 ──────────────────────────────────────────────────────────────────────
   {
     slug: "photo-studio",

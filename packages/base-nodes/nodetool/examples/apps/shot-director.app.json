@@ -1,0 +1,690 @@
+{
+  "schemaVersion": 1,
+  "name": "Shot Director",
+  "description": "Turn one still into a cinematic take with an open camera preset, rendered on Comfy Cloud with a pinned Wan 2.2 workflow. Revise into Take B without losing Take A, compare them side by side, and open the workflow behind both.",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {}
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "🎬 Shot Director",
+            "level": "1",
+            "subtitle": "Pick a camera move, direct the shot, keep every take."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "Renders on Comfy Cloud and needs `COMFY_API_KEY`. Comfy Cloud bills GPU time on your plan.",
+            "tone": "hint"
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-take-a",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-take-a",
+                  "title": "Take A",
+                  "content": [
+                    {
+                      "type": "ImageInput",
+                      "props": {
+                        "id": "in-sourceimage",
+                        "binding": "var:sourceImage",
+                        "label": "Source still",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "in-takea-camera-move",
+                        "binding": "op:takeA/in:camera_move",
+                        "label": "Camera move",
+                        "options": [
+                          {
+                            "value": "dolly in"
+                          },
+                          {
+                            "value": "orbit"
+                          },
+                          {
+                            "value": "crane up"
+                          },
+                          {
+                            "value": "pull back reveal"
+                          },
+                          {
+                            "value": "handheld"
+                          },
+                          {
+                            "value": "static"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-takea-direction",
+                        "binding": "op:takeA/in:direction",
+                        "label": "Direction",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "NumberInput",
+                      "props": {
+                        "id": "in-takea-seed",
+                        "binding": "op:takeA/in:seed",
+                        "label": "Seed",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-takea",
+                        "label": "Generate Take A",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "takeA",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-take-a-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-takea",
+                        "binding": "op:takeA/exec#progress",
+                        "label": "Rendering on Comfy Cloud (about 1 to 3 minutes)…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-takea",
+                        "binding": "op:takeA/exec#error",
+                        "title": "Generation failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:takeA/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-takea-take",
+                        "text": "Take A",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-takea-take",
+                        "binding": "op:takeA/out:take",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-takea-run-settings",
+                        "text": "Run settings",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-takea-run-settings",
+                        "binding": "op:takeA/out:settings",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-take-b",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-take-b",
+                  "title": "Take B",
+                  "content": [
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "in-takeb-camera-move",
+                        "binding": "op:takeB/in:camera_move",
+                        "label": "Camera move",
+                        "options": [
+                          {
+                            "value": "dolly in"
+                          },
+                          {
+                            "value": "orbit"
+                          },
+                          {
+                            "value": "crane up"
+                          },
+                          {
+                            "value": "pull back reveal"
+                          },
+                          {
+                            "value": "handheld"
+                          },
+                          {
+                            "value": "static"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-takeb-direction",
+                        "binding": "op:takeB/in:direction",
+                        "label": "Revised direction",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "NumberInput",
+                      "props": {
+                        "id": "in-takeb-seed",
+                        "binding": "op:takeB/in:seed",
+                        "label": "Seed",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-takeb",
+                        "label": "Generate Take B",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "takeB",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-take-b-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-takeb",
+                        "binding": "op:takeB/exec#progress",
+                        "label": "Rendering on Comfy Cloud (about 1 to 3 minutes)…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-takeb",
+                        "binding": "op:takeB/exec#error",
+                        "title": "Generation failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:takeB/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-takeb-take",
+                        "text": "Take B",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-takeb-take",
+                        "binding": "op:takeB/out:take",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-takeb-run-settings",
+                        "text": "Run settings",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-takeb-run-settings",
+                        "binding": "op:takeB/out:settings",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "takeA",
+        "name": "Take A",
+        "workflowId": "shot",
+        "inputs": {
+          "source": {
+            "from": "variable",
+            "variableId": "sourceImage"
+          }
+        },
+        "outputs": {},
+        "policy": "replace",
+        "timeoutMs": 900000
+      },
+      {
+        "id": "takeB",
+        "name": "Take B",
+        "workflowId": "shot",
+        "inputs": {
+          "source": {
+            "from": "variable",
+            "variableId": "sourceImage"
+          }
+        },
+        "outputs": {},
+        "policy": "replace",
+        "timeoutMs": 900000
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "sourceImage",
+        "name": "Source still",
+        "type": {
+          "type": "image",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "shot",
+      "name": "Shot Director",
+      "description": "Direct a cinematic take from one still: pick an open camera preset, describe the shot, and render it on Comfy Cloud with a pinned Wan 2.2 workflow. Every take records its preset, prompt, seed and Comfy job id.",
+      "sourceId": "nodetool-base/Shot Director",
+      "graph": {
+        "nodes": [
+          {
+            "id": "intro",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Shot Director\n\nTurn one still into a directed cinematic take on **Comfy Cloud**.\n\n1. **Source Image**, **Camera Move**, **Direction** and **Seed** feed **Compose Shot**, which looks up the open camera preset (`packages/presets/catalog/camera`) and writes the effective prompt plus a run-settings record.\n2. **Run on Comfy Cloud** submits a pinned ComfyUI API workflow (Wan 2.2 TI2V 5B, core ComfyUI nodes only) through the Comfy API v2 SDK. Needs `COMFY_API_KEY`.\n3. The take is saved as a video asset. **Comfy Job** carries the job id and output manifest.\n\nOpen weights: Wan 2.2 (Apache-2.0). No partner nodes."
+            },
+            "position": {
+              "x": 40,
+              "y": -260
+            }
+          },
+          {
+            "id": "source",
+            "type": "nodetool.input.ImageInput",
+            "data": {
+              "name": "source_image",
+              "value": {
+                "type": "image",
+                "uri": "package://nodetool-base/recipe-inputs/coffee.jpg",
+                "asset_id": null,
+                "data": null,
+                "metadata": null
+              },
+              "description": "The still to direct. Landscape works best (rendered at 1280x704)."
+            },
+            "position": {
+              "x": 40,
+              "y": 40
+            }
+          },
+          {
+            "id": "camera_move",
+            "type": "nodetool.input.SelectInput",
+            "data": {
+              "name": "camera_move",
+              "value": "dolly in",
+              "options": [
+                "dolly in",
+                "orbit",
+                "crane up",
+                "pull back reveal",
+                "handheld",
+                "static"
+              ],
+              "enum_type_name": "shot_director_move",
+              "description": "The camera preset for this take."
+            },
+            "position": {
+              "x": 40,
+              "y": 300
+            }
+          },
+          {
+            "id": "direction",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "direction",
+              "value": "Warm steam rises gently from the ceramic cup under soft morning window light.",
+              "description": "What happens in the frame, the mood and the light.",
+              "line_mode": "multi_line"
+            },
+            "position": {
+              "x": 40,
+              "y": 460
+            }
+          },
+          {
+            "id": "seed",
+            "type": "nodetool.input.IntegerInput",
+            "data": {
+              "name": "seed",
+              "value": 42,
+              "min": 0,
+              "max": 2147483647,
+              "description": "Same seed and settings reproduce the same take."
+            },
+            "position": {
+              "x": 40,
+              "y": 640
+            }
+          },
+          {
+            "id": "compose",
+            "type": "nodetool.code.Code",
+            "data": {
+              "code": "const PRESETS = {\n  \"dolly in\": {\n    \"id\": \"camera.dolly-in\",\n    \"version\": 1,\n    \"prompt\": \"The camera glides forward toward the subject in one continuous movement. Nearby objects slide past faster than the distant background as the subject grows larger. One continuous shot.\"\n  },\n  \"orbit\": {\n    \"id\": \"camera.orbit\",\n    \"version\": 1,\n    \"prompt\": \"The camera circles all the way around the subject at a steady height and distance, revealing front, side, back and front again in a continuous shot. One continuous shot.\"\n  },\n  \"crane up\": {\n    \"id\": \"camera.crane-up\",\n    \"version\": 1,\n    \"prompt\": \"The camera lifts above the subject and gradually points downward. More of the surrounding ground becomes visible as the subject recedes below. One continuous shot.\"\n  },\n  \"pull back reveal\": {\n    \"id\": \"camera.pull-back-reveal\",\n    \"version\": 1,\n    \"prompt\": \"Beginning close to the subject, the camera retreats smoothly into a wide shot. Surrounding scenery progressively enters at the edges and reveals the larger setting. One continuous shot.\"\n  },\n  \"handheld\": {\n    \"id\": \"camera.handheld\",\n    \"version\": 1,\n    \"prompt\": \"Small irregular camera movements drift gently up, down and sideways, like a person holding a camera while standing still. The subject remains clearly visible. One continuous shot.\"\n  },\n  \"static\": {\n    \"id\": \"camera.static\",\n    \"version\": 1,\n    \"prompt\": \"The camera holds exactly the same viewpoint and framing throughout the shot. Motion belongs to the subject and the environment inside the stationary frame. One continuous shot.\"\n  }\n};\nconst move = String(inputs.camera_move ?? \"\").trim();\nconst preset = PRESETS[move];\nif (!preset) throw new Error(`Unknown camera move \"${move}\". Pick one of: ${Object.keys(PRESETS).join(\", \")}.`);\nconst direction = String(inputs.direction ?? \"\").trim();\nif (direction.length > 600) throw new Error(\"Direction must be 600 characters or fewer.\");\nconst seed = Number.isInteger(inputs.seed) ? inputs.seed : 42;\nconst prompt = [direction, preset.prompt].filter(Boolean).join(\" \");\nconst settings = {\n  schemaVersion: 1,\n  app: \"shot-director\",\n  preset: { id: preset.id, version: preset.version, name: move, family: \"local-wan\" },\n  direction,\n  effectivePrompt: prompt,\n  seed,\n  backend: \"comfy-cloud\",\n  model: \"wan2.2_ti2v_5B_fp16\",\n  resolution: \"1280x704\",\n  frames: 121,\n  fps: 24\n};\nawait output(\"prompt\", prompt);\nawait output(\"seed\", seed);\nawait output(\"run_settings\", JSON.stringify(settings, null, 2));\n"
+            },
+            "dynamic_properties": {
+              "camera_move": "",
+              "direction": "",
+              "seed": 0
+            },
+            "dynamic_inputs": {
+              "camera_move": {
+                "type": {
+                  "type": "str"
+                }
+              },
+              "direction": {
+                "type": {
+                  "type": "str"
+                }
+              },
+              "seed": {
+                "type": {
+                  "type": "int"
+                }
+              }
+            },
+            "dynamic_outputs": {
+              "prompt": {
+                "type": "str",
+                "type_args": [],
+                "optional": false
+              },
+              "seed": {
+                "type": "int",
+                "type_args": [],
+                "optional": false
+              },
+              "run_settings": {
+                "type": "str",
+                "type_args": [],
+                "optional": false
+              }
+            },
+            "sync_mode": "on_all",
+            "ui_properties": {
+              "title": "Compose Shot"
+            },
+            "position": {
+              "x": 380,
+              "y": 300
+            }
+          },
+          {
+            "id": "comfy",
+            "type": "lib.comfy.RunWorkflowOnCloud",
+            "data": {
+              "workflow": "{\n  \"3\": {\n    \"class_type\": \"KSampler\",\n    \"inputs\": {\n      \"seed\": 42,\n      \"steps\": 20,\n      \"cfg\": 5,\n      \"sampler_name\": \"uni_pc\",\n      \"scheduler\": \"simple\",\n      \"denoise\": 1,\n      \"model\": [\n        \"48\",\n        0\n      ],\n      \"positive\": [\n        \"6\",\n        0\n      ],\n      \"negative\": [\n        \"7\",\n        0\n      ],\n      \"latent_image\": [\n        \"55\",\n        0\n      ]\n    }\n  },\n  \"6\": {\n    \"class_type\": \"CLIPTextEncode\",\n    \"inputs\": {\n      \"text\": \"A cinematic shot.\",\n      \"clip\": [\n        \"38\",\n        0\n      ]\n    }\n  },\n  \"7\": {\n    \"class_type\": \"CLIPTextEncode\",\n    \"inputs\": {\n      \"text\": \"blurry, low quality, distorted, deformed, flicker, watermark, text, subtitles, jump cut, static frame, overexposed\",\n      \"clip\": [\n        \"38\",\n        0\n      ]\n    }\n  },\n  \"8\": {\n    \"class_type\": \"VAEDecode\",\n    \"inputs\": {\n      \"samples\": [\n        \"3\",\n        0\n      ],\n      \"vae\": [\n        \"39\",\n        0\n      ]\n    }\n  },\n  \"37\": {\n    \"class_type\": \"UNETLoader\",\n    \"inputs\": {\n      \"unet_name\": \"wan2.2_ti2v_5B_fp16.safetensors\",\n      \"weight_dtype\": \"default\"\n    }\n  },\n  \"38\": {\n    \"class_type\": \"CLIPLoader\",\n    \"inputs\": {\n      \"clip_name\": \"umt5_xxl_fp8_e4m3fn_scaled.safetensors\",\n      \"type\": \"wan\",\n      \"device\": \"default\"\n    }\n  },\n  \"39\": {\n    \"class_type\": \"VAELoader\",\n    \"inputs\": {\n      \"vae_name\": \"wan2.2_vae.safetensors\"\n    }\n  },\n  \"48\": {\n    \"class_type\": \"ModelSamplingSD3\",\n    \"inputs\": {\n      \"shift\": 8,\n      \"model\": [\n        \"37\",\n        0\n      ]\n    }\n  },\n  \"55\": {\n    \"class_type\": \"Wan22ImageToVideoLatent\",\n    \"inputs\": {\n      \"width\": 1280,\n      \"height\": 704,\n      \"length\": 121,\n      \"batch_size\": 1,\n      \"vae\": [\n        \"39\",\n        0\n      ],\n      \"start_image\": [\n        \"56\",\n        0\n      ]\n    }\n  },\n  \"56\": {\n    \"class_type\": \"LoadImage\",\n    \"inputs\": {\n      \"image\": \"input.png\"\n    }\n  },\n  \"57\": {\n    \"class_type\": \"CreateVideo\",\n    \"inputs\": {\n      \"fps\": 24,\n      \"images\": [\n        \"8\",\n        0\n      ]\n    }\n  },\n  \"58\": {\n    \"class_type\": \"SaveVideo\",\n    \"inputs\": {\n      \"filename_prefix\": \"video/shot-director\",\n      \"format\": \"auto\",\n      \"codec\": \"auto\",\n      \"video\": [\n        \"57\",\n        0\n      ]\n    }\n  }\n}",
+              "timeout": 900,
+              "previews": false
+            },
+            "dynamic_properties": {
+              "56:image": null,
+              "6:text": "",
+              "7:text": "blurry, low quality, distorted, deformed, flicker, watermark, text, subtitles, jump cut, static frame, overexposed",
+              "3:seed": 42
+            },
+            "dynamic_inputs": {
+              "56:image": {
+                "type": {
+                  "type": "image"
+                },
+                "description": "Load Image · image"
+              },
+              "6:text": {
+                "type": {
+                  "type": "str"
+                },
+                "description": "Positive prompt · text"
+              },
+              "7:text": {
+                "type": {
+                  "type": "str"
+                },
+                "description": "Negative prompt · text"
+              },
+              "3:seed": {
+                "type": {
+                  "type": "int"
+                },
+                "description": "KSampler · seed"
+              }
+            },
+            "dynamic_outputs": {
+              "58:video": {
+                "type": "video",
+                "type_args": [],
+                "optional": false
+              }
+            },
+            "ui_properties": {
+              "title": "Run on Comfy Cloud"
+            },
+            "position": {
+              "x": 720,
+              "y": 160
+            }
+          },
+          {
+            "id": "take",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "take",
+              "description": "The rendered take (Wan 2.2 TI2V 5B, ~5 s, 1280x704, 24 fps)."
+            },
+            "position": {
+              "x": 1080,
+              "y": 120
+            }
+          },
+          {
+            "id": "job",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "comfy_job",
+              "description": "Comfy job id, status and output manifest."
+            },
+            "position": {
+              "x": 1080,
+              "y": 300
+            }
+          },
+          {
+            "id": "settings",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "run_settings",
+              "description": "Preset id and version, effective prompt, seed, model and backend for this take."
+            },
+            "position": {
+              "x": 720,
+              "y": 520
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "source",
+            "sourceHandle": "output",
+            "target": "comfy",
+            "targetHandle": "56:image"
+          },
+          {
+            "id": "e2",
+            "source": "camera_move",
+            "sourceHandle": "output",
+            "target": "compose",
+            "targetHandle": "camera_move"
+          },
+          {
+            "id": "e3",
+            "source": "direction",
+            "sourceHandle": "output",
+            "target": "compose",
+            "targetHandle": "direction"
+          },
+          {
+            "id": "e4",
+            "source": "seed",
+            "sourceHandle": "output",
+            "target": "compose",
+            "targetHandle": "seed"
+          },
+          {
+            "id": "e5",
+            "source": "compose",
+            "sourceHandle": "prompt",
+            "target": "comfy",
+            "targetHandle": "6:text"
+          },
+          {
+            "id": "e6",
+            "source": "compose",
+            "sourceHandle": "seed",
+            "target": "comfy",
+            "targetHandle": "3:seed"
+          },
+          {
+            "id": "e7",
+            "source": "compose",
+            "sourceHandle": "run_settings",
+            "target": "settings",
+            "targetHandle": "value"
+          },
+          {
+            "id": "e8",
+            "source": "comfy",
+            "sourceHandle": "58:video",
+            "target": "take",
+            "targetHandle": "value"
+          },
+          {
+            "id": "e9",
+            "source": "comfy",
+            "sourceHandle": "output",
+            "target": "job",
+            "targetHandle": "value"
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    }
+  ]
+}
