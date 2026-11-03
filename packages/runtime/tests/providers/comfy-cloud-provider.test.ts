@@ -1,65 +1,337 @@
 import { describe, it, expect } from "vitest";
 import { ComfyCloudProvider } from "../../src/providers/comfy-cloud-provider.js";
+import {
+  ComfyRouterClient,
+  RouterArgsBuilder,
+  findMedia,
+  parseInputSchema
+} from "../../src/providers/comfy-router.js";
+import { COMFY_ROUTER_CATALOG } from "../../src/providers/comfy-router-catalog.js";
 import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 
-async function drain(gen: AsyncGenerator<unknown>): Promise<unknown[]> {
-  const items: unknown[] = [];
-  for await (const item of gen) items.push(item);
-  return items;
+const BASE = "https://router.test";
+const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4, 5, 6, 7, 8]);
+const MP4 = new Uint8Array([0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70, 9, 9]);
+
+/** An OpenAPI document with one POST body, the shape the Router serves. */
+function openapi(properties: Record<string, unknown>, required: string[] = []): unknown {
+  return {
+    openapi: "3.1.0",
+    paths: {
+      "/": {
+        post: {
+          requestBody: {
+            content: { "application/json": { schema: { $ref: "#/components/schemas/Input" } } }
+          }
+        }
+      }
+    },
+    components: { schemas: { Input: { type: "object", properties, required } } }
+  };
 }
+
+interface Call {
+  method: string;
+  url: string;
+  headers: Record<string, string>;
+  body?: unknown;
+}
+
+/**
+ * A fake Router: serves a schema per model, queues each submit, reports it
+ * in progress once, then completes it with `result`.
+ */
+function fakeRouter(models: Record<string, { schema: unknown; result: unknown; contentType?: string }>, opts: { live?: string[]; failSubmit?: { status: number; body: unknown } } = {}) {
+  const calls: Call[] = [];
+  const polls = new Map<string, number>();
+  const json = (body: unknown, status = 200, headers: Record<string, string> = {}): Response =>
+    new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", ...headers } });
+
+  const fetchFn = (async (input: RequestInfo | URL, init: RequestInit = {}) => {
+    const url = String(input);
+    const method = init.method ?? "GET";
+    const headers = Object.fromEntries(Object.entries((init.headers ?? {}) as Record<string, string>));
+    calls.push({ method, url, headers, body: typeof init.body === "string" ? JSON.parse(init.body) : undefined });
+
+    if (url.startsWith("https://cdn.test/")) {
+      return new Response(MP4, { headers: { "content-type": "video/mp4" } });
+    }
+    const u = new URL(url);
+    if (u.pathname === "/v2/models") {
+      return json({ data: (opts.live ?? Object.keys(models)).map((id) => ({ id })), has_more: false, limit: 100 });
+    }
+    const match = /^\/v2\/models\/([^/]+)\/([^/]+)(\/.*)?$/.exec(u.pathname);
+    if (!match) return json({ detail: "not found", error_type: "model_not_found" }, 404);
+    const id = `${decodeURIComponent(match[1])}/${decodeURIComponent(match[2])}`;
+    const model = models[id];
+    if (!model) return json({ detail: "not found", error_type: "model_not_found" }, 404);
+    const rest = match[3] ?? "";
+    if (rest === "/openapi.json") return json(model.schema);
+    if (rest === "" && method === "POST") return json(model.result);
+    if (rest === "/requests" && method === "POST") {
+      if (opts.failSubmit) {
+        const errorType = (opts.failSubmit.body as { error_type?: string }).error_type;
+        return json(opts.failSubmit.body, opts.failSubmit.status, errorType ? { "x-comfy-error-type": errorType } : {});
+      }
+      return json({ request_id: "req-1", status: "IN_QUEUE", queue_position: 0 }, 201);
+    }
+    if (rest === "/requests/req-1/status") {
+      const n = (polls.get(id) ?? 0) + 1;
+      polls.set(id, n);
+      return json({ request_id: "req-1", status: n > 1 ? "COMPLETED" : "IN_PROGRESS" }, 200, { "retry-after": "0" });
+    }
+    if (rest === "/requests/req-1") {
+      if (model.contentType && !model.contentType.includes("json")) {
+        return new Response(model.result as Uint8Array, { headers: { "content-type": model.contentType } });
+      }
+      return json(model.result, 200, { "x-comfy-credits-used": "12" });
+    }
+    if (rest === "/requests/req-1/cancel") return json({ status: "CANCELLATION_REQUESTED" }, 202);
+    return json({ detail: "unexpected" }, 500);
+  }) as typeof fetch;
+  return { fetchFn, calls };
+}
+
+class TestProvider extends ComfyCloudProvider {
+  constructor(private readonly fetchFn: typeof fetch) {
+    super({ COMFY_API_KEY: "test-key" });
+  }
+  protected override createRouter(): ComfyRouterClient {
+    return new ComfyRouterClient({ apiKey: "test-key", baseUrl: BASE, fetch: this.fetchFn, pollMs: 1 });
+  }
+}
+
+const IMAGE_MODEL = { id: "bfl/flux-2-pro", name: "Flux 2 Pro", provider: PROVIDER_IDS.COMFY_CLOUD } as const;
+const VIDEO_MODEL = { id: "kling/kling-v3", name: "Kling v3", provider: PROVIDER_IDS.COMFY_CLOUD } as const;
 
 describe("ComfyCloudProvider — metadata", () => {
   it("reports provider id and required secrets", () => {
     const p = new ComfyCloudProvider({ COMFY_API_KEY: "k" });
-    expect(p.provider).toBe(PROVIDER_IDS.COMFY_CLOUD);
     expect(p.provider).toBe("comfy_cloud");
     expect(ComfyCloudProvider.requiredSecrets()).toEqual(["COMFY_API_KEY"]);
-  });
-
-  it("getContainerEnv exposes the API key", () => {
-    const p = new ComfyCloudProvider({ COMFY_API_KEY: "k" });
     expect(p.getContainerEnv()).toEqual({ COMFY_API_KEY: "k" });
   });
 
-  it("constructs without a key", () => {
+  it("fails with a pointer to the key page when no key is set", async () => {
     const p = new ComfyCloudProvider();
-    expect(p.getContainerEnv()).toEqual({ COMFY_API_KEY: "" });
+    await expect(
+      p.textToImage({ model: { ...IMAGE_MODEL }, prompt: "x" })
+    ).rejects.toThrow("platform.comfy.org");
   });
 });
 
-describe("ComfyCloudProvider — capabilities", () => {
-  // The Comfy API v2 enumerates no models, so nothing derives a media
-  // capability. Only chat's two entries are present, and both throw — a
-  // capability appearing here means a getAvailable*Models override was added
-  // without a model list behind it.
-  it("declares no media capabilities", () => {
-    const p = new ComfyCloudProvider({ COMFY_API_KEY: "k" });
-    expect(p.getCapabilities().sort()).toEqual([
-      "generate_message",
-      "generate_messages"
+describe("ComfyCloudProvider — catalog", () => {
+  it("lists every catalog kind, filtered by the live listing", async () => {
+    const { fetchFn } = fakeRouter({}, { live: ["bfl/flux-2-pro", "kling/kling-v3", "elevenlabs/eleven_v3", "anthropic/claude-sonnet-5"] });
+    const p = new TestProvider(fetchFn);
+    expect((await p.getAvailableImageModels()).map((m) => m.id)).toEqual(["bfl/flux-2-pro"]);
+    const video = await p.getAvailableVideoModels();
+    expect(video).toEqual([
+      expect.objectContaining({ id: "kling/kling-v3", provider: "comfy_cloud", supportedTasks: ["text_to_video", "image_to_video"] })
     ]);
+    expect((await p.getAvailableTTSModels()).map((m) => m.id)).toEqual(["elevenlabs/eleven_v3"]);
+    expect((await p.getAvailableLanguageModels()).map((m) => m.id)).toEqual(["anthropic/claude-sonnet-5"]);
   });
 
-  it("lists no models of any modality", async () => {
-    const p = new ComfyCloudProvider({ COMFY_API_KEY: "k" });
-    expect(await p.getAvailableLanguageModels()).toEqual([]);
-    expect(await p.getAvailableImageModels()).toEqual([]);
-    expect(await p.getAvailableVideoModels()).toEqual([]);
+  it("falls back to the whole snapshot when the listing cannot be read", async () => {
+    const failing = (async () => {
+      throw new Error("offline");
+    }) as typeof fetch;
+    const p = new TestProvider(failing);
+    const ids = (await p.getAvailableVideoModels()).map((m) => m.id);
+    expect(ids).toContain("veo/veo-3.1-generate-001");
+    expect(ids.length).toBe(COMFY_ROUTER_CATALOG.filter((e) => e.kind === "video").length);
+  });
+
+  it("derives tasks from model names", () => {
+    const tasks = Object.fromEntries(COMFY_ROUTER_CATALOG.map((e) => [e.id, e.tasks]));
+    expect(tasks["wan/wan2.7-i2v"]).toEqual(["image_to_video"]);
+    expect(tasks["wan/wan2.7-t2v"]).toEqual(["text_to_video"]);
+    expect(tasks["wan/wan2.7-r2v"]).toEqual(["reference_to_video"]);
+    expect(tasks["bria/image-edit-relight"]).toEqual(["image_to_image"]);
+    expect(tasks["runway/aleph2"]).toEqual(["video_to_video"]);
+    expect(tasks["bfl/flux-2-pro"]).toEqual(["text_to_image", "image_to_image"]);
+  });
+
+  it("declares the media capabilities it implements", () => {
+    const caps = new ComfyCloudProvider({ COMFY_API_KEY: "k" }).getCapabilities();
+    for (const cap of ["text_to_image", "image_to_image", "text_to_video", "image_to_video", "text_to_speech", "generate_message"]) {
+      expect(caps).toContain(cap);
+    }
+  });
+});
+
+describe("ComfyCloudProvider — generation through the queue", () => {
+  it("textToImage builds the body from the schema and decodes base64 output", async () => {
+    const { fetchFn, calls } = fakeRouter({
+      "bfl/flux-2-pro": {
+        schema: openapi({
+          prompt: { type: "string" },
+          aspect_ratio: { type: "string", enum: ["1:1", "16:9"] },
+          seed: { type: "integer" },
+          output_format: { type: "string", enum: ["png", "jpeg"], default: "png" }
+        }, ["prompt", "output_format"]),
+        result: { result: { sample_b64: Buffer.from(PNG).toString("base64").repeat(30) } }
+      }
+    });
+    const p = new TestProvider(fetchFn);
+    const bytes = await p.textToImage({ model: { ...IMAGE_MODEL }, prompt: "a red cube", aspectRatio: "16:9", seed: 7.6, guidanceScale: 3 });
+    expect(bytes[0]).toBe(0x89);
+    const submit = calls.find((c) => c.method === "POST")!;
+    expect(submit.url).toBe(`${BASE}/v2/models/bfl/flux-2-pro/requests`);
+    expect(submit.headers["X-API-Key"]).toBe("test-key");
+    expect(submit.headers["Idempotency-Key"]).toBeTruthy();
+    // Undeclared guidance is dropped, the integer seed is rounded, and the
+    // required enum is filled from its default.
+    expect(submit.body).toEqual({ prompt: "a red cube", aspect_ratio: "16:9", seed: 8, output_format: "png" });
+  });
+
+  it("imageToVideo sends the start frame as a data URI and downloads the video URL without the key", async () => {
+    const { fetchFn, calls } = fakeRouter({
+      "kling/kling-v3": {
+        schema: openapi({
+          prompt: { type: "string" },
+          image_url: { type: "string", format: "uri" },
+          duration: { type: "string", enum: ["5", "10"] }
+        }, ["prompt", "image_url"]),
+        result: { data: { task_result: { videos: [{ url: "https://cdn.test/out.mp4" }] } } }
+      }
+    });
+    const p = new TestProvider(fetchFn);
+    const video = await p.imageToVideo(PNG, { model: { ...VIDEO_MODEL }, prompt: "slow dolly in", durationSeconds: 5 });
+    expect(Array.from(video)).toEqual(Array.from(MP4));
+    const submit = calls.find((c) => c.method === "POST")!.body as Record<string, unknown>;
+    expect(submit.duration).toBe("5");
+    expect(String(submit.image_url)).toMatch(/^data:image\/png;base64,/);
+    const download = calls.find((c) => c.url.startsWith("https://cdn.test/"))!;
+    expect(download.headers["X-API-Key"]).toBeUndefined();
+  });
+
+  it("reads a raw binary result", async () => {
+    const { fetchFn } = fakeRouter({
+      "elevenlabs/eleven_v3": {
+        schema: openapi({ text: { type: "string" }, voice_id: { type: "string" } }, ["text"]),
+        result: new Uint8Array([1, 2, 3]),
+        contentType: "audio/mpeg"
+      }
+    });
+    const p = new TestProvider(fetchFn);
+    const audio = await p.textToSpeechEncoded({ model: "elevenlabs/eleven_v3", text: "hi", voice: "Rachel" });
+    expect(audio).toEqual({ data: new Uint8Array([1, 2, 3]), mimeType: "audio/mpeg" });
+  });
+
+  it("names missing required fields instead of submitting", async () => {
+    const { fetchFn, calls } = fakeRouter({
+      "kling/kling-v3": { schema: openapi({ prompt: { type: "string" }, mask_url: { type: "string" } }, ["prompt", "mask_url"]), result: {} }
+    });
+    const p = new TestProvider(fetchFn);
+    await expect(p.textToVideo({ model: { ...VIDEO_MODEL }, prompt: "x" })).rejects.toThrow("needs mask_url");
+    expect(calls.some((c) => c.method === "POST")).toBe(false);
+  });
+
+  it("surfaces Router errors with status, error_type and field detail", async () => {
+    const { fetchFn } = fakeRouter(
+      { "bfl/flux-2-pro": { schema: openapi({ prompt: { type: "string" } }), result: {} } },
+      { failSubmit: { status: 422, body: { detail: [{ loc: ["body", "prompt"], msg: "too long", type: "value_error" }] } } }
+    );
+    const p = new TestProvider(fetchFn);
+    await expect(p.textToImage({ model: { ...IMAGE_MODEL }, prompt: "x" })).rejects.toThrow("(HTTP 422): body.prompt: too long");
+  });
+
+  it("maps insufficient credits to a top-up hint", async () => {
+    const { fetchFn } = fakeRouter(
+      { "bfl/flux-2-pro": { schema: openapi({ prompt: { type: "string" } }), result: {} } },
+      { failSubmit: { status: 402, body: { detail: "not funded", error_type: "insufficient_credits" } } }
+    );
+    const p = new TestProvider(fetchFn);
+    await expect(p.textToImage({ model: { ...IMAGE_MODEL }, prompt: "x" })).rejects.toThrow(/insufficient_credits.*platform\.comfy\.org/);
+  });
+
+  it("falls back to the synchronous route when the queue is not enabled", async () => {
+    const { fetchFn, calls } = fakeRouter(
+      { "bfl/flux-2-pro": { schema: openapi({ prompt: { type: "string" } }), result: { url: "https://cdn.test/a.png" } } },
+      { failSubmit: { status: 403, body: { detail: "queue off", error_type: "not_enabled" } } }
+    );
+    const p = new TestProvider(fetchFn);
+    await p.textToImage({ model: { ...IMAGE_MODEL }, prompt: "x" });
+    expect(calls.some((c) => c.method === "POST" && c.url === `${BASE}/v2/models/bfl/flux-2-pro`)).toBe(true);
+  });
+
+  it("cancels the queued request on abort", async () => {
+    const { fetchFn, calls } = fakeRouter({
+      "kling/kling-v3": { schema: openapi({ prompt: { type: "string" } }), result: {} }
+    });
+    const controller = new AbortController();
+    const slow = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith("/status")) {
+        controller.abort(new Error("stop"));
+      }
+      return fetchFn(input, init);
+    }) as typeof fetch;
+    const p = new TestProvider(slow);
+    await expect(
+      p.textToVideo({ model: { ...VIDEO_MODEL }, prompt: "x", signal: controller.signal })
+    ).rejects.toThrow();
+    expect(calls.some((c) => c.method === "PUT" && c.url.endsWith("/requests/req-1/cancel"))).toBe(true);
   });
 });
 
 describe("ComfyCloudProvider — chat", () => {
-  it("generateMessage rejects", async () => {
-    const p = new ComfyCloudProvider({ COMFY_API_KEY: "k" });
-    await expect(
-      p.generateMessage({ messages: [], model: "x" } as never)
-    ).rejects.toThrow("does not support chat generation");
+  it("speaks Anthropic Messages for anthropic/* and parses tool calls", async () => {
+    const { fetchFn, calls } = fakeRouter({
+      "anthropic/claude-sonnet-5": {
+        schema: openapi({ messages: { type: "array" }, max_tokens: { type: "integer" }, system: { type: "string" }, tools: { type: "array" } }, ["messages", "max_tokens"]),
+        result: {
+          content: [
+            { type: "text", text: "Checking." },
+            { type: "tool_use", id: "tu_1", name: "lookup", input: { q: "x" } }
+          ],
+          usage: { input_tokens: 10, output_tokens: 4 }
+        }
+      }
+    });
+    const p = new TestProvider(fetchFn);
+    const message = await p.generateMessage({
+      model: "anthropic/claude-sonnet-5",
+      messages: [{ role: "system", content: "Be brief." }, { role: "user", content: "hi" }],
+      tools: [{ name: "lookup", description: "find", inputSchema: { type: "object" } }]
+    });
+    expect(message).toEqual({ role: "assistant", content: "Checking.", toolCalls: [{ id: "tu_1", name: "lookup", args: { q: "x" } }] });
+    const body = calls.find((c) => c.method === "POST")!.body as Record<string, unknown>;
+    expect(body.system).toBe("Be brief.");
+    expect(body.messages).toEqual([{ role: "user", content: [{ type: "text", text: "hi" }] }]);
+    expect(body.tools).toEqual([{ name: "lookup", description: "find", input_schema: { type: "object" } }]);
   });
 
-  it("generateMessages rejects", async () => {
-    const p = new ComfyCloudProvider({ COMFY_API_KEY: "k" });
-    await expect(
-      drain(p.generateMessages({ messages: [], model: "x" } as never))
-    ).rejects.toThrow("does not support chat generation");
+  it("speaks OpenAI chat completions otherwise and streams one done chunk", async () => {
+    const { fetchFn } = fakeRouter({
+      "openai/gpt-5": {
+        schema: openapi({ messages: { type: "array" }, model: { type: "string" } }, ["messages"]),
+        result: { choices: [{ message: { role: "assistant", content: "Hello" } }], usage: { prompt_tokens: 5, completion_tokens: 1 } }
+      }
+    });
+    const p = new TestProvider(fetchFn);
+    const items: unknown[] = [];
+    for await (const item of p.generateMessages({ model: "openai/gpt-5", messages: [{ role: "user", content: "hi" }] })) items.push(item);
+    expect(items).toEqual([{ type: "chunk", content: "Hello", done: true }]);
+  });
+});
+
+describe("comfy-router helpers", () => {
+  it("parseInputSchema resolves $ref, required and enums", () => {
+    const schema = parseInputSchema(openapi({ a: { type: "integer" }, b: { enum: ["x"] } }, ["a"]));
+    expect(schema.fields.get("a")).toMatchObject({ type: "integer", required: true });
+    expect(schema.fields.get("b")).toMatchObject({ type: "enum", enum: ["x"], required: false });
+  });
+
+  it("an unauthored schema accepts any field", () => {
+    const b = new RouterArgsBuilder(parseInputSchema({ "x-comfy-input-schema-authored": false }));
+    b.setFirst(["prompt"], "p").set("anything", 1);
+    expect(b.body).toEqual({ prompt: "p", anything: 1 });
+  });
+
+  it("findMedia finds URLs and data URIs with their kinds", () => {
+    const found = findMedia({ images: ["https://x.test/a.png"], video: { url: "https://x.test/v?sig=1" }, inline: "data:audio/mpeg;base64,AAAA" });
+    expect(found.map((f) => f.kind)).toEqual(["image", "video", "audio"]);
   });
 });

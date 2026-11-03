@@ -399,6 +399,38 @@ Comfy's own, not NodeTool's:
 
 ---
 
+## Comfy models without a graph
+
+The `comfy_cloud` provider also runs the partner models of the
+[Comfy Router](https://docs.comfy.org/development/comfy-router) with the same
+`COMFY_API_KEY`: image (FLUX, Seedream, GPT Image, Ideogram, Recraft…), video
+(Kling, Veo, Seedance, Wan, LTX, Luma, Runway…), speech (ElevenLabs, Seed
+Audio) and chat (Claude, GPT, Gemini). They appear in every model picker under
+**Comfy Cloud** — Create, the composer, storyboards and the generic generation
+nodes — with no ComfyUI graph involved.
+
+- **Catalog**: `comfy-router-catalog.ts` holds the published catalog by output
+  kind (snapshot of 2026-11-03), intersected with the live `GET /v2/models`
+  listing so retired models drop out.
+- **Requests**: each model takes its provider's native JSON. The provider reads
+  the model's input schema (`/v2/models/{id}/openapi.json`) and sets only the
+  fields it declares, coercing enums and numbers. Media goes inline as a data
+  URI, or as raw base64 for fields that say so, since the Router has no upload
+  route. A required field the request cannot fill fails before submitting.
+- **Queue**: runs submit to `/requests`, poll the status route honouring
+  `Retry-After`, then collect the native result; cancelling a run cancels the
+  queued request. Output media is found in the native result (URLs, base64
+  fields) or read as raw bytes.
+- **Chat**: Anthropic Messages for `anthropic/*`, Gemini `contents` when the
+  schema declares it, OpenAI chat completions otherwise, with tool calls. The
+  reply arrives whole, as one chunk.
+- **Cost**: the Router reports credits per run (`X-Comfy-Credits-Used`); NodeTool
+  does not convert them to a cost record yet.
+- **Open weights**: these are partner APIs. For an open-weights run, use a
+  ComfyUI graph with open models through the nodes above.
+
+---
+
 ## The `comfy.*` bridge surface
 
 `comfy.execute` is the only call a shipped node makes, but the bridge exposes the
