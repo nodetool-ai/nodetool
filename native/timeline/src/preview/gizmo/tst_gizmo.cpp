@@ -4,6 +4,7 @@
 #include "model/TimelineJson.h"
 #include <QJsonDocument>
 #include "edit/ClipGestureController.h"
+#include "edit/keyframes/ClipInspectorController.h"
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QQuickWindow>
@@ -457,6 +458,27 @@ TransformGizmoController { width: 200; height: 100; selection: ["picture"] })", 
         display.position.x += changed.position.x;
         display.position.y += changed.position.y;
         near(geometry(display, s).center, g.center);
+    }
+    // D17: the monitor handles and Effect Controls edit one document. A drag shows in the row at once.
+    void effectControlsRowFollowsAGizmoDrag() {
+        TimelineModel model;
+        load(model);
+        PlaybackClock clock;
+        clock.seek(100);
+        ClipInspectorController rows;
+        rows.setTimeline(&model);
+        rows.setClock(&clock);
+        rows.setClipId("picture");
+        TransformGizmoController controller;
+        bind(controller, model, clock);
+        QCOMPARE(rows.rowLive("position").value("values").toList().at(0).toDouble(), 0.0);
+        QVERIFY(controller.begin("body", {100, 50}));
+        controller.move({120, 50});
+        controller.end();
+        QCOMPARE(model.undoStack()->count(), 1);
+        const double dragged = transformOf(model.clipsJson()[0].toObject()).position.x;
+        QVERIFY(dragged > 0);
+        QCOMPARE(rows.rowLive("position").value("values").toList().at(0).toDouble(), dragged);
     }
     void gestureIsOneUndoAndActionsAreSeparate() {
         TimelineModel model;

@@ -16,20 +16,17 @@ Item {
     readonly property var clip: controller ? controller.clip : reader.clip
     readonly property var effects: clip.audioEffects || []
     property alias open: section.open
-    property string expandedId: ""
     visible: !!clip.id && (clip.mediaType === "audio" || clip.mediaType === "midi")
     implicitWidth: visible ? TimelineMetrics.trackHeaderWidth : 0
     implicitHeight: visible ? section.implicitHeight : 0
     width: implicitWidth
     height: implicitHeight
-    onEffectsChanged: if (!effects.some(effect => effect.id === expandedId)) expandedId = ""
 
     function edit(name, payload) {
         if (timeline && clip.id) timeline.applyEdit(name, Object.assign({clipId: clip.id}, payload))
     }
     function add(type) {
         edit("addClipAudioEffect", {type: type})
-        if (effects.length) expandedId = effects[effects.length - 1].id
     }
     ClipAudio { id: reader; timeline: root.timeline; selection: root.selection }
     InspectorSection {
@@ -68,25 +65,6 @@ Item {
             wrapMode: Text.WordWrap
             role: Ui.Typography.SansLabel
             tone: Ui.Text.Secondary
-        }
-        Repeater {
-            model: root.effects
-            delegate: AudioEffectsRow {
-                required property var modelData
-                required property int index
-                width: parent.width
-                timeline: root.timeline
-                clipId: root.clip.id || ""
-                generation: reader.generation
-                effect: modelData
-                isFirst: index === 0
-                isLast: index === root.effects.length - 1
-                expanded: effect.id === root.expandedId
-                onExpand: root.expandedId = expanded ? "" : effect.id
-                onPatch: patch => root.edit("patchClipAudioEffect", {effectId: effect.id, patch: patch})
-                onRemove: root.edit("removeClipAudioEffect", {effectId: effect.id})
-                onMove: delta => root.edit("moveClipAudioEffect", {effectId: effect.id, delta: delta})
-            }
         }
     }
 }

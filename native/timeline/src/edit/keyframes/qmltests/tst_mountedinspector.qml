@@ -41,10 +41,6 @@ Item {
             verify(empty)
             tryCompare(empty, "visible", true)
             compare(panel.selection.length, 0)
-            const position = findChild(panel, "position-input-0")
-            verify(position)
-            compare(position.visible, false)
-
             const tracks = findChild(editor, "tracksRegion")
             verify(tracks)
             const gestures = tracks.gestures
@@ -60,12 +56,18 @@ Item {
             compare(panel.editor, editor)
             compare(panel.gestures, gestures)
 
-            const transform = findItem(panel, item => item.title === "Transform" && item.open !== undefined)
-            verify(transform)
-            verify(transform.visible)
-            verify(waitForRendering(transform))
-            mouseClick(transform, transform.width / 2, Ui.Metrics.xs + Ui.Metrics.small / 2)
-            tryCompare(position, "visible", true)
+            // Transform belongs to Effect Controls, one tab along. The Inspector has no copy of it.
+            verify(!findItem(panel, item => item.title === "Transform" && item.open !== undefined))
+            verify(!findChild(panel, "position-input-0"))
+            verify(editor.focusPanel("effectControls"))
+            const effectControls = findItem(rightSlot, item => item.objectName === "effectControlsPanel")
+            verify(effectControls)
+            tryVerify(() => effectControls.visible && effectControls.hasClip)
+            let position = null
+            tryVerify(() => {
+                position = findChild(effectControls, "effectControls_position_input_0")
+                return position !== null && position.visible
+            })
             compare(position.disabled, false)
             compare(position.value, "0")
             const before = testHarness.documentJson()
@@ -87,6 +89,8 @@ Item {
             testTimeline.undoStack.undo()
             compare(testHarness.documentJson(), before)
             compare(position.value, "0")
+            // The layout is saved, and the next test file opens the Inspector tab.
+            editor.dockStore.dispatch({type: "reveal", panelId: "inspector"})
         }
     }
 }

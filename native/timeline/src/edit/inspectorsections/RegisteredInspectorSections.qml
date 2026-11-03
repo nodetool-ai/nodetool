@@ -6,9 +6,9 @@ Column {
     required property var timelineModel
     required property var gestures
     required property var controller
-    required property bool beforeRender
+    property string panel: "inspector"
     Repeater {
-        model: InspectorSectionRegistry.sections.filter(section => root.beforeRender ? section.order < 30 : section.order > 40 && section.order < 90)
+        model: InspectorSectionRegistry.sections.filter(section => section.panel === root.panel)
         delegate: Loader {
             id: loader
             required property var modelData

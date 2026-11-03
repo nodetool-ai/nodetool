@@ -10,6 +10,9 @@ var requiredPanels = ["program", "tracks"];
 // Panels only this editor has, which a ported preset would otherwise show. Review leaves the
 // right side empty for the picture, and the port above keeps its own list of what it hides.
 var nativeHidden = {Review: ["effectControls", "color", "audio"]};
+// The tab a native panel takes its place beside when a layout first meets it. A panel the layout
+// already places, as a saved layout may, stays where it is.
+var nativeNeighbours = {effectControls: "inspector"};
 
 // Field-for-field port of TimelineDockLayout.ts, checked by dock-conformance.mjs.
 function createLayout(name) {
@@ -140,13 +143,23 @@ function registerMissingPanels(layout, panels, workspace) {
         var id = panel.defaultRegion + "-extension-" + index;
         while (ids.has(id)) { ++index; id = panel.defaultRegion + "-extension-" + index; }
         ids.add(id);
-        if (entries.length) { entries[0].panels.push(panel.id); }
+        var neighbour = groupOfPanel(next, nativeNeighbours[panel.id]);
+        if (neighbour) { neighbour.panels.splice(neighbour.panels.indexOf(nativeNeighbours[panel.id]) + 1, 0, panel.id); }
+        else if (entries.length) { entries[0].panels.push(panel.id); }
         else { entries.push({id: id, panels: [panel.id], activePanelId: panel.id}); }
         placed.add(panel.id);
         // A saved workspace gets the same answer its preset would give.
         if ((nativeHidden[workspace] || []).indexOf(panel.id) >= 0) { next.hidden.push(panel.id); }
     });
     return checked(next);
+}
+function placeBesideNeighbours(layout) {
+    Object.keys(nativeNeighbours).forEach(function(id) {
+        var group = groupOfPanel(layout, id);
+        if (!group || group !== groupOfPanel(layout, nativeNeighbours[id])) { return; }
+        group.panels.splice(group.panels.indexOf(id), 1);
+        group.panels.splice(group.panels.indexOf(nativeNeighbours[id]) + 1, 0, id);
+    });
 }
 function presetWithExtensions(layout, name) {
     var preset = createLayout(name);
@@ -166,6 +179,7 @@ function presetWithExtensions(layout, name) {
                 activePanelId: panels.indexOf(prior.activePanelId) >= 0 ? prior.activePanelId : panels[0]});
         });
     });
+    placeBesideNeighbours(preset);
     preset.hidden = preset.hidden.concat(layout.hidden.filter(function(id) { return !builtIn.has(id); }));
     (nativeHidden[name] || []).forEach(function(id) {
         if (groupOfPanel(preset, id) && preset.hidden.indexOf(id) < 0) { preset.hidden.push(id); }

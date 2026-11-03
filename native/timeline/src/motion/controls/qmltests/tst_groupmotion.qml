@@ -5,6 +5,10 @@ Item {
     id: host
     width: 640
     height: 900
+    property var timeline: testTimeline
+    property var clock: testClock
+    property var gestures: testGestures
+    Component { id: effectControlsComponent; EffectControlsPanel { anchors.fill: parent } }
     Component {
         id: inspectorController
         ClipInspectorController { timeline: testTimeline; clock: testClock; clipId: "g" }
@@ -31,10 +35,12 @@ Item {
         }
         function group() { return JSON.parse(testHarness.documentJson()).clips.find(c => c.id === "g") }
         function test_numericGestureAndUnknownFields() {
+            // A group's transform is in Effect Controls, like a clip's.
             const controller = createTemporaryObject(inspectorController, host)
-            const panel = mount("qrc:/qt/qml/NodeTool/Timeline/src/motion/controls/GroupMotion.qml", controller)
-            const input = findChild(panel, "position-input-0")
-            verify(input)
+            const panel = createTemporaryObject(effectControlsComponent, host)
+            testGestures.selection = ["g"]
+            let input = null
+            tryVerify(() => { input = findChild(panel, "effectControls_position_input_0"); return input !== null })
             const before = testHarness.documentJson()
             input.gestureStarted()
             input.preview("12")
@@ -106,7 +112,6 @@ Item {
         function test_componentAvailable() {
             const controller = createTemporaryObject(inspectorController, host)
             const panel = mount("qrc:/qt/qml/NodeTool/Timeline/src/motion/controls/GroupMotion.qml", controller)
-            verify(findChild(panel, "groupMotionFields"))
             verify(findChild(panel, "groupAdvancedMotion"))
             verify(findChild(panel, "groupAnimations"))
         }

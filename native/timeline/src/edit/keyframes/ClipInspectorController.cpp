@@ -141,7 +141,7 @@ QVariantMap ClipInspectorController::rowGraphKeys(const QString& row) const {
     return nt::keyframes::rowGraphKeys(nt::keyframes::withBypassRestored(selected()), row).toVariantMap();
 }
 double ClipInspectorController::fieldValue(const QString& field) const {
-    const auto t = nt::keyframes::transform(selected());
+    const auto t = nt::keyframes::transform(nt::keyframes::withBypassRestored(selected()));
     if (field == "anchorX" || field == "anchorY") {
         return t["anchor"].toObject()[field == "anchorX" ? "x" : "y"].toDouble(0.5);
     }

@@ -13,6 +13,9 @@ Item {
     property var selection: gestures ? gestures.selection : []
     readonly property var clip: controller ? controller.clip : reader.clip
     property var gesture: null
+    property alias embedded: section.embedded
+    // The Volume switch in Effect Controls sets the level aside, and it stays on show here.
+    readonly property var heldVolume: (clip.bypassedFixedEffects || {}).volume
     visible: !!clip.id && (clip.mediaType === "audio" || clip.mediaType === "midi")
     implicitWidth: visible ? TimelineMetrics.trackHeaderWidth : 0
     implicitHeight: visible ? section.implicitHeight : 0
@@ -27,7 +30,8 @@ Item {
         gesture = {field: field, timeline: gesture.timeline, clipId: gesture.clipId, generation: gesture.generation, value: value}
     }
     function displayed(field) {
-        return gesture && gesture.field === field ? gesture.value : (clip[field] || 0)
+        if (gesture && gesture.field === field) return gesture.value
+        return (field === "volumeDb" && heldVolume ? heldVolume.volumeDb : clip[field]) || 0
     }
     function commit(field, value) {
         const pending = gesture && gesture.field === field ? gesture : null
@@ -57,6 +61,7 @@ Item {
             origin: 0
             value: root.displayed("volumeDb")
             display: value.toFixed(1) + " dB"
+            disabled: !!root.heldVolume
             onGestureStarted: root.begin("volumeDb")
             onPreview: value => root.preview("volumeDb", value)
             onChange: value => root.commit("volumeDb", value)

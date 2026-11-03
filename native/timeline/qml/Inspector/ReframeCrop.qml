@@ -5,6 +5,7 @@ Item {
     id: root
     objectName: "inspectorCrop"
     property var controller: null
+    property alias embedded: section.embedded
     property var timelineModel: typeof timeline !== "undefined" ? timeline : null
     property var gestures: typeof tracksRegion !== "undefined" ? tracksRegion.gestures : null
     property var selectedIds: gestures ? gestures.selection : []

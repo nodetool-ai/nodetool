@@ -12,4 +12,6 @@ QtObject {
     // The slider rows' label and value columns, so the tracks line up.
     readonly property int sliderLabelWidth: 88
     readonly property int sliderValueWidth: 44
+    readonly property int sliderStackWidth: 220
+    readonly property int rowLabelMinWidth: 56
 }

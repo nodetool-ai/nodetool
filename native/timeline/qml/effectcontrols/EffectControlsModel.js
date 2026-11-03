@@ -2,25 +2,46 @@
 
 // What the Effect Controls panel lists for a clip: pure, so the panel can rebuild its
 // rows only when this list changes and not on every edit of a value.
-function groups(clip, rowSpecs, visualEffects, audioEffects) {
+// The order follows Premiere's fixed effects: Motion, Opacity, Time Remapping, then Crop, Corners
+// and Motion blur, then the clip's effects, then under audio Volume and the audio effects.
+// `sections` are the ones registered for this panel, whose controls have no keyframes.
+function groups(clip, rowSpecs, visualEffects, audioEffects, sections) {
     const type = clip.mediaType || "";
     const result = [];
     const rows = ids => ids.map(id => rowSpecs.find(row => row.id === id)).filter(row => !!row);
     const sound = type === "audio" || type === "midi";
+    const registered = id => (sections || []).find(section => section.id === id);
+    const addSection = id => {
+        const section = registered(id);
+        if (section) {
+            result.push({id: id, kind: "section", label: section.title, source: section.source, rows: [], startsOpen: false});
+        }
+    };
     if (!sound && type !== "adjustment") {
-        result.push({id: "motion", kind: "fixed", label: "Motion", rows: rows(["position", "scale", "rotation"])});
-    }
-    if (!sound) {
-        result.push({id: "opacity", kind: "fixed", label: "Opacity", rows: rows(["opacity"])});
+        result.push({id: "motion", kind: "fixed", label: "Motion", rows: rows(["position", "scale", "rotation"]), hasTransformFields: true});
     }
     if (type === "model3d") {
         result.push({id: "camera", kind: "camera", label: "Camera", rows: rows(["cameraOrbit", "cameraFov", "cameraZoom"])});
     }
-    if (sound) {
-        result.push({id: "volume", kind: "fixed", label: "Volume", rows: []});
+    if (!sound) {
+        result.push({id: "opacity", kind: "fixed", label: "Opacity", rows: rows(["opacity"])});
+    }
+    if (type !== "midi" && type !== "group") {
+        addSection("timeRemap");
+    }
+    if (["video", "image", "overlay", "text", "shape", "model3d"].indexOf(type) >= 0) {
+        addSection("crop");
+    }
+    if (!sound) {
+        addSection("borderRadius");
+        addSection("motionBlur");
     }
     for (const effect of visualEffects) {
         result.push({id: "effect:" + effect.id, kind: "effect", effectId: effect.id, effectType: effect.type, rows: []});
+    }
+    if (sound) {
+        const level = registered("audio");
+        result.push({id: "volume", kind: "fixed", label: "Volume", rows: [], source: level ? level.source : ""});
     }
     for (const effect of audioEffects) {
         result.push({id: "audioEffect:" + effect.id, kind: "audioEffect", effectId: effect.id, effectType: effect.type, rows: []});

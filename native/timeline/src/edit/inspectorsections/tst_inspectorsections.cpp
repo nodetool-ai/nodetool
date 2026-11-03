@@ -99,9 +99,13 @@ private slots:
             QVERIFY(e.window.grabWindow().copy(area.toRect()).save(screenshot));
         }
         auto* probe = findItem(panel, "testInspectorSection");
-        auto* transform = section(panel, "Transform"); QVERIFY(transform);
+        auto* timing = section(panel, "Timing"); QVERIFY(timing);
+        // One owner per control: Effect Controls holds these.
+        for (const auto& moved : {QString("Render"), QString("Transform"), QString("Camera"), QString("Crop"), QString("Corners"), QString("Time remap"), QString("Motion blur"), QString("Audio")}) {
+            QVERIFY2(!section(panel, moved), qPrintable(moved));
+        }
         auto* animate = section(panel, "Animate"); QVERIFY(animate);
-        QTRY_VERIFY(probe->mapToItem(panel, QPointF{}).y() >= transform->mapToItem(panel, QPointF{}).y() + transform->height());
+        QTRY_VERIFY(probe->mapToItem(panel, QPointF{}).y() >= timing->mapToItem(panel, QPointF{}).y() + timing->height());
         QVERIFY(probe->mapToItem(panel, QPointF{}).y() < animate->mapToItem(panel, QPointF{}).y());
         QCOMPARE(probe->property("timelineModel").value<QObject*>(), &e.model);
         QCOMPARE(probe->property("gestures").value<QObject*>(), e.gestures());
@@ -115,7 +119,7 @@ private slots:
         e.gestures()->setSelection({"b"});
         auto* viewport = flickable(e.inspector()); QVERIFY(viewport);
         QTRY_COMPARE(e.inspector()->findChild<QObject*>("clipInspectorController")->property("clipId").toString(), QString("b"));
-        for (const auto& title : {QString("Media"), QString("Timing"), QString("Render"), QString("Transform"), QString("Animate")}) {
+        for (const auto& title : {QString("Media"), QString("Timing"), QString("Animate")}) {
             if (auto* s = section(e.inspector(), title)) { s->setProperty("open", true); }
         }
         QTest::qWait(30);
@@ -167,7 +171,7 @@ private slots:
         auto* group = findItem(e.inspector(), "clipGroupPanel");
         QVERIFY2(group, "B31: selected group needs ClipGroupPanel"); QTRY_VERIFY(group->isVisible());
         QCOMPARE(findItem(group, "groupChildren")->property("value").toString(), QString("2"));
-        QVERIFY(!section(e.inspector(), "Render")->isVisible());
+        QVERIFY(!section(e.inspector(), "Transform"));
         QVERIFY(!section(e.inspector(), "Animate")->isVisible());
         QCOMPARE(findItem(group, "groupTrimHint")->property("text").toString(), QString("Trimming the group pulls its children inside the window that leaves."));
         auto* groupTiming = section(group, "Timing"); QVERIFY(groupTiming);
@@ -198,7 +202,7 @@ private slots:
         auto* media = section(e.inspector(), "Media"); QVERIFY2(media, "B32: Media section is missing");
         auto* timing = section(e.inspector(), "Timing"); QVERIFY2(timing, "B32: Timing section is missing");
         QVERIFY(media->mapToItem(e.inspector(), QPointF{}).y() < timing->mapToItem(e.inspector(), QPointF{}).y());
-        QVERIFY(timing->mapToItem(e.inspector(), QPointF{}).y() < section(e.inspector(), "Render")->mapToItem(e.inspector(), QPointF{}).y());
+        QVERIFY(timing->mapToItem(e.inspector(), QPointF{}).y() < section(e.inspector(), "Animate")->mapToItem(e.inspector(), QPointF{}).y());
         media->setProperty("open", true); timing->setProperty("open", true);
         QCOMPARE(findItem(media, "mediaType")->property("value").toString(), QString("image"));
         QCOMPARE(findItem(media, "mediaAsset")->property("value").toString(), QString("asset-b"));

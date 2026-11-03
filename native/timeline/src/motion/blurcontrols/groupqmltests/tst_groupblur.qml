@@ -4,6 +4,10 @@ import NodeTool.Timeline
 Item {
     id: host
     width: 640; height: 900
+    property var timeline: testTimeline
+    property var clock: testClock
+    property var gestures: testGestures
+    Component { id: effectControlsComponent; EffectControlsPanel { anchors.fill: parent } }
     ClipInspectorController { id: controller; timeline:testTimeline; clock:testClock; clipId:"g" }
     SignalSpy { id: changes; target:testTimeline; signalName:"clipsChanged" }
     SignalSpy { id: replacements; target:testTimeline; signalName:"timelineChanged" }
@@ -12,20 +16,19 @@ Item {
         when: windowShown
         function test_groupBlur() {
             testHarness.resetGroup()
-            const component = Qt.createComponent("qrc:/qt/qml/NodeTool/Timeline/src/motion/controls/GroupMotion.qml")
-            compare(component.status, Component.Ready, component.errorString())
-            const panel = createTemporaryObject(component,host,{timelineModel:testTimeline,gestures:testGestures,controller:controller,width:host.width})
-            verify(panel,component.errorString())
-            const toggle = findChild(panel,"motionBlurEnabled")
-            verify(toggle)
+            // A group's motion blur is in Effect Controls, like a clip's.
+            const panel = createTemporaryObject(effectControlsComponent,host)
+            testGestures.selection = ["g"]
+            let toggle = null
+            tryVerify(() => { toggle = findChild(panel,"motionBlurEnabled"); return toggle !== null })
             const before = testHarness.documentJson()
             toggle.change(true)
             compare(testHarness.undoIndex(),1)
             testTimeline.applyEdit("patchClip",{clipId:"g",patch:{motionBlur:{samplesPerFrame:4,shutterAngle:180,unknown:91}}})
             const saved = testHarness.documentJson()
             const index = testHarness.undoIndex()
-            const input = findChild(panel,"motionBlur_samplesPerFrame")
-            verify(input)
+            let input = null
+            tryVerify(() => { input = findChild(panel,"motionBlur_samplesPerFrame"); return input !== null })
             input.gestureStarted(); input.preview("8")
             compare(testHarness.undoIndex(),index)
             input.commit("8")

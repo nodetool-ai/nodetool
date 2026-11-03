@@ -62,6 +62,12 @@ struct AudioEditor {
         window.resize(1280, 800);
         if (root()) { root()->setParentItem(window.contentItem()); }
         window.show();
+        // The dock layout is saved, so a case that showed another panel leaves it in front.
+        if (object) { showPanel("inspector"); }
+    }
+    void showPanel(const QString& id) {
+        QVariant shown;
+        QMetaObject::invokeMethod(object.get(), "focusPanel", Q_RETURN_ARG(QVariant, shown), Q_ARG(QVariant, id));
     }
     QQuickItem* root() const { return qobject_cast<QQuickItem*>(object.get()); }
     QQuickItem* item(const QString& name) const { return findItem(root(), name); }
@@ -137,6 +143,7 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(e.item("audioEffectsSection"), 1000);
         auto* section = e.item("audioEffectsSection");
         QVERIFY(e.item("inspectorViewport")->isAncestorOf(section));
+        auto* effectControls = e.item("effectControlsPanel"); QVERIFY(effectControls);
         section->setProperty("open", true);
         auto* add = findItem(section, "audioEffectsAdd");
         QVERIFY(add);
@@ -148,8 +155,8 @@ private slots:
         QCOMPARE(effects.size(), 1);
         QCOMPARE(effects[0].toObject()["type"].toString(), QString("gain"));
         const auto id = effects[0].toObject()["id"].toString();
-        auto* knob = findItem(section, "audioEffectKnob-" + id + "-gainDb");
-        QTRY_VERIFY(knob);
+        QTRY_VERIFY(findItem(effectControls, "audioEffectKnob-" + id + "-gainDb"));
+        auto* knob = findItem(effectControls, "audioEffectKnob-" + id + "-gainDb");
         QVERIFY(QMetaObject::invokeMethod(knob, "gestureStarted"));
         QVERIFY(QMetaObject::invokeMethod(knob, "preview", Q_ARG(double, 3.0)));
         QVERIFY(QMetaObject::invokeMethod(knob, "preview", Q_ARG(double, 6.0)));
@@ -204,24 +211,17 @@ private slots:
         });
     }
     void effectsPointerGesture() {
-        TimelineModel model;
-        load(model);
+        AudioEditor e;
+        QVERIFY2(e.object, qPrintable(e.error));
+        QVERIFY(QTest::qWaitForWindowExposed(&e.window));
+        QVERIFY(QTest::qWaitForWindowActive(&e.window));
+        auto& model = e.model;
+        auto& window = e.window;
         QVERIFY(model.applyEdit("addClipAudioEffect", {{"clipId", "c"}, {"type", "gain"}, {"id", "g"}}));
         model.undoStack()->clear();
-        QQmlEngine engine;
-        QQmlComponent component(&engine);
-        component.setData(R"(import QtQuick
-import NodeTool.Timeline
-AudioEffects { selection: ["c"]; open: true; width: 400 })", QUrl());
-        std::unique_ptr<QObject> section(component.createWithInitialProperties({{"timeline", QVariant::fromValue(&model)}}));
-        QVERIFY2(section, qPrintable(component.errorString()));
-        auto* root = qobject_cast<QQuickItem*>(section.get());
-        QQuickWindow window;
-        window.resize(400, 300);
-        root->setParentItem(window.contentItem());
-        window.show();
-        QVERIFY(QTest::qWaitForWindowExposed(&window));
-        section->setProperty("expandedId", "g");
+        e.gestures()->setSelection({"c"});
+        e.showPanel("effectControls");
+        auto* root = e.item("effectControlsPanel"); QVERIFY(root);
         QTRY_VERIFY(findItem(root, "audioEffectKnob-g-gainDb"));
         auto* knob = findItem(root, "audioEffectKnob-g-gainDb");
         QVERIFY(knob);
@@ -232,7 +232,7 @@ AudioEffects { selection: ["c"]; open: true; width: 400 })", QUrl());
         QVERIFY(slider);
         QTRY_VERIFY(slider->width() > 50);
         QTRY_VERIFY(slider->isVisible());
-        auto* header = findItem(root, "audioEffectExpand-g");
+        auto* header = findItem(root, "effectControlsGroup_audioEffect:g");
         QVERIFY(header);
         QTRY_VERIFY(slider->mapToScene({0, 0}).y() >= header->mapToScene({0, header->height()}).y());
         const auto before = model.clipsJson();
@@ -513,38 +513,46 @@ MouseArea { width: 28; height: 28; property int pressCount: 0; onPressed: ++pres
         AudioEditor e(QJsonDocument(raw).toJson());
         QVERIFY2(e.object, qPrintable(e.error));
         e.gestures()->setSelection({"c"});
-        QTRY_VERIFY(e.item("audioSection"));
         QTRY_VERIFY(e.item("audioEffectsSection"));
-        QTRY_COMPARE_WITH_TIMEOUT(e.item("audioSection")->isVisible(), sounding, 1000);
         QTRY_COMPARE_WITH_TIMEOUT(e.item("audioEffectsSection")->isVisible(), sounding, 1000);
+        // Effect Controls hosts Volume and the fades for a clip with sound.
+        auto* effectControls = e.item("effectControlsPanel"); QVERIFY(effectControls);
+        QTRY_COMPARE_WITH_TIMEOUT(findItem(effectControls, "effectControlsGroup_volume") != nullptr, sounding, 1000);
+        QCOMPARE(findItem(effectControls, "audioSection") != nullptr, sounding);
     }
-    void audioInInspectorViewport() {
+    void audioInEffectControlsViewport() {
         auto raw = QJsonDocument::fromJson(document).object();
         auto clips = raw["clips"].toArray();
         auto clip = clips[0].toObject();
         clip.insert("timeRemap", QJsonObject{{"keyframes", QJsonArray{
             QJsonObject{{"t", 0}, {"sourceMs", 0}}, QJsonObject{{"t", 0.5}, {"sourceMs", 2500}},
             QJsonObject{{"t", 1}, {"sourceMs", 5001}}}}});
+        // A chain long enough that the panel has to scroll to the section under test.
+        QJsonArray chain;
+        for (int i = 0; i < 16; ++i) {
+            chain.append(QJsonObject{{"id", "g" + QString::number(i)}, {"type", "gain"}, {"enabled", true}, {"gainDb", 0}});
+        }
+        clip.insert("audioEffects", chain);
         clips[0] = clip;
         raw.insert("clips", clips);
         AudioEditor e(QJsonDocument(raw).toJson());
         QVERIFY2(e.object, qPrintable(e.error));
         QVERIFY(QTest::qWaitForWindowExposed(&e.window));
         e.gestures()->setSelection({"c"});
+        e.showPanel("effectControls");
         QTRY_VERIFY(e.item("audioSection"));
         auto* audio = e.item("audioSection");
-        auto* viewport = e.item("inspectorViewport");
+        auto* viewport = e.item("effectControlsRows");
         QVERIFY(viewport);
-        e.item("inspectorMedia")->setProperty("open", true);
-        e.item("inspectorTiming")->setProperty("open", true);
-        e.item("inspectorTimeRemap")->setProperty("open", true);
+        auto* remapFold = e.item("effectControlsCollapse_timeRemap"); QVERIFY(remapFold);
+        QVERIFY(QMetaObject::invokeMethod(remapFold, "clicked"));
         QTRY_VERIFY(audio->isVisible());
         QCoreApplication::processEvents();
         viewport->setProperty("contentY", std::clamp(audio->mapToItem(viewport, QPointF{}).y(), 0.0,
             std::max(0.0, viewport->property("contentHeight").toDouble() - viewport->height())));
         QCoreApplication::processEvents();
         const auto rect = audio->mapRectToItem(viewport, QRectF(0, 0, audio->width(), audio->height()));
-        QVERIFY2(QRectF(0, 0, viewport->width(), viewport->height()).contains(rect), "Audio section lies outside the Inspector viewport");
+        QVERIFY2(QRectF(0, 0, viewport->width(), viewport->height()).contains(rect), "Audio section lies outside the Effect Controls viewport");
         QVERIFY(viewport->property("contentY").toDouble() > 0);
         QCOMPARE(audio->property("timelineModel").value<QObject*>(), &e.model);
         QCOMPARE(audio->property("gestures").value<QObject*>(), e.gestures());
@@ -557,6 +565,8 @@ MouseArea { width: 28; height: 28; property int pressCount: 0; onPressed: ++pres
         QCOMPARE(e.model.clipsJson()[0].toObject()["volumeDb"].toDouble(), -6.0);
         e.model.undoStack()->undo();
         QCOMPARE(e.model.clipsJson(), before);
+        // The fold is saved, so later cases start with it closed.
+        QVERIFY(QMetaObject::invokeMethod(remapFold, "clicked"));
     }
     void initTestCase() {
         QFile file(QStringLiteral(NT_TIMELINE_DIR "/../../web/src/i18n/locales/en.json"));
@@ -1008,18 +1018,17 @@ AudioGainDialog { clipIds: ["c", "silent"] })", QUrl());
         QVERIFY2(editor, qPrintable(component.errorString()));
         auto* root = qobject_cast<QQuickItem*>(editor.get());
         QVERIFY(root);
-        QTRY_VERIFY_WITH_TIMEOUT(findItem(root, "audioSection"), 1000);
-        auto* section = findItem(root, "audioSection");
         auto* gestures = editor->findChild<ClipGestureController*>();
         QVERIFY(gestures);
         gestures->setSelection({"c"});
-        QTRY_VERIFY(section->property("visible").toBool());
+        QTRY_VERIFY_WITH_TIMEOUT(findItem(root, "audioSection"), 1000);
+        auto* section = findItem(root, "audioSection");
         QCOMPARE(section->property("timeline").value<TimelineModel*>(), &model);
         QCOMPARE(section->property("clip").toMap().value("id").toString(), QString("c"));
         gestures->setSelection({"silent"});
-        QTRY_VERIFY(!section->property("visible").toBool());
+        QTRY_VERIFY(!findItem(root, "audioSection"));
         gestures->setSelection({"c", "silent"});
-        QTRY_VERIFY(!section->property("visible").toBool());
+        QTRY_VERIFY(!findItem(root, "audioSection"));
     }
 };
 int main(int argc, char** argv) {

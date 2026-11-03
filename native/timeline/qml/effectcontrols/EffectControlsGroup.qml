@@ -6,8 +6,9 @@ import NodeTool.UiPrimitives as Ui
 import "../../src/edit/clipeffects" as ClipFx
 import "../../src/edit/clipeffects/ClipEffectsCatalog.js" as Catalog
 import "../Inspector/AudioEffectsKnobs.js" as AudioKnobs
-// One collapsible block: a fixed effect (Motion, Opacity, Volume), the camera of a 3D clip, or an
-// effect on the clip's chain.
+// One collapsible block: a fixed effect (Motion, Opacity, Volume), the camera of a 3D clip, a
+// section with no keyframes (Time Remapping, Crop, Corners, Motion blur), or an effect on the
+// clip's chain. Whatever it holds sits in the list column, so the lanes beside it stay empty.
 Column {
     id: root
     required property var panel
@@ -22,16 +23,33 @@ Column {
     }
     readonly property string label: group.kind === "effect" ? Catalog.name(group.effectType)
         : group.kind === "audioEffect" ? (AudioKnobs.labels[group.effectType] || group.effectType) : group.label
-    readonly property bool switchable: group.kind !== "camera"
+    // A section's own switch shows in the group's heading, as Time Remapping's does.
+    readonly property var sectionItem: group.kind === "section" && sectionLoader.item ? sectionLoader.item : null
+    readonly property bool switchable: group.kind === "section" ? !!sectionItem && sectionItem.checkable === true : group.kind !== "camera"
     readonly property bool groupOn: {
         const revision = root.revision
         if (group.kind === "fixed") return controller.groupEnabled(group.id)
         if (group.kind === "camera") return true
+        if (group.kind === "section") return !switchable || sectionItem.checked
         return effect.enabled === true
     }
-    property bool open: true
+    // Fixed groups and sections keep their fold across clips and sessions, as the Color panel's do.
+    readonly property bool remembersFold: group.kind === "fixed" || group.kind === "section" || group.kind === "camera"
+    readonly property string foldKey: "effectControls." + group.id
+    property bool localOpen: true
+    readonly property bool open: remembersFold ? ClipEffectsUi.folds[foldKey] ?? group.startsOpen !== false : localOpen
+    function setOpen(next) {
+        if (remembersFold) ClipEffectsUi.setFold(foldKey, next)
+        else localOpen = next
+    }
+    readonly property int audioEffectIndex: group.kind === "audioEffect" ? (panel.clipData.audioEffects || []).findIndex(e => e.id === group.effectId) : -1
+    function moveAudioEffect(delta) {
+        controller.timeline.applyEdit("moveClipAudioEffect", {clipId: panel.clipData.id, effectId: group.effectId, delta: delta})
+    }
     function setOn(on) {
-        if (group.kind === "fixed") {
+        if (group.kind === "section") {
+            sectionItem.checkedChangedByUser(on)
+        } else if (group.kind === "fixed") {
             panel.clearSelection()
             controller.write({action: "bypass", group: group.id, enabled: on})
         } else if (group.kind === "effect") {
@@ -56,7 +74,7 @@ Column {
                 Layout.preferredHeight: Ui.Metrics.iconLg
                 iconName: root.open ? "arrowDropDown" : "navigateNext"
                 accessibleName: (root.open ? "Collapse " : "Expand ") + root.label
-                onClicked: root.open = !root.open
+                onClicked: root.setOpen(!root.open)
             }
             Ui.Toggle {
                 id: enableSwitch
@@ -84,6 +102,39 @@ Column {
                 description: accessibleName
                 onClicked: root.panel.revealPanel("color")
             }
+            Ui.ToolbarIconButton {
+                objectName: "audioEffectUp-" + root.group.effectId
+                visible: root.group.kind === "audioEffect"
+                enabled: !root.panel.locked && root.audioEffectIndex > 0
+                Layout.preferredWidth: Ui.Metrics.iconLg
+                Layout.preferredHeight: Ui.Metrics.iconLg
+                iconName: "arrowUpward"
+                accessibleName: "Move " + root.label + " up"
+                description: "Move earlier in the chain"
+                onClicked: root.moveAudioEffect(-1)
+            }
+            Ui.ToolbarIconButton {
+                objectName: "audioEffectDown-" + root.group.effectId
+                visible: root.group.kind === "audioEffect"
+                enabled: !root.panel.locked && root.audioEffectIndex >= 0 && root.audioEffectIndex < (root.panel.clipData.audioEffects || []).length - 1
+                Layout.preferredWidth: Ui.Metrics.iconLg
+                Layout.preferredHeight: Ui.Metrics.iconLg
+                iconName: "arrowDownward"
+                accessibleName: "Move " + root.label + " down"
+                description: "Move later in the chain"
+                onClicked: root.moveAudioEffect(1)
+            }
+            Ui.ToolbarIconButton {
+                objectName: "audioEffectRemove-" + root.group.effectId
+                visible: root.group.kind === "audioEffect"
+                enabled: !root.panel.locked
+                Layout.preferredWidth: Ui.Metrics.iconLg
+                Layout.preferredHeight: Ui.Metrics.iconLg
+                iconName: "close"
+                accessibleName: "Remove " + root.label
+                description: accessibleName
+                onClicked: root.controller.timeline.applyEdit("removeClipAudioEffect", {clipId: root.panel.clipData.id, effectId: root.group.effectId})
+            }
         }
         Ui.Separator { y: parent.height - height; width: parent.width }
     }
@@ -101,28 +152,31 @@ Column {
             }
         }
         Loader {
-            objectName: "effectControlsVolume"
-            active: root.group.id === "volume"
+            objectName: "effectControlsTransformFields"
+            active: !!root.group.hasTransformFields
             visible: active
             x: Ui.Metrics.md
             width: root.panel.listWidth - x - Ui.Metrics.md
-            sourceComponent: InspectorRow {
-                label: "Level"
-                InspectorPillInput {
-                    objectName: "effectControlsVolumeInput"
-                    readonly property var read: { const revision = root.revision; return root.controller.clip }
-                    readonly property var held: (read.bypassedFixedEffects || {}).volume
-                    value: ((held ? held.volumeDb : read.volumeDb) || 0).toFixed(1)
-                    unit: "dB"
-                    minWidth: Ui.Metrics.touch * 1.5
-                    ariaLabel: "Clip volume in decibels"
-                    disabled: root.panel.locked || !root.groupOn
-                    scrub: ({step: 0.1, min: -60, max: 12})
-                    onCommit: raw => {
-                        const value = Number(raw)
-                        if (raw.trim() !== "" && Number.isFinite(value)) root.controller.timeline.applyEdit("setClipAudio", {clipId: root.panel.clipData.id, field: "volumeDb", value: value})
-                    }
-                }
+            sourceComponent: TransformFields {
+                controller: root.controller
+                disabled: root.panel.locked || !root.groupOn
+            }
+        }
+        Loader {
+            id: sectionLoader
+            objectName: "effectControlsSection_" + root.group.id
+            active: !!root.group.source
+            visible: active
+            x: Ui.Metrics.md
+            width: root.panel.listWidth - x - Ui.Metrics.md
+            height: item ? item.implicitHeight : 0
+            Component.onCompleted: {
+                if (active) setSource(root.group.source, {
+                    timelineModel: Qt.binding(() => root.controller.timeline),
+                    gestures: Qt.binding(() => root.panel.gestures),
+                    controller: root.controller,
+                    embedded: true
+                })
             }
         }
         Loader {
