@@ -86,7 +86,8 @@ InspectorSection {
             readonly property var frame: root.frames && root.frames[index] ? root.frames[index] : ({t:0, sourceMs:0})
             spacing: Ui.Metrics.micro
             width: parent.width
-            Row {
+            Flow {
+                width: parent.width
                 spacing: Ui.Metrics.micro
                 InspectorPillInput {
                     objectName: "remapTime" + row.index

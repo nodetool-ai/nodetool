@@ -96,9 +96,9 @@ Item {
             verify(!findChild(panel, "effectControlsGroup_motion"))
             verify(!findChild(panel, "effectControlsGroup_opacity"))
             const count = testHarness.undoCount()
-            const input = child("effectControlsVolumeInput")
-            compare(input.value, "-6.0")
-            input.commit("-3.0")
+            const input = child("audioVolume")
+            compare(input.value, -6)
+            input.change(-3)
             compare(controller.clip.volumeDb, -3)
             compare(testHarness.undoCount(), count + 1)
             const toggle = child("effectControlsEnable_volume")
@@ -107,13 +107,177 @@ Item {
             compare(controller.clip.volumeDb, undefined)
             verify(input.disabled)
             // A switched-off value stays on show.
-            compare(input.value, "-3.0")
+            compare(input.value, -3)
             click(toggle)
             compare(controller.clip.volumeDb, -3)
             const effect = child("effectControlsEnable_audioEffect:ae")
             click(effect)
             compare(controller.clip.audioEffects[0].enabled, false)
             compare(testHarness.undoCount(), count + 4)
+            // A locked clip's level and fades stay as they are.
+            testTimeline.applyEdit("patchClip", {clipId: "c", patch: {locked: true}})
+            tryVerify(() => controller.locked)
+            verify(input.disabled)
+            verify(child("audioFadeIn").disabled)
+            verify(child("audioFadeOutShape").disabled)
+        }
+        function topOf(name) { return child(name).mapToItem(panel, 0, 0).y }
+        function openSection(id) {
+            const area = child("effectControlsCollapse_" + id)
+            if (area.iconName !== "arrowDropDown") click(area)
+            tryCompare(area, "iconName", "arrowDropDown")
+        }
+        function closeSection(id) {
+            const area = child("effectControlsCollapse_" + id)
+            if (area.iconName === "arrowDropDown") click(area)
+        }
+        function test_groupsFollowPremieresFixedEffects() {
+            testTimeline.applyEdit("patchClip", {clipId: "c", patch: {effects: [{id: "e1", type: "blur", enabled: true, radius: 4}]}})
+            tryVerify(() => findChild(panel, "effectControlsGroup_effect:e1"))
+            waitForRendering(panel)
+            const order = ["motion", "opacity", "timeRemap", "crop", "borderRadius", "motionBlur", "effect:e1"]
+            for (let i = 1; i < order.length; ++i) {
+                verify(topOf("effectControlsGroup_" + order[i - 1]) < topOf("effectControlsGroup_" + order[i]), order[i])
+            }
+        }
+        function test_audioClipListsItsGroupsInOrder() {
+            testTimeline.applyEdit("patchClip", {clipId: "c", patch: {mediaType: "audio", audioEffects: [{id: "ae", type: "gain", enabled: true, gainDb: 0}]}})
+            tryVerify(() => findChild(panel, "effectControlsGroup_volume"))
+            waitForRendering(panel)
+            verify(topOf("effectControlsGroup_timeRemap") < topOf("effectControlsGroup_volume"))
+            verify(topOf("effectControlsGroup_volume") < topOf("effectControlsGroup_audioEffect:ae"))
+            for (const id of ["crop", "borderRadius", "motionBlur"]) verify(!findChild(panel, "effectControlsGroup_" + id), id)
+        }
+        function test_cameraSitsUnderMotion() {
+            testTimeline.applyEdit("patchClip", {clipId: "c", patch: {mediaType: "model3d"}})
+            tryVerify(() => findChild(panel, "effectControlsGroup_camera"))
+            waitForRendering(panel)
+            verify(topOf("effectControlsGroup_motion") < topOf("effectControlsGroup_camera"))
+            verify(topOf("effectControlsGroup_camera") < topOf("effectControlsGroup_opacity"))
+            child("effectControlsRow_cameraZoom")
+        }
+        function test_aGroupClipHasItsMotionHere() {
+            testTimeline.applyEdit("patchClip", {clipId: "c", patch: {mediaType: "group"}})
+            tryVerify(() => findChild(panel, "effectControlsGroup_borderRadius"))
+            child("effectControlsGroup_motion")
+            child("effectControlsGroup_opacity")
+            child("effectControlsGroup_motionBlur")
+            verify(!findChild(panel, "effectControlsGroup_timeRemap"))
+            verify(!findChild(panel, "effectControlsGroup_crop"))
+            child("effectControlsRow_position")
+        }
+        function test_keyedInputGestureAndAFieldWithNoKeys() {
+            const field = child("effectControls_position_input_0")
+            field.gestureStarted()
+            field.preview("10")
+            compare(controller.rowState("position").values[0], 10)
+            compare(testHarness.undoCount(), 0)
+            field.preview("20")
+            field.commit("20")
+            compare(testHarness.undoCount(), 1)
+            compare(controller.rowState("position").values[0], 20)
+            testTimeline.undoStack.undo()
+            compare(controller.rowState("position").values[0], 0)
+            const slider = child("anchorX-slider")
+            slider.gestureStarted()
+            slider.preview(0.3)
+            compare(controller.fieldValue("anchorX"), 0.3)
+            compare(testHarness.undoCount(), 1)
+            slider.change(0.3)
+            compare(testHarness.undoCount(), 1)
+            testTimeline.undoStack.undo()
+            compare(controller.fieldValue("anchorX"), 0.5)
+        }
+        function test_transformFieldsWriteAndFollowTheSwitch() {
+            const depth = child("depthPx-input")
+            depth.commit("12")
+            compare(controller.fieldValue("depthPx"), 12)
+            const undoable = testHarness.undoCount()
+            verify(undoable > 0)
+            verify(!depth.disabled)
+            const toggle = child("effectControlsEnable_motion")
+            click(toggle)
+            verify(child("anchorX-slider").disabled)
+            tryCompare(depth, "disabled", true)
+            // A switched-off value stays on show.
+            compare(depth.value, "12.0")
+            click(toggle)
+            tryCompare(depth, "disabled", false)
+            compare(controller.fieldValue("depthPx"), 12)
+        }
+        function test_fieldsWithNoKeysKeepTheRowShape() {
+            openSection("crop")
+            const crop = child("cropleft")
+            tryVerify(() => crop.visible)
+            waitForRendering(panel)
+            const left = crop.mapToItem(panel, 0, 0).x
+            verify(left >= 0)
+            verify(left + crop.width <= panel.listWidth, "A control stays in the list column")
+            const anchor = child("anchorX-slider")
+            verify(anchor.mapToItem(panel, 0, 0).x + anchor.width <= panel.listWidth)
+            closeSection("crop")
+        }
+        function test_cropCommitsOneUndoStep() {
+            openSection("crop")
+            const crop = child("cropleft")
+            const before = testHarness.documentJson()
+            const count = testHarness.undoCount()
+            crop.gestureStarted()
+            crop.preview(0.2)
+            crop.change(0.2)
+            compare(testHarness.undoCount(), count + 1)
+            compare(controller.clip.crop.left, 0.2)
+            testTimeline.undoStack.undo()
+            compare(testHarness.documentJson(), before)
+            closeSection("crop")
+        }
+        function test_timeRemapSwitchSitsInTheHeading() {
+            const toggle = child("effectControlsEnable_timeRemap")
+            verify(!toggle.checked)
+            const count = testHarness.undoCount()
+            click(toggle)
+            compare(testHarness.undoCount(), count + 1)
+            verify(controller.clip.timeRemap !== undefined)
+            tryCompare(toggle, "checked", true)
+            click(toggle)
+            verify(controller.clip.timeRemap === undefined)
+            tryCompare(toggle, "checked", false)
+        }
+        function test_sectionsAreClosedUntilOpenedAndStayOpenAcrossClips() {
+            const corners = child("effectControlsCollapse_borderRadius")
+            const radius = child("borderRadiusSlider")
+            verify(!radius.visible)
+            click(corners)
+            tryCompare(radius, "visible", true)
+            testGestures.selection = []
+            tryVerify(() => !panel.hasClip)
+            testGestures.selection = ["c"]
+            tryVerify(() => panel.hasClip)
+            let again = null
+            tryVerify(() => { again = findChild(panel, "borderRadiusSlider"); return again !== null && again.visible })
+            closeSection("borderRadius")
+        }
+        function test_audioEffectChainActions() {
+            testTimeline.applyEdit("patchClip", {clipId: "c", patch: {mediaType: "audio", audioEffects: [
+                {id: "a1", type: "gain", enabled: true, gainDb: 0}, {id: "a2", type: "gain", enabled: true, gainDb: 3}]}})
+            tryVerify(() => findChild(panel, "audioEffectDown-a1"))
+            waitForRendering(panel)
+            verify(!child("audioEffectUp-a1").enabled)
+            verify(!child("audioEffectDown-a2").enabled)
+            const before = testHarness.documentJson()
+            const count = testHarness.undoCount()
+            click(child("audioEffectDown-a1"))
+            compare(testHarness.undoCount(), count + 1)
+            compare(controller.clip.audioEffects[0].id, "a2")
+            testTimeline.undoStack.undo()
+            compare(testHarness.documentJson(), before)
+            tryVerify(() => findChild(panel, "audioEffectRemove-a2"))
+            waitForRendering(panel)
+            click(child("audioEffectRemove-a2"))
+            compare(testHarness.undoCount(), count + 1)
+            compare(controller.clip.audioEffects.length, 1)
+            testTimeline.undoStack.undo()
+            compare(testHarness.documentJson(), before)
         }
         function test_emptyStates() {
             testGestures.selection = []
@@ -371,6 +535,7 @@ Item {
             verify(row.visible)
             click(child("effectControlsCollapse_motion"))
             tryCompare(row, "visible", false)
+            // Fixed groups keep their fold, so this file's other tests need it open again.
             click(child("effectControlsCollapse_motion"))
             tryCompare(row, "visible", true)
         }
@@ -430,7 +595,8 @@ Item {
             })
             editor.dockStore.switchWorkspace(0)
             editor.dockStore.resetWorkspace()
-            verify(editor.dockStore.layout.regions.right[0].panels.indexOf("effectControls") >= 0)
+            const tabs = editor.dockStore.layout.regions.right[0].panels
+            compare(tabs[tabs.indexOf("inspector") + 1], "effectControls")
             verify(!mounted.visible)
             const tracks = findChild(editor, "tracksRegion")
             const gestures = tracks.gestures

@@ -553,10 +553,26 @@ Tests: `tst_takeswitch`, `tst_takeswitchui`.
 
 ### Effect Controls
 
-Effect Controls is a tab beside the Inspector for the selected clip. Open it from its
-tab, Window > Effect Controls or Shift+5 in the Premiere preset, where the Inspector
-moved to Shift+9. Motion, Opacity, Volume on sound clips, Camera on 3D clips, and each
-visual and audio effect collapse, and all but Camera have an enable switch.
+Effect Controls owns what a selected clip does on screen and on the speakers. It is the tab right
+after the Inspector, so Transform is one click away. Open it from its tab, Window > Effect
+Controls or Shift+5 in the Premiere preset, where the Inspector moved to Shift+9.
+
+The groups follow Premiere's fixed effects. Motion holds Transform and the clip's anchor, 3D
+rotation, perspective and depth, and Camera follows it on 3D clips. Then come Opacity, Time
+Remapping, Crop, Corners, Motion blur and the clip's effects. Under audio come Volume, with the
+fades, and the audio effects, each with its chain order and Remove in its heading. A group clip
+lists Motion, Opacity, Corners and Motion blur. A control that cannot be keyframed is a row in the
+same list over an empty lane, so the panel has one shape. Groups collapse, and fixed groups and
+sections remember that across clips. All but Camera and the sections without one have an enable
+switch, and Time Remapping's switch is in its heading.
+
+The Program monitor's transform handles edit the same document, so a drag shows in the Motion row
+at once.
+
+The Inspector answers what the item is, and this differs from the web editor, whose Inspector still
+holds Render, Transform and the rest. No document, schema or protocol field differs between them.
+Sections are separate components registered with `registerInspectorSection`, and its `panel`
+argument says which panel hosts one, so a quick section can return to the Inspector with one word.
 
 In the lanes, a click selects and leaves the playhead alone, Ctrl or Shift adds to the
 selection, a drag on an empty lane is a marquee, and a drag moves the selection as a
@@ -566,7 +582,10 @@ Bezier handles on the value graph write `cubic-bezier` easings. Alt+K and the ke
 navigation keys act on the panel's active row only while the panel is visible. Otherwise
 navigation covers every row.
 
-Tests: `tst_keyframes`, and `tst_keyframesui`, which runs `src/edit/keyframes/qmltests/tst_effectcontrols.qml`.
+A new Editing layout puts the tab right after the Inspector. A saved layout that already places it
+keeps its place until Reset to Saved Layout, and a layout with no place for it gets the same one.
+
+Tests: `tst_keyframes`, `tst_dockui`, and `tst_keyframesui`, which runs `src/edit/keyframes/qmltests/tst_effectcontrols.qml`.
 
 ### Color and scopes
 

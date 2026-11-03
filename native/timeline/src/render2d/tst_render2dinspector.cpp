@@ -188,7 +188,7 @@ private slots:
         }
         e.gestures()->setSelection({"caption"}); QCoreApplication::processEvents();
         QVERIFY(section(e.inspector(),"Timing")->mapToItem(e.inspector(),QPointF{}).y() < caption->mapToItem(e.inspector(),QPointF{}).y());
-        QVERIFY(caption->mapToItem(e.inspector(),QPointF{}).y() < section(e.inspector(),"Render")->mapToItem(e.inspector(),QPointF{}).y());
+        QVERIFY(caption->mapToItem(e.inspector(),QPointF{}).y() < section(e.inspector(),"Animate")->mapToItem(e.inspector(),QPointF{}).y());
         e.gestures()->setSelection({"text"}); QCoreApplication::processEvents(); text->setProperty("open",true);
         auto* font = findItem(text,"textFont"); QVERIFY(font);
         const auto options = listProperty(font,"options");

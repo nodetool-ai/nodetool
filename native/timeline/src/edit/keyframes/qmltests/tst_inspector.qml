@@ -50,32 +50,5 @@ Item {
             testGestures.selection = ["c","other"]
             tryCompare(controller,"clipId","")
         }
-        function test_pillGestureAndSlider() {
-            testGestures.selection = ["c"]
-            const controller = findChild(panel,"clipInspectorController")
-            tryCompare(controller,"clipId","c")
-            const field = findChild(panel,"position-input-0")
-            verify(field)
-            field.gestureStarted()
-            field.preview("10")
-            compare(controller.rowState("position").values[0],10)
-            compare(testHarness.undoCount(),0)
-            field.preview("20")
-            field.commit("20")
-            compare(testHarness.undoCount(),1)
-            compare(controller.rowState("position").values[0],20)
-            testTimeline.undoStack.undo()
-            compare(controller.rowState("position").values[0],0)
-            const slider = findChild(panel,"anchorX-slider")
-            verify(slider)
-            slider.gestureStarted()
-            slider.preview(0.3)
-            compare(controller.fieldValue("anchorX"),0.3)
-            compare(testHarness.undoCount(),1)
-            slider.change(0.3)
-            compare(testHarness.undoCount(),1)
-            testTimeline.undoStack.undo()
-            compare(controller.fieldValue("anchorX"),0.5)
-        }
     }
 }

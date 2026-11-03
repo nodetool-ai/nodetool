@@ -14,7 +14,10 @@ endfunction()
 nt_tests(nt_keyframe_tests)
 function(nt_keyframe_ui_tests)
     find_package(Qt6 6.12 REQUIRED COMPONENTS QuickTest)
-    qt_add_executable(tst_keyframesui src/edit/keyframes/tst_keyframesui.cpp)
+    # The edits and sections Effect Controls hosts, so its groups work as they do in the app.
+    qt_add_executable(tst_keyframesui src/edit/keyframes/tst_keyframesui.cpp
+        src/preview/crop/ReframePanels.cpp src/preview/crop/ReframeRegistrations.cpp
+        src/edit/speed/SpeedRegistrations.cpp src/edit/speed/SpeedMixRegistration.cpp)
     set_target_properties(tst_keyframesui PROPERTIES MACOSX_BUNDLE FALSE)
     target_compile_options(tst_keyframesui PRIVATE ${NT_WARNINGS})
     target_link_libraries(tst_keyframesui PRIVATE timeline_core timeline_decode timeline_server

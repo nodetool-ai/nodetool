@@ -18,15 +18,22 @@ Item {
     signal preview(real value)
     signal change(real value)
     signal canceled()
-    implicitHeight: Ui.Metrics.compact
+    // Too narrow for a useful slider beside its label, the slider takes a line of its own.
+    readonly property bool stacked: width > 0 && width < InspectorTokens.sliderStackWidth
+    implicitHeight: Ui.Metrics.compact * (stacked ? 2 : 1)
 
-    RowLayout {
+    GridLayout {
         anchors.fill: parent
         anchors.leftMargin: Ui.Metrics.xs
         anchors.rightMargin: Ui.Metrics.xs
-        spacing: Ui.Metrics.md
+        columns: root.stacked ? 2 : 3
+        rowSpacing: 0
+        columnSpacing: Ui.Metrics.md
         Ui.Text {
-            Layout.preferredWidth: InspectorTokens.sliderLabelWidth
+            Layout.row: 0
+            Layout.column: 0
+            Layout.fillWidth: root.stacked
+            Layout.preferredWidth: root.stacked ? -1 : InspectorTokens.sliderLabelWidth
             text: root.label
             elide: Text.ElideRight
             role: Ui.Typography.SansLabel
@@ -34,6 +41,9 @@ Item {
         }
         Ui.Slider {
             id: slider
+            Layout.row: root.stacked ? 1 : 0
+            Layout.column: root.stacked ? 0 : 1
+            Layout.columnSpan: root.stacked ? 2 : 1
             Layout.fillWidth: true
             density: Ui.EditorButton.Compact
             from: root.min
@@ -51,6 +61,8 @@ Item {
             onEditCanceled: root.canceled()
         }
         Ui.Text {
+            Layout.row: 0
+            Layout.column: root.stacked ? 1 : 2
             Layout.preferredWidth: InspectorTokens.sliderValueWidth
             text: root.display
             horizontalAlignment: Text.AlignRight

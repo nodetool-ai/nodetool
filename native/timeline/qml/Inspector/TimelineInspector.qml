@@ -133,15 +133,6 @@ Rectangle {
                 spacing: Ui.Metrics.xs
                 Sections.RegisteredInspectorSections {
                     width: parent.width
-                    beforeRender: true
-                    timelineModel: root.timelineModel
-                    gestures: root.gestures
-                    controller: inspector
-                }
-                MotionFields { width: parent.width; controller: inspector }
-                Sections.RegisteredInspectorSections {
-                    width: parent.width
-                    beforeRender: false
                     timelineModel: root.timelineModel
                     gestures: root.gestures
                     controller: inspector

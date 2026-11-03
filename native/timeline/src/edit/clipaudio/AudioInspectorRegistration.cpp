@@ -2,7 +2,7 @@
 
 namespace {
 const bool registered = nt::inspector::registerInspectorSection("audio",
-    QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/Inspector/AudioSection.qml"), 41, "Audio");
+    QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/Inspector/AudioSection.qml"), 41, "Volume", "effectControls");
 const bool effectsRegistered = nt::inspector::registerInspectorSection("audioEffects",
     QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/Inspector/AudioEffects.qml"), 42, "Audio effects");
 }

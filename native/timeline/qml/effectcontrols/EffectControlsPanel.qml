@@ -1,6 +1,7 @@
 // nt-panel: slot=right id=effectControls order=5 title="Effect Controls"
-// Keyframes of the selected clip over a time ruler of their own. Rows read and write through
-// ClipInspectorController and the keyframes.* edits, so the Inspector shows every change.
+// The owner of a selected clip's Motion, Opacity, Time Remapping, Crop, Corners, Motion blur, Volume
+// and effect parameters. Keyed rows read and write through ClipInspectorController and the
+// keyframes.* edits. A control with no keyframes is a row in the same list, over an empty lane.
 // Selection, zoom and the divider live here and never reach the document.
 pragma ComponentBehavior: Bound
 import QtQuick
@@ -67,8 +68,7 @@ Rectangle {
         controller: inspector
     }
     readonly property var clipData: { const revision = inspector.revision; return inspector.clip }
-    readonly property bool groupSelected: clipData.mediaType === "group"
-    readonly property bool hasClip: !!clipData.id && !groupSelected
+    readonly property bool hasClip: !!clipData.id
     readonly property real clipStartMs: clipData.startMs || 0
     readonly property real durationMs: Math.max(1, clipData.durationMs || 0)
     readonly property real fps: inspector.timeline ? inspector.timeline.fps : 30
@@ -81,10 +81,11 @@ Rectangle {
         const sound = (clipData.audioEffects || []).map(effect => effect.id)
         return JSON.stringify([clipData.id || "", clipData.mediaType || "", visual, sound])
     }
+    readonly property var ownSections: InspectorSectionRegistry.sections.filter(section => section.panel === "effectControls")
     property var groups: []
     onGroupIdentityChanged: syncGroups()
     function syncGroups() {
-        groups = !hasClip ? [] : Model.groups(clipData, inspector.rows, clipData.effects || [], clipData.audioEffects || [])
+        groups = !hasClip ? [] : Model.groups(clipData, inspector.rows, clipData.effects || [], clipData.audioEffects || [], ownSections)
         if (gestures && Model.rowIds(groups).indexOf(gestures.keyframeRow) < 0) {
             const ids = Model.rowIds(groups)
             if (ids.length) gestures.keyframeRow = ids[0]
@@ -257,10 +258,9 @@ Rectangle {
         anchors.centerIn: parent
         visible: !root.hasClip
         maxTextWidth: Math.min(root.width - Ui.Metrics.xxl, Ui.Metrics.dialogCompactWidth)
-        title: root.selectionIds.length > 1 ? "Several clips selected" : root.groupSelected ? "Group selected" : "No clip selected"
+        title: root.selectionIds.length > 1 ? "Several clips selected" : "No clip selected"
         message: root.selectionIds.length > 1 ? "Select one clip to see its keyframes."
-            : root.groupSelected ? "Select a clip inside the group to see its keyframes."
-            : "Select a clip on the timeline to animate its motion, opacity and effects."
+            : "Select a clip on the timeline to edit its motion, opacity, crop and effects."
     }
 
     Item {

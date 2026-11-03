@@ -111,7 +111,9 @@ is discovered automatically. Other QML needs `nt_qml_files(...)`.
   whose layouts come from `applyNativePreset`. Add a native-only preset there, and never to
   `workspaces`. Each preset names the panels it is for, so a new panel with the id `color` or
   `scopes` (Color), or `audio` (Audio), appears in place when it registers with
-  `registerPanel`. No workspace needs editing. A preset's hidden list applies only to
+  `registerPanel`. No workspace needs editing. `nativeNeighbours` names the tab a native panel
+  takes its place beside when a layout first meets it, and after a preset. A saved layout that
+  already places the panel keeps it where it is. A preset's hidden list applies only to
   that preset, through `presetFromWorkspace`. `nativeHidden` lists a native panel that a ported
   preset would otherwise show, as Review does for `color`. `DockLayoutStore.workspaces` lists
   both, and `Alt+Shift+N` follows that order.

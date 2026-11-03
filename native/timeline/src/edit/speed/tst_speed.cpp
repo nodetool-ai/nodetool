@@ -255,9 +255,9 @@ class TestSpeed : public QObject {
             const auto value = entry.toMap();
             if (value.value("id").toString() == "timeRemap") { section = value; }
         }
-        QVERIFY2(!section.isEmpty(), "timeRemap must be registered in the Inspector");
-        QCOMPARE(section.value("title").toString(), QString("Time remap"));
-        QCOMPARE(section.value("order").toInt(), 85);
+        QVERIFY2(!section.isEmpty(), "timeRemap must be registered for Effect Controls");
+        QCOMPARE(section.value("title").toString(), QString("Time Remapping"));
+        QCOMPARE(section.value("panel").toString(), QString("effectControls"));
         TimelineModel model;
         auto parsed = nt::parseTimelineJson(document());
         QVERIFY(parsed.timeline);

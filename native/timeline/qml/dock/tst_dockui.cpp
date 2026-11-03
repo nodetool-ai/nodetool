@@ -7,6 +7,9 @@
 #include "playback/PlaybackClock.h"
 #include "runtime/ChatSession.h"
 #include "edit/sourceEdit/SourceViewerState.h"
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QMouseEvent>
 #include <QQuickItem>
 #include <QQuickRenderControl>
@@ -40,6 +43,130 @@ private slots:
         QVERIFY(preferences.isValid());
         qputenv("NODETOOL_TIMELINE_PREFERENCES", QFile::encodeName(preferences.filePath("ui.ini")));
         QFile::remove(preferences.filePath("ui.ini"));
+    }
+    // The real registrations, so one test sees every panel and which of them holds which control.
+    void panelsOfASelectedClip() {
+        TimelineModel model;
+        auto parsed = nt::parseTimelineJson(R"({"name":"Panels","width":640,"height":360,"fps":30,"durationMs":10000,
+            "tracks":[{"id":"v","name":"Video","type":"video","index":0},{"id":"a","name":"Audio","type":"audio","index":1}],
+            "clips":[{"id":"picture","name":"Shot 12","trackId":"v","mediaType":"video","startMs":0,"durationMs":4000,"width":1920,"height":1080,"currentAssetId":"asset-12",
+                      "effects":[{"id":"glow","type":"glow","enabled":true,"radius":8,"intensity":1},{"id":"curve","type":"curves","enabled":true,"master":[{"x":0,"y":0},{"x":1,"y":1}]}]},
+                     {"id":"sound","name":"Line 4","trackId":"a","mediaType":"audio","startMs":0,"durationMs":4000,"volumeDb":-6,
+                      "audioEffects":[{"id":"g","type":"gain","enabled":true,"gainDb":0}]}]})");
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        PlaybackClock clock;
+        QQmlEngine engine;
+        QQuickWindow window;
+        window.resize(1800, 1100);
+        QQmlComponent component(&engine);
+        component.loadFromModule("NodeTool.Timeline", "TimelineEditor");
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        std::unique_ptr<QObject> editor(component.createWithInitialProperties({
+            {"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)},
+            {"width", 1800}, {"height", 1100}}));
+        QVERIFY2(editor, qPrintable(component.errorString()));
+        auto* root = qobject_cast<QQuickItem*>(editor.get());
+        root->setParentItem(window.contentItem());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        auto* gestures = editor->findChild<ClipGestureController*>("clipGestures");
+        QVERIFY(gestures);
+        auto* store = qobject_cast<DockLayoutStore*>(editor->property("dockStore").value<QObject*>());
+        QVERIFY(store);
+        const auto show = [&](const QString& panel) {
+            QVariant shown;
+            return QMetaObject::invokeMethod(editor.get(), "focusPanel", Q_RETURN_ARG(QVariant, shown), Q_ARG(QVariant, panel)) && shown.toBool();
+        };
+        const auto grab = [&](QQuickItem* panel, const QString& name) {
+            const auto folder = qEnvironmentVariable("NT_PANEL_SCREENSHOTS");
+            if (folder.isEmpty()) { return true; }
+            QCoreApplication::processEvents();
+            QTest::qWait(100);
+            const auto area = panel->mapRectToScene(QRectF(0, 0, panel->width(), panel->height())).toRect();
+            return window.grabWindow().copy(area).save(folder + "/" + name + ".png");
+        };
+        // Effect Controls is a tab right after the Inspector, which stays in front.
+        const auto rightTabs = store->layout().value("regions").toMap().value("right").toList().first().toMap().value("panels").toStringList();
+        QCOMPARE(rightTabs.at(rightTabs.indexOf("inspector") + 1), QString("effectControls"));
+        auto* inspector = named(root, "timelineInspector"); QVERIFY(inspector);
+        auto* effectControls = named(root, "effectControlsPanel"); QVERIFY(effectControls);
+        QTRY_VERIFY(inspector->isVisible());
+        QVERIFY(!effectControls->isVisible());
+        QTRY_VERIFY(named(root, "dockTab_effectControls"));
+        QVERIFY(named(root, "dockTab_effectControls")->x() > named(root, "dockTab_inspector")->x());
+
+        gestures->setSelection({"picture"});
+        // One owner per control: each of these is in Effect Controls and nowhere in the Inspector.
+        QTRY_VERIFY(named(effectControls, "effectControlsGroup_crop"));
+        for (const auto* group : {"motion", "opacity", "timeRemap", "crop", "borderRadius", "motionBlur", "effect:glow", "effect:curve"}) {
+            QVERIFY2(named(effectControls, "effectControlsGroup_" + QString::fromLatin1(group)), group);
+        }
+        QVERIFY(named(effectControls, "anchorX-slider"));
+        QVERIFY(named(effectControls, "depthPx-input"));
+        for (const auto* control : {"anchorX-slider", "depthPx-input", "position-input-0", "inspectorCrop", "borderRadiusSlider",
+                                    "motionBlurEnabled", "inspectorTimeRemap", "audioSection"}) {
+            QVERIFY2(!named(inspector, QString::fromLatin1(control)), control);
+        }
+        QVERIFY(grab(inspector, "inspector-video-clip"));
+        QVERIFY(show("effectControls"));
+        QTRY_VERIFY(effectControls->isVisible());
+        QVERIFY(grab(effectControls, "effect-controls-video-clip"));
+        store->dispatch({{"type", "resize"}, {"region", "right"}, {"size", 600}});
+        QTRY_COMPARE(effectControls->width(), 600.0);
+        QVERIFY(grab(effectControls, "effect-controls-video-clip-wide"));
+        store->dispatch({{"type", "resize"}, {"region", "right"}, {"size", 360}});
+
+        gestures->setSelection({"sound"});
+        QTRY_VERIFY(named(effectControls, "audioSection"));
+        for (const auto* group : {"volume", "audioEffect:g"}) {
+            QVERIFY2(named(effectControls, "effectControlsGroup_" + QString::fromLatin1(group)), group);
+        }
+        QVERIFY(!named(effectControls, "effectControlsGroup_motion"));
+        QVERIFY(grab(effectControls, "effect-controls-audio-clip"));
+        QVERIFY(show("inspector"));
+    }
+    void aSavedLayoutFromBeforeKeepsItsTabsAndMeetsNewPanels() {
+        // Saved before this restructure: Effect Controls at the end of the group.
+        const auto saved = QJsonObject{{"workspace", "Editing"}, {"workspaces", QJsonObject{{"Editing", QJsonObject{
+            {"version", 1}, {"hidden", QJsonArray{}},
+            {"sizes", QJsonObject{{"left", 320}, {"right", 420}, {"bottom", 300}}},
+            {"regions", QJsonObject{
+                {"left", QJsonArray{QJsonObject{{"id", "left-main"}, {"panels", QJsonArray{"transcript", "assets"}}, {"activePanelId", "assets"}}}},
+                {"right", QJsonArray{QJsonObject{{"id", "right-main"}, {"panels", QJsonArray{"inspector", "assistant", "color", "effectControls"}}, {"activePanelId", "color"}}}},
+                {"bottom", QJsonArray{QJsonObject{{"id", "bottom-main"}, {"panels", QJsonArray{"tracks"}}, {"activePanelId", "tracks"}}}},
+                {"viewport", QJsonArray{QJsonObject{{"id", "viewport-program"}, {"panels", QJsonArray{"program"}}, {"activePanelId", "program"}}}}}}}}}}};
+        {
+            auto settings = nt::app::openTimelinePreferences();
+            settings->setValue("nodetool.timeline-layout.v1", QJsonDocument(saved).toJson(QJsonDocument::Compact));
+            settings->sync();
+        }
+        TimelineModel model;
+        auto parsed = nt::parseTimelineJson(R"({"name":"Saved","width":640,"height":360,"fps":30,"durationMs":10000,"tracks":[],"clips":[]})");
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        PlaybackClock clock;
+        QQmlEngine engine;
+        QQuickWindow window;
+        window.resize(1500, 900);
+        QQmlComponent component(&engine);
+        component.loadFromModule("NodeTool.Timeline", "TimelineEditor");
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        std::unique_ptr<QObject> editor(component.createWithInitialProperties({
+            {"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)},
+            {"width", 1500}, {"height", 900}}));
+        QVERIFY2(editor, qPrintable(component.errorString()));
+        qobject_cast<QQuickItem*>(editor.get())->setParentItem(window.contentItem());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        auto* store = qobject_cast<DockLayoutStore*>(editor->property("dockStore").value<QObject*>());
+        QVERIFY(store);
+        const auto group = [&](const QString& region) { return store->layout().value("regions").toMap().value(region).toList().first().toMap(); };
+        // What the person arranged is kept: the active tab and the place of Effect Controls.
+        QCOMPARE(group("right").value("activePanelId").toString(), QString("color"));
+        const auto tabs = group("right").value("panels").toStringList();
+        QCOMPARE(tabs.mid(0, 4), QStringList({"inspector", "assistant", "color", "effectControls"}));
+        QCOMPARE(store->layout().value("sizes").toMap().value("right").toDouble(), 420.0);
     }
     void colorAndAudioWorkspaces() {
         TimelineModel model;

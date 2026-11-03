@@ -189,18 +189,8 @@ controls = ["InspectorRow", "InspectorSelect", "InspectorSliderRow"]
 signals = ["patch"]
 test_host = "tst_inspectorsections"
 test_scope = "build/import"
-qml_callers = ["native/timeline/qml/Inspector/AudioEffectsRow.qml"]
+qml_callers = []
 replacement = "Feature composition through migrated native Ui wrappers"
-
-[[file]]
-path = "native/timeline/qml/Inspector/AudioEffectsRow.qml"
-category = "chrome"
-controls = ["Ui.Separator", "Ui.CheckBox", "Ui.EditorButton", "Ui.ToolbarIconButton"]
-signals = ["expand", "patch", "remove", "move"]
-test_host = "tst_inspectorsections"
-test_scope = "build/import"
-qml_callers = ["native/timeline/qml/Inspector/AudioEffects.qml"]
-replacement = "NodeTool.UiPrimitives: Ui.Separator, Ui.CheckBox, Ui.EditorButton, Ui.ToolbarIconButton"
 
 [[file]]
 path = "native/timeline/qml/Inspector/AudioGainHost.qml"
@@ -259,7 +249,7 @@ controls = ["Ui.ToolbarIconButton"]
 signals = []
 test_host = "tst_inspectorsections"
 test_scope = "build/import"
-qml_callers = ["native/timeline/qml/Inspector/KeyframeClipAnimationEditor.qml", "native/timeline/qml/Inspector/KeyframeClipCustomCurves.qml", "native/timeline/qml/Inspector/KeyframedPropertyRow.qml"]
+qml_callers = ["native/timeline/qml/Inspector/KeyframeClipAnimationEditor.qml", "native/timeline/qml/Inspector/KeyframeClipCustomCurves.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.ToolbarIconButton"
 
 [[file]]
@@ -373,26 +363,6 @@ qml_callers = []
 replacement = "Test host of EffectControlsPanel"
 
 [[file]]
-path = "native/timeline/qml/Inspector/KeyframeLane.qml"
-category = "domain"
-controls = ["Rectangle", "MouseArea", "Ui.ContextMenu", "Ui.MenuItem", "Ui.Separator"]
-signals = []
-test_host = "tst_inspectorsections"
-test_scope = "build/import"
-qml_callers = ["native/timeline/qml/Inspector/KeyframedPropertyRow.qml", "native/timeline/src/edit/keyframes/qmltests/tst_lane.qml"]
-replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
-
-[[file]]
-path = "native/timeline/qml/Inspector/KeyframedPropertyRow.qml"
-category = "chrome"
-controls = ["InspectorRow", "KeyframeButton", "InspectorPillInput"]
-signals = []
-test_host = "tst_inspectorsections"
-test_scope = "build/import"
-qml_callers = ["native/timeline/qml/Inspector/MotionFields.qml"]
-replacement = "Feature composition through migrated native Ui wrappers"
-
-[[file]]
 path = "native/timeline/qml/Inspector/MotionAnimationCatalog.qml"
 category = "domain"
 controls = []
@@ -421,16 +391,6 @@ test_host = "tst_inspectorsections"
 test_scope = "build/import"
 qml_callers = ["native/timeline/qml/Inspector/KeyframeClipAnimationEditor.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Text"
-
-[[file]]
-path = "native/timeline/qml/Inspector/MotionFields.qml"
-category = "chrome"
-controls = ["InspectorSection", "KeyframedPropertyRow", "InspectorSliderRow", "InspectorRow", "InspectorPillInput"]
-signals = []
-test_host = "tst_inspectorsections"
-test_scope = "build/import"
-qml_callers = ["native/timeline/qml/Inspector/TimelineInspector.qml", "native/timeline/src/motion/controls/GroupMotion.qml"]
-replacement = "Feature composition through migrated native Ui wrappers"
 
 [[file]]
 path = "native/timeline/qml/Inspector/ReframeButton.qml"
@@ -593,6 +553,16 @@ qml_callers = ["native/timeline/src/edit/keyframes/qmltests/tst_inspector.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.ScrollBar, Ui.Text"
 
 [[file]]
+path = "native/timeline/qml/Inspector/TransformFields.qml"
+category = "chrome"
+controls = ["InspectorSliderRow", "InspectorRow", "InspectorPillInput"]
+signals = []
+test_host = "tst_keyframesui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/effectcontrols/EffectControlsGroup.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
 path = "native/timeline/qml/Inspector/TransitionEasingField.qml"
 category = "chrome"
 controls = ["InspectorRow", "InspectorPillInput", "Ui.Text"]
@@ -669,7 +639,7 @@ controls = ["Ui.NumberField", "Ui.TextField", "MouseArea"]
 signals = ["gestureStarted", "preview", "commit", "canceled"]
 test_host = "tst_inspectorprimitives"
 test_scope = "build/import"
-qml_callers = ["native/timeline/qml/Inspector/AudioSection.qml", "native/timeline/qml/Inspector/CaptionStyle.qml", "native/timeline/qml/Inspector/KeyframeClipAnimationEditor.qml", "native/timeline/qml/Inspector/KeyframeClipCustomCurves.qml", "native/timeline/qml/Inspector/KeyframedPropertyRow.qml", "native/timeline/qml/Inspector/MotionAnimationParam.qml", "native/timeline/qml/Inspector/MotionEasingField.qml", "native/timeline/qml/Inspector/MotionFields.qml", "native/timeline/qml/Inspector/ShapeSection.qml", "native/timeline/qml/Inspector/SpeedDurationDialog.qml", "native/timeline/qml/Inspector/SpeedTimeRemap.qml", "native/timeline/qml/Inspector/TextFillFields.qml", "native/timeline/qml/Inspector/TextStyleNumber.qml", "native/timeline/qml/Inspector/TransitionEasingField.qml", "native/timeline/qml/Inspector/TransitionSection.qml", "native/timeline/qml/Inspector/primitives/InspectorColour.qml", "native/timeline/qml/Preferences/PreferencesDialog.qml", "native/timeline/qml/SourceViewerPanel.qml", "native/timeline/src/edit/clipeffects/EffectNumber.qml", "native/timeline/src/edit/inspectorsections/ClipGroupPanel.qml", "native/timeline/src/edit/inspectorsections/TimingSection.qml", "native/timeline/src/motion/blurcontrols/MotionBlur.qml", "native/timeline/src/motion/controls/AdvancedMotion.qml", "native/timeline/src/motion/tracking/TrackBinding.qml"]
+qml_callers = ["native/timeline/qml/Inspector/AudioSection.qml", "native/timeline/qml/Inspector/CaptionStyle.qml", "native/timeline/qml/Inspector/KeyframeClipAnimationEditor.qml", "native/timeline/qml/Inspector/KeyframeClipCustomCurves.qml", "native/timeline/qml/Inspector/MotionAnimationParam.qml", "native/timeline/qml/Inspector/MotionEasingField.qml", "native/timeline/qml/Inspector/ShapeSection.qml", "native/timeline/qml/Inspector/SpeedDurationDialog.qml", "native/timeline/qml/Inspector/SpeedTimeRemap.qml", "native/timeline/qml/Inspector/TextFillFields.qml", "native/timeline/qml/Inspector/TextStyleNumber.qml", "native/timeline/qml/Inspector/TransitionEasingField.qml", "native/timeline/qml/Inspector/TransitionSection.qml", "native/timeline/qml/Inspector/primitives/InspectorColour.qml", "native/timeline/qml/Preferences/PreferencesDialog.qml", "native/timeline/qml/SourceViewerPanel.qml", "native/timeline/src/edit/clipeffects/EffectNumber.qml", "native/timeline/src/edit/inspectorsections/ClipGroupPanel.qml", "native/timeline/src/edit/inspectorsections/TimingSection.qml", "native/timeline/src/motion/blurcontrols/MotionBlur.qml", "native/timeline/src/motion/controls/AdvancedMotion.qml", "native/timeline/src/motion/tracking/TrackBinding.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.NumberField, Ui.TextField"
 
 [[file]]
@@ -679,7 +649,7 @@ controls = ["Ui.Text"]
 signals = []
 test_host = "tst_inspectorprimitives"
 test_scope = "build/import"
-qml_callers = ["native/timeline/qml/Inspector/AudioEffectsFields.qml", "native/timeline/qml/Inspector/AudioSection.qml", "native/timeline/qml/Inspector/CaptionStyle.qml", "native/timeline/qml/Inspector/KeyframeClipAnimationEditor.qml", "native/timeline/qml/Inspector/KeyframeClipCustomCurves.qml", "native/timeline/qml/Inspector/KeyframedPropertyRow.qml", "native/timeline/qml/Inspector/MotionAnimationParam.qml", "native/timeline/qml/Inspector/MotionEasingField.qml", "native/timeline/qml/Inspector/MotionFields.qml", "native/timeline/qml/Inspector/ReframeSection.qml", "native/timeline/qml/Inspector/ShapeSection.qml", "native/timeline/qml/Inspector/TextFillFields.qml", "native/timeline/qml/Inspector/TextStyleSection.qml", "native/timeline/qml/Inspector/TransitionEasingField.qml", "native/timeline/qml/Inspector/TransitionSection.qml", "native/timeline/qml/Inspector/primitives/InspectorColour.qml", "native/timeline/qml/Inspector/primitives/InspectorToggleRow.qml", "native/timeline/qml/Preferences/PreferencesDialog.qml", "native/timeline/qml/SourceViewerPanel.qml", "native/timeline/src/edit/clipeffects/EffectFields.qml", "native/timeline/src/edit/inspectorsections/ClipGroupPanel.qml", "native/timeline/src/edit/inspectorsections/MediaSection.qml", "native/timeline/src/edit/inspectorsections/TimingSection.qml", "native/timeline/src/motion/blurcontrols/MotionBlur.qml", "native/timeline/src/motion/controls/AdvancedMotion.qml", "native/timeline/src/motion/tracking/TrackBinding.qml"]
+qml_callers = ["native/timeline/qml/Inspector/AudioEffectsFields.qml", "native/timeline/qml/Inspector/AudioSection.qml", "native/timeline/qml/Inspector/CaptionStyle.qml", "native/timeline/qml/Inspector/KeyframeClipAnimationEditor.qml", "native/timeline/qml/Inspector/KeyframeClipCustomCurves.qml", "native/timeline/qml/Inspector/MotionAnimationParam.qml", "native/timeline/qml/Inspector/MotionEasingField.qml", "native/timeline/qml/Inspector/ReframeSection.qml", "native/timeline/qml/Inspector/ShapeSection.qml", "native/timeline/qml/Inspector/TextFillFields.qml", "native/timeline/qml/Inspector/TextStyleSection.qml", "native/timeline/qml/Inspector/TransitionEasingField.qml", "native/timeline/qml/Inspector/TransitionSection.qml", "native/timeline/qml/Inspector/primitives/InspectorColour.qml", "native/timeline/qml/Inspector/primitives/InspectorToggleRow.qml", "native/timeline/qml/Preferences/PreferencesDialog.qml", "native/timeline/qml/SourceViewerPanel.qml", "native/timeline/src/edit/clipeffects/EffectFields.qml", "native/timeline/src/edit/inspectorsections/ClipGroupPanel.qml", "native/timeline/src/edit/inspectorsections/MediaSection.qml", "native/timeline/src/edit/inspectorsections/TimingSection.qml", "native/timeline/src/motion/blurcontrols/MotionBlur.qml", "native/timeline/src/motion/controls/AdvancedMotion.qml", "native/timeline/src/motion/tracking/TrackBinding.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Text"
 
 [[file]]
@@ -689,7 +659,7 @@ controls = ["Ui.Separator", "Ui.EditorButton"]
 signals = ["toggled", "checkedChangedByUser"]
 test_host = "tst_inspectorprimitives"
 test_scope = "interaction"
-qml_callers = ["native/timeline/qml/Inspector/AudioEffects.qml", "native/timeline/qml/Inspector/AudioSection.qml", "native/timeline/qml/Inspector/CaptionStyle.qml", "native/timeline/qml/Inspector/KeyframeAnimations.qml", "native/timeline/qml/Inspector/MotionFields.qml", "native/timeline/qml/Inspector/ReframeCrop.qml", "native/timeline/qml/Inspector/ReframeSection.qml", "native/timeline/qml/Inspector/ShapeSection.qml", "native/timeline/qml/Inspector/SpeedTimeRemap.qml", "native/timeline/qml/Inspector/TextStyleSection.qml", "native/timeline/qml/Inspector/TransitionSection.qml", "native/timeline/qml/Preferences/PreferencesDialog.qml", "native/timeline/qml/ai/AiInspectorSection.qml", "native/timeline/src/edit/clipeffects/ClipEffectsList.qml", "native/timeline/src/edit/inspectorsections/ClipGroupPanel.qml", "native/timeline/src/edit/inspectorsections/MediaSection.qml", "native/timeline/src/edit/inspectorsections/TimingSection.qml", "native/timeline/src/motion/blurcontrols/MotionBlur.qml", "native/timeline/src/motion/controls/AdvancedMotion.qml", "native/timeline/src/motion/controls/BorderRadius.qml", "native/timeline/src/motion/tracking/TrackBinding.qml"]
+qml_callers = ["native/timeline/qml/Inspector/AudioEffects.qml", "native/timeline/qml/Inspector/AudioSection.qml", "native/timeline/qml/Inspector/CaptionStyle.qml", "native/timeline/qml/Inspector/KeyframeAnimations.qml", "native/timeline/qml/Inspector/ReframeCrop.qml", "native/timeline/qml/Inspector/ReframeSection.qml", "native/timeline/qml/Inspector/ShapeSection.qml", "native/timeline/qml/Inspector/SpeedTimeRemap.qml", "native/timeline/qml/Inspector/TextStyleSection.qml", "native/timeline/qml/Inspector/TransitionSection.qml", "native/timeline/qml/Preferences/PreferencesDialog.qml", "native/timeline/qml/ai/AiInspectorSection.qml", "native/timeline/src/edit/clipeffects/ClipEffectsList.qml", "native/timeline/src/edit/inspectorsections/ClipGroupPanel.qml", "native/timeline/src/edit/inspectorsections/MediaSection.qml", "native/timeline/src/edit/inspectorsections/TimingSection.qml", "native/timeline/src/motion/blurcontrols/MotionBlur.qml", "native/timeline/src/motion/controls/AdvancedMotion.qml", "native/timeline/src/motion/controls/BorderRadius.qml", "native/timeline/src/motion/tracking/TrackBinding.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Separator, Ui.EditorButton"
 
 [[file]]
@@ -719,7 +689,7 @@ controls = ["Ui.Text", "Ui.Slider"]
 signals = ["gestureStarted", "preview", "change", "canceled"]
 test_host = "tst_inspectorprimitives"
 test_scope = "interaction"
-qml_callers = ["native/timeline/qml/Inspector/AudioEffectsFields.qml", "native/timeline/qml/Inspector/AudioSection.qml", "native/timeline/qml/Inspector/MotionAnimationParam.qml", "native/timeline/qml/Inspector/MotionFields.qml", "native/timeline/qml/Inspector/ReframeCrop.qml", "native/timeline/qml/Inspector/ReframeSection.qml", "native/timeline/qml/Inspector/ShapeSection.qml", "native/timeline/qml/Inspector/TransitionSection.qml", "native/timeline/qml/mixer/EffectDevicePopover.qml", "native/timeline/src/edit/clipeffects/EffectFields.qml", "native/timeline/src/motion/controls/BorderRadius.qml", "native/timeline/src/motion/tracking/TrackBinding.qml"]
+qml_callers = ["native/timeline/qml/Inspector/AudioEffectsFields.qml", "native/timeline/qml/Inspector/AudioSection.qml", "native/timeline/qml/Inspector/MotionAnimationParam.qml", "native/timeline/qml/Inspector/ReframeCrop.qml", "native/timeline/qml/Inspector/ReframeSection.qml", "native/timeline/qml/Inspector/ShapeSection.qml", "native/timeline/qml/Inspector/TransitionSection.qml", "native/timeline/qml/mixer/EffectDevicePopover.qml", "native/timeline/src/edit/clipeffects/EffectFields.qml", "native/timeline/src/motion/controls/BorderRadius.qml", "native/timeline/src/motion/tracking/TrackBinding.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.Slider"
 
 [[file]]
@@ -889,7 +859,7 @@ controls = []
 signals = []
 test_host = "tst_tracksui"
 test_scope = "build/import"
-qml_callers = ["native/timeline/qml/DocumentBar.qml", "native/timeline/qml/Inspector/AudioEffects.qml", "native/timeline/qml/Inspector/AudioSection.qml", "native/timeline/qml/Inspector/KeyframeClipDiamonds.qml", "native/timeline/qml/Inspector/KeyframeLane.qml", "native/timeline/qml/Inspector/ReframeCrop.qml", "native/timeline/qml/Inspector/ReframeSection.qml", "native/timeline/qml/Inspector/SpeedTimeRemap.qml", "native/timeline/qml/TimelineDocumentActions.qml", "native/timeline/qml/Tracks/Clip.qml", "native/timeline/qml/Tracks/ClipBody.qml", "native/timeline/qml/Tracks/Playhead.qml", "native/timeline/qml/Tracks/ShortcutsSheet.qml", "native/timeline/qml/Tracks/TimeRuler.qml", "native/timeline/qml/Tracks/TimelineScrollbar.qml", "native/timeline/qml/Tracks/TracksRegion.qml", "native/timeline/qml/Tracks/automation/AutomationAddLaneHeader.qml", "native/timeline/qml/assets/AssetDropOverlay.qml", "native/timeline/qml/assets/AssetExplorer.qml", "native/timeline/qml/dock/DockCanvas.qml", "native/timeline/qml/dock/DockLayoutMenu.qml", "native/timeline/qml/preview/PreviewArea.qml", "native/timeline/qml/storyworkspace/StoryWorkspaceEditor.qml"]
+qml_callers = ["native/timeline/qml/DocumentBar.qml", "native/timeline/qml/Inspector/AudioEffects.qml", "native/timeline/qml/Inspector/AudioSection.qml", "native/timeline/qml/Inspector/KeyframeClipDiamonds.qml", "native/timeline/qml/Inspector/ReframeCrop.qml", "native/timeline/qml/Inspector/ReframeSection.qml", "native/timeline/qml/Inspector/SpeedTimeRemap.qml", "native/timeline/qml/TimelineDocumentActions.qml", "native/timeline/qml/Tracks/Clip.qml", "native/timeline/qml/Tracks/ClipBody.qml", "native/timeline/qml/Tracks/Playhead.qml", "native/timeline/qml/Tracks/ShortcutsSheet.qml", "native/timeline/qml/Tracks/TimeRuler.qml", "native/timeline/qml/Tracks/TimelineScrollbar.qml", "native/timeline/qml/Tracks/TracksRegion.qml", "native/timeline/qml/Tracks/automation/AutomationAddLaneHeader.qml", "native/timeline/qml/assets/AssetDropOverlay.qml", "native/timeline/qml/assets/AssetExplorer.qml", "native/timeline/qml/dock/DockCanvas.qml", "native/timeline/qml/dock/DockLayoutMenu.qml", "native/timeline/qml/preview/PreviewArea.qml", "native/timeline/qml/storyworkspace/StoryWorkspaceEditor.qml"]
 replacement = "Timeline-specific geometry and stacking scaled by Ui.Theme.uiScale"
 
 [[file]]
@@ -2564,16 +2534,6 @@ replacement = "Feature composition through migrated native Ui wrappers"
 
 [[file]]
 path = "native/timeline/src/edit/keyframes/qmltests/tst_inspector.qml"
-category = "chrome"
-controls = []
-signals = []
-test_host = "tst_keyframesui"
-test_scope = "build/import"
-qml_callers = []
-replacement = "Feature composition through migrated native Ui wrappers"
-
-[[file]]
-path = "native/timeline/src/edit/keyframes/qmltests/tst_lane.qml"
 category = "chrome"
 controls = []
 signals = []
