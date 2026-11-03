@@ -72,12 +72,13 @@ function(nt_export_tests)
     # headless render backend as the other render-labelled tests.
     set_tests_properties(export_original_pixels PROPERTIES LABELS render FIXTURES_REQUIRED media RUN_SERIAL TRUE
         ENVIRONMENT_MODIFICATION "QT_QUICK_BACKEND=unset:")
-    # These two render frames, so they need the platform RHI as well.
+    # These two render frames, so they need the platform RHI as well. No render label: CI's render
+    # step only runs once every other test passes.
     add_test(NAME export_range_bitrate COMMAND tst_exportdialog rangeResolution bitrateExport)
     if(APPLE)
         set_tests_properties(export_range_bitrate PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=cocoa")
     endif()
-    set_tests_properties(export_range_bitrate PROPERTIES LABELS render FIXTURES_REQUIRED media RUN_SERIAL TRUE
+    set_tests_properties(export_range_bitrate PROPERTIES FIXTURES_REQUIRED media RUN_SERIAL TRUE
         ENVIRONMENT_MODIFICATION "QT_QUICK_BACKEND=unset:")
     add_test(NAME export_controller_cancel COMMAND tst_exportdialog controllerCancel)
     set_tests_properties(export_controller_cancel PROPERTIES LABELS render FIXTURES_REQUIRED media)
