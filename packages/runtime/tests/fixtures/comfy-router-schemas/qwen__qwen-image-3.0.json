@@ -1,0 +1,325 @@
+{
+ "components": {
+  "schemas": {
+   "QwenMultimodalGenerationResponse": {
+    "properties": {
+     "code": {
+      "description": "The error code for the failed request (not returned if request is successful)",
+      "type": "string"
+     },
+     "message": {
+      "description": "Detailed information about the failed request (not returned if request is successful)",
+      "type": "string"
+     },
+     "output": {
+      "description": "Contains the model generation results",
+      "properties": {
+       "choices": {
+        "description": "The list of result options",
+        "items": {
+         "properties": {
+          "finish_reason": {
+           "description": "The reason why the task stopped. The value is stop when the task completes normally",
+           "type": "string"
+          },
+          "message": {
+           "description": "The message returned by the model",
+           "properties": {
+            "content": {
+             "description": "The message content containing the generated image information",
+             "items": {
+              "properties": {
+               "image": {
+                "description": "The URL of the generated image in PNG format. The link is valid for 24 hours",
+                "type": "string"
+               },
+               "text": {
+                "description": "A textual element returned in place of an image. An element carrying only this field produced NO asset, so a caller keys completion off `image` rather than off the presence of a content element",
+                "type": "string"
+               }
+              },
+              "type": "object"
+             },
+             "type": "array"
+            },
+            "role": {
+             "description": "The role of the message. Fixed as assistant",
+             "type": "string"
+            }
+           },
+           "type": "object"
+          }
+         },
+         "type": "object"
+        },
+        "type": "array"
+       }
+      },
+      "type": "object"
+     },
+     "request_id": {
+      "description": "Unique request identifier",
+      "type": "string"
+     },
+     "usage": {
+      "description": "The resource usage of this call. Only returned on success",
+      "properties": {
+       "input_image_count": {
+        "description": "The number of input images in the request. Returns 0 for text-to-image",
+        "type": "integer"
+       },
+       "input_image_type": {
+        "description": "The input image billing tier, qima_input_1k or qima_input_2k, determined by the output resolution pixel area",
+        "type": "string"
+       },
+       "output_height": {
+        "description": "The height of the final output image in pixels",
+        "type": "integer"
+       },
+       "output_image_count": {
+        "description": "The actual number of output images returned",
+        "type": "integer"
+       },
+       "output_image_type": {
+        "description": "The output image billing tier, qima_output_1k or qima_output_2k, determined by the output resolution pixel area",
+        "type": "string"
+       },
+       "output_width": {
+        "description": "The width of the final output image in pixels",
+        "type": "integer"
+       }
+      },
+      "type": "object"
+     }
+    },
+    "type": "object"
+   }
+  },
+  "securitySchemes": {
+   "ApiKeyAuth": {
+    "in": "header",
+    "name": "X-API-Key",
+    "type": "apiKey"
+   },
+   "BearerAuth": {
+    "bearerFormat": "JWT",
+    "scheme": "bearer",
+    "type": "http"
+   }
+  }
+ },
+ "info": {
+  "description": "The request body Comfy Router accepts for the model \"qwen/qwen-image-3.0\", and the response body it returns. The INPUT schema is the same schema the server validates a call against before it reaches the provider, so what is published and what is enforced cannot differ. `x-comfy-router-input-modalities` records the media kinds the model is documented to accept; the request schema is shared across sibling models and may admit media kinds this model ignores. The OUTPUT schema describes the provider's native result document exactly as Router returns it: Router does not validate, narrow or re-envelope the response, so the output schema is descriptive rather than enforced, and Comfy owns no output shape of its own.",
+  "title": "qwen/qwen-image-3.0",
+  "version": "2e693e1cb414"
+ },
+ "openapi": "3.0.2",
+ "paths": {
+  "/v2/models/qwen/qwen-image-3.0": {
+   "post": {
+    "operationId": "runRouterModel",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "description": "Request body for a Qwen multimodal image generation or edit. The `example` below is the COMFY ROUTER form and deliberately omits `model`, which Router fills from the `{model}` path segment; a direct v1 call to POST /proxy/qwen/api/v1/services/aigc/multimodal-generation/generation must add `model` to it. One example cannot serve both surfaces - this component is the Router input schema for BOTH qwen spellings, so an example naming either one is refused by the other model's route for naming a different model, while the omitting form is valid on both.",
+        "example": {
+         "input": {
+          "messages": [
+           {
+            "content": [
+             {
+              "text": "A single red maple leaf on a plain white background."
+             }
+            ],
+            "role": "user"
+           }
+          ]
+         }
+        },
+        "properties": {
+         "input": {
+          "description": "The input parameter object containing the request messages",
+          "properties": {
+           "messages": {
+            "description": "The request content array. Only single-round conversations are supported, so the array must contain exactly one object",
+            "items": {
+             "properties": {
+              "content": {
+               "description": "The message content array. Text-to-image contains one text object; image editing contains 1-3 image objects and one text object",
+               "items": {
+                "properties": {
+                 "image": {
+                  "description": "The URL or Base64 encoded data of an input image. 1-3 images are supported for image editing",
+                  "type": "string"
+                 },
+                 "text": {
+                  "description": "The positive prompt that describes the image content, style, and composition to generate or edit",
+                  "type": "string"
+                 }
+                },
+                "type": "object"
+               },
+               "maxItems": 4,
+               "minItems": 1,
+               "not": {
+                "items": {
+                 "not": {
+                  "required": [
+                   "text"
+                  ]
+                 }
+                }
+               },
+               "type": "array"
+              },
+              "role": {
+               "description": "The role of the message sender. Must be set to user",
+               "enum": [
+                "user"
+               ],
+               "type": "string"
+              }
+             },
+             "required": [
+              "role",
+              "content"
+             ],
+             "type": "object"
+            },
+            "maxItems": 1,
+            "minItems": 1,
+            "type": "array"
+           }
+          },
+          "required": [
+           "messages"
+          ],
+          "type": "object"
+         },
+         "model": {
+          "description": "The ID of the model to call for multimodal image generation and editing. Available values are qwen-image-3.0-pro and qwen-image-3.0. It is NOT in this schema's `required` list because Comfy Router fills it from the `{model}` path segment of /v2/models/qwen/{model}, so a Router caller omits it; a direct v1 call to the /proxy/ route must supply it.",
+          "nullable": true,
+          "type": "string"
+         },
+         "parameters": {
+          "description": "Additional parameters to control image generation",
+          "properties": {
+           "n": {
+            "default": 1,
+            "description": "The number of output images. Range 1-6, default is 1",
+            "maximum": 6,
+            "minimum": 1,
+            "type": "integer"
+           },
+           "negative_prompt": {
+            "description": "The negative prompt that describes content you do not want to appear in the image",
+            "type": "string"
+           },
+           "prompt_extend": {
+            "default": true,
+            "description": "Whether to enable intelligent prompt rewriting. Default is true",
+            "type": "boolean"
+           },
+           "prompt_extend_mode": {
+            "default": "direct",
+            "description": "The prompt rewriting method, direct (default, supported for T2I and I2I) or agent (T2I only)",
+            "enum": [
+             "direct",
+             "agent"
+            ],
+            "type": "string"
+           },
+           "seed": {
+            "description": "Random number seed to control randomness. Range [0, 2147483647]",
+            "maximum": 2147483647,
+            "minimum": 0,
+            "type": "integer"
+           },
+           "size": {
+            "description": "The output image resolution in the format width*height, for example 1024*1024. The API accepts a pixel area between 262144 (512*512) and 6553600 (2560*2560) with an aspect ratio between 1:8 and 8:1. If not specified, the model automatically recommends a resolution based on the prompt",
+            "type": "string"
+           },
+           "watermark": {
+            "default": false,
+            "description": "Whether to add a watermark. Default is false",
+            "type": "boolean"
+           }
+          },
+          "type": "object"
+         }
+        },
+        "required": [
+         "input"
+        ],
+        "type": "object"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "allOf": [
+          {
+           "$ref": "#/components/schemas/QwenMultimodalGenerationResponse"
+          }
+         ],
+         "description": "Comfy Router output schema for the Qwen Image 3.0 models: the DashScope multimodal-generation response, forwarded unchanged. The operation is DIRECT-RETURN (`routerresult/classification.go` records `{provider: qwen, endpoint: /api/v1/services/aigc/multimodal-generation/generation}` as `ReturnModeDirect`), so the body a caller receives is this finished document from the one call rather than a task handle. `multimodalGenerationProxy`'s `ModifyResponse` meters it synchronously through `TrackUsage`, `QWEN_TASK_TYPE` registers no task checker, and the rewrite DELETES `X-DashScope-Async` \u2014 there is nothing to poll.\nThe generated image is at `output.choices[].message.content[].image`. DashScope documents that URL as valid for 24 HOURS, so download it promptly rather than storing it. Both `choices` and `content` are ARRAYS \u2014 `parameters.n` admits up to six images \u2014 so a caller reads every element rather than only the first, and that LEAF rather than the `output` container is what says a generation finished: a `content` element carrying only `text` produced no asset.\n`usage` is DashScope's own accounting \u2014 `output_image_count` plus the `qima_input_*` / `qima_output_*` billing tiers it derives from the resolved resolution \u2014 and NOT the Comfy charge. Router reads those same fields to meter the call, but what a caller is charged is Comfy's rate card. DashScope documents `usage` as returned only on success.\n`code` and `message` are DashScope's failure pair, absent on a success. Neither they nor `output` are constrained here, and `output` is deliberately NOT required: this operation's `Classification` names no `DirectState` reader, so Router treats a 2xx status as the whole success test and never inspects the body (`routerresult/extract.go`). A caller must key completion off the image leaf above rather than off the `200` alone.",
+         "example": {
+          "output": {
+           "choices": [
+            {
+             "finish_reason": "stop",
+             "message": {
+              "content": [
+               {
+                "image": "https://example.invalid/qwen/generated.png"
+               }
+              ],
+              "role": "assistant"
+             }
+            }
+           ]
+          },
+          "request_id": "9f2c1b3a-5d4e-4a67-8b90-1c2d3e4f5a6b",
+          "usage": {
+           "input_image_count": 0,
+           "output_height": 512,
+           "output_image_count": 1,
+           "output_image_type": "qima_output_1k",
+           "output_width": 512
+          }
+         }
+        }
+       }
+      },
+      "description": "OK - the model's native JSON output, returned unchanged; the schema describes the provider's terminal result document as Router returns it."
+     }
+    },
+    "security": [
+     {
+      "BearerAuth": []
+     },
+     {
+      "ApiKeyAuth": []
+     }
+    ],
+    "summary": "Run qwen/qwen-image-3.0 synchronously."
+   }
+  }
+ },
+ "x-comfy-input-schema-authored": true,
+ "x-comfy-output-schema-authored": true,
+ "x-comfy-router-input-modalities": [
+  "text",
+  "image"
+ ],
+ "x-comfy-router-model-id": "qwen/qwen-image-3.0",
+ "x-comfy-router-output-modalities": [
+  "image"
+ ]
+}
