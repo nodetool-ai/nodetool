@@ -4,7 +4,8 @@
 // rows only when this list changes and not on every edit of a value.
 // The order follows Premiere's fixed effects: Motion, Opacity, Time Remapping, then Crop, Corners
 // and Motion blur, then the clip's effects, then under audio Volume and the audio effects.
-// `sections` are the ones registered for this panel, whose controls have no keyframes.
+// `sections` are the ones registered for this panel, whose controls have no keyframes. Crop and
+// Corners are rows like Motion's, in a group with no switch.
 function groups(clip, rowSpecs, visualEffects, audioEffects, sections) {
     const type = clip.mediaType || "";
     const result = [];
@@ -29,11 +30,12 @@ function groups(clip, rowSpecs, visualEffects, audioEffects, sections) {
     if (type !== "midi" && type !== "group") {
         addSection("timeRemap");
     }
+    const addRows = (id, label, ids) => result.push({id: id, kind: "section", label: label, rows: rows(ids), startsOpen: false});
     if (["video", "image", "overlay", "text", "shape", "model3d"].indexOf(type) >= 0) {
-        addSection("crop");
+        addRows("crop", "Crop", ["cropLeft", "cropTop", "cropRight", "cropBottom"]);
     }
     if (!sound) {
-        addSection("borderRadius");
+        addRows("borderRadius", "Corners", ["borderRadius"]);
         addSection("motionBlur");
     }
     for (const effect of visualEffects) {

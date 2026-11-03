@@ -88,8 +88,8 @@ bool multiply(const QString& p) {
     return QStringList{"scale", "scaleX", "scaleY", "opacity", "saturation", "contrast", "cameraZoom"}.contains(p);
 }
 bool replace(const QString& p) {
-    return QStringList{"positionX", "positionY", "anchorX",      "anchorY",
-                       "trimStart", "trimEnd",   "wipeProgress", "perspective"}
+    return QStringList{"positionX", "positionY", "anchorX",      "anchorY",     "trimStart", "trimEnd",
+                       "wipeProgress", "perspective", "cropLeft", "cropRight", "cropTop", "cropBottom", "borderRadius"}
         .contains(p);
 }
 double identity(const QString& p) { return multiply(p) ? 1 : 0; }
@@ -362,6 +362,12 @@ std::vector<Input> inputs(const QString& row) {
     if (row == "volume") {
         return {{"volumeDb", {}, "volumeDb", 0, -60, 12}};
     }
+    if (row == "cropLeft" || row == "cropRight" || row == "cropTop" || row == "cropBottom") {
+        return {{row, "crop", row.mid(4).toLower(), 0, 0, 0.95}};
+    }
+    if (row == "borderRadius") {
+        return {{"borderRadius", {}, "borderRadius", 0, 0, 500}};
+    }
     if (row == "cameraOrbit") {
         return {{"cameraAzimuth", "camera", "azimuthDeg", 45}, {"cameraElevation", "camera", "elevationDeg", 25}};
     }
@@ -373,9 +379,14 @@ std::vector<Input> inputs(const QString& row) {
     }
     return {};
 }
+// A field of the clip itself, rather than of its transform.
+bool onClip(const Input& i) { return i.property == "opacity" || i.property == "volumeDb" || i.property == "borderRadius"; }
 double base(const QJsonObject& clip, const Input& i) {
-    if (i.property == "opacity" || i.property == "volumeDb") {
+    if (onClip(i)) {
         return clip[i.member].toDouble(i.defaultValue);
+    }
+    if (i.group == "crop") {
+        return clip["crop"].toObject()[i.member].toDouble(i.defaultValue);
     }
     const auto from = i.group == "camera" ? cameraStyle(clip)["camera"].toObject()
                       : i.group.isEmpty() ? transform(clip)
@@ -383,8 +394,13 @@ double base(const QJsonObject& clip, const Input& i) {
     return from[i.member].toDouble(i.defaultValue);
 }
 QJsonObject basePatch(const QJsonObject& clip, const Input& i, double value) {
-    if (i.property == "opacity" || i.property == "volumeDb") {
+    if (onClip(i)) {
         return {{i.member, value}};
+    }
+    if (i.group == "crop") {
+        // `edit` removes a crop of nothing.
+        return {{"crop", merged({{"left", 0}, {"right", 0}, {"top", 0}, {"bottom", 0}},
+                                merged(clip["crop"].toObject(), {{i.member, value}}))}};
     }
     if (i.group == "camera") {
         auto style = cameraStyle(clip);
@@ -481,7 +497,14 @@ QJsonValue commit(const QJsonObject& clip, const QString& row, int index, double
         return QJsonValue::Null;
     }
     const auto& input = specs[static_cast<size_t>(index)];
-    const double composed = std::clamp(value, input.min, input.max);
+    double top = input.max;
+    if (input.group == "crop") {
+        // Opposite edges leave at least 5% of the picture, as the crop edit does.
+        static const QHash<QString, QString> opposite{{"cropLeft", "cropRight"}, {"cropRight", "cropLeft"}, {"cropTop", "cropBottom"}, {"cropBottom", "cropTop"}};
+        const double ms = at.isDouble() ? at.toDouble() : 0;
+        top = std::max(input.min, input.max - inputValue(clip, opposite.value(row), 0, ms));
+    }
+    const double composed = std::clamp(value, input.min, top);
     if (!rowKeyed(clip, row)) {
         return basePatch(clip, input, composed);
     }
@@ -1323,7 +1346,14 @@ QJsonObject edit(QJsonObject document, const QJsonObject& payload) {
             return document;
         }
         if (patch.isObject()) {
-            clips[i] = merged(c, patch.toObject());
+            auto next = merged(c, patch.toObject());
+            if (next.contains("crop")) {
+                const auto crop = next["crop"].toObject();
+                if (crop["left"].toDouble() == 0 && crop["right"].toDouble() == 0 && crop["top"].toDouble() == 0 && crop["bottom"].toDouble() == 0) {
+                    next.remove("crop");
+                }
+            }
+            clips[i] = next;
             document.insert("clips", clips);
         }
         return document;
@@ -1389,6 +1419,50 @@ QJsonArray rowSpecs() {
                                                       {"step", 0.5},
                                                       {"min", -60},
                                                       {"max", 12}}}}},
+        QJsonObject{{"id", "cropLeft"},
+                    {"label", "Left"},
+                    {"inputs", QJsonArray{QJsonObject{{"label", "Crop left"},
+                                                      {"unit", "%"},
+                                                      {"decimals", 1},
+                                                      {"step", 0.5},
+                                                      {"displayScale", 100},
+                                                      {"min", 0},
+                                                      {"max", 95}}}}},
+        QJsonObject{{"id", "cropTop"},
+                    {"label", "Top"},
+                    {"inputs", QJsonArray{QJsonObject{{"label", "Crop top"},
+                                                      {"unit", "%"},
+                                                      {"decimals", 1},
+                                                      {"step", 0.5},
+                                                      {"displayScale", 100},
+                                                      {"min", 0},
+                                                      {"max", 95}}}}},
+        QJsonObject{{"id", "cropRight"},
+                    {"label", "Right"},
+                    {"inputs", QJsonArray{QJsonObject{{"label", "Crop right"},
+                                                      {"unit", "%"},
+                                                      {"decimals", 1},
+                                                      {"step", 0.5},
+                                                      {"displayScale", 100},
+                                                      {"min", 0},
+                                                      {"max", 95}}}}},
+        QJsonObject{{"id", "cropBottom"},
+                    {"label", "Bottom"},
+                    {"inputs", QJsonArray{QJsonObject{{"label", "Crop bottom"},
+                                                      {"unit", "%"},
+                                                      {"decimals", 1},
+                                                      {"step", 0.5},
+                                                      {"displayScale", 100},
+                                                      {"min", 0},
+                                                      {"max", 95}}}}},
+        QJsonObject{{"id", "borderRadius"},
+                    {"label", "Radius"},
+                    {"inputs", QJsonArray{QJsonObject{{"label", "Corner radius"},
+                                                      {"unit", "px"},
+                                                      {"decimals", 0},
+                                                      {"step", 1},
+                                                      {"min", 0},
+                                                      {"max", 500}}}}},
         QJsonObject{
             {"id", "cameraOrbit"},
             {"label", "Orbit"},

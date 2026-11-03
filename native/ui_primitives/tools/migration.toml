@@ -433,16 +433,6 @@ qml_callers = ["native/timeline/qml/Inspector/ReframeSection.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Text"
 
 [[file]]
-path = "native/timeline/qml/Inspector/ReframeCrop.qml"
-category = "chrome"
-controls = ["InspectorSection", "InspectorSliderRow"]
-signals = []
-test_host = "tst_inspectorsections"
-test_scope = "build/import"
-qml_callers = []
-replacement = "Feature composition through migrated native Ui wrappers"
-
-[[file]]
 path = "native/timeline/qml/Inspector/ReframeFocusOverlay.qml"
 category = "domain"
 controls = ["Canvas", "MouseArea"]
@@ -2623,27 +2613,7 @@ qml_callers = []
 replacement = "NodeTool.UiPrimitives: Ui.EditorButton"
 
 [[file]]
-path = "native/timeline/src/motion/controls/BorderRadius.qml"
-category = "chrome"
-controls = ["InspectorSection", "InspectorSliderRow"]
-signals = []
-test_host = "tst_followpathui"
-test_scope = "build/import"
-qml_callers = []
-replacement = "Feature composition through migrated native Ui wrappers"
-
-[[file]]
 path = "native/timeline/src/motion/controls/qmltests/tst_advancedmotion.qml"
-category = "chrome"
-controls = []
-signals = []
-test_host = "tst_followpathui"
-test_scope = "build/import"
-qml_callers = []
-replacement = "Feature composition through migrated native Ui wrappers"
-
-[[file]]
-path = "native/timeline/src/motion/controls/qmltests/tst_borderradius.qml"
 category = "chrome"
 controls = []
 signals = []

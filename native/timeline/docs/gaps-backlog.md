@@ -194,6 +194,7 @@ results rather than a review finding.
 | B202 | P2 | notes (keys-1) | `src/edit/keyframes/Keyframes.cpp` | An unset Perspective draws flat but its row shows 1000, as the old field did. Keying it on a turned clip therefore starts a perspective at 1000 instead of keeping the flat picture. | keys-1 |
 | B203 | P2 | notes (keys-2) | `qml/effectcontrols/EffectControlsModel.js` | A video clip with its own sound has no Volume group in Effect Controls, so its level and keys cannot be set there. The mixer already applies Volume keys to its voices, and Paste Attributes can bring them. | keys-2 |
 | B204 | P2 | keys-2 r1 | `src/edit/ClipOps.cpp`, `src/edit/keyframes/Keyframes.cpp` | Keyframe times use a tolerance of 1e-4 of the clip, as the web does. On a 10-minute clip that is 60 ms, so a split can take in a key near the cut on the keyframe animation, and adding a key near another replaces it on any curve. Side curves keep keys near a cut. | keys-2 |
+| B205 | P2 | notes (keys-3) | `src/motion/blur/Shutter.h`, `src/motion/blurcontrols/MotionBlur.qml` | Motion blur has no keys. It does not share the per-layer path of Crop and Corners: `frameShutter` reads the shutter of every clip from its JSON, before the scene is evaluated, to choose the frame's samples. Shutter angle could be keyed by sampling a side curve there and in `layerShutterTime`. Samples per frame is a quality setting and whole, so it should stay unkeyed. | keys-3 |
 
 ## Closed
 

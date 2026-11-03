@@ -8,7 +8,7 @@ const auto registered = nt::registerContextLayerDecorator([](nt::ActiveLayer& la
     if (layer.sourceWidth <= 0 || layer.sourceHeight <= 0) {
         return;
     }
-    auto crop = clip.raw.value("crop").toObject();
+    auto crop = nt::reframe::cropAt(clip, context.timeMs);
     if (clip.raw.contains("reframe")) {
         QJsonObject reframeTrack;
         const auto trackId = clip.raw.value("reframe").toObject().value("trackId").toString();

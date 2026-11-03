@@ -6,6 +6,7 @@
 #include "model/TimelineJson.h"
 #include "playback/PlaybackClock.h"
 #include "preview/SceneEval.h"
+#include "preview/crop/Reframe.h"
 #include "preview/layers/TestStill.h"
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -127,6 +128,26 @@ private slots:
         TimelineModel model;
         model.setTimeline(document({tile("c", transform)}));
         keyRow(model, row, input, first, second);
+        if (QTest::currentTestFailed()) { return; }
+        checkFrames(model);
+    }
+    void cropAndCorners_data() {
+        QTest::addColumn<QString>("row");
+        QTest::addColumn<double>("first");
+        QTest::addColumn<double>("second");
+        QTest::newRow("crop left") << "cropLeft" << 0.0 << 0.6;
+        QTest::newRow("crop top") << "cropTop" << 0.0 << 0.6;
+        QTest::newRow("crop right") << "cropRight" << 0.0 << 0.6;
+        QTest::newRow("crop bottom") << "cropBottom" << 0.0 << 0.6;
+        QTest::newRow("corners") << "borderRadius" << 0.0 << 16.0;
+    }
+    void cropAndCorners() {
+        QFETCH(QString, row);
+        QFETCH(double, first);
+        QFETCH(double, second);
+        TimelineModel model;
+        model.setTimeline(document({tile("c", half())}));
+        keyRow(model, row, 0, first, second);
         if (QTest::currentTestFailed()) { return; }
         checkFrames(model);
     }

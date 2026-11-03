@@ -52,7 +52,21 @@ Item {
         }
         function center(item) { return item.mapToItem(host, item.width / 2, item.height / 2) }
         function times(row) { return Array.from(controller.rowDocument(row).times) }
+        // Scrolls a control in the list into view first, as a user would.
+        function reveal(item) {
+            const view = findChild(panel, "effectControlsRows")
+            for (let up = item; up; up = up.parent) {
+                if (up === view) {
+                    const top = item.mapToItem(view, 0, 0).y
+                    if (top < 0 || top + item.height > view.height) {
+                        view.contentY = Math.max(0, Math.min(view.contentHeight - view.height, view.contentY + top - Ui.Metrics.xl))
+                    }
+                    return
+                }
+            }
+        }
         function click(item) {
+            reveal(item)
             const p = center(item)
             mouseClick(host, p.x, p.y)
         }
@@ -163,6 +177,8 @@ Item {
             const area = child("effectControlsCollapse_" + id)
             if (area.iconName !== "arrowDropDown") click(area)
             tryCompare(area, "iconName", "arrowDropDown")
+            // The rows lay out with the next frame.
+            waitForRendering(panel)
         }
         function closeSection(id) {
             const area = child("effectControlsCollapse_" + id)
@@ -274,7 +290,7 @@ Item {
         }
         function test_fieldsWithNoKeysKeepTheRowShape() {
             openSection("crop")
-            const crop = child("cropleft")
+            const crop = child("effectControls_cropLeft_input_0")
             tryVerify(() => crop.visible)
             waitForRendering(panel)
             const left = crop.mapToItem(panel, 0, 0).x
@@ -286,17 +302,45 @@ Item {
         }
         function test_cropCommitsOneUndoStep() {
             openSection("crop")
-            const crop = child("cropleft")
+            const crop = child("effectControls_cropLeft_input_0")
             const before = testHarness.documentJson()
             const count = testHarness.undoCount()
             crop.gestureStarted()
-            crop.preview(0.2)
-            crop.change(0.2)
+            crop.preview("20")
+            crop.commit("20")
             compare(testHarness.undoCount(), count + 1)
             compare(controller.clip.crop.left, 0.2)
             testTimeline.undoStack.undo()
             compare(testHarness.documentJson(), before)
             closeSection("crop")
+        }
+        function test_cropAndCornersKey_data() {
+            return [{tag: "cropLeft", row: "cropLeft", group: "crop"}, {tag: "cropBottom", row: "cropBottom", group: "crop"},
+                    {tag: "borderRadius", row: "borderRadius", group: "borderRadius"}]
+        }
+        function test_cropAndCornersKey(data) {
+            openSection(data.group)
+            testClock.seek(0)
+            const stopwatch = child("effectControlsStopwatch_" + data.row)
+            tryVerify(() => stopwatch.visible)
+            const count = testHarness.undoCount()
+            click(stopwatch)
+            tryVerify(() => controller.rowDocument(data.row).keyframed)
+            compare(testHarness.undoCount(), count + 1)
+            testClock.seek(1000)
+            tryVerify(() => controller.playheadMs === 1000)
+            click(child("effectControlsToggle_" + data.row))
+            tryCompare(controller.rowDocument(data.row).times, "length", 2)
+            click(child("effectControlsPrev_" + data.row))
+            tryVerify(() => controller.playheadMs === 0)
+            click(child("effectControlsNext_" + data.row))
+            tryVerify(() => controller.playheadMs === 1000)
+            click(child("effectControlsGraphs_" + data.row))
+            tryVerify(() => child("effectControlsGraphLoader_" + data.row).item)
+            testTimeline.undoStack.undo()
+            testTimeline.undoStack.undo()
+            tryVerify(() => !controller.rowDocument(data.row).keyframed)
+            closeSection(data.group)
         }
         function test_timeRemapSwitchSitsInTheHeading() {
             const toggle = child("effectControlsEnable_timeRemap")
@@ -312,7 +356,7 @@ Item {
         }
         function test_sectionsAreClosedUntilOpenedAndStayOpenAcrossClips() {
             const corners = child("effectControlsCollapse_borderRadius")
-            const radius = child("borderRadiusSlider")
+            const radius = child("effectControlsStopwatch_borderRadius")
             verify(!radius.visible)
             click(corners)
             tryCompare(radius, "visible", true)
@@ -321,7 +365,7 @@ Item {
             testGestures.selection = ["c"]
             tryVerify(() => panel.hasClip)
             let again = null
-            tryVerify(() => { again = findChild(panel, "borderRadiusSlider"); return again !== null && again.visible })
+            tryVerify(() => { again = findChild(panel, "effectControlsStopwatch_borderRadius"); return again !== null && again.visible })
             closeSection("borderRadius")
         }
         function test_audioEffectChainActions() {

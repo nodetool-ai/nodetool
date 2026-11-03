@@ -5,6 +5,7 @@
 #include "model/TimelineModel.h"
 #include "preview/SceneEval.h"
 #include "edit/ClipOps.h"
+#include "preview/crop/Reframe.h"
 #include "scene/Animation.h"
 #include "scene/SideCurves.h"
 #include <QCoreApplication>
@@ -754,6 +755,45 @@ class TestKeyframes : public QObject {
         const auto frame = nt::evaluateSceneTap(*parsed.timeline, 1025, 1000, 3, 4);
         QCOMPARE(frame.layers.size(), size_t(2));
         QCOMPARE(frame.layers.front().clipId, std::string("a"));
+    }
+    void cropRowsStayInsideThePicture() {
+        TimelineModel model;
+        model.setTimeline(fixture());
+        const auto clip = [&] { return model.clipsJson()[0].toObject(); };
+        const auto before = model.documentJson();
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "cropLeft"}, {"input", 0}, {"value", 0.6}, {"atMs", QJsonValue::Null}}));
+        QCOMPARE(clip()["crop"].toObject()["left"].toDouble(), 0.6);
+        // The opposite edge stops at 5% of the picture.
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "cropRight"}, {"input", 0}, {"value", 0.9}, {"atMs", QJsonValue::Null}}));
+        QVERIFY(std::abs(clip()["crop"].toObject()["right"].toDouble() - 0.35) < 1e-9);
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "cropRight"}, {"input", 0}, {"value", 0}, {"atMs", QJsonValue::Null}}));
+        // A crop of nothing is no crop.
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "cropLeft"}, {"input", 0}, {"value", 0}, {"atMs", QJsonValue::Null}}));
+        QVERIFY(!clip().contains("crop"));
+        while (model.undoStack()->canUndo()) { model.undoStack()->undo(); }
+        QCOMPARE(model.documentJson(), before);
+    }
+    void cropKeysAreSampledAndKeptUsable() {
+        TimelineModel model;
+        model.setTimeline(fixture());
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "cropLeft"}, {"atMs", 0}}));
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "cropLeft"}, {"input", 0}, {"value", 0.9}, {"atMs", 1000}}));
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "cropRight"}, {"atMs", 1000}}));
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "cropRight"}, {"input", 0}, {"value", 0.05}, {"atMs", 1000}}));
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "cropRight"}, {"input", 0}, {"value", 0.9}, {"atMs", 0}}));
+        const auto& timeline = *model.snapshot();
+        const auto& c = timeline.clips[0];
+        // At 500 ms each is at about half, which meets in the middle; keyed edges still leave the picture.
+        const auto middle = nt::reframe::cropAt(c, 500);
+        QVERIFY(nt::reframe::isCropUsable(middle));
+        QVERIFY(middle["left"].toDouble() + middle["right"].toDouble() <= 0.95 + 1e-9);
+        const auto end = nt::reframe::cropAt(c, 1000);
+        QVERIFY(std::abs(end["left"].toDouble() - 0.9) < 1e-9);
+        QVERIFY(std::abs(end["right"].toDouble() - 0.05) < 1e-9);
+        // The side curves come from an edit, and a split cuts them at their value.
+        const auto [left, right] = nt::edit::splitClip(model.clipsJson()[0].toObject(), 500);
+        QCOMPARE(nt::keyframes::inputValue(right, "cropLeft", 0, 0), nt::keyframes::inputValue(left, "cropLeft", 0, 500));
+        QCOMPARE(nt::keyframes::inputValue(right, "cropLeft", 0, 500), 0.9);
     }
     void bypassVolumeOnSoundOnly() {
         auto parsed = nt::parseTimelineJson(
