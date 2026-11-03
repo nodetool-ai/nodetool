@@ -7,11 +7,11 @@ from one still on **Comfy Cloud**. Revise into Take B without losing Take A,
 compare the two, and open the NodeTool workflow and the pinned ComfyUI graph
 behind both.
 
-- App bundle: [`packages/base-nodes/nodetool/examples/apps/shot-director.app.json`](../../packages/base-nodes/nodetool/examples/apps/shot-director.app.json)
-- Workflow: [`packages/base-nodes/nodetool/examples/nodetool-base/Shot Director.json`](../../packages/base-nodes/nodetool/examples/nodetool-base/Shot%20Director.json)
-- Camera presets (open JSON): [`packages/presets/catalog/camera/`](../../packages/presets/catalog/camera/)
+- App bundle: [`packages/base-nodes/nodetool/examples/apps/shot-director.app.json`](https://github.com/nodetool-ai/nodetool/blob/main/packages/base-nodes/nodetool/examples/apps/shot-director.app.json)
+- Workflow: [`packages/base-nodes/nodetool/examples/nodetool-base/Shot Director.json`](https://github.com/nodetool-ai/nodetool/blob/main/packages/base-nodes/nodetool/examples/nodetool-base/Shot%20Director.json)
+- Camera presets (open JSON): [`packages/presets/catalog/camera/`](https://github.com/nodetool-ai/nodetool/tree/main/packages/presets/catalog/camera)
 - Comfy node: `lib.comfy.RunWorkflowOnCloud` in
-  [`packages/integration-nodes/src/nodes/comfy-cloud.ts`](../../packages/integration-nodes/src/nodes/comfy-cloud.ts),
+  [`packages/integration-nodes/src/nodes/comfy-cloud.ts`](https://github.com/nodetool-ai/nodetool/blob/main/packages/integration-nodes/src/nodes/comfy-cloud.ts),
   using the Comfy API v2 SDK (`comfy-sdk.ts`).
 
 ## How it works
