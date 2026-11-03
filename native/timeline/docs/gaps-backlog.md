@@ -11,6 +11,9 @@ merges. A package or a later fix round closes an entry and moves it to
 
 Review reports are in `/home/mg/Projects/nodetool-gaps/reviews/` on the Linux
 run machine. "Package P1" and "package P2" are plan packages, not severities.
+In the Source column of the Premiere run, `G` and `F1` to `F20` are packages of
+#7075, `r3` is Astra round 3, and `notes` marks a gap a package named in its
+results rather than a review finding.
 
 ## Open
 
@@ -23,9 +26,6 @@ run machine. "Package P1" and "package P2" are plan packages, not severities.
 | B9 | P2 | pkg-C-r1 F1 | `qml/Tracks/TracksRegion.qml:237` | Drag reordering is not implemented: dragging a track's grip above another does nothing. The differential test calls the native reorder command directly, so it cannot detect the missing gesture. | C |
 | B10 | P2 | pkg-C-r1 F2 | `qml/Tracks/TracksRegion.qml:242` | The visibility, lock, mute, solo and delete buttons in the track header have no action handlers and are not connected to the new track commands. | C |
 | B11 | P2 | pkg-C-r1 F3 | `qml/Tracks/TracksRegion.qml:240` | A track's authored height cannot be changed in the UI. No resize handle exists, and the height slider changes global vertical zoom, not the track's `heightPx`. | C |
-| B12 | P2 | pkg-D1-r1 F1 | `qml/Inspector/KeyframeClipDiamonds.qml:2` | No production QML instantiates the clip keyframe diamonds or connects their seek and retime signals, so keyframes cannot be retimed on the timeline clip. Only the tests instantiate the component. | D1 |
-| B13 | P2 | pkg-D1-r1 F2 | `src/edit/keyframes/ClipInspectorController.cpp:99` | Past the clip's end, `playheadMs()` returns `-1` and `rowState()` samples at zero, so the inspector shows the first value, disables Previous, and enables a Next that does nothing. The web shows the endpoint value and enables Previous. | D1 |
-| B14 | P2 | pkg-K-r1 F1 | `src/playback/PlaybackClock.h:72` | J/K/L and Play In to Out have no production callers, and the I/O marks update `TimelineViewState` while playback reads separate, unconnected range fields. A marked range with loop enabled loops the whole timeline, and J/L does not shuttle. | K |
 | B15 | P2 | pkg-K-r1 F2 | `src/playback/PlaybackClock.cpp:107` | The clock's `fps` property defaults to 30 and is not bound to the document frame rate, so restart detection uses a 30 fps frame. On a 25 fps, 10-second timeline, Play from 9,960 ms continues where the web restarts at zero. | K |
 | B16 | P2 | pkg-K-r1 F3 | `src/playback/PlaybackClock.cpp:432` | The `m_endMs > 0` guard treats an out-point at zero as unset, so `setRangeOut(0)` then `playInToOut()` plays past the out-point. `boundedTimeLocked()` has the same guard. | K |
 | B17 | P2 | pkg-K-r1 F4 | `src/audio/AudioEngine.cpp:457` | An unmuted or remapped track's snapshot is acknowledged before its PCM is opened, sought and primed, so the track can stay silent for several blocks. Tests check the new audio only after 400 ms, which masks the miss. | K |
@@ -45,19 +45,16 @@ run machine. "Package P1" and "package P2" are plan packages, not severities.
 | B31 | P2 | wave3-layout F3 | `qml/Inspector/TimelineInspector.qml:69` | A selected group clip gets the media layout (Render, Transform, Animate). The web shows `ClipIdentityCard` and `ClipGroupPanel`: name, children, Ungroup, Timing and the trim hint. | PX (owns `TimelineInspector.qml`) |
 | B32 | P2 | wave3-layout F4 | `qml/Inspector/TimelineInspector.qml:86` | The Inspector has no Media section (type, asset, parent group, Ungroup) and no Timing section (start, duration, speed, Hidden, lock hints). It goes from the identity card straight to Render. | PX (sections plug into its `registerInspectorSection`) |
 | B33 | P2 | wave3-layout F5 | `qml/Tracks/ClipBody.qml:139` | The transition wedge on the clip has no length grip. The web draws a "Transition length" grip on the wedge edge. `TransitionHandle.*` has no QML item. | S3 |
-| B34 | P2 | wave3-layout F10 | `src/edit/ClipGestureController.cpp:983` | The shortcuts of F and K and frame step are not bound, and the shortcut sheet dims them with "not in the native editor yet": copy, cut, paste, paste attributes, paste insert, duplicate, duplicate with gap, group, ungroup, toggle loop, play in to out, J/K/L and frame step. | S3 |
 | B37 | P2 | wave3-data-safety F4 | `src/server/AutosaveController.cpp:61` | The 750 ms autosave can fire during a drag and send the gesture's uncommitted preview. A cancelled gesture restores the press state with `replaceClips`, which schedules no save, so the server keeps the cancelled transform while the status shows Saved. | PX |
 | B38 | P2 | wave3-data-safety F5 | `src/audio/AudioEngine.cpp:116` | The baselined race V-TSAN-1 on `deviceStopped` is still open after K merged: a plain `bool` written on the main thread and read on the miniaudio worker, hidden by the `onNotification` suppression in `tools/sanitizers/tsan.supp`. | S2 (owns `AudioEngine.*`) |
 | B39 | P2 | wave3-data-safety F6 | `src/main.cpp:909` | A timeline opened from a local `.json` file accepts every edit but is never saved, and closing the window discards the edits without a prompt. The web asks before a dirty document closes. | S2 (owns `main.cpp`) |
 | B40 | P2 | pkg-PX-r1 F1 | `qml/Inspector/TimelineInspector.qml:125` | Selecting a group hides `MotionFields` and `KeyframeAnimations`, and `ClipGroupPanel` supplies only Group and Timing, so group transforms, opacity and animations cannot be edited. The web group panel keeps `ClipAdjustments` and `ClipAnimations`. | PX |
 | B41 | P2 | pkg-PX-r1 F2 | `src/server/AutosaveController.cpp:206` | Restore only applies the recovered JSON, so an asset absent from the current load (its last clip deleted in another session) returns with empty media and audio paths until a reload. Recovered media must be resolved and registered before the document is applied. | PX |
-| B42 | P2 | pkg-E-r4 F1 | `src/export/ExportEngine.cpp:249` | Cancel cannot interrupt the offline audio mix: `renderOffline()` decodes and mixes the whole timeline before export checks the token again. Closing the editor meanwhile blocks shutdown in `ExportController::~ExportController()` on `waitForFinished(-1)`. | E |
 | B43 | P2 | pkg-E-r4 F2 | `src/export/check-export.mjs:139` | The golden gate prints PASS with `video-rejections.json` unmet. Any preview exit code 1 authorizes the exclusion, including missing media or failed golden generation, not only measured picture differences. | E |
 | B44 | P2 | pkg-E-r4 F3 | `qml/ExportVideoDialog.qml:16` | `alphaAvailable` is always false, so "Export with transparency" stays disabled for WebM and PNG, and `--alpha` exits 1 at `ExportEngine.cpp:191`. The web enables and renders transparency for both formats. | E |
 | B45 | P2 | pkg-S2-r4 F1 | `src/preview/PreviewCompositor.cpp:634` | Effects run before cropping and receive uncropped dimensions, so with a left-half crop and blur the discarded right half bleeds into the visible image. The web crops before effects (`frameCompositor.ts:812`). | S2 |
 | B46 | P2 | pkg-S2-r4 F2 | `scripts/plan-conformance.mjs:587` | The core oracle sizes placement from uncropped dimensions and extensions can only append errors, so a square source cropped to its left half expects x-scale 1 where correct native placement gives 0.5. Web crop sizing must apply before the core comparison. | S2 |
 | B47 | P2 | pkg-S2-r4 F3 | `src/app/startup/LocalDocumentSaver.cpp:18` | Calling `close()` or `setTimeline()` before the debounce expires clears the dirty state and stops the pending local save, and a later `flush()` reports success although the file lacks the edit. | S2 |
-| B48 | P2 | pkg-D3-r1 F1 | `src/edit/speed/SpeedRegistrations.cpp:6` | Speed / Duration is unreachable from the editor: Ctrl+R registers menu metadata, but no action handler or production QML caller opens `SpeedDurationDialog` or calls `openForSelection()`. The test creates the dialog directly and bypasses the missing connection. | D3 |
 | B49 | P2 | pkg-R-r1 F1 | `src/app/Menus/ShellMenus.cpp:175` | Edit-menu actions force focus onto the timeline, so Select All while editing an Inspector field selects clips instead of text, and Undo commits the field before undoing the document. The web excludes text-editing targets (`TracksRegion.tsx:1119`). | R |
 | B50 | P2 | pkg-R-r1 F2 | `src/app/Preferences/PreferencesSettings.cpp:20` | Open Recent launches the child with the preference-derived cache folder and budget in its environment, and the child treats them as explicit overrides, so cache preferences changed during the session do not apply on the next launch. | R |
 | B51 | P2 | pkg-R-r1 F3 | `src/app/Preferences/Preferences.cpp:169` | Open Recent relaunches a protected server timeline with only its server URL and timeline ID. When it was opened with `--token` and `NODETOOL_API_TOKEN` is unset, the child has no credentials or sign-in flow and fails authentication. | R |
@@ -75,24 +72,121 @@ run machine. "Package P1" and "package P2" are plan packages, not severities.
 | B64 | P2 | pkg-S3-r1 F3 | `src/edit/ClipGestureController.cpp:727` | Track resizing shows no live feedback. Moving a pressed separator only marks the gesture as dragging, and header and lane heights change only when release applies the edit (line 823). The web updates the height during movement and batches undo (`TrackHeader.tsx:501`). Preview the height during movement, assert the visible geometry before release, and keep one undo entry. | S3 |
 | B66 | P2 | A-r3 F3 | `src/server/TimelineList/tst_timelinelistui.cpp:81` | The screenshot check only looks for non-background pixels; it does not compare against a web-rendered image. | A |
 | B67 | P2 | D2-r1 F1 | `src/edit/clipaudio/ClipAudio.cpp:22` | Pan editing for audio clips is missing from the Inspector. | D2 |
-| B68 | P2 | D2-r1 F2 | `qml/Inspector/AudioGainDialog.qml:7` | The audio gain dialog is unreachable: the mapped `G` shortcut does not open it. | D2 |
-| B69 | P2 | O-r1 F1 | `qml/SourceViewerPanel.qml:123` | The source monitor cannot preview or play the selected media: scrubbing changes `playerTimeMs` without decoding frames, no audio, no duration discovery. | O |
-| B70 | P3 | O-r1 F2 | `qml/SourceViewerPanel.qml:13` | The empty-state instruction is never visible because the panel hides when no asset is selected. | O |
 | B73 | P2 | P2-r1 F3 | `src/audio/automation/AutomationStage.cpp:14` | Automation ramps start at 0 ms; the web recomputes them from the play position, so playback started mid-timeline can differ inside eased segments. | P2 |
 | B78 | P2 | W (no review) | `src/wiring/w/` | Package W was merged without an Astra review, by the user's decision to finish close workstreams; it changes `qml/DocumentBar.qml`, `qml/Tracks/TrackHeader.qml` and `src/app/Menus/ShellMenus.cpp` beyond one registration line (commit `db8a497f68`). Review it. | W |
 | B79 | P2 | sanitize runs | `tests/tst_assetcache.cpp` | tst_assetcache fails QCompare assertions in every package's sanitize run, with a different failing case each run; it also fails on the main checkout. | B |
 | B80 | P2 | A p1fix sanitize run | `src/server/TimelineList/TimelineListController.cpp` | `dateGroup` groups by UTC calendar day while the web and `tst_timelinelistclient dateGroupsFollowWeb` use local days, so the test fails just after local midnight (seen 3 days after the 25 Oct DST change). | A |
 | B81 | P2 | G-r1 F2 | `qml/Tracks/ClipContextMenu.qml` | Duplicate semantics differ from the web clip context menu. | G |
-| B82 | P2 | Q-r1 F1 | `qml/dock/` | Workspace keyboard shortcuts do nothing while the Timeline panel is hidden. | Q |
 | B83 | P2 | Q-r1 F2 | `qml/dock/` | Resetting a built-in workspace preset does not restore its stored layout. | Q |
-| B84 | P2 | Q-r1 F3 | `qml/dock/` | The backtick (maximize panel) and Alt+Shift+0 handlers are missing. | Q |
-| B85 | P2 | Q-r1 F4 | `qml/dock/` | Dock tab overflow has no overflow menu when tabs exceed the panel width. | Q |
 | B86 | P2 | Q-r1 F5 | `qml/dock/` | Dock splitters resize only on release, with no live resize. | Q |
 | B87 | P2 | D6-r1 | `qml/Inspector/` | Adjustment and effect colour fields have no colour picker. | D6 |
 | B88 | P2 | D6-r1 | `scripts/check-inspector.mjs` | check-inspector fails with ENOENT on a fresh build directory. | D6 |
 | B89 | P2 | D6-r1 | `qml/Inspector/` | The effect Remove test does not assert that the effect left the clip. | D6 |
 | B90 | P2 | P2-r1 | `qml/mixer/` | The Mixer toggle has no keyboard access. | P2 |
 | B91 | P2 | merge runs | `src/server/TimelineList/module.cmake` | timelinelist_document_actions uses fixed port 17863, which collides when two check runs overlap. | A |
+| B92 | P2 | G (#7075) | `qml/dock/DockKeyActions.cpp:59` | `Alt+Shift+N` workspace keys may not fire on a real keyboard, where Qt delivers Shift+digit as `Key_Exclam`, `Key_Percent` and so on. F1 added `unshiftedKey` to the action lookup, but no test presses these keys through a real keyboard, and no xdotool is on the run machine. | G |
+| B93 | P2 | G (#7075) | `web/src/hooks/timeline/useTimelineAgentBridge.ts:230` | `toMarkerNode` omits marker `durationMs` and `author` from the agent's view. It is read-only and loses no data. | G |
+| B94 | P2 | G (#7075) | `src/edit/clipboard/ClipboardOps.cpp` | `audioRole` is not in the agent `update_clip` op or in Paste Attributes. | F5 |
+| B95 | P2 | G (#7075) | `src/export/FrameServerCli.cpp:43` | The helper's cancelled-ID set keeps IDs cancelled after their response was sent. Growth is bounded by the helper's lifetime, which ends after 60 s idle. | G |
+| B96 | P2 | F1 (#7076) | `src/edit/KeymapOverlay.h` | Ctrl+Left and Ctrl+Right nudge, following the macOS table. On Windows Premiere these keys trim the selected edit, so that habit does nothing when only an edit point is selected. | F1 |
+| B97 | P2 | F1 (#7076) | `src/edit/KeymapOverlay.h` | Shift+7 and Shift+8 go to Scripts and Storyboards, because the native editor has no Effects or Media Browser panel. Rebind them if those panels arrive. | F1 |
+| B98 | P2 | F1 (#7076) | `src/edit/KeymapOverlay.h` | `toggleDawMode` is unbound in Premiere because Alt+M clears a marker. In the other presets it switches to the Audio workspace, while the sheet still says "video and DAW layouts". | F1 |
+| B99 | P2 | F1 (#7076) | `src/edit/KeymapData.h` | In Final Cut Pro the left panel toggle has no key, because Ctrl+B is split there. The toolbar button remains. | F1 |
+| B100 | P2 | F1 (#7076) | `qml/TimelineEditor.qml` | Program full screen keeps the tab strip and transport visible, so the picture does not fill the screen. | F1 |
+| B101 | P2 | F1 (#7076) | `qml/Tracks/ClipBody.qml` | Clicking the middle of a selected clip's edge hits the transition grip, not the edit point. | F1 |
+| B102 | P2 | F1 (#7076) | `src/edit/ClipGestureController.cpp:1632` | The sheet's "Preview (focused)" rows stay dimmed because `PreviewArea` has no key handling. The "Transform handles (focused)" rows are also dimmed although the gizmo controller handles those keys, because they are not in `availableActions`. | F1 |
+| B103 | P2 | F1 (#7076) | `src/edit/keys/tst_keyboardpresets.cpp` | A package that adds default keys can trip the repeat check. This is intended, and is listed so that a later failure is not read as a regression. | F1 |
+| B104 | P2 | F1 (#7076) | `qml/Inspector/KeyframeClipCustomCurves.qml:70` | A TypeError warning appears when selecting a clip in the mounted editor. Not investigated. | D1 |
+| B105 | P1 (Astra), partly fixed, owner to decide | F8 (#7083, #7115, #7118) r3 | `qml/preview/TimecodeField.qml` | Source timecode uses a rate only when the asset reports `fps` or `frame_rate`, and native assets carry neither, so a 25 fps source in a 30 fps sequence counts at the sequence rate. The field states this beside the value. The fix is to probe the rate in `AssetBrowser`, as `AssetDuration` does. | F8 |
+| B106 | P2 | F8 (#7083) | `qml/ProjectSettingsDialog.qml` | No UI sets `dropFrame`, and Project Settings accepts only whole-number fps, so a 29.97 document with drop frame must come from the API or another editor. | F8 |
+| B107 | P2 | F8 (#7083) | `qml/preview/PreviewArea.qml` | Zoom above 100% uses linear filtering. Nearest filtering may suit inspecting generated artefacts better. | F8 |
+| B108 | P2 | F8 (#7083) | `qml/preview/PreviewArea.qml` | Temporary pan is middle-drag or the Hand tool. There is no hold-key pan. | F8 |
+| B109 | P2 | F8 (#7083) | `src/preview/PreviewCompositor.cpp` | A capture leaves the canvas at full size until the next redraw on a stopped clock. This is harmless. | F8 |
+| B110 | P2 | F8 (#7083) | `qml/preview/TimecodeField.qml` | #7083 lists FilmCraft `calc.rs` as a reference, but arithmetic typed into fields was out of scope and is not ported. | F8 |
+| B111 | P2 | F2 (#7077) r3 | `src/edit/sourceEdit/` | Astra's two round 3 P1s were fixed and tested after the last allowed round, so those fixes have no independent review. | F2 |
+| B112 | P2 | F2 (#7077) | `src/edit/sourceEdit/SourceMonitor.cpp` | Audio-only sources snap marks to a 30 fps grid, not to the program frame rate. | F2 |
+| B113 | P2 | F2 (#7077) | `src/edit/sourceEdit/` | With no patch lit, Insert and Overwrite keep today's single video clip with its own sound, so the web oracle stays valid. Linked pairs need both V and A lit. With only V lit, the clip is placed muted. | F2 |
+| B114 | P2 | F4 (#7079) | `src/color/ColorMatch.cpp` | `probeEffects` evaluates a modelled effect before an unmodelled one that stays in the probe in reversed order. For [Levels, Posterize, liftGammaGain], grey 64 renders 170 and the solver sees 147, so matching an identical reference changes the shot. | F4 |
+| B115 | P2 | F4 (#7079) | `src/colorpanel/ColorMatchController.cpp:20` | Match ignores group effects: `isolatedClipDocument` removes `parentId`, so a grade on a parent group is not in the probe. | F4 |
+| B116 | P2 | F4 (#7079) | `src/colorpanel/ScopesController.cpp` | Scopes during playback run one extra software decode and render in the frame helper, at most one capture every 200 ms. This was measured on a still image only, not on heavy media such as 4K HEVC. | F4 |
+| B117 | P2 | F5 (#7080) r3 F19 | `src/audio/loudness/` | Offline true-peak does not drain the interpolator's 16-sample tail, so a clip ending in 2 consecutive full-scale samples can read 0 dBTP and miss the intersample peak. Sample-peak normalize is unaffected. | F5 |
+| B118 | P2 | F5 (#7080) r3 F17 | `src/edit/audioroles/` | A generated voice or music clip cannot be given "no role", because its role is derived from `bindingKind`. The panel ignores clicks on that role, and the Clip menu's No Role stays off until the clip has the field. | F5 |
+| B119 | P2 | F5 (#7080) r3 F10 | `src/edit/audioroles/` | Same cause as the previous entry, for clearing the role of a generated clip. | F5 |
+| B121 | P2 | F5 (#7080) | `src/edit/audioroles/` | A video clip with an extracted-audio partner (`linkId`) is measured as if it had its own sound, so matching it sets a volume on a clip the mix does not play. | F5 |
+| B122 | P2 | F5 (#7080) | `src/edit/audioroles/README.md` | Ducking lowers the whole track, so Music and Ambience should be on tracks of their own. The panel and the README say so. | F5 |
+| B123 | P2 | F7 (#7082) | `qml/effectcontrols/` | Effect rows have no keyframes, because the document has no keyframes for effect parameters. Volume has no clip keyframes either (track automation only), so it shows a level field only. | F7 |
+| B124 | P2 | F7 (#7082) | `qml/effectcontrols/` | Transitions are not listed in the panel (out of scope in the issue). | F7 |
+| B125 | P2 | F7 (#7082) | `src/edit/keyframes/ClipInspectorController.cpp` | Editing Motion, Opacity or Volume elsewhere (Inspector, gizmo) while the group is switched off is overwritten by the stored values when the group is switched back on. | F7 |
+| B126 | P2 | F7 (#7082) | `src/edit/keyframes/` | Trimming or splitting a clip while a group is switched off leaves its stored curves in normalized time, so they stretch to the new length, and both halves of a split carry the stored values. | F7 |
+| B127 | P2 | F7 (#7082) | `qml/Inspector/primitives/InspectorSliderRow.qml` | At the default 360 px tab width, effect sliders shrink to about 22 px. Dragging the divider or widening the tab fixes it. | F7 |
+| B128 | P2 | F7 (#7082) | `qml/effectcontrols/EffectControlsGraph.qml` | Velocity graphs are read-only, and graph keys do not drag vertically to change value. Handles exist on the value graph only. | F7 |
+| B129 | P2 | F7 (#7082) | `qml/effectcontrols/EffectControlsGraph.qml` | With more than 24 keys in view, handles show only around selected keys, and only when 24 or fewer keys are selected. | F7 |
+| B130 | P2 | F7 (#7082) | `qml/effectcontrols/EffectControlsDiamond.qml` | Diamonds are not keyboard focusable. Keyboard users reach keys through the navigator, Alt+K and the keyframe navigation keys. | F7 |
+| B131 | P2 | F7 (#7082) | `src/main.cpp` | `--select` with `--screenshot` left the Inspector and Effect Controls on "No selection". The cause is not established. | F7 |
+| B132 | P2 | F16 (#7091) | `src/remix/clip/RemixEdit.cpp` | Switching among retained remix takes of different lengths on the web and in the native Take panel restores the wrong window start, because the web never restores a clip's length on a take switch. Revert Remix is the exact path. | F16 |
+| B133 | P2 | F16 (#7091) | `src/remix/clip/RemixBackend.cpp` | Cancelling while the dialog is saving leaves one unused uploaded asset on the server, because the upload cannot be interrupted. | F16 |
+| B134 | P2 | F16 (#7091) | `src/remix/RemixDsp.cpp` | Planning runs on the GUI thread, bounded at about 289 candidate jumps per joint. It was not measured on a long, dense track. | F16 |
+| B135 | P2 | F16 (#7091) | `src/remix/clip/RemixEdit.cpp` | A remix of a clip whose existing overlap with the next clip is by design stays allowed when the result is not longer than the clip. Astra accepted this policy in round 2. | F16 |
+| B136 | P2 | F20 (#7095) | `src/transcript/TranscriptWords.cpp` | Under `QT_QUICK_BACKEND=software`, the text of `TranscriptWords` draws at the window's top-left instead of in the panel. Selection rectangles and the GPU path are correct. Root cause not found. | F20 |
+| B137 | P2 | F20 (#7095) | `qml/dock/DockLayoutStore.cpp` | A saved layout that predates the panel keeps its own active tab, so the Text tab is not shown until chosen. Whether the tab is added to such a layout is not checked. | F20 |
+| B138 | P2 | F20 (#7095) | `src/transcript/TranscriptEdits.cpp` | Undo entries are named by the raw edit name, such as `captions.split`, as other registered edits are. | F20 |
+| B139 | P2 | F13 (#7088) | `src/wiring/WiringFixture.h` | A direct run of a `WiringFixture` test binary without `NODETOOL_TIMELINE_PREFERENCES` writes to the real `~/.config/NodeTool/Timeline.conf`. `cmake/TestPreferences.cmake` isolates runs through `ctest` only. | F13 |
+| B140 | P2 | F13 (#7088) | `src/app/Menus/ShellMenus.cpp` | Linux has no in-window menu bar, so the shell menus are invisible without a global menu registrar. | F13 |
+| B141 | P2 | F13 (#7088) | `src/app/Menus/StandardMenus.cpp` | Fill Frame needs a picture size in the document. A probe could enable it for clips without one. | F13 |
+| B142 | P2 | F13 (#7088) | `qml/menus/tst_menus.cpp` | `tst_menus` takes several minutes, so it has `TIMEOUT 900`. | F13 |
+| B143 | P2 | F13 (#7088) | `../ui_primitives/qml/Icon.qml:21` | Opening panels logs "Unknown native icon" for `autoAwesome`, `tune` and `videocam`. Not checked whether this predates the run. | F13 |
+| B144 | P2 | F3 (#7078) | `src/edit/trim/TrimMode.cpp` | Shift+T treats a cut overlapped by a transition as a plain edge, so a farther abutting cut on that track wins over it. It keys off exact abutment rather than `rollPair`. | F3 |
+| B145 | P2 | F3 (#7078) | `src/edit/KeymapData.h` | The sheet row for `trimEditLeftLarge` and `trimEditRightLarge` comes from the web keymap and says ten frames. In trim mode these keys move 5 frames, and the plain Selection-tool edit point keeps 10. | F3 |
+| B146 | P2 | F3 (#7078) | `src/edit/trim/TrimRegistrations.cpp` | Ctrl+T has no key column entry in the sheet, because a default key would clash with Cross-fade in. The label says it instead, and only trim mode takes the chord. | F3 |
+| B147 | P2 | F3 (#7078) | `src/edit/trim/TrimModel.cpp` | The whole-ms frame grid floors each edge, so a source handle of exactly N frames with a fractional in-point can clamp one frame short. | F3 |
+| B148 | P2 | F3 (#7078) | `src/edit/trim/TrimMode.cpp:218` | Dragging a selected edge in the timeline with several points selected moves only that edge's group. Keyboard, monitor and dynamic trims move them all. | F3 |
+| B149 | P2 | F3 (#7078) | `qml/Tracks/ClipBody.qml` | Clips narrower than 28 px have no grips, so their edges cannot be clicked, though Shift+T still reaches them. This overlaps #7101. | F3 |
+| B150 | P2 | F3 (#7078) | `src/main.cpp` | No CLI flag enters trim mode for `--screenshot`, so its screenshots come from a test grab under Xvfb. | F3 |
+| B151 | P2 | F6 (#7081) | `src/takes/TakeSwitcher.cpp` | A live pass differs from FilmCraft: each cut's take runs to the end of the part it cut, with no restore at the stop point and no overwriting of later cuts in that clip. This matches the issue's wording and is untested against Premiere. | F6 |
+| B152 | P2 | F6 (#7081) | `src/takes/TakeSwitcher.cpp` | With recording off during playback, a number switches the whole clip as when stopped (FilmCraft's behaviour). The issue does not specify this case. | F6 |
+| B153 | P2 | F6 (#7081) | `src/takes/TakeSwitch.cpp` | A clip's linked audio splits with the cut but keeps the old take's audio. Audio sync between takes is out of scope. | F6 |
+| B154 | P2 | F6 (#7081) | `src/takes/TakeGrid.cpp` | While playing, grid frames refresh about once per second, one round at a time. | F6 |
+| B155 | P2 | F6 (#7081) | `src/takes/TakeSwitch.cpp` | A `mediaEdit` take on a clip that is already a part resets the source window to 0 through `Take.cpp`. Applying it in a cut keeps the correct offset only when the clip has not been split before. | F6 |
+| B156 | P2 | F6 (#7081) | `scripts/make-fixtures.sh` | Fixture `numbered-c-1080p30.mp4` is truncated on the run machine (moov atom not found), so `tst_takeswitchui` avoids it. Add it to the fixture checks if it recurs. | F6 |
+| B157 | P2 | F6 (#7081) | `qml/SaveStatus.qml` | `tst_tracksui saveStateShowsAsTheWebShowsIt` fails on the integration build too: `saveDot` is `#50fa7b`, expected `#80DCA0`. | S3 |
+| B158 | P2 | F12 (#7087) | `src/edit/framehold/FrameHold.cpp` | Premiere's Hold Filters option is not built, because it needs a new document field the web renderer would have to honour. | F12 |
+| B159 | P2 | F12 (#7087) | `src/edit/framehold/FrameHold.cpp` | An unlinked video's embedded audio is silent during a hold, where Premiere keeps it playing. | F12 |
+| B160 | P2 | F12 (#7087) | `qml/Tracks/ClipBody.qml` | A hold shows no marker on its clip. It is visible only in the Inspector's Time remap section. | F12 |
+| B161 | P2 | F12 (#7087) | `src/edit/framehold/FrameHold.cpp` | Extend and AI edit refuse a clip with a hold because they refuse any remap. A hold could be allowed later. | F12 |
+| B162 | P2 | F15 (#7090) | `src/export/FrameCapture.cpp` | The helper stays alive for its 60 s idle timeout after the last capture, shared with Scopes, so "at rest" holds no helper only after that minute. | F15 |
+| B163 | P2 | F15 (#7090) | `src/reference/ReferenceController.cpp` | Takes that `applyTake` refuses are not offered in the selector, such as an extended take waiting for timing or a take shorter than the cut, so they cannot be compared. | F15 |
+| B164 | P2 | F15 (#7090) | `src/reference/ReferenceRegistrations.cpp` | The clip menu always shows Compare another take, greyed with no stated reason when the clip has no other take. An `applies` predicate now exists and could hide it. | F15 |
+| B165 | P2 | F15 (#7090) | `src/reference/ReferenceController.cpp` | A stale flag stays set after undo restores the captured state. Refresh clears it. | F15 |
+| B166 | P2 | F15 (#7090) | `src/reference/ReferenceController.cpp` | A clip's first or last frame is the composited frame at that time, so an overlapping upper clip shows in it. | F15 |
+| B167 | P2 | F15 (#7090) | `src/preview/FfmpegSource.cpp:161` | A PNG with an alpha channel on an image clip is rejected and renders a grey "a - alpha" placeholder. This behaviour predates the run. | B |
+| B169 | P2 | F13B (#7088) | `qml/menus/tst_menus.cpp` | `tst_menus` does not link `LibraryScrubActions.cpp`, so its View row and command check do not see `toggleLibraryScrub`. The item was confirmed in the real binary's `--dump-menus`. | F13B |
+| B171 | P2 | F13B (#7088) | `src/app/Menus/StandardMenus.cpp` | The clip menu fits a 900 px window, but in a shorter window Delete needs scrolling. | F13B |
+| B173 | P2 | F14 (#7089) | `src/aiassist/AssistantCommandTable.cpp` | Effect value changes (`updateTrackEffect`, `updateMasterEffect`, `patchClipAudioEffect`) are denied, because ranges exist only in the panels and the shared schema, and a large reverb decay allocates gigabytes. Exposing them needs a C++ bounds table. | F14 |
+| B174 | P2 | F14 (#7089) | `src/aiassist/AssistantCommandTable.cpp` | `patchClip` does not set `transform`, `layout`, `shapeStyle`, `crop` or the effects list, because partial values fail the shared schema on save. Position, scale and rotation go through `keyframes.input`, and crop through `setClipCropEdge`. | F14 |
+| B175 | P2 | F14 (#7089) r3 | `src/aiassist/AssistantCommands.cpp` | The round 3 P1 fixes in `22fc5d2a21` (bounded volume, `captions.add` without a clip parameter) and the round 3 P2 fixes in that commit have no Astra review. | F14 |
+| B176 | P2 | F14 (#7089) | `src/aiassist/AssistantCommands.cpp` | An action outside the selection-based group can still return ok with `changed` false when its handler does nothing. | F14 |
+| B177 | P2 | F14 (#7089) | `src/aiassist/AssistantCommands.cpp` | A call is refused while the person is in trim mode or recording take switches, and the Assistant cannot end those states itself. | F14 |
+| B178 | P2 | F9 (#7084) notes | `src/markers/` | Clip markers, Source markers and chapter or flash cue kinds are out of scope. | F9 |
+| B179 | P2 | F9 (#7084) notes | `src/edit/KeymapOverlay.h` | The Premiere preset's Ctrl+Shift+M (Previous Marker) conflicts with FilmCraft's add-range key, so the range marker is Alt+Shift+M. | F9 |
+| B180 | P2 | F9 (#7084) notes | `qml/markers/MarkerEditDialog.qml` | There is no custom colour picker for markers. | F9 |
+| B181 | P2 | F9 (#7084) notes | `qml/Tracks/TimeRuler.qml` | A marker cannot be moved by dragging its flag. | F9 |
+| B182 | P2 | F9 (#7084) notes | `qml/Tracks/TimeRuler.qml` | The ruler has no hide-colour filters. | F9 |
+| B183 | P2 | F9 (#7084) notes | `packages/protocol/` | `durationMs` and `author` are not on the shared protocol tool contract. | F9 |
+| B184 | P2 | Final pass | `src/edit/KeymapOverlay.h` | In the Premiere preset Ctrl+M means Add Marker from In to Out, so the export default gives way and Export has no key there, although Ctrl+M is Premiere's Export Media. Packages F9 and F18 each claim the key. | F9 |
+| B185 | P2 | F10 (#7085) notes | `packages/websocket/src/lib/timeline-premiere.ts` | Premiere export does not carry variable speed and freeze frames, Crop, blend modes, `scaleX` and `scaleY`, or Bezier handles. | F10 |
+| B186 | P2 | F16 (#7091) notes | `src/remix/` | Stems and clips with speed changes are not remixed. | F16 |
+| B187 | P2 | F19 (#7094) notes | `src/scenedetect/` | Scene Edit Detection creates sequence markers rather than clip markers or subclips, because the native editor has neither. | F19 |
+| B188 | P2 | F12 (#7087) notes | `src/preview/PreviewCompositor.cpp` | A `caption` field on a video clip hides the clip's picture in the native compositor. | F12 |
+| B189 | P2 | F3 (#7078) notes | `src/edit/EditActions.cpp:531` | `frameStepMs`, the web-parity function, rounds up on about half of all frames at non-integer frame times, so mouse and web frame nudges can leave a frame on the wrong side of a cut. | F3 |
+| B190 | P2 | F17 (#7092) notes | `src/assets/libraryscrub/` | The scrub resolution is bounded by the 160 px atlas frame, which looks soft on a 200 px tile. | F17 |
+| B191 | P2 | F17 (#7092) notes | `src/edit/sourceEdit/SourceViewerState.cpp` | Marks from a hover are not frame-snapped when Source has not opened the clip. | F17 |
+| B192 | P2 | F17 (#7092) notes | `src/assets/libraryscrub/` | A non-video tile does not scrub. | F17 |
+| B193 | P2 | F17 (#7092) notes | `src/assets/libraryscrub/LibraryScrubActions.cpp` | Shift+H is not rebindable through the keymap presets, because it is a registered key action with a default key. | F17 |
+| B194 | P2 | F13B (#7088) notes | `src/app/Menus/StandardMenus.cpp` | File > Import is not in the menu bar, because the Library panel that owns the import dialog is reachable only when loaded. | F13B |
+| B195 | P2 | F13B (#7088) notes | `scripts/menu-parity.mjs` | `--dump-menus` lists leaves only, so the parity report still shows File > Open Recent as missing. | F13B |
+| B196 | P2 | F13B (#7088) notes | `src/takes/TakeActions.cpp` | Take switching by number has no menu rows. | F13B |
+| B197 | P2 | Final pass | `src/edit/audioroles/` | `RoleAnalysis` measures through `buildMixPlan`, which does not mix time remaps, so a time-remapped clip is measured at its rate. | F5 |
+| B198 | P2 | Final pass | `native/timeline` | Fixes after the last allowed Astra round have no independent review in F3, F4, F5, F8 and F12, as recorded for F2 and F14 above. | F3, F4, F5, F8, F12 |
 
 ## Closed
 
@@ -112,3 +206,19 @@ run machine. "Package P1" and "package P2" are plan packages, not severities.
 | B77 | Package J merge (J-r1 F4, fixed in cfb9710f41) | 7f06e568d8 |
 | B71 | Package P2 merge (P2-r1 F1, fixed in fe2c5a3b72) | 801bedce3c |
 | B72 | Package P2 merge (P2-r1 F2, fixed in 98e040c10b) | 801bedce3c |
+| B12 | Clip keyframe diamonds mounted in `ClipBody.qml`, before the Premiere run | 045fd6afb4 |
+| B13 | F7 merge: past the clip's end a row holds the endpoint value in `ClipInspectorController` | d15c51541b |
+| B14 | Playback keys wired, and `ClipGestureController` pushes the view's marks to the clock | 045fd6afb4 |
+| B34 | Clipboard, group, loop, shuttle and frame-step keys bound, and `availableActions` lists them | 73e6fd7004 |
+| B42 | F18 merge: the cancel probe reaches the audio mix, a watchdog bounds child exit, and close no longer waits without limit | d710ef00ea |
+| B48 | Speed / Duration reachable from the key action and the menus | 9c7619d927 |
+| B68 | F1 merge: the `audioGain` action opens the gain dialog | 31bcad2705 |
+| B69 | F2 merge: Source decodes video and plays audio on its own clock and engine | 22662bfe6c |
+| B70 | F2 merge: the panel shows its empty-state instruction when nothing is selected | 22662bfe6c |
+| B82 | F1 merge: panel keys reach the actions while the Timeline tab is hidden | 31bcad2705 |
+| B84 | F1 merge: `maximizePanel` (backtick) and `resetWorkspace` (Alt+Shift+0 in Premiere) have handlers | 31bcad2705 |
+| B85 | A dock group lists hidden tabs in its menu | 937e1162ee |
+| B120 | Withdrawn by Astra in rounds 2 and 3. No change needed | 05ef189dbe |
+| B168 | Process note. The selection was rerun on integration at the F13B merge and the final checkpoint | 2bdf596356 |
+| B170 | Process note. The builds were killed, and no source changed | 2bdf596356 |
+| B172 | F14 merged with its actions covered, and `tst_menus` passes at the final checkpoint. The rule stays in `src/wiring/README.md` | be09cebde7 |

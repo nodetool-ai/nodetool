@@ -66,8 +66,11 @@ const bool registered = [] {
             session->requestOpen(ids);
             return true;
         }, QStringLiteral("Editing")});
-    nt::app::registerShellMenuItem({"Clip", "sceneEditDetection", "Scene Edit Detection…", {}, {}, "analyze", 10, hasVideoSelection, {}, {},
+    nt::app::registerShellMenuItem({"Clip", "sceneEditDetection", "Scene Edit Detection…", {}, {}, "options", 14, hasVideoSelection, {}, {},
         QStringLiteral("Select a video clip first.")});
+    nt::app::registerMenuItem({"clip", "sceneEditDetection", "Scene edit detection…", {}, hasVideoSelection, {}, 1, {},
+        QStringLiteral("This clip has no media file to analyse."), {},
+        [](const QVariantMap& context) { return context.value("mediaType").toString() == u"video"; }});
     return true;
 }();
 }  // namespace

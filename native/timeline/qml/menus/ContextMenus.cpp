@@ -5,6 +5,7 @@
 // factor that makes the short side reach the frame.
 #include "app/MenuRegistry.h"
 #include "app/Menus/MenuContext.h"
+#include "edit/clipboard/ClipboardOps.h"
 #include "edit/keyframes/Keyframes.h"
 #include "markers/MarkerOps.h"
 #include "playback/PlaybackClock.h"
@@ -190,13 +191,27 @@ const bool registered = [] {
     for (const auto& color : nt::markers::colors()) {
         nt::app::registerMenuItem({"clip", "clipLabel." + color.id, color.name, {}, editableTarget, "label", order++, labelIs(color.css), unlock, "Label"});
     }
-    nt::app::registerMenuItem({"clip", "fitToFrame", "Fit to frame", {}, canFit, "frame", 20, {}, selectPicture});
-    nt::app::registerMenuItem({"clip", "fillFrame", "Fill frame", {}, canFill, "frame", 21, {}, selectSized});
+    nt::app::registerMenuItem({"clip", "fitToFrame", "Fit to frame", {}, canFit, "frame", 23, {}, selectPicture});
+    nt::app::registerMenuItem({"clip", "fillFrame", "Fill frame", {}, canFill, "frame", 24, {}, selectSized});
     nt::app::registerMenuItem({"clip", "revealInProject", "Reveal in Library", {}, hasAsset, "reveal", 30, {}, selectMedia});
+    // The group "edit" joins Split and Duplicate, and "state" joins Lock and Enable, at the top of
+    // the menu. These run on the selection, which a right click makes the clicked clip if it was not.
+    nt::app::registerMenuItem({"clip", "cut", "Cut", {}, editableTarget, "edit", 0, {}, unlock});
+    nt::app::registerMenuItem({"clip", "copy", "Copy", {}, always, "edit", 1});
+    nt::app::registerMenuItem({"clip", "pasteAttributes", "Paste attributes…", {}, always, "edit", 2, {}, {}, {},
+        [](V) { return nt::edit::clipboard::hasClipboardClips(); }});
+    nt::app::registerMenuItem({"clip", "groupClips", "Group", {}, always, "state", 0, {}, {}, {},
+        [](V c) { return c.value("selectedIds").toStringList().size() >= 2; }});
+    nt::app::registerMenuItem({"clip", "ungroupClips", "Ungroup", {}, always, "state", 1, {}, {}, {},
+        [](V c) { return anyTarget(c, isGroupClip); }});
+    nt::app::registerMenuItem({"clip", "audioGain", "Audio gain…", {}, always, "audio", 5, {}, {}, {}, [](V c) {
+        const auto type = c.value("mediaType").toString();
+        return type == "audio" || type == "video" || type == "midi";
+    }});
 
     // The same frame items and labels in the menu bar.
-    nt::app::registerShellMenuItem({"Clip", "fitToFrame", "Fit to Frame", {}, "Video Options", "state", 25, canFit, {}, {}, selectPicture});
-    nt::app::registerShellMenuItem({"Clip", "fillFrame", "Fill Frame", {}, "Video Options", "state", 26, canFill, {}, {}, selectSized});
+    nt::app::registerShellMenuItem({"Clip", "fitToFrame", "Fit to Frame", {}, "Video Options", "framing", 15, canFit, {}, {}, selectPicture});
+    nt::app::registerShellMenuItem({"Clip", "fillFrame", "Fill Frame", {}, "Video Options", "framing", 16, canFill, {}, {}, selectSized});
     const QString selectUnlocked = QStringLiteral("Select an unlocked clip first.");
     nt::app::registerShellMenuItem({"Edit", "clipLabel.none", "None", {}, "Label", "label", 40, editableTarget, labelIs({}), {}, selectUnlocked});
     order = 41;
@@ -225,6 +240,9 @@ const bool registered = [] {
     nt::app::registerMenuItem({"ruler", "clearOut", "Clear out", {}, outSet, "clear", -39, {}, needOut});
     nt::app::registerMenuItem({"ruler", "clearRange", "Clear in and out", {}, anyMark, "clear", -38, {}, QStringLiteral("Set an In or Out point first.")});
     nt::app::registerMenuItem({"ruler", "addMarker", "Add marker", {}, always, "marker", -30});
+    nt::app::registerMenuItem({"ruler", "addRangeMarker", "Add range marker", {}, always, "marker", -29});
+    nt::app::registerMenuItem({"ruler", "addMarkerInOut", "Add marker from in to out", {}, [inSet, outSet](V c) { return inSet(c) && outSet(c); }, "marker", -28,
+        {}, QStringLiteral("Set In and Out points first.")});
 
     // Edit point: the context holds leftId and rightId, and clipIds for the transition.
     order = 0;

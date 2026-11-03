@@ -2071,6 +2071,10 @@ Reach for a \`ui_*\` tool only for what a server-side edit cannot do:
   drives. Headlessly these are \`nodetool.storyboards.renderStills/renderClips\`,
   \`nodetool.scripts.voice\`, \`nodetool.media.*\`, or a workflow run.
 - Moving the user's view: selection, playhead, active tool.
+- In the native timeline editor, every other editor command, from ripple delete
+  and trims to transitions and groups: \`ui_timeline_list_commands\` names them
+  and \`ui_timeline_run_command\` runs one as one undo step. Check the result with
+  \`ui_timeline_read_scopes\` and \`ui_timeline_capture_frame\`.
 
 If you do not know the document's id, find it with \`list()\` on the namespace.`;
 

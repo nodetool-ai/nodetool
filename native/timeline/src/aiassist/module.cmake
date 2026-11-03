@@ -150,3 +150,26 @@ function(nt_scriptpanel_tests)
     set_tests_properties(tst_productionreview PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endfunction()
 nt_tests(nt_scriptpanel_tests)
+nt_qml_sources(src/aiassist/AssistantCommands.h src/aiassist/AssistantCommands.cpp
+    src/aiassist/AssistantCommandTable.h src/aiassist/AssistantCommandTable.cpp)
+nt_sources(app src/aiassist/AssistantCommandsCli.cpp)
+function(nt_assistantcommands_tests)
+    qt_add_executable(tst_assistantcommands src/aiassist/tst_assistantcommands.cpp
+        src/aiassist/AssistantSession.h src/aiassist/AssistantSession.cpp
+        src/edit/sourceEdit/SourceKeyActions.cpp src/assets/libraryscrub/LibraryScrubActions.cpp ${NT_app})
+    set_target_properties(tst_assistantcommands PROPERTIES MACOSX_BUNDLE FALSE)
+    target_compile_options(tst_assistantcommands PRIVATE ${NT_WARNINGS})
+    target_compile_definitions(tst_assistantcommands PRIVATE NT_TIMELINE_BINARY="$<TARGET_FILE:nodetool-timeline>")
+    target_link_libraries(tst_assistantcommands PRIVATE timeline_core timeline_decode timeline_audio timeline_server
+        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
+    nt_add_timeline_qml(tst_assistantcommands OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_assistantcommands_qml/NodeTool/Timeline)
+    add_dependencies(tst_assistantcommands nodetool-timeline)
+    add_test(NAME tst_assistantcommands COMMAND tst_assistantcommands)
+    set_tests_properties(tst_assistantcommands PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    # Frames need a real graphics backend, like the other render tests.
+    add_test(NAME assistant_capture COMMAND tst_assistantcommands readScopesAndCaptureFrame)
+    set_tests_properties(assistant_capture PROPERTIES LABELS render ENVIRONMENT_MODIFICATION "QT_QUICK_BACKEND=unset:")
+    # The binary's own registrations, including the ones only it compiles.
+    add_test(NAME assistant_commands_audit COMMAND nodetool-timeline --audit-assistant-commands)
+endfunction()
+nt_tests(nt_assistantcommands_tests)

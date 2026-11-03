@@ -13,6 +13,8 @@ import { makeScratch, verifiedBuildDir } from "./scratch-safety.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const makeId = () => randomUUID().replaceAll("-", "");
+const rippleTarget = "PiP A";
+const rippleFollower = "PiP B";
 
 // Exercises the production WebSocket -> ChatSession -> TimelineChatHost ->
 // TimelineModel -> local autosave path. The server is an isolated wire mock.
@@ -41,6 +43,18 @@ export async function runChatIntegration(binary) {
   const failures = [];
   const results = [];
   let manifests = 0;
+  // After the marker round trip, a second session drives the command tools in this order.
+  const commandCalls = [
+    ["ui_timeline_list_commands", { filter: "ripple" }],
+    ["ui_timeline_get_state", {}],
+    ["ui_timeline_run_command", { command: "liftRange" }],
+    // Filled in from the state, in the id form the state tool returned.
+    ["ui_timeline_run_command", { command: "rippleDeleteSelected", params: { clip_ids: [] } }],
+    ["ui_timeline_read_scopes", { atMs: 0, scopes: ["histogram"] }],
+    ["ui_timeline_capture_frame", { atMs: 0, width: 160 }]
+  ];
+  const commandResults = [];
+  let commandPhase = false;
   let stderr = "";
   let child;
   const sockets = new WebSocketServer({ noServer: true });
@@ -70,6 +84,13 @@ export async function runChatIntegration(binary) {
     }
     sockets.handleUpgrade(request, socket, head, (client) => sockets.emit("connection", client));
   });
+  const sendCommandCall = (client) => {
+    const [name, args] = commandCalls[commandResults.length];
+    client.send(JSON.stringify({
+      type: "tool_call", tool_call_id: `command-${commandResults.length}`, thread_id: threadId,
+      name, args: { timeline_id: fixture.id, ...args }
+    }));
+  };
   sockets.on("connection", (client) => {
     client.on("error", (error) => failures.push(error.message));
     client.on("message", (bytes) => {
@@ -84,10 +105,24 @@ export async function runChatIntegration(binary) {
           assert.equal(new Set(names).size, names.length, "Host tools must have unique names");
           for (const name of ["ui_timeline_add_marker", "ui_timeline_delete_marker",
             "ui_timeline_get_state", "ui_timeline_seek", "ui_timeline_move_clip",
-            "ui_timeline_generate_clip", "ui_timeline_plan_beats"]) {
+            "ui_timeline_generate_clip", "ui_timeline_plan_beats", "ui_timeline_list_commands",
+            "ui_timeline_run_command", "ui_timeline_read_scopes", "ui_timeline_capture_frame"]) {
             assert.ok(names.includes(name), `Missing native host capability ${name}`);
           }
-          client.send(JSON.stringify(event));
+          if (commandPhase) {
+            sendCommandCall(client);
+          } else {
+            client.send(JSON.stringify(event));
+          }
+        } else if (message.type === "tool_result" && commandPhase) {
+          assert.equal(message.tool_call_id, `command-${commandResults.length}`);
+          commandResults.push(message);
+          if (commandResults.length === 2) {
+            const clip = message.result.clips.find((row) => row.name === rippleTarget);
+            assert.ok(clip, `The state tool must list ${rippleTarget}`);
+            commandCalls[3][1].params.clip_ids = [clip.id];
+          }
+          if (commandResults.length < commandCalls.length) { sendCommandCall(client); }
         } else if (message.type === "tool_result") {
           assert.equal(message.tool_call_id, callId);
           assert.equal(message.thread_id, threadId);
@@ -186,7 +221,60 @@ export async function runChatIntegration(binary) {
     assert.equal(captured.code, 0, stderr);
     const png = await fs.readFile(screenshot);
     assert.equal(png.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
-    return { ok: true, markerId: marker.id, results: results.length, fixture: fixturePath, screenshot };
+
+    // The command tools in the running editor: a ripple delete, one undo entry, and the checks.
+    commandPhase = true;
+    // The fixture's picture-in-picture clips overlap, so nothing would follow the delete.
+    const beforeCommands = JSON.parse(await fs.readFile(fixturePath, "utf8"));
+    const rippled = beforeCommands.clips.find((clip) => clip.name === rippleTarget);
+    const follower = beforeCommands.clips.find((clip) => clip.name === rippleFollower);
+    rippled.durationMs = follower.startMs - rippled.startMs;
+    delete rippled.outPointMs;
+    await fs.writeFile(fixturePath, JSON.stringify(beforeCommands));
+    const commandRun = launch(["--background"], true);
+    const commandDeadline = Date.now() + 60000;
+    let afterRipple;
+    while (Date.now() < commandDeadline) {
+      assert.equal(commandRun.result, null, "The native editor exited during the command tools");
+      assert.deepEqual(failures, []);
+      if (commandResults.length === commandCalls.length) {
+        const candidate = JSON.parse(await fs.readFile(fixturePath, "utf8"));
+        if (!candidate.clips.some((clip) => clip.name === rippleTarget)) {
+          afterRipple = candidate;
+          break;
+        }
+      }
+      await delay(25);
+    }
+    assert.ok(afterRipple, `The ripple delete was not answered and persisted (results=${commandResults.length})`);
+    stop();
+    await commandRun.exited;
+    assert.deepEqual(failures, []);
+    const [listed, state, disabled, ripple, scopes, frame] = commandResults;
+    assert.equal(listed.ok, true, listed.error);
+    const entry = listed.result.commands.find((command) => command.id === "rippleDeleteSelected");
+    assert.ok(entry, "The command list must include ripple delete");
+    assert.equal(entry.enabled, false, "Nothing is selected yet");
+    assert.ok(entry.parameters.properties.clip_ids, "Ripple delete must describe clip_ids");
+    assert.equal(state.ok, true, state.error);
+    assert.equal(disabled.ok, false, "A disabled command must fail");
+    assert.equal(disabled.error, "Set In and Out points first.");
+    assert.equal(ripple.ok, true, ripple.error);
+    assert.equal(ripple.result.changed, true);
+    assert.equal(ripple.result.undo.added, true, "The call must add an undo entry");
+    assert.equal(ripple.result.undo.entry, "Ripple delete");
+    assert.equal(ripple.result.undo.undoCount, 1, "The call must be one undo entry");
+    assert.ok(!ripple.result.state.clips.some((clip) => clip.name === rippleTarget));
+    const moved = afterRipple.clips.find((clip) => clip.id === follower.id);
+    assert.equal(moved.startMs, rippled.startMs, "The next clip must move up to close the gap");
+    assert.equal(ripple.result.state.clips.find((clip) => clip.id === follower.id).startMs, moved.startMs);
+    assert.equal(scopes.ok, true, scopes.error);
+    assert.ok(scopes.result.stats.y, "Scope numbers must include luma");
+    assert.ok(scopes.result.histogram, "The histogram was asked for");
+    assert.equal(frame.ok, true, frame.error);
+    assert.match(frame.result.frames[0].dataUrl, /^data:image\/jpeg;base64,/);
+    assert.equal(frame.result.frames[0].width, 160);
+    return { ok: true, markerId: marker.id, results: results.length, commands: commandResults.length, fixture: fixturePath, screenshot };
   } catch (error) {
     throw new Error(`${error.message}\n${stderr.slice(-10000)}`, { cause: error });
   } finally {

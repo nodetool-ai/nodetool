@@ -1,11 +1,22 @@
 #include "app/EditRegistry.h"
+#include "app/MenuRegistry.h"
 #include "app/PanelRegistry.h"
+#include "wiring/w/SceneItems.h"
+#include <QQuickItem>
 #include <cmath>
 
 namespace {
 const bool panel = nt::app::registerPanel({QStringLiteral("documentBar"), QStringLiteral("projectSettings"),
     QUrl(QStringLiteral("qrc:/qt/qml/NodeTool/Timeline/qml/ProjectSettingsDialog.qml")),
     20, QStringLiteral("Project settings")});
+const bool menuItem = nt::app::registerShellMenuItem({QStringLiteral("File"), QStringLiteral("projectSettings"), QStringLiteral("Project Settings…"),
+    {}, {}, QStringLiteral("project"), 30,
+    [](const QVariantMap& context) { return context.value(QStringLiteral("gestures")).value<QObject*>() != nullptr; }, {},
+    [](const QVariantMap& context) {
+        auto* gestures = qobject_cast<QQuickItem*>(context.value(QStringLiteral("gestures")).value<QObject*>());
+        auto* dialog = nt::wiring::w::windowItem(gestures, QStringLiteral("ProjectSettingsDialog"));
+        return dialog && QMetaObject::invokeMethod(dialog, "open");
+    }, QStringLiteral("Open a timeline first.")});
 bool inRange(const QJsonValue& value, int min, int max, bool integer = true) {
     if (!value.isDouble()) {
         return false;

@@ -308,6 +308,34 @@ private slots:
         QCOMPARE(result[0].toObject().value("durationMs").toDouble(), 1500.0);
         QCOMPARE(result[31999].toObject().value("durationMs").toDouble(), 1500.0);
     }
+    // The web store's trimClip grows a hold, whose source window does not move.
+    void aHeldPredecessorGrowsUnderATransition() {
+        const auto edit = nt::app::findEdit("setTransitionDuration"); QVERIFY(edit);
+        const auto keyframe = [](double t, double sourceMs) { return QJsonObject{{"t", t}, {"sourceMs", sourceMs}}; };
+        const auto grownWith = [&](const QJsonArray& keyframes) {
+            const auto clip = [](const QString& id, double startMs) {
+                return QJsonObject{{"id", id}, {"trackId", "v"}, {"startMs", startMs}, {"durationMs", 1000}, {"mediaType", "video"}};
+            };
+            auto outgoing = clip("out", 0);
+            outgoing.insert("inPointMs", 100); outgoing.insert("outPointMs", 2100); outgoing.insert("speedMultiplier", 2);
+            outgoing.insert("timeRemap", QJsonObject{{"keyframes", keyframes}});
+            const QJsonObject doc{{"tracks", QJsonArray{}}, {"clips", QJsonArray{outgoing, clip("in", 1000)}}};
+            // The cap sits at the out-point, so only a hold has room to grow.
+            return edit(doc, {{"clipId", "in"}, {"durationMs", 300}, {"sourceCaps", QJsonObject{{"out", 2100}}}})
+                .value("clips").toArray();
+        };
+        for (const auto& keyframes : {QJsonArray{keyframe(0, 700)}, QJsonArray{keyframe(0, 700), keyframe(1, 700)}}) {
+            const auto clips = grownWith(keyframes);
+            const auto held = clips[0].toObject();
+            QCOMPARE(held.value("durationMs").toDouble(), 1300.0);
+            QCOMPARE(held.value("inPointMs").toDouble(), 100.0);
+            QCOMPARE(held.value("outPointMs").toDouble(), 2100.0);
+            QCOMPARE(clips[1].toObject().value("transitionIn").toObject().value("durationMs").toDouble(), 300.0);
+        }
+        const auto clips = grownWith({keyframe(0, 100), keyframe(1, 2100)});
+        QCOMPARE(clips[0].toObject().value("durationMs").toDouble(), 1000.0);
+        QCOMPARE(clips[1].toObject().value("transitionIn").toObject().value("durationMs").toDouble(), 300.0);
+    }
     void uiUndo() {
         TimelineModel model; load(model, fixture());
         QQmlEngine engine;

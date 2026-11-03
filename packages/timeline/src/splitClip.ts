@@ -207,9 +207,12 @@ export function splitClip(clip: TimelineClip, atMs: number): [TimelineClip, Time
     ...clip,
     id: createTimeOrderedUuid(),
     durationMs: leftDurationMs,
-    ...(isHoldRemap(clip) ? {} : { inPointMs, outPointMs: cutPointMs }),
     versions: sharedVersions
   };
+  if (!isHoldRemap(clip)) {
+    leftClip.inPointMs = inPointMs;
+    leftClip.outPointMs = cutPointMs;
+  }
   // The left half's end is now an interior cut — drop the outgoing fade.
   delete leftClip.fadeOutMs;
   delete leftClip.fadeOutShape;
@@ -225,9 +228,12 @@ export function splitClip(clip: TimelineClip, atMs: number): [TimelineClip, Time
     id: createTimeOrderedUuid(),
     startMs: atMs,
     durationMs: rightDurationMs,
-    ...(isHoldRemap(clip) ? {} : { inPointMs: cutPointMs, outPointMs }),
     versions: sharedVersions
   };
+  if (!isHoldRemap(clip)) {
+    rightClip.inPointMs = cutPointMs;
+    rightClip.outPointMs = outPointMs;
+  }
   // The right half's start is now an interior cut — drop the incoming fade and
   // the incoming transition (the boundary with the left half is a hard cut).
   delete rightClip.fadeInMs;

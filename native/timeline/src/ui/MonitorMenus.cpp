@@ -17,14 +17,17 @@ using Getter = bool (MonitorViewState::*)() const;
 using Setter = void (MonitorViewState::*)(bool);
 
 // Functions, because registerMonitorView can run from another file's static initializer before this file's.
-QString zoomMenu() { return QStringLiteral("Monitor zoom"); }
-QString displayMenu() { return QStringLiteral("Monitor display"); }
-QString overlayMenu() { return QStringLiteral("Monitor overlays"); }
+QString zoomMenu() { return QStringLiteral("Monitor Zoom"); }
+QString displayMenu() { return QStringLiteral("Monitor Display"); }
+QString overlayMenu() { return QStringLiteral("Monitor Overlays"); }
 
 MonitorViewState* monitorFor(const Context& context) {
     return MonitorViewState::forOwner(context.value(QStringLiteral("gestures")).value<QObject*>());
 }
-bool hasMonitor(const Context& context) { return monitorFor(context) != nullptr; }
+// With no editor, forOwner still has a monitor state, and nothing shows what it changes.
+bool hasMonitor(const Context& context) {
+    return context.value(QStringLiteral("gestures")).value<QObject*>() != nullptr && monitorFor(context) != nullptr;
+}
 
 // Runs against the Program monitor. The menu bar exists with no editor open, and then this does nothing.
 nt::app::MenuPredicate onMonitor(std::function<void(MonitorViewState&)> action) {
@@ -44,7 +47,7 @@ nt::app::MenuPredicate whenMonitor(std::function<bool(const MonitorViewState&)> 
 void addEntry(const QString& submenu, const QString& action, const QString& label, int order,
               nt::app::MenuPredicate checked, nt::app::MenuPredicate run, nt::app::MenuPredicate enabled = hasMonitor,
               QString reason = QStringLiteral("Open a timeline first.")) {
-    nt::app::registerShellMenuItem({QStringLiteral("View"), action, label, {}, submenu, {}, order,
+    nt::app::registerShellMenuItem({QStringLiteral("View"), action, label, {}, submenu, QStringLiteral("monitor"), order,
                                     std::move(enabled), std::move(checked), std::move(run), std::move(reason)});
 }
 void addResolution(const QString& submenu, const QString& prefix, int (MonitorViewState::*get)() const,
@@ -76,15 +79,15 @@ const bool registered = [] {
     addEntry(displayMenu(), QStringLiteral("monitorDisplayAlpha"), QStringLiteral("Alpha"), -1,
              whenMonitor([](const MonitorViewState& m) { return m.displayMode() == QStringLiteral("alpha"); }),
              onMonitor([](MonitorViewState& m) { m.setDisplayMode(QStringLiteral("alpha")); }));
-    addResolution(QStringLiteral("Playback resolution"), QStringLiteral("monitorPlaybackResolution"), &MonitorViewState::playbackResolution, &MonitorViewState::setPlaybackResolution);
-    addResolution(QStringLiteral("Paused resolution"), QStringLiteral("monitorPausedResolution"), &MonitorViewState::pausedResolution, &MonitorViewState::setPausedResolution);
-    addToggle(QStringLiteral("monitorShowControls"), QStringLiteral("Show controls"), 1, &MonitorViewState::showControls, &MonitorViewState::setShowControls);
-    addToggle(QStringLiteral("monitorSafeMargins"), QStringLiteral("Safe margins"), 2, &MonitorViewState::safeMargins, &MonitorViewState::setSafeMargins);
-    addToggle(QStringLiteral("monitorTransparencyGrid"), QStringLiteral("Transparency grid"), 3, &MonitorViewState::transparencyGrid, &MonitorViewState::setTransparencyGrid);
+    addResolution(QStringLiteral("Playback Resolution"), QStringLiteral("monitorPlaybackResolution"), &MonitorViewState::playbackResolution, &MonitorViewState::setPlaybackResolution);
+    addResolution(QStringLiteral("Paused Resolution"), QStringLiteral("monitorPausedResolution"), &MonitorViewState::pausedResolution, &MonitorViewState::setPausedResolution);
+    addToggle(QStringLiteral("monitorShowControls"), QStringLiteral("Show Controls"), 1, &MonitorViewState::showControls, &MonitorViewState::setShowControls);
+    addToggle(QStringLiteral("monitorSafeMargins"), QStringLiteral("Safe Margins"), 2, &MonitorViewState::safeMargins, &MonitorViewState::setSafeMargins);
+    addToggle(QStringLiteral("monitorTransparencyGrid"), QStringLiteral("Transparency Grid"), 3, &MonitorViewState::transparencyGrid, &MonitorViewState::setTransparencyGrid);
     addToggle(QStringLiteral("monitorRulers"), QStringLiteral("Rulers"), 4, &MonitorViewState::rulers, &MonitorViewState::setRulers);
     addToggle(QStringLiteral("monitorGuides"), QStringLiteral("Guides"), 5, &MonitorViewState::guidesVisible, &MonitorViewState::setGuidesVisible);
-    addToggle(QStringLiteral("monitorLockGuides"), QStringLiteral("Lock guides"), 6, &MonitorViewState::guidesLocked, &MonitorViewState::setGuidesLocked);
-    addEntry(overlayMenu(), QStringLiteral("monitorClearGuides"), QStringLiteral("Clear guides"), 7, {},
+    addToggle(QStringLiteral("monitorLockGuides"), QStringLiteral("Lock Guides"), 6, &MonitorViewState::guidesLocked, &MonitorViewState::setGuidesLocked);
+    addEntry(overlayMenu(), QStringLiteral("monitorClearGuides"), QStringLiteral("Clear Guides"), 7, {},
              onMonitor([](MonitorViewState& m) { m.clearGuides(); }),
              whenMonitor([](const MonitorViewState& m) { return !m.guides().isEmpty(); }),
              QStringLiteral("There are no guides to clear."));
@@ -104,7 +107,7 @@ const bool registered = [] {
     nt::app::registerMenuItem({QStringLiteral("ruler"), QStringLiteral("toggleTimecodeRuler"), QStringLiteral("Timecode ruler"), {},
                                [](const Context&) { return true; }, {}, 0,
                                [](const Context& context) { return context.value(QStringLiteral("rulerMode")) == QStringLiteral("timecode"); }});
-    nt::app::registerShellMenuItem({QStringLiteral("View"), QStringLiteral("toggleTimecodeRuler"), QStringLiteral("Timecode ruler"), {}, {}, {}, 0,
+    nt::app::registerShellMenuItem({QStringLiteral("View"), QStringLiteral("toggleTimecodeRuler"), QStringLiteral("Timecode Ruler"), {}, {}, QStringLiteral("tracks"), 19,
                                     [](const Context& context) { return context.value(QStringLiteral("gestures")).value<QObject*>() != nullptr; },
                                     rulerChecked, {}, QStringLiteral("Open a timeline first.")});
     return true;

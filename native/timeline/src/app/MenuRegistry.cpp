@@ -38,6 +38,9 @@ bool nt::app::registerMenuItem(MenuItem item) {
     items().push_back(std::move(item));
     return true;
 }
+const std::vector<nt::app::MenuItem>& nt::app::menuItems() {
+    return items();
+}
 const QStringList& nt::app::shellMenuNames() {
     static const QStringList names{"File", "Edit", "Clip", "Sequence", "Markers", "View", "Playback", "Window", "Help"};
     return names;
@@ -65,6 +68,7 @@ QVariantList MenuRegistry::query(const QString& kind, const QVariantMap& context
     const QString* previous = nullptr;
     const auto arrangedList = arranged(std::move(list));
     for (const auto& item : arrangedList) {
+        if (item.applies && !item.applies(context)) { continue; }
         const bool enabled = !item.enabled || item.enabled(context);
         out.append(QVariantMap{{"action", item.action}, {"label", item.label}, {"shortcut", item.shortcut},
                                {"enabled", enabled}, {"reason", enabled ? QString() : item.disabledReason},
