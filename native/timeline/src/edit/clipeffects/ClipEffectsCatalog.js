@@ -79,6 +79,39 @@ function slider(key, label, fallback, max = 1, min = 0, step = 0.01, extra = {})
 function number(key, label, fallback, minimum, step = 1, extra = {}) {
     return Object.assign({kind: "number", key, label, fallback, minimum, step}, extra);
 }
+// A field with a stopwatch in Effect Controls. These settings are read only when the analysis runs,
+// and they are part of what the stored analysis has to match.
+const analysisFields = {stabilize: ["windowMs"], deflicker: ["windowMs", "maxCorrection"]};
+function keyed(type, field) {
+    if (gradedInColorPanel(type)) {
+        return false;
+    }
+    if (field.kind === "offset") {
+        return true;
+    }
+    return (field.kind === "slider" || field.kind === "number") && (analysisFields[type] || []).indexOf(field.key) < 0;
+}
+// The rows of one effect, in the shape the panel's fixed rows have. The row id is the curve's name,
+// and nt::keyframes::effectParamSpec holds the same bounds for the edits.
+function keyedRows(effectId, type, mediaType) {
+    const rowOf = (key, label, input) => ({id: "effect:" + effectId + ":" + key, label: label, inputs: [Object.assign({label: name(type) + " " + label}, input)]});
+    const rows = [];
+    for (const field of fields(type)) {
+        if (!keyed(type, field) || (field.videoOnly && mediaType !== "video")) {
+            continue;
+        }
+        if (field.kind === "offset") {
+            rows.push(rowOf("offsetX", "Offset X", {unit: "px", decimals: 0, step: 1}));
+            rows.push(rowOf("offsetY", "Offset Y", {unit: "px", decimals: 0, step: 1}));
+        } else if (field.kind === "number") {
+            const gamma = field.key === "gamma";
+            rows.push(rowOf(field.key, field.label, {unit: gamma ? "" : "px", decimals: gamma ? 2 : 0, step: field.step, min: gamma ? 0.01 : field.minimum}));
+        } else {
+            rows.push(rowOf(field.key, field.label, {unit: field.unit || "", decimals: field.decimals ?? 2, step: field.step, min: field.min, max: field.max}));
+        }
+    }
+    return rows;
+}
 function fields(type) {
     switch (type) {
     case "denoise": return [slider("lumaStrength", "Luminance", 0), slider("chromaStrength", "Chroma", 0),

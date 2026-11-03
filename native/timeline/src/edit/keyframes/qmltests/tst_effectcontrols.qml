@@ -2,6 +2,7 @@ import QtQuick
 import QtTest
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
+import "../../clipeffects/ClipEffectsCatalog.js" as Catalog
 
 Item {
     id: host
@@ -135,6 +136,78 @@ Item {
             verify(input.disabled)
             verify(child("audioFadeIn").disabled)
             verify(child("audioFadeOutShape").disabled)
+        }
+        // The edits' table and the catalog name the same keyable parameters with the same bounds.
+        function test_effectCatalogMatchesTheEdits() {
+            let count = 0
+            for (const entry of Catalog.addableEffects) {
+                for (const field of Catalog.fields(entry.value)) {
+                    if (!Catalog.keyed(entry.value, field)) continue
+                    const keys = field.kind === "offset" ? ["offsetX", "offsetY"] : [field.key]
+                    for (const key of keys) {
+                        const spec = controller.effectParamSpec(entry.value, key)
+                        verify(spec.fallback !== undefined, entry.value + ":" + key)
+                        if (field.kind !== "offset") compare(spec.fallback, field.fallback, entry.value + ":" + key)
+                        if (field.kind === "slider") {
+                            compare(spec.min, field.min, entry.value + ":" + key)
+                            compare(spec.max, field.max, entry.value + ":" + key)
+                        }
+                        ++count
+                    }
+                }
+            }
+            verify(count > 40, count)
+            // A grade keeps its sliders in the Color panel, and an analysis setting stays a slider.
+            verify(!Catalog.keyed("color", {kind: "slider", key: "brightness"}))
+            verify(!Catalog.keyed("stabilize", {kind: "slider", key: "windowMs"}))
+        }
+        function test_effectParameterRowsKey() {
+            testTimeline.applyEdit("patchClip", {clipId: "c", patch: {effects: [{id: "e1", type: "blur", enabled: true, radius: 4},
+                {id: "shadow", type: "dropShadow", enabled: true, offsetX: 3, offsetY: 4, blur: 5, opacity: 0.5}]}})
+            tryVerify(() => findChild(panel, "effectControlsStopwatch_effect:e1:radius"))
+            waitForRendering(panel)
+            const row = "effect:e1:radius"
+            const input = child("effectControls_" + row + "_input_0")
+            compare(input.value, "4.0")
+            testClock.seek(0)
+            const count = testHarness.undoCount()
+            click(child("effectControlsStopwatch_" + row))
+            tryVerify(() => controller.rowDocument(row).keyframed)
+            compare(testHarness.undoCount(), count + 1)
+            compare(panel.activeRow, row)
+            testClock.seek(1000)
+            tryVerify(() => controller.playheadMs === 1000)
+            input.commit("12")
+            compare(testHarness.undoCount(), count + 2)
+            compare(times(row), [0, 1000])
+            // The static value stays under the keys.
+            compare(controller.clip.effects[0].radius, 4)
+            click(child("effectControlsPrev_" + row))
+            tryVerify(() => controller.playheadMs === 0)
+            click(child("effectControlsNext_" + row))
+            tryVerify(() => controller.playheadMs === 1000)
+            click(child("effectControlsGraphs_" + row))
+            tryVerify(() => child("effectControlsGraphLoader_" + row).item)
+            // Switching the effect off keeps the keys and disables the row.
+            click(child("effectControlsEnable_effect:e1"))
+            tryVerify(() => !controller.clip.effects[0].enabled)
+            tryCompare(input, "disabled", true)
+            compare(times(row), [0, 1000])
+            click(child("effectControlsEnable_effect:e1"))
+            tryCompare(input, "disabled", false)
+            // Drop shadow's offset is two rows, and its colour stays a control in the list.
+            child("effectControlsStopwatch_effect:shadow:offsetX")
+            child("effectControlsStopwatch_effect:shadow:offsetY")
+            child("effects_shadow_color")
+            // Removing the effect takes its keys, as one step that undo brings back.
+            const before = testHarness.undoCount()
+            click(child("effectsRemove_e1"))
+            tryVerify(() => controller.clip.effects.length === 1)
+            compare(testHarness.undoCount(), before + 1)
+            compare(controller.rowDocument(row).times.length, 0)
+            testTimeline.undoStack.undo()
+            tryVerify(() => controller.clip.effects.length === 2)
+            compare(times(row), [0, 1000])
         }
         function test_soundClipKeysItsLevel() {
             testTimeline.applyEdit("patchClip", {clipId: "c", patch: {mediaType: "audio", volumeDb: -6}})

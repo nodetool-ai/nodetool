@@ -102,13 +102,8 @@ QVariantMap liveState(const QJsonObject& c, const QString& row, double relative)
     const double ms = heldMs(c, relative);
     const bool inside = relative >= 0 && relative <= c["durationMs"].toDouble();
     QVariantList values;
-    for (const auto& value : nt::keyframes::rowSpecs()) {
-        const auto spec = value.toObject();
-        if (spec["id"] == row) {
-            for (int i = 0; i < spec["inputs"].toArray().size(); ++i) {
-                values.append(nt::keyframes::inputValue(c, row, i, ms));
-            }
-        }
+    for (int i = 0; i < nt::keyframes::inputCount(row); ++i) {
+        values.append(nt::keyframes::inputValue(c, row, i, ms));
     }
     const auto ps = QJsonArray::fromStringList(nt::keyframes::properties(row));
     const auto helper = [](const QString& name, const QJsonArray& args) { return nt::keyframes::helper(name, args); };
@@ -246,6 +241,9 @@ QString ClipInspectorController::bezierEasing(double x1, double y1, double x2, d
 }
 bool ClipInspectorController::groupEnabled(const QString& group) const {
     return !selected()["bypassedFixedEffects"].toObject().contains(group);
+}
+QVariantMap ClipInspectorController::effectParamSpec(const QString& type, const QString& key) const {
+    return nt::keyframes::effectParamSpec(type, key).toVariantMap();
 }
 bool ClipInspectorController::validEasing(const QString& easing) const {
     return easing.isEmpty() || nt::scene::isKnownEasing(easing.toStdString());

@@ -1,5 +1,6 @@
 #include "app/EditRegistry.h"
 #include "edit/clipboard/RawDocument.h"
+#include "scene/SideCurves.h"
 #include <QHash>
 #include <algorithm>
 #include <cmath>
@@ -17,6 +18,11 @@ QJsonObject patchClip(QJsonObject raw, const QJsonObject& payload) {
             // JSON null represents the web's `undefined` for optional fields.
             if (it.value().isNull()) { clip.remove(it.key()); }
             else { clip.insert(it.key(), it.value()); }
+        }
+        // Keys go with the effect they belong to. An undo brings both back.
+        if (patch.contains("effects") && clip.contains("animations")) {
+            clip.insert("animations", nt::scene::withoutOrphanEffectCurves(clip.value("animations").toArray(),
+                clip.value("effects").toArray(), clip.value("durationMs").toDouble()));
         }
         clips[i] = clip;
         break;

@@ -795,6 +795,119 @@ class TestKeyframes : public QObject {
         QCOMPARE(nt::keyframes::inputValue(right, "cropLeft", 0, 0), nt::keyframes::inputValue(left, "cropLeft", 0, 500));
         QCOMPARE(nt::keyframes::inputValue(right, "cropLeft", 0, 500), 0.9);
     }
+    void effectRowsKeyTheParameter() {
+        auto document = fixture().raw;
+        auto clips = document["clips"].toArray();
+        auto c = clips[0].toObject();
+        c.insert("effects", QJsonArray{QJsonObject{{"id", "e"}, {"type", "blur"}, {"enabled", true}, {"radius", 4}, {"sigma", 2}},
+                                       QJsonObject{{"id", "g"}, {"type", "color"}, {"enabled", true}, {"brightness", 0.1}},
+                                       QJsonObject{{"id", "plain"}, {"type", "glow"}, {"enabled", true}}});
+        clips[0] = c;
+        document.insert("clips", clips);
+        auto parsed = nt::parseTimeline(document);
+        QVERIFY(parsed.timeline.has_value());
+        TimelineModel model;
+        model.setTimeline(std::move(*parsed.timeline));
+        const auto clip = [&] { return model.clipsJson()[0].toObject(); };
+        const auto before = model.documentJson();
+        const QString row = "effect:e:radius";
+        // Off the keys it is the effect's own field, and keys start from it.
+        QCOMPARE(nt::keyframes::inputValue(clip(), row, 0, 0), 4.0);
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", row}, {"input", 0}, {"value", 6}, {"atMs", QJsonValue::Null}}));
+        QCOMPARE(clip()["effects"].toArray()[0].toObject()["radius"].toDouble(), 6.0);
+        QCOMPARE(clip()["effects"].toArray()[0].toObject()["sigma"].toDouble(), 2.0);
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", row}, {"atMs", 0}}));
+        QCOMPARE(nt::keyframes::inputValue(clip(), row, 0, 0), 6.0);
+        // The catalog's bound applies.
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", row}, {"input", 0}, {"value", 999}, {"atMs", 1000}}));
+        QCOMPARE(nt::keyframes::inputValue(clip(), row, 0, 1000), 20.0);
+        // The static value stays where it was, and the curve is apart from the keyframe animation.
+        QCOMPARE(clip()["effects"].toArray()[0].toObject()["radius"].toDouble(), 6.0);
+        QVERIFY(nt::scene::isSideCurveAnimation(clip()["animations"].toArray()[0].toObject()));
+        QCOMPARE(nt::keyframes::times(clip(), nt::keyframes::properties(row)), (QJsonArray{0, 1000}));
+        QCOMPARE(nt::keyframes::helper("adjacentKeyframeMs", {clip(), QJsonArray{row}, 0, 1}).toDouble(), 1000.0);
+        const auto graph = nt::keyframes::rowGraph(clip(), row, 0, 1000, 10);
+        QCOMPARE(graph["curves"].toArray()[0].toObject()["values"].toArray().last().toDouble(), 20.0);
+        QVERIFY(model.applyEdit("keyframes.easing", {{"clipId", "c"}, {"row", row}, {"atMs", 1000}, {"easing", "cubic-bezier(0.1,0.2,0.3,0.4)"}}));
+        QCOMPARE(nt::keyframes::helper("keyframeEasingAt", {clip(), row, 1000}).toString(), QString("cubic-bezier(0.1,0.2,0.3,0.4)"));
+        // A parameter with no fixed value in the document starts from the catalog's value.
+        QCOMPARE(nt::keyframes::inputValue(clip(), "effect:plain:radius", 0, 0), 8.0);
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "effect:plain:radius"}, {"atMs", 0}}));
+        QCOMPARE(nt::keyframes::inputValue(clip(), "effect:plain:radius", 0, 0), 8.0);
+        // Grades, unknown parameters and missing effects are refused.
+        for (const auto* refused : {"effect:g:brightness", "effect:e:sigma", "effect:missing:radius"}) {
+            QVERIFY2(!model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", refused}, {"atMs", 0}}), refused);
+        }
+        while (model.undoStack()->canUndo()) { model.undoStack()->undo(); }
+        QCOMPARE(model.documentJson(), before);
+    }
+    void effectKeysOnASwitchedOffEffect() {
+        auto document = fixture().raw;
+        auto clips = document["clips"].toArray();
+        auto c = clips[0].toObject();
+        c.insert("effects", QJsonArray{QJsonObject{{"id", "e"}, {"type", "blur"}, {"enabled", true}, {"radius", 4}}});
+        clips[0] = c;
+        document.insert("clips", clips);
+        document = nt::keyframes::edit(document, {{"clipId", "c"}, {"action", "stopwatch"}, {"row", "effect:e:radius"}, {"atMs", 0}});
+        const auto keyed = document;
+        clips = document["clips"].toArray();
+        c = clips[0].toObject();
+        auto effects = c["effects"].toArray();
+        auto effect = effects[0].toObject();
+        effect.insert("enabled", false);
+        effects[0] = effect;
+        c.insert("effects", effects);
+        clips[0] = c;
+        document.insert("clips", clips);
+        // The curves stay, and its row takes no edits.
+        QCOMPARE(c["animations"], keyed["clips"].toArray()[0].toObject()["animations"]);
+        QCOMPARE(nt::keyframes::edit(document, {{"clipId", "c"}, {"action", "toggle"}, {"row", "effect:e:radius"}, {"atMs", 500}}), document);
+    }
+    void splitAndTrimKeepEffectKeys() {
+        QJsonObject clip{{"id", "c"}, {"startMs", 0}, {"durationMs", 2000}, {"mediaType", "video"},
+            {"effects", QJsonArray{QJsonObject{{"id", "e"}, {"type", "blur"}, {"enabled", true}, {"radius", 4}}}},
+            {"animations", nt::scene::withSideCurves({}, QJsonArray{QJsonObject{{"property", "effect:e:radius"},
+                {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", 0}}, QJsonObject{{"t", 1}, {"value", 20}}}}}}, 2000)}};
+        const auto [left, right] = nt::edit::splitClip(clip, 1000);
+        QCOMPARE(nt::keyframes::inputValue(left, "effect:e:radius", 0, 1000), 10.0);
+        QCOMPARE(nt::keyframes::inputValue(right, "effect:e:radius", 0, 0), 10.0);
+        QCOMPARE(nt::keyframes::inputValue(right, "effect:e:radius", 0, 1000), 20.0);
+        const auto trimmed = nt::edit::trimClip(clip, "end", -1000, std::nullopt);
+        QCOMPARE(nt::keyframes::inputValue(trimmed, "effect:e:radius", 0, 500), 10.0);
+    }
+    void removingAnEffectDropsOnlyItsCurves() {
+        const auto curve = [](const QString& property) {
+            return QJsonObject{{"property", property}, {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", 1}}}}};
+        };
+        const auto animations = nt::scene::withSideCurves({}, QJsonArray{curve("effect:a:radius"), curve("effect:b:radius"), curve("volumeDb")}, 1000);
+        const auto left = nt::scene::withoutOrphanEffectCurves(animations, QJsonArray{QJsonObject{{"id", "b"}}}, 1000);
+        const auto list = nt::scene::sideCurveList(left);
+        QCOMPARE(list.size(), 2);
+        QCOMPARE(list[0].toObject()["property"].toString(), QString("effect:b:radius"));
+        QCOMPARE(list[1].toObject()["property"].toString(), QString("volumeDb"));
+    }
+    void effectCurveNames_data() {
+        QTest::addColumn<QString>("name");
+        QTest::addColumn<QString>("effectId");
+        QTest::addColumn<QString>("param");
+        QTest::newRow("plain") << "effect:abc:radius" << "abc" << "radius";
+        QTest::newRow("id with a colon") << "effect:inspector:color:hue" << "inspector:color" << "hue";
+        QTest::newRow("no parameter") << "effect:abc" << "" << "";
+        QTest::newRow("empty parameter") << "effect:abc:" << "" << "";
+        QTest::newRow("not an effect") << "volumeDb" << "" << "";
+    }
+    void effectCurveNames() {
+        QFETCH(QString, name);
+        QFETCH(QString, effectId);
+        QFETCH(QString, param);
+        const auto parsed = nt::scene::parseEffectCurveName(name);
+        QCOMPARE(parsed.has_value(), !effectId.isEmpty());
+        if (parsed) {
+            QCOMPARE(parsed->effectId, effectId);
+            QCOMPARE(parsed->param, param);
+            QCOMPARE(nt::scene::effectCurveName(effectId, param), name);
+        }
+    }
     void bypassVolumeOnSoundOnly() {
         auto parsed = nt::parseTimelineJson(
             R"({"name":"Sound","width":640,"height":360,"fps":30,"durationMs":2000,"tracks":[{"id":"a","type":"audio","name":"Audio"}],"clips":[{"id":"c","trackId":"a","mediaType":"audio","name":"Voice","startMs":0,"durationMs":2000,"volumeDb":-6}]})");

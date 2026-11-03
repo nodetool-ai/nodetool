@@ -1,4 +1,5 @@
 .pragma library
+.import "../../src/edit/clipeffects/ClipEffectsCatalog.js" as Catalog
 
 // What the Effect Controls panel lists for a clip: pure, so the panel can rebuild its
 // rows only when this list changes and not on every edit of a value.
@@ -39,7 +40,7 @@ function groups(clip, rowSpecs, visualEffects, audioEffects, sections) {
         addSection("motionBlur");
     }
     for (const effect of visualEffects) {
-        result.push({id: "effect:" + effect.id, kind: "effect", effectId: effect.id, effectType: effect.type, rows: []});
+        result.push({id: "effect:" + effect.id, kind: "effect", effectId: effect.id, effectType: effect.type, rows: Catalog.keyedRows(effect.id, effect.type, type)});
     }
     if (sound) {
         const level = registered("audio");

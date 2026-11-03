@@ -90,7 +90,8 @@ bool multiply(const QString& p) {
 bool replace(const QString& p) {
     return QStringList{"positionX", "positionY", "anchorX",      "anchorY",     "trimStart", "trimEnd",
                        "wipeProgress", "perspective", "cropLeft", "cropRight", "cropTop", "cropBottom", "borderRadius"}
-        .contains(p);
+               .contains(p) ||
+           p.startsWith("effect:");
 }
 double identity(const QString& p) { return multiply(p) ? 1 : 0; }
 double compose(const QString& p, double base, double value) {
@@ -326,6 +327,102 @@ QJsonObject cameraStyle(const QJsonObject& clip) {
             {"lightIntensity", 1},
             {"background", QJsonObject{{"transparent", true}}}};
 }
+// The video effect parameters a stopwatch can key, with the values and bounds the Effects catalog
+// (src/edit/clipeffects/ClipEffectsCatalog.js) gives them. tst_effectcontrols.qml compares the two.
+// Left out: the Color panel's grades, and the analysis settings of Stabilization and Deflicker,
+// which are only read when the analysis runs.
+constexpr double kUnbounded = std::numeric_limits<double>::infinity();
+struct EffectParam {
+    const char* type;
+    const char* key;
+    double fallback;
+    double min;
+    double max;
+};
+constexpr EffectParam kEffectParams[] = {
+    {"denoise", "lumaStrength", 0, 0, 1},
+    {"denoise", "chromaStrength", 0, 0, 1},
+    {"denoise", "temporalStrength", 0, 0, 1},
+    {"denoise", "radius", 2, 1, 4},
+    {"stabilize", "strength", 1, 0, 1},
+    {"stabilize", "maxZoom", 1.1, 1, 1.5},
+    {"deflicker", "strength", 1, 0, 1},
+    {"deband", "strength", 0, 0, 1},
+    {"deband", "range", 16, 1, 64},
+    {"deband", "threshold", 0.02, 0, 0.1},
+    {"deband", "dither", 0.5, 0, 1},
+    {"secondaryColor", "hueCenter", 0, 0, 360},
+    {"secondaryColor", "hueWidth", 180, 0, 180},
+    {"secondaryColor", "hueSoftness", 15, 0, 180},
+    {"secondaryColor", "saturationMin", 0, 0, 1},
+    {"secondaryColor", "saturationMax", 1, 0, 1},
+    {"secondaryColor", "lightnessMin", 0, 0, 1},
+    {"secondaryColor", "lightnessMax", 1, 0, 1},
+    {"secondaryColor", "rangeSoftness", 0.1, 0, 1},
+    {"secondaryColor", "hueShift", 0, -180, 180},
+    {"secondaryColor", "saturation", 1, 0, 4},
+    {"secondaryColor", "lightness", 0, -1, 1},
+    {"exposure", "exposure", 0, -5, 5},
+    {"exposure", "rolloff", 0, 0, 1},
+    {"exposure", "whites", 0, -2, 2},
+    {"blur", "radius", 8, 0, 20},
+    {"glow", "radius", 8, 0, kUnbounded},
+    {"glow", "intensity", 1, 0, 2},
+    {"dropShadow", "offsetX", 8, -kUnbounded, kUnbounded},
+    {"dropShadow", "offsetY", 8, -kUnbounded, kUnbounded},
+    {"dropShadow", "blur", 12, 0, kUnbounded},
+    {"dropShadow", "opacity", 1, 0, 1},
+    {"sharpen", "amount", 0.5, 0, 2},
+    {"sharpen", "radius", 1, 0, kUnbounded},
+    {"chromaKey", "tolerance", 0.2, 0, 1},
+    {"chromaKey", "softness", 0.1, 0, 1},
+    {"chromaKey", "spill", 0.5, 0, 1},
+    {"levels", "inBlack", 0, 0, 1},
+    {"levels", "inWhite", 1, 0, 1},
+    {"levels", "gamma", 1, 0.01, kUnbounded},
+    {"levels", "outBlack", 0, 0, 1},
+    {"levels", "outWhite", 1, 0, 1},
+    {"grain", "amount", 0.25, 0, 1},
+    {"grain", "size", 1, 1, 16},
+    {"grain", "roughness", 0.5, 0, 1},
+    {"grain", "softness", 0.25, 0, 1},
+    {"grain", "colorAmount", 0, 0, 1},
+    {"pixelate", "cellSize", 8, 1, 128},
+    {"posterize", "levels", 4, 2, 256},
+    {"directionalBlur", "radius", 8, 0, 256},
+    {"directionalBlur", "angle", 0, -180, 180},
+    {"lensDistortion", "amount", 0.5, -1, 1},
+};
+const EffectParam* findEffectParam(const QString& type, const QString& key) {
+    for (const auto& param : kEffectParams) {
+        if (type == QLatin1StringView(param.type) && key == QLatin1StringView(param.key)) {
+            return &param;
+        }
+    }
+    return nullptr;
+}
+int effectIndex(const QJsonArray& effects, const QString& id) {
+    for (qsizetype i = 0; i < effects.size(); ++i) {
+        if (effects[i].toObject()["id"].toString() == id) {
+            return static_cast<int>(i);
+        }
+    }
+    return -1;
+}
+QJsonObject effectOfRow(const QJsonObject& clip, const QString& row) {
+    const auto name = nt::scene::parseEffectCurveName(row);
+    if (!name) {
+        return {};
+    }
+    const auto effects = clip["effects"].toArray();
+    const int index = effectIndex(effects, name->effectId);
+    return index < 0 ? QJsonObject{} : effects[index].toObject();
+}
+// The row names a parameter this build can key, on an effect the clip has.
+bool effectRowUsable(const QJsonObject& clip, const QString& row) {
+    const auto name = nt::scene::parseEffectCurveName(row);
+    return name && findEffectParam(effectOfRow(clip, row)["type"].toString(), name->param);
+}
 struct Input {
     QString property;
     QString group;
@@ -335,6 +432,9 @@ struct Input {
     double max = std::numeric_limits<double>::infinity();
 };
 std::vector<Input> inputs(const QString& row) {
+    if (const auto name = nt::scene::parseEffectCurveName(row)) {
+        return {{row, "effect:" + name->effectId, name->param}};
+    }
     if (row == "position") {
         return {{"offsetX", "position", "x"}, {"offsetY", "position", "y"}};
     }
@@ -388,6 +488,11 @@ double base(const QJsonObject& clip, const Input& i) {
     if (i.group == "crop") {
         return clip["crop"].toObject()[i.member].toDouble(i.defaultValue);
     }
+    if (i.group.startsWith("effect:")) {
+        const auto effect = effectOfRow(clip, i.property);
+        const auto* param = findEffectParam(effect["type"].toString(), i.member);
+        return effect[i.member].toDouble(param ? param->fallback : 0);
+    }
     const auto from = i.group == "camera" ? cameraStyle(clip)["camera"].toObject()
                       : i.group.isEmpty() ? transform(clip)
                                           : transform(clip)[i.group].toObject();
@@ -396,6 +501,15 @@ double base(const QJsonObject& clip, const Input& i) {
 QJsonObject basePatch(const QJsonObject& clip, const Input& i, double value) {
     if (onClip(i)) {
         return {{i.member, value}};
+    }
+    if (i.group.startsWith("effect:")) {
+        auto effects = clip["effects"].toArray();
+        const int index = effectIndex(effects, i.group.mid(7));
+        if (index < 0) {
+            return {};
+        }
+        effects[index] = merged(effects[index].toObject(), {{i.member, value}});
+        return {{"effects", effects}};
     }
     if (i.group == "crop") {
         // `edit` removes a crop of nothing.
@@ -497,14 +611,23 @@ QJsonValue commit(const QJsonObject& clip, const QString& row, int index, double
         return QJsonValue::Null;
     }
     const auto& input = specs[static_cast<size_t>(index)];
+    double bottom = input.min;
     double top = input.max;
+    if (input.group.startsWith("effect:")) {
+        const auto* param = findEffectParam(effectOfRow(clip, row)["type"].toString(), input.member);
+        if (!param) {
+            return QJsonValue::Null;
+        }
+        bottom = param->min;
+        top = param->max;
+    }
     if (input.group == "crop") {
         // Opposite edges leave at least 5% of the picture, as the crop edit does.
         static const QHash<QString, QString> opposite{{"cropLeft", "cropRight"}, {"cropRight", "cropLeft"}, {"cropTop", "cropBottom"}, {"cropBottom", "cropTop"}};
         const double ms = at.isDouble() ? at.toDouble() : 0;
         top = std::max(input.min, input.max - inputValue(clip, opposite.value(row), 0, ms));
     }
-    const double composed = std::clamp(value, input.min, top);
+    const double composed = std::clamp(value, bottom, top);
     if (!rowKeyed(clip, row)) {
         return basePatch(clip, input, composed);
     }
@@ -782,6 +905,9 @@ std::optional<FixedGroup> fixedGroup(const QString& group) {
     return std::nullopt;
 }
 bool rowSwitchedOff(const QJsonObject& clip, const QString& row) {
+    if (nt::scene::parseEffectCurveName(row)) {
+        return !effectOfRow(clip, row)["enabled"].toBool();
+    }
     const auto stash = clip["bypassedFixedEffects"].toObject();
     for (const auto* group : {"motion", "opacity", "volume"}) {
         if (!stash.contains(group)) {
@@ -936,6 +1062,29 @@ std::vector<double> displayScales(const QString& row) {
     return result;
 }
 } // namespace
+QJsonObject effectParamSpec(const QString& type, const QString& key) {
+    const auto* param = findEffectParam(type, key);
+    if (!param) {
+        return {};
+    }
+    QJsonObject spec{{"fallback", param->fallback}};
+    if (std::isfinite(param->min)) {
+        spec.insert("min", param->min);
+    }
+    if (std::isfinite(param->max)) {
+        spec.insert("max", param->max);
+    }
+    return spec;
+}
+QStringList keyableEffectParams(const QString& type) {
+    QStringList keys;
+    for (const auto& param : kEffectParams) {
+        if (type == QLatin1StringView(param.type)) {
+            keys.append(QLatin1StringView(param.key));
+        }
+    }
+    return keys;
+}
 QJsonObject transform(const QJsonObject& clip) {
     if (clip["transform"].isObject()) {
         return clip["transform"].toObject();
@@ -1104,6 +1253,7 @@ QStringList properties(const QString& row) {
     }
     return result;
 }
+int inputCount(const QString& row) { return static_cast<int>(inputs(row).size()); }
 QJsonArray times(const QJsonObject& clip, const QStringList& ps) {
     QSet<double> found;
     for (const auto& item : curves(clip)) {
@@ -1287,7 +1437,7 @@ QJsonObject edit(QJsonObject document, const QJsonObject& payload) {
         const auto row = payload["row"].toString();
         const auto at = payload.contains("atMs") ? payload["atMs"] : QJsonValue(QJsonValue::Null);
         // A switched-off group shows its rows disabled, and Alt+K and the assistant respect that.
-        if (rowSwitchedOff(c, row)) {
+        if (rowSwitchedOff(c, row) || (nt::scene::parseEffectCurveName(row) && !effectRowUsable(c, row))) {
             return document;
         }
         QJsonValue patch;

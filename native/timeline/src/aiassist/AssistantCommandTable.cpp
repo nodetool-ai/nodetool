@@ -238,7 +238,7 @@ QList<Command> buildAllowed() {
     edit("markers.update", "Change markers", {markers, P{"patch", ParamKind::Patch, true, "Fields to set. A time or duration needs a single marker.", {"label", "note", "color", "timeMs", "durationMs"}}});
     edit("markers.remove", "Remove markers", {markers});
     // Keyframes, in ms from the clip's start.
-    const P row{"row", ParamKind::Text, true, "The property row: position, scale, rotation, anchor, rotationX, rotationY, perspective, depth, opacity, cropLeft, cropTop, cropRight, cropBottom or borderRadius, volume on a sound clip, and cameraOrbit, cameraFov or cameraZoom on a 3D clip."};
+    const P row{"row", ParamKind::Text, true, "The property row: position, scale, rotation, anchor, rotationX, rotationY, perspective, depth, opacity, cropLeft, cropTop, cropRight, cropBottom or borderRadius, volume on a sound clip, cameraOrbit, cameraFov or cameraZoom on a 3D clip, or effect:<effectId>:<param> for a numeric parameter of a video effect from the Effects panel."};
     const P clipTime{"atMs", ParamKind::Number, true, "Time from the clip's start, in ms.", {}, {}, 0};
     edit("keyframes.toggle", "Add or remove a keyframe", {clip, row, clipTime});
     edit("keyframes.input", "Set a property's value", {clip, row, P{"input", ParamKind::Number, true, "Which value of the row, from 0.", {}, {}, 0}, P{"value", ParamKind::Number, true},

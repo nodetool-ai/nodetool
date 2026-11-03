@@ -7,6 +7,7 @@
 #include "playback/PlaybackClock.h"
 #include "preview/SceneEval.h"
 #include "preview/crop/Reframe.h"
+#include "scene/SideCurves.h"
 #include "preview/layers/TestStill.h"
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -150,6 +151,58 @@ private slots:
         keyRow(model, row, 0, first, second);
         if (QTest::currentTestFailed()) { return; }
         checkFrames(model);
+    }
+    // One generic path, so a sample of what the Effects panel adds, each with a visible change.
+    void effectParams_data() {
+        QTest::addColumn<QString>("type");
+        QTest::addColumn<QString>("param");
+        QTest::addColumn<double>("first");
+        QTest::addColumn<double>("second");
+        QTest::newRow("blur") << "blur" << "radius" << 0.0 << 12.0;
+        QTest::newRow("exposure") << "exposure" << "exposure" << -2.0 << 2.0;
+        QTest::newRow("levels gamma") << "levels" << "gamma" << 0.4 << 2.5;
+        QTest::newRow("levels white") << "levels" << "outWhite" << 1.0 << 0.2;
+        QTest::newRow("pixelate") << "pixelate" << "cellSize" << 1.0 << 24.0;
+        QTest::newRow("posterize") << "posterize" << "levels" << 256.0 << 2.0;
+        QTest::newRow("directional blur") << "directionalBlur" << "radius" << 0.0 << 20.0;
+        QTest::newRow("lens distortion") << "lensDistortion" << "amount" << 0.0 << 0.9;
+        QTest::newRow("glow") << "glow" << "intensity" << 0.0 << 2.0;
+        QTest::newRow("drop shadow offset") << "dropShadow" << "offsetX" << 0.0 << 24.0;
+        QTest::newRow("drop shadow opacity") << "dropShadow" << "opacity" << 0.0 << 1.0;
+        QTest::newRow("chroma key") << "chromaKey" << "tolerance" << 0.0 << 0.5;
+        QTest::newRow("secondary hue") << "secondaryColor" << "hueShift" << 0.0 << 120.0;
+    }
+    void effectParams() {
+        QFETCH(QString, type);
+        QFETCH(QString, param);
+        QFETCH(double, first);
+        QFETCH(double, second);
+        auto clip = tile("c", half());
+        QJsonObject effect{{"id", "e"}, {"type", type}, {"enabled", true}};
+        if (type == "glow") { effect.insert("radius", 12); }
+        if (type == "dropShadow") { effect.insert("blur", 2); effect.insert("offsetX", 8); effect.insert("offsetY", 8); effect.insert("color", "#ffffff"); effect.insert("opacity", 1); }
+        if (type == "chromaKey") { effect.insert("color", "#be3c3c"); effect.insert("softness", 0.01); }
+        clip.insert("effects", QJsonArray{effect});
+        TimelineModel model;
+        model.setTimeline(document({clip}));
+        keyRow(model, nt::scene::effectCurveName("e", param), 0, first, second);
+        if (QTest::currentTestFailed()) { return; }
+        checkFrames(model);
+    }
+    // A switched-off effect draws nothing, and keeps its keys for when it comes back.
+    void switchedOffEffectKeepsItsKeys() {
+        auto clip = tile("c", half());
+        clip.insert("effects", QJsonArray{QJsonObject{{"id", "e"}, {"type", "exposure"}, {"enabled", true}}});
+        TimelineModel model;
+        model.setTimeline(document({clip}));
+        keyRow(model, "effect:e:exposure", 0, -2, 2);
+        const auto animations = model.clipsJson()[0].toObject().value("animations");
+        auto next = model.clipsJson()[0].toObject();
+        next.insert("effects", QJsonArray{QJsonObject{{"id", "e"}, {"type", "exposure"}, {"enabled", false}}});
+        QVERIFY(model.replaceClips(QJsonArray{next}));
+        QCOMPARE(model.clipsJson()[0].toObject().value("animations"), animations);
+        const auto start = exported(model, 0), end = exported(model, kEndMs - 1);
+        QCOMPARE(changed(start, end), 0);
     }
     // Depth moves the layer through the stack, and through the camera.
     void depthOrdersTheStack() {

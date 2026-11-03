@@ -34,6 +34,17 @@ QJsonArray sideCurveList(const QJsonArray& animations);
 // side animations keep their ids in order. No curves means no side animations.
 QJsonArray withSideCurves(const QJsonArray& animations, const QJsonArray& curves, double clipDurationMs);
 
+// A video effect's numeric parameter is the curve `effect:<effectId>:<param>`.
+QString effectCurveName(const QString& effectId, const QString& param);
+struct EffectCurveName {
+    QString effectId;
+    QString param;
+};
+// Nothing when the name does not key an effect. An effect id can hold a colon, a parameter cannot.
+std::optional<EffectCurveName> parseEffectCurveName(const QString& property);
+// `animations` without the curves of effects that are no longer in `effects`.
+QJsonArray withoutOrphanEffectCurves(const QJsonArray& animations, const QJsonArray& effects, double clipDurationMs);
+
 // The curves of one clip, parsed once. Shared by the GUI and render threads.
 class SideCurves {
 public:
@@ -54,6 +65,8 @@ public:
     std::optional<double> value(QStringView property, double t) const;
     // The same for a curve already found.
     static double valueOf(const Curve& curve, double t);
+    // `effects` with each keyed parameter at its value at `t`.
+    QJsonArray keyedEffects(QJsonArray effects, double t) const;
 
 private:
     std::vector<Curve> m_curves;
