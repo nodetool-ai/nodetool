@@ -215,6 +215,7 @@ Item {
     }
     FileDialog {
         id: saveFile
+        objectName: "exportSaveDialog"
         title: "Export timeline"
         fileMode: FileDialog.SaveFile
         onAccepted: {
