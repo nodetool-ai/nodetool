@@ -36,6 +36,7 @@
 import { entitiesForShot } from "./creative.js";
 import type { Entity, Scene, Shot, ShotModelRef } from "./creative.js";
 import { sceneForShot } from "./shot-prompt.js";
+import { isNonBlankString, isRecord, isString } from "./predicates.js";
 
 /** Which images a one take sends as `[Image N]`. */
 export type OneTakeReferenceSource = "stills" | "entities";
@@ -313,10 +314,10 @@ function compileRefs(references: readonly OneTakeReference[]): string {
 function present(record: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(
     Object.entries(record).filter(([, value]) => {
-      if (typeof value === "string") {
-        return value.trim().length > 0;
+      if (isString(value)) {
+        return isNonBlankString(value);
       }
-      if (value && typeof value === "object") {
+      if (isRecord(value)) {
         return Object.keys(value).length > 0;
       }
       return value !== undefined && value !== null;

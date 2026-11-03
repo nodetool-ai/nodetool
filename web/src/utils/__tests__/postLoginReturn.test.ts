@@ -12,6 +12,19 @@ describe("postLoginReturn", () => {
     expect(consumePostLoginReturn()).toBeNull();
   });
 
+  it("returns a remembered OAuth consent page once", () => {
+    const path = "/oauth/consent?request_id=0123456789abcdef0123456789abcdef";
+    rememberPostLoginReturn(path);
+    expect(consumePostLoginReturn()).toBe(path);
+    expect(consumePostLoginReturn()).toBeNull();
+  });
+
+  it("does not remember a consent page with extra parameters", () => {
+    rememberPostLoginReturn("/oauth/consent?request_id=abc&next=https://evil.example");
+    rememberPostLoginReturn("/oauth/consent");
+    expect(consumePostLoginReturn()).toBeNull();
+  });
+
   it("does not remember other paths", () => {
     rememberPostLoginReturn("/editor/abc");
     rememberPostLoginReturn("/view/a/b");

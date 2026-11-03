@@ -71,6 +71,54 @@ off (no challenge header, the OAuth routes 404) for an operator who wants
 token-paste as the only path. See
 [MCP OAuth design](mcp-oauth-design.md) for the full protocol.
 
+### Connect claude.ai
+
+claude.ai, Claude Desktop, Claude mobile and Cowork connect through the OAuth
+path above. The server needs both variables:
+
+```yaml
+environment:
+  NODETOOL_ENABLE_MCP: "1"
+  NODETOOL_PUBLIC_URL: "https://your-server"
+```
+
+Then, in Claude, open **Settings → Connectors → Add custom connector**, enter
+`https://your-server/mcp`, and leave the OAuth client ID and secret empty.
+Claude opens NodeTool's consent page. Sign in there if the browser has no
+NodeTool session on that host, then approve.
+
+- **The URL must be exact.** Claude compares the URL you enter with the
+  `resource` in `/.well-known/oauth-protected-resource/mcp`, which is
+  `NODETOOL_PUBLIC_URL` plus `/mcp`. A trailing slash or a different host
+  fails the connection.
+- **No registration call.** The authorization server metadata advertises
+  `client_id_metadata_document_supported` and the `none` auth method, so
+  Claude identifies itself with the document at
+  `https://claude.ai/oauth/mcp-oauth-client-metadata` and redirects to
+  `https://claude.ai/api/mcp/auth_callback`. The server fetches that document
+  through `safeFetch`. Clients without one still register through
+  `/oauth/register`.
+- **Claude Code** uses `https://claude.ai/oauth/claude-code-client-metadata`,
+  which lists `http://localhost/callback` and `http://127.0.0.1/callback`.
+  Claude Code redirects to an ephemeral port, and a loopback redirect matches
+  on any port.
+- **Anthropic's servers make the calls.** Discovery, the token exchange,
+  refreshes and every `/mcp` request come from `160.79.104.0/21`, not from
+  the user's browser. A firewall must admit that range. Per-IP rate limits
+  (`NODETOOL_RATE_LIMIT_MAX` globally, 30 requests a minute on
+  `/oauth/token`) count every Claude user behind one Anthropic address
+  together.
+
+Before adding the connector, check that discovery is on:
+
+```bash
+curl -i https://your-server/.well-known/oauth-authorization-server
+```
+
+`404` with `{"error":"not_found"}` means the flow is off: `NODETOOL_PUBLIC_URL`
+is unset or not HTTPS, `NODETOOL_ENABLE_MCP` is unset, or
+`NODETOOL_DISABLE_MCP_OAUTH=1`.
+
 ### The fallback path: paste a token
 
 Open **Settings → MCP → Connect an agent remotely**. Name a token, pick a
