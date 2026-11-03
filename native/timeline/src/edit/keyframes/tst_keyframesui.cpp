@@ -2,6 +2,7 @@
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
+#include "platform/SanitizerBuild.h"
 #include <QFile>
 #include <QJSValue>
 #include <QQmlContext>
@@ -59,6 +60,13 @@ class KeyframeUiSetup : public QObject {
         }
         std::nth_element(samples.begin(), samples.begin() + count / 2, samples.end());
         return samples[static_cast<size_t>(count) / 2];
+    }
+    Q_INVOKABLE bool sanitized() const {
+#ifdef NT_SANITIZED
+        return true;
+#else
+        return false;
+#endif
     }
     Q_INVOKABLE int undoCount() const { return m_model.undoStack()->count(); }
     Q_INVOKABLE QString documentJson() const { return QString::fromUtf8(m_model.documentJson()); }

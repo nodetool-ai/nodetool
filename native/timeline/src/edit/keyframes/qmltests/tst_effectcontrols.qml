@@ -879,6 +879,10 @@ Item {
             panel.endGestures()
             const zoom = best(i => panel.setView(1000 + (i % 10) * 100, 0), 21)
             console.info("frame ms: seek", seek, "retime", retime, "zoom", zoom)
+            // A sanitizer build pays more than twice as much for a frame, which says nothing about a user's frame.
+            if (testHarness.sanitized()) {
+                skip("The frame budget applies only to a build without sanitizers")
+            }
             verify(seek < budget, "seek " + seek)
             verify(retime < budget, "retime " + retime)
             verify(zoom < budget, "zoom " + zoom)
