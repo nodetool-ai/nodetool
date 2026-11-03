@@ -196,6 +196,34 @@ describe("get_storyboard_one_take", () => {
     expect(result.warnings).toEqual([NO_MODEL]);
   });
 
+  it("leaves blank shot fields and an all-blank camera out of the SHOTS JSON", async () => {
+    const board = await makeBoard([
+      shot({
+        id: "s1",
+        index: 0,
+        motion: "   ",
+        sound: "",
+        camera: { framing: "  ", lens: "" },
+        keyframe: still("k1")
+      }),
+      shot({ id: "s2", index: 1, camera: { framing: "close-up", lens: " " } })
+    ]);
+
+    const result = await call("get_storyboard_one_take", { storyboard_id: board.id });
+
+    expect(result.error).toBeUndefined();
+    expect(result.compiled).toContain(
+      `SHOTS:\n${JSON.stringify(
+        [
+          { shot: 1, window: "0-5s", action: "beat 0" },
+          { shot: 2, window: "5-10s", action: "beat 1", camera: { framing: "close-up" } }
+        ],
+        null,
+        2
+      )}`
+    );
+  });
+
   it("refuses a board the caller does not own", async () => {
     const board = await Storyboard.create<Storyboard>({
       user_id: "someone-else",
