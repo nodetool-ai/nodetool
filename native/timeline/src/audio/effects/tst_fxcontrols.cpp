@@ -123,7 +123,7 @@ Rectangle { width:360; height:160; color:Ui.Theme.surfaceCanvas
   FxKnob { size:"sm"; label:"MIX"; value:.5; accent:"f"; def:({min:0,max:1,def:0}) }
   FxKnob { size:"xs"; value:.5; def:({min:0,max:1,def:0}) }
  }
- FxPower { x:20; y:125; on:true; label:"Effect" }
+ FxPower { objectName:"appearancePower"; x:20; y:125; on:true; label:"Effect" }
  FxStepper { x:60; y:120; accent:"a"; def:({options:["LOW","MID","HIGH"]}); value:1 }
 })", QUrl());
         std::unique_ptr<QObject> root(component.create());
@@ -131,12 +131,23 @@ Rectangle { width:360; height:160; color:Ui.Theme.surfaceCanvas
         QQuickWindow window; window.resize(360,160);
         qobject_cast<QQuickItem*>(root.get())->setParentItem(window.contentItem());
         window.show(); QVERIFY(QTest::qWaitForWindowExposed(&window));
+        auto* power = root->findChild<QQuickItem*>("appearancePower");
+        QVERIFY(power);
+        auto* indicator = power->property("indicator").value<QQuickItem*>();
+        auto* dial = root->findChild<QQuickItem*>("dial");
+        QVERIFY(indicator); QVERIFY(dial);
+        const auto centerPixel = [&window](QQuickItem* item) {
+            return (item->mapToScene({item->width() / 2, item->height() / 2}) * window.devicePixelRatio()).toPoint();
+        };
         QImage image;
         QTRY_VERIFY_WITH_TIMEOUT(([&] {
             window.requestUpdate();
             image = window.grabWindow();
-            return !image.isNull() && image.pixelColor(27,132) != image.pixelColor(350,150) &&
-                image.pixelColor(57,49) != image.pixelColor(350,150);
+            const auto background = (QPointF(350, 150) * window.devicePixelRatio()).toPoint();
+            return !image.isNull() && image.rect().contains(centerPixel(indicator)) &&
+                image.rect().contains(centerPixel(dial)) && image.rect().contains(background) &&
+                image.pixelColor(centerPixel(indicator)) != image.pixelColor(background) &&
+                image.pixelColor(centerPixel(dial)) != image.pixelColor(background);
         })(), 2000);
         QVERIFY(image.save(QCoreApplication::applicationDirPath() + "/p1-fx-controls.png"));
     }
