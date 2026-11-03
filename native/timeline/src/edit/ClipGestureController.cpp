@@ -163,6 +163,12 @@ ClipGestureController::ClipGestureController(QQuickItem* parent) : QQuickItem(pa
     });
 }
 
+ClipGestureController::~ClipGestureController() {
+    // QQuickItem's destructor emits windowChanged after our members are gone.
+    disconnect(this, &QQuickItem::windowChanged, this, &ClipGestureController::watchWindow);
+    watchWindow(nullptr);
+}
+
 void ClipGestureController::watchWindow(QQuickWindow* window) {
     if (m_eventWindow) { m_eventWindow->removeEventFilter(this); }
     m_eventWindow = window;

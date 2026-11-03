@@ -93,6 +93,7 @@ class ClipGestureController : public QQuickItem {
 
 public:
     explicit ClipGestureController(QQuickItem* parent = nullptr);
+    ~ClipGestureController() override;
 
     TimelineModel* timeline() const { return m_timeline; }
     void setTimeline(TimelineModel* m);
