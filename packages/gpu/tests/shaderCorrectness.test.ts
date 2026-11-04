@@ -194,7 +194,7 @@ describe("filters.blur recipes: colorSpace consistency", () => {
 
 describe("mask.fromImage: luma weights", () => {
   it("uses Rec. 709 luma weights on declared-linear input", () => {
-    expect(maskFromImageV1.io.inputs.source.colorSpace).toBe("linear");
+    expect(maskFromImageV1.io.inputs.source.colorSpace).toBe("encoded-sdr");
     expect(maskFromImageV1.wgsl).toMatch(/0\.2126/);
     expect(maskFromImageV1.wgsl).toMatch(/0\.7152/);
     expect(maskFromImageV1.wgsl).toMatch(/0\.0722/);

@@ -96,7 +96,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
         // the shader genuinely needs straight input — the Executor's
         // auto-bridge inserts `alpha.premulToStraight` ahead of this pass when
         // a premultiplied chain feeds in.
-        colorSpace: "srgb",
+        colorSpace: "encoded-sdr",
         alpha: "straight",
         bindingKinds: ["texture_2d"]
       }
@@ -104,7 +104,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     output: {
       // RGB is multiplied by the new alpha (`a * mask`) on store so the result
       // re-enters the pool's premultiplied accumulation correctly.
-      colorSpace: "srgb",
+      colorSpace: "encoded-sdr",
       alpha: "premultiplied",
       format: "rgba8unorm",
       dimensions: "same-as:source"

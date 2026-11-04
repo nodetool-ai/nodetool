@@ -11,8 +11,8 @@ export const sharpenGaussianV1 = defineRecipe({
     radius: {min: 0, max: 256, step: 1, label: "Radius"}
   },
   io: {
-    inputs: {source: {colorSpace: "srgb", alpha: "premultiplied", bindingKinds: ["texture_2d"]}},
-    output: {colorSpace: "srgb", alpha: "premultiplied", format: "rgba8unorm", dimensions: "same-as:source"},
+    inputs: {source: {colorSpace: "encoded-sdr", alpha: "premultiplied", bindingKinds: ["texture_2d"]}},
+    output: {colorSpace: "encoded-sdr", alpha: "premultiplied", format: "rgba8unorm", dimensions: "same-as:source"},
     rod: "same-as:source"
   },
   recipe: {

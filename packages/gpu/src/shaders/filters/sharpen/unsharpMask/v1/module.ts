@@ -80,13 +80,13 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   io: {
     inputs: {
       source: {
-        colorSpace: "srgb",
+        colorSpace: "encoded-sdr",
         alpha: "premultiplied",
         bindingKinds: ["texture_2d"]
       }
     },
     output: {
-      colorSpace: "srgb",
+      colorSpace: "encoded-sdr",
       alpha: "premultiplied",
       format: "rgba8unorm",
       dimensions: "same-as:source"

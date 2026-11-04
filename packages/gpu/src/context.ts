@@ -153,7 +153,7 @@ export function makeScratchPool(device: GPUDevice, options: { maxFreeBytes?: num
   // texture regardless of how it was requested.
   const bucketKey = (spec: ScratchSpec): string => {
     const { width, height } = dimsFor(spec);
-    return `${spec.format}:${spec.usage}:${width}x${height}:${spec.meta?.colorSpace ?? "linear"}:${spec.meta?.alpha ?? "premultiplied"}:${spec.meta?.bindingKind ?? "texture_2d"}`;
+    return `${spec.format}:${spec.usage}:${width}x${height}:${spec.meta?.colorSpace ?? "encoded-sdr"}:${spec.meta?.alpha ?? "premultiplied"}:${spec.meta?.bindingKind ?? "texture_2d"}`;
   };
 
   return {
@@ -303,7 +303,7 @@ function makeWhiteTextureProvider(
       height: 1,
       format: "rgba8unorm",
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-      meta: { colorSpace: "linear", alpha: "premultiplied" }
+      meta: { colorSpace: "data", alpha: "premultiplied" }
     });
     device.queue.writeTexture(
       { texture: tex.texture },

@@ -223,8 +223,24 @@ export function createRecipeRunner(): RecipeRunner {
       // Resolve intermediates, defaulting unspecified dimensions to source.
       const intermediates = new Map<string, LabeledTexture>();
       const acquired: LabeledTexture[] = [];
+      const writers = new Map<string, RecipePass>();
+      for (const pass of recipe.passes) {
+        if (pass.out !== "output" && !writers.has(pass.out.name)) {
+          writers.set(pass.out.name, pass);
+        }
+      }
       for (const [name, spec] of Object.entries(recipe.intermediates)) {
+        const writer = writers.get(name);
+        const producer = writer ? resolveOp(writer, recipe, registry, key) : undefined;
+        const sourceRef = writer?.in.source;
+        const inputColor = sourceRef === "source" ? source.meta.colorSpace
+          : sourceRef?.kind === "intermediate" ? intermediates.get(sourceRef.name)?.meta.colorSpace
+          : sourceRef?.kind === "input" ? inputs[sourceRef.name]?.meta.colorSpace : undefined;
+        const colorSpace = producer?.id === "filters.blur.gaussian"
+          ? inputColor ?? producer.io.output.colorSpace
+          : producer?.io.output.colorSpace ?? source.meta.colorSpace;
         const fullSpec: ScratchSpec = {
+          meta: { colorSpace },
           width: spec.width ?? source.width,
           height: spec.height ?? source.height,
           // Exact size, not bucketed: passes derive dispatch size and texel

@@ -53,7 +53,7 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   io: {
     inputs: {},
     output: {
-      colorSpace: "linear",
+      colorSpace: "srgb",
       alpha: "premultiplied",
       format: "rgba8unorm",
       dimensions: "host-specified"

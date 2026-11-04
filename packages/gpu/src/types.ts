@@ -39,7 +39,9 @@ export type ShaderSurface = "internal" | "published";
 export type ShaderKind = "fragment" | "compute" | "snippet";
 
 /** Working color space a module input expects / an output is encoded in. */
-export type ColorSpaceTag = "linear" | "srgb";
+// Internal metadata only. Encoded SDR does not assert a decoder transfer profile.
+// Data means numeric channels/coverage with no colour transfer interpretation.
+export type ColorSpaceTag = "linear" | "srgb" | "encoded-sdr" | "data";
 
 /**
  * Alpha association. The pool keeps alpha **premultiplied between modules**;

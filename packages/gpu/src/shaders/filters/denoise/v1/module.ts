@@ -54,13 +54,13 @@ fn main(@builtin(global_invocation_id) gid:vec3u) {
   io: {
     inputs: {
       source: {
-        colorSpace: "srgb",
+        colorSpace: "encoded-sdr",
         alpha: "premultiplied",
         bindingKinds: ["texture_2d"]
       }
     },
     output: {
-      colorSpace: "srgb",
+      colorSpace: "encoded-sdr",
       alpha: "premultiplied",
       format: "rgba8unorm",
       dimensions: "same-as:source"
@@ -147,23 +147,23 @@ fn main(@builtin(global_invocation_id) gid:vec3u) {
   io: {
     inputs: {
       source: {
-        colorSpace: "srgb",
+        colorSpace: "encoded-sdr",
         alpha: "premultiplied",
         bindingKinds: ["texture_2d"]
       },
       before: {
-        colorSpace: "srgb",
+        colorSpace: "encoded-sdr",
         alpha: "straight",
         bindingKinds: ["texture_2d"]
       },
       after: {
-        colorSpace: "srgb",
+        colorSpace: "encoded-sdr",
         alpha: "straight",
         bindingKinds: ["texture_2d"]
       }
     },
     output: {
-      colorSpace: "srgb",
+      colorSpace: "encoded-sdr",
       alpha: "premultiplied",
       format: "rgba8unorm",
       dimensions: "same-as:source"

@@ -26,8 +26,8 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   textureStore(layout.$.outputTexture, at, vec4<f32>(mapped * src.a, src.a));
 }`,
   io: {
-    inputs: {source: {colorSpace: "srgb", alpha: "premultiplied", bindingKinds: ["texture_2d"]}},
-    output: {colorSpace: "srgb", alpha: "premultiplied", format: "rgba8unorm", dimensions: "same-as:source"},
+    inputs: {source: {colorSpace: "encoded-sdr", alpha: "premultiplied", bindingKinds: ["texture_2d"]}},
+    output: {colorSpace: "encoded-sdr", alpha: "premultiplied", format: "rgba8unorm", dimensions: "same-as:source"},
     rod: "same-as:source"
   }
 });

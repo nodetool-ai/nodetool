@@ -95,13 +95,13 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
         // Aligned with the `filters.blur.gaussianSeparable` and `filters.glow`
         // recipes that route through this module; the blur math itself is
         // colour-space agnostic (a normalized weighted sum).
-        colorSpace: "linear",
+        colorSpace: "encoded-sdr",
         alpha: "premultiplied",
         bindingKinds: ["texture_2d"]
       }
     },
     output: {
-      colorSpace: "linear",
+      colorSpace: "encoded-sdr",
       alpha: "premultiplied",
       format: "rgba8unorm",
       dimensions: "same-as:source"

@@ -29,6 +29,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let alpha=clamp(result.a,0.0,1.0);
   textureStore(layout.$.outputTexture,vec2i(gid.xy),vec4f(clamp(result.rgb,vec3f(0),vec3f(alpha)),alpha));
 }`,
-  io: {inputs: {source: {colorSpace: "srgb", alpha: "premultiplied", bindingKinds: ["texture_2d"]}},
-    output: {colorSpace: "srgb", alpha: "premultiplied", format: "rgba8unorm", dimensions: "same-as:source"}, rod: "same-as:source"}
+  io: {inputs: {source: {colorSpace: "encoded-sdr", alpha: "premultiplied", bindingKinds: ["texture_2d"]}},
+    output: {colorSpace: "encoded-sdr", alpha: "premultiplied", format: "rgba8unorm", dimensions: "same-as:source"}, rod: "same-as:source"}
 });
