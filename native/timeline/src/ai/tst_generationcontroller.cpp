@@ -20,7 +20,7 @@ QString schemaError(const TimelineModel& timeline) {
     const auto root = QFileInfo(QFileInfo(QString::fromUtf8(__FILE__)).canonicalFilePath()).dir().absoluteFilePath("../../../..");
     QProcess validator;
     validator.setWorkingDirectory(root);
-    validator.start(QDir(root).filePath("node_modules/.bin/tsx"), {QDir(root).filePath("native/timeline/src/ai/schema-check.ts")});
+    validator.start("node", {QDir(root).filePath("node_modules/tsx/dist/cli.mjs"), QDir(root).filePath("native/timeline/src/ai/schema-check.ts")});
     if (!validator.waitForStarted()) return validator.errorString();
     validator.write(QJsonDocument(nt::server::documentForSave(timeline.timeline().raw)).toJson(QJsonDocument::Compact));
     validator.closeWriteChannel();
@@ -387,6 +387,7 @@ private slots:
         QPointer<QWebSocket> peer; QList<QJsonObject> messages;
         connect(&server, &QWebSocketServer::newConnection, this, [&] {
             peer = server.nextPendingConnection();
+            peer->setParent(&server);
             connect(peer, &QWebSocket::textMessageReceived, this, [&](const QString& text) {
                 const auto message = QJsonDocument::fromJson(text.toUtf8()).object();
                 if (message.value("command") == "set_mode") peer->sendTextMessage(R"({"message":"Mode set to text"})");
@@ -674,6 +675,7 @@ private slots:
         QPointer<QWebSocket> peer; QList<QJsonObject> messages;
         connect(&socket, &QWebSocketServer::newConnection, this, [&] {
             peer = socket.nextPendingConnection();
+            peer->setParent(&socket);
             connect(peer, &QWebSocket::textMessageReceived, this, [&](const QString& text) {
                 const auto message = QJsonDocument::fromJson(text.toUtf8()).object();
                 if (message.value("command") == "set_mode") peer->sendTextMessage(R"({"message":"Mode set to text"})");
@@ -735,6 +737,7 @@ private slots:
         QPointer<QWebSocket> peer; QList<QJsonObject> messages;
         connect(&socket, &QWebSocketServer::newConnection, this, [&] {
             peer = socket.nextPendingConnection();
+            peer->setParent(&socket);
             connect(peer, &QWebSocket::textMessageReceived, this, [&](const QString& text) {
                 const auto message = QJsonDocument::fromJson(text.toUtf8()).object();
                 if (message.value("command") == "set_mode") peer->sendTextMessage(R"({"message":"Mode set to text"})");
@@ -770,6 +773,7 @@ private slots:
         QPointer<QWebSocket> peer; QList<QJsonObject> messages;
         connect(&server, &QWebSocketServer::newConnection, this, [&] {
             peer = server.nextPendingConnection();
+            peer->setParent(&server);
             connect(peer, &QWebSocket::textMessageReceived, this, [&](const QString& text) {
                 const auto message = QJsonDocument::fromJson(text.toUtf8()).object();
                 if (message.value("command") == "set_mode") peer->sendTextMessage(R"({"message":"Mode set to text"})");
@@ -814,6 +818,7 @@ private slots:
         QPointer<QWebSocket> peer; QList<QJsonObject> messages;
         connect(&socket, &QWebSocketServer::newConnection, this, [&] {
             peer = socket.nextPendingConnection();
+            peer->setParent(&socket);
             connect(peer, &QWebSocket::textMessageReceived, this, [&](const QString& text) {
                 const auto message = QJsonDocument::fromJson(text.toUtf8()).object();
                 if (message.value("command") == "set_mode") peer->sendTextMessage(R"({"message":"Mode set to text"})");
@@ -876,6 +881,7 @@ private slots:
         QPointer<QWebSocket> peer; QList<QJsonObject> messages;
         connect(&server, &QWebSocketServer::newConnection, this, [&] {
             peer = server.nextPendingConnection();
+            peer->setParent(&server);
             connect(peer, &QWebSocket::textMessageReceived, this, [&](const QString& text) {
                 const auto message = QJsonDocument::fromJson(text.toUtf8()).object();
                 if (message.value("command") == "set_mode") peer->sendTextMessage(R"({"message":"Mode set to text"})");
@@ -958,6 +964,7 @@ private slots:
         QList<QJsonObject> messages;
         connect(&server, &QWebSocketServer::newConnection, this, [&] {
             auto* peer = server.nextPendingConnection();
+            peer->setParent(&server);
             connect(peer, &QWebSocket::textMessageReceived, peer, [peer, &messages](const QString& text) {
                 const auto message = QJsonDocument::fromJson(text.toUtf8()).object();
                 if (message.value("command") == "set_mode") peer->sendTextMessage(R"({"message":"Mode set to text"})");
@@ -1015,6 +1022,7 @@ private slots:
         QVERIFY(server.listen(QHostAddress::LocalHost, 0));
         connect(&server, &QWebSocketServer::newConnection, this, [&] {
             auto* peer = server.nextPendingConnection();
+            peer->setParent(&server);
             connect(peer, &QWebSocket::textMessageReceived, peer, [peer](const QString& text) {
                 if (QJsonDocument::fromJson(text.toUtf8()).object().value("command") == "set_mode")
                     peer->sendTextMessage(R"({"message":"Mode set to text"})");
@@ -1044,6 +1052,7 @@ private slots:
         QList<QJsonObject> messages;
         connect(&server, &QWebSocketServer::newConnection, this, [&] {
             peer = server.nextPendingConnection();
+            peer->setParent(&server);
             connect(peer, &QWebSocket::textMessageReceived, this, [&](const QString& text) {
                 const auto message = QJsonDocument::fromJson(text.toUtf8()).object();
                 if (message.value("command") == "set_mode") {

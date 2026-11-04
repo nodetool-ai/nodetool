@@ -9,7 +9,7 @@ function(nt_transition_tests)
     target_link_libraries(tst_transitions PRIVATE timeline_core timeline_decode timeline_audio timeline_server
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::QuickTest Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
     nt_add_timeline_qml(tst_transitions OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_transitions_qml/NodeTool/Timeline)
-    target_compile_definitions(tst_transitions PRIVATE NT_TRANSITION_SOURCE="${CMAKE_CURRENT_SOURCE_DIR}" NT_TRANSITION_BUILD="${CMAKE_CURRENT_BINARY_DIR}")
+    target_compile_definitions(tst_transitions PRIVATE NT_TRANSITION_SOURCE="${CMAKE_CURRENT_SOURCE_DIR}" NT_TRANSITION_BUILD="${CMAKE_CURRENT_BINARY_DIR}" NT_TRANSITION_BINARY="$<TARGET_FILE:nodetool-timeline>")
     add_test(NAME tst_transitions COMMAND tst_transitions uiUndo locksAndGestures pointerAndKeyboard softnessKeyboard easingCaptions largeLinkGroup panelSelection productionGrip productionSoftnessPointer)
     add_test(NAME transitions_softness_pointer COMMAND tst_transitions softnessPointer)
     add_test(NAME transitions_plan COMMAND tst_transitions editedPlans)

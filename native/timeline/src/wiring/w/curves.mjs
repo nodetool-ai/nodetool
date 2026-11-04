@@ -15,5 +15,5 @@ assert(body.includes('var biquadMagDb =') && body.includes('var compTransferDb =
 const output = '.pragma library\n// Generated from TrackEffectsPanel.tsx by src/wiring/w/curves.mjs.\nvar EQ_FS = 48000\n'+body;
 const target=path.join(root,'native/timeline/qml/wiring/w/CurveMath.js');
 if(process.argv.includes('--write')) writeFileSync(target,output);
-else assert.equal(readFileSync(target,'utf8'),output);
+else assert.equal(readFileSync(target,'utf8').replaceAll('\r\n','\n'),output);
 console.log('PASS EQ and compressor curve functions match TypeScript');
