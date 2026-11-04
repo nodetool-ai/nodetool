@@ -31,14 +31,15 @@ const labels = (files) => plan(files).steps.map((s) => s.label);
 
 describe("buildPlan", () => {
   it.each([
-    "native/workflow/CMakeLists.txt",
-    "native/workflow/compiler.cpp",
-    "native/workflow/tests/test_workflow.py",
-    "native/workflow/examples/branch.json"
-  ])("selects the native compiler check for %s", (file) => {
+    "native/workflow/requirements-cpu.txt",
+    "scripts/check-torch-workflow.mjs",
+    "native/workflow/torch_graph.py",
+    "native/workflow/tests/check.py",
+    "native/workflow/examples/golden/cnn-classifier.json"
+  ])("selects the Torch compiler check for %s", (file) => {
     expect(plan([file]).globalFiles).toEqual([]);
     expect(plan([file]).steps).toEqual([
-      { label: "native workflow compiler", command: "npm", args: ["run", "test:native-workflow"] }
+      { label: "Torch workflow compiler", command: "npm", args: ["run", "test:torch-workflow"] }
     ]);
   });
 
@@ -51,6 +52,7 @@ describe("buildPlan", () => {
   it.each([
     "scripts/test-affected.mjs",
     "scripts/__tests__/test-affected.test.mjs",
+    "scripts/__tests__/check-torch-workflow.test.mjs",
     "scripts/__tests__/desktop-release-recovery.test.mjs",
     "scripts/__tests__/smoke-backend-bundle.test.mjs"
   ])("selects script regressions for %s", (file) => {

@@ -1,45 +1,81 @@
 {
   "settings": {
     "execution": {
-      "kind": "native",
+      "kind": "torch",
       "version": 1
     }
   },
   "nodes": [
     {
       "id": "image",
-      "type": "nodetool.native.Input",
+      "type": "nodetool.torch.Input",
       "properties": {
         "name": "image",
-        "dtype": "f32",
+        "dtype": "float32",
         "shape": [
+          1,
+          1,
           3,
-          7,
-          1
+          7
         ]
       }
     },
     {
-      "id": "blur",
-      "type": "nodetool.native.Stencil2D",
+      "id": "padding",
+      "type": "nodetool.torch.Pad",
       "properties": {
-        "kernel": [
+        "pad": [
+          2,
+          2,
+          0,
+          0
+        ],
+        "mode": "replicate"
+      }
+    },
+    {
+      "id": "kernel",
+      "type": "nodetool.torch.Constant",
+      "properties": {
+        "dtype": "float32",
+        "shape": [
+          1,
+          1,
+          1,
+          5
+        ],
+        "values": [
           0.2,
           0.2,
           0.2,
           0.2,
           0.2
-        ],
-        "kernel_shape": [
+        ]
+      }
+    },
+    {
+      "id": "blur",
+      "type": "nodetool.torch.Conv2D",
+      "properties": {
+        "stride": [
           1,
-          5
+          1
         ],
-        "border": "clamp"
+        "padding": [
+          0,
+          0
+        ],
+        "dilation": [
+          1,
+          1
+        ],
+        "groups": 1,
+        "weight_layout": "OIHW"
       }
     },
     {
       "id": "out",
-      "type": "nodetool.native.Output",
+      "type": "nodetool.torch.Output",
       "properties": {
         "name": "image_out"
       }
@@ -49,14 +85,26 @@
     {
       "source": "image",
       "sourceHandle": "output",
+      "target": "padding",
+      "targetHandle": "input"
+    },
+    {
+      "source": "padding",
+      "sourceHandle": "output",
       "target": "blur",
       "targetHandle": "input"
+    },
+    {
+      "source": "kernel",
+      "sourceHandle": "output",
+      "target": "blur",
+      "targetHandle": "weight"
     },
     {
       "source": "blur",
       "sourceHandle": "output",
       "target": "out",
-      "targetHandle": "input"
+      "targetHandle": "value"
     }
   ]
 }

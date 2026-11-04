@@ -1,0 +1,5 @@
+torch==2.9.1
+numpy==2.3.5
+triton==3.5.1
+nvidia-cuda-nvcc-cu12==12.8.93
+nvidia-cuda-cccl-cu12==12.8.90

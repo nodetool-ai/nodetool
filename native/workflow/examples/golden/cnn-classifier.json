@@ -1,17 +1,17 @@
 {
   "settings": {
     "execution": {
-      "kind": "native",
+      "kind": "torch",
       "version": 1
     }
   },
   "nodes": [
     {
       "id": "x",
-      "type": "nodetool.native.Input",
+      "type": "nodetool.torch.Input",
       "properties": {
         "name": "x",
-        "dtype": "f32",
+        "dtype": "float32",
         "shape": [
           1,
           1,
@@ -22,56 +22,89 @@
     },
     {
       "id": "conv_weight",
-      "type": "nodetool.native.Weight",
+      "type": "nodetool.torch.Constant",
       "properties": {
-        "name": "conv_weight",
-        "dtype": "f32",
+        "dtype": "float32",
         "shape": [
           1,
           1,
           2,
           2
+        ],
+        "values": [
+          0.5,
+          -0.25,
+          0.125,
+          0.75
         ]
       }
     },
     {
       "id": "conv",
-      "type": "nodetool.native.Conv2D",
-      "properties": {}
+      "type": "nodetool.torch.Conv2D",
+      "properties": {
+        "stride": [
+          1,
+          1
+        ],
+        "padding": [
+          0,
+          0
+        ],
+        "dilation": [
+          1,
+          1
+        ],
+        "groups": 1,
+        "weight_layout": "OIHW"
+      }
     },
     {
       "id": "bias",
-      "type": "nodetool.native.Weight",
+      "type": "nodetool.torch.Constant",
       "properties": {
-        "name": "bias",
-        "dtype": "f32",
-        "shape": []
+        "dtype": "float32",
+        "shape": [],
+        "values": [
+          -0.25
+        ]
       }
     },
     {
       "id": "add",
-      "type": "nodetool.native.Add",
+      "type": "nodetool.torch.Add",
       "properties": {}
     },
     {
       "id": "relu",
-      "type": "nodetool.native.Relu",
+      "type": "nodetool.torch.ReLU",
       "properties": {}
     },
     {
       "id": "pool",
-      "type": "nodetool.native.MaxPool2D",
+      "type": "nodetool.torch.MaxPool2D",
       "properties": {
-        "kernel_shape": [
+        "stride": [
+          1,
+          1
+        ],
+        "kernel_size": [
           2,
           2
         ],
-        "stride": 1
+        "padding": [
+          0,
+          0
+        ],
+        "dilation": [
+          1,
+          1
+        ]
       }
     },
     {
       "id": "flatten",
-      "type": "nodetool.native.Reshape",
+      "type": "nodetool.torch.Reshape",
       "properties": {
         "shape": [
           1,
@@ -81,24 +114,33 @@
     },
     {
       "id": "linear_weight",
-      "type": "nodetool.native.Weight",
+      "type": "nodetool.torch.Constant",
       "properties": {
-        "name": "linear_weight",
-        "dtype": "f32",
+        "dtype": "float32",
         "shape": [
           4,
           2
+        ],
+        "values": [
+          0.5,
+          -1,
+          0.25,
+          0.25,
+          -0.25,
+          0.125,
+          0.75,
+          -0.5
         ]
       }
     },
     {
       "id": "linear",
-      "type": "nodetool.native.MatMul",
+      "type": "nodetool.torch.MatMul",
       "properties": {}
     },
     {
       "id": "out",
-      "type": "nodetool.native.Output",
+      "type": "nodetool.torch.Output",
       "properties": {
         "name": "prediction"
       }
@@ -163,7 +205,7 @@
       "source": "linear",
       "sourceHandle": "output",
       "target": "out",
-      "targetHandle": "input"
+      "targetHandle": "value"
     }
   ]
 }

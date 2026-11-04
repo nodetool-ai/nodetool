@@ -1,123 +1,65 @@
-# Native workflow compiler
+# Torch workflows
 
-This standalone C++ compiler lowers a fixed-shape numeric graph to a reusable
-native artifact. It does not execute NodeTool workflows or load TypeScript nodes.
+Compile fixed-shape NodeTool Torch graphs with strict `torch.export` and
+AOTInductor. The C++ adapter loads `.pt2` packages and runs CPU or CUDA tensors.
+Python is used for compilation and reference tests. Inference uses LibTorch.
+The contract and limits are in the [design](../../docs/native-workflow-design.md).
 
-Build with CMake, a C++17 compiler, LLVM development libraries, and Clang on PATH:
-
-```bash
-cmake -S native/workflow -B native/workflow/build
-cmake --build native/workflow/build -j
-ctest --test-dir native/workflow/build --output-on-failure
-```
-
-Compile and execute the procedural example, which needs no input files:
+Use Python 3.12, a C++17 compiler, CMake, LLVM development libraries (JSON and
+SHA256 utilities), and the pinned dependencies:
 
 ```bash
-native/workflow/build/nodetool-workflow compile native/workflow/examples/compute-shader.json --output /tmp/nw-shader --target cpu --mode strict
-native/workflow/build/nodetool-workflow inspect /tmp/nw-shader
-native/workflow/build/nodetool-workflow run /tmp/nw-shader --output image=image.bin --repeat 10
+uv venv --python 3.12 native/workflow/.venv
+uv pip install --python native/workflow/.venv/bin/python -r native/workflow/requirements.lock
+npm run test:torch-workflow
+npm run test:torch-workflow:cuda
 ```
 
-Use the names and byte sizes in the artifact's `manifest.json`. The CLI rejects
-missing or extra bindings and input files whose sizes disagree with the manifest.
-It reads input files and prepares the executable once before the repeat loop.
-Each output is staged in its destination directory and renamed after execution.
-Multiple output files are not a single atomic transaction.
+The CUDA check requires an NVIDIA driver and GPU. Its wrapper assembles build
+headers and runtime libraries from the pinned CUDA wheels using
+[setup_cuda.py](setup_cuda.py). A complete compatible system CUDA toolkit can
+also supply `CUDA_HOME`. The CPU-only CI dependency list is
+[requirements-cpu.txt](requirements-cpu.txt).
 
-The public C++ `PreparedExecutable` in [runtime.hpp](runtime.hpp) loads an artifact
-once and accepts caller-owned input, output, and scratch buffers. Buffers must
-meet manifest sizes and alignment and must not overlap. CPU artifacts expose
-`nw_run` through `library.so`. CUDA artifacts contain `kernel.ptx` and require a
-CUDA driver and a compatible GPU at execution time. Preparation retains CUDA
-allocations across calls.
-
-Artifacts contain executable native code. Run artifacts only from trusted
-sources. The manifest validates the calling convention and buffer layout, not
-the safety of the shared library or GPU program.
-
-## Supported graph contract
-
-Node types use `nodetool.native.<Operation>`. Ordinary operations produce
-`output`. `Output` consumes `input`. Unary operations consume `input`, binary
-operations consume `a` and `b`, and `Select` consumes `condition`, `a`, and `b`.
-Inputs and weights declare `name`, `dtype: "f32"`, and a static `shape`.
-An empty shape denotes a scalar. Inputs, outputs, weights, and scratch are
-contiguous. Comparisons produce numeric `0.0f` or `1.0f`; `Select` treats nonzero
-as true. `Cast` currently accepts only the identity `f32` cast.
-
-| Operation group | Implemented operations and restrictions |
-|---|---|
-| Values and arithmetic | Input, Weight, Constant, Output, Add, Subtract, Multiply, Divide, Minimum, Maximum, Negate, Abs, Floor, Sqrt, Greater, Less, Equal, Select |
-| CPU math | Sin, Cos, Exp, Log, Tanh, Relu, Sigmoid, Softmax |
-| Tensor structure | Reshape, Transpose, ReduceSum, ReduceMean, rank-two MatMul. Reductions accept one `axis` and optional `keepdims`. Trailing axes broadcast for elementwise operations. |
-| Images and inference | Coordinate, Stencil2D on HWC tensors, Conv2D with NCHW input and OIHW weights, MaxPool2D with NCHW input. Convolution and pooling accept scalar `stride` and symmetric `padding`. |
-| Audio | CPU Biquad with `audio[C,T]`, `state[C,2]`, coefficients `[b0,b1,b2,a1,a2]` and normalized `a0=1`. Direct form II transposed produces `output` and `state_out`. |
-| Diffusion arithmetic | CFG consumes `uncond`, `cond`, and constant `scale`. DenoiseStep computes `latent - step * noise`. SeededNoise uses a documented integer hash, not a model or a compatible diffusion sampler. |
-
-Stencil kernels use correlation order, a centered anchor at
-`floor(kernel_shape / 2)`, and `clamp`, `repeat`, or `zero` borders. Coordinate
-indices use pixel centers `(index + 0.5) / extent` when normalized. Conv2D uses
-zero padding and cross-correlation. MaxPool2D ignores padded values by treating
-them as negative infinity. Weights remain runtime bindings, so changing their
-contents does not recompile code.
-
-CUDA supports the listed operations except Sin, Cos, Exp, Log, Tanh, Sigmoid,
-Softmax, and Biquad. Unsupported target operations fail during validation.
-The toolkit-free CUDA path emits PTX for `sm_52` and uses the CUDA driver API.
-Each launch evaluates output elements directly. CPU structured operations and
-shared computed values materialize into caller-owned scratch once. CPU Biquad
-runs one sequential scan per channel.
-
-Strict mode disables fast math and multiply-add contraction. Minimum and Maximum
-use C `fminf` and `fmaxf` semantics, including their handling of one NaN operand.
-Fast mode enables Clang fast math. Tests check finite values with explicit
-absolute tolerances and check exceptional values separately.
-
-## Preparation, artifacts, and limits
-
-CPU calls on one `PreparedExecutable` may run concurrently with separate caller
-buffers. A CUDA executable retains device allocations and rejects overlapping
-calls on the same instance. Use separate prepared executables for concurrent
-CUDA invocations. Keep every executable alive until its calls finish.
-The synchronous CUDA adapter uploads input and weight buffers and downloads
-outputs on every call. A device-buffer API and persistent weight upload are
-follow-up work. The API makes no real-time audio deadline guarantee.
-
-Artifacts include generated source, optimized LLVM IR for CPU or CUDA source
-and PTX, and a manifest with buffer contracts, target features, scratch bytes,
-kernel count, transfer bytes, numerical mode, and content identity. Compilation
-uses a private staging directory and publishes it by rename. Recompiling into
-an existing directory reuses a matching artifact. A different identity requires
-a new output directory. Identity includes generated code, contracts, compiler
-source build identity, Clang executable contents, target, and numerical mode.
-Editor positions and labels do not enter the identity. Graph validation happens
-before cache lookup. The diagnostic node map remains separate from code identity.
-
-Documents are limited to 16 MiB and graphs to 4096 nodes. Tensor and total scratch
-size are bounded before native code generation. Compiler subprocesses have a
-60-second deadline and a 2 GiB memory limit. These limits do not provide a
-sandbox for native code.
-
-## Scope of the examples
-
-The [committed image goldens](examples/golden/README.md) cover directional motion
-blur, CNN classification, an image-to-image CNN filter, and color grading. Tests
-read fixed expected tensors and compare actual compiled CPU and CUDA execution.
-
-The fixtures cover tensor expressions, procedural coordinates, separable image
-blur, explicit-state block audio, a small CNN, and seeded guidance/Euler update
-arithmetic. They do not implement arbitrary PyTorch, shader languages, full
-neural model loading, Comfy importing, a denoiser model, VAE decoding, or a full
-diffusion pipeline. Other deferred operations include additional dtypes,
-Sample2D, color-space conversion, slice/concat, attention, FFT, and library-backed
-BLAS or DNN execution. The compiler exports no editor registry metadata yet.
-
-The prototype uses C++ expression generation followed by Clang/LLVM rather than
-MLIR. The [revised design](../../docs/native-workflow-design.md) replaces this experiment with a Torch-only compiler using AOTInductor. That replacement is not implemented here.
-
-Run the GPU correctness tests explicitly on a CUDA-capable host:
+Compile an artifact separately:
 
 ```bash
-NODETOOL_TEST_CUDA=1 python3 native/workflow/tests/test_workflow.py native/workflow/build/nodetool-workflow
+native/workflow/.venv/bin/python native/workflow/build_tool.py compile native/workflow/examples/golden/motion-blur.json --target cpu --output build/motion-blur
 ```
+
+Artifacts contain `package.pt2` and `manifest.json`. The manifest records ordered
+names, shapes, float32 dtypes, exact Torch runtime version, target requirements,
+compiler settings, content identity, and package SHA256. Cache identity includes
+compiler source, constants, toolchain, graph operations, and target requirements.
+Editor positions and labels are excluded. Validation precedes cache lookup.
+Compilation publishes a completed directory by rename. Changing weights requires
+recompilation into a new output directory.
+
+Build and invoke the C++ adapter directly:
+
+```bash
+cmake -S native/workflow -B build/native-workflow -DPython3_EXECUTABLE="$PWD/native/workflow/.venv/bin/python" -DCMAKE_BUILD_TYPE=Release
+cmake --build build/native-workflow -j2
+build/native-workflow/nodetool-workflow run build/motion-blur/package.pt2 build/motion-blur/manifest.json inputs.json outputs.json --repeat 10
+```
+
+Input and output JSON map names to `{"shape": [...], "values": [...]}` with
+flat numeric arrays. Exceptional float tokens are strings `"nan"`, `"inf"`,
+`"-inf"`, and `"-0.0"`. The CLI explicitly transfers host arrays to the selected
+device and downloads outputs. The C++ `PreparedExecutable` API accepts LibTorch
+tensors already on that device, loads weights and code once, and rejects
+concurrent calls on one executable. Outputs may be noncontiguous. Input tensors
+must be contiguous float32 with the declared fixed shapes.
+
+The [golden tests](examples/golden/README.md) compare unchanged independent numeric
+expectations against eager Torch and actual C++ AOT execution. They also test
+invalid graphs, signature errors, incompatible manifests, cache invalidation,
+strict-export failure, noncontiguous outputs, and exceptional values. Check output
+records compile and execution measurements without assuming a speedup. Host RSS
+is the process high-water mark. CUDA allocator peak memory is not measured.
+
+Only trusted local graphs and artifacts are supported. Packages contain native
+executable code. The manifest does not sandbox it. There is no device or eager
+fallback. Dynamic shapes, training, custom operators, arbitrary model imports,
+audio, shader languages, diffusion orchestration, and Comfy import are outside
+the supported contract.

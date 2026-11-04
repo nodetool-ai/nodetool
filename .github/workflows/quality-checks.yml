@@ -391,7 +391,7 @@ jobs:
               "check": "harness-gate",
               "command": "if [ -n \"$CI_BASE_SHA\" ]; then npm run dev:nodetool -- harness gate --base \"$CI_BASE_SHA\" --json --jobs 1 --timeout 1500 $NODETOOL_HARNESS_INCLUDE_SUITES; else npm run dev:nodetool -- harness gate --all --json --jobs 1 --timeout 1500 $NODETOOL_HARNESS_INCLUDE_SUITES; fi",
               "mobile-deps": "false",
-              "extra-apt": "mesa-vulkan-drivers ffmpeg cmake llvm-dev clang python3",
+              "extra-apt": "mesa-vulkan-drivers ffmpeg cmake ninja-build llvm-dev g++ python3 python3-venv python3-dev",
               "is-test": "false",
               "fetch-depth": "0",
               "when": "always",
@@ -598,6 +598,12 @@ jobs:
           extra-apt: ${{ matrix.extra-apt }}
           # The dist comes from the artifact below; don't rebuild it per leg.
           build-packages: "false"
+
+      - name: Install pinned Torch CPU compiler toolchain
+        if: matrix.check == 'harness-gate'
+        run: |
+          python3 -m venv native/workflow/.venv
+          native/workflow/.venv/bin/python -m pip install --requirement native/workflow/requirements-cpu.txt
 
       - name: Install Chromium for native 3D tests
         if: matrix.check == 'test-packages-core' || matrix.check == 'test-packages-game' || matrix.check == 'test-packages-agents' || matrix.check == 'harness-gate'

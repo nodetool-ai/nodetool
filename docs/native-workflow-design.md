@@ -2,11 +2,11 @@
 
 A Torch workflow is a NodeTool dataflow graph whose operations map to PyTorch tensor operations. Compile the whole graph with `torch.export` and AOTInductor, then load its artifact in C++ for inference on CPU or CUDA.
 
-This replaces the broader native compiler proposal. The existing [C++ prototype](../native/workflow/README.md) remains an experiment, not the implementation of this revised design. This change updates the design only.
+The implementation lives in [native/workflow](../native/workflow/README.md). It replaces the earlier handwritten compiler. The four independent golden fixtures execute through strict export and the C++ AOT runtime on CPU and CUDA.
 
 ## D1. One graph format, one execution model
 
-Keep NodeTool's [graph format](../packages/protocol/src/api-types.ts): nodes, named ports, data edges, and editor metadata. Preserve IDs. Optional provenance links do not affect execution. Use the proposed workflow setting `settings.execution = { kind: "torch", version: 1 }` and node namespace `nodetool.torch.*` to distinguish this contract from the existing prototype.
+Keep NodeTool's [graph format](../packages/protocol/src/api-types.ts): nodes, named ports, data edges, and editor metadata. Preserve IDs. Optional provenance links do not affect execution. Use the workflow setting `settings.execution = { kind: "torch", version: 1 }` and node namespace `nodetool.torch.*` to distinguish this contract from the existing prototype.
 
 Require a directed acyclic graph with one producer per connected input and at least one output. Reject control edges, streaming, mutation, dynamic slots, nested workflows, and unsupported operations. Validate the entire graph, including disconnected nodes, before pruning unused computation. Diagnostics identify the source node and port.
 
@@ -59,6 +59,8 @@ Also test invalid graphs, mismatched input signatures, artifact incompatibility,
 
 Implement the graph validator and Torch translator, then make all four fixtures pass in eager mode. Add CPU AOT packaging and C++ execution against those same goldens. Add CUDA packaging and execution only after the CPU path passes. Wire the resulting checks into affected tests and the harness gate.
 
-The replacement is complete when all four graphs execute through the C++ AOT runtime on both targets without Python inference or silent fallbacks. Then remove the old handwritten compiler/runtime and its dedicated checks, retaining reusable golden data. Until then, label it as the earlier experiment rather than a second supported backend.
+All four graphs execute through the C++ AOT runtime on both targets without Python inference or silent fallbacks. The handwritten compiler, its runtime, unsupported examples, and dedicated checks have been removed. The independent expected tensors are unchanged.
+
+The check runner records cold compilation, loading, first and warm execution, explicit transfers, eager reference timing, and process peak host RSS. CUDA allocator peak memory is not measured. CPU-only CI runs the compiled CPU path. GPU checks require a CUDA-capable host.
 
 Training, dynamic shapes, additional dtypes, custom kernels, shader languages, audio DSP, Comfy import, general model import, diffusion orchestration, and MLIR integration are outside this design.

@@ -1,0 +1,4 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.9.1+cpu
+numpy==2.3.5
+triton==3.5.1

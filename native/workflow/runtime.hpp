@@ -1,31 +1,25 @@
 #pragma once
+#include <ATen/Tensor.h>
 #include <filesystem>
-#include <map>
 #include <memory>
-#include <string>
 #include <vector>
+
 namespace nw {
-using Bindings = std::map<std::string, std::filesystem::path>;
-struct Buffer {
-  void *data;
-  std::size_t bytes;
-};
 class PreparedExecutable {
 public:
-  explicit PreparedExecutable(const std::filesystem::path &artifact);
+  PreparedExecutable(const std::filesystem::path &artifact,
+                     const std::filesystem::path &manifest);
   ~PreparedExecutable();
   PreparedExecutable(const PreparedExecutable &) = delete;
   PreparedExecutable &operator=(const PreparedExecutable &) = delete;
-  // CPU calls may run concurrently with separate buffers. One CUDA instance
-  // rejects overlap.
-  void run(const std::vector<Buffer> &inputs,
-           const std::vector<Buffer> &outputs, Buffer scratch);
+  std::vector<at::Tensor> run(const std::vector<at::Tensor> &inputs);
 
 private:
   struct Impl;
   std::unique_ptr<Impl> impl_;
 };
-std::string inspect(const std::filesystem::path &artifact);
-void run(const std::filesystem::path &artifact, const Bindings &inputs,
-         const Bindings &outputs, std::size_t repeat);
-} // namespace nw
+void run(const std::filesystem::path &artifact,
+         const std::filesystem::path &manifest,
+         const std::filesystem::path &inputs,
+         const std::filesystem::path &outputs, std::size_t repeat);
+}

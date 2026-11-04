@@ -1,17 +1,17 @@
 {
   "settings": {
     "execution": {
-      "kind": "native",
+      "kind": "torch",
       "version": 1
     }
   },
   "nodes": [
     {
       "id": "image",
-      "type": "nodetool.native.Input",
+      "type": "nodetool.torch.Input",
       "properties": {
         "name": "image",
-        "dtype": "f32",
+        "dtype": "float32",
         "shape": [
           1,
           1,
@@ -22,16 +22,16 @@
     },
     {
       "id": "features_weight",
-      "type": "nodetool.native.Constant",
+      "type": "nodetool.torch.Constant",
       "properties": {
-        "dtype": "f32",
+        "dtype": "float32",
         "shape": [
           2,
           1,
           3,
           3
         ],
-        "value": [
+        "values": [
           0,
           0.125,
           0,
@@ -55,28 +55,41 @@
     },
     {
       "id": "features",
-      "type": "nodetool.native.Conv2D",
+      "type": "nodetool.torch.Conv2D",
       "properties": {
-        "padding": 1
+        "padding": [
+          1,
+          1
+        ],
+        "stride": [
+          1,
+          1
+        ],
+        "dilation": [
+          1,
+          1
+        ],
+        "groups": 1,
+        "weight_layout": "OIHW"
       }
     },
     {
       "id": "relu",
-      "type": "nodetool.native.Relu",
+      "type": "nodetool.torch.ReLU",
       "properties": {}
     },
     {
       "id": "mix_weight",
-      "type": "nodetool.native.Constant",
+      "type": "nodetool.torch.Constant",
       "properties": {
-        "dtype": "f32",
+        "dtype": "float32",
         "shape": [
           1,
           2,
           1,
           1
         ],
-        "value": [
+        "values": [
           0.75,
           0.25
         ]
@@ -84,26 +97,35 @@
     },
     {
       "id": "mix",
-      "type": "nodetool.native.Conv2D",
-      "properties": {}
-    },
-    {
-      "id": "one",
-      "type": "nodetool.native.Constant",
+      "type": "nodetool.torch.Conv2D",
       "properties": {
-        "dtype": "f32",
-        "shape": [],
-        "value": 1
+        "stride": [
+          1,
+          1
+        ],
+        "padding": [
+          0,
+          0
+        ],
+        "dilation": [
+          1,
+          1
+        ],
+        "groups": 1,
+        "weight_layout": "OIHW"
       }
     },
     {
       "id": "clamp",
-      "type": "nodetool.native.Minimum",
-      "properties": {}
+      "type": "nodetool.torch.Clamp",
+      "properties": {
+        "min": 0,
+        "max": 1
+      }
     },
     {
       "id": "out",
-      "type": "nodetool.native.Output",
+      "type": "nodetool.torch.Output",
       "properties": {
         "name": "image_out"
       }
@@ -144,19 +166,13 @@
       "source": "mix",
       "sourceHandle": "output",
       "target": "clamp",
-      "targetHandle": "a"
-    },
-    {
-      "source": "one",
-      "sourceHandle": "output",
-      "target": "clamp",
-      "targetHandle": "b"
+      "targetHandle": "input"
     },
     {
       "source": "clamp",
       "sourceHandle": "output",
       "target": "out",
-      "targetHandle": "input"
+      "targetHandle": "value"
     }
   ]
 }

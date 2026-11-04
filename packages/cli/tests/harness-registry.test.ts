@@ -38,19 +38,20 @@ import {
 
 describe("harness registry", () => {
   it.each([
-    "native/workflow/compiler.cpp",
+    "native/workflow/torch_graph.py",
     "native/workflow/runtime.cpp",
-    "native/workflow/CMakeLists.txt",
-    "native/workflow/tests/test_workflow.py"
-  ])("runs the native compiler selfcheck for %s", (path) => {
+    "native/workflow/requirements-cpu.txt",
+    "scripts/check-torch-workflow.mjs",
+    "native/workflow/tests/check.py"
+  ])("runs the Torch compiler selfcheck for %s", (path) => {
     const plan = planGate([path]);
-    expect(plan.checks).toEqual([
+    expect(plan.checks).toEqual(expect.arrayContaining([
       expect.objectContaining({
-        harnessId: "native-workflow-compiler",
-        command: "npm run test:native-workflow",
+        harnessId: "torch-workflow-compiler",
+        command: "npm run test:torch-workflow",
         suiteOnly: false
       })
-    ]);
+    ]));
   });
 
   it.each([

@@ -321,14 +321,14 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
-    id: "native-workflow-compiler",
-    title: "Native workflow compiler (LLVM lowering and executable fixtures)",
-    command: "npm run test:native-workflow",
+    id: "torch-workflow-compiler",
+    title: "Torch workflow compiler (AOTInductor and C++ golden fixtures)",
+    command: "npm run test:torch-workflow",
     kind: "execution",
     capabilities: ["no-db"],
-    docs: "docs/harnesses.md § Native workflow compiler",
+    docs: "docs/harnesses.md § Torch workflow compiler",
     selfcheck: {
-      command: "npm run test:native-workflow",
+      command: "npm run test:torch-workflow",
       cost: "cheap"
     }
   },
@@ -1353,10 +1353,10 @@ export const SURFACES: SurfaceEntry[] = [
     paths: ["packages/agents/", "packages/dsl/"]
   },
   {
-    id: "native-workflow-compiler",
-    title: "Native workflow compilation and runtime",
-    harnesses: ["native-workflow-compiler"],
-    paths: ["native/workflow/"]
+    id: "torch-workflow-compiler",
+    title: "Torch workflow compilation and C++ AOT runtime",
+    harnesses: ["torch-workflow-compiler"],
+    paths: ["native/workflow/", "scripts/check-torch-workflow.mjs"]
   },
   {
     id: "dsl-native-flow",

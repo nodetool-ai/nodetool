@@ -2130,18 +2130,25 @@ npm run crap -- --lcov packages/kernel/coverage/lcov.info --json packages/kernel
   `node_modules/` are skipped. Rules are pinned by
   `scripts/__tests__/crap-score.test.mjs`.
 
-### Native workflow compiler
+### Torch workflow compiler
 
-`npm run test:native-workflow` configures and builds `native/workflow` with
-CMake, then runs its CTest fixtures against the real compiler and generated
-executables. It requires CMake, LLVM 18 or newer development files, `clang++`, and
-Python 3. Set `LLVM_DIR` to the directory containing `LLVMConfig.cmake` when
-CMake cannot locate the installed LLVM package. Missing prerequisites, failed
-builds, failed fixtures, and an empty CTest inventory fail the command.
+`npm run test:torch-workflow` runs the Torch graph boundary tests, exports all
+four golden workflows with AOTInductor, and executes their compiled CPU packages
+through the C++ AOT runtime. It compares eager and compiled results with the
+committed numeric expectations. See [toolchain setup](../native/workflow/README.md)
+for the pinned Python, PyTorch, NumPy, CMake, and C++ compiler prerequisites.
+The command uses `native/workflow/.venv/bin/python`. Set
+`NODETOOL_TORCH_PYTHON` to an absolute Python path to use another environment
+with the same pinned dependencies. Missing prerequisites, compilation failures,
+empty fixture inventories, and numerical mismatches fail the check.
 
-Changes under `native/workflow/` select this check in both `test:affected`
-and the harness gate. The gate runs it by default without credentials or
-`--expensive`.
+`npm run test:torch-workflow:cuda` requires the CUDA toolchain and a compatible
+GPU. It compiles and executes CUDA packages through the C++ runtime. Selecting
+CUDA without a usable GPU fails the check, with no CPU fallback.
+
+Changes under `native/workflow/` or to `scripts/check-torch-workflow.mjs` select
+the CPU check in both `test:affected` and the harness gate. The gate runs it by
+default without credentials or `--expensive`. CUDA is an explicit GPU-host check.
 
 ### nodetool harness (Registry, Coverage Audit, and the Gate)
 
