@@ -1,5 +1,6 @@
 // Ported from FilmCraft (https://github.com/storytold/filmcraft) crates/render/src/color_match.rs at 8c171a0. MIT, see licenses/FilmCraft-MIT.txt.
 #pragma once
+#include "preview/WorkingFormat.h"
 #include <QImage>
 #include <QJsonArray>
 #include <QString>
@@ -8,11 +9,14 @@
 namespace nt::color {
 struct MatchInput {
     // Current is the probe rendered with probeEffects. Both frames are opaque.
+    // RGBA8 retains byte analysis. FP16 callers supply captureWorkingAt images
+    // before delivery quantization/dither. Their encoded transfer is unchanged.
     QImage current, reference;
     QJsonArray effects;
     bool protectSkin = true;
     std::function<bool()> cancelled;
     QJsonArray trackEffects; // From convertTrackEffects. The probe is rendered without them.
+    nt::WorkingFormat workingFormat = nt::WorkingFormat::Rgba8; // The route being matched, not the delivery format.
 };
 struct MatchResult {
     bool ok = false, wasCancelled = false;
@@ -26,8 +30,10 @@ MatchResult solveMatch(const MatchInput &);
 // Euclidean distance between mean Oklab colours after bar trimming and box resizing.
 double meanColorDifference(const QImage &a, const QImage &b);
 QImage trimBlackBars(const QImage &);
-// Only the colour and vignette passes from planChain, with RGBA8 intermediates.
-QImage applyGrade(const QImage &, const QJsonArray &effects, const QJsonArray &trackEffects = {});
+// Only the colour and vignette passes from planChain, rounded to the route storage.
+// FP16 analysis accepts opaque typed working captures and returns straight FP32.
+QImage applyGrade(const QImage &, const QJsonArray &effects, const QJsonArray &trackEffects = {},
+                  nt::WorkingFormat format = nt::WorkingFormat::Rgba8);
 // Replaces the first LGG, preserving unrelated fields and effect order. A new one goes before the
 // first curves or vignette, or at the end, where the panel also puts it.
 // Scales inspector:color saturation only when abs(saturationScale - 1) > .005, and always

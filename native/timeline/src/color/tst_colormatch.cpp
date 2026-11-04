@@ -10,6 +10,15 @@
 #include <numbers>
 using namespace nt::color;
 namespace {
+// Hexadecimal floating output preserves every solver bit for baseline comparisons.
+MatchResult recordedSolve(const MatchInput &input) {
+    const auto r = solveMatch(input);
+    qInfo("solver %s %a %a %a %a %a %a %a %a %a %a %a %a %a %a",
+        QTest::currentTestFunction(), r.lift[0], r.lift[1], r.lift[2],
+        r.gamma[0], r.gamma[1], r.gamma[2], r.gain[0], r.gain[1], r.gain[2],
+        r.saturationScale, r.before, r.after, r.differenceBefore, r.differenceAfter);
+    return r;
+}
 QJsonObject lgg(QJsonArray lift = {0,0,0}, QJsonArray gamma = {1,1,1}, QJsonArray gain = {1,1,1}) {
     return {{"id","lgg"},{"type","liftGammaGain"},{"enabled",true},{"lift",lift},{"gamma",gamma},{"gain",gain}};
 }
@@ -42,6 +51,28 @@ double hueDistance(double a, double b) { return std::abs(std::remainder(a-b,360)
 class ColorMatchTest : public QObject {
     Q_OBJECT
 private slots:
+    void floatAnalysisPreservesSubByteSamples() {
+        QImage low(2,2,QImage::Format_RGBA32FPx4);
+        QImage high(2,2,QImage::Format_RGBA32FPx4);
+        for (auto *image : {&low,&high}) {
+            for (int y = 0; y < 2; ++y) {
+                auto *p = reinterpret_cast<float*>(image->scanLine(y));
+                for (int x = 0; x < 2; ++x) {
+                    p[x*4] = p[x*4+1] = p[x*4+2] = image == &low ? .5001f : .501f;
+                    p[x*4+3] = 1;
+                }
+            }
+        }
+        QCOMPARE(low.convertToFormat(QImage::Format_RGBA8888),high.convertToFormat(QImage::Format_RGBA8888));
+        QVERIFY(meanColorDifference(low,high) > .0001);
+        const QJsonArray compress{QJsonObject{{"type","levels"},{"enabled",true},{"outWhite",.1}},
+            QJsonObject{{"type","levels"},{"enabled",true},{"inWhite",.1}}};
+        const auto fp = applyGrade(low,compress,{},nt::WorkingFormat::Rgba16F);
+        QCOMPARE(fp.format(),QImage::Format_RGBA32FPx4);
+        QVERIFY(std::abs(reinterpret_cast<const float*>(fp.constScanLine(0))[0]-.5001f) < .001);
+        const auto bytes = applyGrade(low,compress);
+        QVERIFY(std::abs(bytes.pixelColor(0,0).redF()-.5001f) > .005);
+    }
     void oklabWeights() {
         const auto w = detail::oklab({1,1,1});
         QVERIFY(std::abs(w[0]-1)<.001 && std::abs(w[1])<.001 && std::abs(w[2])<.001);
@@ -58,7 +89,7 @@ private slots:
     }
     void identity() {
         const auto f = frame();
-        const auto r = solveMatch({f,f,{},false,{}});
+        const auto r = recordedSolve({f,f,{},false,{}});
         QVERIFY2(r.ok,qPrintable(r.error)); QVERIFY(r.before < 1e-6);
         for (int c = 0; c < 3; ++c) {
             QVERIFY(std::abs(r.lift[c])<1e-5); QVERIFY(std::abs(r.gamma[c]-1)<1e-5); QVERIFY(std::abs(r.gain[c]-1)<1e-5);
@@ -69,7 +100,7 @@ private slots:
     void knownGrade() {
         const auto f = frame();
         const auto ref = applyGrade(f,{lgg({.025,-.012,.018},{1.07,.96,1.03},{1.06,1.01,.94})});
-        const auto r = solveMatch({f,ref,{},false,{}});
+        const auto r = recordedSolve({f,ref,{},false,{}});
         QVERIFY2(r.ok,qPrintable(r.error));
         qInfo("known grade residual %.6f -> %.6f",r.before,r.after);
         QVERIFY(r.after < r.before*.15);
@@ -85,7 +116,7 @@ private slots:
             auto *p = ref.scanLine(y);
             for (int x = 0; x < ref.width(); ++x) { p[x*4] = std::min(255,p[x*4]+20); p[x*4+2] = std::max(0,p[x*4+2]-15); }
         }
-        const auto r = solveMatch({f,ref,{},false,{}});
+        const auto r = recordedSolve({f,ref,{},false,{}});
         QVERIFY2(r.ok,qPrintable(r.error));
         qInfo("colour offset difference %.6f -> %.6f",r.differenceBefore,r.differenceAfter);
         QVERIFY(r.differenceBefore > .02);
@@ -111,7 +142,7 @@ private slots:
         const auto f = frame(false);
         const QJsonArray chain{QJsonObject{{"id","edge"},{"type","vignette"},{"enabled",true},{"amount",.6},{"radius",.8},{"softness",.5}}};
         const auto ref = applyGrade(applyGrade(f,{lgg({.02,-.01,.03},{1.2,.9,1.1},{1.1,1,.9})}),chain);
-        const auto r = solveMatch({f,ref,chain,false,{}});
+        const auto r = recordedSolve({f,ref,chain,false,{}});
         QVERIFY2(r.ok,qPrintable(r.error));
         const double rendered = meanColorDifference(applyGrade(f,applyMatchToEffects(chain,r,"new")),ref);
         qInfo("vignette chain difference %.5f -> %.5f",r.differenceBefore,rendered);
@@ -123,7 +154,7 @@ private slots:
         const QJsonArray track{QJsonObject{{"id","t"},{"type","color"},{"enabled",true},{"brightness",.1}}};
         const auto ref = applyGrade(f,{lgg({.02,-.01,.03},{1.1,.9,1.2},{.95,1.05,1})},track);
         MatchInput input{f,ref,{},false,{},track};
-        const auto r = solveMatch(input);
+        const auto r = recordedSolve(input);
         QVERIFY2(r.ok,qPrintable(r.error));
         const double rendered = meanColorDifference(applyGrade(f,applyMatchToEffects({},r,"new"),track),ref);
         qInfo("track effect difference %.5f -> %.5f",r.differenceBefore,rendered);
@@ -139,7 +170,7 @@ private slots:
         boxed.fill(Qt::black);
         QPainter(&boxed).drawImage(70,0,inner);
         const QJsonArray edge{QJsonObject{{"id","edge"},{"type","vignette"},{"enabled",true},{"amount",.6},{"radius",.9},{"softness",.5}}};
-        const auto r = solveMatch({boxed,applyGrade(inner,edge),edge,false,{}});
+        const auto r = recordedSolve({boxed,applyGrade(inner,edge),edge,false,{}});
         QVERIFY2(r.ok,qPrintable(r.error));
         QVERIFY2(r.differenceBefore < .002,qPrintable(QString::number(r.differenceBefore)));
     }
@@ -148,15 +179,15 @@ private slots:
         const auto f = frame(false);
         const QJsonArray graded{lgg({.03,-.02,.02},{1.2,.9,1.1},{1,1,1})};
         const auto ref = applyGrade(f,graded);
-        const auto r = solveMatch({f,ref,graded,false,{}});
+        const auto r = recordedSolve({f,ref,graded,false,{}});
         QVERIFY2(r.ok,qPrintable(r.error));
         QVERIFY2(r.differenceBefore < .001,qPrintable(QString::number(r.differenceBefore)));
     }
     void skinProtection() {
         const auto f = frame(true);
         const auto ref = applyGrade(f,{lgg({-.035,.08,.035},{.95,1.1,1.05},{.85,1.15,1.1})});
-        const auto free = solveMatch({f,ref,{},false,{}});
-        const auto safe = solveMatch({f,ref,{},true,{}});
+        const auto free = recordedSolve({f,ref,{},false,{}});
+        const auto safe = recordedSolve({f,ref,{},true,{}});
         QVERIFY(free.ok && safe.ok);
         const double a = hueDistance(hue(rendered(f,{},free)),hue(f));
         const double b = hueDistance(hue(rendered(f,{},safe)),hue(f));
@@ -191,8 +222,8 @@ private slots:
         QCOMPARE(trimBlackBars(f).size(),QSize(16,6));
         QCOMPARE(meanColorDifference(f,trimBlackBars(f)),0.0);
         QVERIFY(trimBlackBars({}).isNull());
-        const auto bad = solveMatch({{},f,{},false,{}}); QVERIFY(!bad.ok && !bad.error.isEmpty());
-        QVERIFY(!solveMatch({f,{}, {},false,{}}).ok);
+        const auto bad = recordedSolve({{},f,{},false,{}}); QVERIFY(!bad.ok && !bad.error.isEmpty());
+        QVERIFY(!recordedSolve({f,{}, {},false,{}}).ok);
     }
     void effectLists() {
         MatchResult r; r.ok = true; r.lift = {.012345,0,-.1}; r.gamma = {1.1,1,1}; r.gain = {1,1.05,1};
@@ -253,7 +284,7 @@ private slots:
     void cancellation() {
         const auto f = frame(); int polls = 0;
         QElapsedTimer t; t.start();
-        const auto r = solveMatch({f,f,{},false,[&]{ ++polls; return true; }});
+        const auto r = recordedSolve({f,f,{},false,[&]{ ++polls; return true; }});
         QVERIFY(!r.ok && r.wasCancelled); QVERIFY(polls > 0); QVERIFY(t.elapsed()<1000);
     }
     void chain() {
@@ -264,7 +295,7 @@ private slots:
         auto truth = effects; truth[0] = lgg({.02,-.015,.01},{1.05,.96,1.02},{1.04,1,.95});
         auto col = truth[2].toObject(); col["enabled"] = true; truth[2] = col;
         const auto ref = applyGrade(f,truth);
-        const auto r = solveMatch({f,ref,effects,false,{}});
+        const auto r = recordedSolve({f,ref,effects,false,{}});
         QVERIFY2(r.ok,qPrintable(r.error));
         qInfo("chain residual %.6f -> %.6f difference %.6f -> %.6f",r.before,r.after,r.differenceBefore,r.differenceAfter);
         QVERIFY(r.after < r.before*.3);
