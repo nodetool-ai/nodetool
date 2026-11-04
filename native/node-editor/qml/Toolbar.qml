@@ -1,0 +1,79 @@
+import QtQuick
+import QtQuick.Layouts
+import NodeTool.UiPrimitives as Ui
+
+// The action row of the web's floating composer. The chat input stays web-only.
+Item {
+    id: root
+    // A narrow canvas keeps the run icon and drops its label, as the web does.
+    property bool compact: false
+    EditorRoles { id: roles }
+    function syncTheme() {
+        if (!editor) return
+        editor.presentation({canvas: roles.canvas, grid: roles.grid, node: roles.node, panel: roles.panel, overlay: roles.overlay, divider: roles.divider, field: roles.field, checker: roles.checker, shadow: roles.shadow, primary: Ui.Theme.accentPrimary, text: Ui.Theme.textPrimary, secondary: Ui.Theme.textSecondary, border: roles.divider, focus: Ui.Theme.borderFocus, error: Ui.Theme.statusError, warning: Ui.Theme.statusWarning, sans: Ui.Typography.sansFamily, reducedMotion: Ui.Theme.reducedMotion})
+    }
+    Component.onCompleted: syncTheme()
+    Connections { target: Ui.Theme; function onEffectiveSchemeChanged() { root.syncTheme() } function onReducedMotionChanged() { root.syncTheme() } }
+    Connections { target: Ui.Typography; function onSansFamilyChanged() { root.syncTheme() } }
+    readonly property bool runActive: editor && editor.runActive
+    implicitWidth: frame.implicitWidth
+    implicitHeight: frame.implicitHeight
+    component ActionButton: PanelRow {
+        id: action
+        property string glyph: ""
+        property string primitiveGlyph: ""
+        implicitWidth: Ui.Metrics.comfortable
+        implicitHeight: Ui.Metrics.comfortable
+        enabled: editor && (!editor.readOnly || !["Run", "Add node"].includes(text))
+        onClicked: editor.action(text)
+        HoverHandler { onHoveredChanged: if (hovered && editor) editor.showToolTip(action.text); else if (editor) editor.showToolTip("") }
+        TypeIcon { anchors.centerIn: parent; visible: action.glyph !== ""; name: action.glyph; size: Ui.Metrics.iconMd; ink: action.enabled ? Ui.Theme.textSecondary : Ui.Theme.textDisabled }
+        Ui.Icon { anchors.centerIn: parent; visible: action.primitiveGlyph !== ""; name: action.primitiveGlyph; size: Ui.Metrics.iconMd; tone: action.enabled ? Ui.Text.Secondary : Ui.Text.Disabled }
+    }
+    Rectangle {
+        id: frame
+        anchors.fill: parent
+        color: roles.overlay
+        radius: Ui.Metrics.lg
+        border.width: Ui.Metrics.border
+        border.color: roles.divider
+        implicitWidth: row.implicitWidth + Ui.Metrics.sm * 2
+        implicitHeight: row.implicitHeight + Ui.Metrics.sm * 2
+        RowLayout {
+            id: row
+            anchors.centerIn: parent
+            spacing: Ui.Metrics.xs
+            ActionButton { text: "Add node"; glyph: "addCircle" }
+            ActionButton { text: "Undo"; primitiveGlyph: "undo" }
+            ActionButton { text: "Redo"; primitiveGlyph: "redo" }
+            ActionButton { text: "Open"; glyph: "folderOpen" }
+            ActionButton { text: "Save"; glyph: "save" }
+            Item { Layout.preferredWidth: Ui.Metrics.md }
+            PanelRow {
+                id: runButton
+                objectName: "run-workflow"
+                readonly property string actionName: root.runActive ? "Stop" : "Run"
+                text: actionName
+                accessibleName: root.runActive ? "Stop workflow" : "Run entire workflow"
+                enabled: root.runActive || (editor && !editor.readOnly)
+                implicitHeight: Ui.Metrics.comfortable
+                implicitWidth: runRow.implicitWidth + Ui.Metrics.lg * 2
+                onClicked: editor.action(actionName)
+                background: Rectangle {
+                    radius: height / 2
+                    color: !runButton.enabled ? Ui.Theme.actionDisabled : runButton.hovered ? Ui.Theme.accentHover : Ui.Theme.accentPrimary
+                    border.width: runButton.visualFocus ? Ui.Metrics.focus : 0
+                    border.color: Ui.Theme.textOnAccent
+                }
+                Row {
+                    id: runRow
+                    anchors.centerIn: parent
+                    spacing: Ui.Metrics.xs
+                    Ui.Icon { anchors.verticalCenter: parent.verticalCenter; name: root.runActive ? "stop" : "playArrow"; size: Ui.Metrics.iconMd; tone: Ui.Text.OnAccent }
+                    Ui.Text { anchors.verticalCenter: parent.verticalCenter; visible: !root.compact; text: root.runActive ? "Stop workflow" : "Run entire workflow"; role: Ui.Typography.SansLabel; font.weight: Font.Normal; tone: Ui.Text.OnAccent; lineHeight: 1 }
+                }
+            }
+            ActionButton { text: "More"; primitiveGlyph: "moreVert" }
+        }
+    }
+}

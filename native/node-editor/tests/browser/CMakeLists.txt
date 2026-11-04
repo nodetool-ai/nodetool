@@ -1,0 +1,10 @@
+cmake_minimum_required(VERSION 3.24)
+project(NodeEditorBrowserTests LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_AUTOMOC ON)
+enable_testing()
+find_package(Qt6 6.12 REQUIRED COMPONENTS Core Network Test)
+add_executable(node_editor_browser_tests WorkflowBrowserTests.cpp
+ ../../src/server/WorkflowBrowser.cpp ../../src/server/WorkflowBrowser.h)
+target_link_libraries(node_editor_browser_tests PRIVATE Qt6::Core Qt6::Network Qt6::Test)
+add_test(NAME node_editor_browser COMMAND node_editor_browser_tests)

@@ -1,0 +1,114 @@
+#include "document/WorkflowDocument.h"
+#include "properties/PropertyFields.h"
+#include <QtTest>
+using namespace nodetool::node_editor;
+class PropertyFieldsTest : public QObject {
+ Q_OBJECT
+private slots:
+ void structuredTransactions() {
+  const QJsonObject intType{{"type", "int"}};
+  const QJsonObject listType{{"type", "list"}, {"type_args", QJsonArray{intType}}};
+  const QJsonObject dictType{{"type", "dict"}, {"type_args", QJsonArray{QJsonObject{{"type", "str"}}, listType}}};
+  const QJsonObject declaration{{"name", "values"}, {"type", dictType}};
+  QCOMPARE(propertyKind(declaration), QString("dict"));
+  QCOMPARE(propertyKind({{"type", QJsonObject{{"type", "list"}, {"type_args", QJsonArray{QJsonObject{{"type", "image"}}}}}}}), QString("unsupported"));
+  QCOMPARE(propertyKind({{"type", QJsonObject{{"type", "str"}}}, {"json_schema_extra", QJsonObject{{"type", "json"}}}}), QString("json"));
+  QVERIFY(validatePropertyValue(declaration, QJsonObject{{"numbers", QJsonArray{1, 2}}}).isEmpty());
+  QVERIFY(!validatePropertyValue(declaration, QJsonObject{{"numbers", QJsonArray{1, "two"}}}).isEmpty());
+  QVERIFY(!validatePropertyValue(declaration, QJsonArray{}).isEmpty());
+  const QJsonObject optionalList{{"type", QJsonObject{{"type", "union"}, {"type_args", QJsonArray{listType, QJsonObject{{"type", "none"}}}}}}};
+  QVERIFY(validatePropertyValue(optionalList, QJsonValue::Null).isEmpty());
+  QVERIFY(validatePropertyValue(optionalList, QJsonArray{1}).isEmpty());
+  QVERIFY(!validatePropertyValue(optionalList, QJsonArray{"bad"}).isEmpty());
+  QJsonArray oversized;
+  for (int i = 0; i < 10001; ++i) { oversized.append(i); }
+  QVERIFY(!validatePropertyValue(QJsonObject{{"type", listType}}, oversized).isEmpty());
+  const QJsonObject json{{"name", "json"}, {"type", QJsonObject{{"type", "json"}}}};
+  QVERIFY(validatePropertyValue(json, QJsonObject{{"type", "json"}, {"data", "true"}, {"future", 4}}).isEmpty());
+  QVERIFY(!validatePropertyValue(json, QJsonObject{{"type", "json"}, {"data", "{"}}).isEmpty());
+  const QJsonObject record{{"name", "record"}, {"type", QJsonObject{{"type", "record_type"}}}};
+  const QJsonObject column{{"name", "a"}, {"data_type", "string"}, {"future", 3}};
+  QVERIFY(validatePropertyValue(record, QJsonObject{{"type", "record_type"}, {"columns", QJsonArray{column}}, {"future", 9}}).isEmpty());
+  QVERIFY(!validatePropertyValue(record, QJsonObject{{"type", "record_type"}, {"columns", QJsonArray{column, column}}}).isEmpty());
+  QJsonValue deep = 1;
+  for (int i = 0; i < 30; ++i) { deep = QJsonArray{deep}; }
+  int budget = 10000;
+  QVERIFY(!validateTypedValue(QJsonObject{{"type", "any"}}, deep, 0, budget).isEmpty());
+  WorkflowDocument d;
+  d.setNodeMetadata({QJsonObject{{"node_type", "test"}, {"properties", QJsonArray{declaration, json, record}}}});
+  QVERIFY(d.load(QJsonObject{{"graph", QJsonObject{{"nodes", QJsonArray{QJsonObject{{"id", "n"}, {"type", "test"}, {"data", QJsonObject{{"unknown", QJsonObject{{"future", true}}}}}}}}, {"edges", QJsonArray{}}}}}));
+  QVERIFY(!d.applyCommand({{"op", "setProperty"}, {"id", "n"}, {"name", "values"}, {"value", QJsonObject{{"bad", QJsonArray{"wrong"}}}}}));
+  QCOMPARE(d.undoStack()->count(), 0);
+  QVERIFY(d.applyCommand({{"op", "setProperty"}, {"id", "n"}, {"name", "values"}, {"value", QJsonObject{{"good", QJsonArray{1, 2}}}}}));
+  QCOMPARE(d.undoStack()->count(), 1);
+  QCOMPARE(d.node("n")["data"].toObject()["unknown"].toObject()["future"], QJsonValue(true));
+  d.undo(); QVERIFY(!d.node("n")["data"].toObject().contains("values"));
+ }
+ void validatedTransactions() {
+  WorkflowDocument d;
+  const QJsonObject integer{{"name", "count"}, {"type", QJsonObject{{"type", "int"}, {"optional", true}}}, {"min", 0}, {"max", 5}, {"default", 2}};
+  d.setNodeMetadata({QJsonObject{{"node_type", "test"}, {"properties", QJsonArray{integer}}}});
+  const QJsonObject n{{"id", "n"}, {"type", "test"}, {"data", QJsonObject{{"opaque", QJsonObject{{"id", "model"}}}}}, {"dynamic_inputs", QJsonObject{{"flag", QJsonObject{{"type", "bool"}}}}}};
+  QVERIFY(d.load(QJsonObject{{"graph", QJsonObject{{"nodes", QJsonArray{n}}, {"edges", QJsonArray{}}}}}));
+  const auto command = [](QJsonValue v) { return QJsonObject{{"op", "setProperty"}, {"id", "n"}, {"name", "count"}, {"value", v}}; };
+  QVERIFY(!d.applyCommand(command(1.5))); QVERIFY(!d.applyCommand(command(6))); QVERIFY(!d.applyCommand(command("3")));
+  QCOMPARE(d.undoStack()->count(), 0);
+  QVERIFY(d.applyCommand(command(3))); QCOMPARE(d.undoStack()->count(), 1);
+  d.undo(); QVERIFY(!d.node("n")["data"].toObject().contains("count"));
+  QVERIFY(d.applyCommand(command(QJsonValue::Null)));
+  QVERIFY(d.node("n")["data"].toObject()["count"].isNull());
+  QVERIFY(d.applyCommand({{"op", "setProperty"}, {"id", "n"}, {"name", "flag"}, {"value", true}}));
+  QVERIFY(d.node("n")["dynamic_properties"].toObject()["flag"].toBool());
+  QVERIFY(!d.applyCommand({{"op", "setProperty"}, {"id", "n"}, {"name", "opaque"}, {"value", "model"}}));
+  QCOMPARE(d.node("n")["data"].toObject()["opaque"], n["data"].toObject()["opaque"]);
+ }
+ void resolverEnumShapes() {
+  const QJsonArray values{1, 2, "two"};
+  const QJsonObject str{{"type", "str"}};
+  const QJsonArray declarations{
+   QJsonObject{{"name", "mode"}, {"type", str}, {"enum", values}},
+   QJsonObject{{"name", "mode"}, {"type", QJsonObject{{"type", "enum"}, {"type_args", QJsonArray{QJsonObject{{"type", "str"}, {"values", values}}}}}}}
+  };
+  for (const auto& declaration : declarations) {
+   WorkflowDocument d;
+   d.setNodeMetadata({QJsonObject{{"node_type", "test"}, {"properties", QJsonArray{declaration}}}});
+   const QJsonObject node{{"id", "n"}, {"type", "test"}, {"data", QJsonObject{}}};
+   QVERIFY(d.load({{"graph", QJsonObject{{"nodes", QJsonArray{node}}, {"edges", QJsonArray{}}}}}));
+   const auto rows = propertyFields(node, {{"properties", QJsonArray{declaration}}}, {});
+   QCOMPARE(rows.first().toMap()["kind"].toString(), "choice");
+   const auto options = rows.first().toMap()["options"].toList();
+   QCOMPARE(QJsonValue::fromVariant(options.first().toMap()["value"]), QJsonValue(1));
+   const auto commit = [&d](QJsonValue value) { return d.applyCommand({{"op", "setProperty"}, {"id", "n"}, {"name", "mode"}, {"value", value}}); };
+   QVERIFY(!commit("1")); QVERIFY(!commit(true)); QCOMPARE(d.undoStack()->count(), 0);
+   QVERIFY(commit(1)); QCOMPARE(d.node("n")["data"].toObject()["mode"], QJsonValue(1));
+   QVERIFY(commit("two")); QCOMPARE(d.node("n")["data"].toObject()["mode"], QJsonValue("two"));
+   d.undo(); QCOMPARE(d.node("n")["data"].toObject()["mode"], QJsonValue(1));
+  }
+ }
+ void scalarUnionsAndStringPresentation() {
+  const auto declaration = [](QJsonArray args) { return QJsonObject{{"type", QJsonObject{{"type", "union"}, {"type_args", args}}}}; };
+  const QJsonObject none{{"type", "none"}}, str{{"type", "str"}}, integer{{"type", "int"}}, number{{"type", "float"}};
+  const auto text = declaration({none, str});
+  QCOMPARE(propertyKind(text), "multiline"); QVERIFY(propertyNullable(text));
+  QVERIFY(validatePropertyValue(text, QJsonValue::Null).isEmpty()); QVERIFY(validatePropertyValue(text, "prompt").isEmpty());
+  QVERIFY(!validatePropertyValue(text, QJsonObject{{"id", "model"}}).isEmpty());
+  const auto count = declaration({integer, none}); QCOMPARE(propertyKind(count), "integer");
+  QVERIFY(!validatePropertyValue(count, 1.5).isEmpty());
+  const auto numeric = declaration({integer, number, none}); QCOMPARE(propertyKind(numeric), "number");
+  QVERIFY(validatePropertyValue(numeric, 1.5).isEmpty());
+  QCOMPARE(propertyKind(declaration({str, QJsonObject{{"type", "model"}}})), "unsupported");
+  QCOMPARE(propertyKind({{"type", str}}), "multiline");
+  QCOMPARE(propertyKind({{"type", str}, {"json_schema_extra", QJsonObject{{"multiline", false}}}}), "text");
+ }
+ void descriptorsAndChoices() {
+  const QJsonObject p{{"name", "mode"}, {"type", QJsonObject{{"type", "enum"}, {"values", QJsonArray{1, "1"}}}}, {"title", "Mode"}};
+  QVERIFY(validatePropertyValue(p, 1).isEmpty()); QVERIFY(!validatePropertyValue(p, true).isEmpty());
+  const auto rows = propertyFields({{"id", "n"}}, {{"properties", QJsonArray{p}}}, {QJsonObject{{"target", "n"}, {"targetHandle", "mode"}}});
+  const auto row = rows.first().toMap();
+  QVERIFY(row["connected"].toBool()); QVERIFY(!row["editable"].toBool()); QVERIFY(!row["hasValue"].toBool());
+  QCOMPARE(row["label"].toString(), "Mode");
+  QVERIFY(row["options"].toList().first().toMap()["value"].metaType().id() != QMetaType::QString);
+ }
+};
+QTEST_GUILESS_MAIN(PropertyFieldsTest)
+#include "PropertyFieldsTest.moc"

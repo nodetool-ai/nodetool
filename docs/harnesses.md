@@ -2659,6 +2659,35 @@ database, providers, and caches by default — no server required. Pass
 `--api-url <url>` (env: `NODETOOL_API_URL`) to route through a remote server
 instead.
 
+## Native node editor
+
+Run the standalone workflow graph editor's native build and tests:
+
+```bash
+node native/node-editor/scripts/check.mjs
+node --test native/node-editor/scripts/check.test.mjs
+```
+
+The check configures CMake with testing enabled, builds with Ninja, then runs
+CTest offscreen with software rendering. Configuration, build, test failures,
+and an empty test registry return a nonzero exit. The script regression suite
+uses real CMake/CTest fixtures, including deliberate build and test failures.
+
+Prerequisites are CMake 3.24 or newer, Ninja, a C++20 compiler, and Qt 6.12
+or newer with the modules listed in
+[`CMakeLists.txt`](../native/node-editor/CMakeLists.txt).
+Set `CMAKE_PREFIX_PATH` to the Qt kit, or install a Qt 6.12 kit under `~/qt`.
+Set `NODETOOL_NODE_EDITOR_BUILD_DIR` to choose a separate build directory.
+First configure needs Git and access to the pinned QtNodes repository unless
+its FetchContent source is already cached. Missing prerequisites fail the
+check and remain visible in its command output.
+
+Changes under `native/node-editor/` select `native-node-editor` in the harness
+registry. The root gate reports it as manual work requiring these native
+prerequisites. Run the check explicitly to establish native test results.
+Offscreen tests do not establish platform input, accessibility, or installed-app
+rendering acceptance. See the [editor plan](plans/native-node-editor.md).
+
 ## Native Qt presentation checks
 
 The native UI library has a standalone [build and test interface](https://github.com/nodetool-ai/nodetool/blob/main/native/ui_primitives/README.md).
