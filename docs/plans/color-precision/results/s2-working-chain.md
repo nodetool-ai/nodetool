@@ -316,3 +316,49 @@ packages/timeline/src/render/frameCompositor.ts and
 packages/timeline/tests/render.workingPrecision.gpu.test.ts.
 Logs: a233-built.log, a233-final.log, a233-final-tsc.log and gpu-build.log
 under the existing color-s2 log directory. Restricted checks only.
+
+## A23.4 continuation
+
+Temporal denoise neighbors now use the same promotion and format-aware crop
+route as the current source. Per-frame uploads are refreshed through the
+existing version contract. Seek-back, source replacement and an empty-frame
+cache reset reproduce the original output. Neighbor promotions are released
+by the existing live-source sweep and charged to the promotion cache limit.
+Existing motion accumulation remains rgba16float with f32 arithmetic.
+
+The working-precision, grain and colour-boundary selection passed:
+41 ordinary tests and six retained expected failures. Timeline-only typecheck
+passed. Logs: a234.log and a234-tsc.log. Changed files: this report,
+packages/timeline/src/render/frameCompositor.ts and
+packages/timeline/tests/render.workingPrecision.gpu.test.ts.
+
+### Correction and explanation of the 14 previous failures
+
+All 14 pass with both Vulkan environment variables pointing at lavapipe.
+The earlier report set only VK_ICD_FILENAMES after sourcing ntenv, leaving
+its NVIDIA VK_DRIVER_FILES override active. This was not a Node-version
+failure. No existing test, tolerance or expected-failure marker changed.
+
+The failing grain names were "matches CPU grain with size S, softness F and
+alpha A", for (S,F,A) equal to (1,0.25,255), (3.5,0,255), (8,1,255),
+(16,0.6,255), (16,0,255), (16,1,128) and (3.5,0.4,128).
+These are B218's seven parameter cases. Their CPU/GPU quantization parity
+differs on the inherited NVIDIA route. They pass on this machine's lavapipe.
+
+The other names were "imports FORMAT PROFILE decoder samples without a second
+transfer" for png and webp, each with untagged, srgb and p3, and
+"preserves mov alpha=true decoded samples through the server codec boundary".
+At alpha 1, the old log shows [113,142,56,1] becoming [0,0,0,1] instead of the
+byte oracle's [0,255,0,1]. This is the previously recorded NVIDIA low-alpha
+disagreement in S1, not a demonstrated transfer conversion. They pass on
+confirmed lavapipe. The driver-level cause of the NVIDIA disagreement remains
+unresolved and that route is not qualified.
+
+Inspected recent test-packages-core job 126827592139 in
+[run 41901649421](https://github.com/nodetool-ai/nodetool/actions/runs/41901649421).
+It passed all 17 grain tests. Its failure was register-available-packs.test.ts.
+Node was 24.22.1, as here. CI installed Mesa 25.2.8 on Ubuntu.
+This machine's A81 adapter record is Mesa 26.2.5 on Arch.
+The CI commit e1067e4d28 does not contain render.colorBoundary.gpu.test.ts,
+so this log cannot establish CI results for the seven newer boundary cases.
+The downloaded evidence is ci-core.log. No CI pass is claimed for absent tests.

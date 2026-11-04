@@ -179,3 +179,31 @@ it("releases removed promotions, bounds retained bytes and releases on dispose",
     renderer.dispose(); source.destroy(); allocations.mockRestore();
   }
 });
+
+it("refreshes FP16 temporal neighbors across seeks, source changes and cache reset", async () => {
+  const device = await getNodeGPUDevice();
+  const renderer = new HeadlessFrameCompositor(device, 8, 8, { workingFormat: "rgba16float" });
+  const allocations = vi.spyOn(device, "createTexture");
+  const source = (value: number) => ({ rgba: new Uint8Array(8 * 8 * 4).map((_, i) => i % 4 === 3 ? 255 : value), width: 8, height: 8, version: String(value) });
+  const scene = (value: number): FrameLayer => ({
+    id: "temporal", source: source(value), opacity: 1, blendMode: "normal", zIndex: 0,
+    crop: { left: 0.125, right: 0.125, top: 0, bottom: 0 },
+    temporalSources: { before: source(value - 2), after: source(value + 2) },
+    effects: [{ id: "denoise", type: "denoise", enabled: true, temporalStrength: 1 }]
+  });
+  device.pushErrorScope("validation");
+  try {
+    const first = await renderer.renderFrame([scene(80)]);
+    const changed = await renderer.renderFrame([scene(160)]);
+    expect(changed).not.toEqual(first);
+    expect(await renderer.renderFrame([scene(80)])).toEqual(first);
+    await renderer.renderFrame([]);
+    expect(await renderer.renderFrame([scene(80)])).toEqual(first);
+    const neighbors = allocations.mock.calls.map(([d]) => d).filter(d => d.label?.includes("#denoise-"));
+    expect(neighbors.filter(d => d.label?.includes("-promoted-")).length).toBe(4);
+    expect(neighbors.filter(d => d.label?.includes("-crop-")).every(d => d.format === "rgba16float")).toBe(true);
+  } finally {
+    renderer.dispose(); allocations.mockRestore();
+    expect((await device.popErrorScope())?.message).toBeUndefined();
+  }
+});

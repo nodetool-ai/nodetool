@@ -839,7 +839,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       const id = `${layer.id}#denoise-${role}`;
       const value = this.upload(id, layer.temporalSources![role]);
       if (!value) throw new Error(`Noise reduction ${role} frame could not be uploaded`);
-      return this.cropSource({...layer, id}, value, encoder).texture;
+      return this.cropSource({...layer, id}, this.promoteSource(id, value, encoder), encoder).texture;
     };
     const temporalSources = layer.temporalSources ? {before: neighbor("before"), after: neighbor("after")} : undefined;
     const window = layer.sourceWindow;
