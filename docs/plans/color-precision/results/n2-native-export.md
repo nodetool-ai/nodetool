@@ -1,6 +1,6 @@
-# N2 native capture and delivery, partial implementation
+# N2 native capture and delivery
 
-A84.1 is implemented and qualified on Vulkan/lavapipe. The export connection remains unfinished. N2's exit gate is **not met**. FP16 remains off by
+A84.1 is implemented and qualified on Vulkan/lavapipe. A84.2 now connects export delivery, but same-picture edge acceptance fails. The earlier sections below retain the history. N2's exit gate is **not met**. FP16 remains off by
 default. No schema, setting, QML property, transfer conversion, workflow or
 CTest ordering changed. Nothing was pushed.
 
@@ -222,3 +222,39 @@ PNG and MP4 in every requested output geometry. Further delivery qualification
 is recorded below. Full spatial comparison against an independently resampled
 float reference remains open, so A84.2 acceptance and the N2 exit gate are not
 yet fully met.
+
+
+## A84.3 delivery acceptance checks
+
+`export_precision` now exports inverse Levels through real PNG/ZIP and MP4,
+decodes both, checks native odd dimensions and fit/fill upscales and downscales,
+and asserts an FP16 improvement against the expected RGB constant. It checks
+opaque output alpha, the ZIP manifest, cancellation after one encoded frame,
+absence of published partial output and removal of staging directories.
+Identity scenes include opacity 1 and 0.001 over the existing capture background.
+Every identity pixel is compared, not only the interior patch.
+
+The conversion test explicitly covers FP32-to-RGBA64 rounding and the final
+limited-range plane conversion. Across a complete dither tile, one code interval
+has 65 distinct means in steps of 1/64. Individual delivered samples remain
+8-bit. Alpha-zero handling and undithered alpha rounding remain covered.
+
+The final helper suite passes eight QtTest cases with no failures or skips.
+The end-to-end acceptance check deliberately remains failing: the even 64x48,
+no-export-resize identity scene differs at opaque shape edges by up to 25 RGB
+codes in PNG and 26 in decoded MP4 on lavapipe. Low-opacity full-frame deltas
+are at most one code. Cancellation and cleanup pass for both formats and both
+working precisions. A84.3 is therefore exercised but not fully accepted.
+
+Earlier odd-canvas identity video differed by 18 codes at edges. That comparison
+also changes the resize implementation, from legacy swscale to float Qt resize.
+The even-canvas PNG failure proves that resizing at the export seam and codec
+loss cannot account for the entire same-picture discrepancy. Do not widen the
+identity tolerance or enable FP16 by default on this evidence.
+
+The latest build also included concurrent, uncommitted changes to `clip.frag`
+that this task did not author or commit. The even-canvas PNG failure was already
+reproduced before that rebuild. Those renderer edits did not remove it.
+The unrelated working-precision test and package-lock edits were left untouched.
+Build and CI logs are `n2-a843-build.log` and `n2-a843-ci.log`. The CI command
+exits 8 because `export_precision` fails, not because a test was skipped.

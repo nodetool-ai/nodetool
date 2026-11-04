@@ -8,6 +8,9 @@ nt_qml_sources(src/export/ExportSettings.h src/export/ExportSettings.cpp
     src/export/ExportController.h src/export/ExportController.cpp
     src/export/FrameCapture.h src/export/FrameCapture.cpp src/export/FrameImage.h src/export/FrameImage.cpp)
 function(nt_export_tests)
+    add_test(NAME export_precision COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/src/export/check-precision.py
+        $<TARGET_FILE:nodetool-timeline>)
+    set_tests_properties(export_precision PROPERTIES LABELS render RUN_SERIAL TRUE)
     qt_add_executable(tst_deliveryframe src/export/tst_deliveryframe.cpp)
     target_include_directories(tst_deliveryframe PRIVATE src)
     target_link_libraries(tst_deliveryframe PRIVATE Qt6::Gui Qt6::Test PkgConfig::FFMPEG)

@@ -92,6 +92,29 @@ private slots:
         QVERIFY(vertical[1][3 * width / 2] < 128);
         QCOMPARE(vertical[0][4 * width], uint8_t(32)); // limited BT.709 blue luma
     }
+    void stagingQuantization() {
+        QImage image(8, 8, QImage::Format_RGBA32FPx4);
+        image.fill(QColor::fromRgbF(0.12345, 0.5, 1.0, 1.0));
+        const auto staged = rgba64(image);
+        QCOMPARE(staged.format(), QImage::Format_RGBA64);
+        const auto* source = reinterpret_cast<const float*>(image.constBits());
+        const auto* wide = reinterpret_cast<const uint16_t*>(staged.constBits());
+        for (int c = 0; c < 4; ++c) {
+            QVERIFY(std::abs(wide[c] / 65535.0 - source[c]) <= 1.0 / 65535);
+        }
+        std::array<uint16_t, 64> plane;
+        std::array<uint8_t, 64> bytes;
+        std::set<int> sums;
+        for (int fraction = 0; fraction <= 64; ++fraction) {
+            plane.fill(16 * 256 + fraction * 4);
+            quantizePlane(reinterpret_cast<const uint8_t*>(plane.data()), 16, bytes.data(), 8, 8, 8);
+            int sum = 0;
+            for (const auto value : bytes) { sum += value; }
+            QCOMPARE(sum, 16 * 64 + fraction);
+            sums.insert(sum);
+        }
+        QCOMPARE(sums.size(), size_t(65));
+    }
     void alphaAndPng() {
         QImage image(8,8,QImage::Format_RGBA32FPx4_Premultiplied);
         image.fill(Qt::transparent);
