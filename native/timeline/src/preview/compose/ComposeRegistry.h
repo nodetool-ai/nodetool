@@ -7,7 +7,7 @@ namespace nt {
 class BlendHandler {
 public:
     virtual ~BlendHandler() = default;
-    // Inputs are container-sized, premultiplied RGBA8. The backdrop is the
+    // Inputs are container-sized, premultiplied RGBA with explicit LayerFrame format. The backdrop is the
     // container before this item. The layer is alone at its placement, with
     // opacity applied. Respect each flipV. Write the complete container after
     // the item to output, in framebuffer orientation. Retire GPU resources
@@ -26,7 +26,7 @@ std::map<std::string, std::unique_ptr<BlendHandler>> registeredBlendHandlers();
 class MatteStage {
 public:
     virtual ~MatteStage() = default;
-    // Inputs and output are canvas-sized premultiplied RGBA8. The layer is
+    // Inputs and output are canvas-sized premultiplied RGBA with explicit LayerFrame format. The layer is
     // placed with opacity 1, the matte with its own opacity. Effects precede
     // placement. The result meets the stack with the layer's opacity/blend.
     // Respect flipV and retire resources through their last GPU use.

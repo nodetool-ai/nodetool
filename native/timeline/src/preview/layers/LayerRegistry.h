@@ -24,9 +24,10 @@ struct EffectContext {
     QRhiCommandBuffer* commands;
     long long frameNumber;
     RetireQueue* retire;
-    // Requested sources are premultiplied RGBA8 at their decoded size.
+    // Requested sources are premultiplied RGBA with explicit LayerFrame format at their decoded size.
     // Valid only during render(), keyed by the requesting provider.
     const std::map<std::string, LayerFrame>* sources = nullptr;
+    WorkingFormat workingFormat = WorkingFormat::Rgba8;
 };
 class LayerEffectStage {
 public:
@@ -36,7 +37,7 @@ public:
     // Input size includes any preceding stages' outsets.
     virtual QMargins outset(const QJsonObject&, QSize) const { return {}; }
     // Record a complete pass into output, reading input without modifying it.
-    // Handle the input format and flipV. Output is premultiplied RGBA8 with
+    // Handle the input format and flipV. Output is premultiplied RGBA with explicit LayerFrame format with
     // framebuffer orientation. Retain resources through their last GPU use.
     virtual bool render(const EffectContext&, const LayerFrame& input,
                         QRhiTextureRenderTarget& output, const QJsonObject& ext) = 0;

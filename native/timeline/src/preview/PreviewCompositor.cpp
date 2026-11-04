@@ -246,6 +246,9 @@ private:
     bool m_vbufUploaded = false;
 
     // Offscreen canvas at the sequence resolution.
+    nt::WorkingFormat m_workingFormat = nt::WorkingFormat::Rgba8;
+    QRhiTexture::Format workingTextureFormat() const { return m_workingFormat == nt::WorkingFormat::Rgba16F ? QRhiTexture::RGBA16F : QRhiTexture::RGBA8; }
+    nt::LayerFrame::Format workingFrameFormat() const { return m_workingFormat == nt::WorkingFormat::Rgba16F ? nt::LayerFrame::Format::Rgba16FPremultiplied : nt::LayerFrame::Format::Rgba8Premultiplied; }
     QSize m_canvasSize;
     std::unique_ptr<QRhiTexture> m_canvas;
     std::unique_ptr<QRhiTextureRenderTarget> m_canvasRt;
@@ -277,7 +280,7 @@ private:
     std::map<std::pair<std::string, std::string>, SourceEntry> m_sources;
     nt::SourcePool m_pool;
     // Budget: NT_SURFACE_BUDGET_MIB, else 512 MiB (D35).
-    nt::SurfacePool<Surface> m_surfaces{[this](QSize size) { return makeSurface(size); }, surfaceBudgetBytes()};
+    nt::SurfacePool<Surface> m_surfaces{[this](QSize size, nt::WorkingFormat) { return makeSurface(size); }, surfaceBudgetBytes()};
 
     // Snapshot from synchronize() (D8).
     std::shared_ptr<const nt::Timeline> m_timeline;
@@ -477,6 +480,7 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
     m_itemSize = item->size();
     item->m_lastCanvasSize = m_canvasSize;
     item->m_frameSettled = m_lastFrameSettled;
+    m_workingFormat = item->m_workingFormat;
     item->m_monitorPipelineCreated = bool(m_monitorPipeline);
     // Hand the frames rendered since the last sync to the GUI side.
     item->m_framesRendered = m_frame;
@@ -654,7 +658,7 @@ std::unique_ptr<QRhiGraphicsPipeline> PreviewCompositorRenderer::makePipeline(QR
 }
 
 void PreviewCompositorRenderer::ensureCanvas() {
-    if (m_canvas && m_canvasSize == m_wantedCanvas) {
+    if (m_canvas && m_canvasSize == m_wantedCanvas && m_canvas->format() == workingTextureFormat()) {
         return;
     }
     m_previousSrb.reset(); m_previousRt.reset(); m_previousCanvas.reset(); m_previousValid = false; m_blurFailed = false;
@@ -667,7 +671,7 @@ void PreviewCompositorRenderer::ensureCanvas() {
     m_canvasRp.reset();
     m_canvasSize = m_wantedCanvas;
     // UsedAsTransferSource: stills read the canvas back (QRhi requires the flag).
-    m_canvas.reset(m_rhi->newTexture(QRhiTexture::RGBA8, m_canvasSize, 1,
+    m_canvas.reset(m_rhi->newTexture(workingTextureFormat(), m_canvasSize, 1,
                                      QRhiTexture::RenderTarget | QRhiTexture::UsedAsTransferSource));
     if (!m_canvas->create()) qFatal("canvas texture create failed");
     m_canvasRt.reset(m_rhi->newTextureRenderTarget({m_canvas.get()}));
@@ -701,11 +705,11 @@ std::unique_ptr<PreviewCompositorRenderer::Surface> PreviewCompositorRenderer::m
     auto s = std::make_unique<Surface>();
     s->retire = &m_retire;
     s->frame = &m_frame;
-    s->texture.reset(m_rhi->newTexture(QRhiTexture::RGBA8, size, 1,
+    s->texture.reset(m_rhi->newTexture(workingTextureFormat(), size, 1,
                                      QRhiTexture::RenderTarget | QRhiTexture::UsedAsTransferSource));
     if (!s->texture->create()) return nullptr;
     s->rt.reset(m_rhi->newTextureRenderTarget({s->texture.get()}));
-    // The canvas's pass descriptor: same single RGBA8 attachment, so the
+    // The canvas's pass descriptor: same single working-format attachment, so the
     // layer pipeline draws into a surface as into the canvas.
     s->rt->setRenderPassDescriptor(m_canvasRp.get());
     if (!s->rt->create()) return nullptr;
@@ -779,7 +783,7 @@ bool PreviewCompositorRenderer::ensureBlur() {
         QRhiShaderResourceBinding::sampledTexture(3, QRhiShaderResourceBinding::FragmentStage, m_canvas.get(), m_sampler.get()),
     });
     if (!m_foldSrb->create()) return fail("cannot create motion blur fold bindings");
-    m_previousCanvas.reset(m_rhi->newTexture(QRhiTexture::RGBA8, m_canvasSize, 1, QRhiTexture::RenderTarget));
+    m_previousCanvas.reset(m_rhi->newTexture(workingTextureFormat(), m_canvasSize, 1, QRhiTexture::RenderTarget));
     if (!m_previousCanvas->create()) return fail("cannot create previous canvas texture");
     m_previousRt.reset(m_rhi->newTextureRenderTarget({m_previousCanvas.get()}));
     m_previousRt->setRenderPassDescriptor(m_canvasRp.get());
@@ -1004,13 +1008,13 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
                 return {};
             }
             const QSize outputSize{int(width), int(height)};
-            auto* output = m_surfaces.acquire(outputSize, m_frame);
+            auto* output = m_surfaces.acquire(outputSize, m_frame, m_workingFormat);
             if (!output) {
                 resourceFailed("cannot allocate an effect surface");
                 return {};
             }
             passes.push_back({stage.get(), input, output, ext, sources});
-            input.format = nt::LayerFrame::Format::Rgba8Premultiplied;
+            input.format = workingFrameFormat();
             input.planes = {output->texture.get(), nullptr, nullptr};
             input.flipV = m_rhi->isYUpInFramebuffer();
             input.size = outputSize;
@@ -1018,7 +1022,7 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
         }
         return input;
     };
-    const nt::EffectContext effectContext{m_rhi, cb, m_frame, &m_retire};
+    const nt::EffectContext effectContext{m_rhi, cb, m_frame, &m_retire, nullptr, m_workingFormat};
     const auto renderEffects = [&](const std::vector<EffectPass>& passes) {
         for (const auto& pass : passes) {
             auto context = effectContext;
@@ -1164,7 +1168,7 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
                 }
                 allExact = allExact && sourceFrame.exact;
                 if (sourceFrame.format != nt::LayerFrame::Format::Rgba8Premultiplied) {
-                    auto* converted = m_surfaces.acquire(sourceFrame.size, m_frame);
+                    auto* converted = m_surfaces.acquire(sourceFrame.size, m_frame, m_workingFormat);
                     auto& entry = m_sources[std::pair{id, std::string{}}];
                     if (!converted || !bindFrame(entry, sourceFrame, id)) {
                         if (!converted) { resourceFailed("cannot allocate a second-source conversion surface"); }
@@ -1181,7 +1185,7 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
                     u.sourceTexelSize[1] = 1.0f / sourceFrame.size.height();
                     updates->updateDynamicBuffer(entry.ubuf.get(), 0, sizeof(u), &u);
                     sourceConversions.push_back({converted, entry.srb.get()});
-                    sourceFrame.format = nt::LayerFrame::Format::Rgba8Premultiplied;
+                    sourceFrame.format = workingFrameFormat();
                     sourceFrame.planes = {converted->texture.get(), nullptr, nullptr};
                     sourceFrame.flipV = m_rhi->isYUpInFramebuffer();
                 }
@@ -1202,7 +1206,7 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
             for (const float value : sampleRect) { rect.append(value); }
             effectExt.insert("effectSourceRect", rect);
             const auto crop = nt::effects::cropPixels(effectExt, originalSize);
-            auto* cropped = m_surfaces.acquire(crop.size(), m_frame);
+            auto* cropped = m_surfaces.acquire(crop.size(), m_frame, m_workingFormat);
             if (!cropped) {
                 resourceFailed("cannot allocate a cropped effect input");
                 continue;
@@ -1234,7 +1238,7 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
                                        float(crop.width()) / originalSize.width(), float(crop.height()) / originalSize.height()};
             updates->updateDynamicBuffer(cropped->ubuf.get(), 0, sizeof(cropUniforms), &cropUniforms);
             sourceConversions.push_back({cropped, cropped->inputSrb.get()});
-            frame.format = nt::LayerFrame::Format::Rgba8Premultiplied;
+            frame.format = workingFrameFormat();
             frame.planes = {cropped->texture.get(), nullptr, nullptr};
             frame.flipV = m_rhi->isYUpInFramebuffer();
             frame.size = crop.size();
@@ -1304,9 +1308,9 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
         if (isMatteSource) {
             matteBindings[&layer] = e.srb.get();
         } else if (useMatte) {
-            auto* placedLayer = m_surfaces.acquire(m_canvasSize, m_frame);
-            auto* placedMatte = m_surfaces.acquire(m_canvasSize, m_frame);
-            auto* output = m_surfaces.acquire(m_canvasSize, m_frame);
+            auto* placedLayer = m_surfaces.acquire(m_canvasSize, m_frame, m_workingFormat);
+            auto* placedMatte = m_surfaces.acquire(m_canvasSize, m_frame, m_workingFormat);
+            auto* output = m_surfaces.acquire(m_canvasSize, m_frame, m_workingFormat);
             if (!placedLayer || !placedMatte || !output) {
                 resourceFailed("cannot allocate matte surfaces");
                 continue;
@@ -1338,7 +1342,7 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
     };
     for (const nt::PrecompositeLayer& pc : m_precomposites) {
         if (!hasItems(pc.clipId)) continue;  // nothing drawn: no target
-        Surface* surface = m_surfaces.acquire(m_canvasSize, m_frame);
+        Surface* surface = m_surfaces.acquire(m_canvasSize, m_frame, m_workingFormat);
         if (!surface) {
             // The group and everything in it are missing from this frame.
             resourceFailed("cannot allocate the surface of group " + pc.clipId);
@@ -1346,7 +1350,7 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
         }
         std::vector<EffectPass> effects;
         nt::LayerFrame input;
-        input.format = nt::LayerFrame::Format::Rgba8Premultiplied;
+        input.format = workingFrameFormat();
         input.planes[0] = surface->texture.get();
         input.size = m_canvasSize;
         input.flipV = m_rhi->isYUpInFramebuffer();
@@ -1411,7 +1415,7 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
     };
     const auto surfaceFrame = [&](Surface* surface) {
         nt::LayerFrame frame;
-        frame.format = nt::LayerFrame::Format::Rgba8Premultiplied;
+        frame.format = workingFrameFormat();
         frame.planes[0] = surface->texture.get();
         frame.size = m_canvasSize;
         frame.flipV = m_rhi->isYUpInFramebuffer();
@@ -1427,8 +1431,8 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
             if (d.adjustment) {
                 for (const auto& stage : m_backdropStages) {
                     if (!stage->applies(*d.ext)) { continue; }
-                    auto* backdrop = m_surfaces.acquire(m_canvasSize, m_frame);
-                    auto* output = m_surfaces.acquire(m_canvasSize, m_frame);
+                    auto* backdrop = m_surfaces.acquire(m_canvasSize, m_frame, m_workingFormat);
+                    auto* output = m_surfaces.acquire(m_canvasSize, m_frame, m_workingFormat);
                     if (!backdrop || !output) {
                         resourceFailed("cannot allocate backdrop stage surfaces");
                         continue;
@@ -1457,9 +1461,9 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
                 drawBindings(d.srb);
                 continue;
             }
-            auto* backdrop = m_surfaces.acquire(m_canvasSize, m_frame);
-            auto* layer = m_surfaces.acquire(m_canvasSize, m_frame);
-            auto* output = m_surfaces.acquire(m_canvasSize, m_frame);
+            auto* backdrop = m_surfaces.acquire(m_canvasSize, m_frame, m_workingFormat);
+            auto* layer = m_surfaces.acquire(m_canvasSize, m_frame, m_workingFormat);
+            auto* output = m_surfaces.acquire(m_canvasSize, m_frame, m_workingFormat);
             if (!backdrop || !layer || !output) {
                 resourceFailed("cannot allocate blend surfaces");
                 drawBindings(d.srb);

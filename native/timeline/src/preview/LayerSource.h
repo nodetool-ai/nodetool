@@ -11,6 +11,7 @@
 // textures with no upload (QRhiTexture::createFrom).
 
 #include <rhi/qrhi.h>
+#include "preview/WorkingFormat.h"
 
 #include <QSize>
 
@@ -26,9 +27,13 @@ struct LayerFrame {
     enum class Format {
         None,             // no frame yet (decoder still opening or seeking): skip the layer
         Rgba8Premultiplied,
+        Rgba16FPremultiplied,
         I420,             // Y, U, V as R8 textures
         Nv12,             // Y as R8, CbCr as RG8
     };
+    static Format rgbaFormat(QRhiTexture* texture) {
+        return texture->format() == QRhiTexture::RGBA16F ? Format::Rgba16FPremultiplied : Format::Rgba8Premultiplied;
+    }
     Format format = Format::None;
     std::array<QRhiTexture*, 3> planes{};  // plane 0 only for RGBA
     QSize size;

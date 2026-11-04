@@ -29,7 +29,7 @@ struct Resources {
 };
 LayerFrame frameFor(QRhiTexture *texture, bool flip) {
     LayerFrame frame;
-    frame.format = LayerFrame::Format::Rgba8Premultiplied;
+    frame.format = LayerFrame::rgbaFormat(texture);
     frame.size = texture->pixelSize();
     frame.planes[0] = texture;
     frame.flipV = flip;
@@ -54,7 +54,7 @@ class Encoder {
     }
     QRhiTextureRenderTarget *surface(QSize size, QRhiTexture *source = nullptr, QRhiTexture *other = nullptr,
                                      QRhiTexture *saved = nullptr) {
-        auto surface = m_scratch->acquire(m_lease, m_ctx.rhi, size, m_ctx.frameNumber, source, other, saved);
+        auto surface = m_scratch->acquire(m_lease, m_ctx.rhi, size, m_ctx.frameNumber, source, other, saved, m_ctx.workingFormat);
         if (!surface) return nullptr;
         auto* result = surface->target.get();
         m_resources->surfaces.push_back(std::move(surface));

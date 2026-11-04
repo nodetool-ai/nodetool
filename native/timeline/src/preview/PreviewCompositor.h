@@ -1,4 +1,5 @@
 #pragma once
+#include "preview/WorkingFormat.h"
 
 #include <QImage>
 #include <QRectF>
@@ -103,6 +104,7 @@ class PreviewCompositor : public QQuickRhiItem {
 
 public:
     explicit PreviewCompositor(QQuickItem* parent = nullptr);
+    void setWorkingFormat(nt::WorkingFormat format) { m_workingFormat = format; update(); }
 
     TimelineModel* timeline() const { return m_timeline; }
     void setTimeline(TimelineModel* timeline);
@@ -181,6 +183,7 @@ private:
     friend class PreviewCompositorRenderer;
     friend class MonitorCompositorTest;
 
+    nt::WorkingFormat m_workingFormat = nt::WorkingFormat::Rgba8;
     QRectF m_canvasRegion{0, 0, 1, 1};
     int m_playbackResolution = 1;
     int m_pausedResolution = 1;
