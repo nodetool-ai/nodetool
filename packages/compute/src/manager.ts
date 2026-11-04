@@ -12,6 +12,8 @@
 // fallback. Every model accessor, the secret getter, and the provider factory
 // are injectable so the lifecycle can be unit-tested with fakes.
 
+import { COMFY_PRESETS } from "./comfy-presets.js";
+import { comfyEndpointFromWsUrl } from "./comfy-server.js";
 import { randomBytes } from "node:crypto";
 
 import { createLogger } from "@nodetool-ai/config";
@@ -208,17 +210,32 @@ export class WorkerManager {
    * when the profile's policy requires it, call the provider, and persist the
    * resulting instance transitioning `provisioning → running`.
    */
-  async provision(profileName: string): Promise<WorkerInstance> {
+  async provision(
+    profileName: string,
+    options: { gpu?: string } = {}
+  ): Promise<WorkerInstance> {
     const profile = await this.deps.getWorkerProfile(profileName);
     if (!profile) {
       throw new Error(`Worker profile not found: ${profileName}`);
     }
 
     const target = profile.target as WorkerTarget;
+    const comfyPort = comfyPortOf(profile);
+    if (comfyPort !== undefined && target !== "runpod") {
+      throw new Error(
+        `Target '${target}' does not support an unmodified ComfyUI image. Use runpod.`
+      );
+    }
     const provider = await this.resolveProvider(target);
+    // An unmodified ComfyUI image has nothing that reads a worker token.
     const token =
-      profile.token_policy === "generate" ? generateToken() : undefined;
+      comfyPort === undefined && profile.token_policy === "generate"
+        ? generateToken()
+        : undefined;
     const spec = specFromProfile(profile, target, token);
+    if (options.gpu !== undefined) {
+      spec.gpu = options.gpu;
+    }
 
     const result = await provider.provision(spec);
 
@@ -260,6 +277,52 @@ export class WorkerManager {
   }
 
   /**
+   * Rent a pod for a one-click ComfyUI preset. The preset owns its profile, and
+   * the next GPU is tried only when RunPod reports no capacity.
+   */
+  async startComfyPreset(presetId: string): Promise<WorkerInstance> {
+    const preset = COMFY_PRESETS.find((candidate) => candidate.id === presetId);
+    if (!preset) {
+      throw new Error(`Unknown ComfyUI preset: ${presetId}`);
+    }
+    const existing = await this.deps.getWorkerProfile(preset.profileName);
+    if (existing?.spec?.templateId !== preset.templateId) {
+      if (existing) {
+        await this.deps.deleteWorkerProfile(preset.profileName);
+      }
+      await this.deps.createWorkerProfile({
+        name: preset.profileName,
+        target: "runpod",
+        image: `runpod-template:${preset.templateId}`,
+        spec: { comfyPort: 8188, templateId: preset.templateId },
+        token_policy: "generate",
+        max_lifetime_minutes: preset.maxLifetimeMinutes,
+      });
+    }
+    for (const gpu of preset.gpus) {
+      try {
+        return await this.provision(preset.profileName, { gpu });
+      } catch (error) {
+        if (!(error instanceof Error) || !/no instances/i.test(error.message)) {
+          throw error;
+        }
+      }
+    }
+    throw new Error(
+      `RunPod has no capacity for ${preset.label} now. Try again later.`
+    );
+  }
+
+  /** The HTTP endpoint of a ComfyUI worker, or null for a NodeTool worker. */
+  async comfyEndpoint(instanceId: string): Promise<string | null> {
+    const instance = await this.requireInstance(instanceId);
+    const profile = await this.deps.getWorkerProfile(instance.profile_name);
+    return comfyPortOf(profile) === undefined
+      ? null
+      : comfyEndpointFromWsUrl(instance.ws_url);
+  }
+
+  /**
    * Pause a worker: release its GPU compute but keep its volume (and cached
    * models). Marks the instance `stopped` — resumable via `resume`. The volume
    * still bills a little while paused; `terminate` to stop all cost.
@@ -285,7 +348,13 @@ export class WorkerManager {
     const provider = await this.resolveProvider(
       instance.target as WorkerTarget
     );
-    const result = await provider.resume(instance.provider_ref);
+    const comfyPort = comfyPortOf(
+      await this.deps.getWorkerProfile(instance.profile_name)
+    );
+    const result =
+      comfyPort === undefined
+        ? await provider.resume(instance.provider_ref)
+        : await provider.resume(instance.provider_ref, { comfyPort });
     return this.deps.updateWorkerInstance(instance.id, {
       status: "running",
       // A resume can hand back a DIFFERENT provider handle: Verda releases the
@@ -424,6 +493,13 @@ export class WorkerManager {
    */
   async attach(instanceId: string): Promise<WorkerConnection> {
     const instance = await this.requireInstance(instanceId);
+    const profile = await this.deps.getWorkerProfile(instance.profile_name);
+    if (comfyPortOf(profile) !== undefined) {
+      throw new Error(
+        `Worker instance '${instance.id}' runs a ComfyUI server with no worker ` +
+          "bridge, so it cannot attach. Use its endpoint in lib.comfy.RunWorkflow."
+      );
+    }
     await this.deps.setSetting(ACTIVE_WORKER_KEY, instance.id);
     // Attaching is itself activity: reset the idle clock alongside the status.
     // A worker whose provision + attach outran its idle window still carries a
@@ -576,6 +652,12 @@ export class WorkerManager {
   }
 }
 
+/** The published ComfyUI port of a profile, when it runs an unmodified image. */
+function comfyPortOf(profile: WorkerProfile | null): number | undefined {
+  const port = profile?.spec?.comfyPort;
+  return typeof port === "number" ? port : undefined;
+}
+
 /** Build a provision spec from a profile's declarative fields. */
 function specFromProfile(
   profile: WorkerProfile,
@@ -595,6 +677,9 @@ function specFromProfile(
     env: isStringRecord(spec.env) ? spec.env : undefined,
     sshPublicKey:
       typeof spec.sshPublicKey === "string" ? spec.sshPublicKey : undefined,
+    comfyPort: comfyPortOf(profile),
+    templateId:
+      typeof spec.templateId === "string" ? spec.templateId : undefined,
     token,
   };
 }
