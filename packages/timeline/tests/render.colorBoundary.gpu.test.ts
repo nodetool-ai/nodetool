@@ -1,10 +1,16 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import sharp from "sharp";
 import { createCanvas } from "@napi-rs/canvas";
 import { expect, it } from "vitest";
 import { getNodeGPUDevice } from "@nodetool-ai/gpu/node";
 import { openRgbaFrameReader, openVideoFrameEncoder } from "@nodetool-ai/runtime/media";
+// Exercise the server boundary itself rather than copying its format table.
+import { decodeStillRgba, encoderSpecFromArgs } from "../../video-nodes/src/nodes/timeline/rawFrames.js";
+import { resolveTimelineOutput } from "../../video-nodes/src/nodes/timeline/outputFormats.js";
 import { HeadlessFrameCompositor } from "../src/render/frameCompositor.js";
 
 const width = 256;
@@ -108,3 +114,223 @@ for (const png of [true, false]) {
     }
   }, 60_000);
 }
+
+
+function ramp(alpha: boolean): Uint8Array {
+  const pixels = new Uint8Array(width * height * 4);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      // Flat chroma within each row keeps 4:2:0 loss separate from transfer.
+      const a = alpha ? [0, 1, 2, 8, 16, 32, 128, 255][Math.floor(y / 2)]! : 255;
+      pixels.set([x, x, x, a], (y * width + x) * 4);
+    }
+  }
+  return pixels;
+}
+
+function maximumError(actual: Uint8Array, expected: Uint8Array): number {
+  expect(actual.length).toBe(expected.length);
+  let maximum = 0;
+  for (let i = 0; i < actual.length; i++) {
+    maximum = Math.max(maximum, Math.abs(actual[i]! - expected[i]!));
+  }
+  return maximum;
+}
+
+function expectedRender(decoded: Uint8Array): Uint8Array {
+  const expected = new Uint8Array(decoded);
+  for (let i = 0; i < expected.length; i += 4) {
+    const a = decoded[i + 3]!;
+    for (let c = 0; c < 3; c++) {
+      expected[i + c] = a === 0 ? 0 : Math.round(Math.round(decoded[i + c]! * a / 255) * 255 / a);
+    }
+  }
+  return expected;
+}
+
+async function renderDecoded(decoded: Uint8Array, alpha: boolean): Promise<Uint8Array> {
+  const renderer = new HeadlessFrameCompositor(await getNodeGPUDevice(), width, height);
+  try {
+    const rendered = await renderer.renderFrame([{
+      id: "route", source: { rgba: decoded, width, height },
+      opacity: 1, blendMode: "normal", zIndex: 0
+    }], [], { alpha });
+    const expected = expectedRender(decoded);
+    const error = maximumError(rendered, expected);
+    const worst = rendered.findIndex((value, i) => Math.abs(value - expected[i]!) === error);
+    const pixel = worst - worst % 4;
+    console.info("render boundary", { error, pixel: pixel / 4,
+      decoded: Array.from(decoded.slice(pixel, pixel + 4)),
+      rendered: Array.from(rendered.slice(pixel, pixel + 4)),
+      expected: Array.from(expected.slice(pixel, pixel + 4)) });
+    expect(error, "render error after byte alpha quantization").toBeLessThanOrEqual(1);
+    return rendered;
+  } finally {
+    renderer.dispose();
+  }
+}
+
+for (const format of ["png", "jpeg", "webp"] as const) {
+  for (const profile of [undefined, "srgb", "p3"] as const) {
+    it(`imports ${format} ${profile ?? "untagged"} decoder samples without a second transfer`, async () => {
+      const directory = await mkdtemp(join(tmpdir(), "timeline-still-boundary-"));
+      try {
+        const source = ramp(format !== "jpeg");
+        for (let i = 0; i < source.length; i += 4) {
+          source[i + 1] = 255 - source[i]!;
+          source[i + 2] = Math.floor(source[i]! / 2);
+        }
+        let image = sharp(source, { raw: { width, height, channels: 4 } });
+        if (profile) image = image.withIccProfile(profile);
+        const bytes = await image.toFormat(format).toBuffer();
+        const metadata = await sharp(bytes).metadata();
+        expect(Boolean(metadata.icc)).toBe(profile !== undefined);
+        const path = join(directory, `input.${format}`);
+        await writeFile(path, bytes);
+        const decoded = await decode(path);
+        const imported = await decodeStillRgba(path, { width, height });
+        expect(imported).not.toBeNull();
+        expect(imported!.rgba).toEqual(decoded);
+        console.info("still input codec/profile loss", { format, profile, error: maximumError(decoded, source) });
+        // Profile normalization is deliberately not inferred from byte identity.
+        const rendered = await renderDecoded(decoded, format !== "jpeg");
+        const output = join(directory, "output.png");
+        await encode(output, rendered, true);
+        const delivered = await decode(output);
+        for (let i = 0; i < delivered.length; i++) {
+          const a = rendered[Math.floor(i / 4) * 4 + 3]!;
+          const allowance = i % 4 === 3 || a === 255 || a === 0 ? 0 : Math.ceil(127.5 / a);
+          expect(Math.abs(delivered[i]! - rendered[i]!), "PNG delivery error").toBeLessThanOrEqual(allowance);
+        }
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
+    }, 60_000);
+  }
+}
+
+async function encodeRoute(path: string, pixels: Uint8Array, format: string, alpha: boolean): Promise<void> {
+  const output = resolveTimelineOutput({ format, alpha });
+  const encoder = await openVideoFrameEncoder({
+    outPath: path, width, height, fps: 24, input: "rgba",
+    spec: encoderSpecFromArgs(output.encoderArgs)
+  });
+  try {
+    await encoder.write(pixels);
+    await encoder.finish();
+  } catch (error) {
+    await encoder.abort();
+    throw error;
+  }
+}
+
+for (const format of ["mp4", "webm", "mov"]) {
+  for (const alpha of format === "mp4" ? [false] : [false, true]) {
+    it(`preserves ${format} alpha=${alpha} decoded samples through the server codec boundary`, async () => {
+      const directory = await mkdtemp(join(tmpdir(), "timeline-video-boundary-"));
+      try {
+        const source = ramp(alpha);
+        const input = join(directory, `input.${format}`);
+        await encodeRoute(input, source, format, alpha);
+        const decoded = await decode(input);
+        // Alpha must survive decoding, not just appear in the requested pixel format.
+        const alphaError = Math.max(...Array.from({ length: width * height }, (_, p) =>
+          Math.abs(decoded[p * 4 + 3]! - source[p * 4 + 3]!)));
+        if (alpha) {
+          const { stdout } = await promisify(execFile)("ffprobe", [
+            "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=codec_name,pix_fmt:stream_tags=alpha_mode", "-of", "json", input
+          ]);
+          console.info("alpha decode", { format, alphaError, metadata: stdout.trim() });
+        }
+        expect(alphaError, "input codec alpha error").toBeLessThanOrEqual(1);
+        const rgbError = Math.max(...Array.from({ length: width * height }, (_, p) =>
+          Math.abs(decoded[p * 4]! - source[p * 4]!)));
+        expect(rgbError, "input codec ramp error").toBeLessThanOrEqual(5);
+        const rendered = await renderDecoded(decoded, alpha);
+        const actualPath = join(directory, `actual.${format}`);
+        const referencePath = join(directory, `reference.${format}`);
+        await encodeRoute(actualPath, rendered, format, alpha);
+        await encodeRoute(referencePath, expectedRender(decoded), format, alpha);
+        expect(maximumError(await decode(actualPath), await decode(referencePath))).toBeLessThanOrEqual(1);
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
+    }, 60_000);
+  }
+}
+
+function srgbToBt709(code: number): number {
+  const encoded = code / 255;
+  const linear = encoded <= 0.04045 ? encoded / 12.92 : ((encoded + 0.055) / 1.055) ** 2.4;
+  return Math.round(255 * (linear < 0.018 ? 4.5 * linear : 1.099 * linear ** 0.45 - 0.099));
+}
+
+for (const format of ["mp4", "webm", "mov"]) {
+  it(`honors declared BT.709 transfer for sRGB PNG to ${format} delivery`, async () => {
+    const directory = await mkdtemp(join(tmpdir(), "timeline-transfer-declaration-"));
+    try {
+      const input = join(directory, "srgb.png");
+      await sharp(ramp(false), { raw: { width, height, channels: 4 } })
+        .withIccProfile("srgb").png().toFile(input);
+      const decoded = await decode(input);
+      const rendered = await renderDecoded(decoded, false);
+      const actualPath = join(directory, `actual.${format}`);
+      const referencePath = join(directory, `reference.${format}`);
+      await encodeRoute(actualPath, rendered, format, false);
+      const expected = new Uint8Array(decoded);
+      for (let i = 0; i < expected.length; i++) {
+        if (i % 4 !== 3) expected[i] = srgbToBt709(decoded[i]!);
+      }
+      // Identical codec settings on the oracle branch isolate the transfer error.
+      await encodeRoute(referencePath, expected, format, false);
+      const actual = await decode(actualPath);
+      const reference = await decode(referencePath);
+      const { stdout } = await promisify(execFile)("ffprobe", [
+        "-v", "error", "-select_streams", "v:0", "-show_entries",
+        "stream=codec_name,pix_fmt,color_range,color_space,color_transfer,color_primaries", "-of", "json", actualPath
+      ]);
+      const probe: { streams: Array<{ color_transfer?: string; color_space?: string; color_primaries?: string; color_range?: string }> } = JSON.parse(stdout);
+      console.info("delivery metadata", stdout.trim(), { codecLoss: maximumError(reference, expected), transferError: maximumError(actual, reference) });
+      expect(probe.streams[0], stdout).toMatchObject({
+        color_transfer: "bt709", color_space: "bt709", color_primaries: "bt709", color_range: "tv"
+      });
+      expect(maximumError(reference, expected), "reference codec loss").toBeLessThanOrEqual(5);
+      expect(maximumError(actual, reference), "declared BT.709 transfer error, excluding codec loss").toBeLessThanOrEqual(5);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  }, 60_000);
+}
+
+
+it("normalizes Display P3 PNG input to the sRGB delivery interpretation", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "timeline-profile-boundary-"));
+  try {
+    const source = ramp(false);
+    for (let i = 0; i < source.length; i += 4) {
+      source[i + 1] = 128;
+      source[i + 2] = 64;
+    }
+    const bytes = await sharp(source, { raw: { width, height, channels: 4 } })
+      .withIccProfile("p3").png().toBuffer();
+    const path = join(directory, "p3.png");
+    await writeFile(path, bytes);
+    const decoded = await decodeStillRgba(path, { width, height });
+    expect(decoded).not.toBeNull();
+    // LittleCMS-backed decode is an independent profile-aware sRGB reference.
+    const srgb = await sharp(bytes).toColourspace("srgb").ensureAlpha().raw().toBuffer();
+    const error = maximumError(decoded!.rgba, srgb);
+    console.info("P3 to sRGB decoder error", error);
+    expect(error, "profile normalization before sRGB delivery").toBeLessThanOrEqual(2);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}, 60_000);
+
+
+it("refuses unsupported MP4 alpha and JPEG/WebP timeline delivery", () => {
+  expect(() => resolveTimelineOutput({ format: "mp4", alpha: true })).toThrow("no alpha channel");
+  for (const format of ["jpeg", "webp"]) {
+    expect(() => resolveTimelineOutput({ format })).toThrow("Unknown render format");
+  }
+});
