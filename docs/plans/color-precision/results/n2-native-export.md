@@ -9,10 +9,10 @@ CTest ordering changed. Nothing was pushed.
 | Task | Status |
 |---|---|
 | A84.1 | Complete on Vulkan/lavapipe. Typed, owned, undithered working capture and format-preserving offscreen capture. |
-| A84.2 | Partial. Tested float alpha, resize and PNG conversion helpers exist. ExportEngine is not connected. Float YUV conversion matching the existing chroma filter remains. |
+| A84.2 | Connected and tested. Acceptance remains blocked by identity edges and the missing full spatial float-resize oracle. |
 | A32 | Not implemented. The outer target remains RGBA8 and capture bypasses it, but final presentation dithering and OpenGL qualification remain. |
-| A84.3 | Not complete. Existing capture/cancellation tests pass. FP16 PNG/ZIP delivery and alpha-zero conversion acceptance remain. |
-| A41.3 | Not complete. Legacy output tags were inspected, but FP16 delivery is not connected. |
+| A84.3 | Quantization, PNG/ZIP, opaque alpha and cancellation checks pass. Same-picture edge acceptance fails. |
+| A41.3 | Actual FP16 output format, tags and codec error measured. Full picture qualification remains blocked by the edge failure. |
 | A43.3 | Partial evidence only. Capture equals the compositor's raw working pixels with display options and reduced preview resolution. Full preview/offscreen parity fixtures remain. |
 | A45.2 | Partial evidence only. Full-resolution FP16 capture survives Full/Half/Quarter/Eighth preferences. Allocation and geometry qualification remain. |
 | A109 | Not implemented. Color Match still models byte intermediate rounding. |
@@ -258,3 +258,67 @@ reproduced before that rebuild. Those renderer edits did not remove it.
 The unrelated working-precision test and package-lock edits were left untouched.
 Build and CI logs are `n2-a843-build.log` and `n2-a843-ci.log`. The CI command
 exits 8 because `export_precision` fails, not because a test was skipped.
+
+
+## A41.3 decoded output and codec separation
+
+The test-only `NT_TEST_EXPORT_YUV` observer saves the actual packed YUV420P
+frame immediately before encoding. The acceptance driver decodes the MP4 to
+YUV420P and compares every sample with that observation. This measures codec
+loss without conflating RGB conversion, chroma subsampling or renderer error.
+It separately decodes to RGBA for the expected-scene comparison.
+
+On Vulkan/lavapipe, the final 8x8 interior-patch comparison reports these mean
+absolute RGB errors in byte codes. The smaller patch excludes antialiased shape
+boundaries in the downscaled case.
+
+| Native-size inverse Levels | RGBA8 working | FP16 working |
+|---|---:|---:|
+| PNG, lossless delivery | 4.333333 | 0.171875 |
+| Decoded MP4 | 3.000000 | 0.921875 |
+
+FP16 improves the interior metric for all five geometries in both formats.
+This does not turn the full-frame edge failure into a pass. The earlier 16x16
+native-size patch measured MP4 errors 3.166667 and 0.923177. The real-GPU helper
+run measured 4.166667 and 0.923177 on that larger patch, and the same PNG errors.
+Do not compare differently sized patches as a performance or precision trend.
+
+Across the final test's actual video files, codec error is at most two YUV
+codes, with worst whole-frame mean absolute error 0.072483. For native-size
+inverse Levels it is at most one code, with means 0.035373 for RGBA8 and
+0.028429 for FP16. These values are much smaller than the identity-edge failure.
+
+Every inspected MP4 is `yuv420p`, limited range `tv`, with BT.709 matrix,
+transfer and primaries tags. PNG is ordinary 8-bit RGB/RGBA with opaque alpha.
+These tags retain existing behavior. They do not resolve the previously noted
+BT.709-tag versus sRGB-assumption mismatch. No higher-depth delivery is claimed.
+
+A single preliminary FP16 measurement exported one 65x49 scene frame to 64x48
+MP4 at **1.841 frames/second including process startup**, on lavapipe. It is
+recorded in `n2-delivery-proof2/metrics.json`. No cost sweep or repeated
+throughput measurement was made, and this tiny export is not a release-speed
+claim. The final test driver does not collect timing.
+
+### Final verification and stopping point
+
+`ntbuild color-n0 nodetool-timeline tst_deliveryframe` exits 0.
+`citest color-n0 '^(tst_deliveryframe|export_precision)$' -V` and the same regex
+through `nttest`, with isolated `XDG_CONFIG_HOME`, both exit 8 solely on the
+identity-edge assertion. The helper suite passes all eight cases on both.
+Lavapipe's PNG/MP4 maximum deltas are 25/26 codes. The real-GPU helper run's
+are 26/25. Neither run skips a test. The final A41.3 rerun also exits 8 on the
+same two identity assertions. Its codec, tag, opacity, cancellation, precision
+and dimension assertions all pass. Logs: `n2-a843-ci.log`, `n2-a843-gpu.log`
+and `n2-a413-ci.log`.
+
+The latest binary's six FP16-off decoded exports still match
+`n2-a842-before/` byte for byte, including the concurrent shader edit present
+in that build. Artifacts: `n2-connected-final/` and
+`n2-connected-final-baseline.log`.
+
+The N2 exit gate is **not met**. The sound stopping point is a default-off
+FP16 export connection, explicit quantization tests, and a reproducible failing
+same-picture gate. Resolve the opaque shape-edge discrepancy before enabling
+FP16. Full-frame explicit-size comparison against an independent float-resize
+oracle is also unverified. OpenGL, Metal, D3D11/WARP, longer streaming/resource
+runs and release throughput remain unqualified. Nothing was pushed.

@@ -62,14 +62,31 @@ def export(name, fp16, fmt, effects, size=(), opacity=1, cancel=False):
                               '-show_streams', '-of', 'json', str(source)]))['streams'][0]
     (folder / 'tags.json').write_text(json.dumps(tags, indent=2))
     width, height = tags['width'], tags['height']
+    if fmt == 'mp4':
+        assert tags['pix_fmt'] == 'yuv420p'
+        assert tags['color_range'] == 'tv'
+        for field in ('color_space', 'color_transfer', 'color_primaries'):
+            assert tags[field] == 'bt709'
+    else:
+        assert tags['pix_fmt'] in ('rgba', 'rgb24')
+    if fmt == 'mp4':
+        decoded_yuv = command(['ffmpeg', '-v', 'error', '-i', str(source), '-frames:v', '1',
+                               '-pix_fmt', 'yuv420p', '-f', 'rawvideo', '-'])
+        unencoded = (folder / 'unencoded.yuv').read_bytes()
+        assert len(unencoded) == len(decoded_yuv) == width * height * 3 // 2
+        errors = [abs(a-b) for a, b in zip(decoded_yuv, unencoded)]
+        codec = {'max_code_error': max(errors), 'mean_absolute_code_error': sum(errors) / len(errors)}
+        assert codec['max_code_error'] <= 8 and codec['mean_absolute_code_error'] <= 1, codec
+        (folder / 'codec-error.json').write_text(json.dumps(codec))
+        metrics[name + '-codec'] = codec
     pixels = command(['ffmpeg', '-v', 'error', '-i', str(source), '-frames:v', '1',
                       '-pix_fmt', 'rgba', '-f', 'rawvideo', '-'])
     (folder / 'decoded.rgba').write_bytes(pixels)
     assert len(pixels) == width * height * 4
     assert all(a == 255 for a in pixels[3::4])
     center = [pixels[(y * width + x) * 4 + c]
-              for y in range(height // 2 - 8, height // 2 + 8)
-              for x in range(width // 2 - 8, width // 2 + 8) for c in range(3)]
+              for y in range(height // 2 - 4, height // 2 + 4)
+              for x in range(width // 2 - 4, width // 2 + 4) for c in range(3)]
     return center, (width, height)
 
 
