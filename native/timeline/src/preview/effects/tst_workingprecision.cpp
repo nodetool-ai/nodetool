@@ -7,13 +7,46 @@
 #include <QJsonDocument>
 #include <set>
 #include <cmath>
+#include <QtGui/qtguiglobal.h>
+#if !defined(Q_OS_WIN) && !defined(Q_OS_MACOS)
 #include <QVulkanInstance>
+#endif
 #include <QtTest>
 #include <qfloat16.h>
 #include <rhi/qrhi_platform.h>
 #include <cstring>
 
 namespace nt::effects {
+namespace {
+// The renderer's backend on each platform, so the numbers qualify Metal and D3D too.
+struct PlatformRhi {
+#if defined(Q_OS_WIN)
+    bool create() {
+        QRhiD3D11InitParams init;
+        rhi.reset(QRhi::create(QRhi::D3D11, &init));
+        return rhi != nullptr;
+    }
+#elif defined(Q_OS_MACOS)
+    bool create() {
+        QRhiMetalInitParams init;
+        rhi.reset(QRhi::create(QRhi::Metal, &init));
+        return rhi != nullptr;
+    }
+#else
+    QVulkanInstance instance;
+    bool create() {
+        instance.setApiVersion(QVersionNumber(1, 1));
+        instance.setExtensions(QRhiVulkanInitParams::preferredInstanceExtensions());
+        if (!instance.create()) { return false; }
+        QRhiVulkanInitParams init;
+        init.inst = &instance;
+        rhi.reset(QRhi::create(QRhi::Vulkan, &init));
+        return rhi != nullptr;
+    }
+#endif
+    std::unique_ptr<QRhi> rhi;
+};
+}
 class TestWorkingPrecision : public QObject {
     Q_OBJECT
 private slots:
@@ -96,13 +129,9 @@ private slots:
         for (qsizetype x = 0; x < inputs.size(); ++x) {
             for (int c = 0; c < 3; ++c) { pixels[x * 4 + c] = char(inputs[x].toInt()); }
         }
-        QVulkanInstance instance;
-        instance.setApiVersion(QVersionNumber(1, 1));
-        instance.setExtensions(QRhiVulkanInitParams::preferredInstanceExtensions());
-        QVERIFY(instance.create());
-        QRhiVulkanInitParams init; init.inst = &instance;
-        auto rhi = std::unique_ptr<QRhi>(QRhi::create(QRhi::Vulkan, &init));
-        QVERIFY(rhi);
+        PlatformRhi platform;
+        QVERIFY(platform.create());
+        auto& rhi = platform.rhi;
         for (const auto format : {WorkingFormat::Rgba8, WorkingFormat::Rgba16F}) {
             RetireQueue retire;
             ClipEffectStage stage;
@@ -177,13 +206,9 @@ private slots:
         }
     }
     void inverseLevelsAndAlpha() {
-        QVulkanInstance instance;
-        instance.setApiVersion(QVersionNumber(1, 1));
-        instance.setExtensions(QRhiVulkanInitParams::preferredInstanceExtensions());
-        QVERIFY(instance.create());
-        QRhiVulkanInitParams init; init.inst = &instance;
-        auto rhi = std::unique_ptr<QRhi>(QRhi::create(QRhi::Vulkan, &init));
-        QVERIFY(rhi);
+        PlatformRhi platform;
+        QVERIFY(platform.create());
+        auto& rhi = platform.rhi;
         qInfo() << rhi->driverInfo().deviceName;
         // Complementary low-alpha compression vectors. Shared gamma vectors run separately.
         const std::array<float, 4> alphas{1.f, 0.5f, 0.001f, 0.f};
