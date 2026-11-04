@@ -31,13 +31,13 @@ export interface ProviderCatalog {
 export const providerCatalog: Record<string, ProviderCatalog> = {
   "fal_ai": {
     "id": "fal_ai",
-    "total": 1624,
+    "total": 1703,
     "counts": {
-      "3d": 65,
-      "image": 753,
-      "audio": 136,
+      "3d": 68,
+      "image": 784,
+      "audio": 143,
       "text": 18,
-      "video": 652
+      "video": 690
     },
     "topTags": [
       "generation",
@@ -47,8 +47,8 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
       "img2img",
       "transformation",
       "video to video",
-      "text to image",
       "image to video",
+      "text to image",
       "vid2vid",
       "txt2img",
       "img2vid"
@@ -70,6 +70,50 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Qwen Image3 Text To Image",
         "kind": "image",
         "desc": "Qwen Image 3 generates images from text with strong multilingual text rendering.",
+        "tags": [
+          "generation",
+          "text to image",
+          "txt2img"
+        ]
+      },
+      {
+        "id": "blackforestlabs/flux-3/edit-image",
+        "name": "Flux3 Edit Image",
+        "kind": "image",
+        "desc": "FLUX 3 edits an image from a natural-language instruction.",
+        "tags": [
+          "editing",
+          "image to image",
+          "img2img"
+        ]
+      },
+      {
+        "id": "blackforestlabs/flux-3/klein/edit-image",
+        "name": "Flux3 Klein Edit Image",
+        "kind": "image",
+        "desc": "FLUX 3 [klein] edits an image from a natural-language instruction with the small, fast FLUX 3 model.",
+        "tags": [
+          "editing",
+          "image to image",
+          "img2img"
+        ]
+      },
+      {
+        "id": "blackforestlabs/flux-3/klein/text-to-image",
+        "name": "Flux3 Klein Text To Image",
+        "kind": "image",
+        "desc": "FLUX 3 [klein] is the small, fast FLUX 3 model for generating images from text.",
+        "tags": [
+          "generation",
+          "text to image",
+          "txt2img"
+        ]
+      },
+      {
+        "id": "blackforestlabs/flux-3/text-to-image",
+        "name": "Flux3 Text To Image",
+        "kind": "image",
+        "desc": "FLUX 3 generates images from a text prompt.",
         "tags": [
           "generation",
           "text to image",
@@ -110,6 +154,28 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
+        "id": "bria/fibo-2/edit",
+        "name": "Bria Fibo2 Edit",
+        "kind": "image",
+        "desc": "Bria FIBO 2 edits images from a text instruction.",
+        "tags": [
+          "editing",
+          "image to image",
+          "img2img"
+        ]
+      },
+      {
+        "id": "bria/fibo-2/generate",
+        "name": "Bria Fibo2 Generate",
+        "kind": "image",
+        "desc": "Bria FIBO 2 generates images from text with structured, controllable prompts, trained on licensed data.",
+        "tags": [
+          "generation",
+          "text to image",
+          "txt2img"
+        ]
+      },
+      {
         "id": "bria/fibo-bbq-preview/generate",
         "name": "Fibo Bbq Preview Generate",
         "kind": "image",
@@ -129,6 +195,17 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
           "image to image",
           "img2img",
           "image"
+        ]
+      },
+      {
+        "id": "bria/fibo-edit-1.5/expand",
+        "name": "Bria Fibo Edit15 Expand",
+        "kind": "image",
+        "desc": "Bria FIBO Edit 1.5 expands an image beyond its borders (outpainting).",
+        "tags": [
+          "editing",
+          "image to image",
+          "img2img"
         ]
       },
       {
@@ -363,6 +440,17 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
+        "id": "bria/guided-remove-background",
+        "name": "Bria Guided Remove Background",
+        "kind": "image",
+        "desc": "Bria guided background removal cuts out the subject an instruction or hint points to.",
+        "tags": [
+          "editing",
+          "image to image",
+          "img2img"
+        ]
+      },
+      {
         "id": "bria/increase-resolution",
         "name": "Increase Resolution",
         "kind": "image",
@@ -404,94 +492,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
           "editing",
           "image to image",
           "img2img"
-        ]
-      },
-      {
-        "id": "bytedance/seedream/v5/flash/edit",
-        "name": "Seedream V5 Flash Edit",
-        "kind": "image",
-        "desc": "Seedream 5.0 Flash edits images from a text instruction, tuned for speed and low cost.",
-        "tags": [
-          "image",
-          "editing",
-          "image to image"
-        ]
-      },
-      {
-        "id": "bytedance/seedream/v5/flash/layerize",
-        "name": "Seedream V5 Flash Layerize",
-        "kind": "image",
-        "desc": "Seedream 5.0 Flash splits an image into separate layers, tuned for speed and low cost.",
-        "tags": [
-          "image",
-          "layers",
-          "image to image"
-        ]
-      },
-      {
-        "id": "bytedance/seedream/v5/flash/text-to-image",
-        "name": "Seedream V5 Flash Text To Image",
-        "kind": "image",
-        "desc": "Seedream 5.0 Flash generates images from text, tuned for speed and low cost.",
-        "tags": [
-          "image",
-          "generation",
-          "text to image"
-        ]
-      },
-      {
-        "id": "bytedance/seedream/v5/lite/edit",
-        "name": "Seedream V5 Lite Edit",
-        "kind": "image",
-        "desc": "Image editing endpoint for the fast Lite version of Seedream 5.0, supporting high quality intelligent image editing with multiple inputs.",
-        "tags": [
-          "editing",
-          "image to image",
-          "img2img"
-        ]
-      },
-      {
-        "id": "bytedance/seedream/v5/lite/text-to-image",
-        "name": "Seedream V5 Lite Text To Image",
-        "kind": "image",
-        "desc": "Text to Image endpoint for the fast Lite version of Seedream 5.0, supporting high quality intelligent text-to-image generation.",
-        "tags": [
-          "generation",
-          "text to image",
-          "txt2img"
-        ]
-      },
-      {
-        "id": "bytedance/seedream/v5/pro/edit",
-        "name": "Seedream V5 Pro Edit",
-        "kind": "image",
-        "desc": "Seedream 5.0 Pro is grounded, region-precise image editing model that changes one element while keeping the rest of the frame intact with layer separation, s…",
-        "tags": [
-          "editing",
-          "image to image",
-          "img2img"
-        ]
-      },
-      {
-        "id": "bytedance/seedream/v5/pro/layerize",
-        "name": "Bytedance Seedream V5 Pro Layerize",
-        "kind": "image",
-        "desc": "Seedream 5.0 Pro Layerize splits an image into 2 to 17 independent transparent-PNG layers described in text.",
-        "tags": [
-          "image to image",
-          "img2img",
-          "image"
-        ]
-      },
-      {
-        "id": "bytedance/seedream/v5/pro/text-to-image",
-        "name": "Seedream V5 Pro Text To Image",
-        "kind": "image",
-        "desc": "ByteDance's Seedream 5.0 Pro is flagship text-to-image model, with deep-thinking prompt understanding, native text in 14 languages, and precise control over…",
-        "tags": [
-          "generation",
-          "text to image",
-          "txt2img"
         ]
       },
       {
@@ -657,6 +657,39 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
           "video",
           "generation",
           "avatar"
+        ]
+      },
+      {
+        "id": "blackforestlabs/flux-3-max/image-to-video",
+        "name": "Flux3 Max Image To Video",
+        "kind": "video",
+        "desc": "FLUX 3 Max animates a start image into a video with the highest-quality FLUX 3 model.",
+        "tags": [
+          "video",
+          "generation",
+          "image to video"
+        ]
+      },
+      {
+        "id": "blackforestlabs/flux-3-max/keyframes-to-video",
+        "name": "Flux3 Max Keyframes To Video",
+        "kind": "video",
+        "desc": "FLUX 3 Max generates a video that passes through a sequence of keyframe images.",
+        "tags": [
+          "video",
+          "generation",
+          "image to video"
+        ]
+      },
+      {
+        "id": "blackforestlabs/flux-3-max/text-to-video",
+        "name": "Flux3 Max Text To Video",
+        "kind": "video",
+        "desc": "FLUX 3 Max generates video from a text prompt with the highest-quality FLUX 3 model.",
+        "tags": [
+          "video",
+          "generation",
+          "text to video"
         ]
       },
       {
@@ -836,6 +869,17 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
+        "id": "bria/video/background-removal",
+        "name": "Bria Video Background Removal",
+        "kind": "video",
+        "desc": "Bria removes the background from a video and returns it with transparency or a solid color.",
+        "tags": [
+          "video",
+          "background removal",
+          "video to video"
+        ]
+      },
+      {
         "id": "bria/video/background-removal/green-screen-despill",
         "name": "Video Background Removal Green Screen Despill",
         "kind": "video",
@@ -888,50 +932,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
           "video",
           "editing",
           "video to video"
-        ]
-      },
-      {
-        "id": "bria/video/increase-resolution",
-        "name": "Bria Video Increase Resolution",
-        "kind": "video",
-        "desc": "Upscale videos up to 8K output resolution.",
-        "tags": [
-          "video",
-          "editing",
-          "video to video"
-        ]
-      },
-      {
-        "id": "bytedance/lynx",
-        "name": "Bytedance Lynx",
-        "kind": "video",
-        "desc": "Lynx",
-        "tags": [
-          "video",
-          "animation",
-          "image to video"
-        ]
-      },
-      {
-        "id": "bytedance/seedance-2.0/fast/image-to-video",
-        "name": "Bytedance Seedance20 Fast Image To Video",
-        "kind": "video",
-        "desc": "Fast image-to-video with ByteDance Seedance 2.0.",
-        "tags": [
-          "generation",
-          "image to video",
-          "img2vid"
-        ]
-      },
-      {
-        "id": "bytedance/seedance-2.0/fast/reference-to-video",
-        "name": "Bytedance Seedance20 Fast Reference To Video",
-        "kind": "video",
-        "desc": "Fast reference-image-to-video with ByteDance Seedance 2.0.",
-        "tags": [
-          "generation",
-          "image to video",
-          "img2vid"
         ]
       },
       {
@@ -1466,11 +1466,11 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
   },
   "replicate": {
     "id": "replicate",
-    "total": 662,
+    "total": 691,
     "counts": {
-      "image": 312,
-      "text": 128,
-      "video": 160,
+      "image": 330,
+      "text": 129,
+      "video": 170,
       "audio": 62
     },
     "topTags": [],
@@ -1543,6 +1543,13 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Dwiss Qwen 2",
         "kind": "image",
         "desc": "",
+        "tags": []
+      },
+      {
+        "id": "black-forest-labs/flux-1.1-pro",
+        "name": "Flux 1 1 Pro",
+        "kind": "image",
+        "desc": "Faster, better FLUX Pro.",
         "tags": []
       },
       {
@@ -1627,6 +1634,13 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Flux 2 Pro",
         "kind": "image",
         "desc": "High-quality image generation and editing with support for eight reference images",
+        "tags": []
+      },
+      {
+        "id": "black-forest-labs/flux-3-image",
+        "name": "Flux 3 Image",
+        "kind": "image",
+        "desc": "FLUX 3 is Black Forest Labs' text-to-image and image-editing model.",
         "tags": []
       },
       {
@@ -1742,20 +1756,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
-        "id": "black-forest-labs/flux-redux-schnell",
-        "name": "Flux Redux Schnell",
-        "kind": "image",
-        "desc": "Fast, efficient image variation model for rapid iteration and experimentation.",
-        "tags": []
-      },
-      {
-        "id": "black-forest-labs/flux-schnell",
-        "name": "Flux Schnell",
-        "kind": "image",
-        "desc": "The fastest image generation model tailored for local development and personal use",
-        "tags": []
-      },
-      {
         "id": "alibaba/happyhorse-1.0",
         "name": "Happy Horse 1",
         "kind": "video",
@@ -1809,6 +1809,13 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Robust Video Matting",
         "kind": "video",
         "desc": "extract foreground of a video",
+        "tags": []
+      },
+      {
+        "id": "black-forest-labs/flux-3",
+        "name": "Flux 3",
+        "kind": "video",
+        "desc": "Generate video with synchronized audio from text, images, or video.",
         "tags": []
       },
       {
@@ -2001,6 +2008,13 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
+        "id": "google/gemini-omni-1.1",
+        "name": "Gemini Omni 1 1",
+        "kind": "video",
+        "desc": "Google's fast multimodal video generation and editing model with native audio, using the Interactions API",
+        "tags": []
+      },
+      {
         "id": "google/veo-2",
         "name": "Veo 2",
         "kind": "video",
@@ -2019,20 +2033,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Veo 3 Fast",
         "kind": "video",
         "desc": "A faster and cheaper version of Google’s Veo 3 video model, with audio",
-        "tags": []
-      },
-      {
-        "id": "google/veo-3.1",
-        "name": "Veo 3 1",
-        "kind": "video",
-        "desc": "New and improved version of Veo 3, with higher-fidelity video, context-aware audio, reference image and last frame support",
-        "tags": []
-      },
-      {
-        "id": "google/veo-3.1-fast",
-        "name": "Veo 3 1 Fast",
-        "kind": "video",
-        "desc": "New and improved version of Veo 3 Fast, with higher-fidelity video, context-aware audio and last frame support",
         "tags": []
       },
       {
@@ -2263,11 +2263,11 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
   },
   "kie": {
     "id": "kie",
-    "total": 180,
+    "total": 196,
     "counts": {
-      "image": 61,
-      "audio": 29,
-      "video": 88,
+      "image": 67,
+      "audio": 32,
+      "video": 95,
       "text": 2
     },
     "topTags": [],
@@ -2326,6 +2326,20 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Flux 2 Pro Text to Image",
         "kind": "image",
         "desc": "Flux-2 - Pro Text to Image via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "flux-3/klein-edit-image",
+        "name": "FLUX 3 Klein Edit Image",
+        "kind": "image",
+        "desc": "FLUX 3 Klein Edit Image via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "flux-3/klein-text-to-image",
+        "name": "FLUX 3 Klein Text to Image",
+        "kind": "image",
+        "desc": "FLUX 3 Klein Text to Image via Kie.ai.",
         "tags": []
       },
       {
@@ -2518,6 +2532,13 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
+        "id": "nano-banana-2-1",
+        "name": "Google Nano Banana 2.1",
+        "kind": "image",
+        "desc": "Google - Nano Banana 2.1 via Kie.ai.",
+        "tags": []
+      },
+      {
         "id": "nano-banana-2-lite",
         "name": "Google Nano Banana 2 Lite",
         "kind": "image",
@@ -2529,27 +2550,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Google Nano Banana Pro",
         "kind": "image",
         "desc": "Google - Nano Banana Pro via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "qwen/image-edit",
-        "name": "Qwen Image Edit",
-        "kind": "image",
-        "desc": "Qwen - Image Edit via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "qwen/image-to-image",
-        "name": "Qwen Image to Image",
-        "kind": "image",
-        "desc": "Qwen - Image to Image via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "qwen/text-to-image",
-        "name": "Qwen Text to Image",
-        "kind": "image",
-        "desc": "Qwen - Text to Image via Kie.ai.",
         "tags": []
       },
       {
@@ -2571,6 +2571,13 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Bytedance Seedance 2.5",
         "kind": "video",
         "desc": "Bytedance Seedance 2.5 via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "bytedance/seedance-2-5-draft",
+        "name": "Bytedance Seedance 2.5 Draft",
+        "kind": "video",
+        "desc": "Bytedance Seedance 2.5 Draft via Kie.ai.",
         "tags": []
       },
       {
@@ -2826,13 +2833,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
-        "id": "kling-3.0/video",
-        "name": "Kling 3.0",
-        "kind": "video",
-        "desc": "Kling 3.0 via Kie.ai.",
-        "tags": []
-      },
-      {
         "id": "add-instrumental",
         "name": "Add Instrumental to Music",
         "kind": "audio",
@@ -2844,6 +2844,13 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Add Vocals to Music",
         "kind": "audio",
         "desc": "Add Vocals to Music via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "ai-music-api/validation-phrase",
+        "name": "Suno Voice Generate Verification Phrase API",
+        "kind": "audio",
+        "desc": "Suno Voice Generate Verification Phrase API via Kie.ai.",
         "tags": []
       },
       {
@@ -2973,31 +2980,24 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
+        "id": "google/gemini-3-8-flash-lite-tts",
+        "name": "Gemini 3.8 Flash Lite Text to speech",
+        "kind": "audio",
+        "desc": "Gemini 3.8 Flash Lite Text to speech via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "google/gemini-3-8-flash-tts",
+        "name": "Gemini 3.8 Flash Text to speech",
+        "kind": "audio",
+        "desc": "Gemini 3.8 Flash Text to speech via Kie.ai.",
+        "tags": []
+      },
+      {
         "id": "recoveryAudio",
         "name": "Recovery Audio",
         "kind": "audio",
         "desc": "Recovery Audio via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "replace-section",
-        "name": "Replace Music Section",
-        "kind": "audio",
-        "desc": "Replace Music Section via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "separate-vocals",
-        "name": "Vocal & Instrument Stem Separation",
-        "kind": "audio",
-        "desc": "Vocal & Instrument Stem Separation via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "suno-voice-check-voice",
-        "name": "Suno Voice Check Availability API",
-        "kind": "audio",
-        "desc": "Suno Voice Check Availability API via Kie.ai.",
         "tags": []
       },
       {
@@ -3582,10 +3582,10 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
   },
   "atlascloud": {
     "id": "atlascloud",
-    "total": 180,
+    "total": 184,
     "counts": {
       "image": 80,
-      "video": 100
+      "video": 104
     },
     "topTags": [
       "video",

@@ -1,5 +1,5 @@
 import { findMissingPacks } from "@nodetool-ai/execution/missing-packs";
-import { collapseComfyGraph, isComfyNodeType } from "@nodetool-ai/protocol";
+import { isComfyNodeType } from "@nodetool-ai/protocol";
 /**
  * Wires the node-sdk {@link validateGraph} to the real node registry and the
  * shared target resolver (DB id / JSON file / DSL file). Integration code —
@@ -102,7 +102,7 @@ export async function runValidate(
   deps: ValidateDeps
 ): Promise<ValidateResult> {
   const resolved = await resolveTarget(ref, deps.loadFromDb);
-  const graph = collapseComfyGraph(resolved.graph);
+  const graph = resolved.graph;
   let registryView = deps.registry;
   if (!registryView) {
     const registry = await sharedRegistry();
@@ -140,11 +140,11 @@ export async function runValidate(
   let graphReport = validateGraph(graph, registryView, {
     availableSecrets
   });
-  if (graph !== resolved.graph) {
+  if (graph !== resolved.authoredGraph) {
     // The remote catalog owns Comfy node properties and socket types. Keep
     // checking local graph structure before the runner collapses those nodes.
     const localRegistry = registryView;
-    const authored = validateGraph(resolved.graph, {
+    const authored = validateGraph(resolved.authoredGraph, {
       ...localRegistry,
       has: (type) => isComfyNodeType(type) || localRegistry.has(type),
       availability: (type) => isComfyNodeType(type)

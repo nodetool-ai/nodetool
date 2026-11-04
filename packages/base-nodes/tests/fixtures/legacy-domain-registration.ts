@@ -49724,6 +49724,18 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: []
       },
       {
+        name: 'output_slots',
+        type: { type: 'list', type_args: [{ type: 'str', type_args: [] }] },
+        required: false,
+        title: 'Output Slots',
+        description: 'The `<comfyNodeId>:<handle>` slots that workflow Output nodes read.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: []
+      },
+      {
         name: 'timeout',
         type: { type: 'int', type_args: [] },
         required: false,
@@ -49761,7 +49773,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
-    supports_dynamic_inputs: false,
+    supports_dynamic_inputs: true,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: true,
     auto_save_asset: true,

@@ -5,7 +5,7 @@ import { runValidate } from "../src/validate/index.js";
 // Comfy node classes are supplied by the remote catalog. Only their runner
 // belongs to the local execution registry.
 const registry = {
-  has: (type: string) => type === COMFY_CLOUD_GRAPH_NODE_TYPE,
+  has: (type: string) => type === COMFY_CLOUD_GRAPH_NODE_TYPE || type === "nodetool.input.StringInput",
   getMetadata: () => undefined,
   validateNode: () => []
 };

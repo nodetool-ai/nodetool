@@ -2,6 +2,10 @@ import type { ModuleConfig } from "../types.js";
 
 export const videoGenerateConfig: ModuleConfig = {
   configs: {
+    "kwaivgi/kling-v4.0": {
+      className: "Kling_V4_0",
+      returnType: "video"
+    },
     "black-forest-labs/flux-3": {
       className: "Flux_3",
       returnType: "video"
