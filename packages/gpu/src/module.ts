@@ -39,8 +39,10 @@ export type ResolveExternals = Record<string, ResolveExternal>;
 export interface VariantRequirements {
   /** Requires `texture_external` binding (browser camera/video fast path). */
   textureExternal?: boolean;
-  /** Requires `shader-f16` feature (half-precision storage). */
+  /** Requires core rgba16float storage texture writes. */
   f16Storage?: boolean;
+  /** Requires optional shader-f16 arithmetic. */
+  shaderF16?: boolean;
 }
 
 /**

@@ -87,6 +87,9 @@ function variantMeetsCapabilities(
   if (!req) {
     return true;
   }
+  if (req.shaderF16 && !capabilities.shaderF16) {
+    return false;
+  }
   if (req.textureExternal && !capabilities.textureExternal) {
     return false;
   }

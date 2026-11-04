@@ -17,8 +17,10 @@ import type { LabeledTextureMeta } from "./texture.js";
 export interface GPUCapabilities {
   /** `texture_external` import supported (camera/video fast path). */
   textureExternal: boolean;
-  /** `float16` storage textures supported. */
+  /** Core rgba16float storage writes. Independent of shader-f16 arithmetic. */
   f16Storage: boolean;
+  /** Optional half-precision shader arithmetic feature enabled on the device. */
+  shaderF16?: boolean;
 }
 
 export type CachedPipeline = GPURenderPipeline | GPUComputePipeline;
@@ -233,7 +235,8 @@ function detectCapabilities(device: GPUDevice): GPUCapabilities {
   const features = device.features;
   return {
     textureExternal: true,
-    f16Storage: features.has("shader-f16")
+    f16Storage: true,
+    shaderF16: features.has("shader-f16")
   };
 }
 
