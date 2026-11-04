@@ -108,11 +108,13 @@ private slots:
         QTest::qWait(300); const auto after = engine.stats().framesRendered;
         const auto seekSeq = engine.feed().command.load().seekSeq;
         clock.setRate(4); QCOMPARE(engine.feed().command.load().seekSeq, seekSeq + 1); QTest::qWait(200);
-        const double audible = clock.currentTimeMs();
+        const double audibleBefore = clock.currentTimeMs();
         clock.setKeepShuttlePitch(false);
+        const double audibleAfter = clock.currentTimeMs();
         const auto uncorrected = engine.feed().command.load();
         QCOMPARE(uncorrected.seekSeq, seekSeq + 2); QVERIFY(!uncorrected.keepPitch);
-        QVERIFY(std::abs(uncorrected.seekMs - audible) < 5);
+        QVERIFY(uncorrected.seekMs >= audibleBefore - 1);
+        QVERIFY(uncorrected.seekMs <= audibleAfter + 1);
         clock.setKeepShuttlePitch(true); QVERIFY(engine.feed().command.load().keepPitch);
         clock.shuttleStop(); clock.play(); QTest::qWait(300);
         clock.pause(); engine.stop(); const auto out = engine.recording();
