@@ -268,7 +268,7 @@ export class WebGPUEffectsProcessor {
       format: "rgba8unorm",
       width,
       height,
-      meta: { colorSpace: "srgb", alpha: sourceAlpha, bindingKind: "texture_2d" }
+      meta: { colorSpace: "encoded-sdr", alpha: sourceAlpha, bindingKind: "texture_2d" }
     });
     let pendingFirst = true;
 
@@ -302,7 +302,7 @@ export class WebGPUEffectsProcessor {
         for (const key of ["before", "after"] as const) {
           const texture = temporalSources[key];
           inputs[key] = new LabeledTexture(texture, {label: `${poolKey}-denoise-${key}`, format: texture.format, width: texture.width, height: texture.height,
-            meta: {colorSpace: "srgb", alpha: "straight", bindingKind: "texture_2d"}});
+            meta: {colorSpace: "encoded-sdr", alpha: "straight", bindingKind: "texture_2d"}});
         }
       }
       this.executor.encode({
@@ -849,7 +849,7 @@ export class WebGPUEffectsProcessor {
       format: "rgba8unorm",
       width,
       height,
-      meta: { colorSpace: "srgb", alpha, bindingKind: "texture_2d" }
+      meta: { colorSpace: "encoded-sdr", alpha, bindingKind: "texture_2d" }
     });
   }
 
@@ -872,7 +872,7 @@ export class WebGPUEffectsProcessor {
         height,
         format: "rgba8unorm",
         usage: intermediateUsage(),
-        meta: { colorSpace: "srgb", alpha: "premultiplied" }
+        meta: { colorSpace: "encoded-sdr", alpha: "premultiplied" }
       });
     const pool: IntermediatePool = {
       width,
@@ -921,7 +921,7 @@ export class WebGPUEffectsProcessor {
       format: "rgba16float",
       width,
       height,
-      meta: { colorSpace: "srgb", alpha: "premultiplied", bindingKind: "texture_2d" }
+      meta: { colorSpace: "data", alpha: "premultiplied", bindingKind: "texture_2d" }
     });
     const entry = { texture: labeled, parsed };
     this.lutTextures.set(cube, entry);
