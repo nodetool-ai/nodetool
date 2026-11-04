@@ -470,3 +470,83 @@ artifacts, not a delivered feature. The remaining work is to distinguish final
 quantization error from accumulated FP16 storage error, preserve the raw
 precision assertions, and qualify delivery after that distinction. NVIDIA
 delivery and browser delivery were not tested.
+
+## A28 adapter evidence
+
+A28 remains incomplete. The catalog dispatch test now uploads nonzero constant
+inputs and reads every working FP16 output, rejecting NaN and infinity. Its
+expectation is finiteness at default parameters, not full effect fidelity.
+Both confirmed adapters pass the five workingFormat tests, including every
+resolved RGBA8 shader's byte-for-byte comparison. The 66 float-output probes
+produce only values in [0,1] on this fixture. The family inventory is:
+
+| Family | Float outputs | Lavapipe | NVIDIA RTX 3060 |
+|---|---:|---|---|
+| Colour | 24 | Finite, [0,1] | Finite, [0,1] |
+| Filters and recipes | 17 | Finite, [0,1] | Finite, [0,1] |
+| Geometry | 13 | Finite, [0,1] | Finite, [0,1] |
+| Mixers and recipes | 6 | Finite, [0,1] | Finite, [0,1] |
+| Keyers | 2 | Finite, [0,1] | Finite, [0,1] |
+| Alpha conversion | 2 | Finite, [0,1] | Finite, [0,1] |
+| Colour mask application | 1 | Finite, [0,1] | Finite, [0,1] |
+| Passthrough | 1 | Finite, [0,1] | Finite, [0,1] |
+
+Fixed-format sources and masks retain their allocation/dispatch checks.
+Constant/default input cannot establish bounds for non-neutral settings or
+edges. No per-effect saturation decision is justified by this probe. The plan's
+29 unclamped modules remain unresolved, as do per-effect numerical expectations,
+non-neutral parameter coverage, host caller qualification and cross-adapter
+pixel comparisons. These tests do not certify the whole effect catalog.
+
+### Grain and colour boundaries
+
+Confirmed lavapipe identifies as llvmpipe, Mesa 26.2.5, LLVM 23.1.3.
+Confirmed hardware identifies as NVIDIA RTX 3060, driver 610.57.04.
+Both VK_ICD_FILENAMES and VK_DRIVER_FILES were set after sourcing ntenv.
+The grain test prints explicit adapter fields and every CPU/GPU error metric.
+
+Lavapipe passes 33 ordinary tests and six retained expected failures across
+render.grain.gpu.test.ts and render.colorBoundary.gpu.test.ts. All seven grain
+parameter comparisons are byte-identical to CPU, maximum and mean error zero.
+NVIDIA passes 19 ordinary tests and six retained expected failures, but fails
+14 cases. Its five opaque grain cases have maximum error 1 code and means
+0.02325439453125, 0.0242919921875, 0.02203369140625,
+0.02349853515625 and 0.023681640625 codes in test order. Its two translucent
+grain cases have maximum error 3 and means 0.17327880859375 and
+0.14599609375 codes. The assertions remain maximum <=1 and mean <0.02.
+This demonstrates a real CPU/hardware disagreement on these fixtures. It does
+not establish the shader arithmetic or driver operation responsible.
+
+The other seven NVIDIA failures are PNG and WebP with untagged, sRGB and P3
+profiles, plus MOV alpha delivery. They reproduce maximum error 255 at
+low-alpha colour boundaries. B218 now records the actual adapters and keeps
+the hardware discrepancy open. No tolerance, skip or it.fails was changed.
+
+### Gate and verification
+
+S2's exit gate is **not met**. A88 delivery is not implemented, A28's full
+effect semantics and saturation audit are unfinished, and hardware baseline
+pixel discrepancies remain. A81's established visible benefit is the dark fade
+only. The sky and grade/glow scenes do not establish another visible benefit.
+Those scenes were not rerun in this continuation.
+
+GPU and timeline package typechecks passed (adapter-independent). Only the
+selected Vitest files ran. Not run: test:affected, root typecheck, lint,
+harness gate, /verify or full suites. No push was performed.
+
+Logs under `/home/mg/Projects/nodetool-film/tmp/color-s2/`:
+`catalog-lvp-final.log`, `catalog-nvidia.log`, `boundary-lvp.log`,
+`boundary-nvidia.log`, `gpu-tsc.log` and `timeline-tsc.log`.
+The final catalog logs identify their adapters. Each catalog run passes five
+tests. Typecheck command: `node scripts/run-tsc.mjs -p packages/<gpu|timeline>/tsconfig.json --noEmit`.
+Vitest commands use `npm test --workspace=packages/<package> -- <files>
+--no-file-parallelism`, with LP_NUM_THREADS=2 and NODETOOL_TEST_WORKERS=1.
+
+Changed files in this continuation:
+
+- `packages/gpu/tests/workingFormat.test.ts`
+- `packages/timeline/tests/render.grain.gpu.test.ts`
+- `native/timeline/docs/gaps-backlog.md`
+- `docs/plans/color-precision/results/s2-working-chain.md`
+
+No production source change remains from this continuation.

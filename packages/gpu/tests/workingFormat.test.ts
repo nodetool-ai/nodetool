@@ -92,6 +92,7 @@ it("classifies the complete A97 slot set and rejects deliberately wrong modules"
 
 it("dispatches every shader and recipe in both formats on one pipeline cache", async () => {
   const device = await getNodeGPUDevice();
+  process.stderr.write(`catalog adapter: ${JSON.stringify({ vendor: device.adapterInfo.vendor, architecture: device.adapterInfo.architecture, device: device.adapterInfo.device, description: device.adapterInfo.description })}\n`);
   const ctx = createGPUContextFromDevice(device);
   const executor = createExecutor();
   const runner = createRecipeRunner();
@@ -115,6 +116,12 @@ it("dispatches every shader and recipe in both formats on one pipeline cache", a
           const inputs = Object.fromEntries(Object.entries(module.io.inputs).map(([name, contract]) => [
             name, make(module.precision?.[name] === "fixed" ? (name === "lut" ? "rgba16float" : "rgba8unorm") : workingFormat, contract.alpha, contract.colorSpace)
           ]));
+          for (const input of Object.values(inputs)) {
+            const data = input.format === "rgba16float"
+              ? new Uint16Array(64).map((_, i) => [0x3400, 0x3800, 0x3a00, 0x3c00][i % 4])
+              : new Uint8Array(64).map((_, i) => [64, 128, 192, 255][i % 4]);
+            device.queue.writeTexture({ texture: input.texture }, data, { bytesPerRow: input.format === "rgba16float" ? 32 : 16 }, [4, 4]);
+          }
           const output = make(module.precision?.output === "fixed" ? module.io.output.format : workingFormat, module.io.output.alpha, module.io.output.colorSpace);
           const encoder = device.createCommandEncoder();
           ctx.uniformRing.beginSubmission();
@@ -127,6 +134,26 @@ it("dispatches every shader and recipe in both formats on one pipeline cache", a
           device.queue.submit([encoder.finish()]);
           await device.queue.onSubmittedWorkDone();
           expect(output.contentVersion, module.id).toBeGreaterThan(0);
+          if (workingFormat === "rgba16float" && output.format === "rgba16float") {
+            const buffer = device.createBuffer({ size: 1024, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+            try {
+              const read = device.createCommandEncoder();
+              read.copyTextureToBuffer({ texture: output.texture }, { buffer, bytesPerRow: 256 }, [4, 4]);
+              device.queue.submit([read.finish()]);
+              await buffer.mapAsync(GPUMapMode.READ);
+              const words = new Uint16Array(buffer.getMappedRange());
+              const values: number[] = [];
+              for (let y = 0; y < 4; y++) for (let x = 0; x < 16; x++) {
+                const word = words[y * 128 + x];
+                const exponent = (word >> 10) & 31, fraction = word & 1023;
+                values.push((word & 0x8000 ? -1 : 1) * (exponent === 31 ? (fraction ? NaN : Infinity) : exponent === 0 ? fraction * 2 ** -24 : (1 + fraction / 1024) * 2 ** (exponent - 15)));
+              }
+              process.stderr.write(`catalog ${module.id}@${module.version}: min=${Math.min(...values)} max=${Math.max(...values)} nonfinite=${values.filter(v => !Number.isFinite(v)).length}\n`);
+              expect(values.every(Number.isFinite), module.id).toBe(true);
+              buffer.unmap();
+            } finally { buffer.destroy(); }
+          }
+
           if (!("recipe" in module) && output.format === "rgba8unorm") {
             const pipeline = ctx.pipelineCache.get(`${module.id}@${module.version}:${module.kind}:rgba8unorm`);
             expect(pipeline).toBeDefined();
