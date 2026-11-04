@@ -480,6 +480,7 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
     m_itemSize = item->size();
     item->m_lastCanvasSize = m_canvasSize;
     item->m_frameSettled = m_lastFrameSettled;
+    const bool workingFormatChanged = m_workingFormat != item->m_workingFormat;
     m_workingFormat = item->m_workingFormat;
     item->m_monitorPipelineCreated = bool(m_monitorPipeline);
     // Hand the frames rendered since the last sync to the GUI side.
@@ -540,7 +541,8 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
         m_previousValid = false;
         return;
     }
-    if (m_sourceModel != item->m_timeline || m_sourceGeneration != item->m_timeline->documentGeneration()) {
+    const bool sourceChanged = m_sourceModel != item->m_timeline || m_sourceGeneration != item->m_timeline->documentGeneration();
+    if (sourceChanged) {
         for (auto it = m_sources.begin(); it != m_sources.end();) {
             if (it->second.registered) {
                 retireSource(it->second);
@@ -569,11 +571,19 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
     // The canvas holds the other clear's pixels, so a held frame must not reuse it.
     if (clearChanged) { m_previousValid = false; m_hasCompletedCanvas = false; m_canvasDrawn = false; }
     const auto seekSerial = item->m_clock ? item->m_clock->seekSerial() : 0;
+    if (m_workingFormat == nt::WorkingFormat::Rgba16F &&
+        (sourceChanged || workingFormatChanged || seekSerial != m_blurSeekSerial)) {
+        m_previousValid = false;
+        m_hasCompletedCanvas = false;
+        m_canvasDrawn = false;
+        m_blurFrameTime = -1;
+        m_blurComplete = false;
+    }
     const double rate = item->m_clock ? item->m_clock->rate() : 1;
     const double frameMs = m_fps > 0 ? 1000.0 / m_fps : 1000.0 / 30.0;
     const bool transportChanged = seekSerial != m_blurSeekSerial || m_playing != m_blurPlaying || rate != m_blurRate;
     const bool nextTime = clockTime != m_blurFrameTime && (!m_playing || m_blurComplete || m_tapTimes.size() <= 1);
-    if (clearChanged || transportChanged || nextTime || m_blurRevision != m_timeline->revision || m_canvasSize != m_wantedCanvas) {
+    if (workingFormatChanged || (sourceChanged && m_workingFormat == nt::WorkingFormat::Rgba16F) || clearChanged || transportChanged || nextTime || m_blurRevision != m_timeline->revision || m_canvasSize != m_wantedCanvas) {
         m_blurFrameTime = clockTime;
         m_blurRevision = m_timeline->revision;
         m_blurSeekSerial = seekSerial;
@@ -1605,6 +1615,10 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     const bool settled = blurred ? m_blurComplete : tapReady;
     m_lastFrameSettled = settled;
     m_waitingForFrames = m_captureWanted && !m_captureImmediate && !settled;
+    if (m_captureWanted && m_workingFormat == nt::WorkingFormat::Rgba16F) {
+        if (m_resourceError.empty()) { m_resourceError = "FP16 working capture requires the N2 delivery boundary"; }
+        m_captureWanted = false;
+    }
     if (m_captureWanted && !m_captureInFlight && ((m_captureImmediate && !blurred) || settled)) {
         m_captureWanted = false;
         const double captureTime = m_timeMs;

@@ -356,7 +356,7 @@ void main() {
         rgb=clamp(rgb+diff*p[0].x*mask,0,1);
     } else if (op==8) {
         // A separate RGBA8 ToStraight pass bridges the keyer's input contract.
-        rgb=src.rgb;
+        rgb=geometry.y > 3.5 ? straight(src) : src.rgb;
         float dist=length(rgb-p[0].xyz), t=clamp((dist-p[0].w)/max(p[1].x,0.001),0,1);
         float mask=t*t*(3-2*t);
         if (p[1].y>0.001) {

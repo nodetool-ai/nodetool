@@ -377,7 +377,7 @@ bool ShapeMaskStage::render(const EffectContext &ctx, const LayerFrame &input, Q
         return false;
     }
     current = encoder.result(masked);
-    if (!alphaBridge(encoder, current, work, Op::ToStraight) || !alphaBridge(encoder, current, work, Op::ToPremul)) {
+    if (ctx.workingFormat == WorkingFormat::Rgba8 && (!alphaBridge(encoder, current, work, Op::ToStraight) || !alphaBridge(encoder, current, work, Op::ToPremul))) {
         return false;
     }
     return encoder.draw(current, output, {}, work, {}, nullptr, &window);
@@ -391,8 +391,8 @@ bool ImageMatteStage::render(const EffectContext &ctx, const LayerFrame &layer, 
     auto current = matte;
     // composeToTexture resolves its accumulation to straight, then deriveMask
     // bridges back. Luma adds a second premultiply to weight by coverage.
-    if (!alphaBridge(encoder, current, matte.size, Op::ToStraight) ||
-        !alphaBridge(encoder, current, matte.size, Op::ToPremul)) {
+    if (ctx.workingFormat == WorkingFormat::Rgba8 && (!alphaBridge(encoder, current, matte.size, Op::ToStraight) ||
+        !alphaBridge(encoder, current, matte.size, Op::ToPremul))) {
         return false;
     }
     if (info.mode == "luma" && !alphaBridge(encoder, current, matte.size, Op::ToPremul)) {
@@ -419,8 +419,8 @@ bool ImageMatteStage::render(const EffectContext &ctx, const LayerFrame &layer, 
     }
     const auto mask = current;
     current = layer;
-    if (!alphaBridge(encoder, current, layer.size, Op::ToStraight, mask.planes[0]) ||
-        !alphaBridge(encoder, current, layer.size, Op::ToPremul, mask.planes[0])) {
+    if (ctx.workingFormat == WorkingFormat::Rgba8 && (!alphaBridge(encoder, current, layer.size, Op::ToStraight, mask.planes[0]) ||
+        !alphaBridge(encoder, current, layer.size, Op::ToPremul, mask.planes[0]))) {
         return false;
     }
     auto *masked = encoder.surface(layer.size, current.planes[0], mask.planes[0]);
@@ -431,8 +431,8 @@ bool ImageMatteStage::render(const EffectContext &ctx, const LayerFrame &layer, 
         return false;
     }
     current = encoder.result(masked);
-    if (!alphaBridge(encoder, current, layer.size, Op::ToStraight, mask.planes[0]) ||
-        !alphaBridge(encoder, current, layer.size, Op::ToPremul, mask.planes[0])) {
+    if (ctx.workingFormat == WorkingFormat::Rgba8 && (!alphaBridge(encoder, current, layer.size, Op::ToStraight, mask.planes[0]) ||
+        !alphaBridge(encoder, current, layer.size, Op::ToPremul, mask.planes[0]))) {
         return false;
     }
     Pass strength;
@@ -446,7 +446,7 @@ bool AdjustmentTreatment::applies(const QJsonObject &ext) const {
 bool AdjustmentTreatment::render(const EffectContext &ctx, const LayerFrame &input, QRhiTextureRenderTarget &output,
                                   const SceneAdjustment &adjustment) {
     if (!ctx.rhi || !ctx.commands || !ctx.retire || !input.planes[0] || input.size.isEmpty() ||
-        input.format != LayerFrame::Format::Rgba8Premultiplied || output.pixelSize() != input.size ||
+        (input.format != LayerFrame::Format::Rgba8Premultiplied && input.format != LayerFrame::Format::Rgba16FPremultiplied) || output.pixelSize() != input.size ||
         !initializeMaskCache(ctx, m_cache)) {
         return false;
     }

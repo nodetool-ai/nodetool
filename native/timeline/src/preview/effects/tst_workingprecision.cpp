@@ -1,5 +1,6 @@
 #include "preview/effects/ClipEffects.h"
 #include "preview/RetireQueue.h"
+#include "preview/effects/BlendModes.h"
 #include "motion/capacity/ScratchPool.h"
 #include <QGuiApplication>
 #include <QVulkanInstance>
@@ -12,6 +13,42 @@ namespace nt::effects {
 class TestWorkingPrecision : public QObject {
     Q_OBJECT
 private slots:
+    void ancillaryFloatStages() {
+        QRhiNullInitParams init;
+        auto rhi = std::unique_ptr<QRhi>(QRhi::create(QRhi::Null, &init));
+        QVERIFY(rhi);
+        RetireQueue retire;
+        motion::ScratchPool pool;
+        const auto lease = pool.beginLease(1);
+        const auto acquire = [&] { return pool.acquire(lease, rhi.get(), {64, 32}, 1, nullptr, nullptr, nullptr, WorkingFormat::Rgba16F); };
+        auto a = acquire(); QVERIFY(a);
+        auto b = pool.acquire(lease, rhi.get(), {64, 32}, 1, a->texture.get(), nullptr, nullptr, WorkingFormat::Rgba16F); QVERIFY(b);
+        auto out = pool.acquire(lease, rhi.get(), {64, 32}, 1, a->texture.get(), b->texture.get(), nullptr, WorkingFormat::Rgba16F); QVERIFY(out);
+        QRhiCommandBuffer* cb = nullptr;
+        QCOMPARE(rhi->beginOffscreenFrame(&cb), QRhi::FrameOpSuccess);
+        EffectContext ctx{rhi.get(), cb, 1, &retire, nullptr, WorkingFormat::Rgba16F};
+        LayerFrame frame; frame.format = LayerFrame::rgbaFormat(a->texture.get());
+        QCOMPARE(frame.format, LayerFrame::Format::Rgba16FPremultiplied);
+        frame.planes[0] = a->texture.get(); frame.size = {64, 32};
+        auto matte = frame; matte.planes[0] = b->texture.get();
+        ShapeMaskStage shape;
+        QVERIFY(shape.render(ctx, frame, *out->target, {{"shapeMask", QJsonObject{{"kind", "ellipse"}, {"featherPx", 4}}}}));
+        ImageMatteStage masks;
+        for (const auto mode : {"alpha", "luma"}) {
+            QVERIFY(masks.render(ctx, frame, matte, *out->target, {mode, false, {}, 0.5, 9}, {}));
+        }
+        BlendModeHandler blends;
+        for (const auto mode : blendModes) {
+            QVERIFY(blends.render(ctx, frame, matte, *out->target, std::string(mode), {}));
+        }
+        AdjustmentTreatment treatment;
+        SceneAdjustment adjustment;
+        adjustment.ext = {{"adjustmentTreatment", true}, {"clipEffects", QJsonArray{QJsonObject{{"type", "blur"}, {"enabled", true}, {"radius", 4}}}}};
+        QVERIFY(treatment.render(ctx, frame, *out->target, adjustment));
+        QCOMPARE(rhi->endOffscreenFrame(), QRhi::FrameOpSuccess);
+        pool.endLease(lease);
+        retire.collect(3, 2); QVERIFY(retire.empty());
+    }
     void inverseLevelsAndAlpha() {
         QVulkanInstance instance;
         instance.setApiVersion(QVersionNumber(1, 1));
