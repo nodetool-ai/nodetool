@@ -37,7 +37,6 @@ import {
   packetTimes,
   pngFrames,
   probeDurationSec,
-  probeMedia,
   probeVideoStream,
   transformMedia,
   type StreamPlan
@@ -2826,7 +2825,7 @@ export class ExtractFrameVideoNode extends BaseNode {
     const inputFile = await withTempFile(".mp4", bytes);
     try {
       const time = Math.max(0, Number(this.time ?? 0));
-      const alpha = (await probeMedia(inputFile.path)).video?.alpha ?? false;
+      const alpha = (await probeVideoStream(inputFile.path))?.alpha ?? false;
       for await (const png of pngFrames({ filePath: inputFile.path, seekSec: time, limit: 1, alpha })) {
         return {
           output: {
