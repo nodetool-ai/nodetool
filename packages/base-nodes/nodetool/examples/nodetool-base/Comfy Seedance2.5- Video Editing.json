@@ -1,0 +1,147 @@
+{
+  "id": "bfb29c3bf2658210ddc495fb72a4bbec",
+  "name": "Comfy Seedance2.5- Video Editing",
+  "description": "Edit existing video clips with Seedance 2.5 by describing changes in natural language, enabling local object removal, background swaps, scene replacements, and style transfers while preserving the original composition and motion. Feed in 1 video and receive 1 edited video output with temporally consistent results across frames. Ideal for e-commerce background replacement, stylized remakes of footage, and ad re-editing with targeted retouching. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Seedance2.5- Video Editing\n\nEdit existing video clips with Seedance 2.5 by describing changes in natural language, enabling local object removal, background swaps, scene replacements, and style transfers while preserving the original composition and motion. Feed in 1 video and receive 1 edited video output with temporally consistent results across frames. Ideal for e-commerce background replacement, stylized remakes of footage, and ad re-editing with targeted retouching. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_seedance2_5_video_editing.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "16",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Seedance2.5_video_edit",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "35",
+        "type": "comfy.LoadVideo",
+        "data": {
+          "file": "kitten_cop.mp4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "36",
+        "type": "comfy.Video Slice",
+        "data": {
+          "start_time": 0,
+          "duration": 5,
+          "strict_duration": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Trim Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "39",
+        "type": "comfy.ByteDance2ReferenceNodeV2",
+        "data": {
+          "model": "Seedance 2.5",
+          "model.prompt": "Transform the input video to clay style. Keep the motion, characters, composition, and timing exactly the same, only change the visual rendering. No additional content.",
+          "model.resolution": "720p",
+          "model.ratio": "16:9",
+          "model.duration": 5,
+          "model.generate_audio": true,
+          "model.task_type": "edit",
+          "model.output_format": "mp4",
+          "model.reference_images": true,
+          "model.reference_videos": false,
+          "model.reference_audios": 0,
+          "model.reference_assets": "randomize",
+          "model.auto_downscale": false,
+          "model.auto_upscale": false,
+          "seed": 0,
+          "watermark": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ByteDance Seedance 2.5 Reference to Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "39-0-16-video",
+        "source": "39",
+        "sourceHandle": "VIDEO",
+        "target": "16",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "35-0-36-video",
+        "source": "35",
+        "sourceHandle": "VIDEO",
+        "target": "36",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "36-0-39-model.reference_videos.video_1",
+        "source": "36",
+        "sourceHandle": "VIDEO",
+        "target": "39",
+        "targetHandle": "model.reference_videos.video_1",
+        "ui_properties": null
+      }
+    ]
+  }
+}

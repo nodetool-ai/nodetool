@@ -1,3 +1,4 @@
+import { exposeComfyInterface } from "@nodetool-ai/protocol";
 import { WORKFLOW_NODE_TYPE } from "../../../constants/nodeTypes";
 import type { TypeMetadata } from "../../../stores/ApiTypes";
 import useMetadataStore from "../../../stores/MetadataStore";
@@ -53,6 +54,7 @@ interface DynamicIO {
 export interface DynamicIOSource {
   graph?: {
     nodes?: readonly unknown[] | Record<string, unknown> | null;
+    edges?: readonly object[] | null;
   } | null;
 }
 
@@ -62,9 +64,12 @@ export function extractDynamicIO(workflow: DynamicIOSource): DynamicIO {
     return { dynamic_inputs: {}, dynamic_outputs: {}, dynamic_properties: {} };
   }
 
-  const nodes = Array.isArray(graph.nodes)
-    ? graph.nodes
-    : Object.values(graph.nodes);
+  const { nodes } = exposeComfyInterface({
+    nodes: (Array.isArray(graph.nodes)
+      ? graph.nodes
+      : Object.values(graph.nodes)) as object[],
+    edges: graph.edges ?? []
+  });
 
   const dynamic_inputs: Record<string, DynamicSlotDeclaration> = {};
   const dynamic_outputs: Record<string, TypeMetadata> = {};

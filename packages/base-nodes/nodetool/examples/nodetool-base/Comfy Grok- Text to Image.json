@@ -1,0 +1,83 @@
+{
+  "id": "37313203fd4e45e74b7457e5f2353325",
+  "name": "Comfy Grok- Text to Image",
+  "description": "Input text prompts to generate high-quality images quickly using the Grok model. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Grok- Text to Image\n\nInput text prompts to generate high-quality images quickly using the Grok model. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_grok_text_to_image.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "2",
+        "type": "comfy.GrokImageNode",
+        "data": {
+          "model": "grok-imagine-image",
+          "prompt": "Cinematic portrait of a young beautiful Latina woman with dark hair and bangs, in a vibrant, neon-lit Japanese arcade at night. She looks back over her shoulder at the camera with an intense, captivating gaze. The scene is drenched in a dreamy, moody atmosphere. Her face is dramatically illuminated by the strong pink and magenta glow from a nearby arcade machine, casting soft shadows, while cool cyan neon light creates sharp highlights on her hair and the side of her face. The shot is taken through a glass panel, creating distorted, colorful neon light reflections and a sense of depth. Shallow depth of field blurs the background into a beautiful bokeh of orange and yellow lights. Light film grain, subtle film texture, detailed realistic skin texture, glossy lips, neon-noir aesthetic. ",
+          "aspect_ratio": "1:1",
+          "number_of_images": 1,
+          "seed": 1071301683,
+          "resolution": "1K",
+          "quality": "medium"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Grok Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "Grok"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "2-0-3-images",
+        "source": "2",
+        "sourceHandle": "IMAGE",
+        "target": "3",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

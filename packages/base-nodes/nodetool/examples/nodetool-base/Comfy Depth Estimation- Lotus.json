@@ -1,0 +1,382 @@
+{
+  "id": "2a816d78763b9961edda3259bb220ad1",
+  "name": "Comfy Depth Estimation- Lotus",
+  "description": "Run Lotus Depth in ComfyUI for zero-shot, efficient monocular depth estimation with high detail retention. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image tools",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Depth Estimation- Lotus\n\nRun Lotus Depth in ComfyUI for zero-shot, efficient monocular depth estimation with high detail retention. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/image_lotus_depth_v1_1.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "9",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "Lotus_depth"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "image_lotus_depth_v1_1_input_image.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "input"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "74:8",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "74:10",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "lotus-depth-d-v1-1.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "74:14",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "vae-ft-mse-840000-ema-pruned.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "74:16",
+        "type": "comfy.SamplerCustomAdvanced",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SamplerCustomAdvanced"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "74:18",
+        "type": "comfy.DisableNoise",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "DisableNoise"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "74:19",
+        "type": "comfy.BasicGuider",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Basic Guider"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "74:20",
+        "type": "comfy.BasicScheduler",
+        "data": {
+          "scheduler": "normal",
+          "steps": 1,
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "BasicScheduler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "74:21",
+        "type": "comfy.KSamplerSelect",
+        "data": {
+          "sampler_name": "euler"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "KSamplerSelect"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "74:22",
+        "type": "comfy.ImageInvert",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Invert Image Colors"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "74:23",
+        "type": "comfy.VAEEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "VAE Encode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "74:28",
+        "type": "comfy.SetFirstSigma",
+        "data": {
+          "sigma": 999.0000000000002
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SetFirstSigma"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "74:68",
+        "type": "comfy.LotusConditioning",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "LotusConditioning"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "74:22-0-9-images",
+        "source": "74:22",
+        "sourceHandle": "IMAGE",
+        "target": "9",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "74:16-0-74:8-samples",
+        "source": "74:16",
+        "sourceHandle": "output",
+        "target": "74:8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "74:14-0-74:8-vae",
+        "source": "74:14",
+        "sourceHandle": "VAE",
+        "target": "74:8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "74:18-0-74:16-noise",
+        "source": "74:18",
+        "sourceHandle": "NOISE",
+        "target": "74:16",
+        "targetHandle": "noise",
+        "ui_properties": null
+      },
+      {
+        "id": "74:19-0-74:16-guider",
+        "source": "74:19",
+        "sourceHandle": "GUIDER",
+        "target": "74:16",
+        "targetHandle": "guider",
+        "ui_properties": null
+      },
+      {
+        "id": "74:21-0-74:16-sampler",
+        "source": "74:21",
+        "sourceHandle": "SAMPLER",
+        "target": "74:16",
+        "targetHandle": "sampler",
+        "ui_properties": null
+      },
+      {
+        "id": "74:28-0-74:16-sigmas",
+        "source": "74:28",
+        "sourceHandle": "SIGMAS",
+        "target": "74:16",
+        "targetHandle": "sigmas",
+        "ui_properties": null
+      },
+      {
+        "id": "74:23-0-74:16-latent_image",
+        "source": "74:23",
+        "sourceHandle": "LATENT",
+        "target": "74:16",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "74:10-0-74:19-model",
+        "source": "74:10",
+        "sourceHandle": "MODEL",
+        "target": "74:19",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "74:68-0-74:19-conditioning",
+        "source": "74:68",
+        "sourceHandle": "conditioning",
+        "target": "74:19",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "74:10-0-74:20-model",
+        "source": "74:10",
+        "sourceHandle": "MODEL",
+        "target": "74:20",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "74:8-0-74:22-image",
+        "source": "74:8",
+        "sourceHandle": "IMAGE",
+        "target": "74:22",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "12-0-74:23-pixels",
+        "source": "12",
+        "sourceHandle": "IMAGE",
+        "target": "74:23",
+        "targetHandle": "pixels",
+        "ui_properties": null
+      },
+      {
+        "id": "74:14-0-74:23-vae",
+        "source": "74:14",
+        "sourceHandle": "VAE",
+        "target": "74:23",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "74:20-0-74:28-sigmas",
+        "source": "74:20",
+        "sourceHandle": "SIGMAS",
+        "target": "74:28",
+        "targetHandle": "sigmas",
+        "ui_properties": null
+      }
+    ]
+  }
+}

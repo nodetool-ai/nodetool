@@ -1,0 +1,381 @@
+{
+  "id": "c5788aa9f02782fe05c828086eacaa37",
+  "name": "Comfy OmniGen2- Text to Image",
+  "description": "Generate high-quality images from text prompts using OmniGen2's unified 7B multimodal model with dual-path architecture. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy OmniGen2- Text to Image\n\nGenerate high-quality images from text prompts using OmniGen2's unified 7B multimodal model with dual-path architecture. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/image_omnigen2_t2i.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "9",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "42:28",
+        "type": "comfy.SamplerCustomAdvanced",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SamplerCustomAdvanced"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "42:20",
+        "type": "comfy.KSamplerSelect",
+        "data": {
+          "sampler_name": "euler"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSamplerSelect"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "42:27",
+        "type": "comfy.DualCFGGuider",
+        "data": {
+          "cfg_conds": 5,
+          "cfg_cond2_negative": 2,
+          "style": "regular"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Dual CFG Guider"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "42:23",
+        "type": "comfy.BasicScheduler",
+        "data": {
+          "scheduler": "simple",
+          "steps": 20,
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "BasicScheduler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "42:13",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "ae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "42:10",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen_2.5_vl_fp16.safetensors",
+          "type": "omnigen2",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "42:12",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "omnigen2_fp16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "42:8",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "42:7",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "blurry, low quality, distorted, ugly, bad anatomy, deformed, poorly drawn"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "42:6",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "A cat with a crown lounging on a velvet throne, royal atmosphere, luxurious fabric texture, regal pose, detailed fur, ornate crown, dramatic lighting"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "42:11",
+        "type": "comfy.EmptySD3LatentImage",
+        "data": {
+          "width": 1024,
+          "height": 1024,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "EmptySD3LatentImage"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "42:21",
+        "type": "comfy.RandomNoise",
+        "data": {
+          "noise_seed": 375248071721913
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "RandomNoise"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "42:8-0-9-images",
+        "source": "42:8",
+        "sourceHandle": "IMAGE",
+        "target": "9",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "42:21-0-42:28-noise",
+        "source": "42:21",
+        "sourceHandle": "NOISE",
+        "target": "42:28",
+        "targetHandle": "noise",
+        "ui_properties": null
+      },
+      {
+        "id": "42:27-0-42:28-guider",
+        "source": "42:27",
+        "sourceHandle": "GUIDER",
+        "target": "42:28",
+        "targetHandle": "guider",
+        "ui_properties": null
+      },
+      {
+        "id": "42:20-0-42:28-sampler",
+        "source": "42:20",
+        "sourceHandle": "SAMPLER",
+        "target": "42:28",
+        "targetHandle": "sampler",
+        "ui_properties": null
+      },
+      {
+        "id": "42:23-0-42:28-sigmas",
+        "source": "42:23",
+        "sourceHandle": "SIGMAS",
+        "target": "42:28",
+        "targetHandle": "sigmas",
+        "ui_properties": null
+      },
+      {
+        "id": "42:11-0-42:28-latent_image",
+        "source": "42:11",
+        "sourceHandle": "LATENT",
+        "target": "42:28",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "42:12-0-42:27-model",
+        "source": "42:12",
+        "sourceHandle": "MODEL",
+        "target": "42:27",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "42:6-0-42:27-cond1",
+        "source": "42:6",
+        "sourceHandle": "CONDITIONING",
+        "target": "42:27",
+        "targetHandle": "cond1",
+        "ui_properties": null
+      },
+      {
+        "id": "42:7-0-42:27-cond2",
+        "source": "42:7",
+        "sourceHandle": "CONDITIONING",
+        "target": "42:27",
+        "targetHandle": "cond2",
+        "ui_properties": null
+      },
+      {
+        "id": "42:7-0-42:27-negative",
+        "source": "42:7",
+        "sourceHandle": "CONDITIONING",
+        "target": "42:27",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "42:12-0-42:23-model",
+        "source": "42:12",
+        "sourceHandle": "MODEL",
+        "target": "42:23",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "42:28-0-42:8-samples",
+        "source": "42:28",
+        "sourceHandle": "output",
+        "target": "42:8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "42:13-0-42:8-vae",
+        "source": "42:13",
+        "sourceHandle": "VAE",
+        "target": "42:8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "42:10-0-42:7-clip",
+        "source": "42:10",
+        "sourceHandle": "CLIP",
+        "target": "42:7",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "42:10-0-42:6-clip",
+        "source": "42:10",
+        "sourceHandle": "CLIP",
+        "target": "42:6",
+        "targetHandle": "clip",
+        "ui_properties": null
+      }
+    ]
+  }
+}

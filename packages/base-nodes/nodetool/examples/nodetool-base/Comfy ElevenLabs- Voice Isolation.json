@@ -1,0 +1,101 @@
+{
+  "id": "d94c55ca2d2c59a63842e3d42034d22b",
+  "name": "Comfy ElevenLabs- Voice Isolation",
+  "description": "Upload an audio file containing background noise. Use the ElevenLabs API to isolate and output a clean voice track. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "audio",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy ElevenLabs- Voice Isolation\n\nUpload an audio file containing background noise. Use the ElevenLabs API to isolate and output a clean voice track. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_elevenlabs_voice_isolation.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "130",
+        "type": "comfy.ElevenLabsAudioIsolation",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ElevenLabs Voice Isolation"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "131",
+        "type": "comfy.LoadAudio",
+        "data": {
+          "audio": "noisy_background.mp3"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "133",
+        "type": "comfy.SaveAudioAdvanced",
+        "data": {
+          "filename_prefix": "audio/11labs_voice_isolation",
+          "format": "flac"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Audio (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "131-0-130-audio",
+        "source": "131",
+        "sourceHandle": "AUDIO",
+        "target": "130",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "130-0-133-audio",
+        "source": "130",
+        "sourceHandle": "AUDIO",
+        "target": "133",
+        "targetHandle": "audio",
+        "ui_properties": null
+      }
+    ]
+  }
+}

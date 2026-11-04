@@ -1,0 +1,155 @@
+{
+  "id": "2053658bd8c36f0822484b58a3e3e92d",
+  "name": "Comfy Eleven v4- Text to Dialogue",
+  "description": "Generate a multi-speaker dialogue from text with Eleven v4: give every entry its own line and its own voice, direct the delivery with audio tags such as [quietly] or [laughs], or clone a voice from a sample and let it take a turn. One audio file is output. Ideal for podcasts, game dialogue, and character conversations.\n Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "audio",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Eleven v4- Text to Dialogue\n\nGenerate a multi-speaker dialogue from text with Eleven v4: give every entry its own line and its own voice, direct the delivery with audio tags such as [quietly] or [laughs], or clone a voice from a sample and let it take a turn. One audio file is output. Ideal for podcasts, game dialogue, and character conversations.\n Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_elevenlabs_v4_text_to_dialogue.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "211",
+        "type": "comfy.ElevenLabsVoiceSelector",
+        "data": {
+          "voice": "Roger (male, american)"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ElevenLabs Voice Selector"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "218",
+        "type": "comfy.ElevenLabsTextToDialogue",
+        "data": {
+          "stability": 0.5,
+          "apply_text_normalization": "auto",
+          "model": "eleven_v4",
+          "inputs": "4",
+          "inputs.text1": "[quietly, close to the mic] I ran the numbers twice... the engine is holding steady. Wait, why is the alarm light-",
+          "inputs.text2": "[sighs, then firmly] Then stop smiling and seal the hatch. [urgent] I need the console live before the countdown hits twenty.",
+          "inputs.text3": "",
+          "inputs.text4": "randomize",
+          "language_code": "",
+          "seed": 1,
+          "output_format": "mp3_44100_192"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ElevenLabs Text to Dialogue"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "219",
+        "type": "comfy.ElevenLabsVoiceSelector",
+        "data": {
+          "voice": "Laura (female, american)"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "ElevenLabs Voice Selector"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "220",
+        "type": "comfy.SaveAudioAdvanced",
+        "data": {
+          "filename_prefix": "audio/ComfyUI",
+          "format": "mp3",
+          "format.quality": "V0"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Audio (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "211-0-218-inputs.voice1",
+        "source": "211",
+        "sourceHandle": "voice",
+        "target": "218",
+        "targetHandle": "inputs.voice1",
+        "ui_properties": null
+      },
+      {
+        "id": "219-0-218-inputs.voice2",
+        "source": "219",
+        "sourceHandle": "voice",
+        "target": "218",
+        "targetHandle": "inputs.voice2",
+        "ui_properties": null
+      },
+      {
+        "id": "211-0-218-inputs.voice3",
+        "source": "211",
+        "sourceHandle": "voice",
+        "target": "218",
+        "targetHandle": "inputs.voice3",
+        "ui_properties": null
+      },
+      {
+        "id": "219-0-218-inputs.voice4",
+        "source": "219",
+        "sourceHandle": "voice",
+        "target": "218",
+        "targetHandle": "inputs.voice4",
+        "ui_properties": null
+      },
+      {
+        "id": "218-0-220-audio",
+        "source": "218",
+        "sourceHandle": "AUDIO",
+        "target": "220",
+        "targetHandle": "audio",
+        "ui_properties": null
+      }
+    ]
+  }
+}

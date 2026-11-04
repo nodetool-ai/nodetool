@@ -1,0 +1,91 @@
+{
+  "id": "9ea5cf7a9a41480ce1f02831c6bd6cca",
+  "name": "Comfy Wan3.0- Text to Video",
+  "description": "Generate videos up to 30 seconds directly from text prompts using Wan3.0-Video, producing a single video output with lifelike visuals and synchronized sound. This workflow transforms written descriptions into immersive, production-ready footage with strong character consistency and cinematic quality. Ideal for cinematic storytelling, character-driven animations, and quick multimedia content creation. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Wan3.0- Text to Video\n\nGenerate videos up to 30 seconds directly from text prompts using Wan3.0-Video, producing a single video output with lifelike visuals and synchronized sound. This workflow transforms written descriptions into immersive, production-ready footage with strong character consistency and cinematic quality. Ideal for cinematic storytelling, character-driven animations, and quick multimedia content creation. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_wan3_0_t2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "3",
+        "type": "comfy.Wan3ReferenceToVideoApi",
+        "data": {
+          "model": "wan3.0-video",
+          "model.prompt": "Generate a 5-second, 16:9 ultra-widescreen plush universe adventure clip: a spaceship crafted entirely from plush fabric, buttons, zippers, and polyester stuffing blasts off from a yarn planet, then is swallowed whole by a colossal deep-blue shaggy plush whale, tumbling into a wondrous plush toy world inside its mouth.\n\nVisual style: hyper-detailed plush textures, cinematic cosmic scale, an endearing aesthetic juxtaposed against tense action, exaggerated FPV camera work, realistic soft-body physics; yarn strands, buttons, and cotton fluff rendered crisp and sharp.\n\nSubject: three small plush animals (a rabbit, a fox, and a crow) piloting a zipper ship with stitched seams and button-covered instrument panels; the whale has deep-blue shaggy fur and glass-button eyes.\n\nStoryboard:\n[0-2.5s] Launch: inside the cockpit a red warning button blinks rapidly, the rabbit pulls down an oversized zipper lever, and the front hatch splits open like a cloth sack; the camera rockets backward out of the ship as it blasts off from a knitted crater on the yarn planet, thrusters trailing plumes of white cotton fluff.\n[2.5-5s] Swallowed whole: a fuzzy nebula parts and the colossal whale opens its gaping maw, engulfing the ship; inside, the whale's mouth turns out to be a colossal plush toy world: huge soft fuzzy teeth line the cavity like pillars, suspended building blocks, stuffed dolls, and jingling bells collide midair, and the ship sprints low over the tongue's surface as its plush pile ripples violently; the camera tumbles continuously, freezing on the ship threading through a jungle of plush toys toward a glowing zipper skyline deep inside the whale.",
+          "model.resolution": "720P",
+          "model.ratio": "adaptive",
+          "model.duration": "auto",
+          "model.audio": true,
+          "model.prompt_extend": true,
+          "model.reference_images": 1954056574,
+          "model.reference_videos": "randomize",
+          "model.reference_audios": false,
+          "seed": 42,
+          "watermark": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Wan 3.0 Reference to Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "4",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Wan3.0",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "3-0-4-video",
+        "source": "3",
+        "sourceHandle": "VIDEO",
+        "target": "4",
+        "targetHandle": "video",
+        "ui_properties": null
+      }
+    ]
+  }
+}

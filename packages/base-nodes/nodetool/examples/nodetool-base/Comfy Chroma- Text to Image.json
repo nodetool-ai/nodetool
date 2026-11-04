@@ -1,0 +1,423 @@
+{
+  "id": "fe5c6e425a9bdd0ef2dfb7a1d97b829e",
+  "name": "Comfy Chroma- Text to Image",
+  "description": "Chroma - enhanced Flux model with improved image quality and better prompt understanding for stunning text-to-image generation. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Chroma- Text to Image\n\nChroma - enhanced Flux model with improved image quality and better prompt understanding for stunning text-to-image generation. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/image_chroma_text_to_image.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "298",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "694",
+        "type": "comfy.CFGGuider",
+        "data": {
+          "cfg": 3.5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CFG Guider"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "700",
+        "type": "comfy.KSamplerSelect",
+        "data": {
+          "sampler_name": "euler"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSamplerSelect"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "701",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 1,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Flow Shift"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "710",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "ae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "718",
+        "type": "comfy.RandomNoise",
+        "data": {
+          "noise_seed": 68346347456896
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "SEED"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "731",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "Chroma1-HD-fp8mixed.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "733",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "t5xxl_fp8_e4m3fn_scaled.safetensors",
+          "type": "chroma",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "734",
+        "type": "comfy.BasicScheduler",
+        "data": {
+          "scheduler": "beta",
+          "steps": 26,
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "BasicScheduler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "737",
+        "type": "comfy.EmptySD3LatentImage",
+        "data": {
+          "width": 1024,
+          "height": 1024,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "EmptySD3LatentImage"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "740",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "741",
+        "type": "comfy.T5TokenizerOptions",
+        "data": {
+          "min_padding": 0,
+          "min_length": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "T5 Tokenizer Options"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "747",
+        "type": "comfy.SamplerCustomAdvanced",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SamplerCustomAdvanced"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "748",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "This is a nature documentary close-up photograph of the right side of the face of a tiger. The photograph is centered on it's highly detailed and speckled eye surrounded by intricately detailed fur. Overlaid at the center of the image is a title text that says \"CHROMA1-HD\" in a large white 3D letters. Amateur photography. Unfiltered. Real life. Natural light. Subtle shadows. "
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Positive Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "749",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "This low quality greyscale unfinished sketch is inaccurate and flawed. The image is very blurred and lacks detail with excessive chromatic aberrations and artifacts. The image is overly saturated with excessive bloom. It has a toony aesthetic with bold outlines and flat colors. "
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Negative Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "747-0-298-samples",
+        "source": "747",
+        "sourceHandle": "output",
+        "target": "298",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "710-0-298-vae",
+        "source": "710",
+        "sourceHandle": "VAE",
+        "target": "298",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "701-0-694-model",
+        "source": "701",
+        "sourceHandle": "MODEL",
+        "target": "694",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "748-0-694-positive",
+        "source": "748",
+        "sourceHandle": "CONDITIONING",
+        "target": "694",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "749-0-694-negative",
+        "source": "749",
+        "sourceHandle": "CONDITIONING",
+        "target": "694",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "731-0-701-model",
+        "source": "731",
+        "sourceHandle": "MODEL",
+        "target": "701",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "701-0-734-model",
+        "source": "701",
+        "sourceHandle": "MODEL",
+        "target": "734",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "298-0-740-images",
+        "source": "298",
+        "sourceHandle": "IMAGE",
+        "target": "740",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "733-0-741-clip",
+        "source": "733",
+        "sourceHandle": "CLIP",
+        "target": "741",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "718-0-747-noise",
+        "source": "718",
+        "sourceHandle": "NOISE",
+        "target": "747",
+        "targetHandle": "noise",
+        "ui_properties": null
+      },
+      {
+        "id": "694-0-747-guider",
+        "source": "694",
+        "sourceHandle": "GUIDER",
+        "target": "747",
+        "targetHandle": "guider",
+        "ui_properties": null
+      },
+      {
+        "id": "700-0-747-sampler",
+        "source": "700",
+        "sourceHandle": "SAMPLER",
+        "target": "747",
+        "targetHandle": "sampler",
+        "ui_properties": null
+      },
+      {
+        "id": "734-0-747-sigmas",
+        "source": "734",
+        "sourceHandle": "SIGMAS",
+        "target": "747",
+        "targetHandle": "sigmas",
+        "ui_properties": null
+      },
+      {
+        "id": "737-0-747-latent_image",
+        "source": "737",
+        "sourceHandle": "LATENT",
+        "target": "747",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "741-0-748-clip",
+        "source": "741",
+        "sourceHandle": "CLIP",
+        "target": "748",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "741-0-749-clip",
+        "source": "741",
+        "sourceHandle": "CLIP",
+        "target": "749",
+        "targetHandle": "clip",
+        "ui_properties": null
+      }
+    ]
+  }
+}

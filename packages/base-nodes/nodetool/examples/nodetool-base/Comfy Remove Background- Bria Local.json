@@ -1,0 +1,106 @@
+{
+  "id": "e8d5a3f8ab105e08035f858afcf98612",
+  "name": "Comfy Remove Background- Bria Local",
+  "description": "Upload a video to remove the background. Generate a new video with a transparent or solid color background. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video tools",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Remove Background- Bria Local\n\nUpload a video to remove the background. Generate a new video with a transparent or solid color background. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/utility-bria_remove_video_background.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "122",
+        "type": "comfy.BriaRemoveVideoBackground",
+        "data": {
+          "background_color": "Black",
+          "seed": 2039714199
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Bria Remove Video Background"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "123",
+        "type": "comfy.LoadVideo",
+        "data": {
+          "file": "prince_and_phoenix.mp4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "124",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Bria_remove_background",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "123-0-122-video",
+        "source": "123",
+        "sourceHandle": "VIDEO",
+        "target": "122",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "122-0-124-video",
+        "source": "122",
+        "sourceHandle": "VIDEO",
+        "target": "124",
+        "targetHandle": "video",
+        "ui_properties": null
+      }
+    ]
+  }
+}

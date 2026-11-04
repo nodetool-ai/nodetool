@@ -1,0 +1,162 @@
+{
+  "id": "78b3d708049de205b545876e7dc4870d",
+  "name": "Comfy Kling- Virtual Try On",
+  "description": "Dress a virtual model in any garment by combining a clothing image with a person photo, generating a realistic try-on result alongside a side-by-side comparison view. It accepts flat-lay, mannequin, or on-model clothing shots while preserving the model's face and pose. Ideal for fashion e-commerce previews, styling mockups, and virtual fitting experiences. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Kling- Virtual Try On\n\nDress a virtual model in any garment by combining a clothing image with a person photo, generating a realistic try-on result alongside a side-by-side comparison view. It accepts flat-lay, mannequin, or on-model clothing shots while preserving the model's face and pose. Ideal for fashion e-commerce previews, styling mockups, and virtual fitting experiences. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_kling_vto.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.KlingTryOnNode",
+        "data": {
+          "keep_pose": true,
+          "seed": 982174420
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Kling Virtual Try-On"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "model_colorful_outfit.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "green_floral_dress.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "4",
+        "type": "comfy.SaveImageAdvanced",
+        "data": {
+          "filename_prefix": "Kling_VTO",
+          "format": "png",
+          "format.bit_depth": "8-bit",
+          "format.input_color_space": "sRGB"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5",
+        "type": "comfy.ImageCompare",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Compare Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "2-0-1-person_image",
+        "source": "2",
+        "sourceHandle": "IMAGE",
+        "target": "1",
+        "targetHandle": "person_image",
+        "ui_properties": null
+      },
+      {
+        "id": "3-0-1-garment_image",
+        "source": "3",
+        "sourceHandle": "IMAGE",
+        "target": "1",
+        "targetHandle": "garment_image",
+        "ui_properties": null
+      },
+      {
+        "id": "1-0-4-images",
+        "source": "1",
+        "sourceHandle": "IMAGE",
+        "target": "4",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-5-image_a",
+        "source": "2",
+        "sourceHandle": "IMAGE",
+        "target": "5",
+        "targetHandle": "image_a",
+        "ui_properties": null
+      },
+      {
+        "id": "4-0-5-image_b",
+        "source": "4",
+        "sourceHandle": "images",
+        "target": "5",
+        "targetHandle": "image_b",
+        "ui_properties": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,257 @@
+{
+  "id": "9bccfc1c0d789611ddf0b2a9c6b38c18",
+  "name": "Comfy Video Edit- Beeble SwitchX",
+  "description": "Upload a source video and a reference image, then provide a prompt describing the desired environment and lighting. Generate an edited video where masked regions follow your prompt and reference, while unmasked regions preserve the original pixels and motion, plus an alpha matte for compositing. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video tools",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Video Edit- Beeble SwitchX\n\nUpload a source video and a reference image, then provide a prompt describing the desired environment and lighting. Generate an edited video where masked regions follow your prompt and reference, while unmasked regions preserve the original pixels and motion, plus an alpha matte for compositing. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_beeble_switchx_video_edit.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "17",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "blue_poppies_field.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image (Optional)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "20",
+        "type": "comfy.BeebleSwitchXVideoEdit",
+        "data": {
+          "prompt": "The character stands in the wilderness and looks back towards the camera.",
+          "alpha_mode": "auto",
+          "max_resolution": "720p",
+          "seed": 379113823
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Beeble SwitchX Video Edit"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "21",
+        "type": "comfy.LoadVideo",
+        "data": {
+          "file": "woman_in_wheat_field.mp4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "22",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Beeble_switchX_video",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "24",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Beeble_switchX_alpha",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save Video (Alpha)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "25",
+        "type": "comfy.GetVideoComponents",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Get Video Components"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "29",
+        "type": "comfy.Video Slice",
+        "data": {
+          "start_time": 0,
+          "duration": 5,
+          "strict_duration": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Trim Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30",
+        "type": "comfy.GetImageSize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Get Image Size"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "31",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "29-0-20-video",
+        "source": "29",
+        "sourceHandle": "VIDEO",
+        "target": "20",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "17-0-20-reference_image",
+        "source": "17",
+        "sourceHandle": "IMAGE",
+        "target": "20",
+        "targetHandle": "reference_image",
+        "ui_properties": null
+      },
+      {
+        "id": "20-0-22-video",
+        "source": "20",
+        "sourceHandle": "video",
+        "target": "22",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "20-1-24-video",
+        "source": "20",
+        "sourceHandle": "alpha",
+        "target": "24",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "29-0-25-video",
+        "source": "29",
+        "sourceHandle": "VIDEO",
+        "target": "25",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "21-0-29-video",
+        "source": "21",
+        "sourceHandle": "VIDEO",
+        "target": "29",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "25-0-30-image",
+        "source": "25",
+        "sourceHandle": "images",
+        "target": "30",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "30-2-31-source",
+        "source": "30",
+        "sourceHandle": "batch_size",
+        "target": "31",
+        "targetHandle": "source",
+        "ui_properties": null
+      }
+    ]
+  }
+}

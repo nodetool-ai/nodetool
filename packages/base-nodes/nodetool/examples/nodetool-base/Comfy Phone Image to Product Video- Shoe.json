@@ -1,0 +1,476 @@
+{
+  "id": "042223095eca5aab2d00a565bb4991da",
+  "name": "Comfy Phone Image to Product Video- Shoe",
+  "description": "Take a picture with your phone, upload it and generate a studio grade product video. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "product & ads",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Phone Image to Product Video- Shoe\n\nTake a picture with your phone, upload it and generate a studio grade product video. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/templates-photo_to_product_vid.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "product_shoe.jpeg"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Product Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5",
+        "type": "comfy.MinimaxHailuoVideoNode",
+        "data": {
+          "prompt_text": "Product video — 360° rotating hero showcase of a white leather sneaker, cinematic soft spotlight, minimal studio background, seamless loop.",
+          "seed": 111,
+          "prompt_optimizer": true,
+          "duration": 6,
+          "resolution": "1080P"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "360 Rotation Vid - MiniMax Hailuo Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "9",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "10",
+        "type": "comfy.ByteDanceSeedreamNode",
+        "data": {
+          "model": "seedream-4-5-251128",
+          "prompt": "Professional studio product photography of a pristine white Adidas Samba sneaker from image 1, positioned at a dynamic three-quarter angle. The lighting is dramatic and cool-toned, featuring a hard spotlight that creates a glowing halo effect on the ground while casting soft shadows. The background is a seamless, clean gradient transitioning from a light silver-gray top to a deep anthracite black floor. Minimal composition with generous negative space, shot with shallow depth of field (f/2.8) to emphasize product details while softly blurring the background. ",
+          "size_preset": "1664x2496 (2:3)",
+          "width": 2048,
+          "height": 2048,
+          "sequential_image_generation": "disabled",
+          "max_images": 1,
+          "seed": 555,
+          "watermark": false,
+          "fail_on_partial": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ByteDance Seedream 4.5 & 5.0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "16",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ComfyUI-1",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "17",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ComfyUI-2",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18",
+        "type": "comfy.MinimaxHailuoVideoNode",
+        "data": {
+          "prompt_text": "Product video — camera slowly zooms toward the sneaker, revealing texture details, light reflecting on the leather surface, cinematic shallow depth of field\n",
+          "seed": 222,
+          "prompt_optimizer": true,
+          "duration": 6,
+          "resolution": "1080P"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Detailed Texture Vid - MiniMax Hailuo Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ComfyUI-2",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "20",
+        "type": "comfy.MinimaxHailuoVideoNode",
+        "data": {
+          "prompt_text": "Product video — camera pans across the sneaker from heel to toe, dramatic cinematic light sweeps across, dust motes floating in the air",
+          "seed": 333,
+          "prompt_optimizer": true,
+          "duration": 6,
+          "resolution": "1080P"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Cinematic Pan Vid - MiniMax Hailuo Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ComfyUI",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "27:23",
+        "type": "comfy.GetVideoComponents",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Get Video Components"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "27:26",
+        "type": "comfy.GetVideoComponents",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Get Video Components"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "27:24",
+        "type": "comfy.ImageBatch",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Batch Images (DEPRECATED)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "27:25",
+        "type": "comfy.ImageBatch",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Batch Images (DEPRECATED)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "27:22",
+        "type": "comfy.GetVideoComponents",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Get Video Components"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "27:27",
+        "type": "comfy.CreateVideo",
+        "data": {
+          "bit_depth": "auto",
+          "color_space": "sRGB",
+          "codec": "none"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Create Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "10-0-5-first_frame_image",
+        "source": "10",
+        "sourceHandle": "IMAGE",
+        "target": "5",
+        "targetHandle": "first_frame_image",
+        "ui_properties": null
+      },
+      {
+        "id": "10-0-9-images",
+        "source": "10",
+        "sourceHandle": "IMAGE",
+        "target": "9",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "1-0-10-image",
+        "source": "1",
+        "sourceHandle": "IMAGE",
+        "target": "10",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5-0-16-video",
+        "source": "5",
+        "sourceHandle": "VIDEO",
+        "target": "16",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "18-0-17-video",
+        "source": "18",
+        "sourceHandle": "VIDEO",
+        "target": "17",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "10-0-18-first_frame_image",
+        "source": "10",
+        "sourceHandle": "IMAGE",
+        "target": "18",
+        "targetHandle": "first_frame_image",
+        "ui_properties": null
+      },
+      {
+        "id": "20-0-19-video",
+        "source": "20",
+        "sourceHandle": "VIDEO",
+        "target": "19",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "10-0-20-first_frame_image",
+        "source": "10",
+        "sourceHandle": "IMAGE",
+        "target": "20",
+        "targetHandle": "first_frame_image",
+        "ui_properties": null
+      },
+      {
+        "id": "27:27-0-30-video",
+        "source": "27:27",
+        "sourceHandle": "VIDEO",
+        "target": "30",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "18-0-27:23-video",
+        "source": "18",
+        "sourceHandle": "VIDEO",
+        "target": "27:23",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "20-0-27:26-video",
+        "source": "20",
+        "sourceHandle": "VIDEO",
+        "target": "27:26",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "27:22-0-27:24-image1",
+        "source": "27:22",
+        "sourceHandle": "images",
+        "target": "27:24",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "27:23-0-27:24-image2",
+        "source": "27:23",
+        "sourceHandle": "images",
+        "target": "27:24",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "27:24-0-27:25-image1",
+        "source": "27:24",
+        "sourceHandle": "IMAGE",
+        "target": "27:25",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "27:26-0-27:25-image2",
+        "source": "27:26",
+        "sourceHandle": "images",
+        "target": "27:25",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5-0-27:22-video",
+        "source": "5",
+        "sourceHandle": "VIDEO",
+        "target": "27:22",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "27:22-2-27:27-fps",
+        "source": "27:22",
+        "sourceHandle": "fps",
+        "target": "27:27",
+        "targetHandle": "fps",
+        "ui_properties": null
+      },
+      {
+        "id": "27:25-0-27:27-images",
+        "source": "27:25",
+        "sourceHandle": "IMAGE",
+        "target": "27:27",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

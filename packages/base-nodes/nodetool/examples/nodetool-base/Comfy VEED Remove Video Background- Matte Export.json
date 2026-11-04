@@ -1,0 +1,138 @@
+{
+  "id": "5289d451216a83bd78406eb45364eb65",
+  "name": "Comfy VEED Remove Video Background- Matte Export",
+  "description": "Cut the subject out of a video with VEED Remove Video Background: the node segments the foreground in every frame and returns the frames plus an alpha mask, and Join Image with Alpha turns that mask into a transparent PNG sequence ready to composite. Choose standard, fast or green-screen keying; clips up to 60 seconds. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video tools",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy VEED Remove Video Background- Matte Export\n\nCut the subject out of a video with VEED Remove Video Background: the node segments the foreground in every frame and returns the frames plus an alpha mask, and Join Image with Alpha turns that mask into a transparent PNG sequence ready to composite. Choose standard, fast or green-screen keying; clips up to 60 seconds. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_veed_remove_video_background.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.VeedRemoveVideoBackgroundNode",
+        "data": {
+          "model": "standard",
+          "model.refine_foreground_edges": true,
+          "model.subject_is_person": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VEED Remove Video Background"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.LoadVideo",
+        "data": {
+          "file": "swimcap_glass_pop_video.mp4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.JoinImageWithAlpha",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Join Image with Alpha"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "8",
+        "type": "comfy.SaveImageAdvanced",
+        "data": {
+          "filename_prefix": "VEED_RemoveBG",
+          "format": "png",
+          "format.bit_depth": "8-bit",
+          "format.input_color_space": "sRGB"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "3-0-1-model.video",
+        "source": "3",
+        "sourceHandle": "VIDEO",
+        "target": "1",
+        "targetHandle": "model.video",
+        "ui_properties": null
+      },
+      {
+        "id": "1-0-7-image",
+        "source": "1",
+        "sourceHandle": "images",
+        "target": "7",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "1-1-7-alpha",
+        "source": "1",
+        "sourceHandle": "mask",
+        "target": "7",
+        "targetHandle": "alpha",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-8-images",
+        "source": "7",
+        "sourceHandle": "IMAGE",
+        "target": "8",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

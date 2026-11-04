@@ -451,37 +451,15 @@ export async function outputFrame(
 }
 
 /**
- * Submit `prompt` through `transport` and stream what it produces.
- *
- * Yields one frame per output file, keyed `"<comfyNodeId>:<kind>"`, as each
- * arrives, then a final `{ output }` frame describing the finished job.
- * Throws on a `failed` job (with the node-level detail), on cancellation, and
- * on the SDK errors an author can act on (queue full, insufficient credits,
- * UI-format workflow).
+ * Write run inputs into `graph`. A key `<comfyNodeId>:<field>` names the field,
+ * and a media value is uploaded through `transport`.
  */
-export async function* runComfyWorkflow(
-  transport: ComfyTransport,
-  prompt: ComfyPrompt,
+export async function applyComfyInputs(
+  graph: ComfyPrompt,
   dynamicProps: Iterable<[string, unknown]>,
-  options: ComfyRunOptions
-): AsyncGenerator<Record<string, unknown>> {
-  const { signal, context, nodeId, nodeName } = options;
-  const logLine = (
-    content: string,
-    severity: "info" | "warning" | "error" = "info"
-  ): void => {
-    context?.postMessage({
-      type: "log_update",
-      node_id: nodeId,
-      node_name: nodeName,
-      content,
-      severity
-    });
-  };
-
-  // Deep clone so injected inputs never mutate the stored workflow prop.
-  const graph = JSON.parse(JSON.stringify(prompt)) as ComfyPrompt;
-
+  transport: ComfyTransport,
+  context: ProcessingContext | undefined
+): Promise<void> {
   for (const [handle, value] of dynamicProps) {
     if (value === undefined || value === null) continue;
     const sep = handle.indexOf(":");
@@ -515,6 +493,41 @@ export async function* runComfyWorkflow(
       target.inputs[field] = value;
     }
   }
+}
+
+/**
+ * Submit `prompt` through `transport` and stream what it produces.
+ *
+ * Yields one frame per output file, keyed `"<comfyNodeId>:<kind>"`, as each
+ * arrives, then a final `{ output }` frame describing the finished job.
+ * Throws on a `failed` job (with the node-level detail), on cancellation, and
+ * on the SDK errors an author can act on (queue full, insufficient credits,
+ * UI-format workflow).
+ */
+export async function* runComfyWorkflow(
+  transport: ComfyTransport,
+  prompt: ComfyPrompt,
+  dynamicProps: Iterable<[string, unknown]>,
+  options: ComfyRunOptions
+): AsyncGenerator<Record<string, unknown>> {
+  const { signal, context, nodeId, nodeName } = options;
+  const logLine = (
+    content: string,
+    severity: "info" | "warning" | "error" = "info"
+  ): void => {
+    context?.postMessage({
+      type: "log_update",
+      node_id: nodeId,
+      node_name: nodeName,
+      content,
+      severity
+    });
+  };
+
+  // Deep clone so injected inputs never mutate the stored workflow prop.
+  const graph = JSON.parse(JSON.stringify(prompt)) as ComfyPrompt;
+
+  await applyComfyInputs(graph, dynamicProps, transport, context);
 
   logLine(`Submitting ComfyUI workflow (${Object.keys(graph).length} nodes)`);
 

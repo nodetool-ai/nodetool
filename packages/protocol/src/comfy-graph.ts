@@ -116,13 +116,26 @@ export function comfyClassType(nodeType: string): string {
 }
 
 /**
- * True when every runnable node of the graph is a ComfyUI node class. Editor
- * annotations (comments, groups, previews) do not count either way.
+ * True for a standard workflow Input or Output node. These nodes give a Comfy
+ * workflow the same inputs and outputs as any other workflow.
+ */
+export function isComfyBoundaryNodeType(type: unknown): type is string {
+  return (
+    isString(type) &&
+    (type.startsWith("nodetool.input.") || type.startsWith("nodetool.output."))
+  );
+}
+
+/**
+ * True when the graph has a ComfyUI node class and every other runnable node
+ * is a workflow Input or Output. Editor annotations (comments, groups,
+ * previews) do not count either way.
  */
 export function isComfyGraph(graph: { nodes: ReadonlyArray<{ type?: unknown }> }): boolean {
   let comfy = 0;
   for (const node of graph.nodes) {
     if (isString(node.type) && EDITOR_ONLY_TYPES.has(node.type)) continue;
+    if (isComfyBoundaryNodeType(node.type)) continue;
     if (!isComfyNodeType(node.type)) return false;
     comfy += 1;
   }
@@ -521,20 +534,172 @@ export function comfyPromptToGraph(
   return { nodes, edges };
 }
 
+const SAVE_CLASS = /^(Save|VHS_VideoCombine)/;
+const INPUT_NODE_TYPES = {
+  image: "nodetool.input.ImageInput",
+  audio: "nodetool.input.AudioInput",
+  video: "nodetool.input.VideoInput"
+} as const;
+/** The Load classes a run can feed, with the field that names the file. */
+const LOAD_CLASSES: Readonly<Record<string, { kind: keyof typeof INPUT_NODE_TYPES; field: string }>> = {
+  LoadImage: { kind: "image", field: "image" },
+  LoadAudio: { kind: "audio", field: "audio" },
+  LoadVideo: { kind: "video", field: "file" }
+};
+const PROMPT_FIELDS = ["text", "prompt", "tags", "caption"];
+
+function saveKind(classType: string): "image" | "audio" | "video" | null {
+  if (!SAVE_CLASS.test(classType)) return null;
+  if (/Video/.test(classType)) return "video";
+  if (/Audio/.test(classType)) return "audio";
+  return /Image|WEBP|PNG/.test(classType) ? "image" : null;
+}
+
+/**
+ * The node and field that hold the positive prompt: walk upstream from the
+ * `positive` socket to the first node with a literal prompt field. A graph with
+ * no `positive` socket uses its only text encoder.
+ */
+function positivePrompt(graph: ComfyGraph): { node: ComfyGraphNode; field: string } | null {
+  const byId = new Map(graph.nodes.map((node) => [node.id, node]));
+  const promptField = (node: ComfyGraphNode): string | undefined =>
+    /^comfy\.PrimitiveString/.test(node.type) && isString(nodeValues(node).value)
+      ? "value"
+      : PROMPT_FIELDS.find((field) => isString(nodeValues(node)[field]));
+  const pending = graph.edges.filter((e) => e.targetHandle === "positive").map((e) => e.source);
+  const seen = new Set<string>();
+  while (pending.length > 0) {
+    const id = pending.shift() as string;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const node = byId.get(id);
+    if (!node) continue;
+    const field = promptField(node);
+    if (field) return { node, field };
+    pending.push(...graph.edges.filter((e) => e.target === id).map((e) => e.source));
+  }
+  const encoders = graph.nodes.filter((node) => isComfyNodeType(node.type) && /TextEncode/.test(node.type) && promptField(node));
+  const [only] = encoders;
+  return encoders.length === 1 && only ? { node: only, field: promptField(only) as string } : null;
+}
+
+function nodePosition(node: ComfyGraphNode): { x: number; y: number } {
+  const position = isRecord(node.ui_properties) ? node.ui_properties.position : null;
+  return isRecord(position) && isNumber(position.x) && isNumber(position.y)
+    ? { x: position.x, y: position.y }
+    : { x: 0, y: 0 };
+}
+
+/**
+ * The graph as contract readers and the kernel see it. A stored Comfy graph
+ * holds only ComfyUI nodes, so this derives its contract: one input per Load
+ * node and for the positive prompt, one output per Save node. The result is
+ * never saved. A graph with its own Input or Output nodes keeps them, and any
+ * other graph is returned unchanged.
+ *
+ * Node ids are derived from the Comfy node and field, so a binding to a derived
+ * input stays valid across runs.
+ */
+export function exposeComfyInterface<G extends { nodes: readonly object[]; edges: readonly object[] }>(
+  source: G
+): G {
+  const nodesIn = source.nodes as ReadonlyArray<{ type?: unknown }>;
+  if (!isComfyGraph({ nodes: nodesIn })) return source;
+  if (nodesIn.some((node) => isComfyBoundaryNodeType(node.type))) return source;
+  const graph = source as unknown as ComfyGraph;
+  const added: ComfyGraphNode[] = [];
+  const addedEdges: ComfyGraphEdge[] = [];
+  const counts = new Map<string, number>();
+  const uniqueName = (base: string): string => {
+    const count = (counts.get(base) ?? 0) + 1;
+    counts.set(base, count);
+    return count === 1 ? base : `${base}_${count}`;
+  };
+  const addInput = (target: ComfyGraphNode, field: string, type: string, name: string, value: unknown): void => {
+    const id = `input_${target.id}_${field}`;
+    const { x, y } = nodePosition(target);
+    added.push({
+      id,
+      type,
+      data: { name, description: "", value },
+      // Editor readers use `data`, and the kernel uses `properties`.
+      properties: { name, description: "", value },
+      ui_properties: { position: { x: x - 340, y }, width: 280 },
+      dynamic_properties: {},
+      dynamic_outputs: {}
+    });
+    addedEdges.push({
+      id: `${id}-${target.id}`,
+      source: id,
+      sourceHandle: "output",
+      target: target.id,
+      targetHandle: field,
+      ui_properties: null
+    });
+  };
+
+  const prompt = positivePrompt(graph);
+  if (prompt) {
+    addInput(prompt.node, prompt.field, "nodetool.input.StringInput", uniqueName("prompt"), nodeValues(prompt.node)[prompt.field]);
+  }
+  const nodes = graph.nodes.map((node) => {
+    if (!isComfyNodeType(node.type)) return node;
+    const classType = comfyClassType(node.type);
+    const load = LOAD_CLASSES[classType];
+    if (load) {
+      addInput(node, load.field, INPUT_NODE_TYPES[load.kind], uniqueName(load.kind), { type: load.kind, uri: "" });
+      return node;
+    }
+    const kind = saveKind(classType);
+    if (!kind) return node;
+    const id = `output_${node.id}`;
+    const outputName = uniqueName("output");
+    const { x, y } = nodePosition(node);
+    added.push({
+      id,
+      type: "nodetool.output.Output",
+      data: { name: outputName, description: "" },
+      properties: { name: outputName, description: "" },
+      ui_properties: { position: { x: x + 340, y }, width: 280 },
+      dynamic_properties: {},
+      dynamic_outputs: {}
+    });
+    addedEdges.push({
+      id: `${node.id}-${id}`,
+      source: node.id,
+      sourceHandle: "output",
+      target: id,
+      targetHandle: "value",
+      ui_properties: null
+    });
+    const dynamicOutputs: Record<string, unknown> = { ...(node.dynamic_outputs as Record<string, unknown> | undefined) };
+    dynamicOutputs.output = { type: kind, optional: true, type_args: [] };
+    return { ...node, dynamic_outputs: dynamicOutputs };
+  });
+  return { ...source, nodes: [...nodes, ...added], edges: [...graph.edges, ...addedEdges] } as unknown as G;
+}
+
 /**
  * Replace a Comfy graph with the single runner node the kernel executes. The
  * runner carries the original nodes and edges and compiles them at run time,
- * when it has the Comfy catalog to resolve output socket indexes.
+ * when it has the Comfy catalog to resolve output socket indexes. Input and
+ * Output nodes stay in the graph. An edge from an Input becomes a runner input
+ * `<comfyNodeId>:<field>`, and an edge to an Output reads the runner output
+ * `<comfyNodeId>:<handle>`.
  *
  * Returns the graph unchanged when it is not a Comfy graph.
  */
 export function collapseComfyGraph<G extends { nodes: readonly object[]; edges: readonly object[] }>(
-  graph: G
+  source: G
 ): G {
+  if (!isComfyGraph({ nodes: source.nodes as ReadonlyArray<{ type?: unknown }> })) return source;
+  const graph = exposeComfyInterface(source);
   const nodes = graph.nodes as ReadonlyArray<Record<string, unknown>>;
   const edges = graph.edges as ReadonlyArray<Record<string, unknown>>;
-  if (!isComfyGraph({ nodes })) return graph;
   const comfyNodes = nodes.filter((n) => isComfyNodeType(n.type));
+  const boundaryNodes = nodes.filter((n) => isComfyBoundaryNodeType(n.type));
+  const comfyIds = new Set(comfyNodes.map((n) => String(n.id)));
+  const keptIds = new Set(boundaryNodes.map((n) => String(n.id)));
   const data = {
     nodes: comfyNodes.map((n) => ({
       id: String(n.id),
@@ -543,20 +708,48 @@ export function collapseComfyGraph<G extends { nodes: readonly object[]; edges: 
       ui_properties: isRecord(n.ui_properties) ? { title: n.ui_properties.title } : null
     })),
     edges: edges
-      .filter((e) => e.edge_type !== "control")
+      .filter(
+        (e) =>
+          e.edge_type !== "control" &&
+          comfyIds.has(String(e.source)) &&
+          comfyIds.has(String(e.target))
+      )
       .map((e) => ({
         source: String(e.source),
         sourceHandle: String(e.sourceHandle ?? ""),
         target: String(e.target),
         targetHandle: String(e.targetHandle ?? "")
-      }))
+      })),
+    output_slots: [] as string[]
   };
+  const dynamicOutputs: Record<string, unknown> = {};
+  const boundaryEdges: Array<Record<string, unknown>> = [];
+  for (const edge of edges) {
+    const fromComfy = comfyIds.has(String(edge.source));
+    const toComfy = comfyIds.has(String(edge.target));
+    if (fromComfy && toComfy) continue;
+    if (fromComfy && keptIds.has(String(edge.target))) {
+      const slot = `${String(edge.source)}:${String(edge.sourceHandle ?? "")}`;
+      data.output_slots.push(slot);
+      dynamicOutputs[slot] = { type: "any", optional: true, type_args: [] };
+      boundaryEdges.push({ ...edge, source: COMFY_CLOUD_GRAPH_NODE_ID, sourceHandle: slot });
+    } else if (toComfy && keptIds.has(String(edge.source))) {
+      boundaryEdges.push({
+        ...edge,
+        target: COMFY_CLOUD_GRAPH_NODE_ID,
+        targetHandle: `${String(edge.target)}:${String(edge.targetHandle ?? "")}`
+      });
+    } else if (keptIds.has(String(edge.source)) && keptIds.has(String(edge.target))) {
+      boundaryEdges.push(edge);
+    }
+  }
   // The saved form reads `data`, the normalized form `properties`.
   const runner = {
     id: COMFY_CLOUD_GRAPH_NODE_ID,
     type: COMFY_CLOUD_GRAPH_NODE_TYPE,
     data,
-    properties: data
+    properties: data,
+    dynamic_outputs: dynamicOutputs
   };
-  return { ...graph, nodes: [runner], edges: [] } as G;
+  return { ...graph, nodes: [runner, ...boundaryNodes], edges: boundaryEdges } as G;
 }

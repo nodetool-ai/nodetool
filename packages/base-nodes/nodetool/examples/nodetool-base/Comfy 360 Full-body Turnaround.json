@@ -1,0 +1,225 @@
+{
+  "id": "4ddc03494d3a2fd1bce78d6b3b04499f",
+  "name": "Comfy 360 Full-body Turnaround",
+  "description": "Upload your character and generate 360 turnaround views for full body and close ups. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "character & fashion",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy 360 Full-body Turnaround\n\nUpload your character and generate 360 turnaround views for full body and close ups. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/templates-character_sheet.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "templates-character_sheet_pink_silver_outfit.jpg"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Character Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "4",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-close_up"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "prompt": "A 360 turnaround view of the subject, Close up shot of face, straight in 4 different angles, headshots, all white background",
+          "model": "gemini-3-pro-image-preview",
+          "seed": 54321,
+          "aspect_ratio": "9:16",
+          "resolution": "2K",
+          "response_modalities": "IMAGE+TEXT",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "6",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-full_body"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "prompt": "A 360 turnaround full body view of the subject, straight in 4 different angles. Front view, half turn, side profile, back view. \nFull-body shots, all white background.",
+          "model": "gemini-3-pro-image-preview",
+          "seed": 12345,
+          "aspect_ratio": "16:9",
+          "resolution": "2K",
+          "response_modalities": "IMAGE+TEXT",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "11",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "right",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Stitch Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "15",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-character_sheet"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "5-0-4-images",
+        "source": "5",
+        "sourceHandle": "IMAGE",
+        "target": "4",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "1-0-5-images",
+        "source": "1",
+        "sourceHandle": "IMAGE",
+        "target": "5",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-6-images",
+        "source": "7",
+        "sourceHandle": "IMAGE",
+        "target": "6",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "1-0-7-images",
+        "source": "1",
+        "sourceHandle": "IMAGE",
+        "target": "7",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-11-image1",
+        "source": "7",
+        "sourceHandle": "IMAGE",
+        "target": "11",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5-0-11-image2",
+        "source": "5",
+        "sourceHandle": "IMAGE",
+        "target": "11",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "11-0-15-images",
+        "source": "11",
+        "sourceHandle": "IMAGE",
+        "target": "15",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

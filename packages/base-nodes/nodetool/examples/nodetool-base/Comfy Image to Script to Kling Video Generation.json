@@ -1,0 +1,483 @@
+{
+  "id": "be2eae5f8ce6881622ade3bb6b7cc560",
+  "name": "Comfy Image to Script to Kling Video Generation",
+  "description": "Upload an image to automatically generate a descriptive script. This script is then used to create a video with the Kling 3.0 Omni model. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Image to Script to Kling Video Generation\n\nUpload an image to automatically generate a descriptive script. This script is then used to create a video with the Kling 3.0 Omni model. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/template_sirolim_image_script_video.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "5",
+        "type": "comfy.GeminiNanoBanana2",
+        "data": {
+          "model": "Nano Banana 2 (Gemini 3.1 Flash Image)",
+          "seed": 945201656143140,
+          "aspect_ratio": "9:16",
+          "resolution": "4K",
+          "response_modalities": "IMAGE",
+          "thinking_level": "HIGH",
+          "system_prompt": "no text overlays, text bubbles or any other dialogue visualisations. A single image."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Nano Banana 2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ComfyUI",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "15",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "16",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "input_storyboard_video.jpg"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "20",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "23",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "29",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "142",
+        "type": "comfy.PreviewImage",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Preview Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "146",
+        "type": "comfy.GeminiNode",
+        "data": {
+          "prompt": "",
+          "model": "gemini-3-pro-preview",
+          "seed": 323787791232589,
+          "system_prompt": "Write a 3 scene script. Extract the scenes to prompts. Each prompt has less than 512 characters. Number the prompts: A), B), C)"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Google Gemini"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "148",
+        "type": "comfy.KlingOmniProImageToVideoNode",
+        "data": {
+          "model_name": "kling-v3-omni",
+          "prompt": "",
+          "aspect_ratio": "9:16",
+          "duration": 12,
+          "resolution": "720p",
+          "storyboards": "3 storyboards",
+          "storyboards.storyboard_1_duration": 4,
+          "storyboards.storyboard_2_duration": 4,
+          "storyboards.storyboard_3_duration": 4,
+          "generate_audio": true,
+          "seed": 205346978
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Kling 3.0 Omni Image to Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "36:21",
+        "type": "comfy.OpenAIChatNode",
+        "data": {
+          "persist_context": false,
+          "model": "gpt-5-mini"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "OpenAI ChatGPT"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "36:22",
+        "type": "comfy.OpenAIChatConfig",
+        "data": {
+          "truncation": "auto",
+          "max_output_tokens": 4096,
+          "instructions": "strictly extract prompt A) only return one prompt without any explanation.",
+          "reasoning_effort": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "OpenAI ChatGPT Advanced Options"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "37:24",
+        "type": "comfy.OpenAIChatNode",
+        "data": {
+          "persist_context": false,
+          "model": "gpt-5-mini"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "OpenAI ChatGPT"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "37:25",
+        "type": "comfy.OpenAIChatConfig",
+        "data": {
+          "truncation": "auto",
+          "max_output_tokens": 4096,
+          "instructions": "strictly extract prompt B) only return one prompt without any explanation.",
+          "reasoning_effort": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "OpenAI ChatGPT Advanced Options"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "38:34",
+        "type": "comfy.OpenAIChatNode",
+        "data": {
+          "persist_context": false,
+          "model": "gpt-5-mini"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 990
+          },
+          "width": 280,
+          "title": "OpenAI ChatGPT"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "38:28",
+        "type": "comfy.OpenAIChatConfig",
+        "data": {
+          "truncation": "auto",
+          "max_output_tokens": 4096,
+          "instructions": "strictly extract prompt C) only return one prompt without any explanation.",
+          "reasoning_effort": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "OpenAI ChatGPT Advanced Options"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "36:21-0-5-prompt",
+        "source": "36:21",
+        "sourceHandle": "STRING",
+        "target": "5",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "16-0-5-images",
+        "source": "16",
+        "sourceHandle": "IMAGE",
+        "target": "5",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "148-0-7-video",
+        "source": "148",
+        "sourceHandle": "VIDEO",
+        "target": "7",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "36:21-0-15-source",
+        "source": "36:21",
+        "sourceHandle": "STRING",
+        "target": "15",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "146-0-20-source",
+        "source": "146",
+        "sourceHandle": "STRING",
+        "target": "20",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "37:24-0-23-source",
+        "source": "37:24",
+        "sourceHandle": "STRING",
+        "target": "23",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "38:34-0-29-source",
+        "source": "38:34",
+        "sourceHandle": "STRING",
+        "target": "29",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "5-0-142-images",
+        "source": "5",
+        "sourceHandle": "IMAGE",
+        "target": "142",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "16-0-146-images",
+        "source": "16",
+        "sourceHandle": "IMAGE",
+        "target": "146",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "36:21-0-148-storyboards.storyboard_1_prompt",
+        "source": "36:21",
+        "sourceHandle": "STRING",
+        "target": "148",
+        "targetHandle": "storyboards.storyboard_1_prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "37:24-0-148-storyboards.storyboard_2_prompt",
+        "source": "37:24",
+        "sourceHandle": "STRING",
+        "target": "148",
+        "targetHandle": "storyboards.storyboard_2_prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "38:34-0-148-storyboards.storyboard_3_prompt",
+        "source": "38:34",
+        "sourceHandle": "STRING",
+        "target": "148",
+        "targetHandle": "storyboards.storyboard_3_prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "5-0-148-reference_images",
+        "source": "5",
+        "sourceHandle": "IMAGE",
+        "target": "148",
+        "targetHandle": "reference_images",
+        "ui_properties": null
+      },
+      {
+        "id": "146-0-36:21-prompt",
+        "source": "146",
+        "sourceHandle": "STRING",
+        "target": "36:21",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "36:22-0-36:21-advanced_options",
+        "source": "36:22",
+        "sourceHandle": "OPENAI_CHAT_CONFIG",
+        "target": "36:21",
+        "targetHandle": "advanced_options",
+        "ui_properties": null
+      },
+      {
+        "id": "146-0-37:24-prompt",
+        "source": "146",
+        "sourceHandle": "STRING",
+        "target": "37:24",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "37:25-0-37:24-advanced_options",
+        "source": "37:25",
+        "sourceHandle": "OPENAI_CHAT_CONFIG",
+        "target": "37:24",
+        "targetHandle": "advanced_options",
+        "ui_properties": null
+      },
+      {
+        "id": "146-0-38:34-prompt",
+        "source": "146",
+        "sourceHandle": "STRING",
+        "target": "38:34",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "38:28-0-38:34-advanced_options",
+        "source": "38:28",
+        "sourceHandle": "OPENAI_CHAT_CONFIG",
+        "target": "38:34",
+        "targetHandle": "advanced_options",
+        "ui_properties": null
+      }
+    ]
+  }
+}

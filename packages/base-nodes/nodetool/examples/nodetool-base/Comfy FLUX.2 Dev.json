@@ -1,0 +1,671 @@
+{
+  "id": "ac6f6ad7749e2a4d764b3a8568df099d",
+  "name": "Comfy FLUX.2 Dev",
+  "description": "Generate photorealistic images with multi-reference consistency and professional text rendering. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy FLUX.2 Dev\n\nGenerate photorealistic images with multi-reference consistency and professional text rendering. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/image_flux2.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "9",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "Flux2"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "45",
+        "type": "comfy.ImageScaleToTotalPixels",
+        "data": {
+          "upscale_method": "lanczos",
+          "megapixels": 1,
+          "resolution_steps": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Scale Image to Total Pixels"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "46",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "image_flux2_input_image.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "68:48",
+        "type": "comfy.Flux2Scheduler",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Flux2Scheduler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "68:22",
+        "type": "comfy.BasicGuider",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Basic Guider"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "68:16",
+        "type": "comfy.KSamplerSelect",
+        "data": {
+          "sampler_name": "euler"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "KSamplerSelect"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "68:10",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "full_encoder_small_decoder.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "68:13",
+        "type": "comfy.SamplerCustomAdvanced",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SamplerCustomAdvanced"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "68:6",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "The woman is wearing a small pale yellow knitted beanie, with a white fabric patch on the front right, embroidered with big gray text “FLUX.2 COMFY.” Keep the face"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Positive Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "68:38",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "mistral_3_small_flux2_bf16.safetensors",
+          "type": "flux2",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "68:25",
+        "type": "comfy.RandomNoise",
+        "data": {
+          "noise_seed": 342971778941390
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "RandomNoise"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "68:8",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "68:26",
+        "type": "comfy.FluxGuidance",
+        "data": {
+          "guidance": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "FluxGuidance"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "68:89",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "Flux_2-Turbo-LoRA_comfyui.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "68:12",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "flux2_dev_fp8mixed.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "68:92",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Switch(model)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "68:90",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Steps"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "68:91",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 20
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "Steps"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "68:93",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Switch(steps)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "68:47",
+        "type": "comfy.EmptyFlux2LatentImage",
+        "data": {
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Empty Flux 2 Latent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "68:72",
+        "type": "comfy.GetImageSize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Get Image Size"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "68:44",
+        "type": "comfy.VAEEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 990
+          },
+          "width": 280,
+          "title": "VAE Encode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "68:43",
+        "type": "comfy.ReferenceLatent",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Set Reference Latent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "68:94",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2640
+          },
+          "width": 280,
+          "title": "Enable 8 steps lora"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "68:8-0-9-images",
+        "source": "68:8",
+        "sourceHandle": "IMAGE",
+        "target": "9",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "46-0-45-image",
+        "source": "46",
+        "sourceHandle": "IMAGE",
+        "target": "45",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "68:93-0-68:48-steps",
+        "source": "68:93",
+        "sourceHandle": "output",
+        "target": "68:48",
+        "targetHandle": "steps",
+        "ui_properties": null
+      },
+      {
+        "id": "68:72-0-68:48-width",
+        "source": "68:72",
+        "sourceHandle": "width",
+        "target": "68:48",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "68:72-1-68:48-height",
+        "source": "68:72",
+        "sourceHandle": "height",
+        "target": "68:48",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "68:92-0-68:22-model",
+        "source": "68:92",
+        "sourceHandle": "output",
+        "target": "68:22",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "68:43-0-68:22-conditioning",
+        "source": "68:43",
+        "sourceHandle": "CONDITIONING",
+        "target": "68:22",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "68:25-0-68:13-noise",
+        "source": "68:25",
+        "sourceHandle": "NOISE",
+        "target": "68:13",
+        "targetHandle": "noise",
+        "ui_properties": null
+      },
+      {
+        "id": "68:22-0-68:13-guider",
+        "source": "68:22",
+        "sourceHandle": "GUIDER",
+        "target": "68:13",
+        "targetHandle": "guider",
+        "ui_properties": null
+      },
+      {
+        "id": "68:16-0-68:13-sampler",
+        "source": "68:16",
+        "sourceHandle": "SAMPLER",
+        "target": "68:13",
+        "targetHandle": "sampler",
+        "ui_properties": null
+      },
+      {
+        "id": "68:48-0-68:13-sigmas",
+        "source": "68:48",
+        "sourceHandle": "SIGMAS",
+        "target": "68:13",
+        "targetHandle": "sigmas",
+        "ui_properties": null
+      },
+      {
+        "id": "68:47-0-68:13-latent_image",
+        "source": "68:47",
+        "sourceHandle": "LATENT",
+        "target": "68:13",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "68:38-0-68:6-clip",
+        "source": "68:38",
+        "sourceHandle": "CLIP",
+        "target": "68:6",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "68:13-0-68:8-samples",
+        "source": "68:13",
+        "sourceHandle": "output",
+        "target": "68:8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "68:10-0-68:8-vae",
+        "source": "68:10",
+        "sourceHandle": "VAE",
+        "target": "68:8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "68:6-0-68:26-conditioning",
+        "source": "68:6",
+        "sourceHandle": "CONDITIONING",
+        "target": "68:26",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "68:12-0-68:89-model",
+        "source": "68:12",
+        "sourceHandle": "MODEL",
+        "target": "68:89",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "68:94-0-68:92-switch",
+        "source": "68:94",
+        "sourceHandle": "BOOLEAN",
+        "target": "68:92",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "68:12-0-68:92-on_false",
+        "source": "68:12",
+        "sourceHandle": "MODEL",
+        "target": "68:92",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "68:89-0-68:92-on_true",
+        "source": "68:89",
+        "sourceHandle": "MODEL",
+        "target": "68:92",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "68:94-0-68:93-switch",
+        "source": "68:94",
+        "sourceHandle": "BOOLEAN",
+        "target": "68:93",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "68:91-0-68:93-on_false",
+        "source": "68:91",
+        "sourceHandle": "INT",
+        "target": "68:93",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "68:90-0-68:93-on_true",
+        "source": "68:90",
+        "sourceHandle": "INT",
+        "target": "68:93",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "68:72-0-68:47-width",
+        "source": "68:72",
+        "sourceHandle": "width",
+        "target": "68:47",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "68:72-1-68:47-height",
+        "source": "68:72",
+        "sourceHandle": "height",
+        "target": "68:47",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "45-0-68:72-image",
+        "source": "45",
+        "sourceHandle": "IMAGE",
+        "target": "68:72",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "45-0-68:44-pixels",
+        "source": "45",
+        "sourceHandle": "IMAGE",
+        "target": "68:44",
+        "targetHandle": "pixels",
+        "ui_properties": null
+      },
+      {
+        "id": "68:10-0-68:44-vae",
+        "source": "68:10",
+        "sourceHandle": "VAE",
+        "target": "68:44",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "68:26-0-68:43-conditioning",
+        "source": "68:26",
+        "sourceHandle": "CONDITIONING",
+        "target": "68:43",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "68:44-0-68:43-latent",
+        "source": "68:44",
+        "sourceHandle": "LATENT",
+        "target": "68:43",
+        "targetHandle": "latent",
+        "ui_properties": null
+      }
+    ]
+  }
+}

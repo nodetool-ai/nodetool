@@ -1,0 +1,380 @@
+{
+  "id": "fc288a39785ab1a9028d097d23e21327",
+  "name": "Comfy MiniMax H3 Max Turbo- Image to Video",
+  "description": "Generate video sequences from a starting image using MiniMax H3 Max Turbo, producing two video outputs from a single input frame. This rapid image-to-video workflow generates short clips in seconds, with optional prompt enhancement and 2K upscaling stages. Ideal for animating still photographs, creating quick motion previews for storyboards, and fast visual effects iteration. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy MiniMax H3 Max Turbo- Image to Video\n\nGenerate video sequences from a starting image using MiniMax H3 Max Turbo, producing two video outputs from a single input frame. This rapid image-to-video workflow generates short clips in seconds, with optional prompt enhancement and 2K upscaling stages. Ideal for animating still photographs, creating quick motion previews for storyboards, and fast visual effects iteration. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_minimax_h3_max_turbo_i2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "2",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/video/MiniMax_H3_Max_turbo_i2v_768P",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.MinimaxHailuo03ContextIRNode",
+        "data": {
+          "model": "MiniMax H3",
+          "model.duration": 5,
+          "model.ratio": "adaptive"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "MiniMax H3 Context IR (Prompt Enhancer)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "8",
+        "type": "comfy.SaveText",
+        "data": {
+          "filename_prefix": "txt",
+          "format": "txt"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "10",
+        "type": "comfy.MinimaxHailuo03RegenerateNode",
+        "data": {
+          "model": "MiniMax H3",
+          "model.resolution": "2K",
+          "model.reference_images": false,
+          "watermark": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "MiniMax H3 Regenerate to 2K"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "11",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Minimax_h3_max",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "If/Else Switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "If/Else Switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "14",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "At 0.00 seconds, cinematic live-action arc shot with slow push-in, centered on a futuristic metallic teal aerodynamic sports car parked on a spacious light grey tiled concrete platform. The background features a calm deep blue ocean, clear cloudless sky, and sharp angular dark grey concrete architectural structures. The car adopts sharp angular body lines, slim white LED headlights, geometric front air intakes with delicate copper aerodynamic fins, and fully raised gull-wing doors. It is equipped with black and silver turbine-style alloy wheels, paired with white leather bucket seats with dark grey inserts and a minimalist futuristic interior.\n\nThe camera slowly circles to the right and pushes closer to the vehicle. The sports car performs a smooth and precise mechanical decomposition in mid-air. The metallic teal body panels, gull-wing doors and four turbine wheels float outward steadily. Interior leather seats and central console hover slightly upward, exposing intricate carbon fiber frameworks, metal brake discs, calipers and suspension structures. All disassembled components suspend in orderly spaced mid-air arrangement with stable posture. Ultra-fine surface textures are clearly presented: delicate metallic flakes inside teal paint, fine leather stitching and grain, and high-precision brushed metal finishes, creating a clean, high-tech and realistic mechanical explosion visual effect."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Text (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Boolean (Prompt Enhance)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Boolean (Upscale to 2K)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "24",
+        "type": "comfy.MinimaxHailuo03FirstLastFrameNode",
+        "data": {
+          "model": "MiniMax H3 Max Turbo",
+          "model.resolution": "768P",
+          "model.duration": 5,
+          "model.prompt_expansion_mode": "balanced",
+          "seed": 2188635952,
+          "watermark": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "MiniMax H3 First-Last-Frame to Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "25",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "teal_hypercar_seaside.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "24-0-2-video",
+        "source": "24",
+        "sourceHandle": "VIDEO",
+        "target": "2",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "14-0-7-model.prompt",
+        "source": "14",
+        "sourceHandle": "STRING",
+        "target": "7",
+        "targetHandle": "model.prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "25-0-7-first_frame",
+        "source": "25",
+        "sourceHandle": "IMAGE",
+        "target": "7",
+        "targetHandle": "first_frame",
+        "ui_properties": null
+      },
+      {
+        "id": "12-0-8-text",
+        "source": "12",
+        "sourceHandle": "output",
+        "target": "8",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "8-0-10-model.prompt",
+        "source": "8",
+        "sourceHandle": "text",
+        "target": "10",
+        "targetHandle": "model.prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-10-video",
+        "source": "2",
+        "sourceHandle": "video",
+        "target": "10",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "25-0-10-first_frame",
+        "source": "25",
+        "sourceHandle": "IMAGE",
+        "target": "10",
+        "targetHandle": "first_frame",
+        "ui_properties": null
+      },
+      {
+        "id": "13-0-11-video",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "11",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "18-0-12-switch",
+        "source": "18",
+        "sourceHandle": "BOOLEAN",
+        "target": "12",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "14-0-12-on_false",
+        "source": "14",
+        "sourceHandle": "STRING",
+        "target": "12",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-12-on_true",
+        "source": "7",
+        "sourceHandle": "STRING",
+        "target": "12",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "19-0-13-switch",
+        "source": "19",
+        "sourceHandle": "BOOLEAN",
+        "target": "13",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "24-0-13-on_false",
+        "source": "24",
+        "sourceHandle": "VIDEO",
+        "target": "13",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "10-0-13-on_true",
+        "source": "10",
+        "sourceHandle": "VIDEO",
+        "target": "13",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "12-0-24-model.prompt",
+        "source": "12",
+        "sourceHandle": "output",
+        "target": "24",
+        "targetHandle": "model.prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "25-0-24-first_frame",
+        "source": "25",
+        "sourceHandle": "IMAGE",
+        "target": "24",
+        "targetHandle": "first_frame",
+        "ui_properties": null
+      }
+    ]
+  }
+}

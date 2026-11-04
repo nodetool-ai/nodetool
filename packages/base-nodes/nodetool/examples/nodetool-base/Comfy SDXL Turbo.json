@@ -1,0 +1,287 @@
+{
+  "id": "7221203aa09db0654fa961dd1d5b6742",
+  "name": "Comfy SDXL Turbo",
+  "description": "Generate images in a single step using SDXL Turbo. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy SDXL Turbo\n\nGenerate images in a single step using SDXL Turbo. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/sdxlturbo_example.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "5",
+        "type": "comfy.EmptyLatentImage",
+        "data": {
+          "width": 512,
+          "height": 512,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Empty Latent Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "6",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "beautiful landscape scenery glass bottle with a galaxy inside cute fennec fox snow HDR sunset"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "text, watermark"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "8",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13",
+        "type": "comfy.SamplerCustom",
+        "data": {
+          "add_noise": true,
+          "noise_seed": 0,
+          "cfg": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SamplerCustom"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "14",
+        "type": "comfy.KSamplerSelect",
+        "data": {
+          "sampler_name": "euler_ancestral"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "KSamplerSelect"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "20",
+        "type": "comfy.CheckpointLoaderSimple",
+        "data": {
+          "ckpt_name": "sd_xl_turbo_1.0_fp16.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load Checkpoint"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "22",
+        "type": "comfy.SDTurboScheduler",
+        "data": {
+          "steps": 1,
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "SDTurboScheduler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "27",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "20-1-6-clip",
+        "source": "20",
+        "sourceHandle": "CLIP",
+        "target": "6",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "20-1-7-clip",
+        "source": "20",
+        "sourceHandle": "CLIP",
+        "target": "7",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "13-0-8-samples",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "20-2-8-vae",
+        "source": "20",
+        "sourceHandle": "VAE",
+        "target": "8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "20-0-13-model",
+        "source": "20",
+        "sourceHandle": "MODEL",
+        "target": "13",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-13-positive",
+        "source": "6",
+        "sourceHandle": "CONDITIONING",
+        "target": "13",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-13-negative",
+        "source": "7",
+        "sourceHandle": "CONDITIONING",
+        "target": "13",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "14-0-13-sampler",
+        "source": "14",
+        "sourceHandle": "SAMPLER",
+        "target": "13",
+        "targetHandle": "sampler",
+        "ui_properties": null
+      },
+      {
+        "id": "22-0-13-sigmas",
+        "source": "22",
+        "sourceHandle": "SIGMAS",
+        "target": "13",
+        "targetHandle": "sigmas",
+        "ui_properties": null
+      },
+      {
+        "id": "5-0-13-latent_image",
+        "source": "5",
+        "sourceHandle": "LATENT",
+        "target": "13",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "20-0-22-model",
+        "source": "20",
+        "sourceHandle": "MODEL",
+        "target": "22",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "8-0-27-images",
+        "source": "8",
+        "sourceHandle": "IMAGE",
+        "target": "27",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

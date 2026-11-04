@@ -1,0 +1,493 @@
+{
+  "id": "fcdd2b13f125a0e5cc14501a359705c9",
+  "name": "Comfy Pose Detection- SDPose Multi-Person (utility_sdpose_multi_person_video)",
+  "description": "Upload a video to detect human poses. Supports detection for both single individuals and multiple people within the same scene Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "video tools",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Pose Detection- SDPose Multi-Person (utility_sdpose_multi_person_video)\n\nUpload a video to detect human poses. Supports detection for both single individuals and multiple people within the same scene Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/utility_sdpose_multi_person_video.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "682",
+        "type": "comfy.DrawBBoxes",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Draw BBoxes"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "687",
+        "type": "comfy.ResizeImageMaskNode",
+        "data": {
+          "resize_type": "scale longer dimension",
+          "scale_method": "lanczos"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Resize Image/Mask"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "688",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 1024
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Int"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "690",
+        "type": "comfy.ImageBlend",
+        "data": {
+          "blend_factor": 0.5,
+          "blend_mode": "normal"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Blend Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "694",
+        "type": "comfy.LoadVideo",
+        "data": {
+          "file": "man_playing_violin.mp4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "695",
+        "type": "comfy.CreateVideo",
+        "data": {
+          "bit_depth": 8,
+          "color_space": "sRGB",
+          "codec": "none"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Create Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "697",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ComfyUI",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "698",
+        "type": "comfy.GetVideoComponents",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Get Video Components"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "699",
+        "type": "comfy.PreviewImage",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Preview Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "675:671",
+        "type": "comfy.SDPoseKeypointExtractor",
+        "data": {
+          "batch_size": 16
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 330
+          },
+          "width": 280,
+          "title": "SDPose Keypoint Extractor"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "675:674",
+        "type": "comfy.ResizeImageMaskNode",
+        "data": {
+          "resize_type": "scale longer dimension",
+          "scale_method": "lanczos"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Resize Image/Mask"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "675:672",
+        "type": "comfy.SDPoseDrawKeypoints",
+        "data": {
+          "draw_body": true,
+          "draw_hands": true,
+          "draw_face": true,
+          "draw_feet": true,
+          "stick_width": 4,
+          "face_point_size": 2,
+          "score_threshold": 0.5,
+          "draw_head": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SDPose Draw Keypoints"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "675:673",
+        "type": "comfy.CheckpointLoaderSimple",
+        "data": {
+          "ckpt_name": "sdpose_wholebody_fp16.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load Checkpoint"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "675:677",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "rt_detr_v4-x-hgnet_fp16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "675:678",
+        "type": "comfy.RTDETR_detect",
+        "data": {
+          "threshold": 0.5,
+          "class_name": "person",
+          "max_detections": 2
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Run Real-Time Detection (RT-DETR)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "675:692",
+        "type": "comfy.GetVideoComponents",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Get Video Components"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "675:678-0-682-bboxes",
+        "source": "675:678",
+        "sourceHandle": "bboxes",
+        "target": "682",
+        "targetHandle": "bboxes",
+        "ui_properties": null
+      },
+      {
+        "id": "687-0-682-image",
+        "source": "687",
+        "sourceHandle": "resized",
+        "target": "682",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "688-0-687-resize_type.longer_size",
+        "source": "688",
+        "sourceHandle": "INT",
+        "target": "687",
+        "targetHandle": "resize_type.longer_size",
+        "ui_properties": null
+      },
+      {
+        "id": "698-0-687-input",
+        "source": "698",
+        "sourceHandle": "images",
+        "target": "687",
+        "targetHandle": "input",
+        "ui_properties": null
+      },
+      {
+        "id": "682-0-690-image1",
+        "source": "682",
+        "sourceHandle": "out_image",
+        "target": "690",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "675:672-0-690-image2",
+        "source": "675:672",
+        "sourceHandle": "IMAGE",
+        "target": "690",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "675:692-2-695-fps",
+        "source": "675:692",
+        "sourceHandle": "fps",
+        "target": "695",
+        "targetHandle": "fps",
+        "ui_properties": null
+      },
+      {
+        "id": "690-0-695-images",
+        "source": "690",
+        "sourceHandle": "IMAGE",
+        "target": "695",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "675:692-1-695-audio",
+        "source": "675:692",
+        "sourceHandle": "audio",
+        "target": "695",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "695-0-697-video",
+        "source": "695",
+        "sourceHandle": "VIDEO",
+        "target": "697",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "694-0-698-video",
+        "source": "694",
+        "sourceHandle": "VIDEO",
+        "target": "698",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "675:672-0-699-images",
+        "source": "675:672",
+        "sourceHandle": "IMAGE",
+        "target": "699",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "675:673-0-675:671-model",
+        "source": "675:673",
+        "sourceHandle": "MODEL",
+        "target": "675:671",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "675:673-2-675:671-vae",
+        "source": "675:673",
+        "sourceHandle": "VAE",
+        "target": "675:671",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "675:674-0-675:671-image",
+        "source": "675:674",
+        "sourceHandle": "resized",
+        "target": "675:671",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "675:678-0-675:671-bboxes",
+        "source": "675:678",
+        "sourceHandle": "bboxes",
+        "target": "675:671",
+        "targetHandle": "bboxes",
+        "ui_properties": null
+      },
+      {
+        "id": "688-0-675:674-resize_type.longer_size",
+        "source": "688",
+        "sourceHandle": "INT",
+        "target": "675:674",
+        "targetHandle": "resize_type.longer_size",
+        "ui_properties": null
+      },
+      {
+        "id": "675:692-0-675:674-input",
+        "source": "675:692",
+        "sourceHandle": "images",
+        "target": "675:674",
+        "targetHandle": "input",
+        "ui_properties": null
+      },
+      {
+        "id": "675:671-0-675:672-keypoints",
+        "source": "675:671",
+        "sourceHandle": "keypoints",
+        "target": "675:672",
+        "targetHandle": "keypoints",
+        "ui_properties": null
+      },
+      {
+        "id": "675:677-0-675:678-model",
+        "source": "675:677",
+        "sourceHandle": "MODEL",
+        "target": "675:678",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "675:674-0-675:678-image",
+        "source": "675:674",
+        "sourceHandle": "resized",
+        "target": "675:678",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "694-0-675:692-video",
+        "source": "694",
+        "sourceHandle": "VIDEO",
+        "target": "675:692",
+        "targetHandle": "video",
+        "ui_properties": null
+      }
+    ]
+  }
+}

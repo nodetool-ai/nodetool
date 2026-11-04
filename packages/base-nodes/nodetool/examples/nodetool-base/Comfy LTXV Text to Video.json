@@ -1,0 +1,374 @@
+{
+  "id": "52127272d6df30d848ce5a46af1d9171",
+  "name": "Comfy LTXV Text to Video",
+  "description": "Generate videos from text prompts. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "video",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy LTXV Text to Video\n\nGenerate videos from text prompts. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/ltxv_text_to_video.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "6",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "A woman with long brown hair and light skin smiles at another woman with long blonde hair. The woman with brown hair wears a black jacket and has a small, barely noticeable mole on her right cheek. The camera angle is a close-up, focused on the woman with brown hair's face. The lighting is warm and natural, likely from the setting sun, casting a soft glow on the scene. The scene appears to be real-life footage."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Positive Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "low quality, worst quality, deformed, distorted, disfigured, motion smear, motion artifacts, fused fingers, bad anatomy, weird hand, ugly"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Negative Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "8",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "38",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "t5xxl_fp16.safetensors",
+          "type": "ltxv",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "44",
+        "type": "comfy.CheckpointLoaderSimple",
+        "data": {
+          "ckpt_name": "ltx-video-2b-v0.9.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Checkpoint"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "69",
+        "type": "comfy.LTXVConditioning",
+        "data": {
+          "frame_rate": 25
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "LTXVConditioning"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "70",
+        "type": "comfy.EmptyLTXVLatentVideo",
+        "data": {
+          "width": 768,
+          "height": 512,
+          "length": 97,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Empty LTXV Latent Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "71",
+        "type": "comfy.LTXVScheduler",
+        "data": {
+          "steps": 30,
+          "max_shift": 2.05,
+          "base_shift": 0.95,
+          "stretch": true,
+          "terminal": 0.1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "LTXVScheduler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "72",
+        "type": "comfy.SamplerCustom",
+        "data": {
+          "add_noise": true,
+          "noise_seed": 497797676867141,
+          "cfg": 3
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SamplerCustom"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "73",
+        "type": "comfy.KSamplerSelect",
+        "data": {
+          "sampler_name": "euler"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "KSamplerSelect"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "78",
+        "type": "comfy.CreateVideo",
+        "data": {
+          "fps": 24,
+          "bit_depth": "auto",
+          "color_space": "sRGB",
+          "codec": "none"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Create Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "79",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ComfyUI",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "38-0-6-clip",
+        "source": "38",
+        "sourceHandle": "CLIP",
+        "target": "6",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "38-0-7-clip",
+        "source": "38",
+        "sourceHandle": "CLIP",
+        "target": "7",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "72-0-8-samples",
+        "source": "72",
+        "sourceHandle": "output",
+        "target": "8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "44-2-8-vae",
+        "source": "44",
+        "sourceHandle": "VAE",
+        "target": "8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-69-positive",
+        "source": "6",
+        "sourceHandle": "CONDITIONING",
+        "target": "69",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-69-negative",
+        "source": "7",
+        "sourceHandle": "CONDITIONING",
+        "target": "69",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "70-0-71-latent",
+        "source": "70",
+        "sourceHandle": "LATENT",
+        "target": "71",
+        "targetHandle": "latent",
+        "ui_properties": null
+      },
+      {
+        "id": "44-0-72-model",
+        "source": "44",
+        "sourceHandle": "MODEL",
+        "target": "72",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "69-0-72-positive",
+        "source": "69",
+        "sourceHandle": "positive",
+        "target": "72",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "69-1-72-negative",
+        "source": "69",
+        "sourceHandle": "negative",
+        "target": "72",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "73-0-72-sampler",
+        "source": "73",
+        "sourceHandle": "SAMPLER",
+        "target": "72",
+        "targetHandle": "sampler",
+        "ui_properties": null
+      },
+      {
+        "id": "71-0-72-sigmas",
+        "source": "71",
+        "sourceHandle": "SIGMAS",
+        "target": "72",
+        "targetHandle": "sigmas",
+        "ui_properties": null
+      },
+      {
+        "id": "70-0-72-latent_image",
+        "source": "70",
+        "sourceHandle": "LATENT",
+        "target": "72",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "8-0-78-images",
+        "source": "8",
+        "sourceHandle": "IMAGE",
+        "target": "78",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "78-0-79-video",
+        "source": "78",
+        "sourceHandle": "VIDEO",
+        "target": "79",
+        "targetHandle": "video",
+        "ui_properties": null
+      }
+    ]
+  }
+}

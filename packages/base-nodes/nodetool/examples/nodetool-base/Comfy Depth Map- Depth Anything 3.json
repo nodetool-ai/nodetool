@@ -1,0 +1,253 @@
+{
+  "id": "5376e53ed33f4debf6ccf87afbbc1b07",
+  "name": "Comfy Depth Map- Depth Anything 3",
+  "description": "Upload 1 image to generate a depth map for video depth estimation. Output a single depth-processed image ready for use in downstream workflows. Ideal for video generation tasks requiring depth control, 3D scene preprocessing, and animation depth mapping. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "video tools",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Depth Map- Depth Anything 3\n\nUpload 1 image to generate a depth map for video depth estimation. Output a single depth-processed image ready for use in downstream workflows. Ideal for video generation tasks requiring depth control, 3D scene preprocessing, and animation depth mapping. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/utility_depth_anything3_video_depth_estimation.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "87",
+        "type": "comfy.LoadVideo",
+        "data": {
+          "file": "empty_room_assembly.mp4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/depth_anything3",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "89",
+        "type": "comfy.CreateVideo",
+        "data": {
+          "bit_depth": "auto",
+          "color_space": "sRGB",
+          "codec": "none"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Create Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "14:7",
+        "type": "comfy.DA3Render",
+        "data": {
+          "output": "depth",
+          "output.normalization": "v2_style",
+          "output.apply_sky_clip": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Render Depth Anything 3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "14:5",
+        "type": "comfy.DA3Inference",
+        "data": {
+          "resolution": 504,
+          "resize_method": "lower_bound_resize",
+          "mode": "mono"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Run Depth Anything 3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "14:82",
+        "type": "comfy.LoadDA3Model",
+        "data": {
+          "model_name": "depth_anything_3_mono_large.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Depth Anything 3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "14:86",
+        "type": "comfy.GetVideoComponents",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Get Video Components"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "14:90",
+        "type": "comfy.Video Slice",
+        "data": {
+          "start_time": 0,
+          "duration": 5,
+          "strict_duration": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Trim Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "89-0-88-video",
+        "source": "89",
+        "sourceHandle": "VIDEO",
+        "target": "88",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "14:86-2-89-fps",
+        "source": "14:86",
+        "sourceHandle": "fps",
+        "target": "89",
+        "targetHandle": "fps",
+        "ui_properties": null
+      },
+      {
+        "id": "14:7-0-89-images",
+        "source": "14:7",
+        "sourceHandle": "IMAGE",
+        "target": "89",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "14:86-1-89-audio",
+        "source": "14:86",
+        "sourceHandle": "audio",
+        "target": "89",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "14:5-0-14:7-da3_geometry",
+        "source": "14:5",
+        "sourceHandle": "da3_geometry",
+        "target": "14:7",
+        "targetHandle": "da3_geometry",
+        "ui_properties": null
+      },
+      {
+        "id": "14:82-0-14:5-da3_model",
+        "source": "14:82",
+        "sourceHandle": "DA3_MODEL",
+        "target": "14:5",
+        "targetHandle": "da3_model",
+        "ui_properties": null
+      },
+      {
+        "id": "14:86-0-14:5-image",
+        "source": "14:86",
+        "sourceHandle": "images",
+        "target": "14:5",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "14:90-0-14:86-video",
+        "source": "14:90",
+        "sourceHandle": "VIDEO",
+        "target": "14:86",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "87-0-14:90-video",
+        "source": "87",
+        "sourceHandle": "VIDEO",
+        "target": "14:90",
+        "targetHandle": "video",
+        "ui_properties": null
+      }
+    ]
+  }
+}

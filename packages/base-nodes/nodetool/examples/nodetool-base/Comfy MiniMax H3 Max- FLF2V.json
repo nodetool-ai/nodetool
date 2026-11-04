@@ -1,0 +1,389 @@
+{
+  "id": "2607281f0ebe7f1ed6ecd8efeccb8e4d",
+  "name": "Comfy MiniMax H3 Max- FLF2V",
+  "description": "Generate polished, prompt-faithful videos faster than real time with MiniMax H3 Max, a post-trained model tuned for stronger prompt adherence and vivid cinematic aesthetics. This workflow supports text-to-video, image-to-video animation, and directed first-to-last-frame transitions, delivering clean compositions and cohesive lighting directly from the model. Ideal for rapid concept exploration, cinematic motion graphics, and high-throughput video comparison. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy MiniMax H3 Max- FLF2V\n\nGenerate polished, prompt-faithful videos faster than real time with MiniMax H3 Max, a post-trained model tuned for stronger prompt adherence and vivid cinematic aesthetics. This workflow supports text-to-video, image-to-video animation, and directed first-to-last-frame transitions, delivering clean compositions and cohesive lighting directly from the model. Ideal for rapid concept exploration, cinematic motion graphics, and high-throughput video comparison. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_minimax_h3_max_flf2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "2",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/video/MiniMax_H3_flf2v_768P",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.MinimaxHailuo03ContextIRNode",
+        "data": {
+          "model": "MiniMax H3",
+          "model.duration": 5,
+          "model.ratio": "adaptive"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "MiniMax H3 Context IR (Prompt Enhancer)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "8",
+        "type": "comfy.SaveText",
+        "data": {
+          "filename_prefix": "txt",
+          "format": "txt"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "10",
+        "type": "comfy.MinimaxHailuo03RegenerateNode",
+        "data": {
+          "model": "MiniMax H3",
+          "model.resolution": "2K",
+          "model.reference_images": false,
+          "watermark": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "MiniMax H3 Regenerate to 2K"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "11",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Minimax_h3_max",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "If/Else Switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "If/Else Switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "14",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "[Segment 1]\nStyle: dream physics, deep-blue monochrome with a misty diffusion in the glow, shadows keeping faint layers instead of pure black, spatial scale distortion, photoreal texture.\nAction: [0s-1.5s] The projected face breathes with light shifts, dust drifting, his silhouette still; [1.5s-4s] The camera pulls back slowly and the giant face shrinks with it, revealing that this colossal face floats on the wall of a vast bedroom: a projection inside a dream-room, his silhouette standing at the bedside looking up; [4s-8s] The camera keeps pulling back past the room's boundary as the walls curl inward like paper, folding into the darkness of a second dream layer, the giant face shrinking with the curling walls into a floating glowing mask suspended in the void, the man motionless and looking up throughout, the frame ending with the mask hovering directly above him. No text. Camera: one continuous pull-back, slight warping as the space folds, no cuts. Audio: a low drone wrapped in an underwater-feeling muted reverb, paper-like stretching as the space curls, one distant bell.\n\n[Segment 2]\nStyle: same dreamy haze, the blue one shade darker, a deeper dream layer.\nAction: [0s-2s] The glowing mask rotates slowly above him; he raises a hand, and the instant his fingertips near it the whole space collapses in scale: the mask becomes a reflection inside a pupil, his body edge receding into silhouette; [2s-5s] The viewpoint reveals itself as his eye all along: the frame wavers slightly, we have been looking through his pupil, the blue iris texture rings into view at the frame's edge; [5s-8s] The giant face in the pupil breathes once with light, the dream begins to dissolve: the image tears slightly like a bad signal, the reflection flickers twice, locking finally on the extreme eye close-up, a deeper blue surfacing slowly in the depths of the iris. No text. Camera: an objective view snapping into pupil-POV, the switch made through a slight signal-tear, no cuts. Audio: a heartbeat approaching to become the main beat, one falling bass note as the mask shrinks, signal noise through the tear, every sound sucked away on the last beat leaving a faint ringing in the ears.\n\n[Shared]\nDreamy haze over the blue monochrome, faint layers in the shadows, photoreal texture, spatial scale distorting with each dream layer. Negative: no water ripples, no third-person frontal face, no color shift away from the blue monochrome, no text overlays, no subtitles, no dissolve transitions, no extra light sources, no logo."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Text (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Boolean (Prompt Enhance)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Boolean (Upscale to 2K)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "28",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "dream_face_first.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load Image (First Frame)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "29",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "dream_face_last.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Load Image (Last Frame)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30",
+        "type": "comfy.MinimaxHailuo03FirstLastFrameNode",
+        "data": {
+          "model": "MiniMax H3 Max",
+          "model.resolution": "768P",
+          "model.duration": 5,
+          "model.prompt_expansion_mode": "balanced",
+          "seed": 4098290433,
+          "watermark": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "MiniMax H3 First-Last-Frame to Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "30-0-2-video",
+        "source": "30",
+        "sourceHandle": "VIDEO",
+        "target": "2",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "14-0-7-model.prompt",
+        "source": "14",
+        "sourceHandle": "STRING",
+        "target": "7",
+        "targetHandle": "model.prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "12-0-8-text",
+        "source": "12",
+        "sourceHandle": "output",
+        "target": "8",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "8-0-10-model.prompt",
+        "source": "8",
+        "sourceHandle": "text",
+        "target": "10",
+        "targetHandle": "model.prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-10-video",
+        "source": "2",
+        "sourceHandle": "video",
+        "target": "10",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "13-0-11-video",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "11",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "18-0-12-switch",
+        "source": "18",
+        "sourceHandle": "BOOLEAN",
+        "target": "12",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "14-0-12-on_false",
+        "source": "14",
+        "sourceHandle": "STRING",
+        "target": "12",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-12-on_true",
+        "source": "7",
+        "sourceHandle": "STRING",
+        "target": "12",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "19-0-13-switch",
+        "source": "19",
+        "sourceHandle": "BOOLEAN",
+        "target": "13",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "30-0-13-on_false",
+        "source": "30",
+        "sourceHandle": "VIDEO",
+        "target": "13",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "10-0-13-on_true",
+        "source": "10",
+        "sourceHandle": "VIDEO",
+        "target": "13",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "12-0-30-model.prompt",
+        "source": "12",
+        "sourceHandle": "output",
+        "target": "30",
+        "targetHandle": "model.prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "28-0-30-first_frame",
+        "source": "28",
+        "sourceHandle": "IMAGE",
+        "target": "30",
+        "targetHandle": "first_frame",
+        "ui_properties": null
+      },
+      {
+        "id": "29-0-30-last_frame",
+        "source": "29",
+        "sourceHandle": "IMAGE",
+        "target": "30",
+        "targetHandle": "last_frame",
+        "ui_properties": null
+      }
+    ]
+  }
+}

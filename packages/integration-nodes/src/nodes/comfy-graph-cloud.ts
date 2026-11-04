@@ -33,6 +33,7 @@ import {
   type ComfyObjectInfo
 } from "@nodetool-ai/protocol";
 import {
+  applyComfyInputs,
   cloudTransport,
   describeComfyError,
   jobFailure,
@@ -125,6 +126,7 @@ export class ComfyCloudGraphNode extends BaseNode {
   static readonly description =
     "Runs a whole Comfy workflow on Comfy Cloud as one job through the Comfy API v2.\n    comfy, comfyui, cloud, workflow";
   static readonly hidden = true;
+  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   static readonly autoSaveAsset = true;
   static readonly requiredSettings = ["COMFY_API_KEY"];
@@ -149,6 +151,14 @@ export class ComfyCloudGraphNode extends BaseNode {
     description: "The Comfy workflow's edges."
   })
   declare edges: ComfyGraphEdge[];
+
+  @prop({
+    type: "list[str]",
+    default: [],
+    title: "Output Slots",
+    description: "The `<comfyNodeId>:<handle>` slots that workflow Output nodes read."
+  })
+  declare output_slots: string[];
 
   @prop({
     type: "int",
@@ -342,9 +352,24 @@ export class ComfyCloudGraphNode extends BaseNode {
         `Comfy Cloud does not have these node classes: ${[...new Set(unknown)].join(", ")}`
       );
     }
+    // A Comfy job returns files only for its output nodes, so a socket wired to
+    // an Output would stay empty for the whole run.
+    for (const slot of Array.isArray(this.output_slots) ? this.output_slots : []) {
+      const sep = slot.indexOf(":");
+      const source = nodesById.get(slot.slice(0, sep));
+      const entry = source ? info[comfyClassType(source.type)] : undefined;
+      if (slot.slice(sep + 1) !== "output" || entry?.output_node !== true) {
+        throw new Error(
+          `A workflow Output reads ${slot}, which Comfy does not return. Connect the Output to a Save node.`
+        );
+      }
+    }
     const prompt = buildComfyPrompt(graph, (cls) =>
       info[cls] ? comfyOutputNames(info[cls]) : undefined
     ) as ComfyPrompt;
+
+    const transport = this.createTransport(apiKey);
+    await applyComfyInputs(prompt, this.dynamicProps, transport, context);
 
     for (const node of graph.nodes) nodeUpdate(node.id, "queued");
     log(`Submitting Comfy workflow to Comfy Cloud (${graph.nodes.length} nodes)`);
@@ -408,7 +433,6 @@ export class ComfyCloudGraphNode extends BaseNode {
       log("Live node status is unavailable for this run", "warning");
     }
 
-    const transport = this.createTransport(apiKey);
     let job;
     try {
       job = await transport.submit(prompt, { signal, apiKey });
@@ -457,7 +481,8 @@ export class ComfyCloudGraphNode extends BaseNode {
           : value;
       done.add(output.nodeId);
       nodeUpdate(output.nodeId, "completed", { result: { output: shown } });
-      return frame;
+      // A workflow Output reads the node's `output` handle.
+      return { ...frame, [`${output.nodeId}:output`]: Object.values(frame)[0] };
     };
 
     try {

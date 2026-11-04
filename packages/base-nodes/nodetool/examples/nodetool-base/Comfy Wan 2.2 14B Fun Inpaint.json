@@ -1,0 +1,554 @@
+{
+  "id": "e06a9868fd58e29c2d5ba837c6631e3a",
+  "name": "Comfy Wan 2.2 14B Fun Inpaint",
+  "description": "Generate videos from start and end frames using Wan 2.2 Fun Inpaint. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "video",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Wan 2.2 14B Fun Inpaint\n\nGenerate videos from start and end frames using Wan 2.2 Fun Inpaint. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/video_wan2_2_14B_fun_inpaint.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "90",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+          "type": "wan",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "91",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Negative Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "92",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "wan_2.1_vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93",
+        "type": "comfy.ModelSamplingSD3",
+        "data": {
+          "shift": 8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ModelSamplingSD3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "94",
+        "type": "comfy.ModelSamplingSD3",
+        "data": {
+          "shift": 8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "ModelSamplingSD3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "95",
+        "type": "comfy.KSamplerAdvanced",
+        "data": {
+          "add_noise": "disable",
+          "noise_seed": 0,
+          "steps": 4,
+          "cfg": 1,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "start_at_step": 2,
+          "end_at_step": 4,
+          "return_with_leftover_noise": "disable"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "96",
+        "type": "comfy.KSamplerAdvanced",
+        "data": {
+          "add_noise": "enable",
+          "noise_seed": 221824495232956,
+          "steps": 4,
+          "cfg": 1,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "start_at_step": 0,
+          "end_at_step": 2,
+          "return_with_leftover_noise": "enable"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "97",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "99",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "A dreamy scene where a little cat is sleeping. Zoom in, and the cat opens its eyes, looks up, and blinks. In Q-style, with ice crystals."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Positive Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "100",
+        "type": "comfy.CreateVideo",
+        "data": {
+          "fps": 16,
+          "bit_depth": "auto",
+          "color_space": "sRGB",
+          "codec": "none"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Create Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "101",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "wan2.2_fun_inpaint_high_noise_14B_fp8_scaled.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "102",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "wan2.2_fun_inpaint_low_noise_14B_fp8_scaled.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "110",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "video_wan2_2_14B_fun_inpaint_start_image.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "111",
+        "type": "comfy.WanFunInpaintToVideo",
+        "data": {
+          "width": 640,
+          "height": 640,
+          "length": 81,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "WanFunInpaintToVideo"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "112",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "video_wan2_2_14B_fun_inpaint_end_image.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "116",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "117",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "158",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ComfyUI",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "90-0-91-clip",
+        "source": "90",
+        "sourceHandle": "CLIP",
+        "target": "91",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "116-0-93-model",
+        "source": "116",
+        "sourceHandle": "MODEL",
+        "target": "93",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "117-0-94-model",
+        "source": "117",
+        "sourceHandle": "MODEL",
+        "target": "94",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "94-0-95-model",
+        "source": "94",
+        "sourceHandle": "MODEL",
+        "target": "95",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "111-0-95-positive",
+        "source": "111",
+        "sourceHandle": "positive",
+        "target": "95",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "111-1-95-negative",
+        "source": "111",
+        "sourceHandle": "negative",
+        "target": "95",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "96-0-95-latent_image",
+        "source": "96",
+        "sourceHandle": "LATENT",
+        "target": "95",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "93-0-96-model",
+        "source": "93",
+        "sourceHandle": "MODEL",
+        "target": "96",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "111-0-96-positive",
+        "source": "111",
+        "sourceHandle": "positive",
+        "target": "96",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "111-1-96-negative",
+        "source": "111",
+        "sourceHandle": "negative",
+        "target": "96",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "111-2-96-latent_image",
+        "source": "111",
+        "sourceHandle": "latent",
+        "target": "96",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "95-0-97-samples",
+        "source": "95",
+        "sourceHandle": "LATENT",
+        "target": "97",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "92-0-97-vae",
+        "source": "92",
+        "sourceHandle": "VAE",
+        "target": "97",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "90-0-99-clip",
+        "source": "90",
+        "sourceHandle": "CLIP",
+        "target": "99",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "97-0-100-images",
+        "source": "97",
+        "sourceHandle": "IMAGE",
+        "target": "100",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "99-0-111-positive",
+        "source": "99",
+        "sourceHandle": "CONDITIONING",
+        "target": "111",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "91-0-111-negative",
+        "source": "91",
+        "sourceHandle": "CONDITIONING",
+        "target": "111",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "92-0-111-vae",
+        "source": "92",
+        "sourceHandle": "VAE",
+        "target": "111",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "110-0-111-start_image",
+        "source": "110",
+        "sourceHandle": "IMAGE",
+        "target": "111",
+        "targetHandle": "start_image",
+        "ui_properties": null
+      },
+      {
+        "id": "112-0-111-end_image",
+        "source": "112",
+        "sourceHandle": "IMAGE",
+        "target": "111",
+        "targetHandle": "end_image",
+        "ui_properties": null
+      },
+      {
+        "id": "101-0-116-model",
+        "source": "101",
+        "sourceHandle": "MODEL",
+        "target": "116",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "102-0-117-model",
+        "source": "102",
+        "sourceHandle": "MODEL",
+        "target": "117",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "100-0-158-video",
+        "source": "100",
+        "sourceHandle": "VIDEO",
+        "target": "158",
+        "targetHandle": "video",
+        "ui_properties": null
+      }
+    ]
+  }
+}

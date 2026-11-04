@@ -57,7 +57,9 @@ export function runWorkflowOnCloud(inputs: RunWorkflowOnCloudInputs, options?: N
 export type RunComfyGraphOnCloudInputs = {
   nodes?: Connectable<Record<string, unknown>[]>;
   edges?: Connectable<Record<string, unknown>[]>;
+  output_slots?: Connectable<string[]>;
   timeout?: Connectable<number>;
+  [name: string]: unknown;
 };
 
 export interface RunComfyGraphOnCloudOutputs {

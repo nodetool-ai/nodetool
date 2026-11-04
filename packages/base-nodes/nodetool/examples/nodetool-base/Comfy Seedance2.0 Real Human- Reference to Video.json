@@ -1,0 +1,197 @@
+{
+  "id": "5d0f1e4f0a0a784009e61c030d45da68",
+  "name": "Comfy Seedance2.0 Real Human- Reference to Video",
+  "description": "Upload a reference video of a real person for identity verification. Use your own photo to validate and generate a personalized video output. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Seedance2.0 Real Human- Reference to Video\n\nUpload a reference video of a real person for identity verification. Use your own photo to validate and generate a personalized video output. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_seedance2_0_r2v_real_human.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "real_human_demo.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2",
+        "type": "comfy.ByteDanceCreateImageAsset",
+        "data": {
+          "group_id": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ByteDance Create Image Asset"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Seedance2.0",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "16",
+        "type": "comfy.ByteDance2ReferenceNodeV2",
+        "data": {
+          "model": "Seedance 2.5",
+          "model.prompt": "Use @asset_1 as a reference character. A young person with curly auburn hair floats underwater, eyes gently closed, \nexpression weightless and serene. Prismatic light refractions drift and morph \nacross their face in slow waves — shifting between teal, peach, and white — \nas the camera glides gently around them in a slow orbital move. \nCaustic light patterns ripple continuously across skin and hair. \nThe water carries a soft teal glow; bubbles rise in lazy clusters. \nShallow depth of field, soft film grain, dreamlike stillness, \nslow motion, 4K, pastel-teal color grade.",
+          "model.resolution": "720p",
+          "model.ratio": "16:9",
+          "model.duration": 5,
+          "model.generate_audio": true,
+          "model.task_type": "auto",
+          "model.output_format": "mp4",
+          "model.reference_images": true,
+          "model.reference_videos": false,
+          "model.reference_audios": 0,
+          "model.reference_assets": "randomize",
+          "model.auto_downscale": false,
+          "model.auto_upscale": false,
+          "seed": 0,
+          "watermark": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ByteDance Seedance 2.5 Reference to Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "17",
+        "type": "comfy.SaveText",
+        "data": {
+          "filename_prefix": "txt",
+          "format": "txt"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18",
+        "type": "comfy.SaveText",
+        "data": {
+          "filename_prefix": "txt",
+          "format": "txt"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "1-0-2-image",
+        "source": "1",
+        "sourceHandle": "IMAGE",
+        "target": "2",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "16-0-7-video",
+        "source": "16",
+        "sourceHandle": "VIDEO",
+        "target": "7",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "17-0-16-model.reference_assets.asset_1",
+        "source": "17",
+        "sourceHandle": "text",
+        "target": "16",
+        "targetHandle": "model.reference_assets.asset_1",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-17-text",
+        "source": "2",
+        "sourceHandle": "asset_id",
+        "target": "17",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "2-1-18-text",
+        "source": "2",
+        "sourceHandle": "group_id",
+        "target": "18",
+        "targetHandle": "text",
+        "ui_properties": null
+      }
+    ]
+  }
+}

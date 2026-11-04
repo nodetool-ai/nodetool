@@ -1,0 +1,82 @@
+{
+  "id": "fe9e4a803f855b53b5b4578237e6a8b5",
+  "name": "Comfy Flux.1 [Pro]- Text to Image",
+  "description": "Generate images with excellent prompt following and visual quality using FLUX.1 Pro. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Flux.1 [Pro]- Text to Image\n\nGenerate images with excellent prompt following and visual quality using FLUX.1 Pro. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_bfl_flux_pro_t2i.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "11",
+        "type": "comfy.FluxProUltraImageNode",
+        "data": {
+          "prompt": "A dreamy, surreal half-body portrait of a young woman meditating. She has a short, straight bob haircut dyed in pastel pink, with soft bangs covering her forehead. Her eyes are gently closed, and her hands are raised in a calm, open-palmed meditative pose, fingers slightly curved, as if levitating or in deep concentration. She wears a colorful dress made of patchwork-like pastel tiles, featuring clouds, stars, and rainbows. Around her float translucent, iridescent soap bubbles reflecting the rainbow hues. The background is a fantastical sky filled with cotton-candy clouds and vivid rainbow waves, giving the entire scene a magical, dreamlike atmosphere. Emphasis on youthful serenity, whimsical ambiance, and vibrant soft lighting.",
+          "prompt_upsampling": false,
+          "seed": 589991183902375,
+          "aspect_ratio": "1:1",
+          "raw": false,
+          "image_prompt_strength": 0.4000000000000001
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Flux 1.1 [pro] Ultra Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "11-0-12-images",
+        "source": "11",
+        "sourceHandle": "IMAGE",
+        "target": "12",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

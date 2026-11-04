@@ -1,0 +1,900 @@
+{
+  "id": "5bbd492c0771088bffba74d9d76c65ad",
+  "name": "Comfy Video Upscale- Wan 2.2 Creative",
+  "description": "Upload a video and upscale it to a higher resolution with Wan 2.2 Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "video tools",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Video Upscale- Wan 2.2 Creative\n\nUpload a video and upscale it to a higher resolution with Wan 2.2 Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/utility_video_upscale.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "665",
+        "type": "comfy.GetVideoComponents",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Get Video Components"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "666",
+        "type": "comfy.CreateVideo",
+        "data": {
+          "bit_depth": "auto",
+          "color_space": "sRGB",
+          "codec": "none"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Create Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "667",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ComfyUI",
+          "format": "mp4",
+          "format.codec": "h264",
+          "format.codec.encoding": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3060,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "668",
+        "type": "comfy.ImageFromBatch",
+        "data": {
+          "batch_index": 0,
+          "length": 48
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Get Image from Batch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "678",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ComfyUI",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 5100,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "719",
+        "type": "comfy.ResolutionSelector",
+        "data": {
+          "aspect_ratio": "9:16 (Portrait Widescreen)",
+          "megapixels": 2.1,
+          "multiple": 8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Resolution Selector"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "727",
+        "type": "comfy.LoadVideo",
+        "data": {
+          "file": "input_upscale.mp4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "632:700",
+        "type": "comfy.WanVideoTorchCompileSettings",
+        "data": {
+          "backend": "inductor",
+          "fullgraph": false,
+          "mode": "default",
+          "dynamic": false,
+          "dynamo_cache_size_limit": 64,
+          "compile_transformer_blocks_only": true,
+          "dynamo_recompile_limit": 128,
+          "force_parameter_static_shapes": false,
+          "allow_unmerged_lora_compile": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Torch CompSettings"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "632:708",
+        "type": "comfy.PrimitiveInt",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Width"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "632:709",
+        "type": "comfy.PrimitiveInt",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Heigth"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "632:706",
+        "type": "comfy.ImageResize+",
+        "data": {
+          "interpolation": "lanczos",
+          "method": "fill / crop",
+          "condition": "always",
+          "multiple_of": 64
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "🔧 Image Resize"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "632:705",
+        "type": "comfy.WanVideoLoraSelect",
+        "data": {
+          "lora": "lightx2v_14B_T2V_cfg_step_distill_lora_adaptive_rank_quantile_0.15_bf16.safetensors",
+          "strength": 0.7,
+          "low_mem_load": false,
+          "merge_loras": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Lightning Lora"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "632:696",
+        "type": "comfy.WanVideoSampler",
+        "data": {
+          "steps": 4,
+          "cfg": 1.0000000000000002,
+          "shift": 5,
+          "seed": 1050612516184924,
+          "force_offload": false,
+          "scheduler": "euler",
+          "riflex_freq_index": 0,
+          "denoise_strength": 0.25,
+          "batched_cfg": false,
+          "rope_function": "comfy",
+          "start_step": 0,
+          "end_step": -1,
+          "add_noise_to_samples": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "WanVideo Sampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "632:703",
+        "type": "comfy.WanVideoModelLoader",
+        "data": {
+          "model": "Wan2_2-T2V-A14B-LOW_fp8_e4m3fn_scaled_KJ.safetensors",
+          "base_precision": "fp16_fast",
+          "quantization": "fp8_e4m3fn_scaled",
+          "load_device": "offload_device",
+          "attention_mode": "sdpa",
+          "rms_norm_function": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "WanVideo Model Loader"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "632:698",
+        "type": "comfy.WanVideoDecode",
+        "data": {
+          "enable_vae_tiling": true,
+          "tile_x": 512,
+          "tile_y": 512,
+          "tile_stride_x": 256,
+          "tile_stride_y": 256,
+          "normalization": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "WanVideo Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "632:701",
+        "type": "comfy.WanVideoVAELoader",
+        "data": {
+          "model_name": "wan_2.1_vae.safetensors",
+          "precision": "bf16",
+          "use_cpu_cache": false,
+          "verbose": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "WanVideo VAE Loader"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "632:702",
+        "type": "comfy.WanVideoSetLoRAs",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "WanVideo Set LoRAs"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "632:697",
+        "type": "comfy.GetImageSize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Get Image Size"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "632:695",
+        "type": "comfy.WanVideoEmptyEmbeds",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Image Embeds"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "632:699",
+        "type": "comfy.WanVideoEncode",
+        "data": {
+          "enable_vae_tiling": true,
+          "tile_x": 512,
+          "tile_y": 512,
+          "tile_stride_x": 256,
+          "tile_stride_y": 256,
+          "noise_aug_strength": 0.001,
+          "latent_strength": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 330
+          },
+          "width": 280,
+          "title": "WanVideo Encode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "632:704",
+        "type": "comfy.WanVideoTextEncodeCached",
+        "data": {
+          "model_name": "umt5_xxl_fp16.safetensors",
+          "precision": "bf16",
+          "positive_prompt": "high resolution, sharp, detailed",
+          "negative_prompt": "",
+          "quantization": "disabled",
+          "use_disk_cache": true,
+          "device": "gpu"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "WanVideo TextEncode Cached"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "741:737",
+        "type": "comfy.GetVideoComponents",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 3060,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Get Video Components"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "741:738",
+        "type": "comfy.GetVideoComponents",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Get Video Components"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "741:90",
+        "type": "comfy.GetImageSize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 3740,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Get Image Size"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "741:739",
+        "type": "comfy.CreateVideo",
+        "data": {
+          "bit_depth": "auto",
+          "color_space": "sRGB",
+          "codec": "none"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Create Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "741:95",
+        "type": "comfy.ComfyMathExpression",
+        "data": {
+          "expression": "a & ~1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4080,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Math Expression"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "741:96",
+        "type": "comfy.ComfyMathExpression",
+        "data": {
+          "expression": "a & ~1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4080,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Math Expression"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "741:740",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "right",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3400,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Stitch Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "741:97",
+        "type": "comfy.ResizeImageMaskNode",
+        "data": {
+          "resize_type": "scale dimensions",
+          "resize_type.crop": "center",
+          "scale_method": "area"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4420,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Resize Image/Mask"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "727-0-665-video",
+        "source": "727",
+        "sourceHandle": "VIDEO",
+        "target": "665",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "665-2-666-fps",
+        "source": "665",
+        "sourceHandle": "fps",
+        "target": "666",
+        "targetHandle": "fps",
+        "ui_properties": null
+      },
+      {
+        "id": "632:698-0-666-images",
+        "source": "632:698",
+        "sourceHandle": "images",
+        "target": "666",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "665-1-666-audio",
+        "source": "665",
+        "sourceHandle": "audio",
+        "target": "666",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "666-0-667-video",
+        "source": "666",
+        "sourceHandle": "VIDEO",
+        "target": "667",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "665-0-668-image",
+        "source": "665",
+        "sourceHandle": "images",
+        "target": "668",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "741:739-0-678-video",
+        "source": "741:739",
+        "sourceHandle": "VIDEO",
+        "target": "678",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "719-0-632:708-value",
+        "source": "719",
+        "sourceHandle": "width",
+        "target": "632:708",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "719-1-632:709-value",
+        "source": "719",
+        "sourceHandle": "height",
+        "target": "632:709",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "632:708-0-632:706-width",
+        "source": "632:708",
+        "sourceHandle": "INT",
+        "target": "632:706",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "632:709-0-632:706-height",
+        "source": "632:709",
+        "sourceHandle": "INT",
+        "target": "632:706",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "668-0-632:706-image",
+        "source": "668",
+        "sourceHandle": "IMAGE",
+        "target": "632:706",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "632:702-0-632:696-model",
+        "source": "632:702",
+        "sourceHandle": "model",
+        "target": "632:696",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "632:695-0-632:696-image_embeds",
+        "source": "632:695",
+        "sourceHandle": "image_embeds",
+        "target": "632:696",
+        "targetHandle": "image_embeds",
+        "ui_properties": null
+      },
+      {
+        "id": "632:704-0-632:696-text_embeds",
+        "source": "632:704",
+        "sourceHandle": "text_embeds",
+        "target": "632:696",
+        "targetHandle": "text_embeds",
+        "ui_properties": null
+      },
+      {
+        "id": "632:699-0-632:696-samples",
+        "source": "632:699",
+        "sourceHandle": "samples",
+        "target": "632:696",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "632:700-0-632:703-compile_args",
+        "source": "632:700",
+        "sourceHandle": "torch_compile_args",
+        "target": "632:703",
+        "targetHandle": "compile_args",
+        "ui_properties": null
+      },
+      {
+        "id": "632:701-0-632:698-vae",
+        "source": "632:701",
+        "sourceHandle": "vae",
+        "target": "632:698",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "632:696-1-632:698-samples",
+        "source": "632:696",
+        "sourceHandle": "denoised_samples",
+        "target": "632:698",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "632:703-0-632:702-model",
+        "source": "632:703",
+        "sourceHandle": "model",
+        "target": "632:702",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "632:705-0-632:702-lora",
+        "source": "632:705",
+        "sourceHandle": "lora",
+        "target": "632:702",
+        "targetHandle": "lora",
+        "ui_properties": null
+      },
+      {
+        "id": "632:706-0-632:697-image",
+        "source": "632:706",
+        "sourceHandle": "IMAGE",
+        "target": "632:697",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "632:697-0-632:695-width",
+        "source": "632:697",
+        "sourceHandle": "width",
+        "target": "632:695",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "632:697-1-632:695-height",
+        "source": "632:697",
+        "sourceHandle": "height",
+        "target": "632:695",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "632:697-2-632:695-num_frames",
+        "source": "632:697",
+        "sourceHandle": "batch_size",
+        "target": "632:695",
+        "targetHandle": "num_frames",
+        "ui_properties": null
+      },
+      {
+        "id": "632:701-0-632:699-vae",
+        "source": "632:701",
+        "sourceHandle": "vae",
+        "target": "632:699",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "632:706-0-632:699-image",
+        "source": "632:706",
+        "sourceHandle": "IMAGE",
+        "target": "632:699",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "666-0-741:737-video",
+        "source": "666",
+        "sourceHandle": "VIDEO",
+        "target": "741:737",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "727-0-741:738-video",
+        "source": "727",
+        "sourceHandle": "VIDEO",
+        "target": "741:738",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "741:740-0-741:90-image",
+        "source": "741:740",
+        "sourceHandle": "IMAGE",
+        "target": "741:90",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "741:738-2-741:739-fps",
+        "source": "741:738",
+        "sourceHandle": "fps",
+        "target": "741:739",
+        "targetHandle": "fps",
+        "ui_properties": null
+      },
+      {
+        "id": "741:97-0-741:739-images",
+        "source": "741:97",
+        "sourceHandle": "resized",
+        "target": "741:739",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "741:738-1-741:739-audio",
+        "source": "741:738",
+        "sourceHandle": "audio",
+        "target": "741:739",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "741:90-0-741:95-values.a",
+        "source": "741:90",
+        "sourceHandle": "width",
+        "target": "741:95",
+        "targetHandle": "values.a",
+        "ui_properties": null
+      },
+      {
+        "id": "741:90-1-741:96-values.a",
+        "source": "741:90",
+        "sourceHandle": "height",
+        "target": "741:96",
+        "targetHandle": "values.a",
+        "ui_properties": null
+      },
+      {
+        "id": "741:738-0-741:740-image1",
+        "source": "741:738",
+        "sourceHandle": "images",
+        "target": "741:740",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "741:737-0-741:740-image2",
+        "source": "741:737",
+        "sourceHandle": "images",
+        "target": "741:740",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "741:95-1-741:97-resize_type.width",
+        "source": "741:95",
+        "sourceHandle": "INT",
+        "target": "741:97",
+        "targetHandle": "resize_type.width",
+        "ui_properties": null
+      },
+      {
+        "id": "741:96-1-741:97-resize_type.height",
+        "source": "741:96",
+        "sourceHandle": "INT",
+        "target": "741:97",
+        "targetHandle": "resize_type.height",
+        "ui_properties": null
+      },
+      {
+        "id": "741:740-0-741:97-input",
+        "source": "741:740",
+        "sourceHandle": "IMAGE",
+        "target": "741:97",
+        "targetHandle": "input",
+        "ui_properties": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,1126 @@
+{
+  "id": "e2447e90d109e36e1d8cecf28a8e7546",
+  "name": "Comfy 1 Image to Car Product Shots",
+  "description": "Upload a photo of your vehicle and generate a studio quality video of the vehicle from multiple angles. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "product & ads",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy 1 Image to Car Product Shots\n\nUpload a photo of your vehicle and generate a studio quality video of the vehicle from multiple angles. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/templates-car_product.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "10",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "product_car.jpg"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-image_2"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "22",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ComfyUI-video_1",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "23",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-image_1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "24",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-image_3"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "25",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-image_4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "26",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ComfyUI-video_2",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "27",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ComfyUI-video_3",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "47",
+        "type": "comfy.CreateVideo",
+        "data": {
+          "bit_depth": "auto",
+          "color_space": "sRGB",
+          "codec": "none"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3400,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Create Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "48",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ComfyUI",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3740,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "49",
+        "type": "comfy.GetVideoComponents",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Get Video Components"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "50",
+        "type": "comfy.GetVideoComponents",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Get Video Components"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "51",
+        "type": "comfy.GetVideoComponents",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Get Video Components"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "54",
+        "type": "comfy.BatchImagesNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 3060,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Batch Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "79",
+        "type": "comfy.ByteDanceSeedreamNodeV3",
+        "data": {
+          "prompt": "Create an extreme close up view of the main element in the scene. Studio scene with a white background.",
+          "model": "seedream-4-5-251128",
+          "model.size_preset": "(2K) 2848x1600 (16:9)",
+          "model.width": 2048,
+          "model.height": 2048,
+          "model.max_images": 1,
+          "model.images": false,
+          "model.fail_on_partial": 1,
+          "model.seed": "fixed",
+          "model.watermark": false,
+          "model.thinking": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ByteDance Seedream 4.5 & 5.0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "80",
+        "type": "comfy.ByteDanceSeedreamNodeV3",
+        "data": {
+          "prompt": "Create a low view, super-wide shot of the main subject in this scene. Studio scene with a white background.",
+          "model": "seedream-4-5-251128",
+          "model.size_preset": "(2K) 2848x1600 (16:9)",
+          "model.width": 2048,
+          "model.height": 2048,
+          "model.max_images": 1,
+          "model.images": false,
+          "model.fail_on_partial": 2,
+          "model.seed": "fixed",
+          "model.watermark": false,
+          "model.thinking": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "ByteDance Seedream 4.5 & 5.0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "81",
+        "type": "comfy.ByteDanceSeedreamNodeV3",
+        "data": {
+          "prompt": "Side view of the main subject in the scene. Studio scene with a white background.",
+          "model": "seedream-4-5-251128",
+          "model.size_preset": "(2K) 2848x1600 (16:9)",
+          "model.width": 2048,
+          "model.height": 2048,
+          "model.max_images": 1,
+          "model.images": false,
+          "model.fail_on_partial": 2,
+          "model.seed": "fixed",
+          "model.watermark": false,
+          "model.thinking": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "ByteDance Seedream 4.5 & 5.0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "82",
+        "type": "comfy.ByteDanceSeedreamNodeV3",
+        "data": {
+          "prompt": "Create an extreme wide shot from behind the subject near the passenger side of the back rims. Studio scene with a white background.",
+          "model": "seedream-4-5-251128",
+          "model.size_preset": "(2K) 2848x1600 (16:9)",
+          "model.width": 2048,
+          "model.height": 2048,
+          "model.max_images": 1,
+          "model.images": false,
+          "model.fail_on_partial": 2,
+          "model.seed": "fixed",
+          "model.watermark": false,
+          "model.thinking": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "ByteDance Seedream 4.5 & 5.0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "42:62",
+        "type": "comfy.RegexExtract",
+        "data": {
+          "regex_pattern": "^(.+?)(?=\\s+--no)",
+          "mode": "First Match",
+          "case_insensitive": true,
+          "multiline": false,
+          "dotall": false,
+          "group_index": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Extract Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "42:46",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Preview Positive Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "42:63",
+        "type": "comfy.RegexExtract",
+        "data": {
+          "regex_pattern": "(?<=--no\\s)(.+)$",
+          "mode": "First Match",
+          "case_insensitive": true,
+          "multiline": false,
+          "dotall": false,
+          "group_index": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Extract Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "42:64",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Preview Negative Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "42:84",
+        "type": "comfy.KlingFirstLastFrameNode",
+        "data": {
+          "duration": 5,
+          "generate_audio": true,
+          "model": "kling-v3",
+          "model.resolution": "1080p",
+          "seed": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Kling 3.0 First-Last-Frame to Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "42:109",
+        "type": "comfy.GeminiNodeV3",
+        "data": {
+          "model": "Gemini 3.8 Flash",
+          "model.prompt": "STEP 1: ANALYZE BOTH IMAGES\nBefore crafting the prompt, analyze both images to understand:\n\n\nCamera distance (wide shot, medium, close-up, extreme close-up, macro)\nCamera angle (low-angle, high-angle, eye-level, overhead, Dutch, worm's eye, bird's eye)\nCamera position relative to subject (front, side profile, 3/4 view, back, overhead)\nFraming (full body, torso, chest-up, face only, detail/macro)\nSubject position and pose\nLighting setup and direction\nBackground elements and depth\nFocal length characteristics (wide-angle distortion vs telephoto compression)\n\nSTEP 2: DETERMINE CAMERA MOVEMENT\nBased on the differences between images, identify the primary camera movement:\n\n\nDistance change: Dolly-in (closer) or Dolly-out (farther)\nVertical angle change: Tilt up/down or Crane up/down\nHorizontal angle change: Pan left/right or Orbit/Arc around subject\nHeight change: Crane/Pedestal up or down\nLateral movement: Truck/Track left or right\n\nSTEP 3: OUTPUT ONLY THE PROMPT\nDo not include explanations, commentary, or additional text.\nOutput ONLY the transition prompt in this format:\n\n\n[CAMERA MOVEMENT] from [START POSITION] to [END POSITION]. Subject remains stationary and consistent throughout. Camera [MOVEMENT VERB] fluidly, maintaining [FOCUS BEHAVIOR] on [KEY ELEMENT]. Lighting stays constant, background [BACKGROUND BEHAVIOR]. [TECHNICAL SPECS]. --no [NEGATIVE ELEMENTS]\n\nCore Principle\n\nFor transitions where the subject/scene remains consistent and only the camera position changes, use this structured approach to ensure smooth, cinematic results.\n\n\nPrompt Structure Template\n\n[CAMERA MOVEMENT] from [START POSITION] to [END POSITION]. Subject remains stationary and consistent throughout. Camera [MOVEMENT VERB] fluidly, maintaining [FOCUS BEHAVIOR] on [KEY ELEMENT]. Lighting stays constant, background [BACKGROUND BEHAVIOR]. [TECHNICAL SPECS]. --no [NEGATIVE ELEMENTS]\n\nComponent Breakdown\n\n1. CAMERA MOVEMENT TYPES\n\n\nDolly-in/Push-in: Camera moves forward toward subject\nDolly-out/Pull-back: Camera moves backward away from subject\nOrbit/Arc: Camera circles around subject (specify left/right)\nTilt: Camera angles up or down on fixed position\nPan: Camera swivels left or right horizontally\nCrane/Pedestal: Camera moves vertically up or down\nTracking/Trucking: Camera moves parallel to subject\n\n2. POSITION DESCRIPTORS\n\n\nDistance: wide shot, medium shot, close-up, extreme close-up, macro\nAngle: low-angle, high-angle, eye-level, overhead, Dutch angle, worm's eye view, bird's eye view\nFraming: full body, three-quarter, torso, chest-up, face, detail\n\n3. MOVEMENT VERBS (choose intensity)\n\n\nSlowly, steadily, smoothly, gradually, fluidly\nRapidly, dynamically, swiftly\nElegantly, dramatically, confidently\n\n4. FOCUS BEHAVIOR\n\n\nSharp focus throughout\nRack focus from [A] to [B]\nMaintains focus on [element]\nShallow depth of field\nDeep focus\nProgressive focus shift\n\n5. BACKGROUND BEHAVIOR\n\n\nStays consistent\nBlurs to bokeh\nSharpens into view\nFades to [color]\nRemains sharp throughout\n\n6. TECHNICAL SPECS (standard cinematic quality)\n\n\nCinematic depth of field\nStable gimbal/dolly movement\nProfessional commercial grade\n24fps (or 30fps, 60fps for slow-motion feel)\nClean sensor, no grain (or \"film grain\" if desired)\n\n\nExample Prompts by Movement Type\n\nDOLLY-IN (Wide → Close-up)\n\n\nSmooth camera dolly-in from wide establishing shot to extreme close-up. Subject remains stationary. Camera pushes forward steadily, transitioning focus from [background element] to [detail]. Lighting stays constant, background softly blurs to bokeh. Cinematic depth of field, stable gimbal movement, 24fps. --no shake, cuts, warping, distortion\n\nDOLLY-OUT (Close-up → Wide)\n\n\nSmooth camera pull-back from extreme close-up to wide establishing shot. Subject remains centered and stationary. Camera retreats steadily, revealing environment progressively. Focus maintains on subject while background sharpens into view. Even lighting, cinematic depth of field, 24fps. --no shake, cuts, jump, warping\n\nORBIT (Circular movement)\n\n\nSmooth camera orbit from front view to side profile. Subject remains stationary at center. Camera arcs left fluidly in 90-degree rotation, maintaining constant distance and eye-level angle. Lighting stays consistent, sharp focus throughout. Gimbal stabilized circular tracking, 24fps. --no shake, warping, speed changes, distortion\n\nTILT (Vertical angle change)\n\n\nSmooth camera tilt from low-angle to high-angle. Subject remains stationary. Camera tilts upward gradually, shifting perspective from worm's eye view to bird's eye view. Distance stays constant, lighting consistent. Stable tripod tilt, cinematic framing, 24fps. --no shake, panning, horizontal movement, warping\n\nPAN (Horizontal swivel)\n\n\nSmooth camera pan from left profile to right profile. Subject remains stationary. Camera swivels horizontally across 180 degrees, maintaining constant distance and eye-level. Sharp focus throughout, even lighting. Fluid tripod pan, 24fps. --no shake, tilting, vertical movement, cuts\n\nCRANE UP/DOWN\n\n\nSmooth camera crane from ground-level to overhead view. Subject remains stationary at center. Camera elevates vertically, angle shifting from eye-level to bird's eye view. Distance adjusts proportionally, lighting consistent. Stabilized crane movement, 24fps. --no shake, lateral movement, warping, distortion\n\nKey Rules for Camera-Only Transitions\n\nAlways specify subject remains stationary - This prevents unwanted morphing\nDescribe start AND end positions clearly - Gives model clear targets\nUse specific movement verbs - \"Dolly-in\" is clearer than \"moves closer\"\nLock down what DOESN'T change - Lighting, subject, clothing, expression\nInclude technical quality markers - Gimbal, 24fps, cinematic, stable\nNegative prompts are critical - Prevents warping/morphing/distortion\nKeep prompts under 75 words - Model weights early words heavier\nOne primary movement per transition - Don't combine dolly + pan + tilt\n\nAdvanced Techniques\n\nSpeed Ramping:\n\"Camera begins slow dolly-in, accelerates midway, then decelerates smoothly into final close-up\"\n\n\nCombined Movements (use sparingly):\n\"Camera dollies in while simultaneously tilting down, maintaining subject center-frame\"\n\n\nFocus Pulls:\n\"Rack focus from foreground [element] to background [element] as camera remains locked\"\n\n\nLens Simulation:\n\"Wide-angle 24mm distortion gradually compresses to telephoto 85mm compression\"\n\n\n\nCritical Output Rule\n\nOUTPUT ONLY THE PROMPT. NO EXPLANATIONS. NO COMMENTARY. NO ADDITIONAL TEXT.",
+          "model.images": "static",
+          "model.audio": "MEDIUM",
+          "model.video": 32768,
+          "model.video_processing": 42,
+          "model.thinking_level": "randomize",
+          "model.max_output_tokens": "",
+          "model.seed": 42,
+          "model.system_prompt": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Google Gemini"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "116:110",
+        "type": "comfy.RegexExtract",
+        "data": {
+          "regex_pattern": "^(.+?)(?=\\s+--no)",
+          "mode": "First Match",
+          "case_insensitive": true,
+          "multiline": false,
+          "dotall": false,
+          "group_index": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Extract Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "116:111",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Preview Positive Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "116:112",
+        "type": "comfy.RegexExtract",
+        "data": {
+          "regex_pattern": "(?<=--no\\s)(.+)$",
+          "mode": "First Match",
+          "case_insensitive": true,
+          "multiline": false,
+          "dotall": false,
+          "group_index": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Extract Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "116:113",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Preview Negative Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "116:114",
+        "type": "comfy.KlingFirstLastFrameNode",
+        "data": {
+          "duration": 5,
+          "generate_audio": true,
+          "model": "kling-v3",
+          "model.resolution": "1080p",
+          "seed": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Kling 3.0 First-Last-Frame to Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "116:115",
+        "type": "comfy.GeminiNodeV3",
+        "data": {
+          "model": "Gemini 3.8 Flash",
+          "model.prompt": "STEP 1: ANALYZE BOTH IMAGES\nBefore crafting the prompt, analyze both images to understand:\n\n\nCamera distance (wide shot, medium, close-up, extreme close-up, macro)\nCamera angle (low-angle, high-angle, eye-level, overhead, Dutch, worm's eye, bird's eye)\nCamera position relative to subject (front, side profile, 3/4 view, back, overhead)\nFraming (full body, torso, chest-up, face only, detail/macro)\nSubject position and pose\nLighting setup and direction\nBackground elements and depth\nFocal length characteristics (wide-angle distortion vs telephoto compression)\n\nSTEP 2: DETERMINE CAMERA MOVEMENT\nBased on the differences between images, identify the primary camera movement:\n\n\nDistance change: Dolly-in (closer) or Dolly-out (farther)\nVertical angle change: Tilt up/down or Crane up/down\nHorizontal angle change: Pan left/right or Orbit/Arc around subject\nHeight change: Crane/Pedestal up or down\nLateral movement: Truck/Track left or right\n\nSTEP 3: OUTPUT ONLY THE PROMPT\nDo not include explanations, commentary, or additional text.\nOutput ONLY the transition prompt in this format:\n\n\n[CAMERA MOVEMENT] from [START POSITION] to [END POSITION]. Subject remains stationary and consistent throughout. Camera [MOVEMENT VERB] fluidly, maintaining [FOCUS BEHAVIOR] on [KEY ELEMENT]. Lighting stays constant, background [BACKGROUND BEHAVIOR]. [TECHNICAL SPECS]. --no [NEGATIVE ELEMENTS]\n\nCore Principle\n\nFor transitions where the subject/scene remains consistent and only the camera position changes, use this structured approach to ensure smooth, cinematic results.\n\n\nPrompt Structure Template\n\n[CAMERA MOVEMENT] from [START POSITION] to [END POSITION]. Subject remains stationary and consistent throughout. Camera [MOVEMENT VERB] fluidly, maintaining [FOCUS BEHAVIOR] on [KEY ELEMENT]. Lighting stays constant, background [BACKGROUND BEHAVIOR]. [TECHNICAL SPECS]. --no [NEGATIVE ELEMENTS]\n\nComponent Breakdown\n\n1. CAMERA MOVEMENT TYPES\n\n\nDolly-in/Push-in: Camera moves forward toward subject\nDolly-out/Pull-back: Camera moves backward away from subject\nOrbit/Arc: Camera circles around subject (specify left/right)\nTilt: Camera angles up or down on fixed position\nPan: Camera swivels left or right horizontally\nCrane/Pedestal: Camera moves vertically up or down\nTracking/Trucking: Camera moves parallel to subject\n\n2. POSITION DESCRIPTORS\n\n\nDistance: wide shot, medium shot, close-up, extreme close-up, macro\nAngle: low-angle, high-angle, eye-level, overhead, Dutch angle, worm's eye view, bird's eye view\nFraming: full body, three-quarter, torso, chest-up, face, detail\n\n3. MOVEMENT VERBS (choose intensity)\n\n\nSlowly, steadily, smoothly, gradually, fluidly\nRapidly, dynamically, swiftly\nElegantly, dramatically, confidently\n\n4. FOCUS BEHAVIOR\n\n\nSharp focus throughout\nRack focus from [A] to [B]\nMaintains focus on [element]\nShallow depth of field\nDeep focus\nProgressive focus shift\n\n5. BACKGROUND BEHAVIOR\n\n\nStays consistent\nBlurs to bokeh\nSharpens into view\nFades to [color]\nRemains sharp throughout\n\n6. TECHNICAL SPECS (standard cinematic quality)\n\n\nCinematic depth of field\nStable gimbal/dolly movement\nProfessional commercial grade\n24fps (or 30fps, 60fps for slow-motion feel)\nClean sensor, no grain (or \"film grain\" if desired)\n\n\nExample Prompts by Movement Type\n\nDOLLY-IN (Wide → Close-up)\n\n\nSmooth camera dolly-in from wide establishing shot to extreme close-up. Subject remains stationary. Camera pushes forward steadily, transitioning focus from [background element] to [detail]. Lighting stays constant, background softly blurs to bokeh. Cinematic depth of field, stable gimbal movement, 24fps. --no shake, cuts, warping, distortion\n\nDOLLY-OUT (Close-up → Wide)\n\n\nSmooth camera pull-back from extreme close-up to wide establishing shot. Subject remains centered and stationary. Camera retreats steadily, revealing environment progressively. Focus maintains on subject while background sharpens into view. Even lighting, cinematic depth of field, 24fps. --no shake, cuts, jump, warping\n\nORBIT (Circular movement)\n\n\nSmooth camera orbit from front view to side profile. Subject remains stationary at center. Camera arcs left fluidly in 90-degree rotation, maintaining constant distance and eye-level angle. Lighting stays consistent, sharp focus throughout. Gimbal stabilized circular tracking, 24fps. --no shake, warping, speed changes, distortion\n\nTILT (Vertical angle change)\n\n\nSmooth camera tilt from low-angle to high-angle. Subject remains stationary. Camera tilts upward gradually, shifting perspective from worm's eye view to bird's eye view. Distance stays constant, lighting consistent. Stable tripod tilt, cinematic framing, 24fps. --no shake, panning, horizontal movement, warping\n\nPAN (Horizontal swivel)\n\n\nSmooth camera pan from left profile to right profile. Subject remains stationary. Camera swivels horizontally across 180 degrees, maintaining constant distance and eye-level. Sharp focus throughout, even lighting. Fluid tripod pan, 24fps. --no shake, tilting, vertical movement, cuts\n\nCRANE UP/DOWN\n\n\nSmooth camera crane from ground-level to overhead view. Subject remains stationary at center. Camera elevates vertically, angle shifting from eye-level to bird's eye view. Distance adjusts proportionally, lighting consistent. Stabilized crane movement, 24fps. --no shake, lateral movement, warping, distortion\n\nKey Rules for Camera-Only Transitions\n\nAlways specify subject remains stationary - This prevents unwanted morphing\nDescribe start AND end positions clearly - Gives model clear targets\nUse specific movement verbs - \"Dolly-in\" is clearer than \"moves closer\"\nLock down what DOESN'T change - Lighting, subject, clothing, expression\nInclude technical quality markers - Gimbal, 24fps, cinematic, stable\nNegative prompts are critical - Prevents warping/morphing/distortion\nKeep prompts under 75 words - Model weights early words heavier\nOne primary movement per transition - Don't combine dolly + pan + tilt\n\nAdvanced Techniques\n\nSpeed Ramping:\n\"Camera begins slow dolly-in, accelerates midway, then decelerates smoothly into final close-up\"\n\n\nCombined Movements (use sparingly):\n\"Camera dollies in while simultaneously tilting down, maintaining subject center-frame\"\n\n\nFocus Pulls:\n\"Rack focus from foreground [element] to background [element] as camera remains locked\"\n\n\nLens Simulation:\n\"Wide-angle 24mm distortion gradually compresses to telephoto 85mm compression\"\n\n\n\nCritical Output Rule\n\nOUTPUT ONLY THE PROMPT. NO EXPLANATIONS. NO COMMENTARY. NO ADDITIONAL TEXT.",
+          "model.images": "static",
+          "model.audio": "MEDIUM",
+          "model.video": 32768,
+          "model.video_processing": 42,
+          "model.thinking_level": "randomize",
+          "model.max_output_tokens": "",
+          "model.seed": "randomize",
+          "model.system_prompt": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Google Gemini"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "123:117",
+        "type": "comfy.RegexExtract",
+        "data": {
+          "regex_pattern": "^(.+?)(?=\\s+--no)",
+          "mode": "First Match",
+          "case_insensitive": true,
+          "multiline": false,
+          "dotall": false,
+          "group_index": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Extract Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "123:118",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Preview Positive Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "123:119",
+        "type": "comfy.RegexExtract",
+        "data": {
+          "regex_pattern": "(?<=--no\\s)(.+)$",
+          "mode": "First Match",
+          "case_insensitive": true,
+          "multiline": false,
+          "dotall": false,
+          "group_index": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Extract Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "123:120",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Preview Negative Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "123:121",
+        "type": "comfy.KlingFirstLastFrameNode",
+        "data": {
+          "duration": 5,
+          "generate_audio": true,
+          "model": "kling-v3",
+          "model.resolution": "1080p",
+          "seed": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Kling 3.0 First-Last-Frame to Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "123:122",
+        "type": "comfy.GeminiNodeV3",
+        "data": {
+          "model": "Gemini 3.8 Flash",
+          "model.prompt": "STEP 1: ANALYZE BOTH IMAGES\nBefore crafting the prompt, analyze both images to understand:\n\n\nCamera distance (wide shot, medium, close-up, extreme close-up, macro)\nCamera angle (low-angle, high-angle, eye-level, overhead, Dutch, worm's eye, bird's eye)\nCamera position relative to subject (front, side profile, 3/4 view, back, overhead)\nFraming (full body, torso, chest-up, face only, detail/macro)\nSubject position and pose\nLighting setup and direction\nBackground elements and depth\nFocal length characteristics (wide-angle distortion vs telephoto compression)\n\nSTEP 2: DETERMINE CAMERA MOVEMENT\nBased on the differences between images, identify the primary camera movement:\n\n\nDistance change: Dolly-in (closer) or Dolly-out (farther)\nVertical angle change: Tilt up/down or Crane up/down\nHorizontal angle change: Pan left/right or Orbit/Arc around subject\nHeight change: Crane/Pedestal up or down\nLateral movement: Truck/Track left or right\n\nSTEP 3: OUTPUT ONLY THE PROMPT\nDo not include explanations, commentary, or additional text.\nOutput ONLY the transition prompt in this format:\n\n\n[CAMERA MOVEMENT] from [START POSITION] to [END POSITION]. Subject remains stationary and consistent throughout. Camera [MOVEMENT VERB] fluidly, maintaining [FOCUS BEHAVIOR] on [KEY ELEMENT]. Lighting stays constant, background [BACKGROUND BEHAVIOR]. [TECHNICAL SPECS]. --no [NEGATIVE ELEMENTS]\n\nCore Principle\n\nFor transitions where the subject/scene remains consistent and only the camera position changes, use this structured approach to ensure smooth, cinematic results.\n\n\nPrompt Structure Template\n\n[CAMERA MOVEMENT] from [START POSITION] to [END POSITION]. Subject remains stationary and consistent throughout. Camera [MOVEMENT VERB] fluidly, maintaining [FOCUS BEHAVIOR] on [KEY ELEMENT]. Lighting stays constant, background [BACKGROUND BEHAVIOR]. [TECHNICAL SPECS]. --no [NEGATIVE ELEMENTS]\n\nComponent Breakdown\n\n1. CAMERA MOVEMENT TYPES\n\n\nDolly-in/Push-in: Camera moves forward toward subject\nDolly-out/Pull-back: Camera moves backward away from subject\nOrbit/Arc: Camera circles around subject (specify left/right)\nTilt: Camera angles up or down on fixed position\nPan: Camera swivels left or right horizontally\nCrane/Pedestal: Camera moves vertically up or down\nTracking/Trucking: Camera moves parallel to subject\n\n2. POSITION DESCRIPTORS\n\n\nDistance: wide shot, medium shot, close-up, extreme close-up, macro\nAngle: low-angle, high-angle, eye-level, overhead, Dutch angle, worm's eye view, bird's eye view\nFraming: full body, three-quarter, torso, chest-up, face, detail\n\n3. MOVEMENT VERBS (choose intensity)\n\n\nSlowly, steadily, smoothly, gradually, fluidly\nRapidly, dynamically, swiftly\nElegantly, dramatically, confidently\n\n4. FOCUS BEHAVIOR\n\n\nSharp focus throughout\nRack focus from [A] to [B]\nMaintains focus on [element]\nShallow depth of field\nDeep focus\nProgressive focus shift\n\n5. BACKGROUND BEHAVIOR\n\n\nStays consistent\nBlurs to bokeh\nSharpens into view\nFades to [color]\nRemains sharp throughout\n\n6. TECHNICAL SPECS (standard cinematic quality)\n\n\nCinematic depth of field\nStable gimbal/dolly movement\nProfessional commercial grade\n24fps (or 30fps, 60fps for slow-motion feel)\nClean sensor, no grain (or \"film grain\" if desired)\n\n\nExample Prompts by Movement Type\n\nDOLLY-IN (Wide → Close-up)\n\n\nSmooth camera dolly-in from wide establishing shot to extreme close-up. Subject remains stationary. Camera pushes forward steadily, transitioning focus from [background element] to [detail]. Lighting stays constant, background softly blurs to bokeh. Cinematic depth of field, stable gimbal movement, 24fps. --no shake, cuts, warping, distortion\n\nDOLLY-OUT (Close-up → Wide)\n\n\nSmooth camera pull-back from extreme close-up to wide establishing shot. Subject remains centered and stationary. Camera retreats steadily, revealing environment progressively. Focus maintains on subject while background sharpens into view. Even lighting, cinematic depth of field, 24fps. --no shake, cuts, jump, warping\n\nORBIT (Circular movement)\n\n\nSmooth camera orbit from front view to side profile. Subject remains stationary at center. Camera arcs left fluidly in 90-degree rotation, maintaining constant distance and eye-level angle. Lighting stays consistent, sharp focus throughout. Gimbal stabilized circular tracking, 24fps. --no shake, warping, speed changes, distortion\n\nTILT (Vertical angle change)\n\n\nSmooth camera tilt from low-angle to high-angle. Subject remains stationary. Camera tilts upward gradually, shifting perspective from worm's eye view to bird's eye view. Distance stays constant, lighting consistent. Stable tripod tilt, cinematic framing, 24fps. --no shake, panning, horizontal movement, warping\n\nPAN (Horizontal swivel)\n\n\nSmooth camera pan from left profile to right profile. Subject remains stationary. Camera swivels horizontally across 180 degrees, maintaining constant distance and eye-level. Sharp focus throughout, even lighting. Fluid tripod pan, 24fps. --no shake, tilting, vertical movement, cuts\n\nCRANE UP/DOWN\n\n\nSmooth camera crane from ground-level to overhead view. Subject remains stationary at center. Camera elevates vertically, angle shifting from eye-level to bird's eye view. Distance adjusts proportionally, lighting consistent. Stabilized crane movement, 24fps. --no shake, lateral movement, warping, distortion\n\nKey Rules for Camera-Only Transitions\n\nAlways specify subject remains stationary - This prevents unwanted morphing\nDescribe start AND end positions clearly - Gives model clear targets\nUse specific movement verbs - \"Dolly-in\" is clearer than \"moves closer\"\nLock down what DOESN'T change - Lighting, subject, clothing, expression\nInclude technical quality markers - Gimbal, 24fps, cinematic, stable\nNegative prompts are critical - Prevents warping/morphing/distortion\nKeep prompts under 75 words - Model weights early words heavier\nOne primary movement per transition - Don't combine dolly + pan + tilt\n\nAdvanced Techniques\n\nSpeed Ramping:\n\"Camera begins slow dolly-in, accelerates midway, then decelerates smoothly into final close-up\"\n\n\nCombined Movements (use sparingly):\n\"Camera dollies in while simultaneously tilting down, maintaining subject center-frame\"\n\n\nFocus Pulls:\n\"Rack focus from foreground [element] to background [element] as camera remains locked\"\n\n\nLens Simulation:\n\"Wide-angle 24mm distortion gradually compresses to telephoto 85mm compression\"\n\n\n\nCritical Output Rule\n\nOUTPUT ONLY THE PROMPT. NO EXPLANATIONS. NO COMMENTARY. NO ADDITIONAL TEXT.",
+          "model.images": "static",
+          "model.audio": "MEDIUM",
+          "model.video": 32768,
+          "model.video_processing": 42,
+          "model.thinking_level": "randomize",
+          "model.max_output_tokens": "",
+          "model.seed": "randomize",
+          "model.system_prompt": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Google Gemini"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "80-0-13-images",
+        "source": "80",
+        "sourceHandle": "IMAGE",
+        "target": "13",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "42:84-0-22-video",
+        "source": "42:84",
+        "sourceHandle": "VIDEO",
+        "target": "22",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "79-0-23-images",
+        "source": "79",
+        "sourceHandle": "IMAGE",
+        "target": "23",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "81-0-24-images",
+        "source": "81",
+        "sourceHandle": "IMAGE",
+        "target": "24",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "82-0-25-images",
+        "source": "82",
+        "sourceHandle": "IMAGE",
+        "target": "25",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "116:114-0-26-video",
+        "source": "116:114",
+        "sourceHandle": "VIDEO",
+        "target": "26",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "123:121-0-27-video",
+        "source": "123:121",
+        "sourceHandle": "VIDEO",
+        "target": "27",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "51-2-47-fps",
+        "source": "51",
+        "sourceHandle": "fps",
+        "target": "47",
+        "targetHandle": "fps",
+        "ui_properties": null
+      },
+      {
+        "id": "54-0-47-images",
+        "source": "54",
+        "sourceHandle": "IMAGE",
+        "target": "47",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "47-0-48-video",
+        "source": "47",
+        "sourceHandle": "VIDEO",
+        "target": "48",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "26-0-49-video",
+        "source": "26",
+        "sourceHandle": "video",
+        "target": "49",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "27-0-50-video",
+        "source": "27",
+        "sourceHandle": "video",
+        "target": "50",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "22-0-51-video",
+        "source": "22",
+        "sourceHandle": "video",
+        "target": "51",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "51-0-54-images.image0",
+        "source": "51",
+        "sourceHandle": "images",
+        "target": "54",
+        "targetHandle": "images.image0",
+        "ui_properties": null
+      },
+      {
+        "id": "49-0-54-images.image1",
+        "source": "49",
+        "sourceHandle": "images",
+        "target": "54",
+        "targetHandle": "images.image1",
+        "ui_properties": null
+      },
+      {
+        "id": "50-0-54-images.image2",
+        "source": "50",
+        "sourceHandle": "images",
+        "target": "54",
+        "targetHandle": "images.image2",
+        "ui_properties": null
+      },
+      {
+        "id": "10-0-79-model.images.image_1",
+        "source": "10",
+        "sourceHandle": "IMAGE",
+        "target": "79",
+        "targetHandle": "model.images.image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "10-0-80-model.images.image_1",
+        "source": "10",
+        "sourceHandle": "IMAGE",
+        "target": "80",
+        "targetHandle": "model.images.image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "10-0-81-model.images.image_1",
+        "source": "10",
+        "sourceHandle": "IMAGE",
+        "target": "81",
+        "targetHandle": "model.images.image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "10-0-82-model.images.image_1",
+        "source": "10",
+        "sourceHandle": "IMAGE",
+        "target": "82",
+        "targetHandle": "model.images.image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "42:109-0-42:62-string",
+        "source": "42:109",
+        "sourceHandle": "STRING",
+        "target": "42:62",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "42:62-0-42:46-source",
+        "source": "42:62",
+        "sourceHandle": "STRING",
+        "target": "42:46",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "42:109-0-42:63-string",
+        "source": "42:109",
+        "sourceHandle": "STRING",
+        "target": "42:63",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "42:63-0-42:64-source",
+        "source": "42:63",
+        "sourceHandle": "STRING",
+        "target": "42:64",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "42:46-0-42:84-prompt",
+        "source": "42:46",
+        "sourceHandle": "STRING",
+        "target": "42:84",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "23-0-42:84-first_frame",
+        "source": "23",
+        "sourceHandle": "images",
+        "target": "42:84",
+        "targetHandle": "first_frame",
+        "ui_properties": null
+      },
+      {
+        "id": "13-0-42:84-end_frame",
+        "source": "13",
+        "sourceHandle": "images",
+        "target": "42:84",
+        "targetHandle": "end_frame",
+        "ui_properties": null
+      },
+      {
+        "id": "23-0-42:109-model.images.image_1",
+        "source": "23",
+        "sourceHandle": "images",
+        "target": "42:109",
+        "targetHandle": "model.images.image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "13-0-42:109-model.images.image_2",
+        "source": "13",
+        "sourceHandle": "images",
+        "target": "42:109",
+        "targetHandle": "model.images.image_2",
+        "ui_properties": null
+      },
+      {
+        "id": "116:115-0-116:110-string",
+        "source": "116:115",
+        "sourceHandle": "STRING",
+        "target": "116:110",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "116:110-0-116:111-source",
+        "source": "116:110",
+        "sourceHandle": "STRING",
+        "target": "116:111",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "116:115-0-116:112-string",
+        "source": "116:115",
+        "sourceHandle": "STRING",
+        "target": "116:112",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "116:112-0-116:113-source",
+        "source": "116:112",
+        "sourceHandle": "STRING",
+        "target": "116:113",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "116:111-0-116:114-prompt",
+        "source": "116:111",
+        "sourceHandle": "STRING",
+        "target": "116:114",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "13-0-116:114-first_frame",
+        "source": "13",
+        "sourceHandle": "images",
+        "target": "116:114",
+        "targetHandle": "first_frame",
+        "ui_properties": null
+      },
+      {
+        "id": "24-0-116:114-end_frame",
+        "source": "24",
+        "sourceHandle": "images",
+        "target": "116:114",
+        "targetHandle": "end_frame",
+        "ui_properties": null
+      },
+      {
+        "id": "13-0-116:115-model.images.image_1",
+        "source": "13",
+        "sourceHandle": "images",
+        "target": "116:115",
+        "targetHandle": "model.images.image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "24-0-116:115-model.images.image_2",
+        "source": "24",
+        "sourceHandle": "images",
+        "target": "116:115",
+        "targetHandle": "model.images.image_2",
+        "ui_properties": null
+      },
+      {
+        "id": "123:122-0-123:117-string",
+        "source": "123:122",
+        "sourceHandle": "STRING",
+        "target": "123:117",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "123:117-0-123:118-source",
+        "source": "123:117",
+        "sourceHandle": "STRING",
+        "target": "123:118",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "123:122-0-123:119-string",
+        "source": "123:122",
+        "sourceHandle": "STRING",
+        "target": "123:119",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "123:119-0-123:120-source",
+        "source": "123:119",
+        "sourceHandle": "STRING",
+        "target": "123:120",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "123:118-0-123:121-prompt",
+        "source": "123:118",
+        "sourceHandle": "STRING",
+        "target": "123:121",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "24-0-123:121-first_frame",
+        "source": "24",
+        "sourceHandle": "images",
+        "target": "123:121",
+        "targetHandle": "first_frame",
+        "ui_properties": null
+      },
+      {
+        "id": "25-0-123:121-end_frame",
+        "source": "25",
+        "sourceHandle": "images",
+        "target": "123:121",
+        "targetHandle": "end_frame",
+        "ui_properties": null
+      },
+      {
+        "id": "24-0-123:122-model.images.image_1",
+        "source": "24",
+        "sourceHandle": "images",
+        "target": "123:122",
+        "targetHandle": "model.images.image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "25-0-123:122-model.images.image_2",
+        "source": "25",
+        "sourceHandle": "images",
+        "target": "123:122",
+        "targetHandle": "model.images.image_2",
+        "ui_properties": null
+      }
+    ]
+  }
+}

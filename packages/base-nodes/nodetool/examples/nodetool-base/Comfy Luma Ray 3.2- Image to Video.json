@@ -1,0 +1,131 @@
+{
+  "id": "d4aa040cd0100e0b86172b7356ce3487",
+  "name": "Comfy Luma Ray 3.2- Image to Video",
+  "description": "Generate cinematic-quality videos from text prompts using Luma Ray 3.2, with support for extending previous generations by providing a generation ID. The workflow accepts 1 input image and produces 1 video output, enabling seamless iterative refinement. Ideal for creating short film sequences, marketing content, and professional video production. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Luma Ray 3.2- Image to Video\n\nGenerate cinematic-quality videos from text prompts using Luma Ray 3.2, with support for extending previous generations by providing a generation ID. The workflow accepts 1 input image and produces 1 video output, enabling seamless iterative refinement. Ideal for creating short film sequences, marketing content, and professional video production. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_luma_ray3_3_i2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "8",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Preview as Text (generation_id)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "11",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "cyber_cat.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Luma_Ray_3.2_I2V",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13",
+        "type": "comfy.LumaRay32ImageToVideoNode",
+        "data": {
+          "prompt": "Monochrome black and white mechanical robotic sphynx cat, seamless segmented metal skull, countless thick data cables flowing from neck like dreadlocks, glowing narrow vertical white slit eyes, sleek cybernetic feline body built like a cheetah for sprinting, full-body running sprint pose, low tracking parallel camera moves alongside the robot cat to capture dynamic fast running motion, camera slowly pull back wide to reveal the entire streamlined cyber cat body, futuristic cyberpunk city environment, towering neon-lit metallic skyscrapers, glowing circuit billboards, wet reflective asphalt ground with hologram reflections, dense tech wiring infrastructure, industrial sci-fi atmosphere, dramatic cinematic side lighting, high contrast monochrome, hyper detailed mechanical textures, scratch worn metal panels, intricate bolt and gear details, motion blur on paws and cable tails to emphasize speed, 8K ultra realistic, photorealistic, shallow dynamic motion blur, epic sci-fi cinematography, sharp industrial blueprint background subtle overlay texture, no text, no watermark",
+          "resolution": "720p",
+          "loop": false,
+          "seed": 569886435760230
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Luma Ray 3.2 Image to Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "13-1-8-source",
+        "source": "13",
+        "sourceHandle": "generation_id",
+        "target": "8",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "13-0-12-video",
+        "source": "13",
+        "sourceHandle": "VIDEO",
+        "target": "12",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "11-0-13-start_frame",
+        "source": "11",
+        "sourceHandle": "IMAGE",
+        "target": "13",
+        "targetHandle": "start_frame",
+        "ui_properties": null
+      }
+    ]
+  }
+}

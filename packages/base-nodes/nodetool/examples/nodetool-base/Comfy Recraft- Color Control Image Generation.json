@@ -1,0 +1,218 @@
+{
+  "id": "e582ccb07fa81d57e3e497c3d35247b8",
+  "name": "Comfy Recraft- Color Control Image Generation",
+  "description": "Generate images with custom color palettes and brand-specific visuals using Recraft. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Recraft- Color Control Image Generation\n\nGenerate images with custom color palettes and brand-specific visuals using Recraft. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_recraft_image_gen_with_color_control.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.RecraftTextToImageNode",
+        "data": {
+          "prompt": "A young boy performing a dynamic skateboard trick in a sunlit skate park. He's wearing a white t-shirt and green shorts, captured mid-air with his blonde hair blowing in the wind. The skateboard is in motion as he rides a blue, curved ramp, creating a sense of energy and movement. The scene is painted in a bold, expressive oil painting style, with thick brushstrokes that enhance the vibrant and lively atmosphere. The background features a bright blue ramp, adding to the feeling of freedom and adventure.",
+          "size": "1536x1024",
+          "n": 1,
+          "seed": 564541362073300,
+          "negative_prompt": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Recraft V3 Text to Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "4",
+        "type": "comfy.RecraftStyleV3DigitalIllustration",
+        "data": {
+          "substyle": "2d_art_poster"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Recraft Style - Digital Illustration"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "8",
+        "type": "comfy.RecraftColorRGB",
+        "data": {
+          "r": 241,
+          "g": 44,
+          "b": 208
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Recraft Color RGB"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "9",
+        "type": "comfy.RecraftColorRGB",
+        "data": {
+          "r": 241,
+          "g": 255,
+          "b": 65
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Recraft Color RGB"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "10",
+        "type": "comfy.RecraftControls",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Recraft Controls"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12",
+        "type": "comfy.RecraftColorRGB",
+        "data": {
+          "r": 24,
+          "g": 44,
+          "b": 196
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Recraft Color RGB"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "3-0-1-images",
+        "source": "3",
+        "sourceHandle": "IMAGE",
+        "target": "1",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "4-0-3-recraft_style",
+        "source": "4",
+        "sourceHandle": "recraft_style",
+        "target": "3",
+        "targetHandle": "recraft_style",
+        "ui_properties": null
+      },
+      {
+        "id": "10-0-3-recraft_controls",
+        "source": "10",
+        "sourceHandle": "recraft_controls",
+        "target": "3",
+        "targetHandle": "recraft_controls",
+        "ui_properties": null
+      },
+      {
+        "id": "12-0-8-recraft_color",
+        "source": "12",
+        "sourceHandle": "recraft_color",
+        "target": "8",
+        "targetHandle": "recraft_color",
+        "ui_properties": null
+      },
+      {
+        "id": "8-0-9-recraft_color",
+        "source": "8",
+        "sourceHandle": "recraft_color",
+        "target": "9",
+        "targetHandle": "recraft_color",
+        "ui_properties": null
+      },
+      {
+        "id": "9-0-10-colors",
+        "source": "9",
+        "sourceHandle": "recraft_color",
+        "target": "10",
+        "targetHandle": "colors",
+        "ui_properties": null
+      },
+      {
+        "id": "12-0-10-background_color",
+        "source": "12",
+        "sourceHandle": "recraft_color",
+        "target": "10",
+        "targetHandle": "background_color",
+        "ui_properties": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,476 @@
+{
+  "id": "f4d7fc8126c69ca3599c2570c2e175d0",
+  "name": "Comfy MiniMax H3- Text to Image",
+  "description": "Generate a single still image from a text prompt with MiniMax H3, an omni-modal video model used here for its first-frame decode. No file inputs required: the graph samples an empty latent and decodes it through the H3 video VAE. Best suited to a single subject with a defined light source and a simple or blurred background. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy MiniMax H3- Text to Image\n\nGenerate a single still image from a text prompt with MiniMax H3, an omni-modal video model used here for its first-frame decode. No file inputs required: the graph samples an empty latent and decodes it through the H3 video VAE. Best suited to a single subject with a defined light source and a simple or blurred background. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/image_minimax_h3_t2i.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "48",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "image_minimax_h3_t2i"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "79",
+        "type": "comfy.ResolutionSelector",
+        "data": {
+          "aspect_ratio": "16:9 (Widescreen)",
+          "megapixels": 0.9,
+          "multiple": 8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Resolution Selector"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "58:6",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "58:41",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Turbo LoRA (8 step) - bypass for base 30 steps"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "58:12",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "Epic sci-fi concept art, extreme low-angle wide shot of a colossal spacecraft hovering above a sandstorm-ravaged desert. The open hangar glows furnace-orange through dense blowing dust and volumetric light shafts. A long boarding ramp descends to the dunes; a lone human climbs it, wind-whipped sand swirling around their ankles, tiny against the massive hull. Low amber sun behind the craft casts a hard silhouette and long god-rays across ochre and rust dunes. Distant convoy lights glimmer on the horizon. Monumental scale, cinematic digital illustration, ultra-detailed metal plating and dust particles, desert palette of ochre, rust, and ember orange, dramatic rim light, sharp focus, no text, no watermark."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "58:13",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+          "type": "minimax",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "58:11",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "minimax_h3_video_vae_fp16.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "58:46",
+        "type": "comfy.EmptyLatentImage",
+        "data": {
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Empty Latent Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "58:52",
+        "type": "comfy.ComfySwitchNode",
+        "data": {
+          "switch": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "If/Else Switch (Model)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "58:16",
+        "type": "comfy.BasicGuider",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Basic Guider"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "58:15",
+        "type": "comfy.RandomNoise",
+        "data": {
+          "noise_seed": 697447143149280
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "RandomNoise"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "58:17",
+        "type": "comfy.KSamplerSelect",
+        "data": {
+          "sampler_name": "res_multistep"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "KSamplerSelect"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "58:9",
+        "type": "comfy.BasicScheduler",
+        "data": {
+          "scheduler": "simple",
+          "steps": 30,
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 330
+          },
+          "width": 280,
+          "title": "BasicScheduler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "58:44",
+        "type": "comfy.ModelAttentionBackend",
+        "data": {
+          "attention": "comfy kitchen attention"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Model Attention Backend"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "58:14",
+        "type": "comfy.SamplerCustomAdvanced",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SamplerCustomAdvanced"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "58:39",
+        "type": "comfy.LTXVSeparateAVLatent",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Separate AV Latent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "58:10",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "58:10-0-48-images",
+        "source": "58:10",
+        "sourceHandle": "IMAGE",
+        "target": "48",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "58:6-0-58:41-model",
+        "source": "58:6",
+        "sourceHandle": "MODEL",
+        "target": "58:41",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "58:13-0-58:12-clip",
+        "source": "58:13",
+        "sourceHandle": "CLIP",
+        "target": "58:12",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "79-0-58:46-width",
+        "source": "79",
+        "sourceHandle": "width",
+        "target": "58:46",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "79-1-58:46-height",
+        "source": "79",
+        "sourceHandle": "height",
+        "target": "58:46",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "58:6-0-58:52-on_false",
+        "source": "58:6",
+        "sourceHandle": "MODEL",
+        "target": "58:52",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "58:41-0-58:52-on_true",
+        "source": "58:41",
+        "sourceHandle": "MODEL",
+        "target": "58:52",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "58:44-0-58:16-model",
+        "source": "58:44",
+        "sourceHandle": "model",
+        "target": "58:16",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "58:12-0-58:16-conditioning",
+        "source": "58:12",
+        "sourceHandle": "CONDITIONING",
+        "target": "58:16",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "58:44-0-58:9-model",
+        "source": "58:44",
+        "sourceHandle": "model",
+        "target": "58:9",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "58:52-0-58:44-model",
+        "source": "58:52",
+        "sourceHandle": "output",
+        "target": "58:44",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "58:15-0-58:14-noise",
+        "source": "58:15",
+        "sourceHandle": "NOISE",
+        "target": "58:14",
+        "targetHandle": "noise",
+        "ui_properties": null
+      },
+      {
+        "id": "58:16-0-58:14-guider",
+        "source": "58:16",
+        "sourceHandle": "GUIDER",
+        "target": "58:14",
+        "targetHandle": "guider",
+        "ui_properties": null
+      },
+      {
+        "id": "58:17-0-58:14-sampler",
+        "source": "58:17",
+        "sourceHandle": "SAMPLER",
+        "target": "58:14",
+        "targetHandle": "sampler",
+        "ui_properties": null
+      },
+      {
+        "id": "58:9-0-58:14-sigmas",
+        "source": "58:9",
+        "sourceHandle": "SIGMAS",
+        "target": "58:14",
+        "targetHandle": "sigmas",
+        "ui_properties": null
+      },
+      {
+        "id": "58:46-0-58:14-latent_image",
+        "source": "58:46",
+        "sourceHandle": "LATENT",
+        "target": "58:14",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "58:14-0-58:39-av_latent",
+        "source": "58:14",
+        "sourceHandle": "output",
+        "target": "58:39",
+        "targetHandle": "av_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "58:39-0-58:10-samples",
+        "source": "58:39",
+        "sourceHandle": "video_latent",
+        "target": "58:10",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "58:11-0-58:10-vae",
+        "source": "58:11",
+        "sourceHandle": "VAE",
+        "target": "58:10",
+        "targetHandle": "vae",
+        "ui_properties": null
+      }
+    ]
+  }
+}

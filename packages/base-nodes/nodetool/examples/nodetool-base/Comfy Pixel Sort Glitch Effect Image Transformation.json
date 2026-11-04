@@ -1,0 +1,105 @@
+{
+  "id": "c814d1229aaef35fdda859337130079d",
+  "name": "Comfy Pixel Sort Glitch Effect Image Transformation",
+  "description": "Apply a pixel sorting algorithm to create glitch art. Control the effect direction, threshold, and blending with the original image. Outputs a stylized, smeared version of the input. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Pixel Sort Glitch Effect Image Transformation\n\nApply a pixel sorting algorithm to create glitch art. Control the effect direction, threshold, and blending with the original image. Outputs a stylized, smeared version of the input. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/templates_purz_pixel_sort_image.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "2",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "wireframe_dancer.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5",
+        "type": "comfy.FL_PixelSort",
+        "data": {
+          "direction": "Horizontal",
+          "threshold": 0.25,
+          "smoothing": 0.1,
+          "rotation": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "FL PixelSort"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "5-0-3-images",
+        "source": "5",
+        "sourceHandle": "IMAGE",
+        "target": "3",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-5-images",
+        "source": "2",
+        "sourceHandle": "IMAGE",
+        "target": "5",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

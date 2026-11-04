@@ -1,0 +1,137 @@
+{
+  "id": "8cada4b27080ef3e349056f87b6e0d53",
+  "name": "Comfy Gemini Omni 1.1 Flash- Reference to Video",
+  "description": "Generate video that incorporates specific subjects from multiple reference images using Gemini Omni 1.1 Flash's reference mode: characters, products, and objects from your images appear in the scene while the image itself is never shown as a frame. Bind each image to a role with tags like <IMAGE_REF_0>, combine character references with style references, and direct the scene in plain language with native audio. Ideal for character-driven stories, product placement, and brand-consistent content. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Gemini Omni 1.1 Flash- Reference to Video\n\nGenerate video that incorporates specific subjects from multiple reference images using Gemini Omni 1.1 Flash's reference mode: characters, products, and objects from your images appear in the scene while the image itself is never shown as a frame. Bind each image to a role with tags like <IMAGE_REF_0>, combine character references with style references, and direct the scene in plain language with native audio. Ideal for character-driven stories, product placement, and brand-consistent content. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_google_gemini_omni_flash_1_1_r2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "7",
+        "type": "comfy.GeminiVideoOmniV2",
+        "data": {
+          "model": "Omni Flash 1.1",
+          "model.prompt": "[# References <IMAGE_REF_0>@Image1 <IMAGE_REF_1>@Image2]\nA luxury eyeshadow commercial. The woman in <IMAGE_REF_1> sits at a bright makeup table in a soft daylight studio, wearing her cream blazer exactly as shown, her sleek pulled-back hairstyle and natural makeup unchanged. She opens the nude eyeshadow palette from <IMAGE_REF_1>, holding it up so the six warm terracotta shades catch the light, then sweeps a fluffy brush across the deep terracotta pan and blends one smooth stroke onto her eyelid. She turns her gaze to the camera with a calm confident smile, showing the finished look, the shade matching <IMAGE_REF_0> exactly. Use the reference images only for the character's identity and the product's design and colors; the infographic layout and text labels in <IMAGE_REF_0> must not appear. Single continuous shot, shallow depth of field, warm beige and terracotta palette, photorealistic beauty advertising style. Audio: soft elegant piano with a gentle brush-on-powder sound. 5 seconds, 16:9. No subtitles, no text overlays, no layout graphics, no black frames.",
+          "model.resolution": "720p",
+          "model.aspect_ratio": "16:9",
+          "model.task_type": "reference_to_video",
+          "model.images": 648193469,
+          "model.videos": "randomize",
+          "model.seed": "randomize"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Google Gemini Omni (Video)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "8",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Omni_Flash_1.1_r2v",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "11",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "terracotta_eyeshadow_palette.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "15",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "asian_female_model_beige_suit.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "11-0-7-model.images.image_1",
+        "source": "11",
+        "sourceHandle": "IMAGE",
+        "target": "7",
+        "targetHandle": "model.images.image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "15-0-7-model.images.image_2",
+        "source": "15",
+        "sourceHandle": "IMAGE",
+        "target": "7",
+        "targetHandle": "model.images.image_2",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-8-video",
+        "source": "7",
+        "sourceHandle": "VIDEO",
+        "target": "8",
+        "targetHandle": "video",
+        "ui_properties": null
+      }
+    ]
+  }
+}

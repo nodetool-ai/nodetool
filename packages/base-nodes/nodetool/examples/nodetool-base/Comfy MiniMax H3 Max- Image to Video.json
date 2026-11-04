@@ -1,0 +1,380 @@
+{
+  "id": "8a081f35817187a518fca3bbf5e852cc",
+  "name": "Comfy MiniMax H3 Max- Image to Video",
+  "description": "Generate video from a source image using MiniMax H3 Max, animating your still frame while preserving its composition, visual identity, and aspect ratio. The model delivers faster-than-real-time generation with strong prompt adherence and polished cinematic aesthetics. Ideal for bringing character art to life, animating product shots, and creating motion from concept images. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy MiniMax H3 Max- Image to Video\n\nGenerate video from a source image using MiniMax H3 Max, animating your still frame while preserving its composition, visual identity, and aspect ratio. The model delivers faster-than-real-time generation with strong prompt adherence and polished cinematic aesthetics. Ideal for bringing character art to life, animating product shots, and creating motion from concept images. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_minimax_h3_max_i2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "2",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/video/MiniMax_H3_i2v_768P",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.MinimaxHailuo03ContextIRNode",
+        "data": {
+          "model": "MiniMax H3",
+          "model.duration": 5,
+          "model.ratio": "adaptive"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "MiniMax H3 Context IR (Prompt Enhancer)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "8",
+        "type": "comfy.SaveText",
+        "data": {
+          "filename_prefix": "txt",
+          "format": "txt"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "10",
+        "type": "comfy.MinimaxHailuo03RegenerateNode",
+        "data": {
+          "model": "MiniMax H3",
+          "model.resolution": "2K",
+          "model.reference_images": false,
+          "watermark": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "MiniMax H3 Regenerate to 2K"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "11",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Minimax_h3_max",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "If/Else Switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "If/Else Switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "14",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "[Product] An all-black chunky sneaker (chunky sole, all-black body, black laces) on black velvet, cold-white top-light system, photoreal product photography.\n\n[First frame A (Shot 1, use the reference image or generate per this)]\nAn all-black chunky sneaker floating over black velvet, one cold-white beam from the upper left, the silhouette rimmed with faint edge light, slightly-off frontal view, the shoe centered, vast black negative space around it, 16:9, no text.\n\n[First frame B (Shot 2, with background text layer)]\nThe same all-black chunky sneaker on the same black velvet with the same cold-white top-light system, restaged as a low-angle hero shot looking up: the sole tilted toward the lens, tread pattern and cold steel-gray edge highlight crisp, laces dropping into frame from above. Deep in the blurred darkness behind the shoe, a giant dark-gray sans-serif line \"BUILT IN THE DARK\" is barely visible: far larger than the product, partially occluded by the shoe, out of focus, extremely low luminance, as if printed on the background velvet. 16:9, photoreal product photography.\n\n[First frame C (Shot 3)]\nThe same all-black chunky sneaker on the same black velvet with the same cold-white top-light system, restaged at a 45-degree overhead-side angle: the shoe occupying the right two-thirds, a large area of black negative space on the left, 16:9, no text.\n\n[Shot 1 motion layer (I2V, first frame A)]\nStart from the first frame, inherit its content and lighting; motion only. Action: [0s-2s] Dust drifts upward in the beam, the key light breathing subtly; [2s-5s] The shoe rotates slowly by about 20 degrees as one rim highlight sweeps along the chunky sole from heel to toe, the velvet rippling once. No text. Camera: one slow constant push-in, subtle handheld breathing, no cuts. Audio: a low drone, one muffled kick at 2s, faint velvet rustle.\n\n[Shot 2 motion layer (I2V, first frame B)]\n\nStart from the first frame, inherit its content and lighting; motion only. Action: [0s-1.5s] One highlight sweeps across the tread while the giant dark-gray background type \"BUILT IN THE DARK\" slides very slowly right to left, always behind the shoe, defocused and low-luminance; [1.5s-3.5s] The shoe flips slowly along a diagonal from sole view toward its side profile, briefly occluding more of the background type mid-flip, creating a foreground-silhouette versus background-type interplay; [3.5s-5s] It settles into a breathing hover as the background type slides off the left frame edge, cropping out and fading. Camera: locked macro, no cuts. Audio: the drone continues, one woody click at 1.5s, subtle fabric friction during the flip. Background text rules: the type never crosses in front of the shoe, never covers any part of it, stays defocused and low-contrast throughout, existing purely as a depth layer.\n\n[Shot 3 motion layer (I2V, first frame C)]\nStart from the first frame, inherit its content and lighting; motion only. Action: [0s-1.5s] The shoe hovers with breathing motion as the rim light builds; [1.5s-2.5s] The first half of the copy fades into the left negative space; [2.5s-3.2s] The second half fades in while the first half shifts gently left within the same line; [3.2s-5s] The copy locks, the shoe settles, the frame holds. Text spelled out verbatim: \"Darkness in Motion\", SF Pro Display Semibold, one line, no wrapping, vertically centered left-aligned; \"Darkness in\" in white fading in at 1.5s, \"Motion\" in cold steel gray at 2.5s. Camera: one slow push-in, no cuts. Audio: the drone peaks, one crisp pluck at 1.5s; at 4.5s everything stops leaving the pluck tail.\n\n[Edit & finishing]\nThree 5-second I2V segments, two hard cuts aligned to the kick ending Shot 1 and the pluck opening Shot 3; one unified cool dark LUT across the film, an optional light grain overlay to hide batch differences. The product stays fully black throughout; only the lighting and the shoe's motion change. Copy rhythm: Shot 1 no text, Shot 2 background defocused type only, Shot 3 the main copy; at most one readable text layer on screen at any moment.\n\n[Negative list (all three segments)]\nno product color change, no extra light sources, no readable text besides the Shot 3 copy line, background text in Shot 2 must never overlap or occlude the shoe, no two text rows, no cuts within any single segment, no mirror floor reflections, no dissolve transitions, no logo."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Text (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Boolean (Prompt Enhance)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Boolean (Upscale to 2K)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "24",
+        "type": "comfy.MinimaxHailuo03FirstLastFrameNode",
+        "data": {
+          "model": "MiniMax H3 Max",
+          "model.resolution": "768P",
+          "model.duration": 5,
+          "model.prompt_expansion_mode": "balanced",
+          "seed": 791669044,
+          "watermark": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "MiniMax H3 First-Last-Frame to Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "25",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "sneaker_black.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "24-0-2-video",
+        "source": "24",
+        "sourceHandle": "VIDEO",
+        "target": "2",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "14-0-7-model.prompt",
+        "source": "14",
+        "sourceHandle": "STRING",
+        "target": "7",
+        "targetHandle": "model.prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "25-0-7-model.reference_images.image_1",
+        "source": "25",
+        "sourceHandle": "IMAGE",
+        "target": "7",
+        "targetHandle": "model.reference_images.image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "12-0-8-text",
+        "source": "12",
+        "sourceHandle": "output",
+        "target": "8",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "8-0-10-model.prompt",
+        "source": "8",
+        "sourceHandle": "text",
+        "target": "10",
+        "targetHandle": "model.prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-10-video",
+        "source": "2",
+        "sourceHandle": "video",
+        "target": "10",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "25-0-10-model.reference_images.image_1",
+        "source": "25",
+        "sourceHandle": "IMAGE",
+        "target": "10",
+        "targetHandle": "model.reference_images.image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "13-0-11-video",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "11",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "18-0-12-switch",
+        "source": "18",
+        "sourceHandle": "BOOLEAN",
+        "target": "12",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "14-0-12-on_false",
+        "source": "14",
+        "sourceHandle": "STRING",
+        "target": "12",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-12-on_true",
+        "source": "7",
+        "sourceHandle": "STRING",
+        "target": "12",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "19-0-13-switch",
+        "source": "19",
+        "sourceHandle": "BOOLEAN",
+        "target": "13",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "24-0-13-on_false",
+        "source": "24",
+        "sourceHandle": "VIDEO",
+        "target": "13",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "10-0-13-on_true",
+        "source": "10",
+        "sourceHandle": "VIDEO",
+        "target": "13",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "12-0-24-model.prompt",
+        "source": "12",
+        "sourceHandle": "output",
+        "target": "24",
+        "targetHandle": "model.prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "25-0-24-first_frame",
+        "source": "25",
+        "sourceHandle": "IMAGE",
+        "target": "24",
+        "targetHandle": "first_frame",
+        "ui_properties": null
+      }
+    ]
+  }
+}

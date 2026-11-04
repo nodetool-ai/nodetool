@@ -1,0 +1,171 @@
+{
+  "id": "15197b28b49942db02f03e1c7d42b113",
+  "name": "Comfy Seedance2.5 Draft- Reference to Video",
+  "description": "Generate draft preview videos from reference images using Seedance 2.5's two-phase draft mode: stage one turns your references and prompt into a fast, low-cost 480p preview plus a reusable draft task ID, and stage two renders the 1080p final from that ID. Ideal for locking in a character or storyboard reference before committing to a full-quality render. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Seedance2.5 Draft- Reference to Video\n\nGenerate draft preview videos from reference images using Seedance 2.5's two-phase draft mode: stage one turns your references and prompt into a fast, low-cost 480p preview plus a reusable draft task ID, and stage two renders the 1080p final from that ID. Ideal for locking in a character or storyboard reference before committing to a full-quality render. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_seedance2_5_draft_r2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "771",
+        "type": "comfy.SaveText",
+        "data": {
+          "filename_prefix": "txt",
+          "format": "txt"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "776",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Seedance2.5_draft",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "788",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "mech_comic_storyboard.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "789",
+        "type": "comfy.ByteDance2ReferenceNodeV2",
+        "data": {
+          "model": "Seedance 2.5 Draft",
+          "model.prompt": "Photoreal cinematic sci-fi action fashion film, 5 seconds, a high-end techwear campaign crossed with a blockbuster fight sequence. Shot on ARRI Alexa 65 with anamorphic lenses. Deep night in a rain-slicked megacity, full moon, cold blue ambient light cut with sodium-orange streetlights and stray magenta neon. Wet reflective surfaces, light haze, drifting rain particles, shallow depth of field, rich filmic grain, crisp specular highlights, and a restrained teal-and-cobalt grade that makes the yellow pop.\n\n**Character (strict consistency):** A tall, slender, faceless android.\n- **Head:** A glossy porcelain-white egg-shaped helmet with black cybernetic seam lines. Black cable loops and antenna nodes arc behind the head.\n- **Jacket:** An oversized high-gloss lemon-yellow puffer parka worn open, with cobalt-blue shoulder panels, a blue fleece-lined collar, black ribbed cuffs and hem, and utility sleeve pockets. The vinyl-like surface catches every reflection.\n- **Body:** An exposed matte-black segmented armored torso and slim black mechanical legs, accented with small yellow panels and circular joint actuators.\n- **Weapons:** In each hand, a boxy yellow-and-black industrial power module, with thick black cables swinging in long loops beneath.\n- **Opponents:** Heavily armored tactical soldiers in gunmetal-grey plate armor and full helmets, carrying rifles.\n\n**Sequence (fast, rhythmic editing with speed ramps and motivated whip transitions):**\n\n**0.0–0.8s:** Extreme low-angle hero shot. The android stands motionless on the edge of a weathered rooftop parapet, the moon glowing behind its white helmet and skyscrapers towering into the mist. Wind ripples the glossy yellow parka, and the cables sway slowly. The camera creeps upward in a slow push-in with a regal, editorial stillness.\n\n**0.8–1.6s:** Hard cut to a top-down drone shot. The android launches off the roof and soars across a deep street canyon, the parka billowing and the cables whipping in wide arcs. Tiny car headlights stream far below. A speed ramp slows to 30% at the apex, then snaps back to full speed.\n\n**1.6–2.4s:** Whip-pan into a street-level wide shot. The android crashes down in a low sliding landing, knee skidding across wet concrete and concrete chunks bursting outward. Two soldiers open fire from both sides. Bullet impacts spark around it as it twists and dodges in a blur of yellow, with muzzle flashes briefly lighting the rain.\n\n**2.4–3.2s:** A handheld, ground-hugging tracking shot races through a narrow neon alley. The android drops into a razor-low knee slide beneath a horizontal steel barrier, cables trailing across the puddles. Two armored soldiers charge toward the lens in the background, spraying water with each step.\n\n**3.2–4.2s:** Tight over-the-shoulder close-up with a punch-in camera shake. The android drives a devastating straight punch with the boxy power module into a soldier's helmet visor. The visor shatters into slow-motion fragments and sparks. In the background, a second soldier is blasted backward off his feet.\n\n**4.2–5.0s:** A low-angle orbit sweeps around a mid-air spinning flying kick. The android's mechanical leg fully extends and smashes into the last soldier's helmet. The cables and yellow parka flare dramatically in a near-freeze-frame, with rain droplets suspended in the air and fallen soldiers lying across the wet ground. The skyline glows behind them. The shot holds on a graceful, fashion-editorial final pose.\n\n**Style:** Choreography that is impactful and precise, reminiscent of John Wick meets Ghost in the Shell meets a luxury techwear commercial. Realistic weight and inertia, detailed cloth and cable physics, cinematic motion blur, volumetric light, and ultra-detailed materials: glossy vinyl, ceramic, matte carbon, worn steel. No text, no watermark, no cartoon or sketch style.",
+          "model.resolution": "480p",
+          "model.ratio": "adaptive",
+          "model.duration": 5,
+          "model.generate_audio": true,
+          "model.task_type": "auto",
+          "model.output_format": "mp4",
+          "model.reference_images": true,
+          "model.reference_videos": false,
+          "model.reference_audios": 1859544960,
+          "model.reference_assets": "randomize",
+          "model.auto_downscale": false,
+          "model.auto_upscale": false,
+          "seed": 0,
+          "watermark": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ByteDance Seedance 2.5 Reference to Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "795",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "yellow_mech_character_sheet.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "789-1-771-text",
+        "source": "789",
+        "sourceHandle": "draft_task_id",
+        "target": "771",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "789-0-776-video",
+        "source": "789",
+        "sourceHandle": "VIDEO",
+        "target": "776",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "795-0-789-model.reference_images.image_1",
+        "source": "795",
+        "sourceHandle": "IMAGE",
+        "target": "789",
+        "targetHandle": "model.reference_images.image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "788-0-789-model.reference_images.image_2",
+        "source": "788",
+        "sourceHandle": "IMAGE",
+        "target": "789",
+        "targetHandle": "model.reference_images.image_2",
+        "ui_properties": null
+      }
+    ]
+  }
+}

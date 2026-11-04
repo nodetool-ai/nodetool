@@ -1,0 +1,82 @@
+{
+  "id": "18038ef2335695d78d033d8c1c1cdcac",
+  "name": "Comfy Kling O1- Image",
+  "description": "Generate high-quality images from text prompts using Kling O1, with support for up to 10 reference images to guide style and content. Features flexible aspect ratios and 1K/2K resolution options. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Kling O1- Image\n\nGenerate high-quality images from text prompts using Kling O1, with support for up to 10 reference images to guide style and content. Features flexible aspect ratios and 1K/2K resolution options. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_kling_omni_image.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "5",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "Kling_image_o1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.KlingOmniProImageNode",
+        "data": {
+          "model_name": "kling-image-o1",
+          "prompt": "A poised woman tilts her chin slightly upward toward the camera, her eyes completely hidden by the wide, flat brim of a dramatic black straw hat. **Only the very top crown of the hat is adorned with a voluminous, structured white ruffled fabric and delicate gold threads, with no white fabric extending down the brim or sides**, creating an air of quiet mystery. She wears bold, vivid matte red lipstick, and elaborate dangling gold filigree earrings frame her face. Around her neck, multiple layers of lustrous white pearl necklaces and intricate gold chains cascade in rich, textured strands, covering her chest. Her attire is a full, dark black garment with subtle, swirling gold floral patterns, its structured puffed shoulders and smooth satin finish enhancing the sense of old-world glamour against a neutral, muted light gray background. Photorealistic, high fashion editorial, soft studio lighting, sharp focus on textures.",
+          "resolution": "1K",
+          "aspect_ratio": "1:1",
+          "series_amount": "disabled",
+          "seed": 1167449549
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Kling 3.0 Omni Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "7-0-5-images",
+        "source": "7",
+        "sourceHandle": "IMAGE",
+        "target": "5",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

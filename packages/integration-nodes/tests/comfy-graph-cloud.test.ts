@@ -205,4 +205,22 @@ describe("ComfyCloudGraphNode", () => {
       expect.objectContaining({ type: "node_update", node_id: "save", status: "error" })
     );
   });
+
+  it("writes run inputs into the prompt and repeats files on the output handle", async () => {
+    const { node, context } = setup(job("succeeded"));
+    (node as unknown as { setDynamic: (k: string, v: unknown) => void }).setDynamic("make:width", 128);
+    const frames: Array<Record<string, unknown>> = [];
+    for await (const frame of node.genProcess(context)) frames.push(frame);
+    expect(node.submitted[0]?.make?.inputs.width).toBe(128);
+    expect(frames[0]?.["save:output"]).toEqual(frames[0]?.["save:image"]);
+  });
+
+  it("refuses an Output wired to a socket that Comfy does not return", async () => {
+    const { node, context } = setup(job("succeeded"));
+    (node as unknown as { assign: (p: Record<string, unknown>) => void }).assign({
+      output_slots: ["make:IMAGE"]
+    });
+    await expect(node.process(context)).rejects.toThrow("Connect the Output to a Save node");
+    expect(node.submitted).toHaveLength(0);
+  });
 });

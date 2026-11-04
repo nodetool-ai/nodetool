@@ -1,0 +1,348 @@
+{
+  "id": "95417aada04f0b177ceae9d90c6bf08e",
+  "name": "Comfy Generate 3D Model From Single Image",
+  "description": "Input a single image to automatically generate three orthographic views. Use these multiviews with Meshy to create a textured 3D model. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "3d model",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Generate 3D Model From Single Image\n\nInput a single image to automatically generate three orthographic views. Use these multiviews with Meshy to create a textured 3D model. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/templates_mjm_image_to_3d.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "templates_mjm_image_to_3d.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2",
+        "type": "comfy.GeminiNanoBanana2",
+        "data": {
+          "prompt": "Create a side shot from this image, do not change the pose and lighting\n\nNo background",
+          "model": "Nano Banana 2 (Gemini 3.1 Flash Image)",
+          "seed": 138687889823595,
+          "aspect_ratio": "1:1",
+          "resolution": "2K",
+          "response_modalities": "IMAGE",
+          "thinking_level": "HIGH",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Nano Banana 2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "4",
+        "type": "comfy.GeminiNanoBanana2",
+        "data": {
+          "prompt": "Create a rear shot from this image, do not change the pose and lighting\n\nNo background",
+          "model": "Nano Banana 2 (Gemini 3.1 Flash Image)",
+          "seed": 226226946819998,
+          "aspect_ratio": "1:1",
+          "resolution": "2K",
+          "response_modalities": "IMAGE",
+          "thinking_level": "HIGH",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Nano Banana 2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "6",
+        "type": "comfy.BatchImagesNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Batch Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.TripoImageToModelNode",
+        "data": {
+          "model_version": "v3.0-20250812",
+          "style": "person:person2cartoon",
+          "texture": true,
+          "pbr": true,
+          "model_seed": 42,
+          "orientation": "default",
+          "texture_seed": 42,
+          "texture_quality": "detailed",
+          "texture_alignment": "geometry",
+          "face_limit": -1,
+          "quad": false,
+          "geometry_quality": "standard",
+          "smart_low_poly": false,
+          "auto_size": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Tripo: Image to Model (Legacy)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "23",
+        "type": "comfy.GeminiNanoBanana2",
+        "data": {
+          "prompt": "Remove the background",
+          "model": "Nano Banana 2 (Gemini 3.1 Flash Image)",
+          "seed": 80526614165305,
+          "aspect_ratio": "1:1",
+          "resolution": "2K",
+          "response_modalities": "IMAGE",
+          "thinking_level": "HIGH",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Nano Banana 2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "24",
+        "type": "comfy.Preview3D",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Preview 3D & Animation (DEPRECATED)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "25",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "26",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "27",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "28",
+        "type": "comfy.SaveGLB",
+        "data": {
+          "filename_prefix": "3d/tripo_image2model"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save 3D Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "1-0-2-images",
+        "source": "1",
+        "sourceHandle": "IMAGE",
+        "target": "2",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "1-0-4-images",
+        "source": "1",
+        "sourceHandle": "IMAGE",
+        "target": "4",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "23-0-6-images.image0",
+        "source": "23",
+        "sourceHandle": "IMAGE",
+        "target": "6",
+        "targetHandle": "images.image0",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-6-images.image1",
+        "source": "2",
+        "sourceHandle": "IMAGE",
+        "target": "6",
+        "targetHandle": "images.image1",
+        "ui_properties": null
+      },
+      {
+        "id": "4-0-6-images.image2",
+        "source": "4",
+        "sourceHandle": "IMAGE",
+        "target": "6",
+        "targetHandle": "images.image2",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-7-image",
+        "source": "6",
+        "sourceHandle": "IMAGE",
+        "target": "7",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "1-0-23-images",
+        "source": "1",
+        "sourceHandle": "IMAGE",
+        "target": "23",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-24-model_file",
+        "source": "7",
+        "sourceHandle": "model_file",
+        "target": "24",
+        "targetHandle": "model_file",
+        "ui_properties": null
+      },
+      {
+        "id": "23-0-25-images",
+        "source": "23",
+        "sourceHandle": "IMAGE",
+        "target": "25",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-26-images",
+        "source": "2",
+        "sourceHandle": "IMAGE",
+        "target": "26",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "4-0-27-images",
+        "source": "4",
+        "sourceHandle": "IMAGE",
+        "target": "27",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "7-2-28-mesh",
+        "source": "7",
+        "sourceHandle": "GLB",
+        "target": "28",
+        "targetHandle": "mesh",
+        "ui_properties": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,378 @@
+{
+  "id": "b4ffa90b33389eee79eabf2fd69bff02",
+  "name": "Comfy Dynamic 3D Logo Animations",
+  "description": "Upload a vector image of your logo, and prompt your desired texture. Generate a textured 3D first and last frame with automated prompting for the final animation. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "brand & design",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Dynamic 3D Logo Animations\n\nUpload a vector image of your logo, and prompt your desired texture. Generate a textured 3D first and last frame with automated prompting for the final animation. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/templates-3D_logo_texture_animation.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "comfy_logo_c.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Logo Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "prompt": "Create a simple 3D version of this logo, it is colored white, slightly extruded, floating against a solid black background taken from a low left angle, giving it a heroic feel. Taken with a long focal length.\n\n",
+          "model": "gemini-3-pro-image-preview",
+          "seed": 12345,
+          "aspect_ratio": "1:1",
+          "resolution": "1K",
+          "response_modalities": "IMAGE+TEXT",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-3d_logo"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "4",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "prompt": "Generate this logo made out of glowing green ASCII code, maintain the depth and composition of the logo while adding the desired texture element",
+          "model": "gemini-3-pro-image-preview",
+          "seed": 123,
+          "aspect_ratio": "1:1",
+          "resolution": "1K",
+          "response_modalities": "IMAGE+TEXT",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-3d_logo_textured_1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "6",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "prompt": "Generate this image 5 seconds into the future after much dynamic action, maintain the overall shape of the textured logo\n",
+          "model": "gemini-3-pro-image-preview",
+          "seed": 321,
+          "aspect_ratio": "1:1",
+          "resolution": "1K",
+          "response_modalities": "IMAGE+TEXT",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-3d_logo_textured_2"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "9",
+        "type": "comfy.ByteDanceFirstLastFrameNode",
+        "data": {
+          "model": "seedance-1-0-pro-250528",
+          "resolution": "1080p",
+          "aspect_ratio": "adaptive",
+          "duration": 5,
+          "seed": 123,
+          "camera_fixed": false,
+          "watermark": false,
+          "generate_audio": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ByteDance First-Last-Frame to Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "16",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ComfyUI-logo_animation",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "23",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Preview Transition Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "22:17",
+        "type": "comfy.GeminiNode",
+        "data": {
+          "prompt": "STEP 1: ANALYZE BOTH FRAMES\n\nFor each image, identify:\n\nVisual Elements:\nForm (shape, 3D, position)\nTexture (surface details, patterns)\nColor (hues, contrast, temperature)\nBackground (environment, depth)\nLighting (source, quality, direction, mood)\nPerspective (angle, focal point)\nMood (tone, energy, aesthetic)\n\nTransition Strategy:\nTransition order always goes from image 1 to image 2.\nShared elements connecting both frames\nChallenges (dimension shifts, style changes)\nOpportunities (natural bridges between frames)\n\n\nSTEP 2: BUILD THE PROMPT (≤50 WORDS)\nStructure:\n[Subject + Action] → [Beginning → Middle → End]  +  [MODIFIERS]\n\nRules:\nA. Lead with concrete subject + action verb\nThe transitions must have a lot of dynamic action.\nUse specific nouns and active verbs\nAvoid vague or passive language\n\nB. Map the journey in 3 beats\nDescribe HOW things transform, not just THAT they do\nStart state → transition → end state\n\nC. Use dynamic cinematic motion verbs\nGood: dissolves, spirals, cascades, erupts, morphs, fragments, reconverges\nAvoid: changes, moves, transforms (alone)\n\n\nD. State spatial transformations\nDimension changes: \"flat to volumetric\", \"2D to 3D\"\nScale shifts: \"zooms into detail\", \"pulls back to reveal\"\n\nE. Define visual style\nColors: literal names (teal, vermilion, neon green)\nLighting: volumetric, rim-lit, soft diffusion, bloom\nTexture: grain, scratches, chromatic aberration\nFPS: \"slow-motion\", \"cinematic 24fps\", \"digital rain FPS\"\n\nF. Add 1-3 bracketed modifiers\nFormat: [DESCRIPTOR IN CAPS]\nExamples: [DYNAMIC CAMERA PUSH], [VOLUMETRIC GLOW], [SLOW MOTION], [FAST PACED ENERGY]\n\n\nSTEP 3: OUTPUT\nONLY output the completed transition prompt. Nothing else.\n\nDo NOT include:\n\nProcess explanations\nStructural breakdowns\nAnalysis notes\nFollow-up questions",
+          "model": "gemini-2.5-flash",
+          "seed": 111,
+          "system_prompt": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Google Gemini"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "22:27",
+        "type": "comfy.BatchImagesNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Batch Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "1-0-2-images",
+        "source": "1",
+        "sourceHandle": "IMAGE",
+        "target": "2",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-3-images",
+        "source": "2",
+        "sourceHandle": "IMAGE",
+        "target": "3",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-4-images",
+        "source": "2",
+        "sourceHandle": "IMAGE",
+        "target": "4",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "4-0-5-images",
+        "source": "4",
+        "sourceHandle": "IMAGE",
+        "target": "5",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "4-0-6-images",
+        "source": "4",
+        "sourceHandle": "IMAGE",
+        "target": "6",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-7-images",
+        "source": "6",
+        "sourceHandle": "IMAGE",
+        "target": "7",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "22:17-0-9-prompt",
+        "source": "22:17",
+        "sourceHandle": "STRING",
+        "target": "9",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "4-0-9-first_frame",
+        "source": "4",
+        "sourceHandle": "IMAGE",
+        "target": "9",
+        "targetHandle": "first_frame",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-9-last_frame",
+        "source": "6",
+        "sourceHandle": "IMAGE",
+        "target": "9",
+        "targetHandle": "last_frame",
+        "ui_properties": null
+      },
+      {
+        "id": "9-0-16-video",
+        "source": "9",
+        "sourceHandle": "VIDEO",
+        "target": "16",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "22:17-0-23-source",
+        "source": "22:17",
+        "sourceHandle": "STRING",
+        "target": "23",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "22:27-0-22:17-images",
+        "source": "22:27",
+        "sourceHandle": "IMAGE",
+        "target": "22:17",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-22:27-images.image0",
+        "source": "6",
+        "sourceHandle": "IMAGE",
+        "target": "22:27",
+        "targetHandle": "images.image0",
+        "ui_properties": null
+      },
+      {
+        "id": "4-0-22:27-images.image1",
+        "source": "4",
+        "sourceHandle": "IMAGE",
+        "target": "22:27",
+        "targetHandle": "images.image1",
+        "ui_properties": null
+      }
+    ]
+  }
+}

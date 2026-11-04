@@ -1,0 +1,110 @@
+{
+  "id": "c2031c61319c545008678d6cee017e53",
+  "name": "Comfy Kling 4.0- Image to Video",
+  "description": "Animate a single still into a five-second clip with Kling 4.0, cutting three times inside one generation. The source image locks the subject and styling while the default prompt drives the camera moves and a beat-timed edit, and the model also produces stereo audio. Ideal for fashion, editorial, and product motion where the input frame defines the look. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Kling 4.0- Image to Video\n\nAnimate a single still into a five-second clip with Kling 4.0, cutting three times inside one generation. The source image locks the subject and styling while the default prompt drives the camera moves and a beat-timed edit, and the model also produces stereo audio. Ideal for fashion, editorial, and product motion where the input frame defines the look. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_kling4_i2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "kling4_editorial_portrait.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2",
+        "type": "comfy.Kling4ImageToVideoNode",
+        "data": {
+          "model": "kling-4.0",
+          "model.prompt": "Three shots, hard cuts on the beat. 0-1.5s: extreme close-up, she pushes the white polygonal sunglasses down her nose with two fingers, the striped valance swinging behind her; fast snap zoom out. 1.5-3.2s: hard cut - medium shot, the camera whips right as she turns her head and reaches for the wine glass, her red sleeve sweeping across frame. 3.2-5s: hard cut - wide of the booth, she lifts the glass and drinks slowly, the camera pulls back fast then holds. Keep her face, the bob, the white sunglasses, the red shirt and the teal-and-cream striped wall exactly as they are. Each shot has its own camera move; never one slow pan. Sound: fabric swish, glass on linen, low restaurant murmur.",
+          "model.resolution": "720p",
+          "model.duration": 5,
+          "model.seed": 42,
+          "model.middle_frames": "fixed"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Kling 4.0 Image to Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/kling4_i2v",
+          "format": "mp4",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "1-0-2-model.first_frame",
+        "source": "1",
+        "sourceHandle": "IMAGE",
+        "target": "2",
+        "targetHandle": "model.first_frame",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-3-video",
+        "source": "2",
+        "sourceHandle": "VIDEO",
+        "target": "3",
+        "targetHandle": "video",
+        "ui_properties": null
+      }
+    ]
+  }
+}

@@ -9,6 +9,7 @@
 
 import { WorkflowRunner, Graph, withExplicitNodeFlags } from "@nodetool-ai/kernel";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { collapseComfyGraph } from "@nodetool-ai/protocol";
 import type {
   Edge,
   HydratedGraphData,
@@ -93,8 +94,13 @@ async function prepareInnerGraph(
 }> {
   const rawNodes = (graph.nodes ?? []) as Array<Record<string, unknown>>;
   const rawEdges = (graph.edges ?? []) as Array<Record<string, unknown>>;
-  const normalizedNodes = normalizeNodes(rawNodes);
-  const normalizedEdges = normalizeEdges(rawEdges);
+  // A Comfy workflow runs as one Comfy Cloud job, not node by node.
+  const collapsed = collapseComfyGraph({
+    nodes: normalizeNodes(rawNodes),
+    edges: normalizeEdges(rawEdges)
+  });
+  const normalizedNodes = collapsed.nodes;
+  const normalizedEdges = collapsed.edges;
 
   // Hydrate graph via resolver if available; otherwise behavior flags can only
   // come from the saved graph itself and absent ones default off.

@@ -1,0 +1,1203 @@
+{
+  "id": "12a33935e48d9fbf1f885df5b6ab335e",
+  "name": "Comfy Single Image to Animated Sprite Sheet",
+  "description": "Upload a single image to generate an animated sequence. The workflow creates a sprite sheet with multiple frames for use in games or animations. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "brand & design",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Single Image to Animated Sprite Sheet\n\nUpload a single image to generate an animated sequence. The workflow creates a sprite sheet with multiple frames for use in games or animations. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/template_purz_nb2_single_image_sprite_sheet.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "2",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "sprite_sheet/spritesheet_output"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "14",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "nb2-single_image_sprite_sheet-input"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "57",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "sprite_sheet/frame_01"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "58",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "sprite_sheet/frame_02"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "59",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "sprite_sheet/frame_03"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "61",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "sprite_sheet/frame_04"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "64",
+        "type": "comfy.SaveImageWithAlpha",
+        "data": {
+          "filename_prefix": "sprite_sheet/spritesheet_mask"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image With Alpha"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "74",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "sprite_sheet/frame_05"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "75",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "sprite_sheet/frame_06"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "76",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "sprite_sheet/frame_07"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "77",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "sprite_sheet/frame_08"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "82",
+        "type": "comfy.VHS_VideoCombine",
+        "data": {
+          "frame_rate": 8,
+          "loop_count": 0,
+          "filename_prefix": "sprite_sheet/animation",
+          "format": "video/ffmpeg-gif",
+          "dither": "sierra2_4a",
+          "pingpong": false,
+          "save_output": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3060,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Video Combine 🎥🅥🅗🅢"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "87",
+        "type": "comfy.VHS_VideoCombine",
+        "data": {
+          "frame_rate": 8,
+          "loop_count": 0,
+          "filename_prefix": "sprite_sheet/animation",
+          "format": "image/webp",
+          "lossless": true,
+          "pingpong": false,
+          "save_output": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3060,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Video Combine 🎥🅥🅗🅢"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "98",
+        "type": "comfy.GeminiNanoBanana2",
+        "data": {
+          "prompt": "pixelart, 32x32 pixels sprite sheet, white background,  , 4 x 2 grid of images\n\ndancing",
+          "model": "Nano Banana 2 (Gemini 3.1 Flash Image)",
+          "seed": 804086386519426,
+          "aspect_ratio": "16:9",
+          "resolution": "2K",
+          "response_modalities": "IMAGE",
+          "thinking_level": "HIGH",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Nano Banana 2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93:70",
+        "type": "comfy.Image Crop Location",
+        "data": {
+          "left": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Image Crop Location"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93:71",
+        "type": "comfy.Image Crop Location",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Image Crop Location"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93:72",
+        "type": "comfy.Image Crop Location",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Image Crop Location"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93:48",
+        "type": "comfy.Image Crop Location",
+        "data": {
+          "top": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Image Crop Location"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93:45",
+        "type": "comfy.Image Crop Location",
+        "data": {
+          "top": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Image Crop Location"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93:32",
+        "type": "comfy.Image Crop Location",
+        "data": {
+          "top": 0,
+          "left": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Image Crop Location"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93:65",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93:66",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93:38",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a + b"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "🔧 Simple Math"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93:67",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93:39",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a + b"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "🔧 Simple Math"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93:68",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93:53",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a + b"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "🔧 Simple Math"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93:73",
+        "type": "comfy.Image Crop Location",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Image Crop Location"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93:46",
+        "type": "comfy.Image Crop Location",
+        "data": {
+          "top": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Image Crop Location"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93:37",
+        "type": "comfy.SplitImageWithAlpha",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Split Image with Alpha"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93:41",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a / 2"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "🔧 Simple Math"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93:33",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a / 4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "🔧 Simple Math"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93:81",
+        "type": "comfy.BatchImagesNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Batch Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93:86",
+        "type": "comfy.BiRefNetRMBG",
+        "data": {
+          "model": "BiRefNet_toonout",
+          "mask_blur": 0,
+          "mask_offset": -4,
+          "invert_output": false,
+          "refine_foreground": false,
+          "background": "Alpha"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 660
+          },
+          "width": 280,
+          "title": "BiRefNet (RMBG)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93:34",
+        "type": "comfy.GetImageSize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Get Image Size"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "98-0-2-images",
+        "source": "98",
+        "sourceHandle": "IMAGE",
+        "target": "2",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "93:32-0-57-images",
+        "source": "93:32",
+        "sourceHandle": "IMAGE",
+        "target": "57",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "93:45-0-58-images",
+        "source": "93:45",
+        "sourceHandle": "IMAGE",
+        "target": "58",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "93:46-0-59-images",
+        "source": "93:46",
+        "sourceHandle": "IMAGE",
+        "target": "59",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "93:48-0-61-images",
+        "source": "93:48",
+        "sourceHandle": "IMAGE",
+        "target": "61",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "93:86-0-64-images",
+        "source": "93:86",
+        "sourceHandle": "IMAGE",
+        "target": "64",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "93:86-1-64-mask",
+        "source": "93:86",
+        "sourceHandle": "MASK",
+        "target": "64",
+        "targetHandle": "mask",
+        "ui_properties": null
+      },
+      {
+        "id": "93:70-0-74-images",
+        "source": "93:70",
+        "sourceHandle": "IMAGE",
+        "target": "74",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "93:71-0-75-images",
+        "source": "93:71",
+        "sourceHandle": "IMAGE",
+        "target": "75",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "93:72-0-76-images",
+        "source": "93:72",
+        "sourceHandle": "IMAGE",
+        "target": "76",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "93:73-0-77-images",
+        "source": "93:73",
+        "sourceHandle": "IMAGE",
+        "target": "77",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "93:81-0-82-images",
+        "source": "93:81",
+        "sourceHandle": "IMAGE",
+        "target": "82",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "93:81-0-87-images",
+        "source": "93:81",
+        "sourceHandle": "IMAGE",
+        "target": "87",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "14-0-98-images",
+        "source": "14",
+        "sourceHandle": "IMAGE",
+        "target": "98",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "93:41-0-93:70-top",
+        "source": "93:41",
+        "sourceHandle": "INT",
+        "target": "93:70",
+        "targetHandle": "top",
+        "ui_properties": null
+      },
+      {
+        "id": "93:33-0-93:70-right",
+        "source": "93:33",
+        "sourceHandle": "INT",
+        "target": "93:70",
+        "targetHandle": "right",
+        "ui_properties": null
+      },
+      {
+        "id": "93:34-1-93:70-bottom",
+        "source": "93:34",
+        "sourceHandle": "height",
+        "target": "93:70",
+        "targetHandle": "bottom",
+        "ui_properties": null
+      },
+      {
+        "id": "93:86-0-93:70-image",
+        "source": "93:86",
+        "sourceHandle": "IMAGE",
+        "target": "93:70",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "93:41-0-93:71-top",
+        "source": "93:41",
+        "sourceHandle": "INT",
+        "target": "93:71",
+        "targetHandle": "top",
+        "ui_properties": null
+      },
+      {
+        "id": "93:33-0-93:71-left",
+        "source": "93:33",
+        "sourceHandle": "INT",
+        "target": "93:71",
+        "targetHandle": "left",
+        "ui_properties": null
+      },
+      {
+        "id": "93:38-0-93:71-right",
+        "source": "93:38",
+        "sourceHandle": "INT",
+        "target": "93:71",
+        "targetHandle": "right",
+        "ui_properties": null
+      },
+      {
+        "id": "93:34-1-93:71-bottom",
+        "source": "93:34",
+        "sourceHandle": "height",
+        "target": "93:71",
+        "targetHandle": "bottom",
+        "ui_properties": null
+      },
+      {
+        "id": "93:86-0-93:71-image",
+        "source": "93:86",
+        "sourceHandle": "IMAGE",
+        "target": "93:71",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "93:41-0-93:72-top",
+        "source": "93:41",
+        "sourceHandle": "INT",
+        "target": "93:72",
+        "targetHandle": "top",
+        "ui_properties": null
+      },
+      {
+        "id": "93:38-0-93:72-left",
+        "source": "93:38",
+        "sourceHandle": "INT",
+        "target": "93:72",
+        "targetHandle": "left",
+        "ui_properties": null
+      },
+      {
+        "id": "93:39-0-93:72-right",
+        "source": "93:39",
+        "sourceHandle": "INT",
+        "target": "93:72",
+        "targetHandle": "right",
+        "ui_properties": null
+      },
+      {
+        "id": "93:34-1-93:72-bottom",
+        "source": "93:34",
+        "sourceHandle": "height",
+        "target": "93:72",
+        "targetHandle": "bottom",
+        "ui_properties": null
+      },
+      {
+        "id": "93:86-0-93:72-image",
+        "source": "93:86",
+        "sourceHandle": "IMAGE",
+        "target": "93:72",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "93:39-0-93:48-left",
+        "source": "93:39",
+        "sourceHandle": "INT",
+        "target": "93:48",
+        "targetHandle": "left",
+        "ui_properties": null
+      },
+      {
+        "id": "93:53-0-93:48-right",
+        "source": "93:53",
+        "sourceHandle": "INT",
+        "target": "93:48",
+        "targetHandle": "right",
+        "ui_properties": null
+      },
+      {
+        "id": "93:41-0-93:48-bottom",
+        "source": "93:41",
+        "sourceHandle": "INT",
+        "target": "93:48",
+        "targetHandle": "bottom",
+        "ui_properties": null
+      },
+      {
+        "id": "93:86-0-93:48-image",
+        "source": "93:86",
+        "sourceHandle": "IMAGE",
+        "target": "93:48",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "93:33-0-93:45-left",
+        "source": "93:33",
+        "sourceHandle": "INT",
+        "target": "93:45",
+        "targetHandle": "left",
+        "ui_properties": null
+      },
+      {
+        "id": "93:38-0-93:45-right",
+        "source": "93:38",
+        "sourceHandle": "INT",
+        "target": "93:45",
+        "targetHandle": "right",
+        "ui_properties": null
+      },
+      {
+        "id": "93:41-0-93:45-bottom",
+        "source": "93:41",
+        "sourceHandle": "INT",
+        "target": "93:45",
+        "targetHandle": "bottom",
+        "ui_properties": null
+      },
+      {
+        "id": "93:86-0-93:45-image",
+        "source": "93:86",
+        "sourceHandle": "IMAGE",
+        "target": "93:45",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "93:33-0-93:32-right",
+        "source": "93:33",
+        "sourceHandle": "INT",
+        "target": "93:32",
+        "targetHandle": "right",
+        "ui_properties": null
+      },
+      {
+        "id": "93:41-0-93:32-bottom",
+        "source": "93:41",
+        "sourceHandle": "INT",
+        "target": "93:32",
+        "targetHandle": "bottom",
+        "ui_properties": null
+      },
+      {
+        "id": "93:86-0-93:32-image",
+        "source": "93:86",
+        "sourceHandle": "IMAGE",
+        "target": "93:32",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "93:33-0-93:65-source",
+        "source": "93:33",
+        "sourceHandle": "INT",
+        "target": "93:65",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "93:38-0-93:66-source",
+        "source": "93:38",
+        "sourceHandle": "INT",
+        "target": "93:66",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "93:33-0-93:38-a",
+        "source": "93:33",
+        "sourceHandle": "INT",
+        "target": "93:38",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "93:33-0-93:38-b",
+        "source": "93:33",
+        "sourceHandle": "INT",
+        "target": "93:38",
+        "targetHandle": "b",
+        "ui_properties": null
+      },
+      {
+        "id": "93:39-0-93:67-source",
+        "source": "93:39",
+        "sourceHandle": "INT",
+        "target": "93:67",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "93:38-0-93:39-a",
+        "source": "93:38",
+        "sourceHandle": "INT",
+        "target": "93:39",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "93:33-0-93:39-b",
+        "source": "93:33",
+        "sourceHandle": "INT",
+        "target": "93:39",
+        "targetHandle": "b",
+        "ui_properties": null
+      },
+      {
+        "id": "93:53-0-93:68-source",
+        "source": "93:53",
+        "sourceHandle": "INT",
+        "target": "93:68",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "93:39-0-93:53-a",
+        "source": "93:39",
+        "sourceHandle": "INT",
+        "target": "93:53",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "93:33-0-93:53-b",
+        "source": "93:33",
+        "sourceHandle": "INT",
+        "target": "93:53",
+        "targetHandle": "b",
+        "ui_properties": null
+      },
+      {
+        "id": "93:41-0-93:73-top",
+        "source": "93:41",
+        "sourceHandle": "INT",
+        "target": "93:73",
+        "targetHandle": "top",
+        "ui_properties": null
+      },
+      {
+        "id": "93:39-0-93:73-left",
+        "source": "93:39",
+        "sourceHandle": "INT",
+        "target": "93:73",
+        "targetHandle": "left",
+        "ui_properties": null
+      },
+      {
+        "id": "93:53-0-93:73-right",
+        "source": "93:53",
+        "sourceHandle": "INT",
+        "target": "93:73",
+        "targetHandle": "right",
+        "ui_properties": null
+      },
+      {
+        "id": "93:34-1-93:73-bottom",
+        "source": "93:34",
+        "sourceHandle": "height",
+        "target": "93:73",
+        "targetHandle": "bottom",
+        "ui_properties": null
+      },
+      {
+        "id": "93:86-0-93:73-image",
+        "source": "93:86",
+        "sourceHandle": "IMAGE",
+        "target": "93:73",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "93:38-0-93:46-left",
+        "source": "93:38",
+        "sourceHandle": "INT",
+        "target": "93:46",
+        "targetHandle": "left",
+        "ui_properties": null
+      },
+      {
+        "id": "93:39-0-93:46-right",
+        "source": "93:39",
+        "sourceHandle": "INT",
+        "target": "93:46",
+        "targetHandle": "right",
+        "ui_properties": null
+      },
+      {
+        "id": "93:41-0-93:46-bottom",
+        "source": "93:41",
+        "sourceHandle": "INT",
+        "target": "93:46",
+        "targetHandle": "bottom",
+        "ui_properties": null
+      },
+      {
+        "id": "93:86-0-93:46-image",
+        "source": "93:86",
+        "sourceHandle": "IMAGE",
+        "target": "93:46",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "98-0-93:37-image",
+        "source": "98",
+        "sourceHandle": "IMAGE",
+        "target": "93:37",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "93:34-1-93:41-a",
+        "source": "93:34",
+        "sourceHandle": "height",
+        "target": "93:41",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "93:34-0-93:33-a",
+        "source": "93:34",
+        "sourceHandle": "width",
+        "target": "93:33",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "93:32-0-93:81-images.image0",
+        "source": "93:32",
+        "sourceHandle": "IMAGE",
+        "target": "93:81",
+        "targetHandle": "images.image0",
+        "ui_properties": null
+      },
+      {
+        "id": "93:45-0-93:81-images.image1",
+        "source": "93:45",
+        "sourceHandle": "IMAGE",
+        "target": "93:81",
+        "targetHandle": "images.image1",
+        "ui_properties": null
+      },
+      {
+        "id": "93:46-0-93:81-images.image2",
+        "source": "93:46",
+        "sourceHandle": "IMAGE",
+        "target": "93:81",
+        "targetHandle": "images.image2",
+        "ui_properties": null
+      },
+      {
+        "id": "93:48-0-93:81-images.image3",
+        "source": "93:48",
+        "sourceHandle": "IMAGE",
+        "target": "93:81",
+        "targetHandle": "images.image3",
+        "ui_properties": null
+      },
+      {
+        "id": "93:70-0-93:81-images.image4",
+        "source": "93:70",
+        "sourceHandle": "IMAGE",
+        "target": "93:81",
+        "targetHandle": "images.image4",
+        "ui_properties": null
+      },
+      {
+        "id": "93:71-0-93:81-images.image5",
+        "source": "93:71",
+        "sourceHandle": "IMAGE",
+        "target": "93:81",
+        "targetHandle": "images.image5",
+        "ui_properties": null
+      },
+      {
+        "id": "93:72-0-93:81-images.image6",
+        "source": "93:72",
+        "sourceHandle": "IMAGE",
+        "target": "93:81",
+        "targetHandle": "images.image6",
+        "ui_properties": null
+      },
+      {
+        "id": "93:73-0-93:81-images.image7",
+        "source": "93:73",
+        "sourceHandle": "IMAGE",
+        "target": "93:81",
+        "targetHandle": "images.image7",
+        "ui_properties": null
+      },
+      {
+        "id": "93:37-0-93:86-image",
+        "source": "93:37",
+        "sourceHandle": "IMAGE",
+        "target": "93:86",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "98-0-93:34-image",
+        "source": "98",
+        "sourceHandle": "IMAGE",
+        "target": "93:34",
+        "targetHandle": "image",
+        "ui_properties": null
+      }
+    ]
+  }
+}

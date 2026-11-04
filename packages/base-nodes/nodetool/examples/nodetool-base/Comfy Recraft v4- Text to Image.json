@@ -1,0 +1,84 @@
+{
+  "id": "0ba7110e46ce1060837b963b26883b59",
+  "name": "Comfy Recraft v4- Text to Image",
+  "description": "Input a text prompt to generate a high-resolution image. Use the Recraft V4 model for enhanced realism, text accuracy, and detailed vector graphics. Output a 1024x1024 or 2048x2048 image based on your selected version. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Recraft v4- Text to Image\n\nInput a text prompt to generate a high-resolution image. Use the Recraft V4 model for enhanced realism, text accuracy, and detailed vector graphics. Output a 1024x1024 or 2048x2048 image based on your selected version. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_recraft_v4_t2i.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "5",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "Recraft_v4_t2i"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12",
+        "type": "comfy.RecraftV4TextToImageNode",
+        "data": {
+          "prompt": "Full-length stunning model in long black dress, with thin belt, black hat and boots high fashion, face is bowed down, hat is covering her entire face, leading a sleek white horse; dress trailing in wind; low 35-45mm, eye-level, side sunlight or hard key 45°, shadows clean, desert as a backdrop, decisive stride tyle by helmut newton.",
+          "negative_prompt": "",
+          "model": "recraftv4",
+          "model.size": "1024x1024",
+          "n": 1,
+          "seed": 1042812226196519,
+          "style_id": "",
+          "style_match": "precise"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Recraft V4 Text to Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "12-0-5-images",
+        "source": "12",
+        "sourceHandle": "IMAGE",
+        "target": "5",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

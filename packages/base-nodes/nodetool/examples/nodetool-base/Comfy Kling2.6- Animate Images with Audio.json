@@ -1,0 +1,110 @@
+{
+  "id": "55316f78aad6a4b3a844ac5afa7eb663",
+  "name": "Comfy Kling2.6- Animate Images with Audio",
+  "description": "Transform static images into dynamic videos with synchronized dialogue, singing, sound effects, and ambient audio. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Kling2.6- Animate Images with Audio\n\nTransform static images into dynamic videos with synchronized dialogue, singing, sound effects, and ambient audio. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_kling2_6_i2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "10",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Kling2.6",
+          "format": "mp4",
+          "format.codec": "h264",
+          "format.codec.encoding": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12",
+        "type": "comfy.KlingImageToVideoWithAudio",
+        "data": {
+          "model_name": "kling-v2-6",
+          "prompt": "Visual: A dimly lit, opulent private club with dark wooden paneling. An anthropomorphic green iguana stands confidently in the center, wearing gold-rimmed sunglasses and a stylish blue knitted jacket with a white fur collar. It pulls open the jacket to reveal a multi-layered gold chain with a diamond-encrusted \"C\" pendant. To the left, a wooden bar with liquor bottles illuminated by warm wall sconces. Subtle smoke drifts through the air. In the blurred background, faint neon signs glow, including a yellow Budweiser logo, with indistinct figures of patrons in booths. The camera slowly pushes in on the creature's face, then pulls back. Film noir lighting creates dramatic shadows.\n\nDialog: [The Iguana, deep and confident voice] says, \"Every shadow tells a story. And mine's just getting started.\"\n\nAudio: Ambient club sounds: distant conversations, clinking glasses, ice cubes. A smooth hip-hop beat with deep bass plays in the background. The creature's voice has slight echo and reverb. Subtle rustling of scales and gold chain clinking.\n\nOther: Cinematic, cool, mysterious, hip-hop aesthetic with film noir lighting. Slow, deliberate camera movement.",
+          "mode": "pro",
+          "duration": 5,
+          "generate_audio": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Kling 2.6 Image(First Frame) to Video with Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "14",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "lizard_rapper_in_bar.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "12-0-10-video",
+        "source": "12",
+        "sourceHandle": "VIDEO",
+        "target": "10",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "14-0-12-start_frame",
+        "source": "14",
+        "sourceHandle": "IMAGE",
+        "target": "12",
+        "targetHandle": "start_frame",
+        "ui_properties": null
+      }
+    ]
+  }
+}

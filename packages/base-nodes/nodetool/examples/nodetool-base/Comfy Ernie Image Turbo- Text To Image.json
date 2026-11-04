@@ -1,0 +1,553 @@
+{
+  "id": "ed45fa99bf91f825ca2d9af9047e0d18",
+  "name": "Comfy Ernie Image Turbo- Text To Image",
+  "description": "Generate images from text prompts using the ERNIE-Image turbo model. Input a text description and receive a high-quality image with precise text rendering and structured layouts. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Ernie Image Turbo- Text To Image\n\nGenerate images from text prompts using the ERNIE-Image turbo model. Input a text description and receive a high-quality image with precise text rendering and structured layouts. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/image_ernie_image_turbo.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "73",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "Ernie-Image-Turbo"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3400,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:71",
+        "type": "comfy.EmptyFlux2LatentImage",
+        "data": {
+          "width": 1024,
+          "height": 1024,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Empty Flux 2 Latent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:66",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "ernie-image-turbo.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:65",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 3060,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:70",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 423299999918804,
+          "steps": 8,
+          "cfg": 1,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:67",
+        "type": "comfy.CLIPTextEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:62",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "ministral-3-3b.safetensors",
+          "type": "flux2",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:63",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "flux2-vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:91",
+        "type": "comfy.ConditioningZeroOut",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Conditioning Zero Out"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:93",
+        "type": "comfy.StringReplace",
+        "data": {
+          "string": "<s>[SYSTEM_PROMPT]你是一个专业的文生图 Prompt 增强助手。你将收到用户的简短图片描述及目标生成分辨率，请据此扩写为一段内容丰富、细节充分的视觉描述，以帮助文生图模型生成高质量的图片。仅输出增强后的描述，不要包含任何解释或前缀。[/SYSTEM_PROMPT][INST]{\"prompt\": \"{prompt}\", \"width\": {width}, \"height\": {height}}[/INST]",
+          "find": "{prompt}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Replace Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:94",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "A stylized cinematic side-profile medium shot portrait of a young European woman with sleek dark hair in a tight low bun, wearing a crisp white ruffled-collar shirt, eyes closed in serene contemplation, standing against a moody, dark gradient deep indigo-blue twilight sky with layered misty mountain silhouettes in the background, extreme high-contrast split neon lighting: 95% of the scene bathed in deep, saturated cool cyan-blue ambient light (dim, moody, low-key), with a sharp, intense, vivid neon pink-orange rim light tracing her facial profile, neck, and collar, creating bold color blocking and a surreal, artistic aesthetic, minimalist composition, high-fashion editorial, 8K, ultra-sharp focus on subject, moody desaturated blue tones, dramatic contrast, atmospheric depth, tranquil introspective vibe, dark atmospheric background, no overexposure, stylized color grading, neon rim light glow, low-key cool fill light."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "String (Multiline - Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:95",
+        "type": "comfy.TextGenerate",
+        "data": {
+          "max_length": 2048,
+          "sampling_mode": "on",
+          "sampling_mode.temperature": 0.6,
+          "sampling_mode.top_k": 64,
+          "sampling_mode.top_p": 0.8,
+          "sampling_mode.min_p": 0.05,
+          "sampling_mode.repetition_penalty": 1.05,
+          "sampling_mode.seed": 0,
+          "sampling_mode.presence_penalty": 0,
+          "thinking": false,
+          "use_default_template": true,
+          "mtp": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Generate Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:96",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Enable prompt enhancement?"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:97",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "If/Else Switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:98",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "ernie-image-prompt-enhancer.safetensors",
+          "type": "flux2",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Load CLIP (PE)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:99",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "Preview as Text (Int to String)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:100",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2640
+          },
+          "width": 280,
+          "title": "Preview as Text (Int to String)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:101",
+        "type": "comfy.StringReplace",
+        "data": {
+          "find": "{width}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Replace Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:102",
+        "type": "comfy.StringReplace",
+        "data": {
+          "find": "{height}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Replace Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:103",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Preview as Text (Int to String)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "88:65-0-73-images",
+        "source": "88:65",
+        "sourceHandle": "IMAGE",
+        "target": "73",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "88:70-0-88:65-samples",
+        "source": "88:70",
+        "sourceHandle": "LATENT",
+        "target": "88:65",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "88:63-0-88:65-vae",
+        "source": "88:63",
+        "sourceHandle": "VAE",
+        "target": "88:65",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "88:66-0-88:70-model",
+        "source": "88:66",
+        "sourceHandle": "MODEL",
+        "target": "88:70",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "88:67-0-88:70-positive",
+        "source": "88:67",
+        "sourceHandle": "CONDITIONING",
+        "target": "88:70",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "88:91-0-88:70-negative",
+        "source": "88:91",
+        "sourceHandle": "CONDITIONING",
+        "target": "88:70",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "88:71-0-88:70-latent_image",
+        "source": "88:71",
+        "sourceHandle": "LATENT",
+        "target": "88:70",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "88:97-0-88:67-text",
+        "source": "88:97",
+        "sourceHandle": "output",
+        "target": "88:67",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "88:62-0-88:67-clip",
+        "source": "88:62",
+        "sourceHandle": "CLIP",
+        "target": "88:67",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "88:67-0-88:91-conditioning",
+        "source": "88:67",
+        "sourceHandle": "CONDITIONING",
+        "target": "88:91",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "88:94-0-88:93-replace",
+        "source": "88:94",
+        "sourceHandle": "STRING",
+        "target": "88:93",
+        "targetHandle": "replace",
+        "ui_properties": null
+      },
+      {
+        "id": "88:102-0-88:95-prompt",
+        "source": "88:102",
+        "sourceHandle": "STRING",
+        "target": "88:95",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "88:98-0-88:95-clip",
+        "source": "88:98",
+        "sourceHandle": "CLIP",
+        "target": "88:95",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "88:96-0-88:97-switch",
+        "source": "88:96",
+        "sourceHandle": "BOOLEAN",
+        "target": "88:97",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "88:94-0-88:97-on_false",
+        "source": "88:94",
+        "sourceHandle": "STRING",
+        "target": "88:97",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "88:95-0-88:97-on_true",
+        "source": "88:95",
+        "sourceHandle": "generated_text",
+        "target": "88:97",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "88:93-0-88:101-string",
+        "source": "88:93",
+        "sourceHandle": "STRING",
+        "target": "88:101",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "88:99-0-88:101-replace",
+        "source": "88:99",
+        "sourceHandle": "STRING",
+        "target": "88:101",
+        "targetHandle": "replace",
+        "ui_properties": null
+      },
+      {
+        "id": "88:101-0-88:102-string",
+        "source": "88:101",
+        "sourceHandle": "STRING",
+        "target": "88:102",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "88:100-0-88:102-replace",
+        "source": "88:100",
+        "sourceHandle": "STRING",
+        "target": "88:102",
+        "targetHandle": "replace",
+        "ui_properties": null
+      },
+      {
+        "id": "88:97-0-88:103-source",
+        "source": "88:97",
+        "sourceHandle": "output",
+        "target": "88:103",
+        "targetHandle": "source",
+        "ui_properties": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,131 @@
+{
+  "id": "74140283a8eed2fae10b075abcb994d1",
+  "name": "Comfy VEED Fabric 1.0- Talking Photo",
+  "description": "Turn a still photo and a speech track into a talking, lip-synced video with VEED Fabric 1.0. The face in the image speaks the audio, the clip keeps the image's aspect ratio and runs as long as the audio, up to 300 seconds at 480p or 720p. Ideal for avatars, mascots and localized spokesperson clips driven by your own voice recording or a TTS node. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy VEED Fabric 1.0- Talking Photo\n\nTurn a still photo and a speech track into a talking, lip-synced video with VEED Fabric 1.0. The face in the image speaks the audio, the clip keeps the image's aspect ratio and runs as long as the audio, up to 300 seconds at 480p or 720p. Ideal for avatars, mascots and localized spokesperson clips driven by your own voice recording or a TTS node. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_veed_fabric_1_0.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.VeedFabricNode",
+        "data": {
+          "model": "fabric-1.0",
+          "model.resolution": "720p"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VEED Fabric 1.0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "black_fashion_portrait.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/VEED_Fabric_1.0",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5",
+        "type": "comfy.LoadAudio",
+        "data": {
+          "audio": "audio_see_beyond_the_light.mp3"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "2-0-1-model.image",
+        "source": "2",
+        "sourceHandle": "IMAGE",
+        "target": "1",
+        "targetHandle": "model.image",
+        "ui_properties": null
+      },
+      {
+        "id": "5-0-1-model.audio",
+        "source": "5",
+        "sourceHandle": "AUDIO",
+        "target": "1",
+        "targetHandle": "model.audio",
+        "ui_properties": null
+      },
+      {
+        "id": "1-0-3-video",
+        "source": "1",
+        "sourceHandle": "VIDEO",
+        "target": "3",
+        "targetHandle": "video",
+        "ui_properties": null
+      }
+    ]
+  }
+}
