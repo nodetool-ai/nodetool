@@ -14,6 +14,8 @@ cmake_language(DEFER CALL nt_effects_shaders nodetool-timeline)
 function(nt_effects_tests)
     qt_add_executable(tst_workingprecision src/preview/effects/tst_workingprecision.cpp)
     target_link_libraries(tst_workingprecision PRIVATE timeline_decode Qt6::GuiPrivate Qt6::Test)
+    target_compile_definitions(tst_workingprecision PRIVATE
+        NT_PRECISION_VECTORS="${CMAKE_CURRENT_SOURCE_DIR}/../../packages/gpu/tests/fixtures/inverse-levels.json")
     nt_effects_shaders(tst_workingprecision)
     add_test(NAME tst_workingprecision COMMAND tst_workingprecision)
     qt_add_executable(tst_masks src/preview/effects/tst_masks.cpp)

@@ -1,6 +1,6 @@
 # N1 native working resources
 
-The requested full-scene numerical and lifetime qualification passes on Vulkan/lavapipe. The complete corrected N1 task list is not finished. A30's transfer declaration is now included. A31's shared-vector comparison remains outstanding. A109's precision-aware Color Match model waits for N2's capture boundary and is outside this task. Keep FP16 off by default.
+The requested N1 work that does not depend on N2 is complete on Vulkan/lavapipe. A30 declares source transfer and A31 compares the shared inverse-Levels diagnostic. A109's precision-aware Color Match model waits for N2's capture boundary and is outside this task. The complete corrected N1 task list therefore remains unfinished. Keep FP16 off by default.
 
 No schema, document setting, capture, export or presentation behavior changed. The internal entry point remains `PreviewCompositor::setWorkingFormat(nt::WorkingFormat::Rgba16F)`.
 
@@ -105,3 +105,49 @@ artifact-producing `exportDocuments` case without `NT_D6_OUTPUT`, so it was reru
 failures or skips. The restored working-precision suite also passed six cases
 without skips. This final CTest run exited 0. Logs are `n1-transfer-build.log`,
 `n1-transfer-tests.log` and `n1-final-tests.log` in the build directory.
+
+## A31 shared inverse-Levels vectors
+
+The native test loads
+[`packages/gpu/tests/fixtures/inverse-levels.json`](../../../../packages/gpu/tests/fixtures/inverse-levels.json).
+It records all 256 opaque gray byte inputs, the identity reference, gamma 0.5
+then 2, the common clamp/nearest-integer delivery quantizer, FP16 acceptance
+bounds and S0's observed results. `film/color-s0` must adopt this file in
+`precisionBenefit.test.ts`. That worktree was read only for this task.
+
+`sharedInverseLevels` uploads those exact bytes and runs the production
+`ClipEffectStage` and qsb shader pipeline in both formats. It checks every RGB
+component against the same reference, finite working values, opaque alpha,
+monotonicity and the final distinct-level count. Readback uses a test-local
+transfer-source texture, without opening production FP16 capture.
+
+| Working format | Native distinct codes | Native maximum code error | Shared S0 distinct / maximum code error | Native maximum working error in codes |
+|---|---:|---:|---:|---:|
+| RGBA8 | 192 | 11 | 192 / 11 | 11 |
+| RGBA16F | 256 | 0 | 256 / 0 | 0.248535 |
+
+The final diagnostic metrics agree with S0's `a81-benefit.md`. The shared report
+does not record diagnostic working-error values or individual output samples,
+so these results do not establish component-wise working-texture equality.
+The existing native white-point compression/expansion and tiny-alpha tests are
+retained as complementary checks. They are not substituted for the shared
+gamma diagnostic. No numeric bounds or effect meanings changed.
+
+A negative control changed the fixture's gammas to identity. The byte route
+then retained all 256 codes and correctly failed the assertion that detects
+intermediate precision loss. CTest exited 8. The fixture was restored, and the
+final working-precision suite passed six cases with no failures or skips.
+The control log is `n1-shared-negative.log`.
+
+Both focused builds exited 0. `n1-shared-build.log` and
+`n1-shared-readback-build.log` record them. The diagnostic measurements are in
+`n1-shared-vectors.log`. The final run used
+`NT_D6_OUTPUT=<build>/n1-clipeffects-artifacts citest color-n0
+'^(tst_clipeffects|tst_workingprecision)$' -V` and exited 0. Clip effects passed
+67 cases, including artifact export, with no skips. Scene precision had already
+passed seven cases without skips in `n1-transfer-tests.log`.
+
+`git diff --check` and the changed-file control-byte scan passed. No TypeScript
+tests, typecheck, lint, affected tests, harness gate or full CTest suite ran.
+FP16 remains off by default. N2 and A109 were not started. No schema or setting
+was added.

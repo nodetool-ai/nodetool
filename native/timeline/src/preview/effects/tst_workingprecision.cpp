@@ -3,6 +3,10 @@
 #include "preview/effects/BlendModes.h"
 #include "motion/capacity/ScratchPool.h"
 #include <QGuiApplication>
+#include <QFile>
+#include <QJsonDocument>
+#include <set>
+#include <cmath>
 #include <QVulkanInstance>
 #include <QtTest>
 #include <qfloat16.h>
@@ -72,6 +76,106 @@ private slots:
         pool.endLease(lease);
         retire.collect(3, 2); QVERIFY(retire.empty());
     }
+    void sharedInverseLevels() {
+        QFile file(QString::fromUtf8(NT_PRECISION_VECTORS));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        QJsonParseError error;
+        const auto vectors = QJsonDocument::fromJson(file.readAll(), &error).object();
+        QCOMPARE(error.error, QJsonParseError::NoError);
+        const auto inputs = vectors.value("inputCodes").toArray();
+        const auto reference = vectors.value("referenceCodes").toArray();
+        const auto gammas = vectors.value("gammas").toArray();
+        QCOMPARE(inputs.size(), 256);
+        QCOMPARE(reference.size(), inputs.size());
+        QCOMPARE(gammas.size(), 2);
+        QByteArray pixels(inputs.size() * 4, char(vectors.value("alphaCode").toInt()));
+        QJsonArray effects;
+        for (const auto gamma : gammas) {
+            effects.append(QJsonObject{{"type", "levels"}, {"enabled", true}, {"gamma", gamma}});
+        }
+        for (qsizetype x = 0; x < inputs.size(); ++x) {
+            for (int c = 0; c < 3; ++c) { pixels[x * 4 + c] = char(inputs[x].toInt()); }
+        }
+        QVulkanInstance instance;
+        instance.setApiVersion(QVersionNumber(1, 1));
+        instance.setExtensions(QRhiVulkanInitParams::preferredInstanceExtensions());
+        QVERIFY(instance.create());
+        QRhiVulkanInitParams init; init.inst = &instance;
+        auto rhi = std::unique_ptr<QRhi>(QRhi::create(QRhi::Vulkan, &init));
+        QVERIFY(rhi);
+        for (const auto format : {WorkingFormat::Rgba8, WorkingFormat::Rgba16F}) {
+            RetireQueue retire;
+            ClipEffectStage stage;
+            const QSize size(inputs.size(), 1);
+            auto output = std::unique_ptr<QRhiTexture>(rhi->newTexture(
+                format == WorkingFormat::Rgba16F ? QRhiTexture::RGBA16F : QRhiTexture::RGBA8,
+                size, 1, QRhiTexture::RenderTarget | QRhiTexture::UsedAsTransferSource));
+            QVERIFY(output->create());
+            auto target = std::unique_ptr<QRhiTextureRenderTarget>(rhi->newTextureRenderTarget({output.get()}));
+            auto descriptor = std::unique_ptr<QRhiRenderPassDescriptor>(target->newCompatibleRenderPassDescriptor());
+            target->setRenderPassDescriptor(descriptor.get());
+            QVERIFY(target->create());
+            auto input = std::unique_ptr<QRhiTexture>(rhi->newTexture(QRhiTexture::RGBA8, size, 1));
+            QVERIFY(input->create());
+            QRhiCommandBuffer* cb = nullptr;
+            QCOMPARE(rhi->beginOffscreenFrame(&cb), QRhi::FrameOpSuccess);
+            auto* upload = rhi->nextResourceUpdateBatch();
+            upload->uploadTexture(input.get(), QRhiTextureUploadDescription{{{0, 0,
+                QRhiTextureSubresourceUploadDescription(pixels.constData(), pixels.size())}}});
+            cb->resourceUpdate(upload);
+            LayerFrame frame;
+            frame.format = LayerFrame::Format::Rgba8Premultiplied;
+            frame.transfer = "iec61966-2-1";
+            frame.size = size; frame.planes[0] = input.get();
+            EffectContext ctx{rhi.get(), cb, 1, &retire, nullptr, format};
+            QVERIFY(stage.render(ctx, frame, *target, {{"clipEffects", effects}}));
+            QRhiReadbackResult result;
+            bool completed = false;
+            result.completed = [&] { completed = true; };
+            auto* read = rhi->nextResourceUpdateBatch();
+            read->readBackTexture({output.get()}, &result);
+            cb->resourceUpdate(read);
+            QCOMPARE(rhi->endOffscreenFrame(), QRhi::FrameOpSuccess);
+            rhi->finish();
+            QVERIFY(completed);
+            QCOMPARE(result.data.size(), pixels.size() * (format == WorkingFormat::Rgba16F ? 2 : 1));
+            std::set<int> distinct;
+            int maximumCodeError = 0, previous = -1;
+            float maximumWorkingError = 0;
+            for (int x = 0; x < inputs.size(); ++x) {
+                for (int c = 0; c < 4; ++c) {
+                    const int i = x * 4 + c;
+                    float actual;
+                    if (format == WorkingFormat::Rgba16F) {
+                        qfloat16 value;
+                        std::memcpy(&value, result.data.constData() + i * 2, 2);
+                        actual = float(value);
+                    } else { actual = static_cast<unsigned char>(result.data[i]) / 255.f; }
+                    QVERIFY(std::isfinite(actual));
+                    if (c == 3) { QCOMPARE(actual, 1.f); continue; }
+                    const int code = int(std::floor(std::clamp(actual, 0.f, 1.f) * 255.f + 0.5f));
+                    maximumCodeError = std::max(maximumCodeError, std::abs(code - reference[x].toInt()));
+                    maximumWorkingError = std::max(maximumWorkingError, std::abs(actual * 255.f - reference[x].toInt()));
+                    if (c == 0) {
+                        distinct.insert(code);
+                        QVERIFY(code >= previous);
+                        previous = code;
+                    }
+                }
+            }
+            qInfo() << "shared inverse Levels" << int(format) << "distinct" << distinct.size()
+                    << "maximum code error" << maximumCodeError << "working error in codes" << maximumWorkingError;
+            if (format == WorkingFormat::Rgba16F) {
+                const auto bounds = vectors.value("fp16Requirements").toObject();
+                QCOMPARE(distinct.size(), size_t(bounds.value("distinct").toInt()));
+                QVERIFY(maximumCodeError <= bounds.value("maximumCodeError").toInt());
+            } else {
+                QVERIFY(distinct.size() < size_t(inputs.size()));
+                QVERIFY(maximumCodeError > 0);
+            }
+            retire.clear();
+        }
+    }
     void inverseLevelsAndAlpha() {
         QVulkanInstance instance;
         instance.setApiVersion(QVersionNumber(1, 1));
@@ -81,7 +185,7 @@ private slots:
         auto rhi = std::unique_ptr<QRhi>(QRhi::create(QRhi::Vulkan, &init));
         QVERIFY(rhi);
         qInfo() << rhi->driverInfo().deviceName;
-        // Native vectors pending comparison with film/color-s0's shared set.
+        // Complementary low-alpha compression vectors. Shared gamma vectors run separately.
         const std::array<float, 4> alphas{1.f, 0.5f, 0.001f, 0.f};
         for (const auto format : {WorkingFormat::Rgba8, WorkingFormat::Rgba16F}) {
             RetireQueue retire;
