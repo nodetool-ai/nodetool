@@ -161,7 +161,8 @@ MaterialUniform material(const ModelMaterial &source, const QMatrix4x4 &model,
   result.sampling = {
       source.image >= 0 && linearMip(source.baseColorSampler) ? 1.F : 0.F,
       source.normalImage >= 0 && linearMip(source.normalSampler) ? 1.F : 0.F,
-      16, 0};
+      source.metallicRoughnessImage >= 0 ? 1.F : 0.F,
+      source.metallicRoughnessImage >= 0 && linearMip(source.metallicRoughnessSampler) ? 1.F : 0.F};
 
   return result;
 }
@@ -284,8 +285,8 @@ struct Scene3D::State {
   struct Draw {
     Mesh *mesh = nullptr;
     MaterialUniform material;
-    std::string base, normal;
-    ModelSampler baseSampler, normalSampler;
+    std::string base, normal, metallicRoughness;
+    ModelSampler baseSampler, normalSampler, metallicRoughnessSampler;
     bool cast = true, decal = false, depthWrite = true, additive = false,
          mirrored = false;
     float depth = 0;
@@ -904,13 +905,16 @@ struct Scene3D::State {
     size = dimensions;
   }
   QRhiShaderResourceBindings *binding(const Draw &draw) {
-    const auto &b = draw.baseSampler, &n = draw.normalSampler;
+    const auto &b = draw.baseSampler, &n = draw.normalSampler,
+               &mr = draw.metallicRoughnessSampler;
     const std::string key =
         draw.base + '|' + draw.normal + '|' + std::to_string(b.wrapS) + ':' +
         std::to_string(b.wrapT) + ':' + std::to_string(b.magFilter) + ':' +
         std::to_string(b.minFilter) + '|' + std::to_string(n.wrapS) + ':' +
         std::to_string(n.wrapT) + ':' + std::to_string(n.magFilter) + ':' +
-        std::to_string(n.minFilter);
+        std::to_string(n.minFilter) + '|' + draw.metallicRoughness + '|' +
+        std::to_string(mr.wrapS) + ':' + std::to_string(mr.wrapT) + ':' +
+        std::to_string(mr.magFilter) + ':' + std::to_string(mr.minFilter);
     auto found = bindings.find(key);
     if (found != bindings.end()) {
       return found->second.get();
@@ -950,6 +954,10 @@ struct Scene3D::State {
              (sky.environmentTexture() ? sky.environmentTexture()
                                        : textures.at("white").value.get()),
              sky.sampler()),
+         QRhiShaderResourceBinding::sampledTexture(
+             8, QRhiShaderResourceBinding::FragmentStage,
+             textures.at(draw.metallicRoughness).value.get(),
+             sampler(draw.metallicRoughnessSampler)),
          QRhiShaderResourceBinding::sampledTexture(
              9, QRhiShaderResourceBinding::FragmentStage, dfg.get(),
              clampSampler.get())});
@@ -1314,8 +1322,10 @@ Json Scene3D::render(QRhi *rhi, QRhiCommandBuffer *cb, QRhiRenderTarget *output,
     draw.mirrored = draw.material.model.matrix().determinant() < 0;
     draw.base = "white";
     draw.normal = "normal";
+    draw.metallicRoughness = "white";
     draw.baseSampler = source.baseColorSampler;
     draw.normalSampler = source.normalSampler;
+    draw.metallicRoughnessSampler = source.metallicRoughnessSampler;
     if (source.image >= 0) {
       const auto &image = models->at(asset)->images.at(source.image);
       if (!s.imageKeys.contains(&image)) {
@@ -1337,6 +1347,16 @@ Json Scene3D::render(QRhi *rhi, QRhiCommandBuffer *cb, QRhiRenderTarget *output,
         s.texture(draw.normal,
                   decode(models->at(asset)->images.at(source.normalImage)),
                   false, update);
+      }
+    }
+    if (source.metallicRoughnessImage >= 0) {
+      const auto &image = models->at(asset)->images.at(source.metallicRoughnessImage);
+      if (!s.imageKeys.contains(&image)) {
+        s.imageKeys[&image] = assetDigest(image.bytes);
+      }
+      draw.metallicRoughness = s.imageKeys.at(&image) + ":linear";
+      if (!s.textures.contains(draw.metallicRoughness)) {
+        s.texture(draw.metallicRoughness, decode(image), false, update);
       }
     }
     draw.depth = -view.map(draw.material.model.map(mesh.center)).z();

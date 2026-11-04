@@ -82,6 +82,10 @@ if(BUILD_TESTING)
   add_test(NAME native-game-sunrush-kart-fixtures COMMAND ${GAME_NODE_EXECUTABLE} --test
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sunrush-kart/adapt.test.mjs)
   set_tests_properties(native-game-sunrush-kart-fixtures PROPERTIES LABELS "fixtures;3d")
+  add_test(NAME native-game-signal-forge-fixtures COMMAND ${GAME_NODE_EXECUTABLE} --test
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/signal-forge/adapt.test.mjs
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/signal-forge/prepare-assets.test.mjs)
+  set_tests_properties(native-game-signal-forge-fixtures PROPERTIES LABELS "fixtures;3d")
   add_test(NAME native-game-blacksite-pixel-metrics COMMAND ${Python3_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/blacksite/pixel-metrics.test.py)
   set_tests_properties(native-game-blacksite-pixel-metrics PROPERTIES LABELS "fixtures;3d")

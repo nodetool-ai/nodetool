@@ -1,10 +1,13 @@
 #include "editor/EditorController.h"
 #include <QGuiApplication>
+#include <QCryptographicHash>
+#include <QFile>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickWindow>
 #include <QSGRendererInterface>
 #include <QTemporaryDir>
+#include <cmath>
 #if QT_CONFIG(vulkan)
 #include <QVulkanInstance>
 #endif
@@ -24,6 +27,77 @@ QQuickItem *visualChild(QQuickItem *root, const QString &name) {
 class EditorGestureTest final : public QObject {
   Q_OBJECT
 private slots:
+  void authored2DPreviewRendersAcrossOpenStopAndDrag() {
+    QTemporaryDir dir;
+    const auto imagePath = dir.filePath("white.png");
+    QImage image(1, 1, QImage::Format_RGBA8888);
+    image.fill(Qt::white);
+    QVERIFY(image.save(imagePath));
+    QFile file(imagePath);
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    const auto bytes = file.readAll();
+    EditorController editor;
+    const Json doc{{"engine", "native-cpp-1"}, {"schemaVersion", 5}, {"dimension", "2d"},
+      {"id", "preview"}, {"title", "Preview"}, {"initialSceneId", "scene"},
+      {"assets", Json::array({{{"id", "white"}, {"kind", "image"}, {"path", "white.png"},
+        {"size", bytes.size()}, {"digest", QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex().toStdString()}}})},
+      {"scenes", Json::array({{{"id", "scene"}, {"entities", Json::array({
+        {{"id", "parent"}, {"transform", {{"x", 1}, {"y", 0}}}},
+        {{"id", "sprite"}, {"parentId", "parent"}, {"sprite", {{"assetId", "white"}, {"width", 1}, {"height", 1}}}}
+      })}}})}};
+    editor.openDocument(doc, dir.filePath("game.json"));
+    QQmlApplicationEngine engine;
+    engine.rootContext()->setContextProperty("editor", &editor);
+    engine.load(QUrl("qrc:/game-editor/Editor.qml"));
+    QVERIFY(!engine.rootObjects().empty());
+    auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().front());
+    QVERIFY(window);
+#if QT_CONFIG(vulkan)
+    if (vulkan_) { window->setVulkanInstance(vulkan_); }
+#endif
+    QVERIFY(QTest::qWaitForWindowExposed(window));
+    auto *viewport = qobject_cast<GameViewport *>(visualChild(window->contentItem(), "editorViewport"));
+    QVERIFY(viewport);
+    QVERIFY(!editor.mailbox()->latest()->contains("worldTransforms"));
+    QTRY_VERIFY_WITH_TIMEOUT((viewport->update(), viewport->report().value("vertices", 0) >= 6 || !viewport->renderError().isEmpty()), 10000);
+    QVERIFY2(viewport->renderError().isEmpty(), qPrintable(viewport->renderError()));
+    const auto whiteCenter = [&]() {
+      viewport->update();
+      window->grabWindow();
+      viewport->update();
+      const auto capture = window->grabWindow();
+      const auto origin = viewport->mapToScene(QPointF(0, 0));
+      const double scale = double(capture.width()) / window->width();
+      double sum = 0;
+      int count = 0;
+      for (int y = int((origin.y() + 10) * scale); y < int((origin.y() + viewport->height() - 10) * scale); ++y) {
+        for (int x = int((origin.x() + 10) * scale); x < int((origin.x() + viewport->width() - 10) * scale); ++x) {
+          const auto color = capture.pixelColor(x, y);
+          if (color.red() > 250 && color.green() > 250 && color.blue() > 250) { sum += x; ++count; }
+        }
+      }
+      return count > 50 ? sum / count : -1.;
+    };
+    const auto initialCenter = whiteCenter();
+    QVERIFY(initialCenter >= 0);
+    QVERIFY(editor.start());
+    QVERIFY(editor.step());
+    QVERIFY(editor.mailbox()->latest()->contains("worldTransforms"));
+    editor.stop();
+    QVERIFY(!editor.mailbox()->latest()->contains("worldTransforms"));
+    QVERIFY(std::abs(whiteCenter() - initialCenter) < 1.);
+    QVERIFY2(viewport->renderError().isEmpty(), qPrintable(viewport->renderError()));
+    editor.select("parent");
+    QVERIFY(editor.beginDrag("translate"));
+    editor.previewDrag(2, 0, 0, 0);
+    QVERIFY(!editor.mailbox()->latest()->contains("worldTransforms"));
+    QCOMPARE(editor.mailbox()->latest()->at("entities")[0].at("transform").at("x"), Json(3));
+    QVERIFY(whiteCenter() > initialCenter + 10);
+    QVERIFY2(viewport->renderError().isEmpty(), qPrintable(viewport->renderError()));
+    QVERIFY(editor.endDrag());
+    window->setProperty("closingConfirmed", true);
+    window->close();
+  }
   void pointerKeyboardAndAgentConflict_data() {
     QTest::addColumn<bool>("is2D");
     QTest::newRow("native3d") << false;

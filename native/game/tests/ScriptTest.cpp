@@ -1,6 +1,8 @@
 #include "scripts/ScriptHost.h"
+#include <exception>
 #include <iostream>
 #include <stdexcept>
+#include <thread>
 using namespace nodetool::game;
 namespace {
 void require(bool value, const char* message) { if (!value) { throw std::runtime_error(message); } }
@@ -11,9 +13,46 @@ void rejects(ScriptHost& host, const std::string& source) {
  bool failed=false; try { host.invoke(call(source)); } catch(const Error& error) { failed=error.code=="SCRIPT_ERROR"||error.code=="SCRIPT_LIMIT"; }
  require(failed,"Expected bounded script failure");
 }
+void sequentialThreadHandoff() {
+ ScriptHost host;
+ const std::string source = "i=>({state:{answer:42},commands:[{kind:'score',amount:1}]})";
+ host.validateSource(source, "thread-handoff");
+ Json workerResult;
+ std::exception_ptr failure;
+ std::jthread worker([&] {
+  try { workerResult = host.invoke(call(source)); }
+  catch (...) { failure = std::current_exception(); }
+ });
+ worker.join();
+ if (failure) {
+  try { std::rethrow_exception(failure); }
+  catch (const Error& error) {
+   throw std::runtime_error("Sequential ScriptHost thread handoff: " + error.code + ": " + error.what());
+  }
+ }
+ require(workerResult.at("state").at("answer") == 42,
+         "Validated realm executes after sequential worker-thread handoff");
+ require(host.invoke(call(source)) == workerResult,
+         "Worker-owned realm executes after sequential return to the main thread");
+ const std::string recursiveSource = "()=>{function f(){return f();}return f();}";
+ host.validateSource(recursiveSource, "thread-handoff-stack");
+ bool stackLimited = false;
+ try { host.invoke(call(recursiveSource)); }
+ catch (const Error& error) {
+  stackLimited = error.code == "SCRIPT_ERROR" && std::string(error.what()).find("stack overflow") != std::string::npos;
+ }
+ require(stackLimited, "Sequential thread handoff preserves the configured stack limit");
+ require(host.invoke(call(source)) == workerResult,
+         "Configured stack limit and normal execution survive thread handoff");
 }
-int main() {
+}
+int main(int argc, char** argv) {
  try {
+  sequentialThreadHandoff();
+  if (argc == 2 && std::string(argv[1]) == "--thread-handoff") {
+   std::cout << "Sequential ScriptHost thread handoff and stack limit passed\n";
+   return 0;
+  }
   ScriptHost host;
   const auto first=host.invoke(call("input => ({state:{score:42,r:Math.random()},commands:[{kind:'score',amount:2}]})"));
   require(first["state"]["score"]==42,"Function state");

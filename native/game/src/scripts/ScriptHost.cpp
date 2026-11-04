@@ -183,6 +183,7 @@ Json execute(ScriptHost::Engine& engine, const Json& call, bool validateOnly, co
     auto& budget = engine.budget;
     budget = Budget{std::chrono::steady_clock::now() + std::chrono::milliseconds(maxMs)};
     JSRuntime* runtime = engine.runtime.get();
+    JS_UpdateStackTop(runtime);
     auto found = engine.realms.find(source);
     // Realm creation and the call each get the guest allowance above the memory the realms hold.
     JS_SetMemoryLimit(runtime, engine.baselineBytes + GUEST_MEMORY_BYTES);

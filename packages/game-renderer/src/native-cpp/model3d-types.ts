@@ -29,6 +29,8 @@ export interface NativePreparedModel {
     readonly emissiveStrength?: number;
     readonly normalImage?: number;
     readonly normalScale?: number;
+    readonly metallicRoughnessImage?: number;
+    readonly metallicRoughnessSampler?: NativeModelSampler;
     readonly alphaMode?: "OPAQUE" | "MASK" | "BLEND";
     readonly alphaCutoff?: number;
     readonly baseColorSampler?: NativeModelSampler;

@@ -1,4 +1,5 @@
 #include "render/GameViewport.h"
+#include <QBuffer>
 #include <QGuiApplication>
 #include <QQuickRenderControl>
 #include <QQuickRenderTarget>
@@ -10,6 +11,7 @@
 #include <cmath>
 #include <iostream>
 #include <limits>
+#include <utility>
 using namespace nodetool::game;
 namespace {
 #if QT_CONFIG(vulkan)
@@ -120,7 +122,7 @@ Json environment() {
            {{"enabled", true}, {"toneMapping", "agx"}, {"antialias", "smaa"}}}};
 }
 QImage render(const std::shared_ptr<PreparedModel> &model, bool pbr = true,
-              bool shadows = false, bool caster = true) {
+              bool shadows = false, bool caster = true, bool surfaceLight = false) {
   auto models = std::make_shared<RenderModels>();
   (*models)["quad"] = model;
   Json frame{{"dimension", "3d"},
@@ -137,6 +139,14 @@ QImage render(const std::shared_ptr<PreparedModel> &model, bool pbr = true,
   }
   if (pbr) {
     frame["environment"] = environment();
+  }
+  if (surfaceLight) {
+    frame["environment"]["ambient"]["intensity"] = .1;
+    frame["entities"].push_back(
+        {{"id", "surface-light"},
+         {"transform", {{"rotation", {0, .14943813, 0, .98877108}}}},
+         {"light3d", {{"kind", "directional"}, {"color", "#ffffff"},
+                       {"intensity", 2}, {"castShadow", false}}}});
   }
   if (shadows) {
     frame["environment"]["ambient"]["intensity"] = .05;
@@ -205,6 +215,70 @@ int distance(const QImage &a, const QImage &b, bool receiverOnly = false) {
   }
   return difference;
 }
+std::shared_ptr<PreparedModel> metallicRoughnessQuad(ModelMaterial material,
+                                                    const QImage &map) {
+  material.metallicRoughnessImage = 0;
+  material.metallicRoughnessSampler = {33071, 33071, 9728, 9728};
+  auto model = quad(material);
+  for (auto &vertex : model->meshes[0][0].vertices) {
+    vertex.uv = {(vertex.position[0] + 1) * .5F,
+                 (vertex.position[1] + 1) * .5F};
+  }
+  QByteArray encoded;
+  QBuffer buffer(&encoded);
+  check(buffer.open(QIODevice::WriteOnly) && map.save(&buffer, "PNG"),
+        "Metallic-roughness test map must encode");
+  ModelImage image;
+  image.bytes.assign(encoded.begin(), encoded.end());
+  image.mimeType = "image/png";
+  model->images.push_back(std::move(image));
+  return model;
+}
+void metallicRoughnessChecks() {
+  ModelMaterial material;
+  material.color = {.7F, .35F, .12F, 1};
+  material.metallic = .7F;
+  material.roughness = .8F;
+  material.doubleSided = true;
+  QImage uniform(1, 1, QImage::Format_RGBA8888);
+  uniform.fill(QColor(255, 255, 255, 255));
+  const auto absent = render(quad(material), true, false, true, true);
+  check(distance(absent, render(metallicRoughnessQuad(material, uniform), true,
+                                false, true, true)) == 0,
+        "White metallic-roughness map must preserve absent-map pixels exactly");
+  uniform.fill(QColor(21, 128, 64, 37));
+  const auto mapped = render(metallicRoughnessQuad(material, uniform), true,
+                             false, true, true);
+  auto equivalent = material;
+  equivalent.roughness *= 128.F / 255.F;
+  equivalent.metallic *= 64.F / 255.F;
+  check(distance(mapped, render(quad(equivalent), true, false, true, true)) <= 8,
+        "Linear G roughness and B metalness must multiply factors exactly once");
+  uniform.fill(QColor(230, 128, 64, 244));
+  check(distance(mapped, render(metallicRoughnessQuad(material, uniform), true,
+                                false, true, true)) == 0,
+        "Metallic-roughness sampling must ignore red and alpha channels");
+  QImage varying(2, 1, QImage::Format_RGBA8888);
+  varying.setPixelColor(0, 0, QColor(0, 32, 224, 255));
+  varying.setPixelColor(1, 0, QColor(0, 224, 32, 255));
+  const auto varied = render(metallicRoughnessQuad(material, varying), true,
+                             false, true, true);
+  auto left = material, right = material;
+  left.roughness *= 32.F / 255.F; left.metallic *= 224.F / 255.F;
+  right.roughness *= 224.F / 255.F; right.metallic *= 32.F / 255.F;
+  const auto leftReference = render(quad(left), true, false, true, true);
+  const auto rightReference = render(quad(right), true, false, true, true);
+  check(distance(leftReference, rightReference) > 100,
+        "Metallic-roughness fixture must respond to distinct factors");
+  for (const auto [x, reference] :
+       {std::pair{48, &leftReference}, std::pair{80, &rightReference}}) {
+    const auto actual = varied.pixelColor(x, 64), expected = reference->pixelColor(x, 64);
+    check(std::abs(actual.red() - expected.red()) <= 1 &&
+              std::abs(actual.green() - expected.green()) <= 1 &&
+              std::abs(actual.blue() - expected.blue()) <= 1,
+          "Varying metallic-roughness map must follow mesh UVs and its sampler");
+  }
+}
 } // namespace
 int main(int argc, char **argv) {
   QGuiApplication app(argc, argv);
@@ -217,6 +291,7 @@ int main(int argc, char **argv) {
       vulkanInstance = &vulkan;
     }
 #endif
+    metallicRoughnessChecks();
     ModelMaterial material;
     material.metallic = 0;
     material.doubleSided = true;

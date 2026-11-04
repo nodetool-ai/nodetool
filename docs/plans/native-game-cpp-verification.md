@@ -2077,4 +2077,209 @@ The user chose to preserve Sunrush native fidelity and document the browser
 vertex-cap limitation. A separate reduced-detail browser version is outside
 this effort. No geometry, source asset or admission cap changed. Actual full
 Sunrush browser startup remains failed, while native Qt verification passed.
-The unrelated web scroll assertion remains an unresolved verification blocker.
+The later lifecycle fix and fourth aggregate resolved the web scroll assertion;
+the failed earlier attempt remains in the ordered history.
+
+## Signal Forge native port and metallic-roughness maps
+
+The Signal Forge fixture preserves the web source, all 75 original entities,
+and fifteen verbatim script functions. Three native controllers retain native
+entity-ID execution order, independent role state, command ownership and
+next-tick event delivery. The prepared document has 114 entities and 96 closed
+assets. Selected geometry and texture bytes survive lossless partitioning into
+39 model parts. Eight original WAV files and the collider bytes are unchanged.
+Prepared files total 49,596,414 bytes. Source and asset provenance are recorded
+by the fixture under `native/game/tests/fixtures/signal-forge/`.
+
+The unchanged original 1,219-tick input route completes the native puzzle.
+Observed relay, coolant and reactor events occur at ticks 108, 607 and 929;
+the win event occurs at tick 1192. The final frame has score 1, the physically
+collected final beacon is absent, and the original victory UI is visible with
+progress 4. All 610 continuation ticks after the midpoint restore compare
+identically in the originating live session. Checkpoint return, remote-input
+rejection, camera orbit, jumping/landing and a nonplayer core overlapping the
+final beacon pass. Deliberately removing the sensor filter makes the same
+nonplayer guard fail with score 1. These results are retained in
+`/home/mg/.cache/native-final-tmp/signal-forge-native-final/verification.json`,
+`signal-forge-release-worker-run/verification.json` and
+`signal-forge-negative-control.json` in that cache directory.
+
+The first Qt admission correctly rejected metallic-roughness textures. The
+added importer, prepared-model fields, Qt shader binding and browser material
+path preserve the source maps. Linear green multiplies authored roughness;
+linear blue multiplies authored metallicity. Existing maps and absent-map
+payloads remain compatible. Importer rejection/acceptance tests, OpenGL and
+Vulkan numeric material cases, and Chromium channel/factor comparisons pass.
+Neutral-map and absent-map pixels are identical. Invalid descriptor indices,
+UV/reference cases and disabled-map controls establish test sensitivity.
+
+Fresh Release player captures at ticks 0, 609 and 1219 show the native start,
+coolant section and completed game with the preserved materials. The successful
+captures use Vulkan llvmpipe at 1280×720 with `LP_NUM_THREADS=1`. An initial
+OpenGL context setup failure and an initial Vulkan finish-capture script
+watchdog failure remain retained. The separate Release worker completes the
+same route and replay. Start and midpoint PNGs with the controlled software
+driver thread count are byte-identical to their earlier captures. Evidence:
+`signal-forge-asset-preflight/capture-evidence.json` and
+`signal-forge-capture-thread-parity.json` under the approved cache. These are
+visual and functional results, not hardware frame-rate measurements.
+
+The Release fixed-input headless benchmark uses 240 measured ticks, 60 warmup
+ticks and the unchanged 4 ms target. Total p95 is 6.481992 ms, exit 2, with
+replay verified. It fails the performance target. It does not measure the
+busy gameplay route or GPU presentation. The selected 1,038,510 indices also
+exceed the browser's existing 1,000,000 indexed-vertex cap. This port targets
+native Qt play and neither reduces geometry nor raises that cap. The fixture
+README records torque, repulsor expansion, fog, camera-occlusion and audio
+mixing limitations.
+
+Fresh Emscripten output, package builds, browser identity and exact Release
+worker staging pass. An initial Node bridge run hit a genuine 100 ms validation
+bootstrap `SCRIPT_LIMIT`; an exact isolated same-binary rerun passes all 225
+assertions without flag or budget changes. Its cause remains unproven and is
+not treated as an accepted baseline. OOM recovery, 136,656 native/WASM parity
+comparisons, 25 lifetime cycles and zero remaining active contexts pass. All
+39 Signal Forge models pass actual fresh-WASM preparation and the shared
+descriptor parser, including the 36 models using metallic-roughness maps and
+61 material references. The largest response is 11,867,007 bytes, below the
+existing 16 MiB response limit. Both the first failed bridge attempt and later
+passes remain in `signal-forge-wasm-stage.json` and
+`signal-forge-portable-imports.json`.
+
+The fresh Chromium bridge passes all 225 assertions. The full browser wrapper
+passes every selected group and the normal/BSDF reference-image checks, both
+with exit 0. All eight recorded browser, staged-worker and installed-binary
+hashes remain unchanged before and after execution. Actual commands, logs and
+identity receipts are in `signal-forge-browser-profile.json` under the approved
+cache. These profile results do not imply that the complete Signal Forge game
+fits the browser indexed-vertex limit.
+
+The broader native profile and final mandatory aggregate remain incomplete.
+The fresh core profile passes 27 tests. The sanitizer core run stopped on
+script-clock failures in Session and Session2D, without a reported ASan/UBSan
+memory diagnostic. The Session pose final-deadline failure remains unresolved
+and cache-only diagnosis continues. This does not constitute a sanitizer pass.
+The asset sanitizer and pure PlayerInput sanitizer checks pass. The separate
+ScriptTest sanitizer fails in bootstrap `visit` under the unchanged 20 ms
+limit, without a memory diagnostic. A cache-only instrumented Session run
+records a separate 100 ms admission failure at 143.413 ms wall time and
+67.149 ms thread CPU time, with the harness phase accounting for 136.250 ms
+wall and 64.836 ms CPU. This proves off-CPU delay in that occurrence only;
+it does not establish the cause of the pose failure. Production source is
+unchanged. The diagnostic report is
+`script-phase-diagnostic/report.json` under the approved cache. Player, editor
+and installed profiles are still in progress in
+`signal-forge-native-independent.json`.
+
+The old parent-merge aggregate remains preserved as interrupted by the review
+fixes, rather than passed or failed. Current native status is in
+`signal-forge-native-profile.json`; no new strict mandatory pass is claimed.
+
+A separate real thread-handoff regression reproduces validation on the main
+thread followed by invocation on a worker thread. The focused test is RED
+before updating the QuickJS stack origin and GREEN after it, retaining
+stack-overflow rejection and recovery. Astra cleared the frozen three-file
+fix. Existing stack, memory and time limits are unchanged. Refreshed native
+profiles and install are running under `signal-forge-thread-hop-profile.json`;
+portable refresh and final aggregate remain held. The earlier Debug/sanitizer
+bootstrap interruptions are unresolved, retained failures. Even a later
+mandatory-check pass cannot establish an overall pass while those remain
+unresolved.
+
+The tentative thread-handoff refresh attempt is retained in the ordered final
+checks JSON. Both originally failing editor save cases now pass. The refreshed
+core passes 26 of 27 tests, with the ScriptTest cold bootstrap still failing.
+The focused Debug handoff passes. All four Release targets build and install,
+and their dependency-closure checks pass in the separate
+`signal-forge-native-install-thread-hop` prefix. Sanitized handoff execution
+reaches recursion and then fails an assertion, requiring exact-code diagnosis.
+The full script sanitizer also fails. Session2D sanitizer passes, while Session
+fails source-admission `visit` at the unchanged 100 ms limit, distinct from the
+earlier warm final-guard failure. Native player/editor/installed continuation
+is active. No refreshed aggregate has started and no overall pass is claimed.
+
+The test-only handoff refinement is Astra-cleared. Final focused Debug and
+ASan checks both pass without changing production source or limits. Refreshed
+player 22 cases, editor three cases and installed 14 cases pass, including
+the two original editor save regressions. Authoritative binary hashes and
+closure receipts are in `signal-forge-thread-hop-artifacts.json`. Earlier
+cold-bootstrap failures remain retained. Fresh portable/browser verification
+and the supplemental script/asset sanitizer and route checks are pending;
+final aggregate execution remains held.
+
+Fresh post-handoff WASM `cdb766cd5e75965a5d3ffaf4dcb7d2706ee794a665dd6a8d68b59424baad7dbe`
+and exact Release worker staging pass. Node and Chromium each pass 225
+assertions. OOM recovery, 136,656 native/WASM comparisons, 25 lifetime cycles
+with zero remaining active contexts, and preparation of all 39 models pass.
+The refreshed full browser wrapper and reference images pass, with all eight
+recorded artifact hashes unchanged. Actual results are retained in
+`signal-forge-hostfix-wasm-stage.json`,
+`signal-forge-hostfix-portable-imports.json` and
+`signal-forge-hostfix-browser-profile.json`. These are post-fix passes, not
+reclassification of the earlier failed attempts. Shipping Release and sanitizer
+script/asset supplements and fresh route/capture/benchmark checks remain
+pending. Final aggregate is held, and unresolved Debug cold-bootstrap failure
+keeps the overall result false.
+
+The shipping Release sanitizer supplement configures and builds successfully.
+Assets and focused thread-handoff/stack-guard checks pass, but full ScriptTest
+fails during cold bootstrap `visit` after 0.17 seconds. No memory diagnostic
+is reported. No flags, limits or source change was made to suppress it. The
+failure is therefore not confined to Debug, and overall verification remains
+false. Actual results are in `signal-forge-release-sanitize.json`. Fresh
+Release route, finish-image comparison and exact 240/60 benchmark are active
+under `signal-forge-thread-hop-live/receipt.json`; aggregate remains held.
+
+The single final Signal Forge aggregate is complete, with failures retained.
+Build, capabilities, browser identity, exact worker staging, backend smoke,
+typecheck and lint exit 0. Affected tests exit 1 at the CLI-game Sunrush pixel
+golden: 97,802 changed pixels at 1024×576, fraction 0.1658155653 against 0.005.
+Backend Turbo records 183 successful tasks of 188; the aggregate does not
+reach the web/Electron/mobile phases. The CLI-game suite records 128 passes,
+one failure and one skip. Read-only diagnosis is pending without a golden
+replacement or retry. The affected native core separately passes 27/27,
+including ScriptTest in 0.34 seconds. The later gate exits 1 with 21/22
+selfchecks passing: native-game-service fails its ScriptTest with `Script call
+budget exceeded` in 0.12 seconds, while its other 26 core cases pass. The
+earlier Debug and Release sanitizer failures also remain unresolved.
+
+Original source audits detect the authorized fixture README evidence update
+racing the initial snapshot. Those failures are preserved. After all commands
+finish, one explicitly approved terminal audit changes only that README
+baseline to `b82d5eb1ef0103b04c5e750deab80f242f094fb0e4f1eb18c6e742d70d8600bc`
+and passes with all other original source hashes and runtime/package identities
+unchanged. Both README hashes, the root authorization and follow-up receipt
+are retained in `signal-forge-final-terminal-audit-checks.json`. This does not
+convert the original audits or mandatory failures into passes.
+
+The refreshed Release route, originating-session replay and probes pass, and
+the finish PNG is byte-identical to the previous capture. The current exact
+240/60 benchmark fails the unchanged 4 ms target at p95 6.864616 ms, exit 2,
+with replay verified. The earlier 6.481992 ms result is preserved. Overall
+verification remains false. The final aggregate and terminal audit are embedded
+in the sixth ordered attempt in `native-game-cpp-final-checks.json`. No broad
+retry, limit change, source fix, commit or publication was performed by this
+verification runner.
+
+The seventh ordered attempt uses the explicitly approved Sunrush golden
+correction. A controlled old/current authored-document comparison and fresh
+Astra review establish the stale golden, and the unchanged focused test passes
+with the approved PNG. Its SHA256 is
+`530aa19b3db563e25b84f9686403192ee2c62f7d63beb87924a203c3453df948`.
+The prior failed aggregate and all 19 original audits remain untouched.
+
+The new serial aggregate completes with all nine commands exiting 0 and all
+19 source/artifact audits passing. Backend affected checks pass 222/222 tasks,
+web passes 2,160 suites and 21,767 tests with three skips and two todo cases,
+Electron passes 73 suites/850 tests, and mobile passes 79 suites/921 tests.
+The gate passes 22/22 selfchecks, distinct from the prior 21/22 failure. Build,
+backend smoke, typecheck and lint also pass. Exact commands, frozen source
+hashes including the approved PNG, and package/runtime identity audits are in
+`signal-forge-golden-final-checks.json` under the approved cache and embedded
+in the seventh repository attempt. No additional native/browser profiles ran.
+
+Mandatory checks now pass. Overall verification remains false because the
+retained full ScriptTest sanitizer cold-bootstrap failures are unresolved.
+The unchanged performance target still fails at p95 6.864616 ms, exit 2.
+The user decision on further bootstrap work remains pending; no production
+rewrite or additional retry is authorized by these results.

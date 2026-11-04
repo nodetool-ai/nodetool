@@ -25,6 +25,9 @@ antialiasing modes and orthographic or follow cameras fail admission.
 Presentation includes supported material maps, resolved animation, decals and
 bounded particle samples. Particle state participates in authenticated live-session
 restore and failed-tick rollback. It is not a durable whole-world save format.
+glTF metallic/roughness maps read roughness from linear green and metallicity from
+linear blue, multiplying each by its authored factor. They share the existing
+UV0, sampler and asset-admission rules across Qt and the browser renderer.
 HUD widgets support panels, text and bars with admitted fonts and explicit
 presentation dimensions. UI images are not admitted.
 

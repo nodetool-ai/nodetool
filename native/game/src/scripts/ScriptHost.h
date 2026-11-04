@@ -14,7 +14,7 @@ private:
  * Bounded QuickJS invocations. Persistent behavior state is explicit JSON.
  * One runtime and one hardened realm for each distinct source are reused across calls.
  * Each call evaluates the source again, so closures never carry state between calls.
- * Not thread-safe: use one host for each thread.
+ * Calls require exclusive ownership. A host may move between threads sequentially.
  */
 class ScriptHost {
 public:

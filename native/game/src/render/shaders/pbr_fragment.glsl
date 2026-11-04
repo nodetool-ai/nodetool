@@ -15,6 +15,7 @@ layout(binding=4) uniform sampler2DArrayShadow directionalShadows;
 layout(binding=5) uniform sampler2DArrayShadow pointShadows;
 layout(binding=6) uniform sampler2D environmentSpecular;
 layout(binding=7) uniform sampler2D environmentDiffuse;
+layout(binding=8) uniform sampler2D metallicRoughnessMap;
 layout(binding=9) uniform sampler2D dfgMap;
 const float PI=3.14159265358979323846;
 float sat(float x) { return clamp(x,0.0,1.0); }
@@ -128,9 +129,11 @@ void main() {
  vec3 geometryNormal=n;
  n=normalFromMap(n);
  vec3 v=normalize(scene.cameraNear.xyz-worldPosition);
- float metalness=material.surface.x;
+ vec2 metallicRoughness=vec2(1.0);
+ if(material.sampling.z>.5) metallicRoughness=(material.sampling.w>.5?sampleAnisotropic16(metallicRoughnessMap,texcoord):texture(metallicRoughnessMap,texcoord)).gb;
+ float metalness=material.surface.x*metallicRoughness.y;
  float geometryRoughness=max(max(abs(dFdx(geometryNormal)).x,abs(dFdx(geometryNormal)).y),max(abs(dFdx(geometryNormal)).z,max(max(abs(dFdy(geometryNormal)).x,abs(dFdy(geometryNormal)).y),abs(dFdy(geometryNormal)).z)));
- float roughness=min(1.0,max(material.surface.y,.0525)+geometryRoughness);
+ float roughness=min(1.0,max(material.surface.y*metallicRoughness.x,.0525)+geometryRoughness);
  vec3 diffuse=base.rgb*(1.0-metalness),f0=mix(vec3(.04),base.rgb,metalness);
  float depth=-(scene.view*vec4(worldPosition,1.0)).z;
  vec3 outgoing=material.emissiveNormalScale.xyz;

@@ -25,8 +25,9 @@ if (values['native-player']) { environment.NODETOOL_NATIVE_GAME_PLAYER = resolve
 if (values['native-runtime']) { environment.NODETOOL_NATIVE_GAME_RUNTIME_DIR = resolve(values['native-runtime']); }
 for (const [cwd, args] of [
   ['.', ['scripts/run-vitest.mjs', 'run', '--config', 'vitest.config.ts', 'scripts/__tests__/native-game-delivery.test.mjs']],
+  ['packages/protocol', ['../../scripts/run-vitest.mjs', 'run', 'tests/native-prepared-metallic-roughness.test.ts']],
   ['packages/game-runtime', ['../../scripts/run-vitest.mjs', 'run', 'tests/native-browser.test.ts', 'tests/native-browser-saves.test.ts', 'tests/native-browser-input.test.ts']],
-  ['packages/game-renderer', ['../../scripts/run-vitest.mjs', 'run', 'tests/native-browser-export.test.ts', 'tests/native-browser-player-startup.test.ts', 'tests/native-browser2d-pixels.test.ts', 'tests/native-post3d.test.ts', 'tests/native-browser3d-visual.test.ts', 'tests/native-browser3d-vertex-materials.test.ts', 'tests/native-browser3d-vertex-pixels.test.ts', 'tests/native-frame-commands.test.ts', 'tests/native-browser-input-camera.test.ts']],
+  ['packages/game-renderer', ['../../scripts/run-vitest.mjs', 'run', 'tests/native-browser-export.test.ts', 'tests/native-browser-player-startup.test.ts', 'tests/native-browser2d-pixels.test.ts', 'tests/native-post3d.test.ts', 'tests/native-browser3d-visual.test.ts', 'tests/native-browser3d-vertex-materials.test.ts', 'tests/native-browser3d-vertex-pixels.test.ts', 'tests/native-browser3d-metallic-roughness.test.ts', 'tests/native-browser3d-metallic-roughness-pixels.test.ts', 'tests/native-frame-commands.test.ts', 'tests/native-browser-input-camera.test.ts']],
   ['packages/cli-game', ['../../scripts/run-vitest.mjs', 'run', 'tests/game-native-cpp.test.ts']],
   ['packages/agents', ['../../scripts/run-vitest.mjs', 'run', 'tests/capabilities-native-cpp-game.test.ts']]
 ]) {

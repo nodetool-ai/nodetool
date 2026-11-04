@@ -495,7 +495,10 @@ PreparedAssets::prepare(const std::string &id,
     prepared.metallic = pbr.value("metallicFactor", 1.0f);
     prepared.roughness = pbr.value("roughnessFactor", 1.0f);
     prepared.doubleSided = material.value("doubleSided", false);
-    require(!pbr.contains("metallicRoughnessTexture"), "metallic-roughness textures unsupported");
+    if (pbr.contains("metallicRoughnessTexture")) {
+      texture(pbr.at("metallicRoughnessTexture"), prepared.metallicRoughnessImage,
+              prepared.metallicRoughnessSampler);
+    }
     if (pbr.contains("baseColorTexture")) {
       texture(pbr.at("baseColorTexture"), prepared.image, prepared.baseColorSampler);
     }
@@ -613,6 +616,10 @@ PreparedAssets::prepare(const std::string &id,
         require(!primitive.at("attributes").contains("TANGENT"),
                 "normal textures with explicit tangents unsupported");
         require(primitive.at("attributes").contains("NORMAL") && primitive.at("attributes").contains("TEXCOORD_0"), "normal textures require normals and texture coordinates");
+      }
+      if (prepared.material >= 0 && result->materials.at(prepared.material).metallicRoughnessImage >= 0) {
+        require(primitive.at("attributes").contains("TEXCOORD_0"),
+                "metallic-roughness textures require texture coordinates");
       }
       primitives.push_back(std::move(prepared));
     }

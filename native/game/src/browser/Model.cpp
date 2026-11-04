@@ -32,6 +32,10 @@ Json prepareBrowserModel(const Json &request) {
     if (model->materials[i].emissiveStrength != 1) {
       materials[i]["emissiveStrength"] = model->materials[i].emissiveStrength;
     }
+    if (model->materials[i].metallicRoughnessImage >= 0) {
+      materials[i]["metallicRoughnessImage"] = model->materials[i].metallicRoughnessImage;
+      materials[i]["metallicRoughnessSampler"] = sampler(model->materials[i].metallicRoughnessSampler);
+    }
   }
   for (const auto &image : model->images) {
     if (!image.source) { throw Error("validation_error", "Prepared image has no verified source"); }

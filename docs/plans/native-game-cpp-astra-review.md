@@ -406,3 +406,85 @@ project and migrated CI paths. Script selection/partition regressions pass
 99 tests, and the moved harness registry passes 239 tests. These focused
 results and review do not replace the final merge aggregate or claim a
 native runtime rebuild. Final aggregate evidence is recorded separately.
+
+## Signal Forge and metallic-roughness support
+
+Astra cleared the two-file Signal Forge asset adapter snapshot with manifest
+SHA256 `bb06d1ded9d4b27b9dc837b4a11bc4cffde446916be7b65b800a31a99388378f`
+under `/home/mg/.cache/native-final-tmp/signal-forge-assets-review/`. The review
+independently checked the source document, eleven original files, all 96
+prepared files, selected-node/material behavior, closed dependencies and
+lossless geometry hashes. It did not run Qt admission or GPU checks.
+
+The six-file gameplay adapter snapshot cleared with manifest SHA256
+`2ede0a411ba3e268658c9a235cc7eb571f85498048fd709271a16e8199d52c37`
+under `astra-signal-forge-adapter-review/` in the same cache. The review checked
+all fifteen verbatim scripts, native role ordering and command ownership,
+original input equality, full route observations and same-session replay.
+No supported gameplay findings remained. The later documentation-only README
+follow-up has SHA256
+`312f6d0008d1bece012bf2ecee6e1694670b329434cc1e3ecdbec25cc9d9ec59`;
+its receipt preserves the original snapshot and verifies the other five files
+and prepared document are unchanged. Actual negative-control, capture and
+benchmark results are execution evidence rather than additional review claims.
+
+Astra cleared the seven native importer/bridge/rendering/test files under
+`signal-forge-mr-native-review/`, manifest SHA256
+`69842247bab4820b6bf36f8e23266b14a070e43bb53bcc7b05e3549ac2065292`.
+The review verified optional serialization, admitted texture/UV/sampler checks,
+linear-map texture cache identity, binding 8, valid fallback ownership and
+green/blue factor multiplication before the existing BSDF clamps. Recorded
+OpenGL/Vulkan passes and the disabled-map negative control were inspected.
+The control proves assertion sensitivity, not historical renderer behavior.
+
+The seven shared protocol/browser files cleared under
+`mr-browser-protocol-review/`, manifest SHA256
+`d6b50629f077fd72e3994f83c079ea988a277a2a301f40395050ab37255e8faf`.
+The review checked absent-payload compatibility, dangling-index rejection,
+canonical generated fields, linear texture reuse for roughness/metalness,
+sampler and disposal paths, unit results and the numerical Chromium RED/GREEN.
+The initial missing-display setup failure remains distinct from the genuine
+old-source numerical failure. Neither material review reran builds or GPUs.
+
+Integration review cleared the fixture registration, explicit browser profile
+selection, material documentation and capture helper, together with the
+previously pending Scene2D authored-preview fallback and EditorGesture
+regression. The fallback preserves committed frame transforms while handling
+editor open, stop and drag-preview frames that omit `worldTransforms`.
+The capture helper's narrow follow-up waits for closed output streams and
+restricts Xcb/Vulkan environment defaults to Linux. Its final SHA256 is
+`e81d3f01bcdb4f1144048febe9e2665b39d809473ecaea1855cbcc2bd178b31d`.
+The other five files match `signal-forge-integration-review/manifest.json`.
+No macOS execution or fresh aggregate result is implied by that clearance.
+
+The current native, portable, browser, capture and mandatory receipts must be
+read separately from these source clearances. In particular, the initial fresh
+WASM validation watchdog failure and current sanitizer script-clock failures
+remain preserved and are not accepted baseline exceptions. Only the historical
+timeline pixel baseline carries the user's prior exception.
+
+Astra cleared the three-file sequential ScriptHost thread-handoff fix under
+`signal-forge-thread-hop/review-manifest.json`, SHA256
+`86eb6302c93d4ff22d94000e6da1f09e89b9e83ee0444b2e466bbf61f3df31bd`.
+The focused real-hook test fails before the fix and passes after it, including
+stack-overflow rejection and recovery. The change updates the QuickJS stack
+origin when sequential execution moves to another thread. The 256 KiB stack,
+existing memory limits and deadlines remain unchanged. Concurrent runtime
+access is outside the contract. This is a source clearance, not a pass for
+the retained full-suite bootstrap interruption or refreshed profiles.
+
+Astra cleared the test-only handoff refinement, manifest SHA256
+`39b0e9747a350c6b51408fe6bce4b00cad847edb66e86ec23ba9490bfbedd714`.
+Production ScriptHost implementation and header are unchanged from the
+previous clearance. Final focused Debug and ASan runs both exit 0. Earlier
+cold-bootstrap and sanitizer attempts remain retained separately.
+
+Astra integration review cleared the single Sunrush golden PNG correction
+after the controlled authored-document comparison in
+`sunrush-golden-author-comparison/report.json`. The approved bytes change
+SHA256 `a5a6f77f4f96a90551064951e59164addf9f7c22bceb3847d31a00d36c3190df`
+to `530aa19b3db563e25b84f9686403192ee2c62f7d63beb87924a203c3453df948`.
+The unchanged focused test passes, recorded in
+`sunrush-golden-approved-refresh/receipt.json`. No tolerance, geometry, native
+rendering source or other golden changed. The subsequent mandatory aggregate
+passes, but this clearance does not waive retained sanitizer or budget failures.

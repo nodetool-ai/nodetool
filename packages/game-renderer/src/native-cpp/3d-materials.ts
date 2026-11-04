@@ -146,10 +146,17 @@ export class NativePBRMaterials {
     this.materials = model.materials.map((source) => {
       const emissive = source.emissive ?? [0, 0, 0],
         alpha = source.alphaMode ?? "OPAQUE";
+      const metallicRoughness = texture(
+        source.metallicRoughnessImage ?? -1,
+        source.metallicRoughnessSampler,
+        false
+      );
       const material = new MeshStandardMaterial({
         color: new Color(source.color[0], source.color[1], source.color[2]),
         metalness: source.metallic,
         roughness: source.roughness,
+        roughnessMap: metallicRoughness,
+        metalnessMap: metallicRoughness,
         emissive: new Color(emissive[0], emissive[1], emissive[2]),
         emissiveIntensity: source.emissiveStrength ?? 1,
         opacity: source.color[3],

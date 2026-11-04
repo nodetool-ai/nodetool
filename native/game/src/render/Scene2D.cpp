@@ -256,45 +256,51 @@ Json Scene2D::render(QRhi *rhi, QRhiCommandBuffer *cb, QRhiRenderTarget *target,
     }
   }
 
-  std::map<std::string, const Json *> definitions;
-  std::map<std::string, Json> worldTransforms;
-  for (const auto &entity : entities) {
-    definitions.emplace(entity.at("id").get<std::string>(), &entity);
-  }
-  for (const auto &entity : entities) {
-    std::vector<std::string> chain;
-    std::string id = entity.at("id");
-    while (!id.empty() && !worldTransforms.contains(id)) {
-      if (chain.size() > definitions.size()) {
-        throw Error("render", "2D parent cycle");
-      }
-      chain.push_back(id);
-      const auto found = definitions.find(id);
-      if (found == definitions.end()) {
-        throw Error("render", "2D parent missing");
-      }
-      id = found->second->value("parentId", std::string());
+  Json authoredWorldTransforms = Json::object();
+  const auto &worldTransforms = frame.contains("worldTransforms")
+                                    ? frame.at("worldTransforms")
+                                    : authoredWorldTransforms;
+  // Open, stopped, and drag-preview editor frames contain authored local poses.
+  if (!frame.contains("worldTransforms")) {
+    std::map<std::string, const Json *> definitions;
+    for (const auto &entity : entities) {
+      definitions.emplace(entity.at("id").get<std::string>(), &entity);
     }
-    while (!chain.empty()) {
-      const auto current = chain.back();
-      chain.pop_back();
-      const auto &definition = *definitions.at(current);
-      auto local = definition.value("transform", Json::object());
-      const auto parent = definition.value("parentId", std::string());
-      if (!parent.empty()) {
-        const auto &p = worldTransforms.at(parent);
-        const double angle = p.value("rotation", 0.0),
-                     x = local.value("x", 0.0) * p.value("scaleX", 1.0),
-                     y = local.value("y", 0.0) * p.value("scaleY", 1.0);
-        local["x"] =
-            p.value("x", 0.0) + std::cos(angle) * x - std::sin(angle) * y;
-        local["y"] =
-            p.value("y", 0.0) + std::sin(angle) * x + std::cos(angle) * y;
-        local["rotation"] = angle + local.value("rotation", 0.0);
-        local["scaleX"] = p.value("scaleX", 1.0) * local.value("scaleX", 1.0);
-        local["scaleY"] = p.value("scaleY", 1.0) * local.value("scaleY", 1.0);
+    for (const auto &entity : entities) {
+      std::vector<std::string> chain;
+      std::string id = entity.at("id");
+      while (!id.empty() && !worldTransforms.contains(id)) {
+        if (chain.size() > definitions.size()) {
+          throw Error("render", "2D parent cycle");
+        }
+        chain.push_back(id);
+        const auto found = definitions.find(id);
+        if (found == definitions.end()) {
+          throw Error("render", "2D parent missing");
+        }
+        id = found->second->value("parentId", std::string());
       }
-      worldTransforms.emplace(current, std::move(local));
+      while (!chain.empty()) {
+        const auto current = chain.back();
+        chain.pop_back();
+        const auto &definition = *definitions.at(current);
+        auto local = definition.value("transform", Json::object());
+        const auto parent = definition.value("parentId", std::string());
+        if (!parent.empty()) {
+          const auto &p = worldTransforms.at(parent);
+          const double angle = p.value("rotation", 0.0),
+                       x = local.value("x", 0.0) * p.value("scaleX", 1.0),
+                       y = local.value("y", 0.0) * p.value("scaleY", 1.0);
+          local["x"] =
+              p.value("x", 0.0) + std::cos(angle) * x - std::sin(angle) * y;
+          local["y"] =
+              p.value("y", 0.0) + std::sin(angle) * x + std::cos(angle) * y;
+          local["rotation"] = angle + local.value("rotation", 0.0);
+          local["scaleX"] = p.value("scaleX", 1.0) * local.value("scaleX", 1.0);
+          local["scaleY"] = p.value("scaleY", 1.0) * local.value("scaleY", 1.0);
+        }
+        authoredWorldTransforms[current] = std::move(local);
+      }
     }
   }
   for (const auto &entity : entities) {
@@ -419,11 +425,11 @@ Json Scene2D::render(QRhi *rhi, QRhiCommandBuffer *cb, QRhiRenderTarget *target,
         fy + fh > imageSize.height()) {
       throw Error("asset", "Sprite atlas frame outside image: " + id);
     }
-    const double scaleX = sprite.value("scaleX", t.value("scaleX", 1.0));
-    const double scaleY = sprite.value("scaleY", t.value("scaleY", 1.0));
+    const double scaleX = t.value("scaleX", 1.0);
+    const double scaleY = t.value("scaleY", 1.0);
     double sx = scaleX * sprite.value("width", 1.0),
            sy = scaleY * sprite.value("height", 1.0);
-    const double angle = sprite.value("rotation", t.value("rotation", 0.0));
+    const double angle = t.value("rotation", 0.0);
     double x = t.value("x", 0.0), y = t.value("y", 0.0);
     if (!hudQuad && metadata.contains(id) &&
         !sprite.value("background", false)) {

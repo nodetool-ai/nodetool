@@ -26,10 +26,10 @@ struct ModelMaterial {
   std::array<float, 4> color{1, 1, 1, 1};
   std::array<float, 3> emissive{};
   float metallic = 1, roughness = 1, emissiveStrength = 1;
-  int image = -1, normalImage = -1;
+  int image = -1, normalImage = -1, metallicRoughnessImage = -1;
   float normalScale = 1, alphaCutoff = .5F;
   std::string alphaMode = "OPAQUE";
-  ModelSampler baseColorSampler, normalSampler;
+  ModelSampler baseColorSampler, normalSampler, metallicRoughnessSampler;
   bool doubleSided = false;
 };
 struct ModelImageSource {

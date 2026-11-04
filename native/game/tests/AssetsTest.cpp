@@ -237,6 +237,37 @@ int main(int argc, char **argv) {
       return prepared.model("material");
     };
     const auto materialModel = prepareMaterial(textured);
+    auto metallicRoughnessTextured = textured;
+    metallicRoughnessTextured["materials"][0]["pbrMetallicRoughness"]["metallicRoughnessTexture"] = {{"index", 1}, {"texCoord", 0}};
+    check(prepareMaterial(metallicRoughnessTextured)->materials.size() == 1,
+          "Metallic-roughness texture uses admitted image and UV channels");
+    const auto mrMaterial = prepareMaterial(metallicRoughnessTextured)->materials.at(0);
+    check(mrMaterial.metallicRoughnessImage == 0 &&
+              mrMaterial.metallicRoughnessSampler.wrapS == 33071 &&
+              mrMaterial.metallicRoughnessSampler.wrapT == 33648 &&
+              mrMaterial.metallicRoughnessSampler.magFilter == 9728 &&
+              mrMaterial.metallicRoughnessSampler.minFilter == 9728 &&
+              std::abs(mrMaterial.metallic - .3F) < 1e-6F &&
+              std::abs(mrMaterial.roughness - .05F) < 1e-6F,
+          "Metallic-roughness map retains its own sampler and multiplicative factors");
+    auto mrOnly = metallicRoughnessTextured;
+    mrOnly["materials"][0].erase("normalTexture");
+    mrOnly["materials"][0]["pbrMetallicRoughness"].erase("baseColorTexture");
+    check(prepareMaterial(mrOnly)->materials[0].metallicRoughnessImage == 0,
+          "Metallic-roughness map does not require a base or normal map");
+    for (const auto *field : {"index", "fractionalIndex", "texCoord", "fractionalTexCoord", "extensions", "missingUv", "uvCount"}) {
+      auto invalid = mrOnly;
+      auto &info = invalid["materials"][0]["pbrMetallicRoughness"]["metallicRoughnessTexture"];
+      const std::string name = field;
+      if (name == "index") { info["index"] = 99; }
+      else if (name == "fractionalIndex") { info["index"] = .5; }
+      else if (name == "texCoord") { info["texCoord"] = 1; }
+      else if (name == "fractionalTexCoord") { info["texCoord"] = .5; }
+      else if (name == "extensions") { info["extensions"] = {{"KHR_texture_transform", AssetJson::object()}}; }
+      else if (name == "missingUv") { invalid["meshes"][0]["primitives"][0]["attributes"].erase("TEXCOORD_0"); }
+      else { invalid["accessors"][2]["count"] = 2; }
+      rejects([&] { prepareMaterial(invalid); });
+    }
     const auto &material = materialModel->materials.at(0);
     check(material.alphaMode == "BLEND" && material.doubleSided && std::abs(material.color[3] - .16F) < 1e-6F, "Optic glass alpha preserved");
     check(material.image == 0 && material.normalImage == 0 && std::abs(material.normalScale - .4F) < 1e-6F, "Base color and normal channels preserved");
@@ -272,8 +303,8 @@ int main(int argc, char **argv) {
     check(prepareMaterial(masked)->materials[0].alphaCutoff == .25F, "Mask alpha cutoff preserved");
     auto defaults = textured; defaults["materials"] = AssetJson::array({AssetJson::object()});
     const auto defaultMaterial = prepareMaterial(defaults)->materials[0];
-    check(defaultMaterial.alphaMode == "OPAQUE" && defaultMaterial.alphaCutoff == .5F && defaultMaterial.normalImage == -1 && defaultMaterial.emissive == std::array<float, 3>{0, 0, 0}, "Material defaults preserved");
-    for (const auto &field : {"alphaMode", "alphaCutoff", "emissiveFactor", "emissiveWidth", "imageMime", "normalTexture", "samplers", "samplerShape", "textureIndex", "uvSet", "missingUv", "tangent", "mrTexture", "emissiveTexture", "occlusionTexture", "extensions"}) {
+    check(defaultMaterial.alphaMode == "OPAQUE" && defaultMaterial.alphaCutoff == .5F && defaultMaterial.normalImage == -1 && defaultMaterial.metallicRoughnessImage == -1 && defaultMaterial.emissive == std::array<float, 3>{0, 0, 0}, "Material defaults preserved");
+    for (const auto &field : {"alphaMode", "alphaCutoff", "emissiveFactor", "emissiveWidth", "imageMime", "normalTexture", "samplers", "samplerShape", "textureIndex", "uvSet", "missingUv", "tangent", "emissiveTexture", "occlusionTexture", "extensions"}) {
       auto invalid = textured;
       if (field == std::string("alphaMode")) { invalid["materials"][0]["alphaMode"] = "ADDITIVE"; }
       else if (field == std::string("alphaCutoff")) { invalid["materials"][0]["alphaCutoff"] = 2; }
@@ -287,7 +318,6 @@ int main(int argc, char **argv) {
       else if (field == std::string("uvSet")) { invalid["materials"][0]["normalTexture"]["texCoord"] = 1; }
       else if (field == std::string("missingUv")) { invalid["meshes"][0]["primitives"][0]["attributes"].erase("TEXCOORD_0"); }
       else if (field == std::string("tangent")) { invalid["meshes"][0]["primitives"][0]["attributes"]["TANGENT"] = 0; }
-      else if (field == std::string("mrTexture")) { invalid["materials"][0]["pbrMetallicRoughness"]["metallicRoughnessTexture"] = {{"index", 0}}; }
       else if (field == std::string("extensions")) { invalid["materials"][0]["extensions"] = {{"KHR_materials_unlit", AssetJson::object()}}; }
       else { invalid["materials"][0][field] = {{"index", 0}}; }
       rejects([&] { prepareMaterial(invalid); });

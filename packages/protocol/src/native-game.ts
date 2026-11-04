@@ -407,13 +407,20 @@ export const nativePreparedImage = z.strictObject({ mimeType: z.enum(["image/png
 export type NativePreparedImage = z.infer<typeof nativePreparedImage>;
 export const nativePreparedModel = z.strictObject({
   meshes: z.array(z.array(z.strictObject({ vertices: z.array(z.strictObject({ position: nativeGameVector, normal: nativeGameVector, color: z.tuple([z.number().finite().min(0).max(1), z.number().finite().min(0).max(1), z.number().finite().min(0).max(1), z.number().finite().min(0).max(1)]).optional(), uv: z.tuple([z.number().finite(), z.number().finite()]), joints: vector4, weights: vector4 })).max(50_000), indices: z.array(z.number().int().nonnegative()).max(150_000), material: z.number().int() }))),
-  materials: z.array(z.strictObject({ color: vector4, metallic: z.number().finite(), roughness: z.number().finite(), image: z.number().int(), doubleSided: z.boolean(), emissive: z.tuple([z.number().finite().min(0).max(1), z.number().finite().min(0).max(1), z.number().finite().min(0).max(1)]).default([0,0,0]), emissiveStrength: z.number().finite().min(0).max(3.4028234663852886e38).optional(), normalImage: z.number().int().min(-1).default(-1), normalScale: z.number().finite().min(-1000).max(1000).default(1), alphaMode: z.enum(["OPAQUE","MASK","BLEND"]).default("OPAQUE"), alphaCutoff: z.number().finite().min(0).max(1).default(0.5), baseColorSampler: nativeTextureSampler.default({wrapS:10497,wrapT:10497,magFilter:9729,minFilter:9987}), normalSampler: nativeTextureSampler.default({wrapS:10497,wrapT:10497,magFilter:9729,minFilter:9987}) })),
+  materials: z.array(z.strictObject({ color: vector4, metallic: z.number().finite(), roughness: z.number().finite(), image: z.number().int(), doubleSided: z.boolean(), emissive: z.tuple([z.number().finite().min(0).max(1), z.number().finite().min(0).max(1), z.number().finite().min(0).max(1)]).default([0,0,0]), emissiveStrength: z.number().finite().min(0).max(3.4028234663852886e38).optional(), normalImage: z.number().int().min(-1).default(-1), normalScale: z.number().finite().min(-1000).max(1000).default(1), metallicRoughnessImage: z.number().int().min(-1).optional(), metallicRoughnessSampler: nativeTextureSampler.optional(), alphaMode: z.enum(["OPAQUE","MASK","BLEND"]).default("OPAQUE"), alphaCutoff: z.number().finite().min(0).max(1).default(0.5), baseColorSampler: nativeTextureSampler.default({wrapS:10497,wrapT:10497,magFilter:9729,minFilter:9987}), normalSampler: nativeTextureSampler.default({wrapS:10497,wrapT:10497,magFilter:9729,minFilter:9987}) })),
   images: z.array(nativePreparedImage),
   nodes: z.array(z.strictObject({ local: matrix16, children: z.array(z.number().int().nonnegative()), mesh: z.number().int(), skin: z.number().int() })).max(1000),
   roots: z.array(z.number().int().nonnegative()).max(1000),
   skins: z.array(z.strictObject({ joints: z.array(z.number().int().nonnegative()), inverseBind: z.array(matrix16) })),
   animations: z.array(z.strictObject({ name: z.string(), duration: z.number().finite(), channels: z.array(z.strictObject({ node: z.number().int().nonnegative(), path: z.string(), interpolation: z.string(), times: z.array(z.number().finite()), values: z.array(vector4) })) })),
   source: nativeGameJson
+}).superRefine((model, context) => {
+  model.materials.forEach((material, index) => {
+    const image = material.metallicRoughnessImage;
+    if (image !== undefined && image >= model.images.length) {
+      context.addIssue({ code: "custom", message: "Metallic-roughness image is missing", path: ["materials", index, "metallicRoughnessImage"] });
+    }
+  });
 });
 export type NativePreparedModel = z.infer<typeof nativePreparedModel>;
 const runtimeOperation = z.custom<z.input<typeof nativeGameOperation> | z.input<typeof nativeGame2dOperation>>((value) => nativeGameOperation.safeParse(value).success || nativeGame2dOperation.safeParse(value).success, "Invalid native document operation").transform((value) => structuredClone(value));
