@@ -235,6 +235,12 @@ at 24 hours.
   server it started on `127.0.0.1`, at a port it picked, until that server
   answers. The cloud profile excludes the `wangp` provider and the
   `lib.wan2gp` nodes that start it.
+- `packages/runtime/src/providers/comfy-gpu-models.ts` and
+  `packages/runtime/src/providers/comfy-template-models.ts` inject retry-aware
+  fetch into the Comfy SDK. The SDK selects request URLs, including output
+  downloads, using its default cloud endpoint or operator configuration. These
+  transports do not screen URLs. Deployment egress controls govern redirects
+  and resolved addresses.
 - `packages/runtime/src/comfy-executor.ts` — a ComfyUI server, normally
   localhost or the LAN, so screening private addresses would refuse the ordinary
   case. The address is the node's `endpoint` property, so the graph author picks
