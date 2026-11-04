@@ -189,3 +189,36 @@ The original implementation was restored, rebuilt and retested successfully,
 exit 0. Logs are `a842-negative-build.log`, `a842-negative-test.log`,
 `a842-restored-build.log` and `a842-restored-test.log`. Changed-file control-byte
 checks, local Markdown links and `git diff --check` passed.
+
+## A84.2 export connection
+
+The connection is now implemented. `NT_TEST_EXPORT_FP16=1` selects it only
+for export diagnostics. The default remains RGBA8. No document field, saved
+setting, QML property, transfer change or higher-depth output was added.
+
+FP16 capture is unpremultiplied and resized in FP32. PNG uses the existing
+final RGBA8 quantizer. Video rounds into native-endian RGBA64 staging, then
+uses the existing BT.709 full-to-limited bicubic swscale conversion with
+YUV420P16 staging. The final plane quantizer divides limited-range codes by
+256 and applies the spatial tile once, after chroma subsampling. Swscale
+staging dithering is disabled. The extra buffers are per-frame and reused.
+The encoder still receives YUV420P.
+
+The proposed direct RGBA64-to-YUV420P route retained the filter but introduced
+swscale's own spatial dither. The 16-bit output staging avoids that extra
+8-bit rounding. RGB row/column impulse tests at every position in a 16x16
+image compare all three planes against the legacy conversion. The maximum
+allowed difference is one code, including negative bicubic lobes. They pass.
+This measures filter/matrix/range compatibility, not bit-identical FP16 output.
+
+`ntbuild color-n0 nodetool-timeline tst_deliveryframe` and the focused
+`citest color-n0 '^tst_deliveryframe$' -V` passed with no skips. All six decoded
+default exports exactly match `n2-a842-before/`. The comparison artifacts are
+`n2-connected/`, `n2-connected-baseline.log` and `n2-rgb-chroma.log` in the build
+directory. No build artifacts are committed.
+
+The scene driver has also demonstrated lower inverse-Levels error through
+PNG and MP4 in every requested output geometry. Further delivery qualification
+is recorded below. Full spatial comparison against an independently resampled
+float reference remains open, so A84.2 acceptance and the N2 exit gate are not
+yet fully met.

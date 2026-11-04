@@ -86,4 +86,23 @@ inline QImage rgba8(const QImage& straight) {
     }
     return result;
 }
+// This staging conversion rounds at 16 bits without dither. YUV conversion
+// retains those bits until the final, subsampled delivery planes.
+inline QImage rgba64(const QImage& straight) {
+    if (straight.format() != QImage::Format_RGBA32FPx4) {
+        throw std::invalid_argument("Video staging requires straight float pixels");
+    }
+    return straight.convertToFormat(QImage::Format_RGBA64);
+}
+inline void quantizePlane(const uint8_t* source, int sourceStride, uint8_t* target,
+                          int targetStride, int width, int height) {
+    for (int y = 0; y < height; ++y) {
+        const auto* row = reinterpret_cast<const uint16_t*>(source + y * sourceStride);
+        for (int x = 0; x < width; ++x) {
+            // Limited-range 16-bit codes are 8-bit codes multiplied by 256.
+            target[y * targetStride + x] = quantize(row[x] / 256.0, x, y);
+        }
+    }
+}
+
 }

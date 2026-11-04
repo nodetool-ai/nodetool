@@ -35,30 +35,52 @@ private slots:
     }
     void legacyChromaFilter() {
         constexpr int width = 16, height = 16;
-        const auto convert = [](int axis, int position) {
+        const auto convert = [](int axis, int position, bool wide = false, int channel = 2) {
             std::array<uint8_t, width * height * 4> rgb{};
             std::array<std::array<uint8_t, width * height>, 3> output{};
+            std::array<uint16_t, width * height * 4> rgb16{};
+            std::array<std::array<uint16_t, width * height>, 3> planes16{};
             for (int y = 0; y < height; ++y) {
                 for (int x = 0; x < width; ++x) {
-                    rgb[(y * width + x) * 4 + 2] = (axis ? y : x) == position ? 255 : 0;
+                    rgb[(y * width + x) * 4 + channel] = (axis ? y : x) == position ? 255 : 0;
                     rgb[(y * width + x) * 4 + 3] = 255;
                 }
             }
+            for (size_t i = 0; i < rgb.size(); ++i) { rgb16[i] = rgb[i] * 257; }
             std::unique_ptr<SwsContext, decltype(&sws_freeContext)> scale(sws_getContext(
-                width, height, AV_PIX_FMT_RGBA, width, height, AV_PIX_FMT_YUV420P,
+                width, height, wide ? AV_PIX_FMT_RGBA64 : AV_PIX_FMT_RGBA, width, height, wide ? AV_PIX_FMT_YUV420P16 : AV_PIX_FMT_YUV420P,
                 SWS_BICUBIC, nullptr, nullptr, nullptr), sws_freeContext);
             if (!scale || sws_setColorspaceDetails(scale.get(), sws_getCoefficients(SWS_CS_ITU709), 1,
                 sws_getCoefficients(SWS_CS_ITU709), 0, 0, 1 << 16, 1 << 16) < 0) {
                 qFatal("Cannot initialize legacy conversion probe");
             }
-            const std::array<const uint8_t*, 4> input{rgb.data(), nullptr, nullptr, nullptr};
-            const std::array<int, 4> inputStride{width * 4, 0, 0, 0};
-            const std::array<uint8_t*, 4> planes{output[0].data(), output[1].data(), output[2].data(), nullptr};
-            const std::array<int, 4> stride{width, width / 2, width / 2, 0};
+            const std::array<const uint8_t*, 4> input{wide ? reinterpret_cast<const uint8_t*>(rgb16.data()) : rgb.data(), nullptr, nullptr, nullptr};
+            const std::array<int, 4> inputStride{width * (wide ? 8 : 4), 0, 0, 0};
+            const std::array<uint8_t*, 4> planes{wide ? reinterpret_cast<uint8_t*>(planes16[0].data()) : output[0].data(), wide ? reinterpret_cast<uint8_t*>(planes16[1].data()) : output[1].data(), wide ? reinterpret_cast<uint8_t*>(planes16[2].data()) : output[2].data(), nullptr};
+            const std::array<int, 4> stride{width * (wide ? 2 : 1), wide ? width : width / 2, wide ? width : width / 2, 0};
             if (sws_scale(scale.get(), input.data(), inputStride.data(), 0, height,
                           planes.data(), stride.data()) != height) { qFatal("Incomplete conversion"); }
+            if (wide) {
+                for (int plane = 0; plane < 3; ++plane) {
+                    const int w = plane ? width / 2 : width;
+                    quantizePlane(planes[plane], stride[plane], output[plane].data(), w, w, plane ? height / 2 : height);
+                }
+            }
             return output;
         };
+        for (int axis = 0; axis < 2; ++axis) {
+            for (int position = 0; position < 16; ++position) {
+                for (int channel = 0; channel < 3; ++channel) {
+                    const auto legacy = convert(axis, position, false, channel);
+                    const auto wide = convert(axis, position, true, channel);
+                    for (int plane = 0; plane < 3; ++plane) {
+                        for (int i = 0; i < (plane ? width * height / 4 : width * height); ++i) {
+                            QVERIFY(std::abs(int(legacy[plane][i]) - int(wide[plane][i])) <= 1);
+                        }
+                    }
+                }
+            }
+        }
         const auto horizontal = convert(0, 4);
         QCOMPARE(horizontal[1][2], uint8_t(184));
         QCOMPARE(horizontal[1][1], uint8_t(128));
