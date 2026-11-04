@@ -31,6 +31,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const colorChannelSplitV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "color.channelSplit",
   version: 1,
   surface: "internal",

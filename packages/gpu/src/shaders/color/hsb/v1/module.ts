@@ -33,6 +33,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const colorHsbV1 = defineModule({
+  precision: { "source": "working", "mask": "fixed", "output": "working" },
   id: "color.hsb",
   version: 1,
   // HSB shift is the workflow user's mental model for color adjustment; the

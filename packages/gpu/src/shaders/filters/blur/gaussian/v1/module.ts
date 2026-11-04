@@ -27,6 +27,7 @@ const layout = tgpu.bindGroupLayout({
 });
 
 export const blurGaussianV1 = defineModule({
+  precision: { "source": "working-or-mask", "output": "working-or-mask" },
   id: "filters.blur.gaussian",
   version: 1,
   // Promoted in Phase 3: separable gaussian blur with a stable

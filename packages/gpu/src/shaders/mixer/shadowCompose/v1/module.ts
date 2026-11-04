@@ -37,6 +37,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const mixerShadowComposeV1 = defineModule({
+  precision: { "source": "working", "shadowMask": "fixed", "output": "working" },
   id: "mixer.shadowCompose",
   version: 1,
   surface: "internal",

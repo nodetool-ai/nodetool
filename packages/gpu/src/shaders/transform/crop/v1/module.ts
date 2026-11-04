@@ -36,6 +36,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const transformCropV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "transform.crop",
   version: 1,
   surface: "internal",

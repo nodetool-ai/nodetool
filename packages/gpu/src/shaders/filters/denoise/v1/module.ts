@@ -21,6 +21,7 @@ fn current(at:vec2i)->vec4f {
 }
 `;
 export const filtersDenoiseSpatialV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "filters.denoise.spatial",
   version: 1,
   surface: "internal",
@@ -78,6 +79,7 @@ const temporalLayout = tgpu.bindGroupLayout({
   params: { uniform: Temporal }
 });
 export const filtersDenoiseTemporalV1 = defineModule({
+  precision: { "source": "working", "before": "working", "after": "working", "output": "working" },
   id: "filters.denoise.temporal",
   version: 1,
   surface: "internal",

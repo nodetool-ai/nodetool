@@ -33,6 +33,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const transformPolarRemapV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "transform.polarRemap",
   version: 1,
   surface: "internal",

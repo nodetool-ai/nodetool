@@ -35,6 +35,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const transformPadV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "transform.pad",
   version: 1,
   surface: "internal",

@@ -14,6 +14,7 @@
 import tgpu from "typegpu";
 import type { TgpuBindGroupLayout } from "typegpu";
 import type { AnyWgslStruct, Infer } from "typegpu/data";
+import type { PrecisionSlots } from "./workingFrame.js";
 import type {
   BindingKind,
   IOContract,
@@ -106,6 +107,7 @@ export interface ShaderModule<Schema extends AnyWgslStruct = AnyWgslStruct> {
   readonly entryPoint: string;
   readonly workgroupSize: readonly [number, number, number];
 
+  readonly precision?: PrecisionSlots;
   readonly io: IOContract;
   /**
    * Alternate `(layout, wgsl, ...)` for distinct binding kinds or
@@ -153,6 +155,7 @@ export interface ShaderModuleSpec<Schema extends AnyWgslStruct> {
   /** Compute workgroup size. Ignored for fragment modules. */
   workgroupSize?: readonly [number, number, number];
 
+  precision?: PrecisionSlots;
   io: IOContract;
 
   /**
@@ -268,6 +271,7 @@ export function defineModule<Schema extends AnyWgslStruct>(
     wgsl,
     entryPoint: spec.entryPoint ?? (kind === "compute" ? "main" : "fs_main"),
     workgroupSize: spec.workgroupSize ?? ([1, 1, 1] as const),
+    precision: spec.precision,
     io: spec.io,
     variants: variants ? Object.freeze(variants) : undefined
   });

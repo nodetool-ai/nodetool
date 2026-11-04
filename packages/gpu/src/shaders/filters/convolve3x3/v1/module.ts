@@ -42,6 +42,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const filtersConvolve3x3V1 = defineModule({
+  precision: { "source": "working", "mask": "fixed", "output": "working" },
   id: "filters.convolve3x3",
   version: 1,
   surface: "internal",

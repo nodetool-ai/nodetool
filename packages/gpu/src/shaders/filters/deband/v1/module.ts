@@ -6,6 +6,7 @@ const Params = d.struct({strength: d.f32, range: d.u32, threshold: d.f32, dither
 const layout = tgpu.bindGroupLayout({source: {texture: "float"}, outputTexture: {storageTexture: "rgba8unorm"}, params: {uniform: Params}});
 
 export const filterDebandV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "filters.deband", version: 1, surface: "internal", category: "filters",
   linearity: "nonlinear-in-rgb", kind: "compute", params: Params,
   paramDefaults: {strength: 0, range: 16, threshold: 0.02, dither: 0.5},

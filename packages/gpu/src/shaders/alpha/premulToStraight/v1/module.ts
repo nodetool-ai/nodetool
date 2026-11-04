@@ -23,6 +23,7 @@ const layout = tgpu.bindGroupLayout({
 });
 
 export const alphaPremulToStraightV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "alpha.premulToStraight",
   version: 1,
   surface: "internal",

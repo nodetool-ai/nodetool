@@ -28,6 +28,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const filtersPixelateV1 = defineModule({
+  precision: { "source": "working", "mask": "fixed", "output": "working" },
   id: "filters.pixelate",
   version: 1,
   surface: "internal",

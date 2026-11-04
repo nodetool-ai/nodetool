@@ -29,6 +29,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const colorExposureV1 = defineModule({
+  precision: { "source": "working", "mask": "fixed", "output": "working" },
   id: "color.exposure",
   version: 1,
   surface: "internal",

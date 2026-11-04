@@ -38,6 +38,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const mixerColorOverlayV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "mixer.colorOverlay",
   version: 1,
   surface: "internal",

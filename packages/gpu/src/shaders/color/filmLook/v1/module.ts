@@ -38,6 +38,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const colorFilmLookV1 = defineModule({
+  precision: { "source": "working", "mask": "fixed", "output": "working" },
   id: "color.filmLook",
   version: 1,
   surface: "internal",

@@ -20,6 +20,7 @@ const layout = tgpu.bindGroupLayout({
 });
 
 export const sourcesDiamondGradientV1 = defineModule({
+  precision: { "output": "fixed" },
   id: "sources.diamondGradient",
   version: 1,
   surface: "internal",

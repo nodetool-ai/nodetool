@@ -23,6 +23,7 @@ const layout = tgpu.bindGroupLayout({
 });
 
 export const passthroughV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "_canary.passthrough",
   version: 1,
   surface: "internal",

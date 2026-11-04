@@ -41,6 +41,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const colorCdlV1 = defineModule({
+  precision: { "source": "working", "mask": "fixed", "output": "working" },
   id: "color.cdl",
   version: 1,
   surface: "internal",

@@ -40,6 +40,7 @@ const layout = tgpu.bindGroupLayout({
 });
 
 export const filtersGrainV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "filters.grain",
   version: 1,
   surface: "internal",

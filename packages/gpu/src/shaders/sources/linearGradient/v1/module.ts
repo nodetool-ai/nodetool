@@ -22,6 +22,7 @@ const layout = tgpu.bindGroupLayout({
 });
 
 export const sourcesLinearGradientV1 = defineModule({
+  precision: { "output": "fixed" },
   id: "sources.linearGradient",
   version: 1,
   surface: "internal",

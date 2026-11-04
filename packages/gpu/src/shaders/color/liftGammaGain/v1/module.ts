@@ -43,6 +43,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const colorLiftGammaGainV1 = defineModule({
+  precision: { "source": "working", "mask": "fixed", "output": "working" },
   id: "color.liftGammaGain",
   version: 1,
   surface: "internal",

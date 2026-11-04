@@ -30,6 +30,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const colorInvertV1 = defineModule({
+  precision: { "source": "working", "mask": "fixed", "output": "working" },
   id: "color.invert",
   version: 1,
   // Trivial schema (single `amount` param) and canonical mask slot; no

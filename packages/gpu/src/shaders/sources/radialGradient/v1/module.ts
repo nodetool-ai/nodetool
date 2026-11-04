@@ -20,6 +20,7 @@ const layout = tgpu.bindGroupLayout({
 });
 
 export const sourcesRadialGradientV1 = defineModule({
+  precision: { "output": "fixed" },
   id: "sources.radialGradient",
   version: 1,
   surface: "internal",

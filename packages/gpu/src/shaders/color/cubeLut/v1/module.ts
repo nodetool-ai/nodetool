@@ -18,6 +18,7 @@ const layout = tgpu.bindGroupLayout({
 });
 
 export const colorCubeLutV1 = defineModule({
+  precision: { "source": "working", "lut": "fixed", "mask": "fixed", "output": "working" },
   id: "color.cubeLut",
   version: 1,
   surface: "internal",

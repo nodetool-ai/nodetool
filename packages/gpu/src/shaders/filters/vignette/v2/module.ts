@@ -18,6 +18,7 @@ const layout = tgpu.bindGroupLayout({
 
 /** Movable oval/circular vignette. Default geometry preserves version 1. */
 export const vignetteV2 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "filters.vignette",
   version: 2,
   surface: "published",

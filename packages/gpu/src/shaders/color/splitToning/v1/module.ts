@@ -37,6 +37,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const colorSplitToningV1 = defineModule({
+  precision: { "source": "working", "mask": "fixed", "output": "working" },
   id: "color.splitToning",
   version: 1,
   surface: "internal",

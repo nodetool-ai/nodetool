@@ -39,6 +39,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const colorLevelsV1 = defineModule({
+  precision: { "source": "working", "mask": "fixed", "output": "working" },
   id: "color.levels",
   version: 1,
   surface: "internal",

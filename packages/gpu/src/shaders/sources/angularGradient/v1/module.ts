@@ -20,6 +20,7 @@ const layout = tgpu.bindGroupLayout({
 });
 
 export const sourcesAngularGradientV1 = defineModule({
+  precision: { "output": "fixed" },
   id: "sources.angularGradient",
   version: 1,
   surface: "internal",

@@ -29,6 +29,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const colorGrayscaleV1 = defineModule({
+  precision: { "source": "working", "mask": "fixed", "output": "working" },
   id: "color.grayscale",
   version: 1,
   // Internal for now — promoted to `published` once a workflow node ships

@@ -10,6 +10,7 @@ const Params = d.struct({
 const layout = tgpu.bindGroupLayout({source: {texture: "float"}, outputTexture: {storageTexture: "rgba8unorm"}, params: {uniform: Params}});
 
 export const colorSecondaryV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "color.secondary", version: 1, surface: "internal", category: "color",
   linearity: "nonlinear-in-rgb", kind: "compute", params: Params,
   paramDefaults: {

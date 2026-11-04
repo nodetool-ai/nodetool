@@ -29,6 +29,7 @@ const INTERMEDIATE_MASK_USAGE = 0x10 | 0x04 | 0x01;
 const INTERMEDIATE_BLUR_USAGE = 0x08 | 0x04 | 0x01;
 
 export const mixerDropShadowV1 = defineRecipe({
+  precision: { "source": "working", "output": "working" },
   id: "mixer.dropShadow",
   version: 1,
   surface: "internal",
@@ -65,9 +66,9 @@ export const mixerDropShadowV1 = defineRecipe({
   },
   recipe: {
     intermediates: {
-      mask: { format: "rgba8unorm", usage: INTERMEDIATE_MASK_USAGE },
-      blurH: { format: "rgba8unorm", usage: INTERMEDIATE_BLUR_USAGE },
-      blurV: { format: "rgba8unorm", usage: INTERMEDIATE_BLUR_USAGE }
+      mask: { precision: "fixed", role: "mask", format: "rgba8unorm", usage: INTERMEDIATE_MASK_USAGE },
+      blurH: { precision: "fixed", role: "mask", format: "rgba8unorm", usage: INTERMEDIATE_BLUR_USAGE },
+      blurV: { precision: "fixed", role: "mask", format: "rgba8unorm", usage: INTERMEDIATE_BLUR_USAGE }
     },
     passes: [
       {

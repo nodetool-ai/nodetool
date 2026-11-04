@@ -22,6 +22,7 @@ const layout = tgpu.bindGroupLayout({
 });
 
 export const filtersVisualFxV1 = defineModule({
+  precision: { "source": "working", "mask": "fixed", "output": "working" },
   id: "filters.visualFx",
   version: 1,
   surface: "internal",

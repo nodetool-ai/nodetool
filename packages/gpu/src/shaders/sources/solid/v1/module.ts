@@ -21,6 +21,7 @@ const layout = tgpu.bindGroupLayout({
 });
 
 export const sourcesSolidV1 = defineModule({
+  precision: { "output": "fixed" },
   id: "sources.solid",
   version: 1,
   surface: "internal",

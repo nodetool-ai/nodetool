@@ -5,6 +5,7 @@ import { defineModule } from "../../../../module.js";
 const Params = d.struct({a: d.f32, b: d.f32, x: d.f32, c: d.f32, e: d.f32, y: d.f32});
 const layout = tgpu.bindGroupLayout({source: {texture: "float"}, outputTexture: {storageTexture: "rgba8unorm"}, params: {uniform: Params}});
 export const transformStabilizeV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "transform.stabilize", version: 1, surface: "internal", category: "transform",
   linearity: "nonlinear-in-rgb", kind: "compute", params: Params,
   paramDefaults: {a: 1, b: 0, x: 0, c: 0, e: 1, y: 0}, layout, workgroupSize: [16, 16, 1],

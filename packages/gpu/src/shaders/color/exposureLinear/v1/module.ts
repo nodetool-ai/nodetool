@@ -7,6 +7,7 @@ const Params = d.struct({exposure: d.f32, rolloff: d.f32, whites: d.f32});
 const layout = tgpu.bindGroupLayout({source: {texture: "float"}, outputTexture: {storageTexture: "rgba8unorm"}, params: {uniform: Params}});
 
 export const colorExposureLinearV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "color.exposureLinear", version: 1, surface: "internal", category: "color",
   linearity: "nonlinear-in-rgb", kind: "compute", params: Params,
   paramDefaults: {exposure: 0, rolloff: 0, whites: 0},

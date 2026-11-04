@@ -32,6 +32,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const mixerAddV1 = defineModule({
+  precision: { "source": "working", "over": "working", "output": "working" },
   id: "mixer.add",
   version: 1,
   surface: "internal",

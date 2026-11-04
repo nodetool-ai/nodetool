@@ -36,6 +36,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const colorChannelMergeV1 = defineModule({
+  precision: { "source": "working", "alpha": "fixed", "output": "working" },
   id: "color.channelMerge",
   version: 1,
   surface: "internal",

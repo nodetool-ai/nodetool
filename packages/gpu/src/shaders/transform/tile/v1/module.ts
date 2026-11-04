@@ -33,6 +33,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const transformTileV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "transform.tile",
   version: 1,
   surface: "internal",

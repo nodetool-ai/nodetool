@@ -46,6 +46,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const transformCornerPinV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "transform.cornerPin",
   version: 1,
   surface: "internal",

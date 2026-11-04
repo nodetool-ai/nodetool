@@ -36,6 +36,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const transformDisplaceV1 = defineModule({
+  precision: { "source": "working", "displacement": "fixed", "output": "working" },
   id: "transform.displace",
   version: 1,
   surface: "internal",

@@ -22,6 +22,7 @@ const layout = tgpu.bindGroupLayout({
 });
 
 export const vignetteV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "filters.vignette",
   version: 1,
   // Promoted in Phase 3: (intensity, radius, softness) schema has been stable

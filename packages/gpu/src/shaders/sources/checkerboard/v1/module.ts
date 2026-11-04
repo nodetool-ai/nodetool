@@ -21,6 +21,7 @@ const layout = tgpu.bindGroupLayout({
 });
 
 export const sourcesCheckerboardV1 = defineModule({
+  precision: { "output": "fixed" },
   id: "sources.checkerboard",
   version: 1,
   surface: "internal",

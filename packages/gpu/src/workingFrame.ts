@@ -53,3 +53,6 @@ export function copyWorkingRows(mapped: ArrayBuffer, width: number, height: numb
   }
   return format === "rgba16float" ? new Uint16Array(packed.buffer) : packed;
 }
+
+/** Fixed resources never inherit working precision. */
+export type PrecisionSlots = Readonly<Record<string, "working" | "working-or-mask" | "fixed">>;

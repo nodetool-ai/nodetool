@@ -20,6 +20,7 @@ export const BlurSeparableParams = d.struct({
 const INTERMEDIATE_BLUR_USAGE = 0x08 | 0x04 | 0x01;
 
 export const filtersBlurSeparableV1 = defineRecipe({
+  precision: { "source": "working", "output": "working" },
   id: "filters.blur.gaussianSeparable",
   version: 1,
   surface: "internal",
@@ -47,7 +48,7 @@ export const filtersBlurSeparableV1 = defineRecipe({
   },
   recipe: {
     intermediates: {
-      blurH: { format: "rgba8unorm", usage: INTERMEDIATE_BLUR_USAGE }
+      blurH: { precision: "working", format: "rgba8unorm", usage: INTERMEDIATE_BLUR_USAGE }
     },
     passes: [
       {

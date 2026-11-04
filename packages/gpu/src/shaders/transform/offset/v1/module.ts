@@ -34,6 +34,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const transformOffsetV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "transform.offset",
   version: 1,
   surface: "internal",

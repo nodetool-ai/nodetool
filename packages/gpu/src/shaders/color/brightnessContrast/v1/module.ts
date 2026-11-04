@@ -30,6 +30,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const colorBrightnessContrastV1 = defineModule({
+  precision: { "source": "working", "mask": "fixed", "output": "working" },
   id: "color.brightnessContrast",
   version: 1,
   // Same math as `color.grade`'s sub-stage, exposed as its own op for workflow

@@ -23,6 +23,7 @@ const layout = tgpu.bindGroupLayout({
 });
 
 export const sourcesGaussianNoiseV1 = defineModule({
+  precision: { "output": "fixed" },
   id: "sources.gaussianNoise",
   version: 1,
   surface: "internal",

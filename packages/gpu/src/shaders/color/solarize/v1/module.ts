@@ -29,6 +29,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const colorSolarizeV1 = defineModule({
+  precision: { "source": "working", "mask": "fixed", "output": "working" },
   id: "color.solarize",
   version: 1,
   surface: "internal",

@@ -33,6 +33,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const transformResizeV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "transform.resize",
   version: 1,
   surface: "internal",

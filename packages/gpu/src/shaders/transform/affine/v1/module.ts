@@ -44,6 +44,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const transformAffineV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "transform.affine",
   version: 1,
   surface: "internal",

@@ -35,6 +35,7 @@ const layout = tgpu.bindGroupLayout({
 });
 
 export const colorGradeV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "color.grade",
   version: 1,
   // Promoted in Phase 3: param schema is stable across Phase 2 + Batch 1

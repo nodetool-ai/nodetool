@@ -31,6 +31,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const maskFromImageV1 = defineModule({
+  precision: { "source": "working", "output": "fixed" },
   id: "mask.fromImage",
   version: 1,
   surface: "internal",

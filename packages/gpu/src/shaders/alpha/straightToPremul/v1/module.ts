@@ -26,6 +26,7 @@ const layout = tgpu.bindGroupLayout({
 });
 
 export const alphaStraightToPremulV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "alpha.straightToPremul",
   version: 1,
   surface: "internal",

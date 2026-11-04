@@ -40,6 +40,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const colorHslAdjustV1 = defineModule({
+  precision: { "source": "working", "mask": "fixed", "output": "working" },
   id: "color.hslAdjust",
   version: 1,
   surface: "internal",

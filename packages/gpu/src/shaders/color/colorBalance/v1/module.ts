@@ -31,6 +31,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const colorColorBalanceV1 = defineModule({
+  precision: { "source": "working", "mask": "fixed", "output": "working" },
   id: "color.colorBalance",
   version: 1,
   surface: "internal",

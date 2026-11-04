@@ -38,6 +38,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const colorCurvesV1 = defineModule({
+  precision: { "source": "working", "mask": "fixed", "output": "working" },
   id: "color.curves",
   version: 1,
   surface: "internal",

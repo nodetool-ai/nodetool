@@ -32,6 +32,7 @@ const INTERMEDIATE_BRIGHT_USAGE = 0x10 | 0x04 | 0x01;
 const INTERMEDIATE_BLUR_USAGE = 0x08 | 0x04 | 0x01;
 
 export const filtersGlowV1 = defineRecipe({
+  precision: { "source": "working", "output": "working" },
   id: "filters.glow",
   version: 1,
   surface: "internal",
@@ -61,9 +62,9 @@ export const filtersGlowV1 = defineRecipe({
   },
   recipe: {
     intermediates: {
-      bright: { format: "rgba8unorm", usage: INTERMEDIATE_BRIGHT_USAGE },
-      blurH: { format: "rgba8unorm", usage: INTERMEDIATE_BLUR_USAGE },
-      blurV: { format: "rgba8unorm", usage: INTERMEDIATE_BLUR_USAGE }
+      bright: { precision: "working", format: "rgba8unorm", usage: INTERMEDIATE_BRIGHT_USAGE },
+      blurH: { precision: "working", format: "rgba8unorm", usage: INTERMEDIATE_BLUR_USAGE },
+      blurV: { precision: "working", format: "rgba8unorm", usage: INTERMEDIATE_BLUR_USAGE }
     },
     passes: [
       {

@@ -29,6 +29,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const filtersThresholdV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "filters.threshold",
   version: 1,
   surface: "internal",

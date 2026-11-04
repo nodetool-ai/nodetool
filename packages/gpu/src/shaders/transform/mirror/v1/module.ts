@@ -27,6 +27,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const transformMirrorV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "transform.mirror",
   version: 1,
   surface: "internal",

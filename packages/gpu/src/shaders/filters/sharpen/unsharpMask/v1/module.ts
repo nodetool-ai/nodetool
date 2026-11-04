@@ -22,6 +22,7 @@ const layout = tgpu.bindGroupLayout({
 });
 
 export const sharpenUnsharpMaskV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "filters.sharpen.unsharpMask",
   version: 1,
   // Promoted in Phase 3 alongside the rest of the Phase 2 timeline-effect

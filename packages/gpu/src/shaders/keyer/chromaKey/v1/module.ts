@@ -28,6 +28,7 @@ const layout = tgpu.bindGroupLayout({
 });
 
 export const chromaKeyV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "keyer.chromaKey",
   version: 1,
   // Stable param schema (keyColor, tolerance, softness, spill); the canonical

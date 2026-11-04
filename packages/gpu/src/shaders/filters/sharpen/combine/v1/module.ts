@@ -7,6 +7,7 @@ const layout = tgpu.bindGroupLayout({source: {texture: "float"}, blurred: {textu
   outputTexture: {storageTexture: "rgba8unorm"}, params: {uniform: Params}});
 
 export const sharpenCombineV1 = defineModule({
+  precision: { "source": "working", "blurred": "working", "output": "working" },
   id: "filters.sharpen.combine", version: 1, surface: "internal", category: "filters",
   linearity: "nonlinear-in-rgb", kind: "compute", params: Params,
   paramDefaults: {amount: 0, threshold: 0}, layout, workgroupSize: [16, 16, 1],

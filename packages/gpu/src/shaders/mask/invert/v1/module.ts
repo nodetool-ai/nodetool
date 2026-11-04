@@ -25,6 +25,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const maskInvertV1 = defineModule({
+  precision: { "source": "fixed", "output": "fixed" },
   id: "mask.invert",
   version: 1,
   surface: "internal",

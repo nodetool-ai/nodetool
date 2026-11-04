@@ -39,6 +39,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const colorChannelShuffleV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "color.channelShuffle",
   version: 1,
   surface: "internal",

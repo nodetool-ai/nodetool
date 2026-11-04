@@ -34,6 +34,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const transformSpherizeV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "transform.spherize",
   version: 1,
   surface: "internal",

@@ -30,6 +30,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const maskApplyV1 = defineModule({
+  precision: { "source": "working", "mask": "fixed", "output": "working" },
   id: "mask.apply",
   version: 1,
   // Promoted in Phase 3 Batch 1: the canonical "apply a mask" op; pairs with

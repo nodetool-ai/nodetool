@@ -6,6 +6,7 @@ const Params = d.struct({table: d.arrayOf(d.vec4f, 256)});
 const layout = tgpu.bindGroupLayout({source: {texture: "float"}, outputTexture: {storageTexture: "rgba8unorm"}, params: {uniform: Params}});
 
 export const colorCurveTransferV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "color.curveTransfer", version: 1, surface: "internal", category: "color",
   linearity: "nonlinear-in-rgb", kind: "compute", params: Params,
   paramDefaults: {table: Array.from({length: 256}, (_, i) => d.vec4f(i / 255, i / 255, i / 255, 1))},

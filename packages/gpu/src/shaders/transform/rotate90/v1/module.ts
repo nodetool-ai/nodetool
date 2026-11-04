@@ -38,6 +38,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const transformRotate90V1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "transform.rotate90",
   version: 1,
   surface: "internal",
