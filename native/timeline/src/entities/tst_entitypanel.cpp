@@ -296,10 +296,11 @@ class TestEntityPanel : public QObject {
     }
     QQuickItem* card(int number) { return qobject_cast<QQuickItem*>(find("entityCard_" + id(number))); }
     QObject* in(QObject* root, const QString& name) { return byName(root, name); }
-    void click(QObject* target, Qt::MouseButton button = Qt::LeftButton) {
+    void click(QObject* target, Qt::MouseButton button = Qt::LeftButton, bool doubleClick = false) {
         auto* item = qobject_cast<QQuickItem*>(target);
         QVERIFY(item);
         QVERIFY(item->isVisible());
+        QVERIFY(QQuickTest::qWaitForPolish(window.get()));
         // A freshly opened dialog lays out over a few frames, so wait for the target to hold still.
         QPoint position(-1, -1);
         for (int attempt = 0; attempt < 30; ++attempt) {
@@ -308,7 +309,11 @@ class TestEntityPanel : public QObject {
             position = next;
             QTest::qWait(16);
         }
-        QTest::mouseClick(window.get(), button, {}, position);
+        if (doubleClick) {
+            QTest::mouseDClick(window.get(), button, {}, position);
+        } else {
+            QTest::mouseClick(window.get(), button, {}, position);
+        }
     }
     void focus(QObject* target) {
         auto* item = qobject_cast<QQuickItem*>(target);
@@ -1119,7 +1124,7 @@ private slots:
         socket->reply(1, {{"asset_ids", QJsonArray{id(11), id(12)}}});
         QTRY_VERIFY(find("entityTake_" + id(12)));
         auto* tile = qobject_cast<QQuickItem*>(find("entityTake_" + id(12)));
-        QTest::mouseDClick(window.get(), Qt::LeftButton, {}, tile->mapToScene(QPointF(tile->width() / 2, tile->height() / 2)).toPoint());
+        click(tile, Qt::LeftButton, true);
         QTRY_VERIFY(!dialog->property("visible").toBool());
         QCOMPARE(referenceId(), id(12));
         // The takes can be abandoned for the prompt.
