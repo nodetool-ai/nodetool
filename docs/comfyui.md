@@ -435,7 +435,7 @@ nodes and model files on the Comfy deployment.
 The imports come from the API-format graphs in
 [Comfy-Org/workflow_templates](https://github.com/Comfy-Org/workflow_templates/tree/1ae390968e323dba24a6991d1860ded051f5a79b/benchmarks).
 The source revision and input bindings are pinned in
-[`scripts/comfy-templates/catalog.mjs`](../scripts/comfy-templates/catalog.mjs).
+[`scripts/comfy-templates/catalog.mjs`](https://github.com/nodetool-ai/nodetool/blob/main/scripts/comfy-templates/catalog.mjs).
 These benchmark graphs supply the curated examples. The broader provider
 catalog comes from the non-partner templates in the same repository and uses
 model ids beginning with `comfyui-gpu/`, displayed as **(Comfy GPU)**.
@@ -478,7 +478,7 @@ It does not clone the repository or download weights or sample media. When
 changing the revision, review node availability, model filenames and bindings
 before refreshing. Output socket names are extracted from the corresponding
 UI templates into
-[`sockets.json`](../packages/runtime/tests/fixtures/comfy-templates/sockets.json),
+[`sockets.json`](https://github.com/nodetool-ai/nodetool/blob/main/packages/runtime/tests/fixtures/comfy-templates/sockets.json),
 so saved connections use the same names as the Comfy editor catalog.
 The template license is MIT. Model licenses apply separately.
 
