@@ -310,6 +310,11 @@ Slash commands are in [.claude/README.md](.claude/README.md).
   For `NODE_MODULE_VERSION` failures, run `npm run rebuild:native`.
 - For sandbox/proxy download failures, use `npm install --ignore-scripts` only
   for lint/typecheck work. See [Dev Environment](docs/dev-environment.md).
+- Agent shared-shader timeline qualification requires the optional `webgpu`
+  addon and an adapter, including Mesa lavapipe on headless Linux. Run real
+  adapter-backed tests without skips. Keep missing-runtime tests separate.
+  See [S5 qualification](docs/plans/color-precision/results/s5-agent-rendering.md)
+  for the migration gate and the unchanged production caller boundary.
 - “No WebGPU adapter available (Node/Dawn)” requires a Vulkan ICD such as
   lavapipe. Do not skip the test. Follow the
   [headless WebGPU setup](docs/dev-environment.md#webgpu-on-a-headless-machine).
