@@ -114,7 +114,7 @@ Sample2D, color-space conversion, slice/concat, attention, FFT, and library-back
 BLAS or DNN execution. The compiler exports no editor registry metadata yet.
 
 The prototype uses C++ expression generation followed by Clang/LLVM rather than
-MLIR. See the [compiler design](../../docs/native-workflow-design.md#d3-compile-through-llvm-retain-mlir-as-the-structured-lowering-target).
+MLIR. The [revised design](../../docs/native-workflow-design.md) replaces this experiment with a Torch-only compiler using AOTInductor. That replacement is not implemented here.
 
 Run the GPU correctness tests explicitly on a CUDA-capable host:
 
