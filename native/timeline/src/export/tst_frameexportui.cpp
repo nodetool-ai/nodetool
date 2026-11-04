@@ -40,30 +40,59 @@ class TestFrameExportUi : public WiringFixture {
     }
     FrameExporter* exporter() const { return qobject_cast<FrameExporter*>(object("frameExporter")); }
     bool shown(const QString& name) const { auto* o = object(name); return o && o->property("visible").toBool(); }
+    QString revealObject(QQuickItem* target) const {
+        if (!target->isVisible() || !target->isEnabled()) { return "Not visible and enabled"; }
+        // Scroll inner viewports first, then reveal them in any outer viewport.
+        for (auto* ancestor = target->parentItem(); ancestor; ancestor = ancestor->parentItem()) {
+            for (const auto* axis : {"contentX", "contentY"}) {
+                if (!ancestor->property(axis).isValid()) { continue; }
+                const auto bounds = target->mapRectToItem(ancestor, QRectF(QPointF(), target->size()));
+                const bool vertical = QByteArrayView(axis) == "contentY";
+                const auto start = vertical ? bounds.top() : bounds.left();
+                const auto end = vertical ? bounds.bottom() : bounds.right();
+                const auto extent = vertical ? ancestor->height() : ancestor->width();
+                const auto offset = start < 0 ? start : std::max(0.0, end - extent);
+                if (std::abs(offset) >= 1) {
+                    ancestor->setProperty(axis, ancestor->property(axis).toDouble() + offset);
+                }
+            }
+        }
+        const auto point = center(target);
+        if (target->width() <= 0 || target->height() <= 0 || !target->contains(target->mapFromScene(point))) {
+            return "No clickable centre";
+        }
+        if (!QRect(QPoint(), view->size()).contains(point)) {
+            return QStringLiteral("Centre outside window: %1,%2").arg(point.x()).arg(point.y());
+        }
+        for (auto* ancestor = target->parentItem(); ancestor; ancestor = ancestor->parentItem()) {
+            if (ancestor->clip() && !ancestor->contains(ancestor->mapFromScene(point))) {
+                return QStringLiteral("Centre clipped by %1 (%2), size %3x%4")
+                    .arg(ancestor->objectName(), ancestor->metaObject()->className())
+                    .arg(ancestor->width()).arg(ancestor->height());
+            }
+        }
+        return {};
+    }
     void clickObject(const QString& name) {
         auto* target = qobject_cast<QQuickItem*>(object(name));
         QVERIFY2(target, qPrintable("Missing: " + name));
         QTest::qWait(60);  // a dialog that has just opened lays out on its first frame
-        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(target));
+        QString issue;
+        QTRY_VERIFY2((issue = revealObject(target)).isEmpty(), qPrintable(name + ": " + issue));
+        const auto point = center(target);
+        {
+            QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, point);
+            const auto release = qScopeGuard([&] { QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, point); });
+            QVERIFY2(target->property("pressed").toBool(), qPrintable("Pointer press missed: " + name));
+        }
         QCoreApplication::processEvents();
     }
     void typeInto(const QString& name, const QString& text) {
         auto* target = qobject_cast<QQuickItem*>(object(name));
         QVERIFY2(target, qPrintable("Missing: " + name));
         QTest::qWait(60);
-        // A small desktop clips the Folder field inside the dialog's ScrollView.
-        QTRY_VERIFY2(([&] {
-            bool inView = true;
-            for (auto* parent = target->parentItem(); parent; parent = parent->parentItem()) {
-                if (!parent->property("contentY").isValid()) { continue; }
-                const auto bounds = target->mapRectToItem(parent, QRectF(QPointF(), target->size()));
-                const auto offset = bounds.top() < 0 ? bounds.top() : std::max(0.0, bounds.bottom() - parent->height());
-                if (std::abs(offset) < 1) { continue; }
-                parent->setProperty("contentY", parent->property("contentY").toDouble() + offset);
-                inView = false;
-            }
-            return inView;
-        })(), qPrintable("Field is outside the scroll viewport: " + name));
+        QString issue;
+        QTRY_VERIFY2((issue = revealObject(target)).isEmpty(), qPrintable(name + ": " + issue));
         QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(target));
         QTRY_VERIFY2(target->hasActiveFocus(), qPrintable("Field did not receive focus: " + name));
         QTest::keyClick(view.get(), Qt::Key_A, Qt::ControlModifier);
@@ -109,9 +138,18 @@ class TestFrameExportUi : public WiringFixture {
         return ids;
     }
 private slots:
+    void initTestCase_data() {
+        QTest::addColumn<double>("fixtureUiScale");
+        QTest::newRow("default-ui") << 1.0;
+        QTest::newRow("larger-ui") << 1.25;
+    }
     void initTestCase() {
         QVERIFY(folder.isValid());
         shotDir = qEnvironmentVariable("NT_F12_SHOTS");
+    }
+    void init() {
+        folder = QTemporaryDir();
+        QVERIFY(folder.isValid());
         open();
         QVERIFY(view);
         view->resize(1024, 656);
@@ -122,8 +160,10 @@ private slots:
         for (const auto* side : {"left", "right"}) { dock->resizeRegion(side, 100, view->width(), view->height()); }
         QTRY_VERIFY(exporter());
         exporter()->captureForTest()->setExecutable(QStringLiteral(NT_EXPORT_BINARY));
-    }
-    void init() {
+        QFETCH_GLOBAL(double, fixtureUiScale);
+        auto* theme = qmlEngine(gestures())->singletonInstance<QObject*>("NodeTool.UiPrimitives", "Theme");
+        QVERIFY(theme);
+        theme->setProperty("uiScale", fixtureUiScale);
         loadVideo();
         gestures()->setKeyboardPreset("nodetool");
         view->requestActivate();
@@ -136,8 +176,8 @@ private slots:
             if (shown(dialog)) { QMetaObject::invokeMethod(object(dialog), "close"); }
         }
         QCoreApplication::processEvents();
+        view.reset();
     }
-    void cleanupTestCase() { view.reset(); }
 
     // The acceptance check: the saved frame equals --stills with a reduced preview resolution set.
     void cameraButtonSavesTheFullResolutionFrame() {
@@ -243,20 +283,9 @@ private slots:
         QTest::keyClick(view.get(), Qt::Key_E, Qt::ControlModifier | Qt::AltModifier);
         QTRY_VERIFY(shown("exportFrameDialog"));
     }
-    void sourceButtonCapturesTheSourceAndTheKeyFollowsFocus_data() {
-        QTest::addColumn<double>("uiScale");
-        QTest::newRow("default") << 1.0;
-        QTest::newRow("larger-controls") << 1.25;
-    }
     void sourceButtonCapturesTheSourceAndTheKeyFollowsFocus() {
-        QFETCH(double, uiScale);
         QTemporaryDir sourceFolder(folder.filePath("source-XXXXXX"));
         QVERIFY(sourceFolder.isValid());
-        auto* theme = qmlEngine(gestures())->singletonInstance<QObject*>("NodeTool.UiPrimitives", "Theme");
-        QVERIFY(theme);
-        const auto previousScale = theme->property("uiScale");
-        const auto restoreScale = qScopeGuard([&] { theme->setProperty("uiScale", previousScale); });
-        theme->setProperty("uiScale", uiScale);
         auto* state = qmlEngine(gestures())->singletonInstance<SourceViewerState*>("NodeTool.Timeline", "SourceViewerState");
         QVERIFY(state);
         const QVariantMap asset{{"id", "source-asset"}, {"name", "Take seven.mp4"}, {"content_type", "video/mp4"},
@@ -274,43 +303,8 @@ private slots:
         QTRY_VERIFY(item("sourceExportFrame") && item("sourceExportFrame")->isVisible());
         auto* button = item("sourceExportFrame");
         QTRY_VERIFY2(button->isEnabled(), "Source export button is disabled");
-        // The Source panel scrolls once its minimum picture and controls exceed the dock.
-        QTRY_VERIFY2(([&] {
-            bool inView = true;
-            for (auto* ancestor = button->parentItem(); ancestor; ancestor = ancestor->parentItem()) {
-                if (!ancestor->property("contentY").isValid()) { continue; }
-                const auto bounds = button->mapRectToItem(ancestor, QRectF(QPointF(), button->size()));
-                const auto offset = bounds.top() < 0 ? bounds.top() : std::max(0.0, bounds.bottom() - ancestor->height());
-                if (std::abs(offset) < 1) { continue; }
-                ancestor->setProperty("contentY", ancestor->property("contentY").toDouble() + offset);
-                inView = false;
-            }
-            return inView;
-        })(), "Source export button could not be scrolled into view");
-        const auto reachability = [&]() -> QString {
-            const auto point = center(button);
-            if (!QRect(QPoint(), view->size()).contains(point)) {
-                return QStringLiteral("Source export centre outside window: %1,%2").arg(point.x()).arg(point.y());
-            }
-            for (auto* ancestor = button->parentItem(); ancestor; ancestor = ancestor->parentItem()) {
-                if (ancestor->clip() && !ancestor->contains(ancestor->mapFromScene(point))) {
-                    return QStringLiteral("Source export centre clipped by %1 (%2), size %3x%4")
-                        .arg(ancestor->objectName(), ancestor->metaObject()->className())
-                        .arg(ancestor->width()).arg(ancestor->height());
-                }
-            }
-            return {};
-        };
-        QTRY_VERIFY2(reachability().isEmpty(), qPrintable(reachability()));
+        clickObject("sourceExportFrame");
         shoot("source-transport");
-        {
-            const auto point = center(button);
-            QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, point);
-            const auto release = qScopeGuard([&] { QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, point); });
-            // Check Qt's actual event target before the release activates the button.
-            QVERIFY2(button->property("pressed").toBool(), "Source export centre did not hit the button or its contents");
-        }
-        QCoreApplication::processEvents();
         QTRY_VERIFY(shown("exportFrameDialog"));
         QCOMPARE(object("exportFramePanel")->property("target").toString(), QStringLiteral("source"));
         QTRY_VERIFY2_WITH_TIMEOUT(exporter()->state() == "ready", qPrintable(exporter()->error()), 60000);

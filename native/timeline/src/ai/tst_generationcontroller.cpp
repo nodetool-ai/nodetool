@@ -20,7 +20,7 @@ QString schemaError(const TimelineModel& timeline) {
     const auto root = QFileInfo(QFileInfo(QString::fromUtf8(__FILE__)).canonicalFilePath()).dir().absoluteFilePath("../../../..");
     QProcess validator;
     validator.setWorkingDirectory(root);
-    validator.start(QDir(root).filePath("node_modules/.bin/tsx"), {QDir(root).filePath("native/timeline/src/ai/schema-check.ts")});
+    validator.start("node", {QDir(root).filePath("node_modules/tsx/dist/cli.mjs"), QDir(root).filePath("native/timeline/src/ai/schema-check.ts")});
     if (!validator.waitForStarted()) return validator.errorString();
     validator.write(QJsonDocument(nt::server::documentForSave(timeline.timeline().raw)).toJson(QJsonDocument::Compact));
     validator.closeWriteChannel();

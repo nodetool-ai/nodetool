@@ -490,7 +490,7 @@ private slots:
             }
         }
         QProcess process;
-        process.start("node", QStringList{QStringLiteral(NT_TRANSITION_SOURCE "/scripts/plan-conformance.mjs"), "--bin", QStringLiteral(NT_TRANSITION_BUILD "/nodetool-timeline")} + files);
+        process.start("node", QStringList{QStringLiteral(NT_TRANSITION_SOURCE "/scripts/plan-conformance.mjs"), "--bin", QStringLiteral(NT_TRANSITION_BINARY)} + files);
         QVERIFY(process.waitForFinished(180000));
         const auto output = process.readAllStandardOutput() + process.readAllStandardError();
         QVERIFY2(process.exitCode() == 0, output.constData());

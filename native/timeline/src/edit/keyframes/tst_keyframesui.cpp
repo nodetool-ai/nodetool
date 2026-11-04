@@ -3,6 +3,7 @@
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
 #include "platform/SanitizerBuild.h"
+#include "platform/CpuUsage.h"
 #include <QFile>
 #include <QJSValue>
 #include <QQmlContext>
@@ -11,7 +12,6 @@
 #include <QQuickWindow>
 #include <QTemporaryDir>
 #include <algorithm>
-#include <ctime>
 #include <vector>
 #include <QtQuickTest/quicktest.h>
 
@@ -52,11 +52,14 @@ class KeyframeUiSetup : public QObject {
     Q_INVOKABLE double medianFrameMs(QQuickItem* item, QJSValue step, int count) {
         std::vector<double> samples;
         for (int i = 0; i < count; ++i) {
-            const auto start = std::clock();
+            // MSVC std::clock measures elapsed time, including frame waits.
+            const auto start = nt::cpu::processNs();
             step.call({i});
             QCoreApplication::processEvents();
             item->window()->grabWindow();
-            samples.push_back(1000.0 * static_cast<double>(std::clock() - start) / CLOCKS_PER_SEC);
+            const auto end = nt::cpu::processNs();
+            if (start < 0 || end < start) { qFatal("Cannot measure process CPU time"); }
+            samples.push_back(static_cast<double>(end - start) / 1000000.0);
         }
         std::nth_element(samples.begin(), samples.begin() + count / 2, samples.end());
         return samples[static_cast<size_t>(count) / 2];

@@ -343,7 +343,7 @@ private slots:
     void largeParentPicker() {
         QFile sourceFile(":/qt/qml/NodeTool/Timeline/src/edit/inspectorsections/MediaSection.qml");
         QVERIFY(sourceFile.open(QIODevice::ReadOnly));
-        const auto source = QString::fromUtf8(sourceFile.readAll());
+        const auto source = QString::fromUtf8(sourceFile.readAll()).replace("\r\n", "\n");
         const QString marker = "readonly property var parentOptions: {";
         const auto start = source.indexOf(marker); QVERIFY(start >= 0);
         const auto end = source.indexOf("\n    }\n    title:",start); QVERIFY(end > start);
