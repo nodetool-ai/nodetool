@@ -1,10 +1,11 @@
 # N2 native capture and delivery
 
 The MP4 identity gate now compares unencoded YUV separately from codec loss.
-A43.3 has new preview/offscreen working-pixel fixtures. N2's exit gate is
+A43.3 has preview/offscreen working-pixel fixtures. The independent spatial
+resize oracle now passes after replacing Qt scaling in float delivery. N2's exit gate is
 **not met**. A45.2 allocation/geometry qualification and A32 presentation
 dithering remain. FP16 stays off by default. No schema, setting, QML property,
-transfer conversion or production renderer behavior changed in this round.
+transfer conversion or preview renderer behavior changed in the resize round.
 Nothing was pushed.
 
 ## Task status
@@ -12,7 +13,7 @@ Nothing was pushed.
 | Task | Status |
 |---|---|
 | A84.1 | Complete on Vulkan/lavapipe. Typed, owned, undithered working capture and format-preserving offscreen capture. |
-| A84.2 | Connected and tested. The full spatial float-resize oracle remains unverified. |
+| A84.2 | Connected and tested. Independent spatial float-resize checks pass for fit/fill enlargement and reduction. |
 | A32 | Not implemented. The outer target remains RGBA8 and capture bypasses it, but final presentation dithering and OpenGL qualification remain. |
 | A84.3 | Quantization, PNG/ZIP, opaque alpha, cancellation and same-picture checks pass on Vulkan/lavapipe. |
 | A41.3 | Format, tags and codec loss checked independently of unencoded same-picture YUV identity on Vulkan/lavapipe. |
@@ -485,3 +486,50 @@ baseline. Export and comparison both exit 0. Artifacts are in
 `n2-a433-final-byte-comparison.txt`. The comparison explicitly enumerates
 and checks all six frames. `git diff --check`, control-byte checks and the
 three local document links pass. No TypeScript checks or full CTest suite ran.
+
+
+## Independent float-resize oracle and correction
+
+The new `spatialFloatResampling` test computes expected values without Qt
+scaling or delivery helpers. An asymmetric 8x4 RGB fixture contains non-byte
+values. Four rows cover fit and fill, enlargement and reduction. Every output
+component is checked, including opaque bars and centered crops. Enlargement
+uses pixel-center bilinear interpolation. Reduction uses independent 2x2 area
+averages. The input image must remain unchanged.
+
+The original implementation fails all four rows at the new test's `1e-6`
+bound. First failing component errors range from about `1.2e-6` to `3.6e-6`.
+The bound was not relaxed. `DeliveryFrame.h` now resizes in float with
+separable bilinear enlargement and area reduction. The intermediate uses
+FP32, with double accumulation. Mixed-axis resizing shrinks first to bound
+intermediate storage. Existing fit/fill geometry and black bars remain.
+The default RGBA8 export path does not call this helper.
+
+`NT_JOBS=1 ntbuild color-n2 tst_deliveryframe nodetool-timeline` passes.
+`citest color-n2 '^(tst_deliveryframe|export_precision)$' -V` passes, exit 0,
+including the preferences prerequisite. DeliveryFrameTest reports 12 passed,
+zero failures and zero skips. Export precision retains its existing bounds.
+The original failing test log is `build/color-n2/n2-resize-tests.log`.
+Successful logs are `n2-resize-fixed-build.log` and `n2-resize-fixed-tests.log`
+in that same build directory. Tests use isolated configuration and headless
+Vulkan/lavapipe. No QML or TypeScript checks were needed.
+
+This round stops after the resize task. A45.2 still needs actual allocation,
+geometry, mask/outset and full-canvas exception qualification. A32 still needs
+presentation conversion/dither and GL orientation proof. A109 still needs
+route precision propagated through capture and analysis, format-aware modeled
+passes, exact default solved-parameter regression checks and actual-render
+validation. Neither default preview pixels nor Color Match results were
+remeasured in this round. Their implementation was not changed.
+
+N2's exit gate remains **not met**, even apart from other backends. OpenGL,
+Metal, D3D11/WARP, physical GPUs and resize throughput remain unverified.
+FP16 stays off by default. No schema, setting, QML property, transfer or
+10-bit change was made. Nothing was pushed.
+
+The final default-route run exports and decodes all six PNG/MP4 fixtures at
+native size, fit downscale and fill upscale. Every byte matches the read-only
+`build/color-n0/n2-a842-before/` baseline. Export and comparison exit 0.
+Artifacts are `build/color-n2/n2-resize-final/`, `n2-resize-default.log` and
+`n2-resize-byte-comparison.txt`. Changed-file control-byte checks, local
+Markdown links and `git diff --check` pass.

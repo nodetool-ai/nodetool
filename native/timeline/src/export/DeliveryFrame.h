@@ -31,15 +31,66 @@ inline QImage straightFloat(const QImage& working) {
     return result.reinterpretAsFormat(QImage::Format_RGBA32FPx4) ? result : QImage{};
 }
 
+// Keep interpolation in float. Small QImage::scaled operations can take the
+// raster transform path, whose fixed-point weights perturb float samples.
+inline QImage resizeFloat(const QImage& source, QSize target) {
+    if (source.size() == target) { return source; }
+    const auto resizeAxis = [](const QImage& input, int length, bool horizontal) {
+        const int oldLength = horizontal ? input.width() : input.height();
+        if (length == oldLength) { return input; }
+        QImage output(horizontal ? QSize(length, input.height()) : QSize(input.width(), length),
+                      QImage::Format_RGBA32FPx4);
+        const double ratio = double(oldLength) / length;
+        for (int y = 0; y < output.height(); ++y) {
+            auto* row = reinterpret_cast<float*>(output.scanLine(y));
+            for (int x = 0; x < output.width(); ++x) {
+                const int position = horizontal ? x : y;
+                const auto pixel = [&](int index) {
+                    const int iy = horizontal ? y : index;
+                    const int ix = horizontal ? index : x;
+                    return reinterpret_cast<const float*>(input.constScanLine(iy)) + 4 * ix;
+                };
+                if (length > oldLength) {
+                    const double center = std::clamp((position + 0.5) * ratio - 0.5,
+                                                     0.0, double(oldLength - 1));
+                    const int first = int(std::floor(center));
+                    const double weight = center - first;
+                    const auto* a = pixel(first);
+                    const auto* b = pixel(std::min(first + 1, oldLength - 1));
+                    for (int c = 0; c < 4; ++c) {
+                        row[4*x+c] = float(a[c] * (1-weight) + b[c] * weight);
+                    }
+                } else {
+                    const double begin = position * ratio, end = (position + 1) * ratio;
+                    for (int c = 0; c < 4; ++c) {
+                        double sum = 0;
+                        for (int i = int(std::floor(begin)); i < std::min(oldLength, int(std::ceil(end))); ++i) {
+                            const double weight = std::min(end, double(i+1)) - std::max(begin, double(i));
+                            sum += pixel(i)[c] * weight;
+                        }
+                        row[4*x+c] = float(sum / ratio);
+                    }
+                }
+            }
+        }
+        return output;
+    };
+    // Shrink first for mixed-axis resizes so the intermediate stays bounded.
+    if (target.height() < source.height()) {
+        return resizeAxis(resizeAxis(source, target.height(), false), target.width(), true);
+    }
+    return resizeAxis(resizeAxis(source, target.width(), true), target.height(), false);
+}
+
 inline QImage resample(const QImage& straight, QSize target, const QString& mode, bool explicitSize) {
     if (straight.format() != QImage::Format_RGBA32FPx4) {
         throw std::invalid_argument("Delivery resampling requires straight float pixels");
     }
     if (straight.size() == target) { return straight; }
-    if (!explicitSize) { return straight.scaled(target, Qt::IgnoreAspectRatio, Qt::SmoothTransformation); }
+    if (!explicitSize) { return resizeFloat(straight, target); }
     const bool fill = mode == u"fill";
-    const auto scaled = straight.scaled(target,
-        fill ? Qt::KeepAspectRatioByExpanding : Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    const auto scaled = resizeFloat(straight, straight.size().scaled(target,
+        fill ? Qt::KeepAspectRatioByExpanding : Qt::KeepAspectRatio));
     if (fill) {
         return scaled.copy((scaled.width() - target.width()) / 2,
                            (scaled.height() - target.height()) / 2, target.width(), target.height());

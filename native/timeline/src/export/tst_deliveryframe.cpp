@@ -169,6 +169,82 @@ private slots:
             QVERIFY(std::abs(bias / 64) < 0.1);
         }
     }
+    void spatialFloatResampling_data() {
+        QTest::addColumn<QSize>("target");
+        QTest::addColumn<QString>("mode");
+        QTest::addColumn<QSize>("scaledSize");
+        QTest::addColumn<QPoint>("offset");
+        QTest::newRow("fit-up") << QSize(16,16) << QStringLiteral("fit")
+            << QSize(16,8) << QPoint(0,4);
+        QTest::newRow("fill-up") << QSize(16,16) << QStringLiteral("fill")
+            << QSize(32,16) << QPoint(-8,0);
+        QTest::newRow("fit-down") << QSize(4,4) << QStringLiteral("fit")
+            << QSize(4,2) << QPoint(0,1);
+        QTest::newRow("fill-down") << QSize(2,2) << QStringLiteral("fill")
+            << QSize(4,2) << QPoint(-1,0);
+    }
+    void spatialFloatResampling() {
+        QFETCH(QSize, target);
+        QFETCH(QString, mode);
+        QFETCH(QSize, scaledSize);
+        QFETCH(QPoint, offset);
+        QImage source(8,4,QImage::Format_RGBA32FPx4);
+        const auto sample = [](int x, int y, int c) -> double {
+            if (c == 3) { return 1.0; }
+            // Non-byte values and asymmetric spatial/channel impulses expose
+            // early quantization, wrong orientation and incorrect filter support.
+            return 0.123456 + ((x * x + 7 * y + 11 * c + x * y) % 29) / 64.0;
+        };
+        for (int y = 0; y < source.height(); ++y) {
+            auto* row = reinterpret_cast<float*>(source.scanLine(y));
+            for (int x = 0; x < source.width(); ++x) {
+                for (int c = 0; c < 4; ++c) { row[4*x+c] = sample(x,y,c); }
+            }
+        }
+        const auto before = source.copy();
+        const auto actual = resample(source, target, mode, true);
+        QCOMPARE(source, before);
+        QCOMPARE(actual.size(), target);
+        QCOMPARE(actual.format(), QImage::Format_RGBA32FPx4);
+        // Explicit fixture geometry above, area averages below for shrinking,
+        // and pixel-center bilinear interpolation for enlargement. The oracle
+        // never calls QImage scaling or delivery conversion helpers.
+        for (int y = 0; y < target.height(); ++y) {
+            const auto* row = reinterpret_cast<const float*>(actual.constScanLine(y));
+            for (int x = 0; x < target.width(); ++x) {
+                const int sx = x - offset.x(), sy = y - offset.y();
+                for (int c = 0; c < 4; ++c) {
+                    double expected = c == 3 ? 1.0 : 0.0;
+                    if (sx >= 0 && sx < scaledSize.width() && sy >= 0 && sy < scaledSize.height()) {
+                        if (scaledSize.width() < source.width()) {
+                            const int factor = source.width() / scaledSize.width();
+                            expected = 0;
+                            for (int dy = 0; dy < factor; ++dy) {
+                                for (int dx = 0; dx < factor; ++dx) {
+                                    expected += sample(sx * factor + dx, sy * factor + dy, c);
+                                }
+                            }
+                            expected /= factor * factor;
+                        } else {
+                            const double px = std::clamp((sx + 0.5) * source.width() / scaledSize.width() - 0.5,
+                                                         0.0, double(source.width()-1));
+                            const double py = std::clamp((sy + 0.5) * source.height() / scaledSize.height() - 0.5,
+                                                         0.0, double(source.height()-1));
+                            const int x0 = int(std::floor(px)), y0 = int(std::floor(py));
+                            const int x1 = std::min(x0+1, source.width()-1);
+                            const int y1 = std::min(y0+1, source.height()-1);
+                            const double fx = px-x0, fy = py-y0;
+                            expected = (1-fy) * ((1-fx)*sample(x0,y0,c) + fx*sample(x1,y0,c))
+                                + fy * ((1-fx)*sample(x0,y1,c) + fx*sample(x1,y1,c));
+                        }
+                    }
+                    QVERIFY2(std::abs(row[4*x+c] - expected) < 1e-6,
+                        qPrintable(QString("(%1,%2) channel %3: actual %4 expected %5")
+                            .arg(x).arg(y).arg(c).arg(row[4*x+c],0,'g',12).arg(expected,0,'g',12)));
+                }
+            }
+        }
+    }
     void floatResampling() {
         QImage image(65,49,QImage::Format_RGBA32FPx4);
         for (int y=0;y<image.height();++y) {
