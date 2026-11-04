@@ -252,3 +252,201 @@ run. The bundler passed a syntax check only.
 - `docs/plans/color-precision/results/s5-agent-rendering.md`
 
 Implementation commit: `4048c0f3e1`. No changes were pushed.
+
+## A91 memory and diagnostic follow-up
+
+A91 remains blocked. The 512 MiB combined RSS budget is unchanged. Neither
+adapter meets it, even with one child. Preview and comparison callers remain
+on Canvas2D. No CPU code, working format or document schema changed.
+This section supersedes the diagnostic and transport status above.
+
+### Memory evidence
+
+The retained `preview-child-full-path.mjs` fixture now records the parent and
+each direct child separately, serial and concurrent peaks, and every child's
+peak by PID. It accepts `S5_CYCLES` and `S5_COMPILED`. Final runs used twenty
+serial passes and two concurrent passes, with the same two-frame 160×90 input.
+RSS is sampled every 25 ms. Concurrent totals are simultaneous samples, not
+sums of independently observed maxima. Shorter spikes can be missed.
+
+All commands ran from this worktree after sourcing
+`/home/mg/Projects/nodetool-film/bin/ntenv`. Lavapipe runs set both
+`VK_ICD_FILENAMES` and `VK_DRIVER_FILES` to
+`/usr/share/vulkan/icd.d/lvp_icd.json`. Hardware runs used the environment from
+`ntenv`. The staged fixture verified `mesa / software / llvmpipe`, Mesa
+26.2.5, and `nvidia / ampere / nvidia-geforce-rtx-3060`, driver 610.57.04.
+
+| Execution | Adapter | Serial peak MiB | Parent + child at serial peak MiB | Concurrent peak MiB | Parent + each child at concurrent peak MiB |
+|---|---|---:|---|---:|---|
+| Source, before | lavapipe | Not separated | Not separated | 1013.5 | 494.3 + 283.9 + 235.4 |
+| Source, before | RTX 3060 | Not separated | Not separated | 1030.6 | 452.4 + 304.3 + 273.7 |
+| Source, after | lavapipe | 745.3 | 466.0 + 279.3 | 929.6 | 470.0 + 275.6 + 184.0 |
+| Source, after | RTX 3060 | 743.0 | 445.5 + 297.6 | 979.2 | 393.6 + 294.9 + 290.7 |
+| Compiled, after | lavapipe | 701.0 | 437.7 + 263.3 | 853.5 | 439.6 + 262.6 + 151.3 |
+| Compiled, after | RTX 3060 | 747.8 | 464.7 + 283.1 | 1002.2 | 465.4 + 284.2 + 252.6 |
+
+Each compiled lavapipe child's individual peak was 262.1–266.9 MiB. Each
+compiled RTX child's peak was 279.9–285.7 MiB. The raw logs preserve each PID
+and its peak, including children no longer alive at the combined peak.
+The source baseline used two serial passes rather than twenty. The previously
+reported 968.8 MiB was another run, not the baseline measured here. Other host
+work and the selected checks were active, so timing and RSS differences are
+observations, not isolated causal estimates.
+
+The separate `preview-child-memory.mjs` fixture isolates compiled-child stages:
+
+| Stage, RSS MiB | lavapipe | RTX 3060 |
+|---|---:|---:|
+| Node before renderer imports | 49.9 | 50.0 |
+| Renderer modules loaded | 174.4 | 175.0 |
+| Dawn device acquired | 224.5 | 256.5 |
+| Compositor targets allocated | 234.8 | 277.3 |
+| First frame rendered | 264.8 | 284.8 |
+| Twenty more frames rendered | 267.8 | 286.3 |
+| One second idle | 317.8 | 376.9 |
+
+Device acquisition adds about 50.1 MiB on lavapipe and 81.5 MiB on RTX.
+Targets and first rendering add another 40.3 and 28.3 MiB respectively.
+These RSS deltas include Dawn, driver, shader compilation and allocator work.
+They do not separately attribute each native library, and GPU VRAM is not RSS.
+The software adapter stores GPU allocations in host memory, but these results
+do not establish software rendering as the cause of the budget failure.
+The hardware route fails too. Renderer imports alone add about 125 MiB per
+compiled child. The compiled parent already holds 350.9–355.2 MiB after imports,
+before rendering. Further reduction needs module/heap work, not a raised budget.
+
+Changes remove one Skia copy when the source is already a canvas and one RGBA
+array copy. IPC now sends the typed object through advanced serialization once,
+instead of serializing a buffer inside another serialized message. The parent
+still serializes once for the exact 64 MiB preflight limit. IPC is not zero-copy.
+A 160×90 RGBA buffer is only 0.055 MiB, so these copies cannot explain hundreds
+of MiB in this fixture. Larger media still need separate qualification.
+
+The child now imports the dedicated `timeline/frame-compositor` export rather
+than the broad render export. Its executable imports GPU and timeline code,
+not the agents entry point. The client request import is type-only. There is
+no whole-agents import to remove from that child. The parent still loads broad
+runtime and capability dependencies. Pools retain resources within a pass and
+release with the awaited process exit. There is no pool retained across calls.
+Two children remain allowed. The measured one-child result already exceeds
+512 MiB, so reducing the limit alone cannot clear the gate.
+
+Compiled parent growth across twenty cycles was 14.1 MiB on lavapipe and
+29.9 MiB on RTX. Source growth was 13.0 MiB and -48.9 MiB respectively.
+These pass the 64 MiB parent-growth gate. A negative delta reflects collection,
+not negative allocations. This does not qualify a long-lived GPU process.
+
+### Latency and keeping a child warm
+
+Compiled CPU/cold-child calls were 0.193/1.596 seconds on lavapipe and
+0.171/2.359 seconds on RTX. Compiled serial calls ranged 1.327–2.500 and
+1.736–3.336 seconds. Concurrent pairs took 1.956 and 2.674 seconds.
+Final source CPU/cold-child calls were 0.437/1.946 and 1.489/4.344 seconds.
+Both cold and concurrent gates remain below ten seconds on this fixture.
+
+The earlier 4.387-second first-call penalty is a behavior change an agent
+would encounter if callers moved. Startup remains slower than Canvas2D, though
+its measured penalty varies with execution mode and host load. No measured
+call timed out. The child deadline remains thirty seconds per frame. Complete
+tool invocations, larger media and external tool deadlines are not qualified.
+No production latency changed because callers did not move.
+
+A child can serve repeated frames with the current client. Warm composition
+averaged 16.10 ms per frame on lavapipe and 0.68 ms on RTX in the staged probe,
+excluding parent rasterization, IPC and PNG encoding. Keeping it between agent
+calls would retain at least the observed 317.8/376.9 MiB idle process, plus any
+parent state. A shared pool needs ownership, cancellation, dimension changes
+and eviction rules. It was not implemented. The current sixty-second orphan
+watchdog does not constitute a cross-call pool. One-second idle measurements
+are not a bound on longer retention.
+
+### Diagnostic parity and output differences
+
+Unknown enabled effects now come from the GPU chain's own supported-type
+classifier, rather than the CPU classifier. Layer, matte, group, adjustment
+and transition-effect scopes are included. Disabled effects are not reported.
+The compositor exposes missing-source and missing-matte layer IDs. IPC carries
+those IDs and unsupported types, and the parent maps IDs back to the original
+layer objects so existing skipped-layer reports, completion flags and sample
+failure aggregation work. Reports reset for each frame.
+
+A mask that fails upload now raises an error naming the layer or adjustment.
+A missing precompose-group reference raises an error naming the group. These
+conditions can no longer return an apparently complete unmasked or omitted
+picture. Normal empty placements still count as drawn. Source-resolution,
+dropped-layer and 3D-unavailable reports remain in the parent.
+
+Agent-visible differences in the qualification route are:
+
+- Unknown effects retain the existing `effects_not_applied` form. Matte and
+  transition effects can now be reported as well.
+- A source or matte omitted by composition now produces the existing
+  `source could not be drawn` skipped-layer report and incomplete frame.
+- Invalid mask uploads and missing group references fail explicitly instead
+  of silently changing the picture.
+- CPU-only approximation warnings do not apply when the GPU performs the
+  requested treatment. The GPU supports masks, wipes, mattes, crops, groups,
+  adjustments, projective placement and effect passes directly. The selected
+  GPU tests cover these paths. This is not an exhaustive visual-difference
+  catalog for arbitrary media or future effect types.
+
+Opaque-fixture pixels, geometry and timecodes still match exactly. The new
+unknown-effect test compares the agent-facing frame report with Canvas2D.
+The child tests cover unknown effects in four scopes, disabled effects,
+missing source/matte pixels, report reset, bad mask upload and missing groups.
+There are no production output differences because no callers moved.
+
+### Gates and verification
+
+Diagnostic cases above pass. Selected correctness, completion, timeout,
+cancellation, concurrency, transfer-limit and compiled-entry tests pass.
+Memory fails on both adapters. Complete packaged execution and addon staging
+remain unqualified. A91 and production migration remain blocked.
+
+Only the requested checks ran, with `NODETOOL_TEST_WORKERS=1`:
+
+- Seven agent Vitest files passed, 87 tests: `timeline-render-child`,
+  `timeline-shared-preview`, `capabilities-timeline-preview`,
+  `timeline-preview-lifetime`, `timeline-denoise-preview`,
+  `timeline-preview-parity-regressions`, `timeline-preview-asset-reads`.
+- Twenty existing timeline Vitest files importing the changed compositor or
+  effects source passed, 359 tests and 6 expected failures. The exact file list
+  is in `timeline-test-files.txt` with the logs below. No full suite ran.
+- Agents and timeline builds passed. Explicit `run-tsc.mjs --noEmit` checks
+  passed for only `packages/agents` and `packages/timeline`.
+- `git diff --check` and a control-byte scan passed.
+
+`test:affected`, root typecheck, lint, harness gate, `/verify`, full suites,
+and full backend/Electron packaging checks were not run, as requested.
+The initial Vitest command rejected a duplicate worker flag before running
+any tests. The first agents build found a report-union narrowing error. Both
+were corrected and the successful commands above were rerun.
+
+Logs and JSON are under `/home/mg/Projects/nodetool-film/tmp/color-s5/`:
+`memory-before-{lvp,rtx}.json`, `final-{source,compiled}-{lvp,rtx}.json`,
+`final-stages-{lvp,rtx}.json`, `agents-final.log`, `timeline-final.log`,
+`typecheck-{agents,timeline}.log`, and `build-{agents,timeline}.log`.
+Intermediate `memory-after-*` files are exploratory, not final measurements.
+Run the full-path fixture with `node --import tsx` for source or
+`S5_COMPILED=1 node` for compiled execution. Run the staged fixture with
+`S5_COMPILED=1 node`. Neither fixture forces the parent to exit.
+
+Changed files in this follow-up:
+
+- `packages/agents/src/timeline-preview/frames.ts`
+- `packages/agents/src/timeline-preview/render-child-client.ts`
+- `packages/agents/src/timeline-preview/render-child.ts`
+- `packages/agents/src/timeline-preview/shared-compositor.ts`
+- `packages/agents/tests/timeline-render-child.test.ts`
+- `packages/agents/tests/timeline-shared-preview.test.ts`
+- `packages/agents/tests/fixtures/preview-child-full-path.mjs`
+- `packages/agents/tests/fixtures/preview-child-memory.mjs`
+- `packages/timeline/package.json`
+- `packages/timeline/src/render/effects.ts`
+- `packages/timeline/src/render/frameCompositor.ts`
+- `docs/plans/color-precision/results/s5-agent-rendering.md`
+
+Implementation commit: `a2be0379e4`. No push was made. The owner must decide
+whether to authorize further parent/renderer module-memory reduction and
+representative-media/package qualification. The evidence does not support a
+lavapipe-only exception to the existing memory gate.
