@@ -89,6 +89,14 @@ jobs:
           pipx run aqtinstall install-qt mac desktop "$QT_VERSION" clang_64 -m qtshadertools qtwebsockets -O "$RUNNER_TEMP/qt"
           echo "QT_PREFIX=$RUNNER_TEMP/qt/$QT_VERSION/macos" >> "$GITHUB_ENV"
 
+      # Hosted runners have run out of disk while building FFmpeg (No space left on device).
+      - name: Free disk space (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          df -h /
+
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -405,6 +413,13 @@ jobs:
           npm ci --ignore-scripts
           npm run rebuild:native
           npm run build:packages
+      # Hosted runners have run out of disk while building FFmpeg (No space left on device).
+      - name: Free disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          df -h /
+
       - name: Install dependencies (Linux)
         working-directory: .
         run: |
