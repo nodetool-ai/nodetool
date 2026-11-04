@@ -858,8 +858,24 @@ private slots:
 
     void framesMatchStills() {
         if (qEnvironmentVariable("QT_QUICK_BACKEND") == u"software") QSKIP("Runs as tst_trimmode_frames, on the renderer");
+        // Exercise the desktop size used by the macOS runner on Linux too.
+        view->resize(1024, 656);
+        QTRY_COMPARE(view->rootObject()->size(), QSizeF(view->size()));
+        // Leave room for the cut and the monitor's trim buttons.
+        auto* dock = qobject_cast<DockLayoutStore*>(view->rootObject()->property("dockStore").value<QObject*>());
+        QVERIFY(dock);
+        for (const auto* side : {"left", "right"}) { dock->resizeRegion(side, 100, view->width(), view->height()); }
+        QTest::qWait(100);
+        auto* lanes = item("lanesViewport");
+        auto* cut = edge("l", "end");
+        QVERIFY(lanes && cut);
+        QVERIFY2(lanes->contains(cut->mapToItem(lanes, cut->boundingRect().center())), "The cut must be inside the lane viewport");
         press(Qt::Key_B, Qt::ShiftModifier);
+        QCOMPARE(gestures()->activeTool(), QStringLiteral("roll"));
         clickEdge("l", "end");
+        QVERIFY2(trim()->active(), "Clicking the visible cut must enter trim mode");
+        QCOMPARE(trim()->kind(), QStringLiteral("roll"));
+        QCOMPARE(displayMode(), QStringLiteral("trim"));
         QTRY_VERIFY(item("trimMonitorFrames") || view->rootObject()->findChild<TrimMonitorFrames*>("trimMonitorFrames"));
         auto* frames = view->rootObject()->findChild<TrimMonitorFrames*>("trimMonitorFrames");
         QVERIFY(frames);
