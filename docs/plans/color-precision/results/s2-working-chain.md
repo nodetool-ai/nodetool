@@ -198,3 +198,29 @@ node scripts/run-tsc.mjs -p packages/gpu/tsconfig.json --noEmit
 - `packages/gpu/tests/fixtures/inverse-levels.json`
 - `packages/gpu/tests/fixtures/rgba8-wgsl.json`
 - `packages/gpu/tests/workingFormat.test.ts`
+
+## A23.1 continuation
+
+Implemented straight-alpha byte-source promotion before crop. One promotion
+pass per leaf per frame writes a reusable source-sized FP16 texture. The generic
+uploader can mutate a texture without exposing a version, so promotion is
+refreshed each frame. Crop inherits that format and the existing transform
+blend target retains FP16. Source uploads and final byte delivery stay separate.
+Masks and temporal neighbors retain their existing routes for A23.3/A23.4.
+
+The full-frame identity fixture compares every channel of 1536 pixels, with
+antialiased circle coverage, alpha 3/255, crop, rotation and fractional placement
+at a display size different from the source. It uses an opaque background,
+where precision should not change the image. Maximum difference is 1 code and
+mean absolute difference is 0.0009765625 code. That one-code difference is
+consistent with binary16 storage rounding before the final byte resolve.
+Transparent export at low alpha is not certified by this fixture.
+
+The four working-precision tests and timeline-only typecheck passed. The five
+workingFormat tests passed, including all 71 byte-identical resolved RGBA8 WGSL
+strings. No GPU shader source changed. Existing compositor pixel tests are
+being checked separately, with failures recorded in the continuation below.
+
+Changed files for A23.1: this report,
+`packages/timeline/src/render/frameCompositor.ts` and
+`packages/timeline/tests/render.workingPrecision.gpu.test.ts`.

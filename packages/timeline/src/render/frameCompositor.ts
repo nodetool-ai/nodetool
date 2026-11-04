@@ -477,6 +477,8 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
   private readonly solids = new Map<string, GPUTexture>();
   /** One cropped copy per cropped layer, by layer id — see {@link cropSource}. */
   private readonly crops = new Map<string, GpuSourceTexture>();
+  private readonly promotedSources = new Map<string, GpuSourceTexture>();
+  private promotionPipeline: GPURenderPipeline | null = null;
   /** Resolves a premultiplied accumulation to the straight alpha the blend
    *  shader reads a source as. Built with the second pass. */
   private unpremultiply: GPURenderPipeline | null = null;
@@ -824,7 +826,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     // Crop first: everything below — the effect chain, the shape mask, the
     // contain fit, the border radius — then sees the cropped rectangle as the
     // layer's whole picture, which is what a crop means.
-    const src = this.cropSource(layer, uploaded, encoder);
+    const src = this.cropSource(layer, this.promoteSource(layer.id, uploaded, encoder), encoder);
     const neighbor = (role: "before" | "after"): GPUTexture => {
       const id = `${layer.id}#denoise-${role}`;
       const value = this.upload(id, layer.temporalSources![role]);
@@ -989,6 +991,50 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       ),
       borderRadius: 0
     };
+  }
+
+  private promoteSource(id: string, source: GpuSourceTexture, encoder: GPUCommandEncoder): GpuSourceTexture {
+    if (this.workingFormat === "rgba8unorm" || source.texture.format === this.workingFormat) {
+      return source;
+    }
+    let target = this.promotedSources.get(id);
+    if (!target || target.width !== source.width || target.height !== source.height) {
+      target?.texture.destroy();
+      target = {
+        width: source.width,
+        height: source.height,
+        texture: this.device.createTexture({
+          label: `${this.label}-promoted-${id}`,
+          size: { width: source.width, height: source.height },
+          format: this.workingFormat,
+          usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC
+        })
+      };
+      this.promotedSources.set(id, target);
+    }
+    if (!this.promotionPipeline) {
+      const module = this.device.createShaderModule({ code: `${FULLSCREEN_QUAD_VERTEX}\n${BLIT_FRAGMENT}` });
+      this.promotionPipeline = this.device.createRenderPipeline({
+        layout: "auto",
+        vertex: { module, entryPoint: "vs_main" },
+        fragment: { module, entryPoint: "fs_blit", targets: [{ format: this.workingFormat }] },
+        primitive: { topology: "triangle-strip" }
+      });
+    }
+    // Copy encoded straight RGBA without filtering or premultiplication. Leaf
+    // filtering must still interpolate straight alpha in the blend shader.
+    const pass = encoder.beginRenderPass({ colorAttachments: [{
+      view: target.texture.createView(), loadOp: "clear", storeOp: "store",
+      clearValue: { r: 0, g: 0, b: 0, a: 0 }
+    }] });
+    pass.setPipeline(this.promotionPipeline);
+    pass.setBindGroup(0, this.device.createBindGroup({
+      layout: this.promotionPipeline.getBindGroupLayout(0),
+      entries: [{ binding: 0, resource: source.texture.createView() }]
+    }));
+    pass.draw(4);
+    pass.end();
+    return target;
   }
 
   /**
@@ -1544,6 +1590,12 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     }
 
     this.retainSources(live);
+    for (const [id, entry] of this.promotedSources) {
+      if (!live.has(id)) {
+        entry.texture.destroy();
+        this.promotedSources.delete(id);
+      }
+    }
     for (const [id, entry] of this.crops) {
       if (!live.has(id)) {
         entry.texture.destroy();
@@ -1570,6 +1622,8 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     for (const texture of this.solids.values()) texture.destroy();
     this.solids.clear();
     this.effects.dispose();
+    for (const entry of this.promotedSources.values()) entry.texture.destroy();
+    this.promotedSources.clear();
     for (const entry of this.crops.values()) entry.texture.destroy();
     this.crops.clear();
     this.core.dispose();

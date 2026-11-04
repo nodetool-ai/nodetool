@@ -1,4 +1,4 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { getNodeGPUDevice } from "@nodetool-ai/gpu/node";
 import { GpuFrameCompositor, HeadlessFrameCompositor, type FrameLayer } from "../src/render/frameCompositor.js";
 
@@ -57,5 +57,45 @@ it("declares encoded premultiplied accumulation independently of storage precisi
     } finally {
       renderer.dispose();
     }
+  }
+});
+
+it("preserves full-frame identity through source promotion, crop and subpixel placement", async () => {
+  const device = await getNodeGPUDevice();
+  const rgba = new Uint8Array(32 * 24 * 4);
+  for (let y = 0; y < 24; y++) {
+    for (let x = 0; x < 32; x++) {
+      const coverage = Math.max(0, Math.min(1, 8.5 - Math.hypot(x - 16, y - 12)));
+      rgba.set([220, 80, 35, Math.round(coverage * (x < 16 ? 255 : 3))], (y * 32 + x) * 4);
+    }
+  }
+  const allocations = vi.spyOn(device, "createTexture");
+  const original = rgba.slice();
+  const layer: FrameLayer = {
+    id: "edge", source: { rgba, width: 32, height: 24, version: "edge" },
+    opacity: 1, blendMode: "normal", zIndex: 0,
+    crop: { left: 0.125, right: 0.125, top: 0, bottom: 0 },
+    transform: { position: { x: 0.375, y: -0.625 }, scale: { x: 0.8, y: 0.8 }, rotation: 13, anchor: { x: 0.5, y: 0.5 } }
+  };
+  const byte = new HeadlessFrameCompositor(device, 48, 32);
+  const half = new HeadlessFrameCompositor(device, 48, 32, { workingFormat: "rgba16float" });
+  device.pushErrorScope("validation");
+  try {
+    const a = await byte.renderFrame([layer]);
+    const b = await half.renderFrame([layer]);
+    const errors = a.map((value, i) => Math.abs(value - b[i]));
+    const max = Math.max(...errors);
+    process.stderr.write(`full-frame identity: ${48 * 32} pixels, max ${max} codes, mean ${errors.reduce((sum, v) => sum + v, 0) / errors.length}\n`);
+    expect(max).toBeLessThanOrEqual(1);
+    expect(b.some((value, i) => i % 4 !== 3 && value > 0 && value < 4)).toBe(true);
+    expect(rgba).toEqual(original);
+    const targets = allocations.mock.calls.map(([descriptor]) => descriptor);
+    expect(targets.find((target) => target.label?.endsWith("promoted-edge"))?.format).toBe("rgba16float");
+    expect(targets.filter((target) => target.label?.endsWith("crop-edge")).map((target) => target.format)).toEqual(["rgba8unorm", "rgba16float"]);
+    expect(await half.renderFrame([layer])).toEqual(b);
+  } finally {
+    allocations.mockRestore();
+    byte.dispose(); half.dispose();
+    expect(await device.popErrorScope()).toBeNull();
   }
 });
