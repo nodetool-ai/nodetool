@@ -31,9 +31,9 @@ runs:
       if: runner.os == 'Linux'
       shell: bash
       run: |
-        bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh"
+        df -hT / && df -i /
         sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
-        bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh"
+        df -hT / && df -i /
 
     - name: Set up Node.js
       uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
@@ -90,12 +90,12 @@ runs:
     - name: Disk usage after dependency cache restore
       if: always() && runner.os == 'Linux'
       shell: bash
-      run: bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh"
+      run: df -hT / && df -i /
 
     - name: Install all workspace dependencies
       if: steps.node-modules-cache.outputs.cache-hit != 'true' && steps.node-modules-restore.outputs.cache-hit != 'true'
       shell: bash
-      run: bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" npm ci
+      run: npm ci
       env:
         ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
 
@@ -145,7 +145,7 @@ runs:
     - name: Build backend packages
       if: inputs.build-packages == 'true'
       shell: bash
-      run: bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" npm run build:packages
+      run: npm run build:packages
 
     # The cache step saves `.turbo/cache` under a new per-SHA key after
     # restoring the newest one, so without pruning it carries every entry ever
@@ -162,4 +162,4 @@ runs:
     - name: Disk usage after setup failure
       if: failure() && runner.os == 'Linux'
       shell: bash
-      run: bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh"
+      run: df -hT / && df -i /

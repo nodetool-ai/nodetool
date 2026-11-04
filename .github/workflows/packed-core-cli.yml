@@ -140,7 +140,7 @@ jobs:
       - name: Pin workspace versions in the test tarballs
         run: node scripts/prepare-publish.mjs
       - name: Pack and pin original release artifacts once
-        run: bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" node scripts/publish-packages.mjs --pack-only --tarballs-dir .packed-artifacts
+        run: node scripts/publish-packages.mjs --pack-only --tarballs-dir .packed-artifacts
       - name: Smoke-test the packed core-only CLI
         run: node scripts/smoke-packed-cli.mjs --core-only --tarballs-dir .packed-artifacts
       - name: Smoke-test the packed full CLI
@@ -181,4 +181,4 @@ jobs:
       - name: Pin workspace versions in the test tarballs
         run: node scripts/prepare-publish.mjs
       - name: Measure and pin original pack tarballs without publishing
-        run: bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" node scripts/publish-packages.mjs --pack-only --tarballs-dir .release-pins
+        run: node scripts/publish-packages.mjs --pack-only --tarballs-dir .release-pins
