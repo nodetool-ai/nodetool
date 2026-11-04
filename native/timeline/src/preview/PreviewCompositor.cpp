@@ -1629,19 +1629,17 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     }
 #endif
     m_waitingForFrames = m_captureWanted && !m_captureImmediate && !settled;
-    if (m_captureWanted && m_workingFormat == nt::WorkingFormat::Rgba16F) {
-        if (m_resourceError.empty()) { m_resourceError = "FP16 working capture requires the N2 delivery boundary"; }
-        m_captureWanted = false;
-    }
     if (m_captureWanted && !m_captureInFlight && ((m_captureImmediate && !blurred) || settled)) {
         m_captureWanted = false;
         const double captureTime = m_timeMs;
         m_captureInFlight = true;
         m_readback = QRhiReadbackResult();
-        // OpenGL (the Linux default) reads a texture back bottom row first.
-        m_readback.completed = [this, captureTime, request = m_captureRequest, flip = m_rhi->isYUpInFramebuffer()] {
+        const auto format = m_canvas->format() == QRhiTexture::RGBA16F
+            ? QImage::Format_RGBA16FPx4_Premultiplied : QImage::Format_RGBA8888_Premultiplied;
+        // Readback rows follow the backend framebuffer orientation. Copy before reuse.
+        m_readback.completed = [this, captureTime, format, request = m_captureRequest, flip = m_rhi->isYUpInFramebuffer()] {
             const QImage img(reinterpret_cast<const uchar*>(m_readback.data.constData()), m_readback.pixelSize.width(),
-                             m_readback.pixelSize.height(), QImage::Format_RGBA8888_Premultiplied);
+                             m_readback.pixelSize.height(), format);
             std::lock_guard lock(m_captureMutex);
             m_captured = flip ? img.flipped(Qt::Vertical) : img.copy();
             m_capturedTimeMs = captureTime;

@@ -33,9 +33,10 @@ nt::Timeline document(QJsonArray clips, int width = 64, int height = 32) {
 }
 class FloatSource final : public nt::LayerSource {
     float m_alpha;
+    bool m_vertical;
     std::unique_ptr<QRhiTexture> m_texture;
 public:
-    explicit FloatSource(float alpha) : m_alpha(alpha) {}
+    explicit FloatSource(float alpha, bool vertical = false) : m_alpha(alpha), m_vertical(vertical) {}
     QSize frameSize() const override { return {64, 32}; }
     nt::LayerFrame frameAt(const nt::FrameContext& ctx, double) override {
         if (!m_texture) {
@@ -43,7 +44,8 @@ public:
             if (!m_texture->create()) { return {}; }
             std::vector<qfloat16> pixels(64 * 32 * 4);
             for (int i = 0; i < 64 * 32; ++i) {
-                const float gray = float(i % 64 + 1) / 65;
+                const float gray = m_vertical ? float(i % 64 + 1) / 130 + float(i / 64) / 64
+                                              : float(i % 64 + 1) / 65;
                 for (int c = 0; c < 3; ++c) { pixels[i * 4 + c] = qfloat16(gray * m_alpha); }
                 pixels[i * 4 + 3] = qfloat16(m_alpha);
             }
@@ -156,6 +158,56 @@ float difference(const std::vector<float>& a, const std::vector<float>& b) {
 class TestScenePrecision : public QObject {
     Q_OBJECT
 private slots:
+    void typedWorkingCapture() {
+        const auto source = nt::registerLayerSource("video", [](const nt::ActiveLayer&) {
+            return std::make_unique<FloatSource>(1.f, true);
+        });
+        const auto guard = qScopeGuard([&] { nt::unregisterLayerSource(source); });
+        for (const auto format : {nt::WorkingFormat::Rgba8, nt::WorkingFormat::Rgba16F}) {
+            Scene scene;
+            QVERIFY(scene.initialize(document({leaf("capture", "video")}), format));
+            auto* compositor = scene.still.compositor();
+            compositor->setAlphaDisplay(false);
+            QVERIFY(scene.render());
+            const auto expected = scene.pixels;
+            QImage previous;
+            for (const int denominator : {1, 2, 4, 8}) {
+                compositor->setPausedResolution(denominator);
+                compositor->setAlphaDisplay(true);
+                compositor->setTransparencyGrid(true);
+                QVERIFY(scene.render());
+                compositor->requestCapture();
+                QElapsedTimer timeout; timeout.start();
+                while (!compositor->captureReady() && timeout.elapsed() < 10000) { scene.still.frame(); }
+                QVERIFY2(compositor->captureReady(), qPrintable(compositor->renderError()));
+                const auto image = compositor->takeCapture();
+                QVERIFY(!compositor->captureReady());
+                QCOMPARE(image.size(), QSize(64, 32));
+                const bool fp16 = format == nt::WorkingFormat::Rgba16F;
+                QCOMPARE(image.format(), fp16 ? QImage::Format_RGBA16FPx4_Premultiplied
+                                              : QImage::Format_RGBA8888_Premultiplied);
+                QCOMPARE(image.bytesPerLine(), 64 * (fp16 ? 8 : 4));
+                for (int y = 0; y < 32; ++y) {
+                    for (int x = 0; x < 64 * 4; ++x) {
+                        float actual;
+                        if (fp16) {
+                            qfloat16 value;
+                            std::memcpy(&value, image.constScanLine(y) + x * 2, 2);
+                            actual = float(value);
+                        } else { actual = image.constScanLine(y)[x] / 255.f; }
+                        QCOMPARE(actual, expected[(y * 64 * 4) + x]);
+                    }
+                }
+                QVERIFY(image.pixelColor(12, 0).redF() < image.pixelColor(12, 31).redF());
+                if (!previous.isNull()) { QCOMPARE(image, previous); }
+                previous = image;
+                // The owned capture remains valid after readback storage is reused.
+                scene.still.frame();
+                QCOMPARE(image, previous);
+            }
+            qInfo() << "typed working capture" << int(format) << "exact raw equality at Full/Half/Quarter/Eighth";
+        }
+    }
     void transferSurvivesLayerContracts() {
         QCOMPARE(nt::LayerFrame{}.transfer, std::string("unknown"));
         bool seen = false, valid = true;
@@ -297,9 +349,6 @@ private slots:
             QVERIFY(resize.render()); QCOMPARE(resize.size, QSize(64 / denominator, 32 / denominator));
             QVERIFY(resize.finiteNonblack());
         }
-        resize.still.compositor()->requestCapture(); resize.still.frame(); resize.still.frame();
-        QVERIFY(!resize.still.compositor()->captureReady());
-        QVERIFY(resize.still.compositor()->renderError().contains("N2 delivery boundary"));
     }
     void decodedScrubAndEdits() {
         auto clip = leaf("decoded", "video");

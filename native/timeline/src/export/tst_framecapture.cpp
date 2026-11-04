@@ -4,6 +4,7 @@
 #include "model/TimelineJson.h"
 #include "preview/FfmpegSource.h"
 #include "preview/hw/HwWindow.h"
+#include "preview/layers/TestStill.h"
 #include <QElapsedTimer>
 #include <QFile>
 #include <QJsonArray>
@@ -147,6 +148,38 @@ class FrameCaptureTest : public QObject {
         capture.setTimeline(model);
     }
 private slots:
+    void offscreenTypedCapture() {
+        QImage source(65, 49, QImage::Format_RGBA8888);
+        for (int y = 0; y < source.height(); ++y) {
+            for (int x = 0; x < source.width(); ++x) {
+                source.setPixelColor(x, y, QColor(x * 3, y * 4, 100, 127));
+            }
+        }
+        const auto token = nt::registerLayerSource("image", [source](const nt::ActiveLayer&) {
+            return std::make_unique<nt::test::PaintSource>(source.convertToFormat(QImage::Format_RGBA8888_Premultiplied));
+        });
+        const auto guard = qScopeGuard([&] { nt::unregisterLayerSource(token); });
+        TimelineModel model;
+        QVERIFY(load(model, document({}, 65, 49, 30, 0, "image")));
+        for (const auto format : {nt::WorkingFormat::Rgba8, nt::WorkingFormat::Rgba16F}) {
+            nt::exporting::OffscreenFrames frames(model, format);
+            QVERIFY(frames.captureWorkingAt(0, [] { return true; }).isNull());
+            const auto raw = frames.captureWorkingAt(100, [] { return false; });
+            QVERIFY(!raw.isNull());
+            QCOMPARE(raw.size(), source.size());
+            const bool fp16 = format == nt::WorkingFormat::Rgba16F;
+            QCOMPARE(raw.format(), fp16 ? QImage::Format_RGBA16FPx4_Premultiplied
+                                        : QImage::Format_RGBA8888_Premultiplied);
+            const auto straight = frames.captureAt(100, [] { return false; });
+            QCOMPARE(straight.format(), fp16 ? QImage::Format_RGBA32FPx4 : QImage::Format_RGBA8888);
+            QCOMPARE(straight, raw.convertToFormat(straight.format()));
+            QCOMPARE(straight.pixelColor(20, 20).alphaF(), 1.f);
+            QVERIFY(straight.pixelColor(20, 0).greenF() < straight.pixelColor(20, 48).greenF());
+            // A later capture neither aliases nor changes the previous owned image.
+            QCOMPARE(frames.captureWorkingAt(200, [] { return false; }), raw);
+            QCOMPARE(frames.captureAt(0, [] { return false; }), straight);
+        }
+    }
     void sequencePixelsAndResponsiveness() {
         QVERIFY(m_dir.isValid());
         TimelineModel model;

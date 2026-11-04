@@ -154,7 +154,8 @@ public:
     QString renderError() const { return m_renderError; }
 
     // Stills: asks for a read-back of the canvas once every layer shows its
-    // exact frame for the current time. takeCapture() returns it once ready.
+    // exact frame for the current time. takeCapture() returns owned, undithered
+    // RGBA8888 or RGBA16FPx4 premultiplied pixels, matching working storage.
     // With `immediate`, the next rendered frame is read back as it is, exact
     // or not (the first picture at a cut during playback).
     // A settled request replaces the last one, whose read-back is then dropped.
