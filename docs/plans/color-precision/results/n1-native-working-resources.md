@@ -1,55 +1,73 @@
 # N1 native working resources
 
-Partial N1 implementation on Qt RHI. FP16 remains off by default. No schema, document, QML property or preference was added. The C++ entry point is `PreviewCompositor::setWorkingFormat(nt::WorkingFormat::Rgba16F)`.
+The requested full-scene numerical and lifetime qualification passes on Vulkan/lavapipe. The complete corrected N1 task list is not finished. A30's transfer declaration, A31's shared-vector comparison and A109's precision-aware Color Match model remain outstanding. Keep FP16 off by default.
 
-## Task status
+No schema, document setting, capture, export or presentation behavior changed. The internal entry point remains `PreviewCompositor::setWorkingFormat(nt::WorkingFormat::Rgba16F)`.
 
-| Task | Implementation | Qualification still required |
-|---|---|---|
-| A30 | Format-aware canvas, group surfaces, previous canvas and effect scratch. Explicit premultiplied FP16 frame tag. Format participates in reuse, byte budgets and render-pass selection. Existing float blur and LUT storage retained. | Full compositor resize and format-switch tests on actual platform devices. |
-| A31 | FP16 bypasses straight-byte leaf filtering and paired byte alpha bridges. Effect, denoise and blend unpremultiplication preserve low alpha. Chroma Key consumes straight RGB directly in float mode. Posterize, parameter plans and ordering remain unchanged. Existing qsb pipeline compiles the shaders. | Shared-vector comparison and full compositor orchestration coverage. |
-| A33 | Blend, adjustment, shape-mask and image-matte stages accept float frames. Byte-generated raster sources remain byte inputs and promote when sampled into a working target. Seek, source-document generation and format changes invalidate FP16 temporal state. | FP16 text, shape, group, transition, blur accumulation and previous-frame numerical scenes. Ancillary resource tests use QRhi Null and establish allocation/recording contracts only. |
-| A35 | Mixed-format scratch stress and existing frame-cache/render regression selection. Hardware cache and NV12 interop code unchanged. | Decoded-source switches, backward scrubbing and repeated effect edits in a complete FP16 scene, process/GPU peak memory and decode-failure monitoring. |
+## Full-scene qualification
 
-## Numerical checks
+`tst_sceneprecision` evaluates parsed timeline documents through `PreviewCompositor`, with the production effect and raster-source registrations. `QQuickRenderControl` runs without showing a window. A hook compiled only into this test observes the working canvas before presentation. It reads RGBA16F components as `qfloat16`, or RGBA8 components as bytes. It does not call production capture to obtain numerical pixels.
 
-`tst_workingprecision::inverseLevelsAndAlpha` uploads sixteen premultiplied half-float gray values, compresses Levels output to 0.1, expands Levels input from 0.1, then composites through the native Screen blend shader over transparency. It reads a dedicated RGBA16F render target as typed `qfloat16` components. Alpha values are 1, 0.5, 0.001 and 0. The RGBA8 control must exhibit intermediate quantization loss. Float tolerance scales with alpha, with a two-millionths absolute floor.
+| Task | Evidence |
+|---|---|
+| A30 | Canvas dimensions change through 96×48, 32×16 and 64×32. Paused resolution changes through Half, Quarter, Eighth and Full. RGBA8/FP16 changes on the same compositor assert the actual storage format. Group effects retain their existing full-canvas exception. Existing surface-pool tests cover format identity, reuse, eviction, release and byte budgets. |
+| A31 | A half-float ramp enters the complete scene, passes inverse Levels, Screen over transparency, group effects and fixed-function composition. FP16 beats the RGBA8 control. Spatial denoise and following Levels process tiny alpha. Every read frame is checked for finite components. The detector itself rejects injected NaN, infinity and black pixels. |
+| A33 | A 640×360 document contains real raster text and shape sources, an ellipse mask, a crossfade, a group effect and four-sample shutter accumulation. The same document is compared in both formats. Tests observe the previous-canvas state and a completed-canvas copy during clock advancement. Backward seeks reproduce the original settled pixels exactly. Document replacement restarts accumulation and prevents copying the old completed canvas in FP16. Format switches render successfully through the same instance. |
+| A35 | Sixty iterations alternate two decoded 720p H.264 sources, seek backward and forward, and replace Levels parameters. Temporal denoise requests before/after decoded frames. Both in-place clip edits and document-generation replacements run. Effects use a central crop to bound software shader cost. Every settled sample has exact media, no missing media, no resource failures and successful loader reports. Open decoders stay within two paths times current/before/after sources. Process RSS and QRhi allocator usage are sampled and bounded after warmup. |
 
-These are native vectors awaiting reconciliation with `film/color-s0`. That shared set was unavailable during implementation. This tests the production effect and blend implementations, but does not drive the complete `PreviewCompositor` scene evaluator, fixed-function over pass or temporal orchestration.
+## Numerical results
 
-## Default behavior and boundaries
+The full scene uses gray values `(x+1)/65`, uploaded as premultiplied half floats. Maximum RGB error is measured against those uploaded samples. Inverse Levels compresses output white to 0.1 and expands input white from 0.1. Its bound is `max(2e-7, alpha * 0.002)`, allowing accumulated half-float rounding through the complete chain. No failed numerical bound was widened.
 
-WorkingFormat defaults to RGBA8 in both the compositor and EffectContext. Existing allocation formats, leaf filtering, alpha bridges and alpha floors remain selected in that mode. Existing render assertions were retained. This is a regression-test claim within the selected scenes, not an exhaustive proof for every document.
+| Alpha | Operations | RGBA8 maximum error | RGBA16F maximum error |
+|---|---|---:|---:|
+| 1 | Inverse Levels, Screen, group Levels | 0.0214892 | 0.00146484 |
+| 0.001 | Inverse Levels, Screen, group Levels | 0.000984192 | 0.00000190735 |
+| 0.00001 | Identity Levels, Screen, group Levels | 0.00000983477 | 0.000000178814 |
+| 0.0000001 | Identity Levels, Screen, group Levels | 0.000000119209 | 0 |
+| 0 | Identity Levels, Screen, group Levels | 0 | 0 |
 
-Production capture/export remains byte-only. An internal FP16 capture request is rejected with `FP16 working capture requires the N2 delivery boundary` instead of interpreting half-float storage as RGBA8888. The test owns its separate typed readback. No A84 delivery conversion, export or presentation work was started.
+Each alpha also runs with spatial denoise before the Levels chain. FP16 settled output remains finite and nonblack for every nonzero alpha. Zero-alpha output is exactly zero. Intermediate read frames are checked for NaN and infinity as well.
 
-Color Match still models RGBA8 intermediates in `ColorMatch.cpp`. It is not qualified for FP16. Matching against float output must wait for a precision-aware solver contract and the N2 capture boundary, because current match analysis receives byte captures and has no renderer precision input. FP16 is not exposed as a user setting and its byte capture is rejected. The default Color Match model remains correct for the unchanged byte route.
+There is a storage limit, separate from division safety. Half-float's smallest positive subnormal is about `5.96e-8`. Compressing RGB by ten at alpha `1e-7` necessarily rounds all RGB to zero. At alpha `1e-5`, the compression moves samples into the coarser subnormal region. The tiny-alpha safety scenes therefore use identity Levels and spatial denoise, retaining representable premultiplied RGB. The inverse-Levels benefit is qualified at alpha 1 and 0.001. This does not promise reversible processing below half-float storage precision.
 
-LayerFrame's YUV matrix remains unchanged. No transfer field or linear-light conversion was added. Source depth, transfer interpretation, NV12 imports, independent hardware frame-cache copies and hardware retirement rules remain outside this change.
+The ancillary scene's maximum RGBA8/FP16 difference is 0.00847662, below its declared `4/255` bound for byte quantization across effect, mask, group and composition stages. This comparison preserves the existing byte alpha bridges in RGBA8 and omits them in FP16. It is not a claim of bit-identical filtering. No NaN, infinity or unexplained black settled frame was observed. No production renderer bug required a fix.
 
-## Verification results
+## Frame metadata audit
 
-Build passed with `ntbuild color-n0 tst_surfacepool tst_workingprecision tst_effectresources tst_clipeffects tst_keyedrender tst_effectsblend tst_framecache` (exit 0).
+`ClipEffects.cpp::frameFor` calls `LayerFrame::rgbaFormat`, so every RGBA16F texture it receives is tagged `Rgba16FPremultiplied`. Its caller is `Encoder::result`. The encoder's intermediate targets all come from ScratchPool with `EffectContext::workingFormat`. Consequently those targets are RGBA8 in default mode. The float LUT is a separate sampler, never an `Encoder::result` frame.
 
-The selected `citest` run passed all nine CTest entries (exit 0): preferences setup, clip effects, keyed render, working precision, effect resources, blend rendering, clip-effect rendering, frame cache and surface pool. It used Xvfb, lavapipe and fresh HOME/config directories. Existing keyed-render and blend/clip pixel assertions passed without changes. No TypeScript checks or full ctest suite ran. No QML changed.
+The conversion near `PreviewCompositor.cpp:1180` applies to second-source frames, not every primary frame. A second source not tagged RGBA8 is converted into the selected working format before effects. Real decoded temporal-denoise sources exercise this seam in the FP16 stress scene. A primary registered float source also runs through the RGBA8 numerical control. Shader float behavior is selected by `EffectContext::workingFormat`, not the enum's integer value.
 
-Typed readback succeeded on `llvmpipe (LLVM 23.1.3, 256 bits)`:
+The native `LayerFrame` references were enumerated with ripgrep. Format consumers use named equality tests, ternaries or switches. `modeFor` and `Encoder::draw` explicitly map I420/NV12 to shader modes. No numeric serialization, ordinal cast, array indexing or arithmetic on `LayerFrame::Format` was found. Adding the float enumerator does not change those mappings. Audit output is saved under the build directory.
 
-| Alpha | RGBA8 maximum error | RGBA16F maximum error |
-|---|---:|---:|
-| 1 | 0.0197228 | 0.000976563 |
-| 0.5 | 0.0197084 | 0.000488281 |
-| 0.001 | 0.0010004 | 0.000000715256 |
-| 0 | 0 | 0 |
+## Cost and memory
 
-The 600-iteration scratch test measured a peak of 49,152 accounted texture bytes and ended with five pooled slots. Format, size, lease exclusion and reuse assertions passed. This is a bounded pool test, not process or full-scene peak memory.
+These measurements are preliminary. Other work was running on the machine. The scene is 640×360 with text, shape/mask, crossfade, group effects and four shutter samples. Each format renders 32 changed timeline times after warmup. Wall cost includes event processing, all shutter taps, synchronous test readbacks and GPU completion. It is not a playback throughput or isolated GPU-time measurement. Recording cost averages the whole scene run, including qualification operations.
 
-The first run contained two existing internal skips. `exportDocuments` requires `NT_D6_OUTPUT`, so it was rerun with an output directory under the build tree. The complete clip-effects rerun passed all 67 cases with zero skips (CTest exit 0). `doesNotPinWindowsDecoderSurfaces` is compiled only on Windows and cannot be exercised on this Linux host. The new precision tests and other selected render tests had no skips.
+| Working format | Wall ms / settled frame | Recording ms / render | Final pooled surface bytes |
+|---|---:|---:|---:|
+| RGBA8 | 72.2956 | 3.62819 | 1,859,584 |
+| RGBA16F | 72.9251 | 3.07144 | 3,719,168 |
 
-Build and first-run logs are preserved under `/home/mg/Projects/nodetool-film/build/color-n0/n1-logs/`, outside Git. `git diff --check` and a control-byte scan passed.
+The whole ancillary run, which also switches formats, peaks at 22,308,828 Vulkan allocator bytes in each mode. These timing differences do not establish a speed advantage.
 
-## Cost and remaining gate
+The decoded stress run peaks at 14,893,056 pooled surface bytes and 27,525,276 Vulkan allocator bytes. Warm/end allocator usage is identical at 21,995,676 bytes. Process peak RSS is 755,776 KiB. Warm/end RSS is 726,260 / 745,624 KiB. The latter half grows by 19,364 KiB, below the asserted 64 MiB bound. The GPU warm/end allowance is 16 MiB. Longer-duration process growth remains unverified.
 
-No per-frame scene cost comparison was obtained. Concurrent builds make timings noisy, and the small numerical test is not a playback benchmark. RGBA16F uses eight texture bytes per pixel versus four for RGBA8. Pool counters measure texture storage only, excluding drivers, render-pass objects, decoders and retirement queues.
+QRhi `statistics().usedBytes` measures Vulkan allocator usage, including effects and temporal resources, rather than only the compositor pool. It excludes untracked driver allocations. On lavapipe this is software-device allocation, not a physical GPU VRAM measurement. Process peak RSS includes earlier numerical and ancillary scenes. The finite stress run meets these bounds. It does not prove indefinite-session behavior.
 
-The full N1 exit gate is not met. Numerical effect/blend evidence alone does not establish complete FP16 scene lifetime and scrubbing safety. Keep FP16 disabled. Metal, D3D11/WARP, actual Windows hardware, OpenGL, hardware decode interop under FP16, device loss and full-scene allocation peaks remain unverified. Unsupported-device format fallback is not implemented and belongs to N3.
+## Verification and remaining work
+
+The native build passed with `ntbuild color-n0 tst_sceneprecision tst_workingprecision tst_effectsblend tst_surfacepool tst_framecache`. Exit status was 0.
+
+`citest color-n0 '^(tst_sceneprecision|tst_workingprecision|tst_effectsblend_render|tst_effectsclip_render|tst_effectsmatte_render|tst_effectsadjustment_render|tst_surfacepool)$' -V` passed all nine entries, including preferences and media setup. Exit status was 0. The final source-generation reset assertion was then built and rerun with `citest color-n0 '^tst_sceneprecision$' -V`. All three CTest entries passed, with six QtTest cases and zero failures or skips. Exit status was 0.
+
+The logged backend is Vulkan on `llvmpipe (LLVM 23.1.3, 256 bits)`. The helper used Xvfb, lavapipe, software decoding and isolated configuration.
+
+Build and test logs are under `/home/mg/Projects/nodetool-film/build/color-n0/`: `n1-scene-build.log`, `n1-scene-final.log` and `n1-scene-reset.log`. `git diff --check` and a control-byte scan passed. No QML changed. No TypeScript checks, full CTest suite, desktop window or sound was used.
+
+Production FP16 capture still rejects the request with `FP16 working capture requires the N2 delivery boundary`. The new test asserts both the rejection and absence of a byte capture. The hook is absent from production builds. N2 was not started.
+
+The local compositor exit checks now pass on the named software backend. The full corrected N1 plan remains incomplete: the LayerFrame transfer declaration is absent, native vectors have not been reconciled with the shared set, and Color Match still models byte intermediates. A109 belongs to N1 in the corrected plan. Its implementation is not postponed to N2 merely because production capture remains byte-only.
+
+Metal, D3D11/WARP, Windows hardware, OpenGL, FP16 hardware-decode interop, device loss, constrained physical-GPU peaks and release performance remain unverified. This run does not enable FP16 or qualify a release backend. Unsupported-format fallback remains N3 work.
