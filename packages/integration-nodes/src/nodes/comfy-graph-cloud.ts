@@ -103,6 +103,8 @@ export class ComfyCloudGraphNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dict[str, any]"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = [];
 
   @prop({
     type: "list[dict[str, any]]",
