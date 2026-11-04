@@ -3255,7 +3255,8 @@ private slots:
         QTemporaryDir dir;
         const QString a = QStringLiteral(NT_FIXTURES_DIR "/media/numbered-a-1080p30.mp4");
         const QString b = dir.filePath("b.mp4");
-        QVERIFY(QFile::link(a, b));
+        // A Windows QFile::link is a .lnk shortcut, not decodable media.
+        QVERIFY(QFile::copy(a, b));
         QJsonObject json = mediaDoc({{"v1", a, 2000}, {"v2", a, 2000}, {"v3", a, 2000}, {"w1", b, 2000}});
         json.insert("durationMs", 600000);  // room to scroll the clips away
         loadJson(json, {4, 0});

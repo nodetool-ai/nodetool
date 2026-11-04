@@ -9,6 +9,7 @@
 #include "server/ServerClient.h"
 
 #include <QCoreApplication>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QJsonDocument>
 #include <QTest>
@@ -524,6 +525,13 @@ private slots:
         client.setReconnectRefreshDelay([] { return 30; });
         QSignalSpy delays(&client, &ResourceChangeClient::reconnectScheduled);
         QSignalSpy refreshes(&client, &ResourceChangeClient::refreshNeeded);
+        QElapsedTimer elapsed;
+        elapsed.start();
+        QStringList transitions;
+        connect(&client, &ResourceChangeClient::stateChanged, &client, [&] {
+            transitions.append(QString("%1ms state=%2 reason=%3").arg(elapsed.elapsed())
+                .arg(static_cast<int>(client.state())).arg(client.reason()));
+        });
         client.start();
         QTRY_COMPARE_WITH_TIMEOUT(fixture.peers.size(), 1, 1000);
         QTRY_VERIFY_WITH_TIMEOUT(client.connected(), 1000);
@@ -534,7 +542,7 @@ private slots:
         QCOMPARE(delays[0][0].toInt(), first);
         QVERIFY(!client.connected());
         QCOMPARE(client.state(), ResourceChangeClient::State::Reconnecting);
-        QTRY_COMPARE_WITH_TIMEOUT(delays.size(), 2, 1000);
+        QTRY_VERIFY2_WITH_TIMEOUT(delays.size() == 2, qPrintable(transitions.join("; ")), 1000);
         QCOMPARE(delays[1][0].toInt(), second);
         QVERIFY(fixture.server.listen(QHostAddress::LocalHost, port));
         QTRY_COMPARE_WITH_TIMEOUT(fixture.peers.size(), 2, 1000);

@@ -82,6 +82,23 @@ class TestRender2d : public QObject {
                 }
             }
         }
+        if (colored <= 100) {
+            QFont font;
+            font.setFamilies({QStringLiteral("Inter")});
+            font.setPointSizeF(48);
+            QTextLayout layout(QString::fromUtf8("😀"), font);
+            layout.beginLayout();
+            layout.createLine();
+            layout.endLayout();
+            qInfo() << "Emoji pixels" << colored << "platform" << QGuiApplication::platformName()
+                    << "font directory" << qEnvironmentVariable("QT_QPA_FONTDIR");
+            for (const auto& run : layout.glyphRuns()) {
+                const auto raw = run.rawFont();
+                qInfo() << "Emoji fallback" << raw.familyName() << "glyphs" << run.glyphIndexes()
+                        << "CPAL" << raw.fontTable("CPAL").size() << "CBLC" << raw.fontTable("CBLC").size()
+                        << "sbix" << raw.fontTable("sbix").size();
+            }
+        }
         QVERIFY2(colored > 100, "Emoji lost its intrinsic color or was replaced by a missing glyph");
     }
     void fallbackTextMeasurement() {
