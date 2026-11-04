@@ -6,8 +6,10 @@
 #include <memory>
 #include <string>
 #include <vector>
-// winsock2.h must precede windows.h, and iphlpapi.h needs both.
+// winsock2.h must precede windows.h. iphlpapi.h needs both, and declares its
+// IPv6 tables only once ws2tcpip.h has defined IN6_ADDR.
 #include <winsock2.h>
+#include <ws2tcpip.h>
 #include <windows.h>
 #include <iphlpapi.h>
 
