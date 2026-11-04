@@ -349,9 +349,11 @@ function clipName(sequence: TimelineSequence, clipId: string): string {
 /**
  * Composite `timesMs` and return the PNG of each, plus what each layer
  * contributed. Asset bytes are loaded once per asset across all timecodes.
+ * The sharedShaders flag is an A91 qualification seam, not a production default.
  */
 export async function renderTimelineFrames(
-  options: RenderTimelineFramesOptions
+  options: RenderTimelineFramesOptions,
+  sharedShaders = false
 ): Promise<RenderTimelineFramesResult> {
   const { createCanvas } = await loadCanvas();
   const { ensureGoogleFonts } = await import("@nodetool-ai/timeline/fonts/google-node");
@@ -380,6 +382,11 @@ export async function renderTimelineFrames(
     refHeight: animationCanvas.height
   };
 
+  const shared = sharedShaders
+    ? await (await import("./shared-compositor.js")).createSharedPreviewCompositor(
+        width, height, animationCanvas.width, animationCanvas.height)
+    : undefined;
+  try {
   const { unavailable: fontsUnavailable } = await ensureGoogleFonts(sequence);
   const rasterizer = await PreviewRasterizer.create(width, height);
   // Text size, tracking, and wrapping are authored in sequence pixels.
@@ -931,7 +938,9 @@ export async function renderTimelineFrames(
       reportFor.set(drawn, report);
     }
 
-    const drawReport = drawTimelineFrame(ctx, drawLayers, geometry, {
+    const drawReport = shared
+      ? await shared.draw(canvas, drawLayers, drawPrecomposites, drawAdjustments)
+      : drawTimelineFrame(ctx, drawLayers, geometry, {
       maskScratch: scratchFor,
       projectiveSurface: precompositeSurfaceFor,
       effectSurface: precompositeSurfaceFor,
@@ -1114,4 +1123,7 @@ export async function renderTimelineFrames(
     effectsNotApplied: [...effectsNotApplied].sort(),
     fontsUnavailable
   };
+  } finally {
+    shared?.dispose();
+  }
 }
