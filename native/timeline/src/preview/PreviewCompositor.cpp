@@ -274,6 +274,7 @@ private:
     std::unique_ptr<QRhiBuffer> m_blitUbuf;
     std::unique_ptr<QRhiShaderResourceBindings> m_blitSrb;
     std::unique_ptr<QRhiGraphicsPipeline> m_blitPipeline;
+    std::unique_ptr<QRhiGraphicsPipeline> m_presentationPipeline;
     std::unique_ptr<QRhiGraphicsPipeline> m_monitorPipeline;
 
     // Declared before the sources and the pool, so it is destroyed after
@@ -443,6 +444,7 @@ void PreviewCompositorRenderer::initialize(QRhiCommandBuffer*) {
         m_interop.reset();
         m_layerPipeline.reset();
         m_blitPipeline.reset();
+        m_presentationPipeline.reset();
         m_monitorPipeline.reset();
         m_blitSrb.reset();
         m_blitUbuf.reset();
@@ -747,6 +749,10 @@ std::unique_ptr<PreviewCompositorRenderer::Surface> PreviewCompositorRenderer::m
 }
 
 void PreviewCompositorRenderer::ensureBlitPipeline() {
+    if (m_workingFormat == nt::WorkingFormat::Rgba16F && !m_presentationPipeline) {
+        const auto shader = loadShader(QStringLiteral(":/shaders/monitorview.frag.qsb"));
+        m_presentationPipeline = makePipeline(renderTarget()->renderPassDescriptor(), false, false, &shader);
+    }
     if ((m_alphaDisplay || m_transparencyGrid) && !m_monitorPipeline) {
         const auto shader = loadShader(QStringLiteral(":/shaders/monitorview.frag.qsb"));
         m_monitorPipeline = makePipeline(renderTarget()->renderPassDescriptor(), false, false, &shader);
@@ -1672,6 +1678,8 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     LayerUniforms blit{};
     writeMatrix(blit, corr * fit);
     blit.opacity = 1.0f;
+    // Only the final item pass quantizes float working pixels. Capture precedes it.
+    blit.mode = m_workingFormat == nt::WorkingFormat::Rgba16F ? 1.f : 0.f;
     // A Y-up framebuffer (OpenGL) stores the canvas bottom row first.
     blit.flipV = m_rhi->isYUpInFramebuffer() ? 1.0f : 0.0f;
     if (m_alphaDisplay || m_transparencyGrid) {
@@ -1685,7 +1693,8 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     QRhiResourceUpdateBatch* blitUpdates = m_rhi->nextResourceUpdateBatch();
     blitUpdates->updateDynamicBuffer(m_blitUbuf.get(), 0, sizeof(blit), &blit);
     cb->beginPass(renderTarget(), QColor(10, 10, 12, 255), {1.0f, 0}, blitUpdates);
-    cb->setGraphicsPipeline(m_alphaDisplay || m_transparencyGrid ? m_monitorPipeline.get() : m_blitPipeline.get());
+    cb->setGraphicsPipeline(m_workingFormat == nt::WorkingFormat::Rgba16F ? m_presentationPipeline.get()
+        : m_alphaDisplay || m_transparencyGrid ? m_monitorPipeline.get() : m_blitPipeline.get());
     cb->setViewport({0, 0, float(target.width()), float(target.height())});
     cb->setShaderResources(blurred && blurReady && !m_blurComplete && m_previousValid ? m_previousSrb.get() : m_blitSrb.get());
     cb->setVertexInput(0, 1, &vin);

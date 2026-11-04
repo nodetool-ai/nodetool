@@ -573,3 +573,65 @@ passes all 26 cases, but full GL scene/capture qualification belongs to A32.
 Metal CI must build and run `tst_monitorcompositor` and `tst_sceneprecision`
 on the branch after a push. Metal and D3D11 remain unverified locally.
 FP16 stays off by default. No QML changed and nothing was pushed.
+
+## A32 working pixels and presentation
+
+FP16 working storage now uses a separate final presentation pipeline into the
+existing RGBA8 item target. It preserves encoded SDR values and applies a stable
+8x8 Bayer quantizer to RGB after presentation sampling and grid composition.
+It does not change alpha, the alpha diagnostic, working textures or numerical
+capture. Capture still precedes the item blit. The RGBA8 working route retains
+its existing pipeline. No schema, setting, QML, transfer or 10-bit change was
+made. FP16 remains off by default.
+
+The monitor regression measures 220 opaque constant interior patches, each
+covering a complete dither tile after 2:1 presentation resampling. Vulkan/lavapipe
+and OpenGL/llvmpipe both report maximum error **0.990723 code** and maximum
+absolute tile bias **0.00637817 code**. Both meet A88's unchanged limits of
+one code and bias below 0.1. Four paused redraws match exactly. Raw working
+capture retains its expected format and constant patch bytes. Alpha display
+leaves capture unchanged.
+
+The initial test against the HEAD renderer fails the bias assertion at
+0.498535 code. The inherited fixture also included resampled patch boundaries
+and measured 1.0376 codes after dithering. The final fixture uses larger patches
+and measures an interior 8x8 tile, so the constant-patch assertion excludes
+boundary interpolation. No acceptance tolerance was widened.
+
+Default presentation was measured directly with the HEAD production renderer
+rebuilt before restoring A32, then with the final renderer. Four fixed 320x180
+frames at Full/Half/Quarter/Eighth match across **921600 RGBA bytes**, with zero
+differences. The six final FP16-off PNG/MP4 exports at native size, fit downscale
+and fill upscale match the recorded read-only `color-n0/n2-a842-before/` baseline
+across **98756 decoded RGBA bytes**, with zero differences. This enumerated total
+corrects the byte total in the preceding A45.2 entry.
+
+Mesa OpenGL is available headlessly through Xvfb and EGL. The initial GLX route
+failed to create a context. Setting `QT_XCB_GL_INTEGRATION=xcb_egl`,
+`LIBGL_ALWAYS_SOFTWARE=1` and the Mesa EGL vendor file selects llvmpipe.
+The scene observer now normalizes Y-up readback rows before numerical checks.
+The scene suite passes asymmetric typed-capture orientation, exact
+preview/offscreen parity, resolution, mask/outset and capture-isolation checks.
+The monitor suite passes asymmetric presentation orientation and grid checks.
+No orientation pass is inferred from Vulkan alone.
+
+Final targeted Vulkan checks are `tst_monitorcompositor`, `tst_sceneprecision`
+and `export_precision`, through `citest color-n2`. The monitor and scene suites
+also run directly on Mesa OpenGL with isolated configuration. Monitor reports
+28 passes and scene reports 15, with no failures or skips on either backend.
+All direct runs set temporary `XDG_CONFIG_HOME`. Builds use `NT_JOBS=1 ntbuild`.
+No TypeScript checks, full CTest suite or QML checks were run.
+
+Artifacts under `/home/mg/Projects/nodetool-film/build/color-n2` include
+`a32-before/`, `a32-after/`, `a32-presentation-comparison.txt`, `n2-a32-final/`
+and `a32-export-comparison.txt`. Build and test logs are `a32-build-final.log`,
+`a32-final-tests.log`, `a32-gl-monitor-final.log` and `a32-gl-scene.log`.
+The negative baseline run is `a32-before.log`.
+
+A32 is complete on the tested Mesa backends. N2's local functional exit gate is
+met apart from A109 and qualification on other backends. Metal and D3D11/WARP
+remain unverified. After a push, CI must build `nodetool-timeline`,
+`tst_monitorcompositor`, `tst_sceneprecision` and `tst_deliveryframe`, then run
+those three test suites and `export_precision` on each backend, with isolated
+configuration and no skips. Physical GPU, long-run resource and release
+throughput qualification remain outside this result. Nothing was pushed.

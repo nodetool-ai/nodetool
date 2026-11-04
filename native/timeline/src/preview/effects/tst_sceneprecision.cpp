@@ -111,7 +111,7 @@ public:
             size = texture->pixelSize(); storage = texture->format();
             readback = {};
             const bool fp16 = texture->format() == QRhiTexture::RGBA16F;
-            readback.completed = [this, fp16] {
+            readback.completed = [this, fp16, flip = rhi->isYUpInFramebuffer()] {
                 const int count = size.width() * size.height() * 4;
                 if (readback.data.size() != count * (fp16 ? 2 : 1)) { qFatal("unexpected working layout"); }
                 pixels.resize(count);
@@ -121,6 +121,14 @@ public:
                         std::memcpy(&value, readback.data.constData() + i * 2, 2);
                         pixels[i] = float(value);
                     } else { pixels[i] = static_cast<unsigned char>(readback.data[i]) / 255.f; }
+                }
+                if (flip) {
+                    const int row = size.width() * 4;
+                    for (int y = 0; y < size.height() / 2; ++y) {
+                        for (int x = 0; x < row; ++x) {
+                            std::swap(pixels[y * row + x], pixels[(size.height() - 1 - y) * row + x]);
+                        }
+                    }
                 }
             };
             auto* updates = rhi->nextResourceUpdateBatch();
