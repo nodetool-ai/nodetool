@@ -6,13 +6,19 @@
  * `@nodetool-ai/protocol` swaps the whole graph for one
  * {@link ComfyCloudGraphNode}, which compiles it to ComfyUI's API format,
  * submits it to Comfy Cloud through the Comfy API v2 as a single job, and
- * relays the job's live SSE events back to the editor as `node_update` and
+ * relays the job's live events back to the editor as `node_update` and
  * `node_progress` messages addressed to the original node ids. Those travel
  * over the editor's existing WebSocket, so a Comfy workflow lights up node by
  * node like any other run.
+ *
+ * The v2 SSE stream carries job status and outputs, but Comfy Cloud leaves its
+ * `current_node` empty. Per-node state comes from the Cloud WebSocket, which
+ * reports every job of the account, so its frames are filtered by prompt id.
+ * That socket only adds detail: a run without it still finishes and saves.
  */
 
 import { Buffer } from "node:buffer";
+import { randomUUID } from "node:crypto";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
@@ -30,7 +36,9 @@ import {
   cloudTransport,
   describeComfyError,
   jobFailure,
+  extFromUri,
   outputFrame,
+  type ComfyOutput,
   type ComfyPrompt,
   type ComfyTransport
 } from "./comfy-sdk.js";
@@ -81,6 +89,26 @@ export function fetchComfyObjectInfo(
 /** Test hook: forget cached catalogs. */
 export function clearComfyObjectInfoCache(): void {
   objectInfoCache.clear();
+}
+
+/** A JSON frame of Comfy Cloud's account WebSocket. Only the fields read here. */
+export interface ComfyLiveFrame {
+  type?: string;
+  data?: {
+    prompt_id?: string;
+    nodes?:
+      | string[]
+      | Record<
+          string,
+          {
+            node_id?: string;
+            display_node_id?: string;
+            state?: string;
+            value?: number;
+            max?: number;
+          }
+        >;
+  };
 }
 
 const TERMINAL = new Set(["succeeded", "canceled", "failed", "expired"]);
@@ -144,6 +172,76 @@ export class ComfyCloudGraphNode extends BaseNode {
     return fetchComfyObjectInfo(apiKey, { signal });
   }
 
+  /**
+   * Open the account WebSocket and hand each JSON frame to `onFrame`. Returns
+   * the function that closes it. Split out so tests run without a socket. The
+   * URL holds the API key, so it never goes into a log line.
+   */
+  protected openLiveFrames(
+    apiKey: string,
+    onFrame: (frame: ComfyLiveFrame) => void,
+    onUnavailable: () => void
+  ): () => void {
+    const url = new URL("/ws", COMFY_CLOUD_ORIGIN);
+    url.protocol = "wss:";
+    url.searchParams.set("clientId", randomUUID());
+    url.searchParams.set("token", apiKey);
+    const socket = new WebSocket(url);
+    socket.addEventListener("message", (event: MessageEvent<unknown>) => {
+      // Binary frames are preview bitmaps, which the SSE stream also carries.
+      if (typeof event.data !== "string") return;
+      try {
+        onFrame(JSON.parse(event.data) as ComfyLiveFrame);
+      } catch {
+        // A malformed status frame costs one update, not the run.
+      }
+    });
+    socket.addEventListener("error", onUnavailable);
+    return () => socket.close();
+  }
+
+  /**
+   * Save one output file as an asset of the Comfy node that produced it, so it
+   * appears in the assets panel and in that node's history. A failed save keeps
+   * the bytes on the frame: the job has already been paid for.
+   */
+  private async saveOutput(
+    output: ComfyOutput,
+    frame: Record<string, unknown>,
+    context: ProcessingContext | undefined,
+    warn: (content: string) => void
+  ): Promise<Record<string, unknown>> {
+    const [slot, value] = Object.entries(frame)[0] ?? [];
+    const ref = value as { type?: string; data?: string; mimeType?: string } | undefined;
+    if (!slot || !ref?.data || !context?.hasModelInterface?.("createAsset")) {
+      return frame;
+    }
+    try {
+      const created = (await context.createAsset({
+        name: output.name,
+        contentType: output.contentType,
+        content: Buffer.from(ref.data, "base64"),
+        nodeId: output.nodeId,
+        metadata: { output_name: "output" }
+      })) as { id?: unknown };
+      if (typeof created?.id !== "string") return frame;
+      const ext = extFromUri(output.name);
+      return {
+        [slot]: {
+          type: ref.type,
+          uri: `asset://${created.id}${ext ? `.${ext}` : ""}`,
+          asset_id: created.id,
+          mimeType: ref.mimeType
+        }
+      };
+    } catch (err) {
+      warn(
+        `Could not save ${output.name} as an asset: ${err instanceof Error ? err.message : String(err)}`
+      );
+      return frame;
+    }
+  }
+
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const merged: Record<string, unknown> = {};
     for await (const frame of this.genProcess(context)) {
@@ -154,6 +252,18 @@ export class ComfyCloudGraphNode extends BaseNode {
 
   async *genProcess(
     context?: ProcessingContext
+  ): AsyncGenerator<Record<string, unknown>> {
+    const live = { close: (): void => {} };
+    try {
+      yield* this.runJob(context, live);
+    } finally {
+      live.close();
+    }
+  }
+
+  private async *runJob(
+    context: ProcessingContext | undefined,
+    live: { close: () => void }
   ): AsyncGenerator<Record<string, unknown>> {
     const apiKey = this._secrets.COMFY_API_KEY?.trim();
     if (!apiKey) {
@@ -239,6 +349,65 @@ export class ComfyCloudGraphNode extends BaseNode {
     for (const node of graph.nodes) nodeUpdate(node.id, "queued");
     log(`Submitting Comfy workflow to Comfy Cloud (${graph.nodes.length} nodes)`);
 
+    const done = new Set<string>();
+    const finish = (nodeId: string | null): void => {
+      if (!nodeId || done.has(nodeId)) return;
+      done.add(nodeId);
+      nodeUpdate(nodeId, "completed");
+    };
+
+    // Frames can beat the submit response, so they wait for the job id.
+    let liveJobId: string | null = null;
+    let liveSeen = false;
+    const earlyFrames: ComfyLiveFrame[] = [];
+    const lastNodeProgress = new Map<string, number>();
+    const applyLiveFrame = (frame: ComfyLiveFrame): void => {
+      const nodes = frame.data?.nodes;
+      if (frame.type === "execution_cached" && Array.isArray(nodes)) {
+        liveSeen = true;
+        for (const id of nodes) finish(String(id));
+      }
+      if (frame.type !== "progress_state" || !nodes || Array.isArray(nodes)) return;
+      liveSeen = true;
+      for (const [key, state] of Object.entries(nodes)) {
+        const id = state.display_node_id ?? state.node_id ?? key;
+        if (state.state === "finished") {
+          finish(id);
+        } else if (state.state === "running" && !done.has(id)) {
+          nodeUpdate(id, "running");
+          const { value, max } = state;
+          if (
+            typeof value === "number" &&
+            typeof max === "number" &&
+            max > 1 &&
+            lastNodeProgress.get(id) !== value
+          ) {
+            lastNodeProgress.set(id, value);
+            context?.postMessage({
+              type: "node_progress",
+              node_id: id,
+              progress: value,
+              total: max
+            });
+          }
+        }
+      }
+    };
+    try {
+      live.close = this.openLiveFrames(
+        apiKey,
+        (frame) => {
+          const promptId = frame.data?.prompt_id;
+          if (!promptId) return;
+          if (liveJobId === null) earlyFrames.push(frame);
+          else if (promptId === liveJobId) applyLiveFrame(frame);
+        },
+        () => log("Live node status is unavailable for this run", "warning")
+      );
+    } catch {
+      log("Live node status is unavailable for this run", "warning");
+    }
+
     const transport = this.createTransport(apiKey);
     let job;
     try {
@@ -249,6 +418,10 @@ export class ComfyCloudGraphNode extends BaseNode {
       throw error;
     }
     log(`Comfy job ${job.id} submitted`);
+    liveJobId = job.id;
+    for (const frame of earlyFrames.splice(0)) {
+      if (frame.data?.prompt_id === liveJobId) applyLiveFrame(frame);
+    }
 
     const onAbort = (): void => {
       void job.cancel().catch(() => {
@@ -258,22 +431,21 @@ export class ComfyCloudGraphNode extends BaseNode {
     if (signal.aborted) onAbort();
     else signal.addEventListener("abort", onAbort, { once: true });
 
-    const done = new Set<string>();
     let active: string | null = null;
-    const finish = (nodeId: string | null): void => {
-      if (!nodeId || done.has(nodeId)) return;
-      done.add(nodeId);
-      nodeUpdate(nodeId, "completed");
-    };
     const emitted = new Set<string>();
     let fileCount = 0;
     let terminal: string | null = null;
     let runningMarked = false;
 
     const emitOutput = async (
-      output: Parameters<typeof outputFrame>[0]
+      output: ComfyOutput
     ): Promise<Record<string, unknown>> => {
-      const frame = await outputFrame(output, signal);
+      const frame = await this.saveOutput(
+        output,
+        await outputFrame(output, signal),
+        context,
+        (content) => log(content, "warning")
+      );
       const value = Object.values(frame)[0] as
         | { type?: string; data?: string; mimeType?: string }
         | string
@@ -298,10 +470,10 @@ export class ComfyCloudGraphNode extends BaseNode {
                 : `Status: ${event.status} (queue position ${event.queuePosition})`
             );
             if (TERMINAL.has(event.status)) terminal = event.status;
-            // Comfy Cloud does not always name the node it is executing, so
-            // once the job leaves the queue every pending node shows running
-            // until progress names one or the job finishes.
-            if (event.status === "running" && !runningMarked) {
+            // Without the live socket nothing names the executing node, so once
+            // the job leaves the queue every pending node shows running until
+            // progress names one or the job finishes.
+            if (event.status === "running" && !runningMarked && !liveSeen) {
               runningMarked = true;
               for (const node of graph.nodes) {
                 if (!done.has(node.id)) nodeUpdate(node.id, "running");

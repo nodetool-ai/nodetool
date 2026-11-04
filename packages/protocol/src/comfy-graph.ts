@@ -372,7 +372,11 @@ export function comfyEntryToMetadata(
     deprecated: entry.deprecated === true,
     platforms: ["node"]
   };
-  if (primaryOutput) metadata.primary_output = primaryOutput;
+  if (primaryOutput) {
+    metadata.primary_output = primaryOutput;
+    // The runner saves this node's files under its id, so its history reloads.
+    metadata.auto_save_asset = true;
+  }
   return metadata;
 }
 

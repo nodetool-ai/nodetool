@@ -119,6 +119,10 @@ are in [Known limitations](comfyui.md#known-limitations).
 No GPU and no ComfyUI install. `lib.comfy.RunWorkflowOnCloud` submits the same
 API-format prompt to `https://cloud.comfy.org`.
 
+A graph of `comfy.*` nodes also runs there as one job. Each node shows its live
+status from the Comfy Cloud WebSocket, and each `Save*` file becomes an asset of
+the node that saved it.
+
 1. Get a key at [platform.comfy.org](https://platform.comfy.org).
 2. Store it as `COMFY_API_KEY`, either on the Comfy Cloud card in
    **Settings → Models & Providers** or with `nodetool secrets store

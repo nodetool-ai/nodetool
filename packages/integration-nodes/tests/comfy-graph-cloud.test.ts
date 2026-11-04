@@ -5,6 +5,7 @@ import {
   COMFY_NODES,
   ComfyCloudGraphNode,
   type ComfyJob,
+  type ComfyLiveFrame,
   type ComfyOutput,
   type ComfyPrompt,
   type ComfyRunEvent,
@@ -58,6 +59,18 @@ class TestNode extends ComfyCloudGraphNode {
   declare result: ComfyJob;
   protected loadObjectInfo(): Promise<ComfyObjectInfo> {
     return Promise.resolve(INFO);
+  }
+  declare liveFrames: ComfyLiveFrame[];
+  declare liveClosed: boolean;
+  protected openLiveFrames(
+    _apiKey: string,
+    onFrame: (frame: ComfyLiveFrame) => void
+  ): () => void {
+    // Delivered at open, before the submit returns the job id.
+    for (const frame of this.liveFrames ?? []) onFrame(frame);
+    return () => {
+      this.liveClosed = true;
+    };
   }
   protected createTransport(): ComfyTransport {
     return {
@@ -118,6 +131,69 @@ describe("ComfyCloudGraphNode", () => {
       expect.objectContaining({ type: "node_progress", node_id: "make", progress: 2, total: 4 })
     );
     expect(result.output).toMatchObject({ job_id: "job-1", status: "succeeded" });
+  });
+
+  it("lights nodes from Cloud frames of this job only and closes the socket", async () => {
+    const { node, messages, context } = setup(job("succeeded"));
+    const state = (id: string, nodeState: string) => ({
+      [id]: { node_id: id, display_node_id: id, state: nodeState, value: 2, max: 4 }
+    });
+    node.liveFrames = [
+      { type: "progress_state", data: { prompt_id: "other-job", nodes: state("save", "running") } },
+      { type: "progress_state", data: { prompt_id: "job-1", nodes: state("make", "running") } },
+      { type: "progress_state", data: { prompt_id: "job-1", nodes: state("make", "finished") } }
+    ];
+    await node.process(context);
+    const statuses = messages
+      .filter((m) => m.type === "node_update" && m.node_id === "make")
+      .map((m) => m.status);
+    expect(statuses.slice(0, 3)).toEqual(["queued", "running", "completed"]);
+    const save = messages
+      .filter((m) => m.type === "node_update" && m.node_id === "save")
+      .map((m) => m.status);
+    expect(save).not.toContain("running");
+    expect(node.liveClosed).toBe(true);
+  });
+
+  it("saves an output as an asset of the Comfy node that produced it", async () => {
+    const { node, context } = setup(job("succeeded"));
+    const created: Array<Record<string, unknown>> = [];
+    Object.assign(context, {
+      hasModelInterface: () => true,
+      createAsset: async (args: Record<string, unknown>) => {
+        created.push(args);
+        return { id: "a".repeat(32) };
+      }
+    });
+    const result = await node.process(context);
+    expect(created).toHaveLength(1);
+    expect(created[0]).toMatchObject({
+      name: "out.png",
+      contentType: "image/png",
+      nodeId: "save",
+      metadata: { output_name: "output" }
+    });
+    expect(result["save:image"]).toEqual({
+      type: "image",
+      uri: `asset://${"a".repeat(32)}.png`,
+      asset_id: "a".repeat(32),
+      mimeType: "image/png"
+    });
+  });
+
+  it("keeps the bytes when the asset save fails", async () => {
+    const { node, messages, context } = setup(job("succeeded"));
+    Object.assign(context, {
+      hasModelInterface: () => true,
+      createAsset: async () => {
+        throw new Error("disk full");
+      }
+    });
+    const result = await node.process(context);
+    expect(result["save:image"]).toMatchObject({ type: "image", data: expect.any(String) });
+    expect(messages).toContainEqual(
+      expect.objectContaining({ type: "log_update", severity: "warning" })
+    );
   });
 
   it("marks the failing Comfy node", async () => {
