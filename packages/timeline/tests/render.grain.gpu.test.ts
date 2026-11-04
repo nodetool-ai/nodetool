@@ -86,7 +86,7 @@ async function renderFrame(
 ): Promise<Uint8Array> {
   const { getNodeGPUDevice } = await import("@nodetool-ai/gpu/node");
   const device = await getNodeGPUDevice();
-  const compositor = new HeadlessFrameCompositor(device, SIZE, SIZE);
+  const compositor = new HeadlessFrameCompositor(device, SIZE, SIZE, { workingFormat: "rgba8unorm" });
   try {
     return await compositor.renderFrame(layers, [], { alpha });
   } finally {

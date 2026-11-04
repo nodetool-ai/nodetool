@@ -100,6 +100,13 @@ it("qualifies non-neutral effects and blend modes on opaque and transparent edge
   const cases = [
     ...EFFECTS.filter(e => !e.id.endsWith("-defaults")).map(effect => ({ name: effect.id, effects: [effect], blendMode: "normal" as const })),
     ...EFFECTS.filter(e => !e.id.endsWith("-defaults")).map(effect => ({ name: `${effect.id}-extreme`, effects: [extreme(effect)], blendMode: "normal" as const })),
+    ...["normal", "screen", "multiply"].map(blendMode => ({
+      name: `stack-${blendMode}`, blendMode: blendMode as "normal" | "screen" | "multiply",
+      effects: [...EFFECTS.filter(e => ["color-all-channels", "blur", "glow", "curves"].includes(e.id)),
+        // Authored payload from agents/tests/capabilities-timelines-grain.test.ts.
+        { id: "agent-grain", type: "grain" as const, enabled: true, amount: 0.25, size: 2,
+          colorAmount: 0.1, roughness: 0.7, softness: 0.3, seed: 42, animate: true }]
+    })),
     ...BLEND_MODE_TUPLE.map(blendMode => ({ name: `blend-${blendMode}`, effects: [], blendMode }))
   ];
   const clip = makeClip({ mediaType: "video", currentAssetId: "source", durationMs: 1000 });
@@ -111,14 +118,32 @@ it("qualifies non-neutral effects and blend modes on opaque and transparent edge
           const alpha = transparent && foreground ? [0,1,2,128,254,255][Math.floor(y / 8)] : 255;
           rgba.set(foreground ? [[0,1,64,128,254,255][Math.floor(x/8)], 192, 96+y*2, alpha] : [40+y*2,60+x*2,180,255], (y*SIZE+x)*4);
         }
-        return { id: String(index), source: { rgba, width: SIZE, height: SIZE, version: "1" }, zIndex: index, opacity: 1, blendMode: foreground ? test.blendMode : "normal", effects: foreground ? resolveAnalysisEffects(clip, test.effects, 0) : [] };
+        const combined = foreground && test.name.startsWith("stack-");
+        const mask = Uint8Array.from({ length: SIZE * SIZE * 4 }, (_, i) =>
+          i % 4 === 3 && Math.floor(i / 4 / SIZE) >= 8 ? 255 : 0);
+        return { ...(combined ? {
+          shapeMask: { rgba: mask, width: SIZE, height: SIZE },
+          transition: { type: "wipe" as const, role: "incoming" as const, progress: 0.6, opacity: 1,
+            mask: { direction: "left" as const, progress: 0.6, softness: 0 } }
+        } : {}), id: String(index), source: { rgba, width: SIZE, height: SIZE, version: "1" }, zIndex: index, opacity: 1, blendMode: foreground ? test.blendMode : "normal", effects: foreground ? resolveAnalysisEffects(clip, test.effects, 0) : [] };
       });
       const outputs: Uint8Array[] = [];
+      const backgrounds: Uint8Array[] = [];
       let range = { min: 0, max: 0, nonfinite: 0 };
       for (const workingFormat of ["rgba8unorm", "rgba16float"] as const) {
         const compositor = new HeadlessFrameCompositor(device, SIZE, SIZE, { workingFormat });
         try {
           outputs.push(await compositor.renderFrame(layers));
+          if (test.name.startsWith("stack-")) {
+            backgrounds.push(await compositor.renderFrame([layers[0]]));
+            // An omitted effect must change the visible scene. This checks
+            // execution separately from byte/float compatibility.
+            for (const effect of layers[1].effects ?? []) {
+              const without = await compositor.renderFrame([layers[0], { ...layers[1],
+                effects: layers[1].effects?.filter(e => e.id !== effect.id) }]);
+              expect(without.some((v, i) => Math.abs(v - outputs[outputs.length - 1][i]) > 1), effect.id).toBe(true);
+            }
+          }
           if (workingFormat === "rgba16float") {
             const frame = await compositor.renderWorkingFrame(layers);
             if (frame.representation === "rgba16float") {
@@ -129,8 +154,22 @@ it("qualifies non-neutral effects and blend modes on opaque and transparent edge
           }
         } finally { compositor.dispose(); }
       }
+      if (test.name.startsWith("stack-")) {
+        // The hard shape mask excludes the top eight rows irrespective of
+        // colour precision or blur spread. Compare an independent background
+        // render with the same final delivery quantizer.
+        for (const [index, output] of outputs.entries()) for (let y = 0; y < 8; y++) for (let x = 0; x < SIZE; x++) {
+          expect(Array.from(output.slice((y * SIZE + x) * 4, (y * SIZE + x) * 4 + 4)))
+            .toEqual(Array.from(backgrounds[index].slice((y * SIZE + x) * 4, (y * SIZE + x) * 4 + 4)));
+        }
+      }
       const errors = outputs[0].map((v,i) => Math.abs(v-outputs[1][i]));
       const result = { name: test.name, transparent, ...range, maxError: Math.max(...errors), meanError: errors.reduce((a,b) => a+b,0)/errors.length };
+      if (test.name.startsWith("stack-")) {
+        // Local compatibility bound is declared separately from the existing
+        // mean bound. Geometry is checked above against authored mask coverage.
+        expect.soft(result.maxError, JSON.stringify(result)).toBeLessThanOrEqual(4);
+      }
       results.push({ ...result, byte: Array.from(outputs[0]), floatDelivery: Array.from(outputs[1]) });
       expect.soft(range.nonfinite, JSON.stringify(result)).toBe(0);
       expect.soft(range.min, JSON.stringify(result)).toBeGreaterThanOrEqual(0);

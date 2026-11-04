@@ -64,7 +64,7 @@ for (const png of [true, false]) {
   it(`preserves decoded SDR ${png ? "PNG ramps and low alpha" : "H.264 ramps"} through rendering and delivery`, async () => {
     const directory = await mkdtemp(join(tmpdir(), "timeline-color-boundary-"));
     const extension = png ? "png" : "mp4";
-    const renderer = new HeadlessFrameCompositor(await getNodeGPUDevice(), width, height);
+    const renderer = new HeadlessFrameCompositor(await getNodeGPUDevice(), width, height, { workingFormat: "rgba8unorm" });
     try {
       const source = new Uint8Array(width * height * 4);
       for (let y = 0; y < height; y++) {
@@ -149,7 +149,7 @@ function expectedRender(decoded: Uint8Array): Uint8Array {
 }
 
 async function renderDecoded(decoded: Uint8Array, alpha: boolean): Promise<Uint8Array> {
-  const renderer = new HeadlessFrameCompositor(await getNodeGPUDevice(), width, height);
+  const renderer = new HeadlessFrameCompositor(await getNodeGPUDevice(), width, height, { workingFormat: "rgba8unorm" });
   try {
     const rendered = await renderer.renderFrame([{
       id: "route", source: { rgba: decoded, width, height },
