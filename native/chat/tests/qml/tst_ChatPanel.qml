@@ -136,10 +136,9 @@ TestCase {
     }
     function test_structuredPartsRenderThroughCppModel() {
         testDriver.approval("a")
-        wait(80)
-        verify(findText(panel, "test_write") !== null)
-        verify(findText(panel, "Approve") !== null)
-        verify(findText(panel, "Decline") !== null)
+        tryVerify(function() { return findText(panel, "test_write") !== null }, 5000)
+        tryVerify(function() { return findText(panel, "Approve") !== null }, 5000)
+        tryVerify(function() { return findText(panel, "Decline") !== null }, 5000)
     }
     function test_scrollAnchorSurvivesThreadSwitch() {
         testDriver.history("a", 100)
