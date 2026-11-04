@@ -9037,6 +9037,10 @@
           "button": "Opper-API-Schlüssel abrufen",
           "tooltip": "Rufe die Opper-Plattform auf, um deinen API-Schlüssel zu erhalten"
         },
+        "CHEAPER_INFERENCE_API_KEY": {
+          "button": "Cheaper-Inference-API-Schlüssel abrufen",
+          "tooltip": "Rufe Cheaper Inference auf, um deinen API-Schlüssel zu erhalten"
+        },
         "API_ROUTE_API_KEY": {
           "button": "API-Route-Schlüssel abrufen",
           "tooltip": "Zur API-Route-API-Schlüsselseite"

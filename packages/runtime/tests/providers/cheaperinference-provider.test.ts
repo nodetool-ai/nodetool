@@ -48,6 +48,7 @@ describe("CheaperInferenceProvider", () => {
         { id: "gpt-5.4-mini", type: "text" },
         { id: "claude-sonnet-5", type: "text" },
         { id: "gpt-image-1", type: "image" },
+        { id: "untyped-model" },
         { id: "gpt-5.4-mini", type: "text" }
       ])
     );
@@ -77,6 +78,16 @@ describe("CheaperInferenceProvider", () => {
         headers: expect.objectContaining({ Authorization: "Bearer k" })
       })
     );
+  });
+
+  it("returns an empty list when the model fetch throws", async () => {
+    const mockFetch = vi.fn().mockRejectedValue(new Error("network down"));
+    const provider = new CheaperInferenceProvider(
+      { CHEAPER_INFERENCE_API_KEY: "k" },
+      { client: {} as any, fetchFn: mockFetch as unknown as typeof fetch }
+    );
+
+    expect(await provider.getAvailableLanguageModels()).toEqual([]);
   });
 
   it("returns an empty list when the model fetch fails", async () => {
@@ -133,6 +144,8 @@ describe("CheaperInferenceProvider", () => {
       items.push(item);
     }
 
-    expect(items.length).toBeGreaterThanOrEqual(1);
+    expect(items).toContainEqual(
+      expect.objectContaining({ type: "chunk", content: "hello" })
+    );
   });
 });

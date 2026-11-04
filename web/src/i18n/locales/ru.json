@@ -9325,6 +9325,10 @@
           "button": "Получить API-ключ Opper",
           "tooltip": "Перейти на платформу Opper, чтобы получить API-ключ"
         },
+        "CHEAPER_INFERENCE_API_KEY": {
+          "button": "Получить API-ключ Cheaper Inference",
+          "tooltip": "Перейти на Cheaper Inference, чтобы получить API-ключ"
+        },
         "API_ROUTE_API_KEY": {
           "button": "Получить ключ API Route",
           "tooltip": "Перейти на страницу API-ключей API Route"

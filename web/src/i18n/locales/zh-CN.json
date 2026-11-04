@@ -9037,6 +9037,10 @@
           "button": "获取 Opper API 密钥",
           "tooltip": "前往 Opper 平台获取 API 密钥"
         },
+        "CHEAPER_INFERENCE_API_KEY": {
+          "button": "获取 Cheaper Inference API 密钥",
+          "tooltip": "前往 Cheaper Inference 获取 API 密钥"
+        },
         "API_ROUTE_API_KEY": {
           "button": "获取 API Route 密钥",
           "tooltip": "前往 API Route API 密钥页面"
