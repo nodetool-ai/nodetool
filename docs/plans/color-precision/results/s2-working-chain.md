@@ -550,3 +550,84 @@ Changed files in this continuation:
 - `docs/plans/color-precision/results/s2-working-chain.md`
 
 No production source change remains from this continuation.
+
+## A88 final output conversion
+
+A88 is implemented for the shared headless renderer. FP16 delivery resolves
+premultiplied alpha, clamps RGB, and quantizes RGB with native DeliveryFrame's
+8x8 Bayer ranks and `(rank + 0.5) / 64 - 0.5`. Coordinates are final framebuffer
+pixels. Conversion follows scene resampling and motion-sample accumulation.
+Alpha receives no noise. FP16 remains opt-in. The default RGBA8 path retains
+its original resolved WGSL, verified at shader creation, and exact byte output.
+No transfer, linear-light, schema or setting change was made.
+
+### Cause of the previous bias
+
+Neither the matrix nor incomplete tile sampling caused the 0.125-code result.
+The test compared delivery against intended scene values before FP16 storage.
+Both adapters capture the intended 254.75-code patch as 254.62646484375 codes
+before conversion. Its delivered 8x8 mean is 254.625. Storage contributes
+-0.12353515625 code and final conversion contributes -0.00146484375 code.
+The original end-to-end bias is still -0.125 code. This task does not correct
+working-storage rounding or claim an end-to-end bias below 0.1 code.
+
+The conversion oracle now uses the actual raw working input. An independent
+row-major native Bayer matrix checks every delivered RGB pixel. All 64 ranks
+appear once and their offsets sum to exactly zero. Complete opaque tiles must
+still meet maximum error <=1 and absolute mean bias <0.1 code. No tolerance
+was widened. Repeated frames, 1x1-to-8x8 resampling, motion accumulation,
+zero/low alpha and raw-capture stability are covered.
+
+### The three precision assertions
+
+Source-upload versioning, inverse-Levels ramp recovery and intentional
+Posterize levels describe working precision. Delivery dithering exposed
+binary16 values just below integer codes, producing adjacent delivery codes.
+The 1-row ramp also samples only one Bayer row, so its delivery histogram is
+not a working-precision histogram.
+
+These assertions now read owned raw working captures through
+`renderWorkingFrame`, then round to nearest code in the test. Their exact
+expected values remain unchanged: upload colours, 256 recovered ramp codes,
+and Posterize levels [0,85,170,255]. All three pass on both adapters. Raw
+captures preserve binary16 samples, premultiplied alpha and encoded-SDR
+metadata without using the delivery shader or byte target.
+
+### Adapter results
+
+| Adapter | Maximum conversion error, codes | Maximum absolute tile bias, codes | Selected tests |
+|---|---:|---:|---|
+| Lavapipe, llvmpipe Mesa 26.2.5, LLVM 23.1.3 | 0.811279296875 | 0.00537109375 | 367 passed, 6 retained expected failures |
+| NVIDIA RTX 3060, driver 610.57.04 | 0.811279296875 | 0.00537109375 | 353 passed, 14 failed, 6 retained expected failures |
+
+Both selections contain the 21 Vitest files importing frameCompositor,
+including the new delivery file. NVIDIA's failures are the same seven grain
+and seven low-alpha colour-boundary cases documented above. No existing
+failure marker, expected value or tolerance was changed to accommodate them.
+Timeline-only typecheck exited 0. The broader S2 gate remains unmet because
+A28 and the recorded hardware disagreements remain open.
+
+Commands ran from color-s0 after sourcing bin/ntenv, with
+LP_NUM_THREADS=2 and NODETOOL_TEST_WORKERS=1. Both VK_ICD_FILENAMES and
+VK_DRIVER_FILES pointed to /usr/share/vulkan/icd.d/lvp_icd.json for lavapipe.
+NVIDIA used ntenv's NVIDIA selection. Tests used --no-file-parallelism and
+--testTimeout=60000. Typecheck used
+`node scripts/run-tsc.mjs -p packages/timeline/tsconfig.json --noEmit`.
+Logs are under /home/mg/Projects/nodetool-film/tmp/color-s2/:
+`a88-final-lvp.log`, `a88-final-nvidia.log` and `a88-tsc.log`.
+
+Disabling delivery dither made the new Bayer pixel oracle fail on lavapipe
+(exit 1). Restoring the implementation passed both delivery tests (exit 0).
+Logs: `a88-negative-lvp.log` and `a88-restored-lvp.log`.
+
+Browser presentation, native execution, encoded video output and performance
+were not verified. Native files were read only. Not run: test:affected, root
+typecheck, lint, harness gate, /verify or full suites. No push was performed.
+
+Changed files:
+
+- `packages/timeline/src/render/frameCompositor.ts`
+- `packages/timeline/tests/render.delivery.gpu.test.ts`
+- `packages/timeline/tests/render.workingPrecision.gpu.test.ts`
+- `packages/timeline/tests/workingCapture.ts`
+- `docs/plans/color-precision/results/s2-working-chain.md`

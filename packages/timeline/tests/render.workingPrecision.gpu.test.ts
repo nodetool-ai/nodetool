@@ -1,6 +1,7 @@
 import { expect, it, vi } from "vitest";
 import { getNodeGPUDevice } from "@nodetool-ai/gpu/node";
 import { GpuFrameCompositor, HeadlessFrameCompositor, type FrameLayer } from "../src/render/frameCompositor.js";
+import { workingCodes } from "./workingCapture.js";
 
 it("keeps default and explicit RGBA8 byte delivery identical", async () => {
   const device = await getNodeGPUDevice();
@@ -18,19 +19,19 @@ it("keeps default and explicit RGBA8 byte delivery identical", async () => {
 });
 
 
-it("opts into FP16 accumulation and keeps byte delivery and versioned source uploads", async () => {
+it("opts into FP16 accumulation and keeps undithered working values and versioned source uploads", async () => {
   const device = await getNodeGPUDevice();
   const renderer = new HeadlessFrameCompositor(device, 1, 1, { workingFormat: "rgba16float" });
   const layer: FrameLayer = { id: "source", source: { rgba: new Uint8Array([160, 80, 40, 255]), width: 1, height: 1, version: "" }, opacity: 1, blendMode: "normal", zIndex: 0 };
   device.pushErrorScope("validation");
   try {
-    expect(Array.from(await renderer.renderFrame([layer]))).toEqual([160, 80, 40, 255]);
+    expect(Array.from(workingCodes(await renderer.renderWorkingFrame([layer])))).toEqual([160, 80, 40, 255]);
     layer.source = { rgba: new Uint8Array([40, 80, 160, 255]), width: 1, height: 1, version: "next" };
-    expect(Array.from(await renderer.renderFrame([layer]))).toEqual([40, 80, 160, 255]);
+    expect(Array.from(workingCodes(await renderer.renderWorkingFrame([layer])))).toEqual([40, 80, 160, 255]);
     layer.source = { rgba: new Uint8Array([20, 60, 100, 255, 20, 60, 100, 255]), width: 2, height: 1, version: "next" };
-    expect(Array.from(await renderer.renderFrame([layer]))).toEqual([20, 60, 100, 255]);
+    expect(Array.from(workingCodes(await renderer.renderWorkingFrame([layer])))).toEqual([20, 60, 100, 255]);
     layer.crop = { left: 0.5, right: 0, top: 0, bottom: 0 };
-    expect(Array.from(await renderer.renderFrame([layer]))).toEqual([20, 60, 100, 255]);
+    expect(Array.from(workingCodes(await renderer.renderWorkingFrame([layer])))).toEqual([20, 60, 100, 255]);
     expect((await renderer.renderFrame([])).length).toBe(4);
   } finally {
     renderer.dispose();
@@ -116,7 +117,7 @@ it("recovers all ramp codes through inverse Levels in FP16", async () => {
   const half = new HeadlessFrameCompositor(device, 256, 1, { workingFormat: "rgba16float" });
   try {
     const a = await byte.renderFrame([layer]);
-    const b = await half.renderFrame([layer]);
+    const b = workingCodes(await half.renderWorkingFrame([layer]));
     expect(new Set(a.filter((_, i) => i % 4 === 0)).size).toBe(192);
     expect(new Set(b.filter((_, i) => i % 4 === 0)).size).toBe(256);
     expect(Math.max(...b.map((v, i) => Math.abs(v - rgba[i])))).toBeLessThanOrEqual(1);
@@ -260,11 +261,11 @@ it("preserves intentional Posterize quantization in FP16", async () => {
   for (let x = 0; x < 256; x++) rgba.set([x, x, x, 255], x * 4);
   const renderer = new HeadlessFrameCompositor(device, 256, 1, { workingFormat: "rgba16float" });
   try {
-    const result = await renderer.renderFrame([{
+    const result = workingCodes(await renderer.renderWorkingFrame([{
       id: "posterize", source: { rgba, width: 256, height: 1 },
       opacity: 1, blendMode: "normal", zIndex: 0,
       effects: [{ id: "p", type: "posterize", enabled: true, levels: 4 }]
-    }]);
+    }]));
     expect([...new Set(result.filter((_, i) => i % 4 === 0))].sort((a, b) => a - b)).toEqual([0, 85, 170, 255]);
   } finally { renderer.dispose(); }
 });

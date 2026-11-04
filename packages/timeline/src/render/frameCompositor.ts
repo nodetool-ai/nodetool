@@ -1723,9 +1723,11 @@ export class HeadlessFrameCompositor {
   /** Shared straight-alpha resolve target and pipeline for both render paths. */
   private resolveTarget: GPUTexture | null = null;
   private resolvePipeline: GPURenderPipeline | null = null;
+  private readonly ditherDelivery: boolean;
 
   constructor(device: GPUDevice, width: number, height: number, options: WorkingPrecisionOptions = {}) {
     this.device = device;
+    this.ditherDelivery = options.workingFormat === "rgba16float";
     this.width = Math.max(1, Math.floor(width));
     this.height = Math.max(1, Math.floor(height));
     const layout = frameReadbackLayout(this.width, this.height, "rgba8unorm");
@@ -1818,6 +1820,39 @@ export class HeadlessFrameCompositor {
     this.device.queue.submit([encoder.finish()]);
 
     return this.readMapped(readback);
+  }
+
+  /** Capture owned, tightly packed working samples before alpha resolve or delivery. */
+  async renderWorkingFrame(
+    layers: FrameLayer[],
+    precomposites: readonly FramePrecomposite[] = [],
+    options: HeadlessRenderFrameOptions = {},
+    adjustments: readonly FrameAdjustment[] = []
+  ): Promise<WorkingFrame> {
+    const { frame } = this.compositor.composite(
+      layers, precomposites,
+      { r: 0, g: 0, b: 0, a: options.alpha ? 0 : 1 }, adjustments
+    );
+    if (frame.representation !== "gpu-texture") {
+      throw new Error("Compositor must return a GPU working frame");
+    }
+    const { format, texture, width, height, alpha, interpretation } = frame;
+    const layout = frameReadbackLayout(width, height, format);
+    const buffer = this.device.createBuffer({
+      size: layout.byteLength, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+    });
+    try {
+      const encoder = this.device.createCommandEncoder();
+      encoder.copyTextureToBuffer({ texture }, { buffer, bytesPerRow: layout.bytesPerRow }, { width, height });
+      this.device.queue.submit([encoder.finish()]);
+      await buffer.mapAsync(GPUMapMode.READ);
+      const metadata = { width, height, alpha, interpretation, bytesPerRow: layout.rowBytes };
+      return format === "rgba16float"
+        ? { ...metadata, representation: format, data: copyWorkingRows(buffer.getMappedRange(), width, height, format) }
+        : { ...metadata, representation: format, data: copyWorkingRows(buffer.getMappedRange(), width, height, format) };
+    } finally {
+      buffer.destroy();
+    }
   }
 
   /**
@@ -2027,7 +2062,7 @@ export class HeadlessFrameCompositor {
     if (!this.resolvePipeline) {
       const module = this.device.createShaderModule({
         label: "timeline-headless-resolve",
-        code: `${FULLSCREEN_QUAD_VERTEX}\n${UNPREMULTIPLY_FRAGMENT}`
+        code: `${FULLSCREEN_QUAD_VERTEX}\n${this.ditherDelivery ? DITHERED_DELIVERY_FRAGMENT : UNPREMULTIPLY_FRAGMENT}`
       });
       this.resolvePipeline = this.device.createRenderPipeline({
         label: "timeline-headless-resolve",
@@ -2134,3 +2169,20 @@ function dipColorBytes(color: string): { r: number; g: number; b: number } {
     b: Math.round(b * 255)
   };
 }
+
+// Delivery coordinates follow all scene resampling. Working captures use neither
+// this shader nor its byte target. Match native DeliveryFrame's centered tile.
+const DITHERED_DELIVERY_FRAGMENT = UNPREMULTIPLY_FRAGMENT.replace(
+  "@location(0) uv: vec2f)", "@location(0) uv: vec2f, @builtin(position) position: vec4f)"
+).replace(
+  "return vec4f(c.rgb / c.a, c.a);",
+  `var rank = 0u;
+  for (var bit = 0u; bit < 3u; bit++) {
+    let a = (u32(position.x) >> bit) & 1u;
+    let b = (u32(position.y) >> bit) & 1u;
+    rank |= ((a ^ b) * 2u + b) << (4u - bit * 2u);
+  }
+  let noise = (f32(rank) + 0.5) / 64.0 - 0.5;
+  let rgb = clamp(c.rgb / c.a, vec3f(0.0), vec3f(1.0));
+  return vec4f(floor(rgb * 255.0 + noise + 0.5) / 255.0, c.a);`
+);
