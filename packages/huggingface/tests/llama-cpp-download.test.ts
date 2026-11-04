@@ -7,9 +7,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { getLlamaCppCacheDir } from "@nodetool-ai/config";
 import {
   downloadLlamaCppModel,
-  getLlamaCppCacheDir,
   getLlamaCppModelFilename
 } from "../src/llama-cpp-download.js";
 

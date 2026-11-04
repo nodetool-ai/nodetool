@@ -34,7 +34,7 @@ import type {
   WorkflowVersion as WorkflowVersionModel
 } from "@nodetool-ai/models";
 import { loadPythonPackageMetadata, type NodeRegistry } from "@nodetool-ai/node-sdk";
-import { scanExampleNeeds } from "@nodetool-ai/protocol";
+import { isComfyNodeType, scanExampleNeeds } from "@nodetool-ai/protocol";
 import { workflowToScript } from "@nodetool-ai/dsl";
 import { createLogger } from "@nodetool-ai/config";
 import {
@@ -328,6 +328,7 @@ interface ExampleMetadata {
   name: string;
   description?: string;
   tags?: string[];
+  run_mode?: string;
 }
 
 function buildExamplesFromDir(
@@ -388,13 +389,15 @@ function buildExamplesFromDir(
           ? parsed.package_name
           : null,
         path: null,
-        run_mode: null,
+        run_mode: isString(parsed.run_mode) ? parsed.run_mode : null,
         workspace_id: null,
         required_providers: null,
         required_models: null,
         needs: scanExampleNeeds(
           parsed.graph,
-          (nodeType) => registry?.getMetadata(nodeType)?.required_settings
+          (nodeType) => isComfyNodeType(nodeType)
+            ? ["COMFY_API_KEY"]
+            : registry?.getMetadata(nodeType)?.required_settings
         ),
         html_app: null,
         app_doc: null,
@@ -448,7 +451,7 @@ function buildExampleWorkflows(apiOptions: {
         settings: null,
         package_name: pkg.name,
         path: null,
-        run_mode: null,
+        run_mode: meta.run_mode ?? null,
         workspace_id: null,
         required_providers: null,
         required_models: null,

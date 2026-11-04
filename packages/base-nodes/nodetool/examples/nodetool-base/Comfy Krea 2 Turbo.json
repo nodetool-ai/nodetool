@@ -1,0 +1,641 @@
+{
+  "id": "acd44603d3ba04a6c42b4a72d38bf876",
+  "name": "Comfy Krea 2 Turbo",
+  "description": "Generate an image on Comfy Cloud with the official Krea 2 Turbo template. Requires COMFY_API_KEY and model availability on Comfy Cloud.",
+  "tags": [
+    "comfy",
+    "image",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Krea 2 Turbo\n\nGenerate an image on Comfy Cloud with the official Krea 2 Turbo template. Requires COMFY_API_KEY and model availability on Comfy Cloud.\n\n**How it works:** The Comfy nodes form the complete Krea 2 Turbo graph. Run submits the graph to Comfy Cloud and saves its generated image.\n\n**Try this:** Change value on Text String (User Prompt) and run again to compare results. Edit the visible nodes to change settings.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/benchmarks/image_krea2_turbo_t2i_int8.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "29",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "Krea2_turbo"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3740,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "49",
+        "type": "comfy.ResolutionSelector",
+        "data": {
+          "aspect_ratio": "1:1 (Square)",
+          "megapixels": 1,
+          "multiple": 8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Resolution Selector"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30_6",
+        "type": "comfy.CLIPTextEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30_5",
+        "type": "comfy.EmptyLatentImage",
+        "data": {
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Empty Latent Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30_3",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 45862206397178,
+          "steps": 8,
+          "cfg": 1,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3060,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30_8",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 3400,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30_10",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "krea2_turbo_int8_convrot.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30_11",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen3vl_4b_fp8_scaled.safetensors",
+          "type": "krea2",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30_12",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "qwen_image_vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30_13",
+        "type": "comfy.ConditioningZeroOut",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Conditioning Zero Out"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30_15",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "krea2_darkbrush.safetensors",
+          "strength_model": 0.8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30_16",
+        "type": "comfy.TextGenerate",
+        "data": {
+          "max_length": 512,
+          "sampling_mode": "on",
+          "sampling_mode.temperature": 0.7,
+          "sampling_mode.top_k": 64,
+          "sampling_mode.top_p": 0.95,
+          "sampling_mode.min_p": 0.05,
+          "sampling_mode.repetition_penalty": 1.05,
+          "sampling_mode.seed": 0,
+          "sampling_mode.presence_penalty": 0,
+          "thinking": false,
+          "use_default_template": true,
+          "mtp": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Generate Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30_17",
+        "type": "comfy.StringConcatenate",
+        "data": {
+          "delimiter": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Concatenate Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30_18",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "You are an expert prompt engineer for text-to-image models. Your task is to expand the user's prompt into a highly effective image-generation prompt.\n\nThink step by step about the request before writing the answer:\n- What is the subject and mood?\n- What visual styles, mediums, and lighting options would fit? Consider two or three alternatives and pick the one that best serves the caption.\n- What composition, framing, and grounded details will help the text-to-image model?\n\nThen output a single expanded prompt paragraph.\n\nFollow these rules strictly:\n1. **Faithfulness First:** Preserve all original subjects, actions, colors, and spatial relationships. Do not add new objects, props, characters, or animals unless the user clearly implies them.\n2. **Practical T2I Structure:** Write a prompt that a text-to-image model can parse cleanly. Group subjects with their own attributes and actions. Use grounded phrasing for poses, interactions, and spatial layout.\n3. **Style Planning Stays Internal:** Use your internal reasoning to choose style, medium, framing, and lighting. Do not emit planning tags or wrappers in the visible answer body.\n4. **Text Rendering:** If the user requests visible text, quotes, labels, or typography, specify the exact text clearly and wrap requested words in quotes.\n5. **Avoid Over-Specification:** Do not invent highly specific clothing, colors, materials, or scene details unless the input supports them.\n6. **Structure:** Write one cohesive paragraph after the thinking block. No bullets, JSON, or markdown.\n7. **Respect Existing Detail:** If the user's prompt is already detailed, lightly polish and finalize rather than heavily expanding — preserve their phrasing and direction.\n8. **Respect the Human Form:** Treat depictions of people with dignity. Assume clothing covers genitals and intimate anatomy.\n9. **Preserve User Medium:** When the user explicitly requests a medium (e.g. \"photo of\", \"photograph of\", \"illustration of\", \"painting of\", \"sketch of\", \"3D render of\"), honor it. Do not pivot to a different medium to avoid difficulty — match the user's stated intent.\n\nUser's Input:\n\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Text String (System Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30_19",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "Ultra low angle action shot, male soccer player jumping mid-air high kick, clear vivid blue sky background, forced perspective blurry foreground cleat (white & electric yellow), sharp focused upper body, maroon jersey + white shorts, fully outstretched leg striking a standard soccer ball, harsh direct sunlight, heavy dark shadows, stadium poles & treetops at frame bottom, high contrast sports photography, visible coarse film grain, dynamic movement"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Text String (User Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30_20",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30_21",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "If/Else Switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30_22",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Switch (Model)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30_23",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Boolean (Enable LoRA?)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30_24",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "Boolean (Refine Prompt?)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30_27",
+        "type": "comfy.StringConcatenate",
+        "data": {
+          "string_b": "muted minimalist sketch style",
+          "delimiter": ", "
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Concatenate Text (LoRA Trigger Word)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30_28",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "If/Else Switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "30_8-0-29-images",
+        "source": "30_8",
+        "sourceHandle": "IMAGE",
+        "target": "29",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "30_28-0-30_6-text",
+        "source": "30_28",
+        "sourceHandle": "output",
+        "target": "30_6",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "30_11-0-30_6-clip",
+        "source": "30_11",
+        "sourceHandle": "CLIP",
+        "target": "30_6",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "49-0-30_5-width",
+        "source": "49",
+        "sourceHandle": "width",
+        "target": "30_5",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "49-1-30_5-height",
+        "source": "49",
+        "sourceHandle": "height",
+        "target": "30_5",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "30_22-0-30_3-model",
+        "source": "30_22",
+        "sourceHandle": "output",
+        "target": "30_3",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "30_6-0-30_3-positive",
+        "source": "30_6",
+        "sourceHandle": "CONDITIONING",
+        "target": "30_3",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "30_13-0-30_3-negative",
+        "source": "30_13",
+        "sourceHandle": "CONDITIONING",
+        "target": "30_3",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "30_5-0-30_3-latent_image",
+        "source": "30_5",
+        "sourceHandle": "LATENT",
+        "target": "30_3",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "30_3-0-30_8-samples",
+        "source": "30_3",
+        "sourceHandle": "LATENT",
+        "target": "30_8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "30_12-0-30_8-vae",
+        "source": "30_12",
+        "sourceHandle": "VAE",
+        "target": "30_8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "30_6-0-30_13-conditioning",
+        "source": "30_6",
+        "sourceHandle": "CONDITIONING",
+        "target": "30_13",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "30_10-0-30_15-model",
+        "source": "30_10",
+        "sourceHandle": "MODEL",
+        "target": "30_15",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "30_17-0-30_16-prompt",
+        "source": "30_17",
+        "sourceHandle": "STRING",
+        "target": "30_16",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "30_11-0-30_16-clip",
+        "source": "30_11",
+        "sourceHandle": "CLIP",
+        "target": "30_16",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "30_18-0-30_17-string_a",
+        "source": "30_18",
+        "sourceHandle": "STRING",
+        "target": "30_17",
+        "targetHandle": "string_a",
+        "ui_properties": null
+      },
+      {
+        "id": "30_19-0-30_17-string_b",
+        "source": "30_19",
+        "sourceHandle": "STRING",
+        "target": "30_17",
+        "targetHandle": "string_b",
+        "ui_properties": null
+      },
+      {
+        "id": "30_21-0-30_20-source",
+        "source": "30_21",
+        "sourceHandle": "output",
+        "target": "30_20",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "30_24-0-30_21-switch",
+        "source": "30_24",
+        "sourceHandle": "BOOLEAN",
+        "target": "30_21",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "30_19-0-30_21-on_false",
+        "source": "30_19",
+        "sourceHandle": "STRING",
+        "target": "30_21",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "30_16-0-30_21-on_true",
+        "source": "30_16",
+        "sourceHandle": "generated_text",
+        "target": "30_21",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "30_23-0-30_22-switch",
+        "source": "30_23",
+        "sourceHandle": "BOOLEAN",
+        "target": "30_22",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "30_10-0-30_22-on_false",
+        "source": "30_10",
+        "sourceHandle": "MODEL",
+        "target": "30_22",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "30_15-0-30_22-on_true",
+        "source": "30_15",
+        "sourceHandle": "MODEL",
+        "target": "30_22",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "30_20-0-30_27-string_a",
+        "source": "30_20",
+        "sourceHandle": "STRING",
+        "target": "30_27",
+        "targetHandle": "string_a",
+        "ui_properties": null
+      },
+      {
+        "id": "30_23-0-30_28-switch",
+        "source": "30_23",
+        "sourceHandle": "BOOLEAN",
+        "target": "30_28",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "30_20-0-30_28-on_false",
+        "source": "30_20",
+        "sourceHandle": "STRING",
+        "target": "30_28",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "30_27-0-30_28-on_true",
+        "source": "30_27",
+        "sourceHandle": "STRING",
+        "target": "30_28",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      }
+    ]
+  }
+}

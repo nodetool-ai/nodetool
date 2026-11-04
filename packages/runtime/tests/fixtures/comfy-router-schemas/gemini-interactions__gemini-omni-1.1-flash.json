@@ -1,0 +1,272 @@
+{
+ "components": {
+  "schemas": {
+   "GeminiInteraction": {
+    "additionalProperties": true,
+    "description": "A Gemini Interactions API resource. Most fields pass through; the proxy reads `status` and `usage` for billing.",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "model": {
+      "type": "string"
+     },
+     "object": {
+      "type": "string"
+     },
+     "status": {
+      "description": "One of `in_progress`, `requires_action`, `completed`, `failed`, `cancelled`, `incomplete`, `budget_exceeded`.",
+      "type": "string"
+     },
+     "steps": {
+      "description": "Interaction history (user input, thoughts, model outputs with inline media)."
+     },
+     "usage": {
+      "$ref": "#/components/schemas/GeminiInteractionUsage"
+     }
+    },
+    "type": "object"
+   },
+   "GeminiInteractionModalityTokens": {
+    "description": "Token count for one modality.",
+    "properties": {
+     "modality": {
+      "description": "One of `text`, `image`, `audio`, `video`, `document`.",
+      "type": "string"
+     },
+     "tokens": {
+      "type": "integer"
+     }
+    },
+    "type": "object"
+   },
+   "GeminiInteractionUsage": {
+    "additionalProperties": true,
+    "description": "Token usage for a Gemini interaction.",
+    "properties": {
+     "input_tokens_by_modality": {
+      "items": {
+       "$ref": "#/components/schemas/GeminiInteractionModalityTokens"
+      },
+      "type": "array"
+     },
+     "output_tokens_by_modality": {
+      "items": {
+       "$ref": "#/components/schemas/GeminiInteractionModalityTokens"
+      },
+      "type": "array"
+     },
+     "total_cached_tokens": {
+      "type": "integer"
+     },
+     "total_input_tokens": {
+      "type": "integer"
+     },
+     "total_output_tokens": {
+      "type": "integer"
+     },
+     "total_thought_tokens": {
+      "type": "integer"
+     },
+     "total_tokens": {
+      "type": "integer"
+     }
+    },
+    "type": "object"
+   }
+  },
+  "securitySchemes": {
+   "ApiKeyAuth": {
+    "in": "header",
+    "name": "X-API-Key",
+    "type": "apiKey"
+   },
+   "BearerAuth": {
+    "bearerFormat": "JWT",
+    "scheme": "bearer",
+    "type": "http"
+   }
+  }
+ },
+ "info": {
+  "description": "The request body Comfy Router accepts for the model \"gemini-interactions/gemini-omni-1.1-flash\", and the response body it returns. The INPUT schema is the same schema the server validates a call against before it reaches the provider, so what is published and what is enforced cannot differ. `x-comfy-router-input-modalities` records the media kinds the model is documented to accept; the request schema is shared across sibling models and may admit media kinds this model ignores. The OUTPUT schema describes the provider's native result document exactly as Router returns it: Router does not validate, narrow or re-envelope the response, so the output schema is descriptive rather than enforced, and Comfy owns no output shape of its own.",
+  "title": "gemini-interactions/gemini-omni-1.1-flash",
+  "version": "eab6c2ee2a38"
+ },
+ "openapi": "3.0.2",
+ "paths": {
+  "/v2/models/gemini-interactions/gemini-omni-1.1-flash": {
+   "post": {
+    "operationId": "runRouterModel",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "additionalProperties": true,
+        "description": "The Gemini Interactions fields, shared by the v1 `POST /proxy/gemini-interactions` request body and the Comfy Router input schema for the `gemini-interactions/*` models. Mirrors the upstream `/v1beta/interactions` schema with strict typing only on the fields the proxy reads (model, `input` for prompt extraction); all other fields (`response_format`, `generation_config`, `store`, `safety_settings`, ...) pass through unchanged via `additionalProperties`. TWO EXCEPTIONS, refused rather than forwarded: `background` and `stream`. Both are honoured by Google and both produce a 2xx this proxy cannot meter \u2014 `background: true` answers a queued `in_progress` document carrying no `usage`, whose finished generation is only ever reachable through `GET /proxy/gemini-interactions/{id}`, which meters nothing; `stream: true` answers a `text/event-stream` the billing path cannot decode. Naming either with a value other than `false` or `null` is a 400; omitting them, or sending them false/null, is the synchronous request this surface serves. On the Comfy Router route `POST /v2/models/gemini-interactions/{model}` both fields are settled to `false` before dispatch (routerSettledBoolFields) rather than refused. `required` here is the ROUTER-SAFE floor: `model` is absent from it because Router writes the path's model into the body after routervalidate.Guard has already validated the caller's bytes; the v1 wrapper `GeminiInteractionRequest` re-adds it.",
+        "example": {
+         "input": "Reply with the single word: ok",
+         "stream": false
+        },
+        "properties": {
+         "input": {
+          "description": "Either a prompt string or an array of typed content parts (text, image, audio, video, document)."
+         },
+         "model": {
+          "description": "Gemini model identifier: `gemini-omni-1.1-flash` (generally available), or the deprecated `gemini-omni-flash-preview`. On the Comfy Router route `POST /v2/models/gemini-interactions/{model}` it is supplied from the path and may be omitted. Those two spellings \u2014 the set Comfy Router addresses as `gemini-interactions/<model>` \u2014 are the ones this operation serves (supportedGeminiInteractionModels); they are written out here rather than constrained to an enum, because the proxy validates the model itself and answers its own 400 for a spelling it does not serve.",
+          "nullable": true,
+          "type": "string"
+         },
+         "previous_interaction_id": {
+          "description": "ID of a prior stored interaction, enabling stateful multi-turn video editing.",
+          "type": "string"
+         }
+        },
+        "required": [
+         "input"
+        ],
+        "type": "object"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "allOf": [
+          {
+           "$ref": "#/components/schemas/GeminiInteraction"
+          },
+          {
+           "properties": {
+            "status": {
+             "description": "Always `completed` on a Router response. The provider's other statuses (`in_progress`, `requires_action`, `failed`, `cancelled`, `incomplete`, `budget_exceeded`) do not reach a caller through Router as a 200; they are returned as a Comfy Router error carrying the provider's body.",
+             "enum": [
+              "completed"
+             ],
+             "type": "string"
+            },
+            "steps": {
+             "description": "The interaction timeline, in order. Narrowed here from the untyped `steps` on `GeminiInteraction` so the output leaf is addressable; the provider keeps adding step types, so an item is `additionalProperties: true` and only the fields a Router caller reads are declared.",
+             "items": {
+              "additionalProperties": true,
+              "properties": {
+               "content": {
+                "description": "The typed content blocks of this step.",
+                "items": {
+                 "additionalProperties": true,
+                 "properties": {
+                  "data": {
+                   "description": "Base64-encoded inline media, on a media block delivered inline. Google caps inline media at 4 MB and requires `delivery: uri` above it.",
+                   "type": "string"
+                  },
+                  "mime_type": {
+                   "description": "Media type of `data` or `uri`, on a media block.",
+                   "type": "string"
+                  },
+                  "text": {
+                   "description": "The generated text. Present on a `text` block, and this is the leaf the nightly Router SDK case asserts \u2014 on a `model_output` step specifically (`steps[type=model_output].content[].text`).",
+                   "type": "string"
+                  },
+                  "type": {
+                   "description": "Block kind \u2014 `text`, `image`, `audio`, `video` or `document`.",
+                   "type": "string"
+                  },
+                  "uri": {
+                   "description": "Reference to media delivered out of band, fetched by the caller from the URI it names.",
+                   "type": "string"
+                  }
+                 },
+                 "type": "object"
+                },
+                "type": "array"
+               },
+               "type": {
+                "description": "Step kind. `model_output` is the generated answer; `user_input` is the caller's own turn echoed back by the retrieval route; `thought` is internal reasoning. The tool steps (`function_call`, `function_result`, `code_execution_call`, `google_search_call`, ...) are open-ended and Google adds to them.",
+                "type": "string"
+               }
+              },
+              "type": "object"
+             },
+             "type": "array"
+            }
+           },
+           "required": [
+            "status",
+            "steps"
+           ],
+           "type": "object"
+          }
+         ],
+         "description": "Comfy Router output schema for the Gemini Interactions omni models: the `POST /v1beta/interactions` response document, forwarded unchanged. The operation is direct-return \u2014 one call answers with the finished document, and Router never continues the interaction on the caller's behalf. Driving an interaction across turns is the caller's own business against the Gemini Interactions proxy routes.\nThe generated text is at `steps[].content[].text`, under a step whose `type` is `model_output`. `steps` is the interaction timeline: each step carries a `type` discriminator (`model_output`, `user_input`, `thought`, the `*_call`/`*_result` tool steps) and, for the output steps, a `content` array of typed blocks \u2014 `text` blocks carry `text`, and the media blocks carry `data` (base64) or `uri` plus `mime_type`. A Router call answers with the model's output steps only; a caller that reads an interaction back over the proxy's own retrieval route gets the whole timeline, user input included, and must select on `type: model_output` rather than assume the first step is the answer. Field names follow Google's current reference: the pre-May-2026 `outputs[]` array this family used to answer with was removed on 2026-06-08 and is NOT part of this contract.\n`status` is the caller's completion key, and it is the only one. Router pins it: a document is answered to a Router caller ONLY for `status: completed`, which is why this schema requires that value. `in_progress` and `requires_action` \u2014 a queued handle shaped like a result \u2014 and every other terminal status (`failed`, `cancelled`, `incomplete`, `budget_exceeded`, or one Comfy does not recognise) are surfaced as a Comfy Router error carrying the provider's untouched body, not as a 200. On a captured, non-streamed response an `in_progress` is a FAILURE of this contract, not a partial success.\nTwo request fields are accepted and ignored rather than honoured: `stream` and `background` are both forwarded to the provider as false, so a Router call always resolves to one captured, synchronous document. Sending either as true is not an error and does not change the result.\n`usage` is Google's own per-modality token accounting \u2014 Google's numbers, not the Comfy charge. Note that the presence of `usage` is what makes a call billable: a document that reports usage is metered even when its `status` is a refusal such as `failed` or `incomplete`, because the model ran and consumed tokens. A call that reports no `usage` is not metered. Media returned with `delivery: uri` is referenced by URI; Router returns the referencing document and does not relay the fetch, so retrieving the asset is the caller's.",
+         "example": {
+          "id": "interactions/3f6c1a90-2b47-4d18-9a55-7c0e8b21d4f3",
+          "object": "interaction",
+          "status": "completed",
+          "steps": [
+           {
+            "content": [
+             {
+              "text": "ok",
+              "type": "text"
+             }
+            ],
+            "type": "model_output"
+           }
+          ],
+          "usage": {
+           "input_tokens_by_modality": [
+            {
+             "modality": "text",
+             "tokens": 9
+            }
+           ],
+           "output_tokens_by_modality": [
+            {
+             "modality": "text",
+             "tokens": 2
+            }
+           ],
+           "total_cached_tokens": 0,
+           "total_input_tokens": 9,
+           "total_output_tokens": 2,
+           "total_thought_tokens": 0,
+           "total_tokens": 11
+          }
+         }
+        }
+       }
+      },
+      "description": "OK - the model's native JSON output, returned unchanged; the schema describes the provider's terminal result document as Router returns it."
+     }
+    },
+    "security": [
+     {
+      "BearerAuth": []
+     },
+     {
+      "ApiKeyAuth": []
+     }
+    ],
+    "summary": "Run gemini-interactions/gemini-omni-1.1-flash synchronously."
+   }
+  }
+ },
+ "x-comfy-input-schema-authored": true,
+ "x-comfy-output-schema-authored": true,
+ "x-comfy-router-input-modalities": [
+  "text",
+  "image",
+  "audio",
+  "video"
+ ],
+ "x-comfy-router-model-id": "gemini-interactions/gemini-omni-1.1-flash",
+ "x-comfy-router-output-modalities": [
+  "text",
+  "image",
+  "audio"
+ ]
+}

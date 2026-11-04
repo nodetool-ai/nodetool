@@ -52,6 +52,9 @@ const visuallyHidden = {
 /** Below this bar width the save status keeps only its dot. */
 const COMPACT_BAR_WIDTH = 640;
 
+/** Below this bar width the title gets a row of its own. */
+const WRAPPING_BAR_WIDTH = 480;
+
 export interface DocumentBarProps {
   /** The document name. */
   title: string;
@@ -105,11 +108,27 @@ const DocumentBarInternal: React.FC<DocumentBarProps> = ({
       sx={{
         flexShrink: 0,
         gap: SPACING.md,
+        // A narrow bar (a phone, a split pane) moves whole slots onto a
+        // second row instead of squeezing them until they overlap.
+        flexWrap: "wrap",
+        rowGap: SPACING.xs,
+        py: SPACING.xs,
         containerType: "inline-size",
+        // A button label never breaks over two lines inside the row.
+        "& .MuiButton-root": { whiteSpace: "nowrap" },
         // Under the compact width the save status keeps its dot and its
         // label stays readable to screen readers only.
         [`@container (max-width: ${COMPACT_BAR_WIDTH}px)`]: {
           "& .document-bar-status .save-state-label": visuallyHidden
+        },
+        // On a phone the title takes the first row and the slots follow on
+        // the next, so a long title never squeezes them. A rule would hang at
+        // the end or the start of a wrapped row; the gap alone separates the
+        // groups there.
+        [`@container (max-width: ${WRAPPING_BAR_WIDTH}px)`]: {
+          columnGap: SPACING.sm,
+          "& > .document-bar-identity": { flexBasis: "100%" },
+          "& > .document-bar-divider": { display: "none" }
         }
       }}
     >
@@ -146,13 +165,15 @@ const DocumentBarInternal: React.FC<DocumentBarProps> = ({
       </Box>
       {tools.map((slot, index) => (
         <React.Fragment key={index}>
-          <ToolbarDivider />
-          <ToolbarGroup>{slot}</ToolbarGroup>
+          <ToolbarDivider className="document-bar-divider" />
+          <ToolbarGroup sx={{ flexShrink: 0 }}>{slot}</ToolbarGroup>
         </React.Fragment>
       ))}
-      <Box sx={{ flex: 1, minWidth: 0 }} />
       {actions && (
-        <ToolbarGroup className="document-bar-actions" sx={{ gap: SPACING.sm }}>
+        <ToolbarGroup
+          className="document-bar-actions"
+          sx={{ gap: SPACING.sm, flexShrink: 0, ml: "auto" }}
+        >
           {actions}
         </ToolbarGroup>
       )}

@@ -777,6 +777,11 @@ describe("workflows router", () => {
         (
           result.workflows as Array<{ name: string; needs?: unknown }>
         ).find((workflow) => workflow.name === name)?.needs;
+      expect(result.workflows).toContainEqual(expect.objectContaining({
+        name: "Comfy Z-Image Turbo",
+        run_mode: "comfy",
+        needs: { modelKinds: [], requiredSettings: ["COMFY_API_KEY"] }
+      }));
       expect(needsOf("Blur an Image")).toEqual({
         modelKinds: [],
         requiredSettings: []

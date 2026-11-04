@@ -18,6 +18,7 @@ import {
   AlertBanner,
   Caption,
   Dialog,
+  EditorButton,
   FlexColumn,
   FormField,
   SPACING,
@@ -51,6 +52,11 @@ import {
 } from "../../stores/lastModelStore";
 import type { ImageModelValue, VideoModelValue } from "../../stores/ApiTypes";
 import { VIDEO_RESOLUTIONS } from "../../stores/MediaGenerationStore";
+import {
+  comfyWorkflowExampleName,
+  isComfyWorkflowModel
+} from "../../lib/storyboard/comfyWorkflowModel";
+import { useOpenComfyWorkflow } from "../../hooks/storyboard/useOpenComfyWorkflow";
 
 export type ShotRenderStep = "still" | "clip";
 
@@ -68,6 +74,46 @@ const rememberedRef = (
   remembered?.model && remembered.provider
     ? { id: remembered.model, provider: remembered.provider }
     : null;
+
+/**
+ * The ComfyUI workflow clip model's note and the action that opens an editable
+ * copy of its graph in a workspace tab, then closes the dialog so the graph is
+ * in view. Mounted only for that model, so the dialog itself does not need a
+ * router.
+ */
+const ComfyWorkflowNote: React.FC<{
+  modelId: string;
+  onOpened: () => void;
+}> = ({ modelId, onOpened }) => {
+  const { t } = useTranslation();
+  const { open, opening, error } = useOpenComfyWorkflow(modelId);
+  const hasExample = comfyWorkflowExampleName(modelId) !== null;
+  return (
+    <FlexColumn gap={SPACING.xs}>
+      <Caption color="secondary">
+        {t("i18n-cont-storyboard-04.storyboard.shotRender.comfyWorkflow.note")}
+      </Caption>
+      {hasExample && (
+        <EditorButton
+          variant="outlined"
+          disabled={opening}
+          onClick={() => {
+            void open().then((opened) => {
+              if (opened) {
+                onOpened();
+              }
+            });
+          }}
+        >
+          {t(
+            "i18n-cont-storyboard-04.storyboard.shotRender.comfyWorkflow.open"
+          )}
+        </EditorButton>
+      )}
+      {error && <AlertBanner severity="error">{error}</AlertBanner>}
+    </FlexColumn>
+  );
+};
 
 export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
   boardId,
@@ -212,6 +258,7 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
   ]);
 
   const isClip = step === "clip";
+  const comfyWorkflow = isClip && isComfyWorkflowModel(clipSelection);
   const priced = estimate.pricedRequestCount > 0 && estimate.cost > 0;
   const formattedCost = new Intl.NumberFormat(
     i18n.resolvedLanguage ?? i18n.language,
@@ -258,6 +305,12 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
                 onChange={setPickedClip}
               />
             </FormField>
+            {comfyWorkflow && clipSelection?.id && (
+              <ComfyWorkflowNote
+                modelId={clipSelection.id}
+                onOpened={onClose}
+              />
+            )}
             <SelectField
               label={t("i18n-cont-storyboard-04.storyboard.shotRender.resolution")}
               value={resolution}

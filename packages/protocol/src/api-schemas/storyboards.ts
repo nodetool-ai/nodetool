@@ -508,7 +508,9 @@ export const sceneClipDirection = oneTakeDirection.extend({
   shot_ids: z
     .array(z.string())
     .min(SCENE_CLIP_MIN_SHOTS)
-    .max(SCENE_CLIP_MAX_SHOTS)
+    .max(SCENE_CLIP_MAX_SHOTS),
+  reference_shot_ids: z.array(z.string()).nullable().optional(),
+  reference_entity_ids: z.array(z.string()).nullable().optional()
 });
 export type SceneClipDirectionSchema = z.infer<typeof sceneClipDirection>;
 

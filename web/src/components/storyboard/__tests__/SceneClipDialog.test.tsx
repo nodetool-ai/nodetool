@@ -40,10 +40,40 @@ jest.mock("../../properties/VideoModelSelect", () => ({
   default: () => <div data-testid="video-model-select" />
 }));
 
+jest.mock("../../entities/EntityPicker", () => ({
+  __esModule: true,
+  default: ({ onSelect }: { onSelect: (entity: unknown) => void }) => (
+    <button
+      onClick={() =>
+        onSelect({
+          id: "lib-1",
+          kind: "prop",
+          name: "Sneaker",
+          reference_images: [{ asset_id: "lib-image" }]
+        })
+      }
+    >
+      pick sneaker
+    </button>
+  )
+}));
+
 jest.mock("../../ui_primitives/VideoPlayer", () => ({
   __esModule: true,
   VideoPlayer: () => <div data-testid="video-player" />,
   default: () => <div data-testid="video-player" />
+}));
+
+const mockDownload = jest.fn(async () => undefined);
+jest.mock("../shotMediaDownload", () => ({
+  ...jest.requireActual("../shotMediaDownload"),
+  downloadResolvedMedia: (...args: unknown[]) =>
+    (mockDownload as unknown as (...a: unknown[]) => Promise<void>)(...args)
+}));
+jest.mock("../../../hooks/useResolvedMediaUri", () => ({
+  ...jest.requireActual("../../../hooks/useResolvedMediaUri"),
+  useResolvedMediaUri: (locator: unknown) =>
+    locator ? "/storage/clip-1.mp4" : undefined
 }));
 
 import SceneClipDialog from "../SceneClipDialog";
@@ -177,12 +207,103 @@ describe("SceneClipDialog", () => {
       .setOneTake(BOARD, { prompt: "", reference_source: "entities" });
     renderDialog();
 
-    expect(screen.getByTestId("scene-clip-entity-images")).toHaveTextContent(
-      "[Image 1] the location Rooftop"
+    expect(screen.getByTestId("scene-clip-entity-loc-1")).toHaveTextContent(
+      "[Image 1]"
     );
     expect(screen.getByTestId("scene-clip-summary")).toHaveTextContent(
       "1 of 9 images"
     );
+  });
+
+  it("offers no prompt field", () => {
+    renderDialog();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+  });
+
+  it("stores the chosen stills and entities on the board and sends only them", async () => {
+    mockEntities = [
+      {
+        id: "loc-1",
+        kind: "location",
+        name: "Rooftop",
+        reference_images: [{ asset_id: "loc-image" }]
+      } as unknown as Entity
+    ];
+    useStoryboardStore.getState().setEntityIds(BOARD, ["loc-1"]);
+    renderDialog();
+
+    const still = screen.getByTestId("scene-clip-still-s2");
+    expect(still).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(still);
+    expect(still).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(screen.getByTestId("scene-clip-entity-loc-1"));
+    expect(screen.getByTestId("scene-clip-summary")).toHaveTextContent(
+      "5 of 9 images"
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: /render scene clip/i })
+    );
+
+    const saved = useStoryboardStore.getState().getBoard(BOARD)?.sceneClips?.[0];
+    expect(saved?.reference_shot_ids).toEqual(["s1", "s3", "s4", "s5"]);
+    expect(saved?.reference_entity_ids).toEqual(["loc-1"]);
+    const data = (mockStartOneTakeClip.mock.calls[0] as unknown as unknown[])[2] as {
+      reference_images: { asset_id: string }[];
+      prompt: string;
+    };
+    expect(data.reference_images.map((image) => image.asset_id)).toEqual([
+      "still-1",
+      "still-3",
+      "still-4",
+      "still-5",
+      "loc-image"
+    ]);
+    expect(data.prompt.startsWith("REFS:")).toBe(true);
+  });
+
+  it("reopens with the stored choice and turns on a shot that joins the run", async () => {
+    renderDialog(jest.fn(), {
+      clip: {
+        ...draft,
+        shot_ids: ["s1", "s2"],
+        reference_shot_ids: ["s1"]
+      },
+      saved: true
+    });
+    expect(screen.getByTestId("scene-clip-still-s2")).toHaveAttribute(
+      "aria-pressed",
+      "false"
+    );
+    await pick("Length", "3 shots");
+    expect(screen.getByTestId("scene-clip-still-s2")).toHaveAttribute(
+      "aria-pressed",
+      "false"
+    );
+    expect(screen.getByTestId("scene-clip-still-s3")).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+  });
+
+  it("adds a library entity without changing the board's cast", async () => {
+    mockEntities = [
+      {
+        id: "lib-1",
+        kind: "prop",
+        name: "Sneaker",
+        reference_images: [{ asset_id: "lib-image" }]
+      } as unknown as Entity
+    ];
+    renderDialog();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Add from library" })
+    );
+    await userEvent.click(screen.getByText("pick sneaker"));
+    expect(screen.getByTestId("scene-clip-entity-lib-1")).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+    expect(useStoryboardStore.getState().getBoard(BOARD)?.entityIds).toEqual([]);
   });
 
   describe("rendered clip", () => {
@@ -206,6 +327,17 @@ describe("SceneClipDialog", () => {
     it("plays the clip of a saved run that has rendered", () => {
       renderDialog(jest.fn(), { sceneShots: rendered, clip: saved, saved: true });
       expect(screen.getByTestId("scene-clip-player")).toBeInTheDocument();
+    });
+
+    it("downloads the clip under a name from the run's place in the scene", async () => {
+      renderDialog(jest.fn(), { sceneShots: rendered, clip: saved, saved: true });
+      await userEvent.click(
+        screen.getByRole("button", { name: "Download clip" })
+      );
+      expect(mockDownload).toHaveBeenCalledWith(
+        "/storage/clip-1.mp4",
+        "scene-clip-shots-01-03.mp4"
+      );
     });
 
     it("shows no player for a new draft", () => {
