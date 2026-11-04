@@ -255,6 +255,11 @@ at 24 hours.
   requests on the client's own origin: a job's `urls.self` / `cancel` / `events`
   link resolves against that origin, and a signed output URL on another origin
   is fetched without the key.
+- `packages/runtime/src/providers/comfy-gpu-models.ts`,
+  `packages/runtime/src/providers/comfy-template-models.ts` — the retry wrapper
+  handed to `@comfyorg/sdk`. It sends the SDK's own requests. No caller, provider
+  or model names the base URL, because each client takes only an API key and uses
+  the SDK's default.
 - `packages/agents/src/capabilities/web.ts` — `BROWSER_URL`, the operator's
   screenshot service. Every model-named URL that file *fetches* goes through
   `safeFetch`; this one is the operator's own.
