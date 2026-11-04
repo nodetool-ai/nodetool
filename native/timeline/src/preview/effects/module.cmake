@@ -47,6 +47,25 @@ function(nt_effects_tests)
     add_test(NAME tst_sceneprecision COMMAND tst_sceneprecision)
     set_tests_properties(tst_sceneprecision PROPERTIES LABELS render FIXTURES_REQUIRED media
         ENVIRONMENT_MODIFICATION "QT_QUICK_BACKEND=unset:")
+    qt_add_executable(tst_precisioncost src/preview/effects/tst_precisioncost.cpp
+        src/preview/effects/EffectsRegistrations.cpp
+        src/render2d/Render2dRegistrations.cpp
+        src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/model/TrackListModel.h src/model/TrackListModel.cpp
+        src/playback/PlaybackClock.h src/playback/PlaybackClock.cpp
+        src/preview/PreviewCompositor.h src/preview/PreviewCompositor.cpp
+        src/preview/hw/HwWindow.h src/preview/hw/HwWindow.cpp)
+    set_target_properties(tst_precisioncost PROPERTIES MACOSX_BUNDLE FALSE)
+    target_link_libraries(tst_precisioncost PRIVATE timeline_core timeline_decode
+        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::Test ${NT_APP_PLATFORM_LIBS})
+    qt_add_shaders(tst_precisioncost "cost_compositor_shaders" PREFIX "/shaders" BASE shaders
+        FILES shaders/composite.vert shaders/composite.frag shaders/monitorview.frag)
+    nt_effects_shaders(tst_precisioncost)
+    target_compile_definitions(tst_precisioncost PRIVATE NT_SCENE_PRECISION_TEST
+        NT_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
+    add_test(NAME tst_precisioncost COMMAND tst_precisioncost)
+    set_tests_properties(tst_precisioncost PROPERTIES LABELS render
+        ENVIRONMENT_MODIFICATION "QT_QUICK_BACKEND=unset:")
     qt_add_executable(tst_effectsblend src/preview/effects/tst_effectsblend.cpp
         src/preview/effects/EffectsRegistrations.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
