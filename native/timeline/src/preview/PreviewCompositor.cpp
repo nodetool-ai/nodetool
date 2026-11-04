@@ -238,6 +238,9 @@ private:
     bool decideCanvas();
 
 
+#ifdef NT_SCENE_PRECISION_TEST
+    decltype(PreviewCompositor::workingObserver) m_workingObserver;
+#endif
     QRhi* m_rhi = nullptr;
     QShader m_vs;
     QShader m_fs;
@@ -476,6 +479,9 @@ void PreviewCompositorRenderer::initialize(QRhiCommandBuffer*) {
 
 void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
     auto* item = static_cast<PreviewCompositor*>(rhiItem);
+#ifdef NT_SCENE_PRECISION_TEST
+    m_workingObserver = item->workingObserver;
+#endif
     m_canvasRegion = item->m_canvasRegion;
     m_itemSize = item->size();
     item->m_lastCanvasSize = m_canvasSize;
@@ -1568,6 +1574,9 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
 
     const bool blurred = m_tapTimes.size() > 1;
     const bool blurReady = !blurred || ensureBlur();
+#ifdef NT_SCENE_PRECISION_TEST
+    const bool previousCopied = blurred && blurReady && m_blurIndex == 0 && !m_blurComplete && !m_previousValid && m_hasCompletedCanvas;
+#endif
     if (blurred && blurReady && m_blurIndex == 0 && !m_blurComplete && !m_previousValid) {
         if (m_hasCompletedCanvas) {
             auto* copy = m_rhi->nextResourceUpdateBatch();
@@ -1614,6 +1623,11 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     // cut during playback); a settled one waits for every exact frame.
     const bool settled = blurred ? m_blurComplete : tapReady;
     m_lastFrameSettled = settled;
+#ifdef NT_SCENE_PRECISION_TEST
+    if (m_workingObserver) {
+        m_workingObserver(m_rhi, cb, m_canvas.get(), settled, m_previousValid, m_blurIndex, previousCopied);
+    }
+#endif
     m_waitingForFrames = m_captureWanted && !m_captureImmediate && !settled;
     if (m_captureWanted && m_workingFormat == nt::WorkingFormat::Rgba16F) {
         if (m_resourceError.empty()) { m_resourceError = "FP16 working capture requires the N2 delivery boundary"; }

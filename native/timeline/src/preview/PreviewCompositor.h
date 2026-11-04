@@ -103,6 +103,10 @@ class PreviewCompositor : public QQuickRhiItem {
     Q_PROPERTY(bool transparencyGrid READ transparencyGrid WRITE setTransparencyGrid NOTIFY transparencyGridChanged)
 
 public:
+#ifdef NT_SCENE_PRECISION_TEST
+    // Test executable only. Observe working storage before presentation or delivery.
+    std::function<void(QRhi*, QRhiCommandBuffer*, QRhiTexture*, bool, bool, int, bool)> workingObserver;
+#endif
     explicit PreviewCompositor(QQuickItem* parent = nullptr);
     void setWorkingFormat(nt::WorkingFormat format) { m_workingFormat = format; update(); }
 
