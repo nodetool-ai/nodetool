@@ -29,10 +29,11 @@ interface SlidePlan {
 function planMember(
   clips: readonly TimelineClip[],
   member: TimelineClip,
+  memberIds: ReadonlySet<string>,
   sourceDurationMsFor: (clip: TimelineClip) => number | undefined
 ): SlidePlan {
   const others = clips.filter(
-    (c) => c.trackId === member.trackId && c.id !== member.id && !isGroupClip(c)
+    (c) => c.trackId === member.trackId && !memberIds.has(c.id) && !isGroupClip(c)
   );
   const before = others.find(
     (c) => Math.abs(endOf(c) - member.startMs) <= TOUCH_MS
@@ -88,7 +89,7 @@ export function slideDeltaLimit(
 ): number {
   const members = clips.filter((c) => memberIds.has(c.id));
   if (members.length === 0) return 0;
-  const plans = members.map((m) => planMember(clips, m, sourceDurationMsFor));
+  const plans = members.map((m) => planMember(clips, m, memberIds, sourceDurationMsFor));
   const neighbours = plans.flatMap((p) => [p.before, p.after]);
   if (
     members.some((m) => isGroupClip(m) || hasTimeRemap(m)) ||
@@ -118,7 +119,7 @@ export function slideClips(
   if (delta === 0) return clips;
   const next = new Map<string, TimelineClip>();
   for (const member of clips.filter((c) => memberIds.has(c.id))) {
-    const { before, after } = planMember(clips, member, sourceDurationMsFor);
+    const { before, after } = planMember(clips, member, memberIds, sourceDurationMsFor);
     next.set(member.id, { ...member, startMs: member.startMs + delta });
     if (before) next.set(before.id, trimClip(before, "end", delta));
     if (after) next.set(after.id, trimClip(after, "start", -delta));

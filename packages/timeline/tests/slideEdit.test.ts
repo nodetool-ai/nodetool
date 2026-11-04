@@ -78,6 +78,22 @@ describe("slideClips", () => {
     expect(byId(out, "c2").durationMs).toBe(1);
   });
 
+  it.each([100, -100])("slides adjacent linked members by %s without trimming them", (delta) => {
+    const clips = [
+      clip("prev", 0, 1000, { inPointMs: 500 }),
+      clip("a", 1000, 1000, { inPointMs: 500, linkId: "L" }),
+      clip("b", 2000, 1000, { inPointMs: 500, linkId: "L" }),
+      clip("next", 3000, 1000, { inPointMs: 500 }),
+      clip("other", 1000, 1000, { trackId: "a1" })
+    ];
+    const out = slideClips(clips, new Set(["a", "b"]), delta);
+    expect(byId(out, "a")).toEqual({ ...clips[1], startMs: 1000 + delta });
+    expect(byId(out, "b")).toEqual({ ...clips[2], startMs: 2000 + delta });
+    expect(byId(out, "prev")).toMatchObject({ startMs: 0, durationMs: 1000 + delta });
+    expect(byId(out, "next")).toMatchObject({ startMs: 3000 + delta, durationMs: 1000 - delta, inPointMs: 500 + delta });
+    expect(byId(out, "other")).toBe(clips[4]);
+  });
+
   it("leaves a group clip alone", () => {
     const grouped = [clip("g", 0, 1000, { mediaType: "group" })];
     expect(slideClips(grouped, new Set(["g"]), 100)).toBe(grouped);
