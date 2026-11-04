@@ -258,7 +258,7 @@ int avSyncCli(int argc, char** argv) {
                 const auto reading = playback::audibleTimeline(cb, dev, tickNow);
                 const auto command = engine.feed().command.load();
                 samples.push_back({reading.audibleFrames, clockMs, dev.generation,
-                                   reading.held || cb.cur().seekSeq != command.seekSeq});
+                                   reading.held || cb.cur().seekSeq != command.seekSeq, cb.cur().frame});
             }
         }
         if (!changed && tickNow - requestNs > static_cast<std::int64_t>(seconds * 0.5e9)) {
