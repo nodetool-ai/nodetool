@@ -129,3 +129,41 @@ Paths below exclude changes brought in by the upstream merge.
 - `packages/gpu/tests/workingFrame.test.ts`
 - `packages/timeline/src/render/frameCompositor.ts`
 - `packages/timeline/tests/render.workingPrecision.gpu.test.ts`
+
+
+## A97 implementation round (partial)
+
+The corrected plan is present at the requested starting HEAD `3635b5c79f`.
+The working-frame result now declares `encoded-sdr` and premultiplied alpha,
+independent of RGBA8 or FP16 storage. Only this metadata value changes in
+production. Default precision, shader code, formats and document schemas do
+not change. The new descriptor test covers both formats.
+
+[Transfer inventory](a97-transfer-inventory.md) enumerates all 74 module files
+and their 173 colour labels (106 `linear`, 67 `srgb`). It separates traced
+boundaries from unresolved declarations. A97 remains incomplete: the per-slot
+colour/mask/data classification and coordinated producer/consumer corrections
+are not done. Mismatch enforcement remains disabled. S1's exit gate is not met.
+S2 has not started.
+
+Timeline package typecheck passed. Existing compositor tests were selected by
+`rg -l frameCompositor packages/timeline/tests/*.ts`, run sequentially with
+Node 24, lavapipe, `LP_NUM_THREADS=2`, `NODETOOL_TEST_WORKERS=1`.
+Of 321 cases in 18 files, 313 passed and eight failed, with no skips.
+Restoring the original `unknown` production descriptor and rerunning the two
+failing files reproduced the same eight failures. Seven are grain CPU/GPU
+parity tolerances (including maximum channel error 3 versus allowed 1), and
+one is the persisted-effect enumeration in `render.parity.gpu.test.ts`.
+These failures remain unfixed because this task must not change pixels.
+The focused working-precision test passes all three cases, including unchanged
+RGBA8 bytes `[80, 40, 20, 255]` and opt-in FP16 byte delivery.
+
+Files in this A97 round:
+
+- `packages/timeline/src/render/frameCompositor.ts`
+- `packages/timeline/tests/render.workingPrecision.gpu.test.ts`
+- `docs/plans/color-precision/results/a97-transfer-inventory.md`
+- `docs/plans/color-precision/results/s1-runtime-interfaces.md`
+
+Per the requested scope, test:affected, root typecheck, lint, harness gate,
+/verify and full suites were not run. No push was performed.

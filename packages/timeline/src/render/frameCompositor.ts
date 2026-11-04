@@ -624,7 +624,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       writeStart
     );
     this.device.queue.submit([encoder.finish()]);
-    return { texture, drawn, frame: { representation: "gpu-texture", texture, format: this.workingFormat, width: this.width, height: this.height, bytesPerRow: null, alpha: "premultiplied", interpretation: "unknown" } };
+    return { texture, drawn, frame: { representation: "gpu-texture", texture, format: this.workingFormat, width: this.width, height: this.height, bytesPerRow: null, alpha: "premultiplied", interpretation: "encoded-sdr" } };
   }
 
   /**

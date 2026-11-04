@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { getNodeGPUDevice } from "@nodetool-ai/gpu/node";
-import { HeadlessFrameCompositor, type FrameLayer } from "../src/render/frameCompositor.js";
+import { GpuFrameCompositor, HeadlessFrameCompositor, type FrameLayer } from "../src/render/frameCompositor.js";
 
 it("keeps default and explicit RGBA8 byte delivery identical", async () => {
   const device = await getNodeGPUDevice();
@@ -35,5 +35,27 @@ it("opts into FP16 accumulation and keeps byte delivery and versioned source upl
   } finally {
     renderer.dispose();
     expect(await device.popErrorScope()).toBeNull();
+  }
+});
+
+
+it("declares encoded premultiplied accumulation independently of storage precision", async () => {
+  const device = await getNodeGPUDevice();
+  for (const workingFormat of ["rgba8unorm", "rgba16float"] as const) {
+    const renderer = new GpuFrameCompositor(device, 1, 1, {
+      workingFormat,
+      upload: () => null
+    });
+    try {
+      const { frame } = renderer.composite([]);
+      expect(frame.interpretation).toBe("encoded-sdr");
+      expect(frame.alpha).toBe("premultiplied");
+      expect(frame.representation).toBe("gpu-texture");
+      if (frame.representation === "gpu-texture") {
+        expect(frame.format).toBe(workingFormat);
+      }
+    } finally {
+      renderer.dispose();
+    }
   }
 });
