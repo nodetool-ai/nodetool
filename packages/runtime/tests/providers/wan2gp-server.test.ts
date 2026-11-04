@@ -1,12 +1,14 @@
 import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { missingRuntimePackageOf } from "@nodetool-ai/protocol";
+import * as managed from "../../src/providers/wan2gp-server.js";
+import { Wan2GPClient } from "../../src/providers/wan2gp-client.js";
 import { stopWan2GPServer, warmWan2GPServer, withWan2GPClient } from "../../src/providers/wan2gp-server.js";
 import { Wan2GPProvider, resetWan2GPListings } from "../../src/providers/wan2gp-provider.js";
 import { resetWan2GPFileStatus } from "../../src/providers/wan2gp-models.js";
-import { FakeWan2GP } from "./wan2gp-fake-server.js";
+import { FakeWan2GP, wan2gpFixture } from "./wan2gp-fake-server.js";
 
 /**
  * A stand-in for Wan2GP's interpreter. Run as `python wgp.py --mcp ...
@@ -186,6 +188,32 @@ describe.skipIf(process.platform === "win32")("managed Wan2GP server", () => {
     expect(models[0].capabilities).toContain("preset_voice");
     expect(models[1].capabilities).toContain("language_selection");
     await expect(readFile(log, "utf8")).rejects.toThrow(/ENOENT/);
+  });
+
+  it("records the first managed generation before any model listing", async () => {
+    await install();
+    resetWan2GPFileStatus();
+    const fake = await new FakeWan2GP().start();
+    fake.jobs = [wan2gpFixture("job_done")];
+    vi.spyOn(managed, "withWan2GPClient").mockImplementation(async (_connection, work) => {
+      const client = await Wan2GPClient.connect(fake.url);
+      try {
+        return await work(client);
+      } finally {
+        await client.close();
+      }
+    });
+    try {
+      const provider = new Wan2GPProvider({});
+      await provider.textToVideo({
+        model: { id: "t2v_1_3B", name: "Wan", provider: "wangp" },
+        prompt: "A fox"
+      });
+      const models = await provider.getAvailableVideoModels();
+      expect(models.find((model) => model.id === "t2v_1_3B")?.adapter?.filesPresent).toBe(true);
+    } finally {
+      await fake.stop();
+    }
   });
 
   it("starts the installed server ahead of a generation, which then uses it", async () => {
