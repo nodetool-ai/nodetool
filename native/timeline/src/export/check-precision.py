@@ -4,6 +4,7 @@ Usage: python3 check-precision.py BINARY ARTIFACT_DIRECTORY
 The caller selects the RHI backend. No display or sound is opened by this driver.
 """
 import json
+import math
 import os
 from pathlib import Path
 import subprocess
@@ -15,6 +16,21 @@ binary = str(Path(sys.argv[1]).resolve())
 scratch = tempfile.TemporaryDirectory(prefix='nt-precision-') if len(sys.argv) < 3 else None
 root = Path(sys.argv[2]).resolve() if len(sys.argv) > 2 else Path(scratch.name) / 'results'
 root.mkdir(parents=True, exist_ok=False)
+
+
+CODEC_MAX_CODE_ERROR = 8
+YUV_IDENTITY_MAX_CODE_DELTA = 1
+
+
+def assert_yuv_identity(a, b, width, height):
+    luma = width * height
+    assert len(a) == len(b) == luma * 3 // 2
+    planes = {}
+    for name, start, end in (("Y", 0, luma), ("U", luma, luma * 5 // 4),
+                             ("V", luma * 5 // 4, luma * 3 // 2)):
+        planes[name] = max(abs(x-y) for x, y in zip(a[start:end], b[start:end]))
+    assert max(planes.values()) <= YUV_IDENTITY_MAX_CODE_DELTA, planes
+    return planes
 
 
 def command(args):
@@ -76,7 +92,7 @@ def export(name, fp16, fmt, effects, size=(), opacity=1, cancel=False):
         assert len(unencoded) == len(decoded_yuv) == width * height * 3 // 2
         errors = [abs(a-b) for a, b in zip(decoded_yuv, unencoded)]
         codec = {'max_code_error': max(errors), 'mean_absolute_code_error': sum(errors) / len(errors)}
-        assert codec['max_code_error'] <= 8 and codec['mean_absolute_code_error'] <= 1, codec
+        assert codec['max_code_error'] <= CODEC_MAX_CODE_ERROR and codec['mean_absolute_code_error'] <= 1, codec
         (folder / 'codec-error.json').write_text(json.dumps(codec))
         metrics[name + '-codec'] = codec
     pixels = command(['ffmpeg', '-v', 'error', '-i', str(source), '-frames:v', '1',
@@ -118,9 +134,22 @@ for fmt in ('png_sequence', 'mp4'):
         a = (root / f'identity-{fmt}-{opacity}-8' / 'decoded.rgba').read_bytes()
         b = (root / f'identity-{fmt}-{opacity}-16' / 'decoded.rgba').read_bytes()
         delta = max(abs(x-y) for x, y in zip(a, b))
-        if delta > (1 if fmt == 'png_sequence' else 4):
+        identity = {'max_code_delta': delta}
+        limit = 1
+        if fmt == 'mp4':
+            planes = [(root / f'identity-{fmt}-{opacity}-{mode}' / 'unencoded.yuv').read_bytes()
+                      for mode in (8, 16)]
+            identity['unencoded_yuv_max_code_delta'] = assert_yuv_identity(*planes, 64, 48)
+            # Triangle inequality: each codec can add 8 YUV codes, delivery adds 1.
+            # BT.709 limited YUV->RGB's largest absolute row sum is blue:
+            # 255/219 + 2*(1-Kb)*255/224, Kb=0.0722. Allow one RGB
+            # rounding code per decoded image. This is only a codec sanity bound.
+            gain = 255 / 219 + 2 * (1 - 0.0722) * 255 / 224
+            limit = math.ceil(gain * (2 * CODEC_MAX_CODE_ERROR + YUV_IDENTITY_MAX_CODE_DELTA)) + 2
+            identity['decoded_rgb_sanity_limit'] = limit
+        if delta > limit:
             failures.append((fmt, opacity, delta))
-        metrics[f'identity-{fmt}-{opacity}'] = {'max_code_delta': delta}
+        metrics[f'identity-{fmt}-{opacity}'] = identity
 (root / 'metrics.json').write_text(json.dumps(metrics, indent=2))
 print(json.dumps(metrics, indent=2), flush=True)
 assert not failures, f"Identity edge agreement failed: {failures}"

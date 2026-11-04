@@ -413,3 +413,23 @@ No test was removed or relaxed. No TypeScript checks or full CTest suite ran.
 `git diff --check`, changed-file control-byte checks and local document links
 pass. The renderer and regression tests are committed as `43e41a545e`.
 Nothing was pushed.
+
+## MP4 identity gate correction
+
+A41.3 now asserts same-picture identity before encoding. Retained opaque and
+low-opacity exports measure maximum Y/U/V differences of 1/1/1 code. The
+new plane assertion permits one code. A deliberately shifted opaque Y plane
+fails that same assertion at 96 codes. The original bytes pass again. No
+production shader or input artifact was changed for this proof.
+
+The separate codec gate remains maximum eight codes and mean absolute error
+one code in YUV. Decoded RGB deltas remain reported, with a sanity bound
+derived from two codec errors plus the one-code delivery difference and the
+BT.709 limited conversion gain. PNG identity retains its one-code bound.
+No other tolerance changed.
+
+`citest color-n2 '^export_precision$' -V` passes, exit 0. The fresh opaque
+MP4 identity still measures five decoded RGB codes, with unencoded Y/U/V
+differences of 1/1/1. Low-opacity MP4 measures one decoded RGB code and
+1/1/1 unencoded codes. Logs in `build/color-n2`: `n2-yuv-final.log` and
+`n2-yuv-negative-proof.log`. FP16 remains off by default.
