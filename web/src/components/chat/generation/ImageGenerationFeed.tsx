@@ -32,6 +32,7 @@ import {
   Z_INDEX
 } from "../../ui_primitives";
 import ImageView from "../../node/ImageView";
+import { MediaOverlaySuppressProvider } from "../../node/MediaOverlayContext";
 import {
   useResolvedMediaUris,
   type MediaLocator
@@ -55,6 +56,7 @@ import {
   type GenerationTurn
 } from "./extractGenerationTurns";
 import { COMPOSER_CLEARANCE } from "./generationLayout";
+import ImageFeedGallery, { type ImageFeedGalleryEntry } from "./ImageFeedGallery";
 
 interface ImageGenerationFeedProps {
   messages: readonly Message[];
@@ -164,6 +166,29 @@ const ImageGenerationFeed: React.FC<ImageGenerationFeedProps> = ({
       el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
     }
   }, [turns.length]);
+
+  const [gallery, setGallery] = useState<{
+    entries: ImageFeedGalleryEntry[];
+    openKey: string;
+  } | null>(null);
+  const closeGallery = useCallback(() => setGallery(null), []);
+  const openGallery = useCallback(
+    (openKey: string) => {
+      setGallery({
+        openKey,
+        entries: tiles.map((tile) => {
+          const src = srcByKey.get(tile.key);
+          return {
+            key: tile.key,
+            assetId: tile.item.image?.asset_id ?? null,
+            src: typeof src === "string" && src ? src : null,
+            prompt: tile.turn.prompt
+          };
+        })
+      });
+    },
+    [srcByKey, tiles]
+  );
 
   const handleEdit = useCallback(
     (tile: ImageTile) => {
@@ -287,10 +312,17 @@ const ImageGenerationFeed: React.FC<ImageGenerationFeedProps> = ({
         }}
       >
         {src ? (
-          <ImageView
-            source={src}
-            onNaturalDimensions={(dims) => handleTileDimensions(tile.key, dims)}
-          />
+          <MediaOverlaySuppressProvider
+            value={{
+              suppressed: false,
+              onRequestOpenViewer: () => openGallery(tile.key)
+            }}
+          >
+            <ImageView
+              source={src}
+              onNaturalDimensions={(dims) => handleTileDimensions(tile.key, dims)}
+            />
+          </MediaOverlaySuppressProvider>
         ) : (
           <MagicGenerationFill />
         )}
@@ -486,6 +518,13 @@ const ImageGenerationFeed: React.FC<ImageGenerationFeedProps> = ({
           return null;
         })}
       </Box>
+      {gallery && (
+        <ImageFeedGallery
+          entries={gallery.entries}
+          openKey={gallery.openKey}
+          onClose={closeGallery}
+        />
+      )}
     </Box>
   );
 };

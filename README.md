@@ -272,7 +272,7 @@ Everything the film surfaces do is reachable on the canvas without the film.
 | **JS scripts** | Versioned JavaScript documents with declared ports, saved test cases, and a QuickJS sandbox. |
 | **MCP server** | Point Claude Desktop, Claude Code, Codex, or any MCP agent at the toolbelt. |
 | **Custom nodes** | Extend in TypeScript or Python. |
-| **Deploy and scale** | Self-host with Docker. Rent GPU workers on RunPod or Vast. |
+| **Deploy and scale** | [Self-host with Docker](docs/self-hosted-deployment.md), with [backup and rollback](docs/upgrading.md#self-hosted-docker) steps. Rent GPU workers on RunPod or Vast. |
 
 ## Documentation
 

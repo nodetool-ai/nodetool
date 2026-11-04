@@ -1,0 +1,376 @@
+{
+  "id": "0f8ca80d54c8069d5d520046e97932a5",
+  "name": "Comfy MiniMax Music 3",
+  "description": "Generate audio on Comfy Cloud with the official MiniMax Music 3 template. Requires COMFY_API_KEY and model availability on Comfy Cloud.",
+  "tags": [
+    "comfy",
+    "audio",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy MiniMax Music 3\n\nGenerate audio on Comfy Cloud with the official MiniMax Music 3 template. Requires COMFY_API_KEY and model availability on Comfy Cloud.\n\n**How it works:** The Comfy nodes form the complete MiniMax Music 3 graph. Run submits the graph to Comfy Cloud and saves its generated audio.\n\n**Try this:** Change caption on MiniMax Music3 Text Encode and run again to compare results. Edit the visible nodes to change settings, lyrics or duration.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/benchmarks/audio_minimax_music_3.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "35",
+        "type": "comfy.SaveAudioAdvanced",
+        "data": {
+          "filename_prefix": "audio/audio_minimax_music3",
+          "format": "mp3",
+          "format.quality": "V0"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Audio (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "37_6",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "minimax_music3_dit_fp16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "37_13",
+        "type": "comfy.MiniMaxMusic3TextEncode",
+        "data": {
+          "caption": "Global Metadata: Lo-fi hip-hop, chillhop. 78 BPM, D flat major, major scale with jazzy extensions. Laid-back and dreamy throughout, a gentle warm drift with a subtle late-night glow that deepens in the middle and dissolves softly at the end. Studying, raining-outside, headphones-on late-night listening. Bedroom production: muddy warm texture, heavy vinyl crackle, tape hiss and wow-flutter pitch wobble, low-passed dusty mix, soft-clipped drums, everything slightly detuned and cozy.\n\nVocal Details: Soft androgynous vocal, hushed half-sung half-spoken delivery, sitting low in the mix like another instrument, lazy behind-the-beat phrasing, gentle breathy timbre. Sparse murmured double-tracked harmonies, occasional wordless \"mmm\" and \"ooh\" hums drenched in tape delay and warm spring reverb. Long stretches with no vocals at all.\n\nArrangement: Dusty boom-bap drums with a soft thumping kick, cracked snare with lazy swing, brushed hi-hats, low round sub bass. Warm Rhodes piano chords with slow chorus wobble as the harmonic bed, mellow jazzy guitar licks answering the vocal lines, constant vinyl crackle as texture. Intro: rain and vinyl noise, solo Rhodes chords fading in, drums slipping in halfway. Verses: minimal — drums, bass, Rhodes, soft guitar fills between lines. Instrumental sections: guitar and Rhodes trade relaxed jazzy phrases over the beat, occasional muted trumpet ghost notes far in the background. Bridge: drums drop away to rain, crackle, and floating detuned Rhodes, then the beat eases back in. Outro: elements fade one by one until only vinyl crackle and a last unresolved Rhodes chord remain.",
+          "lyrics": "[Intro]\nMmm...\n(rain on the window)\nOoh...\n\n[Verse]\nMidnight and the canvas glows\nDragging little wires where the current flows\nType a quiet dream, let the sampler drift\nNoise into a picture, like the fog just lifts\nTwenty slow steps, I'm in no hurry now\nLatents turning colors and I don't know how\nEvery render's like a polaroid I found\nSoft focus memories, no sound\n\n[Instrumental]\n\n[Verse]\nQueue another frame, let the motion breathe\nPictures start to move like the falling leaves\nVideo drifting by at twenty-four\nLittle animations on my bedroom floor\nSeed after seed like the rain outside\nSome of them are keepers, some I let slide\nSave the ones that feel like a Sunday slow\nNode to node to node... and off we go\n\n[Chorus]\nMmm... let it render on\n(take your time, take your time)\nOoh... by the morning it'll all be done\n(one more queue, one more try)\n\n[Instrumental]\n\n[Bridge]\nRain keeps drawing pictures on the glass...\nMy machine keeps dreaming...\nNeither of us fast...\n\n[Chorus]\nMmm... let it render on\n(take your time, take your time)\nOoh... by the morning it'll all be done\n(one more queue, one more try)\n\n[Instrumental]\n\n[Outro]\nMmm...\n(node to node)\nOoh... goodnight",
+          "max_duration": 60,
+          "cfg_scale": 1.7,
+          "top_k": 50
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "MiniMax Music3 Text Encode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "37_3",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "minimax_music3_text_encoder_pruned_int8_convrot.safetensors",
+          "type": "minimax",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "37_7",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "minimax_music3_dav.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "37_10",
+        "type": "comfy.ConditioningZeroOut",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Conditioning Zero Out"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "37_15",
+        "type": "comfy.EmptyMiniMaxMusic3LatentAudio",
+        "data": {
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Empty MiniMax Music3 Latent Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "37_9",
+        "type": "comfy.KSampler",
+        "data": {
+          "steps": 30,
+          "cfg": 1.7,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "37_12",
+        "type": "comfy.VAEDecodeAudio",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "37_38",
+        "type": "comfy.SeedNode",
+        "data": {
+          "seed": 197122968890040
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Seed"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "37_42",
+        "type": "comfy.VAEDecodeAudioTiled",
+        "data": {
+          "tile_size": 1536,
+          "overlap": 64
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 330
+          },
+          "width": 280,
+          "title": "VAE Decode Audio (Tiled)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "37_43",
+        "type": "comfy.ComfySwitchNode",
+        "data": {
+          "switch": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "If/Else Switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "37_43-0-35-audio",
+        "source": "37_43",
+        "sourceHandle": "output",
+        "target": "35",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "37_38-0-37_13-seed",
+        "source": "37_38",
+        "sourceHandle": "seed",
+        "target": "37_13",
+        "targetHandle": "seed",
+        "ui_properties": null
+      },
+      {
+        "id": "37_3-0-37_13-clip",
+        "source": "37_3",
+        "sourceHandle": "CLIP",
+        "target": "37_13",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "37_13-0-37_10-conditioning",
+        "source": "37_13",
+        "sourceHandle": "CONDITIONING",
+        "target": "37_10",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "37_13-1-37_15-seconds",
+        "source": "37_13",
+        "sourceHandle": "seconds",
+        "target": "37_15",
+        "targetHandle": "seconds",
+        "ui_properties": null
+      },
+      {
+        "id": "37_38-0-37_9-seed",
+        "source": "37_38",
+        "sourceHandle": "seed",
+        "target": "37_9",
+        "targetHandle": "seed",
+        "ui_properties": null
+      },
+      {
+        "id": "37_6-0-37_9-model",
+        "source": "37_6",
+        "sourceHandle": "MODEL",
+        "target": "37_9",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "37_13-0-37_9-positive",
+        "source": "37_13",
+        "sourceHandle": "CONDITIONING",
+        "target": "37_9",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "37_10-0-37_9-negative",
+        "source": "37_10",
+        "sourceHandle": "CONDITIONING",
+        "target": "37_9",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "37_15-0-37_9-latent_image",
+        "source": "37_15",
+        "sourceHandle": "LATENT",
+        "target": "37_9",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "37_9-0-37_12-samples",
+        "source": "37_9",
+        "sourceHandle": "LATENT",
+        "target": "37_12",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "37_7-0-37_12-vae",
+        "source": "37_7",
+        "sourceHandle": "VAE",
+        "target": "37_12",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "37_9-0-37_42-samples",
+        "source": "37_9",
+        "sourceHandle": "LATENT",
+        "target": "37_42",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "37_7-0-37_42-vae",
+        "source": "37_7",
+        "sourceHandle": "VAE",
+        "target": "37_42",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "37_12-0-37_43-on_false",
+        "source": "37_12",
+        "sourceHandle": "AUDIO",
+        "target": "37_43",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "37_42-0-37_43-on_true",
+        "source": "37_42",
+        "sourceHandle": "AUDIO",
+        "target": "37_43",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      }
+    ]
+  }
+}

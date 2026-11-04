@@ -245,6 +245,27 @@ describe("startGenerationActivityTracking", () => {
     });
   });
 
+  it("settles a live request without navigation when the socket misses its reply", async () => {
+    jest.mocked(lookupGenerations).mockResolvedValue(new Map([
+      ["req-live", {
+        requestId: "req-live", generationId: "g-live", status: "completed",
+        assetIds: ["image-live"], error: null
+      }]
+    ]));
+    stop = startGenerationActivityTracking();
+    mockEmit("send", {
+      command: "generate_media", request_id: "req-live", data: { mode: "image" }
+    });
+    mockEmit("send", {
+      command: "generate_media", request_id: "req-other", data: { mode: "image" }
+    });
+    await jest.advanceTimersByTimeAsync(3_000);
+    expect(generations()["req-other"].status).toBe("generating");
+    expect(generations()["req-live"]).toMatchObject({
+      status: "generated", assetIds: ["image-live"]
+    });
+  });
+
   it("looks up requests whose reply went to a closed socket", async () => {
     jest.mocked(lookupGenerations).mockResolvedValue(
       new Map([

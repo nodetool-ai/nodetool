@@ -1,0 +1,509 @@
+{
+  "id": "444676df3fb1f937b5f393cab94c31c3",
+  "name": "Comfy MOSS Image",
+  "description": "Generate an image on Comfy Cloud with the official MOSS Image template. Requires COMFY_API_KEY and model availability on Comfy Cloud.",
+  "tags": [
+    "comfy",
+    "image",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy MOSS Image\n\nGenerate an image on Comfy Cloud with the official MOSS Image template. Requires COMFY_API_KEY and model availability on Comfy Cloud.\n\n**How it works:** The Comfy nodes form the complete MOSS Image graph. Run submits the graph to Comfy Cloud and saves its generated image.\n\n**Try this:** Change value on Text (User Prompt) and run again to compare results. Edit the visible nodes to change settings.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/benchmarks/image_moss_image_t2i.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "9",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "moss_image_t2i"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19",
+        "type": "comfy.ResolutionSelector",
+        "data": {
+          "aspect_ratio": "1:1 (Square)",
+          "megapixels": 1,
+          "multiple": 16
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Resolution Selector"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18_17",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "Cinematic night street photograph: a model in an exaggerated balloon-sleeve white wool coat walking toward camera under a huge illuminated theatre marquee, the marquee bulbs spelling \"MOSS\" in tall capital letters, wet asphalt with long reflections, warm tungsten glow against cold blue night, anamorphic flare, 35mm film grain, low angle"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Text (User Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18_14",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "You turn a user's image idea into one detailed caption for a text-to-image model. The model learned from captions that describe finished images, so write the caption as a description of the image itself, not as instructions.\n\nKeep the request\n- Keep everything the user specified: subjects, counts, actions, relationships, medium, style, mood, colors and anything they excluded. Never contradict or drop it.\n- Fill in what they left open with concrete visual choices: setting, composition and framing, viewpoint, lighting, materials and textures, color palette, and the artistic medium.\n- Describe only what can be seen. Leave out sounds, smells, backstory and intentions.\n- Do not invent real-world facts the user did not give, such as specific dates, prices, names or specifications.\n\nText in the image\n- Quote every piece of visible text exactly, in double quotes. Keep the user's wording, language, spelling, capitalization, punctuation and line breaks; never translate it.\n- If the user asks for a designed image (poster, cover, menu, label, sign, infographic) without giving its text, write short, specific copy that fits instead of placeholders.\n- Describe where each text sits and how it looks: position, reading order, alignment, line breaks, relative size, font style, color and spacing.\n- Do not mention watermarks or artist signatures.\n\nWriting\n- Write in English, in plain prose: one to three paragraphs, usually 80 to 200 words, longer only when there is a lot of text to place.\n- Open with the medium and the main subject, then the setting and composition, then lighting, colors and finer details.\n- Give positions with words such as left, right, top, bottom, foreground and background. No coordinates, lists, headings, JSON or Markdown.\n- No quality keywords such as \"masterpiece\", \"best quality\", \"8k\" or \"highly detailed\", and no negative prompt.\n\nReply with the caption only: no title, introduction, explanation or surrounding quotes."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Text (System prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18_11",
+        "type": "comfy.TextGenerate",
+        "data": {
+          "max_length": 4096,
+          "sampling_mode": "on",
+          "sampling_mode.temperature": 0.7,
+          "sampling_mode.top_k": 64,
+          "sampling_mode.top_p": 0.95,
+          "sampling_mode.min_p": 0.05,
+          "sampling_mode.repetition_penalty": 1,
+          "sampling_mode.seed": 0,
+          "sampling_mode.presence_penalty": 0,
+          "thinking": false,
+          "use_default_template": true,
+          "mtp": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Generate Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18_1",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "moss_image_sft_int8_convrot.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18_4",
+        "type": "comfy.CLIPTextEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Positive Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18_2",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen3.5_9b_w4a8_gptq.safetensors",
+          "type": "moss_image",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18_7",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 333599710072681,
+          "steps": 25,
+          "cfg": 2.5,
+          "sampler_name": "er_sde",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18_3",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "flux2-vae_small.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18_13",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Preview as Text (final prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18_16",
+        "type": "comfy.ComfySwitchNode",
+        "data": {
+          "switch": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "If/Else Switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18_6",
+        "type": "comfy.EmptyFlux2LatentImage",
+        "data": {
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Empty Flux 2 Latent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18_5",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "nsfw, worst quality, bad anatomy, watermark, jpeg artifact"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Negative Prompt (empty = reference default)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18_8",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18_15",
+        "type": "comfy.SkipLayerGuidanceDiTSimple",
+        "data": {
+          "double_layers": "",
+          "single_layers": "22",
+          "start_percent": 0,
+          "end_percent": 0.5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "SkipLayerGuidanceDiTSimple"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18_24",
+        "type": "comfy.ComfySwitchNode",
+        "data": {
+          "switch": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "If/Else Switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "18_8-0-9-images",
+        "source": "18_8",
+        "sourceHandle": "IMAGE",
+        "target": "9",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "18_17-0-18_11-prompt",
+        "source": "18_17",
+        "sourceHandle": "STRING",
+        "target": "18_11",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "18_2-0-18_11-clip",
+        "source": "18_2",
+        "sourceHandle": "CLIP",
+        "target": "18_11",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "18_14-0-18_11-system_prompt",
+        "source": "18_14",
+        "sourceHandle": "STRING",
+        "target": "18_11",
+        "targetHandle": "system_prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "18_13-0-18_4-text",
+        "source": "18_13",
+        "sourceHandle": "STRING",
+        "target": "18_4",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "18_2-0-18_4-clip",
+        "source": "18_2",
+        "sourceHandle": "CLIP",
+        "target": "18_4",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "18_24-0-18_7-model",
+        "source": "18_24",
+        "sourceHandle": "output",
+        "target": "18_7",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "18_4-0-18_7-positive",
+        "source": "18_4",
+        "sourceHandle": "CONDITIONING",
+        "target": "18_7",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "18_5-0-18_7-negative",
+        "source": "18_5",
+        "sourceHandle": "CONDITIONING",
+        "target": "18_7",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "18_6-0-18_7-latent_image",
+        "source": "18_6",
+        "sourceHandle": "LATENT",
+        "target": "18_7",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "18_16-0-18_13-source",
+        "source": "18_16",
+        "sourceHandle": "output",
+        "target": "18_13",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "18_17-0-18_16-on_false",
+        "source": "18_17",
+        "sourceHandle": "STRING",
+        "target": "18_16",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "18_11-0-18_16-on_true",
+        "source": "18_11",
+        "sourceHandle": "generated_text",
+        "target": "18_16",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "19-0-18_6-width",
+        "source": "19",
+        "sourceHandle": "width",
+        "target": "18_6",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "19-1-18_6-height",
+        "source": "19",
+        "sourceHandle": "height",
+        "target": "18_6",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "18_2-0-18_5-clip",
+        "source": "18_2",
+        "sourceHandle": "CLIP",
+        "target": "18_5",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "18_7-0-18_8-samples",
+        "source": "18_7",
+        "sourceHandle": "LATENT",
+        "target": "18_8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "18_3-0-18_8-vae",
+        "source": "18_3",
+        "sourceHandle": "VAE",
+        "target": "18_8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "18_1-0-18_15-model",
+        "source": "18_1",
+        "sourceHandle": "MODEL",
+        "target": "18_15",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "18_1-0-18_24-on_false",
+        "source": "18_1",
+        "sourceHandle": "MODEL",
+        "target": "18_24",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "18_15-0-18_24-on_true",
+        "source": "18_15",
+        "sourceHandle": "MODEL",
+        "target": "18_24",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      }
+    ]
+  }
+}
