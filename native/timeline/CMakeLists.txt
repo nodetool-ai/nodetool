@@ -322,3 +322,14 @@ endif()
 
 include(cmake/TestPreferences.cmake)
 nt_isolate_test_preferences()
+
+# Scratch scripts need kernel-owned process trees on Windows.
+if(WIN32)
+    add_executable(nt-scratch-job scripts/scratch-job.cpp)
+    target_link_libraries(nt-scratch-job PRIVATE Qt6::Core iphlpapi ws2_32)
+    target_compile_definitions(nt-scratch-job PRIVATE _WIN32_WINNT=0x0A00)
+    target_compile_options(nt-scratch-job PRIVATE ${NT_WARNINGS})
+    add_dependencies(nodetool-timeline nt-scratch-job)
+    set_property(TEST scratch_safety timelinelist_document_actions timelinelist_scratch timelinelist_settings_scratch
+        APPEND PROPERTY ENVIRONMENT "NT_SCRATCH_JOB_HELPER=$<TARGET_FILE:nt-scratch-job>")
+endif()

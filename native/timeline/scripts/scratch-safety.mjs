@@ -5,15 +5,48 @@
 //    canonical location is checked first, and every delete re-checks that its
 //    target resolves inside that folder. A symlink is unlinked, never followed.
 //  - A port must be free before a launch, and every listener on it must be in
-//    the process group the script started before any write.
+//    the process group (POSIX) or Job Object (Windows) started here before any write.
 //  - Requests refuse redirects, so none can reach another server (7777).
 //  - Each scratch server proves fresh nonces with HMAC before a write on
 //    that connection. The instance secret never goes over the wire.
-//  - Cleanup stops whole process groups: SIGTERM, then SIGKILL after a deadline.
+//  - POSIX cleanup stops process groups: SIGTERM, then SIGKILL after a deadline.
+//    Windows jobs kill descendants on cleanup, helper death, or owner death.
 
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+
+const windowsGroups = new Map();
+function jobHelper() {
+  const helper = process.env.NT_SCRATCH_JOB_HELPER;
+  if (!helper || !fs.existsSync(helper)) throw new Error("Windows scratch requires NT_SCRATCH_JOB_HELPER from the native build");
+  return helper;
+}
+function jobCommand(command, name, ...args) {
+  const r = spawnSync(jobHelper(), [command, name, ...args.map(String)], { encoding: "utf8", windowsHide: true, timeout: 10000 });
+  if (r.error || ![0, 1].includes(r.status)) throw new Error(`scratch job ${command}: ${r.error ?? r.stderr}`);
+  return r.status === 0;
+}
+/** Windows children enter a kill-on-close job atomically before executing. */
+export function spawnOwned(executable, args, options = {}) {
+  if (process.platform !== "win32") return spawn(executable, args, options);
+  const name = `Local\\NodeToolScratch-${crypto.randomUUID()}`;
+  const child = spawn(jobHelper(), ["run", name, String(process.pid), executable, ...args], { ...options, detached: false, windowsHide: true });
+  windowsGroups.set(child.pid, { name, child });
+  return child;
+}
+export function killGroup(group) {
+  if (process.platform === "win32") {
+    const entry = windowsGroups.get(group);
+    if (!entry) throw new Error(`unowned scratch group ${group}`);
+    jobCommand("stop", entry.name);
+    // Also closes a helper that has not created its job yet.
+    entry.child.kill();
+    return;
+  }
+  try { process.kill(-group, "SIGKILL"); } catch { /* gone */ }
+}
 
 /** `<parent>/<name>` when it is a plain directory at its canonical path; created if absent. */
 export function verifiedBuildDir(parent, name) {
@@ -62,8 +95,15 @@ export function safeRm(work, p) {
   fs.rmSync(abs, { recursive: true, force: true });
 }
 
-/** PIDs listening on a TCP port (lsof, or ss on a Linux without lsof). */
+/** Listener PIDs from the Windows TCP table, lsof, or Linux ss. */
 export function listenerPids(port) {
+  if (process.platform === "win32") {
+    const r = spawnSync(jobHelper(), ["listeners", String(port)], { encoding: "utf8", windowsHide: true, timeout: 10000 });
+    if (r.error || r.status !== 0) throw new Error(`cannot enumerate TCP listeners: ${r.error ?? r.stderr}`);
+    const lines = r.stdout.trim() ? r.stdout.trim().split(/\r?\n/) : [];
+    if (lines.some(line => !/^[1-9][0-9]*$/.test(line))) throw new Error("invalid TCP listener PID");
+    return [...new Set(lines.map(Number))];
+  }
   const r = spawnSync("lsof", ["-nP", `-iTCP:${port}`, "-sTCP:LISTEN", "-t"], { encoding: "utf8" });
   if (r.error?.code === "ENOENT" && process.platform === "linux") {
     const ss = spawnSync("ss", ["-H", "-ltnp", `sport = :${port}`], { encoding: "utf8" });
@@ -80,6 +120,10 @@ export function processGroupOf(pid) {
 /** True when the port has a listener and every listener is in process group `pgid`. */
 export function groupOwnsPort(pgid, port) {
   const pids = listenerPids(port);
+  if (process.platform === "win32") {
+    const entry = windowsGroups.get(pgid);
+    return !!entry && pids.length > 0 && pids.every(pid => jobCommand("contains", entry.name, pid));
+  }
   return pids.length > 0 && pids.every((pid) => processGroupOf(pid) === pgid);
 }
 
@@ -120,6 +164,10 @@ export function instancePreloadOption() {
 }
 
 export function groupAlive(pgid) {
+  if (process.platform === "win32") {
+    const entry = windowsGroups.get(pgid);
+    return !!entry && jobCommand("alive", entry.name);
+  }
   try {
     process.kill(-pgid, 0);
     return true;
@@ -135,6 +183,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  * up to `killMs`. Throws when a group is still alive after that.
  */
 export async function stopGroups(groups, { termMs = 15_000, killMs = 5_000 } = {}) {
+  if (process.platform === "win32") {
+    for (const g of groups) killGroup(g);
+    const deadline = Date.now() + killMs;
+    while (groups.some(groupAlive) && Date.now() < deadline) await sleep(50);
+    if (groups.some(groupAlive)) throw new Error("scratch job descendants survived termination");
+    return;
+  }
   for (const g of groups) {
     try {
       process.kill(-g, "SIGTERM");
