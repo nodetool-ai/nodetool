@@ -66,7 +66,7 @@ it("preserves full-frame identity through source promotion, crop and subpixel pl
   for (let y = 0; y < 24; y++) {
     for (let x = 0; x < 32; x++) {
       const coverage = Math.max(0, Math.min(1, 8.5 - Math.hypot(x - 16, y - 12)));
-      rgba.set([220, 80, 35, Math.round(coverage * (x < 16 ? 255 : 3))], (y * 32 + x) * 4);
+      rgba.set([coverage > 0 ? 220 : 0, coverage > 0 ? 80 : 0, coverage > 0 ? 35 : 0, Math.round(coverage * (x < 16 ? 255 : 3))], (y * 32 + x) * 4);
     }
   }
   const allocations = vi.spyOn(device, "createTexture");

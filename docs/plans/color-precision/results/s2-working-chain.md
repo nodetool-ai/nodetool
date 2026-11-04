@@ -1,7 +1,7 @@
-# S2 working chain, stage one
+# S2 working chain
 
-Scope is A21 and A22 on film/color-s2, based on e6c9a7944c.
-A23 and later tasks are not started. No host enables FP16 by default.
+A21 and A22 started from e6c9a7944c. A23.1 and A23.2 continue from
+72801af622 on film/color-s2. No host enables FP16 by default.
 
 ## A21
 
@@ -86,9 +86,9 @@ through RGBA8.
 
 ## Limits
 
-A23 onward is not started. No host target, normalization route, compositor,
-temporal cache, setting or persisted schema was upgraded. Existing callers keep
-the byte route. Browser, hardware-GPU and native execution are unverified.
+A23.3 onward is not started. The A23 continuation below changes opt-in
+compositor geometry. Temporal caches, settings and persisted schemas are
+unchanged. Existing callers keep the byte route. Browser, hardware-GPU and native execution are unverified.
 Native consumption of the added fixture fields is unverified. Default-parameter
 dispatch does not certify arbitrary parameter ranges, float clamping semantics,
 effect fidelity or complete host chains.
@@ -224,3 +224,57 @@ being checked separately, with failures recorded in the continuation below.
 Changed files for A23.1: this report,
 `packages/timeline/src/render/frameCompositor.ts` and
 `packages/timeline/tests/render.workingPrecision.gpu.test.ts`.
+
+
+## A23.2 continuation
+
+The existing compositor already selects working precision for blend targets,
+group accumulation, group resolve and adjustment mixing. New tests exercise
+all 13 blend modes, both direct and grouped, and all 12 transition types.
+The non-neutral Levels fixture runs on both a promoted leaf and a composed
+group. It checks actual output values, so silently dropping the effect fails.
+Effect input labels now report the actual texture format. Effect pool targets,
+alpha conversion scratch and recipe intermediates remain byte-backed.
+A23.3 is still required before claiming a continuous FP16 effect chain.
+
+The strengthened identity fixture uses black transparent texels beside coloured
+coverage, so changing leaf alpha filtering cannot hide behind constant RGB.
+No transfer function, effect parameter, shader, schema or default was changed.
+
+Final focused verification passed nine files and 56 tests, including the
+strengthened identity fixture, blend/transition checks and existing effect,
+mask, adjustment and group tests. Timeline-only typecheck passed with exit 0.
+
+### Baseline findings
+
+The existing compositor selection ran 19 files: 343 tests passed, six retained
+expected failures, and 14 failures. The same 14 failures reproduced after
+restoring frameCompositor.ts and effects.ts from 72801af622, with identical
+reported error values. The working files were restored after that comparison.
+
+Seven grain cases fail. Five opaque cases have mean errors from
+0.02203369140625 to 0.0242919921875 against the existing 0.02 limit. Two
+translucent cases have maximum error 3 against the existing one-code limit.
+Seven colour-boundary cases fail at maximum error 255 in low-alpha samples:
+six PNG/WebP profile combinations and MOV alpha delivery. These are unresolved
+baseline findings. No tolerance, skip or expected-failure marker was changed.
+The hard requirement that every existing pixel test pass remains unmet.
+
+Logs are in `/home/mg/Projects/nodetool-film/tmp/color-s2/`: `compositor.log`,
+`baseline.log`, `wgsl.log`, `identity.log`, `final.log` and
+`typecheck-final.log`. Runs use Node 24 through `bin/ntenv`, lavapipe,
+LP_NUM_THREADS=2, NODETOOL_TEST_WORKERS=1 and no file parallelism.
+Only selected Vitest files and timeline package typecheck ran.
+Not run: test:affected, root typecheck, lint, harness gate, /verify or full suites.
+Browser, hardware GPU, native execution, transparent low-alpha identity and
+A23.3/A23.4 remain unverified. No push was performed.
+
+Changed files for this continuation:
+
+- `docs/plans/color-precision/results/s2-working-chain.md`
+- `packages/timeline/src/render/frameCompositor.ts`
+- `packages/timeline/src/render/effects.ts`
+- `packages/timeline/tests/render.workingPrecision.gpu.test.ts`
+- `packages/timeline/tests/render.workingBlend.gpu.test.ts`
+
+A23.1 commit: 35f68b1d06. A23.2 is the commit containing this continuation.

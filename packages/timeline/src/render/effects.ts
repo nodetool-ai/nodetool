@@ -265,7 +265,7 @@ export class WebGPUEffectsProcessor {
     // straight→premul→straight round-trip when chromaKey runs first.
     const sourceLabeled = new LabeledTexture(source, {
       label: `preview-effects-${poolKey}-src`,
-      format: "rgba8unorm",
+      format: source.format,
       width,
       height,
       meta: { colorSpace: "encoded-sdr", alpha: sourceAlpha, bindingKind: "texture_2d" }
@@ -846,7 +846,7 @@ export class WebGPUEffectsProcessor {
   ): LabeledTexture {
     return new LabeledTexture(texture, {
       label: `preview-effects-${label}`,
-      format: "rgba8unorm",
+      format: texture.format,
       width,
       height,
       meta: { colorSpace: "encoded-sdr", alpha, bindingKind: "texture_2d" }
