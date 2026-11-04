@@ -1,3 +1,4 @@
+import { SRGB_TRANSFER_WGSL, EXPOSURE_UNPREMULTIPLY_WGSL } from "../../../../colorHelpers.js";
 import tgpu from "typegpu";
 import * as d from "typegpu/data";
 import { defineModule } from "../../../../module.js";
@@ -16,19 +17,13 @@ export const colorExposureLinearV1 = defineModule({
   },
   layout, workgroupSize: [16, 16, 1],
   wgsl: /* wgsl */ `
-fn decode(v: vec3f) -> vec3f {
-  return select(pow((v + 0.055) / 1.055, vec3f(2.4)), v / 12.92, v <= vec3f(0.04045));
-}
-fn encode(v: vec3f) -> vec3f {
-  return select(1.055 * pow(v, vec3f(1.0 / 2.4)) - 0.055, 12.92 * v, v <= vec3f(0.0031308));
-}
-@compute @workgroup_size(16, 16, 1)
+${SRGB_TRANSFER_WGSL}@compute @workgroup_size(16, 16, 1)
 fn main(@builtin(global_invocation_id) gid: vec3u) {
   let dims = textureDimensions(layout.$.source);
   if (gid.x >= dims.x || gid.y >= dims.y) { return; }
   let at = vec2i(gid.xy); let src = textureLoad(layout.$.source, at, 0);
   let p = layout.$.params;
-  let linear = decode(src.rgb / max(src.a, 1.0 / 255.0));
+  let linear = decode(${EXPOSURE_UNPREMULTIPLY_WGSL});
   let mask = smoothstep(0.25, 1.0, dot(linear, vec3f(0.2126, 0.7152, 0.0722)));
   var gain = exp2(clamp(p.exposure, -5.0, 5.0)) * mix(1.0, exp2(clamp(p.whites, -2.0, 2.0)), mask);
   let strength = clamp(p.rolloff, 0.0, 1.0); let knee = 1.0 - 0.75 * strength;
