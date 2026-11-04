@@ -676,3 +676,58 @@ unverified. Color Match still assumes sRGB for Oklab statistics, while native
 export tags BT.709. These numerical working-pixel checks do not validate that
 perceptual assumption or exported playback appearance. Transfer reconciliation
 remains outside A109.
+
+
+## Export precision codec comparison (PR #7217)
+
+The old eight-code maximum came from local libx264 output. Linux CI links
+FFmpeg 8.0 from `build-ffmpeg-lgpl.sh`, which enables OpenH264 and excludes
+GPL libx264. Its observed maximum was 10 with mean 0.526259. The local binary
+links system FFmpeg 9.0.2 and libx264, selected by `h264Encoder()`. macOS CI
+installs Homebrew FFmpeg 9.0.2 and selects `h264_videotoolbox` first. Windows
+links the pinned BtbN LGPL shared FFmpeg 8.0.1 build and selects an available
+software H.264 encoder. Its exact runtime encoder is not established here.
+The GPL FFmpeg command-line tools used for fixtures and decoding do not select
+the application's encoder.
+
+Every MP4 retains absolute mean codec error at most one YUV code. Matched
+FP16/RGBA8 exports now compare codec loss for the same scene and encoder.
+FP16 may add at most one code to the maximum and 0.1 code to the mean.
+These margins allow one quantization step at an edge and one tenth of the
+absolute mean budget across the frame. There is no absolute maximum codec
+limit. Decoded-RGB sanity uses the sum of the two measured codec maxima,
+plus the unchanged one-code delivery allowance, through the existing BT.709
+conversion bound. Unencoded YUV identity remains at most one code per plane.
+Both modes' measured losses print before assertions.
+
+Local codec results, shown as maximum / mean in YUV codes:
+
+| Scene | RGBA8 | FP16 |
+|---|---|---|
+| Canvas | 1 / 0.035373 | 1 / 0.035807 |
+| Fit down | 1 / 0.008247 | 1 / 0.052083 |
+| Fill down | 1 / 0.027344 | 1 / 0.063368 |
+| Fit up | 1 / 0.016493 | 2 / 0.041580 |
+| Fill up | 1 / 0.008594 | 1 / 0.055816 |
+| Identity, opacity 1 | 1 / 0.010200 | 1 / 0.034939 |
+| Identity, opacity 0.001 | 0 / 0 | 1 / 0.002170 |
+
+Three temporary decoded-YUV mutations each made `export_precision` exit 8.
+Zeroing the frame failed the absolute mean at 74.618490. Replacing the first
+FP16 sample with the opposite byte extreme failed the relative maximum at
+239 versus 1, while its mean 0.087674 passed the absolute limit. Adding one
+code to every fourth FP16 sample failed the relative mean at 0.275608 versus
+0.035373, while both maxima remained 1. All mutations were removed.
+Logs are `codec-negative-{corrupt,fp16-max,fp16-mean}.log` under
+`/home/mg/Projects/nodetool-film/build/color-n2`.
+
+`ntbuild color-n2 nodetool-timeline tst_deliveryframe` passed.
+After restoration, `citest color-n2 '^export_precision$' -V` and
+`citest color-n2 '^tst_deliveryframe$' -V` passed with no skips. Logs are
+`codec-restored.log` and `codec-deliveryframe.log`. Direct before/after runs
+used temporary `XDG_CONFIG_HOME`. FP16-off MP4 files, PNG payloads, unencoded
+YUV and decoded RGBA matched across 36 files and 289383 bytes, with zero
+differences. See `codec-byte-comparison.txt` and `codec-bytes-{before,after}/`.
+Only the test script and this note changed. FP16 stays off by default.
+No TypeScript checks, full CTest suite or push was performed. Other platform
+encoders were inspected in source and logs, without running this change there.
