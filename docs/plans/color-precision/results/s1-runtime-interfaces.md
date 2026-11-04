@@ -1,5 +1,9 @@
 # S1 runtime interfaces
 
+Current gate: S1 passes for “colour doesn't change” under the
+2026-11-05 owner decision. See [S1 owner closeout](#s1-owner-closeout).
+Earlier rounds below retain their measured results and gate states at the time.
+
 Work: `film/color-s0`, starting at `b0e76741bb`.
 Merged `origin/feat/native-timeline` with merge commit `eebdb5840c`.
 Owner decision committed first after the merge: `b7ed14d1dc`.
@@ -542,3 +546,72 @@ Changed files in this round:
 
 - `packages/timeline/tests/render.colorBoundary.gpu.test.ts`
 - `docs/plans/color-precision/results/s1-runtime-interfaces.md`
+
+
+## S1 owner closeout
+
+Owner decision, 2026-11-05: **S1 passes for “colour doesn't change”.** Today's
+export behavior stays. S1 closes the internal interfaces and unchanged encoded
+sample behavior covered by these fixtures. It does not certify strict BT.709
+transfer conversion or every supported import/export route. S2 has not started.
+
+Merged `origin/feat/native-timeline` at `61ffcdc2b3` into `film/color-s0` with
+merge commit `66bf6ff83e`, starting at `e491a0ff0f`. No conflicts occurred.
+Upstream changes to `render.parity.gpu.test.ts` and `render.clipEffects.test.ts`
+were retained. No production code changed in this closeout after the merge.
+
+The BT.709 policy is open for S6/A101: pass-through with today's tag, or strict
+transfer conversion. The measured difference from the strict reference is
+16 to 17 codes. Neither option is chosen here. P3 PNG normalization, VP9 alpha
+and the HEVC override are deferred as B215–B217 in the
+[backlog](../../../../native/timeline/docs/gaps-backlog.md). B218–B221 record
+grain parity, Windows reconnect cadence, macOS frame hold pointer reachability
+and high-gain Color Match discrepancies. These entries do not claim fixes.
+
+Browser delivery and native delivery from this path remain unqualified. The
+NVIDIA low-alpha disagreement remains unresolved. Passing lavapipe identity
+fixtures does not resolve hardware parity or qualify browser/native delivery.
+A82's unfinished API-latency, growth-soak and weak-GPU measurements still gate
+browser rollout. The A82 measured verdicts are unchanged.
+
+### Known failures and focused verification
+
+Before adding `it.fails`, the unchanged boundary file exited 1 on lavapipe:
+16 ordinary passes and exactly six failures. The failure sites were inspected
+individually, including setup and metadata checks before the final assertions.
+
+| Known failure | Observed failure before marking | Tracking |
+|---|---|---|
+| H.264 declared BT.709 | `declared BT.709 transfer error, excluding codec loss`: 17 > 5. Metadata and separate reference codec-loss assertions pass, codec loss 2. | S6/A101 |
+| VP9 declared BT.709 | Same transfer assertion: 17 > 5. Metadata and reference codec-loss assertions pass, codec loss 2. | S6/A101 |
+| ProRes declared BT.709 | Same transfer assertion: 16 > 5. Metadata and reference codec-loss assertions pass, codec loss 0. | S6/A101 |
+| Display P3 PNG normalization | `profile normalization before sRGB delivery`: 55 > 2. Import succeeds and reaches the independent sRGB comparison. | B215 |
+| VP9 alpha | `input codec alpha error`: 255 > 1, before rendering. ffprobe reports `alpha_mode=1`. | B216 |
+| HEVC MP4 override | `encoder.finish()` fails writing the first encoded packet: `Failed to write packet: Not yet implemented in FFmpeg, patches welcome`. No transfer assertion is reached. | B217 |
+
+HEVC is a known encoder/mux setup failure, not a measured color assertion.
+Marking it does not qualify its transfer behavior. The other five reach the
+expected assertions above rather than failing in setup. All original assertions
+and tolerances remain intact. Only these six cases use `it.fails`, with a reason
+and tracking reference. Passing cases in the video loop remain ordinary `it`.
+No case is skipped. A future passing known-failure case makes Vitest fail.
+
+Final focused run exited 0: 16 ordinary passes and six executed expected
+failures, 22 cases total. Node 24 came from `ntenv`. `VK_DRIVER_FILES` was explicitly unset
+because `ntenv` sets an NVIDIA override that takes precedence over
+`VK_ICD_FILENAMES`. The command was:
+
+```bash
+cd /home/mg/Projects/nodetool-film/wt/color-s0
+source /home/mg/Projects/nodetool-film/bin/ntenv
+unset VK_DRIVER_FILES
+VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json LP_NUM_THREADS=2 NODETOOL_TEST_WORKERS=1 \
+  npm test --workspace=packages/timeline -- tests/render.colorBoundary.gpu.test.ts \
+  --no-file-parallelism --reporter=verbose
+```
+
+The initial run before unsetting the override reproduced additional NVIDIA
+low-alpha failures and is not counted as lavapipe evidence. Only the boundary
+test file was run. The upstream parity and clip-effects files were not run.
+`test:affected`, root typecheck, lint, harness gate, `/verify` and full suites
+were not run, per scope. No dependencies were installed and no push was made.
