@@ -39,6 +39,53 @@ export function isAllowedRedirectUri(uri: string): boolean {
   return false;
 }
 
+function parseLoopbackHttp(uri: string): URL | null {
+  let url: URL;
+  try {
+    url = new URL(uri);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== "http:" || !LOOPBACK_HOSTNAMES.has(url.hostname)) {
+    return null;
+  }
+  if (url.username !== "" || url.password !== "" || url.hash !== "") {
+    return null;
+  }
+  return url;
+}
+
+/**
+ * Whether `requested` is one of the client's registered redirect URIs.
+ *
+ * The match is exact, except for loopback: an `http` URI on `127.0.0.1` or
+ * `localhost` matches a registered one with the same host, path and query on
+ * any port (RFC 8252 §7.3). A native client binds an ephemeral port per
+ * session. Claude Code registers `http://localhost/callback` and redirects
+ * to `http://localhost:<port>/callback`.
+ */
+export function isRegisteredRedirectUri(
+  requested: string,
+  registered: readonly string[]
+): boolean {
+  if (registered.includes(requested)) {
+    return true;
+  }
+  const req = parseLoopbackHttp(requested);
+  if (!req) {
+    return false;
+  }
+  return registered.some((uri) => {
+    const reg = parseLoopbackHttp(uri);
+    return (
+      reg !== null &&
+      reg.hostname === req.hostname &&
+      reg.pathname === req.pathname &&
+      reg.search === req.search
+    );
+  });
+}
+
 /** The canonical `/mcp` resource URI for this deployment. */
 export function canonicalResource(publicUrl: string): string {
   return `${normalizeOrigin(publicUrl)}/mcp`;

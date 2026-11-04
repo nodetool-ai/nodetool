@@ -11,6 +11,10 @@
  * the exception: the board's one-take duration is the whole film's length, so
  * an unset scene clip duration is the run's shot total.
  *
+ * The request text is compiled from the shots alone, with no creator prompt,
+ * so a re-render sends the same direction. The creator controls the rest
+ * through the reference images the clip stores.
+ *
  * The clip lands on the run's first shot and every other shot in the run is
  * covered by its window, so the preview, the slideshow and the timeline play
  * it from where the run starts without any change to the shot order.
@@ -50,14 +54,36 @@ export const sceneClipDirectionWithFallbacks = (
   board: StoryboardBoard | undefined,
   clip: SceneClipDirection
 ): OneTakeDirection => ({
-  prompt: clip.prompt,
+  prompt: "",
   duration_seconds: clip.duration_seconds ?? null,
   model: clip.model ?? board?.oneTake?.model ?? null,
   aspect_ratio: clip.aspect_ratio ?? board?.oneTake?.aspect_ratio ?? null,
   resolution: clip.resolution ?? board?.oneTake?.resolution ?? null,
   reference_source:
-    clip.reference_source ?? board?.oneTake?.reference_source ?? null
+    clip.reference_source ?? board?.oneTake?.reference_source ?? null,
+  reference_shot_ids: clip.reference_shot_ids ?? null,
+  reference_entity_ids: clip.reference_entity_ids ?? null
 });
+
+/**
+ * The entities a scene clip can send: the board's cast, then each entity the
+ * clip chose from the library. Choosing one does not add it to the board.
+ */
+export const sceneClipCast = (
+  board: StoryboardBoard | undefined,
+  clip: SceneClipDirection,
+  library: readonly Entity[] | undefined
+): Entity[] => {
+  const cast = boardCast(board, library);
+  const inCast = new Set(cast.map((entity) => entity.id));
+  const chosen = new Set(clip.reference_entity_ids ?? []);
+  return [
+    ...cast,
+    ...(library ?? []).filter(
+      (entity) => chosen.has(entity.id) && !inCast.has(entity.id)
+    )
+  ];
+};
 
 /** The board narrowed to the scene clip's run, with its direction. */
 const sceneClipBoard = (
@@ -87,6 +113,8 @@ export const resolveSceneClipSettings = (
 ): OneTakeSettings =>
   resolveOneTakeSettings(sceneClipBoard(board, clip), catalog, remembered);
 
+export const SCENE_CLIP_NO_REFERENCE_BLOCKER = "Pick at least one reference image.";
+
 /** Why the scene clip cannot render, or an empty list. */
 export const sceneClipBlockers = (
   board: StoryboardBoard | undefined,
@@ -95,13 +123,22 @@ export const sceneClipBlockers = (
   settings: OneTakeSettings
 ): string[] => {
   const issue = board ? sceneClipRun(board.shots, clip.shot_ids).issue : null;
-  return [...(issue ? [issue] : []), ...oneTakeBlockers(plan, settings)];
+  const blockers = oneTakeBlockers(plan, settings);
+  const chosen = clip.reference_shot_ids || clip.reference_entity_ids;
+  const noneChosen = chosen && plan?.compiled.references.length === 0;
+  return [
+    ...(issue ? [issue] : []),
+    ...(noneChosen ? [SCENE_CLIP_NO_REFERENCE_BLOCKER] : []),
+    ...(noneChosen ? blockers.slice(1) : blockers)
+  ];
 };
 
 interface UseRenderSceneClipResult {
   plan: OneTakeRenderPlan | null;
   settings: OneTakeSettings;
   blockers: string[];
+  /** The entities this clip can send. */
+  cast: Entity[];
   /** Renders `clip` against the board as it is now. Rejects while blocked. */
   renderSceneClip: (clip: SceneClipDirection) => Promise<void>;
 }
@@ -121,9 +158,13 @@ export const useRenderSceneClip = (
     () => rememberedOneTakeModels(byTask, byKind),
     [byTask, byKind]
   );
-  const plan = useMemo(
-    () => planSceneClip(board, clip, boardCast(board, library)),
+  const cast = useMemo(
+    () => sceneClipCast(board, clip, library),
     [board, clip, library]
+  );
+  const plan = useMemo(
+    () => planSceneClip(board, clip, cast),
+    [board, clip, cast]
   );
   const settings = useMemo(
     () => resolveSceneClipSettings(board, clip, catalog, remembered),
@@ -141,7 +182,7 @@ export const useRenderSceneClip = (
       const sendPlan = planSceneClip(
         current,
         sendClip,
-        boardCast(current, library)
+        sceneClipCast(current, sendClip, library)
       );
       const sendSettings = resolveSceneClipSettings(
         current,
@@ -174,7 +215,7 @@ export const useRenderSceneClip = (
     [boardId, catalog, library, remembered, startOneTakeClip]
   );
 
-  return { plan, settings, blockers, renderSceneClip };
+  return { plan, settings, blockers, cast, renderSceneClip };
 };
 
 export default useRenderSceneClip;

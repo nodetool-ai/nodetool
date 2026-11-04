@@ -108,6 +108,14 @@ covers DNS, trigger-dispatch handover, pool sizing, and affinity checks.
 The retained [Fly guide](fly-production-deploy.md) covers legacy rollback
 operations, not the active GitHub release destination.
 
+## MCP connectors
+
+claude.ai and other OAuth MCP clients need `NODETOOL_ENABLE_MCP=1` and
+`NODETOOL_PUBLIC_URL=https://api.nodetool.ai` on both replicas. Without the
+public URL, `/.well-known/oauth-authorization-server` answers `404` and `/mcp`
+sends a `401` with no `WWW-Authenticate` challenge, so Claude cannot discover
+the authorization server. See [Connect claude.ai](mcp-production.md#connect-claudeai).
+
 ## Run history retention
 
 The production image sets `NODETOOL_STORAGE_AUTO_CLEANUP=1`. The server sweeps

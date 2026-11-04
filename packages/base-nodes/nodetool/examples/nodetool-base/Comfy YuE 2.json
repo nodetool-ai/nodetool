@@ -1,0 +1,505 @@
+{
+  "id": "85dead2de2a2e0d97118fe849fd6b891",
+  "name": "Comfy YuE 2",
+  "description": "Generate audio on Comfy Cloud with the official YuE 2 template. Requires COMFY_API_KEY and model availability on Comfy Cloud.",
+  "tags": [
+    "comfy",
+    "audio",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy YuE 2\n\nGenerate audio on Comfy Cloud with the official YuE 2 template. Requires COMFY_API_KEY and model availability on Comfy Cloud.\n\n**How it works:** The Comfy nodes form the complete YuE 2 graph. Run submits the graph to Comfy Cloud and saves its generated audio.\n\n**Try this:** Change value on Text (Style) and run again to compare results. Edit the visible nodes to change settings, lyrics or duration.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/benchmarks/audio_yue2_text2music.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "10",
+        "type": "comfy.SaveAudioAdvanced",
+        "data": {
+          "filename_prefix": "audio/YuE2",
+          "format": "flac"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Audio (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "33_15",
+        "type": "comfy.CheckpointLoaderSimple",
+        "data": {
+          "ckpt_name": "yue2_3b_int8_convrot.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Checkpoint"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "33_24",
+        "type": "comfy.YuE2GenerateABC",
+        "data": {
+          "mode": "full",
+          "max_abc_tokens": 8192,
+          "temperature": 0.7,
+          "top_p": 0.9,
+          "top_k": 30,
+          "repetition_penalty": 1.005,
+          "penalty_window": 100
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "YuE2 Generate ABC"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "33_14",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "33_30",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "If/Else Switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "33_32",
+        "type": "comfy.PrimitiveString",
+        "data": {
+          "value": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Text (Empty ABC)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "33_25",
+        "type": "comfy.YuE2GenerateMusic",
+        "data": {
+          "mode": "full",
+          "max_duration": 120,
+          "temperature": 1,
+          "top_p": 0.95,
+          "top_k": 100,
+          "repetition_penalty": 1.2,
+          "cfg_scale": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "YuE2 Generate Music"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "33_31",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Boolean (ABC planning)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "33_18",
+        "type": "comfy.ConditioningZeroOut",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Conditioning Zero Out"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "33_23",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "33_8",
+        "type": "comfy.KSampler",
+        "data": {
+          "steps": 32,
+          "cfg": 1,
+          "sampler_name": "dpm_2",
+          "scheduler": "sgm_uniform",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "33_5",
+        "type": "comfy.EmptyYuE2LatentAudio",
+        "data": {
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Empty YuE2 Latent Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "33_9",
+        "type": "comfy.VAEDecodeAudio",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "33_34",
+        "type": "comfy.SeedNode",
+        "data": {
+          "seed": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Seed"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "33_36",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "Upbeat indie pop with warm female vocals, bright electric guitars, punchy drums, melodic bass, and subtle synth layers. Catchy and energetic, with an uplifting summer atmosphere, a memorable chorus, and polished modern production."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Text (Style)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "33_37",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "[Verse]\nMorning light across the window\nCity waking down below\nI can hear the streets are calling\nFeels like somewhere we should go\n\n[Chorus]\nRun with me into the sunlight\nLeave the shadows far behind\nWe don't need to know tomorrow\nTonight the whole world feels alive\n\n[Verse]\nRadio playing through the open door\nLaughing like we did before\nEvery mile becomes a memory\nAnd I just want a little more\n\n[Chorus]\nRun with me into the sunlight\nLeave the shadows far behind\nWe don't need to know tomorrow\nTonight the whole world feels alive"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Text (Lyrics)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "33_9-0-10-audio",
+        "source": "33_9",
+        "sourceHandle": "AUDIO",
+        "target": "10",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "33_36-0-33_24-style",
+        "source": "33_36",
+        "sourceHandle": "STRING",
+        "target": "33_24",
+        "targetHandle": "style",
+        "ui_properties": null
+      },
+      {
+        "id": "33_37-0-33_24-lyrics",
+        "source": "33_37",
+        "sourceHandle": "STRING",
+        "target": "33_24",
+        "targetHandle": "lyrics",
+        "ui_properties": null
+      },
+      {
+        "id": "33_34-0-33_24-seed",
+        "source": "33_34",
+        "sourceHandle": "seed",
+        "target": "33_24",
+        "targetHandle": "seed",
+        "ui_properties": null
+      },
+      {
+        "id": "33_15-1-33_24-clip",
+        "source": "33_15",
+        "sourceHandle": "CLIP",
+        "target": "33_24",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "33_30-0-33_14-source",
+        "source": "33_30",
+        "sourceHandle": "output",
+        "target": "33_14",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "33_31-0-33_30-switch",
+        "source": "33_31",
+        "sourceHandle": "BOOLEAN",
+        "target": "33_30",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "33_32-0-33_30-on_false",
+        "source": "33_32",
+        "sourceHandle": "STRING",
+        "target": "33_30",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "33_24-0-33_30-on_true",
+        "source": "33_24",
+        "sourceHandle": "abc",
+        "target": "33_30",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "33_36-0-33_25-style",
+        "source": "33_36",
+        "sourceHandle": "STRING",
+        "target": "33_25",
+        "targetHandle": "style",
+        "ui_properties": null
+      },
+      {
+        "id": "33_37-0-33_25-lyrics",
+        "source": "33_37",
+        "sourceHandle": "STRING",
+        "target": "33_25",
+        "targetHandle": "lyrics",
+        "ui_properties": null
+      },
+      {
+        "id": "33_14-0-33_25-abc",
+        "source": "33_14",
+        "sourceHandle": "STRING",
+        "target": "33_25",
+        "targetHandle": "abc",
+        "ui_properties": null
+      },
+      {
+        "id": "33_34-0-33_25-seed",
+        "source": "33_34",
+        "sourceHandle": "seed",
+        "target": "33_25",
+        "targetHandle": "seed",
+        "ui_properties": null
+      },
+      {
+        "id": "33_15-1-33_25-clip",
+        "source": "33_15",
+        "sourceHandle": "CLIP",
+        "target": "33_25",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "33_25-0-33_18-conditioning",
+        "source": "33_25",
+        "sourceHandle": "CONDITIONING",
+        "target": "33_18",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "33_25-1-33_23-source",
+        "source": "33_25",
+        "sourceHandle": "seconds",
+        "target": "33_23",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "33_34-0-33_8-seed",
+        "source": "33_34",
+        "sourceHandle": "seed",
+        "target": "33_8",
+        "targetHandle": "seed",
+        "ui_properties": null
+      },
+      {
+        "id": "33_15-0-33_8-model",
+        "source": "33_15",
+        "sourceHandle": "MODEL",
+        "target": "33_8",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "33_25-0-33_8-positive",
+        "source": "33_25",
+        "sourceHandle": "CONDITIONING",
+        "target": "33_8",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "33_18-0-33_8-negative",
+        "source": "33_18",
+        "sourceHandle": "CONDITIONING",
+        "target": "33_8",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "33_5-0-33_8-latent_image",
+        "source": "33_5",
+        "sourceHandle": "LATENT",
+        "target": "33_8",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "33_25-1-33_5-seconds",
+        "source": "33_25",
+        "sourceHandle": "seconds",
+        "target": "33_5",
+        "targetHandle": "seconds",
+        "ui_properties": null
+      },
+      {
+        "id": "33_8-0-33_9-samples",
+        "source": "33_8",
+        "sourceHandle": "LATENT",
+        "target": "33_9",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "33_15-2-33_9-vae",
+        "source": "33_15",
+        "sourceHandle": "VAE",
+        "target": "33_9",
+        "targetHandle": "vae",
+        "ui_properties": null
+      }
+    ]
+  }
+}

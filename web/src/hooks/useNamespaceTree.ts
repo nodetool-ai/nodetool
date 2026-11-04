@@ -32,7 +32,14 @@ export interface NamespaceTree {
  * namespaces are hidden until their API key is set, unless the user chose to
  * see nodes that need a key. Namespaces are sorted enabled-first.
  */
-const useNamespaceTree = (): NamespaceTree => {
+const isComfyNamespace = (namespace: string): boolean =>
+  namespace === "comfy" || namespace.startsWith("comfy.");
+
+/**
+ * `comfyMode` is true in a Comfy workflow: the tree then holds only the
+ * ComfyUI node classes (`comfy.*`), and otherwise never holds them.
+ */
+const useNamespaceTree = (comfyMode = false): NamespaceTree => {
   const metadata = useMetadataStore((state) => state.metadata);
   const enabledPackIds = useOptionalNodePacksStore(
     (state) => state.enabledPackIds
@@ -75,6 +82,9 @@ const useNamespaceTree = (): NamespaceTree => {
         continue;
       }
       seen.add(namespace);
+      if (isComfyNamespace(namespace) !== comfyMode) {
+        continue;
+      }
       if (isNamespaceHiddenByOptionalPacks(namespace, enabledPacks)) {
         continue;
       }
@@ -99,6 +109,7 @@ const useNamespaceTree = (): NamespaceTree => {
     });
   }, [
     metadata,
+    comfyMode,
     isNamespaceDisabled,
     isCredentialSet,
     enabledPacks,

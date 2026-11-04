@@ -27251,6 +27251,636 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/shot-director-ltx-2-3",
+    "title": "Shot Director (LTX-2.3) — NodeTool AI Workflow Template",
+    "description": "Direct a cinematic take from one still and render it on Comfy Cloud with a pinned LTX-2.3 workflow (open weights, with audio). The same graph runs behind the Storyboard clip model \"LTX-2.3 (ComfyUI workflow)\".",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "shot-director-ltx-2-3",
+    "name": "Shot Director (LTX-2.3)",
+    "summary": "Direct a cinematic take from one still and render it on Comfy Cloud with a pinned LTX-2.3 workflow (open weights, with audio). The same graph runs behind the Storyboard clip model \"LTX-2.3 (ComfyUI workflow)\".",
+    "tags": [
+      "video",
+      "comfy",
+      "camera-moves",
+      "open-weights",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 3
+      },
+      {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.IntegerInput",
+        "label": "Integer Input",
+        "count": 1
+      },
+      {
+        "type": "lib.comfy.RunWorkflowOnCloud",
+        "label": "Run Workflow On Cloud",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.SelectInput",
+        "label": "Select Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 9,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "isComment": true
+        },
+        {
+          "id": "source",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "camera_move",
+          "type": "nodetool.input.SelectInput",
+          "title": "Select Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "dolly in"
+        },
+        {
+          "id": "direction",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "Steam curls up from the espresso cup on the dark wooden table among scattered coffee beans, warm low light."
+        },
+        {
+          "id": "seed",
+          "type": "nodetool.input.IntegerInput",
+          "title": "Integer Input",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "compose",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "comfy",
+          "type": "lib.comfy.RunWorkflowOnCloud",
+          "title": "Run Workflow On Cloud",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "take",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "job",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "settings",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "source",
+          "sourceHandle": "output",
+          "target": "comfy",
+          "targetHandle": "56:image",
+          "color": "any"
+        },
+        {
+          "source": "camera_move",
+          "sourceHandle": "output",
+          "target": "compose",
+          "targetHandle": "camera_move",
+          "color": "any"
+        },
+        {
+          "source": "direction",
+          "sourceHandle": "output",
+          "target": "compose",
+          "targetHandle": "direction",
+          "color": "any"
+        },
+        {
+          "source": "seed",
+          "sourceHandle": "output",
+          "target": "compose",
+          "targetHandle": "seed",
+          "color": "any"
+        },
+        {
+          "source": "compose",
+          "sourceHandle": "prompt",
+          "target": "comfy",
+          "targetHandle": "6:text",
+          "color": "any"
+        },
+        {
+          "source": "compose",
+          "sourceHandle": "seed",
+          "target": "comfy",
+          "targetHandle": "16:noise_seed",
+          "color": "any"
+        },
+        {
+          "source": "compose",
+          "sourceHandle": "run_settings",
+          "target": "settings",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "comfy",
+          "sourceHandle": "58:video",
+          "target": "take",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "comfy",
+          "sourceHandle": "output",
+          "target": "job",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/shot-director-wan-2-2-14b",
+    "title": "Shot Director (Wan 2.2 14B) — NodeTool AI Workflow Template",
+    "description": "Direct a cinematic take from one still and render it on Comfy Cloud with a pinned Wan 2.2 I2V A14B workflow (open weights, 4-step lightx2v). The same graph runs behind the Storyboard clip model \"Wan 2.2 I2V A14B (ComfyUI workflow)\".",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "shot-director-wan-2-2-14b",
+    "name": "Shot Director (Wan 2.2 14B)",
+    "summary": "Direct a cinematic take from one still and render it on Comfy Cloud with a pinned Wan 2.2 I2V A14B workflow (open weights, 4-step lightx2v). The same graph runs behind the Storyboard clip model \"Wan 2.2 I2V A14B (ComfyUI workflow)\".",
+    "tags": [
+      "video",
+      "comfy",
+      "camera-moves",
+      "open-weights",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 3
+      },
+      {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.IntegerInput",
+        "label": "Integer Input",
+        "count": 1
+      },
+      {
+        "type": "lib.comfy.RunWorkflowOnCloud",
+        "label": "Run Workflow On Cloud",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.SelectInput",
+        "label": "Select Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 9,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "isComment": true
+        },
+        {
+          "id": "source",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "camera_move",
+          "type": "nodetool.input.SelectInput",
+          "title": "Select Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "dolly in"
+        },
+        {
+          "id": "direction",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "Steam curls up from the espresso cup on the dark wooden table among scattered coffee beans, warm low light."
+        },
+        {
+          "id": "seed",
+          "type": "nodetool.input.IntegerInput",
+          "title": "Integer Input",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "compose",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "comfy",
+          "type": "lib.comfy.RunWorkflowOnCloud",
+          "title": "Run Workflow On Cloud",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "take",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "job",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "settings",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "source",
+          "sourceHandle": "output",
+          "target": "comfy",
+          "targetHandle": "56:image",
+          "color": "any"
+        },
+        {
+          "source": "camera_move",
+          "sourceHandle": "output",
+          "target": "compose",
+          "targetHandle": "camera_move",
+          "color": "any"
+        },
+        {
+          "source": "direction",
+          "sourceHandle": "output",
+          "target": "compose",
+          "targetHandle": "direction",
+          "color": "any"
+        },
+        {
+          "source": "seed",
+          "sourceHandle": "output",
+          "target": "compose",
+          "targetHandle": "seed",
+          "color": "any"
+        },
+        {
+          "source": "compose",
+          "sourceHandle": "prompt",
+          "target": "comfy",
+          "targetHandle": "93:text",
+          "color": "any"
+        },
+        {
+          "source": "compose",
+          "sourceHandle": "seed",
+          "target": "comfy",
+          "targetHandle": "86:noise_seed",
+          "color": "any"
+        },
+        {
+          "source": "compose",
+          "sourceHandle": "run_settings",
+          "target": "settings",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "comfy",
+          "sourceHandle": "58:video",
+          "target": "take",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "comfy",
+          "sourceHandle": "output",
+          "target": "job",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/shot-director",
+    "title": "Shot Director — NodeTool AI Workflow Template",
+    "description": "Direct a cinematic take from one still: pick an open camera preset, describe the shot, and render it on Comfy Cloud with a pinned Wan 2.2 workflow. Every take records its preset, prompt, seed and Comfy job id.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "shot-director",
+    "name": "Shot Director",
+    "summary": "Direct a cinematic take from one still: pick an open camera preset, describe the shot, and render it on Comfy Cloud with a pinned Wan 2.2 workflow. Every take records its preset, prompt, seed and Comfy job id.",
+    "tags": [
+      "video",
+      "comfy",
+      "camera-moves",
+      "open-weights",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 3
+      },
+      {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.IntegerInput",
+        "label": "Integer Input",
+        "count": 1
+      },
+      {
+        "type": "lib.comfy.RunWorkflowOnCloud",
+        "label": "Run Workflow On Cloud",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.SelectInput",
+        "label": "Select Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 9,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "isComment": true
+        },
+        {
+          "id": "source",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "camera_move",
+          "type": "nodetool.input.SelectInput",
+          "title": "Select Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "dolly in"
+        },
+        {
+          "id": "direction",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "Steam curls up from the espresso cup on the dark wooden table among scattered coffee beans, warm low light."
+        },
+        {
+          "id": "seed",
+          "type": "nodetool.input.IntegerInput",
+          "title": "Integer Input",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "compose",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "comfy",
+          "type": "lib.comfy.RunWorkflowOnCloud",
+          "title": "Run Workflow On Cloud",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "take",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "job",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "settings",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "source",
+          "sourceHandle": "output",
+          "target": "comfy",
+          "targetHandle": "56:image",
+          "color": "any"
+        },
+        {
+          "source": "camera_move",
+          "sourceHandle": "output",
+          "target": "compose",
+          "targetHandle": "camera_move",
+          "color": "any"
+        },
+        {
+          "source": "direction",
+          "sourceHandle": "output",
+          "target": "compose",
+          "targetHandle": "direction",
+          "color": "any"
+        },
+        {
+          "source": "seed",
+          "sourceHandle": "output",
+          "target": "compose",
+          "targetHandle": "seed",
+          "color": "any"
+        },
+        {
+          "source": "compose",
+          "sourceHandle": "prompt",
+          "target": "comfy",
+          "targetHandle": "6:text",
+          "color": "any"
+        },
+        {
+          "source": "compose",
+          "sourceHandle": "seed",
+          "target": "comfy",
+          "targetHandle": "3:seed",
+          "color": "any"
+        },
+        {
+          "source": "compose",
+          "sourceHandle": "run_settings",
+          "target": "settings",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "comfy",
+          "sourceHandle": "58:video",
+          "target": "take",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "comfy",
+          "sourceHandle": "output",
+          "target": "job",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/shot-list-from-a-synopsis",
     "title": "Shot List from a Synopsis — NodeTool AI Workflow Template",
     "description": "A synopsis becomes numbered shots with framing and duration — the document a generation pipeline can iterate over, where prose is not.",

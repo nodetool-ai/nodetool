@@ -9,7 +9,11 @@ function runWorkflowOnWorker(inputs, options) {
 function runWorkflowOnCloud(inputs, options) {
   return createNode("lib.comfy.RunWorkflowOnCloud", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "dict[str, any]" }, defaultOutput: "output", streaming: true });
 }
+function runComfyGraphOnCloud(inputs, options) {
+  return createNode("lib.comfy.RunComfyGraphOnCloud", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "dict[str, any]" }, defaultOutput: "output", streaming: true });
+}
 export {
+  runComfyGraphOnCloud,
   runWorkflow,
   runWorkflowOnCloud,
   runWorkflowOnWorker

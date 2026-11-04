@@ -343,10 +343,6 @@ const ImageView: React.FC<ImageViewProps> = ({
     }
   }, [imageUrl]);
 
-  const handleOpenInViewer = useCallback(() => {
-    setOpenViewer(true);
-  }, []);
-
   if (!imageUrl && !bitmap) {
     return <Text>{t("i18n-next66.node.imageView.noImageFound")}</Text>;
   }
@@ -381,7 +377,7 @@ const ImageView: React.FC<ImageViewProps> = ({
           <ToolbarIconButton
             title={t("i18n-next66.node.imageView.openInViewer")}
             size="small"
-            onClick={handleOpenInViewer}
+            onClick={handleDoubleClick}
             sx={iconButtonStyle}
           >
             <OpenInNewIcon />

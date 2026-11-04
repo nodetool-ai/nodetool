@@ -2141,6 +2141,7 @@
     "lib.audio.TimeStretch": "audio",
     "lib.browser.Screenshot": "automation",
     "lib.charts.ChartRenderer": "data",
+    "lib.comfy.RunComfyGraphOnCloud": "integration",
     "lib.comfy.RunWorkflow": "integration",
     "lib.comfy.RunWorkflowOnCloud": "integration",
     "lib.comfy.RunWorkflowOnWorker": "integration",
@@ -3834,7 +3835,7 @@
       "id": "integration",
       "installBytes": 0,
       "kind": "node-pack",
-      "nodeCount": 11,
+      "nodeCount": 12,
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/integration-nodes",

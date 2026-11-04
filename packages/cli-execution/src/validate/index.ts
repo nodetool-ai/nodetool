@@ -1,4 +1,5 @@
 import { findMissingPacks } from "@nodetool-ai/execution/missing-packs";
+import { collapseComfyGraph, isComfyNodeType } from "@nodetool-ai/protocol";
 /**
  * Wires the node-sdk {@link validateGraph} to the real node registry and the
  * shared target resolver (DB id / JSON file / DSL file). Integration code —
@@ -101,6 +102,7 @@ export async function runValidate(
   deps: ValidateDeps
 ): Promise<ValidateResult> {
   const resolved = await resolveTarget(ref, deps.loadFromDb);
+  const graph = collapseComfyGraph(resolved.graph);
   let registryView = deps.registry;
   if (!registryView) {
     const registry = await sharedRegistry();
@@ -130,22 +132,48 @@ export async function runValidate(
   // those names — a store round trip per requirement, not per key in the DB.
   let availableSecrets: ReadonlySet<string> | undefined;
   if (resolved.info.source === "id" && deps.availableSecrets) {
-    const sites = collectSecretRequirementSites(resolved.graph, registryView);
+    const sites = collectSecretRequirementSites(graph, registryView);
     availableSecrets = await deps.availableSecrets(
       sites.map((site) => site.key)
     );
   }
-  const graphReport = validateGraph(resolved.graph, registryView, {
+  let graphReport = validateGraph(graph, registryView, {
     availableSecrets
   });
-  const unread = unreadOutputIssues(resolved.graph, registryView);
+  if (graph !== resolved.graph) {
+    // The remote catalog owns Comfy node properties and socket types. Keep
+    // checking local graph structure before the runner collapses those nodes.
+    const localRegistry = registryView;
+    const authored = validateGraph(resolved.graph, {
+      ...localRegistry,
+      has: (type) => isComfyNodeType(type) || localRegistry.has(type),
+      availability: (type) => isComfyNodeType(type)
+        ? "executable"
+        : localRegistry.availability?.(type) ?? "unknown",
+      getMetadata: (type) => isComfyNodeType(type) ? undefined : localRegistry.getMetadata(type),
+      validateNode: (descriptor, connected) => isComfyNodeType(descriptor.type)
+        ? []
+        : localRegistry.validateNode(descriptor, connected)
+    });
+    graphReport = {
+      ...authored,
+      ok: authored.ok && graphReport.ok,
+      issues: [...authored.issues, ...graphReport.issues],
+      counts: {
+        errors: authored.counts.errors + graphReport.counts.errors,
+        warnings: authored.counts.warnings + graphReport.counts.warnings,
+        info: authored.counts.info + graphReport.counts.info
+      }
+    };
+  }
+  const unread = unreadOutputIssues(graph, registryView);
   const report = unread.length === 0 ? graphReport : {
     ...graphReport,
     issues: [...graphReport.issues, ...unread],
     counts: { ...graphReport.counts, info: graphReport.counts.info + unread.length }
   };
   if (registryView.availability && registryView.catalogEntry) {
-    const missing = await findMissingPacks(resolved.graph, {
+    const missing = await findMissingPacks(graph, {
       availability: (type) => registryView.availability?.(type) ?? "unknown",
       catalogEntry: (type) => registryView.catalogEntry?.(type),
       list: () => registryView.list?.() ?? [],

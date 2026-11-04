@@ -9,6 +9,7 @@ export * from "./nodes/messaging.js";
 export * from "./nodes/kie-dynamic.js";
 export * from "./nodes/comfy-sdk.js";
 export * from "./nodes/comfy-cloud.js";
+export * from "./nodes/comfy-graph-cloud.js";
 export * from "./nodes/comfy.js";
 export * from "./nodes/comfy-schema.js";
 export * from "./nodes/stable-diffusion-cpp.js";

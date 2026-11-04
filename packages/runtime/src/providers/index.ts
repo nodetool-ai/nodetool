@@ -642,8 +642,8 @@ registerBuiltinProvider(
   }
 );
 registerBuiltinProvider(PROVIDER_IDS.KIE, KieProvider, { KIE_API_KEY: "" });
-// Comfy Cloud: credentials and a settings card only — the `lib.comfy` nodes
-// submit the graphs. It lists no models because the API enumerates none.
+// Comfy: the Comfy Router's partner models (image, video, speech, chat) behind
+// one key. The `lib.comfy` nodes use the same key to run ComfyUI graphs.
 registerBuiltinProvider(PROVIDER_IDS.COMFY_CLOUD, ComfyCloudProvider, {
   COMFY_API_KEY: ""
 });

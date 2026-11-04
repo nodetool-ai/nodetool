@@ -49669,6 +49669,114 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     replaced_by: undefined
   },
   {
+    title: 'Run Comfy Workflow (Comfy Cloud)',
+    description: 'Runs a whole Comfy workflow on Comfy Cloud as one job through the Comfy API v2.\n' +
+      '    comfy, comfyui, cloud, workflow',
+    namespace: 'lib.comfy',
+    node_type: 'lib.comfy.RunComfyGraphOnCloud',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'nodes',
+        type: {
+          type: 'list',
+          type_args: [
+            {
+              type: 'dict',
+              type_args: [
+                { type: 'str', type_args: [] },
+                { type: 'any', type_args: [] }
+              ]
+            }
+          ]
+        },
+        required: false,
+        title: 'Nodes',
+        description: "The Comfy workflow's `comfy.*` nodes.",
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: []
+      },
+      {
+        name: 'edges',
+        type: {
+          type: 'list',
+          type_args: [
+            {
+              type: 'dict',
+              type_args: [
+                { type: 'str', type_args: [] },
+                { type: 'any', type_args: [] }
+              ]
+            }
+          ]
+        },
+        required: false,
+        title: 'Edges',
+        description: "The Comfy workflow's edges.",
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: []
+      },
+      {
+        name: 'timeout',
+        type: { type: 'int', type_args: [] },
+        required: false,
+        title: 'Timeout',
+        description: 'Maximum seconds to wait for the job to finish.',
+        min: 1,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 1800
+      }
+    ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'dict',
+          type_args: [
+            { type: 'str', type_args: [] },
+            { type: 'any', type_args: [] }
+          ]
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [],
+    required_settings: [ 'COMFY_API_KEY' ],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: true,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: true,
+    auto_save_asset: true,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [ 'node', 'workers', 'edge' ],
+    deprecated: undefined,
+    hidden: true,
+    replaced_by: undefined
+  },
+  {
     title: 'Generate Image (stable-diffusion.cpp)',
     description: 'Generate images with a running stable-diffusion.cpp sd-server. Supports text-to-image, image-to-image, masks and reference images.\n' +
       '    sdcpp, local, diffusion, gguf, image',
