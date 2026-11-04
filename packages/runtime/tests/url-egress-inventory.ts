@@ -139,18 +139,6 @@ const fixedHost = (
 });
 
 export const URL_EGRESS_INVENTORY: EgressEntry[] = [
-  ...["comfy-gpu-models", "comfy-template-models"].map((name): EgressEntry => ({
-    file: `packages/runtime/src/providers/${name}.ts`,
-    owner: "Comfy Cloud model transport (@comfyorg/sdk)",
-    inputSource: "operator",
-    schemes: ["http", "https"],
-    authScope: "SDK-managed COMFY_API_KEY on its configured origin",
-    redirects: "runtime-follows",
-    dnsRebinding: "n/a",
-    policy: "private-integration",
-    guardedBy: [],
-    note: "The SDK selects request URLs, including provider output downloads. Its default Comfy Cloud endpoint can be overridden by operator configuration. The injected fetch adds retry policy, not URL screening. Deployment egress controls remain responsible for redirects and resolved addresses."
-  })),
   {
     file: "packages/antigravity-cli/src/index.ts",
     owner: "Antigravity CLI installer",
