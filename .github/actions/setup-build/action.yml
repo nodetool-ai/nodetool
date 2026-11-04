@@ -26,6 +26,15 @@ inputs:
 runs:
   using: composite
   steps:
+    # Hosted runners have run out of disk here (No space left on device).
+    - name: Free disk space (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        df -h /
+        sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+        df -h /
+
     - name: Set up Node.js
       uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
       with:
