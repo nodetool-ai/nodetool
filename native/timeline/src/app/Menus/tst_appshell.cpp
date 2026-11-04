@@ -440,10 +440,15 @@ Ui.TextField { property string draft: "Clip"; width: 200; value: draft; onValueC
         QCOMPARE(qgetenv("NODETOOL_TIMELINE_CACHE_DIR"), QByteArray("/tmp/preferences-cache"));
         QCOMPARE(qgetenv("NODETOOL_TIMELINE_CACHE_BUDGET_MB"), QByteArray("300"));
         qputenv("NODETOOL_TIMELINE_CACHE_DIR", "/explicit");
-        qputenv("NODETOOL_TIMELINE_CACHE_BUDGET_MB", "");
+        qputenv("NODETOOL_TIMELINE_CACHE_BUDGET_MB", "450");
         applyCachePreferences(store);
         QCOMPARE(qgetenv("NODETOOL_TIMELINE_CACHE_DIR"), QByteArray("/explicit"));
-        QCOMPARE(qgetenv("NODETOOL_TIMELINE_CACHE_BUDGET_MB"), QByteArray(""));
+        QCOMPARE(qgetenv("NODETOOL_TIMELINE_CACHE_BUDGET_MB"), QByteArray("450"));
+        // The Windows CRT removes an environment variable assigned an empty value.
+        qputenv("NODETOOL_TIMELINE_CACHE_BUDGET_MB", "");
+        const QByteArray expected = qEnvironmentVariableIsSet("NODETOOL_TIMELINE_CACHE_BUDGET_MB") ? "" : "300";
+        applyCachePreferences(store);
+        QCOMPARE(qgetenv("NODETOOL_TIMELINE_CACHE_BUDGET_MB"), expected);
     }
     void keyboardSync() {
         Preferences saved;
