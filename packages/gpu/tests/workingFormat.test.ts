@@ -85,7 +85,7 @@ it("classifies the complete A97 slot set and rejects deliberately wrong modules"
   for (const module of shaders) {
     expect(resolveWorkingModule(module, "rgba8unorm")).toBe(module);
     const fp16 = resolveWorkingModule(module, "rgba16float");
-    expect(fp16.wgsl).toBe(module.wgsl.replaceAll(
+    expect(fp16.wgsl).toBe((module.workingWgsl ?? module.wgsl).replaceAll(
       "texture_storage_2d<rgba8unorm", module.precision?.output === "fixed" ? "texture_storage_2d<rgba8unorm" : "texture_storage_2d<rgba16float"));
   }
 }, 60000);

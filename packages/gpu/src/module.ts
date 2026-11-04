@@ -65,6 +65,8 @@ export interface ShaderVariant {
   readonly requires?: VariantRequirements;
   readonly layout: TgpuBindGroupLayout;
   readonly wgsl: string;
+  /** Optional FP16 shader retaining saturation formerly supplied by UNORM. */
+  readonly workingWgsl?: string;
   readonly entryPoint: string;
   readonly samplers?: Readonly<Record<string, GPUSamplerDescriptor>>;
   readonly workgroupSize?: readonly [number, number, number];
@@ -104,6 +106,8 @@ export interface ShaderModule<Schema extends AnyWgslStruct = AnyWgslStruct> {
 
   /** Resolved WGSL (layout + uniform struct injected). */
   readonly wgsl: string;
+  /** Optional FP16 shader retaining saturation formerly supplied by UNORM. */
+  readonly workingWgsl?: string;
   readonly entryPoint: string;
   readonly workgroupSize: readonly [number, number, number];
 
@@ -147,6 +151,8 @@ export interface ShaderModuleSpec<Schema extends AnyWgslStruct> {
    * generated bindings + struct definitions.
    */
   wgsl: string;
+  /** FP16-only arithmetic specialization. Byte shader remains unchanged. */
+  workingWgsl?: string;
   /** Extra resolve externals (shared snippets). The layout is auto-included. */
   externals?: ResolveExternals;
 
@@ -255,6 +261,17 @@ export function defineModule<Schema extends AnyWgslStruct>(
     });
   });
 
+  const workingWgsl = spec.workingWgsl === undefined ? undefined : tgpu.resolve({
+    template: spec.workingWgsl,
+    externals: { layout: spec.layout, ...spec.externals },
+    names: "strict"
+  });
+  if (workingWgsl !== undefined) {
+    const check = validateWgslLinearity({ id: spec.id, linearity: spec.linearity, wgsl: workingWgsl, inputs: spec.io.inputs });
+    if (!check.ok) {
+      throw new Error(`defineModule(${spec.id}): FP16 premul-invariant validation failed: ${check.violations.join(", ")}`);
+    }
+  }
   return Object.freeze({
     id: spec.id,
     version: spec.version,
@@ -269,6 +286,7 @@ export function defineModule<Schema extends AnyWgslStruct>(
     uniformBinding: spec.uniformBinding ?? DEFAULT_UNIFORM_BINDING,
     samplers: spec.samplers ?? {},
     wgsl,
+    workingWgsl,
     entryPoint: spec.entryPoint ?? (kind === "compute" ? "main" : "fs_main"),
     workgroupSize: spec.workgroupSize ?? ([1, 1, 1] as const),
     precision: spec.precision,

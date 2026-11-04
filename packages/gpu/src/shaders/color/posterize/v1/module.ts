@@ -29,6 +29,23 @@ const samplerDescriptor: GPUSamplerDescriptor = {
   addressModeV: "clamp-to-edge"
 };
 
+const wgsl = /* wgsl */ `
+@fragment
+fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+  let src = textureSample(layout.$.source, layout.$.samp, uv);
+  let coverage = textureSample(layout.$.mask, layout.$.samp, uv).a;
+  let n = max(2.0, min(256.0, layout.$.params.levels));
+  // Quantize the underlying straight color, not the premultiplied RGB; on
+  // partial-alpha pixels the premultiplied form has rgb <= a, so quantizing
+  // before un-premultiplying snaps to the wrong bin and can push rgb > a.
+  let safeA = max(src.a, 1.0 / 255.0);
+  let straight = src.rgb / safeA;
+  let quantized = floor(clamp(straight, vec3f(0.0), vec3f(1.0)) * n) / (n - 1.0);
+  let mixedStraight = mix(straight, clamp(quantized, vec3f(0.0), vec3f(1.0)), coverage);
+  return vec4f(mixedStraight * src.a, src.a);
+}
+`;
+
 export const colorPosterizeV1 = defineModule({
   precision: { "source": "working", "mask": "fixed", "output": "working" },
   id: "color.posterize",
@@ -44,22 +61,17 @@ export const colorPosterizeV1 = defineModule({
   },
   layout,
   samplers: { samp: samplerDescriptor },
-  wgsl: /* wgsl */ `
-@fragment
-fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
-  let src = textureSample(layout.$.source, layout.$.samp, uv);
-  let coverage = textureSample(layout.$.mask, layout.$.samp, uv).a;
-  let n = max(2.0, min(256.0, layout.$.params.levels));
-  // Quantize the underlying straight color, not the premultiplied RGB; on
-  // partial-alpha pixels the premultiplied form has rgb <= a, so quantizing
-  // before un-premultiplying snaps to the wrong bin and can push rgb > a.
-  let safeA = max(src.a, 1.0 / 255.0);
-  let straight = src.rgb / safeA;
-  let quantized = floor(clamp(straight, vec3f(0.0), vec3f(1.0)) * n) / (n - 1.0);
-  let mixedStraight = mix(straight, clamp(quantized, vec3f(0.0), vec3f(1.0)), coverage);
-  return vec4f(mixedStraight * src.a, src.a);
-}
-`,
+  wgsl,
+  // Check the candidate bin by cross multiplication. A rounded reciprocal
+  // on NVIDIA can place an exact FP16 boundary in the preceding bin.
+  workingWgsl: wgsl.replace(
+    "let quantized = floor(clamp(straight, vec3f(0.0), vec3f(1.0)) * n) / (n - 1.0);",
+    `let scaled = clamp(src.rgb, vec3f(0.0), vec3f(safeA)) * n;
+  var bins = floor(scaled / safeA);
+  bins += select(vec3f(0.0), vec3f(1.0), scaled >= (bins + vec3f(1.0)) * safeA);
+  bins -= select(vec3f(0.0), vec3f(1.0), scaled < bins * safeA);
+  let quantized = bins / (n - 1.0);`
+  ),
   io: {
     inputs: {
       source: {

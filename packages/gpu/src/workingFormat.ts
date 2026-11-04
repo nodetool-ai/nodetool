@@ -26,7 +26,7 @@ export function resolveWorkingModule<S extends AnyWgslStruct>(module: ShaderModu
     // Cached specializations retain the original uniform schema.
     return previous as unknown as ShaderModule<S>;
   }
-  const specialize = (shader: Pick<ShaderModule, "layout" | "wgsl">) => {
+  const specialize = (shader: Pick<ShaderModule, "layout" | "wgsl" | "workingWgsl">) => {
     const layout = tgpu.bindGroupLayout(Object.fromEntries(Object.entries(shader.layout.entries).map(([name, entry]) => {
       if (!entry || !("storageTexture" in entry)) {
         return [name, entry];
@@ -38,7 +38,7 @@ export function resolveWorkingModule<S extends AnyWgslStruct>(module: ShaderModu
     })));
     return {
       layout,
-      wgsl: shader.wgsl.replaceAll("texture_storage_2d<rgba8unorm", "texture_storage_2d<rgba16float")
+      wgsl: (shader.workingWgsl ?? shader.wgsl).replaceAll("texture_storage_2d<rgba8unorm", "texture_storage_2d<rgba16float")
     };
   };
   const resolved = {
