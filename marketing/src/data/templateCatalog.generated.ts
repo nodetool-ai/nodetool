@@ -132,6 +132,1682 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "comfy-1-input-and-multiple-editing-model-comparison-templates-all-in-one-image-edit-models-app",
+        "name": "Comfy 1 input and multiple editing model comparison (templates_all_in_one_image_edit_models.app)",
+        "description": "One click generations to test all the leading image editing models. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-1-input-and-multiple-editing-model-comparison",
+        "name": "Comfy 1 input and multiple editing model comparison",
+        "description": "upload one input image and select multiple editing models. generate side-by-side outputs to directly compare model effects and quality. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-add-color-to-line-art-illustration",
+        "name": "Comfy Add Color to Line Art Illustration",
+        "description": "Input a black and white illustration and generate a colored output. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-anima-anime-text-to-image-generation",
+        "name": "Comfy Anima Anime Text-to-Image Generation",
+        "description": "Input a text prompt to generate an anime-style image using the Anima model. Configure settings like steps and CFG scale to control the output. The workflow produces a non-photorealistic illustration based on your description. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-anima-base-v1-text-to-image",
+        "name": "Comfy Anima Base v1- Text to Image",
+        "description": "Input a text prompt describing an anime or artistic illustration. Generate a non-photorealistic image focused on anime concepts, characters, or styles. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-anima-lllite-any-control-to-image",
+        "name": "Comfy Anima Lllite- Any Control to Image",
+        "description": "Apply lightweight, LoRA-like conditional control to Anima-Base v1.0 anime-style images using ControlNet-LLLite, accepting one conditioning input and one optional mask for inpainting to produce a single generated output. Ideal for anime inpainting with dynamic masking, style transfer from lineart or grayscale sketches, and controlled character generation in multi-scene compositions. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-anima-lllite-depth-control-to-image",
+        "name": "Comfy Anima Lllite- Depth Control to Image",
+        "description": "Generate anime-style illustrations from a depth map using the Anima LLLite model, which applies a lightweight ControlNet correction for precise spatial control. Input 1 image to produce 2 image outputs plus a comparison view. Ideal for 3D scene reconstruction, VFX depth passes, and AR asset preparation. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-anima-lllite-image-inpainting",
+        "name": "Comfy Anima Lllite- Image Inpainting",
+        "description": "Inpaint anime images with Anima LLLite, a lightweight ControlNet variant that applies low-rank corrections for precise mask-based editing. Input 1 image and receive 1 inpainted output plus a comparison view. Ideal for fixing character details, removing unwanted objects from anime scenes, and seamless background restoration. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-apply-glitch-and-distortion-effects",
+        "name": "Comfy Apply Glitch And Distortion Effects",
+        "description": "Adds customizable glitch and tearing effects to images. Control distortion intensity, chromatic aberration, and pattern randomness. Outputs a stylistically distorted image. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-bernini-r-image-edit",
+        "name": "Comfy Bernini-R- Image Edit",
+        "description": "Generate an edited image with matched lighting and view a side-by-side before/after comparison. Ideal for portrait and product relighting, consistent lighting across photo sets, and e-commerce catalog photography. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-boogu-turbo-text-to-image",
+        "name": "Comfy Boogu Turbo- Text to Image",
+        "description": "Generate high-quality images from text prompts using the Boogu Turbo model, a distilled 10B-parameter text-to-image pipeline that produces photorealistic outputs in just 4 steps. The workflow accepts one text prompt and outputs a single 1024x1024 image. Ideal for rapid prototyping of photorealistic concepts, generating marketing visuals, and creating bilingual text-rendered images with strong prompt adherence. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-boogu-image-0-1-edit-int8",
+        "name": "Comfy Boogu image 0.1 Edit Int8",
+        "description": "Edit images with the Boogu Image Edit model, now optimized with convrot int8 quantization for faster inference and better quality than fp8. This workflow takes 1 input image and produces 1 edited image output. Ideal for quick image edits, batch processing with improved performance, and users wanting to leverage the convrot int8 format's speed and quality advantages. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-boogu-image-0-1-edit",
+        "name": "Comfy Boogu image 0.1 Edit",
+        "description": "Edit images using Boogu's instruction-driven model, taking one input image and generating an edited output alongside a side-by-side comparison view. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-bria-fibo-2-0-image-edit",
+        "name": "Comfy Bria- FIBO 2.0 Image Edit",
+        "description": "Edit an image with Bria FIBO 2.0 by describing the change in plain language, with an optional mask to confine it to one region. FIBO 2.0 is one model for both editing and generation, trained on structured VGL captions, so it holds everything you did not ask to change, and it returns that structured prompt so the edit can be rebuilt or refined from JSON. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-bria-fibo-2-0-text-to-image",
+        "name": "Comfy Bria- FIBO 2.0 Text to Image",
+        "description": "Generate an image from a text prompt with Bria FIBO 2.0, one model for both generation and editing. It is trained on structured VGL captions, so a detailed poster-style brief is followed closely, exact wording is rendered literally, and the node also returns that structured prompt so the same image can be rebuilt or refined from JSON. Ideal for editorial covers, posters and typography-led layouts. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-bria-guided-background-removal",
+        "name": "Comfy Bria- Guided Background Removal",
+        "description": "Remove the background from an image with Bria while keeping whatever a text prompt describes, so one subject can be cut out of a busy scene instead of losing everything that is not background. The original pixels come back at full resolution with a new alpha channel. Ideal for product cutouts, portrait isolation and compositing prep. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-bria-image-outpainting",
+        "name": "Comfy Bria- Image Outpainting",
+        "description": "A professional Bria-powered outpainting template designed for seamless image extension and edge-aware scene expansion Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-bria-product-holding",
+        "name": "Comfy Bria- Product Holding",
+        "description": "Place a product into the hands of the person in a photo with Bria. One person photo plus one to three product shots is enough for a lifestyle image in which the face, pose and background stay untouched and the product is held naturally. Ideal for e-commerce and social content that would otherwise need a shoot. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-bria-virtual-try-on",
+        "name": "Comfy Bria- Virtual Try-On",
+        "description": "Dress the person in a photo with a garment from a separate product shot using Bria. One person photo plus one to three garments or accessories produces a worn look in which the face, pose and background stay untouched and the garment is refitted to the body. Ideal for fashion catalogs and lookbooks without a photoshoot. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-capybara-image-edit",
+        "name": "Comfy Capybara- Image Edit",
+        "description": "Upload an image or video and input a text instruction. Generate an edited output using the Capybara model for tasks like style changes, object replacement, or time-of-day adjustments. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-capybara-text-to-image",
+        "name": "Comfy Capybara- Text to Image",
+        "description": "Input a text prompt to generate an image. This workflow uses the Capybara unified model for text-to-image synthesis. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-character-turnaround-sheet-generator",
+        "name": "Comfy Character Turnaround Sheet Generator",
+        "description": "Create orthographic multi-view character turnaround sheet from one reference image, keep consistent character features across front, side and back views, for sci-fi mech and armor character design. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-chroma-text-to-image",
+        "name": "Comfy Chroma- Text to Image",
+        "description": "Chroma - enhanced Flux model with improved image quality and better prompt understanding for stunning text-to-image generation. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-chroma1-radiance-text-to-image",
+        "name": "Comfy Chroma1 Radiance Text to Image",
+        "description": "Chroma1-Radiance works directly with image pixels instead of compressed latents, delivering higher quality images with reduced artifacts and distortion. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-chronoedit-14b-image-edit",
+        "name": "Comfy ChronoEdit 14B- Image Edit",
+        "description": "Image editing powered by video models' dynamic understanding, creating physically plausible results while preserving character and style consistency. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ernie-image-turbo-text-to-image",
+        "name": "Comfy Ernie Image Turbo- Text To Image",
+        "description": "Generate images from text prompts using the ERNIE-Image turbo model. Input a text description and receive a high-quality image with precise text rendering and structured layouts. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ernie-image-text-to-image",
+        "name": "Comfy Ernie Image- Text to Image",
+        "description": "Generate images from text prompts using the ERNIE-Image model. Input a text description to produce detailed, structured visuals with a broad stylistic range. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-flux-3-image-bounding-box-edit",
+        "name": "Comfy FLUX 3 Image- Bounding Box Edit",
+        "description": "Place objects and text where you want them with FLUX 3 Image by feeding boxes from the Create Bounding Boxes node into the prompt, so each box carries its own description and copy into the render. Boxes are relative to the canvas, so set the output to the same aspect ratio. One image is output, up to 4K. Ideal for poster and layout composition, placing headlines and captions, and controlling where subjects sit in the frame.\n Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-flux-3-image-image-edit",
+        "name": "Comfy FLUX 3 Image- Image Edit",
+        "description": "Edit or combine up to ten reference images from a text instruction with FLUX 3 Image, referring to them in the prompt as image 1, image 2, and so on. One image is output at any of sixteen aspect ratios and up to 4K, with web and image search grounding on by default. Ideal for character-consistent edits, product and object placement, and multi-reference scene compositing. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-flux-3-image-text-to-image",
+        "name": "Comfy FLUX 3 Image- Text to Image",
+        "description": "Generate an image from a text prompt with FLUX 3 Image, which interprets and expands the prompt before generating it, at any of sixteen aspect ratios and up to 4K. Web and image search grounding is on by default and no input files are required. One image is output. Ideal for typography-led posters, layout-driven design work, and fast exploration of visual concepts.\n Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-flux-2-dev-text-to-image",
+        "name": "Comfy FLUX.2 Dev Text to Image",
+        "description": "Text-to-image with enhanced lighting, materials, and realistic details. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-flux-2-dev",
+        "name": "Comfy FLUX.2 Dev",
+        "description": "Generate photorealistic images with multi-reference consistency and professional text rendering. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-flux-2-klein-4b-distilled-image-edit",
+        "name": "Comfy FLUX.2 [Klein] 4B Distilled- Image Edit",
+        "description": "The fastest variant in the Klein family. Built for interactive applications, real-time previews, and latency-critical production use cases. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-flux-2-klein-4b-image-edit",
+        "name": "Comfy FLUX.2 [Klein] 4B- Image Edit",
+        "description": "A smaller foundation model with exceptional quality-to-size ratio. Ideal for local deployment, fine-tuning on limited hardware, and efficient generation and editing workflows. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-flux-2-klein-4b-text-to-image",
+        "name": "Comfy FLUX.2 [Klein] 4B- Text to Image",
+        "description": "BFL distilled model. Outstanding quality at sub-second speed. Great for real-time generation while retaining quality. Marketing launch will focus on this model. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-flux-2-klein-9b-image-edit",
+        "name": "Comfy FLUX.2 [Klein] 9B- Image Edit",
+        "description": "BFL undistilled foundation model. Maximum flexibility and control. Great for fine-tuning. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-flux-2-klein-9b-text-to-image",
+        "name": "Comfy FLUX.2 [Klein] 9B- Text to Image",
+        "description": "BFL distilled model. Outstanding quality at sub-second speed. Great for real-time generation while retaining quality. Marketing launch will focus on this model. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-firered-image-edit-1-1-image-edit",
+        "name": "Comfy FireRed Image Edit 1.1- Image Edit",
+        "description": "Upload an image and a text prompt to edit it. Generate a modified image with enhanced identity consistency, multi-element fusion, or professional photo restoration. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-flux-kontext-dev-image-edit",
+        "name": "Comfy Flux Kontext Dev Image Edit",
+        "description": "Smart image editing that keeps characters consistent, edits specific parts without affecting others, and preserves original styles. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-flux-1-canny-model",
+        "name": "Comfy Flux.1 Canny Model",
+        "description": "Generate images guided by edge detection using Flux.1 Canny. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-flux-1-dev-uso-reference-image-generation",
+        "name": "Comfy Flux.1 Dev USO Reference Image Generation",
+        "description": "Use reference images to control both style and subject - keep your character's face while changing artistic style, or apply artistic styles to new scenes Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-flux-1-dev-fp8-text-to-image",
+        "name": "Comfy Flux.1 Dev fp8- Text to Image",
+        "description": "Generate images using Flux.1 Dev fp8 quantized version. Suitable for devices with limited VRAM, requires only one model file, but image quality is slightly lower than the full version. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-flux-1-dev-text-to-image",
+        "name": "Comfy Flux.1 Dev- Text to Image",
+        "description": "Generate high-quality images with Flux Dev full version. Requires larger VRAM and multiple model files, but provides the best prompt following capability and image quality. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-flux-1-inpaint",
+        "name": "Comfy Flux.1 Inpaint",
+        "description": "Fill missing parts of images using Flux.1 Fill Inpainting. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-flux-1-kontext-max",
+        "name": "Comfy Flux.1 Kontext Max",
+        "description": "Edit images with Flux.1 Kontext max image. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-flux-1-kontext-multiple-image-input",
+        "name": "Comfy Flux.1 Kontext Multiple Image Input",
+        "description": "Input multiple images and edit them with Flux.1 Kontext. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-flux-1-kontext-pro",
+        "name": "Comfy Flux.1 Kontext Pro",
+        "description": "Edit images with Flux.1 Kontext pro image. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-flux-1-krea-dev",
+        "name": "Comfy Flux.1 Krea Dev",
+        "description": "A fine-tuned FLUX model pushing photorealism to the max Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-flux-1-outpaint",
+        "name": "Comfy Flux.1 Outpaint",
+        "description": "Extend images beyond boundaries using Flux.1 outpainting. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-flux-1-redux-model",
+        "name": "Comfy Flux.1 Redux Model",
+        "description": "Generate images by transferring style from reference images using Flux.1 Redux. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-flux-1-schnell-fp8",
+        "name": "Comfy Flux.1 Schnell FP8",
+        "description": "Quickly generate images with Flux.1 Schnell fp8 quantized version. Ideal for low-end hardware, requires only 4 steps to generate images. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-flux-1-schnell-full-text-to-image",
+        "name": "Comfy Flux.1 Schnell Full- Text to Image",
+        "description": "Generate images quickly with Flux.1 Schnell full version. Uses Apache2.0 license, requires only 4 steps to generate images while maintaining good image quality. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-flux-1-pro-text-to-image",
+        "name": "Comfy Flux.1 [Pro]- Text to Image",
+        "description": "Generate images with excellent prompt following and visual quality using FLUX.1 Pro. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-generate-realistic-variations",
+        "name": "Comfy Generate Realistic Variations",
+        "description": "Upload a reference image, uses Grok to caption and generate variations with a fast 2x upscale for added details. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-grok-imagine-image-2-0-text-to-image",
+        "name": "Comfy Grok Imagine Image 2.0- Text to Image",
+        "description": "Generate images from text prompts using Grok Imagine Image 2.0, an Aurora-engine model that excels at crisp short-text rendering and 1K or 2K outputs across 14 aspect ratios. Enter one text prompt and receive one generated image, with low or medium quality options to control cost. Ideal for poster and cover design, product and brand visuals, and character-driven scenes where consistency matters. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-grok-imagine-image-quality-edit",
+        "name": "Comfy Grok Imagine Image Quality- Edit",
+        "description": "Enhance image quality with advanced text rendering and creative control using Grok Imagine Image Quality. Input images or prompts for improved detail and fidelity. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-grok-imagine-image-quality-generation",
+        "name": "Comfy Grok Imagine Image Quality- Generation",
+        "description": "Generate enhanced images with improved details, text rendering, and creative control using the advanced quality mode in Grok Imagine. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-grok-text-to-image",
+        "name": "Comfy Grok- Text to Image",
+        "description": "Input text prompts to generate high-quality images quickly using the Grok model. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-hy-image-3-5-preview-image-edit",
+        "name": "Comfy HY Image 3.5 Preview- Image Edit",
+        "description": "Edit images with the HY Image 3.5 Preview model, which deeply understands user intent through optimized text-and-image organization to deliver high-quality results. Takes 1 image input and produces 1 image output. Ideal for portrait editing, commercial posters, and film/TV marketing materials. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-hy-image-3-5-preview-text-to-image",
+        "name": "Comfy HY Image 3.5 Preview- Text to Image",
+        "description": "Tencent Hunyuan's preview image model, strengthening three areas over previous versions: multilingual text rendering and typesetting for advertising, infographics and UI design; photorealism and stylistic range covering cinematic, comic, commercial photography and illustration; and editing consistency that preserves key traits of people and products across background, outfit and style changes. Outputs up to 4K resolution. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-hidream-e1-image-edit",
+        "name": "Comfy HiDream E1 Image Edit",
+        "description": "Edit images with HiDream E1 - Professional natural language image editing model. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-hidream-e1-1-image-editing",
+        "name": "Comfy HiDream E1.1 Image Editing",
+        "description": "Edit images with HiDream E1.1—superior image quality and editing accuracy compared to HiDream-E1-Full. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-hidream-i1-dev",
+        "name": "Comfy HiDream I1 Dev",
+        "description": "Generate images with HiDream I1 Dev - Balanced version with 28 inference steps, suitable for medium-range hardware. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-hidream-i1-fast",
+        "name": "Comfy HiDream I1 Fast",
+        "description": "Generate images quickly with HiDream I1 Fast - Lightweight version with 16 inference steps, ideal for rapid previews on lower-end hardware. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-hidream-i1-full",
+        "name": "Comfy HiDream I1 Full",
+        "description": "Generate images with HiDream I1 Full - Complete version with 50 inference steps for highest quality output. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-hidream-o1-dev",
+        "name": "Comfy HiDream O1 Dev",
+        "description": "Input a text prompt and optional reference images. Generate a high-resolution image (up to 2048x2048) with support for text-to-image, image editing, and subject-driven personalization. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-hidream-o1-full-image-generation",
+        "name": "Comfy HiDream O1 Full- Image generation",
+        "description": "Input a text prompt and optionally upload reference images. Generate a high-resolution image up to 2048x2048 with text-to-image, editing, or subject-driven personalization. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ideogram-4-5-precise-edit",
+        "name": "Comfy Ideogram 4.5 Precise Edit",
+        "description": "Generate a precisely edited image from a text prompt and up to five input images using Ideogram 4.5, where image 1 is the image to edit and images 2-5 are optional references. Only what the prompt asks for changes, so untouched pixels stay identical and the output keeps the size of image 1, with a choice of quality tiers. Ideal for product recolours and material swaps, replacing one element of a photo without disturbing its lighting, background, or framing, and touch-ups that must leave the rest of the image alone. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-ideogram-4-5-image-edit",
+        "name": "Comfy Ideogram 4.5- Image Edit",
+        "description": "Generate edited or combined images from a text prompt and up to five input images using Ideogram 4.5, where image 1 is the image to edit and images 2-5 are references for design, material, or colour. Canvas size, quality level, and seed are adjustable, and one image is output. Ideal for product and outfit swaps, applying a reference design or palette to an existing photo, and recomposing a shot into a different aspect ratio. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-ideogram-4-5-text-to-image",
+        "name": "Comfy Ideogram 4.5- Text to Image",
+        "description": "Generate images from text prompts using Ideogram 4.5, with controls for canvas size, quality level, automatic prompt rewriting, and seed. No file inputs are required and one image is output. Ideal for typography-led posters, layout-driven design work, marketing visuals, and fast exploration of visual concepts.\n Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-ideogram-p-image-text-to-image",
+        "name": "Comfy Ideogram P-Image- Text to Image",
+        "description": "Generate images from text descriptions using Ideogram's fast P-Image model, which delivers quality comparable to leading image models at significantly lower cost and latency. One text prompt is accepted and one image is output, with controls for quality level and resolution. Ideal for rapid iteration in design workflows, high-volume content production, and cost-sensitive A/B testing of visual concepts. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-ideogram-v4-int8-text-to-image",
+        "name": "Comfy Ideogram v4 Int8- Text to Image",
+        "description": "Generate images from text prompts using the Ideogram v4 model, a state-of-the-art open-weight text-to-image system with exceptional text rendering and layout control. No file inputs are required, producing 1 image output. Ideal for creating marketing visuals, generating design mockups with precise typography, and producing high-resolution artwork with controlled compositions. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ideogram-v4-text-to-image-api",
+        "name": "Comfy Ideogram v4- Text to Image (API)",
+        "description": "Input a text prompt in structured JSON format. Generate a high-quality image with precise layout control, text rendering, and color palette support. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-ideogram-v4-text-to-image",
+        "name": "Comfy Ideogram v4- Text to Image",
+        "description": "Input a text prompt or structured JSON description. Generate an image with precise layout, color, and style control using Ideogram 4.0. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-illustration-to-realism-templates-image-to-real",
+        "name": "Comfy Illustration to Realism (templates-image_to_real)",
+        "description": "Input an illustration and generate a hyper realistic version using Qwen Image Edit 2509. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-illustration-to-realism",
+        "name": "Comfy Illustration to Realism",
+        "description": "Input an illustration and generate a realistic version using Qwen Image Edit 2509 with Anything2Real LoRA. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-image-inflation-effect-with-infl8-lora",
+        "name": "Comfy Image Inflation Effect with INFL8 LoRA",
+        "description": "Upload an image and specify a subject. Generate an inflated version of that subject using the INFL8 LoRA for Qwen Image Edit. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-image-relight",
+        "name": "Comfy Image Relight",
+        "description": "Relight images using Qwen-Image-Edit with LoRA support. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-kandinsky-5-0-image-lite-text-to-image",
+        "name": "Comfy Kandinsky 5.0 Image Lite- Text to Image",
+        "description": "A lightweight 2B model that generates images from English and Russian prompts with high visual quality. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-kling-3-0-text-to-image",
+        "name": "Comfy Kling 3.0- Text to Image",
+        "description": "Generate an image from a text prompt using the Kling 3.0 model. Input your descriptive text to receive a high-quality, prompt-accurate visual output. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-kling-o1-image",
+        "name": "Comfy Kling O1- Image",
+        "description": "Generate high-quality images from text prompts using Kling O1, with support for up to 10 reference images to guide style and content. Features flexible aspect ratios and 1K/2K resolution options. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-kling-o3-image-generation",
+        "name": "Comfy Kling O3- Image Generation",
+        "description": "Upload up to 10 reference images to guide the synthesis. Generate a new image using the Kling O3 model based on your provided visual inputs. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-kling-virtual-try-on",
+        "name": "Comfy Kling- Virtual Try On",
+        "description": "Dress a virtual model in any garment by combining a clothing image with a person photo, generating a realistic try-on result alongside a side-by-side comparison view. It accepts flat-lay, mannequin, or on-model clothing shots while preserving the model's face and pose. Ideal for fashion e-commerce previews, styling mockups, and virtual fitting experiences. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-krea-2-turbo",
+        "name": "Comfy Krea 2 Turbo",
+        "description": "Generate an image on Comfy Cloud with the official Krea 2 Turbo template. Requires COMFY_API_KEY and model availability on Comfy Cloud.",
+        "tags": [
+          "comfy",
+          "image"
+        ]
+      },
+      {
+        "slug": "comfy-krea-3-image-edit",
+        "name": "Comfy Krea 3- Image Edit",
+        "description": "Perform targeted regional edits on an image with Krea 3, changing only the areas you specify while the rest of the picture stays untouched. One image goes in and one edited image comes out. Ideal for e-commerce product restaging, fashion and portrait relighting, and architectural sketch-to-render work. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-krea-3-text-to-image",
+        "name": "Comfy Krea 3- Text to Image",
+        "description": "Generate images from text prompts using Krea 3, producing a single finished image per run with no input files required. Ideal for e-commerce product staging, fashion and portrait work, and architectural concept rendering. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-krea-2-int8-image-style-reference",
+        "name": "Comfy Krea-2 Int8- Image Style Reference",
+        "description": "Generate images with the Krea-2 Turbo model while referencing the style of 1–2 uploaded images, using the high-performance Int8 Convrot format for faster, higher-quality inference. This workflow accepts up to two reference image inputs and produces a single stylized output, with optional LoRA support for further creative control. Ideal for matching a specific artistic style in concept art, producing consistent brand visuals, and exploring rapid style transfer for iterative design. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-krea-2-text-to-image",
+        "name": "Comfy Krea-2- Text to Image",
+        "description": "Generate images from text prompts using Krea 2, a foundation model built for aesthetic quality and creative control. It focuses on rendering expressive and artistic styles. Ideal for concept art exploration, visual brainstorming, and creating stylized imagery for design projects. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-lens-turbo-text-to-image",
+        "name": "Comfy Lens Turbo- Text to Image",
+        "description": "Input a text prompt and select resolution, aspect ratio, and inference steps. Generate a high-quality image using the Lens text-to-image model. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-lens-text-to-image",
+        "name": "Comfy Lens- Text to Image",
+        "description": "Input a text prompt and select resolution and aspect ratio. Generate a high-quality image using the efficient Lens text-to-image model. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-longcat-image-edit",
+        "name": "Comfy LongCat Image Edit",
+        "description": "Edit images using the LongCat-Image-Edit model. Supports bilingual instructions for global, local, text, and reference-guided editing while preserving visual consistency. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-longcat-image-text-to-image",
+        "name": "Comfy LongCat Image- Text to Image",
+        "description": "Generate an image from a text prompt. Input your desired scene description in English or Chinese. Output a photorealistic image with accurate text rendering. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-luma-photon-image-to-image",
+        "name": "Comfy Luma Photon- Image to Image",
+        "description": "Guide image generation using a combination of images and prompt. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-luma-photon-style-reference",
+        "name": "Comfy Luma Photon- Style Reference",
+        "description": "Generate images by blending style references with precise control using Luma Photon. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-mai-image-2-6-flash-image-edit",
+        "name": "Comfy MAI Image 2.6 Flash- Image Edit",
+        "description": "Edit images with MAI Image 2.6 Flash, Microsoft's fast image-to-image model that transforms a single input image into a refined output. Ideal for quick retouching, style adjustments, and rapid concept iteration. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-mai-image-2-6-image-edit",
+        "name": "Comfy MAI Image 2.6- Image Edit",
+        "description": "Edit images with MAI Image 2.6, Microsoft's flagship model for image editing, combining two reference images into a single refined output. Ideal for multi-reference compositing, product visual restyling, and text-in-image design work. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-moss-image",
+        "name": "Comfy MOSS Image",
+        "description": "Generate an image on Comfy Cloud with the official MOSS Image template. Requires COMFY_API_KEY and model availability on Comfy Cloud.",
+        "tags": [
+          "comfy",
+          "image"
+        ]
+      },
+      {
+        "slug": "comfy-mage-flow-turbo-text-to-image",
+        "name": "Comfy Mage-Flow Turbo- Text to Image",
+        "description": "Generate high-quality images from text prompts using the compact 4B-parameter Mage-Flow Turbo model, producing a single image output without any file inputs. This workflow supports native-resolution generation from 512 to 2048 pixels per side at any aspect ratio, including extreme 4:1 dimensions. Ideal for rapid concept visualization, creative asset generation, and low-latency image prototyping on modest hardware. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-mage-flow-text-to-image",
+        "name": "Comfy Mage-Flow- Text to Image",
+        "description": "Generate high-resolution images from text prompts using Mage-Flow, a compact 4B-parameter diffusion model that outputs a single image at native resolutions from 512 to 2048 pixels per side. Ideal for rapid concept visualization, creative asset generation, and research in controlled image synthesis under limited compute budgets. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-mage-flow-edit-turbo-image-edit",
+        "name": "Comfy Mage-Flow-Edit Turbo- Image Edit",
+        "description": "Edit images using a reference photo and text instructions with the Mage-Flow-Edit Turbo model, a distilled 4B-parameter model that produces results in just 4 steps. It takes 1-3 reference images and a text prompt as input, then outputs an edited image matching your instructions. Ideal for quick style transfers, background replacements, and interactive photo editing sessions. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-mage-flow-edit-image-edit",
+        "name": "Comfy Mage-Flow-Edit- Image Edit",
+        "description": "Edit images by following natural language instructions with Mage-Flow-Edit, an instruction-based model that handles background replacement, style changes, localized edits, and restoration using up to three reference images. The workflow takes one input image and produces one edited output plus a side-by-side comparison view. Ideal for creative photo retouching, product image styling, and restoring old or damaged photos. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-magnific-style-reference",
+        "name": "Comfy Magnific- Style Reference",
+        "description": "Upload a target image and a style reference image. Generate a new image that merges the artistic style of the reference with the structure of your target. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-mai-image-2-6-flash-text-to-image",
+        "name": "Comfy Mai Image 2.6 Flash- Text to Image",
+        "description": "Generate images from text prompts with Microsoft's MAI Image 2.6 Flash, a fast, cost-efficient model that emphasizes low latency and high throughput for rapid visual ideation. The workflow takes a single text prompt and produces one image output. Ideal for concept sketches, marketing mockups, and batch asset drafts where speed matters more than final polish. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-mai-image-2-6-text-to-image",
+        "name": "Comfy Mai Image 2.6- Text to Image",
+        "description": "Generate high-quality images from text prompts using Microsoft's MAI Image 2.6, a top-tier model excelling in legible in-image text rendering, photorealistic portraits, and commercial product visuals. Simply enter a prompt to produce 1 image output with no file inputs. Ideal for marketing assets, cinematic concept art, and creative projects requiring polished, text-accurate visuals. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-minimax-h3-text-to-image",
+        "name": "Comfy MiniMax H3- Text to Image",
+        "description": "Generate a single still image from a text prompt with MiniMax H3, an omni-modal video model used here for its first-frame decode. No file inputs required: the graph samples an empty latent and decodes it through the H3 video VAE. Best suited to a single subject with a defined light source and a simple or blurred background. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-muse-image-1-0-image-edit",
+        "name": "Comfy Muse Image 1.0- Image Edit",
+        "description": "Edit an image with precision using Muse Image 1.0, following natural language instructions to alter specific elements while preserving the rest of the scene. Takes 2 input images and produces 1 edited output image. Ideal for product photography touch-ups, creative style transfers, and iterative visual refinement. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-muse-image-1-0-text-to-image",
+        "name": "Comfy Muse Image 1.0- Text to Image",
+        "description": "Generate images from text prompts using Meta's Muse Image 1.0 model, which follows instructions faithfully, edits with precision, and composes from multiple references. The workflow takes no file inputs and produces 1 image output, with a Save Image Advanced node handling the final render. Ideal for creative concept exploration, rapid visual prototyping, and producing polished marketing or social media imagery. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-nano-banana-pro",
+        "name": "Comfy Nano Banana Pro",
+        "description": "Nano-banana Pro (Gemini 3.0 Pro Image) - Studio-quality 4K image generation and editing with enhanced text rendering and character consistency. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-nano-banana",
+        "name": "Comfy Nano Banana",
+        "description": "Nano-banana (Gemini-2.5-Flash Image) - image editing with consistency. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-netayume-lumina-text-to-image",
+        "name": "Comfy NetaYume Lumina Text to Image",
+        "description": "High-quality anime-style image generation with enhanced character understanding and detailed textures. Fine-tuned from Neta Lumina on Danbooru dataset. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-newbie-exp0-1-anime-generation",
+        "name": "Comfy NewBie Exp0.1- Anime Generation",
+        "description": "Generate detailed anime-style images with NewBie Exp0.1's Next-DiT architecture. Supports XML structured prompts for better multi-character scenes and attribute control. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-omnigen2-image-edit",
+        "name": "Comfy OmniGen2 Image Edit",
+        "description": "Edit images with natural language instructions using OmniGen2's advanced image editing capabilities and text rendering support. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-omnigen2-text-to-image",
+        "name": "Comfy OmniGen2- Text to Image",
+        "description": "Generate high-quality images from text prompts using OmniGen2's unified 7B multimodal model with dual-path architecture. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ovis-image-text-to-image",
+        "name": "Comfy Ovis-Image Text to Image",
+        "description": "Ovis-Image is a 7B text-to-image model specifically optimized for high-quality text rendering in generated images. Designed to operate efficiently under computational constraints, it excels at accurately generating images containing text content. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-photo-to-blueprint-to-model",
+        "name": "Comfy Photo to Blueprint to Model",
+        "description": "Transform real building photos into architectural blueprints and then into detailed physical scale models. A complete architectural visualization pipeline from photo to miniature. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-pixel-sort-glitch-effect-image-transformation",
+        "name": "Comfy Pixel Sort Glitch Effect Image Transformation",
+        "description": "Apply a pixel sorting algorithm to create glitch art. Control the effect direction, threshold, and blending with the original image. Outputs a stylized, smeared version of the input. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-pixeldit-text-to-image",
+        "name": "Comfy PixelDiT- Text to Image",
+        "description": "Input a text prompt and optional negative prompt. Generate a 1024px image using PixelDiT's VAE-free pixel diffusion transformer. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-product-mockup-flux-2-dev-fp8",
+        "name": "Comfy Product Mockup(FLUX.2 Dev FP8)",
+        "description": "Create product mockups by applying design patterns to packaging, mugs, and other products using multi-reference consistency. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-qwen-image-2-1",
+        "name": "Comfy Qwen Image 2.1",
+        "description": "Generate an image on Comfy Cloud with the official Qwen Image 2.1 template. Requires COMFY_API_KEY and model availability on Comfy Cloud.",
+        "tags": [
+          "comfy",
+          "image"
+        ]
+      },
+      {
+        "slug": "comfy-qwen-image-2512-360-panorama-image",
+        "name": "Comfy Qwen Image 2512- 360 Panorama Image",
+        "description": "Generate 360-degree equirectangular projection images from text descriptions using a rank 128 LoRA on the 20B MMDiT model. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-qwen-image-2512",
+        "name": "Comfy Qwen Image 2512",
+        "description": "Text-to-image model with enhanced human realism, finer natural details for landscapes and animal fur, and improved text rendering with accurate layout and multimodal composition. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-qwen-image-3-0-pro-text-to-image",
+        "name": "Comfy Qwen Image 3.0 Pro- Text to Image",
+        "description": "Generate detailed, production-ready images from text prompts using the Qwen Image 3.0 Pro model, supporting up to 4.5k tokens for complex layouts like posters, infographics, and storyboards. It renders crisp 10px text, realistic textures, and native support for 12 languages and over 100 art styles, with optional 1-3 reference images for fusion editing. Ideal for marketing materials, educational diagrams, and UI design mockups. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-qwen-image-edit-2509",
+        "name": "Comfy Qwen Image Edit 2509",
+        "description": "Advanced image editing with multi-image support, improved consistency, and ControlNet integration. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-qwen-image-edit-2511-material-replacement",
+        "name": "Comfy Qwen Image Edit 2511 - Material Replacement",
+        "description": "Replace materials in objects (e.g., furniture) by combining reference images with Qwen-Image-Edit-2511. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-qwen-image-edit-2511-int8-image-edit",
+        "name": "Comfy Qwen Image Edit 2511 Int8- Image Edit",
+        "description": "Edit images with Qwen Image Edit 2511 Int8, using a quantized model for faster inference while maintaining high quality. Input one image and receive one edited output. Ideal for character-consistent portrait editing, multi-person group photo fusion, and industrial design modifications. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-qwen-image-edit",
+        "name": "Comfy Qwen Image Edit",
+        "description": "Edit images with precise bilingual text editing and dual semantic/appearance editing capabilities using Qwen-Image-Edit's 20B MMDiT model. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-qwen-image-gummy-animals-lora",
+        "name": "Comfy Qwen Image- Gummy Animals LoRA",
+        "description": "Apply a Qwen Image LoRA to transform any subject into a sour gummy candy-style character. Enter an animal name in the prompt to generate a stylized, edible-looking creature. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-qwen-image-illustration-lora",
+        "name": "Comfy Qwen Image- Illustration LoRA",
+        "description": "A t2v workflows for a style LoRA built on Qwen-Image. Produces images spanning cute anime character design, European bande dessinee, indie risograph prints, storybook watercolor, retro shoujo manga, and graphic novel illustration. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-qwen-image-2512-turbo",
+        "name": "Comfy Qwen-Image 2512 Turbo",
+        "description": "Qwen-Image 2512 Image generation with 2-steps Turbo LoRA. Input your text prompt to quickly produce a result, though some quality is sacrificed for speed. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-qwen-image-2512-fun-union-controlnet",
+        "name": "Comfy Qwen-Image 2512- Fun Union ControlNet",
+        "description": "Upload an image and select a control type from Canny, HED, Depth, Pose, MLSD, Scribble, or Grayscale. Generate a new image guided by the chosen structural condition. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-qwen-image-controlnet-model-patch",
+        "name": "Comfy Qwen-Image ControlNet Model Patch",
+        "description": "Control image generation using Qwen-Image ControlNet models. Supports canny, depth, and inpainting controls through model patching. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-qwen-image-instantx-inpainting-controlnet",
+        "name": "Comfy Qwen-Image InstantX Inpainting ControlNet",
+        "description": "Professional inpainting and image editing with Qwen-Image InstantX ControlNet. Supports object replacement, text modification, background changes, and outpainting. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-qwen-image-instantx-union-controlnet",
+        "name": "Comfy Qwen-Image InstantX Union ControlNet",
+        "description": "Generate images with Qwen-Image InstantX ControlNet, supporting canny, soft edge, depth, pose Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-qwen-image-union-control",
+        "name": "Comfy Qwen-Image Union Control",
+        "description": "Generate images with precise structural control using Qwen-Image's unified ControlNet LoRA. Supports multiple control types including canny, depth, lineart, softedge, normal, and openpose for diverse creative applications. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-qwen-image-text-to-image",
+        "name": "Comfy Qwen-Image- Text to Image",
+        "description": "Generate images with exceptional multilingual text rendering and editing capabilities using Qwen-Image's 20B MMDiT model. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-realistic-2k-images-quick-variations",
+        "name": "Comfy Realistic 2k Images - Quick Variations",
+        "description": "Upload an image that you want a variation of. The workflow captions the input image, generates with Grok Image, and upscales with Z-Image to add realistic textures. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-recraft-4-1-flash-text-to-image",
+        "name": "Comfy Recraft 4.1 flash- Text to Image",
+        "description": "Generate images from text prompts using Recraft V4.1 Flash, a fast, low-cost model that produces one image output with no file inputs required. Ideal for high-volume generation, rapid iteration, photography and portraits, atmospheric scenes, and quick logo concept exploration. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-recraft-4-1-text-to-image",
+        "name": "Comfy Recraft 4.1- Text to Image",
+        "description": "Generate photorealistic and illustrative images from text prompts using Recraft V4.1, producing one high-quality image per generation. This model excels at interpreting short prompts with creative flair, delivering natural photorealism, expressive vectors, and clean illustrations. Ideal for concept art, logo and typography design, and lifestyle product mockups. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-recraft-style-reference-generation",
+        "name": "Comfy Recraft Style Reference Generation",
+        "description": "Upload multiple images to create a consistent style reference. Generate new images using this reference to maintain visual coherence across outputs. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-recraft-v4-style-reference-image-generation",
+        "name": "Comfy Recraft V4- Style-Reference Image Generation",
+        "description": "Generate images in the style of one or more reference images using Recraft V4 Styles, capturing texture, composition, and rendering without any training or fine-tuning. Feed in multiple reference images to sharpen or broaden the style match, and receive a single styled output. Ideal for brand-consistent asset creation, matching a client's existing campaign look, or adapting styles from any external image source. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-recraft-v4-text-to-image",
+        "name": "Comfy Recraft v4- Text to Image",
+        "description": "Input a text prompt to generate a high-resolution image. Use the Recraft V4 model for enhanced realism, text accuracy, and detailed vector graphics. Output a 1024x1024 or 2048x2048 image based on your selected version. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-recraft-color-control-image-generation",
+        "name": "Comfy Recraft- Color Control Image Generation",
+        "description": "Generate images with custom color palettes and brand-specific visuals using Recraft. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-recraft-style-control-image-generation",
+        "name": "Comfy Recraft- Style Control Image Generation",
+        "description": "Control style with visual examples, align positioning, and fine-tune objects. Store and share styles for perfect brand consistency. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-runway-reference-to-image",
+        "name": "Comfy Runway- Reference to Image",
+        "description": "Generate new images based on reference styles and compositions with Runway's AI. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-runway-text-to-image",
+        "name": "Comfy Runway- Text to Image",
+        "description": "Generate high-quality images from text prompts using Runway's AI model. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-sd3-5-large-blur",
+        "name": "Comfy SD3.5 Large Blur",
+        "description": "Generate images guided by blurred reference images using SD 3.5. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-sd3-5-large-canny-controlnet",
+        "name": "Comfy SD3.5 Large Canny ControlNet",
+        "description": "Generate images guided by edge detection using SD 3.5 Canny ControlNet. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-sd3-5-large-depth",
+        "name": "Comfy SD3.5 Large Depth",
+        "description": "Generate images guided by depth information using SD 3.5. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-sd3-5-simple",
+        "name": "Comfy SD3.5 Simple",
+        "description": "Generate images using SD 3.5. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-sdxl-refiner-prompt",
+        "name": "Comfy SDXL Refiner Prompt",
+        "description": "Enhance SDXL images using refiner models. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-sdxl-revision-text-prompts",
+        "name": "Comfy SDXL Revision Text Prompts",
+        "description": "Generate images by transferring concepts from reference images using SDXL Revision. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-sdxl-simple",
+        "name": "Comfy SDXL Simple",
+        "description": "Generate high-quality images using SDXL. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-sdxl-turbo",
+        "name": "Comfy SDXL Turbo",
+        "description": "Generate images in a single step using SDXL Turbo. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-sdxl1-0-text-to-image-simple",
+        "name": "Comfy SDXL1.0- Text to Image (Simple)",
+        "description": "Generate high-quality images from text prompts using the SDXL 1.0 model, offering a straightforward text-to-image generation workflow. Ideal for quick concept visualization, creative brainstorming, and rapid prototyping of visual ideas. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-seedream-4-0-image-edit",
+        "name": "Comfy Seedream 4.0- Image Edit",
+        "description": "Multi-modal AI model for text-to-image and image editing. Generate 2K images in under 2 seconds with natural language control. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seedream-5-0-flash-image-edit",
+        "name": "Comfy Seedream 5.0 Flash- Image Edit",
+        "description": "Edit and generate images with Seedream 5.0 Flash, transforming a single input image into one refined output with cinematic lighting, accurate text rendering, and resolutions up to 2K. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seedream-5-0-flash-text-to-image",
+        "name": "Comfy Seedream 5.0 Flash- Text to Image",
+        "description": "Generate high-quality images from text prompts using Seedream 5.0 Flash, producing detailed 1K, 1.5K, or 2K visuals with cinematic lighting and accurate text rendering, saved as a single image output. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seedream-5-0-lite-image-edit",
+        "name": "Comfy Seedream 5.0 Lite- Image Edit",
+        "description": "Upload an image and a text prompt to edit it. Generate a modified image where the details align with your instructions. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seedream-5-0-lite-text-to-image",
+        "name": "Comfy Seedream 5.0 Lite- Text to Image",
+        "description": "Input your text prompt to generate a detailed image. This workflow creates a visual representation of your description with precise control over style and layout. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seedream-5-0-pro-image-edit",
+        "name": "Comfy Seedream 5.0 Pro- Image Edit",
+        "description": "Edit images with precision using Seedream 5.0 Pro, targeting specific regions while preserving lighting, depth, and texture. The workflow takes 1 input image and produces 1 output image. Ideal for product photography edits, portrait consistency adjustments, and creating structured layouts with multilingual text. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seedream-5-0-pro-text-to-image",
+        "name": "Comfy Seedream 5.0 Pro- Text to Image",
+        "description": "Generate images from text prompts using Seedream 5.0 Pro, producing one high-quality output. Ideal for creative concept art, marketing visual mockups, and rapid ideation for design projects. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-style-transfer-recraft-text-to-image",
+        "name": "Comfy Style Transfer - Recraft Text-to-Image",
+        "description": "Upload 1-5 style references and create a style ID to generate consistent, on brand images. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-wan2-5-text-to-image",
+        "name": "Comfy Wan2.5- Text to Image",
+        "description": "Generate images with excellent prompt following and visual quality using Wan 2.5. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-z-image-int8-text-to-image",
+        "name": "Comfy Z-Image Int8- Text to Image",
+        "description": "Generate high-quality, diverse images from text prompts using the Z-Image Int8 model, which leverages an undistilled transformer for precise prompt adherence and broad stylistic coverage. The workflow takes no file inputs and produces 1 image output through a standard text-to-image pipeline. Ideal for professional creative projects, LoRA training and model development, and scenarios requiring robust negative control and high compositional diversity. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-z-image-turbo",
+        "name": "Comfy Z-Image Turbo",
+        "description": "Generate an image on Comfy Cloud with the official Z-Image Turbo template. Requires COMFY_API_KEY and model availability on Comfy Cloud.",
+        "tags": [
+          "comfy",
+          "image"
+        ]
+      },
+      {
+        "slug": "comfy-z-image-text-to-image",
+        "name": "Comfy Z-Image- Text to Image",
+        "description": "Foundation for creative freedom. Diverse aesthetics with exceptional photorealistic quality; ideal for fine-tuning; responsive to negative prompts; high generation diversity. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-z-image-turbo-fun-union-controlnet",
+        "name": "Comfy Z-Image-Turbo Fun Union ControlNet",
+        "description": "Multi-control ControlNet supporting Canny, HED, Depth, Pose, and MLSD for Z-Image-Turbo. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-z-image-turbo-int8-text-to-image",
+        "name": "Comfy Z-Image-Turbo Int8- Text to Image",
+        "description": "Generate photorealistic images using the Z-Image-Turbo int8 model, a distilled 6B-parameter variant optimized for sub-second inference through efficient 8-step sampling. The workflow takes a text prompt as input and outputs a single high-quality image. Ideal for rapid creative iteration, realistic concept art, and production-ready visual prototyping. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image",
+          "open-weights"
+        ]
+      },
+      {
         "slug": "compose-directed-campaign-formats",
         "name": "Compose Directed Campaign Formats",
         "description": "Lay one accepted hero out as finished 4:5 and 9:16 ads, as PNGs and editable SVGs, then export a portable campaign record. Ships with a sample hero and contract.",
@@ -680,6 +2356,1914 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "comfy-airt-machine-api-version",
+        "name": "Comfy AIrt MAchIne (API version)",
+        "description": "Upload an image to generate a unique, looping AI video. The workflow uses an LLM to create prompts, employs Kling3.0 for video generation, and stitches the clips into a seamless final loop. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-airt-machine",
+        "name": "Comfy AIrt MAchIne",
+        "description": "Upload any image to generate a unique, looping AI video. The workflow uses an LLM to create five prompts, produces images and video clips, and stitches them into a final seamless loop. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-bernini-r-video-edit",
+        "name": "Comfy Bernini-R- Video Edit",
+        "description": "Generate an edited video with consistent relighting using Bernini-R. Ideal for portrait and product relighting, e-commerce catalog photography, and creating consistent lighting across photo sets. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-capybara-image-to-video",
+        "name": "Comfy Capybara- Image to Video",
+        "description": "Upload an image and provide a text instruction. Generate a new video where the input is edited according to your instruction, preserving structure and temporal coherence. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-capybara-video-edit",
+        "name": "Comfy Capybara- Video Edit",
+        "description": "Upload an image or video and a text instruction to perform generation or editing tasks. Generate a new or edited image or video based on the provided instruction. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-causal-forcing-image-to-video",
+        "name": "Comfy Causal Forcing- Image to Video",
+        "description": "Input a text prompt and select a model checkpoint. Generate a high-quality video using Causal Forcing or Causal Forcing++ with 1 to 4 inference steps. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-flux-3-max-image-to-video",
+        "name": "Comfy FLUX 3 Max- Image to Video",
+        "description": "Animate a single still image into a short video clip using FLUX 3 Max, taking one input image and producing one video output. Ideal for bringing product shots, portraits, and concept art to life, generating social media motion content, and rapid prototyping of animated scenes. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-flux-3-max-text-to-video",
+        "name": "Comfy FLUX 3 Max- Text to Video",
+        "description": "Generate a video with synchronized audio from a single text prompt with FLUX 3 Max, which reasons about and expands the prompt before rendering. Outputs one clip of 5 to 20 seconds at 720p or 1080p, at any aspect ratio from 9:16 to 21:9, with ambient sound, speech, and effects created alongside the picture and no input files required. Ideal for cinematic concept clips, ad mockups, and social videos that need matching sound design. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-flux-3-video-image-to-video",
+        "name": "Comfy FLUX 3 Video- Image to Video",
+        "description": "Generate full videos from a single text prompt using FLUX 3, which automatically expands your description into a cohesive scene with synchronized audio, motion, and physics. Outputs one 720p, 24fps MP4 video (5-20 seconds) with support for multi-shot structures and aspect ratios from 9:16 to 21:9. Ideal for product photography, filmic ad campaigns, and dynamic motion graphics. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-flux-3-video-text-to-video",
+        "name": "Comfy FLUX 3 Video- Text to Video",
+        "description": "Generate full videos from a single text prompt with FLUX 3, which expands natural language into complete scenes with synchronized audio, no reference images or complex settings needed. Outputs 1 video in 720p at 24fps, 5 to 20 seconds long, supporting any aspect ratio from 9:16 to 21:9 with built-in sound design. Ideal for quick social media clips, ad mockups, and concept films requiring realistic motion and cinematic style. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-flux-video-edit",
+        "name": "Comfy Flux Video Edit",
+        "description": "Edit and transform images with FLUX using simple text prompts. Change characters, objects, backgrounds, styles, or entire scenes while preserving the key details and overall consistency of the original image. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-gemini-omni-1-1-flash-image-to-video",
+        "name": "Comfy Gemini Omni 1.1 Flash- Image to Video",
+        "description": "Generate videos from text prompts or reference images using Gemini Omni 1.1 Flash, a multimodal model that handles text-to-video, image-to-video, keyframe interpolation, and iterative video editing with natural language. Outputs a single MP4 video with optional audio, supporting aspect ratios, resolutions up to 4K, and scene extension. Ideal for cinematic storytelling, product visualization, and rapid video prototyping. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-gemini-omni-1-1-flash-reference-to-video",
+        "name": "Comfy Gemini Omni 1.1 Flash- Reference to Video",
+        "description": "Generate video that incorporates specific subjects from multiple reference images using Gemini Omni 1.1 Flash's reference mode: characters, products, and objects from your images appear in the scene while the image itself is never shown as a frame. Bind each image to a role with tags like <IMAGE_REF_0>, combine character references with style references, and direct the scene in plain language with native audio. Ideal for character-driven stories, product placement, and brand-consistent content. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-gemini-omni-1-1-flash-text-to-video",
+        "name": "Comfy Gemini Omni 1.1 Flash- Text to Video",
+        "description": "Generate cinematic videos with audio from text prompts or reference images using Gemini Omni 1.1 Flash, supporting aspect ratio, resolution, and keyframe interpolation controls. Ideal for text-to-video storytelling, animating product shots or illustrations, and iterative conversational video editing. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-gemini-omni-1-1-flash-video-edit",
+        "name": "Comfy Gemini Omni 1.1 Flash- Video Edit",
+        "description": "Edit videos through natural language conversation with Gemini Omni 1.1 Flash. Upload a clip (10 seconds or less) and describe the change: swap backgrounds, restyle scenes, add or remove elements, and the model applies the edit while preserving everything you did not mention. Add \\\"Keep everything else the same\\\" for maximum consistency; simple prompts work best. Outputs video with native audio at 16:9 or 9:16, with 1080p/4K output available. Ideal for remixes, style changes, and iterative refinement without re-generating from scratch. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-gemini-omni-flash-image-to-video",
+        "name": "Comfy Gemini Omni Flash- Image to Video",
+        "description": "Generate a video from two images using Gemini Omni Flash, which interprets natural language prompts to control duration and aspect ratio. The workflow accepts 2 input images and produces 1 video output. Ideal for creating short brand clips, dynamic social media content, and iterative video edits through conversational prompting. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-gemini-omni-flash-text-to-video",
+        "name": "Comfy Gemini Omni Flash- Text to Video",
+        "description": "Generate cinematic video from natural language prompts using Gemini Omni Flash, transforming text descriptions into a single video output with world-aware motion, lighting, and sound. Ideal for social media content creation, rapid video prototyping, and iterative visual storytelling with conversational editing. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-gemini-omni-flash-video-edit",
+        "name": "Comfy Gemini Omni Flash- Video Edit",
+        "description": "Edit videos with natural language using Gemini Omni Flash, transforming a single input video into one edited output based on your descriptive instructions. Specify the duration and aspect ratio in your prompt, and leverage Omni's world knowledge for intuitive edits like changing backgrounds or adding atmosphere. Ideal for quick social media remixes, cinematic scene adjustments, and iterative video refinements without technical prompts. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-grok-imagine-video-1-5-lite-image-to-video",
+        "name": "Comfy Grok Imagine Video 1.5 Lite- Image to Video",
+        "description": "Generate short videos from a single still image using Grok Imagine Video 1.5 Lite, a faster, lower-cost model that turns one image into a video clip up to 15 seconds at resolutions up to 1080p. Ideal for rapid social content, storyboard previews, and high-volume creative iteration where speed and cost matter more than maximum fidelity. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-grok-imagine-video-1-5-lite-text-to-video",
+        "name": "Comfy Grok Imagine Video 1.5 Lite- Text to Video",
+        "description": "Generate a video of up to 15 seconds from a text prompt with Grok Imagine Video 1.5 Lite, the distilled and faster version of Imagine Video 1.5, with native audio and 480p, 720p or 1080p output in any of seven aspect ratios. No input files are required and one video is output. Ideal for social clips, ad mockups, and fast iteration where a full-quality render is not worth the wait.\n Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-grok-imagine-video-1-5-image-to-video",
+        "name": "Comfy Grok Imagine Video 1.5- Image to Video",
+        "description": "Upload an image and optional text prompt to generate a video with native audio, realistic motion, and high-quality output up to 720p resolution. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-grok-video-edit",
+        "name": "Comfy Grok- Video Edit",
+        "description": "Upload a video to edit. Input your desired modifications. Generate an edited video using the Grok API. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-grok-video-generation",
+        "name": "Comfy Grok- Video generation",
+        "description": "Input text prompts or an initial image frame to generate up to 15-second videos with synchronized audio using the Grok model. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-happyhorse-1-1-image-to-video",
+        "name": "Comfy HappyHorse 1.1- Image to Video",
+        "description": "Animate a static first frame into a short video with synchronized audio using HappyHorse 1.1, taking 1 input image and producing 1 video output. Ideal for e-commerce product demos, brand marketing content, and short episodic series. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-happyhorse-1-1-text-to-video",
+        "name": "Comfy HappyHorse 1.1- Text to Video",
+        "description": "Generate a video with synchronized audio from a text prompt using HappyHorse 1.1, producing a single video output with dialogue, sound effects, and music baked in. Ideal for short episodic series, e-commerce commercials, and game cutscenes. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-happyhorse-image-to-video",
+        "name": "Comfy HappyHorse- Image to Video",
+        "description": "Generate high-quality, fluid videos from images using HappyHorse-1.0-I2V with realistic dynamic rendering and accurate text and image semantic comprehension. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-happyhorse-text-to-video",
+        "name": "Comfy HappyHorse- Text to Video",
+        "description": "Generate high-quality, realistic videos from text prompts with fluid motion and rich detail. Input text descriptions to produce dynamic videos with accurate semantic comprehension. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-heygen-video-1-0-image-to-video",
+        "name": "Comfy HeyGen Video 1.0- Image to Video",
+        "description": "Generate a 5-15 second clip with synchronized dialogue and sound from a single image using HeyGen Video 1.0, which starts on that exact frame and keeps the image's aspect ratio, at 480p or 768p. The prompt drives both the action and the spoken line, and one video is output. Ideal for giving a portrait or product photo a voice, producing talking-head clips without a shoot, and bringing stills to life. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-heygen-video-1-0-reference-to-video",
+        "name": "Comfy HeyGen Video 1.0- Reference to Video",
+        "description": "Generate a 5-15 second video with dialogue and sound from a prompt plus up to nine images, three videos and three audio clips using HeyGen Video 1.0, addressed in the prompt as @Image1, @Video1 and @Audio1. One video is output, with the people, products and places you supply driving the shot. Ideal for product demos, UGC-style clips that keep one presenter or product consistent, and placing your product into a scene of your own. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-heygen-video-1-0-text-to-video",
+        "name": "Comfy HeyGen Video 1.0- Text to Video",
+        "description": "Generate a 5-15 second clip with synchronized dialogue and sound from a text prompt using HeyGen Video 1.0, at 480p or 768p in any of six aspect ratios, with no input files required. One video is output. Ideal for UGC-style talking clips, product explainers, and short social ads where the spoken line and the ambience have to match the scene.\n Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-heygen-avatar-video",
+        "name": "Comfy HeyGen- Avatar Video",
+        "description": "Create an AI avatar video from a text prompt or uploaded image using HeyGen's avatar generation technology, outputting a single talking-head video. You can save the avatar ID for reuse in future videos. Ideal for personalized digital presenters, social media content creation, and multilingual video production without recording talent. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-heygen-talking-photo",
+        "name": "Comfy HeyGen- Talking Photo",
+        "description": "Generate a talking-head video from a single photograph using HeyGen's Avatar IV engine, which produces a fully animated video with lip-synced speech, facial expressions, head movements, and automatic gestures. Ideal for creating digital avatars for presentations, virtual characters for interactive content, and personalized video messages from a single image. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-heygen-video-translate",
+        "name": "Comfy HeyGen- Video Translate",
+        "description": "Translate video content into another language with full lip-sync using HeyGen Translate, which automatically transcribes speech, translates it, generates a cloned voice, and re-syncs mouth movements. Takes 1 input video and produces 1 output video. Ideal for localizing talking-head videos, dubbing multilingual presentations, and creating lip-synced content for global audiences. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-higgsfield-genjutsu-motion-transfer",
+        "name": "Comfy Higgsfield Genjutsu- Motion Transfer",
+        "description": "Recast an existing video with Higgsfield Genjutsu: the source clip keeps its motion, camera movement, timing and audio, while the cast, location and style are rebuilt from 1 to 8 reference images. Describe which reference replaces what in the optional prompt. Output length follows the source clip. Ideal for restyling footage, swapping the cast of a shot, and building scenes a shoot never covered. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-humo-video-generation",
+        "name": "Comfy HuMo Video Generation",
+        "description": "Generate videos based on audio, image, and text, keeping the character's lip sync. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-hunyuan-video-1-5-image-to-video",
+        "name": "Comfy Hunyuan Video 1.5 Image to Video",
+        "description": "Animate still images into dynamic videos with precise motion and camera control. Maintains visual consistency while bringing photos and illustrations to life with smooth, natural movements. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-hunyuan-video-1-5",
+        "name": "Comfy Hunyuan Video 1.5",
+        "description": "Generate a video on Comfy Cloud with the official Hunyuan Video 1.5 template. Requires COMFY_API_KEY and model availability on Comfy Cloud.",
+        "tags": [
+          "comfy",
+          "video"
+        ]
+      },
+      {
+        "slug": "comfy-hunyuan-video-text-to-video",
+        "name": "Comfy Hunyuan Video Text to Video",
+        "description": "Generate videos from text prompts using Hunyuan model. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-image-to-script-to-kling-video-generation",
+        "name": "Comfy Image to Script to Kling Video Generation",
+        "description": "Upload an image to automatically generate a descriptive script. This script is then used to create a video with the Kling 3.0 Omni model. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-image-to-video",
+        "name": "Comfy Image to Video",
+        "description": "It shows how to go from a simple prompt to a Wes Anderson-style image using a cinematic image model, then enhance it with Nano Banana to improve textures and details, and finally turn it into a video using the current best video model, Kling 3.0. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-kandinsky-5-0-video-lite-image-to-video",
+        "name": "Comfy Kandinsky 5.0 Video Lite Image to Video",
+        "description": "A lightweight 2B model that generates videos from English and Russian prompts with high visual quality. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-kandinsky-5-0-video-lite-text-to-video",
+        "name": "Comfy Kandinsky 5.0 Video Lite Text to Video",
+        "description": "A lightweight 2B model that generates videos from English and Russian prompts with high visual quality. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-kling-3-0-first-last-frame-to-video",
+        "name": "Comfy Kling 3.0- First Last Frame to Video",
+        "description": "Input a first and last frame image to generate a continuous video sequence with multi-shot generation, precise element control, and support for multilingual prompts. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-kling-3-0-motion-control",
+        "name": "Comfy Kling 3.0- Motion Control",
+        "description": "Upload a character image and a motion reference video. Generate a new video where your character performs the actions from the reference, with enhanced facial consistency using optional element binding. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-kling-3-0-video-generation",
+        "name": "Comfy Kling 3.0- Video Generation",
+        "description": "Input text or image prompts to generate 15-second video sequences with multi-shot compositions, complex camera movements, and consistent subjects. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-kling-4-0-image-to-video",
+        "name": "Comfy Kling 4.0- Image to Video",
+        "description": "Animate a single still into a five-second clip with Kling 4.0, cutting three times inside one generation. The source image locks the subject and styling while the default prompt drives the camera moves and a beat-timed edit, and the model also produces stereo audio. Ideal for fashion, editorial, and product motion where the input frame defines the look. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-kling-4-0-reference-to-video",
+        "name": "Comfy Kling 4.0- Reference to Video",
+        "description": "Hold a character and a location from two reference images and shoot a three-shot fashion fragment between them: an extreme close-up with a snap zoom, a mid-hall turn with a whip-pan, and a 120-degree orbit under the arched window. Each cut lands on a new position inside the same room, with two hard cuts in five seconds and stereo audio generated for the space. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-kling-4-0-text-to-video",
+        "name": "Comfy Kling 4.0- Text to Video",
+        "description": "Generate a ten-second cinematic clip from text alone with Kling 4.0, holding one single continuous shot through a full high-speed chase while also producing native stereo audio. Ideal for short-form spectacle, concept pitches, and motion references where a single unbroken take carries the idea. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-kling-4-0-video-edit",
+        "name": "Comfy Kling 4.0- Video Edit",
+        "description": "Edit an existing clip in one pass with Kling 4.0: name the change and list what must survive, and the model rewrites only that part while keeping the subject, costume, shot count, camera work and timing intact. Output inherits the input's length and aspect ratio, and stereo audio is regenerated to match the new scene. Ideal for swapping environments, wardrobe or style on footage that is already cut. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-kling-o1-image-to-video",
+        "name": "Comfy Kling O1- Image to Video",
+        "description": "Transform static images into dynamic videos with Kling O1. Add motion, camera movements, and life to your images using text prompts. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-kling-o1-text-to-video",
+        "name": "Comfy Kling O1- Text to Video",
+        "description": "Generate videos from text descriptions using Kling O1. Create dynamic video content with natural language prompts. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-kling-o1-video-edit",
+        "name": "Comfy Kling O1- Video Edit",
+        "description": "Edit videos with natural language commands, featuring video reference mode for quick generation of high-quality style transfers, element additions, and background modifications. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-kling-o1-video-to-video",
+        "name": "Comfy Kling O1- Video to Video",
+        "description": "Transform videos with Kling O1. Edit video content, change styles, or replace characters using text prompts and reference images. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-kling-o3-flf2v",
+        "name": "Comfy Kling O3- FLF2V",
+        "description": "Upload reference images or specify start and end frames. Generate a video with precise semantic control, longer duration, and improved narrative coherence. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-kling-o3-reference-to-video",
+        "name": "Comfy Kling O3- Reference to Video",
+        "description": "Upload a reference image and optional audio or text prompt. Generate a character-consistent video with native audio output and precise storyboard control. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-kling-o3-text-to-video",
+        "name": "Comfy Kling O3- Text to Video",
+        "description": "Upload text, audio, or images to generate a 15-second video with synchronized audio, character consistency, and storyboard control. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-kling-o3-video-edit",
+        "name": "Comfy Kling O3- Video Edit",
+        "description": "Upload a video and a reference image to edit with Kling O3. Generate a professionally edited video with precise subject editing, scene composition, and native audio-visual synchronization. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-kling2-6-animate-images-with-audio",
+        "name": "Comfy Kling2.6- Animate Images with Audio",
+        "description": "Transform static images into dynamic videos with synchronized dialogue, singing, sound effects, and ambient audio. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-kling2-6-motion-control",
+        "name": "Comfy Kling2.6- Motion Control",
+        "description": "Apply precise character actions and expressions from a reference video to your character image with synchronized motion control. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-kling2-6-storytelling-videos-with-audio",
+        "name": "Comfy Kling2.6- Storytelling Videos with Audio",
+        "description": "Bring your stories to life with videos featuring synchronized dialogue, music, sound effects, and ambient audio from text prompts. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-ltx-2-3-ic-lora-union-control",
+        "name": "Comfy LTX 2.3 IC-LoRA Union Control",
+        "description": "Generate LTX 2.3 videos with IC-LoRA using aligned control inputs like depth, pose, or edges. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ltx-2-canny-to-video",
+        "name": "Comfy LTX-2 Canny to Video",
+        "description": "Generate high-quality videos from edge detection (Canny) guidance with synchronized audio-video generation using LTX-2. Features precise edge control, structural consistency, and efficient performance. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ltx-2-depth-to-video",
+        "name": "Comfy LTX-2 Depth to Video",
+        "description": "Generate high-quality videos from depth maps with synchronized audio-video generation using LTX-2. Features precise depth control, spatial awareness, and efficient performance. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ltx-2-image-to-video-distilled",
+        "name": "Comfy LTX-2 Image to Video (Distilled)",
+        "description": "Transform static images into dynamic videos with synchronized audio-video generation using LTX-2 distilled model. Optimized for faster generation while maintaining quality. Features expressive lip sync, natural motion, and improved speed. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ltx-2-pose-to-video",
+        "name": "Comfy LTX-2 Pose to Video",
+        "description": "Generate high-quality videos from pose guidance with synchronized audio-video generation using LTX-2. Features precise pose control, expressive motion, and efficient performance. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ltx-2-text-to-video-distilled",
+        "name": "Comfy LTX-2 Text to Video (Distilled)",
+        "description": "Generate high-quality videos from text prompts with synchronized audio-video generation using LTX-2 distilled model. Optimized for faster generation while maintaining quality. Features expressive lip sync, dynamic motion generation, and improved speed. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ltx-2-text-to-video",
+        "name": "Comfy LTX-2 Text to Video",
+        "description": "Generate high-quality videos from text prompts with synchronized audio-video generation using LTX-2. Features expressive lip sync, dynamic motion generation, and efficient performance. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ltx-2-audio-to-video",
+        "name": "Comfy LTX-2- Audio to Video",
+        "description": "Upload an audio file and a starting image frame. Generate a video synchronized to the audio using the LTX-2 model. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ltx-2-image-to-video",
+        "name": "Comfy LTX-2- Image to Video",
+        "description": "Transform static images into dynamic videos with synchronized audio-video generation using LTX-2. Features expressive lip sync, natural motion, and efficient performance. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ltx-2-3-style-transition",
+        "name": "Comfy LTX-2.3 Style Transition",
+        "description": "Apply the ltx2.3-transition LoRA to create smooth style and scene transitions. This workflow uses a specialized model to blend visual elements. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ltx-2-3-flf2v",
+        "name": "Comfy LTX-2.3- FLF2V",
+        "description": "Upload a starting image to generate a video sequence. The workflow creates a short video with consistent style and motion, beginning with your provided frame. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ltx-2-3-id-lora",
+        "name": "Comfy LTX-2.3- ID LoRA",
+        "description": "Generate personalized videos with synchronized audio from a text prompt, reference image, and short audio clip. Use ID-LoRA to adapt a person's appearance and voice in a single generative model. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ltx-2-3-image-audio-to-video",
+        "name": "Comfy LTX-2.3- Image Audio to Video",
+        "description": "Upload an image and an audio file to generate a high-quality video with synchronized lip movements using LTX-2.3. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ltx-2-3-image-to-video",
+        "name": "Comfy LTX-2.3- Image to Video",
+        "description": "Upload an image to generate a video with improved motion consistency and fine details, including enhanced support for portrait formats and audio quality. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ltx-2-3-text-to-video",
+        "name": "Comfy LTX-2.3- Text to Video",
+        "description": "Generate a video from a text prompt, optionally using an image for reference. Receive a high-quality video with improved motion, audio, and detail, optimized for portrait or landscape formats. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ltx-2-5-pro-flf2v",
+        "name": "Comfy LTX-2.5 (Pro)- FLF2V",
+        "description": "Generate a video from two reference images using LTX-2.5, blending the content of both frames into a single animated sequence. Ideal for creating transition shots, morphing between two subjects or scenes, and building multi-shot narratives from still references. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-ltx-2-5-pro-image-to-video",
+        "name": "Comfy LTX-2.5 (Pro)- Image to Video",
+        "description": "Generate video from a single image using LTX-2.5's fast distilled model, delivering cinematic multi-shot sequences with consistent characters, lighting, and style across cuts. The workflow outputs a video file with native multishot support and automatic duration prediction. Ideal for rapid storyboarding, social media content creation, and pre-visualization in commercial production pipelines. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-ltx-2-5-pro-text-to-video",
+        "name": "Comfy LTX-2.5 (Pro)- Text to Video",
+        "description": "Generate video from text with LTX 2.5, a video model built for fast, high-quality production work. Type a prompt and get a cinematic clip with sharp detail, accurate motion, and support for native multishot scenes that hold character and style across cuts. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-ltx-2-5-flf2v",
+        "name": "Comfy LTX-2.5- FLF2V",
+        "description": "Generate a video from first and last frame reference images using LTX-2.5, blending both frames into a single animated sequence. Ideal for creating transition shots, morphing between two subjects or scenes, and building multi-shot narratives from still references. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ltx-2-5-image-to-video",
+        "name": "Comfy LTX-2.5- Image to Video",
+        "description": "Generate video from a single image using LTX-2.5, producing a high-fidelity clip with industry-leading pixel quality and native multishot capability that holds character, environment, and lighting across connected scenes. Ideal for cinematic production, VFX shot creation, and content pipelines requiring fast, locally deployable video generation. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ltx-2-5-text-to-video",
+        "name": "Comfy LTX-2.5- Text to Video",
+        "description": "Generate cinematic video from a text prompt using LTX-2.5, a production-ready diffusion model that outputs a single video file with optional spatial upscaling for enhanced resolution. Ideal for film previsualization, commercial storyboards, and high-volume content creation pipelines. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ltxv-image-to-video",
+        "name": "Comfy LTXV Image to Video",
+        "description": "Generate videos from still images. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ltxv-text-to-video",
+        "name": "Comfy LTXV Text to Video",
+        "description": "Generate videos from text prompts. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-looped-restyler",
+        "name": "Comfy Looped Restyler",
+        "description": "Upload a starting image and its prompt to generate a looping video from the first to the last frame. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-luma-ray-3-2-image-to-video",
+        "name": "Comfy Luma Ray 3.2- Image to Video",
+        "description": "Generate cinematic-quality videos from text prompts using Luma Ray 3.2, with support for extending previous generations by providing a generation ID. The workflow accepts 1 input image and produces 1 video output, enabling seamless iterative refinement. Ideal for creating short film sequences, marketing content, and professional video production. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-luma-ray-3-2-text-to-video",
+        "name": "Comfy Luma Ray 3.2- Text to Video",
+        "description": "Generate cinematic-quality videos from text prompts using Luma Ray 3.2, with optional video extension by providing a generation ID from a previous run. Ideal for creating short film sequences, marketing content, and iterative video refinement. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-luma-ray-3-2-video-edit",
+        "name": "Comfy Luma Ray 3.2- Video Edit",
+        "description": "Edit videos using natural language commands with Luma Ray 3.2, processing one input video and generating an edited output based on your textual instructions. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-minimax-h3-max-turbo-image-to-video",
+        "name": "Comfy MiniMax H3 Max Turbo- Image to Video",
+        "description": "Generate video sequences from a starting image using MiniMax H3 Max Turbo, producing two video outputs from a single input frame. This rapid image-to-video workflow generates short clips in seconds, with optional prompt enhancement and 2K upscaling stages. Ideal for animating still photographs, creating quick motion previews for storyboards, and fast visual effects iteration. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-minimax-h3-max-flf2v",
+        "name": "Comfy MiniMax H3 Max- FLF2V",
+        "description": "Generate polished, prompt-faithful videos faster than real time with MiniMax H3 Max, a post-trained model tuned for stronger prompt adherence and vivid cinematic aesthetics. This workflow supports text-to-video, image-to-video animation, and directed first-to-last-frame transitions, delivering clean compositions and cohesive lighting directly from the model. Ideal for rapid concept exploration, cinematic motion graphics, and high-throughput video comparison. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-minimax-h3-max-image-to-video",
+        "name": "Comfy MiniMax H3 Max- Image to Video",
+        "description": "Generate video from a source image using MiniMax H3 Max, animating your still frame while preserving its composition, visual identity, and aspect ratio. The model delivers faster-than-real-time generation with strong prompt adherence and polished cinematic aesthetics. Ideal for bringing character art to life, animating product shots, and creating motion from concept images. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-minimax-h3-max-reference-to-video",
+        "name": "Comfy MiniMax H3 Max- Reference to Video",
+        "description": "Generate video from an image reference using MiniMax H3 Max, which animates your still frame while preserving its composition, visual identity, and aspect ratio. The model generates faster than real time with strong prompt adherence and polished cinematic motion. Ideal for bringing character art to life, animating product shots, and creating video from concept images. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-minimax-h3-max-text-to-video",
+        "name": "Comfy MiniMax H3 Max- Text to Video",
+        "description": "Generate polished, prompt-faithful video from text using MiniMax H3 Max, producing a single finished video clip with no input files required. Ideal for rapid concept exploration, cinematic text-to-video scenes, and high-throughput creative iteration where speed and visual quality matter. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-minimax-h3-turbo-text-to-video",
+        "name": "Comfy MiniMax H3 Turbo- Text to Video",
+        "description": "Generate 5–15 second videos from text prompts using MiniMax H3 Max Turbo, a high-speed text-to-video model optimized for rapid inference. This workflow takes no file inputs and outputs a single video file, delivering 768p clips in roughly 1–3 seconds of generation time. Ideal for quick social media content, iterative creative exploration, and fast prototyping of video concepts. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-minimax-h3-flf2v",
+        "name": "Comfy MiniMax H3- FLF2V",
+        "description": "Generate a video from a first and last frame using MiniMax H3, producing a smooth animation between the two images. You provide 2 images, and the workflow outputs a single video clip. Ideal for creating seamless transitions in animation, visualizing before-and-after transformations, and generating consistent motion for character or scene sequences. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-minimax-h3-reference-to-video",
+        "name": "Comfy MiniMax H3- Reference to Video",
+        "description": "Generate video from a reference image or set of multimodal inputs using MiniMax H3, which interprets text, images, video, and audio together to produce coherent 5–15 second clips with native stereo audio. Input up to 2 images for first/last frame control, or up to 9 images, 3 video clips, and 3 audio clips in Omni Reference mode, and output a single video in your chosen aspect ratio. Ideal for commercial content creation, character-driven storytelling, and rapid visual concept validation. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-minimax-h3-text-to-video",
+        "name": "Comfy MiniMax H3- Text to Video",
+        "description": "Generate video directly from text using the MiniMax H3 model, producing a 5-15 second clip with native stereo audio. Ideal for rapid concept visualization, short-form social media content, and pre-visualization for film or advertising projects. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-multi-keyframe-video-stitching",
+        "name": "Comfy Multi-Keyframe Video Stitching",
+        "description": "Creates a smooth video using 6 key frames.It auto fills in the motion between frames and stitches the segments together seamlessly. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-pixverse-6-0-image-to-video",
+        "name": "Comfy PixVerse 6.0- Image to Video",
+        "description": "Turn a still image into a moving video clip with PixVerse V6, generating up to 15 seconds of footage at resolutions from 360p to 1080p. Supports multiple aspect ratios, integrated audio generation, and multi-shot direction for cohesive narrative flow. Ideal for social media ads, product demonstrations, and short-form storytelling. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-pixverse-6-0-reference-to-video",
+        "name": "Comfy PixVerse 6.0- Reference to Video",
+        "description": "Create reference-driven videos with PixVerse V6, generating clips that follow the style, motion, and subject traits of your uploaded reference footage. Ideal for matching a specific visual identity across variations, extending a character or scene’s look to new actions, and producing consistent branded content from a single source clip. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-pixverse-6-0-text-to-video",
+        "name": "Comfy PixVerse 6.0- Text to Video",
+        "description": "Generate videos up to 15 seconds at 1080p from text prompts with PixVerse V6, supporting multiple aspect ratios, optional integrated audio, and multi-shot scene direction in a single generation. Ideal for social media ads, product concept testing, and short-form storytelling where narrative continuity and distribution-ready framing matter. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-pixverse-templates-image-to-video",
+        "name": "Comfy PixVerse Templates- Image to Video",
+        "description": "Generate dynamic videos from static images with motion and effects using PixVerse. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-pixverse-v6-max-image-to-video",
+        "name": "Comfy PixVerse V6 Max- Image to Video",
+        "description": "Animate a still image with PixVerse V6 Max, keeping the aspect ratio of the input image and generating up to 15 seconds at up to 1080p with an optional native audio track. Ideal for bringing product shots, character art and keyframes to life for social and advertising use. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-pixverse-v6-max-text-to-video",
+        "name": "Comfy PixVerse V6 Max- Text to Video",
+        "description": "Generate videos up to 15 seconds at 1080p from a text prompt with PixVerse V6 Max, the higher-fidelity tier of PixVerse V6, with native audio and multi-shot direction in a single generation. No input files required. Ideal for social ads, product concept clips and short-form storytelling. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-pixverse-image-to-video",
+        "name": "Comfy PixVerse- Image to Video",
+        "description": "Generate dynamic videos from static images with motion and effects using PixVerse. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-pixverse-text-to-video",
+        "name": "Comfy PixVerse- Text to Video",
+        "description": "Generate videos with accurate prompt interpretation and stunning video dynamics. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-pruna-p-video-2-image-to-video",
+        "name": "Comfy Pruna P-Video 2- Image to Video",
+        "description": "Turn a single image into video with Pruna P-Video-2. As Pruna's quality-focused video model, its image-to-video mode excels at identity consistency and subtle, natural motion — 720p/1080p, 1-20s duration, plus Draft mode for fast previews. Ideal for image animation, product motion, and poster cinemagraphs. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-pruna-p-video-2-text-to-video",
+        "name": "Comfy Pruna P-Video 2- Text to Video",
+        "description": "Generate videos from a single text prompt with Pruna P-Video-2, producing 1-20 second clips up to 1080p at 48 fps with native audio, including ambience, sound effects, and lip-synced dialogue from an optional last-frame image. Ideal for narrative shorts, motion posters, ad B-roll, and dialogue shots. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-runway-aleph2-video-edit",
+        "name": "Comfy Runway Aleph2- Video Edit",
+        "description": "Generate a single edited video that preserves original motion and timing while applying your chosen changes. Ideal for portrait and product relighting, consistent lighting across photo sets, and e-commerce apparel presentation. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-runway-gen4-turbo-image-to-video",
+        "name": "Comfy Runway- Gen4 Turbo Image to Video",
+        "description": "Generate dynamic videos from images using Runway Gen4 Turbo. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-scail-2-int8-character-replacement",
+        "name": "Comfy SCAIL-2 Int8- Character Replacement",
+        "description": "Animate a reference character using a driving video or replace characters entirely with SCAIL-2 Int8, which delivers higher quality than fp8 while running faster. The workflow accepts one reference image and one driving video, outputting an animated character sequence with replaced identity. Ideal for cross-identity character swaps, animal-driven animation, and multi-character scenes without intermediate pose representations. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-scail-2-character-replacement",
+        "name": "Comfy SCAIL-2- Character Replacement",
+        "description": "Upload 1 reference character image and 1 driving video. Generate an animated video of the character matching the driving video's motion. Ideal for character animation, in-video character replacement, and motion transfer projects. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-svd-text-to-image-to-video",
+        "name": "Comfy SVD Text to Image to Video",
+        "description": "Generate videos by first creating images from text prompts. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-seedance-1-0-pro-image-to-video",
+        "name": "Comfy Seedance 1.0 Pro- Image to Video",
+        "description": "Transform static images into dynamic videos using ByteDance's Seedance model. Analyzes image structure and generates natural motion with consistent visual style and coherent video sequences. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seedance-2-0-llm-prompt-helper",
+        "name": "Comfy Seedance 2.0 + LLM Prompt Helper",
+        "description": "Upload two reference images and input a short text description. Generate a detailed Seedance 2.0-style prompt automatically with an LLM helper. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seedance-2-0-mini-reference-to-video",
+        "name": "Comfy Seedance 2.0 Mini- Reference to Video",
+        "description": "Generate cinematic video from two reference images using Seedance 2.0 Mini, producing a single video output with AI-driven camera motion and consistent character generation. Ideal for storytelling, branded content, and short film creation where shot composition and visual continuity are essential. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seedance-2-0-mini-text-to-video",
+        "name": "Comfy Seedance 2.0 Mini- Text to Video",
+        "description": "Generate cinematic videos from text prompts with Dreamina’s Seedance 2.0 Mini, supporting AI camera controls and consistent character generation across scenes. This workflow takes only prompt input and produces 1 video output. Ideal for AI filmmaking, branded content creation, and multi-shot storytelling projects. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seedance-2-0-reference-to-video",
+        "name": "Comfy Seedance 2.0- Reference to Video",
+        "description": "Generate cinematic videos from reference images and text prompts. Preserve subject identity and composition while adding expressive motion with synchronized audio. Control camera movement and lighting through detailed prompts. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seedance-2-0-text-to-video",
+        "name": "Comfy Seedance 2.0- Text to Video",
+        "description": "Generate cinematic videos from text prompts with synchronized audio, controlled camera motion, and stable visuals. Input text descriptions to output high-quality video sequences. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seedance-2-5-flf2v",
+        "name": "Comfy Seedance 2.5- FLF2V",
+        "description": "Generate a smooth video transition between a user-provided start frame and end frame with Seedance 2.5, which automatically interpolates the motion, camera movement, and visual evolution while locking both endpoints. Ideal for shot transitions, storyboard previz, and before-and-after scene showcases like empty-to-packed or day-to-night shifts. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seedance-2-5-reference-to-video",
+        "name": "Comfy Seedance 2.5- Reference to Video",
+        "description": "Generate reference-driven videos with Seedance 2.5 by supplying up to 20 images, 6 video clips, and 6 audio clips to control character consistency, visual style, and motion rhythm in a single 4–30 second output with synchronized sound and lip-synced dialogue. Ideal for e-commerce product showcases, brand advertising, and character-driven short series. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seedance-2-5-text-to-video",
+        "name": "Comfy Seedance 2.5- Text to Video",
+        "description": "Generate 30-second cinematic videos from text prompts with Seedance 2.5, producing synchronized sound and music alongside the footage. Input a single text prompt to create one video with precise camera control and multi-shot storytelling. Ideal for brand films, episodic series, and e-commerce content where quality matters more than budget. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seedance1-0-pro-start-end-to-video",
+        "name": "Comfy Seedance1.0 Pro- Start End to Video",
+        "description": "Generate cinematic video transitions between start and end frames with fluid motion, scene consistency, and professional polish using ByteDance's Seedance model. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seedance1-0-pro-text-to-video",
+        "name": "Comfy Seedance1.0 Pro- Text to Video",
+        "description": "Generate high-quality videos directly from text prompts using ByteDance's Seedance model. Supports multiple resolutions and aspect ratios with natural motion and cinematic quality. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seedance2-0-4k-reference-to-video",
+        "name": "Comfy Seedance2.0 4K- Reference to Video",
+        "description": "Generate a reference-based video from a single input image using Seedance 2.0, producing native 4K output with 10-bit color depth and clean fine detail retention. The workflow takes 1 image and outputs 1 video. Ideal for high-resolution motion graphics, cinematic VFX shots requiring downstream grading, and professional video production where 4K finishing is essential. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seedance2-0-real-human-flf2v",
+        "name": "Comfy Seedance2.0 Real Human- FLF2V",
+        "description": "Upload a reference image of a real person for identity verification and generate a personalized video with first and last frame control using Seedance2.0 FLF2V. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seedance2-0-real-human-reference-to-video",
+        "name": "Comfy Seedance2.0 Real Human- Reference to Video",
+        "description": "Upload a reference video of a real person for identity verification. Use your own photo to validate and generate a personalized video output. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seedance2-0-first-last-frame-to-video",
+        "name": "Comfy Seedance2.0- First-Last-Frame to Video",
+        "description": "Upload the first and last frames of your video. Generate a high-quality video sequence using the Seedance2.0 model. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seedance2-5-1080p-image-to-video",
+        "name": "Comfy Seedance2.5 1080P- Image to Video",
+        "description": "Generate cinematic 1080P video clips from a single image using Seedance 2.5, animating the still into a moving scene with synchronized sound, music, and dialogue for clips up to 30 seconds across any aspect ratio. Ideal for breathing life into product shots, extending concept art into motion, and creating engaging social media content from photographs. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seedance2-5-1080p-text-to-video",
+        "name": "Comfy Seedance2.5 1080P- Text to Video",
+        "description": "Generate cinematic 1080P video clips from text descriptions using Seedance 2.5, supporting clips up to 30 seconds with synchronized sound, music, and dialogue across any aspect ratio. Ideal for short comedy scenes, product showcases, and creative storytelling. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seedance2-5-draft-image-to-video",
+        "name": "Comfy Seedance2.5 Draft- Image to Video",
+        "description": "Generate draft preview videos from a first frame image using Seedance 2.5's two-phase draft mode: stage one turns your image into a fast, low-cost 480p preview plus a reusable draft task ID, and stage two renders the 1080p final from that ID. Ideal for testing motion, camera and scene ideas on a still before committing to a full-quality render. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seedance2-5-draft-reference-to-video",
+        "name": "Comfy Seedance2.5 Draft- Reference to Video",
+        "description": "Generate draft preview videos from reference images using Seedance 2.5's two-phase draft mode: stage one turns your references and prompt into a fast, low-cost 480p preview plus a reusable draft task ID, and stage two renders the 1080p final from that ID. Ideal for locking in a character or storyboard reference before committing to a full-quality render. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seedance2-5-draft-text-to-video",
+        "name": "Comfy Seedance2.5 Draft- Text to Video",
+        "description": "Generate draft preview videos from text prompts using Seedance 2.5's two-phase draft mode: stage one turns your prompt into a fast, low-cost 480p preview plus a reusable draft task ID, and stage two renders the 1080p final from that ID. Ideal for storyboard testing, rapid creative iteration, and budget-conscious production workflows. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seedance2-5-video-editing",
+        "name": "Comfy Seedance2.5- Video Editing",
+        "description": "Edit existing video clips with Seedance 2.5 by describing changes in natural language, enabling local object removal, background swaps, scene replacements, and style transfers while preserving the original composition and motion. Feed in 1 video and receive 1 edited video output with temporally consistent results across frames. Ideal for e-commerce background replacement, stylized remakes of footage, and ad re-editing with targeted retouching. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-squish-anything-with-ltx-2-i2v-and-lora",
+        "name": "Comfy Squish Anything with LTX-2 I2V and LoRA",
+        "description": "Upload any image to apply the Squish It LoRA effect. Generate a squished animation using the LTX-2 I2V model. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-sync-3-talking-image",
+        "name": "Comfy Sync 3- Talking Image",
+        "description": "Generate a talking-head video from a single face photo and an audio clip, with lips and lower-face motion precisely synchronized to the speech. This process outputs one video from one image and one audio input, keeping hands, products, and background completely unchanged. Ideal for product demos, e-commerce introductions, and marketing videos where a static product-holding photo is paired with a voiceover. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-sync-3-video-lip-sync",
+        "name": "Comfy Sync 3- Video Lip-Sync",
+        "description": "Synchronize a video's lip movements with a new audio track using the Sync Labs sync-3 model, which automatically adjusts the speaker’s mouth to match your uploaded audio. This workflow takes 1 video and 1 audio input to produce 1 synced video output. Ideal for dubbing foreign-language content, correcting mismatched dialogue in video production, or animating a static portrait to speak. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-veed-fabric-1-0-talking-photo",
+        "name": "Comfy VEED Fabric 1.0- Talking Photo",
+        "description": "Turn a still photo and a speech track into a talking, lip-synced video with VEED Fabric 1.0. The face in the image speaks the audio, the clip keeps the image's aspect ratio and runs as long as the audio, up to 300 seconds at 480p or 720p. Ideal for avatars, mascots and localized spokesperson clips driven by your own voice recording or a TTS node. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-veed-lipsync-2-0-lip-sync",
+        "name": "Comfy VEED Lipsync 2.0- Lip Sync",
+        "description": "Re-sync a speaker's mouth in footage you already shot to a new speech track with VEED Lipsync 2.0. The person on camera speaks the new audio while the rest of the shot stays as recorded; the output keeps the video's resolution at 25 fps and runs as long as the audio, up to 600 seconds. If the clip is shorter than the speech it plays forward and backward until the audio ends. Ideal for dubbing a line, swapping a script without re-shooting, or making localized versions of existing footage. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-vidu-q1-image-to-video",
+        "name": "Comfy Vidu Q1- Image to Video",
+        "description": "Transform static images into dynamic 1080p videos with precise motion control and customizable movement amplitude using Vidu. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-vidu-q1-reference-to-video",
+        "name": "Comfy Vidu Q1- Reference to Video",
+        "description": "Generate videos with consistent subjects using multiple reference images (up to 7) for character and style continuity across the video sequence. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-vidu-q1-start-end-to-video",
+        "name": "Comfy Vidu Q1- Start End to Video",
+        "description": "Create smooth video transitions between defined start and end frames with natural motion interpolation and consistent visual quality. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-vidu-q1-text-to-video",
+        "name": "Comfy Vidu Q1- Text to Video",
+        "description": "Generate high-quality 1080p videos from text prompts with adjustable movement amplitude and duration control using Vidu's advanced AI model. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-vidu-q2-flf2v",
+        "name": "Comfy Vidu Q2- FLF2V",
+        "description": "Create smooth video transitions between start and end frames with cinematic camera movements, multi-subject consistency. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-vidu-q2-image-to-video",
+        "name": "Comfy Vidu Q2- Image to Video",
+        "description": "Transform static images into dynamic 1080p videos with cinematic camera control, multi-subject consistency Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-vidu-q2-reference-to-video",
+        "name": "Comfy Vidu Q2- Reference to Video",
+        "description": "Generate videos with reference-based consistency for up to 3 subjects, maintaining character and style continuity across the video sequence with cinematic camera movements. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-vidu-q2-text-to-video",
+        "name": "Comfy Vidu Q2- Text to Video",
+        "description": "Generate high-quality 1080p videos from text prompts with Vidu Q2 model Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-vidu-q3-audio-visual-video-generation",
+        "name": "Comfy Vidu Q3 Audio-Visual Video Generation",
+        "description": "Input a text prompt or upload an image to generate a 1-16 second video with synchronized audio and automatic scene transitions. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-vidu-q3-image-to-video-with-audio",
+        "name": "Comfy Vidu Q3 Image-to-Video with Audio",
+        "description": "Upload an image and provide a text prompt to generate a 1-16 second video with synchronized audio and intelligent scene transitions. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-vidu-q4-preview-image-to-video",
+        "name": "Comfy Vidu Q4 Preview- Image to Video",
+        "description": "Generate cinematic videos from a single still image using Vidu Q4 Preview, an expressive flagship model built for lifelike character acting, dramatic camera movement, and striking visual effects. Submit 1 image and receive 1 finished video, with support for up to 15 reference images, 3 reference audio clips, and 2K or 4K output. Ideal for short films, marketing content, and social media storytelling. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-vidu-q4-preview-reference-to-video",
+        "name": "Comfy Vidu Q4 Preview- Reference to Video",
+        "description": "Generate expressive videos from two reference images using Vidu Q4 Preview, a flagship model built for vivid character performance, dynamic camera language, and striking visual effects. Ideal for character-driven storytelling, cinematic action sequences, and effect-heavy scenes with explosions, smoke, or particles. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-wan2-6-reference-to-video",
+        "name": "Comfy WAN2.6- Reference to Video",
+        "description": "Creating identity-preserved videos with natural movement and cinematic quality. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-wan-2-1-controlnet",
+        "name": "Comfy Wan 2.1 ControlNet",
+        "description": "Generate videos guided by pose, depth, and edge controls using Wan 2.1 ControlNet. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan-2-1-flf2v-720p-f16",
+        "name": "Comfy Wan 2.1 FLF2V 720p F16",
+        "description": "Generate videos by controlling first and last frames using Wan 2.1 FLF2V. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan-2-1-fun-camera-1-3b",
+        "name": "Comfy Wan 2.1 Fun Camera 1.3B",
+        "description": "Generate dynamic videos with cinematic camera movements using Wan 2.1 Fun Camera 1.3B model. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan-2-1-fun-camera-14b",
+        "name": "Comfy Wan 2.1 Fun Camera 14B",
+        "description": "Generate high-quality videos with advanced camera control using the full 14B model Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan-2-1-image-to-video",
+        "name": "Comfy Wan 2.1 Image to Video",
+        "description": "Generate videos from images using Wan 2.1. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan-2-1-inpainting",
+        "name": "Comfy Wan 2.1 Inpainting",
+        "description": "Generate videos from start and end frames using Wan 2.1 inpainting. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan-2-1-text-to-video",
+        "name": "Comfy Wan 2.1 Text to Video",
+        "description": "Generate videos from text prompts using Wan 2.1. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan-2-2-14b-first-last-frame-to-video",
+        "name": "Comfy Wan 2.2 14B First-Last Frame to Video",
+        "description": "Generate smooth video transitions by defining start and end frames. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan-2-2-14b-fun-camera-control",
+        "name": "Comfy Wan 2.2 14B Fun Camera Control",
+        "description": "Generate videos with camera motion controls including pan, zoom, and rotation using Wan 2.2 Fun Camera Control. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan-2-2-14b-fun-control",
+        "name": "Comfy Wan 2.2 14B Fun Control",
+        "description": "Generate videos guided by pose, depth, and edge controls using Wan 2.2 Fun Control. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan-2-2-14b-fun-inpaint",
+        "name": "Comfy Wan 2.2 14B Fun Inpaint",
+        "description": "Generate videos from start and end frames using Wan 2.2 Fun Inpaint. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan-2-2-14b-image-to-video",
+        "name": "Comfy Wan 2.2 14B Image to Video",
+        "description": "Transform static images into dynamic videos with precise motion control and style preservation using Wan 2.2. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan-2-2-5b-fun-control",
+        "name": "Comfy Wan 2.2 5B Fun Control",
+        "description": "Multi-condition video control with pose, depth, and edge guidance. Compact 5B size for experimental development. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan-2-2-5b-fun-inpaint",
+        "name": "Comfy Wan 2.2 5B Fun Inpaint",
+        "description": "Efficient video inpainting from start and end frames. 5B model delivers quick iterations for testing workflows. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan-2-2-5b-video-generation",
+        "name": "Comfy Wan 2.2 5B Video Generation",
+        "description": "Fast text-to-video and image-to-video generation with 5B parameters. Optimized for rapid prototyping and creative exploration. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan-2-2-t2v-a14b",
+        "name": "Comfy Wan 2.2 T2V A14B",
+        "description": "Generate a video on Comfy Cloud with the official Wan 2.2 T2V A14B template. Requires COMFY_API_KEY and model availability on Comfy Cloud.",
+        "tags": [
+          "comfy",
+          "video"
+        ]
+      },
+      {
+        "slug": "comfy-wan-animate-2-distilled-motion-transfer",
+        "name": "Comfy Wan Animate 2 Distilled- Motion Transfer",
+        "description": "Animate a still character using a driving video with Wan Animate 2, transferring motion directly from video frames without any pose extraction or skeleton preprocessing. The output preserves the reference character's identity while generating a fresh background and camera movement from your text prompt. This distilled version delivers efficient, high-fidelity motion generation with strong identity preservation, ideal for motion transfer, action mimicry, and character animation replacement projects. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan-animate-2-motion-transfer",
+        "name": "Comfy Wan Animate 2- Motion Transfer",
+        "description": "Animate a still character using a driving video with Wan Animate 2, transferring motion directly from video frames without any pose extraction or skeleton preprocessing. The output preserves the reference character's identity while generating a fresh background and camera movement from your text prompt. Ideal for motion transfer, action mimicry, and character animation replacement projects. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan-dancer-music-to-dance",
+        "name": "Comfy Wan Dancer- Music to Dance",
+        "description": "Generate minute-scale coherent dance videos from music using a hierarchical Wan Dancer framework. Input a music file and reference image to produce high-resolution dance videos with global structure and temporal continuity. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan-move-motion-control-image-to-video",
+        "name": "Comfy Wan-Move Motion-Control Image to Video",
+        "description": "Generate videos from a single image using Wan-Move, with fine-grained point-level motion control via trajectory guidance. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan2-1-ati",
+        "name": "Comfy Wan2.1 ATI",
+        "description": "Trajectory-controlled Video Generation. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan2-1-alpha-t2v",
+        "name": "Comfy Wan2.1 Alpha T2V",
+        "description": "Generate text-to-video with alpha channel support for transparent backgrounds and semi-transparent objects. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan2-1-scail",
+        "name": "Comfy Wan2.1 SCAIL",
+        "description": "One-Touch SCAIL Pose Control based on the composition of the Reference Image Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan2-1-vace-control-video",
+        "name": "Comfy Wan2.1 VACE Control Video",
+        "description": "Generate videos by controlling input videos and reference images using Wan VACE. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan2-1-vace-first-last-frame",
+        "name": "Comfy Wan2.1 VACE First-Last Frame",
+        "description": "Generate smooth video transitions by defining start and end frames. Supports custom keyframe sequences. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan2-1-vace-inpainting",
+        "name": "Comfy Wan2.1 VACE Inpainting",
+        "description": "Edit specific regions in videos while preserving surrounding content. Great for object removal or replacement. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan2-1-vace-outpainting",
+        "name": "Comfy Wan2.1 VACE Outpainting",
+        "description": "Generate extended videos by expanding video size using Wan VACE outpainting. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan2-1-vace-reference-to-video",
+        "name": "Comfy Wan2.1 VACE Reference to Video",
+        "description": "Create videos that match the style and content of a reference image. Perfect for style-consistent video generation. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan2-1-vace-text-to-video",
+        "name": "Comfy Wan2.1 VACE Text to Video",
+        "description": "Transform text descriptions into high-quality videos. Supports both 480p and 720p with VACE-14B model. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan2-2-animate-character-animation-and-replacement",
+        "name": "Comfy Wan2.2 Animate, Character Animation and Replacement",
+        "description": "Unified character animation and replacement framework with precise motion and expression replication. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan2-2-s2v-audio-driven-video-generation",
+        "name": "Comfy Wan2.2-S2V Audio-Driven Video Generation",
+        "description": "Transform static images and audio into dynamic videos with perfect synchronization and minute-level generation. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-wan2-5-image-to-video",
+        "name": "Comfy Wan2.5- Image to Video",
+        "description": "Transform images into videos with synchronized audio, enhanced motion, and superior quality. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-wan2-5-text-to-video",
+        "name": "Comfy Wan2.5- Text to Video",
+        "description": "Generate videos with synchronized audio, enhanced motion, and superior quality. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-wan2-6-image-to-video",
+        "name": "Comfy Wan2.6- Image to Video",
+        "description": "Transform images into high-quality videos with enhanced image quality, smoother motion, 1080P resolution support, and natural movement generation for professional results. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-wan2-6-text-to-video",
+        "name": "Comfy Wan2.6- Text to Video",
+        "description": "Generate high-quality videos from text prompts with enhanced image quality, smoother motion, 1080P resolution support, and improved prompt understanding for natural, professional results. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-wan2-7-image-to-video",
+        "name": "Comfy Wan2.7- Image to Video",
+        "description": "Upload an image and audio file to generate a video with synchronized sound, using the first and last frames for control. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-wan2-7-text-to-video",
+        "name": "Comfy Wan2.7- Text to Video",
+        "description": "Generate videos from text prompts using Wan 2.7. Supports audio reference to create lip-synced video Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-wan3-0-image-to-video",
+        "name": "Comfy Wan3.0- Image to Video",
+        "description": "Create up to 30 seconds of high-fidelity video from a single image using Wan 3.0, which supports text, image, audio, and document inputs for versatile scene generation. Produces authentic, realistic footage with unique facial details and believable motion in one pass. Ideal for cinematic storytelling, product visualization, and documentary-style scene recreation. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-wan3-0-reference-to-video",
+        "name": "Comfy Wan3.0- Reference to Video",
+        "description": "Generate a video from two reference images using Wan3.0's reference-to-video capability, which produces up to 30 seconds of footage with character consistency and lifelike visuals. Ideal for creating consistent character animations, scene replication from visual references, and producing audiovisual content from static imagery. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-wan3-0-text-to-video",
+        "name": "Comfy Wan3.0- Text to Video",
+        "description": "Generate videos up to 30 seconds directly from text prompts using Wan3.0-Video, producing a single video output with lifelike visuals and synchronized sound. This workflow transforms written descriptions into immersive, production-ready footage with strong character consistency and cinematic quality. Ideal for cinematic storytelling, character-driven animations, and quick multimedia content creation. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video",
+          "partner"
+        ]
+      },
+      {
         "slug": "consistent-cast-storyboard",
         "name": "Consistent Cast Storyboard",
         "description": "Direct a 6-shot narrative storyboard around a locked character entity, render every shot still and motion clip with identity preservation, and assemble the cut onto a multi-track timeline. Estimated cost is about $2.50 to $5.00 for a 6-shot board on fal at provider list price, or $0 locally with Ollama, Flux, and Wan 2.2.",
@@ -1147,6 +4731,362 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "comfy-ace-step-v1-m2m-editing",
+        "name": "Comfy ACE Step v1 M2M Editing",
+        "description": "Edit existing songs to change style and lyrics using ACE-Step v1 M2M. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "audio",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ace-step-v1-text-to-song",
+        "name": "Comfy ACE Step v1 Text to Song",
+        "description": "Generate songs with vocals from text prompts using ACE-Step v1, supporting multilingual and style customization. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "audio",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ace-step-1-5-ai-lyric-song-generation",
+        "name": "Comfy ACE-Step 1.5 AI Lyric Song Generation",
+        "description": "Input a music style and optional lyrics. Generate a full song with AI-created lyrics and audio. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "audio",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-ace-step-1-5-music-generation-4b-llm",
+        "name": "Comfy ACE-Step 1.5 Music Generation (4B LLM )",
+        "description": "Input a text prompt to generate music. This 4B model version offers stronger audio understanding and composition capabilities compared to smaller variants. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "audio",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ace-step-1-5-music-generation-aio",
+        "name": "Comfy ACE-Step 1.5 Music Generation AIO",
+        "description": "Input style tags and lyrics to generate a full song. The workflow uses the ACE-Step 1.5 model to produce commercial-grade music in under 10 seconds on consumer hardware. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "audio",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ace-step-1-5-music-generation-workflow",
+        "name": "Comfy ACE-Step 1.5 Music Generation Workflow",
+        "description": "Input a text prompt describing the music style and optional lyrics. Generate a full, high-quality audio song in under 10 seconds on consumer hardware. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "audio",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ace-step-1-5-xl-turbo",
+        "name": "Comfy ACE-Step 1.5 XL Turbo",
+        "description": "Generate audio on Comfy Cloud with the official ACE-Step 1.5 XL Turbo template. Requires COMFY_API_KEY and model availability on Comfy Cloud.",
+        "tags": [
+          "comfy",
+          "audio"
+        ]
+      },
+      {
+        "slug": "comfy-ace-step-1-5xl-base-text-to-music",
+        "name": "Comfy ACE-Step 1.5XL Base- Text to Music",
+        "description": "Generate high-quality audio from text prompts using the 4B parameter ACE-Step 1.5 XL model. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "audio",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ace-step-1-5xl-sft-text-to-music",
+        "name": "Comfy ACE-Step 1.5XL SFT- Text to Music",
+        "description": "Generate high-quality music from text prompts using a 4B parameter SFT model. Control output with CFG for precise prompt adherence. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "audio",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-ace-step-v1-text-to-instrumentals-music",
+        "name": "Comfy ACE-Step v1 Text to Instrumentals Music",
+        "description": "Generate instrumental music from text prompts using ACE-Step v1. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "audio",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-audio-separation",
+        "name": "Comfy Audio Separation",
+        "description": "Input Music → Separate Vocals / Bass / Drums / Other Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "audio",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-chatter-box-multi-speaker-conversation-with-cloned-voices",
+        "name": "Comfy Chatter Box- Multi-Speaker Conversation with Cloned Voices",
+        "description": "Upload voice samples and enter a multi-speaker dialog script. Generate a conversation audio file with cloned voices for each speaker. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "audio",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-chatter-box-multilingual-text-to-speech-with-voice-cloning",
+        "name": "Comfy Chatter Box- Multilingual Text-to-Speech with Voice Cloning",
+        "description": "Upload a short voice sample and input your text prompt. Select a target language to generate spoken audio in multiple languages using the cloned reference voice. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "audio",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-chatter-box-voice-cloning-audio-conversion",
+        "name": "Comfy Chatter Box- Voice Cloning Audio Conversion",
+        "description": "Upload an audio clip and a short voice reference to generate a converted audio output that clones the target voice while preserving the original timing and performance. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "audio",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-chatter-box-voice-cloning-with-tts",
+        "name": "Comfy Chatter Box- Voice Cloning with TTS",
+        "description": "Upload a short voice clip and input text to generate new speech in the cloned voice. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "audio",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-eleven-v4-text-to-dialogue",
+        "name": "Comfy Eleven v4- Text to Dialogue",
+        "description": "Generate a multi-speaker dialogue from text with Eleven v4: give every entry its own line and its own voice, direct the delivery with audio tags such as [quietly] or [laughs], or clone a voice from a sample and let it take a turn. One audio file is output. Ideal for podcasts, game dialogue, and character conversations.\n Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "audio",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-eleven-v4-text-to-speech",
+        "name": "Comfy Eleven v4- Text to Speech",
+        "description": "Generate expressive speech from text with Eleven v4, the quality-focused ElevenLabs model. Direct the performance with audio tags such as [whispers] or [excited] written into the script, or upload a voice sample to clone a voice and narrate the script in it. One audio file is output. Ideal for audiobooks, narration, and character voiceovers. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "audio",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-elevenlabs-speech-to-speech",
+        "name": "Comfy ElevenLabs- Speech to Speech",
+        "description": "Upload a source audio file to apply a new voice tone or clone a different voice, generating a modified audio output. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "audio",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-elevenlabs-text-to-sound-effects",
+        "name": "Comfy ElevenLabs- Text to Sound Effects",
+        "description": "Input a text prompt to generate custom sound effects and ambient audio. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "audio",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-elevenlabs-text-to-speech",
+        "name": "Comfy ElevenLabs- Text to Speech",
+        "description": "Input text to generate speech with ultra-realistic voices, or upload a voice sample to clone it for synthesis. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "audio",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-elevenlabs-voice-isolation",
+        "name": "Comfy ElevenLabs- Voice Isolation",
+        "description": "Upload an audio file containing background noise. Use the ElevenLabs API to isolate and output a clean voice track. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "audio",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-heygen-voice-1-0-turbo-voice-clone-to-speech",
+        "name": "Comfy HeyGen Voice 1.0 Turbo- Voice Clone to Speech",
+        "description": "Clone a voice from a short recording with HeyGen Voice 1.0 Turbo, then speak any script in that voice. It is the same instant clone as Voice 1.0, run through the turbo model, which renders faster for quick drafts and iteration. Connect one audio clip to Instant Clone and the resulting voice_id feeds straight into text to speech, while SaveText keeps the ID on disk for the next session. Ideal for narration in your own voice, character dialogue, and multilingual voiceover. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "audio",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-heygen-voice-1-0-voice-clone-to-speech",
+        "name": "Comfy HeyGen Voice 1.0- Voice Clone to Speech",
+        "description": "Clone a voice from a short recording with HeyGen Voice 1.0, then speak any script in that voice. Connect one audio clip to Instant Clone and the resulting voice_id feeds straight into text to speech, with no training wait. Use the expressiveness control to stay close to the recording or push more emotion into the delivery. Ideal for narration in your own voice, character dialogue, and multilingual voiceover. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "audio",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-heygen-text-to-speech",
+        "name": "Comfy HeyGen- Text to Speech",
+        "description": "Generate natural-sounding speech from text using HeyGen's advanced TTS engine, supporting a wide range of languages and accents with customizable voices. Input your text and select from numerous preset voices or clone a custom voice from a short audio sample. Ideal for creating voiceovers for videos, generating multilingual narration, and producing personalized audio content. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "audio",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-melbandroformer-audio-separation",
+        "name": "Comfy MelBandRoFormer Audio Separation",
+        "description": "Load an audio file and separate it into vocal and instrumental stems using the MelBandRoFormer model. Outputs two MP3 files for isolated vocals and background music. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "audio",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-minimax-music-3",
+        "name": "Comfy MiniMax Music 3",
+        "description": "Generate audio on Comfy Cloud with the official MiniMax Music 3 template. Requires COMFY_API_KEY and model availability on Comfy Cloud.",
+        "tags": [
+          "comfy",
+          "audio"
+        ]
+      },
+      {
+        "slug": "comfy-mirelo-sfx-2-0-text-to-sfx",
+        "name": "Comfy Mirelo SFX 2.0- Text to SFX",
+        "description": "Generate sound effects from a text prompt with Mirelo sfx-2.0: name the sound, its material, space and intensity in one line and get a 48 kHz mono audio file, up to 10 minutes. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "audio",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-mirelo-sfx-2-0-video-to-sfx",
+        "name": "Comfy Mirelo SFX 2.0- Video to SFX",
+        "description": "Add picture-locked sound effects to a clip with Mirelo sfx-2.0: the model watches the video and times Foley to on-screen action, keeps speech by default, and saves the SFX track, the speech track and the video carrying the new mix. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "audio",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-seed-audio-1-0-text-to-audio",
+        "name": "Comfy Seed Audio 1.0- Text to Audio",
+        "description": "Input a text prompt to generate speech, dialogue, background music, and sound effects in one audio file. Describe voices, emotion, and scene details to create multi-speaker audio up to 2 minutes. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "audio",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-sonilo-text-to-music-generation",
+        "name": "Comfy Sonilo- Text to Music Generation",
+        "description": "Generate high-quality, production-ready music from text prompts. Input descriptive text to create original soundtracks with streaming playback and precise duration control. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "audio",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-sonilo-video-soundtrack-generation",
+        "name": "Comfy Sonilo- Video Soundtrack Generation",
+        "description": "Generate synchronized soundtracks from video footage. Input a video to produce music that matches its pacing and emotional cues, outputting a perfectly timed audio file. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "audio",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-stable-audio-1-0-text-to-audio",
+        "name": "Comfy Stable Audio 1.0- Text to Audio",
+        "description": "Generate audio from text prompts using Stable Audio. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "audio",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-stable-audio-3-medium",
+        "name": "Comfy Stable Audio 3 Medium",
+        "description": "Generate audio on Comfy Cloud with the official Stable Audio 3 Medium template. Requires COMFY_API_KEY and model availability on Comfy Cloud.",
+        "tags": [
+          "comfy",
+          "audio"
+        ]
+      },
+      {
+        "slug": "comfy-stable-audio-3-0-medium-base",
+        "name": "Comfy Stable Audio 3.0 Medium Base",
+        "description": "Input a short text description of a sound, music, or effect. The workflow expands your prompt with Qwen and generates a stereo audio clip from Stable Audio 3. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "audio",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-veed-clean-audio-speech-cleanup",
+        "name": "Comfy VEED Clean Audio- Speech Cleanup",
+        "description": "Remove background noise from a speech recording with VEED Clean Audio: music and effects go with the noise, pauses are cleaned completely, and the voice comes back as 48 kHz mono audio, optionally normalized to a target loudness. Audio up to 1799 seconds. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "audio",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-yue-2",
+        "name": "Comfy YuE 2",
+        "description": "Generate audio on Comfy Cloud with the official YuE 2 template. Requires COMFY_API_KEY and model availability on Comfy Cloud.",
+        "tags": [
+          "comfy",
+          "audio"
+        ]
+      },
+      {
         "slug": "crush-it-to-8-bits",
         "name": "Crush It to 8 Bits",
         "description": "Quantise to fewer bits and decimate the sample rate. Two independent controls: bit depth is the vertical resolution, sample-rate reduction the horizontal.",
@@ -1566,6 +5506,1426 @@ export const templateCatalog: CatalogCategory[] = [
         "description": "Split a long passage into overlapping windows the way a RAG ingest does, then count them. `length` and `overlap` are counted in WORDS, not characters — a 90 here would swallow this whole passage into one chunk. Overlap is the point: a boundary landing mid-sentence loses the claim that straddles it, so neighbouring chunks share a tail. Counting needs Collection first, because Count consumes a stream and a list handed to it arrives as a single item.",
         "tags": [
           "text"
+        ]
+      },
+      {
+        "slug": "comfy-1-click-multiple-character-angles",
+        "name": "Comfy 1 Click Multiple Character Angles",
+        "description": "Upload an image of your character and get multiple views of that image from different angles Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "character & fashion",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-1-image-to-car-product-shots",
+        "name": "Comfy 1 Image to Car Product Shots",
+        "description": "Upload a photo of your vehicle and generate a studio quality video of the vehicle from multiple angles. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "product & ads",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-1-click-multiple-scene-angles",
+        "name": "Comfy 1 click Multiple Scene Angles",
+        "description": "Upload an image of your scene and generate multiple views of your input scene with 1 click. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "character & fashion",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-1-image-input-split-stack-qwen-multiangle-wan-2-2",
+        "name": "Comfy 1 image input Split Stack - Qwen Multiangle + Wan 2.2",
+        "description": "Upload 1 input image and generate 5 alternate angles to be used as start frames with Wan2.2. Each video is stacked horizontally in a final 9x16 video. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "character & fashion",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-360-full-body-turnaround",
+        "name": "Comfy 360 Full-body Turnaround",
+        "description": "Upload your character and generate 360 turnaround views for full body and close ups. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "character & fashion",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-3x3-brand-icon-assets-grid",
+        "name": "Comfy 3x3 Brand Icon Assets Grid",
+        "description": "Upload a reference image of an icon, enter your brand information in the prompt and generate 9 unique on brand stylized icon assets. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "brand & design",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-3x3-grid-for-product-ads",
+        "name": "Comfy 3x3 Grid For Product Ads",
+        "description": "Upload your product and enter a brief prompt for each grid position in a 3x3 grid. Generates 9 distinct images. Select the images you like and upscale to 4k using your product as reference. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "product & ads",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-add-product-to-character-s-hand-ai-ugc",
+        "name": "Comfy Add Product to Character’s Hand, AI UGC",
+        "description": "Upload a photo of your character and your product. Generate an image of that character holding the product. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "product & ads",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-albedo-estimation-marigold-v2",
+        "name": "Comfy Albedo Estimation- Marigold V2",
+        "description": "Estimate albedo from an input image using Marigold V2. The workflow separates surface color from lighting and shading, producing an albedo map useful for relighting, material analysis, and 3D asset creation. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-apply-texture-elements-to-logo",
+        "name": "Comfy Apply Texture + Elements to Logo",
+        "description": "Upload your logo, texture and elements. Generate a video of the textured logo for an on brand asset. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "brand & design",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-apply-texture-to-logo",
+        "name": "Comfy Apply Texture to Logo",
+        "description": "Upload your logotype and apply a texture + elements for on brand asset Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "brand & design",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-aspect-ratio-extend-kling-o3",
+        "name": "Comfy Aspect Ratio Extend- Kling O3",
+        "description": "Extend any video to a custom aspect ratio. Convert vertical videos to horizontal format and vice versa. Includes an application mode for easy use. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-audio-driven-character-lip-sync-video",
+        "name": "Comfy Audio-Driven Character Lip Sync Video",
+        "description": "Upload a character image and an audio file. Generate a lip-sync video where the character's mouth movements match the provided audio track. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "character & fashion",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-batch-process-text-prompts-from-list",
+        "name": "Comfy Batch Process Text Prompts From List",
+        "description": "Loads and executes a workflow sequentially using prompts from a text list. Iterates through each entry to generate multiple outputs from a single batch operation. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "node basics",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-character-outfit-to-fashion-video",
+        "name": "Comfy Character & Outfit to Fashion Video",
+        "description": "Upload your character and clothing items or accessories. Generate a fashion photograph base and use as a reference to 8x grid images, together with Multi-Keyframe Video Stitching. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "character & fashion",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-character-clothing-ootd-flat-lay-to-studio-photoshoot",
+        "name": "Comfy Character + Clothing (OOTD) Flat Lay to Studio Photoshoot",
+        "description": "Upload an image of your character and a flatlay image of your clothing items. Generate 4 fashion editorial photographs of your character in the outfit. Select which image to upscale and add back details. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "character & fashion",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-character-portrait-relighting",
+        "name": "Comfy Character Portrait Relighting",
+        "description": "Upload a portrait of your character and create multiple cinematic lighting conditions while maintaining character consistency. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "character & fashion",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-character-4-scene-explorer",
+        "name": "Comfy Character × 4 Scene Explorer",
+        "description": "Upload a reference image and generate a 1x4 grid. Select desired image and upscale/refine with Nano Banana Pro. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "character & fashion",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-clarity-ai-crystal-upscaler",
+        "name": "Comfy Clarity AI- Crystal Upscaler",
+        "description": "Upscale and enhance images with the precision-focused Crystal model, preserving real detail while adding resolution. Takes one image in and returns one upscaled image plus a side-by-side comparison view. Ideal for portraits, product shots, and print-ready enlargements where faithful detail matters. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-clarity-ai-crystal-video-upscaler",
+        "name": "Comfy Clarity AI- Crystal Video Upscaler",
+        "description": "Upscale a video with Clarity AI's Crystal model, running through the Fal proxy: one video in, one upscaled video out. Set scale_factor to multiply the frame size, and the output keeps the source resolution, frame count and audio track. The result is capped at 9 megapixels per frame and 360 megapixel-seconds per clip, so long or oversized clips come back upscaled by less than the factor you asked for. Ideal for restoring generated clips, preparing footage for large screens, and sharpening soft AI video. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-composite-your-product-scene-and-relight",
+        "name": "Comfy Composite your Product + Scene and Relight",
+        "description": "Upload an image of your product and background. Composite them and seamlessly relight and fuse together using Seedream 4.5. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "product & ads",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-depth-estimation-lotus",
+        "name": "Comfy Depth Estimation- Lotus",
+        "description": "Run Lotus Depth in ComfyUI for zero-shot, efficient monocular depth estimation with high detail retention. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-depth-estimation-marigold-v2",
+        "name": "Comfy Depth Estimation- Marigold V2",
+        "description": "Estimate scene depth from an input image using Marigold V2, generating a depth map with brighter areas representing closer objects and darker areas representing farther objects. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-depth-map-depth-anything-3",
+        "name": "Comfy Depth Map- Depth Anything 3",
+        "description": "Upload 1 image to generate a depth map for video depth estimation. Output a single depth-processed image ready for use in downstream workflows. Ideal for video generation tasks requiring depth control, 3D scene preprocessing, and animation depth mapping. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-dynamic-3d-logo-animations",
+        "name": "Comfy Dynamic 3D Logo Animations",
+        "description": "Upload a vector image of your logo, and prompt your desired texture. Generate a textured 3D first and last frame with automated prompting for the final animation. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "brand & design",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-equirectangular-hdr-skybox-generator",
+        "name": "Comfy Equirectangular HDR Skybox Generator",
+        "description": "Prompt an environment and generate a equirectangular hdr image to use as skybox or lookdev in game development. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "brand & design",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-fashion-editorial-shots",
+        "name": "Comfy Fashion Editorial Shots",
+        "description": "Upload your character, background scene and product. Generate a 2x2 grid, select your desired image and upscale Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "character & fashion",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-frame-interpolation-film-or-rife",
+        "name": "Comfy Frame Interpolation- FILM or RIFE",
+        "description": "Upload a video and select either RIFE or FILM frame interpolation model to generate smoother, higher frame rate video output. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-game-asset-style-transfer-sprite-generator",
+        "name": "Comfy Game Asset Style Transfer Sprite Generator",
+        "description": "Use an outline reference, and a style reference as input to generate 2D sprite as model textures. Useful for background set dressing in 2D/2.5D game. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "brand & design",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-generate-3d-model-from-single-image",
+        "name": "Comfy Generate 3D Model From Single Image",
+        "description": "Input a single image to automatically generate three orthographic views. Use these multiviews with Meshy to create a textured 3D model. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "3d model",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-generate-brand-packaging-from-dieline",
+        "name": "Comfy Generate Brand Packaging from Dieline",
+        "description": "Upload a dieline of your product and assemble into a 3D package. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "product & ads",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-generate-multiple-angles-with-3d-camera-node",
+        "name": "Comfy Generate Multiple Angles with 3D Camera Node",
+        "description": "Generate camera angle variations of your input with an easy to use 3D camera angle node. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-generate-poster-ad-asset-with-your-product",
+        "name": "Comfy Generate Poster-Ad Asset with your Product",
+        "description": "Upload your product and a simple text prompt for the poster or ad design. Iterate on the look before swapping the product into the generated layout. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "product & ads",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-generate-ugc-video-with-voice-clone",
+        "name": "Comfy Generate UGC Video With Voice Clone",
+        "description": "Upload an image to generate AI prompts and synthesize speech. Create a final video with accurate lip sync using ElevenLabs and LTX Video. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "product & ads",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-graphic-design-recomposer",
+        "name": "Comfy Graphic Design Recomposer",
+        "description": "Upload a graphic design and select your desired aspect ratio. Generates and recomposes the graphic to fit the new aspect ratio. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "brand & design",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-green-screen-bria",
+        "name": "Comfy Green Screen- Bria",
+        "description": "Upload a video to generate a green screen version with a transparent or solid background. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-hy-3d-image-to-model",
+        "name": "Comfy HY 3D- Image to Model",
+        "description": "Upload an image to generate a 3D model with geometry and PBR textures. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "3d model",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-hunyuan3d-text-to-model",
+        "name": "Comfy Hunyuan3D- Text to Model",
+        "description": "Input a text prompt or upload a reference image to generate a detailed 3D model asset. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "3d model",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-image-outpainting-bria",
+        "name": "Comfy Image Outpainting- Bria",
+        "description": "Expand an image beyond its original borders using Bria's outpainting API, generating new surrounding content that matches the original lighting, perspective, and texture while leaving the source untouched. Choose from preset aspect ratios, custom dimensions, or manual canvas placement, with optional text prompts to guide the expansion direction or an auto-generated prompt when left blank. Ideal for extending compositions for print layouts, creating panoramic versions of existing photos, and adapting artwork to new formats or social media dimensions. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-image-outpainting-flux-2-klein-9b",
+        "name": "Comfy Image Outpainting- FLUX.2 Klein 9B",
+        "description": "Use the FLUX.2 Klein 9B model to intelligently extend and expand image content. Input an image to generate seamless outpainting and extended compositions. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-image-outpainting-flux-1",
+        "name": "Comfy Image Outpainting- Flux.1",
+        "description": "Upload an image to expand its canvas using Flux.1. Generate an outpainted image with extended content. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-image-stitch-2x2-grid",
+        "name": "Comfy Image Stitch 2x2 Grid",
+        "description": "Combine four input images into a 2x2 grid. Automatically resizes mismatched images and outputs a single 2048x2048 image. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "node basics",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-image-upscale-bria-increase-resolution",
+        "name": "Comfy Image Upscale- Bria Increase Resolution",
+        "description": "Upscale any image to higher resolutions using Bria's dedicated resolution enhancement API, which preserves original content without adding new details or regenerating the image. The workflow accepts a single input image and produces one enhanced, higher-resolution output, supporting JPEG and PNG files in RGB, RGBA, or CMYK color modes up to a maximum area of 8192x8192 pixels. Built-in content moderation scans both the input image and generated output to ensure safe, policy-compliant processing. Ideal for preparing images for print, enlarging photos for digital display, or increasing resolution of assets for professional design work. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-image-upscale-hitpaw-portrait",
+        "name": "Comfy Image Upscale- HitPaw Portrait",
+        "description": "Upload a low-quality portrait image and adjust the upscaling factor. Generate a high-fidelity, detailed portrait with enhanced skin textures and facial features. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-image-upscale-magnific-creative",
+        "name": "Comfy Image Upscale- Magnific Creative",
+        "description": "Upload an image and set the magnification level. Generate an upscaled version of your image with support for up to 16x enlargement. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-image-upscale-magnific-precise",
+        "name": "Comfy Image Upscale- Magnific Precise",
+        "description": "Upload an image to precisely upscale it using the Magnific model, generating a high-resolution version with enhanced detail. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-image-upscale-nano-banana-pro-illustration",
+        "name": "Comfy Image Upscale- Nano Banana Pro Illustration",
+        "description": "Upload a stylized art or illustration. Generate a creatively upscaled 4K image with enhanced detail using the Nano Banana Pro model, ideal for marketing or gaming assets. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-image-upscale-nano-banana-pro-product",
+        "name": "Comfy Image Upscale- Nano Banana Pro Product",
+        "description": "Upload a product image to enhance its detail and sharpness. Generate an upscaled, high-quality output with improved typography and realistic coherence using the Nano Banana Pro model. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-image-upscale-nano-banana-pro",
+        "name": "Comfy Image Upscale- Nano Banana Pro",
+        "description": "Upload an AI-generated image to upscale and enhance details. Generate a 4K output with improved sharpness and coherence using Nano Banana Pro. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-image-upscale-recraft-creative",
+        "name": "Comfy Image Upscale- Recraft Creative",
+        "description": "Upload an image to enhance and upscale it. Recraft's AI reconstructs details and improves textures, outputting a higher-quality image with a natural appearance. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-image-upscale-recraft-crisp",
+        "name": "Comfy Image Upscale- Recraft Crisp",
+        "description": "Upload a low-resolution or noisy image to restore and upscale. Generate a high-resolution output with enhanced details, reduced artifacts, and preserved natural look. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-image-upscale-seedvr2-3b-int8",
+        "name": "Comfy Image Upscale- SeedVR2 3B Int8",
+        "description": "Upscale images using SeedVR2 3B Int8, a one-step diffusion-based video restoration model that produces high-quality results with improved temporal consistency. Ideal for restoring degraded footage, upscaling low-resolution videos, and enhancing archival media. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-image-upscale-seedvr2-7b-int8",
+        "name": "Comfy Image Upscale- SeedVR2 7B Int8",
+        "description": "Upscale images using SeedVR2 7B Int8, a one-step diffusion model that enhances resolution through adversarial training and adaptive window attention. Input 1 image and receive 1 upscaled output with improved detail and clarity. Ideal for restoring low-resolution photos, preparing assets for print, or sharpening lightly degraded digital images. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-image-upscale-seedvr2",
+        "name": "Comfy Image Upscale- SeedVR2",
+        "description": "Upload an image to upscale it with SeedVR2 and generate a high-definition output. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-image-upscale-topaz-bloom-2",
+        "name": "Comfy Image Upscale- Topaz Bloom 2",
+        "description": "Enhance AI-generated images with Bloom 2, a creative upscaling model that adds new detail, texture, and visual elements while offering a Creativity control from 1–9 for subtle refinement or bold reinterpretation. It accepts 1 input image and produces 1 enhanced output, with optional Face Recovery, Color Preservation, and grain settings for fine-tuned results. Ideal for improving AI artwork and illustrations, adding realism to CG renders, and refining facial detail in generated portraits. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-image-upscale-topaz-illustration",
+        "name": "Comfy Image Upscale- Topaz Illustration",
+        "description": "Upload an illustration to upscale using Topaz. Generate a smooth, stylized image with accurate colors, though some artifacts may appear. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-image-upscale-topaz-reimagine-landscape",
+        "name": "Comfy Image Upscale- Topaz Reimagine Landscape",
+        "description": "Upload a landscape image to upscale and enhance details. Generate a high-resolution output optimized for natural scenery using Topaz Reimagine. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-image-upscale-topaz-reimagine",
+        "name": "Comfy Image Upscale- Topaz Reimagine",
+        "description": "Professional image enhancement using Topaz's Reimagine model with face enhancement and detail restoration. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-image-upscale-topaz-wonder-3-5",
+        "name": "Comfy Image Upscale- Topaz Wonder 3.5",
+        "description": "Upscale and enhance a single image using Topaz's Wonder 3.5 generative model, which adds fine detail, reduces noise, and sharpens text and structured graphics while offering Low, Medium, and High enhancement strengths. The workflow takes 1 input image and produces 1 enhanced output alongside a side-by-side comparison view. Ideal for restoring old or compressed photos, improving product shots and marketing visuals, and preparing low-resolution images for print or large-format display. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-image-upscale-topaz-wonder-4",
+        "name": "Comfy Image Upscale- Topaz Wonder 4",
+        "description": "Upscale a soft, compressed image with Topaz's Wonder 4 generative model: it rebuilds plausible detail instead of stretching pixels, keeping torn edges, seams and flat color fields intact at 1x to 6x. The workflow takes 1 input image and produces 1 enhanced output next to a side-by-side comparison. Ideal for collage, illustration and graphic work that needs to survive a small or compressed source. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-image-upscale-traditional-interpolation",
+        "name": "Comfy Image Upscale- Traditional Interpolation",
+        "description": "Upload an image and select an interpolation method. Upscale the image using traditional algorithms for faster processing with minimal detail changes. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-image-upscale-wan-2-2-two-stage",
+        "name": "Comfy Image Upscale- Wan 2.2 Two-Stage",
+        "description": "Upload an image and set a resize factor. Generate an AI prompt from your image and upscale it in two controlled stages to enhance detail and fidelity. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-image-upscale-wavespeed-seedvr2",
+        "name": "Comfy Image Upscale- WaveSpeed SeedVR2",
+        "description": "Upload an AI-generated image to restore details and upscale. The workflow preserves colors and sharpness while minimizing artifacts. Output is a high-quality, enlarged version of your input. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-image-upscale-wavespeed",
+        "name": "Comfy Image Upscale- WaveSpeed",
+        "description": "Upload an image to upscale its resolution. Generate an enhanced 2K, 4K, or 8K output that preserves details and reduces artifacts in JPEG, PNG, or WEBP format. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-image-upscale-z-image-turbo-2k",
+        "name": "Comfy Image Upscale- Z-Image-Turbo 2K",
+        "description": "Upload an image to upscale it to 2K resolution using the Z-Image-Turbo model. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-inpainting-bria-generative-fill",
+        "name": "Comfy Inpainting- Bria Generative Fill",
+        "description": "Use Bria's Generative Fill API to regenerate a specific region of an image while keeping everything outside the mask pixel-perfect unchanged. Paint a mask over the target area, write a detailed prompt for the replacement content, and compare the before/after side-by-side before exporting. Ideal for product photography corrections, object removal or replacement, and creative compositing where precise control over the edited region matters. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-isometric-miniatures-from-a-selfie",
+        "name": "Comfy Isometric Miniatures from a Selfie",
+        "description": "Upload a character or selfie and prompt the outfit/scene. Generate a 2x2 grid of isometric figurines of your character. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "character & fashion",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-led-billboard-message",
+        "name": "Comfy LED Billboard Message",
+        "description": "Upload a blank billboard and overlay text. Generate a smooth zoom in shot revealing your message. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "brand & design",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-ltx-2-3-ic-lora-reference-sheet-control",
+        "name": "Comfy LTX-2.3 IC-LoRA- Reference Sheet Control",
+        "description": "Generate short video clips that stay visually consistent with a reference sheet inventorying characters, props, and locations. Input a composite reference image and a split prompt describing the action, outputting a single video clip. Ideal for character-driven animation, consistent prop visualization, and location-specific scene generation. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "character & fashion",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-layer-decomposition-qwen-image-layered-control",
+        "name": "Comfy Layer Decomposition- Qwen-Image-Layered Control",
+        "description": "Describe the elements you want in the image and decompose it precisely from the image. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-layer-decomposition-qwen-image-layered",
+        "name": "Comfy Layer Decomposition- Qwen-Image-Layered",
+        "description": "Decompose an image into editable RGBA layers for high-fidelity recolor, replace, resize, and reposition workflows using Qwen-Image-Layered. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-layer-decomposition-seedream-5-0-pro",
+        "name": "Comfy Layer Decomposition- Seedream 5.0 Pro",
+        "description": "Split any image into independent, editable layers — subject, product, background, and text — with a single text instruction using Seedream 5.0 Pro. A single poster can yield 10+ layers, with design-grade text separation supporting multilingual headlines and CJK fonts. Ideal for brand design, e-commerce asset creation, and layout iteration. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-light-migration-for-character-portrait",
+        "name": "Comfy Light Migration for Character Portrait",
+        "description": "Upload a portrait of your character and a reference lighting image. Generate an image with reference lighting applied and character consistency. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "character & fashion",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-magazine-cover-package-design",
+        "name": "Comfy Magazine Cover & Package Design",
+        "description": "Design the text layout for your magazine cover photo, and explore packaging options for it. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "brand & design",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-object-removal-bria-eraser",
+        "name": "Comfy Object Removal- Bria Eraser",
+        "description": "Remove unwanted objects or regions from images with Bria's Eraser, which fills the masked area with surrounding context while leaving the rest of the image pixel-perfect. Upload 1 image, paint over the target object with a brush mask, and receive 1 cleaned output alongside a before-and-after comparison. Ideal for cleaning up photobombs, removing watermarks or text, and decluttering product or real-estate photos. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-object-removal-flux",
+        "name": "Comfy Object Removal- Flux",
+        "description": "Upload an image and paint a mask over the object to remove. The workflow erases the masked area and reconstructs the background. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-outpaint-to-any-aspect-ratio-nano-banana-pro",
+        "name": "Comfy Outpaint to Any Aspect Ratio - Nano Banana Pro",
+        "description": "Upload your image, input your desired aspect ratio and the images position (as a percentage) in the new aspect ratio composite. Uses Nano Banana Pro to generate an outpainted version of your image to fit the new dimensions. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-patina-image-to-material",
+        "name": "Comfy Patina- Image to Material",
+        "description": "Turn a photo of a surface into a seamless, tiling PBR material with Patina. The source image sets the pattern and Patina redraws it as a tileable material, returning basecolor, normal, roughness, metalness and height maps that line up pixel for pixel. Built for brick, stone, wood, plaster, fabric and ceramic tile; a mask can restrict the redraw to part of the image. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "3d model",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-patina-material-extract",
+        "name": "Comfy Patina- Material Extract",
+        "description": "Pull a seamless, tiling PBR material out of a photo of a surface with Patina. The prompt says which surface to extract and which structure to keep, and the base texture comes back with basecolor, normal, roughness, metalness and height maps aligned pixel for pixel. Made for photos that already contain the material you want: brick walls, paving, plaster, fabric. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "3d model",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-patina-pbr-maps",
+        "name": "Comfy Patina- PBR Maps",
+        "description": "Turn one image into a set of PBR maps with Patina: basecolor, normal, roughness, metalness and height, all derived from exactly what the picture contains. No regeneration and no tiling - feed a flat, evenly lit surface photo or an existing basecolor map, pick the maps you need and drop them straight into a 3D material. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "3d model",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-patina-text-to-material",
+        "name": "Comfy Patina- Text to Material",
+        "description": "Generate a complete, seamlessly tiling PBR material from a text prompt with Patina. One run returns a base texture plus basecolor, normal, roughness, metalness and height maps that line up pixel for pixel, so the whole set drops straight into a 3D material. Works best on structured surfaces such as wood, stone, metal, fabric and ceramic tile; connect an image, optionally with a mask, to repaint an existing surface instead of inventing one. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "3d model",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-phone-image-to-product-video-shoe",
+        "name": "Comfy Phone Image to Product Video- Shoe",
+        "description": "Take a picture with your phone, upload it and generate a studio grade product video. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "product & ads",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-portrait-enhancement-magnific",
+        "name": "Comfy Portrait Enhancement- Magnific",
+        "description": "Enhance skin and overall image quality by uploading your image and selecting a preset to adjust lighting, color grading, and realism. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-portrait-relight",
+        "name": "Comfy Portrait Relight",
+        "description": "Upload your target image and a reference lighting image. Relights your target image. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "character & fashion",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-pose-detection-sdpose-multi-person-utility-sdpose-multi-person-video",
+        "name": "Comfy Pose Detection- SDPose Multi-Person (utility_sdpose_multi_person_video)",
+        "description": "Upload a video to detect human poses. Supports detection for both single individuals and multiple people within the same scene Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-pose-detection-sdpose-multi-person",
+        "name": "Comfy Pose Detection- SDPose Multi-Person",
+        "description": "Upload an image to detect human poses. Supports detection for both single individuals and multiple people within the same scene. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-pose-map-sdpose-ood-utility-sdpose-ood-video-to-pose-map",
+        "name": "Comfy Pose Map- SDPose-OOD (utility_sdpose_ood_video_to_pose_map)",
+        "description": "Upload a video to extract pose keypoints and generate a pose map. The workflow supports multiple person detection and uses an enhanced SDPose model for accurate whole-body feature extraction. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-pose-map-sdpose-ood",
+        "name": "Comfy Pose Map- SDPose-OOD",
+        "description": "Upload an image to extract pose keypoints and generate a corresponding pose map using the SDPose-OOD model. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-poster-scene-mockups",
+        "name": "Comfy Poster Scene Mockups",
+        "description": "Upload a poster/ad design and with a short input about your brand, generate 4 mockups in multiple scenes. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "brand & design",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-product-ad-cinematic-sequence-generator",
+        "name": "Comfy Product Ad Cinematic Sequence Generator",
+        "description": "Upload a product image and a cinematic style reference. Generate a sequence of stylized product advertisements with consistent composition and lighting. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "product & ads",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-profile-picture-stylized-variations",
+        "name": "Comfy Profile Picture Stylized Variations",
+        "description": "Upload your profile picture, enter a theme and generate 64 variations. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "character & fashion",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-prompt-multi-batch-generation",
+        "name": "Comfy Prompt Multi Batch Generation",
+        "description": "Send multiple prompts simultaneously to generate independent outputs in a single queue. Connect to Blueprint or Partner Nodes for batch processing of any modality. Use for prompt variation comparisons and batch generation. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "node basics",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-rtx-video-enhance-hdr",
+        "name": "Comfy RTX Video Enhance- HDR",
+        "description": "Upload a video and chain Nvidia's three RTX video nodes in one pass: super resolution upscale, frame generation and SDR-to-HDR conversion, running locally on your Nvidia RTX GPU. Built for VFX artists and professional video creators.\n\n Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-realistic-poster-redesign-with-character-transformation",
+        "name": "Comfy Realistic Poster Redesign With Character Transformation",
+        "description": "Transform uploaded images into realistic poster designs. Change character poses, faces, and clothing while maintaining artistic style and color schemes. Outputs a visually impactful poster with artistic typography. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "brand & design",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-relight-composited-product",
+        "name": "Comfy Relight Composited Product",
+        "description": "Upload a composited image of your product, draw a mask in the mask editor and relight your product into the scene. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "product & ads",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-relight-beeble-switchx",
+        "name": "Comfy Relight- Beeble SwitchX",
+        "description": "Upload your character image and a reference style/lighting image. Generate an edited output with the reference lighting and style applied to your original image. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-relight-magnific",
+        "name": "Comfy Relight- Magnific",
+        "description": "Upload a source image and a reference lighting image. Generate a relit version of your source image, applying the lighting conditions from the reference. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-remove-background-bria-local",
+        "name": "Comfy Remove Background- Bria Local",
+        "description": "Upload a video to remove the background. Generate a new video with a transparent or solid color background. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-remove-background-bria-solid-color",
+        "name": "Comfy Remove Background- Bria Solid Color",
+        "description": "Upload a video to remove its background and replace it with your chosen color. Generate a video with the subject isolated and a new solid background. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-remove-background-bria",
+        "name": "Comfy Remove Background- Bria",
+        "description": "Upload an image to automatically remove its background using the Bria API. The workflow processes the request asynchronously and returns the edited image with a transparent background. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-remove-object-from-video-ltx-2-3-obscura-remova-lora",
+        "name": "Comfy Remove Object from Video - LTX 2.3 Obscura Remova LoRA",
+        "description": "Upload an input video and prompt for the object to get removed from the video's foreground. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-remove-subtitles-from-video-ltx-2-3-lora",
+        "name": "Comfy Remove Subtitles from Video - LTX 2.3 LoRA",
+        "description": "Upload an input video with subtitles or text occlusions and remove the text elements with one click. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-remove-watermark-from-video-ltx-2-3-lora",
+        "name": "Comfy Remove Watermark from Video - LTX 2.3 LoRA",
+        "description": "Upload an input video with watermarks and remove them with one click Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-replace-background-bria",
+        "name": "Comfy Replace Background- Bria",
+        "description": "Upload a video and a background image. Detect the main subject and replace the original background with the provided image. Ideal for content creation, virtual production, and background cleanup in video projects. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-restore-archival-footage-ltx-2-3-dearchive-lora",
+        "name": "Comfy Restore Archival Footage - LTX 2.3 Dearchive LoRA",
+        "description": "Upload an input video or archival footage and restore it with 1 click. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-selfie-text-prompt-to-studio-photoshoot-doodle",
+        "name": "Comfy Selfie + Text Prompt to Studio Photoshoot Doodle",
+        "description": "Upload a selfie and describe your outfit in the prompt. Generate 4 fashion editorial photographs with fun doodle illustrations. Select which image to upscale and add back face details. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "character & fashion",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-single-image-to-3d-model",
+        "name": "Comfy Single Image to 3D model",
+        "description": "Use one frontal image to generate a consistent and highly detailed 3D model. Model used: Multiangle QWEN Edit + Hunyuan 3D Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "3d model",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-single-image-to-animated-sprite-sheet",
+        "name": "Comfy Single Image to Animated Sprite Sheet",
+        "description": "Upload a single image to generate an animated sequence. The workflow creates a sprite sheet with multiple frames for use in games or animations. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "brand & design",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-single-image-to-multiple-consistent-shots",
+        "name": "Comfy Single Image to Multiple Consistent Shots",
+        "description": "Upload an input image and automatically generate X prompts for camera angle and shot type. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "character & fashion",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-skin-enhancer-upscaler",
+        "name": "Comfy Skin Enhancer + Upscaler",
+        "description": "One click workflow to generate a character portrait, refine/add skin details, and upscale to 4k. All done in less than 60 seconds. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-sprite-sheet-generator",
+        "name": "Comfy Sprite Sheet Generator",
+        "description": "Upload an image of your sprite and receive individual frames of idle, attack, walk and jump animations. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "brand & design",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-step-1-contact-sheet-workflow",
+        "name": "Comfy Step 1- Contact Sheet Workflow",
+        "description": "Upload your character, scene and product. Integrates all images into a fashion editorial style photograph. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "character & fashion",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-step-2-contact-sheet-workflow",
+        "name": "Comfy Step 2- Contact Sheet Workflow",
+        "description": "Upload the fashion editorial and product image. Generate 8 distinct angle variations with product consistency from only 2 Nano Banana generations. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "character & fashion",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-step-3-contact-sheet-workflow",
+        "name": "Comfy Step 3- Contact Sheet Workflow",
+        "description": "Upload 8 images (in order) to be used as keyframes for 7 Kling 3.0 FLF2V videos. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "character & fashion",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-surface-normal-estimation-marigold-v2",
+        "name": "Comfy Surface Normal Estimation- Marigold V2",
+        "description": "Estimate surface normals from an input image using Marigold V2. The workflow generates a normal map representing the orientation of surfaces in the scene, useful for 3D reconstruction, relighting, and geometry-aware image processing. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "image tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-swap-product-into-a-reference-ad",
+        "name": "Comfy Swap Product Into a Reference AD",
+        "description": "Create static ads for your product in the style of a reference advertisement Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "product & ads",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-swap-product-in-character-s-hand-ugc-style",
+        "name": "Comfy Swap Product in Character’s Hand, UGC Style",
+        "description": "Upload a photo of a character holding a product and your brands product. Generate an image with the products swapped. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "product & ads",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-switch-node",
+        "name": "Comfy Switch Node",
+        "description": "Guide on how Switch Nodes work, simple Text Switch and LoRA Switch Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "node basics",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-triposplat-image-to-gaussian-splat",
+        "name": "Comfy TripoSplat- Image to Gaussian Splat",
+        "description": "Upload a single 2D image. Generate a high-quality 3D Gaussian splat representation with controllable density and budget for rendering. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "3d model",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-veed-clean-audio-video-speech-cleanup",
+        "name": "Comfy VEED Clean Audio- Video Speech Cleanup",
+        "description": "Clean the speech inside a video with VEED Clean Audio: background noise, music and effects are stripped from the soundtrack, pauses are cleaned completely, and the clip comes back with 48 kHz mono speech, optionally normalized to a target loudness while the picture stays as shot. Video up to 1799 seconds. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-veed-dubbing-video-translation",
+        "name": "Comfy VEED Dubbing- Video Translation",
+        "description": "Translate the speech in a video into another language with VEED Dubbing: each speaker's voice is cloned and their lips are re-synced to the translation. Pick between the cheaper standard tier and pro, which adds regional accents and stereo audio. Built for footage with a visible face and a talk track. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-veed-remove-video-background-matte-export",
+        "name": "Comfy VEED Remove Video Background- Matte Export",
+        "description": "Cut the subject out of a video with VEED Remove Video Background: the node segments the foreground in every frame and returns the frames plus an alpha mask, and Join Image with Alpha turns that mask into a transparent PNG sequence ready to composite. Choose standard, fast or green-screen keying; clips up to 60 seconds. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-video-edit-beeble-switchx",
+        "name": "Comfy Video Edit- Beeble SwitchX",
+        "description": "Upload a source video and a reference image, then provide a prompt describing the desired environment and lighting. Generate an edited video where masked regions follow your prompt and reference, while unmasked regions preserve the original pixels and motion, plus an alpha matte for compositing. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-video-extend-gemini-omni-1-1-flash",
+        "name": "Comfy Video Extend- Gemini Omni 1.1 Flash",
+        "description": "Extend an existing video by up to 10 seconds per step, building stories up to 40 seconds total with Gemini Omni 1.1 Flash. The model analyzes the last 10 seconds of context, keeping characters, motion, and audio coherent as the scene continues from where it left off. Optionally attach reference images to introduce new characters mid-story. Works on uploaded clips and previously generated videos; describe how the scene should continue in plain language. Ideal for longer narratives, scene branching, and iterative storytelling. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-video-extend-grok",
+        "name": "Comfy Video Extend- Grok",
+        "description": "Upload a short video and a text prompt describing the next scene. Generate a seamless video extension using Grok extend. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-video-extend-seedance-2-5",
+        "name": "Comfy Video Extend- Seedance 2.5",
+        "description": "Extend an existing video forward or backward by generating new segments that seamlessly preserve the original characters, scenes, and aspect ratio. The source video must be 1.9–30 seconds long, and you specify the duration of the new clip (4–30 seconds, default 5), with output delivered as MP4 or MOV. Ideal for continuing unfinished footage, creating extended narrative sequences, and building longer edit chains. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-video-extend-vidu-q2",
+        "name": "Comfy Video Extend- Vidu Q2",
+        "description": "Upload a video and use the Vidu Q2 model to extend it up to 7 seconds and enhance the resolution to 1080p. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-video-inpainting-void",
+        "name": "Comfy Video Inpainting- VOID",
+        "description": "Upload a video and mask the object you want to remove. Generate a clean video with the object and its physical interactions deleted. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-video-upscale-bytedance-vcube",
+        "name": "Comfy Video Upscale- ByteDance vCube",
+        "description": "Enhance video quality with ByteDance vCube, an AI-driven tool that upscales and restores footage through shot-adaptive processing, fixing compression artifacts and color distortion while preserving original texture. Ideal for improving UGC clips, refining AIGC content, and restoring classic films with vibrant, clear results. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-video-upscale-flux-3",
+        "name": "Comfy Video Upscale- FLUX 3",
+        "description": "Upscale video clips to 1080p, 2K, or 4K using FLUX 3 super-resolution, with a precise mode that preserves source fidelity and a creative mode that enhances fine detail. It accepts 1 video input, up to 20 seconds long, and produces 1 upscaled mp4 output with an optional prompt to guide detail enhancement. Ideal for restoring low-resolution footage, preparing clips for large-screen delivery, and adding crispness to AI-generated video. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-video-upscale-hitpaw",
+        "name": "Comfy Video Upscale- HitPaw",
+        "description": "Upload a video to enhance and upscale. Generate a restored output with improved clarity, temporal stability, and optional portrait enhancement. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-video-upscale-real-esrgan",
+        "name": "Comfy Video Upscale- Real-ESRGAN",
+        "description": "Upload a video to upscale it using a fast GAN model. The output resolution is determined by your chosen model (e.g., 2x or 4x). For best results, upscale first, then resize to your target resolution. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-video-upscale-seedvr2-3b-int8",
+        "name": "Comfy Video Upscale- SeedVR2 3B Int8",
+        "description": "Upscale and restore video footage using SeedVR2 3B Int8, a one-step diffusion model that enhances resolution while maintaining temporal consistency across frames. This workflow takes one degraded video as input and outputs a single high-resolution, restored video. Ideal for restoring old or degraded footage, upscaling low-resolution videos, and enhancing archival media. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-video-upscale-seedvr2",
+        "name": "Comfy Video Upscale- SeedVR2",
+        "description": "Upload a video to upscale and enhance its resolution using the SeedVR2 model for high-definition output. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-video-upscale-topaz-astra-2-creative",
+        "name": "Comfy Video Upscale- Topaz Astra 2 Creative",
+        "description": "Upscale GenAI video footage with Astra 2's creative diffusion, adding dynamic detail and texture. Adjust creativity, sharpness, and prompt-based guidance for precise stylization of AI-generated content. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-video-upscale-topaz-astra-fast",
+        "name": "Comfy Video Upscale- Topaz Astra Fast",
+        "description": "Enhance videos with Topaz AI. Supports resolution upscaling using Starlight (Astra) Fast model and frame interpolation with apo-8 model. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-video-upscale-topaz-starlight-precise-2-5",
+        "name": "Comfy Video Upscale- Topaz Starlight Precise 2.5",
+        "description": "Upload a video to enhance its resolution using the Topaz Starlight Precise 2.5 model. This workflow produces sharper 4K output with reduced artifacts compared to previous versions. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-video-upscale-wan-2-2-creative",
+        "name": "Comfy Video Upscale- Wan 2.2 Creative",
+        "description": "Upload a video and upscale it to a higher resolution with Wan 2.2 Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "open-weights"
+        ]
+      },
+      {
+        "slug": "comfy-video-upscale-wavespeed-flashvsr",
+        "name": "Comfy Video Upscale- WaveSpeed FlashVSR",
+        "description": "Upload a video to upscale it to 720p, 1080p, 2K, or 4K. The workflow enhances detail, reduces artifacts, and ensures consistent motion for a high-quality, natural-looking output. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "video tools",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-virtual-try-on-with-character-4-in-1",
+        "name": "Comfy Virtual Try On with Character - 4 in 1",
+        "description": "Upload an image of your character and a flatlay of an outfit to be tried on. Generate 4 images in 1 Nano Banana prompt. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "character & fashion",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-virtual-try-on-flux",
+        "name": "Comfy Virtual Try-On- Flux",
+        "description": "Upload a person photo and a garment image. Generate a virtual try-on result with the garment applied to the person while preserving face and pose. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "character & fashion",
+          "partner"
+        ]
+      },
+      {
+        "slug": "comfy-youtube-thumbnail-generator",
+        "name": "Comfy YouTube Thumbnail Generator",
+        "description": "Generate high-contrast, clickable YouTube thumbnails using Nano Banana Pro. Creates dramatic compositions with exaggerated subjects and bold color strategies for maximum engagement. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+        "tags": [
+          "comfy",
+          "brand & design",
+          "partner"
         ]
       },
       {
