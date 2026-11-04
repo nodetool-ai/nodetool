@@ -1241,20 +1241,29 @@ private slots:
         mount({1280, 720}, {320, 720});
         waitForCards(6);
         openNewEditor(12);
+        QTRY_VERIFY2(find("entityAssistButton"), "Missing entityAssistButton");
         click(find("entityAssistButton"));
+        QTRY_VERIFY2(find("entityAssistPopover"), "Missing entityAssistPopover after clicking Writing assistant");
         auto* popover = find("entityAssistPopover");
         QTRY_VERIFY(popover->property("opened").toBool());
         // With no text only "Write it" applies, and the others say why they are off.
-        QVERIFY(find("entityAssistAction_draft")->property("enabled").toBool());
-        for (const auto* action : {"improve", "expand", "shorten", "fix"}) QVERIFY(!find(QString("entityAssistAction_") + action)->property("enabled").toBool());
+        QTRY_VERIFY2(find("entityAssistAction_draft"), "Missing entityAssistAction_draft (Write it)");
+        auto* draft = find("entityAssistAction_draft");
+        QVERIFY(draft->property("enabled").toBool());
+        for (const auto* action : {"improve", "expand", "shorten", "fix"}) {
+            const auto name = QString("entityAssistAction_") + action;
+            QTRY_VERIFY2(find(name), qPrintable("Missing " + name));
+            QVERIFY2(!find(name)->property("enabled").toBool(), qPrintable(name + " must be disabled without text"));
+        }
         QVERIFY(shown(find("entityAssistReason")));
-        click(find("entityAssistAction_draft"));
+        click(draft);
+        QTRY_VERIFY2(find("entityAssistError"), "Missing entityAssistError");
         auto* error = find("entityAssistError");
         QTRY_VERIFY(shown(error));
         QCOMPARE(error->property("message").toString(), QString("Pick a model below before you ask the assistant."));
         QCOMPARE(socket->frames.size(), 0);
         pickModel("entityAssistCatalog", "text-model");
-        click(find("entityAssistAction_draft"));
+        click(draft);
         QTRY_COMPARE(socket->frames.size(), 1);
         QVERIFY(frameData(0).value("prompt").toString().contains("# Current text\n(empty)"));
         socket->reply(0, {}, {{"code", "BAD_REQUEST"}, {"message", "The model is offline."}});
