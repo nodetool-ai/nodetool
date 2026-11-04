@@ -595,6 +595,10 @@ const applyChunk = (
       content: appendTextContent(lastMessage.content, chunkText)
     };
     updatedMessages = [...messages.slice(0, -1), updatedMessage];
+  } else if (!chunkText && !chunk.done) {
+    // A media turn's progress chunk has no text. A placeholder here would
+    // separate the user message from the result that follows it.
+    updatedMessages = messages;
   } else {
     const localStreamId = `local-stream-${Date.now()}-${Math.random()
       .toString(16)

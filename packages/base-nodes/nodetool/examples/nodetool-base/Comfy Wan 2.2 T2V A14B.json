@@ -1,0 +1,923 @@
+{
+  "id": "80b131d9f21b70972becdd38d36a5856",
+  "name": "Comfy Wan 2.2 T2V A14B",
+  "description": "Generate a video on Comfy Cloud with the official Wan 2.2 T2V A14B template. Requires COMFY_API_KEY and model availability on Comfy Cloud.",
+  "tags": [
+    "comfy",
+    "video",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Wan 2.2 T2V A14B\n\nGenerate a video on Comfy Cloud with the official Wan 2.2 T2V A14B template. Requires COMFY_API_KEY and model availability on Comfy Cloud.\n\n**How it works:** The Comfy nodes form the complete Wan 2.2 T2V A14B graph. Run submits the graph to Comfy Cloud and saves its generated video.\n\n**Try this:** Change text on CLIP Text Encode (Positive Prompt) and run again to compare results. Edit the visible nodes to change settings.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/benchmarks/video_wan2_2_14B_t2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "80",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ComfyUI",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_71",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+          "type": "wan",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_73",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "wan_2.1_vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_76",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "wan2.2_t2v_low_noise_14B_fp8_scaled.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_75",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "wan2.2_t2v_high_noise_14B_fp8_scaled.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_83",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "wan2.2_t2v_lightx2v_4steps_lora_v1.1_high_noise.safetensors",
+          "strength_model": 1.0000000000000002
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_85",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "wan2.2_t2v_lightx2v_4steps_lora_v1.1_low_noise.safetensors",
+          "strength_model": 1.0000000000000002
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_86",
+        "type": "comfy.ModelSamplingSD3",
+        "data": {
+          "shift": 5.000000000000001
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ModelSamplingSD3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_82",
+        "type": "comfy.ModelSamplingSD3",
+        "data": {
+          "shift": 5.000000000000001
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "ModelSamplingSD3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_89",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "Beautiful young European woman with honey blonde hair gracefully turning her head back over shoulder, gentle smile, bright eyes looking at camera. Hair flowing in slow motion as she turns. Soft natural lighting, clean background, cinematic slow-motion portrait."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Positive Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_81",
+        "type": "comfy.KSamplerAdvanced",
+        "data": {
+          "add_noise": "enable",
+          "noise_seed": 923510416338945,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "start_at_step": 0,
+          "return_with_leftover_noise": "enable"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_88",
+        "type": "comfy.CreateVideo",
+        "data": {
+          "bit_depth": "auto",
+          "color_space": "sRGB",
+          "codec": "none"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Create Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_87",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_72",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走，裸露，NSFW"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Negative Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_74",
+        "type": "comfy.EmptyHunyuanLatentVideo",
+        "data": {
+          "width": 640,
+          "height": 640,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Empty Hunyuan Video 1.0 Latent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_78",
+        "type": "comfy.KSamplerAdvanced",
+        "data": {
+          "add_noise": "disable",
+          "noise_seed": 0,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "return_with_leftover_noise": "disable"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_114",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 20
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Int (Steps)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_115",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 10
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Int (Split Steps)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_117",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Int (Steps)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_118",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 2
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "Int (Split Steps)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_119",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2640
+          },
+          "width": 280,
+          "title": "Float(CFG)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_116",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 3.5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2970
+          },
+          "width": 280,
+          "title": "Float(CFG)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_120",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Switch(high noise model)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_121",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Switch(low noise model)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_122",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Switch(steps)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_123",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Switch(split steps)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_124",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Switch(CFG)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_125",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 16
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 3300
+          },
+          "width": 280,
+          "title": "Float (FPS)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_126",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 3630
+          },
+          "width": 280,
+          "title": "Float (Duration)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_129",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 3960
+          },
+          "width": 280,
+          "title": "Enable Lightning LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128_127",
+        "type": "comfy.ComfyMathExpression",
+        "data": {
+          "expression": "floor(a * b) + 1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "Math Expression"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "128_88-0-80-video",
+        "source": "128_88",
+        "sourceHandle": "VIDEO",
+        "target": "80",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "128_75-0-128_83-model",
+        "source": "128_75",
+        "sourceHandle": "MODEL",
+        "target": "128_83",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "128_76-0-128_85-model",
+        "source": "128_76",
+        "sourceHandle": "MODEL",
+        "target": "128_85",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "128_121-0-128_86-model",
+        "source": "128_121",
+        "sourceHandle": "output",
+        "target": "128_86",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "128_120-0-128_82-model",
+        "source": "128_120",
+        "sourceHandle": "output",
+        "target": "128_82",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "128_71-0-128_89-clip",
+        "source": "128_71",
+        "sourceHandle": "CLIP",
+        "target": "128_89",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "128_122-0-128_81-steps",
+        "source": "128_122",
+        "sourceHandle": "output",
+        "target": "128_81",
+        "targetHandle": "steps",
+        "ui_properties": null
+      },
+      {
+        "id": "128_124-0-128_81-cfg",
+        "source": "128_124",
+        "sourceHandle": "output",
+        "target": "128_81",
+        "targetHandle": "cfg",
+        "ui_properties": null
+      },
+      {
+        "id": "128_123-0-128_81-end_at_step",
+        "source": "128_123",
+        "sourceHandle": "output",
+        "target": "128_81",
+        "targetHandle": "end_at_step",
+        "ui_properties": null
+      },
+      {
+        "id": "128_82-0-128_81-model",
+        "source": "128_82",
+        "sourceHandle": "MODEL",
+        "target": "128_81",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "128_89-0-128_81-positive",
+        "source": "128_89",
+        "sourceHandle": "CONDITIONING",
+        "target": "128_81",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "128_72-0-128_81-negative",
+        "source": "128_72",
+        "sourceHandle": "CONDITIONING",
+        "target": "128_81",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "128_74-0-128_81-latent_image",
+        "source": "128_74",
+        "sourceHandle": "LATENT",
+        "target": "128_81",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "128_125-0-128_88-fps",
+        "source": "128_125",
+        "sourceHandle": "FLOAT",
+        "target": "128_88",
+        "targetHandle": "fps",
+        "ui_properties": null
+      },
+      {
+        "id": "128_87-0-128_88-images",
+        "source": "128_87",
+        "sourceHandle": "IMAGE",
+        "target": "128_88",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "128_78-0-128_87-samples",
+        "source": "128_78",
+        "sourceHandle": "LATENT",
+        "target": "128_87",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "128_73-0-128_87-vae",
+        "source": "128_73",
+        "sourceHandle": "VAE",
+        "target": "128_87",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "128_71-0-128_72-clip",
+        "source": "128_71",
+        "sourceHandle": "CLIP",
+        "target": "128_72",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "128_127-1-128_74-length",
+        "source": "128_127",
+        "sourceHandle": "INT",
+        "target": "128_74",
+        "targetHandle": "length",
+        "ui_properties": null
+      },
+      {
+        "id": "128_122-0-128_78-steps",
+        "source": "128_122",
+        "sourceHandle": "output",
+        "target": "128_78",
+        "targetHandle": "steps",
+        "ui_properties": null
+      },
+      {
+        "id": "128_124-0-128_78-cfg",
+        "source": "128_124",
+        "sourceHandle": "output",
+        "target": "128_78",
+        "targetHandle": "cfg",
+        "ui_properties": null
+      },
+      {
+        "id": "128_123-0-128_78-start_at_step",
+        "source": "128_123",
+        "sourceHandle": "output",
+        "target": "128_78",
+        "targetHandle": "start_at_step",
+        "ui_properties": null
+      },
+      {
+        "id": "128_122-0-128_78-end_at_step",
+        "source": "128_122",
+        "sourceHandle": "output",
+        "target": "128_78",
+        "targetHandle": "end_at_step",
+        "ui_properties": null
+      },
+      {
+        "id": "128_86-0-128_78-model",
+        "source": "128_86",
+        "sourceHandle": "MODEL",
+        "target": "128_78",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "128_89-0-128_78-positive",
+        "source": "128_89",
+        "sourceHandle": "CONDITIONING",
+        "target": "128_78",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "128_72-0-128_78-negative",
+        "source": "128_72",
+        "sourceHandle": "CONDITIONING",
+        "target": "128_78",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "128_81-0-128_78-latent_image",
+        "source": "128_81",
+        "sourceHandle": "LATENT",
+        "target": "128_78",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "128_129-0-128_120-switch",
+        "source": "128_129",
+        "sourceHandle": "BOOLEAN",
+        "target": "128_120",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "128_75-0-128_120-on_false",
+        "source": "128_75",
+        "sourceHandle": "MODEL",
+        "target": "128_120",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "128_83-0-128_120-on_true",
+        "source": "128_83",
+        "sourceHandle": "MODEL",
+        "target": "128_120",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "128_129-0-128_121-switch",
+        "source": "128_129",
+        "sourceHandle": "BOOLEAN",
+        "target": "128_121",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "128_76-0-128_121-on_false",
+        "source": "128_76",
+        "sourceHandle": "MODEL",
+        "target": "128_121",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "128_85-0-128_121-on_true",
+        "source": "128_85",
+        "sourceHandle": "MODEL",
+        "target": "128_121",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "128_129-0-128_122-switch",
+        "source": "128_129",
+        "sourceHandle": "BOOLEAN",
+        "target": "128_122",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "128_114-0-128_122-on_false",
+        "source": "128_114",
+        "sourceHandle": "INT",
+        "target": "128_122",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "128_117-0-128_122-on_true",
+        "source": "128_117",
+        "sourceHandle": "INT",
+        "target": "128_122",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "128_129-0-128_123-switch",
+        "source": "128_129",
+        "sourceHandle": "BOOLEAN",
+        "target": "128_123",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "128_115-0-128_123-on_false",
+        "source": "128_115",
+        "sourceHandle": "INT",
+        "target": "128_123",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "128_118-0-128_123-on_true",
+        "source": "128_118",
+        "sourceHandle": "INT",
+        "target": "128_123",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "128_129-0-128_124-switch",
+        "source": "128_129",
+        "sourceHandle": "BOOLEAN",
+        "target": "128_124",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "128_116-0-128_124-on_false",
+        "source": "128_116",
+        "sourceHandle": "FLOAT",
+        "target": "128_124",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "128_119-0-128_124-on_true",
+        "source": "128_119",
+        "sourceHandle": "FLOAT",
+        "target": "128_124",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "128_126-0-128_127-values.a",
+        "source": "128_126",
+        "sourceHandle": "FLOAT",
+        "target": "128_127",
+        "targetHandle": "values.a",
+        "ui_properties": null
+      },
+      {
+        "id": "128_125-0-128_127-values.b",
+        "source": "128_125",
+        "sourceHandle": "FLOAT",
+        "target": "128_127",
+        "targetHandle": "values.b",
+        "ui_properties": null
+      }
+    ]
+  }
+}

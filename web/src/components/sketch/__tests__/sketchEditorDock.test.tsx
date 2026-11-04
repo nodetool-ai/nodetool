@@ -142,6 +142,25 @@ describe("SketchEditor dock", () => {
       expect(document.querySelector(".sketch-editor__canvas-region")).toBeInTheDocument();
     });
 
+    it("shows the open assistant in a column at the right edge, not in the dock", () => {
+      renderDesktopEditor();
+      act(() => {
+        useSketchStore.getState().setAssistantPanelOpen(true, { persist: false });
+      });
+      const panel = screen.getByTestId("assistant-panel");
+      const column = screen.getByTestId("assistant-side-dock");
+      expect(column).toContainElement(panel);
+      expect(document.querySelector(".sketch-editor__dock")).not.toContainElement(panel);
+      // The column is the body's last child, right of the layer column.
+      expect(document.querySelector(".sketch-editor__body")?.lastElementChild).toBe(column);
+      expect(screen.getAllByTestId("assistant-panel")).toHaveLength(1);
+
+      act(() => {
+        useSketchStore.getState().setAssistantPanelOpen(false, { persist: false });
+      });
+      expect(screen.queryByTestId("assistant-panel")).not.toBeInTheDocument();
+    });
+
     it("switches to Expert mode and remembers it", () => {
       renderDesktopEditor();
       fireEvent.click(screen.getByRole("button", { name: "Expert" }));
@@ -160,6 +179,21 @@ describe("SketchEditor dock", () => {
       fireEvent.click(document.querySelector(".sketch-editor__mobile-panels-fab")!);
       expect(screen.getByTestId("sketch-simple-sidebar")).toBeInTheDocument();
       expect(document.querySelector(".sketch-editor__layers-section")).not.toBeInTheDocument();
+    });
+
+    it("is the only mode on a phone, even when Expert is remembered", () => {
+      useSketchEditorModeStore.setState({
+        modes: { [sketchEditorModeKey(null)]: "expert" }
+      });
+      renderDesktopEditor(390);
+      expect(screen.queryByRole("button", { name: "Expert" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Simple" })).not.toBeInTheDocument();
+      fireEvent.click(document.querySelector(".sketch-editor__mobile-panels-fab")!);
+      expect(screen.getByTestId("sketch-simple-sidebar")).toBeInTheDocument();
+      expect(document.querySelector(".sketch-editor__layers-section")).not.toBeInTheDocument();
+      expect(useSketchEditorModeStore.getState().modes[sketchEditorModeKey(null)]).toBe(
+        "expert"
+      );
     });
 
     it("selects a layer from the list and adds a new one", () => {

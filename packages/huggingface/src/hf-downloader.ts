@@ -48,15 +48,6 @@ interface AsyncHfDownloadOptions {
 // ---------------------------------------------------------------------------
 
 /**
- * Resolve the HuggingFace hub cache root directory. Delegates to
- * `getHfHubCacheDir` in `@nodetool-ai/config`, which follows Python
- * `huggingface_hub`'s variable order and expands a leading `~`.
- */
-export function hfCacheRoot(): string {
-  return getHfHubCacheDir();
-}
-
-/**
  * Return the per-repo cache directory.
  *
  * Layout: `<cacheDir>/<repoType>s--namespace--name`
@@ -66,7 +57,7 @@ export function hfRepoCacheDir(
   repoType: RepoType = "model",
   cacheDir?: string | null
 ): string {
-  const root = cacheDir ?? hfCacheRoot();
+  const root = cacheDir ?? getHfHubCacheDir();
   return path.join(root, getRepoFolderName({ name: repoId, type: repoType }));
 }
 
@@ -204,7 +195,7 @@ export async function asyncHfDownload(
     repo: { name: repoId, type: repoType },
     path: filename,
     revision,
-    cacheDir: cacheDir ?? hfCacheRoot()
+    cacheDir: cacheDir ?? getHfHubCacheDir()
   };
   if (tokenStr) {
     args.accessToken = tokenStr;
@@ -257,7 +248,7 @@ export async function dropBlobCopiedToSnapshot(
       return;
     }
     const blobPath = path.join(
-      args.cacheDir ?? hfCacheRoot(),
+      args.cacheDir ?? getHfHubCacheDir(),
       getRepoFolderName(args.repo),
       "blobs",
       etag
