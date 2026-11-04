@@ -6,10 +6,15 @@
 #include <QJsonDocument>
 #include <QtTest>
 #include <array>
+#ifdef Q_OS_LINUX
 #include <unistd.h>
+#endif
 
 namespace {
 QJsonObject environment() {
+#ifndef Q_OS_LINUX
+    return {};  // Load and memory only qualify the Linux measurement runs.
+#else
     double load[3]{};
     getloadavg(load, 3);
     QFile mem("/proc/meminfo");
@@ -19,6 +24,7 @@ QJsonObject environment() {
         if (line.startsWith("MemAvailable:")) { available = line.simplified().split(' ')[1].toDouble(); }
     }
     return {{"load1", load[0]}, {"availableKiB", available}};
+#endif
 }
 struct Route {
     TimelineModel model;
@@ -36,7 +42,9 @@ private slots:
     void completedFrames() {
         const auto output = qEnvironmentVariable("NT_COST_OUTPUT");
         if (output.isEmpty()) {
+#ifdef Q_OS_LINUX
             QVERIFY(environment().contains("availableKiB"));
+#endif
             return;
         }
         const auto before = environment();
