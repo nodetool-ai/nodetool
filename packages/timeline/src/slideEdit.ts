@@ -5,6 +5,7 @@
  * stays the same. A side with no clip against it slides into the gap there.
  */
 
+import { resliceSourceAnimations } from "./animation/sourceCurves.js";
 import { isGroupClip } from "./group.js";
 import { sourceRate } from "./sourceRate.js";
 import { hasTimeRemap } from "./timeRemap.js";
@@ -29,8 +30,7 @@ interface SlidePlan {
 function planMember(
   clips: readonly TimelineClip[],
   member: TimelineClip,
-  memberIds: ReadonlySet<string>,
-  sourceDurationMsFor: (clip: TimelineClip) => number | undefined
+  memberIds: ReadonlySet<string>
 ): SlidePlan {
   const others = clips.filter(
     (c) => c.trackId === member.trackId && !memberIds.has(c.id) && !isGroupClip(c)
@@ -43,36 +43,67 @@ function planMember(
   );
   let minDeltaMs = -Infinity;
   let maxDeltaMs = Infinity;
-  if (before) {
-    // Sliding left shortens the clip before; sliding right reveals its tail.
-    minDeltaMs = Math.max(minDeltaMs, MIN_NEIGHBOUR_MS - before.durationMs);
-    const sourceMs = sourceDurationMsFor(before);
-    if (sourceMs !== undefined) {
-      const out =
-        before.outPointMs ??
-        (before.inPointMs ?? 0) + before.durationMs * sourceRate(before);
-      maxDeltaMs = Math.min(maxDeltaMs, (sourceMs - out) / sourceRate(before));
-    }
-  } else {
+  if (!before) {
     const gapStartMs = others
       .filter((c) => endOf(c) <= member.startMs + TOUCH_MS)
       .reduce((end, c) => Math.max(end, endOf(c)), 0);
     minDeltaMs = Math.max(minDeltaMs, gapStartMs - member.startMs);
   }
-  if (after) {
-    // Sliding right shortens the clip after; sliding left reveals its head.
-    maxDeltaMs = Math.min(maxDeltaMs, after.durationMs - MIN_NEIGHBOUR_MS);
-    minDeltaMs = Math.max(
-      minDeltaMs,
-      -((after.inPointMs ?? 0) / sourceRate(after))
-    );
-  } else {
+  if (!after) {
     const gapEndMs = others
       .filter((c) => c.startMs >= endOf(member) - TOUCH_MS)
       .reduce((start, c) => Math.min(start, c.startMs), Infinity);
     maxDeltaMs = Math.min(maxDeltaMs, gapEndMs - endOf(member));
   }
   return { member, before, after, minDeltaMs, maxDeltaMs };
+}
+
+interface NeighbourEdit {
+  clip: TimelineClip;
+  head: boolean;
+  tail: boolean;
+}
+
+function neighbourEdits(plans: readonly SlidePlan[]): NeighbourEdit[] {
+  const edits = new Map<string, NeighbourEdit>();
+  for (const { before, after } of plans) {
+    if (before) {
+      const edit = edits.get(before.id) ?? { clip: before, head: false, tail: false };
+      edit.tail = true;
+      edits.set(before.id, edit);
+    }
+    if (after) {
+      const edit = edits.get(after.id) ?? { clip: after, head: false, tail: false };
+      edit.head = true;
+      edits.set(after.id, edit);
+    }
+  }
+  return [...edits.values()];
+}
+
+function trimNeighbour(edit: NeighbourEdit, delta: number): TimelineClip {
+  const { clip, head, tail } = edit;
+  if (!head) return trimClip(clip, "end", delta);
+  if (!tail) return trimClip(clip, "start", -delta);
+
+  // Grow first so a shared neighbour can move farther than its own length.
+  // Slice animations once from the original curve, never an intermediate window.
+  const { animations, ...withoutAnimations } = clip;
+  const grown = trimClip(
+    withoutAnimations,
+    delta > 0 ? "end" : "start",
+    Math.abs(delta)
+  );
+  const trimmed = trimClip(grown, delta > 0 ? "start" : "end", -Math.abs(delta));
+  if (animations) {
+    trimmed.animations = resliceSourceAnimations(
+      animations,
+      trimmed.inPointMs ?? 0,
+      trimmed.outPointMs ?? (trimmed.inPointMs ?? 0) + trimmed.durationMs * sourceRate(trimmed),
+      trimmed.durationMs
+    );
+  }
+  return trimmed;
 }
 
 /**
@@ -89,7 +120,7 @@ export function slideDeltaLimit(
 ): number {
   const members = clips.filter((c) => memberIds.has(c.id));
   if (members.length === 0) return 0;
-  const plans = members.map((m) => planMember(clips, m, memberIds, sourceDurationMsFor));
+  const plans = members.map((m) => planMember(clips, m, memberIds));
   const neighbours = plans.flatMap((p) => [p.before, p.after]);
   if (
     members.some((m) => isGroupClip(m) || hasTimeRemap(m)) ||
@@ -97,8 +128,27 @@ export function slideDeltaLimit(
   ) {
     return 0;
   }
-  const minDeltaMs = Math.max(...plans.map((p) => p.minDeltaMs));
-  const maxDeltaMs = Math.min(...plans.map((p) => p.maxDeltaMs));
+  let minDeltaMs = Math.max(...plans.map((p) => p.minDeltaMs));
+  let maxDeltaMs = Math.min(...plans.map((p) => p.maxDeltaMs));
+  for (const { clip, head, tail } of neighbourEdits(plans)) {
+    const rate = sourceRate(clip);
+    if (head) {
+      minDeltaMs = Math.max(minDeltaMs, -(clip.inPointMs ?? 0) / rate, -clip.startMs);
+      if (!tail) {
+        maxDeltaMs = Math.min(maxDeltaMs, clip.durationMs - MIN_NEIGHBOUR_MS);
+      }
+    }
+    if (tail) {
+      if (!head) {
+        minDeltaMs = Math.max(minDeltaMs, MIN_NEIGHBOUR_MS - clip.durationMs);
+      }
+      const sourceMs = sourceDurationMsFor(clip);
+      if (sourceMs !== undefined) {
+        const out = clip.outPointMs ?? (clip.inPointMs ?? 0) + clip.durationMs * rate;
+        maxDeltaMs = Math.min(maxDeltaMs, (sourceMs - out) / rate);
+      }
+    }
+  }
   if (minDeltaMs > maxDeltaMs) return 0;
   return Math.min(maxDeltaMs, Math.max(minDeltaMs, deltaMs));
 }
@@ -118,11 +168,13 @@ export function slideClips(
   const delta = slideDeltaLimit(clips, memberIds, deltaMs, sourceDurationMsFor);
   if (delta === 0) return clips;
   const next = new Map<string, TimelineClip>();
-  for (const member of clips.filter((c) => memberIds.has(c.id))) {
-    const { before, after } = planMember(clips, member, memberIds, sourceDurationMsFor);
+  const members = clips.filter((c) => memberIds.has(c.id));
+  const plans = members.map((member) => planMember(clips, member, memberIds));
+  for (const member of members) {
     next.set(member.id, { ...member, startMs: member.startMs + delta });
-    if (before) next.set(before.id, trimClip(before, "end", delta));
-    if (after) next.set(after.id, trimClip(after, "start", -delta));
+  }
+  for (const edit of neighbourEdits(plans)) {
+    next.set(edit.clip.id, trimNeighbour(edit, delta));
   }
   return clips.map((c) => next.get(c.id) ?? c);
 }

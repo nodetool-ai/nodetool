@@ -94,6 +94,63 @@ describe("slideClips", () => {
     expect(byId(out, "other")).toBe(clips[4]);
   });
 
+  it.each([100, -100])("combines shared-neighbour boundaries for delta %s regardless of input order", (delta) => {
+    const clips = ["prev", "a", "middle", "b", "next"].map((id, i) =>
+      clip(id, i * 1000, 1000, {
+        mediaType: "audio", inPointMs: 500, outPointMs: 1500,
+        ...(id === "a" || id === "b" ? { linkId: "L" } : {})
+      })
+    );
+    const middle = byId(clips, "middle");
+    middle.caption = { words: [{ word: "hello", startMs: 300, endMs: 600 }] };
+    middle.animations = [{
+      id: "source", role: "emphasis", preset: "custom", durationMs: 1000, delayMs: 0,
+      custom: { timeBase: "source", curves: [{
+        property: "offsetX", keyframes: [
+          { t: 0, sourceMs: 0, value: 0 },
+          { t: 0.5, sourceMs: 1000, value: 100 },
+          { t: 1, sourceMs: 2000, value: 0 }
+        ]
+      }] }
+    }];
+    const expected = slideClips(clips, new Set(["a", "b"]), delta);
+    for (const ordered of [clips, [...clips].reverse(), [clips[3], clips[1], clips[4], clips[2], clips[0]]]) {
+      const out = slideClips(ordered, new Set(["a", "b"]), delta);
+      for (const c of expected) expect(byId(out, c.id)).toEqual(c);
+      expect(byId(out, "middle")).toMatchObject({
+        startMs: 2000 + delta, durationMs: 1000,
+        inPointMs: 500 + delta, outPointMs: 1500 + delta,
+        caption: { words: [{ word: "hello", startMs: 300 - delta, endMs: 600 - delta }] }
+      });
+      expect(byId(out, "a").startMs + 1000).toBe(byId(out, "middle").startMs);
+      expect(byId(out, "middle").startMs + 1000).toBe(byId(out, "b").startMs);
+      const keys = byId(out, "middle").animations![0].custom!.curves[0].keyframes;
+      expect(keys.map((k) => k.sourceMs)).toEqual([500 + delta, 1000, 1500 + delta]);
+      expect(keys.map((k) => k.value)).toEqual([50 + delta / 10, 100, 50 - delta / 10]);
+    }
+    expect(middle).toMatchObject({ startMs: 2000, durationMs: 1000, inPointMs: 500, outPointMs: 1500 });
+  });
+
+  it.each([1, 2])("limits a shared neighbour by source handles at rate %s, not its unchanged duration", (rate) => {
+    const clips = [
+      clip("prev", 0, 5000, { inPointMs: 5000 }),
+      clip("a", 5000, 1000),
+      clip("middle", 6000, 100, { inPointMs: 500 * rate, outPointMs: 600 * rate, speedMultiplier: rate }),
+      clip("b", 6100, 1000),
+      clip("next", 7100, 5000, { inPointMs: 5000 })
+    ];
+    const ids = new Set(["a", "b"]);
+    const source = (c: TimelineClip) => c.id === "middle" ? 850 * rate : undefined;
+    expect(slideDeltaLimit(clips, ids, 1000, source)).toBe(250);
+    expect(slideDeltaLimit(clips, ids, -1000, source)).toBe(-500);
+    for (const delta of [250, -500]) {
+      expect(byId(slideClips(clips, ids, delta, source), "middle")).toMatchObject({
+        startMs: 6000 + delta, durationMs: 100,
+        inPointMs: (500 + delta) * rate, outPointMs: (600 + delta) * rate
+      });
+    }
+  });
+
   it("leaves a group clip alone", () => {
     const grouped = [clip("g", 0, 1000, { mediaType: "group" })];
     expect(slideClips(grouped, new Set(["g"]), 100)).toBe(grouped);
