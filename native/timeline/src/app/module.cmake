@@ -17,7 +17,10 @@ function(nt_app_tests)
     # The bundle dependency audit of scripts/macho-deps.py (review F5): builds
     # tiny Mach-O files with clang.
     find_program(NT_PYTHON3 NAMES python3 NO_CACHE REQUIRED)
-    add_test(NAME macho_notices COMMAND ${NT_PYTHON3} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/macho-notices.test.py)
+    # These macOS packaging tests execute POSIX shell tools and mock Mach-O paths.
+    if(UNIX)
+        add_test(NAME macho_notices COMMAND ${NT_PYTHON3} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/macho-notices.test.py)
+    endif()
     if(APPLE)
         add_test(NAME macho_deps COMMAND ${NT_PYTHON3} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/macho-deps.test.py)
     endif()
