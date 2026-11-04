@@ -268,3 +268,98 @@ describe("provider audio cancellation", () => {
     expect(bridge.pendingStreamSize()).toBe(0);
   });
 });
+
+describe.each(["execute.stream", "provider.tts"] as const)(
+  "%s suspended consumer cancellation",
+  (frameType) => {
+    function start(bridge: TestBridge, signal: AbortSignal) {
+      return frameType === "execute.stream"
+        ? bridge.executeStream("n.Stream", {}, {}, {}, () => undefined, undefined, { signal })
+        : bridge.providerTTS("hf", "hi", "kokoro", {}, signal);
+    }
+
+    function chunk(bridge: TestBridge, id: string, value: number) {
+      bridge.handle({
+        type: "chunk", request_id: id,
+        data: { outputs: { out: value }, blobs: { audio: new Uint8Array([value]) } }
+      });
+    }
+
+    it("cancels and detaches immediately while suspended, then rejects without queued output", async () => {
+      const bridge = new TestBridge();
+      const controller = new AbortController();
+      const gen = start(bridge, controller.signal);
+      const first = gen.next();
+      await Promise.resolve();
+      const id = bridge.reqIdOf(frameType);
+      chunk(bridge, id, 1);
+      chunk(bridge, id, 2);
+      expect((await first).done).toBe(false);
+      controller.abort();
+      expect(bridge.cancelledIds()).toEqual([id]);
+      expect(bridge.pendingSize()).toBe(0);
+      expect(bridge.pendingStreamSize()).toBe(0);
+      chunk(bridge, id, 3);
+      bridge.handle({ type: "result", request_id: id, data: { outputs: {} } });
+      await expect(gen.next()).rejects.toThrow(/was cancelled/);
+      expect(bridge.cancelledIds()).toEqual([id]);
+    });
+
+    it("does not send a request or cancellation for an already aborted signal", async () => {
+      const bridge = new TestBridge();
+      const controller = new AbortController();
+      controller.abort();
+      await expect(start(bridge, controller.signal).next()).rejects.toThrow(/was cancelled/);
+      expect(bridge.sent).toEqual([]);
+      expect(bridge.pendingStreamSize()).toBe(0);
+      expect(bridge.pendingSize()).toBe(0);
+    });
+
+    it("rejects on abort after the terminal frame without cancelling finished work", async () => {
+      const bridge = new TestBridge();
+      const controller = new AbortController();
+      const gen = start(bridge, controller.signal);
+      const first = gen.next();
+      await Promise.resolve();
+      const id = bridge.reqIdOf(frameType);
+      chunk(bridge, id, 1);
+      chunk(bridge, id, 2);
+      await first;
+      bridge.handle({ type: "result", request_id: id, data: { outputs: {} } });
+      controller.abort();
+      await expect(gen.next()).rejects.toThrow(/was cancelled/);
+      expect(bridge.cancelledIds()).toEqual([]);
+    });
+
+    it("cancels once when the consumer returns early", async () => {
+      const bridge = new TestBridge();
+      const controller = new AbortController();
+      const gen = start(bridge, controller.signal);
+      const first = gen.next();
+      await Promise.resolve();
+      const id = bridge.reqIdOf(frameType);
+      chunk(bridge, id, 1);
+      await first;
+      await gen.return(undefined);
+      controller.abort();
+      expect(bridge.cancelledIds()).toEqual([id]);
+      expect(bridge.pendingStreamSize()).toBe(0);
+      expect(bridge.pendingSize()).toBe(0);
+    });
+
+    it("drains successful output without cancelling a completed worker", async () => {
+      const bridge = new TestBridge();
+      const gen = start(bridge, new AbortController().signal);
+      const first = gen.next();
+      await Promise.resolve();
+      const id = bridge.reqIdOf(frameType);
+      chunk(bridge, id, 1);
+      chunk(bridge, id, 2);
+      await first;
+      bridge.handle({ type: "result", request_id: id, data: { outputs: {} } });
+      expect((await gen.next()).done).toBe(false);
+      expect((await gen.next()).done).toBe(true);
+      expect(bridge.cancelledIds()).toEqual([]);
+    });
+  }
+);
