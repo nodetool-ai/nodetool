@@ -13,7 +13,7 @@ function(nt_entities_tests)
     qt_add_executable(tst_entitypanel src/entities/tst_entitypanel.cpp src/assets/AssetPanels.cpp)
     set_target_properties(tst_entitypanel PROPERTIES MACOSX_BUNDLE FALSE)
     target_link_libraries(tst_entitypanel PRIVATE timeline_core timeline_decode timeline_server
-        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
+        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test Qt6::QuickTest PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
     nt_add_timeline_qml(tst_entitypanel OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_entitypanel_qml/NodeTool/Timeline)
     if(UNIX AND NOT APPLE)
         target_sources(tst_entitypanel PRIVATE src/preview/hw/HwWindow.h src/preview/hw/HwWindow.cpp)

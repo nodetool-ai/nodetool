@@ -21,6 +21,7 @@
 #include <QWebSocketServer>
 #include <QUrlQuery>
 #include <QtTest>
+#include <QtQuickTest/quicktest.h>
 #include <functional>
 #include <utility>
 #include <memory>
@@ -269,6 +270,30 @@ class TestEntityPanel : public QObject {
         if (auto* found = byName(window->contentItem(), name)) return found;
         return byName(panel, name);
     }
+    QVariant propertyOf(const QString& name, const char* property) {
+        auto* object = find(name);
+        if (!object) {
+            QTest::qFail(qPrintable("Missing " + name), __FILE__, __LINE__);
+            return {};
+        }
+        return object->property(property);
+    }
+    void openAssist() {
+        if (QTest::currentTestFailed()) {
+            return;
+        }
+        QTRY_VERIFY2(find("entityEditorDialog"), "Missing entityEditorDialog before opening Writing assistant");
+        QTRY_VERIFY2(propertyOf("entityEditorDialog", "opened").toBool(), "entityEditorDialog did not finish opening");
+        QTRY_VERIFY2_WITH_TIMEOUT(settled(), "Editor images did not finish loading before opening Writing assistant", 10000);
+        QVERIFY2(QQuickTest::qWaitForPolish(window.get()), "Editor layout did not settle before opening Writing assistant");
+        QTRY_VERIFY2(find("entityAssistButton"), "Missing entityAssistButton");
+        click(find("entityAssistButton"));
+        if (QTest::currentTestFailed()) {
+            return;
+        }
+        QTRY_VERIFY2(find("entityAssistPopover"), "Missing entityAssistPopover after clicking Writing assistant");
+        QTRY_VERIFY2(propertyOf("entityAssistPopover", "opened").toBool(), "entityAssistPopover did not finish opening");
+    }
     QQuickItem* card(int number) { return qobject_cast<QQuickItem*>(find("entityCard_" + id(number))); }
     QObject* in(QObject* root, const QString& name) { return byName(root, name); }
     void click(QObject* target, Qt::MouseButton button = Qt::LeftButton) {
@@ -308,11 +333,11 @@ class TestEntityPanel : public QObject {
     QObject* bannerAction(const QString& banner) { return in(find(banner), "bannerActionButton"); }
     void openNewEditor(int image) {
         click(find("entityNewButton"));
-        QTRY_VERIFY(find("entityImagePicker")->property("opened").toBool());
+        QTRY_VERIFY(propertyOf("entityImagePicker", "opened").toBool());
         QTRY_VERIFY(find("entityImageTile_" + id(image)));
         click(find("entityImageTile_" + id(image)));
-        QTRY_VERIFY(find("entityEditorDialog")->property("opened").toBool());
-        QTRY_VERIFY(find("entityNameField")->property("activeFocus").toBool());
+        QTRY_VERIFY(propertyOf("entityEditorDialog", "opened").toBool());
+        QTRY_VERIFY(propertyOf("entityNameField", "activeFocus").toBool());
     }
     void type(const QString& text) {
         for (const QChar letter : text) QTest::keyClick(window.get(), letter.toLatin1());
@@ -355,11 +380,14 @@ class TestEntityPanel : public QObject {
     }
     void openEditor(int number) {
         click(in(card(number), "entityEditButton"));
-        QTRY_VERIFY(find("entityEditorDialog")->property("opened").toBool());
+        if (QTest::currentTestFailed()) {
+            return;
+        }
+        QTRY_VERIFY(propertyOf("entityEditorDialog", "opened").toBool());
     }
     void openReference() {
         click(find("entityNewPicture"));
-        QTRY_VERIFY(find("entityReferenceDialog")->property("opened").toBool());
+        QTRY_VERIFY(propertyOf("entityReferenceDialog", "opened").toBool());
     }
     QString referenceId() { return find("entityEditorDialog")->property("referenceAssetId").toString(); }
     QJsonObject frameData(int index) { return socket->frames[index].value("data").toObject(); }
@@ -1156,11 +1184,11 @@ private slots:
         mount({1280, 720}, {320, 720});
         waitForCards(6);
         openEditor(1);
-        auto* trigger = find("entityAssistButton");
-        QCOMPARE(trigger->property("accessibleName").toString(), QString("Writing assistant"));
-        click(trigger);
-        auto* popover = find("entityAssistPopover");
-        QTRY_VERIFY(popover->property("opened").toBool());
+        openAssist();
+        if (QTest::currentTestFailed()) {
+            return;
+        }
+        QCOMPARE(propertyOf("entityAssistButton", "accessibleName").toString(), QString("Writing assistant"));
         const QString original = textOf(find("entityDescriptorField"));
         pickModel("entityAssistCatalog", "text-model");
         click(find("entityAssistAction_improve"));
@@ -1191,10 +1219,10 @@ private slots:
         socket->reply(1, {{"text", "A tall woman."}});
         QTRY_COMPARE(textOf(find("entityAssistProposalText")), QString("A tall woman."));
         click(find("entityAssistApply"));
-        QTRY_VERIFY(!popover->property("visible").toBool());
+        QTRY_VERIFY(!propertyOf("entityAssistPopover", "visible").toBool());
         QCOMPARE(textOf(find("entityDescriptorField")), QString("A tall woman."));
         QVERIFY(assist->proposal().isEmpty());
-        QVERIFY(find("entityAssistButton")->property("activeFocus").toBool());
+        QVERIFY(propertyOf("entityAssistButton", "activeFocus").toBool());
         // The edited text is what gets saved.
         click(find("entitySave"));
         QTRY_VERIFY(fake->writes.size() == 1);
@@ -1207,9 +1235,10 @@ private slots:
         waitForCards(6);
         openEditor(1);
         const QString original = textOf(find("entityDescriptorField"));
-        click(find("entityAssistButton"));
-        auto* popover = find("entityAssistPopover");
-        QTRY_VERIFY(popover->property("opened").toBool());
+        openAssist();
+        if (QTest::currentTestFailed()) {
+            return;
+        }
         pickModel("entityAssistCatalog", "text-model");
         click(find("entityAssistAction_shorten"));
         QTRY_COMPARE(socket->frames.size(), 1);
@@ -1218,7 +1247,7 @@ private slots:
         click(find("entityAssistDiscard"));
         QTRY_VERIFY(!shown(find("entityAssistProposal")));
         QCOMPARE(textOf(find("entityDescriptorField")), original);
-        QVERIFY(popover->property("visible").toBool());
+        QVERIFY(propertyOf("entityAssistPopover", "visible").toBool());
         // Stop ends a request. Closing the popover abandons it, and a late reply is ignored.
         click(find("entityAssistAction_fix"));
         QTRY_COMPARE(socket->frames.size(), 2);
@@ -1227,13 +1256,13 @@ private slots:
         click(find("entityAssistAction_fix"));
         QTRY_COMPARE(socket->frames.size(), 3);
         QTest::keyClick(window.get(), Qt::Key_Escape);
-        QTRY_VERIFY(!popover->property("visible").toBool());
+        QTRY_VERIFY(!propertyOf("entityAssistPopover", "visible").toBool());
         QVERIFY(!assist->assisting());
         socket->reply(2, {{"text", "Late."}});
         QTest::qWait(80);
         QVERIFY(assist->proposal().isEmpty());
         QCOMPARE(textOf(find("entityDescriptorField")), original);
-        QVERIFY(find("entityEditorDialog")->property("visible").toBool());
+        QVERIFY(propertyOf("entityEditorDialog", "visible").toBool());
     }
 
     void assistNeedsTextAModelAndReportsErrors() {
@@ -1241,11 +1270,10 @@ private slots:
         mount({1280, 720}, {320, 720});
         waitForCards(6);
         openNewEditor(12);
-        QTRY_VERIFY2(find("entityAssistButton"), "Missing entityAssistButton");
-        click(find("entityAssistButton"));
-        QTRY_VERIFY2(find("entityAssistPopover"), "Missing entityAssistPopover after clicking Writing assistant");
-        auto* popover = find("entityAssistPopover");
-        QTRY_VERIFY(popover->property("opened").toBool());
+        openAssist();
+        if (QTest::currentTestFailed()) {
+            return;
+        }
         // With no text only "Write it" applies, and the others say why they are off.
         QTRY_VERIFY2(find("entityAssistAction_draft"), "Missing entityAssistAction_draft (Write it)");
         auto* draft = find("entityAssistAction_draft");
@@ -1253,7 +1281,7 @@ private slots:
         for (const auto* action : {"improve", "expand", "shorten", "fix"}) {
             const auto name = QString("entityAssistAction_") + action;
             QTRY_VERIFY2(find(name), qPrintable("Missing " + name));
-            QVERIFY2(!find(name)->property("enabled").toBool(), qPrintable(name + " must be disabled without text"));
+            QVERIFY2(!propertyOf(name, "enabled").toBool(), qPrintable(name + " must be disabled without text"));
         }
         QVERIFY(shown(find("entityAssistReason")));
         click(draft);
@@ -1279,16 +1307,19 @@ private slots:
         waitForCards(6);
         openEditor(1);
         auto* editor = find("entityEditorDialog");
+        QVERIFY2(editor, "Missing entityEditorDialog");
         auto* field = find("entityDescriptorField");
-        click(find("entityAssistButton"));
-        auto* popover = find("entityAssistPopover");
-        QTRY_VERIFY(popover->property("opened").toBool());
+        QVERIFY2(field, "Missing entityDescriptorField");
+        openAssist();
+        if (QTest::currentTestFailed()) {
+            return;
+        }
         pickModel("entityAssistCatalog", "text-model");
         // Text typed behind the popover is what a rewrite works on, not the text the popover opened with.
         focus(field);
         QMetaObject::invokeMethod(field, "selectAll");
         type("Blue coat.");
-        QCOMPARE(popover->property("fieldText").toString(), QString("Blue coat."));
+        QCOMPARE(propertyOf("entityAssistPopover", "fieldText").toString(), QString("Blue coat."));
         click(find("entityAssistAction_improve"));
         QTRY_COMPARE(socket->frames.size(), 1);
         QVERIFY(frameData(0).value("prompt").toString().contains("# Current text\nBlue coat."));
@@ -1303,16 +1334,18 @@ private slots:
         // Cancelling the editor takes the assistant and its proposal with it.
         click(find("entityCancel"));
         QTRY_VERIFY(!editor->property("visible").toBool());
-        QTRY_VERIFY(!popover->property("visible").toBool());
+        QTRY_VERIFY(!propertyOf("entityAssistPopover", "visible").toBool());
         QVERIFY(assist->proposal().isEmpty());
         // Another entity opens with no assistant and none of the first entity's proposal.
         openEditor(2);
         const QString harbor = textOf(field);
-        QVERIFY(!popover->property("visible").toBool());
+        QVERIFY(!propertyOf("entityAssistPopover", "visible").toBool());
         QVERIFY(!shown(find("entityAssistProposal")));
         QCOMPARE(textOf(field), harbor);
-        click(find("entityAssistButton"));
-        QTRY_VERIFY(popover->property("opened").toBool());
+        openAssist();
+        if (QTest::currentTestFailed()) {
+            return;
+        }
         QVERIFY(!shown(find("entityAssistProposal")));
         QCOMPARE(textOf(find("entityAssistInstruction")), QString());
         click(find("entityAssistAction_shorten"));
@@ -1322,7 +1355,7 @@ private slots:
         // Opening the editor for yet another entity while it is open also closes the assistant.
         QMetaObject::invokeMethod(panel, "editEntity", Q_ARG(QVariant, QVariant(id(3))));
         QTRY_COMPARE(textOf(find("entityNameField")), QString("Noir Grade"));
-        QTRY_VERIFY(!popover->property("visible").toBool());
+        QTRY_VERIFY(!propertyOf("entityAssistPopover", "visible").toBool());
         QVERIFY(assist->proposal().isEmpty());
         QVERIFY(textOf(field).startsWith("High-contrast"));
     }
@@ -1340,36 +1373,40 @@ private slots:
         mount(size, {320, size.height()});
         waitForCards(6);
         openEditor(1);
-        auto* editor = find("entityEditorDialog");
-        click(find("entityAssistButton"));
-        auto* popover = find("entityAssistPopover");
-        QTRY_VERIFY(popover->property("opened").toBool());
+        openAssist();
+        if (QTest::currentTestFailed()) {
+            return;
+        }
         pickModel("entityAssistCatalog", "text-model");
         click(find("entityAssistAction_improve"));
         QTRY_COMPARE(socket->frames.size(), 1);
         socket->reply(0, {{"text", QString("A long proposal. ").repeated(40)}});
         QTRY_VERIFY(shown(find("entityAssistProposal")));
         QTest::qWait(150);
-        auto rect = [](QObject* popup) {
-            return QRectF(popup->property("x").toDouble(), popup->property("y").toDouble(),
-                popup->property("width").toDouble(), popup->property("height").toDouble());
+        auto rect = [this](const QString& name) {
+            return QRectF(propertyOf(name, "x").toDouble(), propertyOf(name, "y").toDouble(),
+                propertyOf(name, "width").toDouble(), propertyOf(name, "height").toDouble());
         };
-        auto sceneRect = [](QObject* object) {
-            auto* item = qobject_cast<QQuickItem*>(object);
+        auto sceneRect = [this](const QString& name) {
+            auto* item = qobject_cast<QQuickItem*>(find(name));
+            if (!item) {
+                QTest::qFail(qPrintable("Missing " + name), __FILE__, __LINE__);
+                return QRectF();
+            }
             return QRectF(item->mapToScene(QPointF(0, 0)), item->size());
         };
-        const auto popup = rect(popover);
+        const auto popup = rect("entityAssistPopover");
         QVERIFY2(QRectF(0, 0, size.width(), size.height()).contains(popup), qPrintable(QString("popover %1,%2 %3x%4").arg(popup.x()).arg(popup.y()).arg(popup.width()).arg(popup.height())));
         QVERIFY(popup.width() >= 264);
-        const auto descriptor = sceneRect(find("entityDescriptorField"));
-        const auto save = sceneRect(find("entitySave"));
+        const auto descriptor = sceneRect("entityDescriptorField");
+        const auto save = sceneRect("entitySave");
         if (beside) {
-            QVERIFY(popup.left() >= rect(editor).right());
+            QVERIFY(popup.left() >= rect("entityEditorDialog").right());
             QVERIFY(!popup.intersects(descriptor));
             QVERIFY(!popup.intersects(save));
         } else {
             // There is no room to the right, so the popover opens under its button and may cover the form.
-            QVERIFY(popup.intersects(rect(editor)));
+            QVERIFY(popup.intersects(rect("entityEditorDialog")));
         }
     }
 
@@ -1386,33 +1423,35 @@ private slots:
         openEditor(1);
         // The editor keeps fitting without a scrollbar.
         auto* editor = find("entityEditorDialog");
+        QVERIFY2(editor, "Missing entityEditorDialog");
         QVERIFY(editor->property("height").toDouble() <= size.height());
         if (size.height() >= 720) {
             auto* form = find("entityEditorScroll");
+            QVERIFY2(form, "Missing entityEditorScroll");
             // The two-column header settles a moment after the dialog opens.
             QTRY_VERIFY(form->property("contentHeight").toDouble() <= form->property("height").toDouble() + 2);
         }
-        click(find("entityAssistButton"));
-        auto* popover = find("entityAssistPopover");
-        QTRY_VERIFY(popover->property("opened").toBool());
+        openAssist();
+        if (QTest::currentTestFailed()) {
+            return;
+        }
         pickModel("entityAssistCatalog", "text-model");
         click(find("entityAssistAction_improve"));
         QTRY_COMPARE(socket->frames.size(), 1);
         socket->reply(0, {{"text", QString("A long proposal. ").repeated(40)}});
         QTRY_VERIFY(shown(find("entityAssistProposal")));
         QTest::qWait(100);
-        auto inside = [&](QObject* popup) {
-            const QRectF rect(popup->property("x").toDouble(), popup->property("y").toDouble(),
-                popup->property("width").toDouble(), popup->property("height").toDouble());
+        auto inside = [&](const QString& name) {
+            const QRectF rect(propertyOf(name, "x").toDouble(), propertyOf(name, "y").toDouble(),
+                propertyOf(name, "width").toDouble(), propertyOf(name, "height").toDouble());
             return rect.left() >= 0 && rect.top() >= 0 && rect.right() <= size.width() && rect.bottom() <= size.height();
         };
-        QVERIFY(inside(popover));
+        QVERIFY(inside("entityAssistPopover"));
         QTest::keyClick(window.get(), Qt::Key_Escape);
-        QTRY_VERIFY(!popover->property("visible").toBool());
+        QTRY_VERIFY(!propertyOf("entityAssistPopover", "visible").toBool());
         openReference();
-        auto* reference = find("entityReferenceDialog");
         QTest::qWait(100);
-        QVERIFY(inside(reference));
+        QVERIFY(inside("entityReferenceDialog"));
     }
 
     void uploadOneImagePicksIt() {
@@ -1766,8 +1805,10 @@ private slots:
             mount(size, {320, size.height()}, true, appearance);
             waitForCards(6);
             openEditor(1);
-            click(find("entityAssistButton"));
-            QTRY_VERIFY(find("entityAssistPopover")->property("opened").toBool());
+            openAssist();
+            if (QTest::currentTestFailed()) {
+                return;
+            }
             pickModel("entityAssistCatalog", "text-model");
             shot("assist-empty-" + suffix);
             click(find("entityAssistAction_improve"));
