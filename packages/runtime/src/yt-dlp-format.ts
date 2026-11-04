@@ -1,10 +1,8 @@
+import { isRecord, isString } from "@nodetool-ai/protocol";
+
 /**
- * yt-dlp format selectors, split so yt-dlp never merges.
- *
- * yt-dlp merges a `+` selector (`bv*+ba`) with the ffmpeg binary. NodeTool
- * ships no ffmpeg, so a caller downloads each side of the top-level `+` with
- * its own yt-dlp call and muxes the two files in process with
- * `muxStreamCopy` from `@nodetool-ai/runtime/media`.
+ * Validate yt-dlp format selectors and extract selected format IDs so callers
+ * can download individual streams and mux them in process.
  */
 
 /** What NodeTool asks for when no selector is given: best picture, best sound. */
@@ -14,8 +12,9 @@ export const DEFAULT_YT_DLP_FORMAT = "bv*+ba/b";
  * Split `selector` on its top-level `+`.
  *
  * The result has one component (download one file, no mux) or two (the
- * video side, then the audio side). A `/` fallback stays inside its component
- * for yt-dlp to resolve, so `bv+ba/b` splits into `bv` and `ba/b`. A `+`
+ * video side, then the audio side). This split validates syntax only: callers
+ * must resolve the complete selector before downloading, since `/` applies to
+ * the whole merge expression. A `+`
  * inside `[...]` is part of a filter and does not split. A `+` inside `(...)`
  * is a merge this cannot split, so it throws, as do unbalanced brackets, an
  * empty side, more than two sides, and a top-level `,` beside a `+`.
@@ -79,4 +78,19 @@ export function splitYtDlpFormat(selector: string): string[] {
     throw new Error(`Format selector "${text}" has an empty side of "+"`);
   }
   return parts;
+}
+
+/** Extract the selected individual formats from yt-dlp's JSON metadata. */
+export function selectedYtDlpFormats(info: unknown): string[] {
+  if (!isRecord(info)) throw new Error("yt-dlp returned invalid metadata");
+  const requested = info.requested_formats;
+  const selections = Array.isArray(requested) && requested.length > 0 ? requested : [info];
+  if (selections.length > 2) throw new Error("yt-dlp selected more than two formats");
+  return selections.map((selection: unknown) => {
+    const id = isRecord(selection) ? selection.format_id : undefined;
+    if (!isString(id) || !id) {
+      throw new Error("yt-dlp returned an invalid selected format ID");
+    }
+    return `[format_id="${id.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"]`;
+  });
 }
