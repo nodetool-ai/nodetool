@@ -394,3 +394,151 @@ root setup/build ran on the prepared worktree.
 - `64b2156800`: pool declarations, producer metadata, complete inventory and checks.
 - `123c913a7f`: image-node upload/output and timeline effect/LUT metadata.
 - The following documentation commit records scoped verification and gate status.
+
+## A98 supported-route qualification round
+
+Started at `64423c204f` on `film/color-s0`. Tests and this report changed.
+Production pixels, behavior and precision defaults did not change. S2 did not
+start. A98 remains partial. S1's exit gate is **not met**.
+
+### Supported routes checked from source
+
+[Server output table](../../../../packages/video-nodes/src/nodes/timeline/outputFormats.ts)
+supports H.264/MP4, VP9/WebM, ProRes/MOV and PNG sequence delivery. WebM,
+MOV and PNG sequence accept alpha. MP4 rejects alpha. JPEG and WebP are
+supported inputs, not timeline delivery formats. Their delivery and MP4 alpha
+are out of scope, with refusal assertions retained.
+
+[Server import](../../../../packages/video-nodes/src/nodes/timeline/rawFrames.ts)
+uses libav RGBA decoding for PNG/JPEG/WebP and video, with a Skia SVG fallback.
+The new still fixtures call `decodeStillRgba`, including its size probe.
+Video fixtures use the production output resolver and encoder-argument parser,
+then the runtime encoder/decoder and shared compositor. They do not run the
+whole RenderTimeline node, bundles, audio or PNG ZIP packaging. SVG's separate
+rasterization route was read but is not qualified by these fixtures.
+
+The MP4 codec override is open-ended and encoder availability is build-specific.
+Runtime probes found libx264, libvpx-vp9, prores_ks and libx265 here, but no
+libaom-av1. Encoder presence does not establish delivery support. HEVC's actual
+MP4 encode fails below. AV1 server qualification needs an installed encoder and
+working mux/decode path. No AV1 pass is claimed.
+
+[Browser delivery](../../../../web/src/components/timeline/render/TimelineRenderer.ts)
+uses mediabunny CanvasSource and WebCodecs. Defaults are AVC/MP4 and VP9/WebM,
+with runtime codec overrides. The headless browser request also lists AV1 and
+PNG frame delivery. Browser MP4 alpha is refused. No browser codec is counted
+as qualified from API presence.
+
+### Results on confirmed lavapipe
+
+The final changed-file run exited **1**: **16 passed, 6 failed, no skipped
+cases**. Node 24 came from `ntenv`. The adapter reports Mesa software,
+`llvmpipe-llvm-23-1-3-256-bits-`, Mesa 26.2.5, LLVM 23.1.3.
+
+| Route | Measured result |
+|---|---|
+| Original PNG ramp/low-alpha and H.264 ramp | Pass, unchanged assertions. |
+| PNG, JPEG, WebP input, untagged and sRGB ICC | Decoded-sample render/PNG delivery identity passes. PNG/WebP include alpha 0, 1, 2, 8, 16, 32, 128, 255. JPEG is opaque. |
+| P3 ICC PNG/JPEG/WebP input | Decoded-sample identity passes. This does not certify profile normalization. |
+| Profile-aware P3 PNG to sRGB reference | Fails, maximum RGB difference 55 codes versus allowance 2. |
+| Opaque H.264, VP9, ProRes | Import/render/delivery codec identity passes. Declared-transfer checks fail separately. |
+| ProRes 4444 alpha | Identity passes. Decoded alpha differs by at most 1 code. Actual stream is `yuva444p12le`, despite the requested `yuva444p10le`. |
+| VP9 alpha | Fails before rendering, maximum alpha difference 255. File advertises `alpha_mode=1`, but runtime RGBA decoding loses alpha. This does not isolate encoder versus decoder failure. |
+| H.264/VP9/ProRes declared BT.709 delivery | Fail, transfer errors 17/17/16 codes. Independent reference codec loss is 2/2/0 codes. |
+| HEVC MP4 override | Fails on the first encoded packet, before rendering or transfer comparison. No HEVC color result. |
+
+Still input loss is measured before rendering. Untagged and sRGB PNG have
+maximum error 0, JPEG 3, WebP 8 codes. P3 generation includes a deliberate
+profile transformation, so its source-to-decoder differences (117/119/115)
+are not ordinary codec loss and are not charged to the GPU. On lavapipe, all
+new decoded-sample rendering comparisons have maximum error 0 against the
+independent premultiplied-byte/straight-resolve oracle. PNG output has separate
+alpha-dependent codec tolerances. Video reference delivery encodes the
+independently computed expected rendering with the same codec settings.
+
+F1: Transfer conversion is missing for the asserted sRGB-origin to BT.709
+route. ffprobe observes limited range and BT.709 matrix, primaries and transfer
+on actual H.264, VP9 and ProRes files. The test independently decodes sRGB to
+linear and applies the BT.709 OETF, then encodes that reference with identical
+settings. Its separate codec-loss check passes. Actual delivery remains near
+the supplied sRGB codes rather than that BT.709 reference. The existing scaler
+converts matrix/range, not transfer. Failing assertions remain, tolerance 5.
+No conversion was added or changed.
+
+F2: The still loader accepts P3 ICC files, but measured P3 PNG import disagrees
+with a LittleCMS-backed sRGB normalization of the same encoded file by 55
+codes. Passing raw-sample identity is not passing profile handling. JPEG/WebP
+P3 normalization and other ICC profiles still need independent qualification.
+
+F3: VP9 alpha cannot pass this runtime decoder route. ProRes alpha passes the
+boundary fixture on lavapipe, but does not remove F1's transfer failure. HEVC
+needs a working runtime HEVC/MP4 mux path. Its exact error is
+`Failed to write packet: Not yet implemented in FFmpeg, patches welcome`.
+The test bounds x265's worker pool only, using
+`x265-params=pools=none:frame-threads=1`. It retains the production resolver's
+codec, pixel format, range filter and transfer tags. No test is skipped or
+converted into an expected failure.
+
+### Browser, native and device limits
+
+The existing Playwright Chromium launches headlessly, with no desktop windows.
+On a local HTTP origin, Chromium `148.0.7778.96` reports `navigator.gpu`, but
+`requestAdapter()` returns **null**. It used no WebGPU adapter. The probe used
+exactly the existing web Playwright launch arguments:
+`--enable-features=Vulkan,UseSkiaRenderer`, `--use-gl=angle`,
+`--use-angle=swiftshader`, `--enable-webgpu-developer-features`.
+The same result occurs with NVIDIA's environment and with confirmed lavapipe
+selection. No browser delivery test was added for this unavailable prerequisite.
+Qualification needs a headless Chromium setup that actually returns a WebGPU
+adapter, then real compositor upload/presentation and CanvasSource/WebCodecs
+export fixtures with decoded-output and metadata measurements. Neither browser
+preview nor delivery is counted as passed.
+
+The read-only `color-n2` report at
+`/home/mg/Projects/nodetool-film/wt/color-n2/docs/plans/color-precision/results/n2-native-export.md`
+records default-output equality but an unmet native exit gate, identity-edge
+failures and remaining spatial/transfer qualification. No native tests or
+native code were changed here. Native qualification needs that branch's
+completed capture/export work and its own decoded-delivery edge/reference
+checks. Native results were not imported as an S1 pass.
+
+An initial environment audit found that `ntenv` also sets `VK_DRIVER_FILES`
+to NVIDIA. That takes precedence over `VK_ICD_FILENAMES`. The initial run
+therefore measured RTX 3060, not lavapipe: 9 passed, 12 failed in 21 cases.
+Seven additional low-alpha render comparisons fail there, including decoded
+`[128,128,128,1]` becoming `[0,0,0,1]` versus the byte oracle's
+`[255,255,255,1]`. This is a measured cross-device disagreement, not evidence
+of a transfer conversion. The assertions were retained. The final run below
+explicitly unsets the override and verifies the adapter. Hardware parity is
+not established by the lavapipe pass.
+
+### Verification and remaining gate
+
+```bash
+cd /home/mg/Projects/nodetool-film/wt/color-s0
+source /home/mg/Projects/nodetool-film/bin/ntenv
+unset VK_DRIVER_FILES
+export VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json
+export LP_NUM_THREADS=2 NODETOOL_TEST_WORKERS=1
+npm test --workspace=packages/timeline -- tests/render.colorBoundary.gpu.test.ts \
+  --no-file-parallelism --reporter=verbose
+```
+
+Final log: `/home/mg/Projects/nodetool-film/tmp/a98-boundary-lavapipe-final.log`.
+`git diff --check` and a control-byte scan passed. Only the changed Vitest file
+was run. No dependencies were installed. `test:affected`, root typecheck,
+lint, harness gate, `/verify` and full suites were not run, as requested.
+
+A98 and S1 remain blocked by F1's declared-transfer failures, F2's profile
+normalization failure and unqualified JPEG/WebP/other profile conversion,
+F3's VP9 alpha and HEVC runtime paths, browser preview/delivery, native
+delivery and the NVIDIA low-alpha disagreement. SVG rasterization, AV1 where
+supported, and complete RenderTimeline route qualification remain outside the
+passing evidence. None is counted as passed. These require separate route
+qualification or product fixes, not weakened identity fixtures. S2 remains
+unstarted. No push was performed.
+
+Changed files in this round:
+
+- `packages/timeline/tests/render.colorBoundary.gpu.test.ts`
+- `docs/plans/color-precision/results/s1-runtime-interfaces.md`
