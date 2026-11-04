@@ -3013,6 +3013,9 @@ private slots:
         QJsonObject raw = model->timeline().raw;
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
+        QFile blocker(dir.filePath("blocked"));
+        QVERIFY(blocker.open(QIODevice::WriteOnly));
+        blocker.close();
         const auto banners = [&](nt::server::AutosaveController* saver) {
             QQmlComponent c(view->engine());
             c.setData("import QtQuick\nimport NodeTool.Timeline\nSaveBanners { width: 900 }", QUrl());
@@ -3048,9 +3051,9 @@ private slots:
         // A strip whose copy cannot be written: no claim of a copy.
         {
             http.setPost([&](const QByteArray&, const QByteArray&) { return stripOk; });
-            nt::server::SaveTarget t{http.base(), QString(), QStringLiteral("ui"), QStringLiteral("/dev/null/no-such-folder")};
+            nt::server::SaveTarget t{http.base(), QString(), QStringLiteral("ui"), dir.filePath("blocked/no-such-folder")};
             nt::server::AutosaveController saver(t, &undo, docFn, QStringLiteral("u0"));
-            saver.setQuitFallbackDirs({QStringLiteral("/dev/null/also-not")});
+            saver.setQuitFallbackDirs({dir.filePath("blocked/also-not")});
             saver.setAutosave(false);
             undo.push(new Bump(&value));
             const nt::server::SaveResult r = saver.saveNow();
@@ -3070,7 +3073,7 @@ private slots:
             const QString backup = dir.filePath(QStringLiteral("stale-copy"));
             nt::server::SaveTarget t{http.base(), QString(), QStringLiteral("ui"), backup};
             nt::server::AutosaveController saver(t, &undo, docFn, QStringLiteral("u0"));
-            saver.setQuitFallbackDirs({QStringLiteral("/dev/null/also-not")});
+            saver.setQuitFallbackDirs({dir.filePath("blocked/also-not")});
             saver.setAutosave(false);
             undo.push(new Bump(&value));
             const QJsonObject firstDoc = docFn();
@@ -3101,7 +3104,7 @@ private slots:
         // A fallback copy is named exactly, including its server/account scope.
         {
             http.setPost([&](const QByteArray&, const QByteArray&) { return stripOk; });
-            nt::server::SaveTarget t{http.base(), QString(), QStringLiteral("ui"), QStringLiteral("/dev/null/no-such-folder")};
+            nt::server::SaveTarget t{http.base(), QString(), QStringLiteral("ui"), dir.filePath("blocked/no-such-folder")};
             nt::server::AutosaveController saver(t, &undo, docFn, QStringLiteral("u0"));
             const QString fallback = dir.filePath(QStringLiteral("fallback"));
             saver.setQuitFallbackDirs({fallback});

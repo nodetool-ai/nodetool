@@ -1087,9 +1087,14 @@ private slots:
 
         doc.insert(QStringLiteral("updatedAt"), QStringLiteral("v2"));
         const QString folder = QFileInfo(backup).absolutePath();
-        QVERIFY(QFile::setPermissions(folder, QFileDevice::ReadOwner | QFileDevice::ExeOwner));
+        const QString held = folder + QStringLiteral("-held");
+        QVERIFY(QDir().rename(folder, held));
+        QFile blocker(folder);
+        QVERIFY(blocker.open(QIODevice::WriteOnly));
+        blocker.close();
         const ServerOpenResult second = openServerTimeline(options);
-        QFile::setPermissions(folder, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
+        QVERIFY(QFile::remove(folder));
+        QVERIFY(QDir().rename(held, folder));
         QVERIFY(second.timeline);  // a backup failure is not a load error
         QVERIFY2(!second.report.contains(QStringLiteral("rawDocument")), "a failed backup must not be reported as saved");
         QVERIFY(!second.report.value(u"rawDocumentError").toString().isEmpty());
