@@ -235,8 +235,12 @@ export function reconcileScriptClips(
   for (const { line, take } of voicedLines) {
     const existing = owned.get(line.id);
     if (!existing) continue;
+    const firstSourceMs = existing.reduce(
+      (first, fragment) => Math.min(first, fragment.inPointMs ?? 0),
+      Number.POSITIVE_INFINITY
+    );
     for (const fragment of existing) {
-      const clip = updateLineClip(fragment, input, line, take);
+      const clip = updateLineClip(fragment, input, line, take, firstSourceMs);
       if (clip !== fragment) updates.set(fragment.id, clip);
     }
   }
@@ -301,7 +305,8 @@ function updateLineClip(
   clip: TimelineClip,
   input: ScriptAssemblyInput,
   line: ScriptLine,
-  take: Take
+  take: Take,
+  firstSourceMs: number
 ): TimelineClip {
   const fresh = lineClip(input, line, take, clip.trackId, clip.startMs);
   const labels: Partial<TimelineClip> = {
@@ -328,6 +333,11 @@ function updateLineClip(
       ? {
           ...fresh.caption,
           words: fresh.caption.words.flatMap((word) => {
+            // Split words belong to the fragment containing their start. Only
+            // the first retained source window keeps a head-trimmed overlap.
+            if (inPointMs > firstSourceMs && word.startMs < inPointMs) {
+              return [];
+            }
             const startMs = Math.max(0, (word.startMs - inPointMs) / rate);
             const endMs = Math.min(clip.durationMs, (word.endMs - inPointMs) / rate);
             return endMs > startMs ? [{ ...word, startMs, endMs }] : [];

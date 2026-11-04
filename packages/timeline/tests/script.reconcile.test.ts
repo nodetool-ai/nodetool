@@ -87,6 +87,38 @@ describe("reconcileScriptClips", () => {
     }
   );
 
+  it.each([500, 3000])("keeps a crossing word on the left when the right fragment starts at %dms", (startMs) => {
+    const built = assembled([line("a", take("old", 1000))]);
+    const [left, right] = splitClip(built.clips[0], 500);
+    const replacement = {
+      ...take("new", 1000),
+      words: [
+        { word: "hello", startMs: 400, endMs: 600 },
+        { word: "there", startMs: 600, endMs: 900 }
+      ]
+    };
+    const result = reconcileScriptClips(
+      { ...built, clips: [{ ...right, startMs }, left] },
+      input([line("a", replacement)])
+    );
+    expect(result.clips[0].startMs).toBe(startMs);
+    expect(result.clips[0].caption?.words).toEqual([{ word: "there", startMs: 100, endMs: 400 }]);
+    expect(result.clips[1].caption?.words).toEqual([{ word: "hello", startMs: 400, endMs: 500 }]);
+  });
+
+  it("retains the overlapping word after a lone head trim", () => {
+    const built = assembled([line("a", take("old", 1000))]);
+    const trimmed = trimClip(built.clips[0], "start", -500);
+    const result = reconcileScriptClips(
+      { ...built, clips: [trimmed] },
+      input([line("a", {
+        ...take("new", 1000),
+        words: [{ word: "hello", startMs: 400, endMs: 600 }]
+      })])
+    );
+    expect(result.clips[0].caption?.words).toEqual([{ word: "hello", startMs: 0, endMs: 100 }]);
+  });
+
   it("preserves the surviving trimmed fragment and its playback rate", () => {
     const built = assembled([line("a", take("old", 1000))]);
     const sped = { ...built.clips[0], speedMultiplier: 2, durationMs: 500 };
