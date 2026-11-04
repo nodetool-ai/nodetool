@@ -13,6 +13,29 @@ namespace nt::effects {
 class TestWorkingPrecision : public QObject {
     Q_OBJECT
 private slots:
+    void scratchFormatStress() {
+        QRhiNullInitParams init;
+        auto rhi = std::unique_ptr<QRhi>(QRhi::create(QRhi::Null, &init));
+        QVERIFY(rhi);
+        motion::ScratchPool pool(64 * 32 * 8 * 3);
+        size_t peak = 0;
+        for (long long frame = 1; frame <= 600; ++frame) {
+            const auto format = frame % 2 ? WorkingFormat::Rgba16F : WorkingFormat::Rgba8;
+            const QSize size = frame % 3 ? QSize(64, 32) : QSize(32, 16);
+            const auto lease = pool.beginLease(frame);
+            auto a = pool.acquire(lease, rhi.get(), size, frame, nullptr, nullptr, nullptr, format);
+            QVERIFY(a);
+            auto b = pool.acquire(lease, rhi.get(), size, frame, a->texture.get(), nullptr, nullptr, format);
+            QVERIFY(b); QVERIFY(a != b);
+            QCOMPARE(a->texture->format(), format == WorkingFormat::Rgba16F ? QRhiTexture::RGBA16F : QRhiTexture::RGBA8);
+            auto reuse = pool.acquire(lease, rhi.get(), size, frame, b->texture.get(), nullptr, nullptr, format);
+            QCOMPARE(reuse, a);
+            peak = std::max(peak, pool.bytes());
+            pool.endLease(lease);
+            QVERIFY(pool.bytes() <= 64 * 32 * 8 * 3);
+        }
+        qInfo() << "scratch stress peak texture bytes" << peak << "slots" << pool.size();
+    }
     void ancillaryFloatStages() {
         QRhiNullInitParams init;
         auto rhi = std::unique_ptr<QRhi>(QRhi::create(QRhi::Null, &init));
