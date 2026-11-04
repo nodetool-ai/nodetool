@@ -631,3 +631,245 @@ Changed files:
 - `packages/timeline/tests/render.workingPrecision.gpu.test.ts`
 - `packages/timeline/tests/workingCapture.ts`
 - `docs/plans/color-precision/results/s2-working-chain.md`
+
+## A28 parameter and saturation qualification
+
+S2's exit gate is **not met**. This continuation extends qualification and fixes
+two FP16 defects. It does not close complete-chain and caller qualification.
+A88 is implemented, so its earlier absence is no longer a blocker.
+
+### Scope and tolerances
+
+The new GPU matrix enumerates shader and recipe exports, tests declared scalar
+parameter endpoints, colour vectors, and explicit kernels, tables, transforms,
+noise, denoise and visual-effect modes. Inputs include 0, 1/255, 2/255,
+254/255 and 1, spatial edges, and alpha 0, 1, 2, 128, 254 and 255 codes.
+Working input colours obey their declared alpha contract. Fixed sources and
+masks remain byte resources. Bicubic and nearest resize use 16-to-23 scaling.
+Each result records raw samples, minimum, maximum, non-finite count and parity.
+
+The timeline matrix reuses the authored cases from
+`packages/timeline/tests/render.parity.gpu.test.ts`, with an additional extreme
+variant per effect and every blend mode. It asserts coverage against
+CLIP_EFFECT_TYPES. All stylize and generator modes are included. Deflicker and
+stabilize reuse their non-neutral analysis fixtures rather than fabricating
+new analysis. Both opaque and transparent source edges render over an opaque
+coloured background. This is not transparent-delivery qualification.
+The agent render fixture in `packages/agents/tests/capabilities-timeline-render.test.ts`
+checks clip timing and encoded output, not individual effect math. It was
+inspected but not executed under this task's restricted test scope.
+
+Compatibility uses the existing timeline parity limit of three codes mean
+absolute error. Module comparisons use the same limit. Geometry additionally
+uses a two-code maximum, with an independent texel-center oracle for nearest
+resize. Posterize's module fixture uses a one-code maximum and an exact
+half-intensity numerical assertion. These compare compatibility and geometry,
+not precision improvement. RGBA8 is not used as a precision-benefit oracle.
+Every raw float probe requires finite values in [0,1]. No existing assertion,
+tolerance, skip or expected-failure marker changed.
+
+### Reproduced defects and fixes
+
+F15. Bicubic resize wrote negative and above-one values to FP16. The lavapipe
+reproduction measured -0.07745361328125 to 1.1630859375. Catmull-Rom's negative
+weights explain these excursions. They are not legitimate stored SDR values
+under D10 because later passes previously consumed UNORM-saturated samples.
+The FP16 shader now clamps all four components to [0,1] at that output.
+It does not clamp RGB to alpha, which would change the byte path's semantics.
+The new range assertions failed before this fix.
+
+F16. NVIDIA Posterize put exact half-intensity premultiplied samples in the
+lower bin in FP16. At two levels the local error was 254 codes. The fixture's
+127/255 red and 254/255 alpha promote to an exact ratio of one half.
+The FP16 specialization checks the candidate bin against multiplied boundaries,
+correcting quotient rounding without an epsilon or a new threshold. The
+one-code assertion failed before the fix. An independent calculation requires
+that this exact half-intensity sample quantize to one before premultiplication.
+
+ShaderModule has an optional internal working shader specialization. Both
+specializations pass the existing premultiplication validator. Byte mode still
+returns the original module. The resolved RGBA8 snapshot covers every shader
+and remains unchanged. There is no persisted schema, transfer, linear-light,
+setting or default change. FP16 remains opt-in.
+
+F17. Lavapipe's RGBA8 nearest resize selects the left neighbour at output
+(11,22) in the 16-to-23 fixture. FP16 and both NVIDIA formats select source
+x=8, as the independent texel-center calculation requires. The byte/float local
+delta is 128 codes. This is a geometry baseline disagreement, not lost FP16
+colour precision. The new geometry test initially used byte pixels as its
+oracle and failed. It now retains the same two-code maximum against computed
+texel coordinates. The byte difference remains in the artifacts.
+
+### Unclamped-module decisions
+
+The plan's 29-module figure is historical. Repeating the WGSL-call inspection
+at this task's starting commit identifies the following 30 module files,
+including recipes without their own WGSL. Gaussian sharpen is included too.
+This enumeration does not treat a historical count as a coverage assertion.
+Each row states the decision for stored encoded-SDR colour. Internal signed
+coordinates and kernel arithmetic are separate from stored colour.
+No row authorizes out-of-range stored output. Decisions assume valid bounded
+parameters and alpha contracts, not arbitrary malformed inputs.
+
+| Module | Decision and reason |
+|---|---|
+| _canary.passthrough | No clamp needed for normalized tint. Multiplication cannot increase a bounded component. |
+| alpha.premulToStraight | No clamp needed for valid premultiplied input. Division recovers bounded straight colour, with zero-alpha handling. |
+| alpha.straightToPremul | No clamp needed. Bounded colour times bounded alpha remains bounded. |
+| color.channelShuffle | No clamp needed for valid premultiplied input. Selects straight channels and premultiplies by selected alpha. |
+| color.channelSplit | No clamp needed. Selects a bounded straight channel or a normalized weighted luma. |
+| color.grayscale | No clamp needed. Normalized luma and interpolation remain bounded. |
+| color.invert | No clamp needed. One minus bounded straight colour and coverage interpolation remain bounded. |
+| color.solarize | No clamp needed. Selects original or inverted bounded straight colour. |
+| filters.blur.gaussianSeparable | No additional recipe clamp. Its Gaussian passes use positive normalized weights. |
+| filters.glow | No additional recipe clamp. Threshold attenuates, blur averages, and mixer.add explicitly clamps. |
+| filters.pixelate | No clamp needed. Samples and interpolates bounded colour and alpha. |
+| filters.sharpen.gaussian | No additional recipe clamp. Gaussian intermediates average, and sharpen.combine explicitly clamps. |
+| filters.threshold | No clamp needed. Smoothstep coverage attenuates both colour and alpha. |
+| keyer.lumaKey | No clamp needed. Product of bounded coverage terms attenuates both colour and alpha. |
+| mask.apply | No clamp needed. Fixed coverage or its complement attenuates both colour and alpha. |
+| mixer.dropShadow | No additional recipe clamp. Mask intermediates stay byte, and shadowCompose bounds shadow alpha. |
+| mixer.outline | No clamp needed for normalized authored colour. Selects source, premultiplied outline or zero. |
+| mixer.over | No clamp needed for valid premultiplied inputs and opacity. Source-over remains bounded. |
+| sources.angularGradient | Fixed byte source. Convex interpolation of bounded endpoints is already bounded. |
+| sources.checkerboard | Fixed byte source. Selects one bounded authored colour. |
+| sources.solid | Fixed byte source. Returns bounded authored colour. |
+| transform.affine | No clamp needed. Bilinear sampling or transparent black is bounded. |
+| transform.cornerPin | No clamp needed. Guarded coordinate division selects bounded sampling or transparent black. |
+| transform.crop | No clamp needed. Bilinear sampling or transparent black is bounded. |
+| transform.displace | No clamp needed. Signed displacement changes coordinates, not sampled component bounds. |
+| transform.mirror | No clamp needed. Reflection changes coordinates only. |
+| transform.pad | No clamp needed for bounded fill colour. Selects fill or sampled input. |
+| transform.polarRemap | No clamp needed. Coordinate remapping selects a bounded sample or zero. |
+| transform.rotate90 | No clamp needed. Permutes sample coordinates. |
+| transform.spherize | No clamp needed. Warped coordinates select a bounded sample or zero. |
+
+Bicubic resize was outside this lexical list because its WGSL clamps sample
+coordinates. Its output was not clamped. F15 demonstrates why searching for a
+clamp call cannot qualify output bounds. Non-premultiplied intermediates,
+unbounded caller parameters and arbitrary multi-effect combinations remain
+outside the decisions above.
+
+### Final measured results
+
+Adapters: lavapipe llvmpipe, Mesa 26.2.5, LLVM 23.1.3, and NVIDIA RTX 3060,
+driver 610.57.04. Both ran the same 361 module cases and 210 timeline cases.
+All module outputs are finite and within [0,1] after the fixes.
+
+The following entries are code-value errors. Mean entries are the largest
+case mean in each family, not an average that dilutes a failing case. Sources
+and fixed masks retain byte outputs. Cross-adapter values compare raw outputs.
+
+| Family | Cases | Lavapipe parity max / mean | RTX 3060 parity max / mean | Cross-adapter raw max / mean |
+|---|---:|---:|---:|---:|
+| _canary | 2 | 0.0117 / 0.0008 | 0.0117 / 0.0008 | 0.0000 / 0.0000 |
+| alpha | 2 | 0.5000 / 0.0567 | 0.5019 / 0.0569 | 0.1245 / 0.0022 |
+| color | 122 | 1.0000 / 0.1347 | 0.8794 / 0.1355 | 0.1245 / 0.0088 |
+| filters | 98 | 3.1782 / 0.7853 | 3.8848 / 0.7835 | 32.0618 / 0.2335 |
+| keyer | 13 | 0.6138 / 0.1698 | 0.6143 / 0.1720 | 0.0010 / 0.0000 |
+| mask | 7 | 1.0000 / 0.0039 | 0.0117 / 0.0008 | 1.0000 / 0.0215 |
+| mixer | 34 | 0.5029 / 0.1272 | 0.5098 / 0.1283 | 1.6187 / 0.1186 |
+| sources | 34 | 0.0000 / 0.0000 | 0.0000 / 0.0000 | 17.0000 / 0.1309 |
+| transform | 49 | 128.0000 / 0.3995 | 0.5598 / 0.3016 | 1.0000 / 0.1005 |
+
+Lavapipe timeline delivery: maximum local byte/float difference 128
+codes, largest case mean 0.781250 codes.
+
+RTX 3060 timeline delivery: maximum local byte/float difference 128
+codes, largest case mean 0.781250 codes.
+
+Across adapters, timeline FP16 delivery differs by at most 1 code,
+with largest case mean 0.083225 codes.
+
+F18. The timeline's local 128-code difference is Posterize at a bin boundary
+on both adapters. Unlike F16, storage promotion moves a source value below a
+threshold before the operation. For example, 170/255 is 2/3, but its binary16
+representation is 0.66650390625. Three-level Posterize therefore sees a value
+below its 2/3 boundary. This is precision-sensitive input to a discontinuous
+effect. Changing its threshold or rounding every float input back to bytes
+would need a semantics decision. Neither was done. The three-code mean passes,
+but does not qualify this local visible change. A28 remains open for that reason.
+
+The largest cross-adapter raw filter difference is legacy grain@1. The largest
+source difference is Gaussian noise. Both also differ in RGBA8, so these are
+not demonstrated FP16-only regressions. This matrix records them rather than
+claiming cross-adapter pixel identity. Timeline FP16 delivery is within one
+code across adapters on its different fixtures.
+
+### Previously recorded NVIDIA cases
+
+The seven colour-boundary failures are PNG untagged, PNG sRGB, PNG P3, WebP
+untagged, WebP sRGB, WebP P3, and MOV with alpha=true. Their complete test names
+remain F8–F14 above. They are low-alpha colour reconstruction disagreements,
+with previously measured maximum error 255. The seven grain cases F1–F7 compare
+CPU/GPU grain parameters and have much smaller quantization differences.
+They are not the same demonstrated failure mechanism. F16 is another numerical
+boundary issue, but this experiment does not establish a common driver cause.
+Those fourteen existing cases were not rerun in this continuation because their
+source files were not changed. Their prior evidence remains open.
+
+### Verification and remaining gate work
+
+Each adapter passed 180 tests across the six selected GPU files and the one
+new timeline test containing 210 cases. The GPU range matrix contains 361
+cases inside one test. GPU and timeline package typechecks passed. The GPU
+package alone was rebuilt so timeline tests loaded the current shader changes.
+Negative runs failed for bicubic bounds on lavapipe and exact Posterize bins on
+NVIDIA. The resolved RGBA8 snapshot and existing shader pixel tests passed.
+This establishes byte compatibility for the checked shaders and pixel fixtures,
+not every caller or every possible picture.
+
+A1. Resolve F18's visible Posterize boundary difference without changing effect
+meaning. Add independent numerical expectations for the remaining effect
+families, rather than relying on a global mean comparison alone.
+
+A2. Qualify arbitrary multi-effect chains and host callers, including browser
+presentation, native execution and encoded delivery. The current matrix covers
+single clip effects, nested recipes and blend modes, not new full-stack host
+fixtures. Agent migration remains A91's separate gate.
+
+A3. Resolve or explicitly qualify the recorded hardware grain, noise and
+low-alpha boundary disagreements. Keep geometry failures separate from
+precision measurements. Test intermediates that violate premultiplied bounds
+before concluding that alpha conversion needs no saturation in every chain.
+
+A4. Recheck realistic output after these fixes. The prior dark-fade benefit
+remains recorded, but the A81 scenes were not rerun here. Sky and grade/glow
+still have no established visible improvement. Do not start S3 on a claim that
+S2's exit gate has passed.
+
+Commands used `source /home/mg/Projects/nodetool-film/bin/ntenv`,
+`LP_NUM_THREADS=2` and `NODETOOL_TEST_WORKERS=1`. Lavapipe set both
+VK_ICD_FILENAMES and VK_DRIVER_FILES to
+`/usr/share/vulkan/icd.d/lvp_icd.json`. NVIDIA retained ntenv's selection.
+Vitest used `npm test --workspace=packages/<gpu|timeline> -- <files>
+--no-file-parallelism`. Typechecks used
+`node scripts/run-tsc.mjs -p packages/<gpu|timeline>/tsconfig.json --noEmit`.
+
+Selected GPU files: a28Parameters.test.ts, workingFormat.test.ts,
+module.test.ts, batch3Transforms.test.ts, batch1Modules.test.ts and
+shaderCorrectness.test.ts. Selected timeline file: render.a28.gpu.test.ts.
+
+Artifacts are under `/home/mg/Projects/nodetool-film/tmp/color-s2/`:
+`a28-{lvp,nvidia}.json`, `a28-timeline-{lvp,nvidia}.json`,
+`a28-final-{lvp,nvidia}.log`, `a28-timeline-{lvp,nvidia}.log`,
+`a28-negative.log`, `a28-posterize-negative.log`,
+`a28-{gpu,timeline}-tsc.log`, `a28-gpu-build.log` and `a28-summary.txt`.
+JSON contains per-case pixels and metrics, allowing direct adapter comparison.
+
+Not run: test:affected, root typecheck, lint, harness gate, /verify and full
+suites. No push was performed. All edits are confined to color-s0 on film/color-s2.
+
+Changed files:
+
+- `packages/gpu/src/module.ts`
+- `packages/gpu/src/workingFormat.ts`
+- `packages/gpu/src/shaders/transform/resize/v1/module.ts`
+- `packages/gpu/src/shaders/color/posterize/v1/module.ts`
+- `packages/gpu/tests/workingFormat.test.ts`
+- `packages/gpu/tests/a28Parameters.test.ts`
+- `packages/timeline/tests/render.a28.gpu.test.ts`
+- `docs/plans/color-precision/results/s2-working-chain.md`
+
+GPU fix and module reproduction commit: `0290962a42`.
+The timeline matrix and this report are in the following qualification commit.
