@@ -58,7 +58,10 @@ strict-export failure, noncontiguous outputs, and exceptional values. Check outp
 records compile and execution measurements without assuming a speedup. Host RSS
 is the process high-water mark. CUDA allocator peak memory is not measured.
 
-Only trusted local graphs and artifacts are supported. Packages contain native
+Only trusted local graphs and artifacts are supported. CPU packages must remain
+on their build host. Architecture and Torch capability checks do not guarantee
+portability to another CPU. Rebuild packages after changing the host compiler
+or its toolchain. Packages contain native
 executable code. The manifest does not sandbox it. There is no device or eager
 fallback. Dynamic shapes, training, custom operators, arbitrary model imports,
 audio, shader languages, diffusion orchestration, and Comfy import are outside

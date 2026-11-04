@@ -40,7 +40,7 @@ Store a small manifest beside the package with ordered input/output names, shape
 
 Start with one in-flight call per executable and a synchronous host-facing interface. Let the packaged runtime manage intermediates and output allocation. Do not introduce caller-owned scratch buffers, a custom tensor ABI, or promises of allocation-free execution. Fail loading or execution explicitly rather than falling back to another device or backend.
 
-Hash the normalized graph, input signatures, constants and weights, target, compiler options, and toolchain versions. Exclude editor positions and labels. Validate before cache lookup and publish completed artifacts atomically. Compile and load only trusted local artifacts initially; native packages are executable code, not a sandbox.
+Hash the normalized graph, input signatures, constants and weights, target, compiler options, and toolchain versions. Exclude editor positions and labels. Validate before cache lookup and publish completed artifacts atomically. Compile and load only trusted local artifacts initially; native packages are executable code, not a sandbox. CPU packages remain on the build host. Architecture and Torch capability checks do not guarantee portability. Rebuild after changing the host compiler or toolchain.
 
 ## D5. Keep four golden tests
 
