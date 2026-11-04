@@ -30,6 +30,17 @@ export const shotDownloadName = (
   return `shot-${number}-${kind}.${ext}`;
 };
 
+/** `scene-clip-shots-02-04.mp4` — the run's place in its scene. */
+export const sceneClipDownloadName = (
+  startIndex: number,
+  shotCount: number,
+  url: string
+): string => {
+  const number = (index: number): string => String(index + 1).padStart(2, "0");
+  const last = startIndex + shotCount - 1;
+  return `scene-clip-shots-${number(startIndex)}-${number(last)}.${extensionFor(url, "mp4")}`;
+};
+
 const clickDownload = (href: string, filename: string): void => {
   const anchor = document.createElement("a");
   anchor.href = href;

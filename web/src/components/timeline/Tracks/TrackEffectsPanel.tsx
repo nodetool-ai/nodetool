@@ -65,7 +65,8 @@ import {
   BatchedColorInput,
   FONT_WEIGHT,
   FONT_SIZE_SANS,
-  EYEBROW
+  EYEBROW,
+  ICON_SIZE
 } from "../../ui_primitives";
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 import {
@@ -152,7 +153,7 @@ const dragHandleStyles = (theme: Theme) =>
     alignItems: "center",
     "&:active": { cursor: "grabbing" },
     "&:hover": { color: theme.vars.palette.text.secondary },
-    "& svg": { fontSize: 16 }
+    "& svg": { fontSize: ICON_SIZE.sm }
   });
 
 const effectHeaderStyles = css({
@@ -178,7 +179,7 @@ const iconButtonStyles = (theme: Theme, disabled = false) =>
         ? theme.vars.palette.text.disabled
         : theme.vars.palette.text.primary
     },
-    "& svg": { fontSize: 14 }
+    "& svg": { fontSize: ICON_SIZE.xs }
   });
 
 const addButtonStyles = (theme: Theme) =>
@@ -196,7 +197,7 @@ const addButtonStyles = (theme: Theme) =>
     "&:hover": {
       filter: "brightness(1.1)"
     },
-    "& svg": { fontSize: 14 }
+    "& svg": { fontSize: ICON_SIZE.xs }
   });
 
 const paramRowStyles = css({

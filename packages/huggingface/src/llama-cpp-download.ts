@@ -22,20 +22,11 @@
 import * as fsp from "node:fs/promises";
 import * as path from "node:path";
 
-import { getLlamaCppCacheDir as getConfigLlamaCppCacheDir } from "@nodetool-ai/config";
+import { getLlamaCppCacheDir } from "@nodetool-ai/config";
 
 // ---------------------------------------------------------------------------
 // Cache directory helpers
 // ---------------------------------------------------------------------------
-
-/**
- * Return the llama.cpp cache directory. Delegates to `getLlamaCppCacheDir`
- * in `@nodetool-ai/config`, which honours `LLAMA_CACHE` and `XDG_CACHE_HOME`
- * the way llama.cpp does.
- */
-export function getLlamaCppCacheDir(): string {
-  return getConfigLlamaCppCacheDir();
-}
 
 /**
  * Compute the flat cache filename for a model.

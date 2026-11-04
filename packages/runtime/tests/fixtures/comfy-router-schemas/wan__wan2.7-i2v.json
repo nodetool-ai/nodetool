@@ -1,0 +1,439 @@
+{
+ "components": {
+  "schemas": {
+   "WanTaskQueryResponse": {
+    "properties": {
+     "output": {
+      "properties": {
+       "actual_prompt": {
+        "description": "Actual prompt after intelligent rewriting (for video tasks)",
+        "type": "string"
+       },
+       "check_audio": {
+        "description": "Audio URL for I2V tasks with audio generation",
+        "type": "string"
+       },
+       "code": {
+        "description": "The error code for the failed request (not returned if request is successful)",
+        "type": "string"
+       },
+       "end_time": {
+        "description": "Task completion time",
+        "type": "string"
+       },
+       "message": {
+        "description": "Detailed information about the failed request (not returned if request is successful)",
+        "type": "string"
+       },
+       "orig_prompt": {
+        "description": "Original input prompt (for video tasks)",
+        "type": "string"
+       },
+       "results": {
+        "description": "List of task results for image generation tasks",
+        "items": {
+         "properties": {
+          "actual_prompt": {
+           "description": "Actual prompt after intelligent rewriting (if enabled)",
+           "type": "string"
+          },
+          "code": {
+           "description": "Image error code (returned when some tasks fail)",
+           "type": "string"
+          },
+          "message": {
+           "description": "Image error information (returned when some tasks fail)",
+           "type": "string"
+          },
+          "orig_prompt": {
+           "description": "Original input prompt",
+           "type": "string"
+          },
+          "url": {
+           "description": "Generated image URL address",
+           "type": "string"
+          }
+         },
+         "type": "object"
+        },
+        "type": "array"
+       },
+       "scheduled_time": {
+        "description": "Task execution time",
+        "type": "string"
+       },
+       "submit_time": {
+        "description": "Task submission time",
+        "type": "string"
+       },
+       "task_id": {
+        "description": "Task ID",
+        "type": "string"
+       },
+       "task_metrics": {
+        "description": "Task result statistics for image generation tasks",
+        "properties": {
+         "FAILED": {
+          "description": "Number of failed tasks",
+          "type": "integer"
+         },
+         "SUCCEEDED": {
+          "description": "Number of successful tasks",
+          "type": "integer"
+         },
+         "TOTAL": {
+          "description": "Total number of tasks",
+          "type": "integer"
+         }
+        },
+        "type": "object"
+       },
+       "task_status": {
+        "description": "Task status",
+        "enum": [
+         "PENDING",
+         "RUNNING",
+         "SUCCEEDED",
+         "FAILED",
+         "CANCELED",
+         "UNKNOWN"
+        ],
+        "type": "string"
+       },
+       "video_url": {
+        "description": "Video URL for completed video generation tasks. Link validity period 24 hours",
+        "type": "string"
+       }
+      },
+      "required": [
+       "task_id",
+       "task_status"
+      ],
+      "type": "object"
+     },
+     "request_id": {
+      "description": "Unique request identifier",
+      "type": "string"
+     },
+     "usage": {
+      "description": "Output information statistics. Only successful results are counted",
+      "properties": {
+       "SR": {
+        "description": "Video resolution level (I2V and wan3.0-video tasks)",
+        "type": "integer"
+       },
+       "duration": {
+        "description": "Duration of generated video in seconds (I2V and wan3.0-video tasks)",
+        "type": "number"
+       },
+       "fps": {
+        "description": "Frame rate of the generated video (wan3.0-video tasks)",
+        "type": "integer"
+       },
+       "image_count": {
+        "description": "Number of generated images (T2I and I2I tasks)",
+        "type": "integer"
+       },
+       "input_video_duration": {
+        "description": "Duration of the input video in seconds, 0.0 when no video input (wan3.0-video tasks)",
+        "type": "number"
+       },
+       "output_video_duration": {
+        "description": "Duration of the output video in seconds (wan3.0-video tasks)",
+        "type": "number"
+       },
+       "ratio": {
+        "description": "Aspect ratio of the generated video, e.g. 16:9 (wan3.0-video tasks)",
+        "type": "string"
+       },
+       "size": {
+        "description": "Image resolution (T2I and I2I tasks)",
+        "type": "string"
+       },
+       "video_count": {
+        "description": "Number of generated videos (T2V tasks)",
+        "type": "integer"
+       },
+       "video_duration": {
+        "description": "Duration of generated video in seconds (T2V tasks)",
+        "type": "number"
+       },
+       "video_ratio": {
+        "description": "Video resolution ratio (T2V tasks)",
+        "type": "string"
+       }
+      },
+      "type": "object"
+     }
+    },
+    "required": [
+     "request_id",
+     "output"
+    ],
+    "type": "object"
+   }
+  },
+  "securitySchemes": {
+   "ApiKeyAuth": {
+    "in": "header",
+    "name": "X-API-Key",
+    "type": "apiKey"
+   },
+   "BearerAuth": {
+    "bearerFormat": "JWT",
+    "scheme": "bearer",
+    "type": "http"
+   }
+  }
+ },
+ "info": {
+  "description": "The request body Comfy Router accepts for the model \"wan/wan2.7-i2v\", and the response body it returns. The INPUT schema is the same schema the server validates a call against before it reaches the provider, so what is published and what is enforced cannot differ. `x-comfy-router-input-modalities` records the media kinds the model is documented to accept; the request schema is shared across sibling models and may admit media kinds this model ignores. The OUTPUT schema describes the provider's native result document exactly as Router returns it: Router does not validate, narrow or re-envelope the response, so the output schema is descriptive rather than enforced, and Comfy owns no output shape of its own.",
+  "title": "wan/wan2.7-i2v",
+  "version": "739204752311"
+ },
+ "openapi": "3.0.2",
+ "paths": {
+  "/v2/models/wan/wan2.7-i2v": {
+   "post": {
+    "operationId": "runRouterModel",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "description": "The Wan / HappyHorse video-generation fields, shared by the v1 `POST /proxy/wan/api/v1/services/aigc/video-generation/video-synthesis` request body and the Comfy Router input schema. This is a shared validation floor, not the complete contract of each provider model. Image-to-video, reference-to-video and editing models need model-specific reference inputs; supported resolutions and duration ranges also vary by model. The proxy additionally requires parameters with a recognized size or resolution for billing. Schema acceptance alone does not imply provider acceptance.\n`required` here is the ROUTER-SAFE floor: `model` is absent from it because Router writes the path's model into the body after routervalidate.Guard has already validated the caller's bytes. The v1 wrapper `WanVideoGenerationRequest` re-adds it.",
+        "properties": {
+         "input": {
+          "description": "Enter basic information, such as prompt words, etc.",
+          "properties": {
+           "audio_url": {
+            "description": "Audio file download URL. Supported formats: mp3 and wav. Cannot be used with reference_video_urls.",
+            "type": "string"
+           },
+           "img_url": {
+            "description": "First frame image URL or Base64 encoded data. Required for the wan2.5-i2v-preview and\nwan2.6-i2v models. The happyhorse-1.x i2v spellings do NOT take their first frame here\n-- they take it as a media element of type first_frame (see media below), and an\nimg_url body that succeeds on wan2.6-i2v is refused by the provider on\nhappyhorse-1.0-i2v and happyhorse-1.1-i2v -- and the wan2.7/wan3.0 spellings take their\nreference assets in media as well. Image formats: JPEG, JPG, PNG, BMP, WEBP.\nResolution: 360-2000 pixels. File size: max 10MB.\n",
+            "type": "string"
+           },
+           "media": {
+            "description": "Media asset list. Specifies reference materials (image, audio, video) for video\ngeneration. Each element contains a type and url field. This field is shared by every\nmodel served from this component, and which type values a given model accepts -- and\nwhether it carries its image or video input here at all rather than in img_url or\nreference_video_urls -- varies by model. Supported type values, per model:\n- wan2.7-i2v: first_frame, last_frame, driving_audio, first_clip. first_frame and\n  last_frame: JPEG/JPG/PNG/BMP/WEBP, 240-8000 pixels per side, aspect ratio between 1:8\n  and 8:1, at most 20MB, a public URL or a data:{MIME_type};base64,... URL.\n  driving_audio (WAV/MP3, 2-30 seconds, at most 15MB) and first_clip (MP4/MOV, 2-10\n  seconds, 240-4096 pixels per side, at most 100MB): a public HTTP/HTTPS URL; an inline\n  data: URL is not accepted.\n- wan2.7-r2v: first_frame (optional, max 1), reference_image, reference_video. At least\n  one reference_image or reference_video is required, and reference images plus\n  reference videos total at most 5. first_frame and reference_image: JPEG/JPG/PNG/BMP/WEBP\n  (no alpha channel), 240-8000 pixels per side, aspect ratio between 1:8 and 8:1, at most\n  20MB, a public URL or a data:{MIME_type};base64,... URL. reference_video: a public\n  HTTP/HTTPS URL; an inline data: URL is not accepted.\n- wan2.7-videoedit: video (exactly 1, the clip being edited: MP4/MOV, 2-10 seconds,\n  240-4096 pixels per side, at most 100MB, a public HTTP/HTTPS URL; an inline data: URL\n  is not accepted) plus an optional 0 to 4 reference_image (JPEG/JPG/PNG/BMP/WEBP,\n  240-8000 pixels per side, aspect ratio between 1:8 and 8:1, at most 20MB, a public URL\n  or a data:{MIME_type};base64,... URL).\n- wan3.0-video, wan3.0-video-prime: first_frame (max 1), last_frame (max 1),\n  reference_image (max 10), reference_video (max 5 clips, total duration <= 15s),\n  reference_audio (max 5 clips, total duration <= 15s), file (max 1, cannot be used\n  with link), link (max 1, cannot be used with file). The reference_*/file/link types\n  and first_frame/last_frame types are mutually exclusive within the same request. The\n  array order defines the reference order of assets in the prompt (Image 1, Video 1,\n  Audio 1, ...). first_frame, last_frame and reference_image: JPEG/JPG/PNG/BMP/WEBP,\n  240-8000 pixels per side, aspect ratio at most 8:1, at most 20MB, a public URL or a\n  data:{MIME_type};base64,... URL. reference_video, reference_audio, file and link: a\n  public HTTP/HTTPS URL; an inline data: URL is not accepted.\n- happyhorse-1.0-i2v, happyhorse-1.1-i2v: first_frame only, exactly 1. These spellings\n  take their first frame HERE and not in img_url. At least 300x300 pixels, aspect ratio\n  between 1:2.5 and 2.5:1, JPEG/JPG/PNG/WEBP, at most 20MB, a public URL or a\n  data:{MIME_type};base64,... URL.\n- happyhorse-1.0-r2v, happyhorse-1.1-r2v: reference_image only, 1 to 9 of them. This is\n  the model's only reference input. Shortest side at least 400 pixels, JPEG/JPG/PNG/WEBP,\n  at most 20MB, a public URL or a data:{MIME_type};base64,... URL. reference_video is\n  not an input type for this operation.\n- happyhorse-1.0-video-edit: video (exactly 1, the clip being edited: MP4/MOV, 3-60\n  seconds, longer side at most 4096 pixels, shorter side at least 360 pixels, aspect\n  ratio between 1:2.5 and 2.5:1, at most 100MB, a public HTTP/HTTPS URL; an inline data:\n  URL is not accepted) plus an optional 0 to 5 reference_image (JPEG/JPG/PNG/WEBP, at\n  least 300x300 pixels, aspect ratio between 1:2.5 and 2.5:1, at most 20MB, a public URL\n  or a data:{MIME_type};base64,... URL).\n- happyhorse-1.0-t2v, happyhorse-1.1-t2v, wan2.7-t2v, wan2.6-t2v, wan2.5-t2v-preview:\n  text-to-video operations. Their partner references document no media input, so leave\n  this field unset.\n- wan2.5-i2v-preview, wan2.6-i2v, wan2.6-r2v: this component enumerates no media\n  vocabulary for these spellings. wan2.5-i2v-preview and wan2.6-i2v take their first\n  frame in img_url; wan2.6-r2v takes its reference clips in reference_video_urls.\nThe per-model counts above are the partner's constraints, not this schema's: no\nminItems/maxItems is declared on media, because the admissible types and their caps\ndiffer per model. Schema acceptance does not imply provider acceptance -- and, in the\nother direction, the per-asset \"at most 20MB\" figures above -- the ceiling on the image\ninputs, the only inputs that may be sent inline -- are the partner's ceiling on the\nasset it ends up with, and they apply as written when the asset is a public URL,\nbecause those bytes never travel through Comfy. An inline data:{MIME_type};base64,...\nURL does travel through Comfy and meets a transport ceiling as well: a Comfy Router\nPOST body is capped at 100 MiB in total and answered 413 past it, and base64 inflates a\npayload by about 4/3, so a single inline asset above roughly 75 MB is refused before any\nof the partner rules here are reached. At that size a single asset at the partner's own\n20MB ceiling fits inline comfortably, so the partner rule is what binds for one asset --\nthe transport ceiling binds across several of them, since the 100 MiB Router cap bounds\nthe WHOLE request rather than each element. Send anything near these ceilings as a\npublic URL.\n",
+            "items": {
+             "properties": {
+              "type": {
+               "description": "Media asset type",
+               "enum": [
+                "first_frame",
+                "last_frame",
+                "driving_audio",
+                "first_clip",
+                "reference_image",
+                "reference_video",
+                "reference_audio",
+                "video",
+                "file",
+                "link"
+               ],
+               "type": "string"
+              },
+              "url": {
+               "description": "URL of the media file: a public HTTP/HTTPS URL, or -- for exactly the IMAGE inputs the `media` description above lists for each model: first_frame and last_frame on wan2.7-i2v; first_frame and reference_image on wan2.7-r2v; reference_image on wan2.7-videoedit; first_frame, last_frame and reference_image on wan3.0-video and wan3.0-video-prime; first_frame on happyhorse-1.0-i2v and happyhorse-1.1-i2v; reference_image on happyhorse-1.0-r2v and happyhorse-1.1-r2v; and reference_image on happyhorse-1.0-video-edit -- an inline `data:{MIME_type};base64,...` URL. No video, audio, file or link input on any of these models takes an inline data: URL. An oss://dashscope-instant temporary URL from the partner's own upload service, or (on wan2.7-videoedit) an Asset Center asset_id, resolves only against the Alibaba Cloud account that uploaded it; Comfy makes the model call with its own key and exposes no upload route, so a caller's own oss:// URL or asset_id is not a supported input. This field does not validate the URL scheme, so such a value is forwarded to the partner as-is rather than rejected here. See the `media` description for the per-model size and pixel limits and for the 100 MiB Router request-body cap that bounds an inline payload in aggregate.",
+               "type": "string"
+              }
+             },
+             "required": [
+              "type",
+              "url"
+             ],
+             "type": "object"
+            },
+            "type": "array"
+           },
+           "negative_prompt": {
+            "description": "Reverse prompt words are used to describe content that you do not want to see in the video screen",
+            "maxLength": 500,
+            "type": "string"
+           },
+           "prompt": {
+            "description": "Text prompt words. Support Chinese and English, length not exceeding 800 characters\n(up to 20,000 characters for wan3.0-video; content exceeding the limit is truncated).\nFor wan2.6-r2v with multiple reference videos, use 'character1', 'character2', etc. to refer to subjects\nin the order of reference videos. Example: \"Character1 sings on the roadside, Character2 dances beside it\"\nFor wan3.0-video reference mode, use 'Image 1', 'Video 1', 'Audio 1', etc. to refer to media assets\nin the corresponding order within the media array.\n",
+            "maxLength": 20000,
+            "type": "string"
+           },
+           "reference_video_urls": {
+            "description": "Reference video URLs for wan2.6-r2v model only. Array of 1-3 video URLs.\nInput restrictions:\n- Format: mp4, mov\n- Quantity: 1-3 videos\n- Single video length: 2-30 seconds\n- Single file size: max 30MB\n- Cannot be used with audio_url\nReference duration: Single video max 5s, two videos max 2.5s each, three videos proportionally less.\nBilling: Based on actual reference duration used.\n",
+            "items": {
+             "type": "string"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "type": "array"
+           },
+           "template": {
+            "description": "Video effect template name. Optional. Currently supported: squish, flying, carousel. When used, prompt parameter is ignored.",
+            "type": "string"
+           }
+          },
+          "type": "object"
+         },
+         "model": {
+          "description": "The ID of the model to call. NOT constrained on this component: Comfy Router fills it from the `{model}` path segment of `POST /v2/models/wan/{model}`, so a Router caller omits it. A direct v1 call to `POST /proxy/wan/api/v1/services/aigc/video-generation/video-synthesis` MUST supply it, and the enum of accepted spellings lives on that operation's own component, `WanVideoGenerationRequest`.",
+          "nullable": true,
+          "type": "string"
+         },
+         "parameters": {
+          "description": "Video processing parameters",
+          "properties": {
+           "audio": {
+            "default": true,
+            "description": "Whether to add audio to the video. Supported for wan3.0-video and wan3.0-video-prime only; the provider documents no such switch for the other wan models.",
+            "type": "boolean"
+           },
+           "audio_setting": {
+            "default": "auto",
+            "description": "Video audio setting for wan2.7-videoedit model.\n- auto (default): Model intelligently judges based on prompt content\n- origin: Forcefully preserve the original audio from the input video\n",
+            "enum": [
+             "auto",
+             "origin"
+            ],
+            "type": "string"
+           },
+           "duration": {
+            "default": 5,
+            "description": "The duration of the video generated, in seconds:\n- wan2.5 models: 5 or 10 seconds\n- wan2.6-t2v, wan2.6-i2v: 5, 10, or 15 seconds\n- wan2.6-r2v: 5 or 10 seconds only (no 15s support)\n- wan2.7-i2v, wan2.7-t2v: integer in [2, 15]\n- wan2.7-r2v, wan2.7-videoedit: integer in [2, 10]\n- wan3.0-video: integer in [2, 30] without video input; with video input the total\n  input video duration + output video duration must not exceed 30 seconds; -1 enables\n  smart duration mode where the model picks a suitable duration\nThis proxy returns 400 for a duration outside [-1, 30].\n",
+            "maximum": 30,
+            "minimum": -1,
+            "type": "integer"
+           },
+           "prompt_extend": {
+            "default": true,
+            "description": "Is it enabled prompt intelligent rewriting. Default is true",
+            "type": "boolean"
+           },
+           "ratio": {
+            "description": "Aspect ratio of the generated video. For wan2.7 and wan3.0 models only.\nFor wan2.7 models, defaults based on the resolution tier if not provided.\nFor wan3.0-video, adaptive (the default) automatically recommends a suitable\naspect ratio based on the input media proportions and intent.\n",
+            "enum": [
+             "adaptive",
+             "16:9",
+             "9:16",
+             "1:1",
+             "4:3",
+             "3:4"
+            ],
+            "type": "string"
+           },
+           "resolution": {
+            "description": "Resolution level. Supported values vary by model:\n- wan2.5-i2v-preview: 480P, 720P, 1080P\n- wan2.6 models (t2v, i2v, r2v): 720P, 1080P only (no 480P support)\n- wan2.7 models (i2v, t2v, r2v, videoedit): 720P, 1080P (default 1080P)\n- wan3.0-video, wan3.0-video-prime: 480P, 720P, 1080P (upstream default 1080P)\n- happyhorse-1.0-* (t2v, i2v, r2v, video-edit): 720P, 1080P\n- happyhorse-1.1-* (t2v, i2v, r2v): 480P, 720P, 1080P\nThis proxy rejects video generation requests that provide neither resolution\nnor size, because the resolution tier selects the billing rate. It upper-cases\nresolution before checking it and forwards the upper-cased value, returns 400\nfor a value outside this enum, and returns 400 for 480P (whether sent as\nresolution or as a 480P size) on the wan2.6, wan2.7 and happyhorse-1.0 models\nlisted above as having no 480P.\n",
+            "enum": [
+             "480P",
+             "720P",
+             "1080P"
+            ],
+            "type": "string"
+           },
+           "seed": {
+            "description": "Random number seed, used to control the randomness of the model generated content",
+            "maximum": 2147483647,
+            "minimum": 0,
+            "type": "integer"
+           },
+           "shot_type": {
+            "default": "single",
+            "description": "Intelligent multi-lens control. Only active when prompt_extend is enabled.\nFor wan2.6 and wan2.7-r2v models.\n- single: Single-shot video (default)\n- multi: Multi-shot video\n",
+            "enum": [
+             "multi",
+             "single"
+            ],
+            "type": "string"
+           },
+           "size": {
+            "description": "Video resolution in format width*height. Supported resolutions vary by model:\nFor wan2.5 T2V: 480P (480*832, 832*480, 624*624), 720P, 1080P sizes\nFor wan2.6 T2V/R2V (no 480P):\n  720P: 1280*720, 720*1280, 960*960, 1088*832, 832*1088\n  1080P: 1920*1080, 1080*1920, 1440*1440, 1632*1248, 1248*1632\nWhen both size and resolution are sent, size selects the billed tier, and\nresolution must still be a value this proxy accepts for the model. A 480P size\nreturns 400 on every model the resolution description lists as having no 480P.\n",
+            "type": "string"
+           },
+           "watermark": {
+            "default": false,
+            "description": "Whether to add a watermark logo, the watermark is located in the lower right corner",
+            "type": "boolean"
+           }
+          },
+          "type": "object"
+         }
+        },
+        "required": [
+         "input"
+        ],
+        "type": "object"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "allOf": [
+          {
+           "$ref": "#/components/schemas/WanTaskQueryResponse"
+          },
+          {
+           "properties": {
+            "code": {
+             "description": "Error code for a failed request, reported at the ROOT of the envelope rather than under `output` (not returned if the request succeeded).",
+             "type": "string"
+            },
+            "message": {
+             "description": "Detailed information about a failed request, reported at the ROOT of the envelope rather than under `output` (not returned if the request succeeded). Read this before falling back to `output.message`.",
+             "type": "string"
+            }
+           },
+           "type": "object"
+          }
+         ],
+         "description": "Comfy Router output schema for the Wan and HappyHorse models: the terminal `GET /proxy/wan/api/v1/tasks/{task_id}` document, forwarded unchanged. All three DashScope submit operations \u2014 `/api/v1/services/aigc/video-generation/video-synthesis` (video), `/api/v1/services/aigc/text2image/image-synthesis` (image) and `/api/v1/services/aigc/image2image/image-synthesis` (image) \u2014 are SUBMIT-AND-POLL: Router submits the task and then polls the one shared task-status route on the caller's behalf, so the body a caller receives is the finished task rather than the `{task_id, task_status}` handle the underlying submit answers with. That is the reading a modality-shaped guess gets backwards: unlike xAI and BytePlus, DashScope puts the IMAGE operations behind the same task queue as the video one, and all twenty ids answer this one document.\n`output.task_status` is DashScope's own UPPERCASE vocabulary \u2014 `PENDING`, `RUNNING`, `SUCCEEDED`, `FAILED`, `CANCELED`, `UNKNOWN` \u2014 forwarded unchanged. Router treats `SUCCEEDED` as the one terminal success for these models. `FAILED` and `CANCELED` are the terminal failures. `PENDING` and `RUNNING` are IN-FLIGHT and Router keeps polling on them, so a client must not abandon a task that reports either; `UNKNOWN` is treated as an unknown status and gets a bounded retry grace before it is failed.\nWHICH LEAF CARRIES THE ASSET DEPENDS ON THE OPERATION, and a caller must select on the operation it submitted rather than on `output` being non-empty:\n* VIDEO tasks (the eighteen video ids, submitted through\n  `video-generation/video-synthesis`) put the generated video at\n  `output.video_url`. An I2V task that also generated audio carries it separately at\n  `output.check_audio`; that is not a substitute for `output.video_url`.\n* IMAGE tasks (`wan/wan2.5-t2i-preview` through `text2image/image-synthesis` and\n  `wan/wan2.5-i2i-preview` through `image2image/image-synthesis`) put each generated\n  image at `output.results[].url`. `results` is a LIST \u2014 DashScope defaults to four\n  images and honours `parameters.n` \u2014 and an individual element may carry `code` and\n  `message` INSTEAD of `url` when that one image failed while the task as a whole\n  succeeded, so a caller must read `url` per element rather than assume the list is\n  uniform. `output.task_metrics` reports the TOTAL/SUCCEEDED/FAILED split for\n  exactly that case.\n\nA `SUCCEEDED` whose `output` carries neither leaf is a success that produced nothing, not a finished generation; through Router that distinction is already settled, because Router answers it as a Comfy Router error rather than with the provider document. A FAILED task reports its reason at `output.code`/`output.message`, and DashScope may additionally report a top-level `code`/`message` on the envelope itself; read the ROOT pair first and fall back to the nested one, which is the order the first-party Wan poller uses.\nThe URLs are DashScope-hosted and valid for 24 HOURS from completion, so download them promptly rather than storing them. `usage` reports DashScope's own generation accounting \u2014 its numbers, not the Comfy charge \u2014 and its fields are per-operation (`video_duration`/`video_ratio`/`video_count` for T2V, `duration`/`SR` for I2V and wan3.0-video, `size`/`image_count` for both image operations \u2014 T2I and I2I).\nSCHEMA VS EXAMPLE: the schema below is the ONE shared `WanTaskQueryResponse` all twenty ids answer with \u2014 the wan/* output components are split only so that each published document carries an example of its OWN RESULT SHAPE, never a video example printed under an image model. The split is presentational; the contract is not.\nTHIS DOCUMENT describes a conditioned-video or wan3.0-video id, so its example is the video shape: the asset at `output.video_url` and the `duration`/`SR` usage pair.",
+         "example": {
+          "output": {
+           "actual_prompt": "a single red maple leaf falling onto still water, slow motion, shallow depth of field",
+           "end_time": "2027-01-01T00:01:04.000Z",
+           "orig_prompt": "a single red maple leaf falling onto still water",
+           "scheduled_time": "2027-01-01T00:00:01.000Z",
+           "submit_time": "2027-01-01T00:00:00.000Z",
+           "task_id": "0385dc79-5ff8-4d82-bcb6-7c1a9f2e4d60",
+           "task_status": "SUCCEEDED",
+           "video_url": "https://example.invalid/wan/wan3.0-video/generated.mp4"
+          },
+          "request_id": "7574ee8f-38a3-4b1e-9280-11c33ab46e51",
+          "usage": {
+           "SR": 720,
+           "duration": 5
+          }
+         }
+        }
+       }
+      },
+      "description": "OK - the model's native JSON output, returned unchanged; the schema describes the provider's terminal result document as Router returns it."
+     }
+    },
+    "security": [
+     {
+      "BearerAuth": []
+     },
+     {
+      "ApiKeyAuth": []
+     }
+    ],
+    "summary": "Run wan/wan2.7-i2v synchronously."
+   }
+  }
+ },
+ "x-comfy-input-schema-authored": true,
+ "x-comfy-output-schema-authored": true,
+ "x-comfy-router-input-modalities": [
+  "image",
+  "video",
+  "audio",
+  "text"
+ ],
+ "x-comfy-router-model-id": "wan/wan2.7-i2v",
+ "x-comfy-router-output-modalities": [
+  "video",
+  "audio"
+ ]
+}

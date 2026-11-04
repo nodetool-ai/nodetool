@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ONE_TAKE_DEFAULT_SHOT_SECONDS,
   ONE_TAKE_ENTITY_REFS_NOTE,
+  ONE_TAKE_MIXED_REFS_NOTE,
   compileOneTake,
   compileSceneClip,
   sceneClipRun,
@@ -263,6 +264,26 @@ describe("compileOneTake with entity references", () => {
       "still-puddle",
       "still-stride"
     ]);
+  });
+
+  it("sends a chosen mix of stills and entity images, and no scene clip prompt", () => {
+    const out = compileSceneClip(
+      BOARD,
+      {
+        id: "clip",
+        prompt: "An old prompt.",
+        shot_ids: ["puddle", "stride"],
+        reference_shot_ids: ["stride"],
+        reference_entity_ids: ["bystander"]
+      },
+      CAST
+    );
+    expect(out.references.map((r) => r.shot_id ?? r.entity_id)).toEqual([
+      "stride",
+      "bystander"
+    ]);
+    expect(out.compiled).toContain(ONE_TAKE_MIXED_REFS_NOTE);
+    expect(out.prompt).not.toContain("An old prompt.");
   });
 
   it("compiles a scene clip's entity references from its own shots", () => {

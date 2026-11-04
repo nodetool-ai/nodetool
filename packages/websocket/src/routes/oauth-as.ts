@@ -39,6 +39,7 @@ import {
 } from "../oauth/metadata.js";
 import {
   isAllowedRedirectUri,
+  isRegisteredRedirectUri,
   canonicalResource,
   resourceMatches,
   validateScope
@@ -263,7 +264,7 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
     }
     if (
       !isAllowedRedirectUri(redirectUri) ||
-      !resolved.redirectUris.includes(redirectUri)
+      !isRegisteredRedirectUri(redirectUri, resolved.redirectUris)
     ) {
       return htmlError(
         reply,

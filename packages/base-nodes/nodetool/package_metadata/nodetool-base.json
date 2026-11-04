@@ -1132,6 +1132,116 @@
         "assets",
         "example"
       ]
+    },
+    {
+      "id": "a4279e07bceec82c58f2438764531e54",
+      "name": "Comfy Z-Image Turbo",
+      "description": "Generate an image on Comfy Cloud with the official Z-Image Turbo template. Requires COMFY_API_KEY and model availability on Comfy Cloud.",
+      "tags": [
+        "comfy",
+        "image",
+        "example"
+      ],
+      "run_mode": "comfy"
+    },
+    {
+      "id": "acd44603d3ba04a6c42b4a72d38bf876",
+      "name": "Comfy Krea 2 Turbo",
+      "description": "Generate an image on Comfy Cloud with the official Krea 2 Turbo template. Requires COMFY_API_KEY and model availability on Comfy Cloud.",
+      "tags": [
+        "comfy",
+        "image",
+        "example"
+      ],
+      "run_mode": "comfy"
+    },
+    {
+      "id": "444676df3fb1f937b5f393cab94c31c3",
+      "name": "Comfy MOSS Image",
+      "description": "Generate an image on Comfy Cloud with the official MOSS Image template. Requires COMFY_API_KEY and model availability on Comfy Cloud.",
+      "tags": [
+        "comfy",
+        "image",
+        "example"
+      ],
+      "run_mode": "comfy"
+    },
+    {
+      "id": "40a55313b8119746cf52683465db4e92",
+      "name": "Comfy Qwen Image 2.1",
+      "description": "Generate an image on Comfy Cloud with the official Qwen Image 2.1 template. Requires COMFY_API_KEY and model availability on Comfy Cloud.",
+      "tags": [
+        "comfy",
+        "image",
+        "example"
+      ],
+      "run_mode": "comfy"
+    },
+    {
+      "id": "89def09e2a63a568507763ee8581533a",
+      "name": "Comfy Hunyuan Video 1.5",
+      "description": "Generate a video on Comfy Cloud with the official Hunyuan Video 1.5 template. Requires COMFY_API_KEY and model availability on Comfy Cloud.",
+      "tags": [
+        "comfy",
+        "video",
+        "example"
+      ],
+      "run_mode": "comfy"
+    },
+    {
+      "id": "80b131d9f21b70972becdd38d36a5856",
+      "name": "Comfy Wan 2.2 T2V A14B",
+      "description": "Generate a video on Comfy Cloud with the official Wan 2.2 T2V A14B template. Requires COMFY_API_KEY and model availability on Comfy Cloud.",
+      "tags": [
+        "comfy",
+        "video",
+        "example"
+      ],
+      "run_mode": "comfy"
+    },
+    {
+      "id": "21b21a19bb45d9f0caad32bdd38404b4",
+      "name": "Comfy ACE-Step 1.5 XL Turbo",
+      "description": "Generate audio on Comfy Cloud with the official ACE-Step 1.5 XL Turbo template. Requires COMFY_API_KEY and model availability on Comfy Cloud.",
+      "tags": [
+        "comfy",
+        "audio",
+        "example"
+      ],
+      "run_mode": "comfy"
+    },
+    {
+      "id": "0f8ca80d54c8069d5d520046e97932a5",
+      "name": "Comfy MiniMax Music 3",
+      "description": "Generate audio on Comfy Cloud with the official MiniMax Music 3 template. Requires COMFY_API_KEY and model availability on Comfy Cloud.",
+      "tags": [
+        "comfy",
+        "audio",
+        "example"
+      ],
+      "run_mode": "comfy"
+    },
+    {
+      "id": "411596a003a81161fc884f1d739f29fc",
+      "name": "Comfy Stable Audio 3 Medium",
+      "description": "Generate audio on Comfy Cloud with the official Stable Audio 3 Medium template. Requires COMFY_API_KEY and model availability on Comfy Cloud.",
+      "tags": [
+        "comfy",
+        "audio",
+        "example"
+      ],
+      "run_mode": "comfy"
+    },
+    {
+      "id": "85dead2de2a2e0d97118fe849fd6b891",
+      "name": "Comfy YuE 2",
+      "description": "Generate audio on Comfy Cloud with the official YuE 2 template. Requires COMFY_API_KEY and model availability on Comfy Cloud.",
+      "tags": [
+        "comfy",
+        "audio",
+        "example"
+      ],
+      "run_mode": "comfy"
     }
   ]
 }

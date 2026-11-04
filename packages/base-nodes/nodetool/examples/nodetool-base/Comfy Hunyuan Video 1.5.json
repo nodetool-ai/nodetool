@@ -1,0 +1,429 @@
+{
+  "id": "89def09e2a63a568507763ee8581533a",
+  "name": "Comfy Hunyuan Video 1.5",
+  "description": "Generate a video on Comfy Cloud with the official Hunyuan Video 1.5 template. Requires COMFY_API_KEY and model availability on Comfy Cloud.",
+  "tags": [
+    "comfy",
+    "video",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Hunyuan Video 1.5\n\nGenerate a video on Comfy Cloud with the official Hunyuan Video 1.5 template. Requires COMFY_API_KEY and model availability on Comfy Cloud.\n\n**How it works:** The Comfy nodes form the complete Hunyuan Video 1.5 graph. Run submits the graph to Comfy Cloud and saves its generated video.\n\n**Try this:** Change text on CLIP Text Encode (Positive Prompt) and run again to compare results. Edit the visible nodes to change settings.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/benchmarks/video_hunyuan_video_1.5_720p_t2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "8",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "10",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "hunyuanvideo15_vae_fp16.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "11",
+        "type": "comfy.DualCLIPLoader",
+        "data": {
+          "clip_name1": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+          "clip_name2": "byt5_small_glyphxl_fp16.safetensors",
+          "type": "hunyuan_video_15",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load CLIP (Dual)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "hunyuanvideo1.5_720p_t2v_fp16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "44",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "A paper airplane released from the top of a skyscraper, gliding through urban canyons, crossing traffic, flying over streets, spiraling upward between buildings. The camera follows the paper airplane's perspective, shooting cityscape in first-person POV, finally flying toward the sunset, disappearing in golden light. Creative camera movement, free perspective, dreamlike colors."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Positive Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Negative Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "101",
+        "type": "comfy.CreateVideo",
+        "data": {
+          "fps": 24,
+          "bit_depth": "auto",
+          "color_space": "sRGB",
+          "codec": "none"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Create Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "102",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/hunyuan_video_1.5",
+          "format": "auto",
+          "format.codec": "h264",
+          "format.codec.encoding": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "124",
+        "type": "comfy.EmptyHunyuanVideo15Latent",
+        "data": {
+          "width": 1280,
+          "height": 720,
+          "length": 121,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Empty Hunyuan Video 1.5 Latent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "127",
+        "type": "comfy.SamplerCustomAdvanced",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SamplerCustomAdvanced"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128",
+        "type": "comfy.BasicScheduler",
+        "data": {
+          "scheduler": "simple",
+          "steps": 20,
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "BasicScheduler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "129",
+        "type": "comfy.RandomNoise",
+        "data": {
+          "noise_seed": 887963123424675
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "RandomNoise"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "130",
+        "type": "comfy.KSamplerSelect",
+        "data": {
+          "sampler_name": "euler"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "KSamplerSelect"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "131",
+        "type": "comfy.CFGGuider",
+        "data": {
+          "cfg": 6
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CFG Guider"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "132",
+        "type": "comfy.ModelSamplingSD3",
+        "data": {
+          "shift": 7
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "ModelSamplingSD3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "127-0-8-samples",
+        "source": "127",
+        "sourceHandle": "output",
+        "target": "8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "10-0-8-vae",
+        "source": "10",
+        "sourceHandle": "VAE",
+        "target": "8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "11-0-44-clip",
+        "source": "11",
+        "sourceHandle": "CLIP",
+        "target": "44",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "11-0-93-clip",
+        "source": "11",
+        "sourceHandle": "CLIP",
+        "target": "93",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "8-0-101-images",
+        "source": "8",
+        "sourceHandle": "IMAGE",
+        "target": "101",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "101-0-102-video",
+        "source": "101",
+        "sourceHandle": "VIDEO",
+        "target": "102",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "129-0-127-noise",
+        "source": "129",
+        "sourceHandle": "NOISE",
+        "target": "127",
+        "targetHandle": "noise",
+        "ui_properties": null
+      },
+      {
+        "id": "131-0-127-guider",
+        "source": "131",
+        "sourceHandle": "GUIDER",
+        "target": "127",
+        "targetHandle": "guider",
+        "ui_properties": null
+      },
+      {
+        "id": "130-0-127-sampler",
+        "source": "130",
+        "sourceHandle": "SAMPLER",
+        "target": "127",
+        "targetHandle": "sampler",
+        "ui_properties": null
+      },
+      {
+        "id": "128-0-127-sigmas",
+        "source": "128",
+        "sourceHandle": "SIGMAS",
+        "target": "127",
+        "targetHandle": "sigmas",
+        "ui_properties": null
+      },
+      {
+        "id": "124-0-127-latent_image",
+        "source": "124",
+        "sourceHandle": "LATENT",
+        "target": "127",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "12-0-128-model",
+        "source": "12",
+        "sourceHandle": "MODEL",
+        "target": "128",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "132-0-131-model",
+        "source": "132",
+        "sourceHandle": "MODEL",
+        "target": "131",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "44-0-131-positive",
+        "source": "44",
+        "sourceHandle": "CONDITIONING",
+        "target": "131",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "93-0-131-negative",
+        "source": "93",
+        "sourceHandle": "CONDITIONING",
+        "target": "131",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "12-0-132-model",
+        "source": "12",
+        "sourceHandle": "MODEL",
+        "target": "132",
+        "targetHandle": "model",
+        "ui_properties": null
+      }
+    ]
+  }
+}

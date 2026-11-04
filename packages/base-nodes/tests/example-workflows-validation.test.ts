@@ -35,7 +35,7 @@ import {
   NodeRegistry,
   createGraphNodeTypeResolver
 } from "@nodetool-ai/node-sdk";
-import { NODE_TYPE_MIGRATIONS } from "@nodetool-ai/protocol";
+import { COMFY_RUN_MODE, NODE_TYPE_MIGRATIONS, collapseComfyGraph, isComfyNodeType } from "@nodetool-ai/protocol";
 import { registerBaseNodes } from "../src/index.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -105,6 +105,7 @@ interface WorkflowFile {
   group: string;
   data: {
     name?: string;
+    run_mode?: string;
     tags?: unknown;
     graph: {
       nodes: Array<Record<string, unknown>>;
@@ -313,7 +314,7 @@ describe.each(workflows)("workflow $fileName", ({ data, fileName }) => {
     const unknown: string[] = [];
     for (const node of nodes) {
       const type = node.type as string;
-      if (!isKnownType(type)) {
+      if (!isKnownType(type) && !(data.run_mode === COMFY_RUN_MODE && isComfyNodeType(type))) {
         unknown.push(`${node.id}:${type}`);
       }
     }
@@ -327,7 +328,8 @@ describe.each(workflows)("workflow $fileName", ({ data, fileName }) => {
     // skipErrors: drops unknown-type nodes (which are tracked separately
     // above) rather than throwing; this exercises the same code path the
     // real runner uses when loading saved graphs.
-    const graph = await Graph.loadFromDict(data.graph, {
+    const runtimeGraph = collapseComfyGraph(data.graph);
+    const graph = await Graph.loadFromDict(runtimeGraph, {
       resolver,
       skipErrors: true,
       allowUndefinedProperties: true
@@ -336,7 +338,7 @@ describe.each(workflows)("workflow $fileName", ({ data, fileName }) => {
     // hydration too — Graph.loadFromDict rewrites it to a registered type
     // (e.g. nodetool.code.Code) before validating, so it is not dropped by
     // skipErrors the way a genuinely unknown type would be.
-    const expectedSurvivors = nodes.filter(
+    const expectedSurvivors = runtimeGraph.nodes.filter(
       (n) =>
         registeredTypes.has(n.type as string) ||
         migratedFromTypes.has(n.type as string)

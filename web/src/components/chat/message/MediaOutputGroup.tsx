@@ -27,7 +27,8 @@ import {
   getSpacingPx,
   AudioPlayback,
   VideoPlayer,
-  Chip
+  Chip,
+  ICON_SIZE
 } from "../../ui_primitives";
 import ImageView from "../../node/ImageView";
 import type {
@@ -223,7 +224,7 @@ const styles = (theme: Theme) =>
         backgroundColor: "var(--palette-c_scrim_strong)"
       },
       "& svg": {
-        fontSize: 14
+        fontSize: ICON_SIZE.xs
       }
     },
 

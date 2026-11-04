@@ -75,6 +75,11 @@ docker compose pull
 docker compose up -d
 ```
 
+The server applies database migrations when it starts, and an older image may
+not read a migrated database. Archive the `nodetool-data` volume before you
+pull a new image. [Upgrading](upgrading.md#self-hosted-docker) has the backup
+command and the rollback steps.
+
 To store data in a host directory instead of the named volume, replace the
 `nodetool-data:/workspace` mount with a bind mount (e.g. `./nodetool-data:/workspace`)
 and make sure the host directory is writable by the container's `node` user.
