@@ -7,6 +7,8 @@
 #include "preview/layers/SceneHooks.h"
 #include "preview/layers/LayerRegistry.h"
 #include <QGuiApplication>
+#include <QDir>
+#include <QCryptographicHash>
 #include <QJsonArray>
 #include <QQuickRenderControl>
 #include <QQuickRenderTarget>
@@ -17,6 +19,7 @@
 #include <memory>
 
 namespace {
+nt::WorkingFormat testFormat = nt::WorkingFormat::Rgba8;
 class SolidSource final : public nt::LayerSource {
 public:
     explicit SolidSource(QColor color) : m_color(color) {}
@@ -75,6 +78,7 @@ public:
         window.resize(320, 180);
         item = new PreviewCompositor(window.contentItem());
         item->setTimeline(&model);
+        item->setWorkingFormat(testFormat);
         item->setClock(&clock);
         item->setSize({320, 180});
         item->setCollectFrameStats(true);
@@ -130,6 +134,31 @@ class MonitorCompositorTest : public QObject {
     Q_OBJECT
     nt::LayerSourceToken m_source = 0;
 private slots:
+    void initTestCase_data() {
+        QTest::addColumn<bool>("fp16");
+        QTest::newRow("rgba8") << false;
+        QTest::newRow("fp16") << true;
+    }
+    void init() {
+        QFETCH_GLOBAL(bool, fp16);
+        testFormat = fp16 ? nt::WorkingFormat::Rgba16F : nt::WorkingFormat::Rgba8;
+    }
+    void defaultPresentationBaseline() {
+        Monitor monitor;
+        for (const int denominator : {1, 2, 4, 8}) {
+            monitor.item->setPausedResolution(denominator);
+            const auto frame = monitor.frame();
+            QCOMPARE(monitor.frame(), frame);
+            const auto bytes = QByteArrayView(reinterpret_cast<const char*>(frame.constBits()), frame.sizeInBytes());
+            qInfo() << "presentation" << int(testFormat) << denominator << bytes.size()
+                    << QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex();
+            const auto directory = qEnvironmentVariable("NT_PRESENTATION_BASELINE");
+            if (!directory.isEmpty() && testFormat == nt::WorkingFormat::Rgba8) {
+                QVERIFY(QDir().mkpath(directory));
+                QVERIFY(frame.save(directory + QStringLiteral("/frame-%1.png").arg(denominator)));
+            }
+        }
+    }
     void initTestCase() {
         if (qEnvironmentVariable("QT_QUICK_BACKEND") == u"software") {
             QSKIP("monitor compositor needs the platform QRhi, not the software scene graph");
@@ -163,6 +192,12 @@ private slots:
         QCOMPARE(monitor.frame(false), full);
         monitor.frame();
         QCOMPARE(monitor.item->lastCanvasSize(), QSize(320, 180));
+        for (const int denominator : {1, 2, 4, 8}) {
+            monitor.item->setPlaybackResolution(denominator);
+            monitor.frame(); monitor.frame();
+            QCOMPARE(monitor.item->lastCanvasSize(), QSize(640 / denominator, 360 / denominator));
+        }
+        monitor.item->setPlaybackResolution(2);
         monitor.clock.pause();
         QCOMPARE(monitor.frame(false), full);
         monitor.frame();
@@ -344,6 +379,15 @@ private slots:
         monitor.clock.seek(500);
         QVERIFY(monitor.model.replaceClips(clips));
         const auto groupFull = monitor.frame();
+        for (const int denominator : {1, 2, 4, 8}) {
+            monitor.item->setPausedResolution(denominator);
+            monitor.frame(); monitor.frame();
+            const auto& stat = monitor.item->frameStats().back();
+            QVERIFY(stat.surfaceTargets > 0);
+            QCOMPARE(stat.surfaceBytes, static_cast<long long>(stat.surfaceTargets) *
+                (640 / denominator) * (360 / denominator) * (testFormat == nt::WorkingFormat::Rgba16F ? 8 : 4));
+            qInfo() << "scratch allocation" << int(testFormat) << denominator << stat.surfaceBytes;
+        }
         monitor.item->setPausedResolution(4);
         const auto groupReduced = monitor.frame(false);
         for (const QPoint p : {QPoint(80, 45), QPoint(240, 45), QPoint(80, 135)}) {
@@ -352,6 +396,10 @@ private slots:
         for (int i = 0; i < 4; ++i) { monitor.frame(); }
         const auto created = monitor.item->frameStats().back().surfaceTargetsCreated;
         QVERIFY(created > 0);
+        const auto bytes = monitor.item->frameStats().back().surfaceBytes;
+        const auto targets = monitor.item->frameStats().back().surfaceTargets;
+        QCOMPARE(bytes, static_cast<long long>(targets) * 160 * 90 * (testFormat == nt::WorkingFormat::Rgba16F ? 8 : 4));
+        qInfo() << "actual pooled scratch targets/bytes" << targets << bytes;
         for (int i = 0; i < 60; ++i) {
             monitor.frame();
             QCOMPARE(monitor.item->lastCanvasSize(), QSize(160, 90));

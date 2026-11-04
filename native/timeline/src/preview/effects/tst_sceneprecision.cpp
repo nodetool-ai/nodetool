@@ -159,6 +159,76 @@ float difference(const std::vector<float>& a, const std::vector<float>& b) {
 class TestScenePrecision : public QObject {
     Q_OBJECT
 private slots:
+    void resolutionMaskOutset() {
+        for (const auto format : {nt::WorkingFormat::Rgba8, nt::WorkingFormat::Rgba16F}) {
+            for (const bool inverted : {false, true}) {
+                auto shape = leaf("masked", "shape");
+                shape.insert("width", 128); shape.insert("height", 64);
+                shape.insert("transform", QJsonObject{{"position", QJsonObject{{"x", 32}, {"y", -16}}}});
+                shape.insert("effects", QJsonArray{effect("glow", {{"radius", 8}, {"intensity", 1}})});
+                shape.insert("mask", QJsonObject{{"kind", "ellipse"}, {"x", 0.2}, {"y", 0.2},
+                    {"width", 0.6}, {"height", 0.6}, {"featherPx", 4}, {"invert", inverted}});
+                Scene scene;
+                QVERIFY(scene.initialize(document({shape}, 256, 128), format));
+                QVERIFY(scene.render());
+                const auto capture = scene.still.capture(10000);
+                QVERIFY(!capture.isNull());
+                for (const int denominator : {1, 2, 4, 8}) {
+                    auto* item = scene.still.compositor();
+                    item->setPausedResolution(denominator);
+                    QVERIFY(scene.render());
+                    QCOMPARE(scene.size, QSize(256 / denominator, 128 / denominator));
+                    QCOMPARE(scene.storage, format == nt::WorkingFormat::Rgba16F ? QRhiTexture::RGBA16F : QRhiTexture::RGBA8);
+                    QVERIFY(scene.finiteNonblack());
+                    // The translated shape occupies the right half above the centre.
+                    const auto alphaAt = [&](int x, int y) {
+                        return scene.pixels[((y / denominator) * scene.size.width() + x / denominator) * 4 + 3];
+                    };
+                    QCOMPARE(alphaAt(16, 112), 0.f);
+                    double mass = 0, momentX = 0, momentY = 0;
+                    for (int y = 0; y < scene.size.height(); ++y) {
+                        for (int x = 0; x < scene.size.width(); ++x) {
+                            const double alpha = scene.pixels[(y * scene.size.width() + x) * 4 + 3];
+                            mass += alpha;
+                            momentX += alpha * (x + 0.5) * denominator;
+                            momentY += alpha * (y + 0.5) * denominator;
+                        }
+                    }
+                    QVERIFY(mass > 0);
+                    QVERIFY(momentX / mass > 128 && momentX / mass < 192);
+                    QVERIFY(momentY / mass > 16 && momentY / mass < 80);
+                    qInfo() << "canvas allocation" << int(format) << denominator << scene.size
+                            << scene.size.width() * scene.size.height() * (format == nt::WorkingFormat::Rgba16F ? 8 : 4);
+                    QCOMPARE(scene.still.capture(10000), capture);
+                }
+            }
+        }
+    }
+    void backdropResolutionAcrossShutter() {
+        auto shape = leaf("base", "shape");
+        shape.insert("motionBlur", QJsonObject{{"samplesPerFrame", 4}, {"shutterAngle", 180}});
+        auto adjustment = leaf("adjust", "adjustment");
+        adjustment.insert("startMs", 1000);
+        adjustment.insert("effects", QJsonArray{effect("levels", {{"gamma", 0.8}})});
+        adjustment.insert("motionBlur", QJsonObject{{"samplesPerFrame", 4}, {"shutterAngle", 180}});
+        for (const auto format : {nt::WorkingFormat::Rgba8, nt::WorkingFormat::Rgba16F}) {
+            Scene scene;
+            QVERIFY(scene.initialize(document({shape, adjustment}), format));
+            scene.still.compositor()->setPausedResolution(8);
+            scene.clock.seek(990);
+            QVERIFY(scene.render());
+            QCOMPARE(scene.size, QSize(64, 32));
+            const auto stable = scene.pixels;
+            for (int i = 0; i < 8; ++i) {
+                QVERIFY(scene.render());
+                QCOMPARE(scene.size, QSize(64, 32));
+                QCOMPARE(scene.pixels, stable);
+            }
+            scene.clock.seek(100);
+            QVERIFY(scene.render());
+            QCOMPARE(scene.size, QSize(8, 4));
+        }
+    }
     void identityShapeWorkingCapture() {
         auto shape = leaf("edge", "shape");
         shape.insert("width", 65); shape.insert("height", 49);

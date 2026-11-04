@@ -18,7 +18,7 @@ Nothing was pushed.
 | A84.3 | Quantization, PNG/ZIP, opaque alpha, cancellation and same-picture checks pass on Vulkan/lavapipe. |
 | A41.3 | Format, tags and codec loss checked independently of unencoded same-picture YUV identity on Vulkan/lavapipe. |
 | A43.3 | Preview/offscreen working-pixel fixtures added for an original decoded frame and a partial-alpha float frame, with fixed grain seeds and capture isolation. See the qualification below. |
-| A45.2 | Partial evidence only. Full-resolution FP16 capture survives Full/Half/Quarter/Eighth preferences. Allocation and geometry qualification remain. |
+| A45.2 | Qualified on Vulkan/lavapipe. Resolution, allocation, geometry, masks/outsets, full-canvas exceptions and capture isolation pass. |
 | A109 | Not implemented. Color Match still models byte intermediate rounding. |
 
 ## Capture boundary
@@ -533,3 +533,43 @@ native size, fit downscale and fill upscale. Every byte matches the read-only
 Artifacts are `build/color-n2/n2-resize-final/`, `n2-resize-default.log` and
 `n2-resize-byte-comparison.txt`. Changed-file control-byte checks, local
 Markdown links and `git diff --check` pass.
+
+
+## A45.2 resolution qualification
+
+The monitor suite now runs both RGBA8 and FP16 through existing playback and
+paused controls, project-space placement, view options, capture isolation,
+group effects and a group that begins inside the shutter. Scratch reuse is
+checked over 60 redraws. No renderer behavior changed.
+
+The scene suite adds translated glow with feathered and inverted ellipse
+masks. It checks observed texture size/format, nonempty coverage, project-space
+coverage centroid, empty outside pixels and exact full-resolution capture at
+every denominator. Backdrop adjustments starting inside a shutter retain the
+full canvas, stay stable on redraw and return to reduced size outside the
+adjustment. Existing full-canvas exceptions remain unchanged.
+
+For the 256x128 mask fixture, actual canvas storage is 262144, 65536, 16384
+and 4096 bytes in FP16 at Full/Half/Quarter/Eighth. RGBA8 uses half those
+bytes. The pooled group scratch at 640x360 uses 1843200, 460800, 115200 and
+28800 bytes in FP16, also twice RGBA8. These are texture payloads from observed
+sizes/formats and pool accounting, not driver overhead or a performance claim.
+
+`NT_JOBS=1 ntbuild color-n2 tst_sceneprecision tst_monitorcompositor` and
+focused `citest` runs pass. Scene precision has 15 passes and monitor has 26,
+with zero failures or skips. Initial new mask assertions incorrectly assumed
+an inverted feathered glow had binary centre coverage. The final test uses
+coverage geometry and exact capture equality, without changing existing bounds.
+Logs are `n2-a452-pass.log` and `n2-a452-monitor.log` under `build/color-n2`.
+
+All six decoded exports in `n2-a452-final/` match the recorded read-only
+`build/color-n0/n2-a842-before/` baseline: 98956 RGBA bytes, zero differences.
+Direct default presentation before/after uses four fixed 320x180 frames:
+921600 RGBA bytes, zero differences. Artifacts are `presentation-before/`
+and `presentation-a452/`. The renderer is unchanged in this commit.
+
+Vulkan/lavapipe is qualified here. A preliminary Mesa OpenGL monitor run also
+passes all 26 cases, but full GL scene/capture qualification belongs to A32.
+Metal CI must build and run `tst_monitorcompositor` and `tst_sceneprecision`
+on the branch after a push. Metal and D3D11 remain unverified locally.
+FP16 stays off by default. No QML changed and nothing was pushed.
