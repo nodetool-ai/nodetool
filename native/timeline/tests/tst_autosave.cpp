@@ -254,6 +254,9 @@ class TestAutosave : public QObject {
 private slots:
     void init() {
         QVERIFY(m_dir.isValid());
+        QFile blocker(m_dir.filePath("blocked"));
+        QVERIFY(blocker.open(QIODevice::WriteOnly));
+        blocker.close();
         m_http = std::make_unique<TestHttpServer>();
         m_undo = std::make_unique<QUndoStack>();
         m_value = 0;
@@ -309,7 +312,7 @@ private slots:
             return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", fetched}}}}).toJson();
         });
         m_http->setPost([&](const QByteArray&, const QByteArray&) { return ok("2026-10-26T14:00:02.000Z"); });
-        m_save = std::make_unique<AutosaveController>(SaveTarget{m_http->base(), {}, "seq", mode == "canonical-cache" ? m_dir.filePath("cache/server/user/timelines") : mode == "deleted-no-copy" ? QString("/dev/null/sync") : m_dir.filePath(mode), {}},
+        m_save = std::make_unique<AutosaveController>(SaveTarget{m_http->base(), {}, "seq", mode == "canonical-cache" ? m_dir.filePath("cache/server/user/timelines") : mode == "deleted-no-copy" ? m_dir.filePath("blocked/sync") : m_dir.filePath(mode), {}},
             m_undo.get(), [&] { return raw; }, loaded["updatedAt"].toString());
         m_save->setExternalSync(false);
         m_save->setAutosave(false);
@@ -567,7 +570,7 @@ private slots:
             QCOMPARE(child.exitCode(), 0);
             // QtTest captures Qt messages on stdout instead of the application's
             // default stderr handler.
-            const auto log = child.readAllStandardError() + child.readAllStandardOutput();
+            const auto log = (child.readAllStandardError() + child.readAllStandardOutput()).replace("\r\n", "\n");
             QCOMPARE(log.count("sync: listening for seq\n"), 2);
             return;
         }
@@ -1436,7 +1439,7 @@ private slots:
 
     void aFailedRecoveryWriteIsReported() {
         m_http->setPost([](const QByteArray&, const QByteArray&) { return failure(400, QStringLiteral("BAD_REQUEST")); });
-        SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), QStringLiteral("/dev/null/no-such-folder"), QString()};
+        SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), m_dir.filePath("blocked/no-such-folder"), QString()};
         m_save = std::make_unique<AutosaveController>(t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
         m_save->setQuitFallbackDirs({m_dir.filePath(QStringLiteral("fallback"))});
         m_save->setExternalSync(false);
@@ -1489,7 +1492,7 @@ private slots:
 
     void aFailedCopyWriteIsAProperty() {
         m_http->setPost([](const QByteArray&, const QByteArray&) { return failure(400, QStringLiteral("BAD_REQUEST")); });
-        SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), QStringLiteral("/dev/null/no-such-folder"), QString()};
+        SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), m_dir.filePath("blocked/no-such-folder"), QString()};
         m_save = std::make_unique<AutosaveController>(t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
         m_save->setQuitFallbackDirs({m_dir.filePath(QStringLiteral("fallback"))});
         m_save->setExternalSync(false);
@@ -1679,12 +1682,12 @@ private slots:
 
     void quitWithAnUnwritableFolderUsesAFallback() {
         m_http->setPost([](const QByteArray&, const QByteArray&) { return failure(503, QStringLiteral("INTERNAL_SERVER_ERROR")); });
-        SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), QStringLiteral("/dev/null/no-such-folder"), QString()};
+        SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), m_dir.filePath("blocked/no-such-folder"), QString()};
         m_save = std::make_unique<AutosaveController>(t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
         m_save->setExternalSync(false);
         m_save->setAutosave(false);
         const QString fallback = m_dir.filePath(QStringLiteral("fallback"));
-        m_save->setQuitFallbackDirs({QStringLiteral("/dev/null/also-not"), fallback});
+        m_save->setQuitFallbackDirs({m_dir.filePath("blocked/also-not"), fallback});
         m_undo->push(new Bump(&m_value));
         QVERIFY(!m_save->flushBeforeQuit(2000));
         QVERIFY2(m_save->keptCopy().startsWith(fallback), qPrintable(m_save->keptCopy()));
@@ -1708,7 +1711,7 @@ private slots:
         m_http->setPost(offline);
         otherHttp.setPost(offline);
         SaveTarget first{m_http->base(), QStringLiteral("first"), QStringLiteral("seq"),
-                         QStringLiteral("/dev/null/backup"), QString()};
+                         m_dir.filePath("blocked/backup"), QString()};
         SaveTarget second{differentServer ? otherHttp.base() : m_http->base(),
                           differentServer ? first.token : QStringLiteral("second"), first.timelineId,
                           first.backupDir, QString()};
@@ -1787,11 +1790,11 @@ private slots:
     // The exit code main() returns after the window closes.
     void quitExitCodeReportsLostEdits() {
         m_http->setPost([](const QByteArray&, const QByteArray&) { return failure(503, QStringLiteral("INTERNAL_SERVER_ERROR")); });
-        SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), QStringLiteral("/dev/null/no-such-folder"), QString()};
+        SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), m_dir.filePath("blocked/no-such-folder"), QString()};
         m_save = std::make_unique<AutosaveController>(t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
         m_save->setExternalSync(false);
         m_save->setAutosave(false);
-        m_save->setQuitFallbackDirs({QStringLiteral("/dev/null/also-not")});
+        m_save->setQuitFallbackDirs({m_dir.filePath("blocked/also-not")});
         m_undo->push(new Bump(&m_value));
         QCOMPARE(exitCodeAfterQuit(m_save.get(), 7, 2000), kExitUnsavedEditsLost);
         QCOMPARE(m_save->keptCopy(), QString());

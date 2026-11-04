@@ -82,14 +82,14 @@ test("the default binary is the newest build, and a stale one is named", () => {
       fs.utimesSync(p, sec, sec);
       return p;
     };
-    touch("build/nodetool-timeline", 1000);
-    const m5 = touch("build-m5/nodetool-timeline", 3000);
+    touch(`build/nodetool-timeline${process.platform === "win32" ? ".exe" : ""}`, 1000);
+    const m5 = touch(`build-m5/nodetool-timeline${process.platform === "win32" ? ".exe" : ""}`, 3000);
     touch("build-old/other", 5000);
     assert.equal(newestBinary(root), m5);
     touch("src/scene/FlexLayout.cpp", 2000);
     assert.deepEqual(staleSources(root, m5), []);
     touch("src/preview/SceneEval.cpp", 4000);
-    assert.deepEqual(staleSources(root, m5).map((p) => path.relative(root, p)), ["src/preview/SceneEval.cpp"]);
+    assert.deepEqual(staleSources(root, m5).map((p) => path.relative(root, p)), [path.join("src", "preview", "SceneEval.cpp")]);
     assert.equal(newestBinary(path.join(root, "nothing")), null);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });

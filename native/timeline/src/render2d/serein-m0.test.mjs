@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -180,7 +181,7 @@ test("example helper writes the full serein document, including all raw clip fie
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "serein-example-"));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const file = path.join(dir, "serein.json");
-  const run = spawnSync(process.execPath, [new URL("./example-sequence.mjs", import.meta.url).pathname, "serein", file], { encoding: "utf8" });
+  const run = spawnSync(process.execPath, [fileURLToPath(new URL("./example-sequence.mjs", import.meta.url)), "serein", file], { encoding: "utf8" });
   assert.equal(run.status, 0, run.stderr);
   const document = JSON.parse(fs.readFileSync(file, "utf8"));
   const bundle = JSON.parse(fs.readFileSync(new URL("../../../../packages/base-nodes/nodetool/examples/timelines/serein.timeline.json", import.meta.url), "utf8"));
@@ -202,7 +203,7 @@ test("report command reads window-check artifacts and fails closed when the exit
   ]) fs.writeFileSync(path.join(dir, file), JSON.stringify(value));
   for (const exitText of [null, "", "0\n", "9\n"]) {
     if (exitText !== null) fs.writeFileSync(path.join(dir, "m0-serein-native.exit"), exitText);
-    const run = spawnSync(process.execPath, [new URL("./serein-m0-report.mjs", import.meta.url).pathname, dir], { encoding: "utf8" });
+    const run = spawnSync(process.execPath, [fileURLToPath(new URL("./serein-m0-report.mjs", import.meta.url)), dir], { encoding: "utf8" });
     const report = JSON.parse(run.stdout);
     assert.equal(run.status, exitText === "0\n" ? 0 : 1, run.stderr);
     assert.equal(report.verdict, exitText === "0\n" ? "pass" : "fail");

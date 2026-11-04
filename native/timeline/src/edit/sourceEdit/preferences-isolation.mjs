@@ -71,7 +71,7 @@ if (setups !== 1) {
 }
 assert.equal(failures.length, 0, failures.join('\n'));
 const ownPath = [...paths].find(([, name]) => name === 'preferences_isolation')?.[0];
-assert.equal(process.env[variable], ownPath, 'CTest must override inherited preferences');
+assert.equal(resolve(process.env[variable]), resolve(ownPath), 'CTest must override inherited preferences');
 assert.ok(!existsSync(ownPath), 'Preferences from an earlier CTest invocation survived setup');
 writeFileSync(ownPath, 'previous invocation\n');
 console.log(`Preferences isolation verified for all ${tests.length} registered tests`);
