@@ -21,6 +21,9 @@ ModelCatalogController::ModelCatalogController(QObject* parent) : Catalog(parent
                 if (guard) done(data, error);
             }, Qt::QueuedConnection);
         });
+        // Also reclaim finished workers after the GUI event loop stops. Threads
+        // created by QThread::create are joined when their owner destroys them.
+        worker->setParent(guard);
         QObject::connect(worker, &QThread::finished, worker, &QObject::deleteLater);
         worker->start();
     });
