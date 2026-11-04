@@ -278,3 +278,41 @@ Changed files for this continuation:
 - `packages/timeline/tests/render.workingBlend.gpu.test.ts`
 
 A23.1 commit: 35f68b1d06. A23.2 is the commit containing this continuation.
+
+## A23.3 continuation
+
+Effect ping-pong targets now inherit FP16 inputs. Every ordinary, LUT and recipe
+dispatch receives that working format. Pools rebuild when their format changes.
+The existing recipe runner propagates it into nested colour intermediates.
+Masks remain fixed byte resources. Apply-mask colour bridges are pending A24.
+
+Promotion textures already had removal and dispose cleanup. They now have a
+64 MiB retained-byte limit, charged at eight bytes per source pixel. Eviction
+runs after submission. Active-frame storage can exceed the retained limit.
+A 20-layer test with a 16-byte limit proves eviction and reuse, plus removal
+and dispose destruction.
+
+Nine tests in workingPrecision and workingBlend passed on confirmed lavapipe.
+Timeline-only typecheck passed. Existing effectsParity and adjustment tests
+passed in the preceding run. The inverse-Levels ramp recovers 256 distinct
+codes in FP16 versus 192 in bytes, with at most one-code FP16 error.
+Glow, group effects and an adjustment allocate FP16 effect targets without
+validation errors. This does not remeasure the three A81 scenes.
+
+The original geometry identity remains within one code, mean 0.007649739583333333
+on lavapipe. Adding neutral Levels to its low-alpha source measured a maximum
+nine-code difference. Byte alpha bridges quantize colour before unpremultiplying.
+That fixture is not a precision-independent effect oracle. Its original
+one-code assertion remains unchanged. Full transparent qualification is pending.
+
+Verification correction: timeline initially loaded GPU dist from before A22.
+Built only packages/gpu locally, then reran. Also ntenv sets VK_DRIVER_FILES
+to NVIDIA, overriding VK_ICD_FILENAMES. Subsequent runs explicitly set both
+to /usr/share/vulkan/icd.d/lvp_icd.json. Earlier baseline adapter labels in
+this report are not reliable.
+
+Changed files: this report, packages/timeline/src/render/effects.ts,
+packages/timeline/src/render/frameCompositor.ts and
+packages/timeline/tests/render.workingPrecision.gpu.test.ts.
+Logs: a233-built.log, a233-final.log, a233-final-tsc.log and gpu-build.log
+under the existing color-s2 log directory. Restricted checks only.

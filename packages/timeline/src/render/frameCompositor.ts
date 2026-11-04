@@ -417,6 +417,8 @@ export interface GpuFrameCompositorOptions<TSource> extends WorkingPrecisionOpti
   /** Distinguishes this instance's GPU labels from another's. */
   label?: string;
   upload: GpuSourceUploader<TSource>;
+  /** Maximum retained promotion bytes after submission. Active frames may exceed it. */
+  maxPromotionCacheBytes?: number;
   /**
    * The source ids still in use after this frame. A host drops whatever its
    * cache holds beyond them, the way the compositor drops its own intermediates.
@@ -477,6 +479,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
   private readonly solids = new Map<string, GPUTexture>();
   /** One cropped copy per cropped layer, by layer id — see {@link cropSource}. */
   private readonly crops = new Map<string, GpuSourceTexture>();
+  private readonly maxPromotionCacheBytes: number;
   private readonly promotedSources = new Map<string, GpuSourceTexture>();
   private promotionPipeline: GPURenderPipeline | null = null;
   /** Resolves a premultiplied accumulation to the straight alpha the blend
@@ -494,6 +497,10 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     options: GpuFrameCompositorOptions<TSource>
   ) {
     this.device = device;
+    this.maxPromotionCacheBytes = options.maxPromotionCacheBytes ?? 64 * 1024 * 1024;
+    if (!(this.maxPromotionCacheBytes >= 0)) {
+      throw new Error("Promotion cache byte budget must be nonnegative");
+    }
     this.workingFormat = options.workingFormat ?? "rgba8unorm";
     this.width = Math.max(1, Math.floor(width));
     this.height = Math.max(1, Math.floor(height));
@@ -626,6 +633,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       writeStart
     );
     this.device.queue.submit([encoder.finish()]);
+    this.trimPromotionCache();
     return { texture, drawn, frame: { representation: "gpu-texture", texture, format: this.workingFormat, width: this.width, height: this.height, bytesPerRow: null, alpha: "premultiplied", interpretation: "encoded-sdr" } };
   }
 
@@ -991,6 +999,19 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       ),
       borderRadius: 0
     };
+  }
+
+  private trimPromotionCache(): void {
+    let bytes = 0;
+    for (const entry of this.promotedSources.values()) {
+      bytes += entry.width * entry.height * 8;
+    }
+    for (const [id, entry] of this.promotedSources) {
+      if (bytes <= this.maxPromotionCacheBytes) { break; }
+      entry.texture.destroy();
+      this.promotedSources.delete(id);
+      bytes -= entry.width * entry.height * 8;
+    }
   }
 
   private promoteSource(id: string, source: GpuSourceTexture, encoder: GPUCommandEncoder): GpuSourceTexture {

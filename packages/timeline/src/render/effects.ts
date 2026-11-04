@@ -249,7 +249,8 @@ export class WebGPUEffectsProcessor {
     if (!frameEncoder) {
       this.ctx.uniformRing.beginSubmission();
     }
-    const pool = this.getPool(poolKey, width, height);
+    const workingFormat = source.format === "rgba16float" ? "rgba16float" : "rgba8unorm";
+    const pool = this.getPool(poolKey, width, height, workingFormat);
     const encoder =
       frameEncoder ??
       this.device.createCommandEncoder({
@@ -307,6 +308,7 @@ export class WebGPUEffectsProcessor {
       }
       this.executor.encode({
         ctx: this.ctx,
+        workingFormat,
         module,
         encoder,
         inputs,
@@ -329,6 +331,7 @@ export class WebGPUEffectsProcessor {
       const { input, outIdx } = pick();
       this.recipes.encode({
         ctx: this.ctx,
+        workingFormat,
         module,
         encoder,
         inputs: { source: input },
@@ -351,6 +354,7 @@ export class WebGPUEffectsProcessor {
         const { input, outIdx } = pick();
         this.executor.encode({
           ctx: this.ctx,
+        workingFormat,
           module: colorCubeLutV1,
           encoder,
           inputs: { source: input, lut },
@@ -853,9 +857,9 @@ export class WebGPUEffectsProcessor {
     });
   }
 
-  private getPool(key: string, width: number, height: number): IntermediatePool {
+  private getPool(key: string, width: number, height: number, format: "rgba8unorm" | "rgba16float" = "rgba8unorm"): IntermediatePool {
     const existing = this.pools.get(key);
-    if (existing && existing.width === width && existing.height === height) {
+    if (existing && existing.width === width && existing.height === height && existing.textures[0].format === format) {
       return existing;
     }
     if (existing) {
@@ -870,7 +874,7 @@ export class WebGPUEffectsProcessor {
         label,
         width,
         height,
-        format: "rgba8unorm",
+        format,
         usage: intermediateUsage(),
         meta: { colorSpace: "encoded-sdr", alpha: "premultiplied" }
       });

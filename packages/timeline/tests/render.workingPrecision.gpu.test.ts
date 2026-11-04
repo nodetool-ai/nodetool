@@ -99,3 +99,83 @@ it("preserves full-frame identity through source promotion, crop and subpixel pl
     expect(await device.popErrorScope()).toBeNull();
   }
 });
+
+it("recovers all ramp codes through inverse Levels in FP16", async () => {
+  const device = await getNodeGPUDevice();
+  const rgba = new Uint8Array(256 * 4);
+  for (let x = 0; x < 256; x++) rgba.set([x, x, x, 255], x * 4);
+  const layer: FrameLayer = {
+    id: "ramp", source: { rgba, width: 256, height: 1 },
+    opacity: 1, blendMode: "normal", zIndex: 0,
+    effects: [0.5, 2].map((gamma, i) => ({
+      id: String(i), type: "levels", enabled: true,
+      inBlack: 0, inWhite: 1, gamma, outBlack: 0, outWhite: 1
+    }))
+  };
+  const byte = new HeadlessFrameCompositor(device, 256, 1);
+  const half = new HeadlessFrameCompositor(device, 256, 1, { workingFormat: "rgba16float" });
+  try {
+    const a = await byte.renderFrame([layer]);
+    const b = await half.renderFrame([layer]);
+    expect(new Set(a.filter((_, i) => i % 4 === 0)).size).toBe(192);
+    expect(new Set(b.filter((_, i) => i % 4 === 0)).size).toBe(256);
+    expect(Math.max(...b.map((v, i) => Math.abs(v - rgba[i])))).toBeLessThanOrEqual(1);
+  } finally {
+    byte.dispose(); half.dispose();
+  }
+});
+
+it("retains FP16 through glow recipes, group effects and adjustments", async () => {
+  const device = await getNodeGPUDevice();
+  const allocations = vi.spyOn(device, "createTexture");
+  const half = new HeadlessFrameCompositor(device, 8, 8, { workingFormat: "rgba16float" });
+  device.pushErrorScope("validation");
+  const levels = { id: "l", type: "levels" as const, enabled: true, inBlack: 0, inWhite: 1, gamma: 1, outBlack: 0, outWhite: 0.5 };
+  try {
+    const result = await half.renderFrame([{
+      id: "nested", source: { rgba: new Uint8Array([128, 64, 32, 255]), width: 1, height: 1 },
+      opacity: 1, blendMode: "normal", zIndex: 0, precomposeGroupId: "g",
+      effects: [{ id: "glow", type: "glow", enabled: true, radius: 2, intensity: 0.1 }]
+    }], [{ id: "g", zIndex: 0, opacity: 1, blendMode: "normal", effects: [levels] }], {},
+    [{ id: "a", zIndex: 1, opacity: 1, effects: [levels] }]);
+    expect(result.some((v, i) => i % 4 !== 3 && v > 0)).toBe(true);
+    const effects = allocations.mock.calls.map(([d]) => d).filter(d => d.label?.startsWith("preview-effects"));
+    expect(effects.length).toBeGreaterThanOrEqual(6);
+    expect(effects.every(d => d.format === "rgba16float")).toBe(true);
+  } finally {
+    half.dispose(); allocations.mockRestore();
+    const error = await device.popErrorScope();
+    expect(error?.message).toBeUndefined();
+  }
+});
+
+it("releases removed promotions, bounds retained bytes and releases on dispose", async () => {
+  const device = await getNodeGPUDevice();
+  const source = device.createTexture({ size: [1, 1], format: "rgba8unorm", usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });
+  device.queue.writeTexture({ texture: source }, new Uint8Array([128, 64, 32, 255]), { bytesPerRow: 4 }, [1, 1]);
+  const allocations = vi.spyOn(device, "createTexture");
+  const renderer = new GpuFrameCompositor(device, 1, 1, {
+    workingFormat: "rgba16float", maxPromotionCacheBytes: 16,
+    upload: () => ({ texture: source, width: 1, height: 1 })
+  });
+  const layer: FrameLayer = { id: "first", source: { rgba: new Uint8Array(4), width: 1, height: 1 }, opacity: 1, blendMode: "normal", zIndex: 0 };
+  try {
+    renderer.composite([layer]);
+    const promoted = allocations.mock.results[allocations.mock.calls.findIndex(([d]) => d.label?.endsWith("promoted-first"))].value as GPUTexture;
+    const destroyed = vi.spyOn(promoted, "destroy");
+    renderer.composite([]);
+    expect(destroyed).toHaveBeenCalledOnce();
+    renderer.composite(Array.from({ length: 20 }, (_, i) => ({ ...layer, id: String(i) })));
+    // Two eight-byte textures fit. The next frame must allocate the evicted 18 again.
+    const count = () => allocations.mock.calls.filter(([d]) => d.label?.includes("-promoted-")).length;
+    expect(count()).toBe(21);
+    renderer.composite(Array.from({ length: 20 }, (_, i) => ({ ...layer, id: String(i) })));
+    expect(count()).toBe(39);
+    const retained = allocations.mock.results[allocations.mock.calls.findLastIndex(([d]) => d.label?.includes("-promoted-"))].value as GPUTexture;
+    const dispose = vi.spyOn(retained, "destroy");
+    renderer.dispose();
+    expect(dispose).toHaveBeenCalledOnce();
+  } finally {
+    renderer.dispose(); source.destroy(); allocations.mockRestore();
+  }
+});
