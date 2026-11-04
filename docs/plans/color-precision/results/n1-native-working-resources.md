@@ -1,6 +1,6 @@
 # N1 native working resources
 
-The requested full-scene numerical and lifetime qualification passes on Vulkan/lavapipe. The complete corrected N1 task list is not finished. A30's transfer declaration, A31's shared-vector comparison and A109's precision-aware Color Match model remain outstanding. Keep FP16 off by default.
+The requested full-scene numerical and lifetime qualification passes on Vulkan/lavapipe. The complete corrected N1 task list is not finished. A30's transfer declaration is now included. A31's shared-vector comparison remains outstanding. A109's precision-aware Color Match model waits for N2's capture boundary and is outside this task. Keep FP16 off by default.
 
 No schema, document setting, capture, export or presentation behavior changed. The internal entry point remains `PreviewCompositor::setWorkingFormat(nt::WorkingFormat::Rgba16F)`.
 
@@ -68,6 +68,40 @@ Build and test logs are under `/home/mg/Projects/nodetool-film/build/color-n0/`:
 
 Production FP16 capture still rejects the request with `FP16 working capture requires the N2 delivery boundary`. The new test asserts both the rejection and absence of a byte capture. The hook is absent from production builds. N2 was not started.
 
-The local compositor exit checks now pass on the named software backend. The full corrected N1 plan remains incomplete: the LayerFrame transfer declaration is absent, native vectors have not been reconciled with the shared set, and Color Match still models byte intermediates. A109 belongs to N1 in the corrected plan. Its implementation is not postponed to N2 merely because production capture remains byte-only.
+The local compositor exit checks pass on the named software backend. Color Match still models byte intermediates. A109 remains a corrected N1 item, but this task explicitly leaves it until N2 supplies the capture boundary.
 
 Metal, D3D11/WARP, Windows hardware, OpenGL, FP16 hardware-decode interop, device loss, constrained physical-GPU peaks and release performance remain unverified. This run does not enable FP16 or qualify a release backend. Unsupported-format fallback remains N3 work.
+
+## A30 transfer declaration
+
+`LayerFrame::transfer` records the RGB transfer after matrix conversion using
+FFmpeg transfer names. Its default is `unknown`. Decoding prefers the frame's
+transfer tag, then the stream tag. Missing or unrecognized metadata stays
+`unknown`. Software uploads, hardware frames and independent hardware cache
+copies carry the declaration. Swscale's matrix/range and layout conversions do
+not decode transfer, so they retain the source declaration.
+
+Synthetic QPainter patterns and CSS/QColor raster sources declare sRGB
+(`iec61966-2-1`). No upload, shader, conversion, schema or renderer default
+changes. Compositor frame copies preserve the source declaration across storage
+promotion, crop and effect-stage boundaries. Mixed container frames remain
+`unknown`, since existing composition does not establish a common transfer.
+
+`transferSurvivesLayerContracts` registers a BT.709 source and checks the frame
+received after production clip effects and masking in RGBA8 and RGBA16F.
+It also checks that a default frame remains unknown.
+
+The transfer mismatch remains: export sets `AVCOL_TRC_BT709`, while native
+exposure decodes and re-encodes sRGB, and Color Match models sRGB. A source tag
+is evidence about its incoming samples, not proof that this mixed encoded-domain
+pipeline or its export has that transfer. N4 must reconcile these assumptions.
+
+The focused build passed with `ntbuild color-n0 tst_sceneprecision
+tst_workingprecision tst_clipeffects`. The Vulkan/lavapipe scene suite passed
+seven cases with no failures or skips, including the transfer-contract check.
+The initial combined CTest run exited 0. Its clip-effects suite skipped the
+artifact-producing `exportDocuments` case without `NT_D6_OUTPUT`, so it was rerun with
+`NT_D6_OUTPUT` pointing into the build directory. It passed 67 cases with no
+failures or skips. The restored working-precision suite also passed six cases
+without skips. This final CTest run exited 0. Logs are `n1-transfer-build.log`,
+`n1-transfer-tests.log` and `n1-final-tests.log` in the build directory.

@@ -177,6 +177,8 @@ LayerFrame SyntheticSource::frameAt(const FrameContext& ctx, double sourceTimeMs
     out.cpuCopies = m_lastCopies;
     m_lastCopies = 0;
     out.format = LayerFrame::Format::Rgba8Premultiplied;
+    // QColor/QPainter authored encoded RGB, uploaded without transfer conversion.
+    out.transfer = "iec61966-2-1";
     out.planes[0] = m_texture.get();
     out.size = m_size;
     return out;

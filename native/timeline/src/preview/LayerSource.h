@@ -16,6 +16,7 @@
 #include <QSize>
 
 #include <array>
+#include <string>
 
 #include "preview/hw/HwInterop.h"
 
@@ -39,6 +40,10 @@ struct LayerFrame {
     QSize size;
     // YUV formats: rgb = (colorMatrix * vec4(y, cb, cr, 1)).rgb, column-major.
     std::array<float, 16> colorMatrix{};
+    // RGB transfer after YUV matrix conversion, using FFmpeg transfer names.
+    // Unknown stays unknown. Storage/filtering do not imply linear light.
+    // Declaration only: no transfer conversion before the N4 color milestone.
+    std::string transfer = "unknown";
     // The frame's presentation time in the source, or negative for a source
     // with no timeline (a synthetic pattern).
     double ptsSec = -1.0;

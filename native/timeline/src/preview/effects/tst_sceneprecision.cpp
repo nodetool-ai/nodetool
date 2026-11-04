@@ -1,5 +1,6 @@
 #include "preview/layers/TestStill.h"
 #include "model/TimelineJson.h"
+#include "preview/effects/ClipEffects.h"
 #include "playback/PlaybackClock.h"
 #include <QFile>
 #include <QScopeGuard>
@@ -51,8 +52,23 @@ public:
         }
         nt::LayerFrame frame;
         frame.format = nt::LayerFrame::rgbaFormat(m_texture.get());
+        frame.transfer = "bt709";
         frame.planes[0] = m_texture.get(); frame.size = frameSize();
         return frame;
+    }
+};
+class TransferProbe final : public nt::LayerEffectStage {
+    bool& m_seen;
+    bool& m_valid;
+    nt::effects::ClipEffectStage m_copy;
+public:
+    TransferProbe(bool& seen, bool& valid) : m_seen(seen), m_valid(valid) {}
+    bool applies(const QJsonObject& ext) const override { return ext.contains("clipEffects"); }
+    bool render(const nt::EffectContext& ctx, const nt::LayerFrame& input,
+                QRhiTextureRenderTarget& output, const QJsonObject&) override {
+        m_seen = true;
+        m_valid = m_valid && input.transfer == "bt709";
+        return m_copy.render(ctx, input, output, {});
     }
 };
 class Scene {
@@ -140,6 +156,29 @@ float difference(const std::vector<float>& a, const std::vector<float>& b) {
 class TestScenePrecision : public QObject {
     Q_OBJECT
 private slots:
+    void transferSurvivesLayerContracts() {
+        QCOMPARE(nt::LayerFrame{}.transfer, std::string("unknown"));
+        bool seen = false, valid = true;
+        const auto source = nt::registerLayerSource("video", [](const nt::ActiveLayer&) {
+            return std::make_unique<FloatSource>(1.f);
+        });
+        const auto probe = nt::registerEffectStage([&] { return std::make_unique<TransferProbe>(seen, valid); });
+        const auto guard = qScopeGuard([&] {
+            nt::unregisterEffectStage(probe);
+            nt::unregisterLayerSource(source);
+        });
+        auto clip = leaf("transfer", "video");
+        clip.insert("effects", QJsonArray{effect("levels", {{"gamma", 0.8}})});
+        clip.insert("shapeMask", QJsonObject{{"kind", "ellipse"}});
+        for (const auto format : {nt::WorkingFormat::Rgba8, nt::WorkingFormat::Rgba16F}) {
+            seen = false;
+            Scene scene;
+            QVERIFY(scene.initialize(document({clip}), format));
+            QVERIFY(scene.render());
+            QVERIFY(seen);
+            QVERIFY(valid);
+        }
+    }
     void rejectsInvalidPixels() {
         Scene scene;
         scene.pixels = {1.f, 0.f, 0.f, 1.f}; QVERIFY(scene.finiteNonblack());
