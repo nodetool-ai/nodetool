@@ -62,14 +62,17 @@ export const colorPosterizeV1 = defineModule({
   layout,
   samplers: { samp: samplerDescriptor },
   wgsl,
-  // Check the candidate bin by cross multiplication. A rounded reciprocal
-  // on NVIDIA can place an exact FP16 boundary in the preceding bin.
+  // Posterize intentionally bins byte codes. Recover that lattice after
+  // FP16 storage, which can move e.g. 170/255 below the three-level edge.
+  // Only bin selection is snapped. Coverage and alpha retain float precision.
   workingWgsl: wgsl.replace(
     "let quantized = floor(clamp(straight, vec3f(0.0), vec3f(1.0)) * n) / (n - 1.0);",
-    `let scaled = clamp(src.rgb, vec3f(0.0), vec3f(safeA)) * n;
-  var bins = floor(scaled / safeA);
-  bins += select(vec3f(0.0), vec3f(1.0), scaled >= (bins + vec3f(1.0)) * safeA);
-  bins -= select(vec3f(0.0), vec3f(1.0), scaled < bins * safeA);
+    `let alphaCode = max(1.0, round(src.a * 255.0));
+  let codes = round(clamp(src.rgb, vec3f(0.0), vec3f(safeA)) * 255.0);
+  let scaled = codes * n;
+  var bins = floor(scaled / alphaCode);
+  bins += select(vec3f(0.0), vec3f(1.0), scaled >= (bins + vec3f(1.0)) * alphaCode);
+  bins -= select(vec3f(0.0), vec3f(1.0), scaled < bins * alphaCode);
   let quantized = bins / (n - 1.0);`
   ),
   io: {
