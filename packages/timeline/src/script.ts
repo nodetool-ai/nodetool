@@ -23,6 +23,7 @@ import type {
   VoiceBinding
 } from "@nodetool-ai/protocol/api-schemas/scripts.js";
 import { makeClip, makeClipVersion, makeTrack } from "./defaults.js";
+import { sourceRate } from "./sourceRate.js";
 import type { CaptionWord, TimelineClip, TimelineTrack } from "./types.js";
 
 /** Clip length for a take whose duration could not be determined. */
@@ -175,8 +176,10 @@ export interface ScriptReconcileResult {
  * every placement a person made.
  *
  * - A line that already has a clip keeps the clip's position. A new current
- *   take swaps the asset, resets the trim and sets the take's length; text,
- *   speaker and voice changes only relabel it.
+ *   take swaps the asset on every linked fragment. Clips with explicit source
+ *   windows keep their trims and duration, even when the new source is shorter,
+ *   matching timeline take selection. Untouched clips take the new length.
+ *   Text, speaker and voice changes only relabel clips.
  * - A voiced line with no clip gets one right after the previous line's clip
  *   (plus that line's authored pause), moved later past any clip on the
  *   voiceover track it would overlap.
@@ -190,15 +193,20 @@ export function reconcileScriptClips(
   doc: { tracks: TimelineTrack[]; clips: TimelineClip[] },
   input: ScriptAssemblyInput
 ): ScriptReconcileResult {
-  const owned = new Map<string, TimelineClip>();
+  const owned = new Map<string, TimelineClip[]>();
   for (const clip of doc.clips) {
     if (clip.scriptId === input.scriptId && clip.scriptLineId) {
-      owned.set(clip.scriptLineId, clip);
+      const fragments = owned.get(clip.scriptLineId);
+      if (fragments) {
+        fragments.push(clip);
+      } else {
+        owned.set(clip.scriptLineId, [clip]);
+      }
     }
   }
 
   let tracks = doc.tracks;
-  let trackId = owned.values().next().value?.trackId;
+  let trackId = owned.values().next().value?.[0]?.trackId;
   const needsTrack = (): string => {
     if (trackId) return trackId;
     const track = makeTrack({
@@ -227,8 +235,10 @@ export function reconcileScriptClips(
   for (const { line, take } of voicedLines) {
     const existing = owned.get(line.id);
     if (!existing) continue;
-    const clip = updateLineClip(existing, input, line, take);
-    if (clip !== existing) updates.set(existing.id, clip);
+    for (const fragment of existing) {
+      const clip = updateLineClip(fragment, input, line, take);
+      if (clip !== fragment) updates.set(fragment.id, clip);
+    }
   }
   const current = (clip: TimelineClip): TimelineClip => updates.get(clip.id) ?? clip;
 
@@ -238,9 +248,12 @@ export function reconcileScriptClips(
 
   for (const { line, take } of voicedLines) {
     const existing = owned.get(line.id);
-    let clip: TimelineClip;
+    let endMs: number;
     if (existing) {
-      clip = current(existing);
+      endMs = existing.reduce((end, fragment) => {
+        const clip = current(fragment);
+        return Math.max(end, clip.startMs + clip.durationMs);
+      }, 0);
     } else {
       const fresh = lineClip(input, line, take, needsTrack(), anchorMs);
       const occupied = [
@@ -249,10 +262,11 @@ export function reconcileScriptClips(
           .map(current),
         ...added
       ];
-      clip = { ...fresh, startMs: firstFreeStart(occupied, anchorMs, fresh.durationMs) };
+      const clip = { ...fresh, startMs: firstFreeStart(occupied, anchorMs, fresh.durationMs) };
       added.push(clip);
+      endMs = clip.startMs + clip.durationMs;
     }
-    anchorMs = clip.startMs + clip.durationMs + Math.max(0, line.pauseAfterMs ?? 0);
+    anchorMs = endMs + Math.max(0, line.pauseAfterMs ?? 0);
   }
 
   const kept = doc.clips.filter(survives);
@@ -305,8 +319,21 @@ function updateLineClip(
     }
   }
   if (clip.currentAssetId !== take.assetId) {
-    // A new take is a fresh source: record it as the active version and
-    // reset the trim window, like a timeline-side generation does.
+    // Split and trim write explicit source windows. Preserve those edits,
+    // including a lone surviving fragment, when replacing the underlying take.
+    const hasWindow = clip.inPointMs !== undefined || clip.outPointMs !== undefined;
+    const rate = sourceRate(clip);
+    const inPointMs = clip.inPointMs ?? 0;
+    const caption = fresh.caption && hasWindow
+      ? {
+          ...fresh.caption,
+          words: fresh.caption.words.flatMap((word) => {
+            const startMs = Math.max(0, (word.startMs - inPointMs) / rate);
+            const endMs = Math.min(clip.durationMs, (word.endMs - inPointMs) / rate);
+            return endMs > startMs ? [{ ...word, startMs, endMs }] : [];
+          })
+        }
+      : fresh.caption;
     const versions = clip.versions ?? [];
     const version =
       versions.find((v) => v.assetId === take.assetId) ??
@@ -322,10 +349,10 @@ function updateLineClip(
       currentAssetId: take.assetId,
       activeTakeId: version.id,
       versions: versions.includes(version) ? versions : [...versions, version],
-      inPointMs: undefined,
-      outPointMs: undefined,
-      durationMs: fresh.durationMs,
-      caption: fresh.caption,
+      inPointMs: clip.inPointMs,
+      outPointMs: clip.outPointMs,
+      durationMs: hasWindow ? clip.durationMs : fresh.durationMs,
+      caption,
       status: "generated"
     };
   }
