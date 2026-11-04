@@ -132,18 +132,47 @@ private slots:
         for (const auto& frame : socket.frames) if (frame.value("command") == "generate_media") ++generations;
         QCOMPARE(generations, 1);
     }
+    void recoveryTimeout_data() {
+        QTest::addColumn<int>("pollDelay");
+        QTest::newRow("immediate-poll") << 0;
+        QTest::newRow("delayed-poll") << 350;
+    }
     void recoveryTimeout() {
-        Socket socket; EntityAssist assist; assist.configure(socket.base()); assist.setReferenceTimeout(300);
+        QFETCH(int, pollDelay);
+        Socket socket; EntityAssist assist; assist.configure(socket.base());
         QSignalSpy ready(&assist, &EntityAssist::referenceReady);
+        const auto frameIndex = [&](const QString& command) -> qsizetype {
+            for (qsizetype i = 0; i < socket.frames.size(); ++i) {
+                if (socket.frames[i].value("command").toString() == command) {
+                    return i;
+                }
+            }
+            return -1;
+        };
         assist.generateReference(image()); QTRY_COMPARE(socket.frames.size(), 1);
-        socket.peer->close(); QTRY_COMPARE(socket.frames.size(), 2);
-        socket.reply(1, {{"generations", QJsonArray{QJsonObject{{"request_id", socket.frames[0].value("request_id")}, {"status", "running"}}}}});
+        const auto id = socket.frames[0].value("request_id");
+        socket.peer->close();
+        // A loaded runner can process recovery and its deadline between test polls.
+        if (pollDelay > 0) {
+            QTest::qWait(pollDelay);
+        }
+        QTRY_VERIFY(frameIndex("lookup_generations") >= 0);
+        const auto lookupIndex = frameIndex("lookup_generations");
+        QCOMPARE(socket.frames[lookupIndex].value("data").toObject().value("request_ids").toArray(), QJsonArray{id});
+        QVERIFY(assist.generating());
+        // Start the short deadline only once recovery has reached the server.
+        assist.setReferenceTimeout(300);
+        socket.reply(lookupIndex, {{"generations", QJsonArray{QJsonObject{{"request_id", id}, {"status", "running"}}}}});
         QTRY_VERIFY(!assist.generating());
         QCOMPARE(assist.generateError(), QString("The reference image took too long. Try again."));
-        QTRY_COMPARE(socket.frames.size(), 3);
-        QCOMPARE(socket.frames[2].value("command").toString(), QString("cancel_generation"));
-        socket.reply(1, {{"generations", QJsonArray{QJsonObject{{"request_id", socket.frames[0].value("request_id")}, {"status", "completed"}, {"asset_ids", QJsonArray{"late"}}}}}});
-        QTest::qWait(30); QCOMPARE(ready.size(), 0);
+        QTRY_VERIFY(frameIndex("cancel_generation") >= 0);
+        QCOMPARE(socket.frames[frameIndex("cancel_generation")].value("data").toObject().value("request_ids").toArray(), QJsonArray{id});
+        socket.reply(lookupIndex, {{"generations", QJsonArray{QJsonObject{{"request_id", id}, {"status", "completed"}, {"asset_ids", QJsonArray{"late"}}}}}});
+        QTest::qWait(30);
+        QCOMPARE(ready.size(), 0);
+        QVERIFY(!assist.generating());
+        QVERIFY(assist.takes().isEmpty());
+        QCOMPARE(assist.generateError(), QString("The reference image took too long. Try again."));
     }
     void textDisconnect() {
         Socket socket; EntityAssist assist; assist.configure(socket.base());
