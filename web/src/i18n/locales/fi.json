@@ -9534,6 +9534,16 @@
         "title": "Suorita graafeja vuokratulla GPU:lla",
         "description": "Yhdistä RunPod kerran ja valitse GPU. NodeTool suorittaa sitten Python-solmusi sillä, ja joutilaat työkoneet keskeytyvät itsestään.",
         "action": "Määritä työkone"
+      },
+      "presets": {
+        "summary_one": "Noin {{min}}–{{max}} tunnissa. Päättyy {{count}} tunnin jälkeen ja poistaa tiedostonsa.",
+        "summary_other": "Noin {{min}}–{{max}} tunnissa. Päättyy {{count}} tunnin jälkeen ja poistaa tiedostonsa.",
+        "start": "Käynnistä",
+        "starting": "Käynnistetään…",
+        "startAria": "Käynnistä {{name}} vuokratulla GPU:lla",
+        "bootingHint": "ComfyUI latautuu. Ensimmäinen käynnistys voi kestää useita minuutteja.",
+        "readyHint": "Kopioi URL kohteeseen Run ComfyUI Workflow. Kuka tahansa, jolla on tämä URL, voi käyttää podia.",
+        "copyEndpoint": "Kopioi ComfyUI-URL"
       }
     }
   },

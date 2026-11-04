@@ -72,6 +72,8 @@ const makeHookValue = (
     typeof useWorkers
   >["instancesQuery"],
   apiKeyStatus: { runpod: true, vast: true, verda: true },
+  comfyPresets: [],
+  startComfyPreset: jest.fn(async () => makeInstance()),
   createProfile: jest.fn(async () => makeProfile()),
   deleteProfile: jest.fn(async () => undefined),
   provision: jest.fn(async () => makeInstance()),
@@ -100,6 +102,51 @@ describe("WorkersPanel", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseWorkerHealth.mockReturnValue(healthResult({ healthy: true }));
+  });
+
+  describe("one-click models", () => {
+    const preset = {
+      id: "minimax-h3",
+      label: "MiniMax H3",
+      profileName: "ComfyUI MiniMax H3",
+      hourlyUsd: { min: 0.72, max: 1.19 },
+      maxLifetimeMinutes: 120
+    };
+
+    it("starts a model with one click", async () => {
+      const startComfyPreset = jest.fn(async () => makeInstance());
+      mockUseWorkers.mockReturnValue(
+        makeHookValue({ instances: [], comfyPresets: [preset], startComfyPreset })
+      );
+      renderPanel();
+      await userEvent.click(screen.getByRole("button", { name: /MiniMax H3/ }));
+      expect(startComfyPreset).toHaveBeenCalledWith("minimax-h3");
+    });
+
+    it("refuses a second pod while the model runs", () => {
+      mockUseWorkers.mockReturnValue(
+        makeHookValue({
+          instances: [makeInstance({ profile_name: preset.profileName })],
+          comfyPresets: [preset]
+        })
+      );
+      renderPanel();
+      expect(screen.getByRole("button", { name: /MiniMax H3/ })).toBeDisabled();
+    });
+
+    it("offers the URL and no attach on a ready ComfyUI pod", () => {
+      mockUseWorkerHealth.mockReturnValue(
+        healthResult({ healthy: true, comfyEndpoint: "https://p-8188.proxy" })
+      );
+      mockUseWorkers.mockReturnValue(makeHookValue());
+      renderPanel();
+      expect(
+        screen.queryByRole("button", { name: /attach/i })
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /copy/i })
+      ).toBeInTheDocument();
+    });
   });
 
   it("renders an instance row with status, cost, and a Stop button", () => {

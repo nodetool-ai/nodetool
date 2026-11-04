@@ -17,7 +17,11 @@
 
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import type { WorkerManager } from "@nodetool-ai/compute";
+import {
+  COMFY_PRESETS,
+  isComfyServerReady,
+  type WorkerManager
+} from "@nodetool-ai/compute";
 import type { RepointPythonBridge, ProbeWorkerHealth } from "../context.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -122,7 +126,16 @@ const reconcileOutput = z.object({
 const healthOutput = z.object({
   healthy: z.boolean(),
   protocolVersion: z.number().optional(),
-  error: z.string().optional()
+  error: z.string().optional(),
+  /** Set for a ComfyUI worker: the URL for `lib.comfy.RunWorkflow`. */
+  comfyEndpoint: z.string().optional()
+});
+const comfyPresetOutput = z.object({
+  id: z.string(),
+  label: z.string(),
+  profileName: z.string(),
+  hourlyUsd: z.object({ min: z.number(), max: z.number() }),
+  maxLifetimeMinutes: z.number()
 });
 
 /** Pull the wired `WorkerManager` from context or fail loudly. */
@@ -216,6 +229,17 @@ export const workerRouter = router({
         : requireManager(ctx.workerManager).apiKeyStatus()
     ),
 
+  comfyPresets: protectedProcedure
+    .output(z.array(comfyPresetOutput))
+    .query(() => (isProductionServer() ? [] : [...COMFY_PRESETS])),
+
+  startComfyPreset: localProcedure
+    .input(z.object({ presetId: z.string().min(1) }))
+    .output(workerInstanceOutput)
+    .mutation(({ ctx, input }) =>
+      requireManager(ctx.workerManager).startComfyPreset(input.presetId)
+    ),
+
   provision: localProcedure
     .input(provisionInput)
     .output(workerInstanceOutput)
@@ -266,9 +290,15 @@ export const workerRouter = router({
     .input(idInput)
     .output(healthOutput)
     .query(async ({ ctx, input }) => {
-      const connection = await requireManager(ctx.workerManager).connectionInfo(
-        input.id
-      );
+      const manager = requireManager(ctx.workerManager);
+      const comfyEndpoint = await manager.comfyEndpoint(input.id);
+      if (comfyEndpoint) {
+        return {
+          healthy: await isComfyServerReady(comfyEndpoint),
+          comfyEndpoint
+        };
+      }
+      const connection = await manager.connectionInfo(input.id);
       return requireProbe(ctx.probeWorkerHealth)(connection);
     }),
 
