@@ -933,6 +933,7 @@ jobs:
         # the server uses on Node/Dawn.
         uses: ./.github/actions/setup-build
         with:
+          cache: off
           extra-apt: mesa-vulkan-drivers
 
       - name: Run shipped-workflow execution tests
