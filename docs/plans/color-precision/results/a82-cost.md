@@ -1,5 +1,12 @@
 # A82: FP16 cost
 
+## Owner decision
+
+On 2026-11-04, the owner accepted the measured web cost and decided to start S1.
+A82 measured +2.09 ms median on an RTX 3060 against a +2 ms trial budget.
+API latency, a growth soak, weak GPUs and real browsers remain unmeasured and
+still gate browser rollout.
+
 ## Budgets fixed before measurement
 
 - D1: Discrete GPU, completed eight-pass 3840×2160 work: FP16 minus RGBA8
