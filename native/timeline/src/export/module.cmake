@@ -8,6 +8,10 @@ nt_qml_sources(src/export/ExportSettings.h src/export/ExportSettings.cpp
     src/export/ExportController.h src/export/ExportController.cpp
     src/export/FrameCapture.h src/export/FrameCapture.cpp src/export/FrameImage.h src/export/FrameImage.cpp)
 function(nt_export_tests)
+    qt_add_executable(tst_deliveryframe src/export/tst_deliveryframe.cpp)
+    target_include_directories(tst_deliveryframe PRIVATE src)
+    target_link_libraries(tst_deliveryframe PRIVATE Qt6::Gui Qt6::Test PkgConfig::FFMPEG)
+    add_test(NAME tst_deliveryframe COMMAND tst_deliveryframe)
     qt_add_executable(tst_pngzip src/export/tst_pngzip.cpp src/export/PngZip.cpp)
     set_target_properties(tst_pngzip PROPERTIES MACOSX_BUNDLE FALSE)
     target_include_directories(tst_pngzip PRIVATE src)

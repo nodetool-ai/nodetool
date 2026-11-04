@@ -1,7 +1,6 @@
-# N2 native capture, partial implementation
+# N2 native capture and delivery, partial implementation
 
-A84.1 is implemented and qualified on Vulkan/lavapipe. This round stops at the
-working-capture boundary. N2's exit gate is **not met**. FP16 remains off by
+A84.1 is implemented and qualified on Vulkan/lavapipe. The export connection remains unfinished. N2's exit gate is **not met**. FP16 remains off by
 default. No schema, setting, QML property, transfer conversion, workflow or
 CTest ordering changed. Nothing was pushed.
 
@@ -10,7 +9,7 @@ CTest ordering changed. Nothing was pushed.
 | Task | Status |
 |---|---|
 | A84.1 | Complete on Vulkan/lavapipe. Typed, owned, undithered working capture and format-preserving offscreen capture. |
-| A84.2 | Not implemented. ExportEngine still resamples bytes on explicit-size and odd-canvas video routes. Float delivery conversion and A88 dithering are next. |
+| A84.2 | Partial. Tested float alpha, resize and PNG conversion helpers exist. ExportEngine is not connected. Float YUV conversion matching the existing chroma filter remains. |
 | A32 | Not implemented. The outer target remains RGBA8 and capture bypasses it, but final presentation dithering and OpenGL qualification remain. |
 | A84.3 | Not complete. Existing capture/cancellation tests pass. FP16 PNG/ZIP delivery and alpha-zero conversion acceptance remain. |
 | A41.3 | Not complete. Legacy output tags were inspected, but FP16 delivery is not connected. |
@@ -115,3 +114,78 @@ All logs and comparison artifacts are under
 
 Only the affected native suites and their fixture prerequisites ran. No test
 was skipped. No full CTest suite, TypeScript checks or QML edits were used.
+
+## A84.2 follow-up: conversion helpers only
+
+This round stops before connecting ExportEngine. A84.2 is **not complete**,
+and A84.3 and A41.3 were not started as separate tasks. The N2 exit gate is
+**not met**. There is no FP16 export selector, schema change, setting or QML
+property. FP16 remains off by default. No export throughput measurement was
+made because no FP16 export route was enabled.
+
+[DeliveryFrame.h](../../../../native/timeline/src/export/DeliveryFrame.h)
+provides the internal conversion groundwork. It promotes premultiplied FP16
+capture to FP32, divides RGB by positive alpha, and sets hidden RGB to zero
+at zero or negative alpha. Nonfinite captured components are rejected.
+It retains straight FP32 through Qt smooth resizing, centered fit with opaque
+black bars, centered fill crops, and odd-canvas stretching. Only the final
+RGBA8 helper clamps and quantizes RGB. An 8x8 spatial Bayer tile is applied
+once there. Alpha is rounded without dithering. The input images are unchanged.
+These helpers are currently used only by the new test. They do not yet prove
+precision survives an ExportEngine scene.
+
+### Why the video connection remains open
+
+The installed libswscale 10.1.102 legacy path was probed with blue impulses
+using the exact RGBA input, YUV420P output, SWS_BICUBIC flag and BT.709
+full-to-limited conversion from ExportEngine. Horizontal chroma averages
+adjacent pixels. Vertical chroma has wider bicubic support and negative lobes.
+For a blue row at source y=4, U offsets from neutral across output rows are
+`[-1, 14, 49, -5, 0, 0, 0, 0]`. For a blue column at x=4, they are
+`[0, 0, 56, 0, 0, 0, 0, 0]`. Blue luma is code 32, consistent with limited
+BT.709. A direct 2x2 float average would change coloured edges. The new test
+pins the horizontal pair and verifies positive and negative vertical support.
+It does not establish full chroma-siting equivalence for a replacement.
+
+The next implementation must preserve that sampling behavior from float data,
+then dither the final limited-range Y, U and V codes after subsampling.
+It must also qualify the odd-canvas resize against a float reference.
+Do not connect the PNG helper ahead of an unqualified video conversion and
+claim A84.2 complete. No transfer conversion was added. The BT.709 tags versus
+sRGB exposure/Color Match assumptions remain unresolved as previously recorded.
+
+### Verification for this partial round
+
+`ntbuild color-n0 tst_deliveryframe nodetool-timeline` passed, exit 0.
+`citest color-n0 '^tst_deliveryframe$' -V` passed seven QtTest cases,
+zero failures and zero skips, exit 0. Its preferences fixture also passed.
+An earlier test invocation raced CMake regeneration and found no tests. That
+invocation is not counted as verification.
+
+The quantizer test sweeps 25,501 constant code values across complete 8x8
+tiles. It asserts maximum error at most one code, absolute mean bias below
+0.1 code, unique tile ranks, zero-mean noise and spatial repeatability.
+Actual PNG files are encoded and decoded for seven constant patches. Their
+RGB errors satisfy the same bounds and alpha stays 255. Separate tests check
+zero/low-alpha division, PNG byte round trips, input preservation, float
+resampling at 48x32, 96x80 and 64x48, both fit and fill, and odd-canvas stretch.
+These are helper-level results, not inverse-Levels scene-delivery results.
+No lossless-versus-video precision benefit or codec-error number is established.
+
+The six-export harness was run before and after this round using isolated
+configuration and Vulkan/lavapipe. PNG and video at odd canvas, fit downscale
+and fill upscale remain byte-identical, also matching the original N2 baseline.
+The app's export code is unchanged. No physical-GPU qualification is claimed.
+
+Build-local artifacts are `a842-final-build.log`, `a842-tests.log`,
+`a842-before.log`, `a842-after.log`, `a842-compare-check.py`,
+`n2-a842-before/`, `n2-a842-after/`, and `chroma-probe.cpp`.
+Nothing under the build directory is committed. Full scene-delivery precision,
+FP16 cancellation/cleanup, complete chroma compatibility, output-tag validation
+of FP16 video, and export throughput remain unverified.
+
+Disabling the dither deliberately made `tst_deliveryframe` fail, exit 8.
+The original implementation was restored, rebuilt and retested successfully,
+exit 0. Logs are `a842-negative-build.log`, `a842-negative-test.log`,
+`a842-restored-build.log` and `a842-restored-test.log`. Changed-file control-byte
+checks, local Markdown links and `git diff --check` passed.
