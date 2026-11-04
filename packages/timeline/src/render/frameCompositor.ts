@@ -23,6 +23,7 @@ import type { TemporalSources } from "./denoise.js";
  * `dispose`, so a throw mid-frame leaks nothing.
  */
 
+import type { WorkingFormat, WorkingFrame } from "@nodetool-ai/gpu";
 import { blendModeGpuId } from "@nodetool-ai/gpu";
 import {
   BLIT_FRAGMENT,
@@ -386,7 +387,7 @@ const TEXTURE_FORMAT: GPUTextureFormat = "rgba8unorm";
 
 /** Internal qualification switch. Omit or select rgba8unorm to roll back. */
 export interface WorkingPrecisionOptions {
-  readonly workingFormat?: "rgba8unorm" | "rgba16float";
+  readonly workingFormat?: WorkingFormat;
 }
 
 /** A layer's pixels, once the host has them in a texture. */
@@ -429,6 +430,8 @@ export interface GpuCompositeResult {
    * that covers no area this frame.
    */
   drawn: number;
+  /** Texture storage descriptor. Interpretation remains unknown pending A97. */
+  frame: WorkingFrame;
 }
 
 /**
@@ -618,7 +621,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       writeStart
     );
     this.device.queue.submit([encoder.finish()]);
-    return { texture, drawn };
+    return { texture, drawn, frame: { representation: "gpu-texture", texture, format: this.workingFormat, width: this.width, height: this.height, bytesPerRow: null, alpha: "premultiplied", interpretation: "unknown" } };
   }
 
   /**

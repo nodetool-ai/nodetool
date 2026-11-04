@@ -14,3 +14,4 @@
  */
 
 export * from "./blend/index.js";
+export * from "./workingFrame.js";
