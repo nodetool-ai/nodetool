@@ -873,3 +873,166 @@ Changed files:
 
 GPU fix and module reproduction commit: `0290962a42`.
 The timeline matrix and this report are in the following qualification commit.
+
+## A28 closeout and scoped S2 gate
+
+This section supersedes the open A28 and hardware-blocker conclusions above.
+Work started at `42bb253f9d` on `film/color-s2` in color-s0.
+
+### Posterize decision and proof
+
+Posterize intentionally selects discrete byte-domain bands. In FP16 only,
+recover premultiplied RGB and alpha byte codes for bin selection. Divide their
+integer-scaled ratio with the existing cross-multiplication boundary correction.
+Keep float alpha, coverage and uncovered colour in the output. Snapping straight
+RGB alone was insufficient: NVIDIA division could move an exact half-intensity
+ratio below its rounding midpoint. The existing low-alpha module assertion
+caught that attempt and passes with the final implementation.
+
+The new full 0–255 opaque ramp covers levels 2, 3, 4, 5, 7, 16, 64, 128, 255
+and 256. It checks RGBA8 compatibility and an independent integer-bin oracle
+with a one-code delivery allowance. The pre-fix NVIDIA run failed at levels=3,
+codes 85 and 170, with 127/128-code discrepancies. Both adapters pass after the
+fix. The existing premultiplied low-alpha matrix also passes. This does not
+promise identical outputs for every straight-alpha source whose premultiplication
+itself differs between formats. Float intermediates intentionally use byte-domain
+bin selection at Posterize, while other effects keep float precision.
+
+All resolved RGBA8 WGSL strings remain byte-identical to the recorded snapshot.
+Existing Posterize shader pixel tests pass. No default shader, transfer function,
+schema, setting or failure marker changed. FP16 remains off by default.
+
+### Combined effects and caller fixtures
+
+The timeline matrix now contains 216 cases, including six combined cases.
+Each combined scene applies non-neutral colour, blur, glow, curves and grain,
+then a hard shape mask and wipe transition, over a coloured background. Normal,
+screen and multiply blends run with opaque and low-alpha foregrounds. Grain
+uses the authored payload from `capabilities-timelines-grain.test.ts`.
+This reuses its rendering input, not the agent persistence test or CPU renderer.
+
+Declared bounds are maximum four codes and mean three codes for combined
+delivery. Every omitted effect must visibly change the picture by more than
+one code. The excluded shape-mask rows must exactly equal a separately rendered
+background. That control includes final dithering, which an initial direct
+source-byte assertion incorrectly omitted. No tolerance was widened.
+
+Values below are maximum / mean absolute differences in delivered RGBA codes.
+
+| Stack | Alpha | NVIDIA RTX 3060 | Lavapipe llvmpipe |
+|---|---|---:|---:|
+| Normal | Opaque | 2 / 0.143555 | 2 / 0.167426 |
+| Normal | Partial | 3 / 0.221354 | 3 / 0.211046 |
+| Screen | Opaque | 2 / 0.141927 | 2 / 0.155382 |
+| Screen | Partial | 2 / 0.157986 | 2 / 0.162869 |
+| Multiply | Opaque | 2 / 0.138455 | 2 / 0.146593 |
+| Multiply | Partial | 2 / 0.139865 | 2 / 0.132487 |
+
+The prior module geometry oracle remains separate from compatibility. These
+fixtures do not exhaust arbitrary graphs or prove host integration.
+
+### Hardware discrepancies
+
+Explicit RGBA8 reproduces the seven NVIDIA grain failures and the seven PNG,
+WebP and MOV low-alpha failures. Lavapipe passes them. Six existing expected
+failures remain unchanged on both adapters. These are not FP16 regressions.
+The shader matrix independently measures cross-adapter legacy grain differences
+of 32 codes in RGBA8 and 32.061768 in FP16. Gaussian noise differs by up to 17
+codes identically in both modes because its source target remains byte.
+
+[B218](../../../../native/timeline/docs/gaps-backlog.md) records these adapter
+findings. No small correction preserving default pixels on both adapters was
+established. Production behavior is unchanged. They do not block this scoped S2
+precision gate.
+
+### A81 scenes and final delivery
+
+Artifacts are in `/home/mg/Projects/nodetool-film/tmp/color-s2/`.
+`final-{nvidia,lvp}/` contains controlled-quantizer PNGs, working metrics and
+diagnostic JSON. `delivery-{nvidia,lvp}/` contains production headless PNGs and
+delivery JSON. All scenes are 768×432. The source fixtures are shared between
+the module experiment and the timeline caller.
+
+The diagnostic recovers 256 distinct levels with zero-code error on both
+adapters. RGBA8 recovers 192 with maximum error 11. The module dark fade uses
+an encoded exposure inverse pair. FP16 matches its source exactly undithered
+and within one code dithered. RGBA8 loses up to 17 codes. Visual inspection of
+the NVIDIA PNG pair confirms the removed colour blocks. Sky and grade/glow
+have no separately established visible improvement.
+
+| Module scene | NVIDIA working RMS / max | Lavapipe working RMS / max | Final dithered max, both adapters |
+|---|---:|---:|---:|
+| Dark fade | 9.235686 / 16.994869 | 9.161025 / 16.126228 | 17 |
+| Sky | 0.306934 / 1.208502 | 0.315827 / 1.224127 | 2 |
+| Grade/glow | 0.761576 / 2.275939 | 0.722831 / 2.218201 | 3 |
+
+The production timeline exposure effect uses its existing linear-exposure
+shader, unlike the encoded module experiment. Neither was changed. Its blur,
+vignette and glow also use the existing caller mapping. These are caller
+variants of the same source scenes, not claims of identical effect recipes.
+
+| Production delivery scene | NVIDIA max / RGB mean | Lavapipe max / RGB mean |
+|---|---:|---:|
+| Dark fade | 6 / 2.279410 | 6 / 2.276590 |
+| Sky | 1 / 0.252565 | 2 / 0.258802 |
+| Grade/glow | 2 / 0.242725 | 2 / 0.243745 |
+
+Dark-fade differences above are expected precision recovery, not a compatibility
+failure. FP16 source-relative maximum error is one code, with means 0.094727
+on NVIDIA and 0.095156 on lavapipe. Sky and grade/glow meet the predeclared
+four-code maximum and three-code mean. Their source-relative errors do not
+measure fidelity because those effects intentionally change colour.
+
+### Gate and limits
+
+S2's gate is **met for the opt-in shared GPU and headless timeline chain on
+NVIDIA RTX 3060 and lavapipe**. The working chain retains precision, the dark
+fade visibly improves, and selected non-neutral effect combinations preserve
+meaning within declared bounds. A28 is complete for this shared-chain scope.
+It does not qualify real browser preview/WebCodecs, native execution or agent
+export integration. Those host gates remain A93, A94 and A91. No host was
+enabled. No improvement is claimed for every scene or every parameter choice.
+
+### Verification
+
+Adapters are NVIDIA RTX 3060 driver 610.57.04 and lavapipe llvmpipe Mesa
+26.2.5-arch1.1, LLVM 23.1.3. Both selected GPU runs pass 112 tests, including
+the 361-case module matrix and unchanged-byte shader snapshot. Both final
+combined matrices, Posterize ramps and production-delivery scene tests pass.
+The lavapipe four-file timeline run passes 35 tests and retains six expected
+failures. NVIDIA retains the fourteen explicit-RGBA8 failures described above.
+GPU and timeline package typechecks exit zero.
+
+Commands source `bin/ntenv`, set `NODETOOL_TEST_WORKERS=1`, and use Vitest
+`--no-file-parallelism`. Lavapipe sets both Vulkan variables to
+`/usr/share/vulkan/icd.d/lvp_icd.json` and `LP_NUM_THREADS=2`.
+Only the changed tests and existing tests of the Posterize source ran.
+After extracting the scene fixture, precisionBenefit.test.ts ran again on both
+adapters. Logs use `closeout-*`, with `posterize-negative.log` retaining the
+pre-fix failure. Per-case pixels use `closeout-{modules,timeline}-{adapter}.json`.
+
+Not run: test:affected, root typecheck, lint, harness gate, /verify or full
+suites. Browser/native/agent integration and native-shared vector consumption
+were not reverified. No push was performed.
+
+Commits: `3a8157a9d8` fixes Posterize, and `aab0b2d877` adds combined
+qualification and explicit byte hardware tests. `1e8ac9d058` adds scene fixtures and final-delivery evidence. This record is
+committed separately after these changes.
+
+Changed files in this closeout:
+
+- `packages/gpu/src/shaders/color/posterize/v1/module.ts`
+- `packages/gpu/tests/precisionBenefit.test.ts`
+- `packages/gpu/tests/fixtures/precisionScenes.ts`
+- `packages/timeline/tests/render.posterizeRamp.gpu.test.ts`
+- `packages/timeline/tests/render.a28.gpu.test.ts`
+- `packages/timeline/tests/render.a81Delivery.gpu.test.ts`
+- `packages/timeline/tests/render.grain.gpu.test.ts`
+- `packages/timeline/tests/render.colorBoundary.gpu.test.ts`
+- `native/timeline/docs/gaps-backlog.md`
+- `docs/plans/color-precision/high-precision-media-processing.md`
+- `docs/plans/color-precision/results/s2-working-chain.md`
+
+A21–A24 and A88 checkboxes use the completed shared implementation and prior
+verification recorded earlier in this report. Their entire selections were not
+rerun in this closeout. A81 and A28 include the new evidence above.
