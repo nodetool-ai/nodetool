@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { createCanvas, ImageData, type Canvas } from "@napi-rs/canvas";
 import { describe, expect, it } from "vitest";
 import { BLEND_MODE_TUPLE } from "@nodetool-ai/protocol/blend-modes";
@@ -14,9 +15,28 @@ import {
   HeadlessFrameCompositor,
   type FrameLayer
 } from "../src/render/frameCompositor.js";
+import { makeClip } from "../src/defaults.js";
+import { resolveAnalysisEffects } from "../src/render/clipAnalysis.js";
 
 const SIZE = 48;
+const SOURCE_CORRECTIONS: KnownClipEffect[] = [
+  { id: "deband", type: "deband", enabled: true, strength: 0.7, range: 4, threshold: 0.1, dither: 0.3 },
+  { id: "denoise", type: "denoise", enabled: true, lumaStrength: 0.6, chromaStrength: 0.4, radius: 2 },
+  { id: "exposure", type: "exposure", enabled: true, exposure: 0.6, rolloff: 0.2, whites: 0.1 },
+  { id: "secondaryColor", type: "secondaryColor", enabled: true, hueCenter: 140, hueWidth: 100, hueShift: 25, saturation: 0.6, lightness: 0.1 },
+  { id: "deflicker", type: "deflicker", enabled: true, analysis: {
+    version: 1, source: { assetId: "source", mediaPath: "" }, rangeStartMs: 0, rangeEndMs: 1000,
+    windowMs: 500, maxCorrection: 1, frameRate: 30, samples: [{ timeMs: 0, stops: 0.5 }]
+  } },
+  { id: "stabilize", type: "stabilize", enabled: true, maxZoom: 1.2, analysis: {
+    version: 1, kind: "stabilize", source: { assetId: "source", mediaPath: "" }, rangeStartMs: 0, rangeEndMs: 1000,
+    windowMs: 500, frameRate: 30, width: 48, height: 48, requiredZoom: 1.1, trackedFrames: 1,
+    samples: [{ timeMs: 0, x: 0.02, y: -0.01, angle: 0.01, scale: 1 }]
+  } },
+];
+
 const EFFECTS: KnownClipEffect[] = [
+  ...SOURCE_CORRECTIONS,
   { id: "color", type: "color", enabled: true, saturation: 0.3, contrast: 1.2 },
   { id: "color-all-channels", type: "color", enabled: true, brightness: 0.1, contrast: 1.3,
     saturation: 1.4, hue: 37, temperature: -0.3, tint: 0.2, shadows: 0.3, highlights: -0.2 },
@@ -84,9 +104,12 @@ async function compare(effect?: KnownClipEffect | KnownClipEffect[], blendMode: 
   meanError: number;
   maxError: number;
   unsupported: string[];
+  previewHash: string;
 }> {
   const sources = [picture(false), picture(true)];
-  const effectList = effect ? (Array.isArray(effect) ? effect : [effect]) : [];
+  const clip = makeClip({ mediaType: "video", currentAssetId: "source", durationMs: 1000 });
+  // Match sceneModel: analysis effects become render-time exposure or UV matrices.
+  const effectList = resolveAnalysisEffects(clip, effect ? (Array.isArray(effect) ? effect : [effect]) : [], clip.startMs) ?? [];
   const precomposites = scope === "group" ? [{ id: "group", zIndex: 1, opacity: 1, blendMode: "normal" as const, effects: effectList }] : [];
   const adjustments = scope === "adjustment" ? [{ id: "adjust", clipId: "adjust", zIndex: 2, opacity: 0.7, effects: effectList }] : [];
   const layers: Canvas2DLayer<Canvas>[] = sources.map((source, i) => ({
@@ -122,7 +145,7 @@ async function compare(effect?: KnownClipEffect | KnownClipEffect[], blendMode: 
       sum += difference;
       maxError = Math.max(maxError, difference);
     }
-    return { meanError: sum / exported.length, maxError, unsupported: unsupportedEffectTypes([...layers, ...precomposites, ...adjustments]) };
+    return { meanError: sum / exported.length, maxError, previewHash: createHash("sha256").update(preview).digest("hex"), unsupported: unsupportedEffectTypes([...layers, ...precomposites, ...adjustments]) };
   } finally {
     compositor.dispose();
   }
@@ -159,6 +182,14 @@ describe("preview/export pixel comparison matrix", () => {
     expect(covered).toEqual([...CLIP_EFFECT_TYPES].sort());
     expect(covered).toEqual([...KNOWN_CLIP_EFFECT_TYPE_LIST].sort());
     expect(BLEND_MODE_TUPLE.length).toBeGreaterThan(0);
+  });
+
+  it("renders a visible correction for each added effect", async () => {
+    const plain = await compare();
+    for (const effect of SOURCE_CORRECTIONS) {
+      const corrected = await compare(effect);
+      expect(corrected.previewHash, effect.type).not.toEqual(plain.previewHash);
+    }
   });
 
   for (const mode of BLEND_MODE_TUPLE) {

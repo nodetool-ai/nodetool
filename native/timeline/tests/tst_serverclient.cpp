@@ -34,7 +34,7 @@ namespace {
 
 class UploadLifetimeProbe : public QObject {
 public:
-    UploadLifetimeProbe() { qApp->installEventFilter(this); }
+    UploadLifetimeProbe() { QCoreApplication::instance()->installEventFilter(this); }
 
     QPointer<QNetworkReply> reply;
     QPointer<QHttpMultiPart> multipart;
