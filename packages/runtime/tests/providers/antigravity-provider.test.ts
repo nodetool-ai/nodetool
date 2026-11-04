@@ -88,6 +88,38 @@ async function collect(
 const user = (content: string): Message => ({ role: "user", content });
 
 describe("AntigravityProvider", () => {
+  it("kills a run cancelled while the CLI runner is starting without waiting for stdout", async () => {
+    const started = Promise.withResolvers<void>();
+    const spawning = Promise.withResolvers<AntigravityCliRun>();
+    const eof = Promise.withResolvers<void>();
+    const kill = vi.fn();
+    const signal = new AbortController();
+    const provider = new AntigravityProvider({}, {
+      runCli: async (_args, options) => {
+        expect(options.signal).toBe(signal.signal);
+        started.resolve();
+        return spawning.promise;
+      }
+    });
+    const result = collect(provider.generateMessages({
+      messages: [user("hello")], model: "gemini-3.1-pro-high", signal: signal.signal
+    }));
+    await started.promise;
+    signal.abort();
+    spawning.resolve({
+      lines: (async function* () { await eof.promise; })(),
+      exit: Promise.resolve({ code: null, stderr: "" }),
+      kill
+    });
+    try {
+      await expect.poll(() => kill.mock.calls.length).toBeGreaterThan(0);
+      await expect(result).resolves.toEqual([]);
+    } finally {
+      eof.resolve();
+      await result;
+    }
+  });
+
   it("streams text deltas and ends with one done chunk", async () => {
     const { runCli, calls } = fakeRunner(() => ({
       stdout: successTurn("conv-1", ["Hel", "lo"])
