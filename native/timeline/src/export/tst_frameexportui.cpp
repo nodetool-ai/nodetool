@@ -11,6 +11,7 @@
 #include <QProcess>
 #include <QProcessEnvironment>
 #include <QSet>
+#include <QScopeGuard>
 #include <QTemporaryDir>
 #include <algorithm>
 
@@ -50,9 +51,24 @@ class TestFrameExportUi : public WiringFixture {
         auto* target = qobject_cast<QQuickItem*>(object(name));
         QVERIFY2(target, qPrintable("Missing: " + name));
         QTest::qWait(60);
+        // A small desktop clips the Folder field inside the dialog's ScrollView.
+        QTRY_VERIFY2(([&] {
+            bool inView = true;
+            for (auto* parent = target->parentItem(); parent; parent = parent->parentItem()) {
+                if (!parent->property("contentY").isValid()) { continue; }
+                const auto bounds = target->mapRectToItem(parent, QRectF(QPointF(), target->size()));
+                const auto offset = bounds.top() < 0 ? bounds.top() : std::max(0.0, bounds.bottom() - parent->height());
+                if (std::abs(offset) < 1) { continue; }
+                parent->setProperty("contentY", parent->property("contentY").toDouble() + offset);
+                inView = false;
+            }
+            return inView;
+        })(), qPrintable("Field is outside the scroll viewport: " + name));
         QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(target));
+        QTRY_VERIFY2(target->hasActiveFocus(), qPrintable("Field did not receive focus: " + name));
         QTest::keyClick(view.get(), Qt::Key_A, Qt::ControlModifier);
         for (const auto character : text) { QTest::keyClick(view.get(), character.toLatin1()); }
+        QCOMPARE(target->property("text").toString(), text);
     }
     void shoot(const QString& name) {
         if (shotDir.isEmpty()) { return; }
@@ -98,8 +114,12 @@ private slots:
         shotDir = qEnvironmentVariable("NT_F12_SHOTS");
         open();
         QVERIFY(view);
-        view->resize(1500, 950);
+        view->resize(1024, 656);
         QTRY_COMPARE(view->rootObject()->size(), QSizeF(view->size()));
+        // Leave room for both monitor transports even on the CI desktop.
+        auto* dock = qobject_cast<DockLayoutStore*>(view->rootObject()->property("dockStore").value<QObject*>());
+        QVERIFY(dock);
+        for (const auto* side : {"left", "right"}) { dock->resizeRegion(side, 100, view->width(), view->height()); }
         QTRY_VERIFY(exporter());
         exporter()->captureForTest()->setExecutable(QStringLiteral(NT_EXPORT_BINARY));
     }
@@ -223,7 +243,20 @@ private slots:
         QTest::keyClick(view.get(), Qt::Key_E, Qt::ControlModifier | Qt::AltModifier);
         QTRY_VERIFY(shown("exportFrameDialog"));
     }
+    void sourceButtonCapturesTheSourceAndTheKeyFollowsFocus_data() {
+        QTest::addColumn<double>("uiScale");
+        QTest::newRow("default") << 1.0;
+        QTest::newRow("larger-controls") << 1.25;
+    }
     void sourceButtonCapturesTheSourceAndTheKeyFollowsFocus() {
+        QFETCH(double, uiScale);
+        QTemporaryDir sourceFolder(folder.filePath("source-XXXXXX"));
+        QVERIFY(sourceFolder.isValid());
+        auto* theme = qmlEngine(gestures())->singletonInstance<QObject*>("NodeTool.UiPrimitives", "Theme");
+        QVERIFY(theme);
+        const auto previousScale = theme->property("uiScale");
+        const auto restoreScale = qScopeGuard([&] { theme->setProperty("uiScale", previousScale); });
+        theme->setProperty("uiScale", uiScale);
         auto* state = qmlEngine(gestures())->singletonInstance<SourceViewerState*>("NodeTool.Timeline", "SourceViewerState");
         QVERIFY(state);
         const QVariantMap asset{{"id", "source-asset"}, {"name", "Take seven.mp4"}, {"content_type", "video/mp4"},
@@ -235,11 +268,49 @@ private slots:
         state->setAsset(asset);
         state->monitor()->openLocal(asset, QStringLiteral(NT_EXPORT_FIXTURES) + "/media/seek-360p30.mp4", {});
         QTRY_VERIFY_WITH_TIMEOUT(state->monitor()->ready() && !state->monitor()->busy(), 15000);
+        QVERIFY(state->monitor()->hasVideo());
         state->monitor()->seek(1000);
         const auto before = doc();
         QTRY_VERIFY(item("sourceExportFrame") && item("sourceExportFrame")->isVisible());
+        auto* button = item("sourceExportFrame");
+        QTRY_VERIFY2(button->isEnabled(), "Source export button is disabled");
+        // The Source panel scrolls once its minimum picture and controls exceed the dock.
+        QTRY_VERIFY2(([&] {
+            bool inView = true;
+            for (auto* ancestor = button->parentItem(); ancestor; ancestor = ancestor->parentItem()) {
+                if (!ancestor->property("contentY").isValid()) { continue; }
+                const auto bounds = button->mapRectToItem(ancestor, QRectF(QPointF(), button->size()));
+                const auto offset = bounds.top() < 0 ? bounds.top() : std::max(0.0, bounds.bottom() - ancestor->height());
+                if (std::abs(offset) < 1) { continue; }
+                ancestor->setProperty("contentY", ancestor->property("contentY").toDouble() + offset);
+                inView = false;
+            }
+            return inView;
+        })(), "Source export button could not be scrolled into view");
+        const auto reachability = [&]() -> QString {
+            const auto point = center(button);
+            if (!QRect(QPoint(), view->size()).contains(point)) {
+                return QStringLiteral("Source export centre outside window: %1,%2").arg(point.x()).arg(point.y());
+            }
+            for (auto* ancestor = button->parentItem(); ancestor; ancestor = ancestor->parentItem()) {
+                if (ancestor->clip() && !ancestor->contains(ancestor->mapFromScene(point))) {
+                    return QStringLiteral("Source export centre clipped by %1 (%2), size %3x%4")
+                        .arg(ancestor->objectName(), ancestor->metaObject()->className())
+                        .arg(ancestor->width()).arg(ancestor->height());
+                }
+            }
+            return {};
+        };
+        QTRY_VERIFY2(reachability().isEmpty(), qPrintable(reachability()));
         shoot("source-transport");
-        click("sourceExportFrame");
+        {
+            const auto point = center(button);
+            QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, point);
+            const auto release = qScopeGuard([&] { QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, point); });
+            // Check Qt's actual event target before the release activates the button.
+            QVERIFY2(button->property("pressed").toBool(), "Source export centre did not hit the button or its contents");
+        }
+        QCoreApplication::processEvents();
         QTRY_VERIFY(shown("exportFrameDialog"));
         QCOMPARE(object("exportFramePanel")->property("target").toString(), QStringLiteral("source"));
         QTRY_VERIFY2_WITH_TIMEOUT(exporter()->state() == "ready", qPrintable(exporter()->error()), 60000);
@@ -247,10 +318,10 @@ private slots:
         QCOMPARE(object("exportFrameName")->property("text").toString(), QStringLiteral("Take seven 00-00-01-00"));
         QVERIFY(object("exportFrameDetail")->property("text").toString().startsWith("Source at 00:00:01:00"));
         shoot("export-frame-source");
-        typeInto("exportFrameFolder", folder.path());
+        typeInto("exportFrameFolder", sourceFolder.path());
         clickObject("exportFrameSave");
         QTRY_COMPARE_WITH_TIMEOUT(exporter()->state(), QStringLiteral("saved"), 20000);
-        const QImage saved(folder.filePath("Take seven 00-00-01-00.png"));
+        const QImage saved(sourceFolder.filePath("Take seven 00-00-01-00.png"));
         QCOMPARE(saved.size(), QSize(640, 360));
         QCOMPARE(doc(), before);
         clickObject("exportFrameCancel");

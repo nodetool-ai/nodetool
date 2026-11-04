@@ -9,27 +9,39 @@ struct AvSyncSample {
     double clockMs;
     std::uint64_t generation;
     bool held = false;
+    std::int64_t anchorFrame = 0;
 };
 struct AvSyncClick {
     double clockMs;
     std::uint64_t generation;
 };
 inline std::optional<AvSyncClick> interpolateAvSyncClick(std::span<const AvSyncSample> samples, double frame) {
-    for (std::size_t i = 1; i < samples.size(); ++i) {
-        const auto& a = samples[i - 1];
-        const auto& b = samples[i];
-        if (a.generation != b.generation || !(a.audible <= frame && frame < b.audible)) { continue; }
-        if (b.clockMs <= a.clockMs) { return {}; }
-        double ms = a.clockMs + (b.clockMs - a.clockMs) * (frame - a.audible) / (b.audible - a.audible);
-        // A single sampled hold need not have a previous equal clock value.
-        // Extrapolate from the running side of the anchor, rather than across it.
-        if (a.held && !b.held && i + 1 < samples.size() && !samples[i + 1].held && samples[i + 1].generation == b.generation &&
-            samples[i + 1].audible > b.audible) {
-            const auto& c = samples[i + 1];
-            ms = b.clockMs + (c.clockMs - b.clockMs) * (frame - b.audible) / (c.audible - b.audible);
+    // A device-change seek can hold the playhead while earlier PCM is still
+    // audible. Fit only running samples from the anchor that rendered the click.
+    const AvSyncSample* first = nullptr;
+    const AvSyncSample* second = nullptr;
+    std::int64_t anchor = -1;
+    for (const auto& sample : samples) {
+        if (sample.anchorFrame <= frame && sample.anchorFrame > anchor) {
+            anchor = sample.anchorFrame;
         }
-        return AvSyncClick{ms, a.generation};
     }
-    return {};
+    for (const auto& sample : samples) {
+        if (sample.held || sample.anchorFrame != anchor) { continue; }
+        if (!first || sample.generation != first->generation) {
+            first = &sample;
+            second = nullptr;
+        } else if (sample.audible > (second ? second->audible : first->audible)) {
+            if (second) { first = second; }
+            second = &sample;
+            if (frame < sample.audible) { break; }
+        }
+    }
+    // The click can precede the first running tick after an anchor. The
+    // mapping is linear there, so extrapolate from the running side of it.
+    if (!first || !second || second->clockMs <= first->clockMs) { return {}; }
+    const double ms = first->clockMs + (second->clockMs - first->clockMs) *
+                      (frame - first->audible) / (second->audible - first->audible);
+    return AvSyncClick{ms, first->generation};
 }
 } // namespace nt::audio

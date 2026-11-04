@@ -172,14 +172,30 @@ class TstAudioClock : public QObject {
 private slots:
     void clickInterpolationAfterSingleHeldSample() {
         const std::array<nt::audio::AvSyncSample, 4> samples{{
-            {143400, 2998, 1, false},
-            {143700, 3000, 2, true},
-            {144300, 3006.25, 2, false},
-            {144600, 3012.5, 2, false}}};
+            {143400, 2998, 1, false, 0},
+            {143700, 3000, 2, true, 144000},
+            {144300, 3006.25, 2, false, 144000},
+            {144600, 3012.5, 2, false, 144000}}};
         const auto click = nt::audio::interpolateAvSyncClick(samples, 144000);
         QVERIFY(click);
         QCOMPARE(click->generation, std::uint64_t(2));
         QCOMPARE(click->clockMs, 3000.0);
+    }
+    void clickInterpolationAcrossDeviceChangeHold() {
+        const std::array<nt::audio::AvSyncSample, 7> samples{{
+            {143040, 2980, 1, false, 0},
+            {144000, 3000, 1, false, 0},
+            {143520, 3007.5, 2, true, 0},
+            {145440, 3007.5, 2, true, 147360},
+            {148320, 3027.5, 2, false, 147360},
+            {148320, 3027.5, 2, false, 147360},
+            {150240, 3067.5, 2, false, 147360}}};
+        const auto before = nt::audio::interpolateAvSyncClick(samples, 144240);
+        QVERIFY(before);
+        QCOMPARE(before->clockMs, 3005.0);
+        const auto after = nt::audio::interpolateAvSyncClick(samples, 147600);
+        QVERIFY(after);
+        QCOMPARE(after->clockMs, 3012.5);
     }
     void rangeEditsUpdatePlayingBounds() {
         std::int64_t now = 0;

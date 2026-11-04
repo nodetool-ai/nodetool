@@ -201,6 +201,8 @@ results rather than a review finding.
 | B210 | P2 | notes (keys-4) | `qml/effectcontrols/EffectControlsRow.qml` | Keyed fields are pill inputs. The sliders they replace had a double-click reset to the field's default value, and these rows have no reset. | keys-4 |
 | B211 | P2 | notes (fix-ci-2) | `../ui_primitives/qml/ProviderIcon.qml` | Every `EditorButton` holds a `ProviderIcon`, and each one builds its own `providerFiles` table even with no provider set. In a QML trace of selecting a clip in Effect Controls this is one of the largest bindings. A table shared by all instances, or a `Loader` in the button, would remove it. | fix-ci-2 |
 | B212 | P2 | notes (fix-ci-2) | `qml/effectcontrols/EffectControlsRow.qml` | A row with no keys still builds its graph, previous, toggle and next buttons at opacity 0. Those are four of the five buttons in a row, and most rows have no keys, so building them on the first key would lower the cost of selecting a clip. | fix-ci-2 |
+| B213 | P2 | notes (fix-ci-3) | `../ui_primitives/qml/ListRow.qml` | Changing appearance scales in `tst_appshell_preferences` emits an `implicitHeight` binding-loop warning. The row measures `childrenRect.height` while its parent sizes from that measurement. | native UI |
+| B214 | P2 | notes (fix-ci-3) | `qml/menus/module.cmake`, `src/wiring/module.cmake` | The menu and wiring fixtures register the external-conflicts panel without its QML resource. Loading the editor warns that `qrc:/nodetool/sync/ExternalConflictsBanner.qml` is missing, so these fixtures do not exercise the banner. | sync |
 
 ## Closed
 

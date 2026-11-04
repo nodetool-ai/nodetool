@@ -176,7 +176,10 @@ private slots:
             result = r; completedAt = total.elapsed(); done = true;
         });
         const auto callMs = call.nsecsElapsed() / 1000000.0;
-        QVERIFY2(callMs < 10, qPrintable(QString::number(callMs)));
+        // Completion must be queued. GUI stalls, including snapshot preparation,
+        // are bounded by the heartbeat below, not a scheduler-sensitive call budget.
+        QVERIFY2(!done, "captureSequence completed before returning to the caller");
+        QCOMPARE(capture.pending(), 1);
         QTRY_VERIFY_WITH_TIMEOUT(done, 65000);
         const auto cold = completedAt;
         largest = std::max(largest, cold - last);

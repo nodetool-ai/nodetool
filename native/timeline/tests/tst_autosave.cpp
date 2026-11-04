@@ -17,6 +17,7 @@
 #include <QProcess>
 #include <QProcessEnvironment>
 #include <QScopeGuard>
+#include <QSemaphore>
 #include <QWebSocketServer>
 #include <QTcpServer>
 #include <QTcpSocket>
@@ -601,12 +602,13 @@ private slots:
         public:
             std::promise<QUrl> address;
             std::atomic<bool> received{false};
-            ~SlowServer() override { quit(); wait(); }
+            QSemaphore releaseResponse;
+            ~SlowServer() override { releaseResponse.release(); quit(); wait(); }
             void run() override {
                 TestHttpServer http;
                 http.setJson([this](const QByteArray&, const QUrl&) {
                     received = true;
-                    QThread::msleep(300);
+                    releaseResponse.acquire();
                     return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", syncDoc(500, 0, "u1")}}}}).toJson();
                 });
                 address.set_value(http.base());
@@ -621,15 +623,13 @@ private slots:
         m_save->refreshExternal();
         QTRY_VERIFY_WITH_TIMEOUT(server.received.load(), 1000);
         QCOMPARE(AutosaveController::liveFetchWorkers(), 1);
-        QElapsedTimer elapsed;
-        elapsed.start();
         m_save.reset();
         const int remaining = AutosaveController::liveFetchWorkers();
-        const auto waited = elapsed.elapsed();
+        // Shutdown must cancel and join the fetch while the response is withheld.
+        server.releaseResponse.release();
         // Finish even on red, before destroying the test's other fixtures.
         QTRY_COMPARE_WITH_TIMEOUT(AutosaveController::liveFetchWorkers(), 0, 2000);
         QCOMPARE(remaining, 0);
-        QVERIFY(waited >= 150);
         QTest::qWait(20);
         QCOMPARE(applies, 0);
     }

@@ -141,6 +141,9 @@ private slots:
         connect(&server, &QTcpServer::newConnection, this, [&] {
             while (auto* socket = server.nextPendingConnection()) {
                 connect(socket, &QTcpSocket::disconnected, socket, &QObject::deleteLater);
+                connect(socket, &QTcpSocket::disconnected, socket, [&, socket] {
+                    if (socket->property("handled").toBool()) { --active; }
+                });
                 connect(socket, &QTcpSocket::readyRead, socket, [&, socket] {
                     auto buffer = socket->property("request").toByteArray() + socket->readAll();
                     socket->setProperty("request", buffer);
@@ -152,7 +155,6 @@ private slots:
                     requested.append(input.value("id").toString());
                     maximum = std::max(maximum, ++active);
                     QTimer::singleShot(150, socket, [&, socket] {
-                        --active;
                         const QByteArray body = R"({"error":{"message":"Not found","code":-32004,"data":{"httpStatus":404}}})";
                         socket->write("HTTP/1.1 404 Not Found\r\nContent-Type: application/json\r\nContent-Length: " + QByteArray::number(body.size()) + "\r\nConnection: close\r\n\r\n" + body);
                         socket->disconnectFromHost();
