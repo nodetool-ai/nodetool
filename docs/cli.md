@@ -2222,7 +2222,7 @@ for the setup guide.
 ```bash
 # Register the stdio server with every client found on this machine.
 # Without a global install:
-npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install
+npx -y @nodetool-ai/cli-mcp install
 
 # Register for Claude Code only
 nodetool-mcp install --claude
@@ -2256,7 +2256,7 @@ nodetool-mcp uninstall
 `install` starts the server once before it writes a config, so a broken
 command never reaches a client config. The stdio entry runs `nodetool-mcp serve`
 when the MCP executable is first on `PATH`, else
-`npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp serve`.
+`npx -y @nodetool-ai/cli-mcp serve`.
 
 HTTP MCP (`/mcp`) needs the classic API server (`nodetool server serve` from `cli-server`). `nodetool-mcp serve`
 uses stdio for the client and forwards to the local API server when its MCP
