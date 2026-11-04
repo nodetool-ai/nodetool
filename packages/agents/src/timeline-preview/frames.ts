@@ -651,7 +651,7 @@ export async function renderTimelineFrames(
     // A group's effects run on its composed surface, so they are named here
     // beside the layers' own — otherwise a group effect this path cannot draw
     // would go unreported (I7).
-    for (const type of unsupportedEffectTypes([
+    for (const type of shared ? [] : unsupportedEffectTypes([
       ...active,
       ...drawPrecomposites,
       ...drawAdjustments
@@ -940,9 +940,8 @@ export async function renderTimelineFrames(
       reportFor.set(drawn, report);
     }
 
-    const drawReport = shared
-      ? await shared.draw(canvas, drawLayers, drawPrecomposites, drawAdjustments)
-      : drawTimelineFrame(ctx, drawLayers, geometry, {
+    const sharedReport = shared ? await shared.draw(canvas, drawLayers, drawPrecomposites, drawAdjustments) : undefined;
+    const drawReport = sharedReport ?? drawTimelineFrame(ctx, drawLayers, geometry, {
       maskScratch: scratchFor,
       projectiveSurface: precompositeSurfaceFor,
       effectSurface: precompositeSurfaceFor,
@@ -954,6 +953,7 @@ export async function renderTimelineFrames(
       matteSurface: matteSurfaceFor,
       cropSurface: cropSurfaceFor
     });
+    for (const type of sharedReport?.effectsNotApplied ?? []) effectsNotApplied.add(type);
     for (const layer of drawReport.skipped) {
       const report = reportFor.get(layer);
       if (report) report.skipped = "source could not be drawn";

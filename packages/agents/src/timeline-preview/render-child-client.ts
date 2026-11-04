@@ -1,11 +1,13 @@
 import { fork } from "node:child_process";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { serialize, deserialize } from "node:v8";
+import { serialize } from "node:v8";
 import type { FrameLayer, FramePrecomposite, FrameAdjustment } from "@nodetool-ai/timeline/render";
 
 export const MAX_RENDER_BYTES = 64 * 1024 * 1024;
 let activeChildren = 0;
+
+export interface RenderChildResult { pixels: Uint8Array; skippedLayerIds: string[]; effectsNotApplied: string[]; }
 
 export interface RenderChildRequest {
   width: number;
@@ -41,7 +43,7 @@ export function createRenderChild(signal?: AbortSignal, entry = renderChildEntry
   let closed = false;
   let stopping = false;
   let stderr = "";
-  let pending: { resolve: (pixels: Uint8Array) => void; reject: (error: Error) => void } | undefined;
+  let pending: { resolve: (result: RenderChildResult) => void; reject: (error: Error) => void } | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let killTimer: ReturnType<typeof setTimeout> | undefined;
   const stop = (): void => {
@@ -74,15 +76,17 @@ export function createRenderChild(signal?: AbortSignal, entry = renderChildEntry
   child.on("message", (message: unknown) => {
     if (!pending || stopping) return;
     clearTimeout(timer);
-    if (!Buffer.isBuffer(message) || message.byteLength > MAX_RENDER_BYTES) {
+    if (!message || typeof message !== "object") {
       fail(new Error("Invalid timeline render child response"));
       return;
     }
     try {
-      const reply = deserialize(message) as { pixels?: Uint8Array; error?: string };
+      const reply = message as { pixels?: Uint8Array; skippedLayerIds?: string[]; effectsNotApplied?: string[]; error?: string };
       if (reply.error) { fail(new Error(reply.error)); return; }
-      if (!(reply.pixels instanceof Uint8Array)) throw new Error("Missing render pixels");
-      pending.resolve(reply.pixels);
+      if (!(reply.pixels instanceof Uint8Array) || reply.pixels.byteLength > MAX_RENDER_BYTES) throw new Error("Missing render pixels");
+      if (!Array.isArray(reply.skippedLayerIds) || !reply.skippedLayerIds.every(id => typeof id === "string")) throw new Error("Missing render diagnostics");
+      if (!Array.isArray(reply.effectsNotApplied) || !reply.effectsNotApplied.every(type => typeof type === "string")) throw new Error("Missing effect diagnostics");
+      pending.resolve({ effectsNotApplied: reply.effectsNotApplied, pixels: reply.pixels, skippedLayerIds: reply.skippedLayerIds });
       pending = undefined;
     } catch (error) {
       fail(new Error("Invalid timeline render child response", { cause: error }));
@@ -90,16 +94,15 @@ export function createRenderChild(signal?: AbortSignal, entry = renderChildEntry
   });
   if (signal?.aborted) abort();
   return {
-    async render(request: RenderChildRequest): Promise<Uint8Array> {
+    async render(request: RenderChildRequest): Promise<RenderChildResult> {
       if (failure) throw failure;
       if (stopping) throw new Error("Timeline renderer is disposed");
       if (pending) throw new Error("Timeline renderer already has a frame in flight");
-      const bytes = serialize(request);
-      if (bytes.byteLength > MAX_RENDER_BYTES) throw new Error("Timeline render frame exceeds the 64 MiB transfer limit");
-      return new Promise<Uint8Array>((resolve, reject) => {
+      if (serialize(request).byteLength > MAX_RENDER_BYTES) throw new Error("Timeline render frame exceeds the 64 MiB transfer limit");
+      return new Promise<RenderChildResult>((resolve, reject) => {
         pending = { resolve, reject };
         timer = setTimeout(() => fail(new Error(`Timeline render child timed out after ${timeoutMs} ms`)), timeoutMs);
-        child.send(bytes, (error) => { if (error) fail(new Error(`Timeline render IPC failed: ${error.message}`)); });
+        child.send(request, (error) => { if (error) fail(new Error(`Timeline render IPC failed: ${error.message}`)); });
       });
     },
     async dispose(): Promise<void> { stop(); await exited; }

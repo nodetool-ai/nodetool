@@ -32,6 +32,16 @@ describe("shared preview qualification", () => {
     }
   });
 
+  it("preserves the agent-facing unknown-effect report", async () => {
+    const options = { sequence: { ...sequence, clips: sequence.clips.map(clip => ({ ...clip, effects: [{ id: "future", type: "future-look", enabled: true }] })) }, width: 160, timesMs: [0], loadAsset: async () => null };
+    const cpu = await renderTimelineFrames(options);
+    const gpu = await renderTimelineFrames(options, true);
+    expect(gpu.effectsNotApplied).toEqual(["future-look"]);
+    expect(gpu.effectsNotApplied).toEqual(cpu.effectsNotApplied);
+    expect(gpu.complete).toBe(cpu.complete);
+    expect({ ...gpu.frames[0], png: undefined }).toEqual({ ...cpu.frames[0], png: undefined });
+  });
+
   it("completes two concurrent passes without sharing frame targets", async () => {
     const passes = await Promise.all([0, 500].map((time) => renderTimelineFrames({
       sequence, width: 160, timesMs: [time], loadAsset: async () => null

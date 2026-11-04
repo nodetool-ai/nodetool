@@ -27,8 +27,40 @@ describe("preview child ownership", () => {
   });
   it("renders through the compiled executable and closes", async () => {
     const child = createRenderChild(undefined, new URL("../dist/timeline-preview/render-child.js", import.meta.url));
-    try { expect((await child.render(request)).length).toBe(16 * 16 * 4); }
+    try { expect((await child.render(request)).pixels.length).toBe(16 * 16 * 4); }
     finally { await child.dispose(); }
+  });
+  it("reports omitted sources and mattes and clears the next frame report", async () => {
+    const child = createRenderChild();
+    const missing = { id: "missing", source: { rgba: new Uint8Array(), width: 2, height: 2 }, opacity: 1, blendMode: "normal" as const, zIndex: 0 };
+    const valid = { ...missing, id: "matted", source: { rgba: new Uint8Array(16).fill(255), width: 2, height: 2 }, matte: { layer: missing, mode: "alpha" as const } };
+    try {
+      const result = await child.render({ ...request, layers: [missing, valid] });
+      expect(result.skippedLayerIds).toEqual(["missing", "matted"]);
+      expect((await child.render(request)).skippedLayerIds).toEqual([]);
+    } finally { await child.dispose(); }
+  });
+  it("fails explicitly instead of silently omitting a mask or group", async () => {
+    const layer = { id: "source", source: { rgba: new Uint8Array(16).fill(255), width: 2, height: 2 }, opacity: 1, blendMode: "normal" as const, zIndex: 0 };
+    for (const variant of [{ ...layer, shapeMask: { rgba: new Uint8Array(), width: 2, height: 2 } }, { ...layer, precomposeGroupId: "missing" }]) {
+      const child = createRenderChild();
+      try { await expect(child.render({ ...request, layers: [variant] })).rejects.toThrow(/mask could not be uploaded|group missing is missing/); }
+      finally { await child.dispose(); }
+    }
+  });
+  it("reports unknown enabled effects across layer, group, adjustment and matte scopes", async () => {
+    const child = createRenderChild();
+    const effect = (type: string, enabled = true) => ({ id: type, type, enabled });
+    const layer = { id: "source", source: { rgba: new Uint8Array(16).fill(255), width: 2, height: 2 }, opacity: 1, blendMode: "normal" as const, zIndex: 0 };
+    try {
+      const result = await child.render({ ...request,
+        layers: [{ ...layer, effects: [effect("future-layer"), effect("disabled", false)], matte: { mode: "alpha", layer: { ...layer, id: "matte", effects: [effect("future-matte")] } } }],
+        groups: [{ id: "group", opacity: 1, blendMode: "normal", zIndex: 0, effects: [effect("future-group")] }],
+        adjustments: [{ id: "adjustment", opacity: 1, zIndex: 1, effects: [effect("future-adjustment")] }]
+      });
+      expect(result.effectsNotApplied).toEqual(["future-adjustment", "future-group", "future-layer", "future-matte"]);
+      expect((await child.render(request)).effectsNotApplied).toEqual([]);
+    } finally { await child.dispose(); }
   });
   it("exits when its parent disconnects before renderer imports finish", async () => {
     const result = await promisify(execFile)(process.execPath, [new URL("./fixtures/preview-child-parent-exit.mjs", import.meta.url).pathname], { timeout: 10_000 });

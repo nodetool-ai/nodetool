@@ -48,7 +48,7 @@ import type {
 } from "../types.js";
 import { cropRectPx, hasCrop } from "../crop.js";
 import { parseCssColorOrBlack } from "./color.js";
-import { WebGPUEffectsProcessor } from "./effects.js";
+import { unsupportedGpuEffectTypes, WebGPUEffectsProcessor } from "./effects.js";
 import type { CompositorBlendMode, MatteMode } from "./sceneModel.js";
 import {
   IDENTITY_TRANSFORM,
@@ -448,6 +448,8 @@ const EMPTY_LAYER = "empty" as const;
 type LayerResolution = ResolvedLayer | typeof EMPTY_LAYER | null;
 
 export class GpuFrameCompositor<TSource = FrameLayerPixels> {
+  readonly skippedLayerIds: string[] = [];
+  effectsNotApplied: string[] = [];
   private readonly device: GPUDevice;
   private readonly core: WebGPULayerCompositor;
   private readonly effects: WebGPUEffectsProcessor;
@@ -571,6 +573,14 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     clearValue: GPUColor = { r: 0, g: 0, b: 0, a: 1 },
     adjustments: readonly FrameAdjustment<TSource>[] = []
   ): GpuCompositeResult {
+    this.skippedLayerIds.length = 0;
+    const scopes = [...layers, ...layers.flatMap(layer => layer.matte ? [layer.matte.layer] : []), ...precomposites, ...adjustments];
+    this.effectsNotApplied = unsupportedGpuEffectTypes(scopes.map(scope => ({ ...scope, effects: "transition" in scope && scope.transition?.effect ? [...scope.effects ?? [], scope.transition.effect] : scope.effects })));
+    const groupIds = new Set(precomposites.map(group => group.id));
+    for (const scope of scopes) {
+      if (scope.precomposeGroupId && !groupIds.has(scope.precomposeGroupId)) throw new Error(`Timeline group ${scope.precomposeGroupId} is missing`);
+    }
+
     const ordered = [...layers].sort((a, b) => a.zIndex - b.zIndex);
     this.retainOnly(ordered, precomposites, adjustments);
 
@@ -875,6 +885,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     const coverage = layer.shapeMask
       ? this.upload(`${layer.id}#mask`, layer.shapeMask)
       : null;
+    if (layer.shapeMask && !coverage) throw new Error(`Timeline layer ${layer.id} mask could not be uploaded`);
     const texture = coverage
       ? this.effects.applyMask(
           `mask:${layer.id}`,
@@ -1093,7 +1104,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       const stack: StackItem[] = [];
       for (const layer of layers) {
         const item = this.resolveLayer(layer, encoder);
-        if (!item) continue;
+        if (!item) { this.skippedLayerIds.push(layer.id); continue; }
         drawn += 1;
         if (item === EMPTY_LAYER) continue;
         const solid = this.dipSolidFor(layer);
@@ -1122,7 +1133,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
 
     for (const layer of layers) {
       const item = this.resolveLayer(layer, encoder);
-      if (!item) continue;
+      if (!item) { this.skippedLayerIds.push(layer.id); continue; }
       drawn += 1;
       if (item === EMPTY_LAYER) continue;
       // The solid shares the layer's z and is pushed first, so the stable sort
@@ -1183,6 +1194,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
         ? this.upload(`${adjustment.id}#adjustmask`, adjustment.shapeMask)
         : null
     };
+    if (adjustment.shapeMask && !item.coverage) throw new Error(`Timeline adjustment ${adjustment.id} mask could not be uploaded`);
     if (adjustment.wipe) item.mask = adjustment.wipe;
     return item;
   }
@@ -1623,6 +1635,10 @@ export interface HeadlessRenderFrameOptions {
  * buffer the finished frame is copied through.
  */
 export class HeadlessFrameCompositor {
+  /** Enabled effects omitted by the GPU chain in the latest frame. */
+  get effectsNotApplied(): readonly string[] { return this.compositor.effectsNotApplied; }
+  /** Layers omitted because their source or matte could not be uploaded. */
+  get skippedLayerIds(): readonly string[] { return this.compositor.skippedLayerIds; }
   private readonly device: GPUDevice;
   private readonly compositor: GpuFrameCompositor<FrameLayerPixels>;
   private readonly width: number;

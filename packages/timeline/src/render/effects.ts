@@ -1063,3 +1063,15 @@ function isShaderStepEffect(effect: ClipEffect): boolean {
     isClipGrainEffect(effect)
   );
 }
+
+/** Enabled effect types the GPU chain cannot execute, including future types. */
+export function unsupportedGpuEffectTypes(layers: readonly { effects?: ClipEffect[]; trackEffects?: TrackEffect[] }[]): string[] {
+  const supported = new Set(["denoise", "stabilize", "deband", "secondaryColor", "exposure", "color", "blur", "dropShadow", "glow", "vignette", "sharpen", "chromaKey", "curves", "levels", "liftGammaGain", "grain", "pixelate", "posterize", "directionalBlur", "lensDistortion", "stylize", "generator", "lut"]);
+  const found = new Set<string>();
+  for (const layer of layers) {
+    for (const effect of [...layer.effects ?? [], ...trackEffectsAsClipEffects(layer.trackEffects)]) {
+      if (effect.enabled && !supported.has(effect.type)) found.add(effect.type);
+    }
+  }
+  return [...found].sort();
+}
