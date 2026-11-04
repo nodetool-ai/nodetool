@@ -36,6 +36,7 @@ import ScriptProperty from "../properties/ScriptProperty";
 import StoryboardProperty from "../properties/StoryboardProperty";
 import EntityProperty from "../properties/EntityProperty";
 import ImageSizeProperty from "../properties/ImageSizeProperty";
+import TorchJSONProperty from "../properties/TorchJSONProperty";
 import JSONProperty from "../properties/JSONProperty";
 import StringListProperty from "../properties/StringListProperty";
 import ImageListProperty from "../properties/ImageListProperty";
@@ -131,6 +132,8 @@ function customComponentForType(
   type: string
 ): ComponentType<PropertyProps> | null {
   switch (type) {
+    case "torch_json":
+      return TorchJSONProperty;
     case "media_aspect_ratio_image":
       return MediaAspectRatioImageProperty;
     case "media_aspect_ratio_video":

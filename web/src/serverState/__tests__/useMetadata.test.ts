@@ -11,6 +11,7 @@ jest.mock("../../lib/rest-fetch", () => ({
 
 jest.mock("../../stores/MetadataStore", () => {
   const state = {
+    metadata: {},
     setMetadata: jest.fn(),
     setRecommendedModels: jest.fn(),
     setNodeTypes: jest.fn()
@@ -44,6 +45,16 @@ const mockRestFetch = jest.mocked(restFetch);
 describe("loadMetadata", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    useMetadataStore.getState().metadata = {};
+  });
+
+  it("keeps compiler node metadata when the actor registry refreshes", async () => {
+    const torch = { node_type: "nodetool.torch.Add", title: "Add", namespace: "nodetool.torch", description: "", layout: "default", properties: [], outputs: [], recommended_models: [], required_settings: [], supports_dynamic_inputs: false, is_streaming_output: false, supports_dynamic_outputs: false };
+    useMetadataStore.getState().metadata = { "nodetool.torch.Add": torch };
+    mockRestFetch.mockResolvedValue(stub<Response>({ ok: true, json: async () => [] }));
+    expect(await loadMetadata()).toBe("success");
+    expect(useMetadataStore.getState().setMetadata).toHaveBeenCalledWith(expect.objectContaining({ "nodetool.torch.Add": torch }));
+    expect(useMetadataStore.getState().setNodeTypes).toHaveBeenCalledWith(expect.objectContaining({ "nodetool.torch.Add": "MockBaseNode" }));
   });
 
   it("returns 'error' when fetch fails", async () => {

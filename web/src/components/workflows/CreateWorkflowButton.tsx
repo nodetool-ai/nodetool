@@ -1,19 +1,24 @@
-import { useCallback, memo } from "react";
+import { useCallback, memo, useState, lazy, Suspense } from "react";
 import AddIcon from "@mui/icons-material/AddOutlined";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Tooltip, ToolbarIconButton } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, FlexRow } from "../ui_primitives";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import {
   creationProjectId,
   useWorkspaceTabsStore
 } from "../../stores/WorkspaceTabsStore";
 
+const CreateTorchWorkflowDialog = lazy(
+  () => import("./CreateTorchWorkflowDialog")
+);
+
 interface CreateWorkflowButtonProps {
   readonly projectId?: string;
 }
 
 const CreateWorkflowButton = ({ projectId }: CreateWorkflowButtonProps) => {
+  const [showTorch, setShowTorch] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const createNewWorkflow = useWorkflowManager((state) => state.createNew);
@@ -34,14 +39,30 @@ const CreateWorkflowButton = ({ projectId }: CreateWorkflowButtonProps) => {
   }, [navigate, createNewWorkflow, openTab, projectId, queryClient]);
 
   return (
-    <Tooltip title="New workflow" placement="right-start">
+    <FlexRow>
+      <Tooltip title="New workflow" placement="right-start">
+        <ToolbarIconButton
+          ariaLabel="New workflow"
+          onClick={() => void handleCreate()}
+          tabIndex={-1}
+          icon={<AddIcon />}
+        />
+      </Tooltip>
       <ToolbarIconButton
-        ariaLabel="New workflow"
-        onClick={() => void handleCreate()}
-        tabIndex={-1}
-        icon={<AddIcon />}
+        ariaLabel="New Torch workflow"
+        tooltip="New Torch workflow"
+        onClick={() => setShowTorch(true)}
+        icon={<span>T</span>}
       />
-    </Tooltip>
+      {showTorch && (
+        <Suspense fallback={null}>
+          <CreateTorchWorkflowDialog
+            projectId={projectId}
+            onClose={() => setShowTorch(false)}
+          />
+        </Suspense>
+      )}
+    </FlexRow>
   );
 };
 

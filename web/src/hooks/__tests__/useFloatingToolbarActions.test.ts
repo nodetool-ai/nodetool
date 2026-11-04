@@ -16,6 +16,7 @@ import { useRunWarningStore } from "../../stores/RunWarningStore";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useSearchProviderCalloutStore } from "../../stores/SearchProviderCalloutStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import { useTorchExecutionStore } from "../../stores/TorchExecutionStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { selectFrom } from "../../__mocks__/fixtures";
 import type {
@@ -188,6 +189,31 @@ describe("useFloatingToolbarActions", () => {
   });
 
   describe("handleRun", () => {
+    it("opens the Torch execution panel instead of starting an actor run", async () => {
+      mockUseNodes.mockImplementation(
+        selectFrom<NodeStoreState>({
+          workflow: {
+            ...mockWorkflow,
+            settings: { execution: { kind: "torch", version: 1 } }
+          },
+          autoLayout: mockAutoLayout,
+          workflowJSON: mockWorkflowJSON
+        })
+      );
+      useTorchExecutionStore.getState().close();
+      const { result } = renderHook(() => useFloatingToolbarActions());
+
+      await act(async () => {
+        await result.current.handleRun();
+      });
+
+      expect(useTorchExecutionStore.getState().workflowId).toBe(
+        mockWorkflow.id
+      );
+      expect(mockRun).not.toHaveBeenCalled();
+      expect(mockSaveWorkflow).not.toHaveBeenCalled();
+    });
+
     it("runs workflow when not already running", async () => {
       const { result } = renderHook(() => useFloatingToolbarActions());
 

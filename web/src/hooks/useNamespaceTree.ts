@@ -1,5 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { isProduction } from "../lib/env";
+import useNodeMenuStore from "../stores/NodeMenuStore";
+import { filterWorkflowNodeMetadata } from "../utils/filterWorkflowNodeMetadata";
 import useMetadataStore from "../stores/MetadataStore";
 import useOptionalNodePacksStore from "../stores/OptionalNodePacksStore";
 import { useSecrets } from "./useSecrets";
@@ -32,6 +34,7 @@ export interface NamespaceTree {
  */
 const useNamespaceTree = (): NamespaceTree => {
   const metadata = useMetadataStore((state) => state.metadata);
+  const executionKind = useNodeMenuStore((state) => state.executionKind);
   const enabledPackIds = useOptionalNodePacksStore(
     (state) => state.enabledPackIds
   );
@@ -39,14 +42,13 @@ const useNamespaceTree = (): NamespaceTree => {
 
   // Namespaces belonging to optional packs the user hasn't turned on are kept
   // out of the browsable tree. Search and direct node usage are unaffected.
-  const enabledPacks = useMemo(
-    () => new Set(enabledPackIds),
-    [enabledPackIds]
-  );
+  const enabledPacks = useMemo(() => new Set(enabledPackIds), [enabledPackIds]);
 
   const isNamespaceDisabled = useCallback(
     (namespace: string) => {
-      if (isProduction) {return false;}
+      if (isProduction) {
+        return false;
+      }
       const requiredSecret = getRequiredSecretKeyForNamespace(namespace);
       if (!requiredSecret) {
         return false;
@@ -64,7 +66,10 @@ const useNamespaceTree = (): NamespaceTree => {
     const seen = new Set<string>();
     const namespaces: string[] = [];
 
-    for (const node of Object.values(metadata)) {
+    for (const node of filterWorkflowNodeMetadata(
+      Object.values(metadata),
+      executionKind
+    )) {
       const namespace = node.namespace;
       if (namespace === "default" || seen.has(namespace)) {
         continue;
@@ -90,7 +95,7 @@ const useNamespaceTree = (): NamespaceTree => {
       }
       return aDisabled ? 1 : -1;
     });
-  }, [metadata, isNamespaceDisabled, isApiKeySet, enabledPacks]);
+  }, [metadata, executionKind, isNamespaceDisabled, isApiKeySet, enabledPacks]);
 
   return useMemo(() => {
     const tree: NamespaceTree = {};

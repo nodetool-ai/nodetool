@@ -38,6 +38,7 @@ import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
+import { filterWorkflowNodeMetadata } from "../../utils/filterWorkflowNodeMetadata";
 import { rankSearchNodes } from "../../utils/nodeSearch";
 import {
   filterNodesForCategory,
@@ -305,6 +306,7 @@ const NodeLibrary = memo<NodeLibraryProps>(
     const category =
       getNodeSubcategory(activeSubcategory) ?? NODE_SUBCATEGORIES[0];
     const metadataRecord = useMetadataStore((s) => s.metadata);
+    const executionKind = useNodeMenuStore((state) => state.executionKind);
 
     const requestCreate = usePendingNodeCreateStore((s) => s.requestCreate);
     const setDragToCreate = useNodeMenuStore((state) => state.setDragToCreate);
@@ -322,8 +324,8 @@ const NodeLibrary = memo<NodeLibraryProps>(
     // Hidden nodes stay runnable but never appear in the palette, so the
     // rail counts must leave them out to match the listed rows.
     const allNodes = useMemo(
-      () => Object.values(metadataRecord).filter((node) => !node.hidden),
-      [metadataRecord]
+      () => filterWorkflowNodeMetadata(Object.values(metadataRecord), executionKind).filter((node) => !node.hidden),
+      [metadataRecord, executionKind]
     );
 
     const counts = useMemo(() => {
@@ -347,8 +349,8 @@ const NodeLibrary = memo<NodeLibraryProps>(
     );
 
     const categoryNodes = useMemo(
-      () => filterNodesForCategory(category, allNodes),
-      [category, allNodes]
+      () => executionKind === "torch" ? allNodes : filterNodesForCategory(category, allNodes),
+      [category, allNodes, executionKind]
     );
 
     // Smart ranking (prefix + BM25 + fuzzy matching, with recency and
@@ -429,7 +431,7 @@ const NodeLibrary = memo<NodeLibraryProps>(
     return (
       <div css={cssStyles} className="nl-root">
         <PanelHeader
-          title="Nodes"
+          title={executionKind === "torch" ? "Torch nodes" : "Nodes"}
           count={nodes.length}
           docsTopic="nodes"
           description={getTopLevelCategory("nodes").description}
@@ -459,7 +461,7 @@ const NodeLibrary = memo<NodeLibraryProps>(
 
         <div className="nl-body">
           <div className="nl-browse">
-            <TabGroup
+            {executionKind !== "torch" && <TabGroup
               className="nl-rail"
               orientation="vertical"
               size="small"
@@ -467,7 +469,7 @@ const NodeLibrary = memo<NodeLibraryProps>(
               tabs={railTabs}
               value={activeSubcategory}
               onChange={handleRailChange}
-            />
+            />}
 
             {nodes.length === 0 ? (
               <div className="nl-list">
@@ -530,7 +532,7 @@ const NodeLibrary = memo<NodeLibraryProps>(
         </div>
 
         <div className="nl-footer">
-          <span>{category.label}</span>
+          <span>{executionKind === "torch" ? "Torch" : category.label}</span>
           {!isMobile && (
             <span className="nl-footer-hint">
               <span className="nl-kbd">drag</span> to add

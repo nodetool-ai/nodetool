@@ -12,7 +12,7 @@ import time
 import torch
 import triton
 
-from torch_graph import translate_graph, validate_graph
+from torch_graph import translate_graph, validate_graph, editor_metadata
 
 
 def configure_numerics():
@@ -92,15 +92,93 @@ def compile_graph(document, target, output_dir):
     return manifest_path
 
 
+def editor_graph(document):
+    """Adapt compiler fixtures to NodeTool's persisted property and layout fields."""
+    validated = validate_graph(document)
+    depths, lanes = {}, {}
+    nodes = []
+    for node_id in validated['order']:
+        parents = [source for (target, _), source in validated['incoming'].items() if target == node_id]
+        depth = max((depths[parent] + 1 for parent in parents), default=0)
+        lane = lanes.get(depth, 0)
+        depths[node_id], lanes[depth] = depth, lane + 1
+        source = validated['nodes'][node_id]
+        nodes.append({'id': source['id'], 'type': source['type'], 'data': source.get('properties', {}),
+                      'ui_properties': {'position': {'x': depth * 400, 'y': lane * 400}}})
+    by_id = {node['id']: node for node in nodes}
+    return {'nodes': [by_id[node['id']] for node in document['nodes']], 'edges': document['edges']}
+
+
+def compiler_document(document):
+    """Read editor data without treating editor-generated empty slot maps as slots."""
+    nodes = []
+    for source in document.get('nodes', []):
+        if not isinstance(source, dict):
+            nodes.append(source)
+            continue
+        node = dict(source)
+        if 'data' in node:
+            if 'properties' in node and node['properties'] != node['data']:
+                raise ValueError(f"node {node.get('id')}: conflicting property representations")
+            node['properties'] = node.pop('data')
+        for key in ('dynamic_properties', 'dynamic_outputs'):
+            if node.get(key) == {}:
+                node.pop(key)
+        nodes.append(node)
+    return {**document, 'nodes': nodes}
+
+
+def validate_local_budget(document):
+    """Inspect fake intermediates before allocating examples for a local UI job."""
+    from torch._subclasses.fake_tensor import FakeTensorMode
+    class BoundedInterpreter(torch.fx.Interpreter):
+        def run_node(self, node):
+            result = super().run_node(node)
+            values = result if isinstance(result, (tuple, list)) else [result]
+            for value in values:
+                if isinstance(value, torch.Tensor) and value.numel() > 1_000_000:
+                    raise ValueError(f'node {node.name}: local UI tensor limit is 1000000 elements')
+            return result
+    with FakeTensorMode():
+        module, examples, _ = translate_graph(document)
+        for value in examples:
+            if value.numel() > 1_000_000:
+                raise ValueError('local UI input tensor limit is 1000000 elements')
+        BoundedInterpreter(module).run(*examples)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='command', required=True)
+    sub.add_parser('catalog')
+    sub.add_parser('capabilities')
     compile_parser = sub.add_parser('compile')
     compile_parser.add_argument('graph', type=Path)
+    compile_parser.add_argument('--bounded-local', action='store_true')
     compile_parser.add_argument('--target', choices=('cpu', 'cuda'), required=True)
     compile_parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
-    print(compile_graph(json.loads(args.graph.read_text()), args.target, args.output))
+    if args.command == 'capabilities':
+        print(json.dumps({'targets': ['cpu', 'cuda'] if torch.cuda.is_available() else ['cpu']}))
+    elif args.command == 'catalog':
+        templates = []
+        expected = json.loads(Path(__file__).parent.joinpath('examples/golden/expected.json').read_text())
+        for path in sorted(Path(__file__).parent.joinpath('examples/golden').glob('*.json')):
+            if path.name == 'expected.json':
+                continue
+            document = json.loads(path.read_text())
+            templates.append({'id': path.stem, 'name': path.stem.replace('-', ' ').title(),
+                              'graph': editor_graph(document),
+                              'settings': document['settings'],
+                              'exampleInputs': {node['properties']['name']: {'shape': node['properties']['shape'],
+                                                'values': expected[path.stem]['inputs'][node['properties']['name']]}
+                                                for node in document['nodes'] if node['type'] == 'nodetool.torch.Input'}})
+        print(json.dumps({'nodes': editor_metadata(), 'templates': templates}))
+    else:
+        document = compiler_document(json.loads(args.graph.read_text()))
+        if args.bounded_local:
+            validate_local_budget(document)
+        print(compile_graph(document, args.target, args.output))
 
 
 if __name__ == '__main__':

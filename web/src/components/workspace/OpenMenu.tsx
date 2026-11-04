@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  lazy,
+  Suspense
+} from "react";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 
@@ -19,6 +27,10 @@ import {
   type NewDocumentSubmenu
 } from "./newDocumentCatalog";
 import { useGuidedFlowStarters } from "./useGuidedFlowStarters";
+
+const CreateTorchWorkflowDialog = lazy(
+  () => import("../workflows/CreateTorchWorkflowDialog")
+);
 
 interface OpenMenuProps {
   anchorEl: HTMLElement | null;
@@ -77,6 +89,7 @@ const menuMaxHeight = (anchorEl: HTMLElement | null): string => {
  * Starting a project lives on the project selector to the left of New.
  */
 const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
+  const [showTorch, setShowTorch] = useState(false);
   const [view, setView] = useState<MenuView>("root");
 
   const close = useCallback(() => {
@@ -121,119 +134,137 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
   );
 
   return (
-    <ContextMenu
-      open={open}
-      anchorEl={anchorEl}
-      onClose={close}
-      anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-      transformOrigin={{ vertical: "top", horizontal: "left" }}
-      maxHeight={menuMaxHeight(anchorEl)}
-      paperSx={
-        view === "root"
-          ? { width: ROOT_WIDTH, maxWidth: ROOT_MAX_WIDTH }
-          : { width: MENU_WIDTH, maxWidth: MENU_MAX_WIDTH }
-      }
-      slotProps={{
-        list: {
-          ref: listRef,
-          sx: view === "root" ? ROOT_LIST_SX : undefined
+    <>
+      <ContextMenu
+        open={open}
+        anchorEl={anchorEl}
+        onClose={close}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
+        maxHeight={menuMaxHeight(anchorEl)}
+        paperSx={
+          view === "root"
+            ? { width: ROOT_WIDTH, maxWidth: ROOT_MAX_WIDTH }
+            : { width: MENU_WIDTH, maxWidth: MENU_MAX_WIDTH }
         }
-      }}
-    >
-      {view === "root" && [
-        <ListSubheader key="guided-label">Guided flows</ListSubheader>,
-        // The item being started says so, as the New Project cards do, so
-        // the disabled menu does not read as a dead click.
-        ...starters.map((starter) => (
+        slotProps={{
+          list: {
+            ref: listRef,
+            sx: view === "root" ? ROOT_LIST_SX : undefined
+          }
+        }}
+      >
+        {view === "root" && [
+          <ListSubheader key="guided-label">Guided flows</ListSubheader>,
+          // The item being started says so, as the New Project cards do, so
+          // the disabled menu does not read as a dead click.
+          ...starters.map((starter) => (
+            <MenuItemPrimitive
+              // Starter ids and blank-document keys overlap ("workflow",
+              // "image", …); duplicate keys left guided rows behind in the
+              // submenus.
+              key={`guided-${starter.id}`}
+              label={starter.title}
+              icon={
+                starting === starter.id ? (
+                  <LoadingSpinner size="small" />
+                ) : (
+                  starter.icon
+                )
+              }
+              secondary={
+                starting === starter.id ? "Creating…" : starter.description
+              }
+              onClick={() => void starter.start()}
+              disabled={busy}
+            />
+          )),
+          <Divider key="blank-divider" className="open-menu-section-divider" />,
+          <ListSubheader key="blank-label" className="open-menu-blank-section">
+            Blank documents
+          </ListSubheader>,
           <MenuItemPrimitive
-            // Starter ids and blank-document keys overlap ("workflow",
-            // "image", …); duplicate keys left guided rows behind in the
-            // submenus.
-            key={`guided-${starter.id}`}
-            label={starter.title}
-            icon={
-              starting === starter.id ? (
-                <LoadingSpinner size="small" />
-              ) : (
-                starter.icon
-              )
-            }
-            secondary={
-              starting === starter.id ? "Creating…" : starter.description
-            }
-            onClick={() => void starter.start()}
+            key="torch-workflow"
+            label="New Torch workflow…"
+            secondary="Tensor graphs for CPU and CUDA"
+            icon={<AddOutlinedIcon fontSize="small" />}
+            onClick={() => {
+              setShowTorch(true);
+              close();
+            }}
             disabled={busy}
-          />
-        )),
-        <Divider key="blank-divider" className="open-menu-section-divider" />,
-        <ListSubheader key="blank-label" className="open-menu-blank-section">
-          Blank documents
-        </ListSubheader>,
-        ...entries.map((entry) => (
-          <MenuItemPrimitive
-            key={`blank-${entry.key}`}
-            label={entry.menuLabel}
-            icon={entry.icon}
-            hasSubmenu={entry.submenu !== undefined}
-            onClick={() =>
-              entry.submenu ? setView(entry.submenu) : void entry.create?.()
-            }
-            disabled={busy}
-          />
-        ))
-      ]}
+          />,
+          ...entries.map((entry) => (
+            <MenuItemPrimitive
+              key={`blank-${entry.key}`}
+              label={entry.menuLabel}
+              icon={entry.icon}
+              hasSubmenu={entry.submenu !== undefined}
+              onClick={() =>
+                entry.submenu ? setView(entry.submenu) : void entry.create?.()
+              }
+              disabled={busy}
+            />
+          ))
+        ]}
 
-      {view === "texts" && [
-        backRow,
-        ...TEXT_FILE_TEMPLATES.map((template) => (
-          <MenuItemPrimitive
-            key={template.filename}
-            label={template.label}
-            onClick={() => void createTextFile(template)}
-            disabled={busy}
-          />
-        ))
-      ]}
+        {view === "texts" && [
+          backRow,
+          ...TEXT_FILE_TEMPLATES.map((template) => (
+            <MenuItemPrimitive
+              key={template.filename}
+              label={template.label}
+              onClick={() => void createTextFile(template)}
+              disabled={busy}
+            />
+          ))
+        ]}
 
-      {view === "storyboards" && [
-        backRow,
-        <MenuItemPrimitive
-          key="blank-storyboard"
-          label="Blank storyboard"
-          icon={<AddOutlinedIcon fontSize="small" />}
-          onClick={() => void createBlankStoryboard()}
-          disabled={busy}
-          dividerAfter
-        />,
-        examplesLoading && (
-          <FlexRow key="loading" justify="center" sx={{ py: SPACING.md }}>
-            <LoadingSpinner />
-          </FlexRow>
-        ),
-        !examplesLoading && exampleStoryboards.length === 0 && (
-          <Caption
-            key="empty"
-            color="secondary"
-            sx={{ px: SPACING.lg, py: SPACING.sm }}
-          >
-            No example storyboards are available.
-          </Caption>
-        ),
-        ...exampleStoryboards.map((example) => (
+        {view === "storyboards" && [
+          backRow,
           <MenuItemPrimitive
-            key={example.slug}
-            label={example.name}
-            secondary={`${example.shotCount} shot${
-              example.shotCount === 1 ? "" : "s"
-            }, stills included`}
-            onClick={() =>
-              void installStoryboardExample(example.slug, example.name)
-            }
+            key="blank-storyboard"
+            label="Blank storyboard"
+            icon={<AddOutlinedIcon fontSize="small" />}
+            onClick={() => void createBlankStoryboard()}
             disabled={busy}
-          />
-        ))
-      ]}
-    </ContextMenu>
+            dividerAfter
+          />,
+          examplesLoading && (
+            <FlexRow key="loading" justify="center" sx={{ py: SPACING.md }}>
+              <LoadingSpinner />
+            </FlexRow>
+          ),
+          !examplesLoading && exampleStoryboards.length === 0 && (
+            <Caption
+              key="empty"
+              color="secondary"
+              sx={{ px: SPACING.lg, py: SPACING.sm }}
+            >
+              No example storyboards are available.
+            </Caption>
+          ),
+          ...exampleStoryboards.map((example) => (
+            <MenuItemPrimitive
+              key={example.slug}
+              label={example.name}
+              secondary={`${example.shotCount} shot${
+                example.shotCount === 1 ? "" : "s"
+              }, stills included`}
+              onClick={() =>
+                void installStoryboardExample(example.slug, example.name)
+              }
+              disabled={busy}
+            />
+          ))
+        ]}
+      </ContextMenu>
+      {showTorch && (
+        <Suspense fallback={null}>
+          <CreateTorchWorkflowDialog onClose={() => setShowTorch(false)} />
+        </Suspense>
+      )}
+    </>
   );
 };
 

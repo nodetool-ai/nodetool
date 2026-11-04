@@ -21,6 +21,39 @@ headers and runtime libraries from the pinned CUDA wheels using
 also supply `CUDA_HOME`. The CPU-only CI dependency list is
 [requirements-cpu.txt](requirements-cpu.txt).
 
+## Use the workflow editor
+
+After installing the compiler environment and building the C++ adapter below,
+start the API bound to loopback with local compilation enabled:
+
+```bash
+HOST=127.0.0.1 NODETOOL_TORCH_LOCAL=1 npm run dev:server
+```
+
+Choose **New → New Torch workflow…** in the workspace. Start with an empty
+canvas or one of the four golden examples. Torch canvases offer operations
+from the Python registry, with editable tensor shapes and constant arrays.
+The saved workflow carries `settings.execution.kind = "torch"`.
+
+The editor's Run action opens the Torch dialog. Choose CPU or CUDA, edit named
+float32 tensor inputs as JSON, then choose **Compile** or **Compile and run**.
+Examples include runnable input values. Input values and the selected device
+are saved with the graph. The dialog shows build stages, cancellation, errors,
+and output shapes and values. Changing the graph hides results from an older
+revision. Compilation uses strict export, and inference uses the C++ adapter.
+
+Compilation requires a nonproduction server bound to loopback, the explicit
+environment opt-in, and a direct loopback client connection. Enable it only on
+a trusted local server without a public reverse proxy. Jobs require workflow
+edit access and use saved snapshots. Artifacts are created in private job
+directories and removed when the job ends. The API accepts tensor values and
+device selection, not filesystem paths, executable names, or native package
+uploads. The ordinary actor runner rejects Torch workflows.
+
+The local editor limits graphs to 256 nodes, 1024 edges, and 8 MB of graph JSON.
+It checks fake tensor shapes before allocating examples and rejects tensors above
+one million elements. Each compiler invocation has a fifteen minute deadline.
+
 Compile an artifact separately:
 
 ```bash

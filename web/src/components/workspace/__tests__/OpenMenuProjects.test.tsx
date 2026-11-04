@@ -2,6 +2,7 @@
  * The `[+]` menu creates blank documents. Starting a project lives on the
  * project selector.
  */
+import { useState } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -44,15 +45,34 @@ jest.mock("../../../stores/WorkspaceTabsStore", () => ({
     selector({ openTab: jest.fn() })
 }));
 
+jest.mock("../../workflows/CreateTorchWorkflowDialog", () => ({
+  __esModule: true,
+  default: () => (
+    <div role="dialog" aria-label="New Torch workflow">
+      Torch templates
+    </div>
+  )
+}));
+
 import OpenMenu from "../OpenMenu";
 
 const onClose = jest.fn();
-const renderMenu = () =>
-  render(
+const MenuHost = () => {
+  const [open, setOpen] = useState(true);
+  return (
     <ThemeProvider theme={mockTheme}>
-      <OpenMenu anchorEl={document.body} open onClose={onClose} />
+      <OpenMenu
+        anchorEl={document.body}
+        open={open}
+        onClose={() => {
+          onClose();
+          setOpen(false);
+        }}
+      />
     </ThemeProvider>
   );
+};
+const renderMenu = () => render(<MenuHost />);
 
 beforeEach(() => jest.clearAllMocks());
 
@@ -60,6 +80,18 @@ describe("OpenMenu projects", () => {
   it("does not start a project from the New menu", () => {
     renderMenu();
     expect(screen.queryByText("Start a project…")).not.toBeInTheDocument();
+  });
+
+  it("offers Torch creation from the workspace New menu", async () => {
+    renderMenu();
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: /New Torch workflow/ })
+    );
+    expect(
+      await screen.findByRole("dialog", { name: "New Torch workflow" })
+    ).toBeInTheDocument();
+    expect(onClose).toHaveBeenCalled();
+    expect(createDocument).not.toHaveBeenCalled();
   });
 
   it("creates a blank document from the list", async () => {

@@ -409,6 +409,39 @@ describe("WorkflowRunner", () => {
   });
 
   describe("run", () => {
+    it("rejects Torch workflows before contacting either actor runner", async () => {
+      const workflow = stub<WorkflowAttributes>({
+        ...testWorkflow,
+        settings: { execution: { kind: "torch", version: 1 } }
+      });
+
+      await expect(store.getState().run({}, workflow, [], [])).rejects.toThrow(/Torch/);
+
+      expect(reportBrowserEligibility).not.toHaveBeenCalled();
+      expect(runBrowserGraphJob).not.toHaveBeenCalled();
+      expect(globalWebSocketManager.ensureConnection).not.toHaveBeenCalled();
+      expect(globalWebSocketManager.send).not.toHaveBeenCalled();
+    });
+
+    it("rejects Torch nodes in a graph without Torch execution settings", async () => {
+      const node = {
+        id: "torch-input",
+        type: "nodetool.torch.Input",
+        position: { x: 0, y: 0 },
+        data: {
+          properties: { name: "input", shape: [1] },
+          dynamic_properties: {},
+          selectable: true,
+          workflow_id: testWorkflow.id
+        }
+      };
+
+      await expect(store.getState().run({}, testWorkflow, [node], [])).rejects.toThrow(/Torch/);
+
+      expect(reportBrowserEligibility).not.toHaveBeenCalled();
+      expect(globalWebSocketManager.send).not.toHaveBeenCalled();
+    });
+
     it.each(["connecting", "running"] as const)(
       "submits a queued run_job while state is %s without disturbing the active run",
       async (state) => {

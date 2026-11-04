@@ -611,6 +611,7 @@ export class JobExecutionManager {
         edges: Array<Record<string, unknown>>;
       } {
     if (req.graph) {
+      this.assertActorWorkflow(req.settings, req.graph.nodes);
       return this.normalizeGraph(req.graph);
     }
     if (req.workflow_id) {
@@ -619,6 +620,7 @@ export class JobExecutionManager {
       return (async () => {
         const workflow = await Workflow.find(userId, workflowId);
         if (!workflow) throw new Error(`Workflow not found: ${workflowId}`);
+        this.assertActorWorkflow(workflow.settings, workflow.graph?.nodes);
         return this.normalizeGraph(
           workflow.graph as {
             nodes: Array<Record<string, unknown>>;
@@ -628,6 +630,25 @@ export class JobExecutionManager {
       })();
     }
     throw new Error("workflow_id or graph is required");
+  }
+
+  private assertActorWorkflow(
+    settings: Record<string, unknown> | null | undefined,
+    nodes: readonly { type?: unknown }[] | undefined
+  ): void {
+    const execution = settings?.execution;
+    if (
+      (isRecord(execution) && execution.kind === "torch") ||
+      nodes?.some(
+        (node) =>
+          typeof node.type === "string" &&
+          node.type.startsWith("nodetool.torch.")
+      )
+    ) {
+      throw new Error(
+        "Torch workflows require the trusted local Torch compiler and cannot use the actor runner"
+      );
+    }
   }
 
   /**
@@ -1395,8 +1416,18 @@ export class JobExecutionManager {
    * `queued` job update. Queued runs start automatically as active jobs finish.
    */
   async runJob(incoming: RunJobRequest): Promise<void> {
+    this.assertActorWorkflow(incoming.settings, incoming.graph?.nodes);
     const req = await this.confineAppSessionRun(incoming);
     if (!req) return;
+    if (req.graph && req.workflow_id) {
+      const saved = await Workflow.find(
+        this.session.requireUserId(),
+        req.workflow_id
+      );
+      if (saved) {
+        this.assertActorWorkflow(saved.settings, saved.graph?.nodes);
+      }
+    }
     req._accepted_at_ms ??= performance.now();
     if (!(await this.admitApplicationRun(req))) return;
     if (!(await this.admitCreditRun(req))) {

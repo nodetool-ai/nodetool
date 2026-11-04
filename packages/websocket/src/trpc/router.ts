@@ -1,3 +1,4 @@
+import { torchRouter } from "./routers/torch.js";
 import { z } from "zod";
 import { router, publicProcedure } from "./index.js";
 import { assetsRouter } from "./routers/assets.js";
@@ -46,8 +47,11 @@ import { workerRouter } from "./routers/worker.js";
 import { workflowsRouter } from "./routers/workflows.js";
 import { workspaceRouter } from "./routers/workspace.js";
 
-const healthzProcedure = publicProcedure.output(z.object({ ok: z.literal(true) })).query(() => ({ ok: true as const }));
+const healthzProcedure = publicProcedure
+  .output(z.object({ ok: z.literal(true) }))
+  .query(() => ({ ok: true as const }));
 type AppRouterRecord = {
+  torch: typeof torchRouter;
   healthz: typeof healthzProcedure;
   assets: typeof assetsRouter;
   codeGen: typeof codeGenRouter;
@@ -97,6 +101,7 @@ type AppRouterRecord = {
 };
 
 export const appRouter: ReturnType<typeof router<AppRouterRecord>> = router({
+  torch: torchRouter,
   healthz: healthzProcedure,
   assets: assetsRouter,
   codeGen: codeGenRouter,

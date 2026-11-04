@@ -12,6 +12,10 @@ import {
   filterNodesUtil,
   SearchResultGroup
 } from "../utils/nodeSearch";
+import {
+  filterWorkflowNodeMetadata,
+  type WorkflowExecutionKind
+} from "../utils/filterWorkflowNodeMetadata";
 import { NODE_MENU_HOVER_INFO_DELAY_MS } from "../config/constants";
 
 export interface SplitNodeDescription {
@@ -36,6 +40,8 @@ interface OpenNodeMenuParams {
 type ProviderFilterType = "all" | "api" | "local";
 
 export type NodeMenuStore = {
+  executionKind: WorkflowExecutionKind;
+  setExecutionKind: (kind: WorkflowExecutionKind) => void;
   isMenuOpen: boolean;
   dragToCreate: boolean;
   setDragToCreate: (dragToCreate: boolean) => void;
@@ -130,7 +136,7 @@ export const createNodeMenuStore = () =>
         metadataSource = metadata;
         metadataValues = Object.values(metadata);
       }
-      return metadataValues;
+      return filterWorkflowNodeMetadata(metadataValues, get().executionKind);
     };
     const filterNodes = (nodes: NodeMetadata[]) =>
       filterNodesUtil(
@@ -174,6 +180,23 @@ export const createNodeMenuStore = () =>
     nodeMenuMetadataUnsubscribers.add(unsubscribeMetadata);
 
     return {
+      executionKind: "workflow",
+      setExecutionKind: (executionKind) => {
+        if (executionKind === get().executionKind) {
+          return;
+        }
+        set({
+          executionKind,
+          selectedPath: [],
+          searchResultsCache: {},
+          searchResults: [],
+          groupedSearchResults: [],
+          allSearchMatches: []
+        });
+        if (get().isMenuOpen) {
+          scheduleSearch(get().searchTerm);
+        }
+      },
       // menu
       isMenuOpen: false,
       closeBlockUntil: 0,
@@ -590,21 +613,29 @@ export const createNodeMenuStore = () =>
       moveSelectionUp: () => {
         const { selectedIndex, groupedSearchResults } = get();
         const allNodes = groupedSearchResults.flatMap((g) => g.nodes);
-        if (allNodes.length === 0) { return; }
-        const newIndex = selectedIndex <= 0 ? allNodes.length - 1 : selectedIndex - 1;
+        if (allNodes.length === 0) {
+          return;
+        }
+        const newIndex =
+          selectedIndex <= 0 ? allNodes.length - 1 : selectedIndex - 1;
         set({ selectedIndex: newIndex });
       },
       moveSelectionDown: () => {
         const { selectedIndex, groupedSearchResults } = get();
         const allNodes = groupedSearchResults.flatMap((g) => g.nodes);
-        if (allNodes.length === 0) { return; }
-        const newIndex = selectedIndex >= allNodes.length - 1 ? 0 : selectedIndex + 1;
+        if (allNodes.length === 0) {
+          return;
+        }
+        const newIndex =
+          selectedIndex >= allNodes.length - 1 ? 0 : selectedIndex + 1;
         set({ selectedIndex: newIndex });
       },
       getSelectedNode: () => {
         const { selectedIndex, groupedSearchResults } = get();
         const allNodes = groupedSearchResults.flatMap((g) => g.nodes);
-        if (selectedIndex < 0 || selectedIndex >= allNodes.length) { return null; }
+        if (selectedIndex < 0 || selectedIndex >= allNodes.length) {
+          return null;
+        }
         return allNodes[selectedIndex];
       }
     };

@@ -117,8 +117,16 @@ export const loadMetadata = async (): Promise<"success" | "error"> => {
     baseNodeReady
   ]);
 
-  const nodeTypes: NodeTypes = {};
-  const metadataByType: Record<string, NodeMetadata> = { ...defaultMetadata };
+  // Compiler metadata is loaded separately from the actor registry. Preserve
+  // it when optional packs refresh the registry while Torch tabs remain open.
+  const existing = useMetadataStore.getState();
+  const torchMetadata = Object.fromEntries(
+    Object.entries(existing.metadata ?? {}).filter(([type]) => type.startsWith("nodetool.torch."))
+  );
+  const nodeTypes: NodeTypes = Object.fromEntries(
+    Object.keys(torchMetadata).map((type) => [type, BaseNode])
+  );
+  const metadataByType: Record<string, NodeMetadata> = { ...defaultMetadata, ...torchMetadata };
   
   data.forEach((md: NodeMetadata) => {
     nodeTypes[md.node_type] = BaseNode;

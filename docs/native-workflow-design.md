@@ -63,4 +63,23 @@ All four graphs execute through the C++ AOT runtime on both targets without Pyth
 
 The check runner records cold compilation, loading, first and warm execution, explicit transfers, eager reference timing, and process peak host RSS. CUDA allocator peak memory is not measured. CPU-only CI runs the compiled CPU path. GPU checks require a CUDA-capable host.
 
+## D6. Editor and trusted local execution
+
+The workspace New menu creates a Torch workflow from an empty canvas or a
+golden example. The editor reads operation metadata from the Python registry
+and scopes node authoring to Torch operations. Saved execution settings retain
+the workflow kind, target, and named tensor input values.
+
+Run opens the Torch dialog, which saves the graph before starting an
+authorized compile or compile-and-run job. It displays compilation stages,
+cancellation, diagnostics, and tensor outputs. Results from an older graph
+revision are hidden. Ordinary actor execution rejects Torch graphs.
+
+The backend bridge requires an explicit local capability opt-in and loopback
+binding and connection on a nonproduction server. It accepts saved workflow
+IDs and bounded tensor JSON, derives artifact paths itself, and invokes the
+existing Python compiler and C++ runtime. Arbitrary commands, caller-supplied
+artifact paths, and artifact uploads are outside this API. See the
+[editor setup](../native/workflow/README.md#use-the-workflow-editor).
+
 Training, dynamic shapes, additional dtypes, custom kernels, shader languages, audio DSP, Comfy import, general model import, diffusion orchestration, and MLIR integration are outside this design.

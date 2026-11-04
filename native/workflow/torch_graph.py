@@ -33,9 +33,14 @@ _PROPERTY_TYPES = {
     'kernel_size': 'positive_integer_pair', 'pad': 'nonnegative_integer_array',
     'mode': 'constant_or_replicate', 'value': 'finite_number',
 }
+_EDITOR_DEFAULTS = {'string': 'tensor', 'float32': 'float32', 'positive_integer_array': [1],
+                    'finite_float32_array': [0.0], 'finite_number': 0.0, 'permutation': [0],
+                    'positive_integer_pair': [1, 1], 'nonnegative_integer_pair': [0, 0],
+                    'positive_integer': 1, 'OIHW': 'OIHW', 'nonnegative_integer_array': [0, 0, 0, 0],
+                    'constant_or_replicate': 'constant'}
 for _operation, _definition in REGISTRY.items():
     _definition['property_definitions'] = {
-        name: {'type': _PROPERTY_TYPES[name], 'required': not (_operation == 'Pad' and name == 'value')}
+        name: {'type': _PROPERTY_TYPES[name], 'default': 1.0 if name == 'max' else _EDITOR_DEFAULTS[_PROPERTY_TYPES[name]], 'required': not (_operation == 'Pad' and name == 'value')}
         for name in _definition['properties']
     }
 

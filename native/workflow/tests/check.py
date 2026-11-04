@@ -15,7 +15,7 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 import torch
-from build_tool import compile_graph, configure_numerics, normalized_graph
+from build_tool import compile_graph, configure_numerics, normalized_graph, validate_local_budget, editor_graph, compiler_document
 from torch_graph import GraphError, translate_graph, validate_graph
 
 GOLDENS = ROOT / 'examples' / 'golden'
@@ -63,6 +63,21 @@ def decoded(value):
 
 
 class GraphContracts(unittest.TestCase):
+    def test_local_editor_roundtrip_and_budget(self):
+        for name in EXPECTED:
+            original = document(name)
+            editor = {**editor_graph(original), 'settings': original['settings']}
+            for node in editor['nodes']:
+                node['dynamic_properties'] = {}
+                node['dynamic_outputs'] = {}
+            restored = compiler_document(editor)
+            validate_local_budget(restored)
+            self.assertEqual(normalized_graph(restored), normalized_graph(original))
+        oversized = simple_graph()
+        oversized['nodes'][0]['properties']['shape'] = [100000000000]
+        with self.assertRaisesRegex(ValueError, 'tensor limit'):
+            validate_local_budget(oversized)
+
     def test_invalid_documents(self):
         mutations = [
             lambda d: d.update(settings={'execution': {'kind': 'native', 'version': 1}}),

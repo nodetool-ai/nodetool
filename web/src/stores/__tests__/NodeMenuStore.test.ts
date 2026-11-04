@@ -19,6 +19,7 @@ describe("NodeMenuStore", () => {
     jest.useFakeTimers();
     useMetadataStore.setState({ metadata: {} });
     useNodeMenuStore.setState({
+      executionKind: "workflow",
       isMenuOpen: false,
       searchTerm: "",
       searchResults: [],
@@ -49,6 +50,24 @@ describe("NodeMenuStore", () => {
 
   afterEach(() => {
     jest.useRealTimers();
+  });
+
+  it("switches cached search results between actor and Torch palettes", () => {
+    useMetadataStore.setState({ metadata: {
+      actor: createMockNodeMetadata({node_type: "nodetool.math.Add", namespace: "nodetool.math", title: "Add"}),
+      torch: createMockNodeMetadata({node_type: "nodetool.torch.Add", namespace: "nodetool.torch", title: "Add"})
+    } });
+    useNodeMenuStore.getState().openNodeMenu({x: 0, y: 0});
+    useNodeMenuStore.getState().performSearch("Add");
+    expect(useNodeMenuStore.getState().searchResults.map((node) => node.node_type)).toEqual(["nodetool.math.Add"]);
+    useNodeMenuStore.getState().setExecutionKind("torch");
+    jest.advanceTimersByTime(100);
+    useNodeMenuStore.getState().performSearch("Add");
+    expect(useNodeMenuStore.getState().searchResults.map((node) => node.node_type)).toEqual(["nodetool.torch.Add"]);
+    useNodeMenuStore.getState().setExecutionKind("workflow");
+    jest.advanceTimersByTime(100);
+    useNodeMenuStore.getState().performSearch("Add");
+    expect(useNodeMenuStore.getState().searchResults.map((node) => node.node_type)).toEqual(["nodetool.math.Add"]);
   });
 
   describe("initial state", () => {

@@ -49,6 +49,10 @@ export type SandboxApiVerdict =
 export const SANDBOX_API_COVERAGE: Readonly<
   Record<string, SandboxApiVerdict>
 > = {
+  "torch.capabilities": { withheld: "Native compiler host capability is available only to the trusted local UI." },
+  "torch.catalog": { withheld: "Native Torch authoring metadata belongs to the local editor." },
+  "torch.start": { withheld: "Compiling native executable code is outside the sandbox capability boundary." },
+  "torch.status": { withheld: "Native compiler jobs belong to the trusted local UI." },
   "agentAccess.createToken": {
     withheld:
       "Minting a bearer token is granting a third party the user's whole " +

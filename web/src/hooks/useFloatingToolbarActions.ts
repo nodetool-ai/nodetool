@@ -1,4 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
+import { useTorchExecutionStore } from "../stores/TorchExecutionStore";
+import { isTorchWorkflow } from "../utils/torchWorkflow";
 import { useWebsocketRunner } from "../stores/WorkflowRunner";
 import { useRunningJobs } from "./useRunningJobs";
 import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
@@ -47,6 +49,7 @@ interface FloatingToolbarActions {
 
 export const useFloatingToolbarActions = (): FloatingToolbarActions => {
   const nodeStore = useNodeStoreRef();
+  const openTorch = useTorchExecutionStore((state) => state.open);
   const workflow = useNodes((state) => state.workflow);
   const autoLayout = useNodes((state) => state.autoLayout);
   const workflowJSON = useNodes((state) => state.workflowJSON);
@@ -146,6 +149,10 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
   const toggleMiniMap = useMiniMapStore((state) => state.toggleVisible);
 
   const handleRun = useCallback(async () => {
+    if (isTorchWorkflow(workflow)) {
+      openTorch(workflow.id);
+      return;
+    }
     if (isStopping) {
       return;
     }
@@ -306,6 +313,7 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     }
   }, [
     run,
+    openTorch,
     workflow,
     nodeStore,
     getWorkflowById,

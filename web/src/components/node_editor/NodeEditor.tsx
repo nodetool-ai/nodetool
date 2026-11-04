@@ -41,6 +41,9 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowRuntimeCheck } from "../../hooks/useWorkflowRuntimeCheck";
 import RuntimeInstallDialog from "./RuntimeInstallDialog";
 import { useAutoEnableNodePacks } from "../../hooks/useAutoEnableNodePacks";
+import { useTorchCatalog } from "../../serverState/useTorchCatalog";
+import TorchWorkflowPanel from "./TorchWorkflowPanel";
+import { isTorchWorkflow } from "../../utils/torchWorkflow";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 
 declare global {
@@ -56,6 +59,13 @@ interface NodeEditorProps {
 
 const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const theme = useTheme();
+  const torch = useNodes((state) => isTorchWorkflow(state.workflow));
+  useTorchCatalog(torch);
+  useEffect(() => {
+    if (active) {
+      useNodeMenuStore.getState().setExecutionKind(torch ? "torch" : "workflow");
+    }
+  }, [active, torch]);
   const editorBgStyle = useMemo<React.CSSProperties>(
     () => ({ backgroundColor: theme.vars.palette.c_editor_bg_color }),
     [theme.vars.palette.c_editor_bg_color]
@@ -180,6 +190,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
         </Box>
       </EditorUiProvider>
 
+      {torch && <TorchWorkflowPanel workflowId={workflowId} />}
       <RuntimeInstallDialog
         missing={missingRuntimes}
         open={missingRuntimes.length > 0 && !runtimeDialogDismissed}

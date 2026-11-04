@@ -29,7 +29,7 @@ import {
   type WebSocketConnection,
   type WebSocketReceiveFrame
 } from "../src/websocket-client-session.js";
-import { initTestDb, Job } from "@nodetool-ai/models";
+import { initTestDb, Job, Workflow } from "@nodetool-ai/models";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 // Autosave persists bytes to storage; make that a no-op so tests touch only DB.
@@ -908,6 +908,32 @@ describe("WebSocketClientSession run_job — queue path", () => {
 
   afterEach(async () => {
     await runner.disconnect();
+  });
+
+  it("refuses Torch execution settings before admitting an actor job", async () => {
+    await expect(
+      runner.jobs.runJob({
+        job_id: "torch-actor",
+        graph,
+        settings: { execution: { kind: "torch", version: 1 } }
+      })
+    ).rejects.toThrow(/Torch/);
+    expect(await Job.get<Job>("torch-actor")).toBeNull();
+  });
+
+  it("refuses saved Torch workflows through the actor graph loader", async () => {
+    const workflow = await Workflow.create({
+      name: "Torch graph",
+      user_id: "1",
+      graph,
+      settings: { execution: { kind: "torch", version: 1 } }
+    });
+    await expect(
+      runner.jobs.getRawGraph({ workflow_id: workflow.id })
+    ).rejects.toThrow(/Torch/);
+    await expect(
+      runner.jobs.runJob({ workflow_id: workflow.id, graph })
+    ).rejects.toThrow(/Torch/);
   });
 
   it("queues a run when the global concurrency cap is reached", async () => {

@@ -36,6 +36,8 @@ export type ProbeWorkerHealth = (
 
 export interface Context {
   userId: string | null;
+  /** Direct loopback peer, without trusting forwarding headers. */
+  torchLocalPeer?: boolean;
   registry: NodeRegistry;
   apiOptions: HttpApiOptions;
   pythonBridge: PythonBridge;
@@ -70,6 +72,7 @@ export interface ContextFactoryInput {
  */
 interface ContextRequest {
   userId?: string | null;
+  socket?: { remoteAddress?: string };
 }
 
 export function createContextFactory(
@@ -77,6 +80,9 @@ export function createContextFactory(
 ): (opts: { req: ContextRequest }) => Context {
   return ({ req }) => ({
     userId: req.userId ?? null,
+    torchLocalPeer: ["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(
+      req.socket?.remoteAddress ?? ""
+    ),
     registry: deps.registry,
     apiOptions: deps.apiOptions,
     pythonBridge: deps.pythonBridge,

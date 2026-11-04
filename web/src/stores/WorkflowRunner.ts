@@ -1,3 +1,4 @@
+import { isTorchWorkflow } from "../utils/torchWorkflow";
 /**
  * Workflow runner WebSocket bridge.
  *
@@ -420,6 +421,9 @@ export const createWorkflowRunnerStore = (
       inputSignatures?: Record<string, string>,
       options?: RunOptions
     ) => {
+      if (isTorchWorkflow(workflow) || nodes.some((node) => node.type?.startsWith("nodetool.torch."))) {
+        throw new Error("Torch workflows must compile and run through the local Torch runtime.");
+      }
       // The "run a workflow" onboarding step is marked when a run *completes*
       // (see workflowUpdates.ts) — a run that fails hasn't taught anything.
       const activeNodeTypes = nodes

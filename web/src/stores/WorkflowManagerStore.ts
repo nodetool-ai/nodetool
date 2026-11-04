@@ -355,7 +355,7 @@ export type WorkflowManagerState = {
   newWorkflow: (projectId?: string) => Workflow;
   createNew: (
     projectId?: string,
-    init?: Pick<Partial<Workflow>, "name" | "graph">
+    init?: Pick<Partial<Workflow>, "name" | "graph" | "settings">
   ) => Promise<Workflow>;
   create: (
     workflow: WorkflowRequest,
