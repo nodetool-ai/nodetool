@@ -1,3 +1,4 @@
+import { passthroughV1 } from "../src/shaders/_canary/passthrough/v1/module.js";
 import inverseLevels from "./fixtures/inverse-levels.json" with { type: "json" };
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -95,11 +96,19 @@ async function render(scene: Scene, format: Format, width: number, height: numbe
     function pass(module: ShaderModule, input: LabeledTexture, params = module.paramDefaults, extra: Record<string, LabeledTexture> = {}): LabeledTexture {
       const output = allocate(format);
       const [wx, wy] = module.workgroupSize;
-      executor.encode({ ctx, encoder, module: withFormat(module, format), inputs: { source: input, ...extra }, output, params,
+      executor.encode({ ctx, encoder, module, workingFormat: format, inputs: { source: input, ...extra }, output, params,
         dispatch: module.kind === "fragment" ? { kind: "fragment" } : { kind: "compute", x: Math.ceil(width / wx), y: Math.ceil(height / wy) } });
       return output;
     }
     let result = source;
+    if (format === "rgba16float") {
+      // Upload normalization only. All measured effects use the production
+      // working-format executor below rather than test-local shader clones.
+      result = allocate(format);
+      executor.encode({ ctx, encoder, module: withFormat(passthroughV1, format),
+        inputs: { source }, output: result, params: passthroughV1.paramDefaults,
+        dispatch: { kind: "fragment" } });
+    }
     if (scene === "ramp") {
       for (const gamma of inverseLevels.gammas) {
         result = pass(colorLevelsV1, result, levels(gamma));

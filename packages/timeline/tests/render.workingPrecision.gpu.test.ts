@@ -207,3 +207,64 @@ it("refreshes FP16 temporal neighbors across seeks, source changes and cache res
     expect((await device.popErrorScope())?.message).toBeUndefined();
   }
 });
+
+it("keeps full-frame identity with effects and nearly transparent edges against encoded references", async () => {
+  const device = await getNodeGPUDevice();
+  const width = 16, height = 16;
+  const rgba = new Uint8Array(width * height * 4);
+  for (let i = 0; i < width * height; i++) {
+    rgba.set([220, 80, 35, [0, 1, 2, 3, 8, 16, 128, 255][i % 8]], i * 4);
+  }
+  const half = new HeadlessFrameCompositor(device, width, height, { workingFormat: "rgba16float" });
+  const byte = new HeadlessFrameCompositor(device, width, height);
+  const layer: FrameLayer = {
+    id: "alpha", source: { rgba, width, height }, opacity: 1, blendMode: "normal", zIndex: 1,
+    effects: [{ id: "identity", type: "levels", enabled: true, inBlack: 0, inWhite: 1, gamma: 1, outBlack: 0, outWhite: 1 }],
+    shapeMask: { rgba: new Uint8Array(width * height * 4).fill(255), width, height },
+    matte: { mode: "luma", invert: false, layer: {
+      id: "matte", source: { rgba: new Uint8Array(width * height * 4).fill(255), width, height },
+      opacity: 1, blendMode: "normal", zIndex: 0
+    } }
+  };
+  try {
+    for (const ground of [0, 255, null]) {
+      const layers: FrameLayer[] = ground === null ? [layer] : [{
+        id: "ground", source: { rgba: new Uint8Array([ground, ground, ground, 255]), width: 1, height: 1 },
+        opacity: 1, blendMode: "normal", zIndex: 0
+      }, layer];
+      const result = await half.renderFrame(layers, [], { alpha: ground === null });
+      const baseline = await byte.renderFrame(layers, [], { alpha: ground === null });
+      let max = 0, total = 0, byteDelta = 0;
+      for (let i = 0; i < result.length; i++) {
+        const a = rgba[i - i % 4 + 3] / 255;
+        const expected = i % 4 === 3 ? (ground === null ? Math.round(a * 255) : 255)
+          : ground === null ? (a === 0 ? 0 : rgba[i]) : Math.round(rgba[i] * a + ground * (1 - a));
+        const error = Math.abs(result[i] - expected);
+        max = Math.max(max, error); total += error;
+        byteDelta = Math.max(byteDelta, Math.abs(result[i] - baseline[i]));
+      }
+      process.stderr.write(`effect identity ground=${ground}: max=${max}, mean=${total / result.length}, byteDelta=${byteDelta}
+`);
+      expect(max).toBeLessThanOrEqual(1);
+    }
+    const opaque = { ...layer, source: { rgba: rgba.map((v, i) => i % 4 === 3 ? 255 : v), width, height } };
+    const a = await byte.renderFrame([opaque]);
+    const b = await half.renderFrame([opaque]);
+    expect(Math.max(...a.map((v, i) => Math.abs(v - b[i])))).toBeLessThanOrEqual(1);
+  } finally { half.dispose(); byte.dispose(); }
+});
+
+it("preserves intentional Posterize quantization in FP16", async () => {
+  const device = await getNodeGPUDevice();
+  const rgba = new Uint8Array(256 * 4);
+  for (let x = 0; x < 256; x++) rgba.set([x, x, x, 255], x * 4);
+  const renderer = new HeadlessFrameCompositor(device, 256, 1, { workingFormat: "rgba16float" });
+  try {
+    const result = await renderer.renderFrame([{
+      id: "posterize", source: { rgba, width: 256, height: 1 },
+      opacity: 1, blendMode: "normal", zIndex: 0,
+      effects: [{ id: "p", type: "posterize", enabled: true, levels: 4 }]
+    }]);
+    expect([...new Set(result.filter((_, i) => i % 4 === 0))].sort((a, b) => a - b)).toEqual([0, 85, 170, 255]);
+  } finally { renderer.dispose(); }
+});

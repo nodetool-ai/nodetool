@@ -86,7 +86,7 @@ through RGBA8.
 
 ## Limits
 
-A23.3 onward is not started. The A23 continuation below changes opt-in
+At the A22 handoff, A23.3 onward had not started. The A23 continuation below changes opt-in
 compositor geometry. Temporal caches, settings and persisted schemas are
 unchanged. Existing callers keep the byte route. Browser, hardware-GPU and native execution are unverified.
 Native consumption of the added fixture fields is unverified. Default-parameter
@@ -339,15 +339,28 @@ The earlier report set only VK_ICD_FILENAMES after sourcing ntenv, leaving
 its NVIDIA VK_DRIVER_FILES override active. This was not a Node-version
 failure. No existing test, tolerance or expected-failure marker changed.
 
-The failing grain names were "matches CPU grain with size S, softness F and
-alpha A", for (S,F,A) equal to (1,0.25,255), (3.5,0,255), (8,1,255),
-(16,0.6,255), (16,0,255), (16,1,128) and (3.5,0.4,128).
-These are B218's seven parameter cases. Their CPU/GPU quantization parity
-differs on the inherited NVIDIA route. They pass on this machine's lavapipe.
+The failures by exact test name were:
 
-The other names were "imports FORMAT PROFILE decoder samples without a second
-transfer" for png and webp, each with untagged, srgb and p3, and
-"preserves mov alpha=true decoded samples through the server codec boundary".
+| Finding | Test name |
+|---|---|
+| F1 | matches CPU grain with size 1, softness 0.25 and alpha 255 |
+| F2 | matches CPU grain with size 3.5, softness 0 and alpha 255 |
+| F3 | matches CPU grain with size 8, softness 1 and alpha 255 |
+| F4 | matches CPU grain with size 16, softness 0.6 and alpha 255 |
+| F5 | matches CPU grain with size 16, softness 0 and alpha 255 |
+| F6 | matches CPU grain with size 16, softness 1 and alpha 128 |
+| F7 | matches CPU grain with size 3.5, softness 0.4 and alpha 128 |
+| F8 | imports png untagged decoder samples without a second transfer |
+| F9 | imports png srgb decoder samples without a second transfer |
+| F10 | imports png p3 decoder samples without a second transfer |
+| F11 | imports webp untagged decoder samples without a second transfer |
+| F12 | imports webp srgb decoder samples without a second transfer |
+| F13 | imports webp p3 decoder samples without a second transfer |
+| F14 | preserves mov alpha=true decoded samples through the server codec boundary |
+
+F1–F7 are B218's parameter cases. Their CPU/GPU quantization parity differs
+on the inherited NVIDIA route. They pass on this machine's lavapipe.
+
 At alpha 1, the old log shows [113,142,56,1] becoming [0,0,0,1] instead of the
 byte oracle's [0,255,0,1]. This is the previously recorded NVIDIA low-alpha
 disagreement in S1, not a demonstrated transfer conversion. They pass on
@@ -362,3 +375,79 @@ This machine's A81 adapter record is Mesa 26.2.5 on Arch.
 The CI commit e1067e4d28 does not contain render.colorBoundary.gpu.test.ts,
 so this log cannot establish CI results for the seven newer boundary cases.
 The downloaded evidence is ci-core.log. No CI pass is claimed for absent tests.
+
+## A24 continuation
+
+Mask application and its explicit premultiplied-to-straight bridge now retain
+FP16 colour. Luma-matte weighting uses a separate FP16 colour pool before the
+fixed-byte coverage output. Auto-bridges receive the working format.
+The fixed mask and LUT contracts remain unchanged. Effect precision is explicitly
+gated by the compositor option, including for callers supplying float sources
+while FP16 is off. Omission still selects RGBA8.
+
+No shader arithmetic changed. The Levels alpha floor, temporal alpha floor,
+effect clamps and parameter discretization remain under D10. Posterize still
+returns exactly [0,85,170,255] for a four-level opaque ramp. This removes storage
+quantization from the colour chain, not intentional effect quantization.
+
+### Identity and benefit
+
+The original complete 1536-pixel geometry fixture retains its one-code bound.
+A complete 256-pixel fixture includes neutral Levels, a shape mask and a luma
+matte, with alpha 0,1,2,3,8,16,128,255. It checks every channel against encoded
+source-over references over black, white and transparency. The opaque variant
+also retains the one-code RGBA8/FP16 bound. The low-alpha transparent comparison
+uses source colour as its reference because intermediate byte premultiplication
+cannot preserve that colour. No assertion or tolerance was widened.
+
+A81's three scenes now execute production working-format dispatches rather
+than test-local effect clones. A test-local identity upload pass promotes the
+byte input first. The pipeline-cache clone test remains separate.
+At 768×432, working RMS/max deltas in codes are:
+dark-fade 9.161025/16.126228, sky 0.315827/1.224127,
+grade-glow 0.722831/2.218201. Undithered final maximum deltas are 16,1,2.
+The inverse-Levels diagnostic gives 256 codes and zero maximum error in FP16,
+versus 192 codes and error 11 in RGBA8. Source promotion adds binary16 rounding
+before the first effect, so scene numbers differ slightly from A81's old
+test-local first-pass promotion.
+
+The dark fade/lift chain retains the demonstrated precision benefit. Small sky
+and grade/glow deltas alone do not establish a visible improvement. These are
+shared-chain measurements, not complete timeline recreations of those scenes.
+Artifacts and adapter evidence are in tmp/color-s2/a81-current, outside git.
+
+### Remaining qualification
+
+Browser, NVIDIA, native execution, arbitrary effect parameters and out-of-range
+float outputs are unqualified. Removing implicit UNORM saturation can expose
+out-of-range values to later passes. That requires A28 effect qualification.
+Fixed-byte mask precision and Levels' existing low-alpha floor are retained,
+not claimed as FP16 colour storage. No transfer, linear-light, schema, default,
+setting or user-visible change was made.
+
+Changed files for A24: this report,
+packages/timeline/src/render/effects.ts,
+packages/timeline/src/render/frameCompositor.ts,
+packages/timeline/tests/render.workingPrecision.gpu.test.ts and
+packages/gpu/tests/precisionBenefit.test.ts.
+
+Not run: test:affected, root typecheck, lint, harness gate, /verify or full
+suites. Only selected Vitest files and GPU/timeline package typechecks ran.
+No dependency install and no push.
+
+Final A24 verification passed 39 tests across workingPrecision, mask,
+motionBlur, effectsParity and adjustment, plus eight GPU tests across
+workingFormat and precisionBenefit. Both package typechecks exited 0.
+All 71 resolved RGBA8 shader strings remain byte-identical.
+Diff whitespace and changed-file control-byte checks passed.
+
+With Levels, shape mask and luma matte together, full-frame reference maximum
+error is one code for every background. Mean errors are 0.03125 over black,
+0.0625 over white and 0.1875 over transparency. Maximum differences from the
+byte path are 1,1,80 respectively. The 80-code transparent difference is
+precision recovery after byte alpha quantization, not a one-code parity pass.
+The opaque effect identity retains its original one-code requirement.
+
+Final logs: a24-final.log, a24-final-tsc.log, a24-gpu.log and a24-gpu-tsc.log.
+A23.3 commit: 7e44a12cfb. A23.4 commit: 2a39993564.
+A24 is the commit containing this section.

@@ -514,7 +514,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       this.label
     );
     this.core.ensureSize(this.width, this.height);
-    this.effects = new WebGPUEffectsProcessor(device);
+    this.effects = new WebGPUEffectsProcessor(device, this.workingFormat);
   }
 
   /**

@@ -158,7 +158,7 @@ export class WebGPUEffectsProcessor {
   private pools = new Map<string, IntermediatePool>();
   private lutTextures = new Map<string, CachedLut>();
 
-  constructor(device: GPUDevice) {
+  constructor(device: GPUDevice, private readonly workingFormat: "rgba8unorm" | "rgba16float" = "rgba8unorm") {
     this.device = device;
     this.ctx = createGPUContextFromDevice(device);
     this.executor = createExecutor();
@@ -249,7 +249,7 @@ export class WebGPUEffectsProcessor {
     if (!frameEncoder) {
       this.ctx.uniformRing.beginSubmission();
     }
-    const workingFormat = source.format === "rgba16float" ? "rgba16float" : "rgba8unorm";
+    const workingFormat = this.workingFormat === "rgba16float" && source.format === "rgba16float" ? "rgba16float" : "rgba8unorm";
     const pool = this.getPool(poolKey, width, height, workingFormat);
     const encoder =
       frameEncoder ??
@@ -685,7 +685,8 @@ export class WebGPUEffectsProcessor {
     if (!frameEncoder) {
       this.ctx.uniformRing.beginSubmission();
     }
-    const pool = this.getPool(poolKey, width, height);
+    const workingFormat = this.workingFormat === "rgba16float" && source.format === "rgba16float" ? "rgba16float" : "rgba8unorm";
+    const pool = this.getPool(poolKey, width, height, workingFormat);
     const encoder =
       frameEncoder ??
       this.device.createCommandEncoder({
@@ -693,6 +694,7 @@ export class WebGPUEffectsProcessor {
       });
     this.executor.encode({
       ctx: this.ctx,
+      workingFormat,
       module: maskApplyV1,
       encoder,
       inputs: {
@@ -716,6 +718,7 @@ export class WebGPUEffectsProcessor {
     const [wgX, wgY] = alphaPremulToStraightV1.workgroupSize;
     this.executor.encode({
       ctx: this.ctx,
+      workingFormat,
       module: alphaPremulToStraightV1,
       encoder,
       inputs: { source: pool.textures[0] },
@@ -761,6 +764,7 @@ export class WebGPUEffectsProcessor {
     if (!frameEncoder) {
       this.ctx.uniformRing.beginSubmission();
     }
+    const workingFormat = this.workingFormat === "rgba16float" && source.format === "rgba16float" ? "rgba16float" : "rgba8unorm";
     const pool = this.getPool(poolKey, width, height);
     const encoder =
       frameEncoder ??
@@ -771,7 +775,7 @@ export class WebGPUEffectsProcessor {
       mode === "luma"
         ? this.premultiplyForLuma(
             encoder,
-            pool,
+            workingFormat === "rgba16float" ? this.getPool(`${poolKey}:luma`, width, height, workingFormat) : pool,
             source,
             poolKey,
             width,
@@ -781,6 +785,7 @@ export class WebGPUEffectsProcessor {
         : this.label(source, `${poolKey}-src`, width, height, sourceAlpha);
     this.executor.encode({
       ctx: this.ctx,
+      workingFormat,
       module: maskFromImageV1,
       encoder,
       inputs: {
@@ -816,6 +821,7 @@ export class WebGPUEffectsProcessor {
     const [wgX, wgY] = alphaStraightToPremulV1.workgroupSize;
     this.executor.encode({
       ctx: this.ctx,
+      workingFormat: pool.textures[1].format === "rgba16float" ? "rgba16float" : "rgba8unorm",
       module: alphaStraightToPremulV1,
       encoder,
       inputs: {
@@ -941,7 +947,11 @@ export class WebGPUEffectsProcessor {
   }
 
   retainOnly(keys: Iterable<string>): void {
-    const keep = new Set(keys);
+    const keep = new Set<string>();
+    for (const key of keys) {
+      keep.add(key);
+      keep.add(`${key}:luma`);
+    }
     for (const key of [...this.pools.keys()]) {
       if (!keep.has(key)) this.releasePool(key);
     }
