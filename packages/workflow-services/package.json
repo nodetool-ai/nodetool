@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/workflow-services",
-  "version": "0.8.10",
+  "version": "0.8.11",
   "description": "Portable workflow bundles and package asset export",
   "type": "module",
   "engines": {

@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/document-services",
-  "version": "0.8.10",
+  "version": "0.8.11",
   "description": "Shared document services for NodeTool hosts",
   "type": "module",
   "engines": {

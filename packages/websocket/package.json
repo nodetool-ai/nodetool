@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/websocket",
-  "version": "0.8.10",
+  "version": "0.8.11",
   "type": "module",
   "engines": {
     "node": ">=22.0.0"
