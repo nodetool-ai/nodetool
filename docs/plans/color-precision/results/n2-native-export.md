@@ -1,6 +1,6 @@
 # N2 native capture and delivery
 
-A84.1 is implemented and qualified on Vulkan/lavapipe. A84.2 now connects export delivery, but same-picture edge acceptance fails. The earlier sections below retain the history. N2's exit gate is **not met**. FP16 remains off by
+A84.1 is implemented and qualified on Vulkan/lavapipe. The clean-tree fix below resolves the N1 leaf-filtering mismatch. PNG identity now passes, but decoded MP4 still exceeds the unchanged tolerance by one code. The earlier sections retain the history. N2's exit gate is **not met**. FP16 remains off by
 default. No schema, setting, QML property, transfer conversion, workflow or
 CTest ordering changed. Nothing was pushed.
 
@@ -322,3 +322,94 @@ same-picture gate. Resolve the opaque shape-edge discrepancy before enabling
 FP16. Full-frame explicit-size comparison against an independent float-resize
 oracle is also unverified. OpenGL, Metal, D3D11/WARP, longer streaming/resource
 runs and release throughput remain unqualified. Nothing was pushed.
+
+
+## Clean-tree edge investigation
+
+This round starts at `312086a4c4` in `film/color-n2`. It does not use the
+uncommitted `color-n0` shader or test edits. The clean lavapipe reproduction
+still reports maximum identity differences of 25 PNG codes and 26 decoded
+MP4 codes. Both low-opacity comparisons remain at one code. The earlier
+lavapipe numbers therefore did not change when reproduced without those edits.
+
+The new `identityShapeWorkingCapture` test compares typed compositor captures
+before delivery. Its maximum RGB difference is 24.9956 codes. Captured alpha
+is opaque and identical. Transparent preview working pixels have the same
+24.9956-code RGB difference and a 1.02198-code maximum alpha difference.
+This locates the failure in N1 leaf placement, before export conversion,
+resizing, dithering or encoding. Preview uses the same affected evaluation.
+
+`composite.frag` explicitly implements the web placement contract: unpremultiply
+each leaf texel, interpolate straight RGB and alpha, then premultiply the
+result. N1 selected that path only for RGBA8 working mode. FP16 instead used
+hardware filtering of premultiplied texels. The shape raster source itself is
+RGBA8 in both modes. This identity scene has no effect chain, so `straight()`
+in `clip.frag` and the effect alpha bridges cannot cause its discrepancy.
+
+The independent two-texel reference places opaque red next to transparent
+black and doubles its size. At the sampled output pixel, interpolation gives
+straight red 3/4 and alpha 3/4. The intended premultiplied red is therefore
+9/16 = 0.5625. RGBA8 gives 0.560784 with alpha 0.749020, within one byte code.
+Before the fix, FP16 gives red and alpha 0.748535. Adding identity Levels gives
+FP16 red and alpha 0.75. Both fail the reference. Premultiplied filtering is a
+different reasonable rendering convention, but it is not the declared leaf
+placement contract. RGBA8 is the intended picture for this compatibility gate.
+
+The fix selects the existing straight-byte filter for byte leaf sources in
+both working modes. FP16 leaf effect results use a separate straight-float
+mode, without byte rounding or clamping. Group composition is unchanged.
+The new float mode is restricted to FP16 working mode. Default RGBA8 behavior,
+`clip.frag`, delivery tolerances and the failing export test are unchanged.
+No alpha bridge, transfer conversion, setting, schema or QML property was
+added. FP16 remains off by default.
+
+
+### Edge-fix results and remaining delivery gate
+
+After the fix, typed working capture has maximum RGB error 0.442137 byte
+codes and identical opaque alpha. Transparent preview RGBA and alpha errors
+are at most 0.486940 codes. Both two-texel cases produce exactly red 0.5625
+and alpha 0.75 in FP16, including the identity-effect promotion path.
+
+`export_precision` still exits 8 through CTest. PNG identity now passes at
+one code. Decoded MP4 identity reaches five codes against the unchanged
+four-code limit. Both low-opacity comparisons remain at one code. The
+inverse-Levels improvement, output tags, dimensions, alpha and cancellation
+checks still pass. The renderer edge blocker is fixed, but the complete N2
+exit gate is **not met**.
+
+The retained artifacts separate this residual from rendering. For the opaque
+identity MP4, pre-encode Y, U and V each differ by at most one code between
+working modes. Decoding those unencoded planes with the same BT.709 limited
+interpretation gives maximum RGB difference four. Each encoded file differs
+from its own unencoded YUV by at most one code. At output pixel (20, 14),
+pre-encode RGB is (113, 145, 186) for RGBA8 and (115, 144, 188) for FP16.
+Decoded MP4 RGB is (111, 146, 188) and (116, 145, 189), respectively. The
+five-code red difference combines delivery rounding and codec loss. No
+exporter or codec adjustment was made to force this fixture under its limit.
+
+All six decoded FP16-off exports from the final binary match the read-only
+`color-n0/n2-a842-before/` baseline byte for byte. This covers PNG and MP4 at
+native size, fit downscale and fill upscale. The source and build are confined
+to `wt/color-n2` and `build/color-n2`. Nothing in `wt/color-n0` was edited.
+
+Artifacts are under `/home/mg/Projects/nodetool-film/build/color-n2`:
+`n2-clean-tests.log` records the negative regression tests, `n2-final-build.log`
+records the final successful build, and `n2-fixed-tests.log` records the
+requested native checks. `n2-fixed-artifacts/` retains the scenes, decoded
+pixels, unencoded YUV and codec measurements. `n2-final/` and
+`n2-final-byte-comparison.txt` retain the default-output evidence. The initial
+build log is `/home/mg/Projects/nodetool-film/tmp/n2-clean-build.log`.
+
+The final native verification ran with `citest color-n2` and isolated
+configuration. `tst_deliveryframe`, `tst_workingprecision` and
+`tst_sceneprecision` pass with no skips. The first `tst_clipeffects` invocation
+skipped its opt-in fixture exporter. Rerunning with
+`NT_D6_OUTPUT=build/color-n2/n2-clipeffects-documents` completes all 67 cases,
+with zero failures and zero skips, exit 0. Its log is
+`n2-clipeffects-noskip.log`. `export_precision` remains the sole failing
+requested check, for the residual decoded MP4 difference described above.
+No test was removed or relaxed. No TypeScript checks or full CTest suite ran.
+`git diff --check`, changed-file control-byte checks and local document links
+pass. The renderer and regression tests are committed as `43e41a545e`.
+Nothing was pushed.
