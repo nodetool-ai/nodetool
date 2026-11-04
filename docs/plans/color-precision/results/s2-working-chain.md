@@ -451,3 +451,22 @@ The opaque effect identity retains its original one-code requirement.
 Final logs: a24-final.log, a24-final-tsc.log, a24-gpu.log and a24-gpu-tsc.log.
 A23.3 commit: 7e44a12cfb. A23.4 commit: 2a39993564.
 A24 is the commit containing this section.
+
+## A88 delivery investigation
+
+A88 is incomplete. No delivery implementation from this investigation is shipped.
+The trial used native DeliveryFrame's centered 8x8 Bayer ranks after the final
+headless alpha resolve. It preserved the byte shader and raw working textures.
+On confirmed lavapipe (llvmpipe, Mesa 26.2.5, LLVM 23.1.3), the end-to-end opaque
+patch test measured a maximum tile bias of 0.125 code, failing the required
+less-than-0.1 limit. The trial also failed the existing exact source-upload,
+inverse-Levels histogram and Posterize assertions. No assertion was weakened.
+The production edit was restored after the experiment.
+
+The candidate patch, reproduction test and confirmed-adapter log are saved in
+`/home/mg/Projects/nodetool-film/tmp/color-s2/` as `a88-candidate.patch`,
+`render.delivery.gpu.test.ts` and `a88-confirmed-lvp.log`. These are diagnostic
+artifacts, not a delivered feature. The remaining work is to distinguish final
+quantization error from accumulated FP16 storage error, preserve the raw
+precision assertions, and qualify delivery after that distinction. NVIDIA
+delivery and browser delivery were not tested.
