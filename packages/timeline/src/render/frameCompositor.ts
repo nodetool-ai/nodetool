@@ -384,6 +384,11 @@ const sortStack = (items: StackItem[]): StackItem[] =>
 
 const TEXTURE_FORMAT: GPUTextureFormat = "rgba8unorm";
 
+/** Internal qualification switch. Omit or select rgba8unorm to roll back. */
+export interface WorkingPrecisionOptions {
+  readonly workingFormat?: "rgba8unorm" | "rgba16float";
+}
+
 /** A layer's pixels, once the host has them in a texture. */
 export interface GpuSourceTexture {
   texture: GPUTexture;
@@ -404,7 +409,7 @@ export type GpuSourceUploader<TSource> = (
 ) => GpuSourceTexture | null;
 
 /** What a host needs to tell the compositor about its own texture cache. */
-export interface GpuFrameCompositorOptions<TSource> {
+export interface GpuFrameCompositorOptions<TSource> extends WorkingPrecisionOptions {
   /** Distinguishes this instance's GPU labels from another's. */
   label?: string;
   upload: GpuSourceUploader<TSource>;
@@ -441,6 +446,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
   private readonly core: WebGPULayerCompositor;
   private readonly effects: WebGPUEffectsProcessor;
   private readonly label: string;
+  private readonly workingFormat: "rgba8unorm" | "rgba16float";
   private readonly upload: GpuSourceUploader<TSource>;
   private readonly retainSources: (live: ReadonlySet<string>) => void;
   private width: number;
@@ -480,6 +486,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     options: GpuFrameCompositorOptions<TSource>
   ) {
     this.device = device;
+    this.workingFormat = options.workingFormat ?? "rgba8unorm";
     this.width = Math.max(1, Math.floor(width));
     this.height = Math.max(1, Math.floor(height));
     this.label = options.label ?? "timeline";
@@ -487,7 +494,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     this.retainSources = options.retainSources ?? (() => {});
     this.core = new WebGPULayerCompositor(
       device,
-      TEXTURE_FORMAT,
+      this.workingFormat,
       "linear",
       this.label
     );
@@ -1014,7 +1021,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
         texture: this.device.createTexture({
           label: `${this.label}-crop-${layer.id}`,
           size: { width: rect.width, height: rect.height },
-          format: TEXTURE_FORMAT,
+          format: this.workingFormat,
           usage:
             GPUTextureUsage.TEXTURE_BINDING |
             GPUTextureUsage.COPY_DST |
@@ -1046,7 +1053,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     const texture = this.device.createTexture({
       label: `${this.label}-solid-${color}`,
       size: { width: 1, height: 1 },
-      format: TEXTURE_FORMAT,
+      format: this.workingFormat,
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
     });
     this.device.queue.writeTexture(
@@ -1392,7 +1399,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     if (!core) {
       core = new WebGPULayerCompositor(
         this.device,
-        TEXTURE_FORMAT,
+        this.workingFormat,
         "linear",
         `${this.label}-precomp`
       );
@@ -1408,7 +1415,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       target = this.device.createTexture({
         label: `${this.label}-precomp-target-${id}`,
         size: { width: this.width, height: this.height },
-        format: TEXTURE_FORMAT,
+        format: this.workingFormat,
         usage:
           GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
       });
@@ -1451,7 +1458,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
         fragment: {
           module,
           entryPoint: "fs_mix",
-          targets: [{ format: TEXTURE_FORMAT }]
+          targets: [{ format: this.workingFormat }]
         },
         primitive: { topology: "triangle-strip" }
       });
@@ -1474,7 +1481,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
         fragment: {
           module,
           entryPoint: "fs_unpremultiply",
-          targets: [{ format: TEXTURE_FORMAT }]
+          targets: [{ format: this.workingFormat }]
         },
         primitive: { topology: "triangle-strip" }
       });
@@ -1639,7 +1646,7 @@ export class HeadlessFrameCompositor {
   private resolveTarget: GPUTexture | null = null;
   private resolvePipeline: GPURenderPipeline | null = null;
 
-  constructor(device: GPUDevice, width: number, height: number) {
+  constructor(device: GPUDevice, width: number, height: number, options: WorkingPrecisionOptions = {}) {
     this.device = device;
     this.width = Math.max(1, Math.floor(width));
     this.height = Math.max(1, Math.floor(height));
@@ -1648,6 +1655,7 @@ export class HeadlessFrameCompositor {
       this.width,
       this.height,
       {
+        ...options,
         label: "timeline-headless",
         upload: (id, pixels) => this.uploadPixels(id, pixels),
         retainSources: (live) => {
