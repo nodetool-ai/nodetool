@@ -64,6 +64,8 @@ function bakedClip(): TimelineClip {
 
 let mockClips: TimelineClip[] = [];
 let mockTimeMs = 0;
+let mockIsPlaying = false;
+const mockSetLayers = jest.fn<void, [CompositeLayer[], CompositePrecomposite[]?, CompositeAdjustment[]?]>();
 /** Asset responses by id; any other id answers a plain `blob:` URL. */
 let mockAssets: Record<string, Record<string, unknown>> = {};
 
@@ -85,7 +87,7 @@ jest.mock("../../../../stores/timeline/TimelineStore", () => {
 jest.mock("../../../../stores/timeline/TimelinePlaybackStore", () => {
   const getState = () => ({
     currentTimeMs: mockTimeMs,
-    isPlaying: false,
+    isPlaying: mockIsPlaying,
     getTimeMs: () => mockTimeMs,
     subscribeTime: () => () => {}
   });
@@ -126,7 +128,7 @@ jest.mock("../gpu/createCompositor", () => ({
       resize: jest.fn(),
       setReferenceSize: jest.fn(),
       setAlpha: jest.fn(),
-      setLayers: jest.fn(),
+      setLayers: mockSetLayers,
       render: jest.fn(),
       flush: jest.fn().mockResolvedValue(undefined),
       dispose: jest.fn()
@@ -160,6 +162,7 @@ jest.mock("../textRender", () => ({ TextRasterizer: rasterizer() }));
 jest.mock("../shapeRender", () => ({ ShapeRasterizer: rasterizer() }));
 
 import { PreviewCompositor } from "../PreviewCompositor";
+import type { CompositeLayer, CompositePrecomposite, CompositeAdjustment } from "../gpu/types";
 
 /**
  * jsdom's media element reports no metadata and refuses `load`/`play`, so the
@@ -355,6 +358,79 @@ describe("PreviewCompositor — unresolved generated matte", () => {
       await Promise.resolve();
       await Promise.resolve();
     });
+    view.unmount();
+  });
+});
+
+
+describe("PreviewCompositor — fade playback", () => {
+  let frame: FrameRequestCallback | undefined;
+
+  beforeEach(() => {
+    stubMediaElement();
+    mockTimeMs = 250;
+    mockIsPlaying = true;
+    mockSetLayers.mockClear();
+    jest.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frame = callback;
+      return 1;
+    });
+    jest.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
+    jest.spyOn(HTMLImageElement.prototype, "src", "set").mockImplementation(function (this: HTMLImageElement) {
+      queueMicrotask(() => this.dispatchEvent(new Event("load")));
+    });
+    jest.spyOn(HTMLImageElement.prototype, "complete", "get").mockReturnValue(true);
+    jest.spyOn(HTMLImageElement.prototype, "naturalWidth", "get").mockReturnValue(100);
+    jest.spyOn(HTMLImageElement.prototype, "naturalHeight", "get").mockReturnValue(100);
+    Object.defineProperty(HTMLMediaElement.prototype, "readyState", { configurable: true, get: () => 2 });
+    jest.spyOn(HTMLMediaElement.prototype, "paused", "get").mockReturnValue(false);
+    jest.spyOn(HTMLVideoElement.prototype, "videoWidth", "get").mockReturnValue(100);
+    jest.spyOn(HTMLVideoElement.prototype, "videoHeight", "get").mockReturnValue(100);
+  });
+
+  afterEach(() => {
+    mockIsPlaying = false;
+    frame = undefined;
+    jest.restoreAllMocks();
+  });
+
+  async function drawAt(ms: number): Promise<void> {
+    mockTimeMs = ms;
+    await act(async () => {
+      expect(frame).toBeDefined();
+      frame?.(ms);
+    });
+  }
+
+  it.each(["image", "video"] as const)("updates adjustment opacity over %s playback without a React scene change", async (mediaType) => {
+    mockClips = [
+      makeClip({ id: "picture", trackId: track.id, mediaType, currentAssetId: "picture", status: "generated", durationMs: 4000 }),
+      makeClip({ id: "grade", trackId: track.id, mediaType: "adjustment", status: "generated", durationMs: 4000, fadeInMs: 1000, fadeOutMs: 1000, effects: [{ id: "grain", type: "grain", enabled: true, animate: false, amount: 0.25 }] })
+    ];
+    const view = render(<ThemeProvider theme={mockTheme}><PreviewCompositor /></ThemeProvider>);
+    await act(async () => { await Promise.resolve(); });
+    for (const [ms, opacity] of [[250, 0.25], [750, 0.75], [3250, 0.75], [3750, 0.25]]) {
+      mockSetLayers.mockClear();
+      await drawAt(ms);
+      expect(mockSetLayers).toHaveBeenCalled();
+      expect(mockSetLayers.mock.lastCall?.[2]?.[0].opacity).toBeCloseTo(opacity);
+    }
+    view.unmount();
+  });
+
+  it.each(["alpha", "luma"] as const)("updates the %s matte opacity on a still picture during playback", async (mode) => {
+    mockClips = [
+      makeClip({ id: "picture", trackId: track.id, mediaType: "image", currentAssetId: "picture", status: "generated", durationMs: 4000, matte: { sourceClipId: "matte", mode } }),
+      makeClip({ id: "matte", trackId: track.id, mediaType: "image", currentAssetId: "matte", status: "generated", durationMs: 4000, fadeInMs: 1000, fadeOutMs: 1000 })
+    ];
+    const view = render(<ThemeProvider theme={mockTheme}><PreviewCompositor /></ThemeProvider>);
+    await act(async () => { await Promise.resolve(); });
+    for (const [ms, opacity] of [[250, 0.25], [750, 0.75], [3250, 0.75], [3750, 0.25]]) {
+      mockSetLayers.mockClear();
+      await drawAt(ms);
+      expect(mockSetLayers).toHaveBeenCalled();
+      expect(mockSetLayers.mock.lastCall?.[0][0].matte?.layer.opacity).toBeCloseTo(opacity);
+    }
     view.unmount();
   });
 });
