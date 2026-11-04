@@ -28,6 +28,20 @@ class ShotWorkflowTest : public QObject {
         return *parsed.timeline;
     }
 private slots:
+    void checkpointUsesPortableFilename() {
+        QTemporaryDir folder;
+        QVERIFY(folder.isValid());
+        ShotWorkflow workflow;
+        workflow.m_target = nt::server::SaveTarget{QUrl("http://127.0.0.1:1"), {}, "sequence", folder.path(), {}};
+        workflow.m_requestId = "request:candidate:variation:batch:storyboard_shot:shot:1";
+        QVERIFY(workflow.checkpoint());
+        const auto name = QFileInfo(workflow.m_checkpoint).fileName();
+        QVERIFY(!name.contains(':'));
+        QCOMPARE(name.size(), qsizetype(81)); // prefix + SHA-256 + extension
+        QFile journal(workflow.m_checkpoint);
+        QVERIFY(journal.open(QIODevice::ReadOnly));
+        QCOMPARE(QJsonDocument::fromJson(journal.readAll()).object().value("requestId").toString(), workflow.m_requestId);
+    }
     void renderCandidateThenExplicitAcceptance() {
         QTemporaryDir folder; QVERIFY(folder.isValid());
         QWebSocketServer server("shot test", QWebSocketServer::NonSecureMode);
