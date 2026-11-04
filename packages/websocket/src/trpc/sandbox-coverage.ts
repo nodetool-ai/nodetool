@@ -1264,6 +1264,11 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "a worker authenticates with. Host control, not the caller's " +
       "data."
   },
+  "worker.comfyPresets": {
+    withheld:
+      "Lists the RunPod templates that worker.startComfyPreset rents. " +
+      "Provisioning is withheld, so a run has no use for the list."
+  },
   "worker.detach": {
     withheld:
       "Provisioning and terminating compute, and reading the API key " +
@@ -1308,6 +1313,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "data."
   },
   "worker.resume": {
+    withheld:
+      "Provisioning and terminating compute, and reading the API key " +
+      "a worker authenticates with. Host control, not the caller's " +
+      "data."
+  },
+  "worker.startComfyPreset": {
     withheld:
       "Provisioning and terminating compute, and reading the API key " +
       "a worker authenticates with. Host control, not the caller's " +
