@@ -92,9 +92,10 @@ export const useCopyPaste = (): UseCopyPasteResult => {
   const { handleContentPaste, readClipboardContent } =
     useClipboardContentPaste();
 
-  // The last paste's anchor, so pasting again without moving the pointer
-  // offsets the copy instead of stacking it exactly on the previous one.
-  const lastPasteRef = useRef<{ x: number; y: number } | null>(null);
+  const lastPasteRef = useRef<{
+    anchor: { x: number; y: number };
+    position: { x: number; y: number };
+  } | null>(null);
 
   /**
    * Flow position for a paste: `at`, else the pointer when it is over this
@@ -121,16 +122,20 @@ export const useCopyPaste = (): UseCopyPasteResult => {
       if (!screen) {
         return null;
       }
-      let position = reactFlow.screenToFlowPosition(screen);
+      const anchor = reactFlow.screenToFlowPosition(screen);
+      let position = anchor;
       const last = lastPasteRef.current;
       if (
         last &&
-        Math.abs(last.x - position.x) < PASTE_OFFSET &&
-        Math.abs(last.y - position.y) < PASTE_OFFSET
+        Math.abs(last.anchor.x - anchor.x) < PASTE_OFFSET &&
+        Math.abs(last.anchor.y - anchor.y) < PASTE_OFFSET
       ) {
-        position = { x: last.x + PASTE_OFFSET, y: last.y + PASTE_OFFSET };
+        position = {
+          x: last.position.x + PASTE_OFFSET,
+          y: last.position.y + PASTE_OFFSET
+        };
       }
-      lastPasteRef.current = position;
+      lastPasteRef.current = { anchor, position };
       return position;
     },
     [flowStore, reactFlow]
