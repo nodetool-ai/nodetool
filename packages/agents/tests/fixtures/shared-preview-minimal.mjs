@@ -12,11 +12,14 @@ registerHooks({
 const { toolForCapabilityName } = await import('../../src/capabilities/lazy-tool.ts');
 toolForCapabilityName('preview_timeline_frame');
 if (nativeLoads !== 0) throw new Error('Tool registration loaded Dawn');
-const { createSharedPreviewCompositor } = await import('../../src/timeline-preview/shared-compositor.ts');
+const { createRenderChild } = await import('../../src/timeline-preview/render-child-client.ts');
+const child = createRenderChild(undefined, new URL('./preview-child-missing-addon.mjs', import.meta.url));
 try {
-  await createSharedPreviewCompositor(160, 90, 160, 90);
+  await child.render({ width: 16, height: 16, referenceWidth: 16, referenceHeight: 16, layers: [], groups: [], adjustments: [] });
   throw new Error('Rendering unexpectedly succeeded without webgpu');
 } catch (error) {
-  if (nativeLoads !== 1 || !/webgpu/.test(error.message) || !/install/i.test(error.message)) throw error;
-  console.log(JSON.stringify({ ordinaryToolLoaded: true, nativeLoads, error: error.message }));
+  if (nativeLoads !== 0 || !/webgpu/.test(error.message) || !/install/i.test(error.message)) throw error;
+  console.log(JSON.stringify({ ordinaryToolLoaded: true, parentNativeLoads: nativeLoads, error: error.message }));
+} finally {
+  await child.dispose();
 }

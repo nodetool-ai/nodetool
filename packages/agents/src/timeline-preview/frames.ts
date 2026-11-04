@@ -121,6 +121,7 @@ type ResolvedPreviewSample = ReturnType<typeof computeActiveLayersWithHorizon> &
 };
 
 export interface RenderTimelineFramesOptions {
+  signal?: AbortSignal;
   sequence: TimelineSequence;
   /** Absolute timeline positions to composite, in milliseconds. */
   timesMs: readonly number[];
@@ -355,6 +356,7 @@ export async function renderTimelineFrames(
   options: RenderTimelineFramesOptions,
   sharedShaders = false
 ): Promise<RenderTimelineFramesResult> {
+  options.signal?.throwIfAborted();
   const { createCanvas } = await loadCanvas();
   const { ensureGoogleFonts } = await import("@nodetool-ai/timeline/fonts/google-node");
   const { sequence, loadAsset } = options;
@@ -384,7 +386,7 @@ export async function renderTimelineFrames(
 
   const shared = sharedShaders
     ? await (await import("./shared-compositor.js")).createSharedPreviewCompositor(
-        width, height, animationCanvas.width, animationCanvas.height)
+        width, height, animationCanvas.width, animationCanvas.height, options.signal)
     : undefined;
   try {
   const { unavailable: fontsUnavailable } = await ensureGoogleFonts(sequence);
@@ -1048,6 +1050,7 @@ export async function renderTimelineFrames(
   }
 
   for (const { timeMs, sampleTimes, samples, blur } of frameInstants) {
+    options.signal?.throwIfAborted();
     let composed: Awaited<ReturnType<typeof composeAt>>;
     const failures = new Map<string, PreviewSampleFailure>();
     const dropped = new Map<string, PreviewDroppedLayer>();
@@ -1097,6 +1100,7 @@ export async function renderTimelineFrames(
       recordSample(composed, 0, sampleTimes[0]);
       accumulateBlurSample(blurCtx, canvas, blur.weight, geometry);
       for (const [index, sampleMs] of sampleTimes.slice(1).entries()) {
+        options.signal?.throwIfAborted();
         const sample = await composeAt(samples[index + 1]);
         recordSample(sample, index + 1, sampleMs);
         accumulateBlurSample(blurCtx, canvas, blur.weight, geometry);
@@ -1124,6 +1128,6 @@ export async function renderTimelineFrames(
     fontsUnavailable
   };
   } finally {
-    shared?.dispose();
+    await shared?.dispose();
   }
 }
