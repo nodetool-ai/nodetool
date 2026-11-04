@@ -702,7 +702,7 @@ private slots:
         click(find("entityRemovedDismiss"));
         QTRY_VERIFY(!shown(banner));
         QVERIFY(library->removedName().isEmpty());
-        QVERIFY(!card(3));
+        QTRY_VERIFY(!card(3));
         QCOMPARE(fake->writes.size(), 3);
     }
 

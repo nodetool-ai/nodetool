@@ -80,6 +80,7 @@ public:
         });
         connect(&websocket, &QWebSocketServer::newConnection, this, [this] {
             peer = websocket.nextPendingConnection();
+            peer->setParent(&websocket);
             connect(peer, &QWebSocket::textMessageReceived, this, [this](const QString& text) {
                 const auto object = QJsonDocument::fromJson(text.toUtf8()).object();
                 frames.append(object);

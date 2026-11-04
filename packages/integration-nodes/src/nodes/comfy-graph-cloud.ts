@@ -97,6 +97,8 @@ export class ComfyCloudGraphNode extends BaseNode {
   static readonly description =
     "Runs a whole Comfy workflow on Comfy Cloud as one job through the Comfy API v2.\n    comfy, comfyui, cloud, workflow";
   static readonly hidden = true;
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = [];
   static readonly supportsDynamicOutputs = true;
   static readonly autoSaveAsset = true;
   static readonly requiredSettings = ["COMFY_API_KEY"];

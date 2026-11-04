@@ -288,7 +288,10 @@ private slots:
         view->update();
         QTRY_VERIFY(!frame.isEmpty());
         QVERIFY2(toolbar->property("rowWidth").toDouble() <= toolbar->property("available").toDouble(),
-            "The popup fixture must fit both toolbar groups before clicking");
+            qPrintable(QString("Popup fixture overflow: window=%1 region=%2 row=%3 available=%4 narrow=%5 compact=%6")
+                .arg(view->width()).arg(region->width()).arg(toolbar->property("rowWidth").toDouble())
+                .arg(toolbar->property("available").toDouble()).arg(toolbar->property("narrow").toBool())
+                .arg(item("toolToggle")->property("compact").toBool())));
         const auto clickPoint = select->mapToScene({select->width() - 8, select->height() / 2});
         for (auto* parent = select; parent; parent = parent->parentItem()) {
             if (parent->clip()) {
