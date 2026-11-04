@@ -3,11 +3,13 @@
 #include <QStringList>
 #ifdef Q_OS_WIN
 #include <cstdio>
-#include <iphlpapi.h>
 #include <memory>
+#include <string>
 #include <vector>
-#include <windows.h>
+// winsock2.h must precede windows.h, and iphlpapi.h needs both.
 #include <winsock2.h>
+#include <windows.h>
+#include <iphlpapi.h>
 
 struct CloseHandleDeleter {
     void operator()(void *handle) const {
