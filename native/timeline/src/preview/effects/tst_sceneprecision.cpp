@@ -158,6 +158,76 @@ float difference(const std::vector<float>& a, const std::vector<float>& b) {
 class TestScenePrecision : public QObject {
     Q_OBJECT
 private slots:
+    void identityShapeWorkingCapture() {
+        auto shape = leaf("edge", "shape");
+        shape.insert("width", 65); shape.insert("height", 49);
+        shape.insert("shapeStyle", QJsonObject{{"kind", "rect"}, {"fill", "#7392ba"}});
+        std::vector<float> control;
+        QImage controlCapture;
+        for (const auto format : {nt::WorkingFormat::Rgba8, nt::WorkingFormat::Rgba16F}) {
+            Scene scene;
+            QVERIFY(scene.initialize(document({shape}, 64, 48), format));
+            QVERIFY(scene.render());
+            const auto preview = scene.pixels;
+            const auto capture = scene.still.capture(10000);
+            QVERIFY(!capture.isNull());
+            QCOMPARE(capture.format(), format == nt::WorkingFormat::Rgba8
+                ? QImage::Format_RGBA8888_Premultiplied : QImage::Format_RGBA16FPx4_Premultiplied);
+            if (format == nt::WorkingFormat::Rgba8) {
+                control = preview;
+                controlCapture = capture;
+            } else {
+                const auto a = controlCapture.convertToFormat(QImage::Format_RGBA32FPx4_Premultiplied);
+                const auto b = capture.convertToFormat(QImage::Format_RGBA32FPx4_Premultiplied);
+                float rgbDelta = 0, alphaDelta = 0, previewAlphaDelta = 0;
+                for (int y = 0; y < a.height(); ++y) {
+                    const auto* av = reinterpret_cast<const float*>(a.constScanLine(y));
+                    const auto* bv = reinterpret_cast<const float*>(b.constScanLine(y));
+                    for (int x = 0; x < a.width() * 4; ++x) {
+                        auto& delta = x % 4 == 3 ? alphaDelta : rgbDelta;
+                        delta = std::max(delta, std::abs(av[x] - bv[x]));
+                    }
+                }
+                for (size_t i = 3; i < preview.size(); i += 4) {
+                    previewAlphaDelta = std::max(previewAlphaDelta, std::abs(preview[i] - control[i]));
+                }
+                qInfo() << "identity working capture RGB/alpha codes" << rgbDelta * 255 << alphaDelta * 255
+                        << "preview RGBA/alpha codes" << difference(control, preview) * 255 << previewAlphaDelta * 255;
+                QVERIFY(rgbDelta <= 1.f / 255);
+                QVERIFY(alphaDelta <= 1.f / 255);
+                QVERIFY(difference(control, preview) <= 1.f / 255);
+            }
+        }
+    }
+    void straightLeafEdgeReference_data() {
+        QTest::addColumn<bool>("withEffect");
+        QTest::newRow("byte-source") << false;
+        QTest::newRow("float-effect-result") << true;
+    }
+    void straightLeafEdgeReference() {
+        QFETCH(bool, withEffect);
+        QImage image(2, 2, QImage::Format_RGBA8888_Premultiplied);
+        image.fill(Qt::transparent);
+        image.setPixelColor(0, 0, Qt::red); image.setPixelColor(0, 1, Qt::red);
+        const auto token = nt::registerLayerSource("video", [image](const nt::ActiveLayer&) {
+            return std::make_unique<nt::test::PaintSource>(image);
+        });
+        const auto guard = qScopeGuard([&] { nt::unregisterLayerSource(token); });
+        auto clip = leaf("edge", "video");
+        clip.insert("width", 2); clip.insert("height", 2);
+        if (withEffect) { clip.insert("effects", QJsonArray{effect("levels")}); }
+        for (const auto format : {nt::WorkingFormat::Rgba8, nt::WorkingFormat::Rgba16F}) {
+            Scene scene;
+            QVERIFY(scene.initialize(document({clip}, 4, 4), format));
+            QVERIFY(scene.render());
+            // At x=1 the straight red and alpha are both 3/4. Placement
+            // premultiplies after interpolation, so red is 9/16, not 3/4.
+            const int i = (1 * 4 + 1) * 4;
+            qInfo() << "edge reference mode/red/alpha" << int(format) << scene.pixels[i] << scene.pixels[i + 3];
+            QVERIFY(std::abs(scene.pixels[i + 3] - 0.75f) <= 1.f / 255);
+            QVERIFY(std::abs(scene.pixels[i] - 0.5625f) <= 1.f / 255);
+        }
+    }
     void typedWorkingCapture() {
         const auto source = nt::registerLayerSource("video", [](const nt::ActiveLayer&) {
             return std::make_unique<FloatSource>(1.f, true);
