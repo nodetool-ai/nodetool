@@ -2130,6 +2130,19 @@ npm run crap -- --lcov packages/kernel/coverage/lcov.info --json packages/kernel
   `node_modules/` are skipped. Rules are pinned by
   `scripts/__tests__/crap-score.test.mjs`.
 
+### Native workflow compiler
+
+`npm run test:native-workflow` configures and builds `native/workflow` with
+CMake, then runs its CTest fixtures against the real compiler and generated
+executables. It requires CMake, LLVM 18 or newer development files, `clang++`, and
+Python 3. Set `LLVM_DIR` to the directory containing `LLVMConfig.cmake` when
+CMake cannot locate the installed LLVM package. Missing prerequisites, failed
+builds, failed fixtures, and an empty CTest inventory fail the command.
+
+Changes under `native/workflow/` select this check in both `test:affected`
+and the harness gate. The gate runs it by default without credentials or
+`--expensive`.
+
 ### nodetool harness (Registry, Coverage Audit, and the Gate)
 
 The machine-readable inventory behind harness-first engineering

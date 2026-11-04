@@ -1,0 +1,184 @@
+{
+  "settings": {
+    "execution": {
+      "kind": "native",
+      "version": 1
+    }
+  },
+  "nodes": [
+    {
+      "id": "image",
+      "type": "nodetool.native.Input",
+      "properties": {
+        "name": "image",
+        "dtype": "f32",
+        "shape": [
+          1,
+          3,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "id": "matrix",
+      "type": "nodetool.native.Constant",
+      "properties": {
+        "dtype": "f32",
+        "shape": [
+          3,
+          3,
+          1,
+          1
+        ],
+        "value": [
+          0.625,
+          0.25,
+          0.125,
+          0.125,
+          0.75,
+          0.125,
+          0.125,
+          0.25,
+          0.625
+        ]
+      }
+    },
+    {
+      "id": "saturation",
+      "type": "nodetool.native.Conv2D",
+      "properties": {}
+    },
+    {
+      "id": "scale",
+      "type": "nodetool.native.Constant",
+      "properties": {
+        "dtype": "f32",
+        "shape": [],
+        "value": 2.5
+      }
+    },
+    {
+      "id": "exposure_contrast",
+      "type": "nodetool.native.Multiply",
+      "properties": {}
+    },
+    {
+      "id": "offset",
+      "type": "nodetool.native.Constant",
+      "properties": {
+        "dtype": "f32",
+        "shape": [],
+        "value": -0.125
+      }
+    },
+    {
+      "id": "offset_add",
+      "type": "nodetool.native.Add",
+      "properties": {}
+    },
+    {
+      "id": "zero",
+      "type": "nodetool.native.Constant",
+      "properties": {
+        "dtype": "f32",
+        "shape": [],
+        "value": 0
+      }
+    },
+    {
+      "id": "one",
+      "type": "nodetool.native.Constant",
+      "properties": {
+        "dtype": "f32",
+        "shape": [],
+        "value": 1
+      }
+    },
+    {
+      "id": "lower",
+      "type": "nodetool.native.Maximum",
+      "properties": {}
+    },
+    {
+      "id": "upper",
+      "type": "nodetool.native.Minimum",
+      "properties": {}
+    },
+    {
+      "id": "out",
+      "type": "nodetool.native.Output",
+      "properties": {
+        "name": "image_out"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "image",
+      "sourceHandle": "output",
+      "target": "saturation",
+      "targetHandle": "input"
+    },
+    {
+      "source": "matrix",
+      "sourceHandle": "output",
+      "target": "saturation",
+      "targetHandle": "weight"
+    },
+    {
+      "source": "saturation",
+      "sourceHandle": "output",
+      "target": "exposure_contrast",
+      "targetHandle": "a"
+    },
+    {
+      "source": "scale",
+      "sourceHandle": "output",
+      "target": "exposure_contrast",
+      "targetHandle": "b"
+    },
+    {
+      "source": "exposure_contrast",
+      "sourceHandle": "output",
+      "target": "offset_add",
+      "targetHandle": "a"
+    },
+    {
+      "source": "offset",
+      "sourceHandle": "output",
+      "target": "offset_add",
+      "targetHandle": "b"
+    },
+    {
+      "source": "offset_add",
+      "sourceHandle": "output",
+      "target": "lower",
+      "targetHandle": "a"
+    },
+    {
+      "source": "zero",
+      "sourceHandle": "output",
+      "target": "lower",
+      "targetHandle": "b"
+    },
+    {
+      "source": "lower",
+      "sourceHandle": "output",
+      "target": "upper",
+      "targetHandle": "a"
+    },
+    {
+      "source": "one",
+      "sourceHandle": "output",
+      "target": "upper",
+      "targetHandle": "b"
+    },
+    {
+      "source": "upper",
+      "sourceHandle": "output",
+      "target": "out",
+      "targetHandle": "input"
+    }
+  ]
+}

@@ -38,6 +38,22 @@ import {
 
 describe("harness registry", () => {
   it.each([
+    "native/workflow/compiler.cpp",
+    "native/workflow/runtime.cpp",
+    "native/workflow/CMakeLists.txt",
+    "native/workflow/tests/test_workflow.py"
+  ])("runs the native compiler selfcheck for %s", (path) => {
+    const plan = planGate([path]);
+    expect(plan.checks).toEqual([
+      expect.objectContaining({
+        harnessId: "native-workflow-compiler",
+        command: "npm run test:native-workflow",
+        suiteOnly: false
+      })
+    ]);
+  });
+
+  it.each([
     "packages/cli/src/commands/harness.ts",
     "packages/cli/src/harness/changed-files.ts",
     "packages/cli/tests/harness-gate-cli.test.ts",

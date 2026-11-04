@@ -1,0 +1,127 @@
+{
+  "settings": {
+    "execution": {
+      "kind": "native",
+      "version": 1
+    }
+  },
+  "nodes": [
+    {
+      "id": "latent",
+      "type": "nodetool.native.Input",
+      "properties": {
+        "name": "latent",
+        "dtype": "f32",
+        "shape": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "id": "uncond",
+      "type": "nodetool.native.Input",
+      "properties": {
+        "name": "uncond",
+        "dtype": "f32",
+        "shape": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "id": "cond",
+      "type": "nodetool.native.Input",
+      "properties": {
+        "name": "cond",
+        "dtype": "f32",
+        "shape": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "id": "guidance",
+      "type": "nodetool.native.CFG",
+      "properties": {
+        "scale": 7.5
+      }
+    },
+    {
+      "id": "step",
+      "type": "nodetool.native.DenoiseStep",
+      "properties": {
+        "step": 0.1
+      }
+    },
+    {
+      "id": "out",
+      "type": "nodetool.native.Output",
+      "properties": {
+        "name": "latent_out"
+      }
+    },
+    {
+      "id": "noise",
+      "type": "nodetool.native.SeededNoise",
+      "properties": {
+        "shape": [
+          1,
+          2,
+          3
+        ],
+        "seed": 42
+      }
+    },
+    {
+      "id": "noise_out",
+      "type": "nodetool.native.Output",
+      "properties": {
+        "name": "noise"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "uncond",
+      "sourceHandle": "output",
+      "target": "guidance",
+      "targetHandle": "uncond"
+    },
+    {
+      "source": "cond",
+      "sourceHandle": "output",
+      "target": "guidance",
+      "targetHandle": "cond"
+    },
+    {
+      "source": "latent",
+      "sourceHandle": "output",
+      "target": "step",
+      "targetHandle": "latent"
+    },
+    {
+      "source": "guidance",
+      "sourceHandle": "output",
+      "target": "step",
+      "targetHandle": "noise"
+    },
+    {
+      "source": "step",
+      "sourceHandle": "output",
+      "target": "out",
+      "targetHandle": "input"
+    },
+    {
+      "source": "noise",
+      "sourceHandle": "output",
+      "target": "noise_out",
+      "targetHandle": "input"
+    }
+  ]
+}

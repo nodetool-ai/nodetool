@@ -82,6 +82,10 @@ function websocketTest(name) {
  */
 export const PATH_CHECKS = [
   {
+    path: /^native\/workflow\//,
+    steps: [{ label: "native workflow compiler", command: "npm", args: ["run", "test:native-workflow"] }]
+  },
+  {
     path: /^scripts\/(?:test-affected\.mjs|smoke-backend-bundle\.mjs|__tests__\/(?:test-affected|smoke-backend-bundle|desktop-release-recovery)\.test\.mjs)$/,
     steps: [{ label: "script regressions", command: "npm", args: ["run", "test:scripts"] }]
   },

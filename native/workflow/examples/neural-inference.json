@@ -1,0 +1,169 @@
+{
+  "settings": {
+    "execution": {
+      "kind": "native",
+      "version": 1
+    }
+  },
+  "nodes": [
+    {
+      "id": "x",
+      "type": "nodetool.native.Input",
+      "properties": {
+        "name": "x",
+        "dtype": "f32",
+        "shape": [
+          1,
+          1,
+          4,
+          4
+        ]
+      }
+    },
+    {
+      "id": "conv_weight",
+      "type": "nodetool.native.Weight",
+      "properties": {
+        "name": "conv_weight",
+        "dtype": "f32",
+        "shape": [
+          1,
+          1,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "id": "conv",
+      "type": "nodetool.native.Conv2D",
+      "properties": {}
+    },
+    {
+      "id": "bias",
+      "type": "nodetool.native.Weight",
+      "properties": {
+        "name": "bias",
+        "dtype": "f32",
+        "shape": []
+      }
+    },
+    {
+      "id": "add",
+      "type": "nodetool.native.Add",
+      "properties": {}
+    },
+    {
+      "id": "relu",
+      "type": "nodetool.native.Relu",
+      "properties": {}
+    },
+    {
+      "id": "pool",
+      "type": "nodetool.native.MaxPool2D",
+      "properties": {
+        "kernel_shape": [
+          2,
+          2
+        ],
+        "stride": 1
+      }
+    },
+    {
+      "id": "flatten",
+      "type": "nodetool.native.Reshape",
+      "properties": {
+        "shape": [
+          1,
+          4
+        ]
+      }
+    },
+    {
+      "id": "linear_weight",
+      "type": "nodetool.native.Weight",
+      "properties": {
+        "name": "linear_weight",
+        "dtype": "f32",
+        "shape": [
+          4,
+          2
+        ]
+      }
+    },
+    {
+      "id": "linear",
+      "type": "nodetool.native.MatMul",
+      "properties": {}
+    },
+    {
+      "id": "out",
+      "type": "nodetool.native.Output",
+      "properties": {
+        "name": "prediction"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "x",
+      "sourceHandle": "output",
+      "target": "conv",
+      "targetHandle": "input"
+    },
+    {
+      "source": "conv_weight",
+      "sourceHandle": "output",
+      "target": "conv",
+      "targetHandle": "weight"
+    },
+    {
+      "source": "conv",
+      "sourceHandle": "output",
+      "target": "add",
+      "targetHandle": "a"
+    },
+    {
+      "source": "bias",
+      "sourceHandle": "output",
+      "target": "add",
+      "targetHandle": "b"
+    },
+    {
+      "source": "add",
+      "sourceHandle": "output",
+      "target": "relu",
+      "targetHandle": "input"
+    },
+    {
+      "source": "relu",
+      "sourceHandle": "output",
+      "target": "pool",
+      "targetHandle": "input"
+    },
+    {
+      "source": "pool",
+      "sourceHandle": "output",
+      "target": "flatten",
+      "targetHandle": "input"
+    },
+    {
+      "source": "flatten",
+      "sourceHandle": "output",
+      "target": "linear",
+      "targetHandle": "a"
+    },
+    {
+      "source": "linear_weight",
+      "sourceHandle": "output",
+      "target": "linear",
+      "targetHandle": "b"
+    },
+    {
+      "source": "linear",
+      "sourceHandle": "output",
+      "target": "out",
+      "targetHandle": "input"
+    }
+  ]
+}

@@ -321,6 +321,18 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "native-workflow-compiler",
+    title: "Native workflow compiler (LLVM lowering and executable fixtures)",
+    command: "npm run test:native-workflow",
+    kind: "execution",
+    capabilities: ["no-db"],
+    docs: "docs/harnesses.md § Native workflow compiler",
+    selfcheck: {
+      command: "npm run test:native-workflow",
+      cost: "cheap"
+    }
+  },
+  {
     id: "dsl-native-flow",
     title:
       "Native flow (call a node as a function, host backend + guest surface)",
@@ -1339,6 +1351,12 @@ export const SURFACES: SurfaceEntry[] = [
     title: "Workflow authoring (planners + ui_* graph tools)",
     harnesses: ["validate", "eval"],
     paths: ["packages/agents/", "packages/dsl/"]
+  },
+  {
+    id: "native-workflow-compiler",
+    title: "Native workflow compilation and runtime",
+    harnesses: ["native-workflow-compiler"],
+    paths: ["native/workflow/"]
   },
   {
     id: "dsl-native-flow",

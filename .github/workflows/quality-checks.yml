@@ -391,7 +391,7 @@ jobs:
               "check": "harness-gate",
               "command": "if [ -n \"$CI_BASE_SHA\" ]; then npm run dev:nodetool -- harness gate --base \"$CI_BASE_SHA\" --json --jobs 1 --timeout 1500 $NODETOOL_HARNESS_INCLUDE_SUITES; else npm run dev:nodetool -- harness gate --all --json --jobs 1 --timeout 1500 $NODETOOL_HARNESS_INCLUDE_SUITES; fi",
               "mobile-deps": "false",
-              "extra-apt": "mesa-vulkan-drivers ffmpeg",
+              "extra-apt": "mesa-vulkan-drivers ffmpeg cmake llvm-dev clang python3",
               "is-test": "false",
               "fetch-depth": "0",
               "when": "always",

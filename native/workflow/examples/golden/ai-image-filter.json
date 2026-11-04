@@ -1,0 +1,162 @@
+{
+  "settings": {
+    "execution": {
+      "kind": "native",
+      "version": 1
+    }
+  },
+  "nodes": [
+    {
+      "id": "image",
+      "type": "nodetool.native.Input",
+      "properties": {
+        "name": "image",
+        "dtype": "f32",
+        "shape": [
+          1,
+          1,
+          3,
+          5
+        ]
+      }
+    },
+    {
+      "id": "features_weight",
+      "type": "nodetool.native.Constant",
+      "properties": {
+        "dtype": "f32",
+        "shape": [
+          2,
+          1,
+          3,
+          3
+        ],
+        "value": [
+          0,
+          0.125,
+          0,
+          0.125,
+          0.5,
+          0.125,
+          0,
+          0.125,
+          0,
+          0,
+          -0.25,
+          0,
+          -0.25,
+          2,
+          -0.25,
+          0,
+          -0.25,
+          0
+        ]
+      }
+    },
+    {
+      "id": "features",
+      "type": "nodetool.native.Conv2D",
+      "properties": {
+        "padding": 1
+      }
+    },
+    {
+      "id": "relu",
+      "type": "nodetool.native.Relu",
+      "properties": {}
+    },
+    {
+      "id": "mix_weight",
+      "type": "nodetool.native.Constant",
+      "properties": {
+        "dtype": "f32",
+        "shape": [
+          1,
+          2,
+          1,
+          1
+        ],
+        "value": [
+          0.75,
+          0.25
+        ]
+      }
+    },
+    {
+      "id": "mix",
+      "type": "nodetool.native.Conv2D",
+      "properties": {}
+    },
+    {
+      "id": "one",
+      "type": "nodetool.native.Constant",
+      "properties": {
+        "dtype": "f32",
+        "shape": [],
+        "value": 1
+      }
+    },
+    {
+      "id": "clamp",
+      "type": "nodetool.native.Minimum",
+      "properties": {}
+    },
+    {
+      "id": "out",
+      "type": "nodetool.native.Output",
+      "properties": {
+        "name": "image_out"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "image",
+      "sourceHandle": "output",
+      "target": "features",
+      "targetHandle": "input"
+    },
+    {
+      "source": "features_weight",
+      "sourceHandle": "output",
+      "target": "features",
+      "targetHandle": "weight"
+    },
+    {
+      "source": "features",
+      "sourceHandle": "output",
+      "target": "relu",
+      "targetHandle": "input"
+    },
+    {
+      "source": "relu",
+      "sourceHandle": "output",
+      "target": "mix",
+      "targetHandle": "input"
+    },
+    {
+      "source": "mix_weight",
+      "sourceHandle": "output",
+      "target": "mix",
+      "targetHandle": "weight"
+    },
+    {
+      "source": "mix",
+      "sourceHandle": "output",
+      "target": "clamp",
+      "targetHandle": "a"
+    },
+    {
+      "source": "one",
+      "sourceHandle": "output",
+      "target": "clamp",
+      "targetHandle": "b"
+    },
+    {
+      "source": "clamp",
+      "sourceHandle": "output",
+      "target": "out",
+      "targetHandle": "input"
+    }
+  ]
+}

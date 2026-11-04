@@ -1,0 +1,62 @@
+{
+  "settings": {
+    "execution": {
+      "kind": "native",
+      "version": 1
+    }
+  },
+  "nodes": [
+    {
+      "id": "image",
+      "type": "nodetool.native.Input",
+      "properties": {
+        "name": "image",
+        "dtype": "f32",
+        "shape": [
+          3,
+          7,
+          1
+        ]
+      }
+    },
+    {
+      "id": "blur",
+      "type": "nodetool.native.Stencil2D",
+      "properties": {
+        "kernel": [
+          0.2,
+          0.2,
+          0.2,
+          0.2,
+          0.2
+        ],
+        "kernel_shape": [
+          1,
+          5
+        ],
+        "border": "clamp"
+      }
+    },
+    {
+      "id": "out",
+      "type": "nodetool.native.Output",
+      "properties": {
+        "name": "image_out"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "image",
+      "sourceHandle": "output",
+      "target": "blur",
+      "targetHandle": "input"
+    },
+    {
+      "source": "blur",
+      "sourceHandle": "output",
+      "target": "out",
+      "targetHandle": "input"
+    }
+  ]
+}

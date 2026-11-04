@@ -161,6 +161,7 @@
     "test": "npm run test:web && npm run test:electron && npm run test:mobile",
     "test:all": "node scripts/run-turbo.mjs run test",
     "test:affected": "node scripts/test-affected.mjs",
+    "test:native-workflow": "cmake -S native/workflow -B native/workflow/build -DCMAKE_BUILD_TYPE=Release && cmake --build native/workflow/build --parallel 2 && ctest --test-dir native/workflow/build --output-on-failure --no-tests=error",
     "test:web": "npm test --workspace=web",
     "test:electron": "npm test --workspace=electron",
     "test:mobile": "npm --prefix mobile test",

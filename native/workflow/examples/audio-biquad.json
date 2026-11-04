@@ -1,0 +1,124 @@
+{
+  "settings": {
+    "execution": {
+      "kind": "native",
+      "version": 1
+    }
+  },
+  "nodes": [
+    {
+      "id": "audio",
+      "type": "nodetool.native.Input",
+      "properties": {
+        "name": "audio",
+        "dtype": "f32",
+        "shape": [
+          2,
+          7
+        ]
+      }
+    },
+    {
+      "id": "state",
+      "type": "nodetool.native.Input",
+      "properties": {
+        "name": "state",
+        "dtype": "f32",
+        "shape": [
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "id": "gain",
+      "type": "nodetool.native.Constant",
+      "properties": {
+        "dtype": "f32",
+        "shape": [],
+        "value": 0.5
+      }
+    },
+    {
+      "id": "multiply",
+      "type": "nodetool.native.Multiply",
+      "properties": {}
+    },
+    {
+      "id": "filter",
+      "type": "nodetool.native.Biquad",
+      "properties": {
+        "coefficients": [
+          0.5,
+          0.25,
+          0.125,
+          -0.2,
+          0.1
+        ]
+      }
+    },
+    {
+      "id": "limit",
+      "type": "nodetool.native.Tanh",
+      "properties": {}
+    },
+    {
+      "id": "audio_out",
+      "type": "nodetool.native.Output",
+      "properties": {
+        "name": "audio_out"
+      }
+    },
+    {
+      "id": "state_out",
+      "type": "nodetool.native.Output",
+      "properties": {
+        "name": "state_out"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "audio",
+      "sourceHandle": "output",
+      "target": "multiply",
+      "targetHandle": "a"
+    },
+    {
+      "source": "gain",
+      "sourceHandle": "output",
+      "target": "multiply",
+      "targetHandle": "b"
+    },
+    {
+      "source": "multiply",
+      "sourceHandle": "output",
+      "target": "filter",
+      "targetHandle": "audio"
+    },
+    {
+      "source": "state",
+      "sourceHandle": "output",
+      "target": "filter",
+      "targetHandle": "state"
+    },
+    {
+      "source": "filter",
+      "sourceHandle": "output",
+      "target": "limit",
+      "targetHandle": "input"
+    },
+    {
+      "source": "limit",
+      "sourceHandle": "output",
+      "target": "audio_out",
+      "targetHandle": "input"
+    },
+    {
+      "source": "filter",
+      "sourceHandle": "state_out",
+      "target": "state_out",
+      "targetHandle": "input"
+    }
+  ]
+}

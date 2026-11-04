@@ -31,6 +31,24 @@ const labels = (files) => plan(files).steps.map((s) => s.label);
 
 describe("buildPlan", () => {
   it.each([
+    "native/workflow/CMakeLists.txt",
+    "native/workflow/compiler.cpp",
+    "native/workflow/tests/test_workflow.py",
+    "native/workflow/examples/branch.json"
+  ])("selects the native compiler check for %s", (file) => {
+    expect(plan([file]).globalFiles).toEqual([]);
+    expect(plan([file]).steps).toEqual([
+      { label: "native workflow compiler", command: "npm", args: ["run", "test:native-workflow"] }
+    ]);
+  });
+
+  it("does not claim other native projects as workflow compiler coverage", () => {
+    expect(labels(["native/other/compiler.cpp"])).toEqual([
+      "packages", "web", "electron", "mobile"
+    ]);
+  });
+
+  it.each([
     "scripts/test-affected.mjs",
     "scripts/__tests__/test-affected.test.mjs",
     "scripts/__tests__/desktop-release-recovery.test.mjs",
