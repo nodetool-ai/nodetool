@@ -284,7 +284,9 @@ private slots:
                 }
                 qInfo() << "format" << int(format) << "alpha" << alpha << "max error" << maxError;
                 if (format == WorkingFormat::Rgba16F) {
-                    QVERIFY2(maxError < std::max(0.000002f, alpha * 0.001f), "inverse Levels must preserve low alpha and RGB");
+                    // Four half-float steps at this alpha (2^-11 below 1). Backends round differently:
+                    // lavapipe measured two steps at alpha 1 and Metal three. RGBA8 misses this by ten times.
+                    QVERIFY2(maxError < std::max(0.000002f, alpha * 4.f / 2048.f), "inverse Levels must preserve low alpha and RGB");
                 } else if (alpha == 1.f) {
                     QVERIFY2(maxError > 0.005f, "byte control must expose intermediate quantization");
                 }
