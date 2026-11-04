@@ -17,6 +17,7 @@ import {
   moveAutomationPoint,
   removeAutomationPoints,
   setAutomationPointEasing,
+  splitClip,
   trackAcceptsAutomationTarget,
   INSTRUMENT_DEVICE_ID
 } from "../src/index.js";
@@ -183,6 +184,46 @@ describe("applyTrackAutomation", () => {
   it("reaches the layers every renderer composes", () => {
     const [layer] = computeActiveLayers(tracks, clips, 1500).filter((l) => l.clipId === "a");
     expect(resolveAnimatedLayerProps(layer, 1500, CANVAS).opacity).toBeCloseTo(0.75);
+  });
+
+  it.each(["easeIn", "easeOut", "easeInOut", "hold", "cubic-bezier(0.2, 0.8, 0.4, 1)"])(
+    "preserves %s in document time across offsets and splits",
+    (easing) => {
+      const pts = points([0, 0], [2000, 1, easing], [4000, 0.2, easing]);
+      const automatedTracks = [makeTrack({ id: "v", type: "video", automation: [
+        lane({ kind: "clip", property: "opacity" }, pts),
+        lane({ kind: "clip", property: "offsetX" }, pts.map((p) => ({ ...p, value: p.value * 100 })))
+      ] })];
+      const original = videoClip({ startMs: 0, durationMs: 5000 });
+      const moved = videoClip({ startMs: 1000, durationMs: 2500, inPointMs: 700, speedMultiplier: 2 });
+      const split = splitClip(moved, 1750);
+      for (const time of [1000, 1500, 1749, 1750, 1999, 2000, 2250, 3000, 3499]) {
+        for (const window of [[original], [moved], split]) {
+          const [layer] = computeActiveLayers(automatedTracks, window, time);
+          const rendered = resolveAnimatedLayerProps(layer, time, CANVAS);
+          expect(rendered.opacity).toBeCloseTo(automationValueAt(pts, time), 9);
+          expect(rendered.transform?.position.x).toBeCloseTo(100 * automationValueAt(pts, time), 8);
+        }
+      }
+    }
+  );
+
+  it("selects short clip windows without scanning a large lane for every clip", () => {
+    let reads = 0;
+    const pts: AutomationPoint[] = Array.from({ length: 16384 }, (_, i) => ({
+      get timeMs() { reads++; return i * 100; },
+      value: i % 2,
+      easing: "easeIn"
+    }));
+    const track = makeTrack({ id: "v", type: "video", automation: [lane({ kind: "clip", property: "opacity" }, pts)] });
+    const windows = Array.from({ length: 512 }, (_, i) => videoClip({ startMs: i * 3000 + 25, durationMs: 50 }));
+    const automated = applyTrackAutomation([track], windows);
+    // Two binary searches plus the retained neighbours, independent of lane length.
+    expect(reads).toBeLessThan(512 * 40);
+    for (const clip of automated) {
+      const value = resolveAnimatedLayerProps({ clip, opacity: 1 }, clip.startMs + 25, CANVAS).opacity;
+      expect(value).toBeCloseTo(0.125, 9);
+    }
   });
 
   it("adds onto a clip's own keyframes instead of replacing them", () => {

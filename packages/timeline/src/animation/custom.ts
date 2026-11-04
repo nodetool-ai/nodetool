@@ -445,7 +445,8 @@ function parseCurve(
   raw: unknown,
   index: number,
   timeBase: CustomTimeBase,
-  unknownEasings: Set<string>
+  unknownEasings: Set<string>,
+  preserveSegmentTimes: boolean
 ): ParsedCurveResult {
   if (!isRecord(raw)) {
     return { ok: false, error: `curves[${index}] is not an object` };
@@ -524,7 +525,7 @@ function parseCurve(
     ok: true,
     curve: {
       property: property as AnimatedProperty,
-      keyframes: normalizeClipKeyframes(parsed)
+      keyframes: preserveSegmentTimes ? parsed.sort((a, b) => a.t - b.t) : normalizeClipKeyframes(parsed)
     }
   };
 }
@@ -538,10 +539,13 @@ function parseCurve(
  * were the only kind. A source-anchored list is validated against `sourceMs`
  * instead of `t`, and a base this build does not know is refused rather than
  * sampled on the wrong clock.
+ * `preserveSegmentTimes` keeps generated track automation endpoints outside
+ * the clip window, so clipping does not restart an eased segment.
  */
 export function normalizeCustomCurves(
   raw: unknown,
-  timeBase?: unknown
+  timeBase?: unknown,
+  preserveSegmentTimes = false
 ): CustomCurvesResult {
   const base = parseCustomTimeBase(timeBase);
   if (base === null) {
@@ -569,7 +573,7 @@ export function normalizeCustomCurves(
   const seen = new Set<string>();
   const unknownEasings = new Set<string>();
   for (let i = 0; i < raw.length; i++) {
-    const parsed = parseCurve(raw[i], i, base, unknownEasings);
+    const parsed = parseCurve(raw[i], i, base, unknownEasings, preserveSegmentTimes);
     if (!parsed.ok) return parsed;
     const curve = parsed.curve;
     if (seen.has(curve.property)) {
