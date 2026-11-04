@@ -168,6 +168,91 @@ describe("expandClipHarmony", () => {
     );
   });
 
+  it("continues the 1/16 arp throughout a ten-second C major chord", () => {
+    const notes = expandClipHarmony(
+      { id: "arp", startMs: 0, durationMs: 10000, harmony: { style: "arp", input: "chords" } },
+      doc([chord("C", 0, 19200, 0, "maj")])
+    );
+    expect(notes).toHaveLength(80);
+    expect(pitches(notes).slice(60)).toEqual(Array.from({ length: 20 }, (_, i) => [48, 52, 55][(i + 60) % 3]));
+  });
+
+  it("finds the phase of a distant short fragment without scanning historical steps", () => {
+    let reads = 0;
+    const c = chord("C", 0, 7000000, 0, "maj");
+    Object.defineProperty(c, "startTick", { get: () => { reads++; return 0; } });
+    const notes = expandClipHarmony(clip({ style: "arp", input: "chords", rate: 0.125 }, {
+      startMs: 3600000, inPointMs: 3600000, durationMs: 125
+    }), doc([c]));
+    expect(pitches(notes)).toEqual([48, 52]);
+    expect(reads).toBeLessThan(100);
+  });
+
+  it("keeps arp phase across long and trimmed chords and resets at changes", () => {
+    const chords = [chord("c", 0, 80 * S16, 0, "maj"), chord("g", 80 * S16, 16 * S16, 7, "maj")];
+    for (const order of ["up", "down", "updown"] as const) {
+      const harmony: ClipHarmony = { style: "arp", input: "chords", order };
+      const pool = arpPool(order, 1, [48, 52, 55]);
+      const full = harmonizeClips([clip(harmony, { durationMs: 12000 })], doc(chords))[0].notes!;
+      expect(pitches(full).slice(0, 80)).toEqual(Array.from({ length: 80 }, (_, i) => pool[i % pool.length]));
+      expect(full[80].pitch).toBe(arpPool(order, 1, [55, 59, 62])[0]);
+      const trimmed = harmonizeClips([clip(harmony, { startMs: 9000, inPointMs: 9000, durationMs: 3000 })], doc(chords))[0].notes!;
+      expect(pitches(trimmed)).toEqual(pitches(full).slice(72));
+    }
+  });
+
+  it("bounds distant held-note work by note boundaries", () => {
+    let reads = 0;
+    const notes = [60, 64, 67].map((pitch) => ({
+      id: String(pitch), pitch, velocity: 100, durationTick: 7000000,
+      get startTick() { reads++; return 0; }
+    }));
+    const out = expandClipHarmony(clip({ style: "arp", input: "notes", rate: 0.125 }, {
+      notes, startMs: 3600000, inPointMs: 3600000, durationMs: 125
+    }), doc([]));
+    expect(pitches(out)).toEqual([60, 64]);
+    expect(reads).toBeLessThan(100);
+  });
+
+  it("preserves sampled held-note runs across replacements, overlaps and gaps", () => {
+    const notes = [
+      { id: "a", pitch: 67, startTick: 0, durationTick: 85 * S16, velocity: 100 },
+      { id: "b", pitch: 60, startTick: S16, durationTick: 70 * S16, velocity: 100 },
+      { id: "c", pitch: 60, startTick: 71 * S16, durationTick: 14 * S16, velocity: 100 },
+      { id: "d", pitch: 67, startTick: 74 * S16, durationTick: 8 * S16, velocity: 100 },
+      { id: "e", pitch: 64, startTick: 87 * S16, durationTick: 20 * S16, velocity: 100 }
+    ];
+    for (const order of ["up", "down", "updown", "played", "random"] as const) {
+      const harmony: ClipHarmony = { style: "arp", input: "notes", order };
+      const full = expandClipHarmony(clip(harmony, { notes, durationMs: 13000 }), doc([]));
+      for (const step of [69, 72, 75, 83, 86, 89]) {
+        const trimmed = expandClipHarmony(clip(harmony, {
+          notes, startMs: step * 125, inPointMs: step * 125, durationMs: 250
+        }), doc([]));
+        expect(trimmed).toEqual(full.filter((n) => n.startTick >= step * S16 && n.startTick < (step + 2) * S16));
+      }
+      if (order === "played") {
+        expect(full.find((n) => n.startTick === 72 * S16)?.pitch).toBe(60);
+      }
+    }
+  });
+
+  it("retains phase when an overlapping chord ends and after a gap", () => {
+    const chords = [
+      chord("overlay", 0, 71 * S16, 7, "maj"),
+      chord("under", S16, 84 * S16, 0, "maj"),
+      chord("later", 87 * S16, 20 * S16, 2, "min")
+    ];
+    const harmony: ClipHarmony = { style: "arp", input: "chords" };
+    const full = expandClipHarmony(clip(harmony, { durationMs: 13000 }), doc(chords));
+    for (const step of [70, 72, 86, 88]) {
+      const trimmed = expandClipHarmony(clip(harmony, {
+        startMs: step * 125, inPointMs: step * 125, durationMs: 250
+      }), doc(chords));
+      expect(trimmed).toEqual(full.filter((n) => n.startTick >= step * S16 && n.startTick < (step + 2) * S16));
+    }
+  });
+
   it("applies hits, gate, rate, octaves and order", () => {
     const hits = Array.from({ length: 16 }, (_, i) => i % 2 === 0);
     const notes = expandClipHarmony(
