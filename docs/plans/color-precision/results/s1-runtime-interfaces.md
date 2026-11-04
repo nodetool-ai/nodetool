@@ -211,3 +211,186 @@ node scripts/run-tsc.mjs -p packages/timeline/tsconfig.json --noEmit
 ```
 
 `git diff --check` and a control-byte scan of all five changed files passed.
+
+## A97 completion round
+
+A97's module-slot classification and coordinated colour metadata corrections
+are complete for the shared pool, image nodes and timeline effects.
+[Inventory](a97-transfer-inventory.md#slot-classification) records every slot,
+recipe allocation, caller interpretation and label reader. Internal metadata
+adds encoded-sdr and data tags. No persisted schema, working format, alpha
+conversion, shader math or default precision changed. FP16 remains opt-in.
+S2 has not started. No push was performed.
+
+S1's full exit gate is **not yet met**. A97's missing classification is closed,
+but A98 is still limited to the PNG/H.264 codec primitives and shared compositor
+listed above. Complete supported-route import/export qualification is not
+established by these tests. This round does not promote that partial evidence
+to a complete browser/native/profile-tagged boundary qualification.
+
+### Checks
+
+Node 24 from `bin/ntenv`, lavapipe with
+`VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json`, `LP_NUM_THREADS=2`,
+`NODETOOL_TEST_WORKERS=1`, sequential files. No tests were skipped.
+
+- A1: GPU selection passed 19 files and 140 cases. Added recipe metadata test
+  passed separately. Final inventory/recipe rerun passed 3 files and 4 cases.
+  The deliberately wrong exposure source label failed the inventory test with
+  exit 1. Restoring encoded-sdr passed. New/unclassified files fail the file-set
+  equality, while unclassified exports/slots fail the full slot-set equality.
+- A2: Image-node GPU smoke passed 36 cases. Timeline selection passed 221 cases
+  and reproduced the eight failures below. A98 PNG/H.264 and default/explicit
+  RGBA8 plus opt-in FP16 checks passed, including the unchanged `[80,40,20,255]`
+  default result. Existing pixel assertions and tolerances were not edited.
+- A3: GPU, timeline and image-nodes package-only typechecks passed. GPU build
+  passed so consumers tested the updated package. `git diff --check` and a
+  control-byte scan passed. Source comparison verified that all 73 changed
+  shader modules differ only in colour-label literals.
+
+The scoped GPU command selected:
+
+```bash
+npm test --workspace=packages/gpu -- tests/transferInventory.test.ts \
+ tests/sourceModules.test.ts tests/shaderCorrectness.test.ts tests/scratchPool.test.ts \
+ tests/recipeSmoke.test.ts tests/alphaConvert.test.ts tests/computeSmoke.test.ts \
+ tests/canarySmoke.test.ts tests/maskSlot.test.ts tests/glow.test.ts \
+ tests/transform.test.ts tests/precision.test.ts tests/grain.test.ts \
+ tests/vignette.test.ts tests/latentRegressions.test.ts tests/effectsBehavior.test.ts \
+ tests/sharpenRadius.test.ts tests/module.test.ts tests/executorValidation.test.ts \
+ --no-file-parallelism
+npm test --workspace=packages/gpu -- tests/recipeTransfer.test.ts \
+ tests/recipeSmoke.test.ts tests/transferInventory.test.ts --no-file-parallelism
+npm test --workspace=packages/image-nodes -- tests/lib-image-gpu-smoke.test.ts --no-file-parallelism
+npm test --workspace=packages/timeline -- tests/render.colorBoundary.gpu.test.ts \
+ tests/render.workingPrecision.gpu.test.ts tests/render.grain.gpu.test.ts \
+ tests/render.parity.gpu.test.ts --no-file-parallelism
+node scripts/run-tsc.mjs -p packages/gpu/tsconfig.json --noEmit
+node scripts/run-tsc.mjs -p packages/timeline/tsconfig.json --noEmit
+node scripts/run-tsc.mjs -p packages/image-nodes/tsconfig.json --noEmit
+```
+
+### Existing failures
+
+All seven parameter cases of `render.grain.gpu.test.ts` test
+`matches CPU grain with size $size, softness $softness and alpha $alpha` fail.
+The tuple columns disambiguate repeated test names.
+
+| Size | Roughness | Softness | Colour | Seed | Alpha | Failure |
+|---|---|---|---|---|---|---|
+| 1 | 0.5 | 0.25 | 0 | 7 | 255 | Mean 0.02325439453125 exceeds 0.02 |
+| 3.5 | 0 | 0 | 0 | 2203 | 255 | Mean 0.0242919921875 exceeds 0.02 |
+| 8 | 1 | 1 | 1 | -3 | 255 | Mean 0.02203369140625 exceeds 0.02 |
+| 16 | 0.4 | 0.6 | 0.3 | 1234567 | 255 | Mean 0.02349853515625 exceeds 0.02 |
+| 16 | 0 | 0 | 0 | 7 | 255 | Mean 0.023681640625 exceeds 0.02 |
+| 16 | 1 | 1 | 1 | 91 | 128 | Maximum 3 exceeds 1 |
+| 3.5 | 0.7 | 0.4 | 1 | 91 | 128 | Maximum 3 exceeds 1 |
+
+These compare live CPU and GPU rendering, not stored golden images. They are
+real numerical parity disagreements on lavapipe. The earlier original-code
+rerun reproduced them. This run does not establish whether other devices also
+fail, so they cannot be dismissed as machine-only failures. They remain
+unchanged as instructed.
+
+The eighth is `render.parity.gpu.test.ts` / `enumerates every persisted effect
+and blend mode`. The fixture omits deband, deflicker, denoise, exposure,
+secondaryColor and stabilize. This is a device-independent coverage gap in the
+test fixture. It is not caused by these metadata changes and remains unfixed.
+
+Per the task constraints, `test:affected`, root typecheck, lint, harness gate,
+`/verify` and full suites were not run. No dependencies were installed and no
+root setup/build ran on the prepared worktree.
+
+### Files changed in this round
+
+- `docs/plans/color-precision/results/a97-transfer-inventory.md`
+- `docs/plans/color-precision/results/s1-runtime-interfaces.md`
+- `packages/gpu/src/context.ts`
+- `packages/gpu/src/recipe.ts`
+- `packages/gpu/src/shaders/_canary/passthrough/v1/module.ts`
+- `packages/gpu/src/shaders/alpha/premulToStraight/v1/module.ts`
+- `packages/gpu/src/shaders/alpha/straightToPremul/v1/module.ts`
+- `packages/gpu/src/shaders/color/brightnessContrast/v1/module.ts`
+- `packages/gpu/src/shaders/color/cdl/v1/module.ts`
+- `packages/gpu/src/shaders/color/channelMerge/v1/module.ts`
+- `packages/gpu/src/shaders/color/channelShuffle/v1/module.ts`
+- `packages/gpu/src/shaders/color/channelSplit/v1/module.ts`
+- `packages/gpu/src/shaders/color/colorBalance/v1/module.ts`
+- `packages/gpu/src/shaders/color/cubeLut/v1/module.ts`
+- `packages/gpu/src/shaders/color/curveTransfer/v1/module.ts`
+- `packages/gpu/src/shaders/color/curves/v1/module.ts`
+- `packages/gpu/src/shaders/color/exposure/v1/module.ts`
+- `packages/gpu/src/shaders/color/exposureTone/v1/module.ts`
+- `packages/gpu/src/shaders/color/filmLook/v1/module.ts`
+- `packages/gpu/src/shaders/color/grade/v1/module.ts`
+- `packages/gpu/src/shaders/color/grayscale/v1/module.ts`
+- `packages/gpu/src/shaders/color/hsb/v1/module.ts`
+- `packages/gpu/src/shaders/color/hslAdjust/v1/module.ts`
+- `packages/gpu/src/shaders/color/invert/v1/module.ts`
+- `packages/gpu/src/shaders/color/levels/v1/module.ts`
+- `packages/gpu/src/shaders/color/liftGammaGain/v1/module.ts`
+- `packages/gpu/src/shaders/color/posterize/v1/module.ts`
+- `packages/gpu/src/shaders/color/secondary/v1/module.ts`
+- `packages/gpu/src/shaders/color/solarize/v1/module.ts`
+- `packages/gpu/src/shaders/color/splitToning/v1/module.ts`
+- `packages/gpu/src/shaders/filters/blur/gaussian/v1/module.ts`
+- `packages/gpu/src/shaders/filters/blur/separable/v1/module.ts`
+- `packages/gpu/src/shaders/filters/convolve3x3/v1/module.ts`
+- `packages/gpu/src/shaders/filters/deband/v1/module.ts`
+- `packages/gpu/src/shaders/filters/denoise/v1/module.ts`
+- `packages/gpu/src/shaders/filters/glow/v1/module.ts`
+- `packages/gpu/src/shaders/filters/grain/v1/module.ts`
+- `packages/gpu/src/shaders/filters/grain/v2/module.ts`
+- `packages/gpu/src/shaders/filters/pixelate/v1/module.ts`
+- `packages/gpu/src/shaders/filters/sharpen/combine/v1/module.ts`
+- `packages/gpu/src/shaders/filters/sharpen/gaussian/v1/module.ts`
+- `packages/gpu/src/shaders/filters/sharpen/unsharpMask/v1/module.ts`
+- `packages/gpu/src/shaders/filters/threshold/v1/module.ts`
+- `packages/gpu/src/shaders/filters/vignette/v1/module.ts`
+- `packages/gpu/src/shaders/filters/vignette/v2/module.ts`
+- `packages/gpu/src/shaders/filters/visualFx/v1/module.ts`
+- `packages/gpu/src/shaders/keyer/chromaKey/v1/module.ts`
+- `packages/gpu/src/shaders/keyer/lumaKey/v1/module.ts`
+- `packages/gpu/src/shaders/mask/apply/v1/module.ts`
+- `packages/gpu/src/shaders/mask/fromImage/v1/module.ts`
+- `packages/gpu/src/shaders/mask/invert/v1/module.ts`
+- `packages/gpu/src/shaders/mixer/add/v1/module.ts`
+- `packages/gpu/src/shaders/mixer/colorOverlay/v1/module.ts`
+- `packages/gpu/src/shaders/mixer/dropShadow/v1/module.ts`
+- `packages/gpu/src/shaders/mixer/outline/v1/module.ts`
+- `packages/gpu/src/shaders/mixer/over/v1/module.ts`
+- `packages/gpu/src/shaders/mixer/shadowCompose/v1/module.ts`
+- `packages/gpu/src/shaders/sources/angularGradient/v1/module.ts`
+- `packages/gpu/src/shaders/sources/checkerboard/v1/module.ts`
+- `packages/gpu/src/shaders/sources/diamondGradient/v1/module.ts`
+- `packages/gpu/src/shaders/sources/gaussianNoise/v1/module.ts`
+- `packages/gpu/src/shaders/sources/linearGradient/v1/module.ts`
+- `packages/gpu/src/shaders/sources/radialGradient/v1/module.ts`
+- `packages/gpu/src/shaders/sources/solid/v1/module.ts`
+- `packages/gpu/src/shaders/transform/affine/v1/module.ts`
+- `packages/gpu/src/shaders/transform/cornerPin/v1/module.ts`
+- `packages/gpu/src/shaders/transform/crop/v1/module.ts`
+- `packages/gpu/src/shaders/transform/displace/v1/module.ts`
+- `packages/gpu/src/shaders/transform/mirror/v1/module.ts`
+- `packages/gpu/src/shaders/transform/offset/v1/module.ts`
+- `packages/gpu/src/shaders/transform/pad/v1/module.ts`
+- `packages/gpu/src/shaders/transform/polarRemap/v1/module.ts`
+- `packages/gpu/src/shaders/transform/resize/v1/module.ts`
+- `packages/gpu/src/shaders/transform/rotate90/v1/module.ts`
+- `packages/gpu/src/shaders/transform/spherize/v1/module.ts`
+- `packages/gpu/src/shaders/transform/stabilize/v1/module.ts`
+- `packages/gpu/src/shaders/transform/tile/v1/module.ts`
+- `packages/gpu/src/texture.ts`
+- `packages/gpu/src/types.ts`
+- `packages/gpu/tests/recipeTransfer.test.ts`
+- `packages/gpu/tests/shaderCorrectness.test.ts`
+- `packages/gpu/tests/sourceModules.test.ts`
+- `packages/gpu/tests/transferInventory.test.ts`
+- `packages/image-nodes/src/nodes/lib-shader-utils.ts`
+- `packages/timeline/src/render/effects.ts`
+
+### Commits
+
+- `64b2156800`: pool declarations, producer metadata, complete inventory and checks.
+- `123c913a7f`: image-node upload/output and timeline effect/LUT metadata.
+- The following documentation commit records scoped verification and gate status.
