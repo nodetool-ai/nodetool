@@ -32,6 +32,7 @@ env:
   NT_NO_HW_DECODE: "1"
   CCACHE_BASEDIR: ${{ github.workspace }}
   CCACHE_COMPILERCHECK: content
+  CCACHE_MAXSIZE: 2G
 
 jobs:
   build:
@@ -178,6 +179,10 @@ jobs:
           key: native-ccache-${{ runner.os }}-qt${{ env.QT_VERSION }}-${{ github.sha }}
           restore-keys: |
             native-ccache-${{ runner.os }}-qt${{ env.QT_VERSION }}-
+
+      - name: Bound restored compiler cache
+        if: runner.os != 'Windows'
+        run: ccache --cleanup
 
       - name: Verify prerequisites and prepare media
         run: |
@@ -453,7 +458,9 @@ jobs:
           scripts/make-fixtures.sh
       - name: Configure
         run: |
+          # ELF compression keeps line tables without duplicating large debug sections.
           cmake --preset "${{ matrix.preset }}" -DCMAKE_PREFIX_PATH="$QT_PREFIX" \
+            -DCMAKE_EXE_LINKER_FLAGS="-Wl,--compress-debug-sections=zlib" \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
       - name: Build
         run: bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" nice -n 10 cmake --build --preset "${{ matrix.preset }}" -j 3
