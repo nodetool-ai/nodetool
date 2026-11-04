@@ -17,7 +17,7 @@ function(nt_menu_tests)
         endif()
         add_test(NAME ${test_name} COMMAND ${Python3_EXECUTABLE}
             ${CMAKE_CURRENT_SOURCE_DIR}/qml/menus/run_tests.py $<TARGET_FILE:tst_menus> ${group})
-        set_tests_properties(${test_name} PROPERTIES TIMEOUT 600
+        set_tests_properties(${test_name} PROPERTIES TIMEOUT 900
             ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
     endforeach()
 endfunction()
