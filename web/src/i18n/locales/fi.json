@@ -3223,7 +3223,11 @@
         "resolution": "Resoluutio",
         "stillDescription": "Valitse malli tämän otoksen pysäytyskuvalle. Otos säilyttää valintasi seuraavaa renderöintiä varten.",
         "stillModel": "Pysäytyskuvamalli",
-        "stillRequired": "Tämä otos animoi pysäytyskuvansa. Renderöi ensin pysäytyskuva tai aseta otos renderöitymään suoraan kehotteestaan."
+        "stillRequired": "Tämä otos animoi pysäytyskuvansa. Renderöi ensin pysäytyskuva tai aseta otos renderöitymään suoraan kehotteestaan.",
+        "comfyWorkflow": {
+          "note": "Ajaa kiinnitetyn ComfyUI-työnkulun Comfy Cloudissa vain ComfyUI:n ydinsolmuilla. Viiden sekunnin otto kestää noin yhdestä kahteen minuuttia. Kameraesiasetukset ohjaavat kehotetta, ne eivät ole geometristä kameran ohjausta.",
+          "open": "Avaa ComfyUI-työnkulku"
+        }
       },
       "takesGallery": {
         "clips": "Leikkeet",
@@ -6293,6 +6297,7 @@
         "renderedExampleShots_other": "{{count}} otosta, jo renderöity",
         "blankEntries": {
           "workflow": "Työnkulku",
+          "comfy-workflow": "Comfy-työnkulku",
           "chat": "Keskustelu",
           "text": "Teksti",
           "image": "Luonnos",
@@ -7922,14 +7927,18 @@
         "remove": "Poista kohtausleike",
         "cancel": "Peruuta",
         "render": "Renderöi kohtausleike{{cost}}",
-        "description": "Renderöi nämä otokset yhtenä jatkuvana leikkeenä. Leike sijoitetaan ensimmäiseen otokseen, ja jokainen muu otos toistaa siitä oman ikkunansa, joten leikkauksen järjestys säilyy.",
+        "description": "Renderöi nämä otokset yhdeksi yhtenäiseksi klipiksi. Klippi sijoittuu ensimmäiseen otokseen, ja muut otokset toistavat siitä oman aikaikkunansa. Jokaisen otoksen toiminta, kamera, valaistus ja ääni lähetetään automaattisesti, joten uusi renderöinti saa saman ohjauksen.",
         "from": "Alkaen",
         "length": "Pituus",
         "shotStillAlt": "Otoksen stillkuva",
         "imageReference": "[Image {{number}}] ",
-        "promptLabel": "Kehotteesi",
-        "promptPlaceholder": "Yksi jatkuva liike ovelta ikkunalle.",
-        "promptHelp": "Valinnainen. Otosten toiminnot, liike ja ääni lisätään sen perään. Viittaa stillkuviin muodossa [Image N].",
+        "references": "Viitekuvat",
+        "referencesHelp": "Stillkuvat määräävät rajauksen ja asennon. Entiteettikuvat määräävät, kuka ja missä.",
+        "stills": "Stillkuvat",
+        "entities": "Entiteetit",
+        "addEntity": "Lisää kirjastosta",
+        "noStill": "Ei stillkuvaa",
+        "noEntityImage": "Ei kuvaa",
         "renderSettings": "Renderöintiasetukset",
         "videoModel": "Videomalli",
         "duration": "Kesto",
@@ -7942,12 +7951,16 @@
           "addShot": "Lisää ensin otos tauluun.",
           "renderStill": "Renderöi stillkuva vähintään yhdelle otokselle.",
           "addEntityImage": "Anna ensin jollekin taulun entiteetille viitekuva.",
+          "noReference": "Valitse vähintään yksi viitekuva.",
           "noVideoModel": "Videomallia ei ole valittu.",
           "imageLimit": "{{imageCount}} kuvaa ylittää rajan {{limit}}. Poista {{remove}}.",
           "durationUnavailable": "{{model}} ei tarjoa {{duration}} pituista leikettä. Valitse jokin seuraavista: {{choices}}.",
           "durationLimit": "Oton kesto on {{duration}}. Yksi otto renderöi enintään {{limit}}.",
           "shotRange": "Kohtausleike kattaa {{min}}–{{max}} otosta."
-        }
+        },
+        "playTitle": "Renderöity klippi",
+        "playLabel": "Kohtauksen klippi",
+        "downloadClip": "Lataa klippi"
       }
     }
   },
@@ -19597,6 +19610,9 @@
     "simple": "Yksinkertainen",
     "expert": "Asiantuntija",
     "canvasSize": "{{width}} × {{height}}",
-    "frameRate": "{{fps}} fps"
+    "frameRate": "{{fps}} fps",
+    "showAssistant": "Näytä avustaja",
+    "hideAssistant": "Piilota avustaja",
+    "resizeAssistant": "Muuta aikajanan avustajan kokoa"
   }
 }

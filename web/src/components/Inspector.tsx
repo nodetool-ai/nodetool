@@ -29,7 +29,8 @@ import {
   ScrollArea,
   Tooltip,
   Box,
-  EmptyState
+  EmptyState,
+  ICON_SIZE
 } from "./ui_primitives";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import FalPricingFooter from "./node/FalPricingFooter";
@@ -102,7 +103,7 @@ const styles = (theme: Theme) =>
       "& .icon-container svg, & svg": {
         width: 16,
         height: 16,
-        fontSize: 16
+        fontSize: ICON_SIZE.sm
       }
     },
     ".inspector-head-text": {

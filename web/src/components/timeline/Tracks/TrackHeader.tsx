@@ -74,7 +74,8 @@ import {
   getSpacingPx,
   CONTROL,
   TYPOGRAPHY,
-  Z_INDEX
+  Z_INDEX,
+  ICON_SIZE
 } from "../../ui_primitives";
 import { useLongPress } from "../../../hooks/timeline/useLongPress";
 import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
@@ -156,7 +157,7 @@ const dragHandleStyles = (theme: Theme) =>
       cursor: "grabbing"
     },
     "& svg": {
-      fontSize: 16
+      fontSize: ICON_SIZE.sm
     }
   });
 
@@ -332,7 +333,7 @@ const iconButtonStyles = (theme: Theme, tone: IconButtonTone) => {
       outlineOffset: 2
     },
     "& svg": {
-      fontSize: 14
+      fontSize: ICON_SIZE.xs
     }
   });
 };

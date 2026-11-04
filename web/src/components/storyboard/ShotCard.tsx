@@ -50,7 +50,10 @@ import ShotDesignFrame from "./ShotDesignFrame";
 import ShotActions, { shotPreviewClip } from "./ShotActions";
 import ShotMediaViewer from "./ShotMediaViewer";
 import ShotStatusPill, { CLIP_COLOR, isShotGenerating } from "./ShotStatusPill";
-import { useStoryboardGenerationStore } from "../../stores/storyboard/StoryboardGenerationStore";
+import {
+  coveringOneTakeJob,
+  useStoryboardGenerationStore
+} from "../../stores/storyboard/StoryboardGenerationStore";
 import { useStoryboardViewStore } from "../../stores/storyboard/StoryboardViewStore";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
 import { useResolvedMedia } from "../../hooks/useResolvedMediaUri";
@@ -178,8 +181,13 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
     return job?.status === "failed" ? job : undefined;
   });
   const renderError = failedJob?.errorMessage;
+  // A scene clip renders as one job on its first shot. Every other shot in
+  // its run shows the same generating state until the clip lands.
+  const coveringJob = useStoryboardGenerationStore((state) =>
+    coveringOneTakeJob(state.shotJobs, shot.id)
+  );
   const progress = useStoryboardGenerationStore(
-    (state) => state.shotJobs[shot.id]?.progress
+    (state) => state.shotJobs[shot.id]?.progress ?? coveringJob?.progress
   );
   const {
     generateKeyframe,
@@ -188,7 +196,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   } = useGenerateShot();
 
   const failed = shot.status === "failed" || !!failedJob?.mediaEdit;
-  const isGenerating = isShotGenerating(shot);
+  const isGenerating = isShotGenerating(shot) || coveringJob !== undefined;
   const stillRendering = shot.status === "keyframe_generating";
   // "Stills" in the board toolbar shows the still even when there is a clip.
   const stillsOnly = useStoryboardViewStore((state) => state.stillsOnly);

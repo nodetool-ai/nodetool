@@ -1105,6 +1105,18 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "comfy-templates",
+    title: "Official ComfyUI template graph and example drift",
+    command: "node scripts/comfy-templates/generate.mjs --check",
+    kind: "static",
+    capabilities: ["no-db", "gated:pr"],
+    docs: "docs/comfyui.md § Bundled workflow templates",
+    selfcheck: {
+      command: "node scripts/comfy-templates/generate.mjs --check && node scripts/comfy-templates/gpu-catalog.mjs --check",
+      cost: "cheap"
+    }
+  },
+  {
     id: "provider-codegen",
     title: "Generated provider metadata drift (FAL and KIE fixture mode)",
     command: "npm run generate:fal:check && npm run generate:kie:check",
@@ -2149,6 +2161,19 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/transformers-js-nodes/",
       "packages/video-nodes/",
       "packages/whisper-cpp/"
+    ]
+  },
+  {
+    id: "comfy-templates",
+    title: "Bundled ComfyUI API templates and editable examples",
+    harnesses: ["comfy-templates"],
+    paths: [
+      "scripts/comfy-templates/",
+      "packages/runtime/src/providers/comfy-template-",
+      "packages/runtime/src/providers/comfy-gpu-",
+      "packages/runtime/src/providers/comfy-ui-prompt.ts",
+      "packages/runtime/tests/fixtures/comfy-templates/",
+      "packages/base-nodes/nodetool/examples/nodetool-base/Comfy "
     ]
   },
   {

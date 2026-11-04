@@ -136,7 +136,9 @@ const OneTakePanelInner: React.FC<OneTakePanelProps> = ({
       compileOneTake({
         shots,
         oneTake,
-        entities: boardCast(board, library)
+        entities: boardCast(board, library),
+        scenes: board?.screenplay?.scenes,
+        style: board?.style
       }),
     [shots, oneTake, board, library]
   );

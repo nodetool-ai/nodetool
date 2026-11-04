@@ -5,8 +5,8 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { getHfHubCacheDir } from "@nodetool-ai/config";
 import {
-  hfCacheRoot,
   hfRepoCacheDir,
   hfHubFileUrl,
   HF_ENDPOINT,
@@ -16,10 +16,10 @@ import * as path from "node:path";
 import * as os from "node:os";
 
 // ---------------------------------------------------------------------------
-// hfCacheRoot
+// getHfHubCacheDir
 // ---------------------------------------------------------------------------
 
-describe("hfCacheRoot", () => {
+describe("getHfHubCacheDir", () => {
   const envKeys = [
     "HF_HUB_CACHE",
     "HUGGINGFACE_HUB_CACHE",
@@ -46,7 +46,7 @@ describe("hfCacheRoot", () => {
   });
 
   it("defaults to ~/.cache/huggingface/hub", () => {
-    const result = hfCacheRoot();
+    const result = getHfHubCacheDir();
     expect(result).toBe(
       path.join(os.homedir(), ".cache", "huggingface", "hub")
     );
@@ -54,38 +54,38 @@ describe("hfCacheRoot", () => {
 
   it("respects HF_HUB_CACHE", () => {
     process.env.HF_HUB_CACHE = "/custom/cache";
-    expect(hfCacheRoot()).toBe("/custom/cache");
+    expect(getHfHubCacheDir()).toBe("/custom/cache");
   });
 
   it("respects HUGGINGFACE_HUB_CACHE (deprecated)", () => {
     process.env.HUGGINGFACE_HUB_CACHE = "/legacy/cache";
-    expect(hfCacheRoot()).toBe("/legacy/cache");
+    expect(getHfHubCacheDir()).toBe("/legacy/cache");
   });
 
   it("respects HF_HOME", () => {
     process.env.HF_HOME = "/hf/home";
-    expect(hfCacheRoot()).toBe(path.join("/hf/home", "hub"));
+    expect(getHfHubCacheDir()).toBe(path.join("/hf/home", "hub"));
   });
 
   it("respects XDG_CACHE_HOME", () => {
     process.env.XDG_CACHE_HOME = "/xdg/cache";
-    expect(hfCacheRoot()).toBe(path.join("/xdg/cache", "huggingface", "hub"));
+    expect(getHfHubCacheDir()).toBe(path.join("/xdg/cache", "huggingface", "hub"));
   });
 
   it("HF_HUB_CACHE takes priority over HF_HOME", () => {
     process.env.HF_HUB_CACHE = "/priority";
     process.env.HF_HOME = "/lower";
-    expect(hfCacheRoot()).toBe("/priority");
+    expect(getHfHubCacheDir()).toBe("/priority");
   });
 
   it("expands tilde in HF_HUB_CACHE", () => {
     process.env.HF_HUB_CACHE = "~/my-cache";
-    expect(hfCacheRoot()).toBe(path.join(os.homedir(), "my-cache"));
+    expect(getHfHubCacheDir()).toBe(path.join(os.homedir(), "my-cache"));
   });
 
   it("expands tilde in HF_HOME", () => {
     process.env.HF_HOME = "~/hf";
-    expect(hfCacheRoot()).toBe(path.join(os.homedir(), "hf", "hub"));
+    expect(getHfHubCacheDir()).toBe(path.join(os.homedir(), "hf", "hub"));
   });
 });
 

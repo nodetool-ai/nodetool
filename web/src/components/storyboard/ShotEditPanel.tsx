@@ -73,7 +73,7 @@ import {
   type TransformApplyAction,
   type TransformSource
 } from "../assets/transformWorkflow";
-import { mediaRefFromAsset } from "../../utils/mediaRef";
+import { applyTransformResultToShot } from "../../lib/storyboard/applyTransformResult";
 import {
   changedDraftKeys,
   conflictingDraftKeys,
@@ -516,11 +516,8 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
     }
   }, [commit, startRender]);
 
-  // "Transform with workflow" on the shot's still or clip. A returned image
-  // or video joins the takes as the selected still or clip, the way a
-  // finished render does; the earlier take stays in the gallery.
-  const setShotKeyframe = useStoryboardStore((state) => state.setShotKeyframe);
-  const setShotClip = useStoryboardStore((state) => state.setShotClip);
+  // "Transform with workflow" on the shot's still or clip: see
+  // applyTransformResultToShot for where a result lands.
   const [transformSource, setTransformSource] = useState<TransformSource | null>(null);
   const shotMediaName = useCallback(
     (part: "still" | "clip") =>
@@ -552,14 +549,10 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
       label: t("transformWithWorkflow.apply.addAsTake"),
       kinds: ["image", "video"],
       onApply: (result) => {
-        if (result.kind === "image") {
-          setShotKeyframe(boardId, shotId, mediaRefFromAsset({ id: result.assetId }, "image"));
-        } else {
-          setShotClip(boardId, shotId, mediaRefFromAsset({ id: result.assetId }, "video"));
-        }
+        applyTransformResultToShot(boardId, shotId, result);
       }
     }),
-    [boardId, shotId, setShotClip, setShotKeyframe, t]
+    [boardId, shotId, t]
   );
 
   const completeLeave = useCallback(

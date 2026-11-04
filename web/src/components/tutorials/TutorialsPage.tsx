@@ -20,7 +20,8 @@ import {
   Text,
   VideoPlayer,
   SHADOW,
-  EYEBROW
+  EYEBROW,
+  ICON_SIZE
 } from "../ui_primitives";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -175,7 +176,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary
     },
     ".tut-learn li svg": {
-      fontSize: 18,
+      fontSize: ICON_SIZE.md,
       marginTop: 2,
       flexShrink: 0,
       color: theme.vars.palette.success.main

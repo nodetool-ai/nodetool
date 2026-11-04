@@ -26,7 +26,7 @@ import {
   type NodeRegistry
 } from "@nodetool-ai/node-sdk";
 import type { NodeDescriptor } from "@nodetool-ai/protocol";
-import { isPythonNodeType } from "@nodetool-ai/protocol";
+import { COMFY_RUN_MODE, collapseComfyGraph, isPythonNodeType } from "@nodetool-ai/protocol";
 import type {
   NodeExecutor,
   ProcessingContext,
@@ -716,7 +716,7 @@ export async function runWorkflow(
   let runnableGraph: ReturnType<typeof normalizeGraph>;
   let workflowProjectId = options.projectId ?? null;
   if (options.graph) {
-    runnableGraph = normalizeGraph(options.graph);
+    runnableGraph = collapseComfyGraph(normalizeGraph(options.graph));
     if (workflowProjectId && workflowProjectId !== "default") {
       await Project.requireOwned(userId, workflowProjectId);
     }
@@ -729,7 +729,7 @@ export async function runWorkflow(
     workflowId = workflow.id;
 
     const runMode = workflow.run_mode ?? "workflow";
-    if (runMode !== "workflow") {
+    if (runMode !== "workflow" && runMode !== COMFY_RUN_MODE) {
       return {
         kind: "error",
         status: 400,
@@ -748,7 +748,8 @@ export async function runWorkflow(
         detail: "Workflow is owned by another project"
       };
     }
-    runnableGraph = normalizeGraph(workflow.getGraph());
+    // A Comfy workflow runs as one Comfy Cloud job, not node by node.
+    runnableGraph = collapseComfyGraph(normalizeGraph(workflow.getGraph()));
   }
 
   const nodeIds =
