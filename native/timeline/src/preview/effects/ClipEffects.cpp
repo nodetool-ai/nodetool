@@ -98,7 +98,8 @@ class Encoder {
         const int format = input.format == LayerFrame::Format::I420   ? 1
                            : input.format == LayerFrame::Format::Nv12 ? 2
                                                                       : 0;
-        u.geometry = {input.flipV ? 1.f : 0.f, float(format), float(pass.op), boundedCrop ? 1.f : 0.f};
+        const bool floatWorking = m_ctx.workingFormat == WorkingFormat::Rgba16F;
+        u.geometry = {input.flipV ? 1.f : 0.f, float(format) + (floatWorking ? 4.f : 0.f), float(pass.op), boundedCrop ? 1.f : 0.f};
         u.dimensions = {float(input.size.width()), float(input.size.height()), float(logical.width()),
                         float(logical.height())};
         u.origin = {float(logicalOrigin.x()), float(logicalOrigin.y()), 0, 0};
@@ -193,7 +194,7 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
             if (!step(pass,before->second.planes[0],after->second.planes[0])) { return false; }
             continue;
         }
-        if (pass.op == Op::ChromaKey) {
+        if (pass.op == Op::ChromaKey && ctx.workingFormat == WorkingFormat::Rgba8) {
             Pass bridge;
             bridge.op = Op::ToStraight;
             if (!step(bridge)) {
@@ -275,7 +276,7 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
             return false;
         }
     }
-    if (!ext.value("effectGroupSurface").toBool()) {
+    if (ctx.workingFormat == WorkingFormat::Rgba8 && !ext.value("effectGroupSurface").toBool()) {
         // Web clip chains return straight RGBA8. S4 consumes premultiplied.
         // Preserve both quantized boundary conversions instead of folding them.
         Pass bridge;

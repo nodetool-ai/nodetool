@@ -48,7 +48,7 @@ bool BlendModeHandler::render(const EffectContext& ctx, const LayerFrame& backdr
     const auto matrix = rhi->clipSpaceCorrMatrix();
     std::ranges::copy(std::span{matrix.constData(),16},u.matrix.begin());
     u.flipsMode = {backdrop.flipV ? 1.f : 0.f, layer.flipV ? 1.f : 0.f,
-                   static_cast<float>(std::distance(blendModes.begin(),found)+1), 0};
+                   static_cast<float>(std::distance(blendModes.begin(),found)+1), ctx.workingFormat == WorkingFormat::Rgba16F ? 1.f : 0.f};
     auto* updates = rhi->nextResourceUpdateBatch();
     updates->updateDynamicBuffer(resources->uniforms.get(),0,sizeof(u),&u);
     auto* cb = ctx.commands;

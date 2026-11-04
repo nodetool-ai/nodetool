@@ -28,7 +28,10 @@ vec4 loadSource(ivec2 c) {
     if (geometry.x>0.5) { c.y=int(dimensions.y)-1-c.y; }
     return texelFetch(source,c,0);
 }
-vec3 straight(vec4 c) { return c.rgb/max(c.a,1.0/255.0); }
+vec3 straight(vec4 c) {
+    if (geometry.y > 3.5) { return c.a > 0.0 ? c.rgb/c.a : vec3(0.0); }
+    return c.rgb/max(c.a,1.0/255.0);
+}
 vec3 rgb2hsv(vec3 rgb) {
     float maxC=max(max(rgb.r,rgb.g),rgb.b), minC=min(min(rgb.r,rgb.g),rgb.b);
     float delta=maxC-minC, h=0, s=0;
@@ -124,8 +127,8 @@ vec4 visualFx(vec2 v) {
     if (mode==0) {
         vec2 delta=vec2(cos(angle),sin(angle))*strength/dims;
         vec4 red=visualSample(v+delta), blue=visualSample(v-delta);
-        result=vec4(red.r/max(red.a,1.0/255.0)*src.a,src.g,
-                    blue.b/max(blue.a,1.0/255.0)*src.a,src.a);
+        result=vec4((geometry.y > 3.5 ? straight(red).r : red.r/max(red.a,1.0/255.0))*src.a,src.g,
+                    (geometry.y > 3.5 ? straight(blue).b : blue.b/max(blue.a,1.0/255.0))*src.a,src.a);
     } else if (mode==1 || mode==2) {
         vec4 sum=vec4(0);
         for (int i=0;i<13;++i) {
@@ -285,9 +288,9 @@ void main() {
         vec2 samplePx=coord+origin.xy;
         vec2 suv=clamp(samplePx,origin.xy+0.5,origin.xy+sourceRect.zw-0.5)/dimensions.xy;
         vec4 c=readSource(suv);
-        if (geometry.y>0.5) {
+        if (mod(geometry.y,4.0)>0.5) {
             vec2 v=oriented(suv);
-            vec2 cbcr=geometry.y<1.5 ? vec2(texture(second,v).r,texture(third,v).r) : texture(second,v).rg;
+            vec2 cbcr=mod(geometry.y,4.0)<1.5 ? vec2(texture(second,v).r,texture(third,v).r) : texture(second,v).rg;
             c=vec4(clamp((colorMatrix*vec4(c.r,cbcr,1)).rgb,0,1),1);
         }
         fragColor=inside ? c : vec4(0); return;

@@ -1297,7 +1297,7 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
         u.sourceTexelSize[0] = 1.0f / frame.size.width();
         u.sourceTexelSize[1] = 1.0f / frame.size.height();
         u.mode = modeFor(frame.format);
-        if (frame.format == nt::LayerFrame::Format::Rgba8Premultiplied) {
+        if (m_workingFormat == nt::WorkingFormat::Rgba8 && frame.format == nt::LayerFrame::Format::Rgba8Premultiplied) {
             u.mode = 3.0f;  // leaf placement filters the web's straight RGBA8 boundary
         }
         const auto reveal = layer.mask ? layer.mask : layer.transition ? layer.transition->mask : std::nullopt;
