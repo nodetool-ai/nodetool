@@ -1,0 +1,451 @@
+{
+  "image_z_image_turbo": {
+    "SaveImage": [],
+    "CLIPLoader": [
+      "CLIP"
+    ],
+    "VAELoader": [
+      "VAE"
+    ],
+    "ConditioningZeroOut": [
+      "CONDITIONING"
+    ],
+    "VAEDecode": [
+      "IMAGE"
+    ],
+    "UNETLoader": [
+      "MODEL"
+    ],
+    "CLIPTextEncode": [
+      "CONDITIONING"
+    ],
+    "EmptySD3LatentImage": [
+      "LATENT"
+    ],
+    "ModelSamplingAuraFlow": [
+      "MODEL"
+    ],
+    "KSampler": [
+      "LATENT"
+    ]
+  },
+  "image_krea2_turbo_t2i_int8": {
+    "SaveImage": [
+      "images"
+    ],
+    "ResolutionSelector": [
+      "width",
+      "height"
+    ],
+    "CLIPTextEncode": [
+      "CONDITIONING"
+    ],
+    "EmptyLatentImage": [
+      "LATENT"
+    ],
+    "KSampler": [
+      "LATENT"
+    ],
+    "VAEDecode": [
+      "IMAGE"
+    ],
+    "UNETLoader": [
+      "MODEL"
+    ],
+    "CLIPLoader": [
+      "CLIP"
+    ],
+    "VAELoader": [
+      "VAE"
+    ],
+    "ConditioningZeroOut": [
+      "CONDITIONING"
+    ],
+    "LoraLoaderModelOnly": [
+      "MODEL"
+    ],
+    "TextGenerate": [
+      "generated_text"
+    ],
+    "StringConcatenate": [
+      "STRING"
+    ],
+    "PrimitiveStringMultiline": [
+      "STRING"
+    ],
+    "PreviewAny": [
+      "STRING"
+    ],
+    "ComfySwitchNode": [
+      "output"
+    ],
+    "PrimitiveBoolean": [
+      "BOOLEAN"
+    ]
+  },
+  "image_moss_image_t2i": {
+    "SaveImage": [
+      "images"
+    ],
+    "ResolutionSelector": [
+      "width",
+      "height"
+    ],
+    "PrimitiveStringMultiline": [
+      "STRING"
+    ],
+    "TextGenerate": [
+      "generated_text",
+      "thinking"
+    ],
+    "UNETLoader": [
+      "MODEL"
+    ],
+    "CLIPTextEncode": [
+      "CONDITIONING"
+    ],
+    "CLIPLoader": [
+      "CLIP"
+    ],
+    "KSampler": [
+      "LATENT"
+    ],
+    "VAELoader": [
+      "VAE"
+    ],
+    "PreviewAny": [
+      "STRING"
+    ],
+    "ComfySwitchNode": [
+      "output"
+    ],
+    "EmptyFlux2LatentImage": [
+      "LATENT"
+    ],
+    "VAEDecode": [
+      "IMAGE"
+    ],
+    "SkipLayerGuidanceDiTSimple": [
+      "MODEL"
+    ]
+  },
+  "image_qwen_image_2_1_t2i": {
+    "ResolutionSelector": [
+      "width",
+      "height"
+    ],
+    "SaveImageAdvanced": [
+      "images"
+    ],
+    "UNETLoader": [
+      "MODEL"
+    ],
+    "TextEncodeQwenImage21": [
+      "positive",
+      "negative",
+      "latent"
+    ],
+    "CLIPLoader": [
+      "CLIP"
+    ],
+    "VAELoader": [
+      "VAE"
+    ],
+    "EmptyLatentImage": [
+      "LATENT"
+    ],
+    "VAEDecode": [
+      "IMAGE"
+    ],
+    "KSampler": [
+      "LATENT"
+    ],
+    "TextGenerate": [
+      "generated_text",
+      "thinking"
+    ],
+    "PreviewAny": [
+      "STRING"
+    ],
+    "ComfySwitchNode": [
+      "output"
+    ],
+    "PrimitiveStringMultiline": [
+      "STRING"
+    ],
+    "QwenImage21Cache": [
+      "MODEL"
+    ]
+  },
+  "video_hunyuan_video_1.5_720p_t2v": {
+    "VAEDecode": [
+      "IMAGE"
+    ],
+    "VAELoader": [
+      "VAE"
+    ],
+    "DualCLIPLoader": [
+      "CLIP"
+    ],
+    "UNETLoader": [
+      "MODEL"
+    ],
+    "CLIPTextEncode": [
+      "CONDITIONING"
+    ],
+    "CreateVideo": [
+      "VIDEO"
+    ],
+    "SaveVideo": [],
+    "EmptyHunyuanVideo15Latent": [
+      "LATENT"
+    ],
+    "SamplerCustomAdvanced": [
+      "output",
+      "denoised_output"
+    ],
+    "BasicScheduler": [
+      "SIGMAS"
+    ],
+    "RandomNoise": [
+      "NOISE"
+    ],
+    "KSamplerSelect": [
+      "SAMPLER"
+    ],
+    "CFGGuider": [
+      "GUIDER"
+    ],
+    "ModelSamplingSD3": [
+      "MODEL"
+    ]
+  },
+  "video_wan2_2_14B_t2v": {
+    "SaveVideo": [],
+    "CLIPLoader": [
+      "CLIP"
+    ],
+    "VAELoader": [
+      "VAE"
+    ],
+    "UNETLoader": [
+      "MODEL"
+    ],
+    "LoraLoaderModelOnly": [
+      "MODEL"
+    ],
+    "ModelSamplingSD3": [
+      "MODEL"
+    ],
+    "CLIPTextEncode": [
+      "CONDITIONING"
+    ],
+    "KSamplerAdvanced": [
+      "LATENT"
+    ],
+    "CreateVideo": [
+      "VIDEO"
+    ],
+    "VAEDecode": [
+      "IMAGE"
+    ],
+    "EmptyHunyuanLatentVideo": [
+      "LATENT"
+    ],
+    "PrimitiveInt": [
+      "INT"
+    ],
+    "PrimitiveFloat": [
+      "FLOAT"
+    ],
+    "ComfySwitchNode": [
+      "output"
+    ],
+    "PrimitiveBoolean": [
+      "BOOLEAN"
+    ],
+    "ComfyMathExpression": [
+      "FLOAT",
+      "INT"
+    ]
+  },
+  "audio_ace_step1_5_xl_turbo": {
+    "KSampler": [
+      "LATENT"
+    ],
+    "VAEDecodeAudio": [
+      "AUDIO"
+    ],
+    "ConditioningZeroOut": [
+      "CONDITIONING"
+    ],
+    "ModelSamplingAuraFlow": [
+      "MODEL"
+    ],
+    "TextEncodeAceStepAudio1.5": [
+      "CONDITIONING"
+    ],
+    "EmptyAceStep1.5LatentAudio": [
+      "LATENT"
+    ],
+    "UNETLoader": [
+      "MODEL"
+    ],
+    "DualCLIPLoader": [
+      "CLIP"
+    ],
+    "VAELoader": [
+      "VAE"
+    ],
+    "PrimitiveInt": [
+      "INT"
+    ],
+    "SaveAudioAdvanced": [
+      "audio"
+    ]
+  },
+  "audio_minimax_music_3": {
+    "SaveAudioAdvanced": [
+      "audio"
+    ],
+    "UNETLoader": [
+      "MODEL"
+    ],
+    "MiniMaxMusic3TextEncode": [
+      "CONDITIONING",
+      "seconds"
+    ],
+    "CLIPLoader": [
+      "CLIP"
+    ],
+    "VAELoader": [
+      "VAE"
+    ],
+    "ConditioningZeroOut": [
+      "CONDITIONING"
+    ],
+    "EmptyMiniMaxMusic3LatentAudio": [
+      "LATENT"
+    ],
+    "KSampler": [
+      "LATENT"
+    ],
+    "VAEDecodeAudio": [
+      "AUDIO"
+    ],
+    "SeedNode": [
+      "seed"
+    ],
+    "VAEDecodeAudioTiled": [
+      "AUDIO"
+    ],
+    "ComfySwitchNode": [
+      "output"
+    ]
+  },
+  "audio_stable_audio_3_medium": {
+    "SaveAudioAdvanced": [
+      "audio"
+    ],
+    "CLIPTextEncode": [
+      "CONDITIONING"
+    ],
+    "VAEDecodeAudio": [
+      "AUDIO"
+    ],
+    "EmptyLatentAudio": [
+      "LATENT"
+    ],
+    "KSampler": [
+      "LATENT"
+    ],
+    "CLIPLoader": [
+      "CLIP"
+    ],
+    "ComfySwitchNode": [
+      "output"
+    ],
+    "ComfyMathExpression": [
+      "FLOAT",
+      "INT",
+      "BOOL"
+    ],
+    "PreviewAny": [
+      "STRING"
+    ],
+    "StringReplace": [
+      "STRING"
+    ],
+    "TextGenerate": [
+      "generated_text"
+    ],
+    "PrimitiveStringMultiline": [
+      "STRING"
+    ],
+    "CustomCombo": [
+      "STRING",
+      "INDEX"
+    ],
+    "JsonExtractString": [
+      "STRING"
+    ],
+    "PrimitiveBoolean": [
+      "BOOLEAN"
+    ],
+    "PrimitiveFloat": [
+      "FLOAT"
+    ],
+    "CheckpointLoaderSimple": [
+      "MODEL",
+      "CLIP",
+      "VAE"
+    ]
+  },
+  "audio_yue2_text2music": {
+    "SaveAudioAdvanced": [
+      "audio"
+    ],
+    "CheckpointLoaderSimple": [
+      "MODEL",
+      "CLIP",
+      "VAE"
+    ],
+    "YuE2GenerateABC": [
+      "abc"
+    ],
+    "PreviewAny": [
+      "STRING"
+    ],
+    "ComfySwitchNode": [
+      "output"
+    ],
+    "PrimitiveString": [
+      "STRING"
+    ],
+    "YuE2GenerateMusic": [
+      "CONDITIONING",
+      "seconds"
+    ],
+    "PrimitiveBoolean": [
+      "BOOLEAN"
+    ],
+    "ConditioningZeroOut": [
+      "CONDITIONING"
+    ],
+    "KSampler": [
+      "LATENT"
+    ],
+    "EmptyYuE2LatentAudio": [
+      "LATENT"
+    ],
+    "VAEDecodeAudio": [
+      "AUDIO"
+    ],
+    "SeedNode": [
+      "seed"
+    ],
+    "PrimitiveStringMultiline": [
+      "STRING"
+    ]
+  }
+}

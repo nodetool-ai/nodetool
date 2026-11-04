@@ -399,7 +399,70 @@ Comfy's own, not NodeTool's:
 
 ---
 
-## Comfy models without a graph
+## Bundled workflow templates
+
+The Comfy Cloud model picker includes official ComfyUI API templates alongside
+the existing image-to-video workflows. Z-Image Turbo, Krea 2 Turbo, MOSS Image
+and Qwen Image 2.1 generate images. Hunyuan Video 1.5 and Wan 2.2 A14B generate
+video from text. MiniMax H3 and FastH3 text-to-video templates require the
+existing `NODETOOL_COMFY_ENABLE_RESTRICTED_LICENSE_MODELS=1` opt-in where their
+model licenses permit use.
+
+The **Comfy** examples include these image and video templates, plus ACE-Step
+1.5 XL Turbo, MiniMax Music 3, Stable Audio 3 Medium and YuE 2 audio workflows.
+They are native workflows with `run_mode: "comfy"`: opening an example shows
+its complete graph of `comfy.*` nodes. Copying an example preserves that mode.
+Edit prompts and settings on the nodes, then run the whole graph on Comfy Cloud.
+The restricted H3 video templates appear only through the provider opt-in.
+Music models also appear in the provider's music catalog and run through
+`textToMusic`. All require `COMFY_API_KEY` and the referenced
+nodes and model files on the Comfy deployment.
+
+The imports come from the API-format graphs in
+[Comfy-Org/workflow_templates](https://github.com/Comfy-Org/workflow_templates/tree/1ae390968e323dba24a6991d1860ded051f5a79b/benchmarks).
+The source revision and input bindings are pinned in
+[`scripts/comfy-templates/catalog.mjs`](../scripts/comfy-templates/catalog.mjs).
+These benchmark graphs supply the curated examples. The broader provider
+catalog comes from the non-partner templates in the same repository and uses
+model ids beginning with `comfyui-gpu/`, displayed as **(Comfy GPU)**.
+It covers image generation and editing, video generation and editing, reference
+video, music, speech, audio transforms, text generation and image-to-3D.
+
+At execution, NodeTool reads Cloud's node schemas, converts the selected saved
+template to an API prompt, binds the request's inputs, uploads its media and
+submits one GPU job. Templates with missing Cloud nodes, partner API nodes or
+incompatible widget layouts fail before submission. Input counts are checked
+before uploading. Text workflows do not advertise tool calling.
+
+Templates needing inputs outside a provider method's contract are recorded
+with exclusion reasons in `comfy-gpu-catalog.json`. This includes mask-editor
+workflows and transforms requiring several independent audio recordings.
+Template metadata is a source catalog, not proof that every account currently
+has the referenced models installed. Live render verification requires a key.
+
+Regenerate from the checked-in JSON snapshots with:
+
+```bash
+node scripts/comfy-templates/generate.mjs
+node scripts/comfy-templates/generate.mjs --check
+node scripts/comfy-templates/gpu-catalog.mjs
+node scripts/comfy-templates/gpu-catalog.mjs --check
+```
+
+`--refresh` downloads only the selected JSON files from the pinned revision.
+It does not clone the repository or download weights or sample media. When
+changing the revision, review node availability, model filenames and bindings
+before refreshing. Output socket names are extracted from the corresponding
+UI templates into
+[`sockets.json`](../packages/runtime/tests/fixtures/comfy-templates/sockets.json),
+so saved connections use the same names as the Comfy editor catalog.
+The template license is MIT. Model licenses apply separately.
+
+Headless validation checks the native graph's structure and its execution
+runner. Comfy Cloud validates the remote node classes, model files and input
+types when the job is submitted.
+
+## Comfy Router models
 
 The `comfy_cloud` provider also runs the partner models of the
 [Comfy Router](https://docs.comfy.org/development/comfy-router) with the same

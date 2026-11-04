@@ -42,6 +42,7 @@ import {
   resetDefaultVectorProvider
 } from "@nodetool-ai/vectorstore";
 import { registerBaseNodes } from "../src/index.js";
+import { COMFY_CLOUD_GRAPH_NODE_TYPE, collapseComfyGraph } from "@nodetool-ai/protocol";
 
 // Nodes that bypass the ProcessingContext fetch indirection (e.g. SerpAPI
 // search nodes) call `fetch` directly. Replace `globalThis.fetch` for the
@@ -163,12 +164,14 @@ function loadWorkflows(): WorkflowFile[] {
  * or hit the real endpoint with a junk key. Workflows that contain any
  * of these nodes are skipped. `lib.comfy.RunWorkflowOnCloud` submits its
  * graph through the Comfy API v2 SDK with `COMFY_API_KEY`, not through a
- * provider.
+ * provider. Native Comfy graphs collapse to the same kind of network-backed
+ * runner before execution, so they are classified after that collapse too.
  */
 const NETWORK_BYPASSING_NODES = new Set<string>([
   "openai.agents.RealtimeAgent",
   "openai.agents.LiveAgent",
-  "lib.comfy.RunWorkflowOnCloud"
+  "lib.comfy.RunWorkflowOnCloud",
+  COMFY_CLOUD_GRAPH_NODE_TYPE
 ]);
 
 /**
@@ -192,7 +195,7 @@ const NON_TERMINATING_NODES = new Set<string>([
 ]);
 
 function workflowIsUnrunnable(w: WorkflowFile): boolean {
-  return (w.data.graph?.nodes ?? []).some(
+  return collapseComfyGraph(w.data.graph).nodes.some(
     (n) =>
       typeof n.type === "string" &&
       (NETWORK_BYPASSING_NODES.has(n.type as string) ||
@@ -393,7 +396,7 @@ describe("example workflows execute end-to-end with fakes", () => {
   it.each(skippedWorkflows)(
     "skips $fileName because this harness cannot run it to completion",
     ({ fileName, data }) => {
-      const types = (data.graph?.nodes ?? []).map((n) => n.type);
+      const types = collapseComfyGraph(data.graph).nodes.map((n) => n.type);
       const unrunnable = types.filter(
         (t) =>
           typeof t === "string" &&

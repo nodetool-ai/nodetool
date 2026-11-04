@@ -8,6 +8,7 @@ import {
   parseInputSchema
 } from "../../src/providers/comfy-router.js";
 import { COMFY_ROUTER_CATALOG } from "../../src/providers/comfy-router-catalog.js";
+import { listedComfyGpuTemplates } from "../../src/providers/comfy-gpu-models.js";
 import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 
 const BASE = "https://router.test";
@@ -139,17 +140,25 @@ describe("ComfyCloudProvider — catalog", () => {
   it("lists every catalog kind, filtered by the live listing", async () => {
     const { fetchFn } = fakeRouter({}, { live: ["bfl/flux-2-pro", "veo/veo-3.1-generate-001", "elevenlabs/eleven_v3", "anthropic/claude-sonnet-5"] });
     const p = new TestProvider(fetchFn);
-    expect((await p.getAvailableImageModels()).map((m) => m.id)).toEqual(["bfl/flux-2-pro"]);
+    expect((await p.getAvailableImageModels()).map((m) => m.id).filter((id) => !id.startsWith("comfyui-gpu/"))).toEqual([
+      "comfyui-template/image_z_image_turbo",
+      "comfyui-template/image_krea2_turbo_t2i_int8",
+      "comfyui-template/image_moss_image_t2i",
+      "comfyui-template/image_qwen_image_2_1_t2i",
+      "bfl/flux-2-pro"
+    ]);
     const video = await p.getAvailableVideoModels();
-    expect(video).toEqual([
+    expect(video.filter((model) => !model.id.startsWith("comfyui-gpu/"))).toEqual([
       // The pinned ComfyUI workflows are not Router models, so the listing never filters them.
       expect.objectContaining({ id: "comfyui-workflow/wan2.2-ti2v-5b", supportedTasks: ["image_to_video"] }),
       expect.objectContaining({ id: "comfyui-workflow/wan2.2-i2v-a14b" }),
       expect.objectContaining({ id: "comfyui-workflow/ltx-2.3-i2v" }),
+      expect.objectContaining({ id: "comfyui-template/video_hunyuan_video_1.5_720p_t2v", supportedTasks: ["text_to_video"] }),
+      expect.objectContaining({ id: "comfyui-template/video_wan2_2_14B_t2v", supportedTasks: ["text_to_video"] }),
       expect.objectContaining({ id: "veo/veo-3.1-generate-001", provider: "comfy_cloud", supportedTasks: ["text_to_video", "image_to_video"] })
     ]);
-    expect((await p.getAvailableTTSModels()).map((m) => m.id)).toEqual(["elevenlabs/eleven_v3"]);
-    expect((await p.getAvailableLanguageModels()).map((m) => m.id)).toEqual(["anthropic/claude-sonnet-5"]);
+    expect((await p.getAvailableTTSModels()).map((m) => m.id).filter((id) => !id.startsWith("comfyui-gpu/"))).toEqual(["elevenlabs/eleven_v3"]);
+    expect((await p.getAvailableLanguageModels()).map((m) => m.id).filter((id) => !id.startsWith("comfyui-gpu/"))).toEqual(["anthropic/claude-sonnet-5"]);
   });
 
   it("falls back to the whole snapshot when the listing cannot be read", async () => {
@@ -159,7 +168,7 @@ describe("ComfyCloudProvider — catalog", () => {
     const p = new TestProvider(failing);
     const ids = (await p.getAvailableVideoModels()).map((m) => m.id);
     expect(ids).toContain("veo/veo-3.1-generate-001");
-    expect(ids.length).toBe(COMFY_ROUTER_CATALOG.filter((e) => e.kind === "video").length + 3);
+    expect(ids.length).toBe(COMFY_ROUTER_CATALOG.filter((e) => e.kind === "video").length + 5 + listedComfyGpuTemplates().filter((template) => template.kind === "video").length);
   });
 
   it("takes each model's tasks from its schema modalities", () => {
