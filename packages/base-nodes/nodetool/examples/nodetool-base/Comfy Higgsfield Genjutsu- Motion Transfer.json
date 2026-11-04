@@ -1,0 +1,159 @@
+{
+  "id": "07f362992fb434ea40ac8269a08ae0ac",
+  "name": "Comfy Higgsfield Genjutsu- Motion Transfer",
+  "description": "Recast an existing video with Higgsfield Genjutsu: the source clip keeps its motion, camera movement, timing and audio, while the cast, location and style are rebuilt from 1 to 8 reference images. Describe which reference replaces what in the optional prompt. Output length follows the source clip. Ideal for restyling footage, swapping the cast of a shot, and building scenes a shoot never covered. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Higgsfield Genjutsu- Motion Transfer\n\nRecast an existing video with Higgsfield Genjutsu: the source clip keeps its motion, camera movement, timing and audio, while the cast, location and style are rebuilt from 1 to 8 reference images. Describe which reference replaces what in the optional prompt. Output length follows the source clip. Ideal for restyling footage, swapping the cast of a shot, and building scenes a shoot never covered. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_higgsfield_genjutsu_motion_transfer.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "9",
+        "type": "comfy.HiggsfieldMotionTransferNode",
+        "data": {
+          "model": "genjutsu-v1.0",
+          "model.reference_images": "720p",
+          "model.prompt": 42,
+          "model.resolution": "randomize",
+          "model.seed": "randomize"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Higgsfield Genjutsu Motion Transfer"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "10",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/genjutsu_motion_transfer",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13",
+        "type": "comfy.LoadVideo",
+        "data": {
+          "file": "rooftop_dancer.mp4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "14",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "snow_queen_ref.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "15",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "ice_palace_ref.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "13-0-9-model.video",
+        "source": "13",
+        "sourceHandle": "VIDEO",
+        "target": "9",
+        "targetHandle": "model.video",
+        "ui_properties": null
+      },
+      {
+        "id": "14-0-9-model.reference_images.image_1",
+        "source": "14",
+        "sourceHandle": "IMAGE",
+        "target": "9",
+        "targetHandle": "model.reference_images.image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "15-0-9-model.reference_images.image_2",
+        "source": "15",
+        "sourceHandle": "IMAGE",
+        "target": "9",
+        "targetHandle": "model.reference_images.image_2",
+        "ui_properties": null
+      },
+      {
+        "id": "9-0-10-video",
+        "source": "9",
+        "sourceHandle": "VIDEO",
+        "target": "10",
+        "targetHandle": "video",
+        "ui_properties": null
+      }
+    ]
+  }
+}

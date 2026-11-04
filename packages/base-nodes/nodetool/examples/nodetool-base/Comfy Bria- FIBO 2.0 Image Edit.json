@@ -1,0 +1,143 @@
+{
+  "id": "45adea18af09f46f014af75700ffe9a2",
+  "name": "Comfy Bria- FIBO 2.0 Image Edit",
+  "description": "Edit an image with Bria FIBO 2.0 by describing the change in plain language, with an optional mask to confine it to one region. FIBO 2.0 is one model for both editing and generation, trained on structured VGL captions, so it holds everything you did not ask to change, and it returns that structured prompt so the edit can be rebuilt or refined from JSON. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Bria- FIBO 2.0 Image Edit\n\nEdit an image with Bria FIBO 2.0 by describing the change in plain language, with an optional mask to confine it to one region. FIBO 2.0 is one model for both editing and generation, trained on structured VGL captions, so it holds everything you did not ask to change, and it returns that structured prompt so the edit can be rebuilt or refined from JSON. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_bria_image_edit.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "3",
+        "type": "comfy.BriaImageEditNode",
+        "data": {
+          "model": "FIBO",
+          "prompt": "Modern architectural photography at night, blue hour. Anti-glare technology, crisp and clear lens, no lens flare. The light is contained and well-defined, warm glowing windows without light bleeding. Sharp architectural edges, clean optics, cinematic lighting with controlled highlights, professional high-contrast finish, 85mm, f/8 for maximum clarity.",
+          "negative_prompt": "lens flare, glare, sun prism, light bleeding, hazy, blurry, overexposed highlights, chromatic aberration, glowing fog.",
+          "structured_prompt": "",
+          "seed": 1009968299,
+          "guidance_scale": 3,
+          "steps": 50,
+          "moderation": "true",
+          "moderation.prompt_content_moderation": false,
+          "moderation.visual_input_moderation": false,
+          "moderation.visual_output_moderation": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Bria FIBO 2.0 Image Edit"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "sunlit_rooftop_capture.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "8",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "Bria"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "10",
+        "type": "comfy.ImageCompare",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Compare Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "5-0-3-image",
+        "source": "5",
+        "sourceHandle": "IMAGE",
+        "target": "3",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "3-0-8-images",
+        "source": "3",
+        "sourceHandle": "IMAGE",
+        "target": "8",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "5-0-10-image_a",
+        "source": "5",
+        "sourceHandle": "IMAGE",
+        "target": "10",
+        "targetHandle": "image_a",
+        "ui_properties": null
+      },
+      {
+        "id": "8-0-10-image_b",
+        "source": "8",
+        "sourceHandle": "images",
+        "target": "10",
+        "targetHandle": "image_b",
+        "ui_properties": null
+      }
+    ]
+  }
+}

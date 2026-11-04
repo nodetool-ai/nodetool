@@ -1,0 +1,137 @@
+{
+  "id": "c6cd1ca38841967eba4c83cb818c6e47",
+  "name": "Comfy Vidu Q2- Reference to Video",
+  "description": "Generate videos with reference-based consistency for up to 3 subjects, maintaining character and style continuity across the video sequence with cinematic camera movements. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Vidu Q2- Reference to Video\n\nGenerate videos with reference-based consistency for up to 3 subjects, maintaining character and style continuity across the video sequence with cinematic camera movements. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_vidu_q2_r2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "37",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/vidu_q2_r2v",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "40",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "api_vidu_q2_r2v_red_haired_girl.jpg"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "41",
+        "type": "comfy.Vidu2ReferenceVideoNode",
+        "data": {
+          "model": "viduq2",
+          "prompt": "@a(red-haired woman in elegant attire) sits on a fallen log in the muted green forest, her hands clasped gently. @b(aged robot with weathered white-grey body) stands before her, its arms still extended in an open gesture. The woman looks up at the robot's glowing orange eyes, a gentle smile forming. The robot speaks in a whisper-soft, almost human-like voice with minimal mechanical resonance—quiet and intimate, as if sharing a secret. The woman responds in a soft, contemplative tone. Camera circles around them in a slow arc, revealing the depth of the forest behind. Natural forest ambience at low volume: soft wind through leaves, occasional bird songs. The robot's internal mechanisms are nearly silent, only a faint, rhythmic hum.",
+          "audio": true,
+          "duration": 5,
+          "seed": 1752617780,
+          "aspect_ratio": "16:9",
+          "resolution": "720p",
+          "movement_amplitude": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Vidu2 Reference-to-Video Generation"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "42",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "vintage_robot.jpg"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "41-0-37-video",
+        "source": "41",
+        "sourceHandle": "VIDEO",
+        "target": "37",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "40-0-41-subjects.subject1",
+        "source": "40",
+        "sourceHandle": "IMAGE",
+        "target": "41",
+        "targetHandle": "subjects.subject1",
+        "ui_properties": null
+      },
+      {
+        "id": "42-0-41-subjects.subject2",
+        "source": "42",
+        "sourceHandle": "IMAGE",
+        "target": "41",
+        "targetHandle": "subjects.subject2",
+        "ui_properties": null
+      }
+    ]
+  }
+}

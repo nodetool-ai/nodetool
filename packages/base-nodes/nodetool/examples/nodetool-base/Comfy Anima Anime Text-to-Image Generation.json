@@ -1,0 +1,268 @@
+{
+  "id": "083828f07d71cb40587a9ccfd2ce187a",
+  "name": "Comfy Anima Anime Text-to-Image Generation",
+  "description": "Input a text prompt to generate an anime-style image using the Anima model. Configure settings like steps and CFG scale to control the output. The workflow produces a non-photorealistic illustration based on your description. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Anima Anime Text-to-Image Generation\n\nInput a text prompt to generate an anime-style image using the Anima model. Configure settings like steps and CFG scale to control the output. The workflow produces a non-photorealistic illustration based on your description. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/image_anima_preview.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "46",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "Anima"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "60:45",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen_3_06b_base.safetensors",
+          "type": "stable_diffusion",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "60:15",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "qwen_image_vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "60:8",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "60:28",
+        "type": "comfy.EmptyLatentImage",
+        "data": {
+          "width": 1024,
+          "height": 1024,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Empty Latent Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "60:12",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "worst quality, low quality, score_1, score_2, score_3, blurry, jpeg artifacts, sepia"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Negative Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "60:19",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 875817230929465,
+          "steps": 30,
+          "cfg": 4,
+          "sampler_name": "er_sde",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "60:11",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "masterpiece, best quality, score_7, safe, anime, a close-up of a futuristic cyberpunk robotic eye, original close-up eye composition strictly preserved, encased in weathered metallic blue and chrome plating with exposed wiring, glowing orange indicator lights, hydraulic pistons, and panel seams wrapping around the eyelid, a chrome mechanical tear duct with fine circuit details, long dark anime-style eyelashes framing the eye, soft pink sclera. The dark pupil holds a complete, glowing Earth with blue atmosphere and white clouds as a reflection, while the surrounding iris reflects a vivid cosmic scene: a fiery red shooting star, wispy cyan nebula clouds, and tiny glowing star specks. No change to the original close-up eye framing, no additional elements outside the eye structure, neon accent lighting, high contrast cyberpunk color palette, intricate mechanical engineering, sharp line art, gritty futuristic sci-fi atmosphere."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Positive Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "60:44",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "anima-preview3-base.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "60:8-0-46-images",
+        "source": "60:8",
+        "sourceHandle": "IMAGE",
+        "target": "46",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "60:19-0-60:8-samples",
+        "source": "60:19",
+        "sourceHandle": "LATENT",
+        "target": "60:8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "60:15-0-60:8-vae",
+        "source": "60:15",
+        "sourceHandle": "VAE",
+        "target": "60:8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "60:45-0-60:12-clip",
+        "source": "60:45",
+        "sourceHandle": "CLIP",
+        "target": "60:12",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "60:44-0-60:19-model",
+        "source": "60:44",
+        "sourceHandle": "MODEL",
+        "target": "60:19",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "60:11-0-60:19-positive",
+        "source": "60:11",
+        "sourceHandle": "CONDITIONING",
+        "target": "60:19",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "60:12-0-60:19-negative",
+        "source": "60:12",
+        "sourceHandle": "CONDITIONING",
+        "target": "60:19",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "60:28-0-60:19-latent_image",
+        "source": "60:28",
+        "sourceHandle": "LATENT",
+        "target": "60:19",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "60:45-0-60:11-clip",
+        "source": "60:45",
+        "sourceHandle": "CLIP",
+        "target": "60:11",
+        "targetHandle": "clip",
+        "ui_properties": null
+      }
+    ]
+  }
+}

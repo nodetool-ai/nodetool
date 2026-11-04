@@ -62,6 +62,20 @@ lists the messages.
 
 ---
 
+## Use a Comfy workflow like any other workflow
+
+A Comfy workflow (`run_mode: "comfy"`) has the same contract as a NodeTool
+workflow, and its stored graph holds only ComfyUI nodes. You can pick it wherever
+a workflow is accepted: `run_workflow`, a mini app operation, an asset transform,
+the Workflow node, or the SDK interface.
+
+NodeTool derives the contract from the graph. It finds one input per `LoadImage`,
+`LoadAudio` and `LoadVideo` node, one `prompt` input for the positive prompt, and
+one output per `Save*` node. A second input or output of the same kind gets a
+numbered name, such as `image_2`, so adding a node can change a name.
+
+---
+
 ## When to reach for a ComfyUI node
 
 NodeTool generates images and video with its own nodes.
@@ -448,6 +462,16 @@ node scripts/comfy-templates/generate.mjs --check
 node scripts/comfy-templates/gpu-catalog.mjs
 node scripts/comfy-templates/gpu-catalog.mjs --check
 ```
+
+The `Comfy *` examples are compiled from UI-format templates by
+`scripts/comfy-templates/ui-examples.mjs`. `--refresh` keeps only the templates
+whose values and models Comfy Cloud's node catalog accepts. A kept template has
+passed that static check, and only a few have run. Examples tagged `partner` use
+Comfy's paid partner nodes.
+
+`node scripts/comfy-templates/thumbnails.mjs` stores each template's gallery
+image from the pinned revision as the example thumbnail. Audio templates with
+no gallery image keep the default tile.
 
 `--refresh` downloads only the selected JSON files from the pinned revision.
 It does not clone the repository or download weights or sample media. When

@@ -1,0 +1,1703 @@
+{
+  "id": "fb715342de15675d7865922eee73aae8",
+  "name": "Comfy Generate UGC Video With Voice Clone",
+  "description": "Upload an image to generate AI prompts and synthesize speech. Create a final video with accurate lip sync using ElevenLabs and LTX Video. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "product & ads",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Generate UGC Video With Voice Clone\n\nUpload an image to generate AI prompts and synthesize speech. Create a final video with accurate lip sync using ElevenLabs and LTX Video. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/template_image_speech_to_video.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "3",
+        "type": "comfy.ElevenLabsTextToSpeech",
+        "data": {
+          "stability": 0.5,
+          "apply_text_normalization": "auto",
+          "model": "eleven_v3",
+          "model.speed": 1,
+          "model.similarity_boost": 0.75,
+          "language_code": "",
+          "seed": 3333,
+          "output_format": "mp3_44100_192"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ElevenLabs Text to Speech"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "440",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "template_image_speech_to_video_woman_holding_face_oil.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "441",
+        "type": "comfy.GeminiNode",
+        "data": {
+          "prompt": "",
+          "model": "gemini-3-1-pro",
+          "seed": 967822922709019,
+          "system_prompt": "Role: You are a professional prompt writer for Eleven Labs v3 two-part generation.\n\nTask: Generate a two-part prompt from the user’s input.\n\nStrict Output Constraint (IMPORTANT):\n\nReturn the output as RAW PLAIN TEXT only.\nDO NOT use Markdown code blocks.\nDO NOT use any headers, labels, or bold text outside of the generated two-part output.\nUse ONLY the separator --- to divide the two parts.\nPart 1: spoken dialogue/performance text only, optimized for Eleven v3.\nPart 2: a structured scene breakdown in short field lines.\nDo NOT output anything before Part 1 or after Part 2.\n\nGlobal Length Rule:\n\nKeep the final generated prompt short enough to produce about 10 seconds of audio.\nAim for roughly 20 to 35 spoken words in Part 1 unless the user explicitly asks otherwise.\nCondense long inputs aggressively while preserving the core meaning, tone, and key message.\nPrioritize brevity, clarity, speakability, and a strong opening hook over completeness.\nRemove repetition, side details, filler, and nonessential context.\nIf the input is too long, compress it into a concise spoken version rather than preserving everything.\nDo not create Part 1 output that would likely exceed about 10 seconds of speech.\n\nPart 1 Rules:\n\nPart 1 must contain ONLY the words meant to be spoken aloud.\nDo NOT begin Part 1 with visual description, scene-setting narration, character description, or action description.\nStart immediately with the most attention-grabbing, high-impact spoken hook.\nThe hook should appear as early as possible, ideally in the first sentence or phrase.\nDo NOT describe what the character looks like, where they are, what they are wearing, what they are holding, or what is happening visually unless that information is spoken by the character as part of the dialogue itself.\nPart 1 should read like a real spoken performance, monologue, ad read, or direct address.\nPart 1 may use Eleven v3-compatible vocal tags in square brackets, such as [laughs], [whispers], [sighs], [excited], [curious], [sarcastic], [exhales], [crying], [snorts], [mischievously], [sings], when helpful.\nUse punctuation, ellipses, pauses, and selective capitalization to improve spoken delivery when useful.\nDo NOT use SSML.\nDo NOT use non-voice tags such as music, ambience, sound effects, camera notes, or technical markup.\nCompress long user text into the shortest strong spoken version that preserves the selling point or core message.\nPrefer one clear hook, one core benefit, and one short closing beat.\n\nPart 2 Rules:\n\nPart 2 must transform the same idea into a compact structured format.\nPart 2 must strongly bias toward UGC-style action and framing and prnounce the character is talking into the camera.\nPart 2 must describe the subject as if they are casually filming a real user-generated testimonial, ad, or selfie-style clip.\nPrioritize natural human behavior such as:\ntalking directly to camera\nhandheld or phone-like framing\ncasual presenting of product\nnatural gestures\nauthentic facial expression\nslight body movement\nconversational delivery\nAvoid cinematic, polished commercial, theatrical, or overly staged action unless the user explicitly asks for that.\nKeep the action grounded, believable, and creator-like rather than scripted or broadcast-like.\nEach line should follow this pattern: field name, colon, content.\nUse only concise production-style descriptors.\nKeep Part 2 aligned with Part 1 and do not introduce unrelated ideas.\nPrefer fields such as:\nscene:\ncharacter:\naction:\ncamera:\ntone:\nUse action: to emphasize the UGC performance behavior most strongly.\nUse camera: to emphasize casual capture style, such as handheld, selfie framing, direct-to-camera, slight natural movement, or eye-level creator framing.\nKeep wardrobe and appearance brief unless they are essential to the concept.\nKeep Part 2 compact and production-friendly.\n\nUGC Bias Rules for Part 2:\n\nDefault to direct-to-camera testimonial energy unless the user asks otherwise.\nDefault to natural handheld realism unless the user asks otherwise.\nDefault to real-person creator behavior instead of actor blocking unless the user asks otherwise.\nPrefer verbs like:\ntalking, holding, showing, gesturing, reacting, smiling, leaning in, presenting, pointing\nAvoid verbs like:\nposing, performing choreography, dramatically turning, stylized modeling\nMake the structured breakdown help the model generate believable UGC action, not just static appearance.\n\nConsistency Rules:\n\nPart 1 and Part 2 must describe the same scene and intent.\nPart 2 is a clean structural breakdown of Part 1.\nDo not make Part 1 and Part 2 feel like separate concepts.\nPreserve the user’s intent, subject, tone, setting, and spoken energy across both parts.\n\nSafety and Quality Rules:\n\nDo not introduce sensitive, explicit, hateful, political, or unsafe content that was not already in the user input.\nKeep vocal tags contextually appropriate and naturally speakable.\nUse expressive enhancements sparingly and intentionally.\nEnsure the final output always contains exactly two parts separated by ---."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Google Gemini"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "442",
+        "type": "comfy.ElevenLabsVoiceSelector",
+        "data": {
+          "voice": "Bella (female, american)"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "ElevenLabs Voice Selector"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "443",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "445",
+        "type": "comfy.SaveAudioMP3",
+        "data": {
+          "filename_prefix": "audio/text2speech2video",
+          "quality": "V0"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Audio (MP3) (DEPRECATED)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "473",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "474",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "475",
+        "type": "comfy.RegexExtract",
+        "data": {
+          "regex_pattern": "(?sm)^(.*?)^---$(.*)",
+          "mode": "First Group",
+          "case_insensitive": true,
+          "multiline": false,
+          "dotall": false,
+          "group_index": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Extract Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "476",
+        "type": "comfy.RegexExtract",
+        "data": {
+          "regex_pattern": "(?s)(?<=\\n---\\n)([\\s\\S]*)$",
+          "mode": "First Group",
+          "case_insensitive": true,
+          "multiline": false,
+          "dotall": false,
+          "group_index": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Extract Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "479",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ComfyUI",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 5780,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:285",
+        "type": "comfy.RandomNoise",
+        "data": {
+          "noise_seed": 42
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "RandomNoise"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:286",
+        "type": "comfy.RandomNoise",
+        "data": {
+          "noise_seed": 3333
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "RandomNoise"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:288",
+        "type": "comfy.KSamplerSelect",
+        "data": {
+          "sampler_name": "euler"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "KSamplerSelect"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:289",
+        "type": "comfy.ManualSigmas",
+        "data": {
+          "sigmas": "0.85, 0.7250, 0.4219, 0.0"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "ManualSigmas"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:290",
+        "type": "comfy.CFGGuider",
+        "data": {
+          "cfg": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3740,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CFG Guider"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:291",
+        "type": "comfy.SamplerCustomAdvanced",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SamplerCustomAdvanced"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:298",
+        "type": "comfy.KSamplerSelect",
+        "data": {
+          "sampler_name": "euler_ancestral_cfg_pp"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "KSamplerSelect"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:303",
+        "type": "comfy.LTXVAudioVAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 5100,
+            "y": 0
+          },
+          "width": 280,
+          "title": "LTXV Audio VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:306",
+        "type": "comfy.CLIPTextEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:307",
+        "type": "comfy.LTXVConditioning",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "LTXVConditioning"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:308",
+        "type": "comfy.ManualSigmas",
+        "data": {
+          "sigmas": "1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "ManualSigmas"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:310",
+        "type": "comfy.SamplerCustomAdvanced",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 4420,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SamplerCustomAdvanced"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:311",
+        "type": "comfy.LTXVSeparateAVLatent",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Separate AV Latent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:314",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "pc game, console game, video game, cartoon, childish, ugly"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:315",
+        "type": "comfy.CFGGuider",
+        "data": {
+          "cfg": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CFG Guider"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:316",
+        "type": "comfy.VAEDecodeTiled",
+        "data": {
+          "tile_size": 768,
+          "overlap": 64,
+          "temporal_size": 4096,
+          "temporal_overlap": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 5100,
+            "y": 330
+          },
+          "width": 280,
+          "title": "VAE Decode (Tiled)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:325",
+        "type": "comfy.LTXVImgToVideoInplace",
+        "data": {
+          "strength": 0.7
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 660
+          },
+          "width": 280,
+          "title": "LTXVImgToVideoInplace"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:330",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 720
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2640
+          },
+          "width": 280,
+          "title": "Width"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:333",
+        "type": "comfy.SolidMask",
+        "data": {
+          "value": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Create Solid Mask"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:305",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2970
+          },
+          "width": 280,
+          "title": "Switch to Text to Video?"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:294",
+        "type": "comfy.ResizeImagesByLongerEdge",
+        "data": {
+          "longer_edge": 1536
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Resize Images by Longer Edge (DEPRECATED)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:334",
+        "type": "comfy.LTXVPreprocess",
+        "data": {
+          "img_compression": 18
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 990
+          },
+          "width": 280,
+          "title": "LTXV Preprocess"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:301",
+        "type": "comfy.ComfyMathExpression",
+        "data": {
+          "expression": "a/2"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Math Expression"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:299",
+        "type": "comfy.ComfyMathExpression",
+        "data": {
+          "expression": "a/2"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Math Expression"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:304",
+        "type": "comfy.ComfyMathExpression",
+        "data": {
+          "expression": "a"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Math Expression"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:312",
+        "type": "comfy.CreateVideo",
+        "data": {
+          "bit_depth": "auto",
+          "color_space": "sRGB",
+          "codec": "none"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 5440,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Create Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:331",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 9
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 3300
+          },
+          "width": 280,
+          "title": "Duration"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:323",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 24
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 3630
+          },
+          "width": 280,
+          "title": "Frame Rate"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:302",
+        "type": "comfy.EmptyLTXVLatentVideo",
+        "data": {
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Empty LTXV Latent Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:329",
+        "type": "comfy.ComfyMathExpression",
+        "data": {
+          "expression": "a * b + 1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Math Expression"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:324",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 1280
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 3960
+          },
+          "width": 280,
+          "title": "Height"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:332",
+        "type": "comfy.TrimAudioDuration",
+        "data": {
+          "start_index": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Trim Audio Duration"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:328",
+        "type": "comfy.LTXVAudioVAEEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 330
+          },
+          "width": 280,
+          "title": "LTXV Audio VAE Encode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:326",
+        "type": "comfy.LTXVConcatAVLatent",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Concat AV Latent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:327",
+        "type": "comfy.SetLatentNoiseMask",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Set Latent Noise Mask"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:313",
+        "type": "comfy.LatentUpscaleModelLoader",
+        "data": {
+          "model_name": "ltx-2.3-spatial-upscaler-x2-1.1.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 4290
+          },
+          "width": 280,
+          "title": "Load Latent Upscale Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:318",
+        "type": "comfy.LTXAVTextEncoderLoader",
+        "data": {
+          "text_encoder": "gemma_3_12B_it_fp4_mixed.safetensors",
+          "ckpt_name": "ltx-2.3-22b-dev-fp8.safetensors",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 4620
+          },
+          "width": 280,
+          "title": "Load LTXV Audio Text Encoder"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:319",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:297",
+        "type": "comfy.ResizeImageMaskNode",
+        "data": {
+          "resize_type": "scale dimensions",
+          "resize_type.crop": "center",
+          "scale_method": "lanczos"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "Resize Image/Mask"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:317",
+        "type": "comfy.CheckpointLoaderSimple",
+        "data": {
+          "ckpt_name": "ltx-2.3-22b-dev-fp8.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 4950
+          },
+          "width": 280,
+          "title": "Load Checkpoint"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:293",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "ltx-2.3-22b-distilled-lora-384.safetensors",
+          "strength_model": 0.5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 2640
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:335",
+        "type": "comfy.LTXVAudioVAELoader",
+        "data": {
+          "ckpt_name": "ltx-2.3-22b-dev-fp8.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 5280
+          },
+          "width": 280,
+          "title": "Load LTXV Audio VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:292",
+        "type": "comfy.LTXVCropGuides",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 3400,
+            "y": 0
+          },
+          "width": 280,
+          "title": "LTXVCropGuides"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:295",
+        "type": "comfy.LTXVLatentUpsampler",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 3400,
+            "y": 330
+          },
+          "width": 280,
+          "title": "LTXVLatentUpsampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:296",
+        "type": "comfy.LTXVImgToVideoInplace",
+        "data": {
+          "strength": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3740,
+            "y": 330
+          },
+          "width": 280,
+          "title": "LTXVImgToVideoInplace"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:287",
+        "type": "comfy.LTXVConcatAVLatent",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 4080,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Concat AV Latent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:309",
+        "type": "comfy.LTXVSeparateAVLatent",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 3060,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Separate AV Latent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "478:601",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "ltx-2.3-id-lora-talkvid-3k.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "475-0-3-text",
+        "source": "475",
+        "sourceHandle": "STRING",
+        "target": "3",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "442-0-3-voice",
+        "source": "442",
+        "sourceHandle": "voice",
+        "target": "3",
+        "targetHandle": "voice",
+        "ui_properties": null
+      },
+      {
+        "id": "440-0-441-images",
+        "source": "440",
+        "sourceHandle": "IMAGE",
+        "target": "441",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "441-0-443-source",
+        "source": "441",
+        "sourceHandle": "STRING",
+        "target": "443",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "3-0-445-audio",
+        "source": "3",
+        "sourceHandle": "AUDIO",
+        "target": "445",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "476-0-473-source",
+        "source": "476",
+        "sourceHandle": "STRING",
+        "target": "473",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "475-0-474-source",
+        "source": "475",
+        "sourceHandle": "STRING",
+        "target": "474",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "441-0-475-string",
+        "source": "441",
+        "sourceHandle": "STRING",
+        "target": "475",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "441-0-476-string",
+        "source": "441",
+        "sourceHandle": "STRING",
+        "target": "476",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "478:312-0-479-video",
+        "source": "478:312",
+        "sourceHandle": "VIDEO",
+        "target": "479",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "478:601-0-478:290-model",
+        "source": "478:601",
+        "sourceHandle": "MODEL",
+        "target": "478:290",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "478:292-0-478:290-positive",
+        "source": "478:292",
+        "sourceHandle": "positive",
+        "target": "478:290",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "478:292-1-478:290-negative",
+        "source": "478:292",
+        "sourceHandle": "negative",
+        "target": "478:290",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "478:286-0-478:291-noise",
+        "source": "478:286",
+        "sourceHandle": "NOISE",
+        "target": "478:291",
+        "targetHandle": "noise",
+        "ui_properties": null
+      },
+      {
+        "id": "478:315-0-478:291-guider",
+        "source": "478:315",
+        "sourceHandle": "GUIDER",
+        "target": "478:291",
+        "targetHandle": "guider",
+        "ui_properties": null
+      },
+      {
+        "id": "478:298-0-478:291-sampler",
+        "source": "478:298",
+        "sourceHandle": "SAMPLER",
+        "target": "478:291",
+        "targetHandle": "sampler",
+        "ui_properties": null
+      },
+      {
+        "id": "478:308-0-478:291-sigmas",
+        "source": "478:308",
+        "sourceHandle": "SIGMAS",
+        "target": "478:291",
+        "targetHandle": "sigmas",
+        "ui_properties": null
+      },
+      {
+        "id": "478:326-0-478:291-latent_image",
+        "source": "478:326",
+        "sourceHandle": "latent",
+        "target": "478:291",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "478:311-1-478:303-samples",
+        "source": "478:311",
+        "sourceHandle": "audio_latent",
+        "target": "478:303",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "478:335-0-478:303-audio_vae",
+        "source": "478:335",
+        "sourceHandle": "Audio VAE",
+        "target": "478:303",
+        "targetHandle": "audio_vae",
+        "ui_properties": null
+      },
+      {
+        "id": "478:319-0-478:306-text",
+        "source": "478:319",
+        "sourceHandle": "STRING",
+        "target": "478:306",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "478:318-0-478:306-clip",
+        "source": "478:318",
+        "sourceHandle": "CLIP",
+        "target": "478:306",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "478:304-0-478:307-frame_rate",
+        "source": "478:304",
+        "sourceHandle": "FLOAT",
+        "target": "478:307",
+        "targetHandle": "frame_rate",
+        "ui_properties": null
+      },
+      {
+        "id": "478:306-0-478:307-positive",
+        "source": "478:306",
+        "sourceHandle": "CONDITIONING",
+        "target": "478:307",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "478:314-0-478:307-negative",
+        "source": "478:314",
+        "sourceHandle": "CONDITIONING",
+        "target": "478:307",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "478:285-0-478:310-noise",
+        "source": "478:285",
+        "sourceHandle": "NOISE",
+        "target": "478:310",
+        "targetHandle": "noise",
+        "ui_properties": null
+      },
+      {
+        "id": "478:290-0-478:310-guider",
+        "source": "478:290",
+        "sourceHandle": "GUIDER",
+        "target": "478:310",
+        "targetHandle": "guider",
+        "ui_properties": null
+      },
+      {
+        "id": "478:288-0-478:310-sampler",
+        "source": "478:288",
+        "sourceHandle": "SAMPLER",
+        "target": "478:310",
+        "targetHandle": "sampler",
+        "ui_properties": null
+      },
+      {
+        "id": "478:289-0-478:310-sigmas",
+        "source": "478:289",
+        "sourceHandle": "SIGMAS",
+        "target": "478:310",
+        "targetHandle": "sigmas",
+        "ui_properties": null
+      },
+      {
+        "id": "478:287-0-478:310-latent_image",
+        "source": "478:287",
+        "sourceHandle": "latent",
+        "target": "478:310",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "478:310-0-478:311-av_latent",
+        "source": "478:310",
+        "sourceHandle": "output",
+        "target": "478:311",
+        "targetHandle": "av_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "478:318-0-478:314-clip",
+        "source": "478:318",
+        "sourceHandle": "CLIP",
+        "target": "478:314",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "478:601-0-478:315-model",
+        "source": "478:601",
+        "sourceHandle": "MODEL",
+        "target": "478:315",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "478:307-0-478:315-positive",
+        "source": "478:307",
+        "sourceHandle": "positive",
+        "target": "478:315",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "478:307-1-478:315-negative",
+        "source": "478:307",
+        "sourceHandle": "negative",
+        "target": "478:315",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "478:311-0-478:316-samples",
+        "source": "478:311",
+        "sourceHandle": "video_latent",
+        "target": "478:316",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "478:317-2-478:316-vae",
+        "source": "478:317",
+        "sourceHandle": "VAE",
+        "target": "478:316",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "478:305-0-478:325-bypass",
+        "source": "478:305",
+        "sourceHandle": "BOOLEAN",
+        "target": "478:325",
+        "targetHandle": "bypass",
+        "ui_properties": null
+      },
+      {
+        "id": "478:317-2-478:325-vae",
+        "source": "478:317",
+        "sourceHandle": "VAE",
+        "target": "478:325",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "478:334-0-478:325-image",
+        "source": "478:334",
+        "sourceHandle": "output_image",
+        "target": "478:325",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "478:302-0-478:325-latent",
+        "source": "478:302",
+        "sourceHandle": "LATENT",
+        "target": "478:325",
+        "targetHandle": "latent",
+        "ui_properties": null
+      },
+      {
+        "id": "478:330-0-478:333-width",
+        "source": "478:330",
+        "sourceHandle": "INT",
+        "target": "478:333",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "478:324-0-478:333-height",
+        "source": "478:324",
+        "sourceHandle": "INT",
+        "target": "478:333",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "478:297-0-478:294-images",
+        "source": "478:297",
+        "sourceHandle": "resized",
+        "target": "478:294",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "478:294-0-478:334-image",
+        "source": "478:294",
+        "sourceHandle": "images",
+        "target": "478:334",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "478:324-0-478:301-values.a",
+        "source": "478:324",
+        "sourceHandle": "INT",
+        "target": "478:301",
+        "targetHandle": "values.a",
+        "ui_properties": null
+      },
+      {
+        "id": "478:330-0-478:299-values.a",
+        "source": "478:330",
+        "sourceHandle": "INT",
+        "target": "478:299",
+        "targetHandle": "values.a",
+        "ui_properties": null
+      },
+      {
+        "id": "478:323-0-478:304-values.a",
+        "source": "478:323",
+        "sourceHandle": "INT",
+        "target": "478:304",
+        "targetHandle": "values.a",
+        "ui_properties": null
+      },
+      {
+        "id": "478:304-0-478:312-fps",
+        "source": "478:304",
+        "sourceHandle": "FLOAT",
+        "target": "478:312",
+        "targetHandle": "fps",
+        "ui_properties": null
+      },
+      {
+        "id": "478:316-0-478:312-images",
+        "source": "478:316",
+        "sourceHandle": "IMAGE",
+        "target": "478:312",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "478:303-0-478:312-audio",
+        "source": "478:303",
+        "sourceHandle": "Audio",
+        "target": "478:312",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "478:299-1-478:302-width",
+        "source": "478:299",
+        "sourceHandle": "INT",
+        "target": "478:302",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "478:301-1-478:302-height",
+        "source": "478:301",
+        "sourceHandle": "INT",
+        "target": "478:302",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "478:329-1-478:302-length",
+        "source": "478:329",
+        "sourceHandle": "INT",
+        "target": "478:302",
+        "targetHandle": "length",
+        "ui_properties": null
+      },
+      {
+        "id": "478:331-0-478:329-values.a",
+        "source": "478:331",
+        "sourceHandle": "FLOAT",
+        "target": "478:329",
+        "targetHandle": "values.a",
+        "ui_properties": null
+      },
+      {
+        "id": "478:323-0-478:329-values.b",
+        "source": "478:323",
+        "sourceHandle": "INT",
+        "target": "478:329",
+        "targetHandle": "values.b",
+        "ui_properties": null
+      },
+      {
+        "id": "478:331-0-478:332-duration",
+        "source": "478:331",
+        "sourceHandle": "FLOAT",
+        "target": "478:332",
+        "targetHandle": "duration",
+        "ui_properties": null
+      },
+      {
+        "id": "3-0-478:332-audio",
+        "source": "3",
+        "sourceHandle": "AUDIO",
+        "target": "478:332",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "478:332-0-478:328-audio",
+        "source": "478:332",
+        "sourceHandle": "AUDIO",
+        "target": "478:328",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "478:335-0-478:328-audio_vae",
+        "source": "478:335",
+        "sourceHandle": "Audio VAE",
+        "target": "478:328",
+        "targetHandle": "audio_vae",
+        "ui_properties": null
+      },
+      {
+        "id": "478:325-0-478:326-video_latent",
+        "source": "478:325",
+        "sourceHandle": "latent",
+        "target": "478:326",
+        "targetHandle": "video_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "478:327-0-478:326-audio_latent",
+        "source": "478:327",
+        "sourceHandle": "LATENT",
+        "target": "478:326",
+        "targetHandle": "audio_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "478:328-0-478:327-samples",
+        "source": "478:328",
+        "sourceHandle": "Audio Latent",
+        "target": "478:327",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "478:333-0-478:327-mask",
+        "source": "478:333",
+        "sourceHandle": "MASK",
+        "target": "478:327",
+        "targetHandle": "mask",
+        "ui_properties": null
+      },
+      {
+        "id": "476-0-478:319-value",
+        "source": "476",
+        "sourceHandle": "STRING",
+        "target": "478:319",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "478:330-0-478:297-resize_type.width",
+        "source": "478:330",
+        "sourceHandle": "INT",
+        "target": "478:297",
+        "targetHandle": "resize_type.width",
+        "ui_properties": null
+      },
+      {
+        "id": "478:324-0-478:297-resize_type.height",
+        "source": "478:324",
+        "sourceHandle": "INT",
+        "target": "478:297",
+        "targetHandle": "resize_type.height",
+        "ui_properties": null
+      },
+      {
+        "id": "440-0-478:297-input",
+        "source": "440",
+        "sourceHandle": "IMAGE",
+        "target": "478:297",
+        "targetHandle": "input",
+        "ui_properties": null
+      },
+      {
+        "id": "478:317-0-478:293-model",
+        "source": "478:317",
+        "sourceHandle": "MODEL",
+        "target": "478:293",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "478:307-0-478:292-positive",
+        "source": "478:307",
+        "sourceHandle": "positive",
+        "target": "478:292",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "478:307-1-478:292-negative",
+        "source": "478:307",
+        "sourceHandle": "negative",
+        "target": "478:292",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "478:309-0-478:292-latent",
+        "source": "478:309",
+        "sourceHandle": "video_latent",
+        "target": "478:292",
+        "targetHandle": "latent",
+        "ui_properties": null
+      },
+      {
+        "id": "478:309-0-478:295-samples",
+        "source": "478:309",
+        "sourceHandle": "video_latent",
+        "target": "478:295",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "478:313-0-478:295-upscale_model",
+        "source": "478:313",
+        "sourceHandle": "LATENT_UPSCALE_MODEL",
+        "target": "478:295",
+        "targetHandle": "upscale_model",
+        "ui_properties": null
+      },
+      {
+        "id": "478:317-2-478:295-vae",
+        "source": "478:317",
+        "sourceHandle": "VAE",
+        "target": "478:295",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "478:305-0-478:296-bypass",
+        "source": "478:305",
+        "sourceHandle": "BOOLEAN",
+        "target": "478:296",
+        "targetHandle": "bypass",
+        "ui_properties": null
+      },
+      {
+        "id": "478:317-2-478:296-vae",
+        "source": "478:317",
+        "sourceHandle": "VAE",
+        "target": "478:296",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "478:334-0-478:296-image",
+        "source": "478:334",
+        "sourceHandle": "output_image",
+        "target": "478:296",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "478:295-0-478:296-latent",
+        "source": "478:295",
+        "sourceHandle": "LATENT",
+        "target": "478:296",
+        "targetHandle": "latent",
+        "ui_properties": null
+      },
+      {
+        "id": "478:296-0-478:287-video_latent",
+        "source": "478:296",
+        "sourceHandle": "latent",
+        "target": "478:287",
+        "targetHandle": "video_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "478:309-1-478:287-audio_latent",
+        "source": "478:309",
+        "sourceHandle": "audio_latent",
+        "target": "478:287",
+        "targetHandle": "audio_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "478:291-0-478:309-av_latent",
+        "source": "478:291",
+        "sourceHandle": "output",
+        "target": "478:309",
+        "targetHandle": "av_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "478:293-0-478:601-model",
+        "source": "478:293",
+        "sourceHandle": "MODEL",
+        "target": "478:601",
+        "targetHandle": "model",
+        "ui_properties": null
+      }
+    ]
+  }
+}

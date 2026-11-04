@@ -1,0 +1,106 @@
+{
+  "id": "349eaf65318f21bb1bd4229ea5c41f4d",
+  "name": "Comfy Recraft- Style Control Image Generation",
+  "description": "Control style with visual examples, align positioning, and fine-tune objects. Store and share styles for perfect brand consistency. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Recraft- Style Control Image Generation\n\nControl style with visual examples, align positioning, and fine-tune objects. Store and share styles for perfect brand consistency. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_recraft_image_gen_with_style_control.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.RecraftTextToImageNode",
+        "data": {
+          "prompt": "A young boy performing a dynamic skateboard trick in a sunlit skate park. He's wearing a white t-shirt and green shorts, captured mid-air with his blonde hair blowing in the wind. The skateboard is in motion as he rides a blue, curved ramp, creating a sense of energy and movement. The scene is painted in a bold, expressive oil painting style, with thick brushstrokes that enhance the vibrant and lively atmosphere. The background features a bright blue ramp, adding to the feeling of freedom and adventure.",
+          "size": "1536x1024",
+          "n": 1,
+          "seed": 1020777976509614,
+          "negative_prompt": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Recraft V3 Text to Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "24",
+        "type": "comfy.RecraftStyleV3DigitalIllustration",
+        "data": {
+          "substyle": "2d_art_poster"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Recraft Style - Digital Illustration"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "3-0-1-images",
+        "source": "3",
+        "sourceHandle": "IMAGE",
+        "target": "1",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "24-0-3-recraft_style",
+        "source": "24",
+        "sourceHandle": "recraft_style",
+        "target": "3",
+        "targetHandle": "recraft_style",
+        "ui_properties": null
+      }
+    ]
+  }
+}

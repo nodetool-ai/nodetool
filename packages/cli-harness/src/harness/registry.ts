@@ -1107,12 +1107,12 @@ export const HARNESSES: HarnessEntry[] = [
   {
     id: "comfy-templates",
     title: "Official ComfyUI template graph and example drift",
-    command: "node scripts/comfy-templates/generate.mjs --check",
+    command: "node scripts/comfy-templates/generate.mjs --check && node scripts/comfy-templates/ui-examples.mjs --check",
     kind: "static",
     capabilities: ["no-db", "gated:pr"],
     docs: "docs/comfyui.md § Bundled workflow templates",
     selfcheck: {
-      command: "node scripts/comfy-templates/generate.mjs --check && node scripts/comfy-templates/gpu-catalog.mjs --check",
+      command: "node scripts/comfy-templates/generate.mjs --check && node scripts/comfy-templates/ui-examples.mjs --check && node scripts/comfy-templates/gpu-catalog.mjs --check",
       cost: "cheap"
     }
   },

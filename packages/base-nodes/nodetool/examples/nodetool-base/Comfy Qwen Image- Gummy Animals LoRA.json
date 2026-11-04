@@ -1,0 +1,368 @@
+{
+  "id": "8449cafeada3625953768e4cd5d6eb98",
+  "name": "Comfy Qwen Image- Gummy Animals LoRA",
+  "description": "Apply a Qwen Image LoRA to transform any subject into a sour gummy candy-style character. Enter an animal name in the prompt to generate a stylized, edible-looking creature. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Qwen Image- Gummy Animals LoRA\n\nApply a Qwen Image LoRA to transform any subject into a sour gummy candy-style character. Enter an animal name in the prompt to generate a stylized, edible-looking creature. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/template_sugar_coated_gummy_style_qwen.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "60",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "Qwen-Image"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "76:39",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "qwen_image_vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "76:38",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+          "type": "qwen_image",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "76:58",
+        "type": "comfy.EmptySD3LatentImage",
+        "data": {
+          "width": 1328,
+          "height": 1328,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "EmptySD3LatentImage"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "76:66",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 3.1000000000000005,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ModelSamplingAuraFlow"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "76:37",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "qwen_image_fp8_e4m3fn.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "76:6",
+        "type": "comfy.CLIPTextEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Positive Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "76:7",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Negative Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "76:8",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "76:3",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 671299924443981,
+          "steps": 25,
+          "cfg": 3,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "76:78",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "gummycandy_qwen.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "76:80",
+        "type": "comfy.StringConcatenate",
+        "data": {
+          "string_a": "cat",
+          "string_b": "sugar-coated sour gummy candy style, with pink, yellow, and green gummy, sugar crystals, glossy eyes",
+          "delimiter": ","
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Concatenate Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "76:82",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "76:8-0-60-images",
+        "source": "76:8",
+        "sourceHandle": "IMAGE",
+        "target": "60",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "76:78-0-76:66-model",
+        "source": "76:78",
+        "sourceHandle": "MODEL",
+        "target": "76:66",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "76:80-0-76:6-text",
+        "source": "76:80",
+        "sourceHandle": "STRING",
+        "target": "76:6",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "76:38-0-76:6-clip",
+        "source": "76:38",
+        "sourceHandle": "CLIP",
+        "target": "76:6",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "76:38-0-76:7-clip",
+        "source": "76:38",
+        "sourceHandle": "CLIP",
+        "target": "76:7",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "76:3-0-76:8-samples",
+        "source": "76:3",
+        "sourceHandle": "LATENT",
+        "target": "76:8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "76:39-0-76:8-vae",
+        "source": "76:39",
+        "sourceHandle": "VAE",
+        "target": "76:8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "76:66-0-76:3-model",
+        "source": "76:66",
+        "sourceHandle": "MODEL",
+        "target": "76:3",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "76:6-0-76:3-positive",
+        "source": "76:6",
+        "sourceHandle": "CONDITIONING",
+        "target": "76:3",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "76:7-0-76:3-negative",
+        "source": "76:7",
+        "sourceHandle": "CONDITIONING",
+        "target": "76:3",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "76:58-0-76:3-latent_image",
+        "source": "76:58",
+        "sourceHandle": "LATENT",
+        "target": "76:3",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "76:37-0-76:78-model",
+        "source": "76:37",
+        "sourceHandle": "MODEL",
+        "target": "76:78",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "76:80-0-76:82-source",
+        "source": "76:80",
+        "sourceHandle": "STRING",
+        "target": "76:82",
+        "targetHandle": "source",
+        "ui_properties": null
+      }
+    ]
+  }
+}

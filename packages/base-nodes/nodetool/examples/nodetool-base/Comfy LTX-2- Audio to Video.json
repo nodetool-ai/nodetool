@@ -1,0 +1,3390 @@
+{
+  "id": "4faff99daa3c5f5d4ab90e197fd2c477",
+  "name": "Comfy LTX-2- Audio to Video",
+  "description": "Upload an audio file and a starting image frame. Generate a video synchronized to the audio using the LTX-2 model. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "video",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy LTX-2- Audio to Video\n\nUpload an audio file and a starting image frame. Generate a video synchronized to the audio using the LTX-2 model. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/video_ltx_2_audio_to_video.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "444",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "ltx2-a2v-input.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "565",
+        "type": "comfy.LoadAudio",
+        "data": {
+          "audio": "ltx2-a2v-input.mp3"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "982",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ltx-2-a2v",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 17340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Final Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "984",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ltx-2-a2v",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3740,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Preview Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:952",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "ltx-2-19b-distilled_transformer_only_bf16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:922",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "still image with no motion, subtitles, text, scene change"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:819",
+        "type": "comfy.LTXVChunkFeedForward",
+        "data": {
+          "chunks": 4,
+          "dim_threshold": 4096
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "LTXV Chunk FeedForward"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:927",
+        "type": "comfy.LTXVConditioning",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "LTXVConditioning"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:855",
+        "type": "comfy.EmptyLTXVLatentVideo",
+        "data": {
+          "length": 241,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Empty LTXV Latent Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:933",
+        "type": "comfy.LTX2SamplingPreviewOverride",
+        "data": {
+          "preview_rate": 8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "LTX2 Sampling Preview Override"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:951",
+        "type": "comfy.DualCLIPLoader",
+        "data": {
+          "clip_name1": "gemma_3_12B_it_fp8_scaled.safetensors",
+          "clip_name2": "ltx-2-19b-embeddings_connector_distill_bf16.safetensors",
+          "type": "ltxv",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load CLIP (Dual)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:895",
+        "type": "comfy.VAELoaderKJ",
+        "data": {
+          "vae_name": "LTX2_audio_vae_bf16.safetensors",
+          "device": "main_device",
+          "weight_dtype": "bf16"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "VAELoader KJ"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:842",
+        "type": "comfy.LTXVImgToVideoInplaceKJ",
+        "data": {
+          "num_images": "1",
+          "num_images.strength_1": 1,
+          "num_images.index_1": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 660
+          },
+          "width": 280,
+          "title": "LTXVImgToVideoInplaceKJ"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:904",
+        "type": "comfy.VAELoaderKJ",
+        "data": {
+          "vae_name": "LTX2_video_vae_bf16.safetensors",
+          "device": "main_device",
+          "weight_dtype": "bf16"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "VAELoader KJ"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:995",
+        "type": "comfy.CreateVideo",
+        "data": {
+          "bit_depth": "auto",
+          "color_space": "sRGB",
+          "codec": "none"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 17000,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Create Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:950",
+        "type": "comfy.ConditioningZeroOut",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Conditioning Zero Out"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:921",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "the man is singing passionately"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:820",
+        "type": "comfy.LTX2_NAG",
+        "data": {
+          "nag_scale": 11,
+          "nag_alpha": 0.25,
+          "nag_tau": 2.5,
+          "inplace": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "LTX2 NAG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:821",
+        "type": "comfy.LTXVPreprocess",
+        "data": {
+          "img_compression": 25
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 990
+          },
+          "width": 280,
+          "title": "LTXV Preprocess"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:923",
+        "type": "comfy.ImageResizeKJv2",
+        "data": {
+          "width": 720,
+          "height": 720,
+          "upscale_method": "lanczos",
+          "keep_proportion": "crop",
+          "pad_color": "0, 0, 0",
+          "crop_position": "center",
+          "divisible_by": 2,
+          "device": "cpu"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Resize Image v2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:892",
+        "type": "comfy.AudioCrop",
+        "data": {
+          "start_time": "1:05",
+          "end_time": "2:05"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "AudioCrop"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:890",
+        "type": "comfy.AudioSeparation",
+        "data": {
+          "chunk_fade_shape": "linear",
+          "chunk_length": 10,
+          "chunk_overlap": 0.1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "AudioSeparation"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:983",
+        "type": "comfy.CreateVideo",
+        "data": {
+          "bit_depth": "auto",
+          "color_space": "sRGB",
+          "codec": "none"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3400,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Create Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:1001",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 24
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "FPS"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:857",
+        "type": "comfy.FloatConstant",
+        "data": {
+          "value": 10.25
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "window_size_seconds"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:978:883",
+        "type": "comfy.SamplerCustomAdvanced",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SamplerCustomAdvanced"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:978:828",
+        "type": "comfy.CFGGuider",
+        "data": {
+          "cfg": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CFG Guider"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:978:825",
+        "type": "comfy.LTXVSeparateAVLatent",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Separate AV Latent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:978:944",
+        "type": "comfy.KSamplerSelect",
+        "data": {
+          "sampler_name": "lcm"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2640
+          },
+          "width": 280,
+          "title": "KSamplerSelect"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:978:939",
+        "type": "comfy.LTXVScheduler",
+        "data": {
+          "steps": 8,
+          "max_shift": 2.05,
+          "base_shift": 0.95,
+          "stretch": true,
+          "terminal": 0.1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 330
+          },
+          "width": 280,
+          "title": "LTXVScheduler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:978:826",
+        "type": "comfy.VAEDecodeTiled",
+        "data": {
+          "tile_size": 1024,
+          "overlap": 64,
+          "temporal_size": 128,
+          "temporal_overlap": 16
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3060,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode (Tiled)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:978:863",
+        "type": "comfy.RandomNoise",
+        "data": {
+          "noise_seed": 44
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2970
+          },
+          "width": 280,
+          "title": "RandomNoise"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:978:818",
+        "type": "comfy.SolidMask",
+        "data": {
+          "value": 0,
+          "width": 512,
+          "height": 512
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 3300
+          },
+          "width": 280,
+          "title": "Create Solid Mask"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:978:822",
+        "type": "comfy.LTXVConcatAVLatent",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Concat AV Latent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:978:991",
+        "type": "comfy.TrimAudioDuration",
+        "data": {
+          "start_index": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Trim Audio Duration"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:978:907",
+        "type": "comfy.LTXVAudioVAEEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 660
+          },
+          "width": 280,
+          "title": "LTXV Audio VAE Encode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:978:817",
+        "type": "comfy.SetLatentNoiseMask",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Set Latent Noise Mask"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:969:1045",
+        "type": "comfy.LTXVSeparateAVLatent",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 5440,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Separate AV Latent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:969:1046",
+        "type": "comfy.KSamplerSelect",
+        "data": {
+          "sampler_name": "lcm"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 3630
+          },
+          "width": 280,
+          "title": "KSamplerSelect"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:969:1047",
+        "type": "comfy.LTXVScheduler",
+        "data": {
+          "steps": 8,
+          "max_shift": 2.05,
+          "base_shift": 0.95,
+          "stretch": true,
+          "terminal": 0.1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 990
+          },
+          "width": 280,
+          "title": "LTXVScheduler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:969:1048",
+        "type": "comfy.RandomNoise",
+        "data": {
+          "noise_seed": 42
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 3960
+          },
+          "width": 280,
+          "title": "RandomNoise"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:969:1049",
+        "type": "comfy.LTXVAddGuideMulti",
+        "data": {
+          "num_guides": "2",
+          "num_guides.frame_idx_1": 1,
+          "num_guides.strength_1": -1,
+          "num_guides.frame_idx_2": 0,
+          "num_guides.strength_2": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4420,
+            "y": 0
+          },
+          "width": 280,
+          "title": "LTXVAddGuideMulti"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:969:1050",
+        "type": "comfy.LTXVConcatAVLatent",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Concat AV Latent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:969:1051",
+        "type": "comfy.GetImageRangeFromBatch",
+        "data": {
+          "start_index": -1,
+          "num_frames": 25
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3400,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Get Image or Mask Range From Batch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:969:1052",
+        "type": "comfy.VAEEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 3740,
+            "y": 330
+          },
+          "width": 280,
+          "title": "VAE Encode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:969:1053",
+        "type": "comfy.CFGGuider",
+        "data": {
+          "cfg": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CFG Guider"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:969:1054",
+        "type": "comfy.LTXVAudioVideoMask",
+        "data": {
+          "video_start_time": 1,
+          "max_length": "pad",
+          "existing_mask_mode": "add"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4080,
+            "y": 0
+          },
+          "width": 280,
+          "title": "LTXVAudioVideoMask"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:969:1055",
+        "type": "comfy.LTXVAudioVAEEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "LTXV Audio VAE Encode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:969:1056",
+        "type": "comfy.LTXVCropGuides",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 5780,
+            "y": 0
+          },
+          "width": 280,
+          "title": "LTXVCropGuides"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:969:1057",
+        "type": "comfy.VAEDecodeTiled",
+        "data": {
+          "tile_size": 1024,
+          "overlap": 64,
+          "temporal_size": 256,
+          "temporal_overlap": 16
+        },
+        "ui_properties": {
+          "position": {
+            "x": 6120,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode (Tiled)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:969:1058",
+        "type": "comfy.ImageBatchExtendWithOverlap",
+        "data": {
+          "overlap": 25,
+          "overlap_side": "source",
+          "overlap_mode": "filmic_crossfade"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 6460,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Image Batch Extend With Overlap"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:969:1059",
+        "type": "comfy.SamplerCustomAdvanced",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 5100,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SamplerCustomAdvanced"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:969:1060",
+        "type": "comfy.TrimAudioDuration",
+        "data": {
+          "start_index": 9
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Trim Audio Duration"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:988:1013",
+        "type": "comfy.LTXVSeparateAVLatent",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 8840,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Separate AV Latent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:988:1014",
+        "type": "comfy.KSamplerSelect",
+        "data": {
+          "sampler_name": "lcm"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 4290
+          },
+          "width": 280,
+          "title": "KSamplerSelect"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:988:1015",
+        "type": "comfy.LTXVScheduler",
+        "data": {
+          "steps": 8,
+          "max_shift": 2.05,
+          "base_shift": 0.95,
+          "stretch": true,
+          "terminal": 0.1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "LTXVScheduler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:988:1016",
+        "type": "comfy.RandomNoise",
+        "data": {
+          "noise_seed": 42
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 4620
+          },
+          "width": 280,
+          "title": "RandomNoise"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:988:1017",
+        "type": "comfy.LTXVAddGuideMulti",
+        "data": {
+          "num_guides": "2",
+          "num_guides.frame_idx_1": 1,
+          "num_guides.strength_1": -1,
+          "num_guides.frame_idx_2": 0,
+          "num_guides.strength_2": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 7820,
+            "y": 0
+          },
+          "width": 280,
+          "title": "LTXVAddGuideMulti"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:988:1018",
+        "type": "comfy.LTXVConcatAVLatent",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 8160,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Concat AV Latent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:988:1019",
+        "type": "comfy.GetImageRangeFromBatch",
+        "data": {
+          "start_index": -1,
+          "num_frames": 25
+        },
+        "ui_properties": {
+          "position": {
+            "x": 6800,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Get Image or Mask Range From Batch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:988:1020",
+        "type": "comfy.VAEEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 7140,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Encode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:988:1021",
+        "type": "comfy.CFGGuider",
+        "data": {
+          "cfg": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 8160,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CFG Guider"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:988:1022",
+        "type": "comfy.TrimAudioDuration",
+        "data": {
+          "start_index": 18
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Trim Audio Duration"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:988:1023",
+        "type": "comfy.LTXVAudioVideoMask",
+        "data": {
+          "video_start_time": 1,
+          "max_length": "pad",
+          "existing_mask_mode": "add"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 7480,
+            "y": 0
+          },
+          "width": 280,
+          "title": "LTXVAudioVideoMask"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:988:1024",
+        "type": "comfy.LTXVCropGuides",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 9180,
+            "y": 0
+          },
+          "width": 280,
+          "title": "LTXVCropGuides"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:988:1025",
+        "type": "comfy.VAEDecodeTiled",
+        "data": {
+          "tile_size": 1024,
+          "overlap": 64,
+          "temporal_size": 256,
+          "temporal_overlap": 16
+        },
+        "ui_properties": {
+          "position": {
+            "x": 9520,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode (Tiled)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:988:1026",
+        "type": "comfy.ImageBatchExtendWithOverlap",
+        "data": {
+          "overlap": 25,
+          "overlap_side": "source",
+          "overlap_mode": "filmic_crossfade"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 9860,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Image Batch Extend With Overlap"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:988:1027",
+        "type": "comfy.SamplerCustomAdvanced",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 8500,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SamplerCustomAdvanced"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:988:1028",
+        "type": "comfy.LTXVAudioVAEEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "LTXV Audio VAE Encode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:989:831",
+        "type": "comfy.LTXVSeparateAVLatent",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 12240,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Separate AV Latent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:989:953",
+        "type": "comfy.KSamplerSelect",
+        "data": {
+          "sampler_name": "lcm"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 4950
+          },
+          "width": 280,
+          "title": "KSamplerSelect"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:989:954",
+        "type": "comfy.LTXVScheduler",
+        "data": {
+          "steps": 8,
+          "max_shift": 2.05,
+          "base_shift": 0.95,
+          "stretch": true,
+          "terminal": 0.1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "LTXVScheduler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:989:823",
+        "type": "comfy.RandomNoise",
+        "data": {
+          "noise_seed": 42
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 5280
+          },
+          "width": 280,
+          "title": "RandomNoise"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:989:896",
+        "type": "comfy.LTXVAddGuideMulti",
+        "data": {
+          "num_guides": "2",
+          "num_guides.frame_idx_1": 1,
+          "num_guides.strength_1": -1,
+          "num_guides.frame_idx_2": 0,
+          "num_guides.strength_2": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 11220,
+            "y": 0
+          },
+          "width": 280,
+          "title": "LTXVAddGuideMulti"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:989:829",
+        "type": "comfy.LTXVConcatAVLatent",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 11560,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Concat AV Latent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:989:843",
+        "type": "comfy.GetImageRangeFromBatch",
+        "data": {
+          "start_index": -1,
+          "num_frames": 25
+        },
+        "ui_properties": {
+          "position": {
+            "x": 10200,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Get Image or Mask Range From Batch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:989:900",
+        "type": "comfy.VAEEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 10540,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Encode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:989:830",
+        "type": "comfy.CFGGuider",
+        "data": {
+          "cfg": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 11560,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CFG Guider"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:989:862",
+        "type": "comfy.TrimAudioDuration",
+        "data": {
+          "start_index": 27
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Trim Audio Duration"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:989:859",
+        "type": "comfy.LTXVAudioVideoMask",
+        "data": {
+          "video_start_time": 1,
+          "max_length": "pad",
+          "existing_mask_mode": "add"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 10880,
+            "y": 0
+          },
+          "width": 280,
+          "title": "LTXVAudioVideoMask"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:989:824",
+        "type": "comfy.LTXVAudioVAEEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 2640
+          },
+          "width": 280,
+          "title": "LTXV Audio VAE Encode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:989:832",
+        "type": "comfy.LTXVCropGuides",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 12580,
+            "y": 0
+          },
+          "width": 280,
+          "title": "LTXVCropGuides"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:989:901",
+        "type": "comfy.VAEDecodeTiled",
+        "data": {
+          "tile_size": 1024,
+          "overlap": 64,
+          "temporal_size": 256,
+          "temporal_overlap": 16
+        },
+        "ui_properties": {
+          "position": {
+            "x": 12920,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode (Tiled)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:989:987",
+        "type": "comfy.ImageBatchExtendWithOverlap",
+        "data": {
+          "overlap": 25,
+          "overlap_side": "source",
+          "overlap_mode": "filmic_crossfade"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 13260,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Image Batch Extend With Overlap"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:989:827",
+        "type": "comfy.SamplerCustomAdvanced",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 11900,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SamplerCustomAdvanced"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:990:1029",
+        "type": "comfy.LTXVSeparateAVLatent",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 15640,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Separate AV Latent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:990:1030",
+        "type": "comfy.KSamplerSelect",
+        "data": {
+          "sampler_name": "lcm"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 5610
+          },
+          "width": 280,
+          "title": "KSamplerSelect"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:990:1031",
+        "type": "comfy.LTXVScheduler",
+        "data": {
+          "steps": 8,
+          "max_shift": 2.05,
+          "base_shift": 0.95,
+          "stretch": true,
+          "terminal": 0.1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 2970
+          },
+          "width": 280,
+          "title": "LTXVScheduler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:990:1032",
+        "type": "comfy.RandomNoise",
+        "data": {
+          "noise_seed": 42
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 5940
+          },
+          "width": 280,
+          "title": "RandomNoise"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:990:1033",
+        "type": "comfy.LTXVAddGuideMulti",
+        "data": {
+          "num_guides": "2",
+          "num_guides.frame_idx_1": 1,
+          "num_guides.strength_1": -1,
+          "num_guides.frame_idx_2": 0,
+          "num_guides.strength_2": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 14620,
+            "y": 0
+          },
+          "width": 280,
+          "title": "LTXVAddGuideMulti"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:990:1034",
+        "type": "comfy.LTXVConcatAVLatent",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 14960,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Concat AV Latent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:990:1035",
+        "type": "comfy.GetImageRangeFromBatch",
+        "data": {
+          "start_index": -1,
+          "num_frames": 25
+        },
+        "ui_properties": {
+          "position": {
+            "x": 13600,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Get Image or Mask Range From Batch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:990:1036",
+        "type": "comfy.VAEEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 13940,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Encode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:990:1037",
+        "type": "comfy.CFGGuider",
+        "data": {
+          "cfg": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 14960,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CFG Guider"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:990:1038",
+        "type": "comfy.TrimAudioDuration",
+        "data": {
+          "start_index": 36
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "Trim Audio Duration"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:990:1039",
+        "type": "comfy.LTXVAudioVideoMask",
+        "data": {
+          "video_start_time": 1,
+          "max_length": "pad",
+          "existing_mask_mode": "add"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 14280,
+            "y": 0
+          },
+          "width": 280,
+          "title": "LTXVAudioVideoMask"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:990:1040",
+        "type": "comfy.LTXVAudioVAEEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 3300
+          },
+          "width": 280,
+          "title": "LTXV Audio VAE Encode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:990:1041",
+        "type": "comfy.LTXVCropGuides",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 15980,
+            "y": 0
+          },
+          "width": 280,
+          "title": "LTXVCropGuides"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:990:1042",
+        "type": "comfy.VAEDecodeTiled",
+        "data": {
+          "tile_size": 1024,
+          "overlap": 64,
+          "temporal_size": 256,
+          "temporal_overlap": 16
+        },
+        "ui_properties": {
+          "position": {
+            "x": 16320,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode (Tiled)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:990:1043",
+        "type": "comfy.ImageBatchExtendWithOverlap",
+        "data": {
+          "overlap": 25,
+          "overlap_side": "source",
+          "overlap_mode": "filmic_crossfade"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 16660,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Image Batch Extend With Overlap"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "994:990:1044",
+        "type": "comfy.SamplerCustomAdvanced",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 15300,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SamplerCustomAdvanced"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "994:995-0-982-video",
+        "source": "994:995",
+        "sourceHandle": "VIDEO",
+        "target": "982",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "994:983-0-984-video",
+        "source": "994:983",
+        "sourceHandle": "VIDEO",
+        "target": "984",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "994:951-0-994:922-clip",
+        "source": "994:951",
+        "sourceHandle": "CLIP",
+        "target": "994:922",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "994:952-0-994:819-model",
+        "source": "994:952",
+        "sourceHandle": "MODEL",
+        "target": "994:819",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "994:1001-0-994:927-frame_rate",
+        "source": "994:1001",
+        "sourceHandle": "FLOAT",
+        "target": "994:927",
+        "targetHandle": "frame_rate",
+        "ui_properties": null
+      },
+      {
+        "id": "994:921-0-994:927-positive",
+        "source": "994:921",
+        "sourceHandle": "CONDITIONING",
+        "target": "994:927",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "994:950-0-994:927-negative",
+        "source": "994:950",
+        "sourceHandle": "CONDITIONING",
+        "target": "994:927",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "994:923-1-994:855-width",
+        "source": "994:923",
+        "sourceHandle": "width",
+        "target": "994:855",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "994:923-2-994:855-height",
+        "source": "994:923",
+        "sourceHandle": "height",
+        "target": "994:855",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "994:820-0-994:933-model",
+        "source": "994:820",
+        "sourceHandle": "model",
+        "target": "994:933",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "994:821-0-994:842-num_images.image_1",
+        "source": "994:821",
+        "sourceHandle": "output_image",
+        "target": "994:842",
+        "targetHandle": "num_images.image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "994:904-0-994:842-vae",
+        "source": "994:904",
+        "sourceHandle": "VAE",
+        "target": "994:842",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "994:855-0-994:842-latent",
+        "source": "994:855",
+        "sourceHandle": "LATENT",
+        "target": "994:842",
+        "targetHandle": "latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:1001-0-994:995-fps",
+        "source": "994:1001",
+        "sourceHandle": "FLOAT",
+        "target": "994:995",
+        "targetHandle": "fps",
+        "ui_properties": null
+      },
+      {
+        "id": "994:990:1043-2-994:995-images",
+        "source": "994:990:1043",
+        "sourceHandle": "extended_images",
+        "target": "994:995",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "994:892-0-994:995-audio",
+        "source": "994:892",
+        "sourceHandle": "AUDIO",
+        "target": "994:995",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "994:921-0-994:950-conditioning",
+        "source": "994:921",
+        "sourceHandle": "CONDITIONING",
+        "target": "994:950",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "994:951-0-994:921-clip",
+        "source": "994:951",
+        "sourceHandle": "CLIP",
+        "target": "994:921",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "994:819-0-994:820-model",
+        "source": "994:819",
+        "sourceHandle": "model",
+        "target": "994:820",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "994:922-0-994:820-nag_cond_video",
+        "source": "994:922",
+        "sourceHandle": "CONDITIONING",
+        "target": "994:820",
+        "targetHandle": "nag_cond_video",
+        "ui_properties": null
+      },
+      {
+        "id": "994:923-0-994:821-image",
+        "source": "994:923",
+        "sourceHandle": "IMAGE",
+        "target": "994:821",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "444-0-994:923-image",
+        "source": "444",
+        "sourceHandle": "IMAGE",
+        "target": "994:923",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "565-0-994:892-audio",
+        "source": "565",
+        "sourceHandle": "AUDIO",
+        "target": "994:892",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "994:892-0-994:890-audio",
+        "source": "994:892",
+        "sourceHandle": "AUDIO",
+        "target": "994:890",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "994:1001-0-994:983-fps",
+        "source": "994:1001",
+        "sourceHandle": "FLOAT",
+        "target": "994:983",
+        "targetHandle": "fps",
+        "ui_properties": null
+      },
+      {
+        "id": "994:978:826-0-994:983-images",
+        "source": "994:978:826",
+        "sourceHandle": "IMAGE",
+        "target": "994:983",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "994:892-0-994:983-audio",
+        "source": "994:892",
+        "sourceHandle": "AUDIO",
+        "target": "994:983",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "994:978:863-0-994:978:883-noise",
+        "source": "994:978:863",
+        "sourceHandle": "NOISE",
+        "target": "994:978:883",
+        "targetHandle": "noise",
+        "ui_properties": null
+      },
+      {
+        "id": "994:978:828-0-994:978:883-guider",
+        "source": "994:978:828",
+        "sourceHandle": "GUIDER",
+        "target": "994:978:883",
+        "targetHandle": "guider",
+        "ui_properties": null
+      },
+      {
+        "id": "994:978:944-0-994:978:883-sampler",
+        "source": "994:978:944",
+        "sourceHandle": "SAMPLER",
+        "target": "994:978:883",
+        "targetHandle": "sampler",
+        "ui_properties": null
+      },
+      {
+        "id": "994:978:939-0-994:978:883-sigmas",
+        "source": "994:978:939",
+        "sourceHandle": "SIGMAS",
+        "target": "994:978:883",
+        "targetHandle": "sigmas",
+        "ui_properties": null
+      },
+      {
+        "id": "994:978:822-0-994:978:883-latent_image",
+        "source": "994:978:822",
+        "sourceHandle": "latent",
+        "target": "994:978:883",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "994:933-0-994:978:828-model",
+        "source": "994:933",
+        "sourceHandle": "MODEL",
+        "target": "994:978:828",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "994:927-0-994:978:828-positive",
+        "source": "994:927",
+        "sourceHandle": "positive",
+        "target": "994:978:828",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "994:927-1-994:978:828-negative",
+        "source": "994:927",
+        "sourceHandle": "negative",
+        "target": "994:978:828",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "994:978:883-0-994:978:825-av_latent",
+        "source": "994:978:883",
+        "sourceHandle": "output",
+        "target": "994:978:825",
+        "targetHandle": "av_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:842-0-994:978:939-latent",
+        "source": "994:842",
+        "sourceHandle": "latent",
+        "target": "994:978:939",
+        "targetHandle": "latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:978:825-0-994:978:826-samples",
+        "source": "994:978:825",
+        "sourceHandle": "video_latent",
+        "target": "994:978:826",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "994:904-0-994:978:826-vae",
+        "source": "994:904",
+        "sourceHandle": "VAE",
+        "target": "994:978:826",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "994:842-0-994:978:822-video_latent",
+        "source": "994:842",
+        "sourceHandle": "latent",
+        "target": "994:978:822",
+        "targetHandle": "video_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:978:817-0-994:978:822-audio_latent",
+        "source": "994:978:817",
+        "sourceHandle": "LATENT",
+        "target": "994:978:822",
+        "targetHandle": "audio_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:857-0-994:978:991-duration",
+        "source": "994:857",
+        "sourceHandle": "value",
+        "target": "994:978:991",
+        "targetHandle": "duration",
+        "ui_properties": null
+      },
+      {
+        "id": "994:890-3-994:978:991-audio",
+        "source": "994:890",
+        "sourceHandle": "Vocals",
+        "target": "994:978:991",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "994:978:991-0-994:978:907-audio",
+        "source": "994:978:991",
+        "sourceHandle": "AUDIO",
+        "target": "994:978:907",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "994:895-0-994:978:907-audio_vae",
+        "source": "994:895",
+        "sourceHandle": "VAE",
+        "target": "994:978:907",
+        "targetHandle": "audio_vae",
+        "ui_properties": null
+      },
+      {
+        "id": "994:978:907-0-994:978:817-samples",
+        "source": "994:978:907",
+        "sourceHandle": "Audio Latent",
+        "target": "994:978:817",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "994:978:818-0-994:978:817-mask",
+        "source": "994:978:818",
+        "sourceHandle": "MASK",
+        "target": "994:978:817",
+        "targetHandle": "mask",
+        "ui_properties": null
+      },
+      {
+        "id": "994:969:1059-0-994:969:1045-av_latent",
+        "source": "994:969:1059",
+        "sourceHandle": "output",
+        "target": "994:969:1045",
+        "targetHandle": "av_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:842-0-994:969:1047-latent",
+        "source": "994:842",
+        "sourceHandle": "latent",
+        "target": "994:969:1047",
+        "targetHandle": "latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:923-0-994:969:1049-num_guides.image_1",
+        "source": "994:923",
+        "sourceHandle": "IMAGE",
+        "target": "994:969:1049",
+        "targetHandle": "num_guides.image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "994:923-0-994:969:1049-num_guides.image_2",
+        "source": "994:923",
+        "sourceHandle": "IMAGE",
+        "target": "994:969:1049",
+        "targetHandle": "num_guides.image_2",
+        "ui_properties": null
+      },
+      {
+        "id": "994:927-0-994:969:1049-positive",
+        "source": "994:927",
+        "sourceHandle": "positive",
+        "target": "994:969:1049",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "994:927-1-994:969:1049-negative",
+        "source": "994:927",
+        "sourceHandle": "negative",
+        "target": "994:969:1049",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "994:904-0-994:969:1049-vae",
+        "source": "994:904",
+        "sourceHandle": "VAE",
+        "target": "994:969:1049",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "994:969:1054-0-994:969:1049-latent",
+        "source": "994:969:1054",
+        "sourceHandle": "video_latent",
+        "target": "994:969:1049",
+        "targetHandle": "latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:969:1049-2-994:969:1050-video_latent",
+        "source": "994:969:1049",
+        "sourceHandle": "latent",
+        "target": "994:969:1050",
+        "targetHandle": "video_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:969:1054-1-994:969:1050-audio_latent",
+        "source": "994:969:1054",
+        "sourceHandle": "audio_latent",
+        "target": "994:969:1050",
+        "targetHandle": "audio_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:978:826-0-994:969:1051-images",
+        "source": "994:978:826",
+        "sourceHandle": "IMAGE",
+        "target": "994:969:1051",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "994:969:1051-0-994:969:1052-pixels",
+        "source": "994:969:1051",
+        "sourceHandle": "IMAGE",
+        "target": "994:969:1052",
+        "targetHandle": "pixels",
+        "ui_properties": null
+      },
+      {
+        "id": "994:904-0-994:969:1052-vae",
+        "source": "994:904",
+        "sourceHandle": "VAE",
+        "target": "994:969:1052",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "994:933-0-994:969:1053-model",
+        "source": "994:933",
+        "sourceHandle": "MODEL",
+        "target": "994:969:1053",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "994:969:1049-0-994:969:1053-positive",
+        "source": "994:969:1049",
+        "sourceHandle": "positive",
+        "target": "994:969:1053",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "994:969:1049-1-994:969:1053-negative",
+        "source": "994:969:1049",
+        "sourceHandle": "negative",
+        "target": "994:969:1053",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "994:1001-0-994:969:1054-video_fps",
+        "source": "994:1001",
+        "sourceHandle": "FLOAT",
+        "target": "994:969:1054",
+        "targetHandle": "video_fps",
+        "ui_properties": null
+      },
+      {
+        "id": "994:857-0-994:969:1054-video_end_time",
+        "source": "994:857",
+        "sourceHandle": "value",
+        "target": "994:969:1054",
+        "targetHandle": "video_end_time",
+        "ui_properties": null
+      },
+      {
+        "id": "994:857-0-994:969:1054-audio_start_time",
+        "source": "994:857",
+        "sourceHandle": "value",
+        "target": "994:969:1054",
+        "targetHandle": "audio_start_time",
+        "ui_properties": null
+      },
+      {
+        "id": "994:857-0-994:969:1054-audio_end_time",
+        "source": "994:857",
+        "sourceHandle": "value",
+        "target": "994:969:1054",
+        "targetHandle": "audio_end_time",
+        "ui_properties": null
+      },
+      {
+        "id": "994:969:1052-0-994:969:1054-video_latent",
+        "source": "994:969:1052",
+        "sourceHandle": "LATENT",
+        "target": "994:969:1054",
+        "targetHandle": "video_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:969:1055-0-994:969:1054-audio_latent",
+        "source": "994:969:1055",
+        "sourceHandle": "Audio Latent",
+        "target": "994:969:1054",
+        "targetHandle": "audio_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:969:1060-0-994:969:1055-audio",
+        "source": "994:969:1060",
+        "sourceHandle": "AUDIO",
+        "target": "994:969:1055",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "994:895-0-994:969:1055-audio_vae",
+        "source": "994:895",
+        "sourceHandle": "VAE",
+        "target": "994:969:1055",
+        "targetHandle": "audio_vae",
+        "ui_properties": null
+      },
+      {
+        "id": "994:969:1049-0-994:969:1056-positive",
+        "source": "994:969:1049",
+        "sourceHandle": "positive",
+        "target": "994:969:1056",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "994:969:1049-1-994:969:1056-negative",
+        "source": "994:969:1049",
+        "sourceHandle": "negative",
+        "target": "994:969:1056",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "994:969:1045-0-994:969:1056-latent",
+        "source": "994:969:1045",
+        "sourceHandle": "video_latent",
+        "target": "994:969:1056",
+        "targetHandle": "latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:969:1056-2-994:969:1057-samples",
+        "source": "994:969:1056",
+        "sourceHandle": "latent",
+        "target": "994:969:1057",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "994:904-0-994:969:1057-vae",
+        "source": "994:904",
+        "sourceHandle": "VAE",
+        "target": "994:969:1057",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "994:978:826-0-994:969:1058-source_images",
+        "source": "994:978:826",
+        "sourceHandle": "IMAGE",
+        "target": "994:969:1058",
+        "targetHandle": "source_images",
+        "ui_properties": null
+      },
+      {
+        "id": "994:969:1057-0-994:969:1058-new_images",
+        "source": "994:969:1057",
+        "sourceHandle": "IMAGE",
+        "target": "994:969:1058",
+        "targetHandle": "new_images",
+        "ui_properties": null
+      },
+      {
+        "id": "994:969:1048-0-994:969:1059-noise",
+        "source": "994:969:1048",
+        "sourceHandle": "NOISE",
+        "target": "994:969:1059",
+        "targetHandle": "noise",
+        "ui_properties": null
+      },
+      {
+        "id": "994:969:1053-0-994:969:1059-guider",
+        "source": "994:969:1053",
+        "sourceHandle": "GUIDER",
+        "target": "994:969:1059",
+        "targetHandle": "guider",
+        "ui_properties": null
+      },
+      {
+        "id": "994:969:1046-0-994:969:1059-sampler",
+        "source": "994:969:1046",
+        "sourceHandle": "SAMPLER",
+        "target": "994:969:1059",
+        "targetHandle": "sampler",
+        "ui_properties": null
+      },
+      {
+        "id": "994:969:1047-0-994:969:1059-sigmas",
+        "source": "994:969:1047",
+        "sourceHandle": "SIGMAS",
+        "target": "994:969:1059",
+        "targetHandle": "sigmas",
+        "ui_properties": null
+      },
+      {
+        "id": "994:969:1050-0-994:969:1059-latent_image",
+        "source": "994:969:1050",
+        "sourceHandle": "latent",
+        "target": "994:969:1059",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "994:857-0-994:969:1060-duration",
+        "source": "994:857",
+        "sourceHandle": "value",
+        "target": "994:969:1060",
+        "targetHandle": "duration",
+        "ui_properties": null
+      },
+      {
+        "id": "994:890-3-994:969:1060-audio",
+        "source": "994:890",
+        "sourceHandle": "Vocals",
+        "target": "994:969:1060",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "994:988:1027-0-994:988:1013-av_latent",
+        "source": "994:988:1027",
+        "sourceHandle": "output",
+        "target": "994:988:1013",
+        "targetHandle": "av_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:842-0-994:988:1015-latent",
+        "source": "994:842",
+        "sourceHandle": "latent",
+        "target": "994:988:1015",
+        "targetHandle": "latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:923-0-994:988:1017-num_guides.image_1",
+        "source": "994:923",
+        "sourceHandle": "IMAGE",
+        "target": "994:988:1017",
+        "targetHandle": "num_guides.image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "994:923-0-994:988:1017-num_guides.image_2",
+        "source": "994:923",
+        "sourceHandle": "IMAGE",
+        "target": "994:988:1017",
+        "targetHandle": "num_guides.image_2",
+        "ui_properties": null
+      },
+      {
+        "id": "994:927-0-994:988:1017-positive",
+        "source": "994:927",
+        "sourceHandle": "positive",
+        "target": "994:988:1017",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "994:927-1-994:988:1017-negative",
+        "source": "994:927",
+        "sourceHandle": "negative",
+        "target": "994:988:1017",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "994:904-0-994:988:1017-vae",
+        "source": "994:904",
+        "sourceHandle": "VAE",
+        "target": "994:988:1017",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "994:988:1023-0-994:988:1017-latent",
+        "source": "994:988:1023",
+        "sourceHandle": "video_latent",
+        "target": "994:988:1017",
+        "targetHandle": "latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:988:1017-2-994:988:1018-video_latent",
+        "source": "994:988:1017",
+        "sourceHandle": "latent",
+        "target": "994:988:1018",
+        "targetHandle": "video_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:988:1023-1-994:988:1018-audio_latent",
+        "source": "994:988:1023",
+        "sourceHandle": "audio_latent",
+        "target": "994:988:1018",
+        "targetHandle": "audio_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:969:1058-2-994:988:1019-images",
+        "source": "994:969:1058",
+        "sourceHandle": "extended_images",
+        "target": "994:988:1019",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "994:988:1019-0-994:988:1020-pixels",
+        "source": "994:988:1019",
+        "sourceHandle": "IMAGE",
+        "target": "994:988:1020",
+        "targetHandle": "pixels",
+        "ui_properties": null
+      },
+      {
+        "id": "994:904-0-994:988:1020-vae",
+        "source": "994:904",
+        "sourceHandle": "VAE",
+        "target": "994:988:1020",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "994:933-0-994:988:1021-model",
+        "source": "994:933",
+        "sourceHandle": "MODEL",
+        "target": "994:988:1021",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "994:988:1017-0-994:988:1021-positive",
+        "source": "994:988:1017",
+        "sourceHandle": "positive",
+        "target": "994:988:1021",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "994:988:1017-1-994:988:1021-negative",
+        "source": "994:988:1017",
+        "sourceHandle": "negative",
+        "target": "994:988:1021",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "994:857-0-994:988:1022-duration",
+        "source": "994:857",
+        "sourceHandle": "value",
+        "target": "994:988:1022",
+        "targetHandle": "duration",
+        "ui_properties": null
+      },
+      {
+        "id": "994:890-3-994:988:1022-audio",
+        "source": "994:890",
+        "sourceHandle": "Vocals",
+        "target": "994:988:1022",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "994:1001-0-994:988:1023-video_fps",
+        "source": "994:1001",
+        "sourceHandle": "FLOAT",
+        "target": "994:988:1023",
+        "targetHandle": "video_fps",
+        "ui_properties": null
+      },
+      {
+        "id": "994:857-0-994:988:1023-video_end_time",
+        "source": "994:857",
+        "sourceHandle": "value",
+        "target": "994:988:1023",
+        "targetHandle": "video_end_time",
+        "ui_properties": null
+      },
+      {
+        "id": "994:857-0-994:988:1023-audio_start_time",
+        "source": "994:857",
+        "sourceHandle": "value",
+        "target": "994:988:1023",
+        "targetHandle": "audio_start_time",
+        "ui_properties": null
+      },
+      {
+        "id": "994:857-0-994:988:1023-audio_end_time",
+        "source": "994:857",
+        "sourceHandle": "value",
+        "target": "994:988:1023",
+        "targetHandle": "audio_end_time",
+        "ui_properties": null
+      },
+      {
+        "id": "994:988:1020-0-994:988:1023-video_latent",
+        "source": "994:988:1020",
+        "sourceHandle": "LATENT",
+        "target": "994:988:1023",
+        "targetHandle": "video_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:988:1028-0-994:988:1023-audio_latent",
+        "source": "994:988:1028",
+        "sourceHandle": "Audio Latent",
+        "target": "994:988:1023",
+        "targetHandle": "audio_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:988:1017-0-994:988:1024-positive",
+        "source": "994:988:1017",
+        "sourceHandle": "positive",
+        "target": "994:988:1024",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "994:988:1017-1-994:988:1024-negative",
+        "source": "994:988:1017",
+        "sourceHandle": "negative",
+        "target": "994:988:1024",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "994:988:1013-0-994:988:1024-latent",
+        "source": "994:988:1013",
+        "sourceHandle": "video_latent",
+        "target": "994:988:1024",
+        "targetHandle": "latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:988:1024-2-994:988:1025-samples",
+        "source": "994:988:1024",
+        "sourceHandle": "latent",
+        "target": "994:988:1025",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "994:904-0-994:988:1025-vae",
+        "source": "994:904",
+        "sourceHandle": "VAE",
+        "target": "994:988:1025",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "994:969:1058-2-994:988:1026-source_images",
+        "source": "994:969:1058",
+        "sourceHandle": "extended_images",
+        "target": "994:988:1026",
+        "targetHandle": "source_images",
+        "ui_properties": null
+      },
+      {
+        "id": "994:988:1025-0-994:988:1026-new_images",
+        "source": "994:988:1025",
+        "sourceHandle": "IMAGE",
+        "target": "994:988:1026",
+        "targetHandle": "new_images",
+        "ui_properties": null
+      },
+      {
+        "id": "994:988:1016-0-994:988:1027-noise",
+        "source": "994:988:1016",
+        "sourceHandle": "NOISE",
+        "target": "994:988:1027",
+        "targetHandle": "noise",
+        "ui_properties": null
+      },
+      {
+        "id": "994:988:1021-0-994:988:1027-guider",
+        "source": "994:988:1021",
+        "sourceHandle": "GUIDER",
+        "target": "994:988:1027",
+        "targetHandle": "guider",
+        "ui_properties": null
+      },
+      {
+        "id": "994:988:1014-0-994:988:1027-sampler",
+        "source": "994:988:1014",
+        "sourceHandle": "SAMPLER",
+        "target": "994:988:1027",
+        "targetHandle": "sampler",
+        "ui_properties": null
+      },
+      {
+        "id": "994:988:1015-0-994:988:1027-sigmas",
+        "source": "994:988:1015",
+        "sourceHandle": "SIGMAS",
+        "target": "994:988:1027",
+        "targetHandle": "sigmas",
+        "ui_properties": null
+      },
+      {
+        "id": "994:988:1018-0-994:988:1027-latent_image",
+        "source": "994:988:1018",
+        "sourceHandle": "latent",
+        "target": "994:988:1027",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "994:988:1022-0-994:988:1028-audio",
+        "source": "994:988:1022",
+        "sourceHandle": "AUDIO",
+        "target": "994:988:1028",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "994:895-0-994:988:1028-audio_vae",
+        "source": "994:895",
+        "sourceHandle": "VAE",
+        "target": "994:988:1028",
+        "targetHandle": "audio_vae",
+        "ui_properties": null
+      },
+      {
+        "id": "994:989:827-0-994:989:831-av_latent",
+        "source": "994:989:827",
+        "sourceHandle": "output",
+        "target": "994:989:831",
+        "targetHandle": "av_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:842-0-994:989:954-latent",
+        "source": "994:842",
+        "sourceHandle": "latent",
+        "target": "994:989:954",
+        "targetHandle": "latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:923-0-994:989:896-num_guides.image_1",
+        "source": "994:923",
+        "sourceHandle": "IMAGE",
+        "target": "994:989:896",
+        "targetHandle": "num_guides.image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "994:923-0-994:989:896-num_guides.image_2",
+        "source": "994:923",
+        "sourceHandle": "IMAGE",
+        "target": "994:989:896",
+        "targetHandle": "num_guides.image_2",
+        "ui_properties": null
+      },
+      {
+        "id": "994:927-0-994:989:896-positive",
+        "source": "994:927",
+        "sourceHandle": "positive",
+        "target": "994:989:896",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "994:927-1-994:989:896-negative",
+        "source": "994:927",
+        "sourceHandle": "negative",
+        "target": "994:989:896",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "994:904-0-994:989:896-vae",
+        "source": "994:904",
+        "sourceHandle": "VAE",
+        "target": "994:989:896",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "994:989:859-0-994:989:896-latent",
+        "source": "994:989:859",
+        "sourceHandle": "video_latent",
+        "target": "994:989:896",
+        "targetHandle": "latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:989:896-2-994:989:829-video_latent",
+        "source": "994:989:896",
+        "sourceHandle": "latent",
+        "target": "994:989:829",
+        "targetHandle": "video_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:989:859-1-994:989:829-audio_latent",
+        "source": "994:989:859",
+        "sourceHandle": "audio_latent",
+        "target": "994:989:829",
+        "targetHandle": "audio_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:988:1026-2-994:989:843-images",
+        "source": "994:988:1026",
+        "sourceHandle": "extended_images",
+        "target": "994:989:843",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "994:989:843-0-994:989:900-pixels",
+        "source": "994:989:843",
+        "sourceHandle": "IMAGE",
+        "target": "994:989:900",
+        "targetHandle": "pixels",
+        "ui_properties": null
+      },
+      {
+        "id": "994:904-0-994:989:900-vae",
+        "source": "994:904",
+        "sourceHandle": "VAE",
+        "target": "994:989:900",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "994:933-0-994:989:830-model",
+        "source": "994:933",
+        "sourceHandle": "MODEL",
+        "target": "994:989:830",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "994:989:896-0-994:989:830-positive",
+        "source": "994:989:896",
+        "sourceHandle": "positive",
+        "target": "994:989:830",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "994:989:896-1-994:989:830-negative",
+        "source": "994:989:896",
+        "sourceHandle": "negative",
+        "target": "994:989:830",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "994:857-0-994:989:862-duration",
+        "source": "994:857",
+        "sourceHandle": "value",
+        "target": "994:989:862",
+        "targetHandle": "duration",
+        "ui_properties": null
+      },
+      {
+        "id": "994:890-3-994:989:862-audio",
+        "source": "994:890",
+        "sourceHandle": "Vocals",
+        "target": "994:989:862",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "994:1001-0-994:989:859-video_fps",
+        "source": "994:1001",
+        "sourceHandle": "FLOAT",
+        "target": "994:989:859",
+        "targetHandle": "video_fps",
+        "ui_properties": null
+      },
+      {
+        "id": "994:857-0-994:989:859-video_end_time",
+        "source": "994:857",
+        "sourceHandle": "value",
+        "target": "994:989:859",
+        "targetHandle": "video_end_time",
+        "ui_properties": null
+      },
+      {
+        "id": "994:857-0-994:989:859-audio_start_time",
+        "source": "994:857",
+        "sourceHandle": "value",
+        "target": "994:989:859",
+        "targetHandle": "audio_start_time",
+        "ui_properties": null
+      },
+      {
+        "id": "994:857-0-994:989:859-audio_end_time",
+        "source": "994:857",
+        "sourceHandle": "value",
+        "target": "994:989:859",
+        "targetHandle": "audio_end_time",
+        "ui_properties": null
+      },
+      {
+        "id": "994:989:900-0-994:989:859-video_latent",
+        "source": "994:989:900",
+        "sourceHandle": "LATENT",
+        "target": "994:989:859",
+        "targetHandle": "video_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:989:824-0-994:989:859-audio_latent",
+        "source": "994:989:824",
+        "sourceHandle": "Audio Latent",
+        "target": "994:989:859",
+        "targetHandle": "audio_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:989:862-0-994:989:824-audio",
+        "source": "994:989:862",
+        "sourceHandle": "AUDIO",
+        "target": "994:989:824",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "994:895-0-994:989:824-audio_vae",
+        "source": "994:895",
+        "sourceHandle": "VAE",
+        "target": "994:989:824",
+        "targetHandle": "audio_vae",
+        "ui_properties": null
+      },
+      {
+        "id": "994:989:896-0-994:989:832-positive",
+        "source": "994:989:896",
+        "sourceHandle": "positive",
+        "target": "994:989:832",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "994:989:896-1-994:989:832-negative",
+        "source": "994:989:896",
+        "sourceHandle": "negative",
+        "target": "994:989:832",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "994:989:831-0-994:989:832-latent",
+        "source": "994:989:831",
+        "sourceHandle": "video_latent",
+        "target": "994:989:832",
+        "targetHandle": "latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:989:832-2-994:989:901-samples",
+        "source": "994:989:832",
+        "sourceHandle": "latent",
+        "target": "994:989:901",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "994:904-0-994:989:901-vae",
+        "source": "994:904",
+        "sourceHandle": "VAE",
+        "target": "994:989:901",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "994:988:1026-2-994:989:987-source_images",
+        "source": "994:988:1026",
+        "sourceHandle": "extended_images",
+        "target": "994:989:987",
+        "targetHandle": "source_images",
+        "ui_properties": null
+      },
+      {
+        "id": "994:989:901-0-994:989:987-new_images",
+        "source": "994:989:901",
+        "sourceHandle": "IMAGE",
+        "target": "994:989:987",
+        "targetHandle": "new_images",
+        "ui_properties": null
+      },
+      {
+        "id": "994:989:823-0-994:989:827-noise",
+        "source": "994:989:823",
+        "sourceHandle": "NOISE",
+        "target": "994:989:827",
+        "targetHandle": "noise",
+        "ui_properties": null
+      },
+      {
+        "id": "994:989:830-0-994:989:827-guider",
+        "source": "994:989:830",
+        "sourceHandle": "GUIDER",
+        "target": "994:989:827",
+        "targetHandle": "guider",
+        "ui_properties": null
+      },
+      {
+        "id": "994:989:953-0-994:989:827-sampler",
+        "source": "994:989:953",
+        "sourceHandle": "SAMPLER",
+        "target": "994:989:827",
+        "targetHandle": "sampler",
+        "ui_properties": null
+      },
+      {
+        "id": "994:989:954-0-994:989:827-sigmas",
+        "source": "994:989:954",
+        "sourceHandle": "SIGMAS",
+        "target": "994:989:827",
+        "targetHandle": "sigmas",
+        "ui_properties": null
+      },
+      {
+        "id": "994:989:829-0-994:989:827-latent_image",
+        "source": "994:989:829",
+        "sourceHandle": "latent",
+        "target": "994:989:827",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "994:990:1044-0-994:990:1029-av_latent",
+        "source": "994:990:1044",
+        "sourceHandle": "output",
+        "target": "994:990:1029",
+        "targetHandle": "av_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:842-0-994:990:1031-latent",
+        "source": "994:842",
+        "sourceHandle": "latent",
+        "target": "994:990:1031",
+        "targetHandle": "latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:923-0-994:990:1033-num_guides.image_1",
+        "source": "994:923",
+        "sourceHandle": "IMAGE",
+        "target": "994:990:1033",
+        "targetHandle": "num_guides.image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "994:923-0-994:990:1033-num_guides.image_2",
+        "source": "994:923",
+        "sourceHandle": "IMAGE",
+        "target": "994:990:1033",
+        "targetHandle": "num_guides.image_2",
+        "ui_properties": null
+      },
+      {
+        "id": "994:927-0-994:990:1033-positive",
+        "source": "994:927",
+        "sourceHandle": "positive",
+        "target": "994:990:1033",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "994:927-1-994:990:1033-negative",
+        "source": "994:927",
+        "sourceHandle": "negative",
+        "target": "994:990:1033",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "994:904-0-994:990:1033-vae",
+        "source": "994:904",
+        "sourceHandle": "VAE",
+        "target": "994:990:1033",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "994:990:1039-0-994:990:1033-latent",
+        "source": "994:990:1039",
+        "sourceHandle": "video_latent",
+        "target": "994:990:1033",
+        "targetHandle": "latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:990:1033-2-994:990:1034-video_latent",
+        "source": "994:990:1033",
+        "sourceHandle": "latent",
+        "target": "994:990:1034",
+        "targetHandle": "video_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:990:1039-1-994:990:1034-audio_latent",
+        "source": "994:990:1039",
+        "sourceHandle": "audio_latent",
+        "target": "994:990:1034",
+        "targetHandle": "audio_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:989:987-2-994:990:1035-images",
+        "source": "994:989:987",
+        "sourceHandle": "extended_images",
+        "target": "994:990:1035",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "994:990:1035-0-994:990:1036-pixels",
+        "source": "994:990:1035",
+        "sourceHandle": "IMAGE",
+        "target": "994:990:1036",
+        "targetHandle": "pixels",
+        "ui_properties": null
+      },
+      {
+        "id": "994:904-0-994:990:1036-vae",
+        "source": "994:904",
+        "sourceHandle": "VAE",
+        "target": "994:990:1036",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "994:933-0-994:990:1037-model",
+        "source": "994:933",
+        "sourceHandle": "MODEL",
+        "target": "994:990:1037",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "994:990:1033-0-994:990:1037-positive",
+        "source": "994:990:1033",
+        "sourceHandle": "positive",
+        "target": "994:990:1037",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "994:990:1033-1-994:990:1037-negative",
+        "source": "994:990:1033",
+        "sourceHandle": "negative",
+        "target": "994:990:1037",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "994:857-0-994:990:1038-duration",
+        "source": "994:857",
+        "sourceHandle": "value",
+        "target": "994:990:1038",
+        "targetHandle": "duration",
+        "ui_properties": null
+      },
+      {
+        "id": "994:890-3-994:990:1038-audio",
+        "source": "994:890",
+        "sourceHandle": "Vocals",
+        "target": "994:990:1038",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "994:1001-0-994:990:1039-video_fps",
+        "source": "994:1001",
+        "sourceHandle": "FLOAT",
+        "target": "994:990:1039",
+        "targetHandle": "video_fps",
+        "ui_properties": null
+      },
+      {
+        "id": "994:857-0-994:990:1039-video_end_time",
+        "source": "994:857",
+        "sourceHandle": "value",
+        "target": "994:990:1039",
+        "targetHandle": "video_end_time",
+        "ui_properties": null
+      },
+      {
+        "id": "994:857-0-994:990:1039-audio_start_time",
+        "source": "994:857",
+        "sourceHandle": "value",
+        "target": "994:990:1039",
+        "targetHandle": "audio_start_time",
+        "ui_properties": null
+      },
+      {
+        "id": "994:857-0-994:990:1039-audio_end_time",
+        "source": "994:857",
+        "sourceHandle": "value",
+        "target": "994:990:1039",
+        "targetHandle": "audio_end_time",
+        "ui_properties": null
+      },
+      {
+        "id": "994:990:1036-0-994:990:1039-video_latent",
+        "source": "994:990:1036",
+        "sourceHandle": "LATENT",
+        "target": "994:990:1039",
+        "targetHandle": "video_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:990:1040-0-994:990:1039-audio_latent",
+        "source": "994:990:1040",
+        "sourceHandle": "Audio Latent",
+        "target": "994:990:1039",
+        "targetHandle": "audio_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:990:1038-0-994:990:1040-audio",
+        "source": "994:990:1038",
+        "sourceHandle": "AUDIO",
+        "target": "994:990:1040",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "994:895-0-994:990:1040-audio_vae",
+        "source": "994:895",
+        "sourceHandle": "VAE",
+        "target": "994:990:1040",
+        "targetHandle": "audio_vae",
+        "ui_properties": null
+      },
+      {
+        "id": "994:990:1033-0-994:990:1041-positive",
+        "source": "994:990:1033",
+        "sourceHandle": "positive",
+        "target": "994:990:1041",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "994:990:1033-1-994:990:1041-negative",
+        "source": "994:990:1033",
+        "sourceHandle": "negative",
+        "target": "994:990:1041",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "994:990:1029-0-994:990:1041-latent",
+        "source": "994:990:1029",
+        "sourceHandle": "video_latent",
+        "target": "994:990:1041",
+        "targetHandle": "latent",
+        "ui_properties": null
+      },
+      {
+        "id": "994:990:1041-2-994:990:1042-samples",
+        "source": "994:990:1041",
+        "sourceHandle": "latent",
+        "target": "994:990:1042",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "994:904-0-994:990:1042-vae",
+        "source": "994:904",
+        "sourceHandle": "VAE",
+        "target": "994:990:1042",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "994:989:987-2-994:990:1043-source_images",
+        "source": "994:989:987",
+        "sourceHandle": "extended_images",
+        "target": "994:990:1043",
+        "targetHandle": "source_images",
+        "ui_properties": null
+      },
+      {
+        "id": "994:990:1042-0-994:990:1043-new_images",
+        "source": "994:990:1042",
+        "sourceHandle": "IMAGE",
+        "target": "994:990:1043",
+        "targetHandle": "new_images",
+        "ui_properties": null
+      },
+      {
+        "id": "994:990:1032-0-994:990:1044-noise",
+        "source": "994:990:1032",
+        "sourceHandle": "NOISE",
+        "target": "994:990:1044",
+        "targetHandle": "noise",
+        "ui_properties": null
+      },
+      {
+        "id": "994:990:1037-0-994:990:1044-guider",
+        "source": "994:990:1037",
+        "sourceHandle": "GUIDER",
+        "target": "994:990:1044",
+        "targetHandle": "guider",
+        "ui_properties": null
+      },
+      {
+        "id": "994:990:1030-0-994:990:1044-sampler",
+        "source": "994:990:1030",
+        "sourceHandle": "SAMPLER",
+        "target": "994:990:1044",
+        "targetHandle": "sampler",
+        "ui_properties": null
+      },
+      {
+        "id": "994:990:1031-0-994:990:1044-sigmas",
+        "source": "994:990:1031",
+        "sourceHandle": "SIGMAS",
+        "target": "994:990:1044",
+        "targetHandle": "sigmas",
+        "ui_properties": null
+      },
+      {
+        "id": "994:990:1034-0-994:990:1044-latent_image",
+        "source": "994:990:1034",
+        "sourceHandle": "latent",
+        "target": "994:990:1044",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      }
+    ]
+  }
+}

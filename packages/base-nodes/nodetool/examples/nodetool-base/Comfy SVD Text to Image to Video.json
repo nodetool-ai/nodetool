@@ -1,0 +1,458 @@
+{
+  "id": "14d4f3c3f028e6d27bdc25f4a622e7e6",
+  "name": "Comfy SVD Text to Image to Video",
+  "description": "Generate videos by first creating images from text prompts. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "video",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy SVD Text to Image to Video\n\nGenerate videos by first creating images from text prompts. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/txt_to_image_to_video.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "3",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 237514639057514,
+          "steps": 20,
+          "cfg": 2.5,
+          "sampler_name": "euler",
+          "scheduler": "karras",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "8",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12",
+        "type": "comfy.SVD_img2vid_Conditioning",
+        "data": {
+          "width": 1024,
+          "height": 576,
+          "video_frames": 25,
+          "motion_bucket_id": 127,
+          "fps": 6,
+          "augmentation_level": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SVD_img2vid_Conditioning"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "14",
+        "type": "comfy.VideoLinearCFGGuidance",
+        "data": {
+          "min_cfg": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Video Linear CFG Guidance"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "15",
+        "type": "comfy.ImageOnlyCheckpointLoader",
+        "data": {
+          "ckpt_name": "svd_xt.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Checkpoint Image Only (img2vid model)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "16",
+        "type": "comfy.CheckpointLoaderSimple",
+        "data": {
+          "ckpt_name": "sd_xl_base_1.0.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Checkpoint"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "17",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 144698910769133,
+          "steps": 15,
+          "cfg": 8,
+          "sampler_name": "uni_pc_bh2",
+          "scheduler": "normal",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "photograph beautiful scenery nature mountains alps river rapids snow sky cumulus clouds"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "text, watermark"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "20",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "21",
+        "type": "comfy.PreviewImage",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Preview Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "22",
+        "type": "comfy.EmptyLatentImage",
+        "data": {
+          "width": 1024,
+          "height": 576,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Empty Latent Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "24",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ComfyUI",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "25",
+        "type": "comfy.CreateVideo",
+        "data": {
+          "fps": 10,
+          "bit_depth": "auto",
+          "color_space": "sRGB",
+          "codec": "none"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Create Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "14-0-3-model",
+        "source": "14",
+        "sourceHandle": "MODEL",
+        "target": "3",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "12-0-3-positive",
+        "source": "12",
+        "sourceHandle": "positive",
+        "target": "3",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "12-1-3-negative",
+        "source": "12",
+        "sourceHandle": "negative",
+        "target": "3",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "12-2-3-latent_image",
+        "source": "12",
+        "sourceHandle": "latent",
+        "target": "3",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "3-0-8-samples",
+        "source": "3",
+        "sourceHandle": "LATENT",
+        "target": "8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "15-2-8-vae",
+        "source": "15",
+        "sourceHandle": "VAE",
+        "target": "8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "15-1-12-clip_vision",
+        "source": "15",
+        "sourceHandle": "CLIP_VISION",
+        "target": "12",
+        "targetHandle": "clip_vision",
+        "ui_properties": null
+      },
+      {
+        "id": "20-0-12-init_image",
+        "source": "20",
+        "sourceHandle": "IMAGE",
+        "target": "12",
+        "targetHandle": "init_image",
+        "ui_properties": null
+      },
+      {
+        "id": "15-2-12-vae",
+        "source": "15",
+        "sourceHandle": "VAE",
+        "target": "12",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "15-0-14-model",
+        "source": "15",
+        "sourceHandle": "MODEL",
+        "target": "14",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "16-0-17-model",
+        "source": "16",
+        "sourceHandle": "MODEL",
+        "target": "17",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "18-0-17-positive",
+        "source": "18",
+        "sourceHandle": "CONDITIONING",
+        "target": "17",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "19-0-17-negative",
+        "source": "19",
+        "sourceHandle": "CONDITIONING",
+        "target": "17",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "22-0-17-latent_image",
+        "source": "22",
+        "sourceHandle": "LATENT",
+        "target": "17",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "16-1-18-clip",
+        "source": "16",
+        "sourceHandle": "CLIP",
+        "target": "18",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "16-1-19-clip",
+        "source": "16",
+        "sourceHandle": "CLIP",
+        "target": "19",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "17-0-20-samples",
+        "source": "17",
+        "sourceHandle": "LATENT",
+        "target": "20",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "16-2-20-vae",
+        "source": "16",
+        "sourceHandle": "VAE",
+        "target": "20",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "20-0-21-images",
+        "source": "20",
+        "sourceHandle": "IMAGE",
+        "target": "21",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "25-0-24-video",
+        "source": "25",
+        "sourceHandle": "VIDEO",
+        "target": "24",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "8-0-25-images",
+        "source": "8",
+        "sourceHandle": "IMAGE",
+        "target": "25",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

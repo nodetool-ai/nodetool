@@ -1,0 +1,492 @@
+{
+  "id": "a72e575d89f47ba758a7a7beb7ab70c6",
+  "name": "Comfy ACE-Step 1.5 AI Lyric Song Generation",
+  "description": "Input a music style and optional lyrics. Generate a full song with AI-created lyrics and audio. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "audio",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy ACE-Step 1.5 AI Lyric Song Generation\n\nInput a music style and optional lyrics. Generate a full song with AI-created lyrics and audio. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/audio_ace_step_1_5_split_llm.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "7",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18",
+        "type": "comfy.RegexExtract",
+        "data": {
+          "regex_pattern": "(?sm)^(.*?)^---$(.*)",
+          "mode": "First Group",
+          "case_insensitive": true,
+          "multiline": false,
+          "dotall": false,
+          "group_index": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Extract Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19",
+        "type": "comfy.RegexExtract",
+        "data": {
+          "regex_pattern": "(?s)(?<=\\n---\\n)([\\s\\S]*)$",
+          "mode": "First Group",
+          "case_insensitive": true,
+          "multiline": false,
+          "dotall": false,
+          "group_index": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Extract Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "111",
+        "type": "comfy.SaveAudioAdvanced",
+        "data": {
+          "filename_prefix": "audio/ace-step-1.5",
+          "format": "flac"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Audio (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "113",
+        "type": "comfy.GeminiNodeV2",
+        "data": {
+          "prompt": "A blues song, to rival the great Robert Johnson.",
+          "model": "Gemini 3.7 Flash",
+          "model.images": "MEDIUM",
+          "model.audio": 1,
+          "model.video": 0.95,
+          "model.thinking_level": 32768,
+          "model.temperature": 42,
+          "model.top_p": "randomize",
+          "model.max_output_tokens": "**Role:** You are a professional Music Architect for **ACE-Step 1.5**. \n\n**Task:** Generate a music creation plan.\n\n**Strict Output Constraint (IMPORTANT):**\n1. Return the output as **RAW PLAIN TEXT** only.\n2. DO NOT use Markdown code blocks (no backticks ```).\n3. DO NOT use any headers, labels, or bold text.\n4. Use ONLY the separator `---` to divide the two parts.\n5. Part 1: Comma-separated style keywords.\n6. Part 2: Structured lyrics with [Tags].\n\n**My Topic/Requirement:**\n[USER INPUT]",
+          "seed": 42,
+          "system_prompt": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Google Gemini"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2:105",
+        "type": "comfy.DualCLIPLoader",
+        "data": {
+          "clip_name1": "qwen_0.6b_ace15.safetensors",
+          "clip_name2": "qwen_4b_ace15.safetensors",
+          "type": "ace",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load CLIP (Dual)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2:106",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "ace_1.5_vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2:98",
+        "type": "comfy.EmptyAceStep1.5LatentAudio",
+        "data": {
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Empty Ace Step 1.5 Latent Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2:47",
+        "type": "comfy.ConditioningZeroOut",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Conditioning Zero Out"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2:3",
+        "type": "comfy.KSampler",
+        "data": {
+          "steps": 8,
+          "cfg": 1,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2:78",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 3,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "ModelSamplingAuraFlow"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2:107",
+        "type": "comfy.VAEDecodeAudio",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2:94",
+        "type": "comfy.TextEncodeAceStepAudio1.5",
+        "data": {
+          "bpm": 190,
+          "timesignature": "4",
+          "language": "en",
+          "keyscale": "E minor",
+          "generate_audio_codes": true,
+          "cfg_scale": 2,
+          "temperature": 0.85,
+          "top_p": 0.9,
+          "top_k": 0,
+          "min_p": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "TextEncodeAceStepAudio1.5"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2:104",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "acestep_v1.5_turbo.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2:110",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 120
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Song Duration"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2:112",
+        "type": "comfy.SeedNode",
+        "data": {
+          "seed": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Seed"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "113-0-7-source",
+        "source": "113",
+        "sourceHandle": "STRING",
+        "target": "7",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "113-0-18-string",
+        "source": "113",
+        "sourceHandle": "STRING",
+        "target": "18",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "113-0-19-string",
+        "source": "113",
+        "sourceHandle": "STRING",
+        "target": "19",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "2:107-0-111-audio",
+        "source": "2:107",
+        "sourceHandle": "AUDIO",
+        "target": "111",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "2:110-0-2:98-seconds",
+        "source": "2:110",
+        "sourceHandle": "FLOAT",
+        "target": "2:98",
+        "targetHandle": "seconds",
+        "ui_properties": null
+      },
+      {
+        "id": "2:94-0-2:47-conditioning",
+        "source": "2:94",
+        "sourceHandle": "CONDITIONING",
+        "target": "2:47",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "2:112-0-2:3-seed",
+        "source": "2:112",
+        "sourceHandle": "seed",
+        "target": "2:3",
+        "targetHandle": "seed",
+        "ui_properties": null
+      },
+      {
+        "id": "2:78-0-2:3-model",
+        "source": "2:78",
+        "sourceHandle": "MODEL",
+        "target": "2:3",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "2:94-0-2:3-positive",
+        "source": "2:94",
+        "sourceHandle": "CONDITIONING",
+        "target": "2:3",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "2:47-0-2:3-negative",
+        "source": "2:47",
+        "sourceHandle": "CONDITIONING",
+        "target": "2:3",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "2:98-0-2:3-latent_image",
+        "source": "2:98",
+        "sourceHandle": "LATENT",
+        "target": "2:3",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "2:104-0-2:78-model",
+        "source": "2:104",
+        "sourceHandle": "MODEL",
+        "target": "2:78",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "2:3-0-2:107-samples",
+        "source": "2:3",
+        "sourceHandle": "LATENT",
+        "target": "2:107",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "2:106-0-2:107-vae",
+        "source": "2:106",
+        "sourceHandle": "VAE",
+        "target": "2:107",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "18-0-2:94-tags",
+        "source": "18",
+        "sourceHandle": "STRING",
+        "target": "2:94",
+        "targetHandle": "tags",
+        "ui_properties": null
+      },
+      {
+        "id": "19-0-2:94-lyrics",
+        "source": "19",
+        "sourceHandle": "STRING",
+        "target": "2:94",
+        "targetHandle": "lyrics",
+        "ui_properties": null
+      },
+      {
+        "id": "2:112-0-2:94-seed",
+        "source": "2:112",
+        "sourceHandle": "seed",
+        "target": "2:94",
+        "targetHandle": "seed",
+        "ui_properties": null
+      },
+      {
+        "id": "2:110-0-2:94-duration",
+        "source": "2:110",
+        "sourceHandle": "FLOAT",
+        "target": "2:94",
+        "targetHandle": "duration",
+        "ui_properties": null
+      },
+      {
+        "id": "2:105-0-2:94-clip",
+        "source": "2:105",
+        "sourceHandle": "CLIP",
+        "target": "2:94",
+        "targetHandle": "clip",
+        "ui_properties": null
+      }
+    ]
+  }
+}

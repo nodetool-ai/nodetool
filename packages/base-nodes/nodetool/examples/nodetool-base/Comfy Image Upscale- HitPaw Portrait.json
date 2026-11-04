@@ -1,0 +1,135 @@
+{
+  "id": "4fc9954d0cd4da418ed58ee11ba38ab0",
+  "name": "Comfy Image Upscale- HitPaw Portrait",
+  "description": "Upload a low-quality portrait image and adjust the upscaling factor. Generate a high-fidelity, detailed portrait with enhanced skin textures and facial features. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image tools",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Image Upscale- HitPaw Portrait\n\nUpload a low-quality portrait image and adjust the upscaling factor. Generate a high-fidelity, detailed portrait with enhanced skin textures and facial features. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/utility_hitpaw_general_image_enhance.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "2",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "sunlit_girl_portrait.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "4",
+        "type": "comfy.ImageCompare",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Compare Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "11",
+        "type": "comfy.HitPawGeneralImageEnhance",
+        "data": {
+          "model": "generative_portrait",
+          "upscale_factor": 1,
+          "auto_downscale": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "HitPaw General Image Enhance"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "11-0-3-images",
+        "source": "11",
+        "sourceHandle": "IMAGE",
+        "target": "3",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-4-image_a",
+        "source": "2",
+        "sourceHandle": "IMAGE",
+        "target": "4",
+        "targetHandle": "image_a",
+        "ui_properties": null
+      },
+      {
+        "id": "11-0-4-image_b",
+        "source": "11",
+        "sourceHandle": "IMAGE",
+        "target": "4",
+        "targetHandle": "image_b",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-11-image",
+        "source": "2",
+        "sourceHandle": "IMAGE",
+        "target": "11",
+        "targetHandle": "image",
+        "ui_properties": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,650 @@
+{
+  "id": "4a438782c3198cdc440ddee12f291016",
+  "name": "Comfy Qwen Image Edit",
+  "description": "Edit images with precise bilingual text editing and dual semantic/appearance editing capabilities using Qwen-Image-Edit's 20B MMDiT model. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Qwen Image Edit\n\nEdit images with precise bilingual text editing and dual semantic/appearance editing capabilities using Qwen-Image-Edit's 20B MMDiT model. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/image_qwen_image_edit.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "60",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "78",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "image_qwen_image_edit_input_image.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93",
+        "type": "comfy.ImageScaleToTotalPixels",
+        "data": {
+          "upscale_method": "lanczos",
+          "megapixels": 1.5,
+          "resolution_steps": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Scale Image to Total Pixels"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "102:39",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "qwen_image_vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "102:77",
+        "type": "comfy.TextEncodeQwenImageEdit",
+        "data": {
+          "prompt": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Text Encode Qwen Image Edit"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "102:75",
+        "type": "comfy.CFGNorm",
+        "data": {
+          "strength": 1,
+          "pre_cfg": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CFGNorm"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "102:66",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 3,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ModelSamplingAuraFlow"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "102:8",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "102:38",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+          "type": "qwen_image",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "102:76",
+        "type": "comfy.TextEncodeQwenImageEdit",
+        "data": {
+          "prompt": "Remove all UI text elements from the image. Keep the feeling that the characters and scene are in water. Also, remove the green UI elements at the bottom."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Text Encode Qwen Image Edit"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "102:88",
+        "type": "comfy.VAEEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "VAE Encode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "102:89",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "Qwen-Image-Edit-Lightning-4steps-V1.0-bf16.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "102:37",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "qwen_image_edit_fp8_e4m3fn.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "102:105",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "CFG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "102:106",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 20
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Steps"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "102:103",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Steps"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "102:107",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 2.5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "CFG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "102:111",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2640
+          },
+          "width": 280,
+          "title": "Enable 4steps LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "102:3",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 344147753686358,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "102:109",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Switch (CFG)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "102:110",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Switch (Steps)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "102:108",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Switch (model)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "102:8-0-60-images",
+        "source": "102:8",
+        "sourceHandle": "IMAGE",
+        "target": "60",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "78-0-93-image",
+        "source": "78",
+        "sourceHandle": "IMAGE",
+        "target": "93",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "102:38-0-102:77-clip",
+        "source": "102:38",
+        "sourceHandle": "CLIP",
+        "target": "102:77",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "102:39-0-102:77-vae",
+        "source": "102:39",
+        "sourceHandle": "VAE",
+        "target": "102:77",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "78-0-102:77-image",
+        "source": "78",
+        "sourceHandle": "IMAGE",
+        "target": "102:77",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "102:66-0-102:75-model",
+        "source": "102:66",
+        "sourceHandle": "MODEL",
+        "target": "102:75",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "102:108-0-102:66-model",
+        "source": "102:108",
+        "sourceHandle": "output",
+        "target": "102:66",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "102:3-0-102:8-samples",
+        "source": "102:3",
+        "sourceHandle": "LATENT",
+        "target": "102:8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "102:39-0-102:8-vae",
+        "source": "102:39",
+        "sourceHandle": "VAE",
+        "target": "102:8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "102:38-0-102:76-clip",
+        "source": "102:38",
+        "sourceHandle": "CLIP",
+        "target": "102:76",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "102:39-0-102:76-vae",
+        "source": "102:39",
+        "sourceHandle": "VAE",
+        "target": "102:76",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "78-0-102:76-image",
+        "source": "78",
+        "sourceHandle": "IMAGE",
+        "target": "102:76",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "78-0-102:88-pixels",
+        "source": "78",
+        "sourceHandle": "IMAGE",
+        "target": "102:88",
+        "targetHandle": "pixels",
+        "ui_properties": null
+      },
+      {
+        "id": "102:39-0-102:88-vae",
+        "source": "102:39",
+        "sourceHandle": "VAE",
+        "target": "102:88",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "102:37-0-102:89-model",
+        "source": "102:37",
+        "sourceHandle": "MODEL",
+        "target": "102:89",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "102:110-0-102:3-steps",
+        "source": "102:110",
+        "sourceHandle": "output",
+        "target": "102:3",
+        "targetHandle": "steps",
+        "ui_properties": null
+      },
+      {
+        "id": "102:109-0-102:3-cfg",
+        "source": "102:109",
+        "sourceHandle": "output",
+        "target": "102:3",
+        "targetHandle": "cfg",
+        "ui_properties": null
+      },
+      {
+        "id": "102:75-0-102:3-model",
+        "source": "102:75",
+        "sourceHandle": "patched_model",
+        "target": "102:3",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "102:76-0-102:3-positive",
+        "source": "102:76",
+        "sourceHandle": "CONDITIONING",
+        "target": "102:3",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "102:77-0-102:3-negative",
+        "source": "102:77",
+        "sourceHandle": "CONDITIONING",
+        "target": "102:3",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "102:88-0-102:3-latent_image",
+        "source": "102:88",
+        "sourceHandle": "LATENT",
+        "target": "102:3",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "102:111-0-102:109-switch",
+        "source": "102:111",
+        "sourceHandle": "BOOLEAN",
+        "target": "102:109",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "102:107-0-102:109-on_false",
+        "source": "102:107",
+        "sourceHandle": "FLOAT",
+        "target": "102:109",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "102:105-0-102:109-on_true",
+        "source": "102:105",
+        "sourceHandle": "FLOAT",
+        "target": "102:109",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "102:111-0-102:110-switch",
+        "source": "102:111",
+        "sourceHandle": "BOOLEAN",
+        "target": "102:110",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "102:106-0-102:110-on_false",
+        "source": "102:106",
+        "sourceHandle": "INT",
+        "target": "102:110",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "102:103-0-102:110-on_true",
+        "source": "102:103",
+        "sourceHandle": "INT",
+        "target": "102:110",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "102:111-0-102:108-switch",
+        "source": "102:111",
+        "sourceHandle": "BOOLEAN",
+        "target": "102:108",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "102:37-0-102:108-on_false",
+        "source": "102:37",
+        "sourceHandle": "MODEL",
+        "target": "102:108",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "102:89-0-102:108-on_true",
+        "source": "102:89",
+        "sourceHandle": "MODEL",
+        "target": "102:108",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      }
+    ]
+  }
+}

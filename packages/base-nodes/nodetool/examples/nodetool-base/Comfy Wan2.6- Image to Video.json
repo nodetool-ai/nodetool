@@ -1,0 +1,114 @@
+{
+  "id": "5c2bea87336828ec10fe9e4b75911436",
+  "name": "Comfy Wan2.6- Image to Video",
+  "description": "Transform images into high-quality videos with enhanced image quality, smoother motion, 1080P resolution support, and natural movement generation for professional results. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Wan2.6- Image to Video\n\nTransform images into high-quality videos with enhanced image quality, smoother motion, 1080P resolution support, and natural movement generation for professional results. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_wan2_6_i2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "41",
+        "type": "comfy.WanImageToVideoApi",
+        "data": {
+          "model": "wan2.6-i2v",
+          "prompt": "A cinematic low-angle tracking shot follows a glossy red supercar speeding along a winding road at golden hour. The camera rides inches above the asphalt near the front wheel, locked to the car as trees and scenery streak into smooth motion blur, intense parallax and lens flare from the setting sun. The car body reflections flow like liquid, wheel spin blur, sharp subject with shallow depth of field, realistic lighting, 4K, 60fps, speed ramp, premium car commercial style.\n",
+          "negative_prompt": "low quality, blurry, out of focus, jittery camera, excessive shake, warped car body, deformed wheels, extra wheels, bad reflections, artifacts, banding, flicker, text, watermark, logo, oversaturated, noisy",
+          "resolution": "720P",
+          "duration": 5,
+          "seed": 212259147,
+          "generate_audio": true,
+          "prompt_extend": true,
+          "watermark": false,
+          "shot_type": "single"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Wan Image to Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "42",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "red_car.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "43",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/wan_2.6",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "42-0-41-image",
+        "source": "42",
+        "sourceHandle": "IMAGE",
+        "target": "41",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "41-0-43-video",
+        "source": "41",
+        "sourceHandle": "VIDEO",
+        "target": "43",
+        "targetHandle": "video",
+        "ui_properties": null
+      }
+    ]
+  }
+}

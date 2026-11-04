@@ -1,5 +1,5 @@
 import { ROOT_CONTEXT, propagation, trace, isSpanContextValid } from "@opentelemetry/api";
-import { collapseComfyGraph, missingPackDetailsOf, type JobUpdate } from "@nodetool-ai/protocol";
+import { collapseComfyGraph, exposeComfyInterface, missingPackDetailsOf, type JobUpdate } from "@nodetool-ai/protocol";
 import { getRegisteredRunTrace } from "@nodetool-ai/models";
 import { ensureRunTraceTelemetry, openAppRunTrace, registerWorkflowRunTrace } from "@nodetool-ai/execution";
 import {
@@ -1205,9 +1205,11 @@ export class JobExecutionManager {
           properties[binding.property] = value;
           overlays.set(binding.nodeId, properties);
         }
+        // A binding can name a Comfy graph's derived input node.
+        const exposed = exposeComfyInterface(frozen);
         req.graph = {
-          ...frozen,
-          nodes: frozen.nodes.map((node) => {
+          ...exposed,
+          nodes: exposed.nodes.map((node) => {
             const overlay = overlays.get(node.id);
             if (!overlay) {
               return node;

@@ -5,6 +5,7 @@
  * Mirrors the resolution + normalization the `workflows run` command does so the
  * debug harness executes the exact same graph the runner would.
  */
+import { collapseComfyGraph } from "@nodetool-ai/protocol";
 import { readFileSync } from "node:fs";
 import { importWorkflowFile } from "../workflow-file.js";
 import type { DebugGraph, DebugTargetInfo } from "./types.js";
@@ -99,7 +100,7 @@ export async function resolveTarget(
   if (!Array.isArray(rawGraph.nodes) || !Array.isArray(rawGraph.edges)) {
     throw new Error("Invalid workflow: nodes and edges must be arrays");
   }
-  const graph = normalizeGraph(rawGraph);
+  const graph = collapseComfyGraph(normalizeGraph(rawGraph));
 
   return {
     info: {

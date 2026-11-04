@@ -1,0 +1,87 @@
+{
+  "id": "9a50600a4e9d9cddfea9d5d9d5705967",
+  "name": "Comfy HY Image 3.5 Preview- Text to Image",
+  "description": "Tencent Hunyuan's preview image model, strengthening three areas over previous versions: multilingual text rendering and typesetting for advertising, infographics and UI design; photorealism and stylistic range covering cinematic, comic, commercial photography and illustration; and editing consistency that preserves key traits of people and products across background, outfit and style changes. Outputs up to 4K resolution. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy HY Image 3.5 Preview- Text to Image\n\nTencent Hunyuan's preview image model, strengthening three areas over previous versions: multilingual text rendering and typesetting for advertising, infographics and UI design; photorealism and stylistic range covering cinematic, comic, commercial photography and illustration; and editing consistency that preserves key traits of people and products across background, outfit and style changes. Outputs up to 4K resolution. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_tencent_hy_image_3_5_preview_t2i.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.HunyuanImageTextToImageApi",
+        "data": {
+          "model": "hy-image-3.5-preview",
+          "model.prompt": "Create a black-and-blue acid-style graphic poster: dark ground, fluorescent colour blocks, oversized overlapping display type and experimental graphic design.\n\nAt the centre, liquid metal clouds dominate the frame: polished chrome and molten mercury with mirror-like reflections, wet specular highlights, rippling folds and slow drips, and a faint iridescent sheen along the torn edges. Slanted electric blue bands cut through them.\n\nLarge white type reading \"HY Image 3.5 Preview\" is laid across the metal and fills the upper two-thirds of the sheet: three stacked lines, \"HY IMAGE\", \"3.5\" and \"PREVIEW\", each line set flush to the left and right edges and cropped by them, in a heavy condensed sans-serif with very tight letter spacing, the tallest line roughly a quarter of the image height. The title covers about half of the total image area and stays the largest element in the frame; the metal surface keeps the brightest, glossiest and most detailed rendering.\n\nAround the metal, place small dots, labels, a date stamp reading \"2026.09\" and small descriptive text, all aligned to a clear grid and kept clearly subordinate to the title.\n\nKeep the same design logic: a strong focal point, a clear grid, a distinct title hierarchy, and edge information and decorative elements that stay in balance. Vary the main subject, the copy, the colour scheme or the theme so the piece reads as an original extension within the same design system. Reposition the titles, supporting fields, icons, descriptive text, buttons and information cards, so the layout shows the reference's composition method without copying its content. The finished piece should read as polished commercial design: detail-rich, clearly structured and easy to read.",
+          "model.aspect_ratio": "auto",
+          "model.resolution": "2K",
+          "model.width": 2048,
+          "model.height": 2048,
+          "model.seed": 432816159,
+          "model.watermark": "randomize"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Tencent HY Image: Text to Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2",
+        "type": "comfy.SaveImageAdvanced",
+        "data": {
+          "filename_prefix": "HY_image_3.5_preview",
+          "format": "png",
+          "format.bit_depth": "8-bit",
+          "format.input_color_space": "sRGB"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "1-0-2-images",
+        "source": "1",
+        "sourceHandle": "IMAGE",
+        "target": "2",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

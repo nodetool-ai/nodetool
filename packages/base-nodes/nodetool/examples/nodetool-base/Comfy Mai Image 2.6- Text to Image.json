@@ -1,0 +1,85 @@
+{
+  "id": "d72ca33f5b858d44ce6363a6e0f8c08c",
+  "name": "Comfy Mai Image 2.6- Text to Image",
+  "description": "Generate high-quality images from text prompts using Microsoft's MAI Image 2.6, a top-tier model excelling in legible in-image text rendering, photorealistic portraits, and commercial product visuals. Simply enter a prompt to produce 1 image output with no file inputs. Ideal for marketing assets, cinematic concept art, and creative projects requiring polished, text-accurate visuals. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Mai Image 2.6- Text to Image\n\nGenerate high-quality images from text prompts using Microsoft's MAI Image 2.6, a top-tier model excelling in legible in-image text rendering, photorealistic portraits, and commercial product visuals. Simply enter a prompt to produce 1 image output with no file inputs. Ideal for marketing assets, cinematic concept art, and creative projects requiring polished, text-accurate visuals. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_openrouter_mai_image_26_t2i.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "4",
+        "type": "comfy.SaveImageAdvanced",
+        "data": {
+          "filename_prefix": "Mai_image_2.6",
+          "format": "png",
+          "format.bit_depth": "8-bit",
+          "format.input_color_space": "sRGB"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5",
+        "type": "comfy.OpenRouterImageNode",
+        "data": {
+          "model": "microsoft/mai-image-2.6",
+          "model.prompt": "editorial adventure poster, dynamic extreme close-up wide-angle view from inside a tilting rugged off-road jeep tearing across desert canyon terrain at golden hour, tires kicking up massive rooster tails of dust, body leaning hard into a drift, wind and sand blasting through the open cabin. An anthropomorphic leopard in a frayed denim jacket yanks the steering wheel hard, body thrown sideways, jaw clenched, eyes sharp with ferocious focus. Beside him, an orange chameleon in a bowler hat white-knuckles the door handle, pupils blown wide, body tensed with panic. A wide-eyed green frog wearing a wind-whipped red scarf leans so far forward he nearly lifts off the seat, mouth open in a screaming shout, limbs braced. Behind them, a massive brown bear roars at full volume, paws slamming into the seat backs, fur flying with the force of his movement, wild unhinged excitement filling the backseat. A tiny mechanical crab clings desperately to a headrest, legs slipping, one claw hanging free, about to be thrown loose. Strong foreground dashboard frame flying with loose maps and gear, midground team of characters thrown by momentum, background of blurring desert mesas and a low bursting sun, heavy motion blur on all edges, lens flare streaking through dust clouds, cinematic depth of field, hyperrealistic 3D animated movie style, hyper-expressive character acting, detailed fur, scales, denim and worn metal, high contrast, white-knuckle thrilling energy.\n\nLarge oversized display typography spelling the exact text “Mai Image 2.6” in bold industrial sans-serif font, blazing burnt gold with subtle metallic texture and warm volumetric glow. Letters weave through the upper half of the frame across the dusty windshield, some behind the animal heads, some cutting in front of the glass and sun flare, naturally layered with the dust and light like a theatrical movie title, not a flat overlay.\n\nSmall restrained graphic elements: circular speed badge upper right, rubber-stamp style icon lower left, thin wavy line details, tiny star icons, small crescent near bottom, vertical stack of colourful abstract symbols on right edge, small sun-shaped emblem bottom right. Short justified caption-style text block lower right, subtitle line above it in thin tracked-out caps.\n\nAsymmetric grid layout, burnt orange, deep shadow black, desert beige, electric blue and vivid jungle green palette, intricate details, soft grainy film texture, premium theatrical print quality, high-octane action and thrills.",
+          "model.aspect_ratio": "1:1",
+          "model.resolution": "1K",
+          "model.images": 250981701,
+          "model.seed": "randomize"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "OpenRouter Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "5-0-4-images",
+        "source": "5",
+        "sourceHandle": "IMAGE",
+        "target": "4",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

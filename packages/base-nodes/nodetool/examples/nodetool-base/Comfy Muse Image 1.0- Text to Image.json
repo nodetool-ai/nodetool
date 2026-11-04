@@ -1,0 +1,87 @@
+{
+  "id": "d379672c9ef8e0c7959274d6242d0ea8",
+  "name": "Comfy Muse Image 1.0- Text to Image",
+  "description": "Generate images from text prompts using Meta's Muse Image 1.0 model, which follows instructions faithfully, edits with precision, and composes from multiple references. The workflow takes no file inputs and produces 1 image output, with a Save Image Advanced node handling the final render. Ideal for creative concept exploration, rapid visual prototyping, and producing polished marketing or social media imagery. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Muse Image 1.0- Text to Image\n\nGenerate images from text prompts using Meta's Muse Image 1.0 model, which follows instructions faithfully, edits with precision, and composes from multiple references. The workflow takes no file inputs and produces 1 image output, with a Save Image Advanced node handling the final render. Ideal for creative concept exploration, rapid visual prototyping, and producing polished marketing or social media imagery. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_meta_muse_image_t2i.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.MetaMuseImageTextToImageApi",
+        "data": {
+          "model": "muse-image-1.0",
+          "model.prompt": "A dynamic high-speed studio sports poster captures a male athlete suspended in mid-air against a stark white backdrop. The muscular figure is rendered as a glossy black silhouette, with deep shadows obscuring his face and dark athletic wear, leaving only striking specular highlights glistening on his skin. His right arm extends backward for balance while his left knee drives high, freezing the peak of a powerful aerial strike. High dark socks lead to vibrant soccer cleats in brilliant crimson, cobalt, and white with sharp traction studs. Behind the athlete, oversized bold condensed typography spells the exact text \"MUSE IMAGE\" as hollow outlined letters: white letter shapes with a thick black stroke outline only, no solid fill, so the dark figure stands out clearly against and overlaps the light letterforms. The typography is slightly tilted for kinetic energy, with subtle motion-blur streaks on the outline edges. Strong tonal contrast between the black silhouette body and the pale outlined letters, the figure clearly readable in front of the text layer. Low-angle perspective, high-contrast studio lighting, clean minimalist layout, generous negative space, film grain. The only text in the image is \"MUSE IMAGE\", no other words, no letters, no numbers, no logos, no watermark.",
+          "model.aspect_ratio": "auto",
+          "model.reasoning_strength": "high",
+          "model.enable_web_search": true,
+          "model.enable_image_search": true,
+          "model.enable_shell": true,
+          "model.seed": 562371981
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Meta Muse Image Text to Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2",
+        "type": "comfy.SaveImageAdvanced",
+        "data": {
+          "filename_prefix": "muse_image_1.0",
+          "format": "png",
+          "format.bit_depth": "8-bit",
+          "format.input_color_space": "sRGB"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "1-0-2-images",
+        "source": "1",
+        "sourceHandle": "IMAGE",
+        "target": "2",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,294 @@
+{
+  "id": "82d573dcb514d3a54ee10532718fa84e",
+  "name": "Comfy HiDream I1 Full",
+  "description": "Generate images with HiDream I1 Full - Complete version with 50 inference steps for highest quality output. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy HiDream I1 Full\n\nGenerate images with HiDream I1 Full - Complete version with 50 inference steps for highest quality output. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/hidream_i1_full.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "81",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "ae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "82",
+        "type": "comfy.QuadrupleCLIPLoader",
+        "data": {
+          "clip_name1": "clip_l_hidream.safetensors",
+          "clip_name2": "clip_g_hidream.safetensors",
+          "clip_name3": "t5xxl_fp8_e4m3fn_scaled.safetensors",
+          "clip_name4": "llama_3.1_8b_instruct_fp8_scaled.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load CLIP (Quadruple)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "84",
+        "type": "comfy.ModelSamplingSD3",
+        "data": {
+          "shift": 3
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ModelSamplingSD3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "85",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "bad ugly jpeg artifacts"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Negative Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "86",
+        "type": "comfy.EmptySD3LatentImage",
+        "data": {
+          "width": 1024,
+          "height": 1024,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "EmptySD3LatentImage"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "89",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "90",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "91",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "A lo-fi, grungy wide shot of a ragged large red tree leaning slightly to one side Polaroid aesthetic. the tree is alone in a desolate landscape, the tree is illuminated by a red light, the background is pitch black"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Positive Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 647719102242276,
+          "steps": 50,
+          "cfg": 5,
+          "sampler_name": "uni_pc",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "94",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "hidream_i1_full_fp8.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "94-0-84-model",
+        "source": "94",
+        "sourceHandle": "MODEL",
+        "target": "84",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "82-0-85-clip",
+        "source": "82",
+        "sourceHandle": "CLIP",
+        "target": "85",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "93-0-89-samples",
+        "source": "93",
+        "sourceHandle": "LATENT",
+        "target": "89",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "81-0-89-vae",
+        "source": "81",
+        "sourceHandle": "VAE",
+        "target": "89",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "89-0-90-images",
+        "source": "89",
+        "sourceHandle": "IMAGE",
+        "target": "90",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "82-0-91-clip",
+        "source": "82",
+        "sourceHandle": "CLIP",
+        "target": "91",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "84-0-93-model",
+        "source": "84",
+        "sourceHandle": "MODEL",
+        "target": "93",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "91-0-93-positive",
+        "source": "91",
+        "sourceHandle": "CONDITIONING",
+        "target": "93",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "85-0-93-negative",
+        "source": "85",
+        "sourceHandle": "CONDITIONING",
+        "target": "93",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "86-0-93-latent_image",
+        "source": "86",
+        "sourceHandle": "LATENT",
+        "target": "93",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      }
+    ]
+  }
+}

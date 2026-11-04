@@ -1,0 +1,634 @@
+{
+  "id": "b888b754a9f036703967d3c4469b3bc6",
+  "name": "Comfy Outpaint to Any Aspect Ratio - Nano Banana Pro",
+  "description": "Upload your image, input your desired aspect ratio and the images position (as a percentage) in the new aspect ratio composite. Uses Nano Banana Pro to generate an outpainted version of your image to fit the new dimensions. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image tools",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Outpaint to Any Aspect Ratio - Nano Banana Pro\n\nUpload your image, input your desired aspect ratio and the images position (as a percentage) in the new aspect ratio composite. Uses Nano Banana Pro to generate an outpainted version of your image to fit the new dimensions. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/template_outpaint_to_any_aspect_ratio_nano_banana_pro.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "130",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "facing_the_dragon.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "226",
+        "type": "comfy.PreviewImage",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Preview Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "262",
+        "type": "comfy.ImageCompare",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 3400,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Compare Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "263",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "prompt": "Outpaint/fill the green pixels. Retain composition of the visible images pixels. Analyze the original image content to understand what the outpainted region should be. \nDO NOT MODIFY the original images pixels. It must remain exactly as is. ONLY ALTER THE GREEN PIXELS.\nThe green outpainted pixels must seamlessly blend into the scene. DO NOT COPY/PASTE existing pixels into the target outpainted area.",
+          "model": "gemini-3-pro-image-preview",
+          "seed": 41439150623705,
+          "aspect_ratio": "auto",
+          "resolution": "4K",
+          "response_modalities": "IMAGE+TEXT",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "264",
+        "type": "comfy.ImageResizeKJv2",
+        "data": {
+          "upscale_method": "lanczos",
+          "keep_proportion": "stretch",
+          "pad_color": "0, 0, 0",
+          "crop_position": "center",
+          "divisible_by": 2,
+          "device": "cpu"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3060,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Resize Image v2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "265",
+        "type": "comfy.GetImageSize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Get Image Size"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "266",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-outpainted"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "224:191",
+        "type": "comfy.FluxResolutionNode",
+        "data": {
+          "megapixel": "2.1",
+          "aspect_ratio": "32:9 (Extreme Ultrawide)",
+          "divisible_by": "8",
+          "custom_ratio": false,
+          "custom_aspect_ratio": "1:1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Flux Resolution Calc"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "224:240",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 50
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "top_or_left_outpaint_pct"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "224:241",
+        "type": "comfy.ImageResize+",
+        "data": {
+          "interpolation": "lanczos",
+          "method": "keep proportion",
+          "condition": "always",
+          "multiple_of": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "🔧 Image Resize"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "224:242",
+        "type": "comfy.ComfyMathExpression",
+        "data": {
+          "expression": "floor((a - b) * (c / 100))"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "pad_left"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "224:243",
+        "type": "comfy.ComfyMathExpression",
+        "data": {
+          "expression": "(a - b) - floor((a - b) * (c / 100))"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "pad_right"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "224:244",
+        "type": "comfy.ComfyMathExpression",
+        "data": {
+          "expression": "floor((a - b) * (c / 100))"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "pad_top"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "224:245",
+        "type": "comfy.ComfyMathExpression",
+        "data": {
+          "expression": "(a - b) - floor((a - b) * (c / 100))"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 990
+          },
+          "width": 280,
+          "title": "pad_bottom"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "224:246",
+        "type": "comfy.ImagePadForOutpaint",
+        "data": {
+          "feathering": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Pad Image for Outpainting"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "224:247",
+        "type": "comfy.GetImageSize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Get Image Size"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "224:248",
+        "type": "comfy.EmptyImage",
+        "data": {
+          "batch_size": 1,
+          "color": 65280
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Empty Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "224:249",
+        "type": "comfy.ImageCompositeMasked",
+        "data": {
+          "x": 0,
+          "y": 0,
+          "resize_source": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Image Composite Masked"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "224:249-0-226-images",
+        "source": "224:249",
+        "sourceHandle": "IMAGE",
+        "target": "226",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "263-0-262-image_a",
+        "source": "263",
+        "sourceHandle": "IMAGE",
+        "target": "262",
+        "targetHandle": "image_a",
+        "ui_properties": null
+      },
+      {
+        "id": "264-0-262-image_b",
+        "source": "264",
+        "sourceHandle": "IMAGE",
+        "target": "262",
+        "targetHandle": "image_b",
+        "ui_properties": null
+      },
+      {
+        "id": "224:249-0-263-images",
+        "source": "224:249",
+        "sourceHandle": "IMAGE",
+        "target": "263",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "265-0-264-width",
+        "source": "265",
+        "sourceHandle": "width",
+        "target": "264",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "265-1-264-height",
+        "source": "265",
+        "sourceHandle": "height",
+        "target": "264",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "224:249-0-264-image",
+        "source": "224:249",
+        "sourceHandle": "IMAGE",
+        "target": "264",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "263-0-265-image",
+        "source": "263",
+        "sourceHandle": "IMAGE",
+        "target": "265",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "263-0-266-images",
+        "source": "263",
+        "sourceHandle": "IMAGE",
+        "target": "266",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "224:191-0-224:241-width",
+        "source": "224:191",
+        "sourceHandle": "width",
+        "target": "224:241",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "224:191-1-224:241-height",
+        "source": "224:191",
+        "sourceHandle": "height",
+        "target": "224:241",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "130-0-224:241-image",
+        "source": "130",
+        "sourceHandle": "IMAGE",
+        "target": "224:241",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "224:191-0-224:242-values.a",
+        "source": "224:191",
+        "sourceHandle": "width",
+        "target": "224:242",
+        "targetHandle": "values.a",
+        "ui_properties": null
+      },
+      {
+        "id": "224:241-1-224:242-values.b",
+        "source": "224:241",
+        "sourceHandle": "width",
+        "target": "224:242",
+        "targetHandle": "values.b",
+        "ui_properties": null
+      },
+      {
+        "id": "224:240-0-224:242-values.c",
+        "source": "224:240",
+        "sourceHandle": "INT",
+        "target": "224:242",
+        "targetHandle": "values.c",
+        "ui_properties": null
+      },
+      {
+        "id": "224:191-0-224:243-values.a",
+        "source": "224:191",
+        "sourceHandle": "width",
+        "target": "224:243",
+        "targetHandle": "values.a",
+        "ui_properties": null
+      },
+      {
+        "id": "224:241-1-224:243-values.b",
+        "source": "224:241",
+        "sourceHandle": "width",
+        "target": "224:243",
+        "targetHandle": "values.b",
+        "ui_properties": null
+      },
+      {
+        "id": "224:240-0-224:243-values.c",
+        "source": "224:240",
+        "sourceHandle": "INT",
+        "target": "224:243",
+        "targetHandle": "values.c",
+        "ui_properties": null
+      },
+      {
+        "id": "224:191-1-224:244-values.a",
+        "source": "224:191",
+        "sourceHandle": "height",
+        "target": "224:244",
+        "targetHandle": "values.a",
+        "ui_properties": null
+      },
+      {
+        "id": "224:241-2-224:244-values.b",
+        "source": "224:241",
+        "sourceHandle": "height",
+        "target": "224:244",
+        "targetHandle": "values.b",
+        "ui_properties": null
+      },
+      {
+        "id": "224:240-0-224:244-values.c",
+        "source": "224:240",
+        "sourceHandle": "INT",
+        "target": "224:244",
+        "targetHandle": "values.c",
+        "ui_properties": null
+      },
+      {
+        "id": "224:191-1-224:245-values.a",
+        "source": "224:191",
+        "sourceHandle": "height",
+        "target": "224:245",
+        "targetHandle": "values.a",
+        "ui_properties": null
+      },
+      {
+        "id": "224:241-2-224:245-values.b",
+        "source": "224:241",
+        "sourceHandle": "height",
+        "target": "224:245",
+        "targetHandle": "values.b",
+        "ui_properties": null
+      },
+      {
+        "id": "224:240-0-224:245-values.c",
+        "source": "224:240",
+        "sourceHandle": "INT",
+        "target": "224:245",
+        "targetHandle": "values.c",
+        "ui_properties": null
+      },
+      {
+        "id": "224:242-1-224:246-left",
+        "source": "224:242",
+        "sourceHandle": "INT",
+        "target": "224:246",
+        "targetHandle": "left",
+        "ui_properties": null
+      },
+      {
+        "id": "224:244-1-224:246-top",
+        "source": "224:244",
+        "sourceHandle": "INT",
+        "target": "224:246",
+        "targetHandle": "top",
+        "ui_properties": null
+      },
+      {
+        "id": "224:243-1-224:246-right",
+        "source": "224:243",
+        "sourceHandle": "INT",
+        "target": "224:246",
+        "targetHandle": "right",
+        "ui_properties": null
+      },
+      {
+        "id": "224:245-1-224:246-bottom",
+        "source": "224:245",
+        "sourceHandle": "INT",
+        "target": "224:246",
+        "targetHandle": "bottom",
+        "ui_properties": null
+      },
+      {
+        "id": "224:241-0-224:246-image",
+        "source": "224:241",
+        "sourceHandle": "IMAGE",
+        "target": "224:246",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "224:246-0-224:247-image",
+        "source": "224:246",
+        "sourceHandle": "IMAGE",
+        "target": "224:247",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "224:247-0-224:248-width",
+        "source": "224:247",
+        "sourceHandle": "width",
+        "target": "224:248",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "224:247-1-224:248-height",
+        "source": "224:247",
+        "sourceHandle": "height",
+        "target": "224:248",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "224:246-0-224:249-destination",
+        "source": "224:246",
+        "sourceHandle": "IMAGE",
+        "target": "224:249",
+        "targetHandle": "destination",
+        "ui_properties": null
+      },
+      {
+        "id": "224:248-0-224:249-source",
+        "source": "224:248",
+        "sourceHandle": "IMAGE",
+        "target": "224:249",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "224:246-1-224:249-mask",
+        "source": "224:246",
+        "sourceHandle": "MASK",
+        "target": "224:249",
+        "targetHandle": "mask",
+        "ui_properties": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "id": "e179cc9d9a9abb2ad81627f6fdbc5df1",
+  "name": "Comfy FLUX 3 Max- Text to Video",
+  "description": "Generate a video with synchronized audio from a single text prompt with FLUX 3 Max, which reasons about and expands the prompt before rendering. Outputs one clip of 5 to 20 seconds at 720p or 1080p, at any aspect ratio from 9:16 to 21:9, with ambient sound, speech, and effects created alongside the picture and no input files required. Ideal for cinematic concept clips, ad mockups, and social videos that need matching sound design. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy FLUX 3 Max- Text to Video\n\nGenerate a video with synchronized audio from a single text prompt with FLUX 3 Max, which reasons about and expands the prompt before rendering. Outputs one clip of 5 to 20 seconds at 720p or 1080p, at any aspect ratio from 9:16 to 21:9, with ambient sound, speech, and effects created alongside the picture and no input files required. Ideal for cinematic concept clips, ad mockups, and social videos that need matching sound design. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_flux3_max_t2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "4",
+        "type": "comfy.Flux3MaxTextToVideoNode",
+        "data": {
+          "prompt": "Wes Anderson style, pastel pink Art Deco hotel courtyard, 90s film aesthetic. A little girl in a hotel uniform walks slowly across the tiled courtyard, holding a short red string in her hand. The string connects upward to a large abstract white cloud floating 0.5 meters above her head, drifting along with her steps. When she reaches the middle of the courtyard, the cloud suddenly sneezes and makes a sneezing sound. She stops and looks up at it. As it sneezes, it grows bigger and turns dark grey with thunder and rain, and the whole courtyard darkens with it. After sneezing, it reverts back to a white cloud of the original size and the courtyard brightens again.",
+          "aspect_ratio": "auto",
+          "duration": "5",
+          "resolution": "720p",
+          "reasoning_level": "high",
+          "generate_audio": true,
+          "seed": 1642819035
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "FLUX 3 Max Text to Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/flux3_max",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "4-0-5-video",
+        "source": "4",
+        "sourceHandle": "VIDEO",
+        "target": "5",
+        "targetHandle": "video",
+        "ui_properties": null
+      }
+    ]
+  }
+}

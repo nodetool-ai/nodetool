@@ -1,0 +1,5412 @@
+{
+  "id": "4f4828821330b3ca2fe26d42be33d5f4",
+  "name": "Comfy 1 Click Multiple Character Angles",
+  "description": "Upload an image of your character and get multiple views of that image from different angles Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "character & fashion",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy 1 Click Multiple Character Angles\n\nUpload an image of your character and get multiple views of that image from different angles Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/templates-1_click_multiple_character_angles-v1.0.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "25",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "character_input.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Character Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "373",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-close_up"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "374",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-wide_shot"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "376",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-aerial_view"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "377",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-low_angle"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "379",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-wide_shot"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "380",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-aerial_view"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "381",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-90_left"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "424",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-45_left"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:221:145",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 3.1,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ModelSamplingAuraFlow"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:221:146",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "qwen_image_vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:221:147",
+        "type": "comfy.FluxKontextMultiReferenceLatentMethod",
+        "data": {
+          "reference_latents_method": "index_timestep_zero"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Edit Model Reference Method"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:221:148",
+        "type": "comfy.FluxKontextMultiReferenceLatentMethod",
+        "data": {
+          "reference_latents_method": "index_timestep_zero"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Edit Model Reference Method"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:221:149",
+        "type": "comfy.TextEncodeQwenImageEditPlus",
+        "data": {
+          "prompt": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Text Encode Qwen Image Edit Plus"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:221:151",
+        "type": "comfy.TextEncodeQwenImageEditPlus",
+        "data": {
+          "prompt": " Turn the camera to a close-up."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "TextEncodeQwenImageEditPlus (Positive)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:221:152",
+        "type": "comfy.CFGNorm",
+        "data": {
+          "strength": 1,
+          "pre_cfg": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 660
+          },
+          "width": 280,
+          "title": "CFGNorm"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:221:153",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:221:154",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "CFG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:221:155",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "CFG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:221:156",
+        "type": "comfy.VAEEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 990
+          },
+          "width": 280,
+          "title": "VAE Encode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:221:161",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "qwen_image_edit_2511_bf16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:221:162",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+          "type": "qwen_image",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:221:163",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Switch (Model)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:221:165",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Steps"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:221:166",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 40
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "Steps"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:221:168",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2640
+          },
+          "width": 280,
+          "title": "Enable 4steps LoRA?"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:221:164",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Switch (CFG)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:221:167",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Switch (Steps)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:221:169",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 345666571704709,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:221:158",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:221:160",
+        "type": "comfy.FluxKontextImageScale",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "FluxKontextImageScale"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:221:220",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "qwen-image-edit-2511-multiple-angles-lora.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:246:222",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 3.1,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "ModelSamplingAuraFlow"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:246:223",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "qwen_image_vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2970
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:246:224",
+        "type": "comfy.FluxKontextMultiReferenceLatentMethod",
+        "data": {
+          "reference_latents_method": "index_timestep_zero"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Edit Model Reference Method"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:246:225",
+        "type": "comfy.FluxKontextMultiReferenceLatentMethod",
+        "data": {
+          "reference_latents_method": "index_timestep_zero"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Edit Model Reference Method"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:246:226",
+        "type": "comfy.TextEncodeQwenImageEditPlus",
+        "data": {
+          "prompt": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Text Encode Qwen Image Edit Plus"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:246:228",
+        "type": "comfy.TextEncodeQwenImageEditPlus",
+        "data": {
+          "prompt": "Rotate the camera 45 degrees to the right.\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "TextEncodeQwenImageEditPlus (Positive)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:246:229",
+        "type": "comfy.CFGNorm",
+        "data": {
+          "strength": 1,
+          "pre_cfg": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "CFGNorm"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:246:230",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:246:231",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 3300
+          },
+          "width": 280,
+          "title": "CFG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:246:232",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 3630
+          },
+          "width": 280,
+          "title": "CFG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:246:233",
+        "type": "comfy.VAEEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "VAE Encode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:246:234",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "qwen_image_edit_2511_bf16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 3960
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:246:235",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+          "type": "qwen_image",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 4290
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:246:236",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Switch (Model)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:246:237",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 4620
+          },
+          "width": 280,
+          "title": "Steps"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:246:238",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 40
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 4950
+          },
+          "width": 280,
+          "title": "Steps"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:246:239",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 5280
+          },
+          "width": 280,
+          "title": "Enable 4steps LoRA?"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:246:240",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Switch (CFG)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:246:241",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Switch (Steps)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:246:242",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 94413014144160,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 330
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:246:243",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 330
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:246:244",
+        "type": "comfy.FluxKontextImageScale",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "FluxKontextImageScale"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:246:245",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "qwen-image-edit-2511-multiple-angles-lora.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:271:247",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 3.1,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 2640
+          },
+          "width": 280,
+          "title": "ModelSamplingAuraFlow"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:271:248",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "qwen_image_vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 5610
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:271:249",
+        "type": "comfy.FluxKontextMultiReferenceLatentMethod",
+        "data": {
+          "reference_latents_method": "index_timestep_zero"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Edit Model Reference Method"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:271:250",
+        "type": "comfy.FluxKontextMultiReferenceLatentMethod",
+        "data": {
+          "reference_latents_method": "index_timestep_zero"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "Edit Model Reference Method"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:271:251",
+        "type": "comfy.TextEncodeQwenImageEditPlus",
+        "data": {
+          "prompt": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 2970
+          },
+          "width": 280,
+          "title": "Text Encode Qwen Image Edit Plus"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:271:253",
+        "type": "comfy.TextEncodeQwenImageEditPlus",
+        "data": {
+          "prompt": "Turn the camera to an aerial view."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 3300
+          },
+          "width": 280,
+          "title": "TextEncodeQwenImageEditPlus (Positive)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:271:254",
+        "type": "comfy.CFGNorm",
+        "data": {
+          "strength": 1,
+          "pre_cfg": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 2640
+          },
+          "width": 280,
+          "title": "CFGNorm"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:271:255",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:271:256",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 5940
+          },
+          "width": 280,
+          "title": "CFG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:271:257",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 6270
+          },
+          "width": 280,
+          "title": "CFG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:271:258",
+        "type": "comfy.VAEEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 3630
+          },
+          "width": 280,
+          "title": "VAE Encode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:271:259",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "qwen_image_edit_2511_bf16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 6600
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:271:260",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+          "type": "qwen_image",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 6930
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:271:261",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Switch (Model)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:271:262",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 7260
+          },
+          "width": 280,
+          "title": "Steps"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:271:263",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 40
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 7590
+          },
+          "width": 280,
+          "title": "Steps"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:271:264",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 7920
+          },
+          "width": 280,
+          "title": "Enable 4steps LoRA?"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:271:265",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 2640
+          },
+          "width": 280,
+          "title": "Switch (CFG)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:271:266",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 2970
+          },
+          "width": 280,
+          "title": "Switch (Steps)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:271:267",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 125446141429890,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 660
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:271:268",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 660
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:271:269",
+        "type": "comfy.FluxKontextImageScale",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 3300
+          },
+          "width": 280,
+          "title": "FluxKontextImageScale"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:271:270",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "qwen-image-edit-2511-multiple-angles-lora.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 3630
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:296:272",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 3.1,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 3960
+          },
+          "width": 280,
+          "title": "ModelSamplingAuraFlow"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:296:273",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "qwen_image_vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 8250
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:296:274",
+        "type": "comfy.FluxKontextMultiReferenceLatentMethod",
+        "data": {
+          "reference_latents_method": "index_timestep_zero"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 2970
+          },
+          "width": 280,
+          "title": "Edit Model Reference Method"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:296:275",
+        "type": "comfy.FluxKontextMultiReferenceLatentMethod",
+        "data": {
+          "reference_latents_method": "index_timestep_zero"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 3300
+          },
+          "width": 280,
+          "title": "Edit Model Reference Method"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:296:276",
+        "type": "comfy.TextEncodeQwenImageEditPlus",
+        "data": {
+          "prompt": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 4290
+          },
+          "width": 280,
+          "title": "Text Encode Qwen Image Edit Plus"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:296:278",
+        "type": "comfy.TextEncodeQwenImageEditPlus",
+        "data": {
+          "prompt": "Turn the camera to a wide-angle lens."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 4620
+          },
+          "width": 280,
+          "title": "TextEncodeQwenImageEditPlus (Positive)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:296:279",
+        "type": "comfy.CFGNorm",
+        "data": {
+          "strength": 1,
+          "pre_cfg": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 3630
+          },
+          "width": 280,
+          "title": "CFGNorm"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:296:280",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:296:281",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 8580
+          },
+          "width": 280,
+          "title": "CFG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:296:282",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 8910
+          },
+          "width": 280,
+          "title": "CFG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:296:283",
+        "type": "comfy.VAEEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 4950
+          },
+          "width": 280,
+          "title": "VAE Encode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:296:284",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "qwen_image_edit_2511_bf16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 9240
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:296:285",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+          "type": "qwen_image",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 9570
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:296:286",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Switch (Model)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:296:287",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 9900
+          },
+          "width": 280,
+          "title": "Steps"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:296:288",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 40
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 10230
+          },
+          "width": 280,
+          "title": "Steps"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:296:289",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 10560
+          },
+          "width": 280,
+          "title": "Enable 4steps LoRA?"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:296:290",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 3960
+          },
+          "width": 280,
+          "title": "Switch (CFG)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:296:291",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 4290
+          },
+          "width": 280,
+          "title": "Switch (Steps)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:296:292",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 894019412835482,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 990
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:296:293",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 990
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:296:294",
+        "type": "comfy.FluxKontextImageScale",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 4620
+          },
+          "width": 280,
+          "title": "FluxKontextImageScale"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:296:295",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "qwen-image-edit-2511-multiple-angles-lora.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 4950
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:321:297",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 3.1,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 5280
+          },
+          "width": 280,
+          "title": "ModelSamplingAuraFlow"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:321:298",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "qwen_image_vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 10890
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:321:299",
+        "type": "comfy.FluxKontextMultiReferenceLatentMethod",
+        "data": {
+          "reference_latents_method": "index_timestep_zero"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 3960
+          },
+          "width": 280,
+          "title": "Edit Model Reference Method"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:321:300",
+        "type": "comfy.FluxKontextMultiReferenceLatentMethod",
+        "data": {
+          "reference_latents_method": "index_timestep_zero"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 4290
+          },
+          "width": 280,
+          "title": "Edit Model Reference Method"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:321:301",
+        "type": "comfy.TextEncodeQwenImageEditPlus",
+        "data": {
+          "prompt": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 5610
+          },
+          "width": 280,
+          "title": "Text Encode Qwen Image Edit Plus"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:321:303",
+        "type": "comfy.TextEncodeQwenImageEditPlus",
+        "data": {
+          "prompt": "Rotate the camera 90 degrees to the right.\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 5940
+          },
+          "width": 280,
+          "title": "TextEncodeQwenImageEditPlus (Positive)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:321:304",
+        "type": "comfy.CFGNorm",
+        "data": {
+          "strength": 1,
+          "pre_cfg": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 4620
+          },
+          "width": 280,
+          "title": "CFGNorm"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:321:305",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:321:306",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 11220
+          },
+          "width": 280,
+          "title": "CFG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:321:307",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 11550
+          },
+          "width": 280,
+          "title": "CFG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:321:308",
+        "type": "comfy.VAEEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 6270
+          },
+          "width": 280,
+          "title": "VAE Encode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:321:309",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "qwen_image_edit_2511_bf16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 11880
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:321:310",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+          "type": "qwen_image",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 12210
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:321:311",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Switch (Model)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:321:312",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 12540
+          },
+          "width": 280,
+          "title": "Steps"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:321:313",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 40
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 12870
+          },
+          "width": 280,
+          "title": "Steps"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:321:314",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 13200
+          },
+          "width": 280,
+          "title": "Enable 4steps LoRA?"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:321:315",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 5280
+          },
+          "width": 280,
+          "title": "Switch (CFG)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:321:316",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 5610
+          },
+          "width": 280,
+          "title": "Switch (Steps)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:321:317",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 293522831863199,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:321:318",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:321:319",
+        "type": "comfy.FluxKontextImageScale",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 5940
+          },
+          "width": 280,
+          "title": "FluxKontextImageScale"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:321:320",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "qwen-image-edit-2511-multiple-angles-lora.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 6270
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:346:322",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 3.1,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 6600
+          },
+          "width": 280,
+          "title": "ModelSamplingAuraFlow"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:346:323",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "qwen_image_vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 13530
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:346:324",
+        "type": "comfy.FluxKontextMultiReferenceLatentMethod",
+        "data": {
+          "reference_latents_method": "index_timestep_zero"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 4950
+          },
+          "width": 280,
+          "title": "Edit Model Reference Method"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:346:325",
+        "type": "comfy.FluxKontextMultiReferenceLatentMethod",
+        "data": {
+          "reference_latents_method": "index_timestep_zero"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 5280
+          },
+          "width": 280,
+          "title": "Edit Model Reference Method"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:346:326",
+        "type": "comfy.TextEncodeQwenImageEditPlus",
+        "data": {
+          "prompt": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 6930
+          },
+          "width": 280,
+          "title": "Text Encode Qwen Image Edit Plus"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:346:328",
+        "type": "comfy.TextEncodeQwenImageEditPlus",
+        "data": {
+          "prompt": "Turn the camera to a low-angle view."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 7260
+          },
+          "width": 280,
+          "title": "TextEncodeQwenImageEditPlus (Positive)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:346:329",
+        "type": "comfy.CFGNorm",
+        "data": {
+          "strength": 1,
+          "pre_cfg": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 5610
+          },
+          "width": 280,
+          "title": "CFGNorm"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:346:330",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:346:331",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 13860
+          },
+          "width": 280,
+          "title": "CFG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:346:332",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 14190
+          },
+          "width": 280,
+          "title": "CFG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:346:333",
+        "type": "comfy.VAEEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 7590
+          },
+          "width": 280,
+          "title": "VAE Encode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:346:334",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "qwen_image_edit_2511_bf16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 14520
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:346:335",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+          "type": "qwen_image",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 14850
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:346:336",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Switch (Model)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:346:337",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 15180
+          },
+          "width": 280,
+          "title": "Steps"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:346:338",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 40
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 15510
+          },
+          "width": 280,
+          "title": "Steps"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:346:339",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 15840
+          },
+          "width": 280,
+          "title": "Enable 4steps LoRA?"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:346:340",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 6600
+          },
+          "width": 280,
+          "title": "Switch (CFG)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:346:341",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 6930
+          },
+          "width": 280,
+          "title": "Switch (Steps)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:346:342",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 396394480748806,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:346:343",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:346:344",
+        "type": "comfy.FluxKontextImageScale",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 7260
+          },
+          "width": 280,
+          "title": "FluxKontextImageScale"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:346:345",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "qwen-image-edit-2511-multiple-angles-lora.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 7590
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:371:347",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 3.1,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 7920
+          },
+          "width": 280,
+          "title": "ModelSamplingAuraFlow"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:371:348",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "qwen_image_vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 16170
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:371:349",
+        "type": "comfy.FluxKontextMultiReferenceLatentMethod",
+        "data": {
+          "reference_latents_method": "index_timestep_zero"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 5940
+          },
+          "width": 280,
+          "title": "Edit Model Reference Method"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:371:350",
+        "type": "comfy.FluxKontextMultiReferenceLatentMethod",
+        "data": {
+          "reference_latents_method": "index_timestep_zero"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 6270
+          },
+          "width": 280,
+          "title": "Edit Model Reference Method"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:371:351",
+        "type": "comfy.TextEncodeQwenImageEditPlus",
+        "data": {
+          "prompt": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 8250
+          },
+          "width": 280,
+          "title": "Text Encode Qwen Image Edit Plus"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:371:353",
+        "type": "comfy.TextEncodeQwenImageEditPlus",
+        "data": {
+          "prompt": "Rotate the camera 90 degrees to the left."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 8580
+          },
+          "width": 280,
+          "title": "TextEncodeQwenImageEditPlus (Positive)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:371:354",
+        "type": "comfy.CFGNorm",
+        "data": {
+          "strength": 1,
+          "pre_cfg": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 6600
+          },
+          "width": 280,
+          "title": "CFGNorm"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:371:355",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:371:356",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 16500
+          },
+          "width": 280,
+          "title": "CFG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:371:357",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 16830
+          },
+          "width": 280,
+          "title": "CFG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:371:358",
+        "type": "comfy.VAEEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 8910
+          },
+          "width": 280,
+          "title": "VAE Encode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:371:359",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "qwen_image_edit_2511_bf16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 17160
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:371:360",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+          "type": "qwen_image",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 17490
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:371:361",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Switch (Model)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:371:362",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 17820
+          },
+          "width": 280,
+          "title": "Steps"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:371:363",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 40
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 18150
+          },
+          "width": 280,
+          "title": "Steps"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:371:364",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 18480
+          },
+          "width": 280,
+          "title": "Enable 4steps LoRA?"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:371:365",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 7920
+          },
+          "width": 280,
+          "title": "Switch (CFG)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:371:366",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 8250
+          },
+          "width": 280,
+          "title": "Switch (Steps)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:371:367",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 96367255219346,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:371:368",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:371:369",
+        "type": "comfy.FluxKontextImageScale",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 8580
+          },
+          "width": 280,
+          "title": "FluxKontextImageScale"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:371:370",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "qwen-image-edit-2511-multiple-angles-lora.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 8910
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:423:399",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 3.1,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 9240
+          },
+          "width": 280,
+          "title": "ModelSamplingAuraFlow"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:423:400",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "qwen_image_vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 18810
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:423:401",
+        "type": "comfy.FluxKontextMultiReferenceLatentMethod",
+        "data": {
+          "reference_latents_method": "index_timestep_zero"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 6930
+          },
+          "width": 280,
+          "title": "Edit Model Reference Method"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:423:402",
+        "type": "comfy.FluxKontextMultiReferenceLatentMethod",
+        "data": {
+          "reference_latents_method": "index_timestep_zero"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 7260
+          },
+          "width": 280,
+          "title": "Edit Model Reference Method"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:423:403",
+        "type": "comfy.TextEncodeQwenImageEditPlus",
+        "data": {
+          "prompt": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 9570
+          },
+          "width": 280,
+          "title": "Text Encode Qwen Image Edit Plus"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:423:405",
+        "type": "comfy.TextEncodeQwenImageEditPlus",
+        "data": {
+          "prompt": "Rotate the camera 45 degrees to the left."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 9900
+          },
+          "width": 280,
+          "title": "TextEncodeQwenImageEditPlus (Positive)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:423:406",
+        "type": "comfy.CFGNorm",
+        "data": {
+          "strength": 1,
+          "pre_cfg": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 7590
+          },
+          "width": 280,
+          "title": "CFGNorm"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:423:407",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:423:408",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 19140
+          },
+          "width": 280,
+          "title": "CFG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:423:409",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 19470
+          },
+          "width": 280,
+          "title": "CFG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:423:410",
+        "type": "comfy.VAEEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 10230
+          },
+          "width": 280,
+          "title": "VAE Encode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:423:411",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "qwen_image_edit_2511_bf16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 19800
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:423:412",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+          "type": "qwen_image",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 20130
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:423:413",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "Switch (Model)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:423:414",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 20460
+          },
+          "width": 280,
+          "title": "Steps"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:423:415",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 40
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 20790
+          },
+          "width": 280,
+          "title": "Steps"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:423:416",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 21120
+          },
+          "width": 280,
+          "title": "Enable 4steps LoRA?"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:423:417",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 9240
+          },
+          "width": 280,
+          "title": "Switch (CFG)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:423:418",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 9570
+          },
+          "width": 280,
+          "title": "Switch (Steps)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:423:419",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 680317904436629,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:423:420",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:423:421",
+        "type": "comfy.FluxKontextImageScale",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 9900
+          },
+          "width": 280,
+          "title": "FluxKontextImageScale"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "427:423:422",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "qwen-image-edit-2511-multiple-angles-lora.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 10230
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "427:221:158-0-373-images",
+        "source": "427:221:158",
+        "sourceHandle": "IMAGE",
+        "target": "373",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:243-0-374-images",
+        "source": "427:246:243",
+        "sourceHandle": "IMAGE",
+        "target": "374",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:268-0-376-images",
+        "source": "427:271:268",
+        "sourceHandle": "IMAGE",
+        "target": "376",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:343-0-377-images",
+        "source": "427:346:343",
+        "sourceHandle": "IMAGE",
+        "target": "377",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:293-0-379-images",
+        "source": "427:296:293",
+        "sourceHandle": "IMAGE",
+        "target": "379",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:318-0-380-images",
+        "source": "427:321:318",
+        "sourceHandle": "IMAGE",
+        "target": "380",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:368-0-381-images",
+        "source": "427:371:368",
+        "sourceHandle": "IMAGE",
+        "target": "381",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:420-0-424-images",
+        "source": "427:423:420",
+        "sourceHandle": "IMAGE",
+        "target": "424",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:220-0-427:221:145-model",
+        "source": "427:221:220",
+        "sourceHandle": "MODEL",
+        "target": "427:221:145",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:149-0-427:221:147-conditioning",
+        "source": "427:221:149",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:221:147",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:151-0-427:221:148-conditioning",
+        "source": "427:221:151",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:221:148",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:162-0-427:221:149-clip",
+        "source": "427:221:162",
+        "sourceHandle": "CLIP",
+        "target": "427:221:149",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:146-0-427:221:149-vae",
+        "source": "427:221:146",
+        "sourceHandle": "VAE",
+        "target": "427:221:149",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:160-0-427:221:149-image1",
+        "source": "427:221:160",
+        "sourceHandle": "IMAGE",
+        "target": "427:221:149",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:162-0-427:221:151-clip",
+        "source": "427:221:162",
+        "sourceHandle": "CLIP",
+        "target": "427:221:151",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:146-0-427:221:151-vae",
+        "source": "427:221:146",
+        "sourceHandle": "VAE",
+        "target": "427:221:151",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:160-0-427:221:151-image1",
+        "source": "427:221:160",
+        "sourceHandle": "IMAGE",
+        "target": "427:221:151",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:145-0-427:221:152-model",
+        "source": "427:221:145",
+        "sourceHandle": "MODEL",
+        "target": "427:221:152",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:152-0-427:221:153-model",
+        "source": "427:221:152",
+        "sourceHandle": "patched_model",
+        "target": "427:221:153",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:160-0-427:221:156-pixels",
+        "source": "427:221:160",
+        "sourceHandle": "IMAGE",
+        "target": "427:221:156",
+        "targetHandle": "pixels",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:146-0-427:221:156-vae",
+        "source": "427:221:146",
+        "sourceHandle": "VAE",
+        "target": "427:221:156",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:168-0-427:221:163-switch",
+        "source": "427:221:168",
+        "sourceHandle": "BOOLEAN",
+        "target": "427:221:163",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:152-0-427:221:163-on_false",
+        "source": "427:221:152",
+        "sourceHandle": "patched_model",
+        "target": "427:221:163",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:153-0-427:221:163-on_true",
+        "source": "427:221:153",
+        "sourceHandle": "MODEL",
+        "target": "427:221:163",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:168-0-427:221:164-switch",
+        "source": "427:221:168",
+        "sourceHandle": "BOOLEAN",
+        "target": "427:221:164",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:154-0-427:221:164-on_false",
+        "source": "427:221:154",
+        "sourceHandle": "FLOAT",
+        "target": "427:221:164",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:155-0-427:221:164-on_true",
+        "source": "427:221:155",
+        "sourceHandle": "FLOAT",
+        "target": "427:221:164",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:168-0-427:221:167-switch",
+        "source": "427:221:168",
+        "sourceHandle": "BOOLEAN",
+        "target": "427:221:167",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:166-0-427:221:167-on_false",
+        "source": "427:221:166",
+        "sourceHandle": "INT",
+        "target": "427:221:167",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:165-0-427:221:167-on_true",
+        "source": "427:221:165",
+        "sourceHandle": "INT",
+        "target": "427:221:167",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:167-0-427:221:169-steps",
+        "source": "427:221:167",
+        "sourceHandle": "output",
+        "target": "427:221:169",
+        "targetHandle": "steps",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:164-0-427:221:169-cfg",
+        "source": "427:221:164",
+        "sourceHandle": "output",
+        "target": "427:221:169",
+        "targetHandle": "cfg",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:163-0-427:221:169-model",
+        "source": "427:221:163",
+        "sourceHandle": "output",
+        "target": "427:221:169",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:148-0-427:221:169-positive",
+        "source": "427:221:148",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:221:169",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:147-0-427:221:169-negative",
+        "source": "427:221:147",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:221:169",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:156-0-427:221:169-latent_image",
+        "source": "427:221:156",
+        "sourceHandle": "LATENT",
+        "target": "427:221:169",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:169-0-427:221:158-samples",
+        "source": "427:221:169",
+        "sourceHandle": "LATENT",
+        "target": "427:221:158",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:146-0-427:221:158-vae",
+        "source": "427:221:146",
+        "sourceHandle": "VAE",
+        "target": "427:221:158",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "25-0-427:221:160-image",
+        "source": "25",
+        "sourceHandle": "IMAGE",
+        "target": "427:221:160",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "427:221:161-0-427:221:220-model",
+        "source": "427:221:161",
+        "sourceHandle": "MODEL",
+        "target": "427:221:220",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:245-0-427:246:222-model",
+        "source": "427:246:245",
+        "sourceHandle": "MODEL",
+        "target": "427:246:222",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:226-0-427:246:224-conditioning",
+        "source": "427:246:226",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:246:224",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:228-0-427:246:225-conditioning",
+        "source": "427:246:228",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:246:225",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:235-0-427:246:226-clip",
+        "source": "427:246:235",
+        "sourceHandle": "CLIP",
+        "target": "427:246:226",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:223-0-427:246:226-vae",
+        "source": "427:246:223",
+        "sourceHandle": "VAE",
+        "target": "427:246:226",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:244-0-427:246:226-image1",
+        "source": "427:246:244",
+        "sourceHandle": "IMAGE",
+        "target": "427:246:226",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:235-0-427:246:228-clip",
+        "source": "427:246:235",
+        "sourceHandle": "CLIP",
+        "target": "427:246:228",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:223-0-427:246:228-vae",
+        "source": "427:246:223",
+        "sourceHandle": "VAE",
+        "target": "427:246:228",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:244-0-427:246:228-image1",
+        "source": "427:246:244",
+        "sourceHandle": "IMAGE",
+        "target": "427:246:228",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:222-0-427:246:229-model",
+        "source": "427:246:222",
+        "sourceHandle": "MODEL",
+        "target": "427:246:229",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:229-0-427:246:230-model",
+        "source": "427:246:229",
+        "sourceHandle": "patched_model",
+        "target": "427:246:230",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:244-0-427:246:233-pixels",
+        "source": "427:246:244",
+        "sourceHandle": "IMAGE",
+        "target": "427:246:233",
+        "targetHandle": "pixels",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:223-0-427:246:233-vae",
+        "source": "427:246:223",
+        "sourceHandle": "VAE",
+        "target": "427:246:233",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:239-0-427:246:236-switch",
+        "source": "427:246:239",
+        "sourceHandle": "BOOLEAN",
+        "target": "427:246:236",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:229-0-427:246:236-on_false",
+        "source": "427:246:229",
+        "sourceHandle": "patched_model",
+        "target": "427:246:236",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:230-0-427:246:236-on_true",
+        "source": "427:246:230",
+        "sourceHandle": "MODEL",
+        "target": "427:246:236",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:239-0-427:246:240-switch",
+        "source": "427:246:239",
+        "sourceHandle": "BOOLEAN",
+        "target": "427:246:240",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:231-0-427:246:240-on_false",
+        "source": "427:246:231",
+        "sourceHandle": "FLOAT",
+        "target": "427:246:240",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:232-0-427:246:240-on_true",
+        "source": "427:246:232",
+        "sourceHandle": "FLOAT",
+        "target": "427:246:240",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:239-0-427:246:241-switch",
+        "source": "427:246:239",
+        "sourceHandle": "BOOLEAN",
+        "target": "427:246:241",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:238-0-427:246:241-on_false",
+        "source": "427:246:238",
+        "sourceHandle": "INT",
+        "target": "427:246:241",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:237-0-427:246:241-on_true",
+        "source": "427:246:237",
+        "sourceHandle": "INT",
+        "target": "427:246:241",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:241-0-427:246:242-steps",
+        "source": "427:246:241",
+        "sourceHandle": "output",
+        "target": "427:246:242",
+        "targetHandle": "steps",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:240-0-427:246:242-cfg",
+        "source": "427:246:240",
+        "sourceHandle": "output",
+        "target": "427:246:242",
+        "targetHandle": "cfg",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:236-0-427:246:242-model",
+        "source": "427:246:236",
+        "sourceHandle": "output",
+        "target": "427:246:242",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:225-0-427:246:242-positive",
+        "source": "427:246:225",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:246:242",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:224-0-427:246:242-negative",
+        "source": "427:246:224",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:246:242",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:233-0-427:246:242-latent_image",
+        "source": "427:246:233",
+        "sourceHandle": "LATENT",
+        "target": "427:246:242",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:242-0-427:246:243-samples",
+        "source": "427:246:242",
+        "sourceHandle": "LATENT",
+        "target": "427:246:243",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:223-0-427:246:243-vae",
+        "source": "427:246:223",
+        "sourceHandle": "VAE",
+        "target": "427:246:243",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "25-0-427:246:244-image",
+        "source": "25",
+        "sourceHandle": "IMAGE",
+        "target": "427:246:244",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "427:246:234-0-427:246:245-model",
+        "source": "427:246:234",
+        "sourceHandle": "MODEL",
+        "target": "427:246:245",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:270-0-427:271:247-model",
+        "source": "427:271:270",
+        "sourceHandle": "MODEL",
+        "target": "427:271:247",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:251-0-427:271:249-conditioning",
+        "source": "427:271:251",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:271:249",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:253-0-427:271:250-conditioning",
+        "source": "427:271:253",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:271:250",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:260-0-427:271:251-clip",
+        "source": "427:271:260",
+        "sourceHandle": "CLIP",
+        "target": "427:271:251",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:248-0-427:271:251-vae",
+        "source": "427:271:248",
+        "sourceHandle": "VAE",
+        "target": "427:271:251",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:269-0-427:271:251-image1",
+        "source": "427:271:269",
+        "sourceHandle": "IMAGE",
+        "target": "427:271:251",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:260-0-427:271:253-clip",
+        "source": "427:271:260",
+        "sourceHandle": "CLIP",
+        "target": "427:271:253",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:248-0-427:271:253-vae",
+        "source": "427:271:248",
+        "sourceHandle": "VAE",
+        "target": "427:271:253",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:269-0-427:271:253-image1",
+        "source": "427:271:269",
+        "sourceHandle": "IMAGE",
+        "target": "427:271:253",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:247-0-427:271:254-model",
+        "source": "427:271:247",
+        "sourceHandle": "MODEL",
+        "target": "427:271:254",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:254-0-427:271:255-model",
+        "source": "427:271:254",
+        "sourceHandle": "patched_model",
+        "target": "427:271:255",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:269-0-427:271:258-pixels",
+        "source": "427:271:269",
+        "sourceHandle": "IMAGE",
+        "target": "427:271:258",
+        "targetHandle": "pixels",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:248-0-427:271:258-vae",
+        "source": "427:271:248",
+        "sourceHandle": "VAE",
+        "target": "427:271:258",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:264-0-427:271:261-switch",
+        "source": "427:271:264",
+        "sourceHandle": "BOOLEAN",
+        "target": "427:271:261",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:254-0-427:271:261-on_false",
+        "source": "427:271:254",
+        "sourceHandle": "patched_model",
+        "target": "427:271:261",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:255-0-427:271:261-on_true",
+        "source": "427:271:255",
+        "sourceHandle": "MODEL",
+        "target": "427:271:261",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:264-0-427:271:265-switch",
+        "source": "427:271:264",
+        "sourceHandle": "BOOLEAN",
+        "target": "427:271:265",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:256-0-427:271:265-on_false",
+        "source": "427:271:256",
+        "sourceHandle": "FLOAT",
+        "target": "427:271:265",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:257-0-427:271:265-on_true",
+        "source": "427:271:257",
+        "sourceHandle": "FLOAT",
+        "target": "427:271:265",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:264-0-427:271:266-switch",
+        "source": "427:271:264",
+        "sourceHandle": "BOOLEAN",
+        "target": "427:271:266",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:263-0-427:271:266-on_false",
+        "source": "427:271:263",
+        "sourceHandle": "INT",
+        "target": "427:271:266",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:262-0-427:271:266-on_true",
+        "source": "427:271:262",
+        "sourceHandle": "INT",
+        "target": "427:271:266",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:266-0-427:271:267-steps",
+        "source": "427:271:266",
+        "sourceHandle": "output",
+        "target": "427:271:267",
+        "targetHandle": "steps",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:265-0-427:271:267-cfg",
+        "source": "427:271:265",
+        "sourceHandle": "output",
+        "target": "427:271:267",
+        "targetHandle": "cfg",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:261-0-427:271:267-model",
+        "source": "427:271:261",
+        "sourceHandle": "output",
+        "target": "427:271:267",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:250-0-427:271:267-positive",
+        "source": "427:271:250",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:271:267",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:249-0-427:271:267-negative",
+        "source": "427:271:249",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:271:267",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:258-0-427:271:267-latent_image",
+        "source": "427:271:258",
+        "sourceHandle": "LATENT",
+        "target": "427:271:267",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:267-0-427:271:268-samples",
+        "source": "427:271:267",
+        "sourceHandle": "LATENT",
+        "target": "427:271:268",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:248-0-427:271:268-vae",
+        "source": "427:271:248",
+        "sourceHandle": "VAE",
+        "target": "427:271:268",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "25-0-427:271:269-image",
+        "source": "25",
+        "sourceHandle": "IMAGE",
+        "target": "427:271:269",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "427:271:259-0-427:271:270-model",
+        "source": "427:271:259",
+        "sourceHandle": "MODEL",
+        "target": "427:271:270",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:295-0-427:296:272-model",
+        "source": "427:296:295",
+        "sourceHandle": "MODEL",
+        "target": "427:296:272",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:276-0-427:296:274-conditioning",
+        "source": "427:296:276",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:296:274",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:278-0-427:296:275-conditioning",
+        "source": "427:296:278",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:296:275",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:285-0-427:296:276-clip",
+        "source": "427:296:285",
+        "sourceHandle": "CLIP",
+        "target": "427:296:276",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:273-0-427:296:276-vae",
+        "source": "427:296:273",
+        "sourceHandle": "VAE",
+        "target": "427:296:276",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:294-0-427:296:276-image1",
+        "source": "427:296:294",
+        "sourceHandle": "IMAGE",
+        "target": "427:296:276",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:285-0-427:296:278-clip",
+        "source": "427:296:285",
+        "sourceHandle": "CLIP",
+        "target": "427:296:278",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:273-0-427:296:278-vae",
+        "source": "427:296:273",
+        "sourceHandle": "VAE",
+        "target": "427:296:278",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:294-0-427:296:278-image1",
+        "source": "427:296:294",
+        "sourceHandle": "IMAGE",
+        "target": "427:296:278",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:272-0-427:296:279-model",
+        "source": "427:296:272",
+        "sourceHandle": "MODEL",
+        "target": "427:296:279",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:279-0-427:296:280-model",
+        "source": "427:296:279",
+        "sourceHandle": "patched_model",
+        "target": "427:296:280",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:294-0-427:296:283-pixels",
+        "source": "427:296:294",
+        "sourceHandle": "IMAGE",
+        "target": "427:296:283",
+        "targetHandle": "pixels",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:273-0-427:296:283-vae",
+        "source": "427:296:273",
+        "sourceHandle": "VAE",
+        "target": "427:296:283",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:289-0-427:296:286-switch",
+        "source": "427:296:289",
+        "sourceHandle": "BOOLEAN",
+        "target": "427:296:286",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:279-0-427:296:286-on_false",
+        "source": "427:296:279",
+        "sourceHandle": "patched_model",
+        "target": "427:296:286",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:280-0-427:296:286-on_true",
+        "source": "427:296:280",
+        "sourceHandle": "MODEL",
+        "target": "427:296:286",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:289-0-427:296:290-switch",
+        "source": "427:296:289",
+        "sourceHandle": "BOOLEAN",
+        "target": "427:296:290",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:281-0-427:296:290-on_false",
+        "source": "427:296:281",
+        "sourceHandle": "FLOAT",
+        "target": "427:296:290",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:282-0-427:296:290-on_true",
+        "source": "427:296:282",
+        "sourceHandle": "FLOAT",
+        "target": "427:296:290",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:289-0-427:296:291-switch",
+        "source": "427:296:289",
+        "sourceHandle": "BOOLEAN",
+        "target": "427:296:291",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:288-0-427:296:291-on_false",
+        "source": "427:296:288",
+        "sourceHandle": "INT",
+        "target": "427:296:291",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:287-0-427:296:291-on_true",
+        "source": "427:296:287",
+        "sourceHandle": "INT",
+        "target": "427:296:291",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:291-0-427:296:292-steps",
+        "source": "427:296:291",
+        "sourceHandle": "output",
+        "target": "427:296:292",
+        "targetHandle": "steps",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:290-0-427:296:292-cfg",
+        "source": "427:296:290",
+        "sourceHandle": "output",
+        "target": "427:296:292",
+        "targetHandle": "cfg",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:286-0-427:296:292-model",
+        "source": "427:296:286",
+        "sourceHandle": "output",
+        "target": "427:296:292",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:275-0-427:296:292-positive",
+        "source": "427:296:275",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:296:292",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:274-0-427:296:292-negative",
+        "source": "427:296:274",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:296:292",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:283-0-427:296:292-latent_image",
+        "source": "427:296:283",
+        "sourceHandle": "LATENT",
+        "target": "427:296:292",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:292-0-427:296:293-samples",
+        "source": "427:296:292",
+        "sourceHandle": "LATENT",
+        "target": "427:296:293",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:273-0-427:296:293-vae",
+        "source": "427:296:273",
+        "sourceHandle": "VAE",
+        "target": "427:296:293",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "25-0-427:296:294-image",
+        "source": "25",
+        "sourceHandle": "IMAGE",
+        "target": "427:296:294",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "427:296:284-0-427:296:295-model",
+        "source": "427:296:284",
+        "sourceHandle": "MODEL",
+        "target": "427:296:295",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:320-0-427:321:297-model",
+        "source": "427:321:320",
+        "sourceHandle": "MODEL",
+        "target": "427:321:297",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:301-0-427:321:299-conditioning",
+        "source": "427:321:301",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:321:299",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:303-0-427:321:300-conditioning",
+        "source": "427:321:303",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:321:300",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:310-0-427:321:301-clip",
+        "source": "427:321:310",
+        "sourceHandle": "CLIP",
+        "target": "427:321:301",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:298-0-427:321:301-vae",
+        "source": "427:321:298",
+        "sourceHandle": "VAE",
+        "target": "427:321:301",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:319-0-427:321:301-image1",
+        "source": "427:321:319",
+        "sourceHandle": "IMAGE",
+        "target": "427:321:301",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:310-0-427:321:303-clip",
+        "source": "427:321:310",
+        "sourceHandle": "CLIP",
+        "target": "427:321:303",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:298-0-427:321:303-vae",
+        "source": "427:321:298",
+        "sourceHandle": "VAE",
+        "target": "427:321:303",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:319-0-427:321:303-image1",
+        "source": "427:321:319",
+        "sourceHandle": "IMAGE",
+        "target": "427:321:303",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:297-0-427:321:304-model",
+        "source": "427:321:297",
+        "sourceHandle": "MODEL",
+        "target": "427:321:304",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:304-0-427:321:305-model",
+        "source": "427:321:304",
+        "sourceHandle": "patched_model",
+        "target": "427:321:305",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:319-0-427:321:308-pixels",
+        "source": "427:321:319",
+        "sourceHandle": "IMAGE",
+        "target": "427:321:308",
+        "targetHandle": "pixels",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:298-0-427:321:308-vae",
+        "source": "427:321:298",
+        "sourceHandle": "VAE",
+        "target": "427:321:308",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:314-0-427:321:311-switch",
+        "source": "427:321:314",
+        "sourceHandle": "BOOLEAN",
+        "target": "427:321:311",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:304-0-427:321:311-on_false",
+        "source": "427:321:304",
+        "sourceHandle": "patched_model",
+        "target": "427:321:311",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:305-0-427:321:311-on_true",
+        "source": "427:321:305",
+        "sourceHandle": "MODEL",
+        "target": "427:321:311",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:314-0-427:321:315-switch",
+        "source": "427:321:314",
+        "sourceHandle": "BOOLEAN",
+        "target": "427:321:315",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:306-0-427:321:315-on_false",
+        "source": "427:321:306",
+        "sourceHandle": "FLOAT",
+        "target": "427:321:315",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:307-0-427:321:315-on_true",
+        "source": "427:321:307",
+        "sourceHandle": "FLOAT",
+        "target": "427:321:315",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:314-0-427:321:316-switch",
+        "source": "427:321:314",
+        "sourceHandle": "BOOLEAN",
+        "target": "427:321:316",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:313-0-427:321:316-on_false",
+        "source": "427:321:313",
+        "sourceHandle": "INT",
+        "target": "427:321:316",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:312-0-427:321:316-on_true",
+        "source": "427:321:312",
+        "sourceHandle": "INT",
+        "target": "427:321:316",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:316-0-427:321:317-steps",
+        "source": "427:321:316",
+        "sourceHandle": "output",
+        "target": "427:321:317",
+        "targetHandle": "steps",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:315-0-427:321:317-cfg",
+        "source": "427:321:315",
+        "sourceHandle": "output",
+        "target": "427:321:317",
+        "targetHandle": "cfg",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:311-0-427:321:317-model",
+        "source": "427:321:311",
+        "sourceHandle": "output",
+        "target": "427:321:317",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:300-0-427:321:317-positive",
+        "source": "427:321:300",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:321:317",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:299-0-427:321:317-negative",
+        "source": "427:321:299",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:321:317",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:308-0-427:321:317-latent_image",
+        "source": "427:321:308",
+        "sourceHandle": "LATENT",
+        "target": "427:321:317",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:317-0-427:321:318-samples",
+        "source": "427:321:317",
+        "sourceHandle": "LATENT",
+        "target": "427:321:318",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:298-0-427:321:318-vae",
+        "source": "427:321:298",
+        "sourceHandle": "VAE",
+        "target": "427:321:318",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "25-0-427:321:319-image",
+        "source": "25",
+        "sourceHandle": "IMAGE",
+        "target": "427:321:319",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "427:321:309-0-427:321:320-model",
+        "source": "427:321:309",
+        "sourceHandle": "MODEL",
+        "target": "427:321:320",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:345-0-427:346:322-model",
+        "source": "427:346:345",
+        "sourceHandle": "MODEL",
+        "target": "427:346:322",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:326-0-427:346:324-conditioning",
+        "source": "427:346:326",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:346:324",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:328-0-427:346:325-conditioning",
+        "source": "427:346:328",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:346:325",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:335-0-427:346:326-clip",
+        "source": "427:346:335",
+        "sourceHandle": "CLIP",
+        "target": "427:346:326",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:323-0-427:346:326-vae",
+        "source": "427:346:323",
+        "sourceHandle": "VAE",
+        "target": "427:346:326",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:344-0-427:346:326-image1",
+        "source": "427:346:344",
+        "sourceHandle": "IMAGE",
+        "target": "427:346:326",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:335-0-427:346:328-clip",
+        "source": "427:346:335",
+        "sourceHandle": "CLIP",
+        "target": "427:346:328",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:323-0-427:346:328-vae",
+        "source": "427:346:323",
+        "sourceHandle": "VAE",
+        "target": "427:346:328",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:344-0-427:346:328-image1",
+        "source": "427:346:344",
+        "sourceHandle": "IMAGE",
+        "target": "427:346:328",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:322-0-427:346:329-model",
+        "source": "427:346:322",
+        "sourceHandle": "MODEL",
+        "target": "427:346:329",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:329-0-427:346:330-model",
+        "source": "427:346:329",
+        "sourceHandle": "patched_model",
+        "target": "427:346:330",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:344-0-427:346:333-pixels",
+        "source": "427:346:344",
+        "sourceHandle": "IMAGE",
+        "target": "427:346:333",
+        "targetHandle": "pixels",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:323-0-427:346:333-vae",
+        "source": "427:346:323",
+        "sourceHandle": "VAE",
+        "target": "427:346:333",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:339-0-427:346:336-switch",
+        "source": "427:346:339",
+        "sourceHandle": "BOOLEAN",
+        "target": "427:346:336",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:329-0-427:346:336-on_false",
+        "source": "427:346:329",
+        "sourceHandle": "patched_model",
+        "target": "427:346:336",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:330-0-427:346:336-on_true",
+        "source": "427:346:330",
+        "sourceHandle": "MODEL",
+        "target": "427:346:336",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:339-0-427:346:340-switch",
+        "source": "427:346:339",
+        "sourceHandle": "BOOLEAN",
+        "target": "427:346:340",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:331-0-427:346:340-on_false",
+        "source": "427:346:331",
+        "sourceHandle": "FLOAT",
+        "target": "427:346:340",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:332-0-427:346:340-on_true",
+        "source": "427:346:332",
+        "sourceHandle": "FLOAT",
+        "target": "427:346:340",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:339-0-427:346:341-switch",
+        "source": "427:346:339",
+        "sourceHandle": "BOOLEAN",
+        "target": "427:346:341",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:338-0-427:346:341-on_false",
+        "source": "427:346:338",
+        "sourceHandle": "INT",
+        "target": "427:346:341",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:337-0-427:346:341-on_true",
+        "source": "427:346:337",
+        "sourceHandle": "INT",
+        "target": "427:346:341",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:341-0-427:346:342-steps",
+        "source": "427:346:341",
+        "sourceHandle": "output",
+        "target": "427:346:342",
+        "targetHandle": "steps",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:340-0-427:346:342-cfg",
+        "source": "427:346:340",
+        "sourceHandle": "output",
+        "target": "427:346:342",
+        "targetHandle": "cfg",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:336-0-427:346:342-model",
+        "source": "427:346:336",
+        "sourceHandle": "output",
+        "target": "427:346:342",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:325-0-427:346:342-positive",
+        "source": "427:346:325",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:346:342",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:324-0-427:346:342-negative",
+        "source": "427:346:324",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:346:342",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:333-0-427:346:342-latent_image",
+        "source": "427:346:333",
+        "sourceHandle": "LATENT",
+        "target": "427:346:342",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:342-0-427:346:343-samples",
+        "source": "427:346:342",
+        "sourceHandle": "LATENT",
+        "target": "427:346:343",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:323-0-427:346:343-vae",
+        "source": "427:346:323",
+        "sourceHandle": "VAE",
+        "target": "427:346:343",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "25-0-427:346:344-image",
+        "source": "25",
+        "sourceHandle": "IMAGE",
+        "target": "427:346:344",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "427:346:334-0-427:346:345-model",
+        "source": "427:346:334",
+        "sourceHandle": "MODEL",
+        "target": "427:346:345",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:370-0-427:371:347-model",
+        "source": "427:371:370",
+        "sourceHandle": "MODEL",
+        "target": "427:371:347",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:351-0-427:371:349-conditioning",
+        "source": "427:371:351",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:371:349",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:353-0-427:371:350-conditioning",
+        "source": "427:371:353",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:371:350",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:360-0-427:371:351-clip",
+        "source": "427:371:360",
+        "sourceHandle": "CLIP",
+        "target": "427:371:351",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:348-0-427:371:351-vae",
+        "source": "427:371:348",
+        "sourceHandle": "VAE",
+        "target": "427:371:351",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:369-0-427:371:351-image1",
+        "source": "427:371:369",
+        "sourceHandle": "IMAGE",
+        "target": "427:371:351",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:360-0-427:371:353-clip",
+        "source": "427:371:360",
+        "sourceHandle": "CLIP",
+        "target": "427:371:353",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:348-0-427:371:353-vae",
+        "source": "427:371:348",
+        "sourceHandle": "VAE",
+        "target": "427:371:353",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:369-0-427:371:353-image1",
+        "source": "427:371:369",
+        "sourceHandle": "IMAGE",
+        "target": "427:371:353",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:347-0-427:371:354-model",
+        "source": "427:371:347",
+        "sourceHandle": "MODEL",
+        "target": "427:371:354",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:354-0-427:371:355-model",
+        "source": "427:371:354",
+        "sourceHandle": "patched_model",
+        "target": "427:371:355",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:369-0-427:371:358-pixels",
+        "source": "427:371:369",
+        "sourceHandle": "IMAGE",
+        "target": "427:371:358",
+        "targetHandle": "pixels",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:348-0-427:371:358-vae",
+        "source": "427:371:348",
+        "sourceHandle": "VAE",
+        "target": "427:371:358",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:364-0-427:371:361-switch",
+        "source": "427:371:364",
+        "sourceHandle": "BOOLEAN",
+        "target": "427:371:361",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:354-0-427:371:361-on_false",
+        "source": "427:371:354",
+        "sourceHandle": "patched_model",
+        "target": "427:371:361",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:355-0-427:371:361-on_true",
+        "source": "427:371:355",
+        "sourceHandle": "MODEL",
+        "target": "427:371:361",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:364-0-427:371:365-switch",
+        "source": "427:371:364",
+        "sourceHandle": "BOOLEAN",
+        "target": "427:371:365",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:356-0-427:371:365-on_false",
+        "source": "427:371:356",
+        "sourceHandle": "FLOAT",
+        "target": "427:371:365",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:357-0-427:371:365-on_true",
+        "source": "427:371:357",
+        "sourceHandle": "FLOAT",
+        "target": "427:371:365",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:364-0-427:371:366-switch",
+        "source": "427:371:364",
+        "sourceHandle": "BOOLEAN",
+        "target": "427:371:366",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:363-0-427:371:366-on_false",
+        "source": "427:371:363",
+        "sourceHandle": "INT",
+        "target": "427:371:366",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:362-0-427:371:366-on_true",
+        "source": "427:371:362",
+        "sourceHandle": "INT",
+        "target": "427:371:366",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:366-0-427:371:367-steps",
+        "source": "427:371:366",
+        "sourceHandle": "output",
+        "target": "427:371:367",
+        "targetHandle": "steps",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:365-0-427:371:367-cfg",
+        "source": "427:371:365",
+        "sourceHandle": "output",
+        "target": "427:371:367",
+        "targetHandle": "cfg",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:361-0-427:371:367-model",
+        "source": "427:371:361",
+        "sourceHandle": "output",
+        "target": "427:371:367",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:350-0-427:371:367-positive",
+        "source": "427:371:350",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:371:367",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:349-0-427:371:367-negative",
+        "source": "427:371:349",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:371:367",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:358-0-427:371:367-latent_image",
+        "source": "427:371:358",
+        "sourceHandle": "LATENT",
+        "target": "427:371:367",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:367-0-427:371:368-samples",
+        "source": "427:371:367",
+        "sourceHandle": "LATENT",
+        "target": "427:371:368",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:348-0-427:371:368-vae",
+        "source": "427:371:348",
+        "sourceHandle": "VAE",
+        "target": "427:371:368",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "25-0-427:371:369-image",
+        "source": "25",
+        "sourceHandle": "IMAGE",
+        "target": "427:371:369",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "427:371:359-0-427:371:370-model",
+        "source": "427:371:359",
+        "sourceHandle": "MODEL",
+        "target": "427:371:370",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:422-0-427:423:399-model",
+        "source": "427:423:422",
+        "sourceHandle": "MODEL",
+        "target": "427:423:399",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:403-0-427:423:401-conditioning",
+        "source": "427:423:403",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:423:401",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:405-0-427:423:402-conditioning",
+        "source": "427:423:405",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:423:402",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:412-0-427:423:403-clip",
+        "source": "427:423:412",
+        "sourceHandle": "CLIP",
+        "target": "427:423:403",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:400-0-427:423:403-vae",
+        "source": "427:423:400",
+        "sourceHandle": "VAE",
+        "target": "427:423:403",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:421-0-427:423:403-image1",
+        "source": "427:423:421",
+        "sourceHandle": "IMAGE",
+        "target": "427:423:403",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:412-0-427:423:405-clip",
+        "source": "427:423:412",
+        "sourceHandle": "CLIP",
+        "target": "427:423:405",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:400-0-427:423:405-vae",
+        "source": "427:423:400",
+        "sourceHandle": "VAE",
+        "target": "427:423:405",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:421-0-427:423:405-image1",
+        "source": "427:423:421",
+        "sourceHandle": "IMAGE",
+        "target": "427:423:405",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:399-0-427:423:406-model",
+        "source": "427:423:399",
+        "sourceHandle": "MODEL",
+        "target": "427:423:406",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:406-0-427:423:407-model",
+        "source": "427:423:406",
+        "sourceHandle": "patched_model",
+        "target": "427:423:407",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:421-0-427:423:410-pixels",
+        "source": "427:423:421",
+        "sourceHandle": "IMAGE",
+        "target": "427:423:410",
+        "targetHandle": "pixels",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:400-0-427:423:410-vae",
+        "source": "427:423:400",
+        "sourceHandle": "VAE",
+        "target": "427:423:410",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:416-0-427:423:413-switch",
+        "source": "427:423:416",
+        "sourceHandle": "BOOLEAN",
+        "target": "427:423:413",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:406-0-427:423:413-on_false",
+        "source": "427:423:406",
+        "sourceHandle": "patched_model",
+        "target": "427:423:413",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:407-0-427:423:413-on_true",
+        "source": "427:423:407",
+        "sourceHandle": "MODEL",
+        "target": "427:423:413",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:416-0-427:423:417-switch",
+        "source": "427:423:416",
+        "sourceHandle": "BOOLEAN",
+        "target": "427:423:417",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:408-0-427:423:417-on_false",
+        "source": "427:423:408",
+        "sourceHandle": "FLOAT",
+        "target": "427:423:417",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:409-0-427:423:417-on_true",
+        "source": "427:423:409",
+        "sourceHandle": "FLOAT",
+        "target": "427:423:417",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:416-0-427:423:418-switch",
+        "source": "427:423:416",
+        "sourceHandle": "BOOLEAN",
+        "target": "427:423:418",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:415-0-427:423:418-on_false",
+        "source": "427:423:415",
+        "sourceHandle": "INT",
+        "target": "427:423:418",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:414-0-427:423:418-on_true",
+        "source": "427:423:414",
+        "sourceHandle": "INT",
+        "target": "427:423:418",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:418-0-427:423:419-steps",
+        "source": "427:423:418",
+        "sourceHandle": "output",
+        "target": "427:423:419",
+        "targetHandle": "steps",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:417-0-427:423:419-cfg",
+        "source": "427:423:417",
+        "sourceHandle": "output",
+        "target": "427:423:419",
+        "targetHandle": "cfg",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:413-0-427:423:419-model",
+        "source": "427:423:413",
+        "sourceHandle": "output",
+        "target": "427:423:419",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:402-0-427:423:419-positive",
+        "source": "427:423:402",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:423:419",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:401-0-427:423:419-negative",
+        "source": "427:423:401",
+        "sourceHandle": "CONDITIONING",
+        "target": "427:423:419",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:410-0-427:423:419-latent_image",
+        "source": "427:423:410",
+        "sourceHandle": "LATENT",
+        "target": "427:423:419",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:419-0-427:423:420-samples",
+        "source": "427:423:419",
+        "sourceHandle": "LATENT",
+        "target": "427:423:420",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:400-0-427:423:420-vae",
+        "source": "427:423:400",
+        "sourceHandle": "VAE",
+        "target": "427:423:420",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "25-0-427:423:421-image",
+        "source": "25",
+        "sourceHandle": "IMAGE",
+        "target": "427:423:421",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "427:423:411-0-427:423:422-model",
+        "source": "427:423:411",
+        "sourceHandle": "MODEL",
+        "target": "427:423:422",
+        "targetHandle": "model",
+        "ui_properties": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "id": "c45a0c0406cdc2e4ea9496d2bb03d524",
+  "name": "Comfy PixVerse 6.0- Image to Video",
+  "description": "Turn a still image into a moving video clip with PixVerse V6, generating up to 15 seconds of footage at resolutions from 360p to 1080p. Supports multiple aspect ratios, integrated audio generation, and multi-shot direction for cohesive narrative flow. Ideal for social media ads, product demonstrations, and short-form storytelling. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy PixVerse 6.0- Image to Video\n\nTurn a still image into a moving video clip with PixVerse V6, generating up to 15 seconds of footage at resolutions from 360p to 1080p. Supports multiple aspect ratios, integrated audio generation, and multi-shot direction for cohesive narrative flow. Ideal for social media ads, product demonstrations, and short-form storytelling. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_pixverse6_i2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "14",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/PixVerse_v6_i2v",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "17",
+        "type": "comfy.PixverseV6ImageToVideoNode",
+        "data": {
+          "model": "PixVerse V6",
+          "model.prompt": "Multi-shot fashion ad, three shots, starting from the provided image and keeping the product, model, and sticker graphics consistent in every shot.\n\nShot 1 (from the first frame): The scene comes alive exactly as composed: the sticker graphics (stars, clouds, smiley) drift and pop toward the camera one by one, the checkerboard strip slides across in a loop, the background pulses between two tones, and the product rocks gently in place with its shadow shifting beneath. Camera slowly pushes in.\n\nShot 2 (medium): Fast whip-pan transition to a medium shot. The same hands lift the product and turn it playfully toward the lens, sticker shapes spinning around it in a light orbit, background color now one shade deeper. Quick rhythmic energy.\n\nShot 3 (close-up hero): Fast cut. Extreme close-up of the product slowly rotating, surface texture crisp, a smiley sticker winking at the frame corner, everything else falling out of focus. The rotation slows and freezes on the logo for the end frame.\n\nUpbeat funky pop track building across the three shots, a playful \"pop\" per sticker bounce, one vinyl scratch on the whip-pan, a soft chime on the final freeze. Consistent lighting and palette across all shots, youthful premium ad energy.",
+          "model.quality": "720p",
+          "model.duration_seconds": 5,
+          "model.generate_audio": true,
+          "model.multi_clip": false,
+          "model.seed": 541326916,
+          "model.negative_prompt": "randomize",
+          "model.style": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "PixVerse V6 Image to Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "sunny_pink_high_tops.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "17-0-14-video",
+        "source": "17",
+        "sourceHandle": "VIDEO",
+        "target": "14",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "19-0-17-image",
+        "source": "19",
+        "sourceHandle": "IMAGE",
+        "target": "17",
+        "targetHandle": "image",
+        "ui_properties": null
+      }
+    ]
+  }
+}

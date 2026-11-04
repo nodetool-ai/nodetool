@@ -7,6 +7,7 @@
  * layer maps back to a status code.
  */
 
+import { exposeComfyInterface } from "@nodetool-ai/protocol";
 import { z } from "zod";
 import {
   applyBundle,
@@ -133,7 +134,7 @@ interface WorkflowNodeLike {
 }
 
 const workflowNodes = (workflow: Workflow): WorkflowNodeLike[] =>
-  workflow.graph.nodes.flatMap((raw) => {
+  exposeComfyInterface(workflow.graph).nodes.flatMap((raw) => {
     if (!isRecord(raw) || !isString(raw.id) || !isString(raw.type)) {
       return [];
     }

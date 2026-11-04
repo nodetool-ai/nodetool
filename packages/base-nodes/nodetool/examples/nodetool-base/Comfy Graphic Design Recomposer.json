@@ -1,0 +1,3703 @@
+{
+  "id": "80418b4adbd756802afc380f11392015",
+  "name": "Comfy Graphic Design Recomposer",
+  "description": "Upload a graphic design and select your desired aspect ratio. Generates and recomposes the graphic to fit the new aspect ratio. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "brand & design",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Graphic Design Recomposer\n\nUpload a graphic design and select your desired aspect ratio. Generates and recomposes the graphic to fit the new aspect ratio. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/template_graphic_color_remixer.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "5001",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "input_graphic-1x1.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5003",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-tiles"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 6120,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Individual Tiles"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5029",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "model": "Nano Banana 2 (Gemini 3.1 Flash Image)",
+          "seed": 384256206308743,
+          "aspect_ratio": "auto",
+          "resolution": "1K",
+          "response_modalities": "IMAGE+TEXT",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3740,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Nano Banana Pro"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5040",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-all_tiles"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4080,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save All Tiles"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5016",
+        "type": "comfy.CustomCombo",
+        "data": {
+          "choice": "2x2"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "grid_size"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5019",
+        "type": "comfy.StringCompare",
+        "data": {
+          "string_b": "2x2",
+          "mode": "Starts With",
+          "case_sensitive": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "is \"2x2\"?"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5020",
+        "type": "comfy.StringCompare",
+        "data": {
+          "string_b": "3x3",
+          "mode": "Starts With",
+          "case_sensitive": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "is \"3x3\"?"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5021",
+        "type": "comfy.ImageScaleToTotalPixels",
+        "data": {
+          "upscale_method": "nearest-exact",
+          "megapixels": 1,
+          "resolution_steps": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Scale Input"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5022:1",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "right",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "row0 stitch0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5022:2",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "right",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "row1 stitch0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5022:3",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "down",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "col stitch0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5023:101",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "right",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "row0 stitch0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5023:102",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "right",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "row0 stitch1"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5023:103",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "right",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 990
+          },
+          "width": 280,
+          "title": "row1 stitch0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5023:104",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "right",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 660
+          },
+          "width": 280,
+          "title": "row1 stitch1"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5023:105",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "right",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "row2 stitch0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5023:106",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "right",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 990
+          },
+          "width": 280,
+          "title": "row2 stitch1"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5023:107",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "down",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "col stitch0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5023:108",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "down",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "col stitch1"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5024:251",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "right",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "row0 stitch0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5024:252",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "right",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "row0 stitch1"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5024:253",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "right",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 330
+          },
+          "width": 280,
+          "title": "row0 stitch2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5024:254",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "right",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "row1 stitch0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5024:255",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "right",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "row1 stitch1"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5024:256",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "right",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 660
+          },
+          "width": 280,
+          "title": "row1 stitch2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5024:257",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "right",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "row2 stitch0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5024:258",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "right",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "row2 stitch1"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5024:259",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "right",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 990
+          },
+          "width": 280,
+          "title": "row2 stitch2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5024:260",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "right",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 2640
+          },
+          "width": 280,
+          "title": "row3 stitch0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5024:261",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "right",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "row3 stitch1"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5024:262",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "right",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "row3 stitch2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5024:263",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "down",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 330
+          },
+          "width": 280,
+          "title": "col stitch0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5024:264",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "down",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "col stitch1"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5024:265",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "down",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "col stitch2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5025",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 0
+          },
+          "width": 280,
+          "title": "stitch 3v4"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5026",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 3060,
+            "y": 0
+          },
+          "width": 280,
+          "title": "stitch final"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5027",
+        "type": "comfy.ResizeImageMaskNode",
+        "data": {
+          "resize_type": "scale longer dimension",
+          "resize_type.longer_size": 4096,
+          "scale_method": "lanczos"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3400,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Resize 2048"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5028",
+        "type": "comfy.RegexReplace",
+        "data": {
+          "regex_pattern": "{grid_size}",
+          "case_insensitive": true,
+          "multiline": false,
+          "dotall": false,
+          "count": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Replace {aspect_ratio}"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5038:5036",
+        "type": "comfy.RegexReplace",
+        "data": {
+          "string": "Maintain the identity, composition, aspect ratio and text from the {grid_size} grid input image.\n\n{user_prompt}",
+          "regex_pattern": "{user_prompt}",
+          "replace": "For each individual grid image, remix the color palettes while retaining the composition of the input. The aesthetic is ethereal with soft pastel gradients.",
+          "case_insensitive": true,
+          "multiline": false,
+          "dotall": false,
+          "count": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Replace Text (Regex)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5030:501",
+        "type": "comfy.GetImageSize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 4080,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Get Size"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5030:502",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a/2"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4420,
+            "y": 0
+          },
+          "width": 280,
+          "title": "W/2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5030:503",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a/2"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4420,
+            "y": 330
+          },
+          "width": 280,
+          "title": "H/2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5030:504",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a/2*1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4420,
+            "y": 660
+          },
+          "width": 280,
+          "title": "x col 1"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5030:505",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a/2*1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4420,
+            "y": 990
+          },
+          "width": 280,
+          "title": "y row 1"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5030:506",
+        "type": "comfy.ImageCrop",
+        "data": {
+          "x": 0,
+          "y": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 0
+          },
+          "width": 280,
+          "title": "[0,0]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5030:507",
+        "type": "comfy.ImageCrop",
+        "data": {
+          "y": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 330
+          },
+          "width": 280,
+          "title": "[0,1]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5030:508",
+        "type": "comfy.ImageCrop",
+        "data": {
+          "x": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 660
+          },
+          "width": 280,
+          "title": "[1,0]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5030:509",
+        "type": "comfy.ImageCrop",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 990
+          },
+          "width": 280,
+          "title": "[1,1]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5030:510",
+        "type": "comfy.ImageBatchMulti",
+        "data": {
+          "inputcount": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 5100,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Batch 2x2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5031:701",
+        "type": "comfy.GetImageSize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 4080,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Get Size"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5031:702",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a/3"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4420,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "W/3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5031:703",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a/3"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4420,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "H/3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5031:704",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a/3*1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4420,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "x col 1"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5031:705",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a/3*2"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4420,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "x col 2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5031:706",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a/3*1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4420,
+            "y": 2640
+          },
+          "width": 280,
+          "title": "y row 1"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5031:707",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a/3*2"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4420,
+            "y": 2970
+          },
+          "width": 280,
+          "title": "y row 2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5031:708",
+        "type": "comfy.ImageCrop",
+        "data": {
+          "x": 0,
+          "y": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "[0,0]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5031:709",
+        "type": "comfy.ImageCrop",
+        "data": {
+          "y": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "[0,1]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5031:710",
+        "type": "comfy.ImageCrop",
+        "data": {
+          "y": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "[0,2]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5031:711",
+        "type": "comfy.ImageCrop",
+        "data": {
+          "x": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "[1,0]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5031:712",
+        "type": "comfy.ImageCrop",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 2640
+          },
+          "width": 280,
+          "title": "[1,1]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5031:713",
+        "type": "comfy.ImageCrop",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 2970
+          },
+          "width": 280,
+          "title": "[1,2]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5031:714",
+        "type": "comfy.ImageCrop",
+        "data": {
+          "x": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 3300
+          },
+          "width": 280,
+          "title": "[2,0]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5031:715",
+        "type": "comfy.ImageCrop",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 3630
+          },
+          "width": 280,
+          "title": "[2,1]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5031:716",
+        "type": "comfy.ImageCrop",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 3960
+          },
+          "width": 280,
+          "title": "[2,2]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5031:717",
+        "type": "comfy.ImageBatchMulti",
+        "data": {
+          "inputcount": 9
+        },
+        "ui_properties": {
+          "position": {
+            "x": 5100,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Batch 3x3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5032:1001",
+        "type": "comfy.GetImageSize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 4080,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Get Size"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5032:1002",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a/4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4420,
+            "y": 3300
+          },
+          "width": 280,
+          "title": "W/4"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5032:1003",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a/4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4420,
+            "y": 3630
+          },
+          "width": 280,
+          "title": "H/4"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5032:1004",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a/4*1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4420,
+            "y": 3960
+          },
+          "width": 280,
+          "title": "x col 1"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5032:1005",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a/4*2"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4420,
+            "y": 4290
+          },
+          "width": 280,
+          "title": "x col 2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5032:1006",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a/4*3"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4420,
+            "y": 4620
+          },
+          "width": 280,
+          "title": "x col 3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5032:1007",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a/4*1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4420,
+            "y": 4950
+          },
+          "width": 280,
+          "title": "y row 1"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5032:1008",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a/4*2"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4420,
+            "y": 5280
+          },
+          "width": 280,
+          "title": "y row 2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5032:1009",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a/4*3"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4420,
+            "y": 5610
+          },
+          "width": 280,
+          "title": "y row 3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5032:1010",
+        "type": "comfy.ImageCrop",
+        "data": {
+          "x": 0,
+          "y": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 4290
+          },
+          "width": 280,
+          "title": "[0,0]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5032:1011",
+        "type": "comfy.ImageCrop",
+        "data": {
+          "y": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 4620
+          },
+          "width": 280,
+          "title": "[0,1]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5032:1012",
+        "type": "comfy.ImageCrop",
+        "data": {
+          "y": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 4950
+          },
+          "width": 280,
+          "title": "[0,2]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5032:1013",
+        "type": "comfy.ImageCrop",
+        "data": {
+          "y": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 5280
+          },
+          "width": 280,
+          "title": "[0,3]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5032:1014",
+        "type": "comfy.ImageCrop",
+        "data": {
+          "x": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 5610
+          },
+          "width": 280,
+          "title": "[1,0]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5032:1015",
+        "type": "comfy.ImageCrop",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 5940
+          },
+          "width": 280,
+          "title": "[1,1]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5032:1016",
+        "type": "comfy.ImageCrop",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 6270
+          },
+          "width": 280,
+          "title": "[1,2]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5032:1017",
+        "type": "comfy.ImageCrop",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 6600
+          },
+          "width": 280,
+          "title": "[1,3]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5032:1018",
+        "type": "comfy.ImageCrop",
+        "data": {
+          "x": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 6930
+          },
+          "width": 280,
+          "title": "[2,0]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5032:1019",
+        "type": "comfy.ImageCrop",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 7260
+          },
+          "width": 280,
+          "title": "[2,1]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5032:1020",
+        "type": "comfy.ImageCrop",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 7590
+          },
+          "width": 280,
+          "title": "[2,2]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5032:1021",
+        "type": "comfy.ImageCrop",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 7920
+          },
+          "width": 280,
+          "title": "[2,3]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5032:1022",
+        "type": "comfy.ImageCrop",
+        "data": {
+          "x": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 8250
+          },
+          "width": 280,
+          "title": "[3,0]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5032:1023",
+        "type": "comfy.ImageCrop",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 8580
+          },
+          "width": 280,
+          "title": "[3,1]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5032:1024",
+        "type": "comfy.ImageCrop",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 8910
+          },
+          "width": 280,
+          "title": "[3,2]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5032:1025",
+        "type": "comfy.ImageCrop",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 9240
+          },
+          "width": 280,
+          "title": "[3,3]"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5032:1026",
+        "type": "comfy.ImageBatchMulti",
+        "data": {
+          "inputcount": 16
+        },
+        "ui_properties": {
+          "position": {
+            "x": 5100,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Batch 4x4"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5033",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 5440,
+            "y": 0
+          },
+          "width": 280,
+          "title": "images 3v4"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5039:5034",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 5780,
+            "y": 0
+          },
+          "width": 280,
+          "title": "images final"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "5039:5034-0-5003-images",
+        "source": "5039:5034",
+        "sourceHandle": "output",
+        "target": "5003",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5028-0-5029-prompt",
+        "source": "5038:5028",
+        "sourceHandle": "STRING",
+        "target": "5029",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5027-0-5029-images",
+        "source": "5038:5027",
+        "sourceHandle": "resized",
+        "target": "5029",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5040-images",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5040",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5016-0-5038:5019-string_a",
+        "source": "5038:5016",
+        "sourceHandle": "STRING",
+        "target": "5038:5019",
+        "targetHandle": "string_a",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5016-0-5038:5020-string_a",
+        "source": "5038:5016",
+        "sourceHandle": "STRING",
+        "target": "5038:5020",
+        "targetHandle": "string_a",
+        "ui_properties": null
+      },
+      {
+        "id": "5001-0-5038:5021-image",
+        "source": "5001",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5021",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5022:1-image1",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5022:1",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5022:1-image2",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5022:1",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5022:2-image1",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5022:2",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5022:2-image2",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5022:2",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5022:1-0-5038:5022:3-image1",
+        "source": "5038:5022:1",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5022:3",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5022:2-0-5038:5022:3-image2",
+        "source": "5038:5022:2",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5022:3",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5023:101-image1",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5023:101",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5023:101-image2",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5023:101",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5023:101-0-5038:5023:102-image1",
+        "source": "5038:5023:101",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5023:102",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5023:102-image2",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5023:102",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5023:103-image1",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5023:103",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5023:103-image2",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5023:103",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5023:103-0-5038:5023:104-image1",
+        "source": "5038:5023:103",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5023:104",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5023:104-image2",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5023:104",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5023:105-image1",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5023:105",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5023:105-image2",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5023:105",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5023:105-0-5038:5023:106-image1",
+        "source": "5038:5023:105",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5023:106",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5023:106-image2",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5023:106",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5023:102-0-5038:5023:107-image1",
+        "source": "5038:5023:102",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5023:107",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5023:104-0-5038:5023:107-image2",
+        "source": "5038:5023:104",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5023:107",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5023:107-0-5038:5023:108-image1",
+        "source": "5038:5023:107",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5023:108",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5023:106-0-5038:5023:108-image2",
+        "source": "5038:5023:106",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5023:108",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5024:251-image1",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:251",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5024:251-image2",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:251",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5024:251-0-5038:5024:252-image1",
+        "source": "5038:5024:251",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:252",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5024:252-image2",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:252",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5024:252-0-5038:5024:253-image1",
+        "source": "5038:5024:252",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:253",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5024:253-image2",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:253",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5024:254-image1",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:254",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5024:254-image2",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:254",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5024:254-0-5038:5024:255-image1",
+        "source": "5038:5024:254",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:255",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5024:255-image2",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:255",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5024:255-0-5038:5024:256-image1",
+        "source": "5038:5024:255",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:256",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5024:256-image2",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:256",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5024:257-image1",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:257",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5024:257-image2",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:257",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5024:257-0-5038:5024:258-image1",
+        "source": "5038:5024:257",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:258",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5024:258-image2",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:258",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5024:258-0-5038:5024:259-image1",
+        "source": "5038:5024:258",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:259",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5024:259-image2",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:259",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5024:260-image1",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:260",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5024:260-image2",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:260",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5024:260-0-5038:5024:261-image1",
+        "source": "5038:5024:260",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:261",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5024:261-image2",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:261",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5024:261-0-5038:5024:262-image1",
+        "source": "5038:5024:261",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:262",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5021-0-5038:5024:262-image2",
+        "source": "5038:5021",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:262",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5024:253-0-5038:5024:263-image1",
+        "source": "5038:5024:253",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:263",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5024:256-0-5038:5024:263-image2",
+        "source": "5038:5024:256",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:263",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5024:263-0-5038:5024:264-image1",
+        "source": "5038:5024:263",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:264",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5024:259-0-5038:5024:264-image2",
+        "source": "5038:5024:259",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:264",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5024:264-0-5038:5024:265-image1",
+        "source": "5038:5024:264",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:265",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5024:262-0-5038:5024:265-image2",
+        "source": "5038:5024:262",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5024:265",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5020-0-5038:5025-switch",
+        "source": "5038:5020",
+        "sourceHandle": "BOOLEAN",
+        "target": "5038:5025",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5024:265-0-5038:5025-on_false",
+        "source": "5038:5024:265",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5025",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5023:108-0-5038:5025-on_true",
+        "source": "5038:5023:108",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5025",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5019-0-5038:5026-switch",
+        "source": "5038:5019",
+        "sourceHandle": "BOOLEAN",
+        "target": "5038:5026",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5025-0-5038:5026-on_false",
+        "source": "5038:5025",
+        "sourceHandle": "output",
+        "target": "5038:5026",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5022:3-0-5038:5026-on_true",
+        "source": "5038:5022:3",
+        "sourceHandle": "IMAGE",
+        "target": "5038:5026",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5026-0-5038:5027-input",
+        "source": "5038:5026",
+        "sourceHandle": "output",
+        "target": "5038:5027",
+        "targetHandle": "input",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5036-0-5038:5028-string",
+        "source": "5038:5036",
+        "sourceHandle": "STRING",
+        "target": "5038:5028",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5016-0-5038:5028-replace",
+        "source": "5038:5016",
+        "sourceHandle": "STRING",
+        "target": "5038:5028",
+        "targetHandle": "replace",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5030:501-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5030:501",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5030:501-0-5039:5030:502-a",
+        "source": "5039:5030:501",
+        "sourceHandle": "width",
+        "target": "5039:5030:502",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5030:501-1-5039:5030:503-a",
+        "source": "5039:5030:501",
+        "sourceHandle": "height",
+        "target": "5039:5030:503",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5030:501-0-5039:5030:504-a",
+        "source": "5039:5030:501",
+        "sourceHandle": "width",
+        "target": "5039:5030:504",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5030:501-1-5039:5030:505-a",
+        "source": "5039:5030:501",
+        "sourceHandle": "height",
+        "target": "5039:5030:505",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5030:502-0-5039:5030:506-width",
+        "source": "5039:5030:502",
+        "sourceHandle": "INT",
+        "target": "5039:5030:506",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5030:503-0-5039:5030:506-height",
+        "source": "5039:5030:503",
+        "sourceHandle": "INT",
+        "target": "5039:5030:506",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5030:506-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5030:506",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5030:502-0-5039:5030:507-width",
+        "source": "5039:5030:502",
+        "sourceHandle": "INT",
+        "target": "5039:5030:507",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5030:503-0-5039:5030:507-height",
+        "source": "5039:5030:503",
+        "sourceHandle": "INT",
+        "target": "5039:5030:507",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5030:504-0-5039:5030:507-x",
+        "source": "5039:5030:504",
+        "sourceHandle": "INT",
+        "target": "5039:5030:507",
+        "targetHandle": "x",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5030:507-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5030:507",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5030:502-0-5039:5030:508-width",
+        "source": "5039:5030:502",
+        "sourceHandle": "INT",
+        "target": "5039:5030:508",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5030:503-0-5039:5030:508-height",
+        "source": "5039:5030:503",
+        "sourceHandle": "INT",
+        "target": "5039:5030:508",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5030:505-0-5039:5030:508-y",
+        "source": "5039:5030:505",
+        "sourceHandle": "INT",
+        "target": "5039:5030:508",
+        "targetHandle": "y",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5030:508-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5030:508",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5030:502-0-5039:5030:509-width",
+        "source": "5039:5030:502",
+        "sourceHandle": "INT",
+        "target": "5039:5030:509",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5030:503-0-5039:5030:509-height",
+        "source": "5039:5030:503",
+        "sourceHandle": "INT",
+        "target": "5039:5030:509",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5030:504-0-5039:5030:509-x",
+        "source": "5039:5030:504",
+        "sourceHandle": "INT",
+        "target": "5039:5030:509",
+        "targetHandle": "x",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5030:505-0-5039:5030:509-y",
+        "source": "5039:5030:505",
+        "sourceHandle": "INT",
+        "target": "5039:5030:509",
+        "targetHandle": "y",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5030:509-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5030:509",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5030:506-0-5039:5030:510-image_1",
+        "source": "5039:5030:506",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5030:510",
+        "targetHandle": "image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5030:507-0-5039:5030:510-image_2",
+        "source": "5039:5030:507",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5030:510",
+        "targetHandle": "image_2",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5030:508-0-5039:5030:510-image_3",
+        "source": "5039:5030:508",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5030:510",
+        "targetHandle": "image_3",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5030:509-0-5039:5030:510-image_4",
+        "source": "5039:5030:509",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5030:510",
+        "targetHandle": "image_4",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5031:701-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5031:701",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:701-0-5039:5031:702-a",
+        "source": "5039:5031:701",
+        "sourceHandle": "width",
+        "target": "5039:5031:702",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:701-1-5039:5031:703-a",
+        "source": "5039:5031:701",
+        "sourceHandle": "height",
+        "target": "5039:5031:703",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:701-0-5039:5031:704-a",
+        "source": "5039:5031:701",
+        "sourceHandle": "width",
+        "target": "5039:5031:704",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:701-0-5039:5031:705-a",
+        "source": "5039:5031:701",
+        "sourceHandle": "width",
+        "target": "5039:5031:705",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:701-1-5039:5031:706-a",
+        "source": "5039:5031:701",
+        "sourceHandle": "height",
+        "target": "5039:5031:706",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:701-1-5039:5031:707-a",
+        "source": "5039:5031:701",
+        "sourceHandle": "height",
+        "target": "5039:5031:707",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:702-0-5039:5031:708-width",
+        "source": "5039:5031:702",
+        "sourceHandle": "INT",
+        "target": "5039:5031:708",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:703-0-5039:5031:708-height",
+        "source": "5039:5031:703",
+        "sourceHandle": "INT",
+        "target": "5039:5031:708",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5031:708-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5031:708",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:702-0-5039:5031:709-width",
+        "source": "5039:5031:702",
+        "sourceHandle": "INT",
+        "target": "5039:5031:709",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:703-0-5039:5031:709-height",
+        "source": "5039:5031:703",
+        "sourceHandle": "INT",
+        "target": "5039:5031:709",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:704-0-5039:5031:709-x",
+        "source": "5039:5031:704",
+        "sourceHandle": "INT",
+        "target": "5039:5031:709",
+        "targetHandle": "x",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5031:709-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5031:709",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:702-0-5039:5031:710-width",
+        "source": "5039:5031:702",
+        "sourceHandle": "INT",
+        "target": "5039:5031:710",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:703-0-5039:5031:710-height",
+        "source": "5039:5031:703",
+        "sourceHandle": "INT",
+        "target": "5039:5031:710",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:705-0-5039:5031:710-x",
+        "source": "5039:5031:705",
+        "sourceHandle": "INT",
+        "target": "5039:5031:710",
+        "targetHandle": "x",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5031:710-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5031:710",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:702-0-5039:5031:711-width",
+        "source": "5039:5031:702",
+        "sourceHandle": "INT",
+        "target": "5039:5031:711",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:703-0-5039:5031:711-height",
+        "source": "5039:5031:703",
+        "sourceHandle": "INT",
+        "target": "5039:5031:711",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:706-0-5039:5031:711-y",
+        "source": "5039:5031:706",
+        "sourceHandle": "INT",
+        "target": "5039:5031:711",
+        "targetHandle": "y",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5031:711-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5031:711",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:702-0-5039:5031:712-width",
+        "source": "5039:5031:702",
+        "sourceHandle": "INT",
+        "target": "5039:5031:712",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:703-0-5039:5031:712-height",
+        "source": "5039:5031:703",
+        "sourceHandle": "INT",
+        "target": "5039:5031:712",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:704-0-5039:5031:712-x",
+        "source": "5039:5031:704",
+        "sourceHandle": "INT",
+        "target": "5039:5031:712",
+        "targetHandle": "x",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:706-0-5039:5031:712-y",
+        "source": "5039:5031:706",
+        "sourceHandle": "INT",
+        "target": "5039:5031:712",
+        "targetHandle": "y",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5031:712-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5031:712",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:702-0-5039:5031:713-width",
+        "source": "5039:5031:702",
+        "sourceHandle": "INT",
+        "target": "5039:5031:713",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:703-0-5039:5031:713-height",
+        "source": "5039:5031:703",
+        "sourceHandle": "INT",
+        "target": "5039:5031:713",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:705-0-5039:5031:713-x",
+        "source": "5039:5031:705",
+        "sourceHandle": "INT",
+        "target": "5039:5031:713",
+        "targetHandle": "x",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:706-0-5039:5031:713-y",
+        "source": "5039:5031:706",
+        "sourceHandle": "INT",
+        "target": "5039:5031:713",
+        "targetHandle": "y",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5031:713-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5031:713",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:702-0-5039:5031:714-width",
+        "source": "5039:5031:702",
+        "sourceHandle": "INT",
+        "target": "5039:5031:714",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:703-0-5039:5031:714-height",
+        "source": "5039:5031:703",
+        "sourceHandle": "INT",
+        "target": "5039:5031:714",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:707-0-5039:5031:714-y",
+        "source": "5039:5031:707",
+        "sourceHandle": "INT",
+        "target": "5039:5031:714",
+        "targetHandle": "y",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5031:714-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5031:714",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:702-0-5039:5031:715-width",
+        "source": "5039:5031:702",
+        "sourceHandle": "INT",
+        "target": "5039:5031:715",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:703-0-5039:5031:715-height",
+        "source": "5039:5031:703",
+        "sourceHandle": "INT",
+        "target": "5039:5031:715",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:704-0-5039:5031:715-x",
+        "source": "5039:5031:704",
+        "sourceHandle": "INT",
+        "target": "5039:5031:715",
+        "targetHandle": "x",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:707-0-5039:5031:715-y",
+        "source": "5039:5031:707",
+        "sourceHandle": "INT",
+        "target": "5039:5031:715",
+        "targetHandle": "y",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5031:715-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5031:715",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:702-0-5039:5031:716-width",
+        "source": "5039:5031:702",
+        "sourceHandle": "INT",
+        "target": "5039:5031:716",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:703-0-5039:5031:716-height",
+        "source": "5039:5031:703",
+        "sourceHandle": "INT",
+        "target": "5039:5031:716",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:705-0-5039:5031:716-x",
+        "source": "5039:5031:705",
+        "sourceHandle": "INT",
+        "target": "5039:5031:716",
+        "targetHandle": "x",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:707-0-5039:5031:716-y",
+        "source": "5039:5031:707",
+        "sourceHandle": "INT",
+        "target": "5039:5031:716",
+        "targetHandle": "y",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5031:716-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5031:716",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:708-0-5039:5031:717-image_1",
+        "source": "5039:5031:708",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5031:717",
+        "targetHandle": "image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:709-0-5039:5031:717-image_2",
+        "source": "5039:5031:709",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5031:717",
+        "targetHandle": "image_2",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:710-0-5039:5031:717-image_3",
+        "source": "5039:5031:710",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5031:717",
+        "targetHandle": "image_3",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:711-0-5039:5031:717-image_4",
+        "source": "5039:5031:711",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5031:717",
+        "targetHandle": "image_4",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:712-0-5039:5031:717-image_5",
+        "source": "5039:5031:712",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5031:717",
+        "targetHandle": "image_5",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:713-0-5039:5031:717-image_6",
+        "source": "5039:5031:713",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5031:717",
+        "targetHandle": "image_6",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:714-0-5039:5031:717-image_7",
+        "source": "5039:5031:714",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5031:717",
+        "targetHandle": "image_7",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:715-0-5039:5031:717-image_8",
+        "source": "5039:5031:715",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5031:717",
+        "targetHandle": "image_8",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:716-0-5039:5031:717-image_9",
+        "source": "5039:5031:716",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5031:717",
+        "targetHandle": "image_9",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5032:1001-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1001",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1001-0-5039:5032:1002-a",
+        "source": "5039:5032:1001",
+        "sourceHandle": "width",
+        "target": "5039:5032:1002",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1001-1-5039:5032:1003-a",
+        "source": "5039:5032:1001",
+        "sourceHandle": "height",
+        "target": "5039:5032:1003",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1001-0-5039:5032:1004-a",
+        "source": "5039:5032:1001",
+        "sourceHandle": "width",
+        "target": "5039:5032:1004",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1001-0-5039:5032:1005-a",
+        "source": "5039:5032:1001",
+        "sourceHandle": "width",
+        "target": "5039:5032:1005",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1001-0-5039:5032:1006-a",
+        "source": "5039:5032:1001",
+        "sourceHandle": "width",
+        "target": "5039:5032:1006",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1001-1-5039:5032:1007-a",
+        "source": "5039:5032:1001",
+        "sourceHandle": "height",
+        "target": "5039:5032:1007",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1001-1-5039:5032:1008-a",
+        "source": "5039:5032:1001",
+        "sourceHandle": "height",
+        "target": "5039:5032:1008",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1001-1-5039:5032:1009-a",
+        "source": "5039:5032:1001",
+        "sourceHandle": "height",
+        "target": "5039:5032:1009",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1002-0-5039:5032:1010-width",
+        "source": "5039:5032:1002",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1010",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1003-0-5039:5032:1010-height",
+        "source": "5039:5032:1003",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1010",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5032:1010-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1010",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1002-0-5039:5032:1011-width",
+        "source": "5039:5032:1002",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1011",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1003-0-5039:5032:1011-height",
+        "source": "5039:5032:1003",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1011",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1004-0-5039:5032:1011-x",
+        "source": "5039:5032:1004",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1011",
+        "targetHandle": "x",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5032:1011-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1011",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1002-0-5039:5032:1012-width",
+        "source": "5039:5032:1002",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1012",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1003-0-5039:5032:1012-height",
+        "source": "5039:5032:1003",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1012",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1005-0-5039:5032:1012-x",
+        "source": "5039:5032:1005",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1012",
+        "targetHandle": "x",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5032:1012-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1012",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1002-0-5039:5032:1013-width",
+        "source": "5039:5032:1002",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1013",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1003-0-5039:5032:1013-height",
+        "source": "5039:5032:1003",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1013",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1006-0-5039:5032:1013-x",
+        "source": "5039:5032:1006",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1013",
+        "targetHandle": "x",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5032:1013-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1013",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1002-0-5039:5032:1014-width",
+        "source": "5039:5032:1002",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1014",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1003-0-5039:5032:1014-height",
+        "source": "5039:5032:1003",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1014",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1007-0-5039:5032:1014-y",
+        "source": "5039:5032:1007",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1014",
+        "targetHandle": "y",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5032:1014-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1014",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1002-0-5039:5032:1015-width",
+        "source": "5039:5032:1002",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1015",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1003-0-5039:5032:1015-height",
+        "source": "5039:5032:1003",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1015",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1004-0-5039:5032:1015-x",
+        "source": "5039:5032:1004",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1015",
+        "targetHandle": "x",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1007-0-5039:5032:1015-y",
+        "source": "5039:5032:1007",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1015",
+        "targetHandle": "y",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5032:1015-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1015",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1002-0-5039:5032:1016-width",
+        "source": "5039:5032:1002",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1016",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1003-0-5039:5032:1016-height",
+        "source": "5039:5032:1003",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1016",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1005-0-5039:5032:1016-x",
+        "source": "5039:5032:1005",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1016",
+        "targetHandle": "x",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1007-0-5039:5032:1016-y",
+        "source": "5039:5032:1007",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1016",
+        "targetHandle": "y",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5032:1016-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1016",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1002-0-5039:5032:1017-width",
+        "source": "5039:5032:1002",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1017",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1003-0-5039:5032:1017-height",
+        "source": "5039:5032:1003",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1017",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1006-0-5039:5032:1017-x",
+        "source": "5039:5032:1006",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1017",
+        "targetHandle": "x",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1007-0-5039:5032:1017-y",
+        "source": "5039:5032:1007",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1017",
+        "targetHandle": "y",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5032:1017-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1017",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1002-0-5039:5032:1018-width",
+        "source": "5039:5032:1002",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1018",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1003-0-5039:5032:1018-height",
+        "source": "5039:5032:1003",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1018",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1008-0-5039:5032:1018-y",
+        "source": "5039:5032:1008",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1018",
+        "targetHandle": "y",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5032:1018-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1018",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1002-0-5039:5032:1019-width",
+        "source": "5039:5032:1002",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1019",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1003-0-5039:5032:1019-height",
+        "source": "5039:5032:1003",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1019",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1004-0-5039:5032:1019-x",
+        "source": "5039:5032:1004",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1019",
+        "targetHandle": "x",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1008-0-5039:5032:1019-y",
+        "source": "5039:5032:1008",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1019",
+        "targetHandle": "y",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5032:1019-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1019",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1002-0-5039:5032:1020-width",
+        "source": "5039:5032:1002",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1020",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1003-0-5039:5032:1020-height",
+        "source": "5039:5032:1003",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1020",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1005-0-5039:5032:1020-x",
+        "source": "5039:5032:1005",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1020",
+        "targetHandle": "x",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1008-0-5039:5032:1020-y",
+        "source": "5039:5032:1008",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1020",
+        "targetHandle": "y",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5032:1020-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1020",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1002-0-5039:5032:1021-width",
+        "source": "5039:5032:1002",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1021",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1003-0-5039:5032:1021-height",
+        "source": "5039:5032:1003",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1021",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1006-0-5039:5032:1021-x",
+        "source": "5039:5032:1006",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1021",
+        "targetHandle": "x",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1008-0-5039:5032:1021-y",
+        "source": "5039:5032:1008",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1021",
+        "targetHandle": "y",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5032:1021-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1021",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1002-0-5039:5032:1022-width",
+        "source": "5039:5032:1002",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1022",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1003-0-5039:5032:1022-height",
+        "source": "5039:5032:1003",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1022",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1009-0-5039:5032:1022-y",
+        "source": "5039:5032:1009",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1022",
+        "targetHandle": "y",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5032:1022-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1022",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1002-0-5039:5032:1023-width",
+        "source": "5039:5032:1002",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1023",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1003-0-5039:5032:1023-height",
+        "source": "5039:5032:1003",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1023",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1004-0-5039:5032:1023-x",
+        "source": "5039:5032:1004",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1023",
+        "targetHandle": "x",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1009-0-5039:5032:1023-y",
+        "source": "5039:5032:1009",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1023",
+        "targetHandle": "y",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5032:1023-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1023",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1002-0-5039:5032:1024-width",
+        "source": "5039:5032:1002",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1024",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1003-0-5039:5032:1024-height",
+        "source": "5039:5032:1003",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1024",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1005-0-5039:5032:1024-x",
+        "source": "5039:5032:1005",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1024",
+        "targetHandle": "x",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1009-0-5039:5032:1024-y",
+        "source": "5039:5032:1009",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1024",
+        "targetHandle": "y",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5032:1024-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1024",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1002-0-5039:5032:1025-width",
+        "source": "5039:5032:1002",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1025",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1003-0-5039:5032:1025-height",
+        "source": "5039:5032:1003",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1025",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1006-0-5039:5032:1025-x",
+        "source": "5039:5032:1006",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1025",
+        "targetHandle": "x",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1009-0-5039:5032:1025-y",
+        "source": "5039:5032:1009",
+        "sourceHandle": "INT",
+        "target": "5039:5032:1025",
+        "targetHandle": "y",
+        "ui_properties": null
+      },
+      {
+        "id": "5029-0-5039:5032:1025-image",
+        "source": "5029",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1025",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1010-0-5039:5032:1026-image_1",
+        "source": "5039:5032:1010",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1026",
+        "targetHandle": "image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1011-0-5039:5032:1026-image_2",
+        "source": "5039:5032:1011",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1026",
+        "targetHandle": "image_2",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1012-0-5039:5032:1026-image_3",
+        "source": "5039:5032:1012",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1026",
+        "targetHandle": "image_3",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1013-0-5039:5032:1026-image_4",
+        "source": "5039:5032:1013",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1026",
+        "targetHandle": "image_4",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1014-0-5039:5032:1026-image_5",
+        "source": "5039:5032:1014",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1026",
+        "targetHandle": "image_5",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1015-0-5039:5032:1026-image_6",
+        "source": "5039:5032:1015",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1026",
+        "targetHandle": "image_6",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1016-0-5039:5032:1026-image_7",
+        "source": "5039:5032:1016",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1026",
+        "targetHandle": "image_7",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1017-0-5039:5032:1026-image_8",
+        "source": "5039:5032:1017",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1026",
+        "targetHandle": "image_8",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1018-0-5039:5032:1026-image_9",
+        "source": "5039:5032:1018",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1026",
+        "targetHandle": "image_9",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1019-0-5039:5032:1026-image_10",
+        "source": "5039:5032:1019",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1026",
+        "targetHandle": "image_10",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1020-0-5039:5032:1026-image_11",
+        "source": "5039:5032:1020",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1026",
+        "targetHandle": "image_11",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1021-0-5039:5032:1026-image_12",
+        "source": "5039:5032:1021",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1026",
+        "targetHandle": "image_12",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1022-0-5039:5032:1026-image_13",
+        "source": "5039:5032:1022",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1026",
+        "targetHandle": "image_13",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1023-0-5039:5032:1026-image_14",
+        "source": "5039:5032:1023",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1026",
+        "targetHandle": "image_14",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1024-0-5039:5032:1026-image_15",
+        "source": "5039:5032:1024",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1026",
+        "targetHandle": "image_15",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1025-0-5039:5032:1026-image_16",
+        "source": "5039:5032:1025",
+        "sourceHandle": "IMAGE",
+        "target": "5039:5032:1026",
+        "targetHandle": "image_16",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5020-0-5039:5033-switch",
+        "source": "5038:5020",
+        "sourceHandle": "BOOLEAN",
+        "target": "5039:5033",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5032:1026-0-5039:5033-on_false",
+        "source": "5039:5032:1026",
+        "sourceHandle": "images",
+        "target": "5039:5033",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5031:717-0-5039:5033-on_true",
+        "source": "5039:5031:717",
+        "sourceHandle": "images",
+        "target": "5039:5033",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "5038:5019-0-5039:5034-switch",
+        "source": "5038:5019",
+        "sourceHandle": "BOOLEAN",
+        "target": "5039:5034",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5033-0-5039:5034-on_false",
+        "source": "5039:5033",
+        "sourceHandle": "output",
+        "target": "5039:5034",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "5039:5030:510-0-5039:5034-on_true",
+        "source": "5039:5030:510",
+        "sourceHandle": "images",
+        "target": "5039:5034",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      }
+    ]
+  }
+}

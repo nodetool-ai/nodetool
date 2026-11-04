@@ -1,0 +1,221 @@
+{
+  "id": "02b7211fe0f6c0b3630a45939647ea17",
+  "name": "Comfy Add Product to Character’s Hand, AI UGC",
+  "description": "Upload a photo of your character and your product. Generate an image of that character holding the product. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "product & ads",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Add Product to Character’s Hand, AI UGC\n\nUpload a photo of your character and your product. Generate an image of that character holding the product. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/templates-subject_holding_product.app.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "10",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "subject-elderly-lady-portrait.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Subject Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "11",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "product-toothbrush.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Product Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "15",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "17",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "prompt": "The subject from image 1 is holding the product from image 2, the product logo is visible.",
+          "model": "gemini-3-pro-image-preview",
+          "seed": 983525498427854,
+          "aspect_ratio": "auto",
+          "resolution": "2K",
+          "response_modalities": "IMAGE+TEXT",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18:13",
+        "type": "comfy.ResizeAndPadImage",
+        "data": {
+          "padding_color": "white",
+          "interpolation": "area"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Resize And Pad Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18:12",
+        "type": "comfy.GetImageSize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Get Image Size"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18:19",
+        "type": "comfy.BatchImagesNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Batch Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "17-0-15-images",
+        "source": "17",
+        "sourceHandle": "IMAGE",
+        "target": "15",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "18:19-0-17-images",
+        "source": "18:19",
+        "sourceHandle": "IMAGE",
+        "target": "17",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "18:12-0-18:13-target_width",
+        "source": "18:12",
+        "sourceHandle": "width",
+        "target": "18:13",
+        "targetHandle": "target_width",
+        "ui_properties": null
+      },
+      {
+        "id": "18:12-1-18:13-target_height",
+        "source": "18:12",
+        "sourceHandle": "height",
+        "target": "18:13",
+        "targetHandle": "target_height",
+        "ui_properties": null
+      },
+      {
+        "id": "11-0-18:13-image",
+        "source": "11",
+        "sourceHandle": "IMAGE",
+        "target": "18:13",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "10-0-18:12-image",
+        "source": "10",
+        "sourceHandle": "IMAGE",
+        "target": "18:12",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "10-0-18:19-images.image0",
+        "source": "10",
+        "sourceHandle": "IMAGE",
+        "target": "18:19",
+        "targetHandle": "images.image0",
+        "ui_properties": null
+      },
+      {
+        "id": "18:13-0-18:19-images.image1",
+        "source": "18:13",
+        "sourceHandle": "IMAGE",
+        "target": "18:19",
+        "targetHandle": "images.image1",
+        "ui_properties": null
+      }
+    ]
+  }
+}

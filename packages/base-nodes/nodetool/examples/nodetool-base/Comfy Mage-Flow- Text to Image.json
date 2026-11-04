@@ -1,0 +1,272 @@
+{
+  "id": "a1352c7a5410497f7984f692bc2ea6d5",
+  "name": "Comfy Mage-Flow- Text to Image",
+  "description": "Generate high-resolution images from text prompts using Mage-Flow, a compact 4B-parameter diffusion model that outputs a single image at native resolutions from 512 to 2048 pixels per side. Ideal for rapid concept visualization, creative asset generation, and research in controlled image synthesis under limited compute budgets. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Mage-Flow- Text to Image\n\nGenerate high-resolution images from text prompts using Mage-Flow, a compact 4B-parameter diffusion model that outputs a single image at native resolutions from 512 to 2048 pixels per side. Ideal for rapid concept visualization, creative asset generation, and research in controlled image synthesis under limited compute budgets. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/image_mage_flow_t2i_int8.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "10",
+        "type": "comfy.SaveImageAdvanced",
+        "data": {
+          "filename_prefix": "Mage_flow",
+          "format": "png",
+          "format.bit_depth": "8-bit",
+          "format.input_color_space": "sRGB"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "27",
+        "type": "comfy.ResolutionSelector",
+        "data": {
+          "aspect_ratio": "1:1 (Square)",
+          "megapixels": 1,
+          "multiple": 16
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Resolution Selector"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12:1",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "mage_flow_int8_convrot.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12:3",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen3vl_4b_bf16.safetensors",
+          "type": "mage",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12:4",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "mage_flow_vae_bf16.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12:5",
+        "type": "comfy.TextEncodeMageFlowEdit",
+        "data": {
+          "prompt": "Analog film photograph, wide landscape shot, a lone man viewed from behind wearing a long dark brown overcoat standing in an empty snowy desert. A giant single pillar brutalist concrete gas station canopy with wide mushroom-shaped roof, minimalist retro futurism architecture. A smooth cream vintage fastback sports car parked beside old retro red-and-white fuel pump. Distant snow-capped low mountain ranges stretching across horizon, pale muted sky, gravel ground with thin scattered snow. Quiet desolate western atmosphere, soft natural daylight, muted desaturated earth tone palette, vintage color grading, subtle film grain, slight vignetting, medium format film aesthetic, sharp composition, symmetrical balance, cinematic minimalist photography, 8k\n",
+          "negative_prompt": "",
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "TextEncodeMageFlowEdit"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12:6",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 499442600682718,
+          "steps": 30,
+          "cfg": 5,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12:8",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "12:8-0-10-images",
+        "source": "12:8",
+        "sourceHandle": "IMAGE",
+        "target": "10",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "27-0-12:5-width",
+        "source": "27",
+        "sourceHandle": "width",
+        "target": "12:5",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "27-1-12:5-height",
+        "source": "27",
+        "sourceHandle": "height",
+        "target": "12:5",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "12:3-0-12:5-clip",
+        "source": "12:3",
+        "sourceHandle": "CLIP",
+        "target": "12:5",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "12:4-0-12:5-vae",
+        "source": "12:4",
+        "sourceHandle": "VAE",
+        "target": "12:5",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "12:1-0-12:6-model",
+        "source": "12:1",
+        "sourceHandle": "MODEL",
+        "target": "12:6",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "12:5-0-12:6-positive",
+        "source": "12:5",
+        "sourceHandle": "positive",
+        "target": "12:6",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "12:5-1-12:6-negative",
+        "source": "12:5",
+        "sourceHandle": "negative",
+        "target": "12:6",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "12:5-2-12:6-latent_image",
+        "source": "12:5",
+        "sourceHandle": "latent",
+        "target": "12:6",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "12:6-0-12:8-samples",
+        "source": "12:6",
+        "sourceHandle": "LATENT",
+        "target": "12:8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "12:4-0-12:8-vae",
+        "source": "12:4",
+        "sourceHandle": "VAE",
+        "target": "12:8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      }
+    ]
+  }
+}

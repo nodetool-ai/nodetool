@@ -1,0 +1,282 @@
+{
+  "id": "c01a108a1f732a2f27e697cebd9b8f83",
+  "name": "Comfy Sonilo- Video Soundtrack Generation",
+  "description": "Generate synchronized soundtracks from video footage. Input a video to produce music that matches its pacing and emotional cues, outputting a perfectly timed audio file. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "audio",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Sonilo- Video Soundtrack Generation\n\nGenerate synchronized soundtracks from video footage. Input a video to produce music that matches its pacing and emotional cues, outputting a perfectly timed audio file. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_sonilo_v2m.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "703",
+        "type": "comfy.SoniloVideoToMusic",
+        "data": {
+          "prompt": "Sense of absurdity, a leopard sprinting at full speed in the wilderness, silent film, comedy",
+          "seed": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Sonilo Video to Music"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "705",
+        "type": "comfy.LoadVideo",
+        "data": {
+          "file": "leopard_rider.mp4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "708",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Sonilo",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "728",
+        "type": "comfy.SaveAudioAdvanced",
+        "data": {
+          "filename_prefix": "audio/Sonilo",
+          "format": "mp3",
+          "format.quality": "V0"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Audio (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "724:717",
+        "type": "comfy.GetVideoComponents",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Get Video Components"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "724:718",
+        "type": "comfy.CreateVideo",
+        "data": {
+          "bit_depth": 8,
+          "color_space": "sRGB",
+          "codec": "none"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Create Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "724:719",
+        "type": "comfy.AudioAdjustVolume",
+        "data": {
+          "volume": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Adjust Audio Volume"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "724:721",
+        "type": "comfy.AudioMerge",
+        "data": {
+          "merge_method": "add"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Merge Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "724:722",
+        "type": "comfy.AudioAdjustVolume",
+        "data": {
+          "volume": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Adjust Audio Volume"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "705-0-703-video",
+        "source": "705",
+        "sourceHandle": "VIDEO",
+        "target": "703",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "724:718-0-708-video",
+        "source": "724:718",
+        "sourceHandle": "VIDEO",
+        "target": "708",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "703-0-728-audio",
+        "source": "703",
+        "sourceHandle": "AUDIO",
+        "target": "728",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "705-0-724:717-video",
+        "source": "705",
+        "sourceHandle": "VIDEO",
+        "target": "724:717",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "724:717-2-724:718-fps",
+        "source": "724:717",
+        "sourceHandle": "fps",
+        "target": "724:718",
+        "targetHandle": "fps",
+        "ui_properties": null
+      },
+      {
+        "id": "724:717-0-724:718-images",
+        "source": "724:717",
+        "sourceHandle": "images",
+        "target": "724:718",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "724:721-0-724:718-audio",
+        "source": "724:721",
+        "sourceHandle": "AUDIO",
+        "target": "724:718",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "728-0-724:719-audio",
+        "source": "728",
+        "sourceHandle": "audio",
+        "target": "724:719",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "724:722-0-724:721-audio1",
+        "source": "724:722",
+        "sourceHandle": "AUDIO",
+        "target": "724:721",
+        "targetHandle": "audio1",
+        "ui_properties": null
+      },
+      {
+        "id": "724:719-0-724:721-audio2",
+        "source": "724:719",
+        "sourceHandle": "AUDIO",
+        "target": "724:721",
+        "targetHandle": "audio2",
+        "ui_properties": null
+      },
+      {
+        "id": "724:717-1-724:722-audio",
+        "source": "724:717",
+        "sourceHandle": "audio",
+        "target": "724:722",
+        "targetHandle": "audio",
+        "ui_properties": null
+      }
+    ]
+  }
+}

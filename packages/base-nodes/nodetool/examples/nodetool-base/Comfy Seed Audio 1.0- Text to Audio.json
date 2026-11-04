@@ -1,0 +1,86 @@
+{
+  "id": "4d8efca752a4da519a6272da3be093a1",
+  "name": "Comfy Seed Audio 1.0- Text to Audio",
+  "description": "Input a text prompt to generate speech, dialogue, background music, and sound effects in one audio file. Describe voices, emotion, and scene details to create multi-speaker audio up to 2 minutes. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "audio",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Seed Audio 1.0- Text to Audio\n\nInput a text prompt to generate speech, dialogue, background music, and sound effects in one audio file. Describe voices, emotion, and scene details to create multi-speaker audio up to 2 minutes. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_bytedance_seed_audio1_0_t2a.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "3",
+        "type": "comfy.ByteDanceSeedAudio",
+        "data": {
+          "text_prompt": "A quiet coffee shop on a rainy afternoon, soft jazz playing from an old speaker, rain tapping against the window, steam rising from a ceramic cup.\n\nLeo (young man, tired but warm voice, slightly hoarse, American accent) says slowly: \"I didn't think you'd actually show up.\"\n\nNina (young woman, soft and careful voice, a faint smile in her tone) replies gently: \"Neither did I. But here we are.\"\n\n[Long pause. The sound of stirring a spoon against a cup.]\n\nLeo, quieter now, almost hesitant: \"Do you ever wonder what would've happened if we'd met five years earlier?\"\n\nNina lets out a small, sad laugh: \"I used to. Now I just wonder what happens tomorrow.\"\n\n[Brief silence. Rain grows slightly louder. Jazz piano swells for a moment.]\n\nLeo, voice cracking slightly: \"I wish I had a better answer for you.\"\n\nNina, soft and warm: \"You being here is answer enough.\"\n\n[Music fades slowly. Rain continues. Their breathing, then silence.]",
+          "reference_mode": "text only",
+          "sample_rate": "24000",
+          "speech_rate": 0,
+          "loudness_rate": 0,
+          "pitch_rate": 0,
+          "seed": 367178397,
+          "model": "seed-audio-1.0-multilingual"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ByteDance Seed Audio 1.0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "4",
+        "type": "comfy.SaveAudioAdvanced",
+        "data": {
+          "filename_prefix": "audio/Seed_Audio_1.0_t2a",
+          "format": "mp3",
+          "format.quality": "V0"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Audio (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "3-0-4-audio",
+        "source": "3",
+        "sourceHandle": "AUDIO",
+        "target": "4",
+        "targetHandle": "audio",
+        "ui_properties": null
+      }
+    ]
+  }
+}

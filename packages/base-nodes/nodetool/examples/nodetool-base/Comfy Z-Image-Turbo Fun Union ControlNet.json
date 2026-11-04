@@ -1,0 +1,463 @@
+{
+  "id": "ec1c777139207280236b39885c81e258",
+  "name": "Comfy Z-Image-Turbo Fun Union ControlNet",
+  "description": "Multi-control ControlNet supporting Canny, HED, Depth, Pose, and MLSD for Z-Image-Turbo. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Z-Image-Turbo Fun Union ControlNet\n\nMulti-control ControlNet supporting Canny, HED, Depth, Pose, and MLSD for Z-Image-Turbo. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/image_z_image_turbo_fun_union_controlnet.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "9",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "z-image-turbo"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "56",
+        "type": "comfy.PreviewImage",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Preview Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "57",
+        "type": "comfy.Canny",
+        "data": {
+          "low_threshold": 0.1,
+          "high_threshold": 0.32
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Detect Edges (Canny)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "58",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "image_z_image_turbo_fun_union_controlnet_input_image.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "70:39",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen_3_4b.safetensors",
+          "type": "lumina2",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "70:46",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "z_image_turbo_bf16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "70:40",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "ae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "70:64",
+        "type": "comfy.ModelPatchLoader",
+        "data": {
+          "name": "Z-Image-Turbo-Fun-Controlnet-Union.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Load Model Patch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "70:43",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "70:47",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 3,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ModelSamplingAuraFlow"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "70:44",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 729703840979498,
+          "steps": 8,
+          "cfg": 1,
+          "sampler_name": "res_multistep",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "70:42",
+        "type": "comfy.ConditioningZeroOut",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Conditioning Zero Out"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "70:60",
+        "type": "comfy.QwenImageDiffsynthControlnet",
+        "data": {
+          "strength": 1,
+          "start_percent": 0,
+          "end_percent": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Apply Qwen Image DiffSynth ControlNet"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "70:41",
+        "type": "comfy.EmptySD3LatentImage",
+        "data": {
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "EmptySD3LatentImage"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "70:45",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "Realistic photo, close-up of a latina model peeking through pine branches, dappled sunlight on her face, natural, moody, smooth skin, a little bit film grain.\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "70:69",
+        "type": "comfy.GetImageSize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Get Image Size"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "70:43-0-9-images",
+        "source": "70:43",
+        "sourceHandle": "IMAGE",
+        "target": "9",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "57-0-56-images",
+        "source": "57",
+        "sourceHandle": "IMAGE",
+        "target": "56",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "58-0-57-image",
+        "source": "58",
+        "sourceHandle": "IMAGE",
+        "target": "57",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "70:44-0-70:43-samples",
+        "source": "70:44",
+        "sourceHandle": "LATENT",
+        "target": "70:43",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "70:40-0-70:43-vae",
+        "source": "70:40",
+        "sourceHandle": "VAE",
+        "target": "70:43",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "70:60-0-70:47-model",
+        "source": "70:60",
+        "sourceHandle": "MODEL",
+        "target": "70:47",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "70:47-0-70:44-model",
+        "source": "70:47",
+        "sourceHandle": "MODEL",
+        "target": "70:44",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "70:45-0-70:44-positive",
+        "source": "70:45",
+        "sourceHandle": "CONDITIONING",
+        "target": "70:44",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "70:42-0-70:44-negative",
+        "source": "70:42",
+        "sourceHandle": "CONDITIONING",
+        "target": "70:44",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "70:41-0-70:44-latent_image",
+        "source": "70:41",
+        "sourceHandle": "LATENT",
+        "target": "70:44",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "70:45-0-70:42-conditioning",
+        "source": "70:45",
+        "sourceHandle": "CONDITIONING",
+        "target": "70:42",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "70:46-0-70:60-model",
+        "source": "70:46",
+        "sourceHandle": "MODEL",
+        "target": "70:60",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "70:64-0-70:60-model_patch",
+        "source": "70:64",
+        "sourceHandle": "MODEL_PATCH",
+        "target": "70:60",
+        "targetHandle": "model_patch",
+        "ui_properties": null
+      },
+      {
+        "id": "70:40-0-70:60-vae",
+        "source": "70:40",
+        "sourceHandle": "VAE",
+        "target": "70:60",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "57-0-70:60-image",
+        "source": "57",
+        "sourceHandle": "IMAGE",
+        "target": "70:60",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "70:69-0-70:41-width",
+        "source": "70:69",
+        "sourceHandle": "width",
+        "target": "70:41",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "70:69-1-70:41-height",
+        "source": "70:69",
+        "sourceHandle": "height",
+        "target": "70:41",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "70:39-0-70:45-clip",
+        "source": "70:39",
+        "sourceHandle": "CLIP",
+        "target": "70:45",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "57-0-70:69-image",
+        "source": "57",
+        "sourceHandle": "IMAGE",
+        "target": "70:69",
+        "targetHandle": "image",
+        "ui_properties": null
+      }
+    ]
+  }
+}

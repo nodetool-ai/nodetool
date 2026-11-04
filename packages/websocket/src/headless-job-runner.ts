@@ -16,6 +16,7 @@
  * DB-only cancel path (tRPC `jobs.cancel`) keeps its `cancelled` status.
  */
 
+import { collapseComfyGraph } from "@nodetool-ai/protocol";
 import { createLogger, getDefaultAssetsPath } from "@nodetool-ai/config";
 import {
   ExecutionSession,
@@ -148,7 +149,8 @@ export async function startHeadlessJob(
     throw new Error(`Workflow not found: ${workflowId}`);
   }
 
-  const graph = normalizeGraph(workflow.getGraph());
+  // A Comfy workflow runs as one Comfy Cloud job, not node by node.
+  const graph = collapseComfyGraph(normalizeGraph(workflow.getGraph()));
   const registry = options.registry ?? (await getDefaultRegistry());
   const params = options.params ?? {};
 

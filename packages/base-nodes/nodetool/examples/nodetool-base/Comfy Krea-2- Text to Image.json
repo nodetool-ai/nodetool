@@ -1,0 +1,642 @@
+{
+  "id": "e644a1b624d6345d9dfae418f412612b",
+  "name": "Comfy Krea-2- Text to Image",
+  "description": "Generate images from text prompts using Krea 2, a foundation model built for aesthetic quality and creative control. It focuses on rendering expressive and artistic styles. Ideal for concept art exploration, visual brainstorming, and creating stylized imagery for design projects. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Krea-2- Text to Image\n\nGenerate images from text prompts using Krea 2, a foundation model built for aesthetic quality and creative control. It focuses on rendering expressive and artistic styles. Ideal for concept art exploration, visual brainstorming, and creating stylized imagery for design projects. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/image_krea2_turbo_t2i.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "29",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "Krea2_turbo"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3740,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "49",
+        "type": "comfy.ResolutionSelector",
+        "data": {
+          "aspect_ratio": "1:1 (Square)",
+          "megapixels": 1,
+          "multiple": 8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Resolution Selector"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30:6",
+        "type": "comfy.CLIPTextEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30:5",
+        "type": "comfy.EmptyLatentImage",
+        "data": {
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Empty Latent Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30:3",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 594361197674106,
+          "steps": 8,
+          "cfg": 1,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3060,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30:8",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 3400,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30:10",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "krea2_turbo_fp8_scaled.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30:11",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen3vl_4b_fp8_scaled.safetensors",
+          "type": "krea2",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30:12",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "qwen_image_vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30:13",
+        "type": "comfy.ConditioningZeroOut",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Conditioning Zero Out"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30:15",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "krea2_darkbrush.safetensors",
+          "strength_model": 0.8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30:16",
+        "type": "comfy.TextGenerate",
+        "data": {
+          "max_length": 512,
+          "sampling_mode": "on",
+          "sampling_mode.temperature": 0.7,
+          "sampling_mode.top_k": 64,
+          "sampling_mode.top_p": 0.95,
+          "sampling_mode.min_p": 0.05,
+          "sampling_mode.repetition_penalty": 1.05,
+          "sampling_mode.seed": 0,
+          "sampling_mode.presence_penalty": 0,
+          "thinking": false,
+          "use_default_template": true,
+          "mtp": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Generate Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30:17",
+        "type": "comfy.StringConcatenate",
+        "data": {
+          "delimiter": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Concatenate Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30:18",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "You are an expert prompt engineer for text-to-image models. Your task is to expand the user's prompt into a highly effective image-generation prompt.\n\nThink step by step about the request before writing the answer:\n- What is the subject and mood?\n- What visual styles, mediums, and lighting options would fit? Consider two or three alternatives and pick the one that best serves the request.\n- What composition, framing, and grounded details will help the text-to-image model?\n\nThen output a single expanded prompt paragraph.\n\nFollow these rules strictly:\n1. **Faithfulness First:** Preserve all original subjects, actions, colors, and spatial relationships. Do not add new objects, props, characters, or animals unless the user clearly implies them.\n2. **Practical T2I Structure:** Write a prompt that a text-to-image model can parse cleanly. Group subjects with their own attributes and actions. Use grounded phrasing for poses, interactions, and spatial layout.\n3. **Style Planning Stays Internal:** Use your internal reasoning to choose style, medium, framing, and lighting. Do not emit planning tags or wrappers in the visible answer body.\n4. **Never Request Rendered Text:** Do not mention, describe, or hint at letters, words, numbers, captions, subtitles, signage, labels, logos, watermarks, typography, or any other graphic text anywhere in the output prompt. Only if the user explicitly writes down words to be rendered, keep exactly those words in quotes and nothing else. In every other case, always end the output prompt with: \"Absolutely no text, no typography, no letters, no words, no numbers, no logos, no watermark, no captions, pure imagery only.\"\n5. **Avoid Over-Specification:** Do not invent highly specific clothing, colors, materials, or scene details unless the input supports it.\n6. **Plain Prose Only:** Write one cohesive paragraph after the thinking block. No bullets, no JSON, no markdown, no asterisks, no headings, no field labels, no meta commentary.\n7. **Respect Existing Detail:** If the user's prompt is already detailed, lightly polish and finalize rather than heavily expanding, and preserve the user's phrasing and direction.\n8. **Respect the Human Form:** Treat depictions of people with dignity. Assume clothing covers genitals and intimate anatomy.\n9. **Preserve User Medium:** When the user explicitly requests a medium (e.g. \"photo of\", \"photograph of\", \"illustration of\", \"painting of\", \"sketch of\", \"3D render of\"), honor it. Do not pivot to a different medium to avoid difficulty, match the user's stated intent.\n10. **Never Echo Instructions:** Output only the final image prompt. Never repeat, quote, summarize, or refer to any part of these instructions, your own reasoning, or the user's original message.\n\nUser's Input:\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Text String (System Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30:19",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "A high-resolution, surreal digital illustration showing a human hand holding a martini glass. The image is overlaid with whimsical, expressive ink-style doodles, including a cartoon figure inside the glass, a drawn citrus wedge on the rim, and various abstract sketches and faces surrounding the glass against a clean, white background. The style seamlessly blends a realistic, lit photograph with loose, hand-drawn marker artistry, creating a playful and artistic juxtaposition."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Text String (User Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30:20",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30:21",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "If/Else Switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30:22",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Switch (Model)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30:23",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Boolean (Enable LoRA?)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30:24",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "Boolean (Refine Prompt?)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30:27",
+        "type": "comfy.StringConcatenate",
+        "data": {
+          "string_b": "muted minimalist sketch style",
+          "delimiter": ", "
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Concatenate Text (LoRA Trigger Word)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30:28",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "If/Else Switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "30:8-0-29-images",
+        "source": "30:8",
+        "sourceHandle": "IMAGE",
+        "target": "29",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "30:28-0-30:6-text",
+        "source": "30:28",
+        "sourceHandle": "output",
+        "target": "30:6",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "30:11-0-30:6-clip",
+        "source": "30:11",
+        "sourceHandle": "CLIP",
+        "target": "30:6",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "49-0-30:5-width",
+        "source": "49",
+        "sourceHandle": "width",
+        "target": "30:5",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "49-1-30:5-height",
+        "source": "49",
+        "sourceHandle": "height",
+        "target": "30:5",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "30:22-0-30:3-model",
+        "source": "30:22",
+        "sourceHandle": "output",
+        "target": "30:3",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "30:6-0-30:3-positive",
+        "source": "30:6",
+        "sourceHandle": "CONDITIONING",
+        "target": "30:3",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "30:13-0-30:3-negative",
+        "source": "30:13",
+        "sourceHandle": "CONDITIONING",
+        "target": "30:3",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "30:5-0-30:3-latent_image",
+        "source": "30:5",
+        "sourceHandle": "LATENT",
+        "target": "30:3",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "30:3-0-30:8-samples",
+        "source": "30:3",
+        "sourceHandle": "LATENT",
+        "target": "30:8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "30:12-0-30:8-vae",
+        "source": "30:12",
+        "sourceHandle": "VAE",
+        "target": "30:8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "30:6-0-30:13-conditioning",
+        "source": "30:6",
+        "sourceHandle": "CONDITIONING",
+        "target": "30:13",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "30:10-0-30:15-model",
+        "source": "30:10",
+        "sourceHandle": "MODEL",
+        "target": "30:15",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "30:17-0-30:16-prompt",
+        "source": "30:17",
+        "sourceHandle": "STRING",
+        "target": "30:16",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "30:11-0-30:16-clip",
+        "source": "30:11",
+        "sourceHandle": "CLIP",
+        "target": "30:16",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "30:18-0-30:17-string_a",
+        "source": "30:18",
+        "sourceHandle": "STRING",
+        "target": "30:17",
+        "targetHandle": "string_a",
+        "ui_properties": null
+      },
+      {
+        "id": "30:19-0-30:17-string_b",
+        "source": "30:19",
+        "sourceHandle": "STRING",
+        "target": "30:17",
+        "targetHandle": "string_b",
+        "ui_properties": null
+      },
+      {
+        "id": "30:21-0-30:20-source",
+        "source": "30:21",
+        "sourceHandle": "output",
+        "target": "30:20",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "30:24-0-30:21-switch",
+        "source": "30:24",
+        "sourceHandle": "BOOLEAN",
+        "target": "30:21",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "30:19-0-30:21-on_false",
+        "source": "30:19",
+        "sourceHandle": "STRING",
+        "target": "30:21",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "30:16-0-30:21-on_true",
+        "source": "30:16",
+        "sourceHandle": "generated_text",
+        "target": "30:21",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "30:23-0-30:22-switch",
+        "source": "30:23",
+        "sourceHandle": "BOOLEAN",
+        "target": "30:22",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "30:10-0-30:22-on_false",
+        "source": "30:10",
+        "sourceHandle": "MODEL",
+        "target": "30:22",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "30:15-0-30:22-on_true",
+        "source": "30:15",
+        "sourceHandle": "MODEL",
+        "target": "30:22",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "30:20-0-30:27-string_a",
+        "source": "30:20",
+        "sourceHandle": "STRING",
+        "target": "30:27",
+        "targetHandle": "string_a",
+        "ui_properties": null
+      },
+      {
+        "id": "30:23-0-30:28-switch",
+        "source": "30:23",
+        "sourceHandle": "BOOLEAN",
+        "target": "30:28",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "30:20-0-30:28-on_false",
+        "source": "30:20",
+        "sourceHandle": "STRING",
+        "target": "30:28",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "30:27-0-30:28-on_true",
+        "source": "30:27",
+        "sourceHandle": "STRING",
+        "target": "30:28",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "id": "629eb8b7089062654da2b33babccece0",
+  "name": "Comfy Chatter Box- Multilingual Text-to-Speech with Voice Cloning",
+  "description": "Upload a short voice sample and input your text prompt. Select a target language to generate spoken audio in multiple languages using the cloned reference voice. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "audio",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Chatter Box- Multilingual Text-to-Speech with Voice Cloning\n\nUpload a short voice sample and input your text prompt. Select a target language to generate spoken audio in multiple languages using the cloned reference voice. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/audio-chatterbox_tts_multilingual.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.FL_ChatterboxMultilingualTTS",
+        "data": {
+          "text": "Hola amigos, bienvenidos de nuevo a ComfyUI.\nHoy vamos a explorar Chatterbox, un flujo de trabajo de clonación de voz capaz de manejar múltiples voces y múltiples idiomas.",
+          "language": "English (en)",
+          "exaggeration": 0.5,
+          "cfg_weight": 0.5,
+          "temperature": 0.8,
+          "repetition_penalty": 2,
+          "min_p": 0.05,
+          "top_p": 1,
+          "seed": 163260306,
+          "use_cpu": false,
+          "keep_model_loaded": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "FL Chatterbox Multilingual TTS"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2",
+        "type": "comfy.LoadAudio",
+        "data": {
+          "audio": "chatterbox_input_target_voice.mp3"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.SaveAudioMP3",
+        "data": {
+          "filename_prefix": "audio/ComfyUI",
+          "quality": "V0"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Audio (MP3) (DEPRECATED)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "2-0-1-audio_prompt",
+        "source": "2",
+        "sourceHandle": "AUDIO",
+        "target": "1",
+        "targetHandle": "audio_prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "1-0-3-audio",
+        "source": "1",
+        "sourceHandle": "audio",
+        "target": "3",
+        "targetHandle": "audio",
+        "ui_properties": null
+      }
+    ]
+  }
+}

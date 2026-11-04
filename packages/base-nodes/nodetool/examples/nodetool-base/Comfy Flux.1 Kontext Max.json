@@ -1,0 +1,135 @@
+{
+  "id": "d3cc85fdb7d3f5ae37075460dede65ec",
+  "name": "Comfy Flux.1 Kontext Max",
+  "description": "Edit images with Flux.1 Kontext max image. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Flux.1 Kontext Max\n\nEdit images with Flux.1 Kontext max image. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_bfl_flux_1_kontext_max_image.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "84",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "api_bfl_flux_1_kontext_max_image_style_ref.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "85",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "91",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "right",
+          "match_image_size": true,
+          "spacing_width": 8,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Stitch Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "95",
+        "type": "comfy.FluxKontextMaxImageNode",
+        "data": {
+          "prompt": "Using this style, a bunny, a dog and a cat are having a tea party seated around a small white table",
+          "aspect_ratio": "1:1",
+          "guidance": 3,
+          "steps": 50,
+          "seed": 1044116463319391,
+          "prompt_upsampling": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Flux.1 Kontext [max] Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "95-0-85-images",
+        "source": "95",
+        "sourceHandle": "IMAGE",
+        "target": "85",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "84-0-91-image1",
+        "source": "84",
+        "sourceHandle": "IMAGE",
+        "target": "91",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "91-0-95-input_image",
+        "source": "91",
+        "sourceHandle": "IMAGE",
+        "target": "95",
+        "targetHandle": "input_image",
+        "ui_properties": null
+      }
+    ]
+  }
+}

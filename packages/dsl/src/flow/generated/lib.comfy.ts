@@ -68,6 +68,7 @@ runWorkflowOnCloud.stream = function (inputs: RunWorkflowOnCloudInputs): AsyncIt
 export type RunComfyGraphOnCloudInputs = {
   nodes?: Record<string, unknown>[];
   edges?: Record<string, unknown>[];
+  output_slots?: string[];
   timeout?: number;
 };
 

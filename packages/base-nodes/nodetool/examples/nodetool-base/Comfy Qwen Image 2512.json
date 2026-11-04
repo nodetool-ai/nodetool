@@ -1,0 +1,536 @@
+{
+  "id": "6a4f4b50c9b86bab9dd03784b4aee619",
+  "name": "Comfy Qwen Image 2512",
+  "description": "Text-to-image model with enhanced human realism, finer natural details for landscapes and animal fur, and improved text rendering with accurate layout and multimodal composition. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Qwen Image 2512\n\nText-to-image model with enhanced human realism, finer natural details for landscapes and animal fur, and improved text rendering with accurate layout and multimodal composition. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/image_qwen_Image_2512.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "60",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "Qwen-Image-2512"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "238:219",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+          "type": "qwen_image",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "238:220",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "qwen_image_vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "238:222",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 3.1000000000000005,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ModelSamplingAuraFlow"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "238:226",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "qwen_image_2512_fp8_e4m3fn.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "238:227",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "Urban alleyway at dusk. Tall, statuesque high-fashion model striding elegantly, mid distant full body shot from an angular perspective, cinematic/editorial with bold contrasts and tactile materials. They wear a rose-gold metallic trench coat with deconstructed elements over a black long-sleeved turtleneck with subtle texture; paired with forest-green pleated pants with raw hems and a soft texture. Long braided dark hair, medium complexion. They carry a vibrant yellow designer handbag with geometric details and a structured silhouette. White architectural sneakers with bold geometric cutouts. Bold, high-contrast, tactile, urban-grit meets high-fashion impact, extreme clarity, extreme layering, post-processing with transparent light-transmitting ultra-smooth high-definition film effect, removing all noise and grain, removing all blur, removing all vintage feel, removing all roughness, drawn with 32K pixel precision, unparalleled fine line drawing of every single detail, the entire image like a brand new photograph, photorealistic\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Positive Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "238:228",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "低分辨率，低画质，肢体畸形，手指畸形，画面过饱和，蜡像感，人脸无细节，过度光滑，画面具有AI感。构图混乱。文字模糊，扭曲"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Negative Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "238:231",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "238:232",
+        "type": "comfy.EmptySD3LatentImage",
+        "data": {
+          "width": 1328,
+          "height": 1328,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "EmptySD3LatentImage"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "238:230",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 464857551335368,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "238:224",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 50
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Int (Steps)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "238:223",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Float (CFG)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "238:229",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Enable 4 Steps LoRA?"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "238:225",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "Int (Steps)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "238:218",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2640
+          },
+          "width": 280,
+          "title": "Float (CFG)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "238:221",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "Qwen-Image-2512-Lightning-4steps-V1.0-fp32.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "238:233",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Switch (model)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "238:240",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Switch (steps)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "238:243",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Switch (cfg)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "238:231-0-60-images",
+        "source": "238:231",
+        "sourceHandle": "IMAGE",
+        "target": "60",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "238:233-0-238:222-model",
+        "source": "238:233",
+        "sourceHandle": "output",
+        "target": "238:222",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "238:219-0-238:227-clip",
+        "source": "238:219",
+        "sourceHandle": "CLIP",
+        "target": "238:227",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "238:219-0-238:228-clip",
+        "source": "238:219",
+        "sourceHandle": "CLIP",
+        "target": "238:228",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "238:230-0-238:231-samples",
+        "source": "238:230",
+        "sourceHandle": "LATENT",
+        "target": "238:231",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "238:220-0-238:231-vae",
+        "source": "238:220",
+        "sourceHandle": "VAE",
+        "target": "238:231",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "238:240-0-238:230-steps",
+        "source": "238:240",
+        "sourceHandle": "output",
+        "target": "238:230",
+        "targetHandle": "steps",
+        "ui_properties": null
+      },
+      {
+        "id": "238:243-0-238:230-cfg",
+        "source": "238:243",
+        "sourceHandle": "output",
+        "target": "238:230",
+        "targetHandle": "cfg",
+        "ui_properties": null
+      },
+      {
+        "id": "238:222-0-238:230-model",
+        "source": "238:222",
+        "sourceHandle": "MODEL",
+        "target": "238:230",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "238:227-0-238:230-positive",
+        "source": "238:227",
+        "sourceHandle": "CONDITIONING",
+        "target": "238:230",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "238:228-0-238:230-negative",
+        "source": "238:228",
+        "sourceHandle": "CONDITIONING",
+        "target": "238:230",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "238:232-0-238:230-latent_image",
+        "source": "238:232",
+        "sourceHandle": "LATENT",
+        "target": "238:230",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "238:226-0-238:221-model",
+        "source": "238:226",
+        "sourceHandle": "MODEL",
+        "target": "238:221",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "238:229-0-238:233-switch",
+        "source": "238:229",
+        "sourceHandle": "BOOLEAN",
+        "target": "238:233",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "238:226-0-238:233-on_false",
+        "source": "238:226",
+        "sourceHandle": "MODEL",
+        "target": "238:233",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "238:221-0-238:233-on_true",
+        "source": "238:221",
+        "sourceHandle": "MODEL",
+        "target": "238:233",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "238:229-0-238:240-switch",
+        "source": "238:229",
+        "sourceHandle": "BOOLEAN",
+        "target": "238:240",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "238:224-0-238:240-on_false",
+        "source": "238:224",
+        "sourceHandle": "INT",
+        "target": "238:240",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "238:225-0-238:240-on_true",
+        "source": "238:225",
+        "sourceHandle": "INT",
+        "target": "238:240",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "238:229-0-238:243-switch",
+        "source": "238:229",
+        "sourceHandle": "BOOLEAN",
+        "target": "238:243",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "238:223-0-238:243-on_false",
+        "source": "238:223",
+        "sourceHandle": "FLOAT",
+        "target": "238:243",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "238:218-0-238:243-on_true",
+        "source": "238:218",
+        "sourceHandle": "FLOAT",
+        "target": "238:243",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      }
+    ]
+  }
+}

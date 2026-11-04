@@ -1,0 +1,991 @@
+{
+  "id": "c497bb0539dea16168b46245a1b86546",
+  "name": "Comfy Wan2.2-S2V Audio-Driven Video Generation",
+  "description": "Transform static images and audio into dynamic videos with perfect synchronization and minute-level generation. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "video",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Wan2.2-S2V Audio-Driven Video Generation\n\nTransform static images and audio into dynamic videos with perfect synchronization and minute-level generation. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/video_wan2_2_14B_s2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "3",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 20,
+          "sampler_name": "uni_pc",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "6",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "The man is playing the guitar. He looks down at his hands playing the guitar and sings affectionately and gently."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Positive Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Negative Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "37",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "wan2.2_s2v_14B_fp8_scaled.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "38",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+          "type": "wan",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "39",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "wan_2.1_vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "52",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "video_wan2_2_14B_s2v_reference_image.jpg"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "54",
+        "type": "comfy.ModelSamplingSD3",
+        "data": {
+          "shift": 8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ModelSamplingSD3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "56",
+        "type": "comfy.AudioEncoderEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "AudioEncoderEncode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "57",
+        "type": "comfy.AudioEncoderLoader",
+        "data": {
+          "audio_encoder_name": "wav2vec2_large_english_fp16.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Load Audio Encoder"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "58",
+        "type": "comfy.LoadAudio",
+        "data": {
+          "audio": "video_wan2_2_14B_s2v_input_audio.MP3"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Load Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "80",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "82",
+        "type": "comfy.CreateVideo",
+        "data": {
+          "fps": 16,
+          "bit_depth": "auto",
+          "color_space": "sRGB",
+          "codec": "none"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Create Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93",
+        "type": "comfy.WanSoundImageToVideo",
+        "data": {
+          "width": 640,
+          "height": 640,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "WanSoundImageToVideo"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "94",
+        "type": "comfy.LatentCut",
+        "data": {
+          "dim": "t",
+          "index": 0,
+          "amount": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "LatentCut"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "95",
+        "type": "comfy.LatentConcat",
+        "data": {
+          "dim": "t"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "LatentConcat"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "96",
+        "type": "comfy.ImageFromBatch",
+        "data": {
+          "length": 4096
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Get Image from Batch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "100",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 3
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "Batch sizes"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "103",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2640
+          },
+          "width": 280,
+          "title": "Steps"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "104",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 77
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2970
+          },
+          "width": 280,
+          "title": "Chunk Length"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "105",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 3300
+          },
+          "width": 280,
+          "title": "CFG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "107",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "wan2.2_t2v_lightx2v_4steps_lora_v1.1_high_noise.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "113",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ComfyUI",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "85:78",
+        "type": "comfy.LatentConcat",
+        "data": {
+          "dim": "t"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3060,
+            "y": 0
+          },
+          "width": 280,
+          "title": "LatentConcat"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "85:77",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 250,
+          "sampler_name": "uni_pc",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "85:76",
+        "type": "comfy.WanSoundImageToVideoExtend",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "WanSoundImageToVideoExtend"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "79:78",
+        "type": "comfy.LatentConcat",
+        "data": {
+          "dim": "t"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "LatentConcat"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "79:77",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 1,
+          "sampler_name": "uni_pc",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 330
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "79:76",
+        "type": "comfy.WanSoundImageToVideoExtend",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 330
+          },
+          "width": 280,
+          "title": "WanSoundImageToVideoExtend"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "103-0-3-steps",
+        "source": "103",
+        "sourceHandle": "INT",
+        "target": "3",
+        "targetHandle": "steps",
+        "ui_properties": null
+      },
+      {
+        "id": "105-0-3-cfg",
+        "source": "105",
+        "sourceHandle": "FLOAT",
+        "target": "3",
+        "targetHandle": "cfg",
+        "ui_properties": null
+      },
+      {
+        "id": "54-0-3-model",
+        "source": "54",
+        "sourceHandle": "MODEL",
+        "target": "3",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "93-0-3-positive",
+        "source": "93",
+        "sourceHandle": "positive",
+        "target": "3",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "93-1-3-negative",
+        "source": "93",
+        "sourceHandle": "negative",
+        "target": "3",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "93-2-3-latent_image",
+        "source": "93",
+        "sourceHandle": "latent",
+        "target": "3",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "38-0-6-clip",
+        "source": "38",
+        "sourceHandle": "CLIP",
+        "target": "6",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "38-0-7-clip",
+        "source": "38",
+        "sourceHandle": "CLIP",
+        "target": "7",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "107-0-54-model",
+        "source": "107",
+        "sourceHandle": "MODEL",
+        "target": "54",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "57-0-56-audio_encoder",
+        "source": "57",
+        "sourceHandle": "AUDIO_ENCODER",
+        "target": "56",
+        "targetHandle": "audio_encoder",
+        "ui_properties": null
+      },
+      {
+        "id": "58-0-56-audio",
+        "source": "58",
+        "sourceHandle": "AUDIO",
+        "target": "56",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "95-0-80-samples",
+        "source": "95",
+        "sourceHandle": "LATENT",
+        "target": "80",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "39-0-80-vae",
+        "source": "39",
+        "sourceHandle": "VAE",
+        "target": "80",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "96-0-82-images",
+        "source": "96",
+        "sourceHandle": "IMAGE",
+        "target": "82",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "58-0-82-audio",
+        "source": "58",
+        "sourceHandle": "AUDIO",
+        "target": "82",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "104-0-93-length",
+        "source": "104",
+        "sourceHandle": "INT",
+        "target": "93",
+        "targetHandle": "length",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-93-positive",
+        "source": "6",
+        "sourceHandle": "CONDITIONING",
+        "target": "93",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-93-negative",
+        "source": "7",
+        "sourceHandle": "CONDITIONING",
+        "target": "93",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "39-0-93-vae",
+        "source": "39",
+        "sourceHandle": "VAE",
+        "target": "93",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "56-0-93-audio_encoder_output",
+        "source": "56",
+        "sourceHandle": "AUDIO_ENCODER_OUTPUT",
+        "target": "93",
+        "targetHandle": "audio_encoder_output",
+        "ui_properties": null
+      },
+      {
+        "id": "52-0-93-ref_image",
+        "source": "52",
+        "sourceHandle": "IMAGE",
+        "target": "93",
+        "targetHandle": "ref_image",
+        "ui_properties": null
+      },
+      {
+        "id": "94-0-95-samples1",
+        "source": "94",
+        "sourceHandle": "LATENT",
+        "target": "95",
+        "targetHandle": "samples1",
+        "ui_properties": null
+      },
+      {
+        "id": "100-0-96-batch_index",
+        "source": "100",
+        "sourceHandle": "INT",
+        "target": "96",
+        "targetHandle": "batch_index",
+        "ui_properties": null
+      },
+      {
+        "id": "80-0-96-image",
+        "source": "80",
+        "sourceHandle": "IMAGE",
+        "target": "96",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "37-0-107-model",
+        "source": "37",
+        "sourceHandle": "MODEL",
+        "target": "107",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "82-0-113-video",
+        "source": "82",
+        "sourceHandle": "VIDEO",
+        "target": "113",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "79:78-0-85:78-samples1",
+        "source": "79:78",
+        "sourceHandle": "LATENT",
+        "target": "85:78",
+        "targetHandle": "samples1",
+        "ui_properties": null
+      },
+      {
+        "id": "85:77-0-85:78-samples2",
+        "source": "85:77",
+        "sourceHandle": "LATENT",
+        "target": "85:78",
+        "targetHandle": "samples2",
+        "ui_properties": null
+      },
+      {
+        "id": "103-0-85:77-steps",
+        "source": "103",
+        "sourceHandle": "INT",
+        "target": "85:77",
+        "targetHandle": "steps",
+        "ui_properties": null
+      },
+      {
+        "id": "105-0-85:77-cfg",
+        "source": "105",
+        "sourceHandle": "FLOAT",
+        "target": "85:77",
+        "targetHandle": "cfg",
+        "ui_properties": null
+      },
+      {
+        "id": "54-0-85:77-model",
+        "source": "54",
+        "sourceHandle": "MODEL",
+        "target": "85:77",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "85:76-0-85:77-positive",
+        "source": "85:76",
+        "sourceHandle": "positive",
+        "target": "85:77",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "85:76-1-85:77-negative",
+        "source": "85:76",
+        "sourceHandle": "negative",
+        "target": "85:77",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "85:76-2-85:77-latent_image",
+        "source": "85:76",
+        "sourceHandle": "latent",
+        "target": "85:77",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "104-0-85:76-length",
+        "source": "104",
+        "sourceHandle": "INT",
+        "target": "85:76",
+        "targetHandle": "length",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-85:76-positive",
+        "source": "6",
+        "sourceHandle": "CONDITIONING",
+        "target": "85:76",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-85:76-negative",
+        "source": "7",
+        "sourceHandle": "CONDITIONING",
+        "target": "85:76",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "39-0-85:76-vae",
+        "source": "39",
+        "sourceHandle": "VAE",
+        "target": "85:76",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "79:78-0-85:76-video_latent",
+        "source": "79:78",
+        "sourceHandle": "LATENT",
+        "target": "85:76",
+        "targetHandle": "video_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "56-0-85:76-audio_encoder_output",
+        "source": "56",
+        "sourceHandle": "AUDIO_ENCODER_OUTPUT",
+        "target": "85:76",
+        "targetHandle": "audio_encoder_output",
+        "ui_properties": null
+      },
+      {
+        "id": "52-0-85:76-ref_image",
+        "source": "52",
+        "sourceHandle": "IMAGE",
+        "target": "85:76",
+        "targetHandle": "ref_image",
+        "ui_properties": null
+      },
+      {
+        "id": "3-0-79:78-samples1",
+        "source": "3",
+        "sourceHandle": "LATENT",
+        "target": "79:78",
+        "targetHandle": "samples1",
+        "ui_properties": null
+      },
+      {
+        "id": "79:77-0-79:78-samples2",
+        "source": "79:77",
+        "sourceHandle": "LATENT",
+        "target": "79:78",
+        "targetHandle": "samples2",
+        "ui_properties": null
+      },
+      {
+        "id": "103-0-79:77-steps",
+        "source": "103",
+        "sourceHandle": "INT",
+        "target": "79:77",
+        "targetHandle": "steps",
+        "ui_properties": null
+      },
+      {
+        "id": "105-0-79:77-cfg",
+        "source": "105",
+        "sourceHandle": "FLOAT",
+        "target": "79:77",
+        "targetHandle": "cfg",
+        "ui_properties": null
+      },
+      {
+        "id": "54-0-79:77-model",
+        "source": "54",
+        "sourceHandle": "MODEL",
+        "target": "79:77",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "79:76-0-79:77-positive",
+        "source": "79:76",
+        "sourceHandle": "positive",
+        "target": "79:77",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "79:76-1-79:77-negative",
+        "source": "79:76",
+        "sourceHandle": "negative",
+        "target": "79:77",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "79:76-2-79:77-latent_image",
+        "source": "79:76",
+        "sourceHandle": "latent",
+        "target": "79:77",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "104-0-79:76-length",
+        "source": "104",
+        "sourceHandle": "INT",
+        "target": "79:76",
+        "targetHandle": "length",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-79:76-positive",
+        "source": "6",
+        "sourceHandle": "CONDITIONING",
+        "target": "79:76",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-79:76-negative",
+        "source": "7",
+        "sourceHandle": "CONDITIONING",
+        "target": "79:76",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "39-0-79:76-vae",
+        "source": "39",
+        "sourceHandle": "VAE",
+        "target": "79:76",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "3-0-79:76-video_latent",
+        "source": "3",
+        "sourceHandle": "LATENT",
+        "target": "79:76",
+        "targetHandle": "video_latent",
+        "ui_properties": null
+      },
+      {
+        "id": "56-0-79:76-audio_encoder_output",
+        "source": "56",
+        "sourceHandle": "AUDIO_ENCODER_OUTPUT",
+        "target": "79:76",
+        "targetHandle": "audio_encoder_output",
+        "ui_properties": null
+      },
+      {
+        "id": "52-0-79:76-ref_image",
+        "source": "52",
+        "sourceHandle": "IMAGE",
+        "target": "79:76",
+        "targetHandle": "ref_image",
+        "ui_properties": null
+      }
+    ]
+  }
+}

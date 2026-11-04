@@ -1,0 +1,294 @@
+{
+  "id": "80e07a5eeab6d964de1f385c19831f35",
+  "name": "Comfy Style Transfer - Recraft Text-to-Image",
+  "description": "Upload 1-5 style references and create a style ID to generate consistent, on brand images. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Style Transfer - Recraft Text-to-Image\n\nUpload 1-5 style references and create a style ID to generate consistent, on brand images. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/template-recraft_create_style.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "input_style_1.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Style Image 1"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "6",
+        "type": "comfy.RecraftCreateStyleNode",
+        "data": {
+          "style": "realistic_image"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Recraft Create Style"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.RecraftStyleV3InfiniteStyleLibrary",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Recraft - Infinite Style Library"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "8",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Preview Recraft Style ID"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "23",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "input_style_2.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Style Image 2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "24",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "input_style_3.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load Style Image 3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "25",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "input_style_4.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load Style Image 4"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "26",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "input_style_5.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Load Style Image 5"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "37",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-t2i_style_transfer"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "41",
+        "type": "comfy.RecraftStyleV3InfiniteStyleLibrary",
+        "data": {
+          "style_id": "COPY PASTE STYLE ID HERE AND CONNECT"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Recraft - Infinite Style Library (Manual)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "45",
+        "type": "comfy.RecraftTextToImageNode",
+        "data": {
+          "prompt": "extreme wide shot of an grand colosseum, dynamic angled composition",
+          "size": "1024x1024",
+          "n": 1,
+          "seed": 0,
+          "negative_prompt": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Recraft V3 Text to Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "1-0-6-images.image0",
+        "source": "1",
+        "sourceHandle": "IMAGE",
+        "target": "6",
+        "targetHandle": "images.image0",
+        "ui_properties": null
+      },
+      {
+        "id": "23-0-6-images.image1",
+        "source": "23",
+        "sourceHandle": "IMAGE",
+        "target": "6",
+        "targetHandle": "images.image1",
+        "ui_properties": null
+      },
+      {
+        "id": "24-0-6-images.image2",
+        "source": "24",
+        "sourceHandle": "IMAGE",
+        "target": "6",
+        "targetHandle": "images.image2",
+        "ui_properties": null
+      },
+      {
+        "id": "25-0-6-images.image3",
+        "source": "25",
+        "sourceHandle": "IMAGE",
+        "target": "6",
+        "targetHandle": "images.image3",
+        "ui_properties": null
+      },
+      {
+        "id": "26-0-6-images.image4",
+        "source": "26",
+        "sourceHandle": "IMAGE",
+        "target": "6",
+        "targetHandle": "images.image4",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-7-style_id",
+        "source": "6",
+        "sourceHandle": "style_id",
+        "target": "7",
+        "targetHandle": "style_id",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-8-source",
+        "source": "6",
+        "sourceHandle": "style_id",
+        "target": "8",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "45-0-37-images",
+        "source": "45",
+        "sourceHandle": "IMAGE",
+        "target": "37",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-45-recraft_style",
+        "source": "7",
+        "sourceHandle": "recraft_style",
+        "target": "45",
+        "targetHandle": "recraft_style",
+        "ui_properties": null
+      }
+    ]
+  }
+}
