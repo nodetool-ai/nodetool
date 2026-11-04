@@ -167,3 +167,47 @@ Files in this A97 round:
 
 Per the requested scope, test:affected, root typecheck, lint, harness gate,
 /verify and full suites were not run. No push was performed.
+
+
+## A98 implementation round (partial)
+
+`packages/timeline/tests/render.colorBoundary.gpu.test.ts` adds deterministic
+256-code SDR ramps and low-alpha coloured rows (alpha 1, 2, 8, 16, 32, 64,
+128, 255). They are independent of A81 and S6 scenes. PNG uses the same
+canvas writer sequence as the server PNG-sequence boundary. H.264 uses the
+runtime encoder with the server's default BT.709 matrix/range filter and
+transfer tags. Both decode through the runtime libav RGBA reader with the
+server's accurate-rounding/full-chroma scale flags. These exercise the codec
+primitives and shared compositor, not the complete RenderTimeline node.
+
+Expected rendering starts from actual decoded bytes. Opaque ramp samples stay
+unchanged. Partial alpha follows existing byte premultiplication quantization
+and straight-alpha resolve, allowing one code of GPU rounding. Import and
+export codec errors are checked separately: five codes for the opaque H.264
+ramp, exact opaque PNG, and at most ceil(127.5/alpha) RGB codes for the canvas
+PNG writer's byte-alpha round trip. This alpha loss is not transfer conversion.
+A direct encode of the independently calculated expected render is compared
+with delivery from the rendered frame, within one code.
+
+Deliberately inserting an extra sRGB decode before upload failed both fixtures.
+Inserting an extra sRGB encode also failed both. Both mutations were restored.
+No conversion was added to production, and FP16 remains off by default.
+These fixtures pin current encoded-domain behavior, not transfer-correct
+BT.709 delivery. Browser/native delivery, JPEG/WebP input, alternate video
+codecs, video alpha, profile-tagged stills and metadata probing remain
+unverified. A98 is partial and S1's exit gate remains unmet.
+
+The only A98 files are this report and
+`packages/timeline/tests/render.colorBoundary.gpu.test.ts`.
+
+Final A98 verification: the boundary and working-precision files passed together
+(five tests, no skips), and timeline-only typecheck passed again. Commands:
+
+```bash
+source /home/mg/Projects/nodetool-film/bin/ntenv
+VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json LP_NUM_THREADS=2 NODETOOL_TEST_WORKERS=1 \
+  npm test --workspace=packages/timeline -- tests/render.colorBoundary.gpu.test.ts tests/render.workingPrecision.gpu.test.ts --no-file-parallelism
+node scripts/run-tsc.mjs -p packages/timeline/tsconfig.json --noEmit
+```
+
+`git diff --check` and a control-byte scan of all five changed files passed.
