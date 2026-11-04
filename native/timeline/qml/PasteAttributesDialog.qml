@@ -5,6 +5,7 @@ import NodeTool.UiPrimitives as Ui
 
 Ui.Dialog {
     id: dialog
+    objectName: "pasteAttributesDialog"
     property var source: ({})
     property var targets: []
     property var chosenGroups: []
