@@ -570,7 +570,7 @@ private slots:
             QCOMPARE(child.exitCode(), 0);
             // QtTest captures Qt messages on stdout instead of the application's
             // default stderr handler.
-            const auto log = child.readAllStandardError() + child.readAllStandardOutput();
+            const auto log = (child.readAllStandardError() + child.readAllStandardOutput()).replace("\r\n", "\n");
             QCOMPARE(log.count("sync: listening for seq\n"), 2);
             return;
         }
