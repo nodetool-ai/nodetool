@@ -566,6 +566,13 @@ private slots:
             return document({clip});
         };
         Scene scene; QVERIFY(scene.initialize(timeline(0), nt::WorkingFormat::Rgba16F));
+        // Each edit replaces the current/before/after workers. Retirement is
+        // asynchronous, even when cached frames make the picture exact already.
+        constexpr int decodersPerEdit = 3;
+        constexpr int editsPerBurst = 10;
+        constexpr int burstDecoderBudget = decodersPerEdit * (editsPerBurst + 1);
+        int peakDecoders = 0;
+        qint64 longestDrainMs = 0;
         long long peakBytes = 0;
         quint64 warmGpuBytes = 0;
 #if defined(Q_OS_LINUX)
@@ -578,12 +585,17 @@ private slots:
             scene.clock.seek(i % 3 == 0 ? 1200 : i % 3 == 1 ? 800 : 100);
             QVERIFY2(scene.render(), "decoded frame failed to settle"); QVERIFY(scene.finiteNonblack());
             scene.still.frame();
-            const auto& stat = scene.still.stats().back();
+            const auto stat = scene.still.stats().back();
             QVERIFY(stat.mediaLayers > 0);
             QVERIFY(!scene.still.compositor()->mediaReport().empty());
             QVERIFY(stat.allExact); QCOMPARE(stat.missingMediaLayers, 0); QCOMPARE(stat.resourceFailures, 0);
-            // Two media paths, each with current/before/after temporal sources.
-            QVERIFY(stat.openDecoders <= 6);
+            // One active set plus at most one retiring set per edit in this
+            // burst. Draining between bursts prevents growth across all 60 edits.
+            peakDecoders = std::max(peakDecoders, stat.openDecoders);
+            QVERIFY2(stat.openDecoders <= burstDecoderBudget,
+                qPrintable(QStringLiteral("iteration %1: %2 open decoders, budget %3")
+                    .arg(i).arg(stat.openDecoders).arg(burstDecoderBudget)));
+
             peakBytes = std::max(peakBytes, stat.surfaceBytes);
 #if defined(Q_OS_LINUX)
             QFile status("/proc/self/status"); QVERIFY(status.open(QIODevice::ReadOnly));
@@ -602,7 +614,20 @@ private slots:
             if (i == 29) { warmGpuBytes = scene.gpuBytes; }
             if (i == 59) { QVERIFY(scene.gpuBytes <= warmGpuBytes + 16 * 1024 * 1024); }
             for (const auto& report : scene.still.compositor()->mediaReport()) { QVERIFY2(report.ok, qPrintable(report.reason)); }
+            if ((i + 1) % editsPerBurst == 0) {
+                QElapsedTimer closing; closing.start();
+                while (scene.still.stats().back().openDecoders > decodersPerEdit && closing.elapsed() < 5000) {
+                    QThread::msleep(5);
+                    scene.still.frame();
+                }
+                const int settledDecoders = scene.still.stats().back().openDecoders;
+                longestDrainMs = std::max(longestDrainMs, closing.elapsed());
+                qInfo() << "decoder burst ending" << i << "peak" << peakDecoders
+                        << "settled" << settledDecoders << "drain ms" << closing.elapsed();
+                QCOMPARE(settledDecoders, decodersPerEdit);
+            }
         }
+        qInfo() << "decoder peak" << peakDecoders << "longest drain ms" << longestDrainMs;
         qInfo() << "decoded 60 switches/backward seeks/effect replacements peak pooled surface bytes" << peakBytes << "peak GPU allocator used bytes" << scene.peakGpuBytes
                 << "warm/end GPU bytes" << warmGpuBytes << scene.gpuBytes;
 #if defined(Q_OS_LINUX)
