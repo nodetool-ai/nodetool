@@ -209,11 +209,17 @@ for (const format of ["png", "jpeg", "webp"] as const) {
   }
 }
 
-async function encodeRoute(path: string, pixels: Uint8Array, format: string, alpha: boolean): Promise<void> {
-  const output = resolveTimelineOutput({ format, alpha });
+async function encodeRoute(path: string, pixels: Uint8Array, format: string, alpha: boolean, videoCodec?: string): Promise<void> {
+  const output = resolveTimelineOutput({ format, alpha, videoCodec });
   const encoder = await openVideoFrameEncoder({
     outPath: path, width, height, fps: 24, input: "rgba",
-    spec: encoderSpecFromArgs(output.encoderArgs)
+    spec: {
+      ...encoderSpecFromArgs(output.encoderArgs),
+      ...(videoCodec === "libx265" ? {
+        // Bound this fixture's native worker pool on the shared machine.
+        options: { ...encoderSpecFromArgs(output.encoderArgs).options, "x265-params": "pools=none:frame-threads=1" }
+      } : {})
+    }
   });
   try {
     await encoder.write(pixels);
@@ -334,3 +340,31 @@ it("refuses unsupported MP4 alpha and JPEG/WebP timeline delivery", () => {
     expect(() => resolveTimelineOutput({ format })).toThrow("Unknown render format");
   }
 });
+
+
+it("qualifies the available HEVC MP4 override against its declared transfer", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "timeline-hevc-boundary-"));
+  try {
+    const source = ramp(false);
+    const input = join(directory, "input.mp4");
+    await encodeRoute(input, source, "mp4", false, "libx265");
+    const decoded = await decode(input);
+    expect(maximumError(decoded, source), "HEVC input codec loss").toBeLessThanOrEqual(5);
+    const rendered = await renderDecoded(decoded, false);
+    const actualPath = join(directory, "actual.mp4");
+    const referencePath = join(directory, "reference.mp4");
+    await encodeRoute(actualPath, rendered, "mp4", false, "libx265");
+    const expected = new Uint8Array(decoded);
+    for (let i = 0; i < expected.length; i++) {
+      if (i % 4 !== 3) expected[i] = srgbToBt709(decoded[i]!);
+    }
+    await encodeRoute(referencePath, expected, "mp4", false, "libx265");
+    const reference = await decode(referencePath);
+    const actual = await decode(actualPath);
+    console.info("HEVC delivery", { codecLoss: maximumError(reference, expected), transferError: maximumError(actual, reference) });
+    expect(maximumError(reference, expected), "HEVC reference codec loss").toBeLessThanOrEqual(5);
+    expect(maximumError(actual, reference), "HEVC declared BT.709 transfer error").toBeLessThanOrEqual(5);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}, 60_000);
