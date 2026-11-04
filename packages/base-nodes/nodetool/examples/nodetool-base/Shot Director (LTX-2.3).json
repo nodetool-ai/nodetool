@@ -1,0 +1,318 @@
+{
+  "id": "ebe19e94107653c8b9e3959f4f336b26",
+  "access": "public",
+  "created_at": "2026-11-03T12:00:00.000000",
+  "updated_at": "2026-11-03T12:00:00.000000",
+  "name": "Shot Director (LTX-2.3)",
+  "description": "Direct a cinematic take from one still and render it on Comfy Cloud with a pinned LTX-2.3 workflow (open weights, with audio). The same graph runs behind the Storyboard clip model \"LTX-2.3 (ComfyUI workflow)\".",
+  "tags": [
+    "video",
+    "comfy",
+    "camera-moves",
+    "open-weights",
+    "example"
+  ],
+  "required_providers": [],
+  "thumbnail": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Shot Director\n\nTurn one still into a directed cinematic take on **Comfy Cloud**.\n\n1. **Source Image**, **Camera Move**, **Direction** and **Seed** feed **Compose Shot**, which looks up the open camera preset (`packages/presets/catalog/camera`) and writes the effective prompt plus a run-settings record.\n2. **Run on Comfy Cloud** submits a pinned ComfyUI API workflow (Wan 2.2 TI2V 5B, core ComfyUI nodes only) through the Comfy API v2 SDK. Needs `COMFY_API_KEY`.\n3. The take is saved as a video asset. **Comfy Job** carries the job id and output manifest.\n\nOpen weights: Wan 2.2 (Apache-2.0). No partner nodes."
+        },
+        "position": {
+          "x": 40,
+          "y": -260
+        }
+      },
+      {
+        "id": "source",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "source_image",
+          "value": {
+            "type": "image",
+            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "description": "The still to direct. Landscape works best (rendered at 1280x704)."
+        },
+        "position": {
+          "x": 40,
+          "y": 40
+        }
+      },
+      {
+        "id": "camera_move",
+        "type": "nodetool.input.SelectInput",
+        "data": {
+          "name": "camera_move",
+          "value": "dolly in",
+          "options": [
+            "dolly in",
+            "orbit",
+            "crane up",
+            "pull back reveal",
+            "handheld",
+            "static"
+          ],
+          "enum_type_name": "shot_director_move",
+          "description": "The camera preset for this take."
+        },
+        "position": {
+          "x": 40,
+          "y": 300
+        }
+      },
+      {
+        "id": "direction",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "direction",
+          "value": "Steam curls up from the espresso cup on the dark wooden table among scattered coffee beans, warm low light.",
+          "description": "What happens in the frame, the mood and the light.",
+          "line_mode": "multi_line"
+        },
+        "position": {
+          "x": 40,
+          "y": 460
+        }
+      },
+      {
+        "id": "seed",
+        "type": "nodetool.input.IntegerInput",
+        "data": {
+          "name": "seed",
+          "value": 42,
+          "min": 0,
+          "max": 2147483647,
+          "description": "Same seed and settings reproduce the same take."
+        },
+        "position": {
+          "x": 40,
+          "y": 640
+        }
+      },
+      {
+        "id": "compose",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "const PRESETS = {\n  \"dolly in\": {\n    \"id\": \"camera.dolly-in\",\n    \"version\": 1,\n    \"prompt\": \"The camera glides forward toward the subject in one continuous movement. Nearby objects slide past faster than the distant background as the subject grows larger. One continuous shot.\"\n  },\n  \"orbit\": {\n    \"id\": \"camera.orbit\",\n    \"version\": 1,\n    \"prompt\": \"The camera circles all the way around the subject at a steady height and distance, revealing front, side, back and front again in a continuous shot. One continuous shot.\"\n  },\n  \"crane up\": {\n    \"id\": \"camera.crane-up\",\n    \"version\": 1,\n    \"prompt\": \"The camera lifts above the subject and gradually points downward. More of the surrounding ground becomes visible as the subject recedes below. One continuous shot.\"\n  },\n  \"pull back reveal\": {\n    \"id\": \"camera.pull-back-reveal\",\n    \"version\": 1,\n    \"prompt\": \"Beginning close to the subject, the camera retreats smoothly into a wide shot. Surrounding scenery progressively enters at the edges and reveals the larger setting. One continuous shot.\"\n  },\n  \"handheld\": {\n    \"id\": \"camera.handheld\",\n    \"version\": 1,\n    \"prompt\": \"Small irregular camera movements drift gently up, down and sideways, like a person holding a camera while standing still. The subject remains clearly visible. One continuous shot.\"\n  },\n  \"static\": {\n    \"id\": \"camera.static\",\n    \"version\": 1,\n    \"prompt\": \"The camera holds exactly the same viewpoint and framing throughout the shot. Motion belongs to the subject and the environment inside the stationary frame. One continuous shot.\"\n  }\n};\nconst move = String(inputs.camera_move ?? \"\").trim();\nconst preset = PRESETS[move];\nif (!preset) throw new Error(`Unknown camera move \"${move}\". Pick one of: ${Object.keys(PRESETS).join(\", \")}.`);\nconst direction = String(inputs.direction ?? \"\").trim();\nif (direction.length > 600) throw new Error(\"Direction must be 600 characters or fewer.\");\nconst seed = Number.isInteger(inputs.seed) ? inputs.seed : 42;\nconst prompt = [direction, preset.prompt].filter(Boolean).join(\" \");\nconst settings = {\n  schemaVersion: 1,\n  app: \"shot-director\",\n  preset: { id: preset.id, version: preset.version, name: move, family: \"local-wan\" },\n  direction,\n  effectivePrompt: prompt,\n  seed,\n  backend: \"comfy-cloud\",\n  model: \"wan2.2_ti2v_5B_fp16\",\n  resolution: \"1280x704\",\n  frames: 121,\n  fps: 24\n};\nawait output(\"prompt\", prompt);\nawait output(\"seed\", seed);\nawait output(\"run_settings\", JSON.stringify(settings, null, 2));\n"
+        },
+        "dynamic_properties": {
+          "camera_move": "",
+          "direction": "",
+          "seed": 0
+        },
+        "dynamic_inputs": {
+          "camera_move": {
+            "type": {
+              "type": "str"
+            }
+          },
+          "direction": {
+            "type": {
+              "type": "str"
+            }
+          },
+          "seed": {
+            "type": {
+              "type": "int"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "prompt": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          },
+          "seed": {
+            "type": "int",
+            "type_args": [],
+            "optional": false
+          },
+          "run_settings": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_all",
+        "ui_properties": {
+          "title": "Compose Shot"
+        },
+        "position": {
+          "x": 380,
+          "y": 300
+        }
+      },
+      {
+        "id": "comfy",
+        "type": "lib.comfy.RunWorkflowOnCloud",
+        "data": {
+          "workflow": "{\n  \"1\": {\n    \"class_type\": \"CheckpointLoaderSimple\",\n    \"inputs\": {\n      \"ckpt_name\": \"ltx-2.3-22b-dev-fp8.safetensors\"\n    }\n  },\n  \"2\": {\n    \"class_type\": \"LTXAVTextEncoderLoader\",\n    \"inputs\": {\n      \"text_encoder\": \"gemma_3_12B_it_fp4_mixed.safetensors\",\n      \"ckpt_name\": \"ltx-2.3-22b-dev-fp8.safetensors\",\n      \"device\": \"default\"\n    }\n  },\n  \"3\": {\n    \"class_type\": \"LoraLoaderModelOnly\",\n    \"inputs\": {\n      \"model\": [\n        \"1\",\n        0\n      ],\n      \"lora_name\": \"ltx_2.3_22b_distilled_1.1_lora_dynamic_fro09_avg_rank_111_bf16.safetensors\",\n      \"strength_model\": 0.5\n    }\n  },\n  \"4\": {\n    \"class_type\": \"LTXVAudioVAELoader\",\n    \"inputs\": {\n      \"ckpt_name\": \"ltx-2.3-22b-dev-fp8.safetensors\"\n    }\n  },\n  \"5\": {\n    \"class_type\": \"LatentUpscaleModelLoader\",\n    \"inputs\": {\n      \"model_name\": \"ltx-2.3-spatial-upscaler-x2-1.1.safetensors\"\n    }\n  },\n  \"6\": {\n    \"class_type\": \"CLIPTextEncode\",\n    \"inputs\": {\n      \"text\": \"A cinematic shot.\",\n      \"clip\": [\n        \"2\",\n        0\n      ]\n    }\n  },\n  \"7\": {\n    \"class_type\": \"CLIPTextEncode\",\n    \"inputs\": {\n      \"text\": \"pc game, console game, video game, cartoon, childish, ugly\",\n      \"clip\": [\n        \"2\",\n        0\n      ]\n    }\n  },\n  \"8\": {\n    \"class_type\": \"LTXVConditioning\",\n    \"inputs\": {\n      \"positive\": [\n        \"6\",\n        0\n      ],\n      \"negative\": [\n        \"7\",\n        0\n      ],\n      \"frame_rate\": 24\n    }\n  },\n  \"56\": {\n    \"class_type\": \"LoadImage\",\n    \"inputs\": {\n      \"image\": \"input.png\"\n    }\n  },\n  \"10\": {\n    \"class_type\": \"ImageScale\",\n    \"inputs\": {\n      \"image\": [\n        \"56\",\n        0\n      ],\n      \"upscale_method\": \"lanczos\",\n      \"width\": 1280,\n      \"height\": 704,\n      \"crop\": \"center\"\n    }\n  },\n  \"11\": {\n    \"class_type\": \"LTXVPreprocess\",\n    \"inputs\": {\n      \"image\": [\n        \"10\",\n        0\n      ],\n      \"img_compression\": 18\n    }\n  },\n  \"12\": {\n    \"class_type\": \"EmptyLTXVLatentVideo\",\n    \"inputs\": {\n      \"width\": 640,\n      \"height\": 352,\n      \"length\": 121,\n      \"batch_size\": 1\n    }\n  },\n  \"13\": {\n    \"class_type\": \"LTXVImgToVideoInplace\",\n    \"inputs\": {\n      \"vae\": [\n        \"1\",\n        2\n      ],\n      \"image\": [\n        \"11\",\n        0\n      ],\n      \"latent\": [\n        \"12\",\n        0\n      ],\n      \"strength\": 0.7,\n      \"bypass\": false\n    }\n  },\n  \"14\": {\n    \"class_type\": \"LTXVEmptyLatentAudio\",\n    \"inputs\": {\n      \"audio_vae\": [\n        \"4\",\n        0\n      ],\n      \"frames_number\": 121,\n      \"frame_rate\": 24,\n      \"batch_size\": 1\n    }\n  },\n  \"15\": {\n    \"class_type\": \"LTXVConcatAVLatent\",\n    \"inputs\": {\n      \"video_latent\": [\n        \"13\",\n        0\n      ],\n      \"audio_latent\": [\n        \"14\",\n        0\n      ]\n    }\n  },\n  \"16\": {\n    \"class_type\": \"RandomNoise\",\n    \"inputs\": {\n      \"noise_seed\": 42\n    }\n  },\n  \"17\": {\n    \"class_type\": \"CFGGuider\",\n    \"inputs\": {\n      \"model\": [\n        \"3\",\n        0\n      ],\n      \"positive\": [\n        \"8\",\n        0\n      ],\n      \"negative\": [\n        \"8\",\n        1\n      ],\n      \"cfg\": 1\n    }\n  },\n  \"18\": {\n    \"class_type\": \"KSamplerSelect\",\n    \"inputs\": {\n      \"sampler_name\": \"euler\"\n    }\n  },\n  \"19\": {\n    \"class_type\": \"ManualSigmas\",\n    \"inputs\": {\n      \"sigmas\": \"1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0\"\n    }\n  },\n  \"20\": {\n    \"class_type\": \"SamplerCustomAdvanced\",\n    \"inputs\": {\n      \"noise\": [\n        \"16\",\n        0\n      ],\n      \"guider\": [\n        \"17\",\n        0\n      ],\n      \"sampler\": [\n        \"18\",\n        0\n      ],\n      \"sigmas\": [\n        \"19\",\n        0\n      ],\n      \"latent_image\": [\n        \"15\",\n        0\n      ]\n    }\n  },\n  \"21\": {\n    \"class_type\": \"LTXVSeparateAVLatent\",\n    \"inputs\": {\n      \"av_latent\": [\n        \"20\",\n        0\n      ]\n    }\n  },\n  \"22\": {\n    \"class_type\": \"LTXVCropGuides\",\n    \"inputs\": {\n      \"positive\": [\n        \"8\",\n        0\n      ],\n      \"negative\": [\n        \"8\",\n        1\n      ],\n      \"latent\": [\n        \"21\",\n        0\n      ]\n    }\n  },\n  \"23\": {\n    \"class_type\": \"LTXVLatentUpsampler\",\n    \"inputs\": {\n      \"samples\": [\n        \"21\",\n        0\n      ],\n      \"upscale_model\": [\n        \"5\",\n        0\n      ],\n      \"vae\": [\n        \"1\",\n        2\n      ]\n    }\n  },\n  \"24\": {\n    \"class_type\": \"LTXVImgToVideoInplace\",\n    \"inputs\": {\n      \"vae\": [\n        \"1\",\n        2\n      ],\n      \"image\": [\n        \"11\",\n        0\n      ],\n      \"latent\": [\n        \"23\",\n        0\n      ],\n      \"strength\": 1.0,\n      \"bypass\": false\n    }\n  },\n  \"25\": {\n    \"class_type\": \"LTXVConcatAVLatent\",\n    \"inputs\": {\n      \"video_latent\": [\n        \"24\",\n        0\n      ],\n      \"audio_latent\": [\n        \"21\",\n        1\n      ]\n    }\n  },\n  \"26\": {\n    \"class_type\": \"RandomNoise\",\n    \"inputs\": {\n      \"noise_seed\": 42\n    }\n  },\n  \"27\": {\n    \"class_type\": \"CFGGuider\",\n    \"inputs\": {\n      \"model\": [\n        \"3\",\n        0\n      ],\n      \"positive\": [\n        \"22\",\n        0\n      ],\n      \"negative\": [\n        \"22\",\n        1\n      ],\n      \"cfg\": 1\n    }\n  },\n  \"28\": {\n    \"class_type\": \"KSamplerSelect\",\n    \"inputs\": {\n      \"sampler_name\": \"euler\"\n    }\n  },\n  \"29\": {\n    \"class_type\": \"ManualSigmas\",\n    \"inputs\": {\n      \"sigmas\": \"0.85, 0.7250, 0.4219, 0.0\"\n    }\n  },\n  \"30\": {\n    \"class_type\": \"SamplerCustomAdvanced\",\n    \"inputs\": {\n      \"noise\": [\n        \"26\",\n        0\n      ],\n      \"guider\": [\n        \"27\",\n        0\n      ],\n      \"sampler\": [\n        \"28\",\n        0\n      ],\n      \"sigmas\": [\n        \"29\",\n        0\n      ],\n      \"latent_image\": [\n        \"25\",\n        0\n      ]\n    }\n  },\n  \"31\": {\n    \"class_type\": \"LTXVSeparateAVLatent\",\n    \"inputs\": {\n      \"av_latent\": [\n        \"30\",\n        0\n      ]\n    }\n  },\n  \"32\": {\n    \"class_type\": \"VAEDecodeTiled\",\n    \"inputs\": {\n      \"samples\": [\n        \"31\",\n        0\n      ],\n      \"vae\": [\n        \"1\",\n        2\n      ],\n      \"tile_size\": 768,\n      \"overlap\": 64,\n      \"temporal_size\": 4096,\n      \"temporal_overlap\": 4\n    }\n  },\n  \"33\": {\n    \"class_type\": \"LTXVAudioVAEDecode\",\n    \"inputs\": {\n      \"samples\": [\n        \"31\",\n        1\n      ],\n      \"audio_vae\": [\n        \"4\",\n        0\n      ]\n    }\n  },\n  \"57\": {\n    \"class_type\": \"CreateVideo\",\n    \"inputs\": {\n      \"images\": [\n        \"32\",\n        0\n      ],\n      \"audio\": [\n        \"33\",\n        0\n      ],\n      \"fps\": 24\n    }\n  },\n  \"58\": {\n    \"class_type\": \"SaveVideo\",\n    \"inputs\": {\n      \"filename_prefix\": \"video/nodetool-ltx23\",\n      \"format\": \"auto\",\n      \"codec\": \"auto\",\n      \"video\": [\n        \"57\",\n        0\n      ]\n    }\n  }\n}",
+          "timeout": 900,
+          "previews": false
+        },
+        "dynamic_properties": {
+          "56:image": null,
+          "6:text": "",
+          "7:text": "pc game, console game, video game, cartoon, childish, ugly",
+          "16:noise_seed": 42
+        },
+        "dynamic_inputs": {
+          "56:image": {
+            "type": {
+              "type": "image"
+            },
+            "description": "Load Image · image"
+          },
+          "6:text": {
+            "type": {
+              "type": "str"
+            },
+            "description": "Positive prompt · text"
+          },
+          "7:text": {
+            "type": {
+              "type": "str"
+            },
+            "description": "Negative prompt · text"
+          },
+          "16:noise_seed": {
+            "type": {
+              "type": "int"
+            },
+            "description": "RandomNoise · noise_seed"
+          }
+        },
+        "dynamic_outputs": {
+          "58:video": {
+            "type": "video",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "ui_properties": {
+          "title": "Run on Comfy Cloud"
+        },
+        "position": {
+          "x": 720,
+          "y": 160
+        }
+      },
+      {
+        "id": "take",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "take",
+          "description": "The rendered take (Wan 2.2 TI2V 5B, ~5 s, 1280x704, 24 fps)."
+        },
+        "position": {
+          "x": 1080,
+          "y": 120
+        }
+      },
+      {
+        "id": "job",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "comfy_job",
+          "description": "Comfy job id, status and output manifest."
+        },
+        "position": {
+          "x": 1080,
+          "y": 300
+        }
+      },
+      {
+        "id": "settings",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "run_settings",
+          "description": "Preset id and version, effective prompt, seed, model and backend for this take."
+        },
+        "position": {
+          "x": 720,
+          "y": 520
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "comfy",
+        "targetHandle": "56:image"
+      },
+      {
+        "id": "e2",
+        "source": "camera_move",
+        "sourceHandle": "output",
+        "target": "compose",
+        "targetHandle": "camera_move"
+      },
+      {
+        "id": "e3",
+        "source": "direction",
+        "sourceHandle": "output",
+        "target": "compose",
+        "targetHandle": "direction"
+      },
+      {
+        "id": "e4",
+        "source": "seed",
+        "sourceHandle": "output",
+        "target": "compose",
+        "targetHandle": "seed"
+      },
+      {
+        "id": "e5",
+        "source": "compose",
+        "sourceHandle": "prompt",
+        "target": "comfy",
+        "targetHandle": "6:text"
+      },
+      {
+        "id": "e6",
+        "source": "compose",
+        "sourceHandle": "seed",
+        "target": "comfy",
+        "targetHandle": "16:noise_seed"
+      },
+      {
+        "id": "e7",
+        "source": "compose",
+        "sourceHandle": "run_settings",
+        "target": "settings",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e8",
+        "source": "comfy",
+        "sourceHandle": "58:video",
+        "target": "take",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e9",
+        "source": "comfy",
+        "sourceHandle": "output",
+        "target": "job",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

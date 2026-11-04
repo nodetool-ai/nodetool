@@ -108,7 +108,7 @@ beforeEach(() => {
 });
 
 describe("useRenderSceneClip", () => {
-  it("sends only the run, with its own prompt and the board's one-take settings", async () => {
+  it("sends only the run, compiled from the shots, with the board's one-take settings", async () => {
     const { result } = renderHook(() => useRenderSceneClip(BOARD, clip));
     expect(result.current.blockers).toEqual([]);
     await act(async () => {
@@ -130,7 +130,6 @@ describe("useRenderSceneClip", () => {
     });
     expect(data.prompt).toBe(
       [
-        "One move from the door to the window.",
         "REFS: [Image 1] is the still of shot 2 at 0-3s. [Image 2] is the still of shot 3 at 3-7s.",
         `SHOTS:\n${JSON.stringify(
           [
@@ -210,13 +209,35 @@ describe("useRenderSceneClip", () => {
     expect(
       sceneClipDirectionWithFallbacks(board(), { ...clip, resolution: "1080p" })
     ).toEqual({
-      prompt: clip.prompt,
+      prompt: "",
       duration_seconds: null,
       model,
       aspect_ratio: null,
       resolution: "1080p",
-      reference_source: null
+      reference_source: null,
+      reference_shot_ids: null,
+      reference_entity_ids: null
     });
+  });
+
+  it("sends only the chosen stills and blocks an empty choice", async () => {
+    const chosen = { ...clip, reference_shot_ids: ["s3"] };
+    const { result, rerender } = renderHook(
+      ({ value }) => useRenderSceneClip(BOARD, value),
+      { initialProps: { value: chosen } }
+    );
+    await act(async () => {
+      await result.current.renderSceneClip(chosen);
+    });
+    expect(send.mock.calls[0][0].data.reference_images).toEqual([
+      { type: "image", asset_id: "still-3" }
+    ]);
+    rerender({
+      value: { ...clip, reference_shot_ids: [], reference_entity_ids: [] }
+    });
+    expect(result.current.blockers).toEqual([
+      "Pick at least one reference image."
+    ]);
   });
 
   it("takes the board's reference source unless it sets its own", () => {

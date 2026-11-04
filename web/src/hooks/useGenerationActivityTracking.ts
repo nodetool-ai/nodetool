@@ -365,18 +365,17 @@ export const startGenerationActivityTracking = (): (() => void) => {
       .map((generation) => generation.id)
   );
 
-  const orphanedRequests = (): string[] =>
+  const pendingRequests = (): string[] =>
     Object.values(useGenerationActivityStore.getState().generations)
       .filter(
         (generation) =>
           generation.channel === "rpc" &&
-          generation.status === "generating" &&
-          !liveRequests.has(generation.id)
+          generation.status === "generating"
       )
       .map((generation) => generation.id);
 
   const schedule = (): void => {
-    if (stopped || timer !== undefined || orphanedRequests().length === 0) {
+    if (stopped || timer !== undefined || pendingRequests().length === 0) {
       return;
     }
     timer = setTimeout(() => {
@@ -386,13 +385,14 @@ export const startGenerationActivityTracking = (): (() => void) => {
   };
 
   const lookUp = async (): Promise<void> => {
-    const ids = orphanedRequests();
+    const ids = pendingRequests();
     const outcomes = await lookupGenerations(ids);
     for (const [id, outcome] of outcomes) {
       const status = isSettled(outcome.status)
         ? settledStatus(outcome.status)
         : null;
       if (status) {
+        liveRequests.delete(id);
         useGenerationActivityStore.getState().settle(id, {
           status,
           assetIds: outcome.assetIds,
@@ -412,6 +412,8 @@ export const startGenerationActivityTracking = (): (() => void) => {
     schedule();
   };
 
+  // Recover missed replies even while the connection remains open.
+  const offGenerations = useGenerationActivityStore.subscribe(schedule);
   const offSend = globalWebSocketManager.subscribeEvent("send", handleSend);
   const offMessage = globalWebSocketManager.subscribeEvent(
     "message",
@@ -430,6 +432,7 @@ export const startGenerationActivityTracking = (): (() => void) => {
     if (timer !== undefined) {
       clearTimeout(timer);
     }
+    offGenerations();
     offSend();
     offMessage();
     offClose();
