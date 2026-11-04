@@ -80,6 +80,8 @@ export function syncAutomation(port: MessagePort): Promise<void> {
 }
 
 export abstract class WorkletInstrumentDevice implements LiveInstrumentDevice {
+  private automationParams = new Set<string>();
+  protected abstract get authoredParams(): Readonly<Record<string, number>>;
   private readonly queued = new Map<string, LiveNoteEvent[]>();
 
   protected constructor(
@@ -117,7 +119,15 @@ export abstract class WorkletInstrumentDevice implements LiveInstrumentDevice {
   }
 
   setAutomation(lanes: readonly DeviceAutomationLane[]): void {
+    const next = new Set(lanes.filter((lane) => lane.points.length > 0).map((lane) => lane.param));
     postAutomation(this.node.port, lanes, this.ctx.sampleRate);
+    for (const key of this.automationParams) {
+      const value = this.authoredParams[key];
+      if (!next.has(key) && Number.isFinite(value)) {
+        this.node.port.postMessage({ t: "p", k: key, v: value });
+      }
+    }
+    this.automationParams = next;
   }
 
   syncAutomation(): Promise<void> {
