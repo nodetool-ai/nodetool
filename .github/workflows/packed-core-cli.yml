@@ -135,7 +135,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-build
         with:
-          cache: read-only
+          cache: off
           extra-apt: libsecret-1-dev
       - name: Pin workspace versions in the test tarballs
         run: node scripts/prepare-publish.mjs
