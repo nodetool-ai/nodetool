@@ -29,6 +29,7 @@ function(nt_effects_tests)
     nt_effects_shaders(tst_effectresources)
     add_test(NAME tst_effectresources COMMAND tst_effectresources)
     qt_add_executable(tst_sceneprecision src/preview/effects/tst_sceneprecision.cpp
+        src/export/OffscreenFrames.cpp
         src/preview/effects/EffectsRegistrations.cpp
         src/render2d/Render2dRegistrations.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp

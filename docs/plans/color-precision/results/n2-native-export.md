@@ -1,19 +1,22 @@
 # N2 native capture and delivery
 
-A84.1 is implemented and qualified on Vulkan/lavapipe. The clean-tree fix below resolves the N1 leaf-filtering mismatch. PNG identity now passes, but decoded MP4 still exceeds the unchanged tolerance by one code. The earlier sections retain the history. N2's exit gate is **not met**. FP16 remains off by
-default. No schema, setting, QML property, transfer conversion, workflow or
-CTest ordering changed. Nothing was pushed.
+The MP4 identity gate now compares unencoded YUV separately from codec loss.
+A43.3 has new preview/offscreen working-pixel fixtures. N2's exit gate is
+**not met**. A45.2 allocation/geometry qualification and A32 presentation
+dithering remain. FP16 stays off by default. No schema, setting, QML property,
+transfer conversion or production renderer behavior changed in this round.
+Nothing was pushed.
 
 ## Task status
 
 | Task | Status |
 |---|---|
 | A84.1 | Complete on Vulkan/lavapipe. Typed, owned, undithered working capture and format-preserving offscreen capture. |
-| A84.2 | Connected and tested. Acceptance remains blocked by identity edges and the missing full spatial float-resize oracle. |
+| A84.2 | Connected and tested. The full spatial float-resize oracle remains unverified. |
 | A32 | Not implemented. The outer target remains RGBA8 and capture bypasses it, but final presentation dithering and OpenGL qualification remain. |
-| A84.3 | Quantization, PNG/ZIP, opaque alpha and cancellation checks pass. Same-picture edge acceptance fails. |
-| A41.3 | Actual FP16 output format, tags and codec error measured. Full picture qualification remains blocked by the edge failure. |
-| A43.3 | Partial evidence only. Capture equals the compositor's raw working pixels with display options and reduced preview resolution. Full preview/offscreen parity fixtures remain. |
+| A84.3 | Quantization, PNG/ZIP, opaque alpha, cancellation and same-picture checks pass on Vulkan/lavapipe. |
+| A41.3 | Format, tags and codec loss checked independently of unencoded same-picture YUV identity on Vulkan/lavapipe. |
+| A43.3 | Preview/offscreen working-pixel fixtures added for an original decoded frame and a partial-alpha float frame, with fixed grain seeds and capture isolation. See the qualification below. |
 | A45.2 | Partial evidence only. Full-resolution FP16 capture survives Full/Half/Quarter/Eighth preferences. Allocation and geometry qualification remain. |
 | A109 | Not implemented. Color Match still models byte intermediate rounding. |
 
@@ -433,3 +436,52 @@ MP4 identity still measures five decoded RGB codes, with unencoded Y/U/V
 differences of 1/1/1. Low-opacity MP4 measures one decoded RGB code and
 1/1/1 unencoded codes. Logs in `build/color-n2`: `n2-yuv-final.log` and
 `n2-yuv-negative-proof.log`. FP16 remains off by default.
+
+## A43.3 preview/offscreen qualification
+
+`previewOffscreenWorkingParity` compares every undithered working component
+from preview capture with `OffscreenFrames::captureWorkingAt`. Both use the
+same original frame at 500 ms, capture background, Levels gamma 0.8 and fixed
+grain seed 17. The fixtures cover an original decoded 720p video frame and
+a vertically asymmetric float frame with alpha 0.37. Both RGBA8 and FP16
+match exactly at Full, Half, Quarter and Eighth preferences, with zoom, alpha
+display and transparency grid enabled in preview. Repeated offscreen
+captures also match. Changing the seed to 18 produces a valid, different
+image. Restoring seed 17 restores exact equality.
+
+This adds test coverage through the production compositor and offscreen
+evaluator. It changes no production renderer, resolution control, format,
+setting or document. The outer export render target remains RGBA8.
+
+The final native build passes with `ntbuild color-n2 nodetool-timeline
+tst_sceneprecision tst_deliveryframe tst_workingprecision tst_clipeffects`.
+The requested five-check regex passes through `citest color-n2`, exit 0.
+Clip-effects completes all 67 cases with zero skips. Logs are
+`build/color-n2/n2-round-final-build.log` and `n2-round-final-tests.log`.
+A final test-only change requires the changed-seed image to be non-null
+before accepting its difference. Its separate build and scene-suite rerun
+both pass, exit 0, with zero skips. They are recorded in `n2-parity-proof-build.log` and `n2-parity-proof-tests.log`.
+
+### Stopping point
+
+This round stops after the MP4 assertion and A43.3. A45.2 remains partial:
+full-resolution capture isolation now has preview/offscreen parity evidence,
+but actual allocation, project geometry and mask/outset qualification across
+resolution controls remains. A32 remains unimplemented: the final FP16
+presentation conversion/dither and GL orientation proof need a separate
+renderer change and qualification round. No presentation shader was changed.
+
+N2's exit gate is **not met**, even excluding A109 and other backends. The
+independent full-picture float-resize oracle also remains unverified. This
+round qualifies Vulkan/lavapipe only. It makes no hardware, throughput,
+long-run resource, OpenGL, Metal or D3D11/WARP claim. FP16 stays off by
+default. Nothing was pushed.
+
+The final FP16-off comparison reruns PNG and MP4 at native size, fit downscale
+and fill upscale. All six decoded RGBA frames are byte-identical to the
+read-only `/home/mg/Projects/nodetool-film/build/color-n0/n2-a842-before/`
+baseline. Export and comparison both exit 0. Artifacts are in
+`build/color-n2/n2-a433-final/`, `n2-a433-final-default.log` and
+`n2-a433-final-byte-comparison.txt`. The comparison explicitly enumerates
+and checks all six frames. `git diff --check`, control-byte checks and the
+three local document links pass. No TypeScript checks or full CTest suite ran.

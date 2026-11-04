@@ -1,4 +1,5 @@
 #include "preview/layers/TestStill.h"
+#include "export/OffscreenFrames.h"
 #include "model/TimelineJson.h"
 #include "preview/effects/ClipEffects.h"
 #include "playback/PlaybackClock.h"
@@ -226,6 +227,62 @@ private slots:
             qInfo() << "edge reference mode/red/alpha" << int(format) << scene.pixels[i] << scene.pixels[i + 3];
             QVERIFY(std::abs(scene.pixels[i + 3] - 0.75f) <= 1.f / 255);
             QVERIFY(std::abs(scene.pixels[i] - 0.5625f) <= 1.f / 255);
+        }
+    }
+    void previewOffscreenWorkingParity_data() {
+        QTest::addColumn<bool>("floatSource");
+        QTest::newRow("original-float-frame") << true;
+        QTest::newRow("original-decoded-frame") << false;
+    }
+    void previewOffscreenWorkingParity() {
+        QFETCH(bool, floatSource);
+        const auto source = floatSource ? nt::registerLayerSource("video", [](const nt::ActiveLayer&) {
+            return std::make_unique<FloatSource>(0.37f, true);
+        }) : 0;
+        const auto guard = qScopeGuard([&] { if (source) { nt::unregisterLayerSource(source); } });
+        auto clip = leaf("original", "video");
+        const auto path = floatSource ? QStringLiteral("original-frame")
+            : QStringLiteral(NT_FIXTURES_DIR "/media/pip-a-720p.mp4");
+        clip.insert("mediaPath", path);
+        clip.insert("originalMediaPath", path);
+        clip.insert("effects", QJsonArray{effect("levels", {{"gamma", 0.8}}),
+            effect("grain", {{"amount", 0.3}, {"size", 2}, {"seed", 17}, {"animate", false}})});
+        const auto timeline = nt::exporting::pictureTimeline(document({clip}));
+        for (const auto format : {nt::WorkingFormat::Rgba8, nt::WorkingFormat::Rgba16F}) {
+            Scene preview;
+            QVERIFY(preview.initialize(timeline, format));
+            preview.clock.seek(500);
+            TimelineModel exportModel;
+            exportModel.setTimeline(timeline);
+            nt::exporting::OffscreenFrames offscreen(exportModel, format);
+            const auto expected = offscreen.captureWorkingAt(500, [] { return false; });
+            QVERIFY(!expected.isNull());
+            QCOMPARE(expected.pixelColor(20, 20).alphaF(), 1.f);
+            QVERIFY(expected.pixelColor(20, 20).valueF() > 0);
+            for (const int denominator : {1, 2, 4, 8}) {
+                auto* compositor = preview.still.compositor();
+                compositor->setPausedResolution(denominator);
+                compositor->setAlphaDisplay(true);
+                compositor->setTransparencyGrid(true);
+                compositor->setCanvasRegion(QRectF(0.2, 0.1, 0.5, 0.7));
+                QVERIFY(preview.render());
+                const auto captured = preview.still.capture(10000);
+                QCOMPARE(captured, expected);
+                QCOMPARE(offscreen.captureWorkingAt(500, [] { return false; }), expected);
+            }
+            auto wrongClip = clip;
+            auto effects = wrongClip.value("effects").toArray();
+            auto grain = effects[1].toObject();
+            grain.insert("seed", 18);
+            effects[1] = grain;
+            wrongClip.insert("effects", effects);
+            exportModel.setTimeline(document({wrongClip}));
+            const auto changedSeed = offscreen.captureWorkingAt(500, [] { return false; });
+            QVERIFY(!changedSeed.isNull());
+            QVERIFY(changedSeed != expected);
+            exportModel.setTimeline(timeline);
+            QCOMPARE(offscreen.captureWorkingAt(500, [] { return false; }), expected);
+            qInfo() << "preview/offscreen undithered parity" << int(format) << "exact at all four resolutions";
         }
     }
     void typedWorkingCapture() {
