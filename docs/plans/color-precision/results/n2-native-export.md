@@ -635,3 +635,44 @@ remain unverified. After a push, CI must build `nodetool-timeline`,
 those three test suites and `export_precision` on each backend, with isolated
 configuration and no skips. Physical GPU, long-run resource and release
 throughput qualification remain outside this result. Nothing was pushed.
+
+## A109: Color Match working-format model
+
+Implemented with FP16 still off by default. The solver takes the matched route's
+internal working format. RGBA8 retains byte analysis and per-pass byte rounding.
+FP16 takes opaque, undithered `captureWorkingAt` images, preserves float samples
+through analysis, and rounds each modeled pass to half float. Both retain the
+shader's clamps. Delivery dithering must not enter analysis. The editor's
+FrameCapture/frame-server route remains RGBA8 and explicitly selects that model.
+No schema, setting, QML property or transfer behavior changed.
+
+The existing fixtures produced exactly identical before/after solver output:
+13 results, 182 hexadecimal floating values, including all ten parameters and
+four metrics. This compares full doubles before effect serialization. Baseline
+production code was `0b57cd5c20`, with only test logging added.
+
+A registered production effect stage renders a 64×32 opaque color ramp through
+solved LGG, Levels, CDL and aggregate Grade. Maximum model/render RGB error is
+0.00392156839 for RGBA8 and 0.00146484375 for FP16. Actual mean-Oklab difference
+falls from 0.0204972291 to 0.000105553974 for RGBA8 and from 0.0203592101 to
+0.000490771013 for FP16. Bounds remain one byte code and 0.002 respectively.
+Forcing byte rounding in FP16 fails both new tests, with render error
+0.00520642102. Restoring half rounding passes.
+
+An initial fixture omitted effect registration and was corrected. A subsequent
+10× compression/expansion render exposed the unchanged byte model's rounding
+discontinuities, reaching 0.0431372523 maximum error. The render qualification
+uses ordinary Levels instead. Compression/expansion remains in the unit test.
+This does not qualify arbitrary high-gain chains.
+
+Focused builds and `citest color-a109 '^(tst_colormatch|tst_colormatch_render)$' -V`
+pass on Vulkan/lavapipe, with no skips. The suites report 23 and 4 passing cases.
+The negative control exits 8. Logs and exact comparison output are in
+`/home/mg/Projects/nodetool-film/build/color-a109/`, including `before.log`,
+`solver-comparison.txt`, `negative.log` and `restored.log`.
+
+Other GPU backends, physical GPUs and an FP16 editor capture route remain
+unverified. Color Match still assumes sRGB for Oklab statistics, while native
+export tags BT.709. These numerical working-pixel checks do not validate that
+perceptual assumption or exported playback appearance. Transfer reconciliation
+remains outside A109.

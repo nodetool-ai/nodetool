@@ -67,7 +67,11 @@ function(nt_export_tests)
     target_link_libraries(tst_framecapture PRIVATE timeline_core timeline_decode timeline_server
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::Test)
     nt_add_timeline_qml(tst_framecapture)
+    nt_effects_shaders(tst_framecapture)
     add_test(NAME tst_framecapture COMMAND tst_framecapture)
+    add_test(NAME tst_colormatch_render COMMAND tst_framecapture colorMatchWorkingFormat offscreenTypedCapture)
+    set_tests_properties(tst_colormatch_render PROPERTIES LABELS render
+        ENVIRONMENT_MODIFICATION "QT_QUICK_BACKEND=unset:")
     set_tests_properties(tst_framecapture PROPERTIES LABELS render FIXTURES_REQUIRED media
         ENVIRONMENT_MODIFICATION "QT_QUICK_BACKEND=unset:")
     add_test(NAME export_original_pixels COMMAND tst_exportdialog snapshotRendersOriginalPicture
