@@ -23,13 +23,16 @@ import type { TemporalSources } from "./denoise.js";
  * `dispose`, so a throw mid-frame leaks nothing.
  */
 
-import type { WorkingFormat, WorkingFrame } from "@nodetool-ai/gpu";
+import type { WorkingFormat, WorkingFrame } from "@nodetool-ai/gpu/webgpu";
 import { blendModeGpuId } from "@nodetool-ai/gpu";
 import {
+  copyWorkingRows,
+  frameReadbackLayout,
   BLIT_FRAGMENT,
   FULLSCREEN_QUAD_VERTEX,
   UNPREMULTIPLY_FRAGMENT,
   WebGPULayerCompositor,
+  validateRenderTexture,
   forwardClipMatrixToInverseAffine,
   placedLayerRect,
   invertClipPlacement,
@@ -1018,13 +1021,13 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
 
     const rect = cropRectPx(layer.crop, uploaded.width, uploaded.height);
     let entry = this.crops.get(layer.id);
-    if (!entry || entry.width !== rect.width || entry.height !== rect.height) {
+    if (!entry || entry.width !== rect.width || entry.height !== rect.height || entry.texture.format !== uploaded.texture.format) {
       entry?.texture.destroy();
       entry = {
         texture: this.device.createTexture({
           label: `${this.label}-crop-${layer.id}`,
           size: { width: rect.width, height: rect.height },
-          format: this.workingFormat,
+          format: uploaded.texture.format,
           usage:
             GPUTextureUsage.TEXTURE_BINDING |
             GPUTextureUsage.COPY_DST |
@@ -1056,7 +1059,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     const texture = this.device.createTexture({
       label: `${this.label}-solid-${color}`,
       size: { width: 1, height: 1 },
-      format: this.workingFormat,
+      format: TEXTURE_FORMAT,
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
     });
     this.device.queue.writeTexture(
@@ -1575,14 +1578,11 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
   }
 }
 
-/** `copyTextureToBuffer` requires a 256-byte-aligned `bytesPerRow`. */
-const ROW_ALIGNMENT = 256;
-
 interface SourceTexture {
   texture: GPUTexture;
   width: number;
   height: number;
-  version: string;
+  version: string | undefined;
 }
 
 /**
@@ -1653,6 +1653,12 @@ export class HeadlessFrameCompositor {
     this.device = device;
     this.width = Math.max(1, Math.floor(width));
     this.height = Math.max(1, Math.floor(height));
+    const layout = frameReadbackLayout(this.width, this.height, "rgba8unorm");
+    if (layout.byteLength > device.limits.maxBufferSize) {
+      throw new Error(`Timeline readback exceeds device buffer limit ${device.limits.maxBufferSize}`);
+    }
+    validateRenderTexture(device, this.width, this.height, options.workingFormat ?? "rgba8unorm",
+      GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST);
     this.compositor = new GpuFrameCompositor<FrameLayerPixels>(
       device,
       this.width,
@@ -1670,15 +1676,22 @@ export class HeadlessFrameCompositor {
         }
       }
     );
-    this.bytesPerRow =
-      Math.ceil((this.width * 4) / ROW_ALIGNMENT) * ROW_ALIGNMENT;
+    this.bytesPerRow = layout.bytesPerRow;
     const makeReadback = (index: number): GPUBuffer =>
       device.createBuffer({
         label: `timeline-headless-readback-${index}`,
         size: this.bytesPerRow * this.height,
         usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
       });
-    this.readbacks = [makeReadback(0), makeReadback(1)];
+    let first: GPUBuffer | undefined;
+    try {
+      first = makeReadback(0);
+      this.readbacks = [first, makeReadback(1)];
+    } catch (error) {
+      first?.destroy();
+      this.compositor.dispose();
+      throw error;
+    }
   }
 
   /**
@@ -1966,16 +1979,7 @@ export class HeadlessFrameCompositor {
   private async readMapped(readback: GPUBuffer): Promise<Uint8Array> {
     await readback.mapAsync(GPUMapMode.READ);
     try {
-      const mapped = new Uint8Array(readback.getMappedRange());
-      const rgba = new Uint8Array(this.width * this.height * 4);
-      const rowBytes = this.width * 4;
-      for (let row = 0; row < this.height; row++) {
-        rgba.set(
-          mapped.subarray(row * this.bytesPerRow, row * this.bytesPerRow + rowBytes),
-          row * rowBytes
-        );
-      }
-      return rgba;
+      return copyWorkingRows(readback.getMappedRange(), this.width, this.height, "rgba8unorm");
     } finally {
       readback.unmap();
     }
@@ -2005,7 +2009,7 @@ export class HeadlessFrameCompositor {
         }),
         width,
         height,
-        version: ""
+        version: undefined
       };
       this.sources.set(id, entry);
     }

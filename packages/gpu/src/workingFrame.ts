@@ -36,3 +36,20 @@ export function frameReadbackLayout(width: number, height: number, format: Worki
   }
   return { rowBytes, bytesPerRow, byteLength };
 }
+
+export function copyWorkingRows(mapped: ArrayBuffer, width: number, height: number, format: "rgba8unorm"): Uint8Array;
+export function copyWorkingRows(mapped: ArrayBuffer, width: number, height: number, format: "rgba16float"): Uint16Array;
+export function copyWorkingRows(mapped: ArrayBuffer, width: number, height: number, format: WorkingFormat): Uint8Array | Uint16Array;
+/** Copy before unmap. Returned rows own their storage and never alias a GPU mapping. */
+export function copyWorkingRows(mapped: ArrayBuffer, width: number, height: number, format: WorkingFormat): Uint8Array | Uint16Array {
+  const { rowBytes, bytesPerRow, byteLength } = frameReadbackLayout(width, height, format);
+  if (mapped.byteLength < byteLength) {
+    throw new Error("Mapped frame is shorter than its readback layout");
+  }
+  const packed = new Uint8Array(rowBytes * height);
+  const source = new Uint8Array(mapped);
+  for (let row = 0; row < height; row++) {
+    packed.set(source.subarray(row * bytesPerRow, row * bytesPerRow + rowBytes), row * rowBytes);
+  }
+  return format === "rgba16float" ? new Uint16Array(packed.buffer) : packed;
+}

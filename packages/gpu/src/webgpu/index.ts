@@ -11,3 +11,4 @@ export * from "../compositor/index.js";
 export { createBrowserGPUContext } from "../context.js";
 
 export { checkRenderTexture, validateRenderTexture } from "../resourceValidation.js";
+export * from "../workingFrame.js";

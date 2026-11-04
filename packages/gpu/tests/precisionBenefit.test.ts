@@ -1,3 +1,4 @@
+import inverseLevels from "./fixtures/inverse-levels.json" with { type: "json" };
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { deflateSync } from "node:zlib";
@@ -45,6 +46,11 @@ function sourcePixels(scene: Scene, width: number, height: number): Uint8Array {
     for (let x = 0; x < width; x++) {
       const u = x / (width - 1), v = y / (height - 1 || 1);
       let rgb = [u, u, u];
+      if (scene === "ramp") {
+        const code = inverseLevels.inputCodes[x];
+        if (code === undefined) throw new Error("Ramp fixture width mismatch");
+        rgb = [code / 255, code / 255, code / 255];
+      }
       if (scene === "dark-fade") {
         // Distant hills and a setting sun, faded almost to black before lifting.
         const hill = v > 0.68 + 0.09 * Math.sin(u * 13) + 0.04 * Math.cos(u * 29);
@@ -95,8 +101,9 @@ async function render(scene: Scene, format: Format, width: number, height: numbe
     }
     let result = source;
     if (scene === "ramp") {
-      result = pass(colorLevelsV1, result, levels(0.5));
-      result = pass(colorLevelsV1, result, levels(2));
+      for (const gamma of inverseLevels.gammas) {
+        result = pass(colorLevelsV1, result, levels(gamma));
+      }
     }
     if (scene === "dark-fade") {
       result = pass(colorExposureV1, result, { stops: -5 });
@@ -174,8 +181,8 @@ it("recovers all 256 diagnostic levels with FP16 and no dithering", async () => 
   const baseline = delivery(await render("ramp", "rgba8unorm", 256, 1), false);
   const baselineRed = Array.from({ length: 256 }, (_, x) => baseline[x * 4]!);
   const red = Array.from({ length: 256 }, (_, x) => result[x * 4]!);
-  expect(new Set(red).size).toBe(256);
-  expect(Math.max(...red.map((v, x) => Math.abs(v - x)))).toBeLessThanOrEqual(1);
+  expect(new Set(red).size).toBe(inverseLevels.fp16Requirements.distinct);
+  expect(Math.max(...red.map((v, x) => Math.abs(v - inverseLevels.referenceCodes[x]!)))).toBeLessThanOrEqual(inverseLevels.fp16Requirements.maximumCodeError);
   expect(red.every((v, x) => x === 0 || v >= red[x - 1]!)).toBe(true);
   if (artifactDir) {
     await mkdir(artifactDir, { recursive: true });
@@ -221,3 +228,33 @@ it("compares three SDR scenes through identical shared effect chains", async () 
 
   if (artifactDir) await writeFile(join(artifactDir, "measurements.json"), JSON.stringify(report, null, 2));
 }, 120_000);
+
+it("keeps compute pipelines compatible when a module id uses both storage formats", async () => {
+  const device = await getNodeGPUDevice();
+  const ctx = createGPUContextFromDevice(device);
+  const executor = createExecutor();
+  const textures: LabeledTexture[] = [];
+  device.pushErrorScope("validation");
+  try {
+    const allocate = (format: Format) => {
+      const texture = createLabeledTexture(device, { width: 1, height: 1, format,
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING });
+      textures.push(texture);
+      return texture;
+    };
+    const input = allocate("rgba8unorm");
+    const encoder = device.createCommandEncoder();
+    for (const format of ["rgba8unorm", "rgba16float"] as const) {
+      const module = { ...withFormat(colorGradeV1, format), id: colorGradeV1.id };
+      executor.encode({ ctx, encoder, module, inputs: { source: input }, output: allocate(format), params: module.paramDefaults,
+        dispatch: { kind: "compute", x: 1, y: 1 } });
+    }
+    device.queue.submit([encoder.finish()]);
+    await device.queue.onSubmittedWorkDone();
+  } finally {
+    for (const texture of textures) texture.destroy();
+    ctx.scratch.dispose();
+    ctx.uniformRing.dispose();
+    expect((await device.popErrorScope())?.message ?? null).toBeNull();
+  }
+});

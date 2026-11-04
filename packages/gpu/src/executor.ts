@@ -413,10 +413,10 @@ export function createExecutor(): Executor {
     resolved: ResolvedShader
   ): GPUComputePipeline {
     const variantTag = resolved.variant ? `:${resolved.variant}` : "";
-    const cacheKey = `${moduleKey(module.id, module.version)}${variantTag}:compute`;
+    const cacheKey = `${moduleKey(module.id, module.version)}${variantTag}:compute:${module.io.output.format}`;
     const cached = ctx.pipelineCache.get(cacheKey);
     if (cached) {
-      // SAFETY: the key ends in `:compute`, and the only write under a
+      // SAFETY: the key carries the `:compute:` segment, and the only write under a
       // `:compute` key is the `createComputePipeline` result below, so a hit
       // here is a GPUComputePipeline.
       return cached as GPUComputePipeline;
