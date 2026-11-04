@@ -50,9 +50,24 @@ class TestFrameExportUi : public WiringFixture {
         auto* target = qobject_cast<QQuickItem*>(object(name));
         QVERIFY2(target, qPrintable("Missing: " + name));
         QTest::qWait(60);
+        // A small desktop clips the Folder field inside the dialog's ScrollView.
+        QTRY_VERIFY2(([&] {
+            bool inView = true;
+            for (auto* parent = target->parentItem(); parent; parent = parent->parentItem()) {
+                if (!parent->property("contentY").isValid()) { continue; }
+                const auto bounds = target->mapRectToItem(parent, QRectF(QPointF(), target->size()));
+                const auto offset = bounds.top() < 0 ? bounds.top() : std::max(0.0, bounds.bottom() - parent->height());
+                if (std::abs(offset) < 1) { continue; }
+                parent->setProperty("contentY", parent->property("contentY").toDouble() + offset);
+                inView = false;
+            }
+            return inView;
+        })(), qPrintable("Field is outside the scroll viewport: " + name));
         QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(target));
+        QTRY_VERIFY2(target->hasActiveFocus(), qPrintable("Field did not receive focus: " + name));
         QTest::keyClick(view.get(), Qt::Key_A, Qt::ControlModifier);
         for (const auto character : text) { QTest::keyClick(view.get(), character.toLatin1()); }
+        QCOMPARE(target->property("text").toString(), text);
     }
     void shoot(const QString& name) {
         if (shotDir.isEmpty()) { return; }
@@ -98,8 +113,12 @@ private slots:
         shotDir = qEnvironmentVariable("NT_F12_SHOTS");
         open();
         QVERIFY(view);
-        view->resize(1500, 950);
+        view->resize(1024, 656);
         QTRY_COMPARE(view->rootObject()->size(), QSizeF(view->size()));
+        // Leave room for both monitor transports even on the CI desktop.
+        auto* dock = qobject_cast<DockLayoutStore*>(view->rootObject()->property("dockStore").value<QObject*>());
+        QVERIFY(dock);
+        for (const auto* side : {"left", "right"}) { dock->resizeRegion(side, 100, view->width(), view->height()); }
         QTRY_VERIFY(exporter());
         exporter()->captureForTest()->setExecutable(QStringLiteral(NT_EXPORT_BINARY));
     }
