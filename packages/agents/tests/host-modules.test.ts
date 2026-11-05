@@ -1224,6 +1224,15 @@ describe("@nodetool-ai/sandbox-expr", () => {
     expect(result.success).toBe(true);
     expect(result.result).toBe(7.5);
   });
+
+  it("rejects formulas that reach object internals", async () => {
+    const result = await run(
+      `import { evaluate } from "@nodetool-ai/sandbox-expr";
+       return await evaluate("x.constructor", { x: 1 });`,
+      "expr"
+    );
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("@nodetool-ai/sandbox-ics", () => {

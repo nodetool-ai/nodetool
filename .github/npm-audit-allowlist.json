@@ -20,15 +20,6 @@
     },
     {
       "project": "root",
-      "id": "GHSA-4cwx-7wf7-3272",
-      "package": "undici",
-      "severity": "high",
-      "title": "undici vulnerable to cross-user information disclosure and parse-time crash via degenerate private cache directives",
-      "url": "https://github.com/advisories/GHSA-4cwx-7wf7-3272",
-      "reason": "Affects the hoisted undici 7.28 that cheerio uses for fromURL. NodeTool loads HTML with cheerio.load and never calls fromURL. The cache interceptor, WebSocket client and BalancedPool are not used. The API server's own undici (packages/websocket) is 7.30, which is fixed."
-    },
-    {
-      "project": "root",
       "id": "GHSA-52cp-r559-cp3m",
       "package": "js-yaml",
       "severity": "high",
@@ -47,30 +38,21 @@
     },
     {
       "project": "root",
-      "id": "GHSA-858h-whjf-mvg5",
-      "package": "simple-git",
+      "id": "GHSA-834v-8h66-3h79",
+      "package": "happy-dom",
       "severity": "high",
-      "title": "simple-git: unsafe-operations plugin bypass via git long-option abbreviation (--receive-p/--exe) -> command execution (residual of CVE-2026-28291)",
-      "url": "https://github.com/advisories/GHSA-858h-whjf-mvg5",
-      "reason": "Reached only through node-llama-cpp, which uses simple-git to clone llama.cpp source in its own CLI. NodeTool never calls that path or passes git options. Fix needs node-llama-cpp 4 (major)."
+      "title": "Happy DOM: Incomplete fix for CVE-2026-33943: unsanitized import alias leads to host code execution",
+      "url": "https://github.com/advisories/GHSA-834v-8h66-3h79",
+      "reason": "Pulled in by @puckeditor/core through @tiptap/html. The web app is a Vite browser build, which resolves @tiptap/html to its browser entry with the real DOM, so happy-dom is not in the shipped bundle; Puck's own dist never imports it. Elsewhere it is vitest's test environment. Fix needs @puckeditor/core 0.24, which moves happy-dom to 21."
     },
     {
       "project": "root",
-      "id": "GHSA-8gw3-rxh4-v6jx",
-      "package": "expr-eval",
+      "id": "GHSA-c8p4-j97h-3vg8",
+      "package": "happy-dom",
       "severity": "high",
-      "title": "expr-eval vulnerable to Prototype Pollution",
-      "url": "https://github.com/advisories/GHSA-8gw3-rxh4-v6jx",
-      "reason": "Formula strings come from sandbox guests. __proto__ assignments and constructor access did not pollute Object.prototype when tried against 2.0.2. No patched release. Follow-up: replace with expr-eval-fork@3."
-    },
-    {
-      "project": "root",
-      "id": "GHSA-g4wm-2vf7-vfgr",
-      "package": "simple-git",
-      "severity": "high",
-      "title": "simple-git allows command execution through unblocked Git configuration includes",
-      "url": "https://github.com/advisories/GHSA-g4wm-2vf7-vfgr",
-      "reason": "Reached only through node-llama-cpp, which uses simple-git to clone llama.cpp source in its own CLI. NodeTool never calls that path or passes git options. Fix needs node-llama-cpp 4 (major)."
+      "title": "Happy DOM: SSRF via iframe and link stylesheet when parsing untrusted HTML",
+      "url": "https://github.com/advisories/GHSA-c8p4-j97h-3vg8",
+      "reason": "Pulled in by @puckeditor/core through @tiptap/html. The web app is a Vite browser build, which resolves @tiptap/html to its browser entry with the real DOM, so happy-dom is not in the shipped bundle; Puck's own dist never imports it. Elsewhere it is vitest's test environment. Fix needs @puckeditor/core 0.24, which moves happy-dom to 21."
     },
     {
       "project": "root",
@@ -83,15 +65,6 @@
     },
     {
       "project": "root",
-      "id": "GHSA-jc85-fpwf-qm7x",
-      "package": "expr-eval",
-      "severity": "high",
-      "title": "expr-eval does not restrict functions passed to the evaluate function",
-      "url": "https://github.com/advisories/GHSA-jc85-fpwf-qm7x",
-      "reason": "Needs attacker-controlled functions in the evaluate() context. The sandbox-expr host module receives its variables from the QuickJS guest as JSON data, so no function can arrive. Follow-up: replace with expr-eval-fork@3."
-    },
-    {
-      "project": "root",
       "id": "GHSA-jrc7-96c5-q579",
       "package": "maplibre-gl",
       "severity": "critical",
@@ -101,66 +74,12 @@
     },
     {
       "project": "root",
-      "id": "GHSA-m9gg-hp2v-232j",
-      "package": "@grpc/grpc-js",
+      "id": "GHSA-mrhx-c7xc-m3w5",
+      "package": "zod",
       "severity": "high",
-      "title": "@grpc/grpc-js: In certain configurations, getAuthContext can return unauthorized certificates as though they were authorized",
-      "url": "https://github.com/advisories/GHSA-m9gg-hp2v-232j",
-      "reason": "Only the OpenTelemetry OTLP gRPC log exporter uses it, as a client. The advisory concerns getAuthContext on a server, which NodeTool does not run. npm keeps 1.14.4 hoisted although ^1.14.3 allows 1.14.5."
-    },
-    {
-      "project": "root",
-      "id": "GHSA-q9v2-7m5w-4693",
-      "package": "expr-eval",
-      "severity": "critical",
-      "title": "expr-eval vulnerable to Code Execution",
-      "url": "https://github.com/advisories/GHSA-q9v2-7m5w-4693",
-      "reason": "Needs toJSFunction(). The only caller, packages/agents/src/host-modules/expr.ts, calls Parser.evaluate(). No patched release. Follow-up: replace with expr-eval-fork@3."
-    },
-    {
-      "project": "root",
-      "id": "GHSA-rfgv-xxqx-mfg5",
-      "package": "undici",
-      "severity": "high",
-      "title": "undici vulnerable to Denial of Service via unrequested WebSocket subprotocol",
-      "url": "https://github.com/advisories/GHSA-rfgv-xxqx-mfg5",
-      "reason": "Affects the hoisted undici 7.28 that cheerio uses for fromURL. NodeTool loads HTML with cheerio.load and never calls fromURL. The cache interceptor, WebSocket client and BalancedPool are not used. The API server's own undici (packages/websocket) is 7.30, which is fixed."
-    },
-    {
-      "project": "root",
-      "id": "GHSA-v5rq-49vh-5v5c",
-      "package": "@simple-git/argv-parser",
-      "severity": "critical",
-      "title": "simple-git: `VISUAL` editor environment variable is omitted from unsafe editor detection",
-      "url": "https://github.com/advisories/GHSA-v5rq-49vh-5v5c",
-      "reason": "Same path as simple-git: node-llama-cpp's source-download CLI only. Fix needs node-llama-cpp 4 (major)."
-    },
-    {
-      "project": "root",
-      "id": "GHSA-vfj7-8cjw-p6xm",
-      "package": "braces",
-      "severity": "high",
-      "title": "braces vulnerable to stack-exhaustion denial of service through deeply nested patterns",
-      "url": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
-      "reason": "Via chokidar 3 in tailwindcss at build time. Glob patterns come from our own config, not users."
-    },
-    {
-      "project": "root",
-      "id": "GHSA-w293-vg96-wgc3",
-      "package": "undici",
-      "severity": "high",
-      "title": "undici vulnerable to TLS certificate validation bypass via dropped connect options in BalancedPool",
-      "url": "https://github.com/advisories/GHSA-w293-vg96-wgc3",
-      "reason": "Affects the hoisted undici 7.28 that cheerio uses for fromURL. NodeTool loads HTML with cheerio.load and never calls fromURL. The cache interceptor, WebSocket client and BalancedPool are not used. The API server's own undici (packages/websocket) is 7.30, which is fixed."
-    },
-    {
-      "project": "root",
-      "id": "GHSA-x6jw-m9v5-85vh",
-      "package": "simple-git",
-      "severity": "critical",
-      "title": "simple-git unsafe-operation guard does not block trailer command configuration",
-      "url": "https://github.com/advisories/GHSA-x6jw-m9v5-85vh",
-      "reason": "Reached only through node-llama-cpp, which uses simple-git to clone llama.cpp source in its own CLI. NodeTool never calls that path or passes git options. Fix needs node-llama-cpp 4 (major)."
+      "title": "Zod can exhaust memory while validating oversized constrained collections",
+      "url": "https://github.com/advisories/GHSA-mrhx-c7xc-m3w5",
+      "reason": "Reachable in principle: API routes validate request bodies with zod, bounded only by Fastify's 100 MB bodyLimit. The fix is zod 4.6, but 4.6 changes z.toJSONSchema output: scalar unions become type arrays, which strict Ajv rejects without allowUnionTypes. That alters the published SDK v1 schemas and the game and preset schemas, so the upgrade needs its own change with a schema compatibility decision."
     },
     {
       "project": "mobile",
@@ -191,15 +110,6 @@
     },
     {
       "project": "mobile",
-      "id": "GHSA-86w9-cpqp-85rv",
-      "package": "node-forge",
-      "severity": "high",
-      "title": "node-forge RSA PKCS#1 v1.5 signature verification accepts extra nested DigestAlgorithm elements",
-      "url": "https://github.com/advisories/GHSA-86w9-cpqp-85rv",
-      "reason": "Used by the Expo CLI for code-signing certificates at build time. Not shipped in the app. Fix needs an Expo SDK upgrade."
-    },
-    {
-      "project": "mobile",
       "id": "GHSA-gj77-59wh-66hg",
       "package": "prismjs",
       "severity": "high",
@@ -218,21 +128,30 @@
     },
     {
       "project": "mobile",
+      "id": "GHSA-mrhx-c7xc-m3w5",
+      "package": "zod",
+      "severity": "high",
+      "title": "Zod can exhaust memory while validating oversized constrained collections",
+      "url": "https://github.com/advisories/GHSA-mrhx-c7xc-m3w5",
+      "reason": "Used by the Expo CLI at build time. Not shipped in the app. Fix needs an Expo SDK upgrade."
+    },
+    {
+      "project": "mobile",
+      "id": "GHSA-r7fv-28h4-cvq7",
+      "package": "markdown-it",
+      "severity": "high",
+      "title": "markdown-it: Quadratic complexity in smartquotes with unmatched closing quotes",
+      "url": "https://github.com/advisories/GHSA-r7fv-28h4-cvq7",
+      "reason": "markdown-it smartquotes in chat rendering through react-native-markdown-display. Quadratic parsing of hostile text slows only the device rendering that message. The renderer pins markdown-it 10 and has no fixed release."
+    },
+    {
+      "project": "mobile",
       "id": "GHSA-v245-v573-v5vm",
       "package": "linkify-it",
       "severity": "high",
       "title": "linkify-it: Quadratic-complexity DoS via the `mailto:` validator scan-loop on attacker text",
       "url": "https://github.com/advisories/GHSA-v245-v573-v5vm",
       "reason": "markdown-it link detection in chat rendering. Quadratic scans on hostile text slow only the device rendering that message. No fixed release yet."
-    },
-    {
-      "project": "mobile",
-      "id": "GHSA-vfj7-8cjw-p6xm",
-      "package": "braces",
-      "severity": "high",
-      "title": "braces vulnerable to stack-exhaustion denial of service through deeply nested patterns",
-      "url": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
-      "reason": "Via micromatch in Metro and Expo tooling at build time. Patterns come from our own config."
     },
     {
       "project": "mobile",
