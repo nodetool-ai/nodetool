@@ -58,7 +58,10 @@ F3: A43.2 was checked and excluded agents until A91, although A91 is now met.
 The [browser parity test](../../../../packages/timeline/tests/render.a432Browser.gpu.test.ts)
 has only Node/Chromium working-frame paths. S5's decoded-PNG/Canvas2D comparison
 does not supply the required migrated-agent working-frame comparison.
-**A43.2 was unticked** and remains partly met until that comparison exists.
+**A43.2 was unticked** by this audit. The subsequent
+[migrated-agent comparison](s3-parity.md#migrated-agent-comparison-after-a91)
+closes that gap with real child output, exact delivery-stage accounting and
+same-adapter lavapipe measurements. A43.2 is now checked.
 
 F4: A91's plan note called minimal installation blocked, while S5 records a
 clean local-tarball install that loads agents and gives actionable addon
