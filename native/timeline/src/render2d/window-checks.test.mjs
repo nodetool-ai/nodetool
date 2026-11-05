@@ -69,7 +69,8 @@ bench() { echo ran > "$out/bench-called"; }
 ${body}
 serein_m0
 `;
-    const run = runBash(["-c", script, "test", root], { encoding: "utf8", timeout: 3000 });
+    // The overloaded case forks 80 load reads, which takes seconds in Git Bash. This only bounds a hang.
+    const run = runBash(["-c", script, "test", root], { encoding: "utf8", timeout: 60000 });
     assert.equal(run.status, 0, run.stderr);
     assert.equal(fs.existsSync(path.join(root, "bench-called")), settles);
     assert.equal(fs.readFileSync(path.join(root, "m0-serein-native.exit"), "utf8").trim(), settles ? "0" : "not run");

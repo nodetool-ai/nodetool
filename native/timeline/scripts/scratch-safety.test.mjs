@@ -119,9 +119,10 @@ test("redirects are refused, also to 7777", async () => {
 test("stopGroups ends descendants that outlive the leader and ignore SIGTERM", { skip: process.platform === "win32" ? "Windows terminates jobs rather than delivering POSIX SIGTERM" : false }, async () => {
   // The leader exits at once; a grandchild that ignores SIGTERM stays in the group.
   const marker = path.join(area, "leader-exited");
-  const descendant = `process.on("SIGTERM",()=>{}); require("fs").writeFileSync(${JSON.stringify(marker)},"ready"); setInterval(()=>{},1000)`;
-  const leader = `const child = require("child_process").spawn(process.execPath,["-e",${JSON.stringify(descendant)}],{stdio:"ignore"}); child.unref();`;
-  const child = spawnOwned(process.execPath, ["-e", leader], { detached: true, stdio: "ignore" });
+  const descendant = `process.on("SIGTERM",()=>{}); require("fs").writeFileSync(process.env.NT_TEST_MARKER,"ready"); setInterval(()=>{},1000)`;
+  const leader = `const child = require("child_process").spawn(process.execPath,["-e",process.env.NT_TEST_DESCENDANT],{stdio:"ignore"}); child.unref();`;
+  const env = { ...process.env, NT_TEST_MARKER: marker, NT_TEST_DESCENDANT: descendant };
+  const child = spawnOwned(process.execPath, ["-e", leader], { detached: true, stdio: "ignore", env });
   try {
     for (let i = 0; i < 100 && !fs.existsSync(marker); ++i) await sleep(20);
     assert.ok(fs.existsSync(marker), "descendant must install its SIGTERM handler");
@@ -314,12 +315,18 @@ if (process.platform === "win32") {
   for (const victim of ["owner", "helper"]) {
     test(`Windows job kills descendants when ${victim} crashes`, async () => {
       const marker = path.join(area, `crash-${victim}.json`);
-      const descendant = `const s=require("http").createServer((q,r)=>r.end("ok")); s.listen(0,"127.0.0.1",()=>require("fs").writeFileSync(${JSON.stringify(marker)},JSON.stringify({pid:process.pid,port:s.address().port})));`;
+      const descendant = `const s=require("http").createServer((q,r)=>r.end("ok")); s.listen(0,"127.0.0.1",()=>require("fs").writeFileSync(process.env.NT_TEST_MARKER,JSON.stringify({pid:process.pid,port:s.address().port})));`;
       // Detach from Node's launcher lifetime, but remain in the inherited scratch job.
-      const launcher = `const c=require("child_process").spawn(process.execPath,["-e",${JSON.stringify(descendant)}],{detached:true,stdio:["ignore","ignore","inherit"]}); c.unref();`;
-      const module = new URL("./scratch-safety.mjs", import.meta.url).href;
-      const ownerCode = `import {spawnOwned} from ${JSON.stringify(module)}; const c=spawnOwned(process.execPath,["-e",${JSON.stringify(launcher)}],{stdio:"ignore"}); console.log(c.pid); setInterval(()=>{},1000);`;
-      const owner = spawn(process.execPath, ["--input-type=module", "-e", ownerCode], { stdio: ["ignore", "pipe", "inherit"] });
+      const launcher = `const c=require("child_process").spawn(process.execPath,["-e",process.env.NT_TEST_DESCENDANT],{detached:true,stdio:["ignore","ignore","inherit"]}); c.unref();`;
+      const ownerCode = `const {spawnOwned}=await import(process.env.NT_TEST_MODULE); const c=spawnOwned(process.execPath,["-e",process.env.NT_TEST_LAUNCHER],{stdio:"ignore"}); console.log(c.pid); setInterval(()=>{},1000);`;
+      const env = {
+        ...process.env,
+        NT_TEST_MARKER: marker,
+        NT_TEST_DESCENDANT: descendant,
+        NT_TEST_LAUNCHER: launcher,
+        NT_TEST_MODULE: new URL("./scratch-safety.mjs", import.meta.url).href
+      };
+      const owner = spawn(process.execPath, ["--input-type=module", "-e", ownerCode], { stdio: ["ignore", "pipe", "inherit"], env });
       let helper;
       owner.stdout.on("data", bytes => { helper = Number(bytes.toString().trim()); });
       let fixture;
