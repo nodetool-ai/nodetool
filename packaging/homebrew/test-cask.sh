@@ -61,7 +61,17 @@ codesign --display --verbose=2 "${app}" 2>&1 | grep -q "^Authority=Developer ID 
   || fail "the app is not signed with a Developer ID Application certificate"
 codesign --verify -R=notarized --check-notarization --verbose=2 "${app}" \
   || fail "the app is not notarized"
-xcrun stapler validate "${app}"
+# stapler asks Apple's ticket service, so a dropped connection is retried.
+stapled=0
+for attempt in 1 2 3; do
+  if xcrun stapler validate "${app}"; then
+    stapled=1
+    break
+  fi
+  echo "stapler validate failed (attempt ${attempt}); retrying"
+  sleep $((attempt * 10))
+done
+[[ "${stapled}" == 1 ]] || fail "the app has no valid stapled notarization ticket"
 if command -v gktool >/dev/null; then
   gktool scan "${app}" || fail "Gatekeeper rejected the app"
 else
