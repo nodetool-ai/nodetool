@@ -31,7 +31,7 @@ log "brew style"
 brew style --cask "${cask}"
 
 log "brew audit"
-brew audit --cask --new --online --strict --signing "${cask}"
+brew audit --cask --new --online --strict "${cask}"
 
 log "brew livecheck"
 latest="$(brew livecheck --cask --json "${cask}" | python3 -c '
@@ -46,13 +46,20 @@ brew install --cask "${cask}"
 [[ -d "${app}" ]] || fail "${app} is missing after install"
 
 log "Checking the installed app"
-# `brew audit --signing` above ran Gatekeeper's scan on the app. These check
-# the installed copy: a Developer ID signature and a stapled notarization
-# ticket.
+# homebrew-cask CI runs its signing audit only for the official tap, so run
+# the same checks here: Apple's notarization check and, where the OS has it,
+# Gatekeeper's scan of the quarantined app.
 codesign --verify --deep --strict --verbose=2 "${app}"
 codesign --display --verbose=2 "${app}" 2>&1 | grep -q "^Authority=Developer ID Application:" \
   || fail "the app is not signed with a Developer ID Application certificate"
+codesign --verify -R=notarized --check-notarization --verbose=2 "${app}" \
+  || fail "the app is not notarized"
 xcrun stapler validate "${app}"
+if command -v gktool >/dev/null; then
+  gktool scan "${app}" || fail "Gatekeeper rejected the app"
+else
+  echo "gktool is not available on this macOS; skipping the Gatekeeper scan"
+fi
 
 machine="$(uname -m)"
 archs="$(lipo -archs "${app}/Contents/MacOS/Nodetool")"
@@ -70,7 +77,7 @@ grep -qx "provider: github" "${feed}" || fail "${feed} does not name the GitHub 
 cat "${feed}"
 
 log "Launching the app"
-# The audit's Gatekeeper scan is the decision a first open makes. Clearing the
+# The Gatekeeper scan above is the decision a first open makes. Clearing the
 # quarantine flag keeps the first-open dialog from blocking a headless run.
 xattr -dr com.apple.quarantine "${app}"
 CI=true "${app}/Contents/MacOS/Nodetool" >/tmp/nodetool-cask.log 2>&1 &

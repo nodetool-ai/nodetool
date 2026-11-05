@@ -49,12 +49,13 @@ still installs from the cask and that livecheck still finds it.
 - [`render.sh`](render.sh) fills in one stable version. It reads the sha256
   digests GitHub records for the release's two DMGs.
 - [`test-cask.sh`](test-cask.sh) runs on macOS. It adds the rendered cask to a
-  throwaway tap and runs `brew style`, `brew audit --new --online --strict
-  --signing` and `brew livecheck`. The `--signing` audit runs Gatekeeper's
-  scan on the app. Then it installs the cask, checks the installed app's
-  Developer ID signature, stapled notarization ticket, architecture, version
-  and updater feed, launches it until the backend answers `/health`, and
-  uninstalls with `--zap`.
+  throwaway tap and runs `brew style`, `brew audit --new --online --strict`
+  and `brew livecheck`. Then it installs the cask and checks the installed
+  app's Developer ID signature, notarization, stapled ticket, architecture,
+  version and updater feed. It runs Gatekeeper's `gktool scan` where the OS
+  has it, as homebrew-cask's signing audit does, because that audit only runs
+  for the official tap. Last, it launches the app until the backend answers
+  `/health` and uninstalls with `--zap`.
 
 ## Workflow
 
@@ -91,7 +92,7 @@ address at the cask's `homepage` or `url` domain. `brew audit --new` checks it.
    brew tap --force homebrew/cask
    cp nodetool.rb "$(brew --repository homebrew/cask)/Casks/n/nodetool.rb"
    export HOMEBREW_NO_INSTALL_FROM_API=1
-   brew audit --cask --new --online --strict --signing nodetool
+   brew audit --cask --new --online --strict nodetool
    brew style --fix --cask nodetool
    brew install --cask nodetool
    ```
