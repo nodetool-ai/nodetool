@@ -275,20 +275,23 @@ private slots:
         QTRY_VERIFY(!initialFrame.isEmpty());
         auto* toolbar = item("timelineToolbar");
         QVERIFY(toolbar);
+        // Keep the production narrow layout: the tool row scrolls beside
+        // the fixed zoom controls when the window cannot fit every tool.
+        view->resize(1028, view->height());
         view->requestActivate();
         QVERIFY(QTest::qWaitForWindowActive(view.get()));
         QVERIFY(QTest::qWaitForWindowExposed(view.get()));
-        // The production toolbar scrolls on narrow docks. Bring the grid
-        // control into view instead of requesting a window wider than the screen.
-        auto* viewport = item("timelineToolViewport");
-        QVERIFY(viewport);
-        QVERIFY(viewport->width() >= select->width());
-        const double right = select->mapToItem(viewport, {select->width(), 0}).x();
-        const double offset = viewport->property("contentX").toDouble();
-        QVERIFY(viewport->setProperty("contentX", qMax(0.0, offset + right - viewport->width())));
         QSignalSpy frame(view.get(), &QQuickWindow::frameSwapped);
         view->update();
         QTRY_VERIFY(!frame.isEmpty());
+        auto* viewport = item("timelineToolViewport");
+        QVERIFY(viewport);
+        QVERIFY(viewport->width() >= select->width());
+        const auto right = select->mapToItem(viewport, {select->width(), 0}).x();
+        const auto contentX = viewport->property("contentX").toDouble();
+        QVERIFY(viewport->setProperty("contentX", qMax(0.0, contentX + right - viewport->width())));
+        QTRY_VERIFY(select->mapToItem(viewport, {0, 0}).x() >= 0);
+        QTRY_VERIFY(select->mapToItem(viewport, {select->width(), 0}).x() <= viewport->width());
         const auto clickPoint = select->mapToScene({select->width() - 8, select->height() / 2});
         for (auto* parent = select; parent; parent = parent->parentItem()) {
             if (parent->clip()) {

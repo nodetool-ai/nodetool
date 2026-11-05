@@ -455,8 +455,11 @@ private slots:
         click(find("entityNewButton"));
         auto* picker = find("entityImagePicker");
         QTRY_VERIFY(picker->property("opened").toBool());
-        QTRY_VERIFY(find("entityImageTile_" + id(11)));
-        for (int number = 11; number <= 15; ++number) QVERIFY(find("entityImageTile_" + id(number)));
+        // The first delegate can exist before the grid has created the remaining tiles.
+        for (int number = 11; number <= 15; ++number) {
+            QTRY_VERIFY(find("entityImageTile_" + id(number)));
+        }
+        QTRY_VERIFY(!library->imagesLoading());
         for (int number = 1; number <= 6; ++number) QVERIFY(!find("entityImageTile_" + id(number)));
         QCOMPARE(find("entityImageTile_" + id(12))->property("accessibleName").toString(), QString("Pick Red door"));
         QVERIFY(!shown(find("entityImagesLoading")));
