@@ -9,8 +9,8 @@
  * user set is never overwritten.
  *
  * It then starts the chat on that default (the chat store otherwise holds an
- * unsendable placeholder), starts the composer's speech mode on the speech
- * default, and fills the empty model properties of nodes in the
+ * unsendable placeholder), starts the composer's picture and speech modes on
+ * their defaults, and fills the empty model properties of nodes in the
  * open workflows, so connecting a key does not leave a node on "Select model".
  */
 
@@ -22,7 +22,10 @@ import useMetadataStore from "../stores/MetadataStore";
 import useModelPreferencesStore from "../stores/ModelPreferencesStore";
 import type { DefaultModel } from "../stores/ModelPreferencesStore";
 import type { LanguageModel, TTSModel } from "../stores/ApiTypes";
-import { audioModelPatch } from "../components/chat/composer/modelSelection";
+import {
+  audioModelPatch,
+  imageModelPatch
+} from "../components/chat/composer/modelSelection";
 import { applyDefaultModels } from "../utils/applyDefaultModels";
 import { isLocalProvider } from "../utils/providerDisplay";
 import { useWorkflowManagerStore } from "../contexts/WorkflowManagerContext";
@@ -99,6 +102,10 @@ export const useSeedDefaultModels = (): void => {
   const tts = useTTSModelsByProvider();
   const ttsDefault = useModelPreferencesStore((s) => s.defaults["tts_model"]);
   const speechModel = useMediaGenerationStore((s) => s.audio.model);
+  const imageDefault = useModelPreferencesStore(
+    (s) => s.defaults["image_model"]
+  );
+  const hasImageModel = useMediaGenerationStore((s) => s.image.model !== null);
   const getAvailability = useModelAvailability();
   const recommendedKeys = useRecommendedModelKeys();
 
@@ -166,6 +173,22 @@ export const useSeedDefaultModels = (): void => {
       } as LanguageModel);
     }
   }, [languageDefault, selectedModel, setSelectedModel]);
+
+  // Pictures start on the Settings default too. Without this, connecting a
+  // key from the picture composer left it on "Select model" with one model.
+  useEffect(() => {
+    if (!imageDefault || hasImageModel) {
+      return;
+    }
+    const model = image.models.find(
+      (m) => m.provider === imageDefault.provider && m.id === imageDefault.id
+    );
+    if (model) {
+      const { setImageParams, image: current } =
+        useMediaGenerationStore.getState();
+      setImageParams(imageModelPatch(model, current));
+    }
+  }, [imageDefault, hasImageModel, image.models]);
 
   // Speech starts on the Settings default too, with that model's voices.
   useEffect(() => {
