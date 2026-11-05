@@ -1,6 +1,7 @@
 #include "preview/effects/ClipEffects.h"
 #include "preview/RetireQueue.h"
 #include "preview/effects/BlendModes.h"
+#include "preview/effects/DrawCache.h"
 #include "motion/capacity/ScratchPool.h"
 #include <QGuiApplication>
 #include <QFile>
@@ -10,6 +11,7 @@
 #include <QtGui/qtguiglobal.h>
 #if !defined(Q_OS_WIN) && !defined(Q_OS_MACOS)
 #include <QVulkanInstance>
+#include <QOffscreenSurface>
 #endif
 #include <QtTest>
 #include <qfloat16.h>
@@ -23,7 +25,9 @@ struct PlatformRhi {
 #if defined(Q_OS_WIN)
     bool create() {
         QRhiD3D11InitParams init;
-        rhi.reset(QRhi::create(QRhi::D3D11, &init));
+        const auto flags = qEnvironmentVariableIntValue("QSG_RHI_PREFER_SOFTWARE_RENDERER")
+            ? QRhi::Flags(QRhi::PreferSoftwareRenderer) : QRhi::Flags{};
+        rhi.reset(QRhi::create(QRhi::D3D11, &init, flags));
         return rhi != nullptr;
     }
 #elif defined(Q_OS_MACOS)
@@ -34,7 +38,15 @@ struct PlatformRhi {
     }
 #else
     QVulkanInstance instance;
+    std::unique_ptr<QOffscreenSurface> surface;
     bool create() {
+        if (qEnvironmentVariable("QSG_RHI_BACKEND") == u"opengl") {
+            surface.reset(QRhiGles2InitParams::newFallbackSurface());
+            QRhiGles2InitParams init;
+            init.fallbackSurface = surface.get();
+            rhi.reset(QRhi::create(QRhi::OpenGLES2, &init));
+            return rhi != nullptr;
+        }
         instance.setApiVersion(QVersionNumber(1, 1));
         instance.setExtensions(QRhiVulkanInitParams::preferredInstanceExtensions());
         if (!instance.create()) { return false; }
@@ -132,6 +144,7 @@ private slots:
         PlatformRhi platform;
         QVERIFY(platform.create());
         auto& rhi = platform.rhi;
+        qInfo() << "precision backend" << rhi->backendName() << rhi->driverInfo().deviceName;
         for (const auto format : {WorkingFormat::Rgba8, WorkingFormat::Rgba16F}) {
             RetireQueue retire;
             ClipEffectStage stage;
@@ -205,10 +218,96 @@ private slots:
             retire.clear();
         }
     }
+    void floatFiltering() {
+        PlatformRhi platform;
+        QVERIFY(platform.create());
+        auto& rhi = platform.rhi;
+        qInfo() << "filter backend" << rhi->backendName() << rhi->driverInfo().deviceName;
+        QVERIFY(rhi->isTextureFormatSupported(QRhiTexture::RGBA16F));
+        auto input = std::unique_ptr<QRhiTexture>(rhi->newTexture(QRhiTexture::RGBA16F, {2, 2}, 1));
+        auto output = std::unique_ptr<QRhiTexture>(rhi->newTexture(QRhiTexture::RGBA16F, {1, 1}, 1,
+            QRhiTexture::RenderTarget | QRhiTexture::UsedAsTransferSource));
+        QVERIFY(input->create());
+        QVERIFY(output->create());
+        auto target = std::unique_ptr<QRhiTextureRenderTarget>(rhi->newTextureRenderTarget({output.get()}));
+        auto pass = std::unique_ptr<QRhiRenderPassDescriptor>(target->newCompatibleRenderPassDescriptor());
+        target->setRenderPassDescriptor(pass.get());
+        QVERIFY(target->create());
+        RetireQueue retire;
+        DrawCache cache;
+        struct FilterUniforms {
+            std::array<float, 16> matrix{}, colorMatrix{};
+            std::array<float, 4> geometry{0, 4, 0, 0}, sourceRect{0, 0, 2, 2},
+                dimensions{2, 2, 2, 2}, origin{0, 0, 2, 2};
+            std::array<float, 16> params{};
+        } uniforms;
+        static_assert(sizeof(FilterUniforms) == 256);
+        std::copy_n(rhi->clipSpaceCorrMatrix().constData(), 16, uniforms.matrix.begin());
+        auto buffer = std::unique_ptr<QRhiBuffer>(rhi->newBuffer(QRhiBuffer::Dynamic,
+            QRhiBuffer::UniformBuffer, sizeof(uniforms)));
+        QVERIFY(buffer->create());
+        auto bindings = std::unique_ptr<QRhiShaderResourceBindings>(rhi->newShaderResourceBindings());
+        for (const float alpha : {1.f, 0.001f}) {
+            std::array<qfloat16, 16> pixels;
+            float expected = 0;
+            for (int i = 0; i < 4; ++i) {
+                const auto value = qfloat16((i + 1) * 0.2f * alpha);
+                expected += float(value) / 4;
+                for (int c = 0; c < 3; ++c) { pixels[i * 4 + c] = value; }
+                pixels[i * 4 + 3] = qfloat16(alpha);
+            }
+            QRhiCommandBuffer* cb = nullptr;
+            QCOMPARE(rhi->beginOffscreenFrame(&cb), QRhi::FrameOpSuccess);
+            auto* upload = rhi->nextResourceUpdateBatch();
+            upload->uploadTexture(input.get(), QRhiTextureUploadDescription{{{0, 0,
+                QRhiTextureSubresourceUploadDescription(pixels.data(), int(sizeof(pixels)))}}});
+            cb->resourceUpdate(upload);
+            EffectContext ctx{rhi.get(), cb, 1, &retire, nullptr, WorkingFormat::Rgba16F};
+            // Isolate linear sampling with the production copy shader and draw cache.
+            QVERIFY(cache.initialize(ctx, ":/effects/clip.vert.qsb", ":/effects/clip.frag.qsb", QRhiSampler::Linear));
+            bindings->setBindings({
+                QRhiShaderResourceBinding::uniformBuffer(0, QRhiShaderResourceBinding::VertexStage |
+                    QRhiShaderResourceBinding::FragmentStage, buffer.get()),
+                QRhiShaderResourceBinding::sampledTexture(1, QRhiShaderResourceBinding::FragmentStage, input.get(), cache.sampler()),
+                QRhiShaderResourceBinding::sampledTexture(2, QRhiShaderResourceBinding::FragmentStage, input.get(), cache.sampler()),
+                QRhiShaderResourceBinding::sampledTexture(3, QRhiShaderResourceBinding::FragmentStage, input.get(), cache.sampler())});
+            QVERIFY(bindings->create());
+            auto* pipeline = cache.pipeline(rhi.get(), *target, bindings.get());
+            QVERIFY(pipeline);
+            auto* update = rhi->nextResourceUpdateBatch();
+            update->updateDynamicBuffer(buffer.get(), 0, sizeof(uniforms), &uniforms);
+            cb->beginPass(target.get(), Qt::transparent, {1, 0}, update);
+            cb->setGraphicsPipeline(pipeline);
+            cb->setViewport({0, 0, 1, 1});
+            cb->setShaderResources(bindings.get());
+            const QRhiCommandBuffer::VertexInput vertices(cache.vertices(), 0);
+            cb->setVertexInput(0, 1, &vertices);
+            cb->draw(3);
+            cb->endPass();
+            QRhiReadbackResult readback;
+            bool completed = false;
+            readback.completed = [&] { completed = true; };
+            auto* read = rhi->nextResourceUpdateBatch();
+            read->readBackTexture({output.get()}, &readback);
+            cb->resourceUpdate(read);
+            QCOMPARE(rhi->endOffscreenFrame(), QRhi::FrameOpSuccess);
+            rhi->finish();
+            QVERIFY(completed);
+            QCOMPARE(readback.data.size(), 8);
+            std::array<qfloat16, 4> actual;
+            std::memcpy(actual.data(), readback.data.constData(), 8);
+            for (int c = 0; c < 4; ++c) {
+                const float reference = c == 3 ? float(qfloat16(alpha)) : expected;
+                QVERIFY(std::abs(float(actual[c]) - reference) < alpha * 0.002f);
+            }
+            retire.clear();
+        }
+    }
     void inverseLevelsAndAlpha() {
         PlatformRhi platform;
         QVERIFY(platform.create());
         auto& rhi = platform.rhi;
+        qInfo() << "precision backend" << rhi->backendName() << rhi->driverInfo().deviceName;
         qInfo() << rhi->driverInfo().deviceName;
         // Complementary low-alpha compression vectors. Shared gamma vectors run separately.
         const std::array<float, 4> alphas{1.f, 0.5f, 0.001f, 0.f};
