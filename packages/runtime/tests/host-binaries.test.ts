@@ -581,6 +581,25 @@ describe("mimeFromFilename / clampTimeoutSeconds", () => {
 
 
 describe("timeline render admission", () => {
+  it("does not occupy the Blender and ManimGX render class", async () => {
+    const { withTimelineRenderSlot } = await import("../src/host-binaries.js");
+    vi.stubEnv("NODETOOL_TIMELINE_RENDER_CONCURRENCY", "1");
+    vi.stubEnv("NODETOOL_BLENDER_CONCURRENCY", "1");
+    let release!: () => void;
+    const held = new Promise<void>(resolve => { release = resolve; });
+    const timeline = withTimelineRenderSlot(() => held);
+    try {
+      const result = await runHostBinary(process.execPath, ["-e", ""], {
+        cwd: tmpdir(), timeoutMs: 30000, concurrencyClass: "render"
+      });
+      expect(result.exitCode).toBe(0);
+    } finally {
+      release();
+      await timeline;
+      vi.unstubAllEnvs();
+    }
+  }, 35000);
+
   it("is unlimited by default", async () => {
     const { withTimelineRenderSlot } = await import("../src/host-binaries.js");
     vi.stubEnv("NODETOOL_TIMELINE_RENDER_CONCURRENCY", "");

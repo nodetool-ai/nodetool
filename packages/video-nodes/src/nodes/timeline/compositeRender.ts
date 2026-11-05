@@ -1,3 +1,5 @@
+import { rm } from "node:fs/promises";
+import { withTimelineRenderSlot } from "@nodetool-ai/runtime";
 import { hasTemporalDenoise, denoiseSourceTimes, type TemporalSources, type FrameLayerPixels } from "@nodetool-ai/timeline/render";
 /**
  * Frame-by-frame render of a timeline sequence, server-side.
@@ -197,6 +199,12 @@ interface ClipVideoSource {
 }
 
 export async function renderTimelineComposited(
+  opts: CompositeRenderOptions
+): Promise<CompositeRenderResult> {
+  return withTimelineRenderSlot(() => renderTimelineCompositedAdmitted(opts), opts.signal);
+}
+
+async function renderTimelineCompositedAdmitted(
   opts: CompositeRenderOptions
 ): Promise<CompositeRenderResult> {
   const { sequence, fps, durationMs, resolveAssetPath, outPath, signal } = opts;
@@ -782,7 +790,16 @@ export async function renderTimelineComposited(
       fontsUnavailable
     };
   } catch (error) {
-    encoder?.abort();
+    try {
+      await encoder?.abort();
+    } catch {
+      // Preserve the render failure if native cleanup also fails.
+    }
+    if (encoder) {
+      await rm(outPath, { force: true }).catch(() => {
+        // Preserve the render failure if filesystem cleanup also fails.
+      });
+    }
     throw error;
   } finally {
     signal?.removeEventListener("abort", closeVideoSources);
