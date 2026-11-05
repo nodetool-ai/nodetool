@@ -652,6 +652,28 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, QSize size, const Q
     return 0;
 }
 
+// This shell owns no timeline model, media renderer or save controller.
+// Unsupported documents must never enter the editable startup path.
+static int showUnsupportedColorVersion(QGuiApplication& app, const QString& version,
+                                       const QSize& size, const QString& screenshot) {
+    QQuickView view;
+    const auto message = QStringLiteral("This timeline uses color version %1. This version of NodeTool supports up to version 1. Update NodeTool to edit or export it.").arg(version);
+    view.setTitle(QStringLiteral("NodeTool Timeline"));
+    view.setResizeMode(QQuickView::SizeRootObjectToView);
+    view.rootContext()->setContextProperty(QStringLiteral("unsupportedColorVersionMessage"), message);
+    view.loadFromModule("NodeTool.Timeline", "UnsupportedColorVersion");
+    if (view.status() != QQuickView::Ready) { return 1; }
+    view.resize(size);
+    view.show();
+    qInfo().noquote() << message;
+    if (!screenshot.isEmpty()) {
+        QTimer::singleShot(500, &view, [&view, &app, screenshot] {
+            app.exit(view.grabWindow().save(screenshot) ? 0 : 1);
+        });
+    }
+    return app.exec();
+}
+
 int main(int argc, char** argv) {
     nt::app::registerCliMode({"--save", nt::server::saveCli});
     nt::app::registerCliMode({"--dump-plan", dumpPlan});
@@ -855,11 +877,6 @@ int main(int argc, char** argv) {
     }
     const QString source = sources.first();
     const auto loaded = nt::server::loadTimelineSource(source);
-    if (!loaded.timeline) {
-        std::fprintf(stderr, "error: %s\n", qPrintable(loaded.error));
-        return 1;
-    }
-
     const QStringList wh = parser.value(sizeOpt).split(QLatin1Char('x'));
     bool okW = false;
     bool okH = false;
@@ -869,6 +886,17 @@ int main(int argc, char** argv) {
         std::fprintf(stderr, "error: --size must be WxH\n");
         return 2;
     }
+    if (!loaded.timeline) {
+        if (loaded.unsupportedColorSpaceVersion && !bench && !parser.isSet(stillsOpt) &&
+            !parser.isSet(playStillsOpt) && !parser.isSet(realtimeOpt) && !parser.isSet(scrubOpt) &&
+            !parser.isSet(teardownOpt)) {
+            return showUnsupportedColorVersion(app, loaded.unsupportedColorSpaceVersionText,
+                                               QSize(winW, winH), parser.value(shotOpt));
+        }
+        std::fprintf(stderr, "error: %s\n", qPrintable(loaded.error));
+        return 1;
+    }
+
     const int benchFrames = parser.value(framesOpt).toInt();
     if (bench && benchFrames <= 0) {
         std::fprintf(stderr, "error: --frames must be positive\n");

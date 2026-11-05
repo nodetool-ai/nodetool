@@ -152,12 +152,12 @@ const requested = args.frames.split(",").filter((f) => f.trim() !== "").length;
 let stdout;
 try {
   stdout = execFileSync(
-    "npm",
-    ["run", "--silent", "dev:nodetool", "--", "timeline", "render", copy, "--stills", "--frames", args.frames, "--out", stillsDir, "--json"],
+    process.execPath,
+    ["--conditions=nodetool-dev", "--import", "tsx", "./packages/cli/src/nodetool.ts", "timeline", "render", copy, "--stills", "--frames", args.frames, "--out", stillsDir, "--json"],
     { cwd: repoRoot, env: { ...process.env, ...storeEnv }, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }
   );
 } catch (error) {
-  fail(`timeline render exited ${error.status}: ${String(error.stderr ?? "").trim().split("\n").slice(-5).join(" | ")}`);
+  fail(`timeline render failed (${error.code ?? error.status}): ${error.message}: ${String(error.stderr ?? "").trim().split("\n").slice(-5).join(" | ")}`);
 }
 const result = JSON.parse(stdout.slice(stdout.indexOf("{")));
 const pngs = fs.existsSync(stillsDir) ? fs.readdirSync(stillsDir).filter((f) => f.endsWith(".png")) : [];

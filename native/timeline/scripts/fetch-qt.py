@@ -11,19 +11,35 @@ Usage: fetch-qt.py REPO_URL OUT_DIR PACKAGE...
 """
 
 import hashlib
+import http.client
 import subprocess
 import sys
+import time
+import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 # Archives the build never needs.
 SKIP_PREFIXES = ("qtdoc-", "qttranslations-")
+ATTEMPTS = 5
 
 
-def fetch(url: str) -> bytes:
-    with urllib.request.urlopen(url, timeout=120) as response:
-        return response.read()
+def fetch(url: str, delay: float = 15) -> bytes:
+    for attempt in range(1, ATTEMPTS + 1):
+        try:
+            with urllib.request.urlopen(url, timeout=120) as response:
+                return response.read()
+        except urllib.error.HTTPError as error:
+            # A missing file stays missing. Only a server error can clear up.
+            if error.code < 500 or attempt == ATTEMPTS:
+                raise
+        except (OSError, http.client.HTTPException):
+            if attempt == ATTEMPTS:
+                raise
+        print(f"fetch-qt: retrying {url} after attempt {attempt}", file=sys.stderr)
+        time.sleep(delay * attempt)
+    raise AssertionError("unreachable")
 
 
 def main() -> int:

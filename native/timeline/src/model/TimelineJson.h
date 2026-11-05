@@ -13,6 +13,7 @@ struct ParseResult {
     std::optional<Timeline> timeline;
     QString error;
     bool unsupportedColorSpaceVersion = false;
+    QString unsupportedColorSpaceVersionText;
 };
 
 // Parses a supported timeline sequence document. Unknown fields stay in raw.
