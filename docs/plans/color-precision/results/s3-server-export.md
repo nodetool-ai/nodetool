@@ -125,172 +125,207 @@ load or deployed hardware. A42, A41.2, A43.2, A44, A49 and A50 remain open.
 
 # A42: Server qualification checkpoint
 
-A42 remains unchecked. Adapter diagnostics and the missing-driver exit test
-are implemented. Qualification stopped at the concurrency-control decision
-below, as requested. This is not approval to enable FP16.
+A42 remains unchecked. Admission and partial-file cleanup are implemented and
+pass on lavapipe and RTX 3060. Repeated cancellation still shows growing RSS,
+and the CLI tool-call lifetime needs an owner decision. These are local gaps,
+not a request for deployed hardware. FP16 remains off by default, with no new
+public node property. BT.709 and the six colour-boundary `it.fails` cases are
+unchanged.
 
-Diagnostic change: `3bd21c8141`. The public node has no new property, and the
-internal working format still defaults to RGBA8. BT.709 behavior and the six
-colour-boundary expected failures were not changed.
+## Admission and cleanup
 
-## Selection and diagnostics
+The existing gate in `runtime/src/host-binaries.ts` has an independent
+`timeline` class. `NODETOOL_TIMELINE_RENDER_CONCURRENCY` selects its cap.
+Unset, invalid or non-positive values mean unlimited. Positive values are
+rounded down. No default cap was chosen. A50 owns that decision. The variable
+uses runtime bracket access and is documented alongside
+`NODETOOL_BLENDER_CONCURRENCY` in the
+[host-binary configuration table](../../../blender-headless-integration-design.md).
 
-`timeline-browser-path.test.ts` exercises RenderTimeline with mocked renderers.
-Normal selection calls Chromium first. Its result logs WebGPU and the reported
-adapter, or Canvas 2D, plus encoding and transcode information. Only
-`BrowserRenderUnavailableError` selects Node as a fallback. An ordinary browser
-render failure propagates. `NODETOOL_TIMELINE_RENDERER=node` directly selects
-Node. Both Node cases now log Node/Dawn and the actual device's adapter info.
-The existing `render_mode` metadata stays `browser`, `composited` or `rough_cut`.
-These tests qualify selection and reporting, not actual browser rendering.
+Both `renderTimelineComposited` and `renderTimelineInBrowser` acquire the gate
+before preparing resources and release it in `finally`. This includes direct
+Node/Dawn callers, browser WebGPU/Canvas 2D calls, still callbacks and PNG
+sequence export. Browser fallback releases its slot before acquiring a Node
+slot. Rough-cut rendering and later audio muxing are outside this gate.
+Blender and ManimGX continue using their separate `render` class.
 
-`timeline-composite.test.ts` now pins the full existing rough-cut warning and
-its `rough_cut`/MP4/opaque metadata. `timeline-render-formats.test.ts` verifies
-that an alpha WebM request fails instead of falling back to opaque MP4.
-Production fallback behavior and warnings are unchanged.
+Queued aborts reject without acquiring a slot. An admitted failure or abort
+releases its slot. The Node encoder wrapper now waits for an in-flight write
+before closing native objects and awaits encoder cleanup. The compositor then
+removes the partial output before rejecting, preserving the original error
+if cleanup also fails. Browser PNG encoder cleanup is awaited too. This does
+not interrupt a stalled native call. Cancellation waits for that call to drain.
+The cached GPU device remains available to long-lived servers.
 
-## Missing driver and process exit
+## Configured-maximum measurements
 
-The new `timeline-server-qualification.test.ts` starts the real compositor in
-a child with both `VK_DRIVER_FILES` and `VK_ICD_FILENAMES` set to
-`/nonexistent/a42-icd.json`. DISPLAY is empty. No adapter is selected.
-The child reports `CompositorUnavailableError`, names Node/Dawn, and includes
-`mesa-vulkan-drivers` and `VK_DRIVER_FILES` guidance. The measured rejection
-took 12.50 ms, excluding imports. A preliminary standalone run took 38.11 ms.
-The tested child exits naturally with code 0 after handling the expected error.
-It does not call `process.exit`. A kill, crash, wrong error or missing guidance
-fails the test. There is no expected-fail test.
+Each row is a fresh Vitest process running one case from
+`timeline-admission.gpu.test.ts`. Three jobs each render two 1920×1080 frames
+at 10 fps through the real compositor and MP4 encoder. A fourth queued job is
+aborted. Instrumentation records real encoder opens/closes and asserts the
+peak equals the selected cap, all three jobs complete with nonempty files,
+the queued job creates no file, and no encoder remains active.
 
-The 30-second child deadline bounds native hangs and allows module startup on
-busy CI. It is not fitted to the measured rejection time or used as a renderer
-latency target. The outer test allows five more seconds for child cleanup.
+Elapsed time includes cold device acquisition, rendering and queued completion,
+excluding imports. RSS is process-wide Linux maxRSS, including imports, driver
+and encoder. These shared-machine observations are not performance assertions.
 
-This differs from successful rendering: all four fresh-process render probes
-printed results but remained alive until an external `timeout` terminated them
-with exit status 124. Lavapipe RGBA8 used 30 seconds, the other probes 15 seconds.
-Those observation windows are not performance assertions. The retained Dawn
-instance and its runner are documented in `packages/gpu/src/node.ts`. The S5
-results on `film/color-s5` describe the same lifetime issue. No device cache or
-process-lifetime policy was changed here.
+| Adapter | Format | Cap | Elapsed ms | Peak RSS MiB |
+|---|---|---:|---:|---:|
+| Mesa lavapipe / llvmpipe | RGBA8 | 1 | 1271.66 | 885.13 |
+| Mesa lavapipe / llvmpipe | RGBA8 | 2 | 733.81 | 892.32 |
+| Mesa lavapipe / llvmpipe | FP16 | 1 | 1351.59 | 885.75 |
+| Mesa lavapipe / llvmpipe | FP16 | 2 | 1155.97 | 981.02 |
+| NVIDIA RTX 3060 | RGBA8 | 1 | 1158.05 | 854.61 |
+| NVIDIA RTX 3060 | RGBA8 | 2 | 739.38 | 843.84 |
+| NVIDIA RTX 3060 | FP16 | 1 | 896.87 | 839.57 |
+| NVIDIA RTX 3060 | FP16 | 2 | 908.86 | 842.07 |
 
-## Fresh-process 1080p measurements
-
-`tests/_fixtures/server-qualification.mjs measure <format>` renders two 1920×1080
-frames at 10 fps, with one opaque solid shape, through the real MP4 encoder.
-It then repeats the render and cancels a 100-frame render after the first
-encoded frame's progress callback. Each table row is a separate process.
-Cold time includes device acquisition and encoding but excludes module imports.
-Warm time includes a fresh compositor and encoder using the cached device.
-These single observations on a shared machine are not comparative benchmarks.
-
-Lavapipe identifies as `mesa / llvmpipe-llvm-23-1-3-256-bits-`, Mesa
-26.2.5-arch1.1, LLVM 23.1.3. Hardware identifies as
+Actual adapter strings are `mesa / llvmpipe-llvm-23-1-3-256-bits-`,
+Mesa 26.2.5-arch1.1 (LLVM 23.1.3), and
 `nvidia / nvidia-geforce-rtx-3060`, NVIDIA 610.57.04.
 
-| Adapter | Working format | First render ms | Warm render ms | Abort to rejection ms | Process peak RSS MiB |
-|---|---|---:|---:|---:|---:|
-| Lavapipe llvmpipe | RGBA8 | 458.71 | 516.32 | 3.44 | 1056.84 |
-| Lavapipe llvmpipe | FP16 | 1307.88 | 466.72 | 2.50 | 1049.06 |
-| RTX 3060 | RGBA8 | 1964.21 | 112.89 | 3.06 | 1153.00 |
-| RTX 3060 | FP16 | 743.23 | 429.63 | 6.30 | 1034.29 |
+## Cancellation during native encoding
 
-RSS is Linux `process.resourceUsage().maxRSS`, covering source imports, driver,
-encoder, both full renders, cancellation and a one-second cleanup observation.
-It is not GPU VRAM or a per-render allocation bound. FP16 appearing smaller in
-some runs does not establish a memory saving. No memory assertion was added.
+The fifth admission test aborts inside the real `Encoder.encodeAll` call,
+after submission and before awaiting its promise. It performs 30 renders in
+one process, alternating RGBA8 and FP16 at 1920×1080. Neither GPU nor codec is
+replaced. Wrappers observe and call the real implementations. Every attempt
+rejects with AbortError after one native encode, leaves no output file and
+closes its encoder. A successful render afterward reuses the same device.
 
-Every row returns the same cached device object before and after the warm and
-cancelled renders. No output file descriptors remain open under the fixture's
-directory one second after cancellation. However, a zero-byte `cancel.mp4`
-remains both at rejection and one second later. The probe removes its entire
-temporary directory afterward. This cleanup does not qualify production cleanup.
-RenderTimeline itself has a temporary-directory cleanup, but direct compositor
-callers do not receive a no-partial-output guarantee.
+The failure case writes one real frame, confirms the output file exists, then
+passes an invalid-sized second buffer to the real encoder. Its original
+frame-size error survives cleanup, the partial file is absent, and the next
+render succeeds under cap 1.
 
-Existing `timeline-cancellation.test.ts` passes its mocked blocked-GPU,
-blocked-write and active-decode cases, checking compositor disposal and encoder
-abort calls. The real probe measures cancellation between frames, not while a
-native encode or GPU submission is blocked. File-descriptor closure does not
-prove that every native encoder or GPU allocation has been released. Those
-stronger cancellation requirements remain unqualified.
+The measured series waits for the GPU queue, clears spy call records, and runs
+GC between attempts to reduce observer retention. Production does not force
+GC. RSS still grows. Measurements are not assertions or evidence of full release.
 
-## Numerical output and byte identity
+| Adapter | RSS after abort 1 MiB | After 10 | After 20 | After 30 | Process peak MiB |
+|---|---:|---:|---:|---:|---:|
+| Mesa lavapipe / llvmpipe | 707.85 | 910.39 | 995.21 | 1074.98 | 1116.98 |
+| NVIDIA RTX 3060 | 734.89 | 883.90 | 954.06 | 1034.14 | 1104.51 |
 
-The existing A40 `timeline-precision-encode.gpu.test.ts` passes all three cases
-before and after the diagnostic change on each adapter. It observes actual
-RGBA8/FP16 textures and verifies that final compositor bytes reach the runtime
-encoder unchanged. Lossless decode and MP4 decode against a direct encode have
-zero max/mean error. MP4 versus input has max/mean code error 10/0.163086 for
-RGBA8 and 9/0.160156 for FP16 on both adapters. These repeat the A40 table above.
+The retained `a42-encoder-memory.mjs` control opens, writes and aborts 30 real
+1080p encoders without importing a GPU. With GC, RSS rises from 130.83 MiB to
+241.43 MiB at attempt 10, then stays between 239.52 and 246.05 MiB through
+attempt 30, ending at 244.00 MiB. This narrows the investigation but does not
+identify a leak or distinguish driver caches, allocator retention, rasterizer
+allocations and unreleased GPU resources. Native encoder close and texture
+destroy calls are not proof that all physical memory is returned. Full resource
+release and a bounded steady-state render RSS remain unqualified.
 
-A script parsed all three default fixture hashes from each before/after log,
-asserted that each list contained three entries, and compared the lists exactly.
-Default and explicit RGBA8 also match inside the test. SHA-256 values before
-and after are:
+The test deadlines allow three cold software renders (120 seconds) or 30
+1080p native submissions (180 seconds) on shared CI. They bound hangs, not
+render-latency targets. The missing-driver child retains its 30-second startup
+and native-hang deadline plus five seconds for cleanup.
 
-| Default fixture | Adapter | SHA-256 |
+## Selection, missing driver and numerical output
+
+`timeline-browser-path.test.ts` verifies Chromium-first selection, fallback only
+on BrowserRenderUnavailableError, explicit Node selection and actual renderer
+reporting. Ordinary browser errors propagate. Composite and format tests pin
+the unchanged rough-cut warning and refuse opaque fallback for alpha WebM.
+
+The missing-driver child sets both Vulkan variables to a nonexistent ICD.
+It reports CompositorUnavailableError with Node/Dawn, mesa-vulkan-drivers and
+VK_DRIVER_FILES guidance, then exits naturally with code 0. The measured
+rejection is 23.68 ms excluding imports.
+
+The real browser suite passes on the lavapipe-configured host. Chrome reports
+Canvas 2D because its red WebGPU canvas reads back zero. It uses AVC without
+transcode. Browser/Node mean frame differences range from 0.0147 to 0.0163.
+This is Canvas 2D qualification, not browser FP16 or browser WebGPU qualification.
+
+All three precision boundary cases pass on both adapters. Default and explicit
+RGBA8 match. A script enumerated exactly three default hashes per adapter in
+the retained pre-change `a42-before-{lvp,rtx}.log` files and the current logs,
+and required exact equality. The hashes are:
+
+| Fixture | Adapter | SHA-256 |
 |---|---|---|
-| Opaque lossless and MP4 encoder input | Both | `7fd9555f9ac0144f5425f31d733b3d21b15bbf971cb741a23a6a7e2346a185ac` |
+| Opaque lossless and MP4 input | Both | `7fd9555f9ac0144f5425f31d733b3d21b15bbf971cb741a23a6a7e2346a185ac` |
 | Straight alpha | Lavapipe | `04d9da27c205895117ecadda7740380a00975206359cf18ccf434c5b898aa2e8` |
 | Straight alpha | RTX 3060 | `b87a06c25bf039a882fba3ee5c7cccfbdff0b87e3e7ca27aa6419efa40c6c2d5` |
 
-These are final RGBA frame hashes, not whole-container hashes. They establish
-identity for the fixtures, not arbitrary scenes or cross-adapter identity.
-The pre-existing alpha difference and B218 are unchanged.
+These are final RGBA frame hashes, not container hashes. Lossless and direct
+encode reference errors remain zero. MP4 versus input max/mean errors remain
+10/0.163086 for RGBA8 and 9/0.160156 for FP16. This establishes fixture identity,
+not identity for arbitrary scenes or across adapters.
 
-## Decision and remaining work
+## One-shot command audit
 
-F1. No timeline-render admission limit was found in the inspected Node and
-browser render paths, `gpu/node.ts`, runtime media implementation, or execution
-actor/runner. The renderer serializes frames within a call, but that does not
-limit concurrent calls. `runtime/src/host-binaries.ts` has a private render-class
-gate, default one, controlled by `NODETOOL_BLENDER_CONCURRENCY`. It is acquired
-by host-binary spawning, including Blender and ManimGX. The timeline renderer
-runs in process and does not call it. The runner's same-instance run guard does
-not establish a host-wide render limit. This is a scoped source audit, not a
-claim about every deployment entry point.
+Source inspection found these explicit exits after awaited command work:
 
-D1. The owner must identify the intended existing admission control and its
-scope, or authorize adapting the host-binary gate for in-process timeline jobs.
-That adaptation would make timeline jobs contend with other render-class jobs
-and requires an explicit policy choice. No new scheduler, routing service,
-arbitrary concurrency cap or concurrency stress run was added. Therefore this
-checkpoint cannot report behavior at a configured maximum timeline concurrency.
+| Entry point | Exit source |
+|---|---|
+| `run`, authored workflow execution | `packages/cli-workflow/src/index.ts:385` |
+| Full `workflows run` | `packages/cli-workflow/src/index.ts:708` |
+| `node run` | `packages/cli-workflow/src/commands/node.ts:142` |
+| `debug` without watch | `packages/cli-workflow/src/commands/debug.ts:168` |
+| `timeline render`, including stills and sheet | `packages/cli-timeline/src/commands/timeline-render.ts:364` |
+| `timeline score --sheet` | `packages/cli-timeline/src/commands/timeline-score.ts:108` |
+| `app debug` | `packages/cli-apps/src/commands/app.ts:165` |
+| `js-script run`, `test`, `debug` | `packages/cli-script/src/commands/js-script.ts:222`, `:253`, `:303` |
+| `agent run` | `packages/cli-chat/src/commands/agent.ts:658` |
+| Piped and interactive chat completion | `packages/cli-chat/src/chat-entry.ts:273`, `:318` |
 
-F2. Cancellation leaves a zero-byte file for direct compositor callers and
-full native-resource release remains unverified. Successful rendering keeps a
-one-shot process alive. These are recorded gaps, not waived requirements.
+Lean `run` delegates authored sources to cli-workflow. Its direct JSON path uses
+the core execution host, which does not admit video pack nodes. Lean
+`workflows run` submits an HTTP request rather than rendering in its process.
+Watch/server/MCP sessions intentionally remain alive.
 
-F3. CI uses Mesa lavapipe, but CI was not run. The deployed adapter is absent
-from this machine. These local Mesa and RTX results do not qualify deployed
-memory, contention, driver behavior or throughput. Browser delivery, complex
-1080p media and long-duration rendering were not measured.
+A real `timeline render` command rendered two 64×64 frames using Node/Dawn on
+lavapipe, reported complete, wrote MP4 and exited 0 within the 60-second
+supervisor deadline. Reported render time was 159 ms. No provider key was used.
+The command was `node --import tsx packages/cli-timeline/src/nodetool.ts timeline
+render <fixture.json> --out <output.mp4> --json`. No CLI exit code was changed.
 
-## Verification and reproduction
+F1. `tools call` is an exception to the explicit-exit pattern.
+`packages/cli-chat/src/commands/tools.ts:174` awaits a tool and sets exitCode
+only on failure. `packages/cli-chat/src/index.ts:33` closes Python providers
+but does not exit. Its toolbelt includes render_timeline, whose work can run
+in the background (`packages/agents/src/tools/mcp-tools.ts:268`). Source
+inspection cannot establish successful one-shot termination. The real
+`timeline render` result does not qualify `tools call`. No real tool-call
+render/exit reproduction has been completed.
 
-Lavapipe selection set both Vulkan variables to
-`/usr/share/vulkan/icd.d/lvp_icd.json`, with DISPLAY unset and LP_NUM_THREADS=2.
-Hardware runs sourced `/home/mg/.local/nvidia-610/env.sh` after
-`/home/mg/Projects/nodetool-film/bin/ntenv`, with DISPLAY unset. TMPDIR was
-`/home/mg/Projects/nodetool-film/tmp`. No ffmpeg or ffprobe binary was spawned.
+D1. The owner must decide the CLI tool-call lifetime for background render jobs
+before an unconditional exit is added. Exiting when the tool returns can kill
+its active job. Leaving it alive can retain Dawn after the job completes.
+No cache lifetime was changed, and no blanket exit or scheduler was added.
 
-From `packages/video-nodes`, `npx vitest run <files> --maxWorkers=1` passed
-39 tests in six files on lavapipe: `timeline-server-qualification`,
-`timeline-browser-path`, `timeline-composite`, `timeline-render-formats`,
-`timeline-cancellation`, and `timeline-precision-encode.gpu`. The composite
-file was rerun successfully after pinning the exact rough-cut warning.
-The precision file passed its three cases before and after on RTX 3060 too.
-Only the video-nodes package was typechecked, with
-`node scripts/run-tsc.mjs -p packages/video-nodes/tsconfig.json --noEmit`.
+## Verification and remaining scope
 
-Run the measurement fixture from the repository root with
-`timeout 30s node --import tsx packages/video-nodes/tests/_fixtures/server-qualification.mjs measure rgba8unorm`,
-or replace the last argument with `rgba16float`. The external timeout cleans
-up the documented retained-Dawn lifetime. It must not be interpreted as a
-successful natural exit. The missing-driver test separately requires natural
-exit and has no output-path leak.
+`host-binaries.test.ts` passes 51 cases, including default-unlimited timeline
+admission, class independence, queued abort and failure recovery. The new GPU
+file passes all five cases on each adapter. The 30-abort case is rerun after
+adding the partial-file encoder-failure check. Existing lavapipe checks pass:
+server qualification, cancellation, raw frames, browser render and selection,
+render frames, render formats, composite selection and precision encoding.
+The raw-frame/browser rerun passes 23 tests after correcting the async abort
+cleanup rejection. The initial browser bundle dependency failure was resolved
+before that rerun. Runtime and video-nodes package typechecks pass.
 
-Logs are `/home/mg/Projects/nodetool-film/tmp/a42-{before,after}-{lvp,rtx}.log`,
-`a42-measure-{lvp,rtx}-{8,16}.log`, `a42-rough-pin.log`, and `a42-typecheck.log`.
-No full suite, test:affected, root typecheck, root lint, harness gate, /verify,
-CI, deployment check or other test files ran. No push, rebase or PR was made.
+All Vitest calls use explicit file paths and `--maxWorkers=1` from the package
+directory. TMPDIR is `/home/mg/Projects/nodetool-film/tmp`. DISPLAY is unset.
+Lavapipe sets both VK_ICD_FILENAMES and VK_DRIVER_FILES to
+`/usr/share/vulkan/icd.d/lvp_icd.json`, with LP_NUM_THREADS=2. RTX runs source
+`/home/mg/.local/nvidia-610/env.sh` after `bin/ntenv`. No ffmpeg or ffprobe
+binary was spawned by these tests. Large generated outputs are removed.
+
+Logs in that TMPDIR include `a42-{lvp,rtx}-rgba*-{1,2}.log`,
+`a42-cleanup-final-{lvp,rtx}.log`, `a42-encoder-control.log`,
+`a42-regressions-lvp.log`, `a42-regressions-recheck.log`,
+`a42-aborts-precision-rtx.log`, `a42-runtime-final.log` and `a42-command.log`.
+The admission test's `-t` selector runs each cap/format in its own process.
+`NODE_OPTIONS=--expose-gc` enables the optional GC observation in the abort case.
+Run the encoder-only control with `node --expose-gc`.
+
+Not run: test:affected, root typecheck, root lint, harness gate, /verify,
+full suites or CI. Other existing tests were not run. The deployed adapter
+is absent. A49/A50 own that qualification, which alone would not block A42.
+The local RSS investigation and tool-call lifecycle are still open. No push,
+rebase or PR was made.
