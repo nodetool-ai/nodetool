@@ -5,6 +5,7 @@ headline: "Best AI canvas tools in 2026"
 excerpt: "Seven visual workspaces for AI image and video, compared on who picks the models, how you pay, where your work lives and what you can edit after the render. Which one is best depends on whether you want one fast image or a pipeline you run again."
 tag: Roundup
 date: 2026-10-08
+updated: 2026-11-05
 author: "The NodeTool team"
 accent: blue
 ogImage: screen_canvas.png
@@ -111,6 +112,20 @@ Leonardo combines image and video generation with editing, upscaling, a Realtime
 
 The tools at the top of the table are faster for a single image. The tools at the bottom are better once the same job comes back with new inputs, such as forty product shots, a weekly social batch, or a trailer per episode.
 
+## Best AI canvas by job
+
+### For image generation
+
+For one image at a time, Krea is the fastest: the image resolves as you type or sketch. For a node-based image pipeline that you run again, use NodeTool or ComfyUI. ComfyUI gives the most control over a local diffusion graph on your own GPU. NodeTool connects every provider's image models on your own keys, runs local models, and keeps the result editable in a sketch editor with layers and masks.
+
+### For video generation
+
+For video as a production, from script to finished cut, use NodeTool. A storyboard holds the shots and a cast of reusable characters, each shot renders through a workflow, and a multi-track timeline cuts the clips, which stay bound to the workflow that made them. ComfyUI runs local video generation graphs but storyboards and timelines are outside its scope. Flora covers image and video on a hosted canvas with credits.
+
+### For team collaboration
+
+Adobe Firefly Boards is built for collaborative ideation inside Adobe's products, and Figma Weave fits teams already working in Figma. Both are hosted. On a shared NodeTool server, Cloud or one you host yourself, a share link gives a teammate view or edit access to a workflow, storyboard, script, timeline or sketch. A workflow can also go to a teammate as a mini app with a Run button, or to another system over the API.
+
 ## What a model actually costs on each
 
 On a credit-billed canvas, the price of a render is the product's own credit price, set by the vendor. On NodeTool it is the provider's list price. For example, Ideogram v3 is $0.03 per image on fal and Kling O3 Pro edits are $0.14 per second. See [AI image generation cost](/blog/ai-image-generation-cost) and [AI video generation cost](/blog/ai-video-generation-cost) for the full tables. Compare them with the credit price of the same model on the canvas you are considering.
@@ -132,6 +147,18 @@ Yes. NodeTool calls each provider with your own API key and passes the provider'
 ### Can I use local models on an AI canvas?
 
 In NodeTool and ComfyUI, yes. NodeTool runs local language and media models through Ollama, MLX and llama.cpp alongside hosted providers on the same canvas. The hosted canvases in this list do not support local models.
+
+### What is the best node-based AI canvas for image generation?
+
+For control over a local diffusion graph, ComfyUI. For image pipelines across every provider on your own API keys, with local models and an editor for layers and masks, NodeTool. Both are open source. For a single image while you sketch, Krea is faster than either.
+
+### What is the best node-based AI canvas for video generation?
+
+NodeTool, when the video has more than one shot. It is open source and connects storyboards, per-shot generation workflows and a multi-track timeline in one project, on your own provider keys. ComfyUI runs video generation graphs locally, without a storyboard or timeline.
+
+### What is the best collaborative AI creative canvas?
+
+If the team already works in Adobe's or Figma's products, Adobe Firefly Boards or Figma Weave, both hosted and billed in plan allowances or credits. If the team wants an open-source canvas on its own keys, NodeTool: on Cloud or a self-hosted server, share links give teammates view or edit access to workflows, storyboards and timelines, and a workflow can be shared as a mini app.
 
 ### What is the best alternative to Weavy?
 
