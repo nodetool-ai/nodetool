@@ -127,8 +127,8 @@ private slots:
             const bool finished = process.waitForFinished(30000);
             const auto diagnostics = process.readAllStandardError();
             QVERIFY2(finished, qPrintable(route + ": " + QString::fromUtf8(diagnostics)));
-            QCOMPARE(process.exitStatus(), QProcess::NormalExit);
-            QCOMPARE(process.exitCode(), supported ? 0 : 1);
+            QVERIFY2(process.exitStatus() == QProcess::NormalExit && process.exitCode() == (supported ? 0 : 1),
+                     qPrintable(route + ": exit " + QString::number(process.exitCode()) + ": " + QString::fromUtf8(diagnostics.right(4000))));
             const auto output = process.readAllStandardOutput();
             const auto report = diagnostics + output;
             if (supported) {
