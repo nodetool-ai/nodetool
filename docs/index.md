@@ -168,7 +168,7 @@ description: "Open-source agent-first creative workspace. Create images, video, 
       </div>
       <div class="surface-body">
         <h3>Nodes</h3>
-        <p>Every editor above sits on a graph you can open. Wire typed ports, press Run, and read the output at every step.</p>
+        <p>Underneath the editors is the node graph. Bind a clip or a layer to a workflow, wire typed ports, press Run, and read the output at every step.</p>
         <a href="{{ '/workflow-editor' | relative_url }}">Workflow Editor →</a>
       </div>
     </article>
@@ -336,37 +336,71 @@ description: "Open-source agent-first creative workspace. Create images, video, 
 
 ## What you can do
 
-* **Let the AI build it** — Describe what you want, and it puts everything together, chooses the tools, runs them, and shows you the result.
-* **Edit what it built** — Click any part, change its settings, and run it again. Nothing is hidden; you own everything it creates.
-* **Put AI inside your workflows** — You can make an agent act as one step in a larger process, letting it plan and use tools.
-* **Mix models from anywhere** — Use different AI models together, like an image maker with a text writer and a voice generator, all in one place. Choose the best tool for each specific job.
-* **Run advanced models on your computer** — Run powerful models directly on your hardware. It works without the internet, and your files stay private.
-* **Use your own accounts** — Pay AI companies like OpenAI or Google directly. We do not add any extra fees or charges.
-* **Share your workflow as a Mini-App** — Turn your complex work into a simple app with just inputs and outputs. Share a link, and others can use it without installing anything.
-* **Chat with your documents** — Search and talk to your own files securely. Your data stays safely on your computer.
+* **Hand the agent a brief.** It picks the models, builds the project, runs it, and shows you each step.
+* **Change any part by hand.** Open a shot, a line, a clip, or a node, change it, and rerun only that part.
+* **Put an agent inside a workflow.** An agent node plans, decides, and calls tools as one step of a larger graph.
+* **Mix models from any provider.** An image model, a language model, and a voice model in one workflow, each picked for its job.
+* **Run models on your own machine.** Local language and image models work offline, and their files stay on disk.
+* **Turn a workflow into a mini app.** Give it inputs and a Run button for teammates who never open the canvas.
+* **Search your own files.** Index documents in the built-in vector store and query them from a workflow or chat.
+
+## Run it on your plan or your keys
+
+Sign in with ChatGPT or Claude in Studio and the agent runs on that $20
+subscription instead of a metered API bill. ChatGPT and Gemini plans also
+generate images, and Gemini generates video. Those runs count against your
+plan's own limits.
+
+| Plan | Chat and agent | Images | Video |
+| :--- | :---: | :---: | :---: |
+| ChatGPT | Yes | Yes | No |
+| Claude | Yes | No | No |
+| Gemini | Yes | Yes | Yes |
+
+Subscriptions run in Studio, not in Cloud. Gemini also needs the
+[NodeTool Chrome extension]({{ '/chrome-extension' | relative_url }}) in the
+browser where you are signed in. For any other model, add your own provider
+key and pay that provider its list price. NodeTool adds nothing on top. See
+[Models and providers]({{ '/models-and-providers' | relative_url }}) and
+[Costs and credits]({{ '/costs-and-credits' | relative_url }}).
+
+## Give Claude Code a creative harness
+
+A harness is everything an agent works inside: tools, editors, models, keys,
+and a record of each step. NodeTool supplies all five to the built-in agent,
+and over MCP to Claude Code, Codex, or Cursor. The agent builds a workflow,
+runs it, reads the log of the step that failed, and saves the fix as a new
+version. One command registers the server with the clients it finds:
+
+```bash
+npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install
+```
+
+See [NodeTool as an MCP Server]({{ '/mcp-server' | relative_url }}).
 
 ## Studio or Cloud
 
-Same code, same workflows. Both AGPL-3.0.
+Same source, same workflows. Both AGPL-3.0.
 
 <div class="pattern-grid">
   <article class="pattern-card">
     <h5>NodeTool Studio — desktop</h5>
     <p>
-      Mac, Windows, Linux. Local inference via Ollama, MLX, and GGUF. Works offline. Prompts and outputs stay on disk. BYOK for cloud providers when you want them.
+      Free on macOS, Windows, and Linux. Runs local models through Ollama, MLX, and GGUF, offline once the models are downloaded. Connects your ChatGPT, Claude, or Gemini plan and your own provider keys.
     </p>
     <a href="https://nodetool.ai/studio">Download Studio →</a>
   </article>
   <article class="pattern-card">
-    <h5>NodeTool Cloud — browser</h5>
+    <h5>NodeTool Cloud — browser, alpha</h5>
     <p>
-      Hosted, no install. Same canvas, same nodes. BYOK for every cloud provider — OpenAI, Anthropic, Gemini, Replicate, FAL, ElevenLabs, HuggingFace. No local models.
+      Hosted, no install, for looking around before you download. Same canvas and nodes on your own keys for OpenAI, Anthropic, Gemini, Replicate, FAL, ElevenLabs, and HuggingFace. No local models and no subscriptions.
     </p>
-    <a href="https://nodetool.ai/cloud">Open Cloud →</a>
+    <a href="https://nodetool.ai/cloud">Open Cloud (alpha) →</a>
   </article>
 </div>
 
-> **No credit markup.** Cloud hosts the same code in this repo. Self-host the Docker images any time. You pay providers directly.
+> **Self-host any time.** Cloud runs the same code as this repository, and you
+> can run the Docker images yourself. On your own keys you pay providers directly.
 
 ## What you can build
 
