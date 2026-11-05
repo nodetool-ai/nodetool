@@ -151,7 +151,7 @@ export class TimelineSequence extends DBModel {
 
   toTimelineSequence(): TimelineSequenceDoc {
     const doc = this.toDocument();
-    return {
+    const sequence: TimelineSequenceDoc = {
       id: this.id,
       projectId: this.project_id,
       workflowId: this.workflow_id ?? undefined,
@@ -160,7 +160,6 @@ export class TimelineSequence extends DBModel {
       width: this.width,
       height: this.height,
       durationMs: this.duration_ms,
-      workingColorSpaceVersion: doc.workingColorSpaceVersion,
       dropFrame: doc.dropFrame,
       tracks: doc.tracks,
       trackFolders: doc.trackFolders,
@@ -179,6 +178,11 @@ export class TimelineSequence extends DBModel {
       createdAt: this.created_at,
       updatedAt: this.updated_at
     };
+    // An absent version stays absent, so a read never adds the field.
+    if (doc.workingColorSpaceVersion !== undefined) {
+      sequence.workingColorSpaceVersion = doc.workingColorSpaceVersion;
+    }
+    return sequence;
   }
 
   static fromTimelineSequence(
