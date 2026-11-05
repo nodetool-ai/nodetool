@@ -1,9 +1,13 @@
 #include "export/FrameCapture.h"
+#include "color/ColorMatch.h"
+#include "preview/effects/ClipEffects.h"
+#include "preview/layers/SceneHooks.h"
 #include "export/FrameImage.h"
 #include "export/OffscreenFrames.h"
 #include "model/TimelineJson.h"
 #include "preview/FfmpegSource.h"
 #include "preview/hw/HwWindow.h"
+#include "preview/layers/TestStill.h"
 #include <QElapsedTimer>
 #include <QFile>
 #include <QJsonArray>
@@ -147,6 +151,115 @@ class FrameCaptureTest : public QObject {
         capture.setTimeline(model);
     }
 private slots:
+    void colorMatchWorkingFormat() {
+        const auto decorator = nt::registerContextLayerDecorator(
+            [](nt::ActiveLayer& layer, const nt::Clip& clip, const nt::SceneDecorationContext& context) {
+                nt::effects::decorateEffects(layer.ext, clip, context);
+            });
+        const auto stage = nt::registerEffectStage([] { return std::make_unique<nt::effects::ClipEffectStage>(); });
+        const auto effectsGuard = qScopeGuard([&] {
+            nt::unregisterEffectStage(stage);
+            nt::unregisterSceneHook(decorator);
+        });
+        // A small opaque ramp avoids analysis downsampling and isolates pass storage.
+        QImage source(64, 32, QImage::Format_RGBA8888);
+        for (int y = 0; y < source.height(); ++y) {
+            for (int x = 0; x < source.width(); ++x) {
+                source.setPixelColor(x, y, QColor(30+x*3, 40+x*2+y, 50+x*2));
+            }
+        }
+        const auto token = nt::registerLayerSource("image", [source](const nt::ActiveLayer&) {
+            return std::make_unique<nt::test::PaintSource>(source.convertToFormat(QImage::Format_RGBA8888_Premultiplied));
+        });
+        const auto guard = qScopeGuard([&] { nt::unregisterLayerSource(token); });
+        const QJsonObject wheels{{"type","liftGammaGain"},{"enabled",true},
+            {"lift",QJsonArray{.02,-.01,.015}},{"gamma",QJsonArray{1.04,.97,1.02}},
+            {"gain",QJsonArray{1.03,1.01,.98}}};
+        // Levels and its CDL output remap exercise multiple storage boundaries.
+        const QJsonArray chain{QJsonObject{{"type","levels"},{"enabled",true},
+            {"gamma",1.1},{"outBlack",.02},{"outWhite",.95}}};
+        for (const auto format : {nt::WorkingFormat::Rgba8, nt::WorkingFormat::Rgba16F}) {
+            const auto capture = [&](const QJsonArray& effects) {
+                auto raw = document({}, 64, 32, 30, 0, "image");
+                auto clips = raw["clips"].toArray();
+                auto clip = clips[0].toObject();
+                clip["effects"] = effects; clips[0] = clip; raw["clips"] = clips;
+                TimelineModel model;
+                if (!load(model, raw)) { return QImage{}; }
+                nt::exporting::OffscreenFrames frames(model, format);
+                return frames.captureWorkingAt(0, [] { return false; });
+            };
+            auto truth = chain; truth.prepend(wheels);
+            auto effects = chain;
+            auto neutral = wheels;
+            neutral["lift"] = QJsonArray{0,0,0};
+            neutral["gamma"] = QJsonArray{1,1,1};
+            neutral["gain"] = QJsonArray{1,1,1};
+            effects.prepend(neutral);
+            const auto probe = capture({});
+            const auto reference = capture(truth);
+            QVERIFY(!probe.isNull() && !reference.isNull());
+            nt::color::MatchInput input{probe,reference,effects,false,{}, {}};
+            input.workingFormat = format;
+            const auto solved = nt::color::solveMatch(input);
+            QVERIFY2(solved.ok, qPrintable(solved.error));
+            const auto applied = nt::color::applyMatchToEffects(effects,solved,"match");
+            const auto actual = capture(applied);
+            const auto predicted = nt::color::applyGrade(probe,applied,{},format);
+            QVERIFY(!actual.isNull());
+            const auto a = actual.convertToFormat(QImage::Format_RGBA32FPx4);
+            const auto p = predicted.convertToFormat(QImage::Format_RGBA32FPx4);
+            double maximum = 0;
+            for (int y = 0; y < a.height(); ++y) {
+                const auto* ar = reinterpret_cast<const float*>(a.constScanLine(y));
+                const auto* pr = reinterpret_cast<const float*>(p.constScanLine(y));
+                for (int x = 0; x < a.width(); ++x) {
+                    for (int k = 0; k < 3; ++k) {
+                        QVERIFY(std::isfinite(ar[x*4+k]) && std::isfinite(pr[x*4+k]));
+                        maximum = std::max(maximum, double(std::abs(ar[x*4+k]-pr[x*4+k])));
+                    }
+                }
+            }
+            const double before = nt::color::meanColorDifference(capture(effects), reference);
+            const double after = nt::color::meanColorDifference(actual, reference);
+            qInfo("match format %d model max %.9g actual difference %.9g -> %.9g",
+                int(format), maximum, before, after);
+            QVERIFY(maximum <= (format == nt::WorkingFormat::Rgba16F ? .002 : 1.0/255));
+            QVERIFY(after < before*.3);
+        }
+    }
+    void offscreenTypedCapture() {
+        QImage source(65, 49, QImage::Format_RGBA8888);
+        for (int y = 0; y < source.height(); ++y) {
+            for (int x = 0; x < source.width(); ++x) {
+                source.setPixelColor(x, y, QColor(x * 3, y * 4, 100, 127));
+            }
+        }
+        const auto token = nt::registerLayerSource("image", [source](const nt::ActiveLayer&) {
+            return std::make_unique<nt::test::PaintSource>(source.convertToFormat(QImage::Format_RGBA8888_Premultiplied));
+        });
+        const auto guard = qScopeGuard([&] { nt::unregisterLayerSource(token); });
+        TimelineModel model;
+        QVERIFY(load(model, document({}, 65, 49, 30, 0, "image")));
+        for (const auto format : {nt::WorkingFormat::Rgba8, nt::WorkingFormat::Rgba16F}) {
+            nt::exporting::OffscreenFrames frames(model, format);
+            QVERIFY(frames.captureWorkingAt(0, [] { return true; }).isNull());
+            const auto raw = frames.captureWorkingAt(100, [] { return false; });
+            QVERIFY(!raw.isNull());
+            QCOMPARE(raw.size(), source.size());
+            const bool fp16 = format == nt::WorkingFormat::Rgba16F;
+            QCOMPARE(raw.format(), fp16 ? QImage::Format_RGBA16FPx4_Premultiplied
+                                        : QImage::Format_RGBA8888_Premultiplied);
+            const auto straight = frames.captureAt(100, [] { return false; });
+            QCOMPARE(straight.format(), fp16 ? QImage::Format_RGBA32FPx4 : QImage::Format_RGBA8888);
+            QCOMPARE(straight, raw.convertToFormat(straight.format()));
+            QCOMPARE(straight.pixelColor(20, 20).alphaF(), 1.f);
+            QVERIFY(straight.pixelColor(20, 0).greenF() < straight.pixelColor(20, 48).greenF());
+            // A later capture neither aliases nor changes the previous owned image.
+            QCOMPARE(frames.captureWorkingAt(200, [] { return false; }), raw);
+            QCOMPARE(frames.captureAt(0, [] { return false; }), straight);
+        }
+    }
     void sequencePixelsAndResponsiveness() {
         QVERIFY(m_dir.isValid());
         TimelineModel model;

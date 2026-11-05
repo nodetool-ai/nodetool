@@ -23,7 +23,7 @@ bool BlendModeHandler::render(const EffectContext& ctx, const LayerFrame& backdr
                               QRhiTextureRenderTarget& output, const std::string& mode, const QJsonObject&) {
     const auto found = std::ranges::find(blendModes,mode);
     if (found == blendModes.end() || !ctx.rhi || !ctx.commands || !ctx.retire ||
-        backdrop.format != LayerFrame::Format::Rgba8Premultiplied || layer.format != backdrop.format ||
+        (backdrop.format != LayerFrame::Format::Rgba8Premultiplied && backdrop.format != LayerFrame::Format::Rgba16FPremultiplied) || layer.format != backdrop.format ||
         !backdrop.planes[0] || !layer.planes[0] || backdrop.size != output.pixelSize() || layer.size != backdrop.size) {
         return false;
     }
@@ -48,7 +48,7 @@ bool BlendModeHandler::render(const EffectContext& ctx, const LayerFrame& backdr
     const auto matrix = rhi->clipSpaceCorrMatrix();
     std::ranges::copy(std::span{matrix.constData(),16},u.matrix.begin());
     u.flipsMode = {backdrop.flipV ? 1.f : 0.f, layer.flipV ? 1.f : 0.f,
-                   static_cast<float>(std::distance(blendModes.begin(),found)+1), 0};
+                   static_cast<float>(std::distance(blendModes.begin(),found)+1), ctx.workingFormat == WorkingFormat::Rgba16F ? 1.f : 0.f};
     auto* updates = rhi->nextResourceUpdateBatch();
     updates->updateDynamicBuffer(resources->uniforms.get(),0,sizeof(u),&u);
     auto* cb = ctx.commands;

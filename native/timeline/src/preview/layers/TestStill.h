@@ -62,6 +62,15 @@ public:
         m_window.setRenderTarget(QQuickRenderTarget::fromRhiRenderTarget(m_target.get()));
         return true;
     }
+#ifdef NT_SCENE_PRECISION_TEST
+    PreviewCompositor* compositor() const { return m_compositor; }
+    void frame() {
+        m_compositor->update();
+        QCoreApplication::processEvents();
+        m_control.polishItems(); m_control.beginFrame(); m_control.sync(); m_control.render(); m_control.endFrame();
+        m_control.rhi()->finish();
+    }
+#endif
     void setClock(PlaybackClock* clock) { m_compositor->setClock(clock); }
     double captureTimeMs() const { return m_compositor->captureTimeMs(); }
     QImage capture(int timeoutMs = 0, bool immediate = false) {

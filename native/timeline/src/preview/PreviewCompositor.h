@@ -1,4 +1,5 @@
 #pragma once
+#include "preview/WorkingFormat.h"
 
 #include <QImage>
 #include <QRectF>
@@ -102,7 +103,12 @@ class PreviewCompositor : public QQuickRhiItem {
     Q_PROPERTY(bool transparencyGrid READ transparencyGrid WRITE setTransparencyGrid NOTIFY transparencyGridChanged)
 
 public:
+#ifdef NT_SCENE_PRECISION_TEST
+    // Test executable only. Observe working storage before presentation or delivery.
+    std::function<void(QRhi*, QRhiCommandBuffer*, QRhiTexture*, bool, bool, int, bool)> workingObserver;
+#endif
     explicit PreviewCompositor(QQuickItem* parent = nullptr);
+    void setWorkingFormat(nt::WorkingFormat format) { m_workingFormat = format; update(); }
 
     TimelineModel* timeline() const { return m_timeline; }
     void setTimeline(TimelineModel* timeline);
@@ -148,7 +154,8 @@ public:
     QString renderError() const { return m_renderError; }
 
     // Stills: asks for a read-back of the canvas once every layer shows its
-    // exact frame for the current time. takeCapture() returns it once ready.
+    // exact frame for the current time. takeCapture() returns owned, undithered
+    // RGBA8888 or RGBA16FPx4 premultiplied pixels, matching working storage.
     // With `immediate`, the next rendered frame is read back as it is, exact
     // or not (the first picture at a cut during playback).
     // A settled request replaces the last one, whose read-back is then dropped.
@@ -181,6 +188,7 @@ private:
     friend class PreviewCompositorRenderer;
     friend class MonitorCompositorTest;
 
+    nt::WorkingFormat m_workingFormat = nt::WorkingFormat::Rgba8;
     QRectF m_canvasRegion{0, 0, 1, 1};
     int m_playbackResolution = 1;
     int m_pausedResolution = 1;

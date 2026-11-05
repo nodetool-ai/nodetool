@@ -88,6 +88,7 @@ struct DecodedFrame {
     PlaneLayout layout = PlaneLayout::I420;
     YuvMatrix matrix = YuvMatrix::Bt709;
     YuvRange range = YuvRange::Limited;
+    std::string transfer = "unknown";
     int width = 0;
     int height = 0;
     // A VideoToolbox frame: `frame->data[3]` is an NV12 CVPixelBufferRef and

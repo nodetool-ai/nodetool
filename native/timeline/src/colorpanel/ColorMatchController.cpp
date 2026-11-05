@@ -226,6 +226,8 @@ void ColorMatchController::capturedCurrent(const FrameCaptureResult& result) {
     m_pool.start([this, run, current = result.image, reference = m_reference, effects = m_targetClip.value("effects").toArray(),
                   track = nt::effects::convertTrackEffects(m_targetTrackEffects), skin = m_protectSkin, cancel = m_cancel] {
         nt::color::MatchInput input;
+        // FrameCapture's frame-server route is RGBA8, independently of export diagnostics.
+        input.workingFormat = nt::WorkingFormat::Rgba8;
         input.current = current;
         input.reference = reference;
         input.effects = effects;

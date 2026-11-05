@@ -44,12 +44,13 @@ struct OffscreenFrames::Impl {
     std::unique_ptr<QRhiRenderPassDescriptor> pass;
     std::unique_ptr<QRhiTextureRenderTarget> target;
     PreviewCompositor* compositor = nullptr;
-    void initialize(TimelineModel& model) {
+    void initialize(TimelineModel& model, nt::WorkingFormat format) {
         const QSize size(model.canvasWidth(), model.canvasHeight());
         nt::hw::prepareWindow(&window);
         window.resize(size);
         clock.setDurationMs(std::max(model.contentEndMs(), model.durationMs()) + 1000.0 / model.fps());
         compositor = new PreviewCompositor(window.contentItem());
+        compositor->setWorkingFormat(format);
         compositor->setTimeline(&model);
         compositor->setClock(&clock);
         compositor->setSize(size);
@@ -79,14 +80,19 @@ struct OffscreenFrames::Impl {
         window.setRenderTarget({});
     }
 };
-OffscreenFrames::OffscreenFrames(TimelineModel& model) : m_impl(std::make_unique<Impl>()) {
-    m_impl->initialize(model);
+OffscreenFrames::OffscreenFrames(TimelineModel& model, nt::WorkingFormat format) : m_impl(std::make_unique<Impl>()) {
+    m_impl->initialize(model, format);
 }
 OffscreenFrames::~OffscreenFrames() = default;
 QImage OffscreenFrames::capture(qint64 index, double fps, const std::function<bool()>& cancelled) {
     return captureAt(static_cast<double>(index) * 1000.0 / fps, cancelled);
 }
 QImage OffscreenFrames::captureAt(double timeMs, const std::function<bool()>& cancelled) {
+    const auto working = captureWorkingAt(timeMs, cancelled);
+    return working.convertToFormat(working.format() == QImage::Format_RGBA16FPx4_Premultiplied
+        ? QImage::Format_RGBA32FPx4 : QImage::Format_RGBA8888);
+}
+QImage OffscreenFrames::captureWorkingAt(double timeMs, const std::function<bool()>& cancelled) {
     auto& s = *m_impl;
     s.clock.seek(timeMs);
     s.compositor->requestCapture();
@@ -113,6 +119,6 @@ QImage OffscreenFrames::captureAt(double timeMs, const std::function<bool()>& ca
             throw std::runtime_error("No exact compositor frame within 60 seconds");
         }
     }
-    return s.compositor->takeCapture().convertToFormat(QImage::Format_RGBA8888);
+    return s.compositor->takeCapture();
 }
 }

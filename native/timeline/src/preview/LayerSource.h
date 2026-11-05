@@ -11,10 +11,12 @@
 // textures with no upload (QRhiTexture::createFrom).
 
 #include <rhi/qrhi.h>
+#include "preview/WorkingFormat.h"
 
 #include <QSize>
 
 #include <array>
+#include <string>
 
 #include "preview/hw/HwInterop.h"
 
@@ -26,14 +28,22 @@ struct LayerFrame {
     enum class Format {
         None,             // no frame yet (decoder still opening or seeking): skip the layer
         Rgba8Premultiplied,
+        Rgba16FPremultiplied,
         I420,             // Y, U, V as R8 textures
         Nv12,             // Y as R8, CbCr as RG8
     };
+    static Format rgbaFormat(QRhiTexture* texture) {
+        return texture->format() == QRhiTexture::RGBA16F ? Format::Rgba16FPremultiplied : Format::Rgba8Premultiplied;
+    }
     Format format = Format::None;
     std::array<QRhiTexture*, 3> planes{};  // plane 0 only for RGBA
     QSize size;
     // YUV formats: rgb = (colorMatrix * vec4(y, cb, cr, 1)).rgb, column-major.
     std::array<float, 16> colorMatrix{};
+    // RGB transfer after YUV matrix conversion, using FFmpeg transfer names.
+    // Unknown stays unknown. Storage/filtering do not imply linear light.
+    // Declaration only: no transfer conversion before the N4 color milestone.
+    std::string transfer = "unknown";
     // The frame's presentation time in the source, or negative for a source
     // with no timeline (a synthetic pattern).
     double ptsSec = -1.0;
