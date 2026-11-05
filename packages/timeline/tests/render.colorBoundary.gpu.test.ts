@@ -1,13 +1,12 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import sharp from "sharp";
 import { createCanvas } from "@napi-rs/canvas";
 import { expect, it } from "vitest";
 import { getNodeGPUDevice } from "@nodetool-ai/gpu/node";
 import { openRgbaFrameReader, openVideoFrameEncoder } from "@nodetool-ai/runtime/media";
+import { videoStreamFormat } from "@nodetool-ai/runtime/media/testing";
 // Exercise the server boundary itself rather than copying its format table.
 import { decodeStillRgba, encoderSpecFromArgs } from "../../video-nodes/src/nodes/timeline/rawFrames.js";
 import { resolveTimelineOutput } from "../../video-nodes/src/nodes/timeline/outputFormats.js";
@@ -245,10 +244,7 @@ for (const format of ["mp4", "webm", "mov"]) {
         const alphaError = Math.max(...Array.from({ length: width * height }, (_, p) =>
           Math.abs(decoded[p * 4 + 3]! - source[p * 4 + 3]!)));
         if (alpha) {
-          const { stdout } = await promisify(execFile)("ffprobe", [
-            "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=codec_name,pix_fmt:stream_tags=alpha_mode", "-of", "json", input
-          ]);
-          console.info("alpha decode", { format, alphaError, metadata: stdout.trim() });
+          console.info("alpha decode", { format, alphaError, metadata: await videoStreamFormat(input) });
         }
         expect(alphaError, "input codec alpha error").toBeLessThanOrEqual(1);
         const rgbError = Math.max(...Array.from({ length: width * height }, (_, p) =>
@@ -294,14 +290,10 @@ for (const format of ["mp4", "webm", "mov"]) {
       await encodeRoute(referencePath, expected, format, false);
       const actual = await decode(actualPath);
       const reference = await decode(referencePath);
-      const { stdout } = await promisify(execFile)("ffprobe", [
-        "-v", "error", "-select_streams", "v:0", "-show_entries",
-        "stream=codec_name,pix_fmt,color_range,color_space,color_transfer,color_primaries", "-of", "json", actualPath
-      ]);
-      const probe: { streams: Array<{ color_transfer?: string; color_space?: string; color_primaries?: string; color_range?: string }> } = JSON.parse(stdout);
-      console.info("delivery metadata", stdout.trim(), { codecLoss: maximumError(reference, expected), transferError: maximumError(actual, reference) });
-      expect(probe.streams[0], stdout).toMatchObject({
-        color_transfer: "bt709", color_space: "bt709", color_primaries: "bt709", color_range: "tv"
+      const stream = await videoStreamFormat(actualPath);
+      console.info("delivery metadata", stream, { codecLoss: maximumError(reference, expected), transferError: maximumError(actual, reference) });
+      expect(stream).toMatchObject({
+        colorTransfer: "bt709", colorSpace: "bt709", colorPrimaries: "bt709", colorRange: "tv"
       });
       expect(maximumError(reference, expected), "reference codec loss").toBeLessThanOrEqual(5);
       expect(maximumError(actual, reference), "declared BT.709 transfer error, excluding codec loss").toBeLessThanOrEqual(5);
