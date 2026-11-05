@@ -1,3 +1,4 @@
+import { assertTimelineColorSpaceSupported } from "@nodetool-ai/timeline";
 import { z } from "zod";
 import { applyTimelineTrackOp, type TimelineTrackOp, type TimelineOpState } from "@nodetool-ai/timeline/ops";
 import {
@@ -392,6 +393,7 @@ export async function applyOps(
     bakeModel3DClip?: TimelineModel3DBaker;
   } = {}
 ): Promise<ApplyOutcome> {
+  assertTimelineColorSpaceSupported(document);
   if (ops.every(({ op }) => op === "ui_timeline_add_track" || op === "ui_timeline_move_track" || op === "ui_timeline_delete_track")) {
     return applyTrackOps(sequence, document, ops);
   }

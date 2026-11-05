@@ -1,3 +1,4 @@
+import { assertTimelineColorSpaceSupported } from "@nodetool-ai/timeline";
 import { hasTemporalDenoise, denoiseSourceTimes, type TemporalSources, type FrameLayerPixels } from "@nodetool-ai/timeline/render";
 /**
  * Frame-by-frame render of a timeline sequence, server-side.
@@ -196,6 +197,7 @@ export async function renderTimelineComposited(
   opts: CompositeRenderOptions
 ): Promise<CompositeRenderResult> {
   const { sequence, fps, durationMs, resolveAssetPath, outPath, signal } = opts;
+  assertTimelineColorSpaceSupported(sequence);
   const output = opts.output ?? resolveTimelineOutput({ format: "mp4" });
   // H.264 and the yuv420p family require even dimensions.
   const width = Math.max(2, Math.floor(opts.width / 2) * 2);

@@ -8,6 +8,7 @@
  *
  * Video exports mix the timeline audio after compositing the picture.
  */
+import { assertTimelineColorSpaceSupported } from "@nodetool-ai/timeline";
 import { importPack } from "@nodetool-ai/node-catalog";
 
 import type { Command } from "commander";
@@ -415,6 +416,8 @@ export async function runTimelineRender(
   const os = await import("node:os");
   const path = await import("node:path");
   const { resolveTimelineTarget } = await import("../timeline-debug/target.js");
+  const resolved = await resolveTimelineTarget(ref, { loadSequence });
+  assertTimelineColorSpaceSupported(resolved.document);
   const { renderTimelineComposited } =
     await importPack<typeof import("@nodetool-ai/video-nodes/nodes/timeline/compositeRender")>("video", "@nodetool-ai/video-nodes/nodes/timeline/compositeRender");
   const { resolveTimelineOutput } =
@@ -426,7 +429,6 @@ export async function runTimelineRender(
   const { contactSheetLayout, createContactSheet } =
     await importPack<typeof import("@nodetool-ai/video-nodes/nodes/timeline/contactSheet")>("video", "@nodetool-ai/video-nodes/nodes/timeline/contactSheet");
 
-  const resolved = await resolveTimelineTarget(ref, { loadSequence });
   const { target, meta } = resolved;
   const fps = meta.fps && meta.fps > 0 ? meta.fps : 30;
   const scale = positiveNumber(opts.scale, "--scale") ?? 1;

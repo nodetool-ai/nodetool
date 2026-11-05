@@ -18,6 +18,7 @@
  * Design: docs/tool-class-retirement-design.md § "Migration".
  */
 
+import { timelineColorSpaceError } from "@nodetool-ai/timeline";
 import type {
   TimelineDocument,
   TimelineSequence,
@@ -1891,6 +1892,10 @@ const renderTimeline: CapabilityExport = {
   impl: async (run, params) => {
     const seq = await loadTimeline(run, params["timeline_id"]);
     if (isError(seq)) return seq;
+    const versionError = timelineColorSpaceError(seq.toDocument());
+    if (versionError) {
+      return { error: versionError };
+    }
 
     const { resolveRunEnvironment, userIdOf, noRegistryError } = await import(
       "../tools/mcp-tool-support.js"

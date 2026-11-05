@@ -26,6 +26,7 @@
  * other render path, so the soundtrack does not depend on which path ran.
  */
 
+import { assertTimelineColorSpaceSupported } from "@nodetool-ai/timeline";
 import { randomBytes } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { open, rename, stat, type FileHandle } from "node:fs/promises";
@@ -398,6 +399,7 @@ export async function renderTimelineInBrowser(
   opts: BrowserRenderOptions
 ): Promise<BrowserRenderResult> {
   const { sequence, output, signal } = opts;
+  assertTimelineColorSpaceSupported(sequence);
   signal?.throwIfAborted();
   const script = await loadTimelineRenderPage();
   const token = randomBytes(16).toString("hex");
@@ -595,6 +597,7 @@ export async function renderTimelineInBrowser(
     sources = openSourceConverter({ workDir: opts.workDir, decodable: new Set(decodable), signal });
 
     const request: HeadlessRenderRequest = {
+      workingColorSpaceVersion: sequence.workingColorSpaceVersion,
       tracks: sequence.tracks,
       clips: sequence.clips,
       mediaTracks: sequence.mediaTracks,
