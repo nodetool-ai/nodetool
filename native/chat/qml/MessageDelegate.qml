@@ -164,7 +164,7 @@ ColumnLayout {
                     }
                     Ui.Text {
                         visible: !!partFrame.part.tool
-                        text: partFrame.part.displayStatus || ""
+                        text: (partFrame.part.displayStatus || "") + (partFrame.part.duration ? " · " + partFrame.part.duration : "")
                         role: Ui.Typography.SansCaption
                         tone: partFrame.part.displayStatus === "Failed" ? Ui.Text.Error : Ui.Text.Secondary
                     }
@@ -175,6 +175,58 @@ ColumnLayout {
                         Accessible.expandable: true
                         Accessible.expanded: partFrame.detailsOpen
                         onClicked: root.parts.toggleExpanded(partFrame.index)
+                    }
+                }
+                Ui.Text {
+                    visible: !!partFrame.part.preview
+                    text: partFrame.part.preview || ""
+                    role: Ui.Typography.MonoCaption
+                    tone: Ui.Text.Secondary
+                    Layout.fillWidth: true
+                    elide: Text.ElideRight
+                }
+                Ui.Text {
+                    visible: !!partFrame.part.progress
+                    text: partFrame.part.progress || ""
+                    role: Ui.Typography.SansCaption
+                }
+                Repeater {
+                    model: partFrame.detailsOpen ? (partFrame.part.calls || []) : []
+                    delegate: ColumnLayout {
+                        id: groupedCall
+                        required property var modelData
+                        Layout.fillWidth: true
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Ui.Text {
+                                text: groupedCall.modelData.label + " · " + groupedCall.modelData.displayStatus
+                                role: Ui.Typography.SansLabel
+                                Layout.fillWidth: true
+                                elide: Text.ElideRight
+                            }
+                            Ui.EditorButton {
+                                objectName: "groupCall_" + groupedCall.modelData.tool_call_id
+                                text: groupedCall.modelData.expanded ? qsTr("Hide details") : qsTr("Show details")
+                                Accessible.expandable: true
+                                Accessible.expanded: !!groupedCall.modelData.expanded
+                                onClicked: root.parts.toggleCall(partFrame.index, groupedCall.modelData.tool_call_id)
+                            }
+                        }
+                        PagedText {
+                            Layout.fillWidth: true
+                            visible: !!groupedCall.modelData.expanded
+                            sourceText: groupedCall.modelData.expanded ? groupedCall.modelData.argumentsText : ""
+                            monospaced: true
+                            chatSession: root.session
+                        }
+                        PagedText {
+                            Layout.fillWidth: true
+                            visible: !!groupedCall.modelData.expanded && !!groupedCall.modelData.resultText
+                            sourceText: groupedCall.modelData.expanded ? groupedCall.modelData.resultText : ""
+                            monospaced: true
+                            copyLabel: qsTr("Copy result")
+                            chatSession: root.session
+                        }
                     }
                 }
                 Ui.Text {

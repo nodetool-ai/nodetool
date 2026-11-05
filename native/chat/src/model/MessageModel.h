@@ -16,6 +16,7 @@ public:
   QHash<int, QByteArray> roleNames() const override;
   void setParts(const QJsonArray &);
   Q_INVOKABLE void toggleExpanded(int row);
+  Q_INVOKABLE void toggleCall(int row, const QString &id);
 
 private:
   QJsonArray m_parts;
@@ -48,6 +49,7 @@ public:
 
 private:
   QList<QJsonObject> m_rows;
+  QHash<QString, QList<QJsonObject>> m_groupSources;
   QHash<QString, int> m_indices;
   QList<QString> m_projectionKeys;
   mutable QHash<QString, PartModel *> m_partModels;

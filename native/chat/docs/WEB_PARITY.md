@@ -156,3 +156,23 @@ Both `check_design.py --strict` and `check_dependencies.py` passed.
 No new dependencies or TypeScript changes were introduced. TypeScript tests,
 typecheck, lint, harness gate, `/verify`, platform accessibility and timeline
 host verification were not run.
+
+## Tool grouping and phrasing
+
+Tool-only assistant messages with one groupable name now retain the first row
+identity while accumulating consecutive calls. The six web exclusions remain
+individual calls. Runs of up to four location-bearing read, write or page calls
+remain listed. Other runs show the shared message or counted headline, a unique
+three-value preview and completion progress. Individual calls expand independently
+inside counted groups. C++ owns the phrase classification, MCP name formatting,
+URL details, grouping and expansion state. Timestamp-backed durations use the
+web's formatting.
+
+`tool-presentation.json` ports phrase and grouping examples from the web tests.
+The model test verifies stable row identity and a single-row result notification.
+QML tests exercise nested expansion and scroll stability as a trailing group
+forms. The offscreen screenshot is
+`/home/mg/Projects/nodetool-film/tmp/chat-parity/tool-presentation.png`.
+Native still uses bordered surfaces and labelled expansion buttons. The web's
+connecting rail, aggregate timeline footer and specialized result renderers are
+not implemented. This is behavioral coverage, not a pixel comparison with web.
