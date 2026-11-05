@@ -4,7 +4,7 @@
  * editor with an explicit Save, and the Undo/Redo state of a Monaco editor.
  */
 
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import SaveIcon from "@mui/icons-material/Save";
@@ -157,27 +157,53 @@ export const DocumentMoreMenu = ({ items }: DocumentMoreMenuProps) => {
   );
 };
 
+interface MonacoHistory {
+  editorRef: React.RefObject<monaco.editor.IStandaloneCodeEditor | null>;
+  onEditorMount: (editor: monaco.editor.IStandaloneCodeEditor) => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  undo: () => void;
+  redo: () => void;
+}
+
 /** Undo and Redo of a Monaco editor, for the History slot. */
-export const useMonacoHistory = () => {
+export const useMonacoHistory = (): MonacoHistory => {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const subscriptions = useRef<monaco.IDisposable[]>([]);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
 
+  const detachEditor = useCallback(() => {
+    for (const subscription of subscriptions.current) {
+      subscription.dispose();
+    }
+    subscriptions.current = [];
+    editorRef.current = null;
+  }, []);
+
+  useEffect(() => detachEditor, [detachEditor]);
+
   const updateHistoryState = useCallback(() => {
     const model = editorRef.current?.getModel();
-    const alternativeVersionId = model?.getAlternativeVersionId() ?? 1;
-    const versionId = model?.getVersionId() ?? 1;
-    setCanUndo(alternativeVersionId < versionId);
-    setCanRedo(alternativeVersionId > versionId);
+    setCanUndo(model?.canUndo() ?? false);
+    setCanRedo(model?.canRedo() ?? false);
   }, []);
 
   const onEditorMount = useCallback(
     (editor: monaco.editor.IStandaloneCodeEditor) => {
+      detachEditor();
       editorRef.current = editor;
+      subscriptions.current = [
+        editor.onDidChangeModelContent(updateHistoryState),
+        editor.onDidChangeModel(updateHistoryState),
+        editor.onDidDispose(() => {
+          detachEditor();
+          updateHistoryState();
+        })
+      ];
       updateHistoryState();
-      editor.onDidChangeModelContent(updateHistoryState);
     },
-    [updateHistoryState]
+    [detachEditor, updateHistoryState]
   );
 
   const undo = useCallback(() => {
