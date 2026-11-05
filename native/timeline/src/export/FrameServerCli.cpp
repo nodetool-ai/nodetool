@@ -117,6 +117,15 @@ private:
             if (id <= 0 || !std::isfinite(time) || time < 0 || (kind != "sequence" && kind != "source")) {
                 throw std::runtime_error("Invalid frame request.");
             }
+            // EOF cancels captures, but must not turn a rejected version into a
+            // successful exit when the client sends a request then closes stdin.
+            if (kind == "sequence" && m_eof) {
+                const auto parsed = nt::loadTimelineFile(request.value("snapshot").toString());
+                if (parsed.unsupportedColorSpaceVersion) {
+                    m_versionRejected = true;
+                    throw std::runtime_error(parsed.error.toStdString());
+                }
+            }
             if (!cancelled(id)) {
                 auto& doc = document(request);
                 if (kind == "source" && !doc.image) {
