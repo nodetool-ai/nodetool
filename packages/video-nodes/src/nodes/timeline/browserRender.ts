@@ -1,3 +1,4 @@
+import { withTimelineRenderSlot } from "@nodetool-ai/runtime";
 /**
  * `RenderTimeline` in headless Chromium.
  *
@@ -317,7 +318,7 @@ interface OutputWriter {
   write(data: Buffer, position: number): Promise<void>;
   frame(index: number, png: Buffer): Promise<void>;
   finish(): Promise<void>;
-  abort(): void;
+  abort(): Promise<void>;
 }
 
 function openOutputWriter(
@@ -366,10 +367,10 @@ function openOutputWriter(
       if (zip) await zip.finish();
       if (pngEncoder) await pngEncoder.finish();
     },
-    abort() {
-      void file?.then((handle) => handle.close()).catch(() => undefined);
+    async abort() {
+      await file?.then((handle) => handle.close()).catch(() => undefined);
       zip?.abort();
-      pngEncoder?.abort();
+      await pngEncoder?.abort();
     }
   };
 }
@@ -395,6 +396,12 @@ const BUNDLED_FONT_PREFIX = "/api/assets/packages/timeline/fonts/";
 const GOOGLE_FONT_CSS = /^\/api\/assets\/packages\/timeline\/fonts\/google\/([^/]+)\/css$/;
 
 export async function renderTimelineInBrowser(
+  opts: BrowserRenderOptions
+): Promise<BrowserRenderResult> {
+  return withTimelineRenderSlot(() => renderTimelineInBrowserAdmitted(opts), opts.signal);
+}
+
+async function renderTimelineInBrowserAdmitted(
   opts: BrowserRenderOptions
 ): Promise<BrowserRenderResult> {
   const { sequence, output, signal } = opts;
@@ -654,7 +661,9 @@ export async function renderTimelineInBrowser(
       convertedSources: sources.converted
     };
   } catch (error) {
-    writer.abort();
+    await writer.abort().catch(() => {
+      // Preserve the render error if cleanup also fails.
+    });
     throw error;
   } finally {
     signal?.removeEventListener("abort", onAbort);

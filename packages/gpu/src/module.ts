@@ -14,6 +14,7 @@
 import tgpu from "typegpu";
 import type { TgpuBindGroupLayout } from "typegpu";
 import type { AnyWgslStruct, Infer } from "typegpu/data";
+import type { PrecisionSlots } from "./workingFrame.js";
 import type {
   BindingKind,
   IOContract,
@@ -39,8 +40,10 @@ export type ResolveExternals = Record<string, ResolveExternal>;
 export interface VariantRequirements {
   /** Requires `texture_external` binding (browser camera/video fast path). */
   textureExternal?: boolean;
-  /** Requires `shader-f16` feature (half-precision storage). */
+  /** Requires core rgba16float storage texture writes. */
   f16Storage?: boolean;
+  /** Requires optional shader-f16 arithmetic. */
+  shaderF16?: boolean;
 }
 
 /**
@@ -62,6 +65,8 @@ export interface ShaderVariant {
   readonly requires?: VariantRequirements;
   readonly layout: TgpuBindGroupLayout;
   readonly wgsl: string;
+  /** Optional FP16 shader retaining saturation formerly supplied by UNORM. */
+  readonly workingWgsl?: string;
   readonly entryPoint: string;
   readonly samplers?: Readonly<Record<string, GPUSamplerDescriptor>>;
   readonly workgroupSize?: readonly [number, number, number];
@@ -101,9 +106,12 @@ export interface ShaderModule<Schema extends AnyWgslStruct = AnyWgslStruct> {
 
   /** Resolved WGSL (layout + uniform struct injected). */
   readonly wgsl: string;
+  /** Optional FP16 shader retaining saturation formerly supplied by UNORM. */
+  readonly workingWgsl?: string;
   readonly entryPoint: string;
   readonly workgroupSize: readonly [number, number, number];
 
+  readonly precision?: PrecisionSlots;
   readonly io: IOContract;
   /**
    * Alternate `(layout, wgsl, ...)` for distinct binding kinds or
@@ -143,6 +151,8 @@ export interface ShaderModuleSpec<Schema extends AnyWgslStruct> {
    * generated bindings + struct definitions.
    */
   wgsl: string;
+  /** FP16-only arithmetic specialization. Byte shader remains unchanged. */
+  workingWgsl?: string;
   /** Extra resolve externals (shared snippets). The layout is auto-included. */
   externals?: ResolveExternals;
 
@@ -151,6 +161,7 @@ export interface ShaderModuleSpec<Schema extends AnyWgslStruct> {
   /** Compute workgroup size. Ignored for fragment modules. */
   workgroupSize?: readonly [number, number, number];
 
+  precision?: PrecisionSlots;
   io: IOContract;
 
   /**
@@ -250,6 +261,17 @@ export function defineModule<Schema extends AnyWgslStruct>(
     });
   });
 
+  const workingWgsl = spec.workingWgsl === undefined ? undefined : tgpu.resolve({
+    template: spec.workingWgsl,
+    externals: { layout: spec.layout, ...spec.externals },
+    names: "strict"
+  });
+  if (workingWgsl !== undefined) {
+    const check = validateWgslLinearity({ id: spec.id, linearity: spec.linearity, wgsl: workingWgsl, inputs: spec.io.inputs });
+    if (!check.ok) {
+      throw new Error(`defineModule(${spec.id}): FP16 premul-invariant validation failed: ${check.violations.join(", ")}`);
+    }
+  }
   return Object.freeze({
     id: spec.id,
     version: spec.version,
@@ -264,8 +286,10 @@ export function defineModule<Schema extends AnyWgslStruct>(
     uniformBinding: spec.uniformBinding ?? DEFAULT_UNIFORM_BINDING,
     samplers: spec.samplers ?? {},
     wgsl,
+    workingWgsl,
     entryPoint: spec.entryPoint ?? (kind === "compute" ? "main" : "fs_main"),
     workgroupSize: spec.workgroupSize ?? ([1, 1, 1] as const),
+    precision: spec.precision,
     io: spec.io,
     variants: variants ? Object.freeze(variants) : undefined
   });

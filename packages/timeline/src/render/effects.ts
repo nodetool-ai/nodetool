@@ -158,7 +158,7 @@ export class WebGPUEffectsProcessor {
   private pools = new Map<string, IntermediatePool>();
   private lutTextures = new Map<string, CachedLut>();
 
-  constructor(device: GPUDevice) {
+  constructor(device: GPUDevice, private readonly workingFormat: "rgba8unorm" | "rgba16float" = "rgba8unorm") {
     this.device = device;
     this.ctx = createGPUContextFromDevice(device);
     this.executor = createExecutor();
@@ -249,7 +249,8 @@ export class WebGPUEffectsProcessor {
     if (!frameEncoder) {
       this.ctx.uniformRing.beginSubmission();
     }
-    const pool = this.getPool(poolKey, width, height);
+    const workingFormat = this.workingFormat === "rgba16float" && source.format === "rgba16float" ? "rgba16float" : "rgba8unorm";
+    const pool = this.getPool(poolKey, width, height, workingFormat);
     const encoder =
       frameEncoder ??
       this.device.createCommandEncoder({
@@ -265,10 +266,10 @@ export class WebGPUEffectsProcessor {
     // straight→premul→straight round-trip when chromaKey runs first.
     const sourceLabeled = new LabeledTexture(source, {
       label: `preview-effects-${poolKey}-src`,
-      format: "rgba8unorm",
+      format: source.format,
       width,
       height,
-      meta: { colorSpace: "srgb", alpha: sourceAlpha, bindingKind: "texture_2d" }
+      meta: { colorSpace: "encoded-sdr", alpha: sourceAlpha, bindingKind: "texture_2d" }
     });
     let pendingFirst = true;
 
@@ -302,11 +303,12 @@ export class WebGPUEffectsProcessor {
         for (const key of ["before", "after"] as const) {
           const texture = temporalSources[key];
           inputs[key] = new LabeledTexture(texture, {label: `${poolKey}-denoise-${key}`, format: texture.format, width: texture.width, height: texture.height,
-            meta: {colorSpace: "srgb", alpha: "straight", bindingKind: "texture_2d"}});
+            meta: {colorSpace: "encoded-sdr", alpha: "straight", bindingKind: "texture_2d"}});
         }
       }
       this.executor.encode({
         ctx: this.ctx,
+        workingFormat,
         module,
         encoder,
         inputs,
@@ -329,6 +331,7 @@ export class WebGPUEffectsProcessor {
       const { input, outIdx } = pick();
       this.recipes.encode({
         ctx: this.ctx,
+        workingFormat,
         module,
         encoder,
         inputs: { source: input },
@@ -351,6 +354,7 @@ export class WebGPUEffectsProcessor {
         const { input, outIdx } = pick();
         this.executor.encode({
           ctx: this.ctx,
+        workingFormat,
           module: colorCubeLutV1,
           encoder,
           inputs: { source: input, lut },
@@ -681,7 +685,8 @@ export class WebGPUEffectsProcessor {
     if (!frameEncoder) {
       this.ctx.uniformRing.beginSubmission();
     }
-    const pool = this.getPool(poolKey, width, height);
+    const workingFormat = this.workingFormat === "rgba16float" && source.format === "rgba16float" ? "rgba16float" : "rgba8unorm";
+    const pool = this.getPool(poolKey, width, height, workingFormat);
     const encoder =
       frameEncoder ??
       this.device.createCommandEncoder({
@@ -689,6 +694,7 @@ export class WebGPUEffectsProcessor {
       });
     this.executor.encode({
       ctx: this.ctx,
+      workingFormat,
       module: maskApplyV1,
       encoder,
       inputs: {
@@ -712,6 +718,7 @@ export class WebGPUEffectsProcessor {
     const [wgX, wgY] = alphaPremulToStraightV1.workgroupSize;
     this.executor.encode({
       ctx: this.ctx,
+      workingFormat,
       module: alphaPremulToStraightV1,
       encoder,
       inputs: { source: pool.textures[0] },
@@ -757,6 +764,7 @@ export class WebGPUEffectsProcessor {
     if (!frameEncoder) {
       this.ctx.uniformRing.beginSubmission();
     }
+    const workingFormat = this.workingFormat === "rgba16float" && source.format === "rgba16float" ? "rgba16float" : "rgba8unorm";
     const pool = this.getPool(poolKey, width, height);
     const encoder =
       frameEncoder ??
@@ -767,7 +775,7 @@ export class WebGPUEffectsProcessor {
       mode === "luma"
         ? this.premultiplyForLuma(
             encoder,
-            pool,
+            workingFormat === "rgba16float" ? this.getPool(`${poolKey}:luma`, width, height, workingFormat) : pool,
             source,
             poolKey,
             width,
@@ -777,6 +785,7 @@ export class WebGPUEffectsProcessor {
         : this.label(source, `${poolKey}-src`, width, height, sourceAlpha);
     this.executor.encode({
       ctx: this.ctx,
+      workingFormat,
       module: maskFromImageV1,
       encoder,
       inputs: {
@@ -812,6 +821,7 @@ export class WebGPUEffectsProcessor {
     const [wgX, wgY] = alphaStraightToPremulV1.workgroupSize;
     this.executor.encode({
       ctx: this.ctx,
+      workingFormat: pool.textures[1].format === "rgba16float" ? "rgba16float" : "rgba8unorm",
       module: alphaStraightToPremulV1,
       encoder,
       inputs: {
@@ -846,16 +856,16 @@ export class WebGPUEffectsProcessor {
   ): LabeledTexture {
     return new LabeledTexture(texture, {
       label: `preview-effects-${label}`,
-      format: "rgba8unorm",
+      format: texture.format,
       width,
       height,
-      meta: { colorSpace: "srgb", alpha, bindingKind: "texture_2d" }
+      meta: { colorSpace: "encoded-sdr", alpha, bindingKind: "texture_2d" }
     });
   }
 
-  private getPool(key: string, width: number, height: number): IntermediatePool {
+  private getPool(key: string, width: number, height: number, format: "rgba8unorm" | "rgba16float" = "rgba8unorm"): IntermediatePool {
     const existing = this.pools.get(key);
-    if (existing && existing.width === width && existing.height === height) {
+    if (existing && existing.width === width && existing.height === height && existing.textures[0].format === format) {
       return existing;
     }
     if (existing) {
@@ -870,9 +880,9 @@ export class WebGPUEffectsProcessor {
         label,
         width,
         height,
-        format: "rgba8unorm",
+        format,
         usage: intermediateUsage(),
-        meta: { colorSpace: "srgb", alpha: "premultiplied" }
+        meta: { colorSpace: "encoded-sdr", alpha: "premultiplied" }
       });
     const pool: IntermediatePool = {
       width,
@@ -921,7 +931,7 @@ export class WebGPUEffectsProcessor {
       format: "rgba16float",
       width,
       height,
-      meta: { colorSpace: "srgb", alpha: "premultiplied", bindingKind: "texture_2d" }
+      meta: { colorSpace: "data", alpha: "premultiplied", bindingKind: "texture_2d" }
     });
     const entry = { texture: labeled, parsed };
     this.lutTextures.set(cube, entry);
@@ -937,7 +947,11 @@ export class WebGPUEffectsProcessor {
   }
 
   retainOnly(keys: Iterable<string>): void {
-    const keep = new Set(keys);
+    const keep = new Set<string>();
+    for (const key of keys) {
+      keep.add(key);
+      keep.add(`${key}:luma`);
+    }
     for (const key of [...this.pools.keys()]) {
       if (!keep.has(key)) this.releasePool(key);
     }

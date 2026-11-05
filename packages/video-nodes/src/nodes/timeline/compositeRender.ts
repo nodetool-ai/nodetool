@@ -1,3 +1,5 @@
+import { rm } from "node:fs/promises";
+import { withTimelineRenderSlot } from "@nodetool-ai/runtime";
 import { hasTemporalDenoise, denoiseSourceTimes, type TemporalSources, type FrameLayerPixels } from "@nodetool-ai/timeline/render";
 /**
  * Frame-by-frame render of a timeline sequence, server-side.
@@ -63,6 +65,8 @@ import {
 import { NodeRasterizer } from "./rasterizers.js";
 
 interface CompositeRenderOptions {
+  /** Internal opt-in. Delivery remains straight-alpha RGBA8 in either mode. */
+  workingFormat?: "rgba8unorm" | "rgba16float";
   sequence: TimelineSequence;
   /** Sequence resolution and rate the frames are composited at. */
   width: number;
@@ -113,6 +117,8 @@ export interface TimelineExportDiagnostic {
 }
 
 export interface CompositeRenderResult {
+  /** Actual Node/Dawn adapter, for the existing render log. */
+  adapter: string;
   complete: boolean;
   diagnostics: TimelineExportDiagnostic[];
   totalFrames: number;
@@ -195,6 +201,12 @@ interface ClipVideoSource {
 export async function renderTimelineComposited(
   opts: CompositeRenderOptions
 ): Promise<CompositeRenderResult> {
+  return withTimelineRenderSlot(() => renderTimelineCompositedAdmitted(opts), opts.signal);
+}
+
+async function renderTimelineCompositedAdmitted(
+  opts: CompositeRenderOptions
+): Promise<CompositeRenderResult> {
   const { sequence, fps, durationMs, resolveAssetPath, outPath, signal } = opts;
   const output = opts.output ?? resolveTimelineOutput({ format: "mp4" });
   // H.264 and the yuv420p family require even dimensions.
@@ -225,7 +237,9 @@ export async function renderTimelineComposited(
   if (signal?.aborted) throw abortError();
   const device = await acquireDevice();
   if (signal?.aborted) throw abortError();
-  const compositor = new HeadlessFrameCompositor(device, width, height);
+  const compositor = new HeadlessFrameCompositor(device, width, height, {
+    workingFormat: opts.workingFormat
+  });
   compositor.setReferenceSize(referenceWidth, referenceHeight);
   const { unavailable: fontsUnavailable } = await ensureGoogleFonts(sequence);
   const rasterizer = new NodeRasterizer(referenceWidth, referenceHeight);
@@ -767,6 +781,8 @@ export async function renderTimelineComposited(
     if (signal?.aborted) throw abortError();
     if (encoder) await awaitWithAbort(encoder.finish(), signal);
     return {
+      adapter: [device.adapterInfo?.vendor, device.adapterInfo?.device, device.adapterInfo?.description]
+        .filter(Boolean).join(" / ") || "unknown adapter",
       complete: diagnostics.length === 0,
       diagnostics,
       totalFrames: frameIndices.length,
@@ -774,7 +790,16 @@ export async function renderTimelineComposited(
       fontsUnavailable
     };
   } catch (error) {
-    encoder?.abort();
+    try {
+      await encoder?.abort();
+    } catch {
+      // Preserve the render failure if native cleanup also fails.
+    }
+    if (encoder) {
+      await rm(outPath, { force: true }).catch(() => {
+        // Preserve the render failure if filesystem cleanup also fails.
+      });
+    }
     throw error;
   } finally {
     signal?.removeEventListener("abort", closeVideoSources);

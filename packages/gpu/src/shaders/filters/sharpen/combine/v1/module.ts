@@ -7,6 +7,7 @@ const layout = tgpu.bindGroupLayout({source: {texture: "float"}, blurred: {textu
   outputTexture: {storageTexture: "rgba8unorm"}, params: {uniform: Params}});
 
 export const sharpenCombineV1 = defineModule({
+  precision: { "source": "working", "blurred": "working", "output": "working" },
   id: "filters.sharpen.combine", version: 1, surface: "internal", category: "filters",
   linearity: "nonlinear-in-rgb", kind: "compute", params: Params,
   paramDefaults: {amount: 0, threshold: 0}, layout, workgroupSize: [16, 16, 1],
@@ -26,10 +27,10 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
 }`,
   io: {
     inputs: {
-      source: {colorSpace: "srgb", alpha: "premultiplied", bindingKinds: ["texture_2d"]},
-      blurred: {colorSpace: "srgb", alpha: "premultiplied", bindingKinds: ["texture_2d"]}
+      source: {colorSpace: "encoded-sdr", alpha: "premultiplied", bindingKinds: ["texture_2d"]},
+      blurred: {colorSpace: "encoded-sdr", alpha: "premultiplied", bindingKinds: ["texture_2d"]}
     },
-    output: {colorSpace: "srgb", alpha: "premultiplied", format: "rgba8unorm", dimensions: "same-as:source"},
+    output: {colorSpace: "encoded-sdr", alpha: "premultiplied", format: "rgba8unorm", dimensions: "same-as:source"},
     rod: "same-as:source"
   }
 });

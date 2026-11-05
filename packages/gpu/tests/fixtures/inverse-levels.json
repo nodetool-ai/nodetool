@@ -55,5 +55,101 @@
       "distinct": 256,
       "maximumCodeError": 0
     }
-  }
+  },
+  "alphaVectors": [
+    {
+      "rgb": 0.25,
+      "alpha": 0,
+      "premultiplied": 0.0,
+      "unpremultiplied": 0,
+      "exposureStraight": 0.0
+    },
+    {
+      "rgb": 0.25,
+      "alpha": 1.52587890625e-05,
+      "premultiplied": 3.814697265625e-06,
+      "unpremultiplied": 0.25,
+      "exposureStraight": 0.000972747802734375
+    },
+    {
+      "rgb": 0.25,
+      "alpha": 0.0009765625,
+      "premultiplied": 0.000244140625,
+      "unpremultiplied": 0.25,
+      "exposureStraight": 0.062255859375
+    },
+    {
+      "rgb": 0.25,
+      "alpha": 0.00392156862745098,
+      "premultiplied": 0.000980392156862745,
+      "unpremultiplied": 0.25,
+      "exposureStraight": 0.25
+    },
+    {
+      "rgb": 0.25,
+      "alpha": 0.5,
+      "premultiplied": 0.125,
+      "unpremultiplied": 0.25,
+      "exposureStraight": 0.25
+    },
+    {
+      "rgb": 0.25,
+      "alpha": 1,
+      "premultiplied": 0.25,
+      "unpremultiplied": 0.25,
+      "exposureStraight": 0.25
+    }
+  ],
+  "transferVectors": [
+    {
+      "encoded": 0,
+      "linear": 0.0
+    },
+    {
+      "encoded": 0.04044,
+      "linear": 0.0031300309597523217
+    },
+    {
+      "encoded": 0.04045,
+      "linear": 0.0031308049535603713
+    },
+    {
+      "encoded": 0.04046,
+      "linear": 0.003131594552688991
+    },
+    {
+      "encoded": 0.5,
+      "linear": 0.21404114048223255
+    },
+    {
+      "encoded": 1,
+      "linear": 1.0
+    }
+  ],
+  "encodeVectors": [
+    {
+      "linear": 0,
+      "encoded": 0.0
+    },
+    {
+      "linear": 0.0031307,
+      "encoded": 0.040448644
+    },
+    {
+      "linear": 0.0031308,
+      "encoded": 0.040449936
+    },
+    {
+      "linear": 0.0031309,
+      "encoded": 0.04045117777859802
+    },
+    {
+      "linear": 0.5,
+      "encoded": 0.7353569830524495
+    },
+    {
+      "linear": 1,
+      "encoded": 0.9999999999999999
+    }
+  ]
 }
