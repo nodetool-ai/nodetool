@@ -339,42 +339,52 @@ void ChatSession::resolveMedia(const QString &id, const QJsonObject &message,
                                const QString &projectionKey) {
   for (const auto &value : message["content"].toArray()) {
     const auto part = value.toObject();
-    if (part["type"] != "image_url") {
-      continue;
+    const auto kind = part["type"].toString();
+    const bool thumbnail = kind == "audio" || kind == "video";
+    if (kind != "image_url" && !thumbnail) { continue; }
+    auto image = part["image"].toObject();
+    if (thumbnail) {
+      const auto ref = part[kind].toObject();
+      const auto source = ref["thumbnail"];
+      image = source.isObject() ? source.toObject() : QJsonObject{{"uri", source.toString(ref["thumbnail_url"].toString())}};
+      if (image["uri"].toString().isEmpty() && image["asset_id"].toString().isEmpty()) { continue; }
     }
-    const auto image = part["image"].toObject();
-    const auto uri = image["uri"].toString();
+    const auto uri = image.value("uri").toString(image.value("data").toString());
     const auto key =
         projectionKey.isEmpty() ? message["id"].toString() : projectionKey;
     auto receive = [this, id, key, part](QJsonValue data, QString error) {
-      if (!error.isEmpty() ||
-          m_previewBytes + data.toString().size() > 32 * 1024 * 1024) {
-        return;
+      if (m_previewBytes + data.toString().size() * 2 > 32 * 1024 * 1024) {
+        error = "Image preview memory limit reached";
+        data = {};
       }
       auto preview = part;
       preview["mediaUrl"] = data;
-      preview["type"] = "image";
+      preview["mediaError"] = error;
+      preview["originalMedia"] = part;
+      preview["resolvedMedia"] = true;
+      if (part["type"] == "image_url") { preview["type"] = "image"; }
       if (state(id).messages->addResolvedPart(key, preview)) {
-        m_previewBytes += data.toString().size();
+        m_previewBytes += data.toString().size() * 2;
       }
     };
     if (uri.startsWith("asset://") || !image["asset_id"].toString().isEmpty()) {
       const auto asset = image["asset_id"].toString().isEmpty()
-                             ? uri.mid(8).section('.', 0, 0)
+                             ? uri.mid(8)
                              : image["asset_id"].toString();
       m_client.call("assets.get", {{"id", asset}}, false,
                     [this, receive](QJsonValue value, QString error) {
                       if (!error.isEmpty()) {
+                        receive({}, "Image preview unavailable");
                         return;
                       }
                       const auto url = value.toObject()["get_url"].toString();
                       if (!url.isEmpty()) {
                         m_client.fetchMedia(QUrl(url), receive);
-                      }
+                      } else { receive({}, "Image source unavailable"); }
                     });
     } else if (!uri.isEmpty()) {
       m_client.fetchMedia(QUrl(uri), receive);
-    }
+    } else { receive({}, "Image source unavailable"); }
   }
 }
 void ChatSession::send() {
@@ -628,6 +638,26 @@ void ChatSession::removeAttachment(const QString &id) {
   }
   m_client.cancelUpload(id);
   emit stateChanged();
+}
+void ChatSession::openResource(const QString &uri) {
+  const QUrl url(uri);
+  if (m_resourceKinds.contains(url.scheme()) && !url.host().isEmpty()) { emit resourceRequested(uri); }
+}
+void ChatSession::openMedia(const QVariantMap &locator) {
+  const auto uri = locator.value("uri").toString();
+  const auto asset = locator.value("asset_id", uri.startsWith("asset://") ? uri.mid(8) : QString()).toString();
+  auto open = [this](const QUrl &url) {
+    m_client.openMedia(url, [this](QJsonValue, const QString &error) { if (!error.isEmpty()) { fail(error); } });
+  };
+  if (!asset.isEmpty()) {
+    m_client.call("assets.get", {{"id", asset}}, false, [this, open](QJsonValue value, QString error) {
+      if (!error.isEmpty()) { fail("Media unavailable"); return; }
+      const auto url = value.toObject()["get_url"].toString();
+      if (url.isEmpty()) { fail("Media source unavailable"); return; }
+      open(QUrl(url));
+    });
+  } else if (!uri.isEmpty()) { open(QUrl(uri)); }
+  else { fail("Media source unavailable"); }
 }
 void ChatSession::openExternal(const QUrl &url) {
   if (url.scheme() == "https" || url.scheme() == "http" ||

@@ -74,6 +74,9 @@ public:
   Q_INVOKABLE void removeAttachment(const QString &);
   Q_INVOKABLE void completeHostTool(const QString &, const QVariantMap &,
                                     const QString &error = {});
+  Q_PROPERTY(QStringList resourceKinds MEMBER m_resourceKinds NOTIFY stateChanged)
+  Q_INVOKABLE void openResource(const QString &uri);
+  Q_INVOKABLE void openMedia(const QVariantMap &locator);
   Q_INVOKABLE void openExternal(const QUrl &);
   Q_INVOKABLE void setHostTools(const QVariantList &tools);
   bool sendHostRequest(const QString &command, const QJsonObject &data,
@@ -85,6 +88,7 @@ public:
   void upsertThread(const QJsonObject &);
 signals:
   void stateChanged();
+  void resourceRequested(QString uri);
   void hostToolRequested(QString id, QString name, QVariantMap args);
   void hostResponseReceived(QJsonObject response);
 
@@ -105,6 +109,7 @@ private:
   void fail(const QString &);
   void resolveMedia(const QString &, const QJsonObject &,
                     const QString &projectionKey = {});
+  QStringList m_resourceKinds;
   ThreadModel m_threads;
   MessageModel m_empty;
   ChatClient m_client;

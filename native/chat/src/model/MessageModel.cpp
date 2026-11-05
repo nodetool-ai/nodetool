@@ -255,6 +255,47 @@ QJsonObject presentPart(QJsonObject part) {
   }
   return part;
 }
+bool mediaOnly(const QJsonValue &value) {
+  const auto blocks = value.toArray();
+  return !blocks.isEmpty() && std::all_of(blocks.begin(), blocks.end(), [](const QJsonValue &block) {
+    const auto type = block.toObject()["type"].toString();
+    return type == "image_url" || type == "video" || type == "audio";
+  });
+}
+QJsonObject mediaPresentation(QJsonObject part) {
+  const auto type = part["type"].toString();
+  if (type == "image_url" || type == "image" || type == "video" || type == "audio") {
+    const auto kind = type.startsWith("image") ? QString("image") : type;
+    const auto ref = part[kind].toObject();
+    part["media"] = true;
+    part["locator"] = ref;
+    part["label"] = ref["name"].toString(kind == "image" ? "Image" : kind == "audio" ? "Audio" : "Video");
+    if (ref["duration"].isDouble()) { part["duration"] = QString("%1 s").arg(ref["duration"].toDouble()); }
+    part["text"] = part["mediaError"].toString(kind == "image" ? "Loading image preview…" : "Open in your system media viewer.");
+  } else if (type == "document") {
+    const auto doc = part["document"].toObject();
+    part["label"] = doc["name"].toString("Document");
+    part["text"] = part["text"].toString(doc["text"].toString(doc["content"].toString("Document attached")));
+  } else if (type == "resource") {
+    const QUrl uri(part["uri"].toString());
+    const QSet<QString> kinds{"asset", "workflow", "app", "sketch", "timeline", "model3d", "game", "storyboard", "thread", "document", "collection"};
+    if (kinds.contains(uri.scheme()) && !uri.host().isEmpty()) {
+      part["resourceKind"] = uri.scheme();
+      part["label"] = uri.scheme() + " · " + part["label"].toString(uri.host());
+      part["text"] = QString();
+    }
+  } else if (type == "prediction") {
+    part["label"] = "Generation · " + part["model"].toString(part["provider"].toString());
+    QStringList fields;
+    for (const auto key : {"status", "provider_status", "output_status", "attachment_status", "progress", "cost", "error"}) {
+      if (!part[key].isNull() && !part[key].isUndefined()) { fields << QString(key) + ": " + displayJson(part[key]); }
+    }
+    part["text"] = fields.join(" · ");
+    part.remove("progress");
+    part.remove("status");
+  }
+  return part;
+}
 QJsonArray projectedParts(const QJsonObject &m, const QHash<QString, QJsonObject> &results, const QList<qsizetype> &offsets) {
   QJsonArray parts;
   if (m["execution_event_type"] == "compaction") {
@@ -302,7 +343,7 @@ QJsonArray projectedParts(const QJsonObject &m, const QHash<QString, QJsonObject
       qsizetype cursor = 0;
       while (nativeIndex < nativeParts.size()) {
         const auto part = nativeParts[nativeIndex].toObject();
-        if (part["type"] == "image") { ++nativeIndex; continue; }
+        if (part["type"] == "image" || part["resolvedMedia"].toBool()) { ++nativeIndex; continue; }
         const auto offset = offsets.value(nativeIndex, totalLength);
         if (offset > end) { break; }
         const auto local = std::clamp<qsizetype>(offset - textOffset, cursor, body.size());
@@ -322,7 +363,7 @@ QJsonArray projectedParts(const QJsonObject &m, const QHash<QString, QJsonObject
       } else {
         auto displayed = value;
         for (const auto &preview : nativeParts) {
-          if (part["type"] == "image_url" && preview.toObject()["type"] == "image" && preview.toObject()["image"] == part["image"]) {
+          if (preview.toObject()["originalMedia"] == value || (part["type"] == "image_url" && preview.toObject()["type"] == "image" && preview.toObject()["image"] == part["image"])) {
             displayed = preview;
             break;
           }
@@ -393,9 +434,22 @@ QJsonArray projectedParts(const QJsonObject &m, const QHash<QString, QJsonObject
       for (auto it = result.begin(); it != result.end(); ++it) { part[it.key()] = it.value(); }
     }
     if (!part.contains("started_at")) { part["started_at"] = m["created_at"]; }
-    displayed.append(presentPart(part));
+    displayed.append(mediaPresentation(presentPart(part)));
   }
   QJsonArray grouped;
+  const auto generation = m["media_generation"].toObject();
+  if (mediaOnly(m["content"]) || !generation.isEmpty()) {
+    QStringList metadata;
+    const QList<QPair<QString, QString>> labels{{"model", "Model"}, {"resolution", "Resolution"},
+      {"aspect_ratio", "Aspect ratio"}, {"variations", "Variations"}, {"duration", "Duration (s)"},
+      {"strength", "Strength"}, {"num_inference_steps", "Steps"}, {"voice", "Voice"}, {"speed", "Speed"}};
+    for (const auto &[key, label] : labels) {
+      if (generation.contains(key) && !generation[key].isNull()) { metadata << label + ": " + displayJson(generation[key]); }
+    }
+    if (!mediaOnly(m["content"])) { metadata.prepend("Generating media…"); }
+    grouped.append(QJsonObject{{"type", "media_group"}, {"label", "Generated media"},
+      {"text", metadata.join(" · ")}, {"count", m["content"].toArray().size()}});
+  }
   const QSet<QString> separate{"execute_code", "run_subtask",    "run_search",
                                "ask_user",     "request_secret", "create_plan"};
   for (qsizetype first = 0; first < displayed.size();) {
@@ -987,7 +1041,7 @@ bool MessageModel::addResolvedPart(const QString &id, const QJsonObject &part) {
   const auto i = m_indices.value(id);
   auto parts = m_rows[i]["parts"].toArray();
   for (const auto &old : parts) {
-    if (old.toObject()["image"] == part["image"]) {
+    if (old.toObject()["originalMedia"] == part["originalMedia"] && part.contains("originalMedia")) {
       return false;
     }
   }
@@ -1016,6 +1070,22 @@ void MessageModel::addPart(const QJsonObject &part) {
             {"created_at", QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs)}});
   }
   int targetRow = rowCount() - 1;
+  if (part["type"] == "prediction" && !part["id"].toString().isEmpty()) {
+    for (int row = rowCount() - 1; row >= 0; --row) {
+      auto values = m_rows[row]["parts"].toArray();
+      for (int i = 0; i < values.size(); ++i) {
+        if (values[i].toObject()["type"] == "prediction" && values[i].toObject()["id"] == part["id"]) {
+          auto updated = values[i].toObject();
+          for (auto it = part.begin(); it != part.end(); ++it) { updated[it.key()] = it.value(); }
+          values[i] = updated;
+          m_rows[row]["parts"] = values;
+          refreshParts(row);
+          emit dataChanged(index(row), index(row), {PartsRole});
+          return;
+        }
+      }
+    }
+  }
   const auto incomingAction = part["actionId"].toString();
   if (!incomingAction.isEmpty()) {
     for (int candidate = rowCount() - 1; candidate >= 0; --candidate) {
