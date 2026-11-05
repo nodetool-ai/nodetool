@@ -9,6 +9,7 @@ qt_standard_project_setup(REQUIRES 6.12)
 include(cmake/QtNodes.cmake)
 add_subdirectory(../ui_primitives ui_primitives)
 add_subdirectory(../model-picker model-picker)
+add_subdirectory(../chat chat)
 add_library(node_editor_core STATIC
  src/server/AccountJobs.cpp src/server/AccountJobs.h
  src/server/PackSetup.cpp src/server/PackSetup.h
@@ -19,6 +20,7 @@ add_library(node_editor_core STATIC
  src/document/WorkflowDocument.cpp src/document/WorkflowDocument.h
  src/server/WorkflowVersions.cpp src/server/WorkflowVersions.h
  src/server/WorkflowBrowser.cpp src/server/WorkflowBrowser.h
+ src/properties/DocumentPickerController.cpp src/properties/DocumentPickerController.h
  src/properties/ResourcePickerController.cpp src/properties/ResourcePickerController.h
  src/properties/AssetPickerController.cpp src/properties/AssetPickerController.h
  src/properties/ModelPickerController.cpp src/properties/ModelPickerController.h
@@ -48,15 +50,44 @@ add_library(node_editor_core STATIC
  src/media/AudioWaveform.cpp src/media/AudioWaveform.h
  src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h
  src/media/VideoFrameView.cpp src/media/VideoFrameView.h
+ src/ui/EditorChat.cpp src/ui/EditorChatTools.cpp
  src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/EditorWindow.h src/ui/EditorMenus.cpp)
 target_include_directories(node_editor_core PUBLIC src)
-target_link_libraries(node_editor_core PUBLIC nodetool_model_picker nodetool_model_pickerplugin QtNodes Qt6::Widgets Qt6::QuickWidgets Qt6::Svg Qt6::Network Qt6::WebSockets Qt6::Multimedia)
+target_link_libraries(node_editor_core PUBLIC nodetool_model_picker nodetool_model_pickerplugin nodetool_chat nodetool_chatplugin QtNodes Qt6::Widgets Qt6::QuickWidgets Qt6::Svg Qt6::Network Qt6::WebSockets Qt6::Multimedia)
 qt_add_executable(nodetool-node-editor src/main.cpp)
 target_link_libraries(nodetool-node-editor PRIVATE node_editor_core)
 nodetool_use_ui_primitives(nodetool-node-editor)
-qt_add_resources(node_editor_core editor_qml PREFIX /editor BASE qml FILES qml/QueueOverlay.qml qml/SetupGuide.qml qml/SetupPanel.qml qml/CodeSyntax.qml qml/VersionHistoryPanel.qml qml/VersionGraphPreview.qml qml/WorkflowDetails.qml qml/ActionPanel.qml qml/AuthoredControls.qml qml/EditorRoles.qml qml/PanelRow.qml qml/NodeButton.qml qml/TypeIcon.qml qml/TabBar.qml qml/Rail.qml qml/StatusBar.qml qml/ViewportIndicator.qml qml/Toolbar.qml qml/SelectionToolbar.qml qml/InlinePropertyEditor.qml qml/InlineTitleEditor.qml qml/OptionalPacksSection.qml qml/Catalog.qml qml/Inspector.qml qml/GenerationHistory.qml qml/DynamicPorts.qml qml/WorkflowBrowser.qml qml/PropertyField.qml qml/CodePropertyEditor.qml qml/ModelPropertyEditor.qml qml/AssetPropertyEditor.qml qml/MediaListPropertyEditor.qml qml/ColorPropertyEditor.qml qml/ImageSizePropertyEditor.qml qml/PropertyPresets.js qml/WorkflowPropertyEditor.qml qml/CollectionPropertyEditor.qml qml/StructuredPropertyEditor.qml qml/RunOutput.qml qml/RichOutput.qml qml/ObjectOutput.qml qml/TextOutput.qml qml/ImageComparisonOutput.qml qml/DataframeOutput.qml qml/MediaPreview.qml qml/CanvasMedia.qml qml/MediaGallery.qml qml/ServerSyncPanel.qml qml/CompatibleNodePicker.qml qml/CanvasDropPanel.qml)
+qt_add_resources(node_editor_core editor_qml PREFIX /editor BASE qml FILES qml/EditorChat.qml qml/QueueOverlay.qml qml/SetupGuide.qml qml/SetupPanel.qml qml/CodeSyntax.qml qml/VersionHistoryPanel.qml qml/VersionGraphPreview.qml qml/WorkflowDetails.qml qml/ActionPanel.qml qml/AuthoredControls.qml qml/EditorRoles.qml qml/PanelRow.qml qml/NodeButton.qml qml/TypeIcon.qml qml/TabBar.qml qml/CanvasTabStrip.qml qml/Rail.qml qml/StatusBar.qml qml/ViewportIndicator.qml qml/Toolbar.qml qml/SelectionToolbar.qml qml/InlinePropertyEditor.qml qml/InlineTitleEditor.qml qml/OptionalPacksSection.qml qml/Catalog.qml qml/Inspector.qml qml/GenerationHistory.qml qml/DynamicPorts.qml qml/WorkflowBrowser.qml qml/PropertyField.qml qml/RemainingResourcePropertyEditor.qml qml/PathPropertyEditor.qml qml/FilePropertyEditor.qml qml/ToolsPropertyEditor.qml qml/MediaParameterPropertyEditor.qml qml/CodePropertyEditor.qml qml/ModelPropertyEditor.qml qml/AssetPropertyEditor.qml qml/MediaListPropertyEditor.qml qml/ColorPropertyEditor.qml qml/ImageSizePropertyEditor.qml qml/PropertyPresets.js qml/WorkflowPropertyEditor.qml qml/CollectionPropertyEditor.qml qml/StructuredPropertyEditor.qml qml/RunOutput.qml qml/RichOutput.qml qml/ObjectOutput.qml qml/TextOutput.qml qml/ImageComparisonOutput.qml qml/DataframeOutput.qml qml/MediaPreview.qml qml/CanvasMedia.qml qml/MediaGallery.qml qml/ServerSyncPanel.qml qml/CompatibleNodePicker.qml qml/CanvasDropPanel.qml)
 qt_add_resources(node_editor_core editor_assets PREFIX /editor/resources BASE resources FILES resources/nodetool_48px.png)
 if(BUILD_TESTING)
+    qt_add_executable(node_editor_large_graph_tests tests/perf/LargeGraphTest.cpp)
+    target_link_libraries(node_editor_large_graph_tests PRIVATE node_editor_core Qt6::Test)
+    nodetool_use_ui_primitives(node_editor_large_graph_tests)
+    add_test(NAME node_editor_large_graph COMMAND node_editor_large_graph_tests)
+    set_tests_properties(node_editor_large_graph PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    qt_add_executable(node_editor_chat_tools_tests tests/ui/EditorChatToolsTest.cpp)
+    target_link_libraries(node_editor_chat_tools_tests PRIVATE node_editor_core Qt6::Test)
+    nodetool_use_ui_primitives(node_editor_chat_tools_tests)
+    add_test(NAME node_editor_chat_tools COMMAND node_editor_chat_tools_tests)
+    set_tests_properties(node_editor_chat_tools PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    include(cmake/CodeInference.cmake)
+    qt_add_executable(node_editor_remaining_property_tests tests/ui/RemainingPropertyTest.cpp
+        src/document/WorkflowDocument.cpp src/document/WorkflowDocument.h
+        src/properties/ResourcePickerController.cpp src/properties/ResourcePickerController.h
+        src/properties/AssetPickerController.cpp src/properties/AssetPickerController.h
+        src/media/AudioWaveform.cpp src/media/AudioWaveform.h
+        src/media/VideoFrameView.cpp src/media/VideoFrameView.h
+        src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h)
+    node_editor_use_code_inference(node_editor_remaining_property_tests)
+    target_include_directories(node_editor_remaining_property_tests PRIVATE src)
+    target_link_libraries(node_editor_remaining_property_tests PRIVATE Qt6::Network Qt6::Test Qt6::Quick Qt6::Widgets Qt6::Multimedia)
+    qt_add_resources(node_editor_remaining_property_tests remaining_property_qml PREFIX /editor BASE qml FILES
+        qml/RemainingResourcePropertyEditor.qml qml/PathPropertyEditor.qml qml/FilePropertyEditor.qml
+        qml/ToolsPropertyEditor.qml qml/MediaParameterPropertyEditor.qml qml/AssetPropertyEditor.qml
+        qml/MediaPreview.qml qml/NodeButton.qml qml/EditorRoles.qml)
+    nodetool_use_ui_primitives(node_editor_remaining_property_tests)
+    add_test(NAME node_editor_remaining_property COMMAND node_editor_remaining_property_tests)
+    set_tests_properties(node_editor_remaining_property PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
  qt_add_executable(node_editor_workflow_tabs_tests tests/ui/WorkflowTabsTest.cpp)
  target_link_libraries(node_editor_workflow_tabs_tests PRIVATE node_editor_core Qt6::Test)
  nodetool_use_ui_primitives(node_editor_workflow_tabs_tests)
@@ -357,4 +388,30 @@ if(BUILD_TESTING)
     nodetool_use_ui_primitives(node_editor_subgraph_card_tests)
     add_test(NAME node_editor_subgraph_card COMMAND node_editor_subgraph_card_tests)
     set_tests_properties(node_editor_subgraph_card PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endif()
+
+if(BUILD_TESTING)
+    qt_add_executable(node_editor_chat_tests tests/ui/EditorChatTest.cpp)
+    target_link_libraries(node_editor_chat_tests PRIVATE node_editor_core Qt6::Test)
+    nodetool_use_ui_primitives(node_editor_chat_tests)
+    add_test(NAME node_editor_chat COMMAND node_editor_chat_tests)
+    set_tests_properties(node_editor_chat PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endif()
+
+if(BUILD_TESTING)
+    qt_add_executable(node_editor_document_property_tests tests/ui/DocumentPropertyTest.cpp)
+    target_link_libraries(node_editor_document_property_tests PRIVATE node_editor_core Qt6::Test)
+    nodetool_use_ui_primitives(node_editor_document_property_tests)
+    add_test(NAME node_editor_document_property COMMAND node_editor_document_property_tests)
+    set_tests_properties(node_editor_document_property PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endif()
+
+qt_add_resources(node_editor_core document_property_qml PREFIX /editor BASE qml FILES qml/DocumentPropertyEditor.qml qml/Model3DPropertyEditor.qml)
+
+if(BUILD_TESTING)
+    qt_add_executable(node_editor_property_behavior_tests tests/ui/PropertyBehaviorTest.cpp)
+    target_link_libraries(node_editor_property_behavior_tests PRIVATE node_editor_core Qt6::Test)
+    nodetool_use_ui_primitives(node_editor_property_behavior_tests)
+    add_test(NAME node_editor_property_behavior COMMAND node_editor_property_behavior_tests)
+    set_tests_properties(node_editor_property_behavior PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endif()

@@ -322,6 +322,10 @@ private slots:
           respond(socket, "[]");
           return;
         }
+        if (bytes.startsWith("GET /trpc/jobs.list")) {
+          respond(socket, R"({"result":{"data":{"jobs":[]}}})");
+          return;
+        }
         requests.append(bytes);
         sockets.append(socket);
       });

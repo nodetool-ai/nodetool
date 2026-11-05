@@ -13,7 +13,7 @@ Rectangle {
     readonly property bool bound: workflowSession && workflowSession.serverBound
     readonly property bool conflicted: workflowSession && workflowSession.conflictPending
     readonly property bool hasRemote: conflicted && workflowSession.conflictWorkflow.id !== undefined
-    readonly property bool busy: workflowSession && workflowSession.saving
+    readonly property bool busy: workflowSession && (workflowSession.saving || workflowSession.remoteLoading)
     readonly property bool deleted: workflowSession && workflowSession.autosaveState === "deleted"
     readonly property string serverState: workflowSession ? workflowSession.autosaveState : ""
     color: Ui.Theme.surfacePanel

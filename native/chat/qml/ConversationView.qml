@@ -8,6 +8,8 @@ Item {
     id: root
     required property var session
     property bool showBack: false
+    property bool embedded: false
+    readonly property real composerHeight: composer.height + Ui.Metrics.md
     signal backRequested
     property var scrollPositions: ({})
     property string previousThread: ""
@@ -64,9 +66,15 @@ Item {
         });
         previousThread = session.selectedThreadId;
     }
-    Ui.Surface { anchors.fill: parent; variant: Ui.Surface.Canvas }
+    Ui.Surface {
+        anchors.fill: parent
+        variant: Ui.Surface.Canvas
+        visible: !root.embedded
+    }
     RowLayout {
         id: conversationHeader
+        visible: !root.embedded
+        height: root.embedded ? 0 : implicitHeight
         anchors.left: parent.left
         anchors.right: parent.right
         Ui.EditorButton {
@@ -106,7 +114,7 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        anchors.margins: Ui.Metrics.xl
+        anchors.margins: root.embedded ? Ui.Metrics.sm : Ui.Metrics.xl
         spacing: Ui.Metrics.md
         Ui.EditorButton {
             text: qsTr("Load earlier messages")
@@ -185,26 +193,35 @@ Item {
                 anchors.centerIn: parent
                 width: parent.width - Ui.Metrics.xl * 2
                 visible: messages.count === 0 && !(root.session && root.session.historyLoading)
-                spacing: Ui.Metrics.xl
+                spacing: root.embedded ? Ui.Metrics.xs : Ui.Metrics.xl
+                Ui.Icon {
+                    visible: root.embedded
+                    name: "forum"
+                    size: ChatMetrics.emptyIcon
+                    Layout.preferredWidth: ChatMetrics.emptyIcon
+                    Layout.preferredHeight: ChatMetrics.emptyIcon
+                    opacity: 0.4
+                    Layout.alignment: Qt.AlignHCenter
+                }
                 Ui.Text {
-                    role: Ui.Typography.SansTitle
+                    role: root.embedded ? Ui.Typography.SansLabel : Ui.Typography.SansTitle
                     objectName: "chatHistoryEmptyPrompt"
                     Layout.fillWidth: true
-                    text: qsTr("What do you want to create?")
+                    text: root.embedded ? qsTr("Start a conversation") : qsTr("What do you want to create?")
                     wrapMode: Text.WordWrap
                     horizontalAlignment: Text.AlignHCenter
                 }
                 Ui.Text {
                     role: Ui.Typography.SansLabel
                     Layout.fillWidth: true
-                    text: root.session && root.session.selectedThreadId ? qsTr("Describe what you want to make below.") : qsTr("Start a new chat to work with an agent.")
+                    text: root.embedded ? qsTr("Ask about this workflow, or type @ to reference an asset.") : root.session && root.session.selectedThreadId ? qsTr("Describe what you want to make below.") : qsTr("Start a new chat to work with an agent.")
                     wrapMode: Text.WordWrap
                     horizontalAlignment: Text.AlignHCenter
                     tone: Ui.Text.Secondary
                 }
                 Ui.EditorButton {
                     Layout.alignment: Qt.AlignHCenter
-                    visible: !root.session || !root.session.selectedThreadId
+                    visible: !root.embedded && (!root.session || !root.session.selectedThreadId)
                     text: qsTr("New chat")
                     enabled: !!root.session && root.session.connectionStatus === "connected"
                     onClicked: root.session.createThread()
@@ -220,7 +237,14 @@ Item {
                 messages.positionViewAtEnd();
             }
         }
+        Ui.EditorButton {
+            objectName: "retryEditorChat"
+            text: qsTr("Retry")
+            visible: !!root.session && root.session.turnStatus === "error"
+            onClicked: root.session.retry()
+        }
         ChatComposer {
+            id: composer
             Layout.fillWidth: true
             Layout.maximumWidth: ChatMetrics.columnWidth
             Layout.alignment: Qt.AlignHCenter

@@ -517,8 +517,9 @@ private slots:
     w.show();
     QTest::qWait(50);
     auto panels = w.findChildren<QQuickWidget *>();
-    // Rail, tabs, status, catalog, browser, inspector, output, both toolbars, viewport readout.
-    QCOMPARE(panels.size(), 10);
+    // Rail, tabs, status, catalog, browser, inspector, output, both toolbars, viewport readout,
+    // first-workflow guide, queue overlay, subgraph canvas strip, chat overlay.
+    QCOMPARE(panels.size(), 14);
     for (auto p : panels) {
       QCOMPARE(p->status(), QQuickWidget::Ready);
     }

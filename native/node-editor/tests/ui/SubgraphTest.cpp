@@ -7,6 +7,7 @@
 #include <QMenu>
 #include <QQuickItem>
 #include <QQuickWidget>
+#include <QGraphicsView>
 #include <QQuickWindow>
 #include <QSettings>
 #include <QTcpServer>
@@ -347,6 +348,23 @@ private slots:
       QVERIFY(click(window, "selection-open-child"));
       QPointer<EditorWindow> second = window.activeEditor();
       QCOMPARE(window.canvasStrips().size(), 2);
+        QCOMPARE(window.canvasStrips().first().toMap()["entries"].toList()[0].toMap()["title"].toString(), QString("Workflow"));
+        QCOMPARE(window.canvasStrips().last().toMap()["entries"].toList()[0].toMap()["title"].toString(), first->workflowName());
+        QQuickWidget *strips = nullptr;
+        for (auto widget : window.findChildren<QQuickWidget *>()) {
+            if (widget->isVisible() && widget->source().fileName() == "CanvasTabStrip.qml") {
+                strips = widget;
+            }
+        }
+        QVERIFY(strips);
+        auto view = window.activeEditor()->findChild<QGraphicsView *>();
+        QVERIFY(view);
+        QTRY_COMPARE(strips->width(), view->width());
+        QCOMPARE(strips->mapTo(&window, QPoint()).x(), view->mapTo(&window, QPoint()).x());
+        QVERIFY(strips->mapTo(&window, QPoint()).x() > 50);
+        QCOMPARE(strips->mapTo(&window, QPoint(0, strips->height())).y(), view->mapTo(&window, QPoint()).y());
+        QCOMPARE(find(strips->rootObject(), "canvas-label-0-0")->property("text").toString(), QString("Workflow"));
+        QCOMPARE(find(strips->rootObject(), "canvas-label-1-0")->property("text").toString(), first->workflowName());
       const auto entries = window.canvasStrips().first().toMap()["entries"].toList();
       QVERIFY(entries[1].toMap()["selected"].toBool());
       QVERIFY(window.document()->applyCommand(

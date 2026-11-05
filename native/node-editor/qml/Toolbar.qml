@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import NodeTool.UiPrimitives as Ui
 
-// The action row of the web's floating composer. The chat input stays web-only.
+// Canvas actions and the embedded conversation entry point.
 Item {
     id: root
     // A narrow canvas keeps the run icon and drops its label, as the web does.
@@ -109,6 +109,12 @@ Item {
                     Ui.Icon { anchors.verticalCenter: parent.verticalCenter; name: "playArrow"; size: Ui.Metrics.iconMd; tone: Ui.Text.OnAccent }
                     Ui.Text { anchors.verticalCenter: parent.verticalCenter; visible: !root.compact; text: root.runLabel; role: Ui.Typography.SansLabel; font.weight: Font.Normal; tone: Ui.Text.OnAccent; lineHeight: 1 }
                 }
+            }
+            Ui.ToolbarIconButton {
+                objectName: "toggleEditorChat"
+                text: qsTr("Conversation")
+                iconName: "forum"
+                onClicked: editor.toggleChat()
             }
             ActionButton { text: "More"; primitiveGlyph: "moreVert" }
         }

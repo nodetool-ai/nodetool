@@ -4,6 +4,9 @@ import QtQuick
 
 // SVG path data in a 24 by 24 box.
 QtObject {
+    readonly property string viewCarouselOutlined: "M2 7h4v10H2zm5 12h10V5H7zM9 7h6v10H9zm9 0h4v10h-4z"
+    readonly property string descriptionOutlined: "M8 16h8v2H8zm0-4h8v2H8zm6-10H6c-1.1 0-2 .9-2 2v16c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8zm4 18H6V4h7v5h5z"
+    readonly property string brushOutlined: "M7 16c.55 0 1 .45 1 1 0 1.1-.9 2-2 2-.17 0-.33-.02-.5-.05.31-.55.5-1.21.5-1.95 0-.55.45-1 1-1M18.67 3c-.26 0-.51.1-.71.29L9 12.25 11.75 15l8.96-8.96c.39-.39.39-1.02 0-1.41l-1.34-1.34c-.2-.2-.45-.29-.7-.29M7 14c-1.66 0-3 1.34-3 3 0 1.31-1.16 2-2 2 .92 1.22 2.49 2 4 2 2.21 0 4-1.79 4-4 0-1.66-1.34-3-3-3"
     readonly property string alignHorizontalLeft: "M4 22H2V2h2zM22 7H6v3h16zm-6 7H6v3h10z"
     readonly property string crossFadeIn: "M11 9h2v2h-2zm-2 2h2v2H9zm4 0h2v2h-2zm2-2h2v2h-2zM7 9h2v2H7zm12-6H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2M9 18H7v-2h2zm4 0h-2v-2h2zm4 0h-2v-2h2zm2-7h-2v2h2v2h-2v-2h-2v2h-2v-2h-2v2H9v-2H7v2H5v-2h2v-2H5V5h14z"
     readonly property string rename: "M18.41 5.8 17.2 4.59c-.78-.78-2.05-.78-2.83 0l-2.68 2.68L3 15.96V20h4.04l8.74-8.74 2.63-2.63c.79-.78.79-2.05 0-2.83M6.21 18H5v-1.21l8.66-8.66 1.21 1.21zM11 20l4-4h6v4z"
@@ -186,4 +189,9 @@ QtObject {
     readonly property string paletteOutlined: "M12 22C6.49 22 2 17.51 2 12S6.49 2 12 2s10 4.04 10 9c0 3.31-2.69 6-6 6h-1.77c-.28 0-.5.22-.5.5 0 .12.05.23.13.33.41.47.64 1.06.64 1.67 0 1.38-1.12 2.5-2.5 2.5m0-18c-4.41 0-8 3.59-8 8s3.59 8 8 8c.28 0 .5-.22.5-.5 0-.16-.08-.28-.14-.35-.41-.46-.63-1.05-.63-1.65 0-1.38 1.12-2.5 2.5-2.5H16c2.21 0 4-1.79 4-4 0-3.86-3.59-7-8-7M5 11.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 1 0 -3 0M8 7.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 1 0 -3 0M13 7.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 1 0 -3 0M16 11.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 1 0 -3 0"
     // CategoryOutlined
     readonly property string categoryOutlined: "m12 2-5.5 9h11zm0 3.84L13.93 9h-3.87zM17.5 13c-2.49 0-4.5 2.01-4.5 4.5s2.01 4.5 4.5 4.5 4.5-2.01 4.5-4.5-2.01-4.5-4.5-4.5m0 7c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5M3 21.5h8v-8H3zm2-6h4v4H5z"
+    readonly property string history: "M13 3a9 9 0 0 0-9 9H1l4 4 4-4H6a7 7 0 1 1 2.1 5L6.7 18.4A9 9 0 1 0 13 3m-1 5v5l4.3 2.6 1-1.6-3.3-2V8z"
+    readonly property string editNote: "M3 10h10v2H3zm0-4h14v2H3zm0 8h8v2H3zm13.3-1.7 2.4 2.4L12 21h-2.4v-2.4zm3.1-3.1 2.4 2.4-1.7 1.7-2.4-2.4z"
+    readonly property string folderOutlined: "M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2m0 12H4V6h5.17l2 2H20z"
+    readonly property string language: "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20m6.9 6h-3a16 16 0 0 0-1.4-3.5A8 8 0 0 1 18.9 8M12 4c.8 1 1.5 2.4 1.9 4h-3.8C10.5 6.4 11.2 5 12 4M4.3 14a8 8 0 0 1 0-4h3.9a17 17 0 0 0 0 4zm.8 2h3a16 16 0 0 0 1.4 3.5A8 8 0 0 1 5.1 16m3-8h-3a8 8 0 0 1 4.4-3.5A16 16 0 0 0 8.1 8M12 20c-.8-1-1.5-2.4-1.9-4h3.8c-.4 1.6-1.1 3-1.9 4m2.3-6H9.7a15 15 0 0 1 0-4h4.6a15 15 0 0 1 0 4m.2 5.5a16 16 0 0 0 1.4-3.5h3a8 8 0 0 1-4.4 3.5m1.3-5.5a17 17 0 0 0 0-4h3.9a8 8 0 0 1 0 4z"
+    readonly property string aspectRatio: "M19 12h-2v3h-3v2h5zM7 9h3V7H5v5h2zm14-6H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m0 16H3V5h18z"
 }

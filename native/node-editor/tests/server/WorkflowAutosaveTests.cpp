@@ -21,8 +21,8 @@ public:
     {"graph", QJsonObject{{"nodes", QJsonArray{}}, {"edges", QJsonArray{}}}}};
   QList<QJsonObject> writes;
   int status = 200, reads = 0;
-  bool skip = false, delay = false;
-  QPointer<QTcpSocket> pending;
+  bool skip = false, delay = false, delayReads = false;
+  QPointer<QTcpSocket> pending, pendingRead;
   QJsonObject pendingBody;
   Http() {
     server.listen(QHostAddress::LocalHost);
@@ -50,7 +50,11 @@ public:
             writes.append(body);
             if (delay) { pending = socket; pendingBody = body; return; }
             finish(socket, body, path.startsWith("/trpc"));
-          } else if (path == "/api/workflows/bound") { ++reads; reply(socket, remote); }
+          } else if (path == "/api/workflows/bound") {
+            ++reads;
+            if (delayReads) { pendingRead = socket; return; }
+            reply(socket, remote);
+          }
           else if (path.startsWith("/trpc/assets.list")) reply(socket, QJsonObject{{"result", QJsonObject{{"data", QJsonObject{{"assets", QJsonArray{}}, {"next", QJsonValue::Null}}}}}});
           else reply(socket, {});
         });
@@ -187,6 +191,18 @@ private slots:
     notify("deleted", ""); QTRY_COMPARE(session.autosaveState(), QString("deleted"));
     QVERIFY(session.conflictWorkflow().isEmpty()); session.keepLocalWorkflow(); session.flushAutosave(); session.save();
     QTest::qWait(20); QVERIFY(http.writes.isEmpty()); QCOMPARE(session.workflow(), draft);
+  }
+  void flushWaitsForRemoteComparison() {
+    Http http; WorkflowSession session; session.setAutosaveDelay(60000); session.connectToServer(http.url(), {});
+    session.openWorkflow("bound"); QTRY_VERIFY(session.serverBound()); QTRY_VERIFY(http.peer);
+    QTest::qWait(50);
+    auto draft = session.workflow(); draft["graph"] = graphValue("local"); session.setSnapshot(draft);
+    http.delayReads = true; session.refreshRemoteWorkflow(); QTRY_VERIFY(http.pendingRead);
+    session.flushAutosave(); QTest::qWait(20); QCOMPARE(http.writes.size(), 0);
+    http.delayReads = false; http.reply(http.pendingRead, http.remote);
+    // The debounce is 60 s, so only the deferred flush can write within the wait.
+    QTRY_COMPARE(http.writes.size(), 1);
+    QCOMPARE(http.writes[0]["expected_updated_at"].toString(), QString("r1"));
   }
   void remoteReloadAndScopeDiscards() {
     Http http; WorkflowSession session; session.setAutosaveDelay(60000); session.connectToServer(http.url(), {});

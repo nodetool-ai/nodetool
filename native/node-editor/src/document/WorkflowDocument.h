@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QUndoStack>
 #include <QStringList>
+#include <vector>
 
 namespace nodetool::node_editor {
 struct EditResult {
@@ -39,7 +40,8 @@ public:
     [[nodiscard]] EditResult load(const QJsonObject& workflow);
     void reconcileMetadata(const QJsonObject& workflow);
     [[nodiscard]] EditResult loadJson(const QByteArray& json);
-    [[nodiscard]] QJsonObject snapshot() const { return workflow_; }
+    [[nodiscard]] QJsonObject snapshot() const;
+    [[nodiscard]] qsizetype nodeCount() const { return static_cast<qsizetype>(nodeValues_.size()); }
     [[nodiscard]] QJsonObject graph() const;
     [[nodiscard]] QJsonArray nodes() const;
     [[nodiscard]] QJsonArray edges() const;
@@ -59,8 +61,21 @@ signals:
     void changed();
 private:
     friend class DocumentEdit;
+    friend class NodeDeltaEdit;
+    friend class EdgeDeltaEdit;
+    void appendEdge(const QJsonObject& value);
+    void popEdge();
+    void rebuildGraph();
+    void writeNode(const QString& id, const QJsonObject& value);
     void restore(const QJsonObject& value);
-    QJsonObject workflow_;
+    mutable QJsonObject workflow_;
+    std::vector<QJsonObject> nodeValues_;
+    std::vector<QJsonObject> edgeValues_;
+    QHash<QString, qsizetype> edgeIndices_;
+    QHash<QString, QStringList> outgoing_;
+    QHash<QString, qsizetype> nodeIndices_;
+    // JSON is materialized only at a snapshot boundary, never for undo storage.
+    mutable bool graphDirty_ = false;
     QHash<QString, QJsonObject> metadata_;
     QString readOnlyReason_;
     QUndoStack undo_;

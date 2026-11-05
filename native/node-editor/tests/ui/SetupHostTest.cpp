@@ -221,14 +221,19 @@ bool click(EditorWindow &window, const QString &name) {
                               QPoint(0, -480), Qt::NoButton, Qt::NoModifier,
                               Qt::NoScrollPhase, false);
             QCoreApplication::sendEvent(surface, &wheel);
+            // A press during the scroll animation stops the Flickable, not a click.
+            QTest::qWaitFor([clipped] { return !clipped->property("moving").toBool(); }, 2000);
             QTest::qWait(50);
         }
+        // A window-type popup's items are found through the catalog surface but
+        // receive input through their own window.
+        const auto target = item->window();
         QTest::mouseMove(
-            surface, item->mapToScene({item->width() / 2, item->height() / 2})
-                         .toPoint());
+            target, item->mapToScene({item->width() / 2, item->height() / 2})
+                        .toPoint());
         QTest::qWait(50);
         QTest::mouseClick(
-            surface, Qt::LeftButton, Qt::NoModifier,
+            target, Qt::LeftButton, Qt::NoModifier,
             item->mapToScene({item->width() / 2, item->height() / 2})
                 .toPoint());
         QCoreApplication::processEvents();

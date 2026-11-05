@@ -77,7 +77,7 @@ ColumnLayout {
         id: fieldLoader
         Layout.fillWidth: true
         // The web inspector shows a connected input as its dimmed label alone.
-        visible: !root.descriptor.connected || root.descriptor.appendStatic === true
+        visible: !root.descriptor.connected || root.descriptor.appendStatic === true || root.descriptor.kind === "model3d"
         sourceComponent: root.descriptor.name === "code" && ["text", "multiline"].includes(root.descriptor.kind) ? codeField
             : root.descriptor.kind === "text" ? (root.multiline ? multilineField : textField)
             : root.descriptor.kind === "multiline" ? multilineField
@@ -85,12 +85,20 @@ ColumnLayout {
             : root.descriptor.kind === "boolean" ? booleanField
             : root.descriptor.kind === "choice" ? choiceField
             : root.descriptor.kind === "model" ? modelField
+            : root.descriptor.kind === "model3d" ? model3dField
             : root.descriptor.kind === "media" ? mediaField
             : root.descriptor.kind === "media_list" ? mediaListField
             : root.descriptor.kind === "color" ? colorField
             : root.descriptor.kind === "image_size" ? imageSizeField
             : ["workflow", "workflow_list"].includes(root.descriptor.kind) ? workflowField
+            : root.descriptor.kind === "document_ref" ? documentField
             : root.descriptor.kind === "collection" ? collectionField
+            : ["font", "folder", "entity", "entity_list"].includes(root.descriptor.kind) ? remainingResourceField
+            : ["file_path", "folder_path"].includes(root.descriptor.kind) ? pathField
+            : root.descriptor.kind === "tools" ? toolsField
+            : root.descriptor.kind.startsWith("media_") && !["media_list"].includes(root.descriptor.kind) ? mediaParameterField
+            : root.descriptor.kind === "document" ? (["nodetool.constant.Document", "nodetool.input.DocumentInput"].includes(root.descriptor.nodeType) ? documentAssetField : documentIdField)
+            : root.descriptor.kind === "file" ? fileField
             : ["list", "dict", "json", "record_type"].includes(root.descriptor.kind) ? structuredField : preservedField
     }
     Component {
@@ -194,6 +202,109 @@ ColumnLayout {
         }
     }
     Component {
+        id: model3dField
+        Model3DPropertyEditor {
+            descriptor: root.descriptor
+            value: root.effectiveValue
+            writable: root.writable
+            nodeId: root.nodeId
+            onScopeInvalidated: {
+                ++root.commitGeneration
+                root.editNodeId = ""
+            }
+            onValueCommitted: value => root.immediate(value)
+        }
+    }
+    Component {
+        id: documentField
+        DocumentPropertyEditor {
+            descriptor: root.descriptor
+            value: root.effectiveValue
+            writable: root.writable
+            nodeId: root.nodeId
+            onScopeInvalidated: {
+                ++root.commitGeneration
+                root.editNodeId = ""
+            }
+            onValueCommitted: value => root.immediate(value)
+        }
+    }
+    Component {
+        id: remainingResourceField
+        RemainingResourcePropertyEditor {
+            descriptor: root.descriptor
+            value: root.effectiveValue
+            writable: root.writable
+            nodeId: root.nodeId
+            onScopeInvalidated: {
+                ++root.commitGeneration
+                root.editNodeId = ""
+            }
+            onValueCommitted: value => root.immediate(value)
+        }
+    }
+    Component {
+        id: pathField
+        PathPropertyEditor {
+            descriptor: root.descriptor
+            value: root.effectiveValue
+            writable: root.writable
+            onValueCommitted: value => root.immediate(value)
+        }
+    }
+    Component {
+        id: toolsField
+        ToolsPropertyEditor {
+            descriptor: root.descriptor
+            value: root.effectiveValue
+            writable: root.writable
+            onValueCommitted: value => root.immediate(value)
+        }
+    }
+    Component {
+        id: mediaParameterField
+        MediaParameterPropertyEditor {
+            descriptor: root.descriptor
+            value: root.effectiveValue
+            writable: root.writable
+            onScopeInvalidated: {
+                ++root.commitGeneration
+                root.editNodeId = ""
+            }
+            onValueCommitted: value => root.immediate(value)
+        }
+    }
+    Component {
+        id: documentIdField
+        Ui.Text {
+            objectName: "document-reference-" + root.descriptor.name
+            text: root.effectiveValue && root.effectiveValue.id || ""
+            role: Ui.Typography.SansCaption
+            wrapMode: Text.WrapAnywhere
+        }
+    }
+    Component {
+        id: fileField
+        FilePropertyEditor {
+            objectName: "file-reference-" + root.descriptor.name
+            value: root.effectiveValue
+        }
+    }
+    Component {
+        id: documentAssetField
+        AssetPropertyEditor {
+            descriptor: Object.assign({}, root.descriptor, {mediaType: "document"})
+            value: root.effectiveValue
+            writable: root.writable
+            nodeId: root.nodeId
+            onScopeInvalidated: {
+                ++root.commitGeneration
+                root.editNodeId = ""
+            }
+            onValueCommitted: value => root.immediate(value)
+        }
+    }
+    Component {
         id: collectionField
         CollectionPropertyEditor {
             descriptor: root.descriptor
@@ -281,7 +392,7 @@ ColumnLayout {
         wrapMode: Text.Wrap
     }
     Ui.Text {
-        visible: text !== ""
+        visible: text !== "" && !["document_ref", "model3d"].includes(root.descriptor.kind)
         text: root.descriptor.conditionalUnavailable ? "Unavailable for the selected settings"
             : root.descriptor.connected && root.descriptor.appendStatic ? "Connected items precede these editable static items."
             : root.descriptor.connected ? "Connected input. Disconnect it to edit this value."

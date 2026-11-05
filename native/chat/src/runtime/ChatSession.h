@@ -50,7 +50,15 @@ public:
   }
   QVariantList attachments() const;
   Q_INVOKABLE void selectThread(const QString &);
-  Q_INVOKABLE void createThread();
+    Q_PROPERTY(QVariantList workflowThreads READ workflowThreads NOTIFY stateChanged)
+    Q_PROPERTY(QString threadTitle READ threadTitle NOTIFY stateChanged)
+    QVariantList workflowThreads() const;
+    QString threadTitle() const;
+    Q_INVOKABLE void setWorkflow(const QString &id);
+    Q_INVOKABLE void deleteThread(const QString &id);
+    Q_INVOKABLE void retry();
+    bool hasActiveTurns() const;
+  Q_INVOKABLE void createThread(const QString &draft = {});
   Q_INVOKABLE void send();
   Q_INVOKABLE void stop();
   Q_INVOKABLE void refresh();
@@ -89,6 +97,8 @@ private:
     bool uncertainReplay = false;
     QJsonArray bufferedEvents;
     std::unique_ptr<MessageModel> messages;
+    QString lastPrompt;
+    QVariantList lastAttachments;
     QString draft, status = "idle", cursor, error;
     qint64 sequence = 0;
     QVariantList attachments;
@@ -99,6 +109,9 @@ private:
   void fail(const QString &);
   void resolveMedia(const QString &, const QJsonObject &,
                     const QString &projectionKey = {});
+    QSet<QString> m_creatingWorkflows;
+    QString m_workflow;
+    QHash<QString, QString> m_threadWorkflows, m_workflowThreads;
   ThreadModel m_threads;
   MessageModel m_empty;
   ChatClient m_client;

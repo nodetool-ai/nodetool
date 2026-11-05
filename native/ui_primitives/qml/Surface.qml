@@ -13,7 +13,7 @@ Rectangle {
     property bool elevated: false
     Rectangle {
         z: -1
-        visible: root.elevated
+        visible: root.elevated && GraphicsInfo.api !== GraphicsInfo.Software
         anchors.fill: parent
         anchors.margins: -Metrics.xs
         anchors.topMargin: Metrics.xs

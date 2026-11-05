@@ -8,7 +8,7 @@ Rectangle {
         id: roles
     }
     color: roles.chrome
-    implicitHeight: roles.tabHeight + childRows.implicitHeight
+    implicitHeight: roles.tabHeight
     Rectangle {
         width: parent.width
         height: roles.tabHeight
@@ -88,68 +88,6 @@ Rectangle {
                     text: "+"
                     Accessible.name: "New workflow tab"
                     onClicked: editor.newTab()
-                }
-            }
-        }
-    }
-    Column {
-        id: childRows
-        y: roles.tabHeight
-        width: parent.width
-        Repeater {
-            model: editor ? editor.canvasStrips : []
-            delegate: Rectangle {
-                required property var modelData
-                readonly property int depth: modelData.depth
-                objectName: "subgraph-strip-" + depth
-                width: childRows.width
-                height: Ui.Metrics.compact
-                color: roles.chrome
-                Flickable {
-                    anchors.fill: parent
-                    contentWidth: childrenRow.width
-                    clip: true
-                    Row {
-                        id: childrenRow
-                        height: parent.height
-                        Repeater {
-                            model: modelData.entries
-                            delegate: Item {
-                                required property var modelData
-                                required property int index
-                                width: entryControls.implicitWidth + Ui.Metrics.md * 2
-                                height: childrenRow.height
-                                Row {
-                                    id: entryControls
-                                    anchors.centerIn: parent
-                                    Ui.EditorButton {
-                                        density: Ui.EditorButton.Compact
-                                        variant: Ui.EditorButton.Flat
-                                        objectName: "activate-canvas-" + depth + "-" + index
-                                        text: modelData.title
-                                        onClicked: editor.activateSurface(modelData.surface)
-                                    }
-                                    Ui.EditorButton {
-                                        density: Ui.EditorButton.Compact
-                                        variant: Ui.EditorButton.Flat
-                                        objectName: "close-canvas-" + depth + "-" + index
-                                        visible: !modelData.host
-                                        text: "×"
-                                        Accessible.name: "Close " + modelData.title
-                                        onClicked: editor.closeSurface(modelData.surface)
-                                    }
-                                }
-                                Rectangle {
-                                    objectName: "canvas-selection"
-                                    anchors.top: parent.top
-                                    width: parent.width
-                                    height: Ui.Metrics.focus
-                                    visible: modelData.selected
-                                    color: modelData.host ? Ui.Theme.accentPrimary : roles.subgraphAccent
-                                }
-                            }
-                        }
-                    }
                 }
             }
         }

@@ -131,6 +131,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     guideDismissed_ = false;
     emit documentEpochChanged();
     QTimer::singleShot(0, this, &EditorWindow::refreshChildReferences);
+    session_.setSnapshot(document_.snapshot());
   });
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, &setup_, &node_editor::SetupController::configure);
     connect(&session_, &node_editor::WorkflowSession::credentialsChanged, this,
@@ -140,7 +141,6 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
         packUser_ = user;
         syncPackSetup();
     });
-    connect(&document_, &node_editor::WorkflowDocument::changed, this, &EditorWindow::syncPackSetup);
 
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, this, [this] {
     guideStarted_ = false;
@@ -166,12 +166,21 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   engine_->rootContext()->setContextProperty("modelPickerController", &modelPicker_);
   engine_->rootContext()->setContextProperty("assetPickerController", &assetPicker_);
   engine_->rootContext()->setContextProperty("resourcePickerController", &resourcePicker_);
+    engine_->rootContext()->setContextProperty("documentPickerController", &documentPicker_);
   model_.setRuntimeModel(&runtime_);
   connect(&session_, &node_editor::WorkflowSession::generationsChanged, this, &EditorWindow::panelChanged);
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, this, [this](const QUrl &origin, const QString &token, const QString &userId) {
     auto owner = tabOwner_ ? tabOwner_ : this;
     if (owner->tabsOrigin_ != origin || owner->tabsToken_ != token || owner->tabsUser_ != userId) {
       owner->tabsOrigin_ = origin; owner->tabsToken_ = token; owner->tabsUser_ = userId;
+        const auto retained = owner->retainedChatHosts_;
+        owner->retainedChatHosts_.clear();
+        for (const auto &host : retained) {
+            if (host) {
+                host->chat_.disconnectFromServer();
+                host->deleteLater();
+            }
+        }
       for (auto tab : owner->tabs_) {
         if (tab == this) { continue; }
         if (origin.isEmpty()) { tab->session_.disconnectFromServer(); }
@@ -192,6 +201,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     if (scene_) { refresh(); }
   });
   connect(&browser_, &node_editor::WorkflowBrowser::changed, this, [this] {
+    emit panelChanged();
     if (browserLoadingProjects_ && !browser_.projectsLoading()) {
       browserLoadingProjects_ = false;
       if (browser_.error().isEmpty()) { browser_.refresh(); }
@@ -205,6 +215,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, &modelPicker_, &node_editor::ModelPickerController::configure);
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, &assetPicker_, &node_editor::AssetPickerController::configure);
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, &resourcePicker_, &node_editor::ResourcePickerController::configure);
+    connect(&session_, &node_editor::WorkflowSession::credentialsChanged, &documentPicker_, &node_editor::DocumentPickerController::configure);
   connect(&runOutput_, &node_editor::RunOutputModel::changed, this, [this] { runtime_.selectRun(runOutput_.selectedRunId()); syncRuntimePreviews(); emit panelChanged(); });
   connect(&mediaResolver_, &node_editor::MediaResolver::resolved, this, [this](const QString &key, const QUrl &url) {
     if (!key.startsWith("node-image:")) { return; }
@@ -403,7 +414,19 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   // The rail, tab strip, and status bar frame the docks, as in the web editor.
   dockHost_ = new QMainWindow(this);
   dockHost_->setWindowFlags(Qt::Widget);
-  dockHost_->setCentralWidget(view_);
+    auto canvasColumn = new QWidget(dockHost_);
+    auto canvasLayout = new QVBoxLayout(canvasColumn);
+    canvasLayout->setContentsMargins(0, 0, 0, 0);
+    canvasLayout->setSpacing(0);
+    auto canvasTabs = panel("CanvasTabStrip");
+    const auto resizeCanvasTabs = [canvasTabs] {
+        canvasTabs->setFixedHeight(qCeil(canvasTabs->rootObject()->implicitHeight()));
+    };
+    connect(canvasTabs->rootObject(), &QQuickItem::implicitHeightChanged, canvasTabs, resizeCanvasTabs);
+    resizeCanvasTabs();
+    canvasLayout->addWidget(canvasTabs);
+    canvasLayout->addWidget(view_, 1);
+    dockHost_->setCentralWidget(canvasColumn);
   dockHost_->setDockOptions(QMainWindow::AnimatedDocks);
   const auto dock = [this](const QString &title, const QString &file, Qt::DockWidgetArea area) {
     auto widget = new QDockWidget(title, dockHost_);
@@ -458,6 +481,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     return widget;
   };
   toolbarOverlay_ = overlay("Toolbar");
+    initializeChat();
   queueOverlay_ = overlay("QueueOverlay");
   queueOverlay_->setParent(centralWidget());
   queueOverlay_->setResizeMode(QQuickWidget::SizeRootObjectToView);
@@ -514,16 +538,22 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     setWindowModified(!clean);
     emit panelChanged();
   });
-  connect(&document_, &node_editor::WorkflowDocument::changed, this, [this] {
-    if (!refreshPending_) {
-      refreshPending_ = true;
-      QTimer::singleShot(0, this, [this] {
-        if (refreshPending_) { refresh(); }
-      });
-    }
-    // A synchronous session refresh also satisfies this queued projection.
-    session_.setSnapshot(document_.snapshot());
-  });
+    connect(&document_, &node_editor::WorkflowDocument::changed, this, [this] {
+        refreshPending_ = true;
+        if (documentSyncPending_) {
+            return;
+        }
+        documentSyncPending_ = true;
+        QTimer::singleShot(0, this, [this] {
+            flushDocumentSync();
+            if (refreshPending_) {
+                refresh();
+            }
+        });
+    });
+    // A queued snapshot would otherwise reach the session after it opened or saved
+    // something else, and look like an edit made during that operation.
+    connect(&session_, &node_editor::WorkflowSession::snapshotRequested, this, &EditorWindow::flushDocumentSync);
   connect(&session_, &node_editor::WorkflowSession::catalogChanged, this,
           [this] {
             auto c = session_.catalog();
@@ -638,10 +668,26 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(this, &EditorWindow::panelChanged, this, &EditorWindow::notifyTabs);
 }
 EditorWindow::~EditorWindow() {
+    disconnect(this, &EditorWindow::panelChanged, this, &EditorWindow::syncChatContext);
+    disconnect(this, &EditorWindow::tabsChanged, this, &EditorWindow::syncChatContext);
   if (!tabOwner_) {
+    for (const auto &host : retainedChatHosts_) {
+        delete host.data();
+    }
+    retainedChatHosts_.clear();
     const auto tabs = tabs_;
+    // Owner panels forward to the active tab and must die before the tabs do.
+    for (auto panel : findChildren<QQuickWidget *>()) {
+      const auto inTab = std::any_of(tabs.cbegin(), tabs.cend(), [panel](EditorWindow *tab) { return tab->isAncestorOf(panel); });
+      if (!inTab) {
+        delete panel;
+      }
+    }
     tabs_.clear();
-    for (auto tab : tabs) delete tab;
+    // Children forward to their parent surface and open after it, so they go first.
+    for (auto it = tabs.crbegin(); it != tabs.crend(); ++it) {
+      delete *it;
+    }
     return;
   }
   delete canvasDropDialog_.data();
@@ -667,6 +713,9 @@ QQuickWidget *EditorWindow::panel(const QString &file) {
   // One engine keeps a single Theme singleton across every panel.
   auto w = new QQuickWidget(engine_, this);
   w->setResizeMode(QQuickWidget::SizeRootObjectToView);
+    if (file == "Inspector") {
+        w->setAcceptDrops(true);
+    }
   w->setSource(QUrl("qrc:/editor/" + file + ".qml"));
   return w;
 }
@@ -985,6 +1034,11 @@ void EditorWindow::layoutOverlays() {
   }
   if (auto root = toolbarOverlay_->rootObject()) { root->setProperty("compact", area.width() < compactToolbarWidth); }
   const auto toolbar = toolbarOverlay_->sizeHint();
+    if (chatOverlay_) {
+        layoutChat(QSize(area.width(), std::max(0, area.height() - toolbar.height() - 20)));
+        chatOverlay_->setVisible(chatVisible_);
+        chatOverlay_->raise();
+    }
   toolbarOverlay_->setGeometry(std::max(0, (area.width() - toolbar.width()) / 2), std::max(0, area.height() - toolbar.height() - 20), toolbar.width(), toolbar.height());
   if (queueOverlay_ && queueOverlay_->rootObject()) {
     auto *queueRoot = queueOverlay_->rootObject();
@@ -1011,6 +1065,9 @@ void EditorWindow::layoutOverlays() {
     miniMap->raise(); viewportOverlay_->raise();
   }
   toolbarOverlay_->raise();
+    if (chatOverlay_ && chatVisible_) {
+        chatOverlay_->raise();
+    }
   if (inlineTitle_) { inlineTitle_->reposition(); }
   if (compatiblePicker_ && compatiblePicker_->widget() && compatiblePicker_->active()) {
     compatiblePicker_->widget()->raise();
@@ -1119,6 +1176,13 @@ bool EditorWindow::apply(const QJsonObject &c) {
     message_ = r.error;
     emit panelChanged();
   }
+    const auto op = c.value("op").toString();
+    if (r && op != "addNode" && op != "addEdge" && op != "moveNodes") {
+        session_.setSnapshot(document_.snapshot());
+        if (refreshPending_) {
+            refresh();
+        }
+    }
   return r.ok;
 }
 void EditorWindow::setCatalog(const QJsonArray &metadata) {
@@ -1248,6 +1312,12 @@ QVariantList EditorWindow::properties() const {
     if (v.toObject()["node_type"] == node["type"]) { metadata = v.toObject(); break; }
   }
   auto rows = node_editor::propertyFields(node, metadata, document_.edges());
+    const auto project = document_.snapshot().value("project_id").toString(browser_.projectId());
+    for (auto& value : rows) {
+        auto row = value.toMap();
+        row.insert("projectId", project.isEmpty() ? QStringLiteral("default") : project);
+        value = row;
+    }
   if (readOnly()) {
     for (auto &v : rows) { auto row = v.toMap(); row["editable"] = false; v = row; }
   }
@@ -1888,13 +1958,19 @@ void EditorWindow::action(const QString &name) {
     const auto id = session_.run(document_.snapshot());
     if (!id.isEmpty()) { run_ = id; }
   } else if (name == "Stop") {
-    const auto jobs = session_.queue();
-    for (auto it = jobs.crbegin(); it != jobs.crend(); ++it) {
-      const auto job = it->toMap();
-      if (job["workflow_id"].toString() == document_.snapshot()["id"].toString() && !job["terminal"].toBool()) {
-          session_.stop(job["jobId"].toString());
-          break;
+    QString latest;
+    double order = -1;
+    for (const auto &item : session_.queue()) {
+      const auto job = item.toMap();
+      if (job["local"].toBool() && !job["terminal"].toBool()
+          && job["workflow_id"].toString() == document_.snapshot()["id"].toString()
+          && job["order"].toDouble() > order) {
+          latest = job["jobId"].toString();
+          order = job["order"].toDouble();
       }
+    }
+    if (!latest.isEmpty()) {
+      session_.stop(latest);
     }
   } else if (name == "Delete") {
     QJsonArray commands;
@@ -2326,6 +2402,15 @@ void nodetool::EditorWindow::setupAction(const QString &name) {
     } else {
         setup_.refresh();
     }
+}
+
+void nodetool::EditorWindow::flushDocumentSync() {
+    if (!documentSyncPending_) {
+        return;
+    }
+    documentSyncPending_ = false;
+    syncPackSetup();
+    session_.setSnapshot(document_.snapshot());
 }
 
 QVariantList nodetool::EditorWindow::guideReadiness() const {

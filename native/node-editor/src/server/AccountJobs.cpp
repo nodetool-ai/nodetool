@@ -94,8 +94,6 @@ void AccountJobs::refresh(bool staleOnly) {
                     emit changed();
                 });
             }
-        } else {
-            emit errorOccurred("Could not load jobs: " + error);
         }
         if (std::exchange(m_again, false)) {
             refresh();

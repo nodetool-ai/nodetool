@@ -32,7 +32,7 @@ public:
         rows = value;
         emit changed();
     }
-    Q_INVOKABLE void stop(QString id) {
+    Q_INVOKABLE void cancelJob(QString id) {
         stopped = id;
     }
 signals:
@@ -74,6 +74,32 @@ class QueueUiTest final : public QObject {
                 .toPoint());
     }
 private slots:
+    void roundedCorners() {
+        QueueFixture session;
+        RunOutputModel output;
+        session.setRows({QVariantMap{{"jobId", "running"}, {"status", "running"}}});
+        QQuickWidget widget;
+        widget.setClearColor(Qt::transparent);
+        widget.rootContext()->setContextProperty("workflowSession", &session);
+        widget.rootContext()->setContextProperty("runOutput", &output);
+        widget.setResizeMode(QQuickWidget::SizeRootObjectToView);
+        widget.setSource(QUrl("qrc:/editor/QueueOverlay.qml"));
+        QVERIFY(widget.rootObject());
+        widget.resize(304, 92);
+        widget.show();
+        auto theme = widget.engine()->singletonInstance<QObject *>("NodeTool.UiPrimitives", "Theme");
+        QVERIFY(theme);
+        for (int preference : {2, 3}) {
+            theme->setProperty("preference", preference);
+            QTest::qWait(250);
+            const auto pixels = widget.grabFramebuffer();
+            QVERIFY(!pixels.isNull());
+            for (int x : {0, pixels.width() - 1}) {
+                QCOMPARE(pixels.pixelColor(x, pixels.height() - 1).alpha(), 0);
+            }
+            QVERIFY(pixels.pixelColor(pixels.width() / 2, pixels.height() - 1).alpha() > 0);
+        }
+    }
     void presentation() {
         QueueFixture session;
         RunOutputModel output;
@@ -118,6 +144,15 @@ private slots:
                  QString("1 queued"));
         click(&widget, "queue-toggle");
         QVERIFY(root->property("expanded").toBool());
+        QCoreApplication::processEvents();
+        const auto title = find(root, "queue-title");
+        QVERIFY(title);
+        for (const auto &name : {QString("queue-header-running-count"), QString("queue-header-queued-count")}) {
+            const auto count = find(root, name);
+            QVERIFY(count);
+            QVERIFY(qAbs(title->mapToScene({0, title->height() / 2}).y()
+                         - count->mapToScene({0, count->height() / 2}).y()) < 1);
+        }
         for (const auto &title :
              {QString("Running"), QString("Enqueued"), QString("Cancelled")}) {
             QVERIFY(find(root, "queue-section-" + title));

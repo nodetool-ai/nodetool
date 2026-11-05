@@ -15,7 +15,7 @@ namespace nodetool::node_editor {
 inline QJsonObject propertyType(const QJsonObject& p) {
     auto type = p.value("type").isObject() ? p.value("type").toObject() : p;
     const auto overrideType = p.value("json_schema_extra").toObject().value("type").toString();
-    if (overrideType == "json" || overrideType == "record_type" || overrideType == "color" || overrideType == "image_size") { type.insert("type", overrideType); }
+    if (overrideType == "json" || overrideType == "record_type" || overrideType == "color" || overrideType == "image_size" || overrideType.startsWith("media_")) { type.insert("type", overrideType); }
     return type;
 }
 inline bool propertyNullable(const QJsonObject& p) {
@@ -119,6 +119,10 @@ inline QStringList modelTasksForNodeType(const QString& nodeType) {
     return tasks.value(nodeType);
 }
 inline QString propertyKind(const QJsonObject& p) {
+    const auto overrideType = p.value("json_schema_extra").toObject().value("type").toString();
+    if (overrideType.startsWith("media_")) {
+        return overrideType;
+    }
     if (!propertyOptions(p).isEmpty()) { return "choice"; }
     const auto type = scalarPropertyType(p);
     if (type == "str" || type == "string") {
@@ -134,16 +138,27 @@ inline QString propertyKind(const QJsonObject& p) {
         }
         const auto args = container.value("type_args").toArray();
         const auto entry = args.isEmpty() ? QStringLiteral("any") : args.last().toObject().value("type").toString();
+        if (type == "list" && entry == "tool_name") {
+            return "tools";
+        }
+        if (type == "list" && entry == "entity") {
+            return "entity_list";
+        }
         if (type == "list" && entry == "workflow") { return "workflow_list"; }
         if (type == "list" && (entry == "image" || entry == "audio" || entry == "video")) { return "media_list"; }
         const QSet<QString> editableEntries{"any", "str", "string", "int", "integer", "float", "number", "bool", "boolean", "list", "dict", "union", "enum"};
         return editableEntries.contains(entry) ? type : QStringLiteral("unsupported");
     }
     if (type == "json" || type == "record_type") { return type; }
+    if (type == "sketch" || type == "timeline" || type == "script" || type == "storyboard") { return "document_ref"; }
+    if (QSet<QString>{"font", "folder", "entity", "file", "document", "file_path", "folder_path"}.contains(type)) {
+        return type;
+    }
     if (type == "workflow") { return "workflow"; }
     if (type == "collection") { return "collection"; }
     if (type == "color" || type == "image_size") { return type; }
     if (isModelType(type)) { return "model"; }
+    if (type == "model_3d") { return "model3d"; }
     if (type == "image" || type == "audio" || type == "video" || type == "asset") { return "media"; }
     if (type == "image_list" || type == "audio_list" || type == "video_list") { return "media_list"; }
     if (type == "int" || type == "integer") { return "integer"; }
@@ -258,6 +273,49 @@ inline QString validatePropertyValue(const QJsonObject& p, const QJsonValue& val
         int budget = 10000;
         return validateTypedValue(propertyType(p), value, 0, budget);
     }
+    if (kind == "document_ref") {
+        const auto reference = value.toObject();
+        return value.isObject() && reference.value("type") == scalarPropertyType(p) && !reference.value("id").toString().isEmpty() ? QString{} : QStringLiteral("Choose a document reference");
+    }
+    if (kind == "file_path" || kind == "folder_path") {
+        return value.isString() ? QString{} : QStringLiteral("Choose a local path");
+    }
+    if (kind == "media_duration") {
+        return value.isDouble() && value.toDouble() > 0 && std::isfinite(value.toDouble()) && std::trunc(value.toDouble()) == value.toDouble() ? QString{} : QStringLiteral("Choose a positive duration in seconds");
+    }
+    if (kind == "media_strength") {
+        return value.isDouble() && QJsonArray{0.25, 0.5, 0.65, 0.75, 0.85, 1.0}.contains(value) ? QString{} : QStringLiteral("Choose a supported strength");
+    }
+    if (kind == "media_resolution_image" || kind == "media_resolution_video") {
+        const QJsonArray allowed = kind == "media_resolution_image" ? QJsonArray{"1K", "2K", "4K"} : QJsonArray{"720p", "1080p", "1440p", "4K"};
+        return allowed.contains(value) ? QString{} : QStringLiteral("Choose a supported resolution");
+    }
+    if (kind == "media_aspect_ratio_image" || kind == "media_aspect_ratio_video") {
+        static const QRegularExpression ratio(QStringLiteral("^[1-9][0-9]*:[1-9][0-9]*$"));
+        return value.isString() && ratio.match(value.toString()).hasMatch() ? QString{} : QStringLiteral("Choose a positive aspect ratio");
+    }
+    if (kind == "document") {
+        return validateMediaReference("document", value);
+    }
+    if (kind == "font" || kind == "folder" || kind == "entity" || kind == "file") {
+        const auto object = value.toObject();
+        const auto identity = kind == "font" ? "name" : kind == "folder" ? "asset_id" : "id";
+        return value.isObject() && (kind == "file" || object.value("type") == kind) && !object.value(identity).toString().isEmpty() ? QString{} : QStringLiteral("Choose a valid resource");
+    }
+    if (kind == "tools" || kind == "entity_list") {
+        if (!value.isArray()) {
+            return "Choose a resource list";
+        }
+        for (const auto& entry : value.toArray()) {
+            const auto row = entry.toObject();
+            const auto type = kind == "tools" ? "tool_name" : "entity";
+            const auto identity = kind == "tools" ? "name" : "id";
+            if (row.value("type") != type || row.value(identity).toString().isEmpty()) {
+                return "Choose a valid list entry";
+            }
+        }
+        return {};
+    }
     if (kind == "color") { return validateColorValue(value); }
     if (kind == "image_size") { return validateImageSizeValue(value); }
     if (kind == "collection") {
@@ -269,6 +327,9 @@ inline QString validatePropertyValue(const QJsonObject& p, const QJsonValue& val
         int budget = 10000;
         const QJsonObject type{{"type", "list"}, {"type_args", QJsonArray{QJsonObject{{"type", propertyMediaType(p)}}}}};
         return validateTypedValue(type, value, 0, budget);
+    }
+    if (kind == "model3d") {
+        return value.isObject() && value.toObject().value("type") == "model_3d" && value.toObject().value("uri").isString() ? QString{} : QStringLiteral("Choose a 3D model locator");
     }
     if (kind == "media") { return validateMediaReference(propertyMediaType(p), value); }
     if (kind == "model") {
@@ -324,7 +385,7 @@ inline QVariantList propertyFields(const QJsonObject& rawNode, const QJsonObject
         const bool appendStatic = kind == "media_list" && metadata.value("append_static_inputs").toArray().contains(name);
         QVariantList options;
         for (const auto& option : propertyOptions(p)) { options.append(QVariantMap{{"label", option.toVariant().toString()}, {"value", option.toVariant()}}); }
-        QVariantMap row{{"nodeType", node.value("type").toString()}, {"name", name}, {"label", p.value("title").toString(name)}, {"description", p.value("description").toString()},
+        QVariantMap row{{"siblingModel", node.value("data").toObject().value("model").toVariant()}, {"nodeType", node.value("type").toString()}, {"name", name}, {"label", p.value("title").toString(name)}, {"description", p.value("description").toString()},
             {"dataType", propertyEditorType(p).toVariantMap()}, {"kind", kind}, {"value", value.toVariant()}, {"editable", conditionSatisfied && (!connected || appendStatic) && kind != "unsupported"}, {"conditionalUnavailable", !conditionSatisfied}, {"appendStatic", appendStatic}, {"connected", connected},
             {"required", p.value("required").toBool()}, {"nullable", propertyNullable(p)},
             {"hasValue", data.contains(name)}, {"hasDefault", p.contains("default")}, {"defaultValue", p.value("default").toVariant()},

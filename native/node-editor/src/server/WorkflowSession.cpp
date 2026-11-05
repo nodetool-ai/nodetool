@@ -47,6 +47,7 @@ QVariantList WorkflowSession::queue() const {
         row["editedSinceError"] = row.contains("edit") && row["edit"].toDouble() != static_cast<double>(m_edit);
         row["terminal"] = QStringList{"cancelled", "completed", "failed"}.contains(row["status"].toString());
         row["stopping"] = m_accountJobs && m_accountJobs->stopping(id);
+        row["local"] = m_runs.contains(id);
         if (row["name"].toString().isEmpty()) {
             row["name"] = row["workflow_id"] == m_workflow["id"] ? m_workflow["name"].toString("Untitled") : "Untitled";
         }
@@ -241,6 +242,7 @@ void WorkflowSession::loadCatalog() {
           });
 }
 void WorkflowSession::openWorkflow(const QString &id) {
+  emit snapshotRequested();
   const auto loadEpoch = ++m_loadEpoch;
   const auto epoch = m_documentEpoch;
   const auto edit = m_edit;
@@ -308,6 +310,7 @@ void WorkflowSession::setSnapshot(const QJsonObject &o) {
   emit stateChanged();
 }
 void WorkflowSession::save() {
+  emit snapshotRequested();
   if (m_saving) {
     return;
   }
@@ -395,6 +398,7 @@ void WorkflowSession::save() {
       });
 }
 void WorkflowSession::detachServerWorkflow() {
+  emit snapshotRequested();
   ++m_documentEpoch;
   ++m_loadEpoch;
   m_autosave.cancel();
@@ -411,8 +415,14 @@ void WorkflowSession::setAutosaveEnabled(bool enabled) {
   emit stateChanged();
 }
 void WorkflowSession::flushAutosave() {
-  if (!m_autosave.enabled() || !m_dirty || !serverBound() || m_saving ||
-      m_conflictPending || m_remoteLoading) return;
+  emit snapshotRequested();
+  if (!m_autosave.enabled() || !m_dirty || !serverBound() || m_conflictPending) return;
+  // An explicit flush waits for the save or remote comparison in flight, then runs.
+  if (m_saving || m_remoteLoading) {
+    m_flushAgain = true;
+    return;
+  }
+  m_flushAgain = false;
   m_autosave.cancel();
   const auto graph = m_workflow["graph"].toObject();
   bool compatible = m_workflow["graph"].isObject() && graph["nodes"].isArray() && graph["edges"].isArray();
@@ -479,7 +489,13 @@ void WorkflowSession::flushAutosave() {
         if (edit == m_edit && fullyPersisted) m_dirty = false;
         if (!m_conflictPending) {
           m_autosaveState = m_dirty ? "unsaved" : "saved";
-          if (m_dirty && edit != m_edit) m_autosave.changed();
+          if (m_dirty && edit != m_edit) {
+            if (std::exchange(m_flushAgain, false)) {
+              flushAutosave();
+            } else {
+              m_autosave.changed();
+            }
+          }
         }
         emit workflowChanged();
         emit saved(id);
@@ -494,6 +510,7 @@ void WorkflowSession::clearConflict() {
   m_conflictPending = false;
   m_remoteLoading = false;
   m_remoteAgain = false;
+  m_flushAgain = false;
 }
 void WorkflowSession::refreshRemoteWorkflow() {
   if (m_id.isEmpty()) return;
@@ -502,6 +519,7 @@ void WorkflowSession::refreshRemoteWorkflow() {
   const auto id = m_id;
   m_remoteLoading = true;
   m_autosave.cancel();
+  emit stateChanged();
   request("GET", "/api/workflows/" + QString::fromLatin1(QUrl::toPercentEncoding(id)), {},
     [this, epoch, remoteEpoch, id](QJsonObject remote, int status, QString error) {
       if (epoch != m_documentEpoch || remoteEpoch != m_remoteEpoch || id != m_id) return;
@@ -517,7 +535,13 @@ void WorkflowSession::refreshRemoteWorkflow() {
         m_autosaveState = "error";
         emit errorOccurred("Invalid remote workflow response. Local edits are preserved.");
       } else if (remote["updated_at"].toString() == m_revision) {
-        if (!m_conflictPending && m_dirty) m_autosave.changed();
+        if (!m_conflictPending && m_dirty) {
+          if (std::exchange(m_flushAgain, false)) {
+            flushAutosave();
+          } else {
+            m_autosave.changed();
+          }
+        }
       } else if (m_dirty || m_conflictPending) {
         const bool newConflict = !m_conflictPending;
         m_remoteWorkflow = remote;
@@ -550,6 +574,7 @@ void WorkflowSession::reloadRemoteWorkflow() {
   emit stateChanged();
 }
 void WorkflowSession::keepLocalWorkflow() {
+  emit snapshotRequested();
   if (!m_conflictPending || m_remoteWorkflow.isEmpty() || m_remoteLoading || m_saving) return;
   // Explicit user consent advances CAS to the compared remote revision. A newer
   // concurrent write still conflicts on the next save.
@@ -681,6 +706,13 @@ QString WorkflowSession::submitRun(const QJsonObject &snapshot, const QJsonObjec
   return id;
 }
 void WorkflowSession::stop(const QString &id) {
+    if (!m_runs.contains(id)) {
+        emit errorOccurred("Unknown job ID");
+        return;
+    }
+    send("cancel_job", {{"job_id", id}, {"workflow_id", m_runs[id]["workflow_id"]}});
+}
+void WorkflowSession::cancelJob(const QString &id) {
     if (!m_accountJobs || id.isEmpty()) {
         emit errorOccurred("Connect before cancelling a job");
         return;

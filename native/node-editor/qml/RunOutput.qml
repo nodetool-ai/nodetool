@@ -44,6 +44,11 @@ Rectangle {
             Layout.fillWidth: true
             Layout.rightMargin: Ui.Metrics.sm
             visible: runOutput && runOutput.runs.length > 0
+            Ui.EditorButton {
+                objectName: "askRunAgent"
+                text: qsTr("Ask agent")
+                onClicked: editor.askRunAgent(runOutput.selectedRunId)
+            }
             Ui.Select {
                 objectName: "run-history"
                 Layout.fillWidth: true

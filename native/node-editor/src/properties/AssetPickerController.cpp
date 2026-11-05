@@ -30,7 +30,10 @@ void AssetPickerController::configure(const QUrl& origin, const QString& token, 
  emit cleared();
 }
 bool AssetPickerController::ready(const QString& key, const QString& kind) {
- if (key.isEmpty() || (kind != "image" && kind != "audio" && kind != "video" && kind != "asset")) { emit failed(key, tr("Choose a supported media type")); return false; }
+    if (key.isEmpty() || (kind != "image" && kind != "audio" && kind != "video" && kind != "asset" && kind != "document")) {
+        emit failed(key, tr("Choose a supported media type"));
+        return false;
+    }
  if (m_origin.isEmpty()) { emit failed(key, tr("Connect to a secure server to choose media")); return false; }
  return true;
 }
@@ -58,18 +61,44 @@ void AssetPickerController::search(const QString& key, const QString& kind, cons
   QVariantList rows;
   for (const auto& entry : data.value("assets").toArray()) {
    const auto asset = entry.toObject();
-   if (asset.value("id").toString().isEmpty() || (kind == "asset" ? asset.value("content_type").toString().isEmpty() || asset.value("content_type") == "folder" : !asset.value("content_type").toString().startsWith(kind + "/"))) { continue; }
+        if (asset.value("id").toString().isEmpty() || ((kind == "asset" || kind == "document") ? asset.value("content_type").toString().isEmpty() || asset.value("content_type") == "folder" : !asset.value("content_type").toString().startsWith(kind + "/"))) {
+            continue;
+        }
    rows.append(asset.toVariantMap());
   }
   emit listed(key, rows, data.value("next_cursor").toString());
  });
+}
+void AssetPickerController::describe(const QString& key, const QString& id) {
+    const auto serial = begin(key);
+    if (!ready(key, "asset")) { return; }
+    auto url = m_origin.resolved(QUrl("/trpc/assets.get"));
+    QUrlQuery query;
+    query.addQueryItem("input", QString::fromUtf8(QJsonDocument(QJsonObject{{"id", id}}).toJson(QJsonDocument::Compact)));
+    url.setQuery(query);
+    auto* reply = m_network.get(request(url));
+    m_replies.insert(key, reply);
+    connect(reply, &QNetworkReply::finished, this, [this, reply, key, serial] {
+        reply->deleteLater();
+        if (!current(key, serial)) { return; }
+        m_replies.remove(key);
+        m_serials.remove(key);
+        auto asset = QJsonDocument::fromJson(reply->readAll()).object().value("result").toObject().value("data").toObject();
+        if (!asset.value("thumb_url").toString().isEmpty()) {
+            asset.insert("thumb_url", m_origin.resolved(QUrl(asset.value("thumb_url").toString())).toString());
+        }
+        if (reply->error() == QNetworkReply::NoError) { emit described(key, asset.toVariantMap()); }
+    });
 }
 void AssetPickerController::upload(const QString& key, const QString& kind, const QUrl& url, const QString& workflowId) {
  const auto serial = begin(key);
  if (!ready(key, kind)) { return; }
  if (!url.isLocalFile()) { emit failed(key, tr("Choose a local file to upload")); return; }
  const auto mime = QMimeDatabase{}.mimeTypeForFile(url.toLocalFile()).name();
- if (kind != "asset" && !mime.startsWith(kind + "/")) { emit failed(key, tr("Choose an %1 file").arg(kind)); return; }
+    if (kind != "asset" && kind != "document" && !mime.startsWith(kind + "/")) {
+        emit failed(key, tr("Choose an %1 file").arg(kind));
+        return;
+    }
  auto multipart = std::make_unique<QHttpMultiPart>(QHttpMultiPart::FormDataType);
  auto* file = new QFile(url.toLocalFile(), multipart.get());
  if (!file->open(QIODevice::ReadOnly)) { emit failed(key, tr("Could not read the selected file")); return; }
@@ -90,7 +119,10 @@ void AssetPickerController::upload(const QString& key, const QString& kind, cons
   const auto status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
   const auto asset = QJsonDocument::fromJson(reply->readAll()).object();
   const auto id = asset.value("id").toString();
-  if (reply->error() != QNetworkReply::NoError || status < 200 || status >= 300 || id.isEmpty() || (kind == "asset" ? asset.value("content_type").toString().isEmpty() || asset.value("content_type") == "folder" : !asset.value("content_type").toString().startsWith(kind + "/"))) { emit failed(key, tr("Upload failed (HTTP %1). Choose the file again to retry.").arg(status)); return; }
+    if (reply->error() != QNetworkReply::NoError || status < 200 || status >= 300 || id.isEmpty() || ((kind == "asset" || kind == "document") ? asset.value("content_type").toString().isEmpty() || asset.value("content_type") == "folder" : !asset.value("content_type").toString().startsWith(kind + "/"))) {
+        emit failed(key, tr("Upload failed (HTTP %1). Choose the file again to retry.").arg(status));
+        return;
+    }
   emit uploaded(key, {{"type", kind}, {"asset_id", id}, {"uri", "asset://" + id}});
  });
 }

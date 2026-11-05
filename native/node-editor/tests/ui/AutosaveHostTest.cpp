@@ -96,6 +96,19 @@ private slots:
     QCOMPARE(window.document()->snapshot()["graph"], graph);
     QCOMPARE(window.document()->undoStack()->index(), undo + 1);
   }
+  void editThenFlushInSameTurnSavesEdit() {
+    AutosaveHttp http; EditorWindow window;
+    window.session()->setAutosaveDelay(60000);
+    window.session()->connectToServer(http.url(), {}); window.session()->openWorkflow("same-id");
+    QTRY_VERIFY(window.session()->serverBound());
+    QTRY_COMPARE(window.document()->snapshot()["id"].toString(), QString("same-id"));
+    // Document changes reach the session on a later turn. A flush in the same
+    // turn, as on close, must still send the edit.
+    QVERIFY(moveComment(window)); const QJsonValue graph = window.document()->snapshot()["graph"];
+    window.session()->flushAutosave();
+    QTRY_COMPARE(http.writes, 1); QTRY_VERIFY(!window.session()->saving());
+    QCOMPARE(http.workflow["graph"], graph);
+  }
 };
 QTEST_MAIN(AutosaveHostTest)
 #include "AutosaveHostTest.moc"

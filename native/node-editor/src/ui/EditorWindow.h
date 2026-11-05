@@ -12,8 +12,10 @@
 #include "properties/ModelPickerController.h"
 #include "properties/AssetPickerController.h"
 #include "properties/ResourcePickerController.h"
+#include "properties/DocumentPickerController.h"
 #include "server/WorkflowBrowser.h"
 #include "server/WorkflowVersions.h"
+#include "runtime/ChatSession.h"
 #include <QJsonArray>
 #include <QMainWindow>
 #include <QPointer>
@@ -74,6 +76,13 @@ class EditorWindow final : public QMainWindow {
   Q_PROPERTY(QVariantMap selectionInfo READ selectionInfo NOTIFY panelChanged)
   Q_PROPERTY(int zoomPercent READ zoomPercent NOTIFY zoomChanged)
 public:
+    nt::chat::ChatSession *chatSession();
+    Q_INVOKABLE void askAgent(const QString &message);
+    Q_INVOKABLE void askRunAgent(const QString &runId);
+    Q_SLOT void toggleChat();
+    Q_INVOKABLE void beginChatGeometry();
+    Q_INVOKABLE void resetChatPosition();
+    Q_INVOKABLE void changeChatGeometry(int dx, int dy, int edges, bool finished);
   explicit EditorWindow(QWidget *parent = nullptr);
   ~EditorWindow() override;
   bool guideStarted() const { return guideStarted_; }
@@ -260,6 +269,23 @@ private:
   QMainWindow *dockHost_ = nullptr;
   QDockWidget *catalogDock_ = nullptr;
   QDockWidget *inspectorDock_ = nullptr;
+    nt::chat::ChatSession chat_;
+    QQuickWidget *chatOverlay_ = nullptr;
+    bool chatVisible_ = false;
+    void initializeChat();
+    void initializeChatTools();
+    void syncChatContext();
+    void layoutChat(const QSize &available);
+    void ensureChatConnected();
+    QUrl chatOrigin_;
+    QString chatToken_;
+    bool chatConnected_ = false;
+
+    QRect chatGesture_;
+    bool chatGeometryActive_ = false;
+    QList<QPointer<EditorWindow>> retainedChatHosts_;
+    QPoint chatOffset_;
+    QSize chatSize_{420, 2000};
   QQuickWidget *toolbarOverlay_ = nullptr;
   QQuickWidget *queueOverlay_ = nullptr;
   quint64 instantUpdateGeneration_ = 0;
@@ -289,6 +315,7 @@ private:
   node_editor::ModelPickerController modelPicker_;
   node_editor::AssetPickerController assetPicker_;
   node_editor::ResourcePickerController resourcePicker_;
+    node_editor::DocumentPickerController documentPicker_;
   QDockWidget *outputDock_ = nullptr;
   WorkflowGraphModel model_;
   EditorScene *scene_ = nullptr;
@@ -299,6 +326,8 @@ private:
   QHash<QString, QVariant> runtimePreviewSources_;
   QString previewRun_;
   bool refreshPending_ = false;
+    bool documentSyncPending_ = false;
+    void flushDocumentSync();
   void invalidateGesture();
   quint64 gestureEpoch_ = 0;
   bool gesture_ = false;

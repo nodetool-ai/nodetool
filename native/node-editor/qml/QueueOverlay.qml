@@ -151,15 +151,22 @@ Ui.Surface {
             Ui.Icon {
                 name: "layers"
             }
-            Ui.PanelHeader {
+            Ui.Text {
+                objectName: "queue-title"
                 text: "Queue"
+                role: Ui.Typography.SansLabel
                 Layout.fillWidth: true
+            }
+            RowLayout {
+                spacing: Ui.Metrics.xs
+                Layout.alignment: Qt.AlignVCenter
                 Ui.Icon {
                     name: "playArrow"
                     size: Ui.Metrics.iconXs
                     tone: Ui.Text.Secondary
                 }
                 Ui.Text {
+                    objectName: "queue-header-running-count"
                     text: root.running.length
                     role: Ui.Typography.MonoCaption
                     tone: Ui.Text.Secondary
@@ -170,6 +177,7 @@ Ui.Surface {
                     tone: Ui.Text.Secondary
                 }
                 Ui.Text {
+                    objectName: "queue-header-queued-count"
                     text: root.queued.length
                     role: Ui.Typography.MonoCaption
                     tone: Ui.Text.Secondary
@@ -310,7 +318,7 @@ Ui.Surface {
                                             accessibleName: card.isRunning ? "Stop run" : "Remove from queue"
                                             description: accessibleName
                                             enabled: workflowSession.connected && !card.modelData.stopping
-                                            onClicked: workflowSession.stop(card.jobId)
+                                            onClicked: workflowSession.cancelJob(card.jobId)
                                         }
                                     }
                                     Ui.Progress {

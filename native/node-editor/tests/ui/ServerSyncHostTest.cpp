@@ -147,13 +147,13 @@ private slots:
     auto *statusWidget = status(window); QVERIFY(statusWidget); QTRY_VERIFY(item(statusWidget, "status-server-sync")); QTRY_VERIFY(item(statusWidget, "status-server-sync")->isVisible());
     click(statusWidget, "status-server-sync"); QTRY_VERIFY(panel(window)); widget = panel(window);
     QTRY_VERIFY(window.findChild<QDialog *>("server-sync-dialog")->isVisible());
-    http.status = 200; click(widget, "server-sync-keep-local"); QTRY_VERIFY(!window.session()->saving()); QTRY_VERIFY(!window.session()->dirty());
+    http.status = 200; QTRY_VERIFY(item(widget, "server-sync-keep-local")->isEnabled()); click(widget, "server-sync-keep-local"); QTRY_VERIFY(!window.session()->saving()); QTRY_VERIFY(!window.session()->dirty());
     QCOMPARE(http.writes.size(), 2); QCOMPARE(http.writes.last()["expected_updated_at"].toString(), QString("external1"));
     QCOMPARE(window.document()->snapshot()["graph"], local["graph"]);
     QVERIFY(addComment(window, "second local edit"));
     http.remote["updated_at"] = "external2"; http.remote["graph"] = QJsonObject{{"nodes", QJsonArray{}}, {"edges", QJsonArray{}}};
     window.session()->refreshRemoteWorkflow(); QTRY_VERIFY(window.session()->conflictPending());
-    window.action("Server sync"); QTRY_VERIFY(panel(window)); click(panel(window), "server-sync-reload");
+    window.action("Server sync"); QTRY_VERIFY(panel(window)); QTRY_VERIFY(item(panel(window), "server-sync-reload")->isEnabled()); click(panel(window), "server-sync-reload");
     QTRY_VERIFY(!window.session()->conflictPending()); QVERIFY(!window.session()->dirty());
     QCOMPARE(window.document()->snapshot()["graph"], http.remote["graph"]);
   }

@@ -13,7 +13,9 @@ public:
  Q_INVOKABLE void search(const QString& key, const QString& kind, const QString& text, const QString& cursor = {});
  Q_INVOKABLE void upload(const QString& key, const QString& kind, const QUrl& file, const QString& workflowId = {});
  Q_INVOKABLE void cancel(const QString& key);
+    Q_INVOKABLE void describe(const QString& key, const QString& id);
 signals:
+    void described(QString key, QVariantMap asset);
  void cleared();
  void listed(QString key, QVariantList assets, QString nextCursor);
  void uploaded(QString key, QVariantMap reference);

@@ -118,7 +118,7 @@ QVariantList EditorWindow::canvasStrips() const {
     for (int depth = 0; depth < chain.size(); ++depth) {
         host = chain[depth];
         QVariantList entries;
-        entries.append(QVariantMap{{"title", host->workflowName()},
+        entries.append(QVariantMap{{"title", host->inlineChild_ ? host->workflowName() : tr("Workflow")},
                                    {"surface", owner->tabs_.indexOf(host)},
                                    {"host", true},
                                    {"selected", depth == chain.size() - 1}});
@@ -291,8 +291,19 @@ bool EditorWindow::closeSurface(int index) {
     if (wasActive) {
         activeEditor_ = nullptr;
     }
-    // Destruction invalidates context-bound requests and all picker callbacks.
-    delete tab;
+    if (tab->chat_.hasActiveTurns()) {
+        retainedChatHosts_.append(tab);
+        tab->hide();
+        connect(&tab->chat_, &nt::chat::ChatSession::stateChanged, tab, [tab] {
+            if (!tab->chat_.hasActiveTurns()) {
+                tab->deleteLater();
+            }
+        });
+        connect(&session_, &node_editor::WorkflowSession::credentialsChanged, tab,
+            [tab] { tab->chat_.disconnectFromServer(); });
+    } else {
+        delete tab;
+    }
     if (tabs_.isEmpty()) {
         newTab();
     } else if (wasActive) {

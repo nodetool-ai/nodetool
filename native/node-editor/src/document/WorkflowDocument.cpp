@@ -746,6 +746,49 @@ EditResult edit(QJsonObject& workflow, const QJsonObject& command, const QHash<Q
         n = withChildPorts(n, catalog);
         removeStaleChildEdges(previous, n, edges);
         nodes[index] = n;
+    } else if (op == "patchChatData") {
+        const auto index = indexOf(nodes, id);
+        if (index < 0) {
+            return failure("Unknown node ID");
+        }
+        if (!command["data"].isObject()) {
+            return failure("Data must be an object");
+        }
+        auto node = nodes[index].toObject();
+        const auto patch = command["data"].toObject();
+        auto ui = node["ui_properties"].toObject();
+        auto properties = node["data"].toObject();
+        auto overlay = node["chat_data"].toObject();
+        const QSet<QString> uiFields{"title",       "color",       "collapsed",           "bypassed",
+                                     "model_id",    "endpoint_id", "selected_generation", "selected_generations",
+                                     "setupStepId", "selectable"};
+        for (auto it = patch.begin(); it != patch.end(); ++it) {
+            if (it.key() == "properties") {
+                if (!it.value().isObject()) {
+                    return failure("Properties must be an object");
+                }
+                const auto values = it.value().toObject();
+                for (auto value = values.begin(); value != values.end(); ++value) {
+                    properties[value.key()] = value.value();
+                }
+            } else if (it.key() == "dynamic_properties" || it.key() == "dynamic_inputs" ||
+                       it.key() == "dynamic_outputs") {
+                if (!it.value().isObject()) {
+                    return failure("Port declarations must be objects");
+                }
+                node[it.key()] = it.value();
+            } else if (uiFields.contains(it.key())) {
+                ui[it.key() == "setupStepId" ? QStringLiteral("setup_step_id") : it.key()] = it.value();
+            } else {
+                overlay[it.key()] = it.value();
+            }
+        }
+        node["data"] = properties;
+        node["ui_properties"] = ui;
+        if (!overlay.isEmpty()) {
+            node["chat_data"] = overlay;
+        }
+        nodes[index] = withInferredCodePorts(node, edges);
     } else if (op == "setProperty" || op == "removeProperty" || op == "setNodeField") {
         const auto index = indexOf(nodes, id);
         if (index < 0) { return failure("Unknown node ID"); }
@@ -862,6 +905,109 @@ private:
     WorkflowDocument& document_;
     QJsonObject before_, after_;
 };
+class NodeDeltaEdit final : public QUndoCommand {
+public:
+    NodeDeltaEdit(WorkflowDocument& document, QJsonObject before, QJsonObject after, const QString& label)
+        : QUndoCommand(label), document_(document), before_(std::move(before)), after_(std::move(after)) {}
+    void undo() override { apply(before_, after_); }
+    void redo() override { apply(after_, before_); }
+private:
+    void apply(const QJsonObject& values, const QJsonObject& other) {
+        for (auto it = other.begin(); it != other.end(); ++it) {
+            document_.writeNode(it.key(), values.value(it.key()).toObject());
+        }
+        for (auto it = values.begin(); it != values.end(); ++it) {
+            if (!other.contains(it.key())) {
+                document_.writeNode(it.key(), it.value().toObject());
+            }
+        }
+        emit document_.changed();
+    }
+    WorkflowDocument& document_;
+    QJsonObject before_;
+    QJsonObject after_;
+};
+class EdgeDeltaEdit final : public QUndoCommand {
+public:
+    EdgeDeltaEdit(WorkflowDocument& document, QJsonObject edge, const QString& label)
+        : QUndoCommand(label), document_(document), edge_(std::move(edge)) {}
+    void undo() override {
+        document_.popEdge();
+        emit document_.changed();
+    }
+    void redo() override {
+        document_.appendEdge(edge_);
+        emit document_.changed();
+    }
+private:
+    WorkflowDocument& document_;
+    QJsonObject edge_;
+};
+void WorkflowDocument::appendEdge(const QJsonObject& value) {
+    const auto id = value.value("id").toString();
+    edgeIndices_.insert(id, edgeValues_.size());
+    outgoing_[value.value("source").toString()].append(id);
+    edgeValues_.push_back(value);
+    graphDirty_ = true;
+}
+void WorkflowDocument::popEdge() {
+    const auto edge = edgeValues_.back();
+    outgoing_[edge.value("source").toString()].removeLast();
+    edgeIndices_.remove(edge.value("id").toString());
+    edgeValues_.pop_back();
+    graphDirty_ = true;
+}
+void WorkflowDocument::rebuildGraph() {
+    nodeValues_.clear();
+    nodeIndices_.clear();
+    for (const auto& value : workflow_.value("graph").toObject().value("nodes").toArray()) {
+        const auto node = value.toObject();
+        nodeIndices_.insert(node.value("id").toString(), nodeValues_.size());
+        nodeValues_.push_back(node);
+    }
+    edgeValues_.clear();
+    edgeIndices_.clear();
+    outgoing_.clear();
+    for (const auto& value : workflow_.value("graph").toObject().value("edges").toArray()) {
+        appendEdge(value.toObject());
+    }
+    graphDirty_ = false;
+}
+void WorkflowDocument::writeNode(const QString& id, const QJsonObject& value) {
+    const auto found = nodeIndices_.constFind(id);
+    if (value.isEmpty()) {
+        const auto index = *found;
+        nodeValues_.erase(nodeValues_.begin() + index);
+        nodeIndices_.remove(id);
+        for (qsizetype i = index; i < nodeCount(); ++i) {
+            nodeIndices_[nodeValues_[i].value("id").toString()] = i;
+        }
+    } else if (found == nodeIndices_.cend()) {
+        nodeIndices_.insert(id, nodeValues_.size());
+        nodeValues_.push_back(value);
+    } else {
+        nodeValues_[*found] = value;
+    }
+    graphDirty_ = true;
+}
+QJsonObject WorkflowDocument::snapshot() const {
+    if (graphDirty_) {
+        QJsonArray values;
+        for (const auto& node : nodeValues_) {
+            values.append(node);
+        }
+        auto graph = workflow_.value("graph").toObject();
+        graph.insert("nodes", values);
+        QJsonArray edges;
+        for (const auto& edge : edgeValues_) {
+            edges.append(edge);
+        }
+        graph.insert("edges", edges);
+        workflow_.insert("graph", graph);
+        graphDirty_ = false;
+    }
+    return workflow_;
+}
 WorkflowDocument::WorkflowDocument(QObject* parent) : QObject(parent) {
     workflow_.insert("graph", QJsonObject{{"nodes", QJsonArray{}}, {"edges", QJsonArray{}}});
 }
@@ -875,7 +1021,12 @@ void WorkflowDocument::setNodeMetadata(const QJsonArray& metadata) {
 EditResult WorkflowDocument::load(const QJsonObject& workflow) {
     const auto error = validate(workflow);
     if (!workflow.value("graph").isObject()) { return failure(error); }
-    undo_.clear(); workflow_ = workflow; readOnlyReason_ = error; emit replaced(); emit changed();
+    undo_.clear();
+    workflow_ = workflow;
+    rebuildGraph();
+    readOnlyReason_ = error;
+    emit replaced();
+    emit changed();
     return success();
 }
 EditResult WorkflowDocument::loadJson(const QByteArray& json) {
@@ -884,10 +1035,13 @@ EditResult WorkflowDocument::loadJson(const QByteArray& json) {
     if (error.error != QJsonParseError::NoError || !parsed.isObject()) { return failure("Invalid workflow JSON: " + error.errorString()); }
     return load(parsed.object());
 }
-QJsonObject WorkflowDocument::graph() const { return workflow_.value("graph").toObject(); }
+QJsonObject WorkflowDocument::graph() const { return snapshot().value("graph").toObject(); }
 QJsonArray WorkflowDocument::nodes() const { return graph().value("nodes").toArray(); }
 QJsonArray WorkflowDocument::edges() const { return graph().value("edges").toArray(); }
-QJsonObject WorkflowDocument::node(const QString& id) const { const auto values = nodes(); const auto index = indexOf(values, id); return index < 0 ? QJsonObject{} : values[index].toObject(); }
+QJsonObject WorkflowDocument::node(const QString& id) const {
+    const auto found = nodeIndices_.constFind(id);
+    return found == nodeIndices_.cend() ? QJsonObject{} : nodeValues_[*found];
+}
 void WorkflowDocument::reconcileMetadata(const QJsonObject& workflow) {
     auto updated = workflow;
     updated.insert("graph", graph());
@@ -898,11 +1052,147 @@ void WorkflowDocument::reconcileMetadata(const QJsonObject& workflow) {
 void WorkflowDocument::restore(const QJsonObject& value) {
     // Undo belongs to the graph. Server identity and revisions outlive edits.
     workflow_.insert("graph", value.value("graph"));
+    rebuildGraph();
     emit changed();
 }
 EditResult WorkflowDocument::applyCommand(const QJsonObject& command, const QString& label) {
     if (isReadOnly()) { return failure(readOnlyReason_); }
-    auto candidate = workflow_;
+    const auto op = command.value("op").toString();
+    const auto title = label.isEmpty() ? op : label;
+    if (op == "addNode") {
+        auto value = command.value("node").toObject();
+        auto id = value.value("id").toString();
+        if (id.isEmpty()) {
+            id = newId();
+            value.insert("id", id);
+        }
+        if (nodeIndices_.contains(id)) {
+            return failure("Node ID already exists");
+        }
+        const auto parent = value.value("parent_id").toString();
+        if (!parent.isEmpty() && !nodeIndices_.contains(parent)) {
+            return failure("Missing parent node");
+        }
+        auto checked = value;
+        checked.remove("parent_id");
+        const auto error = validate(QJsonObject{{"graph", QJsonObject{{"nodes", QJsonArray{checked}}, {"edges", QJsonArray{}}}}});
+        if (!error.isEmpty()) {
+            return failure(error);
+        }
+        undo_.push(new NodeDeltaEdit(*this, {}, QJsonObject{{id, value}}, title));
+        return success();
+    }
+    if (op == "addEdge") {
+        auto edge = command.value("edge").toObject();
+        if (edge.value("id").toString().isEmpty()) {
+            edge.insert("id", newId());
+        }
+        if (edgeIndices_.contains(edge.value("id").toString())) {
+            return failure("Edge ID already exists");
+        }
+        const auto source = edge.value("source").toString();
+        const auto target = edge.value("target").toString();
+        if (!nodeIndices_.contains(source) || !nodeIndices_.contains(target)) {
+            return failure("Unknown connection endpoint");
+        }
+        for (const auto& id : outgoing_.value(source)) {
+            const auto& existing = edgeValues_[edgeIndices_.value(id)];
+            if (existing.value("target") == edge.value("target")
+                && existing.value("sourceHandle") == edge.value("sourceHandle")
+                && existing.value("targetHandle") == edge.value("targetHandle")) {
+                return failure("Connection already exists");
+            }
+        }
+        QJsonArray reachableNodes{node(source)};
+        QJsonArray reachableEdges;
+        QStringList pending{target};
+        QSet<QString> visited{source};
+        while (!pending.isEmpty()) {
+            const auto id = pending.takeLast();
+            if (visited.contains(id)) {
+                continue;
+            }
+            visited.insert(id);
+            reachableNodes.append(node(id));
+            for (const auto& edgeId : outgoing_.value(id)) {
+                const auto& next = edgeValues_[edgeIndices_.value(edgeId)];
+                const auto destination = next.value("target").toString();
+                if (loopFeedback(node(destination), next.value("targetHandle").toString())) {
+                    continue;
+                }
+                reachableEdges.append(next);
+                pending.append(destination);
+            }
+        }
+        const auto error = validateNewEdge(reachableNodes, reachableEdges, edge, metadata_);
+        if (!error.isEmpty()) {
+            return failure(error);
+        }
+        if (!edge.value("sourceHandle").isString() || !edge.value("targetHandle").isString()) {
+            return failure("Edge requires named ports");
+        }
+        undo_.push(new EdgeDeltaEdit(*this, edge, title));
+        return success();
+    }
+    if (op == "moveNodes") {
+        if (!command.value("positions").isObject()) {
+            return failure("Positions must be an object");
+        }
+        QJsonObject before;
+        QJsonObject after;
+        const auto positions = command.value("positions").toObject();
+        const auto space = command.value("space").toString("relative");
+        if (space != "relative" && space != "absolute") {
+            return failure("Unknown position space");
+        }
+        QHash<QString, QPointF> absolute;
+        const auto parentPosition = [this, &positions, &absolute](QString id) {
+            QStringList path;
+            while (!id.isEmpty() && !absolute.contains(id)) {
+                if (positions.contains(id)) {
+                    const auto target = positions.value(id).toObject();
+                    absolute.insert(id, QPointF(target.value("x").toDouble(), target.value("y").toDouble()));
+                    break;
+                }
+                path.append(id);
+                id = node(id).value("parent_id").toString();
+            }
+            auto result = absolute.value(id);
+            while (!path.isEmpty()) {
+                const auto current = path.takeLast();
+                result += positionOf(node(current));
+                absolute.insert(current, result);
+            }
+            return result;
+        };
+        for (auto it = positions.begin(); it != positions.end(); ++it) {
+            auto value = node(it.key());
+            const auto position = it.value().toObject();
+            if (value.isEmpty() || !position.value("x").isDouble() || !position.value("y").isDouble()
+                || !std::isfinite(position.value("x").toDouble()) || !std::isfinite(position.value("y").toDouble())) {
+                return failure("Invalid node position");
+            }
+            if (value.contains("ui_properties") && !value.value("ui_properties").isObject()
+                && !value.value("ui_properties").isNull()) {
+                return failure("Unsupported UI properties");
+            }
+            if (!editableGeometry(value)) {
+                return failure("Unsupported node geometry");
+            }
+            before.insert(it.key(), value);
+            auto target = QPointF(position.value("x").toDouble(), position.value("y").toDouble());
+            if (space == "absolute") {
+                target -= parentPosition(value.value("parent_id").toString());
+            }
+            setPosition(value, target);
+            after.insert(it.key(), value);
+        }
+        if (before != after) {
+            undo_.push(new NodeDeltaEdit(*this, before, after, title));
+        }
+        return success();
+    }
+    auto candidate = snapshot();
     auto result = edit(candidate, command, metadata_);
     if (result && candidate != workflow_) { undo_.push(new DocumentEdit(*this, workflow_, candidate, label.isEmpty() ? command.value("op").toString() : label)); }
     return result;

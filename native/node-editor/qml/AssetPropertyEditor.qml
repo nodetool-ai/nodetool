@@ -11,6 +11,15 @@ ColumnLayout {
     required property bool writable
     required property string nodeId
     property var controller: typeof assetPickerController === "undefined" ? null : assetPickerController
+    property var dialogProvider: null
+    property var resolver: typeof mediaResolver === "undefined" ? null : mediaResolver
+    readonly property string documentKey: requestKey + "-document-" + generation
+    property var documentAsset: ({})
+    property url documentUrl: ""
+    property string documentText: ""
+    property var resourceController: typeof resourcePickerController === "undefined" ? null : resourcePickerController
+    readonly property string verifyKey: requestKey + "-verify-" + generation
+    property string documentStatus: ""
     property string requestKey: "property-asset-" + String(root)
     property int generation: 0
     readonly property string listKey: requestKey + "-list-" + generation
@@ -41,6 +50,20 @@ ColumnLayout {
     }
     function cancelEdit() {
         picker.close()
+        if (resolver) {
+            resolver.cancel(documentKey)
+            resolver.release(documentKey)
+        }
+        if (controller) {
+            controller.cancel(documentKey)
+        }
+        documentAsset = ({})
+        documentUrl = ""
+        documentText = ""
+        if (resourceController && mediaKind === "document") {
+            resourceController.cancel(verifyKey)
+            documentStatus = ""
+        }
         if (controller) { controller.cancel(listKey); controller.cancel(uploadKey) }
         ++generation
         listing = false; uploading = false; uploadProgress = 0; uploadFilesPending = []; uploadedReferences = []; error = ""; searchText = ""; editNodeId = ""
@@ -69,6 +92,61 @@ ColumnLayout {
         if (!writable || !assets.some(asset => asset.id === id)) return
         emitReference({type: mediaKind, asset_id: id, uri: "asset://" + id})
     }
+    function verifyDocument() {
+        if (mediaKind !== "document") {
+            return
+        }
+        if (resourceController) {
+            resourceController.cancel(verifyKey)
+        }
+        documentStatus = ""
+        if (controller) {
+            controller.cancel(documentKey)
+        }
+        if (resolver) {
+            resolver.cancel(documentKey)
+            resolver.release(documentKey)
+        }
+        documentAsset = ({})
+        documentUrl = ""
+        documentText = ""
+        if (value && resolver) {
+            resolver.resolve(documentKey, value)
+        }
+        if (value && value.asset_id) {
+            if (controller) {
+                controller.describe(documentKey, value.asset_id)
+            }
+            if (resourceController) {
+                resourceController.verifyAsset(verifyKey, value.asset_id)
+            }
+        }
+    }
+    Connections {
+        target: root.resolver
+        function onResolved(key, url) {
+            if (key !== root.documentKey) return
+            root.documentUrl = url
+            if (/\.(txt|html)$/i.test(url.toString())) {
+                root.documentText = root.resolver.resolvedText(key)
+            }
+        }
+    }
+    onValueChanged: verifyDocument()
+    Component.onCompleted: verifyDocument()
+    Connections {
+        target: root.resourceController
+        function onVerified(key, id, available) {
+            if (key === root.verifyKey && root.value && root.value.asset_id === id) {
+                root.documentStatus = available ? "" : " · unavailable or deleted"
+            }
+        }
+        function onFailed(key, message) {
+            if (key === root.verifyKey) {
+                root.documentStatus = " · could not verify"
+            }
+        }
+    }
     onNodeIdChanged: resetScope()
     onMediaKindChanged: resetScope()
     onWritableChanged: if (!writable) resetScope()
@@ -76,6 +154,11 @@ ColumnLayout {
     Connections {
         target: root.controller
         function onCleared() { root.resetScope(); root.scopeInvalidated() }
+        function onDescribed(key, asset) {
+            if (key === root.documentKey) {
+                root.documentAsset = asset
+            }
+        }
         function onListed(key, rows, next) {
             if (key !== root.listKey || !root.writable) return
             root.listing = false
@@ -101,14 +184,29 @@ ColumnLayout {
     }
     Ui.Text {
         Layout.fillWidth: true
-        visible: root.mediaKind === "asset" && root.value !== null && root.value !== undefined
-        text: root.value ? String(root.value.asset_id || root.value.id || root.value.uri || "") : ""
+        visible: ["asset", "document"].includes(root.mediaKind) && root.value !== null && root.value !== undefined
+        text: root.value ? String(root.documentAsset.name || root.value.asset_id || root.value.id || root.value.uri || "") + root.documentStatus : "No document selected"
         role: Ui.Typography.SansCaption
         wrapMode: Text.WrapAnywhere
     }
+    Ui.Text {
+        objectName: "document-text-preview"
+        Layout.fillWidth: true
+        visible: root.mediaKind === "document" && root.documentText !== ""
+        text: root.documentText
+        textFormat: Text.PlainText
+        wrapMode: Text.WrapAnywhere
+        role: Ui.Typography.SansCaption
+    }
+    NodeButton {
+        objectName: "document-open"
+        visible: root.mediaKind === "document" && root.documentUrl.toString() !== ""
+        text: "Open document"
+        onClicked: Qt.openUrlExternally(root.documentUrl)
+    }
     Loader {
         Layout.fillWidth: true
-        active: root.previewReady && root.mediaKind !== "asset" && root.value !== null && root.value !== undefined
+        active: root.previewReady && !(["asset", "document"].includes(root.mediaKind)) && root.value !== null && root.value !== undefined
         sourceComponent: Component {
             MediaPreview {
                 mediaKind: root.mediaKind
@@ -138,7 +236,14 @@ ColumnLayout {
             objectName: "asset-upload-" + root.descriptor.name
             text: "Upload file"
             enabled: root.writable && root.controller && !root.uploading
-            onClicked: { root.editNodeId = root.nodeId; picker.open() }
+            onClicked: {
+                root.editNodeId = root.nodeId
+                if (root.dialogProvider) {
+                    root.uploadFile(root.dialogProvider(root.mediaKind, picker.nameFilters))
+                } else {
+                    picker.open()
+                }
+            }
         }
     }
     Ui.Select {
@@ -159,7 +264,11 @@ ColumnLayout {
     RowLayout {
         visible: root.uploading
         Ui.Text { text: "Uploading " + Math.round(root.uploadProgress * 100) + "%"; role: Ui.Typography.SansCaption }
-        NodeButton { text: "Cancel upload"; onClicked: root.cancelEdit() }
+        NodeButton {
+            objectName: "asset-cancel-upload"
+            text: "Cancel upload"
+            onClicked: root.cancelEdit()
+        }
     }
     Ui.Text {
         Layout.fillWidth: true
@@ -183,7 +292,7 @@ ColumnLayout {
         title: "Upload " + root.mediaKind
         fileMode: root.multipleFiles ? FileDialog.OpenFiles : FileDialog.OpenFile
         nameFilters: root.mediaKind === "image" ? ["Images (*.png *.jpg *.jpeg *.webp *.gif *.bmp *.svg)"]
-            : root.mediaKind === "audio" ? ["Audio (*.wav *.mp3 *.flac *.ogg *.m4a *.aac)"] : root.mediaKind === "video" ? ["Video (*.mp4 *.webm *.mov *.mkv *.avi)"] : ["All files (*)"]
+            : root.mediaKind === "audio" ? ["Audio (*.wav *.mp3 *.flac *.ogg *.m4a *.aac)"] : root.mediaKind === "video" ? ["Video (*.mp4 *.webm *.mov *.mkv *.avi *.wmv *.flv)"] : root.mediaKind === "document" ? ["Documents (*.pdf *.doc *.docx *.txt *.html)"] : ["All files (*)"]
         onAccepted: if (root.writable && root.editNodeId === root.nodeId) root.uploadFiles(root.multipleFiles ? selectedFiles : [selectedFile])
     }
 }

@@ -309,11 +309,15 @@ private slots:
         auto view = window.findChild<QGraphicsView *>();
         QVERIFY(view);
         view->setFocus();
+        // Like the web toolbar, Escape cancels this client's run over the socket.
         QTest::keyClick(view->viewport(), Qt::Key_Escape);
-        QTRY_COMPARE(server.cancelled.size(), 1);
+        QTRY_COMPARE(server.commands.size(), 2);
+        QCOMPARE(server.commands.last()["command"].toString(), QString("cancel_job"));
+        QCOMPARE(server.commands.last()["data"].toObject()["job_id"], data["job_id"]);
+        QVERIFY(server.cancelled.isEmpty());
         server.update(data["job_id"].toString(), "cancelled");
         QTest::keyClick(view->viewport(), Qt::Key_Return, Qt::ControlModifier);
-        QTRY_COMPARE(server.commands.size(), 2);
+        QTRY_COMPARE(server.commands.size(), 3);
     }
     void toolbarLabels() {
         JobsServer server;
@@ -343,7 +347,7 @@ private slots:
         QTRY_COMPARE(root->property("runLabel").toString(), QString("Running · 1 queued"));
         QCOMPARE(root->property("runTooltip").toString(), QString("Running — 1 queued (click to queue another)"));
         server.rejectCancel = true;
-        window.session()->stop(id);
+        window.session()->cancelJob(id);
         QCOMPARE(root->property("runLabel").toString(), QString("Stopping"));
         QCOMPARE(root->property("runTooltip").toString(), QString("Stopping workflow"));
         QTRY_VERIFY(!window.session()->queue().last().toMap()["stopping"].toBool());

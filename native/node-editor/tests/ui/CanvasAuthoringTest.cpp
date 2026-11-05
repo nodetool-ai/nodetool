@@ -173,6 +173,8 @@ private slots:
   QTest::mouseClick(menu, Qt::LeftButton, Qt::NoModifier, menu->actionGeometry(layout).center());
   QTRY_COMPARE(window.document()->undoStack()->count(), 1);
   QTRY_VERIFY(position(window.document()->node("n0")) != QPointF(450, 400));
+    // Document commands precede the coalesced canvas projection.
+    QCoreApplication::processEvents();
   auto model = window.findChild<WorkflowGraphModel *>(); QVERIFY(model);
   const auto ids = model->allNodeIds();
   for (const auto a : ids) {

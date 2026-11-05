@@ -143,4 +143,16 @@ Windows also need reviewed references before CI can compare their pixels.
 is an icon-only close action with the standard button accessibility and tooltip
 properties. `Ui.Progress.indeterminate` runs only while visible and motion is
 allowed. Reduced motion keeps a static segment. `Ui.Surface.elevated` adds a
-transient overlay shadow.
+transient overlay shadow on hardware renderers. Software rendering uses the
+border alone because the unblurred shadow is clipped by overlay hosts.
+
+`ChipMenu` shows the selected option as a compact pill with an optional
+`iconName`. Supply `options` (`value`, `label`, optional `enabled`) and `value`,
+then handle `valueCommitted`. Its `popup` supports explicit cancellation.
+Pointer and Enter/Space activation open the menu, arrow keys move between
+options, and selection or Escape returns focus to the chip.
+
+`SelectionCard` is a square preview above a name and subtitle badge. Supply
+`text`, `subtitle`, `placeholderIcon`, optional `preview` component, and
+`checked`. It inherits button pointer, keyboard, focus and disabled behavior.
+The host owns image resolution and selection commits.

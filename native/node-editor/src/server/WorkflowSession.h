@@ -19,6 +19,7 @@ class WorkflowSession final : public QObject {
   Q_PROPERTY(QJsonObject catalog READ catalog NOTIFY catalogChanged)
   Q_PROPERTY(bool dirty READ dirty NOTIFY stateChanged)
   Q_PROPERTY(bool saving READ saving NOTIFY stateChanged)
+  Q_PROPERTY(bool remoteLoading READ remoteLoading NOTIFY stateChanged)
   Q_PROPERTY(bool autosaveEnabled READ autosaveEnabled WRITE setAutosaveEnabled NOTIFY stateChanged)
   Q_PROPERTY(QString autosaveState READ autosaveState NOTIFY stateChanged)
   Q_PROPERTY(bool conflictPending READ conflictPending NOTIFY stateChanged)
@@ -33,6 +34,7 @@ public:
   QJsonObject catalog() const { return m_catalog; }
   bool dirty() const { return m_dirty; }
   bool saving() const { return m_saving; }
+  bool remoteLoading() const { return m_remoteLoading; }
   bool autosaveEnabled() const { return m_autosave.enabled(); }
   void setAutosaveEnabled(bool enabled);
   void setAutosaveDelay(int milliseconds) { m_autosave.setDelay(milliseconds); }
@@ -67,6 +69,7 @@ public:
   GenerationHistory *generationHistory() { return &m_history; }
   PartialRunPlan lastPartialPlan() const { return m_lastPlan; }
   Q_INVOKABLE void stop(const QString &jobId);
+  Q_INVOKABLE void cancelJob(const QString &jobId);
   Q_INVOKABLE void reconnectRuns();
   Q_INVOKABLE void reconnectTransport();
 signals:
@@ -76,6 +79,8 @@ signals:
   void catalogChanged();
   void stateChanged();
   void credentialsChanged(QUrl server, QString token, QString userId);
+  // Hosts that coalesce document snapshots flush them before the session reads or replaces its workflow.
+  void snapshotRequested();
   void errorOccurred(QString message);
   void saveConflict(QString workflowId);
   void saved(QString workflowId);
@@ -92,7 +97,7 @@ private:
   WorkflowAutosave m_autosave;
   QString m_autosaveState = "saved";
   QJsonObject m_remoteWorkflow;
-  bool m_conflictPending = false, m_remoteLoading = false, m_remoteAgain = false;
+  bool m_conflictPending = false, m_remoteLoading = false, m_remoteAgain = false, m_flushAgain = false;
   quint64 m_remoteEpoch = 0;
   ExecutionGenerationStore m_generations;
   GenerationHistory m_history;

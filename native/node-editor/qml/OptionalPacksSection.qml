@@ -88,7 +88,7 @@ ColumnLayout {
                         }
                         Ui.Text {
                             Layout.fillWidth: true
-                            text: modelData.description
+                            text: modelData.description || ""
                             role: Ui.Typography.SansCaption
                             tone: Ui.Text.Secondary
                             wrapMode: Text.WordWrap
@@ -155,7 +155,7 @@ ColumnLayout {
                         }
                         Ui.Text {
                             Layout.fillWidth: true
-                            text: modelData.description
+                            text: modelData.description || ""
                             role: Ui.Typography.SansCaption
                             tone: Ui.Text.Secondary
                             wrapMode: Text.WordWrap

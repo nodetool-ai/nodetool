@@ -8,6 +8,7 @@
 #include <QMimeDatabase>
 #include <QTimer>
 #include <QUuid>
+#include <algorithm>
 namespace nt::chat {
 ChatSession::ChatSession(QObject *parent)
     : QObject(parent), m_threads(this), m_empty(this), m_client(this), m_catalog(this) {
@@ -157,6 +158,9 @@ void ChatSession::resumeConnection() {
 }
 void ChatSession::disconnectFromServer() {
   m_hostRequests.clear();
+    auto uiContext = m_hostContext.value("ui_context").toMap();
+    uiContext.remove("run");
+    m_hostContext["ui_context"] = uiContext;
   m_catalog.setIdentity({});
   m_provider.clear();
   m_model.clear();
@@ -172,6 +176,9 @@ void ChatSession::disconnectFromServer() {
   m_hostResults.clear();
   m_hostRequests.clear();
   m_historyOrder.clear();
+  m_threadWorkflows.clear();
+  m_workflowThreads.clear();
+    m_creatingWorkflows.clear();
   m_error.clear();
   emit stateChanged();
 }
@@ -195,6 +202,7 @@ void ChatSession::selectThread(const QString &id) {
     return;
   }
   m_selected = id;
+  m_workflowThreads[m_workflow] = id;
   m_historyOrder.removeAll(id);
   m_historyOrder.append(id);
   while (m_historyOrder.size() > 8) {
@@ -221,16 +229,123 @@ void ChatSession::unloadThread(const QString &id) {
   // Resolved previews are owned by the message rows and released here.
   s.cursor.clear();
 }
-void ChatSession::createThread() {
-  m_client.call("threads.create", {{"project_id", "default"}}, true,
-                [this](QJsonValue result, QString error) {
-                  if (!error.isEmpty()) {
-                    fail(error);
-                    return;
-                  }
-                  upsertThread(result.toObject());
-                  selectThread(result.toObject()["id"].toString());
-                });
+QVariantList ChatSession::workflowThreads() const {
+    QVariantList result;
+    auto rows = m_threads.rows();
+    std::stable_sort(rows.begin(), rows.end(), [](const auto &a, const auto &b) {
+        return a["updated_at"].toString() > b["updated_at"].toString();
+    });
+    for (const auto &row : rows) {
+        const auto id = row["id"].toString();
+        const auto binding = row["workflow_id"].isNull() || row["workflow_id"].isUndefined()
+            ? m_threadWorkflows.value(id) : row["workflow_id"].toString();
+        if (!m_workflow.isEmpty() && binding != m_workflow) {
+            continue;
+        }
+        auto entry = row.toVariantMap();
+        QString preview = row["title"].toString();
+        const auto found = m_states.find(id);
+        if (preview.isEmpty() && found != m_states.end()) {
+            for (const auto &value : found->second.messages->snapshot()) {
+                const auto message = value.toObject();
+                if (message["role"] != "user") {
+                    continue;
+                }
+                const auto content = message["content"];
+                if (content.isString()) {
+                    preview = content.toString();
+                } else if (content.isArray() && !content.toArray().isEmpty() && content.toArray().first().toObject()["type"] == "text") {
+                    preview = content.toArray().first().toObject()["text"].toString();
+                } else {
+                    preview = "[Media message]";
+                }
+                if (preview.size() > 50) {
+                    preview = preview.left(50) + "...";
+                }
+                break;
+            }
+        }
+        entry["preview"] = preview.isEmpty() ? QString("New conversation") : preview;
+        result.append(entry);
+    }
+    return result;
+}
+QString ChatSession::threadTitle() const {
+    return m_threads.get(m_selected)["title"].toString("Chat");
+}
+void ChatSession::setWorkflow(const QString &id) {
+    if (m_workflow == id) {
+        return;
+    }
+    m_workflow = id;
+    m_selected.clear();
+    const auto previous = m_workflowThreads.value(id);
+    if (!previous.isEmpty()) {
+        selectThread(previous);
+    } else {
+        const auto rows = workflowThreads();
+        if (!rows.isEmpty()) {
+            selectThread(rows.first().toMap()["id"].toString());
+        } else if (m_client.ready() && !id.isEmpty() && !m_creatingWorkflows.contains(id)) {
+            createThread();
+        }
+    }
+    emit stateChanged();
+}
+void ChatSession::deleteThread(const QString &id) {
+    m_client.call("threads.delete", {{"id", id}}, true,
+        [this, id](QJsonValue, QString error) {
+            if (!error.isEmpty()) {
+                fail("Could not delete the conversation. Please try again.");
+                return;
+            }
+            m_threads.remove(id);
+            m_states.erase(id);
+            m_threadWorkflows.remove(id);
+            if (m_selected == id) {
+                m_selected.clear();
+            }
+            emit stateChanged();
+        });
+}
+bool ChatSession::hasActiveTurns() const {
+    for (const auto &[id, state] : m_states) {
+        if (state.status == "loading" || state.status == "streaming" || state.status == "stopping" || state.status == "interrupted") {
+            return true;
+        }
+    }
+    return false;
+}
+void ChatSession::retry() {
+    if (m_selected.isEmpty() || turnStatus() != "error") {
+        return;
+    }
+    state(m_selected).draft = state(m_selected).lastPrompt;
+    state(m_selected).attachments = state(m_selected).lastAttachments;
+    send();
+}
+void ChatSession::createThread(const QString &draft) {
+    const auto workflow = m_workflow;
+    m_creatingWorkflows.insert(workflow);
+    QJsonObject input{{"project_id", "default"}};
+    if (!workflow.isEmpty()) {
+        input["workflow_id"] = workflow;
+    }
+    m_client.call("threads.create", input, true,
+        [this, workflow, draft](QJsonValue result, QString error) {
+            m_creatingWorkflows.remove(workflow);
+            if (!error.isEmpty()) {
+                fail(error);
+                return;
+            }
+            const auto id = result.toObject()["id"].toString();
+            m_threadWorkflows[id] = workflow;
+            upsertThread(result.toObject());
+            state(id).draft = draft;
+            if (workflow == m_workflow) {
+                selectThread(id);
+            }
+        });
 }
 void ChatSession::refresh() {
   if (!m_client.ready()) {
@@ -246,10 +361,11 @@ void ChatSession::refresh() {
         for (const auto &thread : result.toObject()["threads"].toArray()) {
           upsertThread(thread.toObject());
         }
-        if (m_selected.isEmpty() && m_threads.rowCount() > 0) {
-          selectThread(
-              m_threads.data(m_threads.index(0), ThreadModel::ThreadIdRole)
-                  .toString());
+        const auto rows = workflowThreads();
+        if (m_selected.isEmpty() && !rows.isEmpty()) {
+            selectThread(rows.first().toMap()["id"].toString());
+        } else if (m_selected.isEmpty() && !m_workflow.isEmpty() && !m_creatingWorkflows.contains(m_workflow)) {
+            createThread();
         }
         emit stateChanged();
       });
@@ -390,7 +506,9 @@ void ChatSession::send() {
       {"role", "user"},
       {"thread_id", m_selected},
       {"content", s.draft},
-      {"created_at", QDateTime::currentDateTimeUtc().toString(Qt::ISODate)},
+      {"name", ""},
+      {"ui_context", QJsonValue::Null},
+      {"media_generation", QJsonValue::Null},
       {"project_id",
        m_threads.get(m_selected)["project_id"].toString("default")},
       {"permission_mode", "default"}};
@@ -413,9 +531,7 @@ void ChatSession::send() {
         {kind, QJsonObject{{"type", kind},
                            {"uri", "asset://" + item["assetId"].toString()}}}});
   }
-  if (!s.attachments.isEmpty()) {
-    message["content"] = content;
-  }
+  message["content"] = content;
   if (!m_provider.isEmpty()) {
     message["provider"] = m_provider;
   }
@@ -424,7 +540,7 @@ void ChatSession::send() {
   }
   if (!m_hostContext.isEmpty()) {
     const auto workflowId = m_hostContext.value("workflow_id").toString();
-    if (!workflowId.isEmpty()) message["workflow_id"] = workflowId;
+    message["workflow_id"] = workflowId.isEmpty() ? QJsonValue(QJsonValue::Null) : QJsonValue(workflowId);
     const auto uiContext = m_hostContext.value("ui_context").toMap();
     if (!uiContext.isEmpty()) message["ui_context"] = QJsonObject::fromVariantMap(uiContext);
     const auto prompt = m_hostContext.value("system_prompt").toString();
@@ -434,6 +550,8 @@ void ChatSession::send() {
     return;
   }
   s.messages->upsert(message);
+    s.lastPrompt = s.draft;
+    s.lastAttachments = s.attachments;
   s.draft.clear();
   s.attachments.clear();
   s.status = "loading";
@@ -729,6 +847,10 @@ void ChatSession::applyEvent(const QJsonObject &event) {
       }
     }
     m_hostCalls[callId] = event;
+    if (!event["args"].isObject()) {
+        completeHostTool(callId, {}, "Invalid host tool input: args must be an object");
+        return;
+    }
     if (supported) {
       emit hostToolRequested(callId, event["name"].toString(),
                              event["args"].toObject().toVariantMap());

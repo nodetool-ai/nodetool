@@ -1288,7 +1288,11 @@ one-second timer stops when no live job runs.
 `QueueUiTest.cpp` uses pointer and keyboard events against QML and deterministic
 MsgPack events through EditorWindow. `NODETOOL_QUEUE_CAPTURE_DIR` enables dark
 and light captures at wide and narrow sizes, in both expansion states. F24 remains
-partial pending visual acceptance and pinned canvas focus parity.
+partial pending visual acceptance and pinned canvas focus parity. The expanded
+header centers counts with the title. Shared Surface shadows are disabled on the
+software renderer because the unblurred offset rectangle is clipped into dark
+corner wedges by overlay hosts. QueueUiTest checks transparent bottom corners
+in both themes and header center alignment.
 
 More includes Instant Update. Numeric commits immediately run the changed node
 and its downstream targets when connected and idle. Other commits debounce for
@@ -1375,7 +1379,11 @@ cover host activation, nested marks, cascade closure, reopening, workflow
 closure and child Save. Restore tests exclude child canvases and retain the
 owning workflow selection. Replacement rejects pending child writeback. Set
 `NODETOOL_SUBGRAPH_CAPTURE_DIR` for dark and light captures with one and two
-levels of child strips. Run with:
+levels of child strips. The strips occupy the native canvas column beside the
+catalog and inspector docks. The root host reads Workflow and nested hosts use
+the child label. Rows use the dock tab height, panel fill for active tabs, a
+top marker, bottom divider and separate close-button hover. Geometry and rendered
+label assertions cover the canvas extent and both host depths. Run with:
 
 ```sh
 QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software ctest --test-dir <build> --output-on-failure -R '^node_editor_(subgraph|workflow_tabs|ui|menus)$'
@@ -1385,3 +1393,651 @@ F09 remains partial. App and workflow choice currently
 uses the existing node properties and saved snapshots rather than the web's
 specialized selection controls. The linked-workflows menu lists workflow/app
 nodes in the current graph rather than a mini app document's operation bindings.
+
+
+## F36 chat embedding evidence
+
+F36 is partial and not accepted. `EditorChat.qml` embeds `NodeTool.Chat` in
+its host theme with one 44-pixel header, thread title, tooltips, thread toggle,
+new conversation and close. It uses the web English empty-state strings
+without suggestions. Header drag, left/bottom/corner resize and viewport
+clamping use global position, size and collapsed preferences. Geometry is
+saved on release. Thread-list visibility stays transient, matching
+[CanvasChatDockStore](../../../web/src/stores/CanvasChatDockStore.ts).
+
+`ChatSession` filters by server `workflow_id` with a client binding fallback.
+Creation binds the current workflow. The list searches titles and previews,
+sorts by update time, confirms deletion and reports failure. Per-editor
+sessions preserve drafts and background turns across tab switches. Closing a
+tab retains its hidden host until unfinished turns settle. Account replacement
+clears retained hosts and protected chat state.
+[ChatSurface](../../../web/src/components/workspace/ChatSurface.tsx) lines
+112–119 keeps the shared connection on unmount.
+[WorkspaceTabsStore](../../../web/src/stores/WorkspaceTabsStore.ts) `closeTab`
+removes tab state without stopping chat. Native therefore retains the turn
+after closing its editor tab.
+
+The expand control is hidden because native has no chat workspace-tab type.
+The web [expand handler](../../../web/src/components/panels/CanvasChatWindow.tsx)
+opens a chat tab and navigates to the workspace. Native keeps its floating
+conversation as the available destination.
+
+The run-output Ask agent action creates a conversation with the web draft
+“Help me diagnose the selected run.” and `ui_context.run.run_id`, following
+[AskRunAgentButton](../../../web/src/components/runs/AskRunAgentButton.tsx).
+Native has no span inspector or workflow-generation landing checklist. The
+web [landing repair callback](../../../web/src/components/workspace/WorkflowEditorSurface.tsx)
+sends the failure message immediately. Native has no matching landing surface.
+Explicit Retry resubmits the failed prompt and attachments after a click.
+
+The supported chat envelope follows
+[CanvasMediaComposer](../../../web/src/components/panels/CanvasMediaComposer.tsx)
+and [GlobalChatStore](../../../web/src/stores/GlobalChatStore.ts) lines
+1187–1229. It includes `name`, typed content, provider/model, thread/project,
+permission mode, nullable `media_generation`, ambient `workflow_id` and
+`ui_context`. It omits wire-level `created_at` and `workflow_target`. The test
+compares the complete text-plus-document envelope with selection and open
+workflow references. Media-generation modes and reasoning controls remain
+outside the native composer and this evidence.
+
+`EditorChatTools.cpp` owns the host-tool manifest and dispatch. Graph mutations
+use `WorkflowDocument::applyCommand`. Dynamic slot declaration and connection
+creation share one batch, so rejection leaves no slot and success has one undo
+entry. `patchChatData` merges properties and maps UI and port fields while
+retaining arbitrary data overlays and unknown stored fields. Code nodes use
+the native Acorn port inference. Model search reuses the public native language-model
+enumeration when ready and calls `models.availableForKind` for task-scoped lookup,
+without changing model-picker files. The graph result includes the web envelope,
+validation and a content revision. Search uses native metadata with the web query fields and result envelope.
+Exact search ranking and complete manifest-schema equivalence are not established. F36 remains partial and is not accepted.
+
+### Canvas tool inventory (R1)
+
+The web advertises the complete registered manifest in
+`web/src/stores/GlobalChatStore.ts` lines 878–888. Registration comes from
+`web/src/lib/tools/builtin/index.ts`. Focus only makes `ui_workflow_*` names
+resident, through `focusedUiToolNames` in
+`packages/websocket/src/session/chat-prompt.ts` lines 356–365. It does not
+filter the manifest. Other-document tools below remain registered in the web
+app but do not act on a workflow canvas.
+
+`getGraph.ts` lines 237–253 project editor nodes and edge types. Lines 280–295
+add `ok`, `workflow_id`, `source`, `document_revision` and `validation`.
+`WorkflowDocument` JSON is adapted to that envelope and the ReactFlow data
+projection. The revision normalization follows
+`packages/protocol/src/workflow-document-revision.ts` lines 70–149.
+`workflow.ts` lines 11–16 route explicit workflow IDs without changing tabs.
+The native bridge uses the same routing for open documents and rejects unknown
+or ambiguous IDs. Credential changes cancel pending model searches. The chat
+session disconnect clears protected calls before another account connects.
+
+There is no registered graph-selection, graph-fit or graph-zoom tool in the
+web canvas inventory. Selection context remains in `ui_context.selection`.
+`ui_switch_tab`, `ui_open_workflow`, workflow `ui_open_document`, `ui_copy`
+and `ui_paste` have native host handlers. Other document kinds in
+`ui_open_document` return an error.
+
+| Web tool | Outcome | Native scope or blocker |
+| --- | --- | --- |
+| `ui_add_node` | Implemented | Native graph, catalog or host adapter in `EditorChatTools.cpp`. |
+| `ui_audio_apply_effect` | Not applicable | Requires the audio document editor handler, outside the native workflow-canvas host. |
+| `ui_audio_edit` | Not applicable | Requires the audio document editor handler, outside the native workflow-canvas host. |
+| `ui_audio_get_state` | Not applicable | Requires the audio document editor handler, outside the native workflow-canvas host. |
+| `ui_audio_list_effects` | Not applicable | Requires the audio document editor handler, outside the native workflow-canvas host. |
+| `ui_audio_save` | Not applicable | Requires the audio document editor handler, outside the native workflow-canvas host. |
+| `ui_code_get_state` | Not applicable | Edits the unapplied draft of an open web Code-assistant dialog. Native edits the node directly and has no such draft dialog. |
+| `ui_code_set_code` | Not applicable | Edits the unapplied draft of an open web Code-assistant dialog. Native edits the node directly and has no such draft dialog. |
+| `ui_code_set_ports` | Not applicable | Edits the unapplied draft of an open web Code-assistant dialog. Native edits the node directly and has no such draft dialog. |
+| `ui_connect_nodes` | Implemented | Native graph, catalog or host adapter in `EditorChatTools.cpp`. |
+| `ui_delete_edge` | Implemented | Native graph, catalog or host adapter in `EditorChatTools.cpp`. |
+| `ui_delete_node` | Implemented | Native graph, catalog or host adapter in `EditorChatTools.cpp`. |
+| `ui_editor_get_content` | Not applicable | Requires an active text-editor adapter. The canvas does not mount one, and `builtin/index.ts` does not import this module. |
+| `ui_editor_get_selection` | Not applicable | Requires an active text-editor adapter. The canvas does not mount one, and `builtin/index.ts` does not import this module. |
+| `ui_editor_insert` | Not applicable | Requires an active text-editor adapter. The canvas does not mount one, and `builtin/index.ts` does not import this module. |
+| `ui_editor_replace_all` | Not applicable | Requires an active text-editor adapter. The canvas does not mount one, and `builtin/index.ts` does not import this module. |
+| `ui_editor_replace_selection` | Not applicable | Requires an active text-editor adapter. The canvas does not mount one, and `builtin/index.ts` does not import this module. |
+| `ui_entity_apply` | Not applicable | Production ingredients library and prompt injection, outside the native workflow-canvas host. |
+| `ui_entity_list` | Not applicable | Production ingredients library and prompt injection, outside the native workflow-canvas host. |
+| `ui_get_graph` | Implemented | Native graph, catalog or host adapter in `EditorChatTools.cpp`. |
+| `ui_jsscript_get_state` | Not applicable | Requires the jsscript document editor handler, outside the native workflow-canvas host. |
+| `ui_jsscript_run` | Not applicable | Requires the jsscript document editor handler, outside the native workflow-canvas host. |
+| `ui_jsscript_set_code` | Not applicable | Requires the jsscript document editor handler, outside the native workflow-canvas host. |
+| `ui_jsscript_set_meta` | Not applicable | Requires the jsscript document editor handler, outside the native workflow-canvas host. |
+| `ui_jsscript_set_ports` | Not applicable | Requires the jsscript document editor handler, outside the native workflow-canvas host. |
+| `ui_jsscript_set_tests` | Not applicable | Requires the jsscript document editor handler, outside the native workflow-canvas host. |
+| `ui_jsscript_test` | Not applicable | Requires the jsscript document editor handler, outside the native workflow-canvas host. |
+| `ui_3d_add_object` | Not applicable | Requires the model3d document editor handler, outside the native workflow-canvas host. |
+| `ui_3d_capture_view` | Not applicable | Requires the model3d document editor handler, outside the native workflow-canvas host. |
+| `ui_3d_delete_object` | Not applicable | Requires the model3d document editor handler, outside the native workflow-canvas host. |
+| `ui_3d_duplicate_object` | Not applicable | Requires the model3d document editor handler, outside the native workflow-canvas host. |
+| `ui_3d_frame_scene` | Not applicable | Requires the model3d document editor handler, outside the native workflow-canvas host. |
+| `ui_3d_get_object` | Not applicable | Requires the model3d document editor handler, outside the native workflow-canvas host. |
+| `ui_3d_list_scene` | Not applicable | Requires the model3d document editor handler, outside the native workflow-canvas host. |
+| `ui_3d_redo` | Not applicable | Requires the model3d document editor handler, outside the native workflow-canvas host. |
+| `ui_3d_rename_object` | Not applicable | Requires the model3d document editor handler, outside the native workflow-canvas host. |
+| `ui_3d_select_object` | Not applicable | Requires the model3d document editor handler, outside the native workflow-canvas host. |
+| `ui_3d_set_geometry` | Not applicable | Requires the model3d document editor handler, outside the native workflow-canvas host. |
+| `ui_3d_set_light` | Not applicable | Requires the model3d document editor handler, outside the native workflow-canvas host. |
+| `ui_3d_set_material` | Not applicable | Requires the model3d document editor handler, outside the native workflow-canvas host. |
+| `ui_3d_set_material_color` | Not applicable | Requires the model3d document editor handler, outside the native workflow-canvas host. |
+| `ui_3d_set_parent` | Not applicable | Requires the model3d document editor handler, outside the native workflow-canvas host. |
+| `ui_3d_set_transform` | Not applicable | Requires the model3d document editor handler, outside the native workflow-canvas host. |
+| `ui_3d_set_visibility` | Not applicable | Requires the model3d document editor handler, outside the native workflow-canvas host. |
+| `ui_3d_undo` | Not applicable | Requires the model3d document editor handler, outside the native workflow-canvas host. |
+| `ui_move_node` | Implemented | Native graph, catalog or host adapter in `EditorChatTools.cpp`. |
+| `ui_open_document` | Implemented | Native graph, catalog or host adapter in `EditorChatTools.cpp`. |
+| `ui_app_add_component` | Not applicable | Requires the puck document editor handler, outside the native workflow-canvas host. |
+| `ui_app_add_operation` | Not applicable | Requires the puck document editor handler, outside the native workflow-canvas host. |
+| `ui_app_add_resource` | Not applicable | Requires the puck document editor handler, outside the native workflow-canvas host. |
+| `ui_app_debug` | Not applicable | Requires the puck document editor handler, outside the native workflow-canvas host. |
+| `ui_app_declare_variable` | Not applicable | Requires the puck document editor handler, outside the native workflow-canvas host. |
+| `ui_app_get_binding_targets` | Not applicable | Requires the puck document editor handler, outside the native workflow-canvas host. |
+| `ui_app_get_snapshot` | Not applicable | Requires the puck document editor handler, outside the native workflow-canvas host. |
+| `ui_app_list_component_types` | Not applicable | Requires the puck document editor handler, outside the native workflow-canvas host. |
+| `ui_app_list_operations` | Not applicable | Requires the puck document editor handler, outside the native workflow-canvas host. |
+| `ui_app_list_resources` | Not applicable | Requires the puck document editor handler, outside the native workflow-canvas host. |
+| `ui_app_list_variables` | Not applicable | Requires the puck document editor handler, outside the native workflow-canvas host. |
+| `ui_app_remove_component` | Not applicable | Requires the puck document editor handler, outside the native workflow-canvas host. |
+| `ui_app_remove_operation` | Not applicable | Requires the puck document editor handler, outside the native workflow-canvas host. |
+| `ui_app_remove_resource` | Not applicable | Requires the puck document editor handler, outside the native workflow-canvas host. |
+| `ui_app_remove_variable` | Not applicable | Requires the puck document editor handler, outside the native workflow-canvas host. |
+| `ui_app_select_component` | Not applicable | Requires the puck document editor handler, outside the native workflow-canvas host. |
+| `ui_app_set_title` | Not applicable | Requires the puck document editor handler, outside the native workflow-canvas host. |
+| `ui_app_update_component` | Not applicable | Requires the puck document editor handler, outside the native workflow-canvas host. |
+| `ui_app_update_operation` | Not applicable | Requires the puck document editor handler, outside the native workflow-canvas host. |
+| `ui_app_update_variable` | Not applicable | Requires the puck document editor handler, outside the native workflow-canvas host. |
+| `ui_script_add_line` | Not applicable | Requires the script document editor handler, outside the native workflow-canvas host. |
+| `ui_script_add_speaker` | Not applicable | Requires the script document editor handler, outside the native workflow-canvas host. |
+| `ui_script_derive_storyboard` | Not applicable | Requires the script document editor handler, outside the native workflow-canvas host. |
+| `ui_script_export_subtitles` | Not applicable | Requires the script document editor handler, outside the native workflow-canvas host. |
+| `ui_script_get_state` | Not applicable | Requires the script document editor handler, outside the native workflow-canvas host. |
+| `ui_script_send_to_timeline` | Not applicable | Requires the script document editor handler, outside the native workflow-canvas host. |
+| `ui_script_set_line_text` | Not applicable | Requires the script document editor handler, outside the native workflow-canvas host. |
+| `ui_script_set_setup` | Not applicable | Requires the script document editor handler, outside the native workflow-canvas host. |
+| `ui_script_set_speaker` | Not applicable | Requires the script document editor handler, outside the native workflow-canvas host. |
+| `ui_script_set_speaker_voice` | Not applicable | Requires the script document editor handler, outside the native workflow-canvas host. |
+| `ui_script_voice_all` | Not applicable | Requires the script document editor handler, outside the native workflow-canvas host. |
+| `ui_script_voice_line` | Not applicable | Requires the script document editor handler, outside the native workflow-canvas host. |
+| `ui_script_write` | Not applicable | Requires the script document editor handler, outside the native workflow-canvas host. |
+| `ui_search_models` | Implemented | Native graph, catalog or host adapter in `EditorChatTools.cpp`. |
+| `ui_search_nodes` | Implemented | Native graph, catalog or host adapter in `EditorChatTools.cpp`. |
+| `ui_set_node_title` | Implemented | Native graph, catalog or host adapter in `EditorChatTools.cpp`. |
+| `ui_sketch_add_layer` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_adjust_layer` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_crop` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_draw_shape` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_duplicate_layer` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_fill` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_flatten_visible` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_generate` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_get_layer_image` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_get_state` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_gradient` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_merge_down` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_pick_color` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_place_image` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_refine_brief` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_remove_layer` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_render_to_asset` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_reorder_layer` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_resize_canvas` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_select_layer` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_selection` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_set_color` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_set_layer_props` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_set_selection_shape` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_set_setup` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_set_tool` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_stroke` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_sketch_transform` | Not applicable | Requires the sketch document editor handler, outside the native workflow-canvas host. |
+| `ui_storyboard_add_keyframe_version` | Not applicable | Requires the storyboard document editor handler, outside the native workflow-canvas host. |
+| `ui_storyboard_add_shot` | Not applicable | Requires the storyboard document editor handler, outside the native workflow-canvas host. |
+| `ui_storyboard_assemble_timeline` | Not applicable | Requires the storyboard document editor handler, outside the native workflow-canvas host. |
+| `ui_storyboard_create_scene` | Not applicable | Requires the storyboard document editor handler, outside the native workflow-canvas host. |
+| `ui_storyboard_delete_version` | Not applicable | Requires the storyboard document editor handler, outside the native workflow-canvas host. |
+| `ui_storyboard_direct` | Not applicable | Requires the storyboard document editor handler, outside the native workflow-canvas host. |
+| `ui_storyboard_duplicate_shot` | Not applicable | Requires the storyboard document editor handler, outside the native workflow-canvas host. |
+| `ui_storyboard_extract_script` | Not applicable | Requires the storyboard document editor handler, outside the native workflow-canvas host. |
+| `ui_storyboard_generate_clip` | Not applicable | Requires the storyboard document editor handler, outside the native workflow-canvas host. |
+| `ui_storyboard_generate_keyframe` | Not applicable | Requires the storyboard document editor handler, outside the native workflow-canvas host. |
+| `ui_storyboard_get_state` | Not applicable | Requires the storyboard document editor handler, outside the native workflow-canvas host. |
+| `ui_storyboard_merge_scene` | Not applicable | Requires the storyboard document editor handler, outside the native workflow-canvas host. |
+| `ui_storyboard_move_shot` | Not applicable | Requires the storyboard document editor handler, outside the native workflow-canvas host. |
+| `ui_storyboard_relink_script` | Not applicable | Requires the storyboard document editor handler, outside the native workflow-canvas host. |
+| `ui_storyboard_remove_shot` | Not applicable | Requires the storyboard document editor handler, outside the native workflow-canvas host. |
+| `ui_storyboard_reproject_shots` | Not applicable | Requires the storyboard document editor handler, outside the native workflow-canvas host. |
+| `ui_storyboard_revise_shot` | Not applicable | Requires the storyboard document editor handler, outside the native workflow-canvas host. |
+| `ui_storyboard_select_shot` | Not applicable | Requires the storyboard document editor handler, outside the native workflow-canvas host. |
+| `ui_storyboard_select_version` | Not applicable | Requires the storyboard document editor handler, outside the native workflow-canvas host. |
+| `ui_storyboard_set_duration_source` | Not applicable | Requires the storyboard document editor handler, outside the native workflow-canvas host. |
+| `ui_storyboard_set_entities` | Not applicable | Requires the storyboard document editor handler, outside the native workflow-canvas host. |
+| `ui_storyboard_set_screenplay` | Not applicable | Requires the storyboard document editor handler, outside the native workflow-canvas host. |
+| `ui_storyboard_set_setup` | Not applicable | Requires the storyboard document editor handler, outside the native workflow-canvas host. |
+| `ui_storyboard_set_style` | Not applicable | Requires the storyboard document editor handler, outside the native workflow-canvas host. |
+| `ui_storyboard_update_scene` | Not applicable | Requires the storyboard document editor handler, outside the native workflow-canvas host. |
+| `ui_storyboard_update_shot` | Not applicable | Requires the storyboard document editor handler, outside the native workflow-canvas host. |
+| `ui_svg_get_state` | Not applicable | Requires the svg document editor handler, outside the native workflow-canvas host. |
+| `ui_svg_replace` | Not applicable | Requires the svg document editor handler, outside the native workflow-canvas host. |
+| `ui_svg_save` | Not applicable | Requires the svg document editor handler, outside the native workflow-canvas host. |
+| `ui_svg_set_markup` | Not applicable | Requires the svg document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_add_group` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_add_marker` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_add_media_clip` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_add_midi_clip` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_add_model3d_clip` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_add_reframe_keyframe` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_add_shape_clip` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_add_text_clip` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_add_track` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_animate_clip` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_apply_take` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_bake_model3d_clip` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_clear_animations` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_clear_reframe` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_delete_clip` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_delete_marker` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_delete_track` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_duplicate_clip` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_edit` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_generate_clip` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_generate_from_beats` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_generatively_edit_clip` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_get_clip_frames` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_get_state` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_list_animation_presets` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_list_instruments` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_move_clip` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_move_track` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_plan_beats` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_quantize_notes` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_remove_beat` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_retarget_format` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_scale_velocity` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_seek` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_select_clip` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_set_clip_binding` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_set_clip_params` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_set_effects` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_set_markers_from_beats` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_set_mask` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_set_matte` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_set_model3d_style` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_set_notes` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_set_parent` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_set_reframe_subject` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_set_setup` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_set_tempo` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_set_time_remap` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_set_track_instrument` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_set_transition` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_snap_to_beats` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_split_clip` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_stagger_animations` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_transpose_clip` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_trim_clip` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_timeline_update_beat` | Not applicable | Requires the timeline document editor handler, outside the native workflow-canvas host. |
+| `ui_copy` | Implemented | Native graph, catalog or host adapter in `EditorChatTools.cpp`. |
+| `ui_open_workflow` | Implemented | Native graph, catalog or host adapter in `EditorChatTools.cpp`. |
+| `ui_paste` | Implemented | Native graph, catalog or host adapter in `EditorChatTools.cpp`. |
+| `ui_run_workflow` | Implemented | Native graph, catalog or host adapter in `EditorChatTools.cpp`. |
+| `ui_switch_tab` | Implemented | Native graph, catalog or host adapter in `EditorChatTools.cpp`. |
+| `ui_update_node_data` | Implemented | Native graph, catalog or host adapter in `EditorChatTools.cpp`. |
+| `ui_workflow_build_from_plan` | Not applicable | Controls the web guided workflow-creation flow and its persisted `settings.setup` plan. The native canvas hosts graph editing and a pack-setup guide, without that creation flow. These tools are not advertised by the native host. |
+| `ui_workflow_plan` | Not applicable | Controls the web guided workflow-creation flow and its persisted `settings.setup` plan. The native canvas hosts graph editing and a pack-setup guide, without that creation flow. These tools are not advertised by the native host. |
+| `ui_workflow_set_setup` | Not applicable | Controls the web guided workflow-creation flow and its persisted `settings.setup` plan. The native canvas hosts graph editing and a pack-setup guide, without that creation flow. These tools are not advertised by the native host. |
+| `ui_workflow_update_plan_step` | Not applicable | Controls the web guided workflow-creation flow and its persisted `settings.setup` plan. The native canvas hosts graph editing and a pack-setup guide, without that creation flow. These tools are not advertised by the native host. |
+
+`tests/ui/EditorChatToolsTest.cpp` is registered as `node_editor_chat_tools`.
+It drives the production `ChatSession::applyEvent` entry with tool-call envelopes
+and checks WebSocket tool results. Cases cover implemented tools, command undo,
+unknown-field preservation, rejected connections, Code ports and syntax checks,
+a shared-protocol revision fixture, malformed fields and argument envelopes,
+read-only documents, resource prefixes, stale tab targets and account replacement.
+`ChatSession` rejects non-object arguments before their shape is lost in the
+host's `QVariantMap` conversion.
+
+The focused build passed. The final CTest run passed in 78.69 seconds with no
+failed Qt Test cases. Both native design checks passed. Temporarily submitting
+the connection batch as separate commands failed the undo test with two entries
+instead of one. The same mutation failed the rejection test because an orphan
+dynamic input remained after a refused self-connection. The mutation was restored
+before the passing run.
+
+The `ui_add_node` benchmark completed 2,000 calls in 74.872 seconds. Cumulative
+measurements at 500, 1,000 and 1,500 calls were 4.594, 19.334 and 42.890 seconds.
+The loop shows quadratic growth and recomputes a full graph revision after every
+edit. It reconnects between four bursts because `ChatSession` caps its completed
+host-call cache at 1,024 results. Document-change notifications are blocked during
+this benchmark to isolate dispatch, validation, undo and revision work from canvas
+projection. An earlier run including projection hit the 200-second CTest timeout.
+Full-editor performance remains unresolved. These measurements do not establish
+F36 acceptance.
+
+`tests/ui/EditorChatTest.cpp` is registered as `node_editor_chat`. Pointer/key
+and real text-mode WebSocket/tRPC tests cover geometry persistence, resize,
+clamping, workflow filtering and creation binding, search, delete failure,
+background streams after switching and closing tabs, retry, run-output Ask
+agent, the supported full envelope, drafts, uploads, stop, tool undo and account
+replacement/disconnect. Removing the creation request's workflow binding fails
+`bindingFilteringAndRetry`. Removing position clamps fails
+`geometryAndPersistence` because the panel moves offscreen. Both mutations
+were restored. The final focused build exited successfully. CTest passed
+`node_editor_chat` in 8.27 seconds with 11 Qt Test cases passed and none failed.
+Both native design and dependency checks exited successfully.
+
+Captures use `NODETOOL_EDITOR_CHAT_CAPTURE_DIR` only. Dark and light 1280×800
+closed, open-empty, thread-list and open-streaming images are in
+`/tmp/nodetool-editor-chat-captures`. Each requested PNG was opened at
+original resolution after the final run. Review shows one header, the empty
+prompt, a searchable list, an unobstructed composer and rounded outer border
+in both themes. Closed captures show no chat window. The shared transparent Quick-widget
+background removes the top-corner artifacts. Native retains attachment/model
+controls and its keyboard submission convention. It lacks web media chips,
+the asset-reference picker, relative thread-date headings and exit animation.
+These differences remain outside this evidence. F36 is not accepted.
+
+
+## F22 document property evidence
+
+F22 is partial and is not accepted. The embedded 3D viewer remains an open
+scope decision for the user.
+
+[DocumentPropertyEditor](../qml/DocumentPropertyEditor.qml) uses a select
+and adjacent compact icon button. New, Refresh and the status line are removed.
+[DocumentPickerController](../src/properties/DocumentPickerController.cpp) no
+longer exposes creation or sends create requests. The list contracts remain
+GET `/trpc/sketch.list`, `/trpc/timeline.list`, `/trpc/scripts.list` and
+`/trpc/storyboards.list`, with `{result: {data: [...]}}` responses.
+The icons use the same Material paths as the web fields. Timeline's fallback
+label is `Untitled video`. The open button has the per-type `Open in <kind>
+editor` accessible name and tooltip and is disabled without a selected ID.
+
+Loading and error rows are disabled options inside the select. A stored ID
+missing from the list displays an empty select and keeps its reference, as
+[the web select](../../../web/src/components/properties/DocumentPickerProperty.tsx)
+does without `renderValue`. Selecting another row writes a fresh `{type, id}`
+reference. Storyboard also writes `data: null`. Same-ID selection emits no
+commit. Lists remain fresh for 30 seconds. Application activation and opening
+the menu refetch stale lists. Menu opening is the native fallback for returning
+from a browser without an application activation notification. This cache is
+per field instance, unlike the web's shared query cache.
+
+Sketch opens `/sketch/<id>` and timeline opens `/timeline/<id>`.
+[ScriptProperty](../../../web/src/components/properties/ScriptProperty.tsx) and
+[StoryboardProperty](../../../web/src/components/properties/StoryboardProperty.tsx)
+omit `standaloneRoute`. Their shared web handler opens a workspace tab and
+navigates to `/workspace`. Native instead uses the existing
+`/studio/script/:scriptId` and `/studio/storyboard/:boardId` routes, declared at
+lines 505 and 504 of [the router](../../../web/src/index.tsx). These retain the
+selected ID when opening an external browser. This is a navigation difference
+from the web property fields. The native workflow remains open. Browser launch
+is tested with a QDesktopServices URL handler, not a real external browser.
+
+[Model3DPropertyEditor](../qml/Model3DPropertyEditor.qml) adds a URL toggle,
+URL entry and file drop through the existing AssetPickerController multipart
+upload path. The inspector widget enables native drops. Upload commits
+`{type: "model_3d", uri: "asset://<id>", asset_id}`, matching
+[mediaRefFromAsset](../../../web/src/utils/mediaRef.ts). URL commits
+`{uri, type: "model_3d"}`. The inspector supplies its label. Connected fields
+show the existing link icon, matching the web ConnectedBadge. The preview space shows the asset name and thumbnail
+when metadata supplies one. AssetPickerController reads `assets.get` and
+resolves relative `thumb_url` values against the server origin.
+No Qt Quick 3D dependency or viewer was added. Native has no example-model
+drag source or decoder in the inspected node-editor sources, so example-model
+drops are not implemented.
+
+[DocumentPropertyTest](../tests/ui/DocumentPropertyTest.cpp) uses a fake HTTP
+server with tRPC list arrays, asset metadata envelopes and multipart upload
+responses. It asserts that New, Refresh and the status line are absent, and
+covers disabled loading/error options, missing selection display, exact
+reference shapes, open targets and credential invalidation. The real
+EditorWindow inspector test uses pointer events for URL entry and sends native
+drag-enter, drag-move and drop events through the inspector widget. It checks
+upload shape, undo/redo, URL and repeated-upload same-value no-ops, and tab
+close with a list response in flight. The four document captures also use
+the real inspector.
+
+Two deliberate mutations were run together. Replacing upload `asset_id` with
+`id` failed the exact reference comparison. Reintroducing a New control failed
+the absence assertion for all four document types. The mutation run exited 8
+with five failing cases. Both mutations were restored before final validation.
+
+Captures are emitted only through `NODETOOL_DOCUMENT_PROPERTY_CAPTURE_DIR`.
+This round used `/tmp/f22-current-captures` and opened every PNG at original
+resolution: `sketch-dark.png`, `sketch-light.png`, `timeline-dark.png`,
+`timeline-light.png`, `script-dark.png`, `script-light.png`,
+`storyboard-dark.png`, `storyboard-light.png`, `model3d-empty-dark.png`,
+`model3d-empty-light.png`, `model3d-filled-dark.png` and
+`model3d-filled-light.png`. The document fields have a label above a single
+select/icon row without clipping or extra actions. Empty 3D fields show the
+URL control and drop prompt. Filled fields show `model.glb`. The fake asset
+has no thumbnail, so those captures do not verify thumbnail rendering.
+
+Comparison was against the web component source, not a running web screenshot.
+The 3D URL field uses native standard field sizing across the inspector width,
+while the web uses a compact input capped at 120 pixels. The preview has a
+fixed compact native height rather than the web's flex height and contains a
+name instead of a live model viewer. Native commits URL drafts on field commit,
+while the web writes on each change. Script/storyboard open targets and
+per-instance list caching differ as described above. No example-model drag
+producer was found in the inspected native editor sources.
+
+Focused verification uses only
+`/home/mg/.cache/node-editor-autosave-host-build`:
+
+- `cmake --build /home/mg/.cache/node-editor-autosave-host-build --target node_editor_document_property_tests --parallel 3`
+  exited 0 after the concurrent chat syntax and host-header changes settled.
+- `NODETOOL_DOCUMENT_PROPERTY_CAPTURE_DIR=/tmp/f22-current-captures QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software ctest --test-dir /home/mg/.cache/node-editor-autosave-host-build -R '^node_editor_document_property$' --output-on-failure --timeout 200`
+  exited 0 with the focused target passing.
+- `python3 native/ui_primitives/tools/check_design.py --strict` exited 0.
+- `python3 native/ui_primitives/tools/check_dependencies.py` exited 0.
+
+## Remaining property editors, F21 and F23
+
+These rows remain partial and are not accepted. The additions are
+[RemainingResourcePropertyEditor](../qml/RemainingResourcePropertyEditor.qml),
+[ToolsPropertyEditor](../qml/ToolsPropertyEditor.qml),
+[PathPropertyEditor](../qml/PathPropertyEditor.qml),
+[MediaParameterPropertyEditor](../qml/MediaParameterPropertyEditor.qml), and
+[FilePropertyEditor](../qml/FilePropertyEditor.qml). PropertyField routes their
+commits through WorkflowDocument. Document assets reuse AssetPropertyEditor.
+The existing workflow, workflow-list, collection, color, and image-size editors
+were skipped. F20 model pickers and F22 document editors are separate work.
+
+### Web contracts
+
+- Fonts use `GET /trpc/fonts.list` with `{}` and read `{fonts: [{name,
+  portable, ...}]}`. Server order and portable labels follow
+  [FontProperty](../../../web/src/components/properties/FontProperty.tsx).
+  That component has no font-face preview. No font was bundled by this change.
+- Folders use `GET /trpc/assets.list` with `{content_type: "folder",
+  project_id}` and read `{assets, next}`. Creation uses multipart
+  `POST /api/assets/`, with a `json` part containing `{parent_id,
+  content_type: "folder", name}`. Creation refreshes the list without selecting
+  the new folder. See
+  [FolderProperty](../../../web/src/components/properties/FolderProperty.tsx)
+  and [AssetStore](../../../web/src/stores/AssetStore.ts).
+- Entities use `GET /trpc/assets.search` with `{query: "", page_size: 1000,
+  project_id}` and read `assets`. The controller maps the
+  `metadata.nodetool_entity` marker into the entity cache, preserving full asset
+  IDs. See [useEntities](../../../web/src/serverState/useEntities.ts) and
+  [EntityProperty](../../../web/src/components/properties/EntityProperty.tsx).
+  Existing wrapper fields and prior list entries survive selection.
+- Document assets reuse `GET /trpc/assets.search` with `{query, page_size: 100,
+  content_type: "document"}` and optional cursor, reading `{assets,
+  next_cursor}`. Reference verification uses `GET /trpc/assets.get` with `{id}`.
+  Uploads reuse the native asset controller's multipart `POST /api/assets`.
+  The web [DocumentProperty](../../../web/src/components/properties/DocumentProperty.tsx)
+  uses [PropertyDropzone](../../../web/src/components/properties/PropertyDropzone.tsx)
+  for document constant/input nodes. Its Electron branch calls
+  `window.api.dialog.openFile` with document extensions, then reads the local
+  file buffer. The native picker uses Qt's file dialog and local file upload.
+- Media constraints use `GET /trpc/models.imageByProvider` or
+  `GET /trpc/models.videoByProvider` with `{provider}`. Both return arrays.
+  The selected full model ID identifies its constraint row. Unknown models and
+  failed requests leave the static vocabulary available. See
+  [useMediaModelConstraints](../../../web/src/hooks/useMediaModelConstraints.ts)
+  and [MediaPickerProperties](../../../web/src/components/properties/MediaPickerProperties.tsx).
+- Paths store plain strings. The desktop choice follows the Electron branch
+  in [BasePathProperty](../../../web/src/components/properties/shared/BasePathProperty.tsx):
+  native file/folder dialogs and an empty string to clear. Offscreen tests
+  inject a dialog provider. A generation check rejects an older dialog result.
+- Tools preserve the web's individual tools and grouped browser/sandbox IDs
+  from [ToolsListProperty](../../../web/src/components/properties/ToolsListProperty.tsx).
+  [FileProperty](../../../web/src/components/properties/FileProperty.tsx) only
+  displays a reference ID. Neither component has a server picker route.
+
+### Behavior contracts under verification
+
+Folder and entity lists receive the active workflow's `project_id` from
+`EditorWindow::properties()`. An unfiled workflow uses the browser project
+selection, then `default`. A project change cancels the old key, clears rows,
+and refetches. The web scopes these fields in
+[FolderProperty](../../../web/src/components/properties/FolderProperty.tsx)
+and [useEntities](../../../web/src/serverState/useEntities.ts), using
+`activeProjectId ?? LOOSE_PROJECT_ID`. Workflow single/list properties call
+`load("", 200)` without a project argument. Fonts and collections are unscoped.
+
+[DocumentProperty](../../../web/src/components/properties/DocumentProperty.tsx)
+uses a dropzone only for `nodetool.constant.Document` and
+`nodetool.input.DocumentInput`. Other nodes display `value.id`. Native dispatch
+now follows those rules. The dropzone branch loads asset metadata and resolves
+a local copy through MediaResolver. TXT and HTML show plain text, with no HTML
+execution. Open document uses that local copy. Native has no embedded PDF or
+sandboxed HTML viewer. The closest behavior is the text preview and explicit
+external open. DOC and DOCX display the asset name, as on the web.
+
+[BasePathProperty](../../../web/src/components/properties/shared/BasePathProperty.tsx)
+passes no extension filters to Electron's `openFile` or `openFolder`. Native
+paths therefore accept all files or directories. Document uploads use the
+[PropertyDropzone](../../../web/src/components/properties/PropertyDropzone.tsx)
+filter: PDF, DOC, DOCX, TXT and HTML. Its Electron branch reads the chosen local
+file buffer and uploads it. Native uploads the chosen local file directly.
+Offscreen tests inject dialog results into the inspector controls.
+
+[PropertyBehaviorTest](../tests/ui/PropertyBehaviorTest.cpp), registered as
+`node_editor_property_behavior`, uses the real EditorWindow inspector and a
+local HTTP server. Response contracts come from the
+[asset router](../../../packages/websocket/src/trpc/routers/assets.ts),
+[font router](../../../packages/websocket/src/trpc/routers/fonts.ts),
+[model router](../../../packages/websocket/src/trpc/routers/models.ts),
+[workflow router](../../../packages/websocket/src/trpc/routers/workflows.ts),
+[collection router](../../../packages/websocket/src/trpc/routers/collections.ts)
+and [multipart handler](../../../packages/websocket/src/http-api.ts).
+Disabling `onProjectIdChanged` made `projectChangeDiscardsOldResponse` fail:
+the expected `project-b` rows never arrived. Removing `reply->abort()` from
+AssetPickerController cancellation made `uploads:cancel-delayed-upload` fail:
+the fake server socket remained connected. Both mutations exited 1 and were
+restored. These rows remain partial.
+
+Focused verification used the existing build directory. Its
+`CMAKE_HOME_DIRECTORY` points to this worktree's `native/node-editor`.
+
+- `cmake --build /home/mg/.cache/node-editor-group-gesture-build --target node_editor_property_behavior_tests --parallel 3` exited 0.
+- `QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software ctest --test-dir /home/mg/.cache/node-editor-group-gesture-build -R '^node_editor_property_behavior$' --output-on-failure --timeout 200` exited 0. The test passed in 24.36 seconds.
+- `python3 native/ui_primitives/tools/check_design.py --strict` exited 0.
+- `python3 native/ui_primitives/tools/check_dependencies.py` exited 0.
+
+### Evidence and limits
+
+[RemainingPropertyTest](../tests/ui/RemainingPropertyTest.cpp) is registered as
+`node_editor_remaining_property`. It drives pointer clicks and keyboard menu
+selection, uses a local HTTP fake with tRPC response envelopes, and checks
+missing resource references, full IDs, wrapper metadata, undo, same-value
+no-ops and account invalidation. Local path tests inject dialog results and
+reject a result from an earlier generation. The tests exercise the individual
+editors and WorkflowDocument rather than the whole inspector.
+
+Mutation checks removed the single-resource same-ID guard and the path-dialog
+epoch guard. The focused test failed for font/folder/entity extra commits and
+for stale file/folder-path commits. Both guards were restored. The same-value
+WorkflowDocument boundary already rejected identical snapshots before this
+change. Its implementation was not changed. The inspector behavior tests above also mutation-test upload network
+cancellation and project-change invalidation.
+
+Captures are opt-in through `NODETOOL_REMAINING_PROPERTY_CAPTURE_DIR`.
+Entity fields now show selected chips and open a card picker with square
+reference previews, names, kind badges and selection outlines. Single and
+list selection share that picker. Tools show selected icons and an add/remove
+menu. Media parameters use the shared `Ui.ChipMenu`. Folder creation opens a
+popover beside its select. Paths put Browse, the preview and Clear in one row.
+Fonts use a plain select with portable labels and a separate refresh icon.
+File references use body text and preserve the full ID.
+
+The tool mutation removed `root.valueCommitted(next)` from
+[ToolsPropertyEditor](../qml/ToolsPropertyEditor.qml). The pointer test failed
+with zero commits instead of one. The commit was restored. Card selection,
+tool toggles and chip menus have pointer and keyboard coverage.
+
+Visual differences remain. Entity chips use kind icons instead of colored
+dots, and the native kind badges do not reproduce every web kind color.
+The picker bounds its scrolling card grid. The card fixture covers the
+missing-preview placeholder, not authenticated
+reference-image rendering. Tool menus use a leading check mark instead of
+the web's trailing checkbox. Media menus use a vertical option list without
+the web's aspect-ratio diagrams, headers or separate strength descriptions.
+The chip height and typography follow native metrics. Folder and font controls
+retain a refresh icon absent from their web components. Paths use Qt dialogs.
+Document assets still show upload/search controls and plain text preview,
+without embedded PDF or sandboxed HTML viewers. The installed Qt QML modules
+include neither QtPdf nor QtWebEngine. Reproducing those viewers requires a
+renderer dependency and a host integration beyond these property controls.
+
+The entity create/open flow is blocked on a host contract. The web
+[EntityPicker](../../../web/src/components/entities/EntityPicker.tsx) calls
+`EntityLibraryStore.requestCreate()` and `openPageTab("entities")`.
+[openPageTab](../../../web/src/components/workspace/openPageTab.ts) changes
+in-process workspace state and opens `/workspace`. That URL alone does not
+select the Entities page or start its add flow. There is no native entity
+library host or inspected deep link that performs these actions. The entry is
+hidden. [pageTabs](../../../web/src/components/workspace/pageTabs.ts) explicitly
+defines these pages as workspace tabs rather than routes.
+
+Other unfinished work includes active-project propagation into folder/entity
+requests, document preview/open, document-node-specific display restrictions,
+full native file-dialog behavior and extension filters, and full-inspector
+connected/read-only and tab-close interaction tests. Folder creation,
+provider-constraint narrowing and document uploads need dedicated HTTP/pointer
+coverage. The document stale-response check currently covers account reset,
+not a delayed upload completion. File references remain display-only as on
+the web. Platform accessibility is not verified by the offscreen tests.
+
+The focused target builds its document, controller and media dependencies
+without linking node_editor_core. This follows the existing standalone
+property tests and avoids unrelated chat-host link changes in a shared
+checkout. Verification uses the existing fullscreen build directory and Qt
+installation. No other build directory is needed.
+
+Original-resolution capture review covers both `-dark.png` and `-light.png`
+for these stems: `font`, `folder`, `entity`, `entity_list`, `document`, `file`,
+`file_path`, `folder_path`, `tools`, `media_duration`, `media_strength`,
+`media_resolution_image`, `media_resolution_video`, `media_aspect_ratio_image`,
+and `media_aspect_ratio_video`. Open entity/folder pickers add `-picker-`,
+and tool/media menus add `-menu-` before the scheme. Closed captures use the
+first selected option from the pointer test. These are isolated-control
+captures, not evidence of complete inspector integration.
+
+## Large graph performance
+
+`node_editor_large_graph` adds nodes individually through `applyCommand`, then
+connects, moves and undoes an add at 250, 500, 1,000 and 2,000 nodes. It runs
+without a window and with a shown window. Timings below use an AMD Ryzen 5 3600
+6-Core Processor, Qt 6.12.0, the offscreen platform and software Quick rendering.
+The CMake build has no optimization or sanitizer flags.
+
+| Nodes | Document add before / after (µs) | Shown-window add before / after (µs) |
+| --- | --- | --- |
+| 250 | 564 / 16 | 32,838 / 455 |
+| 500 | 1,682 / 16 | 131,501 / 454 |
+| 1,000 | 3,419 / 16 | 242,884 / 478 |
+| 2,000 | 7,307 / 16 | 300-second run timeout / 533 |
+
+Adds use indexed storage and delta undo. Full presentation and session scans
+coalesce into one event-loop turn. The benchmark times that turn separately
+from commands and requires less than 3× per-add growth. Reintroducing full
+validation made the document case fail at 8.8× growth. Chat dispatch at 2,000
+nodes remains covered by `node_editor_chat_tools`, which passed under
+AddressSanitizer in 9.36 seconds with leak detection disabled for Qt. Its content-based revision
+hash still requires graph-wide work. Connection cycle checks visit the reachable
+component. These measurements do not establish input-to-paint latency or accept
+[F42](parity-inventory.md).
