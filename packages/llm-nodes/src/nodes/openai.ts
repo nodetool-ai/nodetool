@@ -2,7 +2,8 @@ import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import {
   modelIdOf,
   providerModelProp,
-  type ModelFieldValue
+  type ModelFieldValue,
+  type TTSModelFieldValue
 } from "./provider-model-prop.js";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type {
@@ -639,7 +640,7 @@ export class TextToSpeechNode extends BaseNode {
     "tts-1",
     "The model to use."
   )
-  declare model: ModelFieldValue;
+  declare model: TTSModelFieldValue;
 
   @prop({
     type: "enum",
@@ -681,7 +682,9 @@ export class TextToSpeechNode extends BaseNode {
     const text = this.input;
     if (!text) throw new Error("Input text cannot be empty");
     const model = modelIdOf(this.model);
-    const voice = this.voice;
+    const pickedVoice =
+      isString(this.model) ? undefined : this.model?.selected_voice;
+    const voice = pickedVoice || this.voice;
     const speed = this.speed;
     const instructions = this.instructions;
 

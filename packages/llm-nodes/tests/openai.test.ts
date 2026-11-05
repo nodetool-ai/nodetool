@@ -383,6 +383,24 @@ describe("TextToSpeechNode", () => {
     expect((output.data as string).startsWith("data:")).toBe(false);
     expect(output.content_type).toBe("audio/mpeg");
   });
+
+  it.each([
+    { label: "picker voice", model: { id: "tts-1", selected_voice: "nova" }, expected: "nova" },
+    { label: "legacy model id", model: "tts-1", expected: "echo" },
+    { label: "model without a picked voice", model: { id: "tts-1" }, expected: "echo" },
+    { label: "empty picker voice", model: { id: "tts-1", selected_voice: "" }, expected: "echo" }
+  ])("sends the $label to the speech API", async ({ model, expected }) => {
+    mockFetch.mockResolvedValueOnce(new Response(new Uint8Array([1, 2])));
+    const node = new TextToSpeechNode();
+    node.assign({ input: "Hello", model, voice: "echo" });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
+
+    await node.process();
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body).toMatchObject({ model: "tts-1", voice: expected });
+  });
 });
 
 // ---------------------------------------------------------------------------
