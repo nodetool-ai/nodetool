@@ -54,9 +54,11 @@ Timeline documents remain openable without an FP16 document gate. On an unsuppor
 
 ## S0: Establish coverage, visible benefit and cost
 
-- [ ] **A90: Complete the surface inventory.** Trace browser, server, agent, CLI and native callers and tests. Identify renderer prerequisites, lazy-loading boundaries and CPU helpers needed during migration or source rasterization. Include sketch pixel-edit/save callers for P3. Reuse existing harnesses and diagnostics.
+- [x] **A90: Complete the surface inventory.** Trace browser, server, agent, CLI and native callers and tests. Identify renderer prerequisites, lazy-loading boundaries and CPU helpers needed during migration or source rasterization. Include sketch pixel-edit/save callers for P3. Reuse existing harnesses and diagnostics.
 - [x] **A81: Prove numerical and visible benefit.** Reconcile the small [inverse-Levels regression](https://github.com/nodetool-ai/nodetool/blob/33963a5d7111bda52f116392d1b7c34eab7e3430/packages/gpu/tests/precision.test.ts) with current code in the existing GPU harness rather than copying it. It exists on `feat/native-timeline` and not on main, whose `packages/gpu` differs. It also hard-codes `rgba8unorm` intermediates and asserts the byte floor (at least 192 levels, at most 11 codes of error), which the requirement below replaces. Add three recognizable scenes: a dark fade, a sky gradient with vignette/blur, and chained grading with glow. Compare identical RGBA8 and FP16 chains with controlled output conversion. Require 256 distinct levels and maximum one-code error for the diagnostic ramp with dithering disabled. Capture realistic final-output comparisons as well as undithered working measurements.
 - [ ] **A82: Measure cost on representative routes.** Start with hardware and container Dawn/lavapipe. Measure cold start, steady-state rendering, allocations and transfers using five warmups and twenty alternating samples of the same eight-pass 4K workload. The discrete-GPU trial budget is at most +2 ms median and +3 ms p95. Set server completion and API-latency budgets before measurement. Compare representative API request latency/error rates idle versus during a 4K render. Verify no growth across twenty create/render/dispose cycles. Add a constrained GPU before browser rollout.
+
+  The owner accepted the RTX 3060 cost, but representative API latency during 4K rendering, a no-growth soak and a constrained GPU remain unqualified. See [cost evidence](results/a82-cost.md) and [server measurements](results/s3-operational-budgets.md).
 
 **Exit gate:** visible improvement and server/agent costs are demonstrated with complete caller coverage. Browser rollout also requires constrained-device results. Arithmetic tests alone do not justify rollout.
 
@@ -103,7 +105,9 @@ Qualify the existing shared server renderer first. Browser delivery and agent pa
 - [x] **A40: Preserve precision to encoder conversion.** Keep existing 8-bit delivery. Quantize once into the required layout with explicit range/alpha behavior. Reuse encoding and streaming infrastructure.
 - [x] **A42: Qualify the shared server renderer.** Exercise RenderTimeline's existing browser/Node selection and explicitly test Node/Dawn on lavapipe. Verify numerical output, missing-driver errors, cancellation, cold start and resource limits. Reuse the device cache and existing concurrency controls. Keep restricted rough-cut behavior/diagnostics unchanged and identify the actual renderer. No new routing service.
 - [x] **A41.2: Check actual video delivery.** Decode output and inspect pixels, formats and tags. Separate codec error from working-precision error. New 10-bit codecs remain deferred.
-- [x] **A43.2: Compare full-resolution preview/export before encoding.** Use original assets, identical parameters and seeds. Compare undithered server/browser WebGPU output with explicit tolerances. Include migrated agent output once A91 passes. Name the renderer and working format in reports. Older Canvas2D results cannot certify high-precision output. [Working-frame evidence](results/s3-parity.md): same-adapter SwiftShader only. Agent output excluded until A91.
+- [ ] **A43.2: Compare full-resolution preview/export before encoding.** Use original assets, identical parameters and seeds. Compare undithered server/browser WebGPU output with explicit tolerances. Include migrated agent output once A91 passes. Name the renderer and working format in reports. Older Canvas2D results cannot certify high-precision output. [Working-frame evidence](results/s3-parity.md): same-adapter SwiftShader only.
+
+  A91 is now met, but the migrated-agent undithered comparison remains missing.
 - [x] **A44: Keep proxies out of final export.** Use originals or report missing media. Approximate proxies cannot satisfy precision/parity gates.
 - [ ] **A49: Qualify operational budgets.** Measure 1080p/4K workloads on discrete/constrained hardware and lavapipe. Interactive targets: <1% missed deadlines over two minutes at 1080p30 and warm seek p95 <= max(250 ms, 1.25 times baseline). Server targets: bounded memory, cancellation, completion/throughput and API-latency budgets. Repeat contention tests at configured maximum render concurrency. Measure actual CPU/thread use; job count alone does not bound driver threads. Adjust existing job limits and driver/process settings if needed, without a new scheduler.
   The server half is measured in the [operational report](results/s3-operational-budgets.md), including safety stops and deployment limits. The S3 server gate remains unmet. Browser interactive targets and real constrained hardware remain open.
@@ -139,9 +143,10 @@ This track improves effect coverage and consistency, including ordinary 8-bit ag
   The queued child and caller migration are implemented. Memory, queue latency,
   numerical comparisons, complete CLI exit and API contention are recorded in
   [S5 results](results/s5-agent-rendering.md#current-qualification-queued-child-and-migrated-callers).
-  Fresh-install qualification is blocked by the unavailable required
-  `@nodetool-ai/presets` dependency. Missing-addon and missing-adapter probes
-  pass, but do not establish a working minimal installation.
+  The clean local-tarball install loads ordinary tools and returns actionable
+  missing-addon guidance, satisfying the minimal-install clause. Registry-only
+  installation is blocked by the unpublished `@nodetool-ai/presets` dependency,
+  and a clean installed-addon render remains unverified.
 
   In the same PR, update [root test prerequisites](../../../AGENTS.md) and audit affected CI jobs. The [agent test matrix](../../../.github/workflows/quality-checks.yml) already installs Mesa. Verify other entry points and require real adapter-backed coverage rather than accepting skipped render tests. Keep deliberate no-adapter tests separate.
 

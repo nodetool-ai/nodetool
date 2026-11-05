@@ -1,6 +1,6 @@
 # A96: Native rendering direction
 
-Recommend retaining Qt RHI for the native precision work. Dawn is obtainable as a C++ SDK and has relevant interop extensions, but this investigation supplies no measured replacement benefit. The owner makes the final decision. This is the bounded N0 investigation, not a completed end-to-end Dawn proof or authorization to start N1.
+Recommend retaining Qt RHI for the native precision work. Dawn is obtainable as a C++ SDK and has relevant interop extensions, but this investigation supplies no measured replacement benefit. The owner makes the final decision. A96 is partly met: acquisition and feasibility were investigated, but the required effect execution, end-to-end bridge and measured comparison were not done.
 
 ## Scope and stopping point
 
@@ -111,4 +111,4 @@ Measured only SDK download/extraction time, downloaded and unpacked size, npm pa
 
 Unmeasured: Dawn initialization, WGSL numerical output, decoded-frame processing, Qt presentation, actual export, copy bandwidth, synchronization latency, frame lifetime under GPU load, backward-seek correctness/cost, device loss, CPU/GPU playback time, export throughput, FP16 overhead and peak runtime memory. Neither the Qt baseline nor Dawn received a new performance measurement. No claim of relative speed or numerical parity follows from this report.
 
-The N0 recommendation follows the plan's default because a worthwhile replacement has not been demonstrated. It does not claim that Dawn failed a performance test. Reopen a separately budgeted proof only if the owner wants to pursue shader reuse despite the unqualified platform bridge. Leave N1 and production rendering unchanged until that decision.
+The N0 recommendation follows the plan's default because a worthwhile replacement has not been demonstrated. It does not claim that Dawn failed a performance test. Reopen a separately budgeted proof only if the owner wants to pursue shader reuse despite the unqualified platform bridge. The later N1 work retained Qt RHI, as recorded in the [working-resource result](n1-native-working-resources.md). That implementation does not complete the missing Dawn evaluation.

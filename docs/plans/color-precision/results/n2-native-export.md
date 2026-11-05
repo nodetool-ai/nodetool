@@ -1,25 +1,49 @@
 # N2 native capture and delivery
 
-The MP4 identity gate now compares unencoded YUV separately from codec loss.
-A43.3 has preview/offscreen working-pixel fixtures. The independent spatial
-resize oracle now passes after replacing Qt scaling in float delivery. N2's exit gate is
-**not met**. A45.2 allocation/geometry qualification and A32 presentation
-dithering remain. FP16 stays off by default. No schema, setting, QML property,
-transfer conversion or preview renderer behavior changed in the resize round.
-Nothing was pushed.
+A32 and A45.2 are implemented and qualified. They no longer hold N2 open.
+A84.2 remains partly met: its independent spatial oracle tests the resize
+helper, while the real decoded explicit-size exports check dimensions and
+constant interior patches rather than the full resampled frame. N2's exit
+gate therefore remains open for that comparison. FP16 remains off by default.
+
+Combined CI passes on Metal, D3D11/WARP and Vulkan/lavapipe under sanitizers.
+The logs are `/home/mg/Projects/nodetool-film/tmp/x84m.log`, `x84w.log` and
+`x84s.log`. Each records passes for `export_precision`, `native_backend_routes`,
+`tst_workingprecision`, `tst_sceneprecision`, `tst_monitorcompositor`,
+`tst_framecapture`, `tst_colormatch_render` and `tst_deliveryframe`.
+OpenGL has separate local scene, monitor and capture evidence below and in
+[backend qualification](n3-native-backends.md). These results do not qualify
+physical Windows GPUs, hardware decode interop or release throughput.
 
 ## Task status
 
-| Task | Status |
+| Task | Status and evidence |
 |---|---|
-| A84.1 | Complete on Vulkan/lavapipe. Typed, owned, undithered working capture and format-preserving offscreen capture. |
-| A84.2 | Connected and tested. Independent spatial float-resize checks pass for fit/fill enlargement and reduction. |
-| A32 | Not implemented. The outer target remains RGBA8 and capture bypasses it, but final presentation dithering and OpenGL qualification remain. |
-| A84.3 | Quantization, PNG/ZIP, opaque alpha, cancellation and same-picture checks pass on Vulkan/lavapipe. |
-| A41.3 | Format, tags and codec loss checked independently of unencoded same-picture YUV identity on Vulkan/lavapipe. |
-| A43.3 | Preview/offscreen working-pixel fixtures added for an original decoded frame and a partial-alpha float frame, with fixed grain seeds and capture isolation. See the qualification below. |
-| A45.2 | Qualified on Vulkan/lavapipe. Resolution, allocation, geometry, masks/outsets, full-canvas exceptions and capture isolation pass. |
-| A109 | Not implemented. Color Match still models byte intermediate rounding. |
+| A84.1 | Met. `typedWorkingCapture` and `offscreenTypedCapture` check typed, owned, undithered capture, layout, orientation and cancellation. |
+| A84.2 | Partly met. ExportEngine uses float resize and final quantization. `spatialFloatResampling` checks the helper independently. `export_precision` lacks a full-frame spatial reference for decoded explicit-size exports, including odd-canvas video. |
+| A32 | Met. `presentationQuantization` checks final dithering, paused stability and undithered capture. OpenGL scene and monitor checks qualify orientation independently. |
+| A84.3 | Met. `export_precision` covers PNG/ZIP and MP4, opaque/low-alpha edges, cancellation and cleanup. `alphaAndPng` separately checks straight/zero-alpha conversion. |
+| A41.3 | Met. `export_precision` inspects actual decoded pixels, YUV420P/range/BT.709 tags and codec loss separately from pre-encode identity. O1 retains the transfer-tag mismatch. |
+| A43.3 | Met. `previewOffscreenWorkingParity` compares decoded original and float fixtures, fixed seeds and capture isolation in both precisions. |
+| A45.2 | Met. Monitor resolution/group/shutter tests and scene mask/outset tests check observed float canvas/scratch allocation, geometry and full-size capture. |
+| A109 | Met. `colorMatchWorkingFormat` compares solved parameters with an actual render. `floatAnalysisPreservesSubByteSamples` checks float analysis. |
+
+The current codec comparison in `check-precision.py` permits at most one code
+of added p99 error and 0.5 code of added mean error for FP16 relative to RGBA8.
+Each encode also requires absolute mean error at most one YUV code.
+Pre-encode identity remains at most one code per plane. The historical
+maximum/0.1-mean comparison below was superseded. Decoded RGB uses the measured
+codec maxima as a separate sanity bound, not as a working-precision oracle.
+
+See the [clause audit](plan-status-audit.md) for source/test links and remaining
+work. No code, tests or hardware measurements changed in this documentation sync.
+
+## Historical checkpoints
+
+The sections below retain the implementation sequence and local evidence.
+Their status statements describe those checkpoints. The table above supersedes
+claims that A32, A45.2 or A109 are unimplemented or that Metal/D3D11 await CI.
+The resize-helper pass below does not supply the missing decoded spatial test.
 
 ## Capture boundary
 

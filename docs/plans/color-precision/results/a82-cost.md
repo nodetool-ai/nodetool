@@ -2,10 +2,9 @@
 
 ## Owner decision
 
-On 2026-11-04, the owner accepted the measured web cost and decided to start S1.
+The owner accepted the measured web cost and decided to start S1.
 A82 measured +2.09 ms median on an RTX 3060 against a +2 ms trial budget.
-API latency, a growth soak, weak GPUs and real browsers remain unmeasured and
-still gate browser rollout.
+The later [server probe](s3-operational-budgets.md) measured real health-route contention during rendering. It did not qualify representative full-API latency under 4K load, a no-growth soak, constrained GPUs or real browsers. A82 remains partly met and browser rollout remains gated.
 
 ## Budgets fixed before measurement
 
@@ -44,7 +43,7 @@ cold, not a cold OS or driver cache.
 | D3, API latency and errors | **Not qualified**. No production API was exercised. Timer delay is only a substitute. |
 | D4, lifecycle | Zero tracked live textures/buffers after disposal passes. RSS allowance passes. Strict no-growth is **not established**, especially on hardware. |
 | D5, native | **Pass measured frame/CPU timing budgets** on the tested scene. Other playback-budget fields were not qualified. |
-| S0 | **Cannot pass**. Hardware median fails and the API and strict no-growth evidence is incomplete. |
+| S0 | Owner accepted the RTX 3060 median overrun for starting S1. A82 remains partial because the API, strict no-growth and constrained-device gates are incomplete. |
 | Browser rollout | **Blocked**. Constrained GPUs and actual browser qualification were not done. |
 
 No production code changed. FP16 remains off by default. A bad timing result
@@ -219,6 +218,8 @@ VRAM peaks were not sampled, despite NVML being available. That remains a
 measurement limitation.
 
 ## Lifecycle and latency
+
+The measurements in this section predate the [server probe](s3-operational-budgets.md). That probe measures health-route contention, including interrupted 4K batches, rather than satisfying D3 for representative API traffic.
 
 Twenty create/upload/render/dispose cycles per format follow the warmed
 timing run, alternating formats. Instrumented GPU texture/buffer factories
