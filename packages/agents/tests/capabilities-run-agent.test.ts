@@ -111,6 +111,21 @@ describe("run_agent", () => {
     });
   });
 
+  it("hands a progress-reporting tool its own call id", async () => {
+    const { run, toolCalls } = harness([
+      () => [call("generate_batch", { requests: [] })],
+      () => [chunk("Done.")]
+    ]);
+    await run.invoke("run_agent", {
+      prompt: "Make the stills.",
+      model: { provider: "scripted", id: "m1" },
+      tools: ["generate_batch"]
+    });
+    expect(toolCalls).toEqual([
+      { name: "generate_batch", args: { requests: [], _tool_call_id: "call-generate_batch" } }
+    ]);
+  });
+
   it("returns the submitted object when an output schema is given", async () => {
     const { run } = harness([
       () => [call("submit_result", { shots: 2 })]

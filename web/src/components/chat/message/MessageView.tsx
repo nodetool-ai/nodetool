@@ -57,6 +57,7 @@ import CompactionCard, { isCompactionMessage } from "./CompactionCard";
 import MediaOutputGroup from "./MediaOutputGroup";
 import { isMediaOnlyContent } from "./MediaOutputGroup.helpers";
 import { ToolResult } from "./toolResults/ToolResult";
+import { GenerationBatchProgress } from "./GenerationBatchProgress";
 import PlanDocument from "./PlanDocument";
 import { parsePlanDocument } from "./parsePlanDocument";
 import { formatDuration, formatToolName } from "../../../utils/formatUtils";
@@ -401,6 +402,9 @@ const ToolCallRow: React.FC<{
             />
           )}
         </FlexRow>
+        {tc.name === "generate_batch" && tc.id && (
+          <GenerationBatchProgress toolCallId={tc.id} resultContent={resultContent} />
+        )}
         {isRunning &&
           isCodeAction &&
           activePredictions.map((prediction) => (

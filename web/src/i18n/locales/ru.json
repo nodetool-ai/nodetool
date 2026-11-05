@@ -20250,5 +20250,39 @@
     "showAssistant": "Показать ассистента",
     "hideAssistant": "Скрыть ассистента",
     "resizeAssistant": "Изменить размер ассистента таймлайна"
+  },
+  "generationBatch": {
+    "summary": "Готово {{done}} из {{total}}",
+    "remaining": "Осталось около {{time}}",
+    "finishing": "Завершение",
+    "failedCount": "Ошибок: {{count}}",
+    "status": {
+      "queued": "В очереди",
+      "running": "Выполняется",
+      "completed": "Готово",
+      "failed": "Ошибка"
+    },
+    "showRequests": "Показать запросы",
+    "hideRequests": "Скрыть запросы",
+    "expected": "Ожидается {{time}}",
+    "took": "Заняло {{time}}",
+    "progressLabel": "Ход генерации"
+  },
+  "workflowSteps": {
+    "stepOf": "Шаг {{current}} из {{total}}",
+    "allDone": "Все шаги ({{total}}) готовы",
+    "waiting": "Ожидание",
+    "running": "Выполняется",
+    "done": "Готово",
+    "failed": "Ошибка",
+    "progressLabel": "Ход выполнения",
+    "steps": "Шаги",
+    "addStep": "Добавить шаг",
+    "removeStep": "Удалить шаг",
+    "node": "Узел",
+    "title": "Заголовок",
+    "description": "Описание",
+    "autoHint": "Шаги не заданы. Виджет показывает каждый генеративный узел.",
+    "chooseNode": "Выберите узел"
   }
 }

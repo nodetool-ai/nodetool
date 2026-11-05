@@ -34,6 +34,7 @@ import {
   predictionSchema,
   llmCallUpdateSchema,
   todoUpdateSchema,
+  generationBatchUpdateSchema,
   providerCostSchema,
   taskRefSchema,
   stepRefSchema,
@@ -169,6 +170,14 @@ const samples: Record<MessageType, unknown> = {
   todo_update: {
     type: "todo_update",
     todos: [{ content: "write tests", status: "in_progress" }]
+  },
+  generation_batch_update: {
+    type: "generation_batch_update",
+    tool_call_id: "call-1",
+    concurrency: 2,
+    items: [
+      { id: "1", label: "Shot 1", tool: "generate_image", status: "running", estimate_seconds: 20, started_at: 1 }
+    ]
   }
 };
 
@@ -192,7 +201,8 @@ const schemasByType: Record<MessageType, (typeof processingMessageSchemas)[Messa
   chunk: chunkSchema,
   prediction: predictionSchema,
   llm_call: llmCallUpdateSchema,
-  todo_update: todoUpdateSchema
+  todo_update: todoUpdateSchema,
+  generation_batch_update: generationBatchUpdateSchema
 };
 
 describe("processingMessageSchema — valid samples", () => {

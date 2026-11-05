@@ -168,11 +168,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-copy",
-                        "binding": "op:copy/exec#progress",
-                        "label": "Writing copy…"
+                        "operationId": "copy",
+                        "label": "Writing copy…",
+                        "steps": []
                       }
                     },
                     {
@@ -192,11 +193,12 @@
                       }
                     },
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-hooks",
-                        "binding": "op:hooks/exec#progress",
-                        "label": "Making the test set…"
+                        "operationId": "hooks",
+                        "label": "Making the test set…",
+                        "steps": []
                       }
                     },
                     {
@@ -383,11 +385,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-loop",
-                        "binding": "op:loop/exec#progress",
-                        "label": "Animating the still…"
+                        "operationId": "loop",
+                        "label": "Animating the still…",
+                        "steps": []
                       }
                     },
                     {
@@ -408,11 +411,12 @@
                       }
                     },
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-vertical",
-                        "binding": "op:vertical/exec#progress",
-                        "label": "Reframing…"
+                        "operationId": "vertical",
+                        "label": "Reframing…",
+                        "steps": []
                       }
                     },
                     {

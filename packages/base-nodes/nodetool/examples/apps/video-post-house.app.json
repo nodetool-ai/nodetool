@@ -199,11 +199,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-grade",
-                        "binding": "op:grade/exec#progress",
-                        "label": "Grading frames…"
+                        "operationId": "grade",
+                        "label": "Grading frames…",
+                        "steps": []
                       }
                     },
                     {
@@ -238,11 +239,12 @@
                       }
                     },
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-teaser",
-                        "binding": "op:teaser/exec#progress",
-                        "label": "Cutting the clip…"
+                        "operationId": "teaser",
+                        "label": "Cutting the clip…",
+                        "steps": []
                       }
                     },
                     {
@@ -277,11 +279,12 @@
                       }
                     },
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-cover",
-                        "binding": "op:cover/exec#progress",
-                        "label": "Selecting frame…"
+                        "operationId": "cover",
+                        "label": "Selecting frame…",
+                        "steps": []
                       }
                     },
                     {
@@ -456,11 +459,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-restyle",
-                        "binding": "op:restyle/exec#progress",
-                        "label": "Repainting the footage…"
+                        "operationId": "restyle",
+                        "label": "Repainting the footage…",
+                        "steps": []
                       }
                     },
                     {
@@ -648,11 +652,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-revoice",
-                        "binding": "op:revoice/exec#progress",
-                        "label": "Voicing and syncing…"
+                        "operationId": "revoice",
+                        "label": "Voicing and syncing…",
+                        "steps": []
                       }
                     },
                     {

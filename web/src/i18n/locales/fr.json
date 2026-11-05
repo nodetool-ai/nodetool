@@ -19939,5 +19939,39 @@
     "showAssistant": "Afficher l'assistant",
     "hideAssistant": "Masquer l'assistant",
     "resizeAssistant": "Assistant de redimensionnement de la chronologie"
+  },
+  "generationBatch": {
+    "summary": "{{done}} sur {{total}} terminées",
+    "remaining": "Environ {{time}} restantes",
+    "finishing": "Finalisation",
+    "failedCount": "Échecs : {{count}}",
+    "status": {
+      "queued": "En attente",
+      "running": "En cours",
+      "completed": "Terminée",
+      "failed": "Échec"
+    },
+    "showRequests": "Afficher les requêtes",
+    "hideRequests": "Masquer les requêtes",
+    "expected": "Prévu {{time}}",
+    "took": "A pris {{time}}",
+    "progressLabel": "Progression de la génération"
+  },
+  "workflowSteps": {
+    "stepOf": "Étape {{current}} sur {{total}}",
+    "allDone": "Les {{total}} étapes sont terminées",
+    "waiting": "En attente",
+    "running": "En cours",
+    "done": "Terminé",
+    "failed": "Échec",
+    "progressLabel": "Progression du workflow",
+    "steps": "Étapes",
+    "addStep": "Ajouter une étape",
+    "removeStep": "Retirer l’étape",
+    "node": "Nœud",
+    "title": "Titre",
+    "description": "Description",
+    "autoHint": "Aucune étape définie. Le widget montre chaque nœud génératif.",
+    "chooseNode": "Choisir un nœud"
   }
 }
