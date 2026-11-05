@@ -125,10 +125,11 @@ load or deployed hardware. A42, A41.2, A43.2, A44, A49 and A50 remain open.
 
 # A42: Server qualification checkpoint
 
-A42 remains unchecked. Admission and partial-file cleanup are implemented and
-pass on lavapipe and RTX 3060. Repeated cancellation still shows growing RSS,
-and the CLI tool-call lifetime needs an owner decision. These are local gaps,
-not a request for deployed hardware. FP16 remains off by default, with no new
+A42 remains unchecked. Admission and partial-file cleanup pass on lavapipe
+and RTX 3060. The previously reported linear RSS growth comes from the
+measurement test retaining aborted renders through Vitest async assertions.
+The one-shot tool-call lifetime is a reproduced local gap, not an unresolved
+owner decision or a request for deployed hardware. FP16 remains off by default, with no new
 public node property. BT.709 and the six colour-boundary `it.fails` cases are
 unchanged.
 
@@ -199,9 +200,10 @@ passes an invalid-sized second buffer to the real encoder. Its original
 frame-size error survives cleanup, the partial file is absent, and the next
 render succeeds under cap 1.
 
-The measured series waits for the GPU queue, clears spy call records, and runs
-GC between attempts to reduce observer retention. Production does not force
-GC. RSS still grows. Measurements are not assertions or evidence of full release.
+The original measured series waited for the GPU queue, cleared spy call
+records and ran GC between attempts. These historical numbers still included
+retention by Vitest async assertions. They do not measure a production leak.
+Production does not force GC.
 
 | Adapter | RSS after abort 1 MiB | After 10 | After 20 | After 30 | Process peak MiB |
 |---|---:|---:|---:|---:|---:|
@@ -211,11 +213,78 @@ GC. RSS still grows. Measurements are not assertions or evidence of full release
 The retained `a42-encoder-memory.mjs` control opens, writes and aborts 30 real
 1080p encoders without importing a GPU. With GC, RSS rises from 130.83 MiB to
 241.43 MiB at attempt 10, then stays between 239.52 and 246.05 MiB through
-attempt 30, ending at 244.00 MiB. This narrows the investigation but does not
-identify a leak or distinguish driver caches, allocator retention, rasterizer
-allocations and unreleased GPU resources. Native encoder close and texture
-destroy calls are not proof that all physical memory is returned. Full resource
-release and a bounded steady-state render RSS remain unqualified.
+attempt 30, ending at 244.00 MiB. The follow-up below distinguishes test retention from renderer lifetime.
+
+### Memory investigation follow-up
+
+Extending the original test to 200 aborts grew lavapipe RSS from 694.70 MiB
+at iteration 1 to 1040.82 at 30 and 2434.21 at 200. Replacing only the repeated
+`expect(renderPromise).rejects` assertion with `node:assert`'s `rejects`
+stopped that linear growth. The corrected 200-abort test ended at 868.80 MiB,
+with a process peak of 1046.61 MiB. Its post-warmup RSS varied rather than
+increasing by one frame per abort. The test runner's `recordAsyncExpect`
+retains an `onFinished` callback for each async assertion until the test ends.
+The A/B measurement identifies this assertion path as the source of the
+reported growth. It does not identify the exact native allocation retained
+by each callback.
+
+The corrected RTX 200-abort test measured 735.55 MiB at iteration 1,
+809.73 at 30, 811.17 at 100 and 814.23 at 200, with a 999.39 MiB peak.
+Samples 100–200 were 811.14–823.63 MiB.
+
+The fix is in `timeline-admission.gpu.test.ts`, not the production renderer.
+It preserves the real native encode, AbortError assertion, partial-file checks
+and device-reuse check. No device lifetime, compositor pool, forced production
+GC or allocator workaround was added. There is no RSS regression threshold:
+driver allocation, import overhead and memory pressure make an absolute bound
+in this shared environment unsuitable for CI.
+
+`packages/video-nodes/tests/a42-memory-probe.ts` retains the independent
+reproduction. Run it from the video-nodes package with
+`node --expose-gc --import tsx tests/a42-memory-probe.ts <mode> 200`.
+Modes are `abort`, `success`, `frames` (full render without an encoder),
+`compositor` (empty layers, no canvas or encoder work), `rasterizer` and `fonts`.
+Every render is 1920×1080. GPU modes alternate RGBA8 and FP16. Successful
+renders encode two frames, while aborts cancel during the first real native
+encode. Each iteration drains the queue, runs GC and records RSS, heap,
+external memory and arrayBuffers. Temporary outputs are removed in `finally`.
+The font control uses the same shape-only document, which requests no Google
+font faces. The rasterizer control includes bundled font registration.
+
+All long probes used `systemd-run --user --scope -p MemoryMax=6G` and waited
+when MemAvailable fell below 5 GiB. Memory pressure caused pauses and RSS
+reductions, so these numbers are observed ranges, not exact allocator budgets.
+The first concurrent RTX probes were stopped to release memory, then rerun
+serially. No other process or output was removed.
+
+| Adapter | Mode | RSS 1 MiB | RSS 30 | RSS 100 | RSS 200 |
+|---|---|---:|---:|---:|---:|
+| Lavapipe | Abort | 680.33 | 759.61 | 767.61 | 761.89 |
+| RTX 3060 | Abort | 639.71 | 854.92 | 857.68 | 857.91 |
+| Lavapipe | Success | 921.53 | 944.41 | 1509.60 | 1520.83 |
+| RTX 3060 | Success | 652.03 | 1507.91 | 1781.69 | 1793.09 |
+| Lavapipe | Compositor only | 593.59 | 600.02 | 600.44 | 601.28 |
+| RTX 3060 | Compositor only | 599.83 | 607.89 | 609.36 | 609.29 |
+| Lavapipe | Render without encoder | 678.17 | 646.69 | 646.27 | 647.68 |
+| CPU | Rasterizer only | 477.45 | 468.34 | 468.52 | 468.20 |
+| CPU | Font preparation | 474.38 | 474.38 | 285.39 | 285.39 |
+
+At iteration 200, the standalone abort probes used 156.75 / 156.61 MiB of
+JS heap (lavapipe / RTX), 51.82 MiB external and 26.39 MiB arrayBuffers each.
+Successful renders used 156.91 / 156.76 MiB heap, 43.91 MiB external and
+18.48 MiB arrayBuffers. These categories stayed stable through the warmed
+samples. ArrayBuffers are included in external memory, not an additional
+category to sum. The higher RSS of successful encoding is outside the live
+JS heap/buffer accounting and reaches a plateau. These controls support native
+allocator/driver retention rather than a per-compositor or cancellation leak.
+They do not distinguish the allocator from driver caches or qualify arbitrary
+scenes and unbounded runs.
+
+Across samples 100–200, standalone abort RSS was 761.34–769.61 MiB on lavapipe
+and 857.24–871.04 MiB on RTX. Successful lavapipe encodes were
+1509.60–1575.77 MiB, ending at 1520.83. RTX success ended at 1793.09 MiB.
+No production leak was established, so production code was left unchanged.
+
 
 The test deadlines allow three cold software renders (120 seconds) or 30
 1080p native submissions (180 seconds) on shared CI. They bound hangs, not
@@ -283,19 +352,53 @@ supervisor deadline. Reported render time was 159 ms. No provider key was used.
 The command was `node --import tsx packages/cli-timeline/src/nodetool.ts timeline
 render <fixture.json> --out <output.mp4> --json`. No CLI exit code was changed.
 
-F1. `tools call` is an exception to the explicit-exit pattern.
-`packages/cli-chat/src/commands/tools.ts:174` awaits a tool and sets exitCode
-only on failure. `packages/cli-chat/src/index.ts:33` closes Python providers
-but does not exit. Its toolbelt includes render_timeline, whose work can run
-in the background (`packages/agents/src/tools/mcp-tools.ts:268`). Source
-inspection cannot establish successful one-shot termination. The real
-`timeline render` result does not qualify `tools call`. No real tool-call
-render/exit reproduction has been completed.
+`tools call` remains an exception to the explicit-exit pattern.
+`packages/cli-chat/src/commands/tools.ts` awaits the tool, settles the cost
+ledger and removes signal handlers. The entry point closes Python providers
+but does not explicitly exit. The agreed policy is to finish all work started
+by the call, then exit with its outcome. An unconditional exit at tool return
+would violate that policy.
 
-D1. The owner must decide the CLI tool-call lifetime for background render jobs
-before an unconditional exit is added. Exiting when the tool returns can kill
-its active job. Leaving it alive can retain Dawn after the job completes.
-No cache lifetime was changed, and no blanket exit or scheduler was added.
+A real `tools call preview_timeline_frame` with an inline 64×64 shape document
+renders through Canvas 2D and exits 0. This does not exercise Dawn.
+An unmodified `tools call render_timeline` fails before rendering because the
+new execution context lacks `getTimelineSequence`. The CLI returns a failed
+job envelope but exits 0. That host-initialization and exit-status problem is
+also unresolved. No provider keys are needed for these fixtures.
+
+To separate initialization from lifetime, a temporary Node preload invoked the
+existing `installLocalModelInterfaces` helper used by other CLI hosts. With
+that initializer, the real command rendered two 64×64 frames on lavapipe,
+reported `status: completed`, `render_mode: composited` and a saved asset, but
+remained alive until the 60-second supervisor killed it (exit 124). This is a
+qualified reproduction with a preload, not a claim that the unmodified command
+successfully renders. The command used `node --import tsx --import
+<initializer.mjs> packages/cli-chat/src/nodetool.ts tools call render_timeline
+--args @<arguments.json>`, with Node renderer selection and both Vulkan
+variables set to the lavapipe ICD.
+
+The same preloaded command with `wait:false` returned a running-job receipt,
+then completed the render in that same process. A subsequent real `tools call
+get_job` read `status: completed`, composited MP4 output and no job error.
+The original process still needed the 60-second timeout (exit 124). Background
+jobs therefore survive the tool return, but do not detach into a separate
+worker process. Exiting on the initial receipt would be unsafe.
+
+`start_background_job` and `render_timeline` both call the existing
+`runWorkflow({background:true})`. Execution continues in this process after
+the tool returns its receipt. `active-runs.ts` stores a job ID, user ID and
+cancel callback, unregistering on execution completion. It has no completion
+promise or enumeration by originating tool call. Job finalization runs in a
+detached async function after execution. The separate background-generation
+registry does expose `whenBackgroundGenerationsSettle(context)`, but workflow
+jobs use a different execution context and are not in that registry.
+
+Polling a returned job ID could handle the ordinary receipt path. It would
+not cover work started before a tool throws or loses its receipt. There is no
+existing command-scoped drain covering both paths and both registries. Under
+the instruction to stop if a new tracking mechanism is needed, no CLI exit,
+new tracking mechanism or server device-cache change was made. A42 remains
+open for that lifecycle work and the model-interface initialization failure.
 
 ## Verification and remaining scope
 
@@ -327,5 +430,38 @@ Run the encoder-only control with `node --expose-gc`.
 Not run: test:affected, root typecheck, root lint, harness gate, /verify,
 full suites or CI. Other existing tests were not run. The deployed adapter
 is absent. A49/A50 own that qualification, which alone would not block A42.
-The local RSS investigation and tool-call lifecycle are still open. No push,
+The tool-call lifecycle remains open. No push,
 rebase or PR was made.
+
+### Follow-up verification
+
+Both adapters pass the eight cases in the changed admission and precision
+files. The corrected abort test also passes when extended to 200 iterations
+in a temporary copy, on each adapter. The default frame hashes in this section
+are unchanged: exactly three default records per adapter were enumerated and
+compared with the recorded values. `A42_EXPECTED_OPAQUE_HASH` and
+`A42_EXPECTED_ALPHA_HASH` make those per-adapter checks executable in the
+precision test without imposing one adapter's alpha rounding on another.
+A deliberately invalid opaque hash fails the selected opaque test (exit 1),
+confirming that the new byte-identity check detects a mismatch.
+
+The video-nodes package typecheck and a temporary package-scoped configuration
+including all changed tests and the retained probe pass. No production source
+changed. There is no new public property, and FP16 still defaults off. BT.709
+and the six expected-failure colour-boundary tests were not edited.
+
+Follow-up logs are `/home/mg/Projects/nodetool-film/tmp/a42-gap-*.log`.
+The `abort`, `success`, `compositor`, `frames`, `rasterizer` and `fonts` logs
+contain the standalone measurements. `vitest-lvp` is the original 200-abort
+assertion control. `vitest-assert-lvp` and `vitest-assert-rtx-final` are the
+corrected 200-abort tests. `final-lvp` and `final-rtx` contain the eight-case
+runs and byte hashes. `cli-render-init`, `cli-background` and `cli-get-job`
+contain the lifetime reproduction. Cached pack-catalog build assets were
+regenerated from current manifests to resolve an initial version mismatch.
+No catalog source or manifest was changed.
+
+Not run: test:affected, root typecheck, root lint, harness gate, /verify,
+full suites or CI. No ffmpeg or ffprobe binary was spawned. Large temporary
+probe outputs and generated catalog staging files were removed. A42's plan
+line remains unchecked because the tool-call lifecycle is unresolved. The
+deployed adapter belongs to A49/A50 and is not itself blocking A42.

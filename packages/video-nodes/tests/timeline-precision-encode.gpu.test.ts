@@ -89,6 +89,10 @@ it.each(["rgba-alpha", "rgba-opaque", "mp4"] as const)(
           fps: 10, durationMs: 200, resolveAssetPath: async () => null,
           outPath, output, workingFormat });
         expect(result.complete).toBe(true);
+        const expectedDefaultHash = process.env[alpha ? "A42_EXPECTED_ALPHA_HASH" : "A42_EXPECTED_OPAQUE_HASH"];
+        if (workingFormat === undefined && expectedDefaultHash) {
+          expect(hash(delivered[0])).toBe(expectedDefaultHash);
+        }
         expect(boundary.frames).toHaveLength(2);
         expect(formats).toEqual([workingFormat ?? "rgba8unorm", workingFormat ?? "rgba8unorm"]);
         for (let i = 0; i < 2; i++) {

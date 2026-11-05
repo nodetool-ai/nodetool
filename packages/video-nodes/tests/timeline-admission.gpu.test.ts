@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -92,9 +93,11 @@ it("drains active native writes across 30 aborts and removes failed output", asy
       // Abort inside real encodeAll, after submission and before its promise settles.
       observed.onWrite = () => controller.abort();
       const outPath = join(dir, `${i}.mp4`);
-      await expect(renderTimelineComposited({...options, outPath, durationMs: 10000,
+      // Vitest async matchers retain assertion callbacks until this test ends.
+      // Use node:assert here so the RSS probe does not retain aborted renders.
+      await assert.rejects(renderTimelineComposited({...options, outPath, durationMs: 10000,
         workingFormat: i % 2 ? "rgba16float" : "rgba8unorm", signal: controller.signal
-      })).rejects.toMatchObject({name: "AbortError"});
+      }), {name: "AbortError"});
       expect(nativeEncodes).toBe(before + 1);
       expect(observed.active).toBe(0);
       await expect(stat(outPath)).rejects.toMatchObject({code: "ENOENT"});
