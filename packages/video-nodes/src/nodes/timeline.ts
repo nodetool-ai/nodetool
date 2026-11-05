@@ -1251,6 +1251,11 @@ export class RenderTimelineNode extends BaseNode {
             "warning"
           );
         }
+        this.log(
+          ctx,
+          `Rendered ${result.totalFrames} frames with the Node/Dawn WebGPU compositor (${result.adapter ?? "unknown adapter"}).`,
+          "info"
+        );
         renderMode = "composited";
         // A composite carries no sound: every audible clip is mixed in below,
         // including the audio muxed into video clips.

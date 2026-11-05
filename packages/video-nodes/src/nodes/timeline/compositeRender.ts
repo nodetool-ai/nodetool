@@ -115,6 +115,8 @@ export interface TimelineExportDiagnostic {
 }
 
 export interface CompositeRenderResult {
+  /** Actual Node/Dawn adapter, for the existing render log. */
+  adapter: string;
   complete: boolean;
   diagnostics: TimelineExportDiagnostic[];
   totalFrames: number;
@@ -771,6 +773,8 @@ export async function renderTimelineComposited(
     if (signal?.aborted) throw abortError();
     if (encoder) await awaitWithAbort(encoder.finish(), signal);
     return {
+      adapter: [device.adapterInfo?.vendor, device.adapterInfo?.device, device.adapterInfo?.description]
+        .filter(Boolean).join(" / ") || "unknown adapter",
       complete: diagnostics.length === 0,
       diagnostics,
       totalFrames: frameIndices.length,
