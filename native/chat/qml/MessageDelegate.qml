@@ -142,9 +142,10 @@ ColumnLayout {
         delegate: Ui.Surface {
             id: partFrame
             required property var modelData
+            required property int index
             readonly property var part: modelData
             readonly property string kind: part.type || "unknown"
-            property bool detailsOpen: !part.grouped
+            readonly property bool detailsOpen: !!part.expanded
             Layout.fillWidth: true
             implicitHeight: partContent.implicitHeight + Ui.Metrics.md * 2
             ColumnLayout {
@@ -152,49 +153,54 @@ ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: Ui.Metrics.md
                 spacing: Ui.Metrics.md
-                Ui.Text {
-                    role: Ui.Typography.SansLabel
+                RowLayout {
                     Layout.fillWidth: true
-                    text: partFrame.part.label || partFrame.part.tool_name || partFrame.part.name || partFrame.part.title || partFrame.kind
-                    tone: Ui.Text.Secondary
-                    wrapMode: Text.WordWrap
+                    Ui.Text {
+                        role: Ui.Typography.SansLabel
+                        Layout.fillWidth: true
+                        text: partFrame.part.label || partFrame.part.tool_name || partFrame.part.name || partFrame.part.title || partFrame.kind
+                        tone: Ui.Text.Secondary
+                        elide: Text.ElideRight
+                    }
+                    Ui.Text {
+                        visible: !!partFrame.part.tool
+                        text: partFrame.part.displayStatus || ""
+                        role: Ui.Typography.SansCaption
+                        tone: partFrame.part.displayStatus === "Failed" ? Ui.Text.Error : Ui.Text.Secondary
+                    }
+                    Ui.EditorButton {
+                        visible: !!partFrame.part.tool
+                        objectName: "toolDetails_" + (partFrame.part.tool_call_id || partFrame.index)
+                        text: partFrame.detailsOpen ? qsTr("Hide details") : qsTr("Show details")
+                        Accessible.expandable: true
+                        Accessible.expanded: partFrame.detailsOpen
+                        onClicked: root.parts.toggleExpanded(partFrame.index)
+                    }
                 }
                 Ui.Text {
-                    Layout.fillWidth: true
-                    visible: !!partFrame.part.tool
-                    text: partFrame.part.displayStatus || ""
-                    role: Ui.Typography.SansCaption
-                    tone: partFrame.part.displayStatus === "Failed" ? Ui.Text.Error : Ui.Text.Secondary
-                }
-                Ui.Text {
-                    visible: !!partFrame.part.code
+                    visible: partFrame.detailsOpen && !!partFrame.part.code
                     text: qsTr("Code · %1").arg(partFrame.part.language || "")
                     role: Ui.Typography.SansLabel
                 }
                 PagedText {
                     Layout.fillWidth: true
-                    visible: !!partFrame.part.code
-                    sourceText: partFrame.part.code || ""
+                    visible: partFrame.detailsOpen && !!partFrame.part.code
+                    sourceText: partFrame.detailsOpen ? (partFrame.part.code || "") : ""
                     monospaced: true
                     copyLabel: qsTr("Copy code")
                     chatSession: root.session
                 }
                 Ui.Text {
-                    visible: !!partFrame.part.argumentsText
+                    visible: partFrame.detailsOpen && !!partFrame.part.argumentsText
                     text: qsTr("Arguments")
                     role: Ui.Typography.SansLabel
                 }
                 PagedText {
                     Layout.fillWidth: true
-                    visible: !!partFrame.part.argumentsText
-                    sourceText: partFrame.part.argumentsText || ""
+                    visible: partFrame.detailsOpen && !!partFrame.part.argumentsText
+                    sourceText: partFrame.detailsOpen ? (partFrame.part.argumentsText || "") : ""
                     monospaced: true
                     chatSession: root.session
-                }
-                Ui.EditorButton {
-                    visible: !!partFrame.part.grouped
-                    text: partFrame.detailsOpen ? qsTr("Hide calls") : qsTr("Show calls")
-                    onClicked: partFrame.detailsOpen = !partFrame.detailsOpen
                 }
                 Ui.Text {
                     visible: !!partFrame.part.resultText && partFrame.detailsOpen
@@ -204,7 +210,7 @@ ColumnLayout {
                 PagedText {
                     Layout.fillWidth: true
                     visible: !!partFrame.part.resultText && partFrame.detailsOpen
-                    sourceText: partFrame.part.resultText || ""
+                    sourceText: partFrame.detailsOpen ? (partFrame.part.resultText || "") : ""
                     monospaced: true
                     copyLabel: qsTr("Copy result")
                     chatSession: root.session

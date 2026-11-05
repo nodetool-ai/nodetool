@@ -245,7 +245,11 @@ QVariant PartModel::data(const QModelIndex &index, int role) const {
   }
   const auto part = m_parts[index.row()];
   if (part.isObject()) {
-    return part.toObject().toVariantMap();
+    auto data = part.toObject().toVariantMap();
+    if (data.value("tool").toBool()) {
+      data["expanded"] = m_expanded.contains(expansionKey(index.row()));
+    }
+    return data;
   }
   return QVariantMap{
       {"type", "unsupported"},
@@ -255,6 +259,22 @@ QVariant PartModel::data(const QModelIndex &index, int role) const {
 }
 QHash<int, QByteArray> PartModel::roleNames() const {
   return {{ModelDataRole, "modelData"}};
+}
+QString PartModel::expansionKey(int row) const {
+  const auto part = m_parts[row].toObject();
+  const auto call = part["tool_call_id"].toString();
+  return (part["grouped"].toBool() ? "group:" : "call:") +
+         (call.isEmpty() ? QString::number(row) : call);
+}
+void PartModel::toggleExpanded(int row) {
+  if (row < 0 || row >= m_parts.size()) {
+    return;
+  }
+  const auto key = expansionKey(row);
+  if (!m_expanded.remove(key)) {
+    m_expanded.insert(key);
+  }
+  emit dataChanged(index(row), index(row), {ModelDataRole});
 }
 void PartModel::setParts(const QJsonArray &parts) {
   const auto shared = std::min(m_parts.size(), parts.size());

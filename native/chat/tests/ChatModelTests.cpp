@@ -113,6 +113,56 @@ private slots:
         QVERIFY(partAt(parts, 0)["resultText"].toString().contains("second"));
         QCOMPARE(model.snapshot()[0].toObject()["parts"].toArray().size(), 2);
     }
+    void failedToolRemainsVisibleWhenCollapsed() {
+        QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/compact-tools.json"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto data = QJsonDocument::fromJson(file.readAll()).object();
+        ChatSession session;
+        const auto thread = data["threads"].toArray().first().toObject();
+        session.upsertThread(thread);
+        session.selectThread(thread["id"].toString());
+        for (const auto event : data["events"].toArray()) {
+            session.applyEvent(event.toObject());
+        }
+        auto* model = qobject_cast<MessageModel*>(session.messages());
+        const auto part = partAt(partsFor(*model), 1);
+        QCOMPARE(part["displayStatus"].toString(), QString("Failed"));
+        QCOMPARE(part["label"].toString(), QString("Count scenes"));
+        QVERIFY(!part["expanded"].toBool());
+        QCOMPARE(part["code"].toString(), QString("console.log(2);"));
+        QVERIFY(part["resultText"].toString().contains("Execution unavailable"));
+    }
+    void toolExpansionIsPresentationState() {
+        QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/tool-calls.json"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto data = QJsonDocument::fromJson(file.readAll()).object();
+        ChatSession session;
+        const auto thread = data["threads"].toArray().first().toObject();
+        session.upsertThread(thread);
+        session.selectThread(thread["id"].toString());
+        const auto events = data["events"].toArray();
+        session.applyEvent(events.first().toObject());
+        auto* model = qobject_cast<MessageModel*>(session.messages());
+        auto* parts = qobject_cast<PartModel*>(partsFor(*model));
+        QVERIFY(parts);
+        const auto raw = model->snapshot();
+        QSignalSpy reset(parts, &QAbstractItemModel::modelReset);
+        QSignalSpy changed(parts, &QAbstractItemModel::dataChanged);
+        QVERIFY(!partAt(parts, 0)["expanded"].toBool());
+        parts->toggleExpanded(0);
+        QVERIFY(partAt(parts, 0)["expanded"].toBool());
+        QCOMPARE(changed.count(), 1);
+        QCOMPARE(model->snapshot(), raw);
+        session.applyEvent(events.last().toObject());
+        QCOMPARE(partsFor(*model), parts);
+        QVERIFY(partAt(parts, 0)["expanded"].toBool());
+        QCOMPARE(partAt(parts, 0)["displayStatus"].toString(), QString("Done"));
+        parts->toggleExpanded(0);
+        QVERIFY(!partAt(parts, 0)["expanded"].toBool());
+        parts->toggleExpanded(-1);
+        parts->toggleExpanded(1);
+        QCOMPARE(reset.count(), 0);
+    }
     void fixtureConformance() {
         const auto data = fixture();
         QVERIFY(!data.isEmpty());

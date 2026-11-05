@@ -4,6 +4,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QTimer>
+#include <QSet>
 namespace nt::chat {
 class PartModel : public QAbstractListModel {
   Q_OBJECT
@@ -14,9 +15,12 @@ public:
   QVariant data(const QModelIndex &, int role) const override;
   QHash<int, QByteArray> roleNames() const override;
   void setParts(const QJsonArray &);
+  Q_INVOKABLE void toggleExpanded(int row);
 
 private:
   QJsonArray m_parts;
+  QSet<QString> m_expanded;
+  QString expansionKey(int row) const;
 };
 class MessageModel : public QAbstractListModel {
   Q_OBJECT

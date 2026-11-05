@@ -98,3 +98,61 @@ fixing an invalidated QJsonValueRef found in the first screenshot review.
 TypeScript tests, fixture conformance in TypeScript, typecheck, lint, harness
 gate and `/verify` were not run, as requested. Platform accessibility, full
 timeline-host rendering and full web-content visual coverage were not run.
+
+## Collapsed tool details checkpoint
+
+Item 1 is partially implemented. Tool and code calls now start as a single
+header row with their phrase, status and an explicit expand button. Arguments,
+code and results are hidden until expanded. Failed calls keep a red `Failed`
+label while collapsed. This matches `ToolCallRow`'s default closed details,
+though native uses a labelled button and a bordered surface instead of the
+web's clickable header, chevron and connecting rail.
+
+Expansion belongs to the C++ `PartModel`, keyed by the full call ID with a
+separate group key. Updates notify only the affected part row. Expansion
+survives result updates and QML delegate recycling. It is presentation state,
+never written into server history. Clearing or unloading history releases it.
+Collapsed output supplies no text to the QML text layout. Expanded output
+retains the existing selectable 4,096-character pages and full copy action.
+
+The `compact-tools.json` fixture covers a completed read and failed code call.
+Model tests check collapsed failure, retained code, expansion after a result,
+unchanged raw snapshots and row-level notifications. QML tests check toggling,
+code/result copy and expansion after scrolling through 2,000 tool messages.
+The existing 2,000-message owning-row and virtualization checks still pass.
+These checks do not establish frame latency.
+
+Offscreen screenshots were inspected against the `ToolCallRow` source behavior:
+
+- `/home/mg/Projects/nodetool-film/tmp/chat-parity/compact-tools-collapsed.png`
+  shows two compact rows, no argument/result blocks and a visible failure.
+- `/home/mg/Projects/nodetool-film/tmp/chat-parity/compact-tools-expanded.png`
+  shows the failed call's code and result while the other call stays closed.
+
+Set `CHAT_SCREENSHOT_DIR` when running `chat-quick-tests` to capture these states.
+No running web screenshot comparison was performed. The migration ledger now
+records interaction coverage for `MessageDelegate.qml`.
+
+The requested sequence remains open:
+
+| Item | Matched in this checkpoint | Still open |
+| --- | --- | --- |
+| 1. Tool presentation | Closed details, external expansion state, compact header, visible failure | Cross-message grouping, exact count/list/preview rules, complete phrasing, per-call expansion inside groups and web timeline footer |
+| 2. Persisted history | No change | Role-tool results associated with persisted calls and live/reloaded equivalence |
+| 3. Thinking | No change | Chunk reduction, markup, timing and collapsible presentation |
+| 4. Execution | No change | Execution ID/step tree and nested transcripts |
+| 5. Markdown | No change | Labelled fences, tables, Harmony cleanup and mixed ordering. Math remains readable source only |
+| 6. Media/resources | No change | Grouping, progress, prediction metadata, playback/link metadata and typed resource navigation |
+| 7. Plans | No change | Structured documents, approval preview and compaction card |
+| 8. Timeline host | No change | Narrow embedded rendering and screenshot |
+
+`ntbuild fix-win-4 nodetool-chat chat-model-tests chat-quick-tests` passed.
+CTest reported all three selected tests passing, including fixture setup.
+Qt reported 24 model and 20 QML passes, including initialization and cleanup,
+with no failures or skips. Evidence is in `compact-tools-tests.log` beside the
+screenshots. The shell wrapper encountered zsh's read-only `status` variable
+after CTest finished, so acceptance uses the recorded CTest summary.
+Both `check_design.py --strict` and `check_dependencies.py` passed.
+No new dependencies or TypeScript changes were introduced. TypeScript tests,
+typecheck, lint, harness gate, `/verify`, platform accessibility and timeline
+host verification were not run.

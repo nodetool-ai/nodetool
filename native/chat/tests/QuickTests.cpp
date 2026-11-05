@@ -39,6 +39,7 @@ public:
     Q_INVOKABLE void longHistory(const QString& thread) {
         m_session->importHistory(thread, {QJsonObject{{"id", "long"}, {"role", "assistant"}, {"content", QString(10000, QLatin1Char('x'))}}});
     }
+    Q_INVOKABLE QString screenshotDirectory() const { return qEnvironmentVariable("CHAT_SCREENSHOT_DIR"); }
     Q_INVOKABLE QString clipboardText() const { return QGuiApplication::clipboard()->text(); }
     Q_INVOKABLE void setClipboardText(const QString& text) { QGuiApplication::clipboard()->setText(text); }
     Q_INVOKABLE void stream(const QString& thread, const QString& text, bool done = false) {
