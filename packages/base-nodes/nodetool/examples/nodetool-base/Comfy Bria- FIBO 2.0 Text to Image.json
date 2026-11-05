@@ -1,0 +1,82 @@
+{
+  "id": "2ca5262cabdd2325ce648744b23f9e3e",
+  "name": "Comfy Bria- FIBO 2.0 Text to Image",
+  "description": "Generate an image from a text prompt with Bria FIBO 2.0, one model for both generation and editing. It is trained on structured VGL captions, so a detailed poster-style brief is followed closely, exact wording is rendered literally, and the node also returns that structured prompt so the same image can be rebuilt or refined from JSON. Ideal for editorial covers, posters and typography-led layouts. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Bria- FIBO 2.0 Text to Image\n\nGenerate an image from a text prompt with Bria FIBO 2.0, one model for both generation and editing. It is trained on structured VGL captions, so a detailed poster-style brief is followed closely, exact wording is rendered literally, and the node also returns that structured prompt so the same image can be rebuilt or refined from JSON. Ideal for editorial covers, posters and typography-led layouts. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_bria_fibo2_t2i.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.BriaImageGenerate",
+        "data": {
+          "prompt": "An elegant editorial poster in square 1:1 format, printed on warm cream paper (#EFE9DB), palette limited to cream, deep olive green (#2E3A2E) and soft natural greens.\n\nBackground: cream paper with soft out-of-focus leaf shadows falling across the upper left, subtle paper grain.\n\nLayout, squared composition: a tall dark olive arch with a rounded top occupying the right 40% of the square, from the top edge to the bottom edge; a dark olive semicircle anchored in the bottom-left corner holding a small circular badge; two thin vertical hairline rules near the top edge, each ending in a tiny four-point sparkle.\n\nHeadline, upper left, in a high-contrast serif display face, dark olive green, very large, spanning more than half the width of the frame: the display type contains exactly two words and nothing else, \"FIBO\" on the first line and \"2.0\" on the second line, the second line shorter, a small four-point sparkle beside the first line. No other word may be set at display size anywhere in the frame. Above the headline, a letterspaced uppercase serif eyebrow reading \"A STUDY IN\".\n\nSubject: a large macro photograph of a pale blue-green butterfly with amber and black wing edges, wings open, perched on a thin dry branch crossing the lower right diagonally, glossy green leaves behind it, shallow depth of field, natural window light.\n\nSmall typography, letterspaced uppercase serif, dark olive on cream and cream on olive, every caption tiny. Exactly these captions, nothing else, no sentence repeated:\n- top-left, two lines: \"LICENSED\" then \"DATA ONLY\"\n- inside the top of the right arch, two lines: \"ONE MODEL.\" then \"EDIT AND GENERATE.\"\n- mid-left under a thin rule, one line: \"PROMPTS IN. STRUCTURE OUT.\"\n- beside a thin barcode at lower left, one line beneath it: \"COMFY ORG\" — this brand line must read exactly \"COMFY ORG\", never \"FIBO ORG\"\n- inside the bottom-left semicircle, a circular badge: tiny letterspaced words curving around a simple line-art sprig with three small leaves, the words read \"STRUCTURED CONTROL\", with \"FIBO 2.0\" centred under the sprig\n\nStyle: quiet luxury editorial design, minimal, matte, soft contrast, generous negative space, high-end print magazine, no glossy highlights, no neon, no 3D bevels, no lens flare.\n\nNo word may appear twice inside one caption; no invented labels; no placeholder text; the barcode carries no numbers.",
+          "structured_prompt": "",
+          "aspect_ratio": "1:1",
+          "resolution": "1MP",
+          "seed": 4242,
+          "moderation": "false"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Bria FIBO 2.0 Image Generate"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "api_bria_fibo2_t2i"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "1-0-2-images",
+        "source": "1",
+        "sourceHandle": "IMAGE",
+        "target": "2",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

@@ -9037,6 +9037,10 @@
           "button": "获取 Opper API 密钥",
           "tooltip": "前往 Opper 平台获取 API 密钥"
         },
+        "CHEAPER_INFERENCE_API_KEY": {
+          "button": "获取 Cheaper Inference API 密钥",
+          "tooltip": "前往 Cheaper Inference 获取 API 密钥"
+        },
         "API_ROUTE_API_KEY": {
           "button": "获取 API Route 密钥",
           "tooltip": "前往 API Route API 密钥页面"
@@ -9534,6 +9538,16 @@
         "title": "在租用的 GPU 上运行工作流",
         "description": "连接一次 RunPod 并选择 GPU，NodeTool 就会在上面运行你的 Python 节点，空闲的工作器会自动暂停。",
         "action": "设置工作器"
+      },
+      "presets": {
+        "summary_one": "每小时约 {{min}}–{{max}}。{{count}} 小时后结束并删除其文件。",
+        "summary_other": "每小时约 {{min}}–{{max}}。{{count}} 小时后结束并删除其文件。",
+        "start": "启动",
+        "starting": "正在启动…",
+        "startAria": "在租用的 GPU 上启动 {{name}}",
+        "bootingHint": "ComfyUI 正在加载。首次启动可能需要几分钟。",
+        "readyHint": "将 URL 复制到 Run ComfyUI Workflow。任何拥有此 URL 的人都可以使用该 Pod。",
+        "copyEndpoint": "复制 ComfyUI URL"
       }
     }
   },
@@ -19610,6 +19624,9 @@
     "simple": "简单",
     "expert": "专家",
     "canvasSize": "{{width}} × {{height}}",
-    "frameRate": "{{fps}} 帧/秒"
+    "frameRate": "{{fps}} 帧/秒",
+    "showAssistant": "显示助手",
+    "hideAssistant": "隐藏助手",
+    "resizeAssistant": "调整时间线助手大小"
   }
 }

@@ -1,0 +1,138 @@
+{
+  "id": "bfd09dc8416d9204b822b7d28556184c",
+  "name": "Comfy PixVerse 6.0- Reference to Video",
+  "description": "Create reference-driven videos with PixVerse V6, generating clips that follow the style, motion, and subject traits of your uploaded reference footage. Ideal for matching a specific visual identity across variations, extending a character or scene’s look to new actions, and producing consistent branded content from a single source clip. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy PixVerse 6.0- Reference to Video\n\nCreate reference-driven videos with PixVerse V6, generating clips that follow the style, motion, and subject traits of your uploaded reference footage. Ideal for matching a specific visual identity across variations, extending a character or scene’s look to new actions, and producing consistent branded content from a single source clip. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_pixverse6_r2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "5",
+        "type": "comfy.PixverseV6FusionVideoNode",
+        "data": {
+          "model": "PixVerse V6",
+          "model.prompt": "Youthful streetwear ad, two shots, consistent characters and palette throughout.\n\nShot 1 (wide): @Subject1, the young man in a white sweatshirt, black joggers, yellow-orange socks and chunky white sneakers with transparent bubble soles, strides along a neon-lit wall glowing green-to-cyan at night, collar headphones on, walking with rhythm as the neon light washes over him. Low-angle tracking shot.\n\nShot 2 (medium): Fast cut. @Subject2, the girl with long cyan hair, tie-dye tee, tiger-striped and slime-green sleeves, fuzzy orange gloves, rides her BMX with cow-print handlebars around the corner and glides to a stop beside @Subject1. She hops off, they both look down at his sneakers, and the bubble soles flash once in the neon light as they step forward together. Camera pulls back into a wide two-shot under the neon glow.\n\nUpbeat funk-pop track with claps, bike freewheel clicking in Shot 2, sneakers squeaking on pavement, one deep bass hit when they land together. Youthful energetic street-ad mood, consistent green-cyan neon palette across shots.这个提示词里面，角色一跟角色二的这个，嗯",
+          "model.aspect_ratio": "16:9",
+          "model.quality": "720p",
+          "model.duration_seconds": 5,
+          "model.generate_audio": true,
+          "model.seed": 580678086,
+          "model.negative_prompt": "randomize",
+          "model.style": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "PixVerse V6 Fusion (Reference to Video)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "street_rider.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "8",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "futuristic_urban_editorial.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "10",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/PixVerse_v6_r2v",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "8-0-5-subjects.subject1",
+        "source": "8",
+        "sourceHandle": "IMAGE",
+        "target": "5",
+        "targetHandle": "subjects.subject1",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-5-subjects.subject2",
+        "source": "7",
+        "sourceHandle": "IMAGE",
+        "target": "5",
+        "targetHandle": "subjects.subject2",
+        "ui_properties": null
+      },
+      {
+        "id": "5-0-10-video",
+        "source": "5",
+        "sourceHandle": "VIDEO",
+        "target": "10",
+        "targetHandle": "video",
+        "ui_properties": null
+      }
+    ]
+  }
+}

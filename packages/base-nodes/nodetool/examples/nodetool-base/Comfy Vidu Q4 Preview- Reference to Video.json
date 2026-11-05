@@ -1,0 +1,138 @@
+{
+  "id": "0ed69621e99fdbbb1d31280beda6f924",
+  "name": "Comfy Vidu Q4 Preview- Reference to Video",
+  "description": "Generate expressive videos from two reference images using Vidu Q4 Preview, a flagship model built for vivid character performance, dynamic camera language, and striking visual effects. Ideal for character-driven storytelling, cinematic action sequences, and effect-heavy scenes with explosions, smoke, or particles. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Vidu Q4 Preview- Reference to Video\n\nGenerate expressive videos from two reference images using Vidu Q4 Preview, a flagship model built for vivid character performance, dynamic camera language, and striking visual effects. Ideal for character-driven storytelling, cinematic action sequences, and effect-heavy scenes with explosions, smoke, or particles. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_vidu_q4_preview_r2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "6",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Vidu_q4_preview_r2v",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "9",
+        "type": "comfy.Vidu4ReferenceVideoNode",
+        "data": {
+          "model": "Vidu Q4 Preview",
+          "model.reference_images": "5-second stylish 3D cartoon using both reference images. Preserve the fuzzy yellow character from image 1 and the white-haired character, purple smiley sweater and drink cup from image 2. Place them in one playful blue-and-purple world. 0–1s: The white-haired character takes a sip; a tiny yellow blur streaks past behind him. 1–2s: Hard cut to a low angle as the fuzzy character lands, squashes flat for a beat, then springs high with an exaggerated stretch. 2–3s: Whip cut to the white-haired character’s face—his eyes widen, he leans back, then grins. 3–4s: The fuzzy character makes one fast curved leap toward his shoulder, with a brief hand-animated motion smear. 4–5s: It lands softly; the character raises his free hand and they strike a cheeky, perfectly timed freeze-frame pose. Snappy cuts, bold camera angles, expressive squash-and-stretch, polished character animation and fashionable purple-yellow-blue color blocking. Keep the cup steady and both designs consistent. No dialogue, extra characters, text or subtitles.",
+          "model.reference_audios": "16:9",
+          "model.prompt": "720p",
+          "model.aspect_ratio": 5,
+          "model.resolution": true,
+          "model.duration": 1613348113,
+          "model.audio": "randomize",
+          "model.seed": 42
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Vidu Q4 Reference-to-Video Generation"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "10",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "clay_man_smiley_sweater.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "11",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "yellow_fuzzy_smiley.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "9-0-6-video",
+        "source": "9",
+        "sourceHandle": "VIDEO",
+        "target": "6",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "11-0-9-model.reference_images.image_1",
+        "source": "11",
+        "sourceHandle": "IMAGE",
+        "target": "9",
+        "targetHandle": "model.reference_images.image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "10-0-9-model.reference_images.image_2",
+        "source": "10",
+        "sourceHandle": "IMAGE",
+        "target": "9",
+        "targetHandle": "model.reference_images.image_2",
+        "ui_properties": null
+      }
+    ]
+  }
+}

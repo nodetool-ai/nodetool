@@ -1,0 +1,144 @@
+{
+  "id": "77f6e58b27e7dc781d6cd9ba90d412eb",
+  "name": "Comfy Image Upscale- Topaz Wonder 3.5",
+  "description": "Upscale and enhance a single image using Topaz's Wonder 3.5 generative model, which adds fine detail, reduces noise, and sharpens text and structured graphics while offering Low, Medium, and High enhancement strengths. The workflow takes 1 input image and produces 1 enhanced output alongside a side-by-side comparison view. Ideal for restoring old or compressed photos, improving product shots and marketing visuals, and preparing low-resolution images for print or large-format display. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image tools",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Image Upscale- Topaz Wonder 3.5\n\nUpscale and enhance a single image using Topaz's Wonder 3.5 generative model, which adds fine detail, reduces noise, and sharpens text and structured graphics while offering Low, Medium, and High enhancement strengths. The workflow takes 1 input image and produces 1 enhanced output alongside a side-by-side comparison view. Ideal for restoring old or compressed photos, improving product shots and marketing visuals, and preparing low-resolution images for print or large-format display. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_topaz_image_enhance_wonder3_5.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "3",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "wild_run.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "4",
+        "type": "comfy.SaveImageAdvanced",
+        "data": {
+          "filename_prefix": "Upscaled_topaz_bloom2",
+          "format": "png",
+          "format.bit_depth": "8-bit",
+          "format.input_color_space": "sRGB"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5",
+        "type": "comfy.ImageCompare",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Compare Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "8",
+        "type": "comfy.TopazImageEnhanceV2",
+        "data": {
+          "model": "Wonder 3.5",
+          "model.enhancement_strength": "high",
+          "model.grain": false,
+          "model.grain_model": "silver",
+          "model.grain_strength": 0.5,
+          "model.grain_size": 1,
+          "model.grain_density": 0.5,
+          "output_width": 0,
+          "output_height": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Topaz Image Enhance"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "8-0-4-images",
+        "source": "8",
+        "sourceHandle": "IMAGE",
+        "target": "4",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "3-0-5-image_a",
+        "source": "3",
+        "sourceHandle": "IMAGE",
+        "target": "5",
+        "targetHandle": "image_a",
+        "ui_properties": null
+      },
+      {
+        "id": "4-0-5-image_b",
+        "source": "4",
+        "sourceHandle": "images",
+        "target": "5",
+        "targetHandle": "image_b",
+        "ui_properties": null
+      },
+      {
+        "id": "3-0-8-image",
+        "source": "3",
+        "sourceHandle": "IMAGE",
+        "target": "8",
+        "targetHandle": "image",
+        "ui_properties": null
+      }
+    ]
+  }
+}

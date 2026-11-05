@@ -1,0 +1,226 @@
+{
+  "id": "61667e49febb6944cd6379b4a381e6b1",
+  "name": "Comfy Layer Decomposition- Seedream 5.0 Pro",
+  "description": "Split any image into independent, editable layers — subject, product, background, and text — with a single text instruction using Seedream 5.0 Pro. A single poster can yield 10+ layers, with design-grade text separation supporting multilingual headlines and CJK fonts. Ideal for brand design, e-commerce asset creation, and layout iteration. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image tools",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Layer Decomposition- Seedream 5.0 Pro\n\nSplit any image into independent, editable layers — subject, product, background, and text — with a single text instruction using Seedream 5.0 Pro. A single poster can yield 10+ layers, with design-grade text separation supporting multilingual headlines and CJK fonts. Ideal for brand design, e-commerce asset creation, and layout iteration. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_bytedance_seedream_5_0_layer_separation.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "15",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "victory_cover.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "20",
+        "type": "comfy.BatchImagesNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Batch Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "22",
+        "type": "comfy.BatchMasksNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Batch Masks"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "23",
+        "type": "comfy.SaveImageAdvanced",
+        "data": {
+          "filename_prefix": "layers/image_layer",
+          "format": "png",
+          "format.bit_depth": "8-bit",
+          "format.input_color_space": "sRGB"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "25",
+        "type": "comfy.ImageCompositor",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Create Layered Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "31",
+        "type": "comfy.JoinImageWithAlpha",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Join Image with Alpha"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "32",
+        "type": "comfy.ByteDanceSeedreamLayerSeparationNodeV2",
+        "data": {
+          "model": "seedream 5.0 flash",
+          "model.prompt": "auto",
+          "model.size": 498392743,
+          "model.seed": "randomize",
+          "model.watermark": false,
+          "model.crop_layers": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ByteDance Seedream 5.0 Layer Separation"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "32-0-20-images.image0",
+        "source": "32",
+        "sourceHandle": "base_image",
+        "target": "20",
+        "targetHandle": "images.image0",
+        "ui_properties": null
+      },
+      {
+        "id": "32-2-20-images.image1",
+        "source": "32",
+        "sourceHandle": "layers",
+        "target": "20",
+        "targetHandle": "images.image1",
+        "ui_properties": null
+      },
+      {
+        "id": "32-1-22-masks.mask0",
+        "source": "32",
+        "sourceHandle": "base_mask",
+        "target": "22",
+        "targetHandle": "masks.mask0",
+        "ui_properties": null
+      },
+      {
+        "id": "32-3-22-masks.mask1",
+        "source": "32",
+        "sourceHandle": "masks",
+        "target": "22",
+        "targetHandle": "masks.mask1",
+        "ui_properties": null
+      },
+      {
+        "id": "31-0-23-images",
+        "source": "31",
+        "sourceHandle": "IMAGE",
+        "target": "23",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "32-5-25-layers",
+        "source": "32",
+        "sourceHandle": "layer_stack",
+        "target": "25",
+        "targetHandle": "layers",
+        "ui_properties": null
+      },
+      {
+        "id": "20-0-31-image",
+        "source": "20",
+        "sourceHandle": "IMAGE",
+        "target": "31",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "22-0-31-alpha",
+        "source": "22",
+        "sourceHandle": "MASK",
+        "target": "31",
+        "targetHandle": "alpha",
+        "ui_properties": null
+      },
+      {
+        "id": "15-0-32-model.image",
+        "source": "15",
+        "sourceHandle": "IMAGE",
+        "target": "32",
+        "targetHandle": "model.image",
+        "ui_properties": null
+      }
+    ]
+  }
+}

@@ -47,20 +47,30 @@ echo "$*" >> '${callLog}'
 outtmpl=""
 format=""
 json=0
+fallback=0
 while [ $# -gt 0 ]; do
   case "$1" in
     -o) outtmpl="$2"; shift 2 ;;
     -f) format="$2"; shift 2 ;;
     --print-json) json=1; shift ;;
+    *fallback*) fallback=1; shift ;;
     *) shift ;;
   esac
 done
 if [ "$json" -eq 1 ]; then
-  echo '{"id":"stub1","title":"Stub","ext":"mp4"}'
+  if [ "$fallback" -eq 1 ]; then
+    echo '{"id":"stub1","title":"Stub","ext":"mp4","format_id":"18"}'
+  else
+    echo '{"id":"stub1","title":"Stub","ext":"mp4","requested_formats":[{"format_id":"137"},{"format_id":"140"}]}'
+  fi
   exit 0
 fi
+if [ "$fallback" -eq 1 ] && [ "$format" = "bv" ]; then
+  echo "requested format not available" >&2
+  exit 1
+fi
 case "$format" in
-  bv*) src='${video}'; fid=137; ext=mp4 ;;
+  *137*) src='${video}'; fid=137; ext=mp4 ;;
   *) src='${audio}'; fid=140; ext=m4a ;;
 esac
 out=$(printf '%s' "$outtmpl" | sed "s/%(id)s/stub1/; s/%(format_id)s/$fid/; s/%(ext)s/$ext/")
@@ -82,17 +92,28 @@ afterAll(async () => {
 });
 
 describe("YtDlpDownload muxes two stream files without ffmpeg", () => {
+  it("uses the combined fallback when separate streams are unavailable", async () => {
+    const result = await new YtDlpDownloadLibNode({
+      url: "https://example.com/fallback",
+      mode: "video",
+      format_selector: "bv+ba/b"
+    }).process();
+    expect((result.video as { data: string }).data).toBeTruthy();
+    const calls = (await readFile(callLog, "utf8")).trim().split("\n");
+    expect(calls.at(-1)).toContain('-f [format_id="18"] ');
+  });
+
   it("downloads bv* and ba/b separately and returns one file with both streams", async () => {
     const result = await new YtDlpDownloadLibNode({
       url: "https://example.com/watch?v=stub1",
       mode: "video"
     }).process();
 
-    const calls = (await readFile(callLog, "utf8")).trim().split("\n");
+    const calls = (await readFile(callLog, "utf8")).trim().split("\n").filter((line) => !line.includes("fallback"));
     const downloads = calls.filter((line) => !line.includes("--print-json"));
     expect(downloads).toHaveLength(2);
-    expect(downloads[0]).toContain("-f bv* ");
-    expect(downloads[1]).toContain("-f ba/b ");
+    expect(downloads[0]).toContain('-f [format_id="137"] ');
+    expect(downloads[1]).toContain('-f [format_id="140"] ');
     for (const line of downloads) {
       expect(line).not.toMatch(/--merge-output-format|--remux-video|--recode-video|--extract-audio| -x /);
     }

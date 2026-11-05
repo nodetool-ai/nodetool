@@ -136,6 +136,7 @@ function listedRunModes(): SQL<unknown> {
     eq(workflows.run_mode, "workflow"),
     eq(workflows.run_mode, "layer"),
     eq(workflows.run_mode, "clip"),
+    eq(workflows.run_mode, "comfy"),
     isNull(workflows.run_mode)
   );
   if (!condition) {

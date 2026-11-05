@@ -146,6 +146,14 @@ jest.mock("../../workspace/newDocumentCatalog", () => ({
           }
         },
         {
+          key: "create",
+          label: "Create",
+          menuLabel: "Create images and videos",
+          type: "create",
+          icon: null,
+          create: jest.fn()
+        },
+        {
           key: "text",
           label: "Text",
           menuLabel: "New text file…",
@@ -567,6 +575,7 @@ import { clearChatTurn, peekChatTurn } from "../../chat/pendingChatTurn";
 import useOnboardingStore from "../../../stores/OnboardingStore";
 import { useProviderOnboardingStore } from "../../../stores/ProviderOnboardingStore";
 import type { Asset } from "../../../stores/ApiTypes";
+import useSubscriptionOnboardingStore from "../../../stores/SubscriptionOnboardingStore";
 
 // The real tab store behind the suite's selector mock: `creationProjectId`
 // reads it, so a "current project" pick files where these tests point it.
@@ -1106,6 +1115,15 @@ describe("NewProjectSurface", () => {
     expect(createWorkflow).toHaveBeenCalled();
   });
 
+  // The Create image and Create video cards open the same view, and the row
+  // showed its untranslated key.
+  it("leaves the picture and video view out of the blank-document row", () => {
+    renderSurface();
+    expect(screen.getByRole("button", { name: "Workflow" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Create" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/blankEntries|blank_items/)).not.toBeInTheDocument();
+  });
+
   it("starts Game from its card with the current project's brief", async () => {
     actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: "project-current" });
     renderSurface();
@@ -1223,6 +1241,17 @@ describe("NewProjectSurface", () => {
       screen.getByRole("button", { name: "Open an example or a blank doc" })
     );
     expect(openPageTab).toHaveBeenCalledWith("examples");
+  });
+
+  // UX study 17: the plan sign-ins no longer open on launch, so on a local
+  // install the checklist's connect pill is where they are offered.
+  it("offers the plan sign-ins from the connect pill on a local install", async () => {
+    hasConfiguredProvider = false;
+    useSubscriptionOnboardingStore.setState({ open: false });
+    const user = userEvent.setup();
+    renderSurface();
+    await user.click(screen.getByRole("button", { name: "Connect an AI provider" }));
+    expect(useSubscriptionOnboardingStore.getState().open).toBe(true);
   });
 
   it("shows the checklist until onboarding is done", () => {

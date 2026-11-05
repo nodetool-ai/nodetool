@@ -1,0 +1,175 @@
+{
+  "id": "8eda42d2f35b10f7a33ea44f567999a8",
+  "name": "Comfy Inpainting- Bria Generative Fill",
+  "description": "Use Bria's Generative Fill API to regenerate a specific region of an image while keeping everything outside the mask pixel-perfect unchanged. Paint a mask over the target area, write a detailed prompt for the replacement content, and compare the before/after side-by-side before exporting. Ideal for product photography corrections, object removal or replacement, and creative compositing where precise control over the edited region matters. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image tools",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Inpainting- Bria Generative Fill\n\nUse Bria's Generative Fill API to regenerate a specific region of an image while keeping everything outside the mask pixel-perfect unchanged. Paint a mask over the target area, write a detailed prompt for the replacement content, and compare the before/after side-by-side before exporting. Ideal for product photography corrections, object removal or replacement, and creative compositing where precise control over the edited region matters. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_bria_genfill.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.BriaGenFill",
+        "data": {
+          "prompt": "The girl is holding a cup of beverage, which is a glass of lime juice.",
+          "negative_prompt": "",
+          "refine_prompt": true,
+          "seed": 1745816485,
+          "moderation": "false"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Bria Generative Fill"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "retro_girl_cinnamon_bun.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.Painter",
+        "data": {
+          "mask": "painter-3-1787234799226.png [input]",
+          "width": 1024,
+          "height": 1024
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Painter"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "4",
+        "type": "comfy.SaveImageAdvanced",
+        "data": {
+          "filename_prefix": "Bria_GenFill",
+          "format": "png",
+          "format.bit_depth": "8-bit",
+          "format.input_color_space": "sRGB"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5",
+        "type": "comfy.ImageCompare",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Compare Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "2-0-1-image",
+        "source": "2",
+        "sourceHandle": "IMAGE",
+        "target": "1",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "3-1-1-mask",
+        "source": "3",
+        "sourceHandle": "MASK",
+        "target": "1",
+        "targetHandle": "mask",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-3-image",
+        "source": "2",
+        "sourceHandle": "IMAGE",
+        "target": "3",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "1-0-4-images",
+        "source": "1",
+        "sourceHandle": "IMAGE",
+        "target": "4",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-5-image_a",
+        "source": "2",
+        "sourceHandle": "IMAGE",
+        "target": "5",
+        "targetHandle": "image_a",
+        "ui_properties": null
+      },
+      {
+        "id": "4-0-5-image_b",
+        "source": "4",
+        "sourceHandle": "images",
+        "target": "5",
+        "targetHandle": "image_b",
+        "ui_properties": null
+      }
+    ]
+  }
+}

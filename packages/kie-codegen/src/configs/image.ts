@@ -5315,6 +5315,620 @@ export const imageConfig: ModuleConfig = {
           "message": "Prompt is required"
         }
       ]
+    },
+    {
+      "className": "Seedream5FlashTextToImage",
+      "modelId": "seedream/5-flash-text-to-image",
+      "title": "Seedream5.0 Flash - Text to Image",
+      "description": "Seedream5.0 Flash - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    High-quality photorealistic image generation powered by Seedream's advanced AI model",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt, 4–5000 characters.",
+          "required": true,
+          "min": 4,
+          "max": 5000
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "",
+          "title": "Aspect Ratio",
+          "description": "Required. Width-height ratio of the image, determining its visual form.",
+          "required": true,
+          "values": [
+            "1:1",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "2:3",
+            "3:2",
+            "21:9"
+          ]
+        },
+        {
+          "name": "size",
+          "type": "enum",
+          "default": "1K",
+          "title": "Size",
+          "description": "Resolution level of the output image.",
+          "required": false,
+          "values": [
+            "1K",
+            "1.5K",
+            "2K"
+          ]
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "",
+          "title": "Output Format",
+          "description": "Output image format. Set this field explicitly.",
+          "required": false,
+          "values": [
+            "png",
+            "jpeg"
+          ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. When false, no additional content filtering is applied and results are returned directly by the model.",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "aspect_ratio",
+          "rule": "not_empty",
+          "message": "Aspect Ratio is required"
+        }
+      ]
+    },
+    {
+      "className": "Seedream5FlashImageToImage",
+      "modelId": "seedream/5-flash-image-to-image",
+      "title": "Seedream5.0 Flash - Image to Image",
+      "description": "Seedream5.0 Flash - Image to Image via Kie.ai.\n\n    kie, image, ai\n\n    Image editing with Seedream 5.0 Flash",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Text prompt, 4–5000 characters.",
+          "required": true,
+          "min": 4,
+          "max": 5000
+        },
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "Upload an image file to use as input for the API (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 30.0MB)",
+          "required": true,
+          "max": 10
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "",
+          "title": "Aspect Ratio",
+          "description": "Required. Width-height ratio of the image, determining its visual form.",
+          "required": true,
+          "values": [
+            "1:1",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "2:3",
+            "3:2",
+            "21:9"
+          ]
+        },
+        {
+          "name": "size",
+          "type": "enum",
+          "default": "1K",
+          "title": "Size",
+          "description": "Resolution level of the output image.",
+          "required": false,
+          "values": [
+            "1K",
+            "1.5K",
+            "2K"
+          ]
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "",
+          "title": "Output Format",
+          "description": "Output image format. Set this field explicitly.",
+          "required": false,
+          "values": [
+            "png",
+            "jpeg"
+          ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. When false, no additional content filtering is applied and results are returned directly by the model.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "images",
+          "kind": "image",
+          "paramName": "image_urls",
+          "isList": true
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        },
+        {
+          "field": "aspect_ratio",
+          "rule": "not_empty",
+          "message": "Aspect Ratio is required"
+        }
+      ]
+    },
+    {
+      "className": "Seedream5FlashLayerDecomposition",
+      "modelId": "seedream/5-flash-layer-decomposition",
+      "title": "Seedream5.0 Flash -  Layer Decomposition",
+      "description": "Seedream5.0 Flash -  Layer Decomposition via Kie.ai.\n\n    kie, image, ai\n\n    Layer decomposition with Seedream 5.0 Flash: split an image into a base image and separate layers.",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "Optional prompt for layer separation. - When a prompt is provided, the model separates the specified elements based on the prompt - When no prompt is provided, the model automatically identifies the main elements in the image - Supports using `<bbox>x1 y1 x2 y2</bbox>` to precisely specify element positions, recommending the use of normalized coordinates in the 0-1000 range - Length: 4–5000 characters",
+          "required": false,
+          "min": 4,
+          "max": 5000
+        },
+        {
+          "name": "image",
+          "type": "image",
+          "default": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "title": "Image",
+          "description": "The source image URL for layer separation. - Must upload exactly 1 image - Supported formats: PNG, JPEG. - Image size must not exceed 30 MB - Total pixel range is 262,144-36,000,000 - Aspect ratio range is 1:16-16:1",
+          "required": true,
+          "min": 262,
+          "max": 144
+        },
+        {
+          "name": "size",
+          "type": "enum",
+          "default": "auto",
+          "title": "Size",
+          "description": "Resolution level of the output image. The base image maintains the aspect ratio of the input image, and each separated layer maintains the aspect ratio of the corresponding element in the original image. - `auto`: Automatically selected based on the input image size - `1K`: 1K resolution level - `1.5K`: 1.5K resolution level - `2K`: 2K resolution level",
+          "required": false,
+          "values": [
+            "auto",
+            "1K",
+            "1.5K",
+            "2K"
+          ]
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "jpeg",
+          "title": "Output Format",
+          "description": "Output format of the base image. This parameter only controls the base image format; all separated layers are fixed to output as PNG.",
+          "required": false,
+          "values": [
+            "png",
+            "jpeg"
+          ]
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image",
+          "kind": "image",
+          "paramName": "image_url"
+        }
+      ]
+    },
+    {
+      "className": "GoogleNanoBanana21",
+      "modelId": "nano-banana-2-1",
+      "title": "Google - Nano Banana 2.1",
+      "description": "Google - Nano Banana 2.1 via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by Nano Banana 2.1",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "A text description of the image you want to generate (Max length: 20000 characters)",
+          "required": true,
+          "max": 20000
+        },
+        {
+          "name": "image_input",
+          "type": "list[image]",
+          "default": [],
+          "title": "Image Input",
+          "description": "Input images to transform or use as reference (supports up to 10 images) (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 30.0MB)",
+          "required": false,
+          "max": 10
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "auto",
+          "title": "Aspect Ratio",
+          "description": "Aspect ratio of the generated image",
+          "required": false,
+          "values": [
+            "1:1",
+            "2:3",
+            "3:2",
+            "1:4",
+            "4:1",
+            "3:4",
+            "4:3",
+            "4:5",
+            "5:4",
+            "1:8",
+            "8:1",
+            "9:16",
+            "16:9",
+            "21:9",
+            "auto"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1K",
+          "title": "Resolution",
+          "description": "Resolution of the generated image",
+          "required": false,
+          "values": [
+            "1K",
+            "2K",
+            "4K"
+          ]
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "jpg",
+          "title": "Output Format",
+          "description": "Format of the output image",
+          "required": false,
+          "values": [
+            "png",
+            "jpg"
+          ]
+        }
+      ],
+      "uploads": [
+        {
+          "field": "image_input",
+          "kind": "image",
+          "paramName": "image_input",
+          "isList": true
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Flux3KleinTextToImage",
+      "modelId": "flux-3/klein-text-to-image",
+      "title": "FLUX 3 Klein Text to Image",
+      "description": "FLUX 3 Klein Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    FLUX 3 Klein Text to Image",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "A text description of the image you want to generate (Max length: 5000 characters)",
+          "required": true,
+          "min": 1,
+          "max": 5000
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "1:1",
+          "title": "Aspect Ratio",
+          "description": "Aspect ratio of the generated image Options: 1:1; 4:3; 3:4; 3:2; 2:3; 16:9; 9:16; 21:9; 9:21",
+          "required": false,
+          "values": [
+            "1:1",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "16:9",
+            "9:16",
+            "21:9",
+            "9:21"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1K",
+          "title": "Resolution",
+          "description": "Resolution of the generated image Options: 1K; 2K; 4K",
+          "required": false,
+          "values": [
+            "1K",
+            "2K",
+            "4K"
+          ]
+        },
+        {
+          "name": "width",
+          "type": "int",
+          "default": 0,
+          "title": "Width",
+          "description": "Image width. Both width and height must be passed at the same time. Aspect ratio must be between 1:2.5 and 2.5:1. Once passed, aspect_ratio and resolution are ignored.",
+          "required": false,
+          "min": 256,
+          "max": 4096
+        },
+        {
+          "name": "height",
+          "type": "int",
+          "default": 0,
+          "title": "Height",
+          "description": "Image height. Both width and height must be passed at the same time. Aspect ratio must be between 1:2.5 and 2.5:1. Once passed, aspect_ratio and resolution are ignored.",
+          "required": false,
+          "min": 256,
+          "max": 4096
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "png",
+          "title": "Output Format",
+          "description": "Format of the output image Options: png; jpeg; webp",
+          "required": false,
+          "values": [
+            "png",
+            "jpeg",
+            "webp"
+          ]
+        },
+        {
+          "name": "num_images",
+          "type": "int",
+          "default": 1,
+          "title": "Num Images",
+          "description": "Number of images to generate",
+          "required": false,
+          "min": 1,
+          "max": 4
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
+        },
+        {
+          "name": "enhance_prompt",
+          "type": "bool",
+          "default": true,
+          "title": "Enhance Prompt",
+          "description": "Rewrites the prompt into a fuller description before generating, which noticeably improves quality. Enabled by default (also when the parameter is omitted); pass false to turn it off. Applies to both text-to-image and image editing; in editing, the rewrite preserves the intent of the original instruction.",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. When false, no additional content filtering is applied and results are returned directly by the model.",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Flux3KleinEditImage",
+      "modelId": "flux-3/klein-edit-image",
+      "title": "FLUX 3 Klein Edit Image",
+      "description": "FLUX 3 Klein Edit Image via Kie.ai.\n\n    kie, image, ai\n\n    FLUX 3 Klein Edit Image",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "An instruction describing how to edit the image (Max length: 5000 characters)",
+          "required": true,
+          "min": 1,
+          "max": 5000
+        },
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "Input images to transform or use as reference (supports up to 10 images) (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 30.0MB)",
+          "required": true,
+          "min": 1,
+          "max": 10
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "enum",
+          "default": "auto",
+          "title": "Aspect Ratio",
+          "description": "Aspect ratio of the generated image. Select auto to match the first input image ratio. Options: 1:1; 4:3; 3:4; 3:2; 2:3; 16:9; 9:16; 21:9; 9:21; auto",
+          "required": false,
+          "values": [
+            "1:1",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "16:9",
+            "9:16",
+            "21:9",
+            "9:21",
+            "auto"
+          ]
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1K",
+          "title": "Resolution",
+          "description": "Resolution of the generated image Options: 1K; 2K; 4K",
+          "required": false,
+          "values": [
+            "1K",
+            "2K",
+            "4K"
+          ]
+        },
+        {
+          "name": "width",
+          "type": "int",
+          "default": 0,
+          "title": "Width",
+          "description": "Width of the generated image. Both width and height must be passed at the same time. Must be an integer between 256 and 4096. The aspect ratio (width:height) must be between 1:2.5 and 2.5:1. Once passed, aspect_ratio and resolution are ignored.",
+          "required": false,
+          "min": 256,
+          "max": 4096
+        },
+        {
+          "name": "height",
+          "type": "int",
+          "default": 0,
+          "title": "Height",
+          "description": "Height of the generated image. Both width and height must be passed at the same time. Must be an integer between 256 and 4096. The aspect ratio (width:height) must be between 1:2.5 and 2.5:1. Once passed, aspect_ratio and resolution are ignored.",
+          "required": false,
+          "min": 256,
+          "max": 4096
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "png",
+          "title": "Output Format",
+          "description": "Format of the output image Options: png; jpeg; webp",
+          "required": false,
+          "values": [
+            "png",
+            "jpeg",
+            "webp"
+          ]
+        },
+        {
+          "name": "num_images",
+          "type": "int",
+          "default": 1,
+          "title": "Num Images",
+          "description": "Number of images to generate",
+          "required": false,
+          "min": 1,
+          "max": 4
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 0,
+          "title": "Seed",
+          "description": "Random seed",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
+        },
+        {
+          "name": "enhance_prompt",
+          "type": "bool",
+          "default": true,
+          "title": "Enhance Prompt",
+          "description": "Rewrites the prompt into a fuller description before generating, which noticeably improves quality. Enabled by default (also when the parameter is omitted); pass false to turn it off. Applies to both text-to-image and image editing; in editing, the rewrite preserves the intent of the original instruction.",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. When false, no additional content filtering is applied and results are returned directly by the model.",
+          "required": false
+        }
+      ],
+      "uploads": [
+        {
+          "field": "images",
+          "kind": "image",
+          "paramName": "image_urls",
+          "isList": true
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
     }
   ]
 };

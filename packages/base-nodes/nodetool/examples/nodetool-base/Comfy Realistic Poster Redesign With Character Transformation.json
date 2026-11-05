@@ -1,0 +1,191 @@
+{
+  "id": "2c79e12d9d6ebc0e4e07a5d31f97f1bf",
+  "name": "Comfy Realistic Poster Redesign With Character Transformation",
+  "description": "Transform uploaded images into realistic poster designs. Change character poses, faces, and clothing while maintaining artistic style and color schemes. Outputs a visually impactful poster with artistic typography. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "brand & design",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Realistic Poster Redesign With Character Transformation\n\nTransform uploaded images into realistic poster designs. Change character poses, faces, and clothing while maintaining artistic style and color schemes. Outputs a visually impactful poster with artistic typography. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/templates_doc_workbox_poster_recreator.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "3",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "reference_poster.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "4",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "Poster_maker"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "25",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "model": "Nano Banana 2 (Gemini 3.1 Flash Image)",
+          "seed": 935249916317050,
+          "aspect_ratio": "auto",
+          "resolution": "2K",
+          "response_modalities": "IMAGE",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "26",
+        "type": "comfy.ComfySwitchNode",
+        "data": {
+          "switch": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "If/Else Switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "27",
+        "type": "comfy.StringConcatenate",
+        "data": {
+          "string_a": "You are a master poster designer. Refer to the style, color and font style of the pictures I uploaded, and transform them into a realistic real person style to design a poster with visual impact and artistry. Change the posture, face and clothing of the character. The main title font should be artistic, mainly white and large, and try not to cover the character's face. Without referring to the watermark LOGO and the tiny text, the following is the content of the poster：",
+          "delimiter": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Concatenate Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "28",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "Imitate any style, \nrecreate any poster."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "25-0-4-images",
+        "source": "25",
+        "sourceHandle": "IMAGE",
+        "target": "4",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "26-0-25-prompt",
+        "source": "26",
+        "sourceHandle": "output",
+        "target": "25",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "3-0-25-images",
+        "source": "3",
+        "sourceHandle": "IMAGE",
+        "target": "25",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "27-0-26-on_false",
+        "source": "27",
+        "sourceHandle": "STRING",
+        "target": "26",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "28-0-26-on_true",
+        "source": "28",
+        "sourceHandle": "STRING",
+        "target": "26",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "28-0-27-string_b",
+        "source": "28",
+        "sourceHandle": "STRING",
+        "target": "27",
+        "targetHandle": "string_b",
+        "ui_properties": null
+      }
+    ]
+  }
+}

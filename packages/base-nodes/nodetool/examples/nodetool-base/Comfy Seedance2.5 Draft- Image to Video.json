@@ -1,0 +1,140 @@
+{
+  "id": "d577b9c40f36fb80bd56f4eed4dda0f5",
+  "name": "Comfy Seedance2.5 Draft- Image to Video",
+  "description": "Generate draft preview videos from a first frame image using Seedance 2.5's two-phase draft mode: stage one turns your image into a fast, low-cost 480p preview plus a reusable draft task ID, and stage two renders the 1080p final from that ID. Ideal for testing motion, camera and scene ideas on a still before committing to a full-quality render. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Seedance2.5 Draft- Image to Video\n\nGenerate draft preview videos from a first frame image using Seedance 2.5's two-phase draft mode: stage one turns your image into a fast, low-cost 480p preview plus a reusable draft task ID, and stage two renders the 1080p final from that ID. Ideal for testing motion, camera and scene ideas on a still before committing to a full-quality render. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_seedance2_5_draft_i2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "771",
+        "type": "comfy.SaveText",
+        "data": {
+          "filename_prefix": "txt",
+          "format": "txt"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "776",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Seedance2.5_draft",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "782",
+        "type": "comfy.ByteDance2FirstLastFrameNode",
+        "data": {
+          "model": "Seedance 2.5 Draft",
+          "model.prompt": "A high-energy 2D flat vector animation, 5 seconds, in a bold contemporary editorial-illustration style: clean black ink outlines, smooth gradient shading, oversized proportions, and a saturated palette of hot pink, tangerine orange, electric violet, and soft blush white. Three stylish young friends wear oversized cropped sweatshirts, baggy track pants, baseball caps, and chunky platform sneakers with pastel laces while sipping boba milk tea. The mood is joyful, confident, and fashion-forward, like a trendy streetwear campaign cut rhythmically to an upbeat hip-hop beat.\n\nShot 1 (0–0.8s): Extreme close-up of a chunky orange sneaker stomping down on the beat against a glowing pink gradient backdrop, sending a burst of graphic sparkle shapes outward. Snap zoom out.\n\nShot 2 (0.8–1.6s): Whip pan to a low-angle hero shot. The three friends strike a layered group pose and sip boba in perfect sync. Tapioca pearls bounce inside the cups, and the center girl's long black hair flows in a stylized wave. A subtle camera push-in adds swagger.\n\nShot 3 (1.6–2.5s): Match cut on a cup raise into a new scene: a sunlit neon city crosswalk with pastel storefronts and graphic halftone shadows. The trio struts toward camera in a tracking shot, with oversized pants swishing and a cap tilted with attitude. Slight speed-ramp slow motion on a mid-stride pose.\n\nShot 4 (2.5–3.4s): Quick-cut montage in rapid succession. A close-up of a straw pierces a boba lid with a pop. A side profile shows a friend flipping a cap backward. Violet sneakers spin in a playful dance step over a graffiti-covered skate-park ramp at golden hour. Dynamic Dutch angles and punchy zoom transitions sync to each beat.\n\nShot 5 (3.4–4.3s): Overhead rooftop shot at sunset against a pink-orange sky. The friends laugh and bump boba cups together in a cheers, and a splash of illustrated milk-tea droplets freezes mid-air.\n\nShot 6 (4.3–5s): Smash cut back to the original glowing pink gradient studio. The trio lands in their signature stacked pose from the reference illustration, then gives a final confident sip and a knowing look to camera. Radial light rays pulse behind them, and the camera settles into a crisp freeze-frame finish.\n\nStyle notes: Fluid, bouncy character animation with squash-and-stretch energy. Use snappy editorial pacing with whip pans, match cuts, and speed ramps. Apply a subtle paper-grain texture, soft bloom glow, and a trendy Gen-Z street-culture aesthetic. Keep the look polished and premium, like a fashion brand commercial. Maintain consistent character design and color harmony across every scene.",
+          "model.resolution": "480p",
+          "model.duration": 5,
+          "model.generate_audio": true,
+          "model.output_format": "mp4",
+          "seed": 2046543723,
+          "watermark": false,
+          "first_frame_asset_id": "",
+          "last_frame_asset_id": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ByteDance Seedance 2.5 First-Last-Frame to Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "784",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "friends_enjoying_boba.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "782-1-771-text",
+        "source": "782",
+        "sourceHandle": "draft_task_id",
+        "target": "771",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "782-0-776-video",
+        "source": "782",
+        "sourceHandle": "VIDEO",
+        "target": "776",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "784-0-782-first_frame",
+        "source": "784",
+        "sourceHandle": "IMAGE",
+        "target": "782",
+        "targetHandle": "first_frame",
+        "ui_properties": null
+      }
+    ]
+  }
+}

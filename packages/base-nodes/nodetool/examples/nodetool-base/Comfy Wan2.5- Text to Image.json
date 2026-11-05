@@ -1,0 +1,84 @@
+{
+  "id": "aafdf411c846a1b646def32ab5ab6930",
+  "name": "Comfy Wan2.5- Text to Image",
+  "description": "Generate images with excellent prompt following and visual quality using Wan 2.5. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Wan2.5- Text to Image\n\nGenerate images with excellent prompt following and visual quality using Wan 2.5. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_wan_text_to_image.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "12",
+        "type": "comfy.WanTextToImageApi",
+        "data": {
+          "model": "wan2.5-t2i-preview",
+          "prompt": "Backlighting, medium shot, sunset, soft light, silhouette, central composition, circular camera movement. The camera follows the character from behind to the front, showing a rugged cowboy gripping his holster tightly, his eyes alert as he patrols the desolate Western ghost town. The cowboy wears a worn brown leather jacket, with a bullet belt around his waist and the brim of his hat pulled low. His outline is sketched into a soft silhouette by the setting sun. Behind him are dilapidated wooden buildings with long-broken windows, glass shards scattered on the ground, and dust swirling in the wind. The camera slowly circles from his back to his front, with light pouring from behind, creating a strong dramatic contrast. The scene presents warm tones, enhancing the desolate atmosphere.",
+          "negative_prompt": "",
+          "width": 1024,
+          "height": 1024,
+          "seed": 6926862,
+          "prompt_extend": true,
+          "watermark": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Wan Text to Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "Wan2.5-t2i-preview"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "12-0-13-images",
+        "source": "12",
+        "sourceHandle": "IMAGE",
+        "target": "13",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "id": "55a0a08137299e36228d304ae6d61ebf",
+  "name": "Comfy HappyHorse- Text to Video",
+  "description": "Generate high-quality, realistic videos from text prompts with fluid motion and rich detail. Input text descriptions to produce dynamic videos with accurate semantic comprehension. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy HappyHorse- Text to Video\n\nGenerate high-quality, realistic videos from text prompts with fluid motion and rich detail. Input text descriptions to produce dynamic videos with accurate semantic comprehension. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_happyhorse1_0_t2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "5",
+        "type": "comfy.HappyHorseTextToVideoApi",
+        "data": {
+          "model": "happyhorse-1.0-t2v",
+          "model.prompt": "A lone white horse gallops through a misty ancient forest at dawn. The camera begins with a low-angle tracking shot gliding silently through the undergrowth, then rises in a slow crane movement to reveal the horse emerging from a wall of fog between towering moss-covered trees. Shafts of pale golden light pierce the canopy at a sharp 15-degree angle, casting long dramatic shadows across the forest floor. The horse's breath condenses in the cold air, mane streaming in slow motion. Cut to an extreme close-up of hooves churning wet earth and fallen leaves, then pull back to a wide establishing shot as the horse disappears into the mist. Cinematic, 35mm film grain, desaturated cool tones with warm amber highlights, shallow depth of field, anamorphic lens flare.",
+          "model.resolution": "720P",
+          "model.ratio": "16:9",
+          "model.duration": 5,
+          "seed": 1115144932,
+          "watermark": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "HappyHorse Text to Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "6",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/HappyHorse_t2v",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "5-0-6-video",
+        "source": "5",
+        "sourceHandle": "VIDEO",
+        "target": "6",
+        "targetHandle": "video",
+        "ui_properties": null
+      }
+    ]
+  }
+}

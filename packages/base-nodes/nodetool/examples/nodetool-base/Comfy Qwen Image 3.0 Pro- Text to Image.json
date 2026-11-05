@@ -1,0 +1,118 @@
+{
+  "id": "8bb4c013278029f976f894ea1e2fc573",
+  "name": "Comfy Qwen Image 3.0 Pro- Text to Image",
+  "description": "Generate detailed, production-ready images from text prompts using the Qwen Image 3.0 Pro model, supporting up to 4.5k tokens for complex layouts like posters, infographics, and storyboards. It renders crisp 10px text, realistic textures, and native support for 12 languages and over 100 art styles, with optional 1-3 reference images for fusion editing. Ideal for marketing materials, educational diagrams, and UI design mockups. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Qwen Image 3.0 Pro- Text to Image\n\nGenerate detailed, production-ready images from text prompts using the Qwen Image 3.0 Pro model, supporting up to 4.5k tokens for complex layouts like posters, infographics, and storyboards. It renders crisp 10px text, realistic textures, and native support for 12 languages and over 100 art styles, with optional 1-3 reference images for fusion editing. Ideal for marketing materials, educational diagrams, and UI design mockups. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_qwen3_t2i.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "2",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "Qwen-image-3.0-pro"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "8",
+        "type": "comfy.ResolutionSelector",
+        "data": {
+          "aspect_ratio": "1:1 (Square)",
+          "megapixels": 1,
+          "multiple": 8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Resolution Selector"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "14",
+        "type": "comfy.QwenImageTextToImageApi",
+        "data": {
+          "model": "qwen-image-3.0-pro",
+          "model.prompt": "Editorial poster design, square format, dark charcoal-black background with faint red binary code texture overlay. Centered composition: a monochrome grayscale marble-textured sculpture bust of a flower goddess, head tilted back, eyes closed, mouth slightly open in a sorrowful and rapturous expression, neck elongated and exposed. Her hair is composed of intricately carved blooming flowers, trailing vines, and coiled leaf tendrils with detailed petal and scale-like leaf textures, some floral garlands draping down over her shoulders and chest, rendered in cold stone gray with dramatic chiaroscuro lighting. Strong single-source light from upper left casting deep shadows on the right side of the face and neck, highlighting sculptural texture and fine cracks in the stone surface. High contrast, cinematic and moody atmosphere, photographic hyper-detailed 3D render quality.\n\nBold oversized display typography at top spelling the title FLORA in deep blood-red condensed sans-serif font, slightly overlapping the top of the sculpture. Small scattered graphic elements around the composition: a minimalist circular emblem with orbiting dots in the upper right, a small vintage badge/stamp icon in the lower left, thin botanical line diagrams and tiny blossom icon rows near the bottom, a small vertical stack of abstract glyph-like symbols on the right edge, and a small triangular emblem in the bottom right corner. A short block of small justified caption-style text sits in the lower right area, paired with a subtitle line above it in thin tracked-out caps. Overall layout uses asymmetric grid placement, generous negative space, muted desaturated palette of black, stone gray, and deep crimson red accents, grainy film texture, retro-cyberpunk editorial poster aesthetic, ultra-detailed, 8k print quality.",
+          "model.negative_prompt": "",
+          "n": 1,
+          "seed": 42,
+          "prompt_extend": true,
+          "watermark": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Qwen Image 3 Text to Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "14-0-2-images",
+        "source": "14",
+        "sourceHandle": "IMAGE",
+        "target": "2",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "8-0-14-model.width",
+        "source": "8",
+        "sourceHandle": "width",
+        "target": "14",
+        "targetHandle": "model.width",
+        "ui_properties": null
+      },
+      {
+        "id": "8-1-14-model.height",
+        "source": "8",
+        "sourceHandle": "height",
+        "target": "14",
+        "targetHandle": "model.height",
+        "ui_properties": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,269 @@
+{
+  "id": "cedd23e1174d9d20ed0cb0d0c97618f7",
+  "name": "Comfy Flux.1 Schnell Full- Text to Image",
+  "description": "Generate images quickly with Flux.1 Schnell full version. Uses Apache2.0 license, requires only 4 steps to generate images while maintaining good image quality. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Flux.1 Schnell Full- Text to Image\n\nGenerate images quickly with Flux.1 Schnell full version. Uses Apache2.0 license, requires only 4 steps to generate images while maintaining good image quality. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/flux_schnell_full_text_to_image.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "8",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "9",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "27",
+        "type": "comfy.EmptySD3LatentImage",
+        "data": {
+          "width": 1024,
+          "height": 1024,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "EmptySD3LatentImage"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "31",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 167447334682596,
+          "steps": 4,
+          "cfg": 1,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "38",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "flux1-schnell.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "39",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "ae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "40",
+        "type": "comfy.DualCLIPLoader",
+        "data": {
+          "clip_name1": "clip_l.safetensors",
+          "clip_name2": "t5xxl_fp16.safetensors",
+          "type": "flux",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load CLIP (Dual)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "41",
+        "type": "comfy.CLIPTextEncodeFlux",
+        "data": {
+          "clip_l": "Cute retro mini car, pastel - colored 3D flowers overflowing from it, soft green background, minimalist and fresh style, high - precision rendering, spring - like vibrant atmosphere, delicate petal details, gentle color grading, whimsical and lovely scene",
+          "t5xxl": "Create a 3D - styled image: A cute, retro - looking mini car with soft, pastel - colored flowers (like daisies, pink blooms) overflowing from it. Set against a gentle green background, giving a fresh, spring - vibe. Make it look whimsical and delicate, like a sweet illustration.",
+          "guidance": 3.5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIPTextEncodeFlux"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "42",
+        "type": "comfy.ConditioningZeroOut",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Conditioning Zero Out"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "31-0-8-samples",
+        "source": "31",
+        "sourceHandle": "LATENT",
+        "target": "8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "39-0-8-vae",
+        "source": "39",
+        "sourceHandle": "VAE",
+        "target": "8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "8-0-9-images",
+        "source": "8",
+        "sourceHandle": "IMAGE",
+        "target": "9",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "38-0-31-model",
+        "source": "38",
+        "sourceHandle": "MODEL",
+        "target": "31",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "41-0-31-positive",
+        "source": "41",
+        "sourceHandle": "CONDITIONING",
+        "target": "31",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "42-0-31-negative",
+        "source": "42",
+        "sourceHandle": "CONDITIONING",
+        "target": "31",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "27-0-31-latent_image",
+        "source": "27",
+        "sourceHandle": "LATENT",
+        "target": "31",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "40-0-41-clip",
+        "source": "40",
+        "sourceHandle": "CLIP",
+        "target": "41",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "41-0-42-conditioning",
+        "source": "41",
+        "sourceHandle": "CONDITIONING",
+        "target": "42",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      }
+    ]
+  }
+}

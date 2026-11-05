@@ -1,0 +1,106 @@
+{
+  "id": "fb9c34cbe417cda53837416d522685b3",
+  "name": "Comfy Video Upscale- HitPaw",
+  "description": "Upload a video to enhance and upscale. Generate a restored output with improved clarity, temporal stability, and optional portrait enhancement. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video tools",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Video Upscale- HitPaw\n\nUpload a video to enhance and upscale. Generate a restored output with improved clarity, temporal stability, and optional portrait enhancement. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/utility_hitpaw_video_enhance.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "12",
+        "type": "comfy.LoadVideo",
+        "data": {
+          "file": "dad_carry_daughter.mp4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ComfyUI",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "14",
+        "type": "comfy.HitPawVideoEnhance",
+        "data": {
+          "model": "General Restore Model (2x)",
+          "model.resolution": "1080p"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "HitPaw Video Enhance"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "14-0-13-video",
+        "source": "14",
+        "sourceHandle": "VIDEO",
+        "target": "13",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "12-0-14-video",
+        "source": "12",
+        "sourceHandle": "VIDEO",
+        "target": "14",
+        "targetHandle": "video",
+        "ui_properties": null
+      }
+    ]
+  }
+}

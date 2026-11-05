@@ -1,0 +1,110 @@
+{
+  "id": "c53a276b79ceb4b4d5f1b10bc9bd30e5",
+  "name": "Comfy Video Upscale- FLUX 3",
+  "description": "Upscale video clips to 1080p, 2K, or 4K using FLUX 3 super-resolution, with a precise mode that preserves source fidelity and a creative mode that enhances fine detail. It accepts 1 video input, up to 20 seconds long, and produces 1 upscaled mp4 output with an optional prompt to guide detail enhancement. Ideal for restoring low-resolution footage, preparing clips for large-screen delivery, and adding crispness to AI-generated video. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video tools",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Video Upscale- FLUX 3\n\nUpscale video clips to 1080p, 2K, or 4K using FLUX 3 super-resolution, with a precise mode that preserves source fidelity and a creative mode that enhances fine detail. It accepts 1 video input, up to 20 seconds long, and produces 1 upscaled mp4 output with an optional prompt to guide detail enhancement. Ideal for restoring low-resolution footage, preparing clips for large-screen delivery, and adding crispness to AI-generated video. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_bfl_flux_video_upscale.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.FluxVideoUpscaleNode",
+        "data": {
+          "upscale_factor": 2,
+          "mode": "creative",
+          "prompt": "Underwater iridescent glass‑like fantasy flower slowly rotating",
+          "auto_downscale": true,
+          "safety_tolerance": 2,
+          "seed": 3728029713
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Flux Video Upscale (Legacy)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2",
+        "type": "comfy.LoadVideo",
+        "data": {
+          "file": "color_spin_flower.mp4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ComfyUI",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "2-0-1-video",
+        "source": "2",
+        "sourceHandle": "VIDEO",
+        "target": "1",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "1-0-3-video",
+        "source": "1",
+        "sourceHandle": "VIDEO",
+        "target": "3",
+        "targetHandle": "video",
+        "ui_properties": null
+      }
+    ]
+  }
+}

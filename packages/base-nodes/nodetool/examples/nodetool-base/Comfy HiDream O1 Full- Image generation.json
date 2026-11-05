@@ -1,0 +1,966 @@
+{
+  "id": "7b4409c4ac6cd781aed296714048f577",
+  "name": "Comfy HiDream O1 Full- Image generation",
+  "description": "Input a text prompt and optionally upload reference images. Generate a high-resolution image up to 2048x2048 with text-to-image, editing, or subject-driven personalization. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy HiDream O1 Full- Image generation\n\nInput a text prompt and optionally upload reference images. Generate a high-resolution image up to 2048x2048 with text-to-image, editing, or subject-driven personalization. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/image_hidream_o1.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "6",
+        "type": "comfy.CheckpointLoaderSimple",
+        "data": {
+          "ckpt_name": "hidream_o1_image_bf16.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Checkpoint"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "104",
+        "type": "comfy.HiDreamO1ReferenceImages",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "HiDream-O1 Reference Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "105",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 3060,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "108",
+        "type": "comfy.SamplerCustom",
+        "data": {
+          "add_noise": true,
+          "noise_seed": 493576922569549,
+          "cfg": 5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SamplerCustom"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "110",
+        "type": "comfy.CLIPTextEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "112",
+        "type": "comfy.BasicScheduler",
+        "data": {
+          "scheduler": "normal",
+          "steps": 40,
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "BasicScheduler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "124",
+        "type": "comfy.ModelNoiseScale",
+        "data": {
+          "noise_scale": 8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ModelNoiseScale"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "152",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "If/Else Switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "153",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 330
+          },
+          "width": 280,
+          "title": "If/Else Switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "154",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Switch to Image Edit"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "155",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "If/Else Switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "156",
+        "type": "comfy.EmptyHiDreamO1LatentImage",
+        "data": {
+          "width": 2048,
+          "height": 2048,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Empty HiDream-O1 Latent Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "157",
+        "type": "comfy.GetImageSize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Get Image Size"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "171",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "Graceful female skincare shot, light nude makeup, holding essence bottle, warm ivory backdrop, soft diffused light"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "User Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "172",
+        "type": "comfy.EmptyHiDreamO1LatentImage",
+        "data": {
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Empty HiDream-O1 Latent Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "176",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "If/Else Switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "177",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Enable Prompt Refine?"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "188",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "213",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "noir_portrait.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "218",
+        "type": "comfy.ComfyMathExpression",
+        "data": {
+          "expression": "floor(a/32)*32"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Math Expression"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "219",
+        "type": "comfy.ComfyMathExpression",
+        "data": {
+          "expression": "floor(a/32)*32"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Math Expression"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "221",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "227",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "hidream_o1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3400,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "230",
+        "type": "comfy.KSamplerSelect",
+        "data": {
+          "sampler_name": "dpmpp_2m_sde_gpu"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "KSamplerSelect"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "232",
+        "type": "comfy.HiDreamO1PatchSeamSmoothing",
+        "data": {
+          "start_percent": 0.8,
+          "end_percent": 1,
+          "pattern": "single_shift",
+          "passes": "ramp_2_4",
+          "blend": "median",
+          "strength": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 990
+          },
+          "width": 280,
+          "title": "HiDream-O1 Patch Seam Smoothing"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "175:165",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "<|turn>system\n你是专业的AI图像生成Prompt工程师的Prompt Engineering Engine,也是一名拥有百科知识和视觉导演能力的创意总监.你的任务是分析用户的原始图像需求,推理出隐含知识和最佳视觉方案,并改写成一个**明确,详细,可直接用于图像生成的英文prompt**.\n\n## 核心目标\n\n图像生成模型只能执行直接的视觉描述,不能自行补全背景知识,逻辑关系或文字内容.因此,你必须提前完成知识解析,空间规划和视觉导演,把结果显式写入prompt中.\n\n使用 SCALIST 框架扩写每个画面:\n- **Subject**: 主体的身份,外观,颜色,材质,纹理,动作,表情,服饰.\n- **Composition**: 镜头景别,视角,主体位置,前景/中景/背景层次,留白和视觉焦点.\n- **Action**: 主体正在做什么,动作方向,姿态,互动关系.\n- **Location**: 场景地点,室内/室外,时代,天气,时间段,环境细节.\n- **Image style**: photorealistic, cinematic, oil painting, watercolor, anime, 3D render 等,并匹配合适的光线和色彩氛围.\n- **Specs**: 摄影/渲染参数,如 85mm lens, low-angle shot, shallow depth of field, soft diffused light, dramatic backlighting, matte texture, sharp focus.\n- **Text rendering**: 如果用户要求文字,必须把准确文字放在英文双引号中,并说明字体风格,颜色,大小,材质和精确位置.\n\n1. **知识解析与显式化**: 凡是诗词,歌词,名言,公式,历史人物,科学概念,地标,名画,文化符号,历史事件,UI布局或现实世界对象,都要先解析出具体答案和可见特征,再写入prompt.不要只写 \"Mona Lisa\",\"Dunkirk evacuation\",\"freedom\" 这类需要模型自行理解的词.\n2. **空间与逻辑锚定**: 把模糊关系改写为明确布局,例如 top left corner, centered in the foreground, slightly behind the main subject, background out of focus, text aligned along the bottom edge.不要使用\"旁边\"\"一些\"\"好看\"等含糊表达.\n3. **文字排版精度**: 中文,英文,公式,多语言文本都必须逐字保留在引号中,例如 \"床前明月光,疑是地上霜.举头望明月,低头思故乡.\" 或 \"E = mc²\";同时指定字体(calligraphy, serif, sans-serif, handwritten),颜色,材质和位置.\n4. **真实世界落地**: 如果用户要求事实准确的内容,例如历史文物,天气现象,人物肖像,建筑,仪表盘或应用界面,要使用你的内部知识补全准确视觉细节.\n5. **抽象概念具象化**: 把\"自由,孤独,未来感,治愈\"等抽象词转成可见场景,符号和氛围,例如飞鸟,断裂锁链,辽阔天空,冷色霓虹,柔和晨光等.\n\n## 示例与学习\n\n- 用户说\"李白的静夜思写在墙上\",prompt 应写出完整中文诗句,并指定它以优雅中国书法写在古旧石墙的哪个位置.\n- 用户说\"三大力学的奠基人\"或\"爱因斯坦写质能方程\",prompt 应解析出 Isaac Newton 或 Albert Einstein,并描述人物外貌,时代服饰,黑板,公式 \"E = mc²\" 等可见内容.\n- 用户说\"蒙娜丽莎\"\"比萨斜塔\"\"福字\"\"敦刻尔克大撤退\",prompt 应描述对应画面特征: 神秘微笑与交叠双手,倾斜白色大理石钟楼与拱廊,红底金色/黑色书法 \"福\",1940年海滩上等待撤离的士兵和海面船只.\n\n## 输出prompt要求\n\n- prompt 必须是一个英文的,连贯自然的单段落,像 Creative Director's Brief,而不是关键词堆砌或 tag soup.\n- 长度通常为 80-220 词;简单需求可以更短,复杂画面可以更长.\n- 最重要的主体和画面意图放在开头,然后自然展开构图,动作,地点,风格,技术参数和文字渲染.\n- 使用完整句子,丰富但准确的形容词,摄影/绘画/设计术语.\n- 不要包含任何需要图像模型继续推理才能理解的表达.\n- prompt 必须自包含,仅凭prompt本身就能准确生成图片.\n\n## 执行步骤\n\n1. **Analyze**: 识别核心主体,用户意图,文字要求,参考限制和需要解析的隐含知识.\n2. **Reason**: 选择最适宜画面的光线,镜头,角度,纹理,风格,空间布局和事实细节.\n3. **Rewrite**: 输出最终增强后的英文单段落prompt.\n\n只输出JSON,不加任何其他文字:\n{\"prompt\": \"英文单段落prompt\", \"reasoning\": \"你的推理和知识解析过程(需要用用户输入的提示词语言来生成)\", \"resolved_knowledge\": \"你解析了哪些隐含知识(根据输入用户语言简述,如果没有隐含知识用对应语言写'无')\"} \n<|turn|>"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "REWRITE_SYSTEM_PROMPT"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "175:170",
+        "type": "comfy.StringReplace",
+        "data": {
+          "string": "<|turn>user\n{user_prompt}<|turn|>\n<|turn>model\n",
+          "find": "{user_prompt}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Replace Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "175:166",
+        "type": "comfy.StringConcatenate",
+        "data": {
+          "delimiter": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Concatenate Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "175:164",
+        "type": "comfy.TextGenerate",
+        "data": {
+          "max_length": 2048,
+          "sampling_mode": "on",
+          "sampling_mode.temperature": 0.7,
+          "sampling_mode.top_k": 64,
+          "sampling_mode.top_p": 0.95,
+          "sampling_mode.min_p": 0.05,
+          "sampling_mode.repetition_penalty": 1.05,
+          "sampling_mode.seed": 0,
+          "sampling_mode.presence_penalty": 0,
+          "thinking": false,
+          "use_default_template": false,
+          "mtp": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Generate Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "175:167",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "gemma4_e4b_it_fp8_scaled.safetensors",
+          "type": "stable_diffusion",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2640
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "175:198",
+        "type": "comfy.JsonExtractString",
+        "data": {
+          "key": "prompt"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Extract Text from JSON"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "175:201",
+        "type": "comfy.RegexReplace",
+        "data": {
+          "string": "",
+          "regex_pattern": "^```(?:json)?\\s*\\n?",
+          "replace": "",
+          "case_insensitive": false,
+          "multiline": false,
+          "dotall": false,
+          "count": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2970
+          },
+          "width": 280,
+          "title": "Replace Text (Regex)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "175:202",
+        "type": "comfy.RegexReplace",
+        "data": {
+          "regex_pattern": "\\n?```\\s*$",
+          "replace": "",
+          "case_insensitive": false,
+          "multiline": false,
+          "dotall": false,
+          "count": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Replace Text (Regex)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "110-0-104-positive",
+        "source": "110",
+        "sourceHandle": "CONDITIONING",
+        "target": "104",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "188-0-104-negative",
+        "source": "188",
+        "sourceHandle": "CONDITIONING",
+        "target": "104",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "213-0-104-images.image_1",
+        "source": "213",
+        "sourceHandle": "IMAGE",
+        "target": "104",
+        "targetHandle": "images.image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "108-0-105-samples",
+        "source": "108",
+        "sourceHandle": "output",
+        "target": "105",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "6-2-105-vae",
+        "source": "6",
+        "sourceHandle": "VAE",
+        "target": "105",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "232-0-108-model",
+        "source": "232",
+        "sourceHandle": "MODEL",
+        "target": "108",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "152-0-108-positive",
+        "source": "152",
+        "sourceHandle": "output",
+        "target": "108",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "153-0-108-negative",
+        "source": "153",
+        "sourceHandle": "output",
+        "target": "108",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "230-0-108-sampler",
+        "source": "230",
+        "sourceHandle": "SAMPLER",
+        "target": "108",
+        "targetHandle": "sampler",
+        "ui_properties": null
+      },
+      {
+        "id": "112-0-108-sigmas",
+        "source": "112",
+        "sourceHandle": "SIGMAS",
+        "target": "108",
+        "targetHandle": "sigmas",
+        "ui_properties": null
+      },
+      {
+        "id": "155-0-108-latent_image",
+        "source": "155",
+        "sourceHandle": "output",
+        "target": "108",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "221-0-110-text",
+        "source": "221",
+        "sourceHandle": "STRING",
+        "target": "110",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "6-1-110-clip",
+        "source": "6",
+        "sourceHandle": "CLIP",
+        "target": "110",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "124-0-112-model",
+        "source": "124",
+        "sourceHandle": "MODEL",
+        "target": "112",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-124-model",
+        "source": "6",
+        "sourceHandle": "MODEL",
+        "target": "124",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "154-0-152-switch",
+        "source": "154",
+        "sourceHandle": "BOOLEAN",
+        "target": "152",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "110-0-152-on_false",
+        "source": "110",
+        "sourceHandle": "CONDITIONING",
+        "target": "152",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "104-0-152-on_true",
+        "source": "104",
+        "sourceHandle": "positive",
+        "target": "152",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "154-0-153-switch",
+        "source": "154",
+        "sourceHandle": "BOOLEAN",
+        "target": "153",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "188-0-153-on_false",
+        "source": "188",
+        "sourceHandle": "CONDITIONING",
+        "target": "153",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "104-1-153-on_true",
+        "source": "104",
+        "sourceHandle": "negative",
+        "target": "153",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "154-0-155-switch",
+        "source": "154",
+        "sourceHandle": "BOOLEAN",
+        "target": "155",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "156-0-155-on_false",
+        "source": "156",
+        "sourceHandle": "LATENT",
+        "target": "155",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "172-0-155-on_true",
+        "source": "172",
+        "sourceHandle": "LATENT",
+        "target": "155",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "213-0-157-image",
+        "source": "213",
+        "sourceHandle": "IMAGE",
+        "target": "157",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "218-1-172-width",
+        "source": "218",
+        "sourceHandle": "INT",
+        "target": "172",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "219-1-172-height",
+        "source": "219",
+        "sourceHandle": "INT",
+        "target": "172",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "177-0-176-switch",
+        "source": "177",
+        "sourceHandle": "BOOLEAN",
+        "target": "176",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "171-0-176-on_false",
+        "source": "171",
+        "sourceHandle": "STRING",
+        "target": "176",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "175:198-0-176-on_true",
+        "source": "175:198",
+        "sourceHandle": "STRING",
+        "target": "176",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "6-1-188-clip",
+        "source": "6",
+        "sourceHandle": "CLIP",
+        "target": "188",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "157-0-218-values.a",
+        "source": "157",
+        "sourceHandle": "width",
+        "target": "218",
+        "targetHandle": "values.a",
+        "ui_properties": null
+      },
+      {
+        "id": "157-1-219-values.a",
+        "source": "157",
+        "sourceHandle": "height",
+        "target": "219",
+        "targetHandle": "values.a",
+        "ui_properties": null
+      },
+      {
+        "id": "176-0-221-source",
+        "source": "176",
+        "sourceHandle": "output",
+        "target": "221",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "105-0-227-images",
+        "source": "105",
+        "sourceHandle": "IMAGE",
+        "target": "227",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "124-0-232-model",
+        "source": "124",
+        "sourceHandle": "MODEL",
+        "target": "232",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "171-0-175:170-replace",
+        "source": "171",
+        "sourceHandle": "STRING",
+        "target": "175:170",
+        "targetHandle": "replace",
+        "ui_properties": null
+      },
+      {
+        "id": "175:165-0-175:166-string_a",
+        "source": "175:165",
+        "sourceHandle": "STRING",
+        "target": "175:166",
+        "targetHandle": "string_a",
+        "ui_properties": null
+      },
+      {
+        "id": "175:170-0-175:166-string_b",
+        "source": "175:170",
+        "sourceHandle": "STRING",
+        "target": "175:166",
+        "targetHandle": "string_b",
+        "ui_properties": null
+      },
+      {
+        "id": "175:166-0-175:164-prompt",
+        "source": "175:166",
+        "sourceHandle": "STRING",
+        "target": "175:164",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "175:167-0-175:164-clip",
+        "source": "175:167",
+        "sourceHandle": "CLIP",
+        "target": "175:164",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "213-0-175:164-image",
+        "source": "213",
+        "sourceHandle": "IMAGE",
+        "target": "175:164",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "175:202-0-175:198-json_string",
+        "source": "175:202",
+        "sourceHandle": "STRING",
+        "target": "175:198",
+        "targetHandle": "json_string",
+        "ui_properties": null
+      },
+      {
+        "id": "175:201-0-175:202-string",
+        "source": "175:201",
+        "sourceHandle": "STRING",
+        "target": "175:202",
+        "targetHandle": "string",
+        "ui_properties": null
+      }
+    ]
+  }
+}

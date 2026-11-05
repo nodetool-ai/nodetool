@@ -72,3 +72,16 @@ test("deriveSeedSlug takes the last path segment", () => {
   assert.equal(deriveSeedSlug("fal-ai/flux/schnell"), "schnell");
   assert.equal(deriveSeedSlug("black-forest-labs/FLUX.1-dev"), "flux-1-dev");
 });
+
+test("aliases are loaded lowercase and cover ids the page slug misses", () => {
+  const watchlist = loadWatchlist({ aliases: ["Gemini-25-Flash-Image"] });
+  assert.deepEqual(watchlist.aliases, ["gemini-25-flash-image"]);
+  const r = classifyProvider(
+    "fal_ai",
+    [{ id: "fal-ai/gemini-25-flash-image/edit", name: "Gemini 2.5 Flash Image" }],
+    ["nano-banana", ...watchlist.aliases],
+    watchlist
+  );
+  assert.equal(r.covered, 1);
+  assert.equal(r.newCount, 0);
+});

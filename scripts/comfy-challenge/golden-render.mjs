@@ -14,6 +14,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Comfy } from "@comfyorg/sdk";
+import { buildComfyPrompt } from "@nodetool-ai/protocol";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const WORKFLOW = path.join(ROOT, "packages/base-nodes/nodetool/examples/nodetool-base/Shot Director.json");
@@ -34,13 +35,13 @@ const seed = Number(flag("seed", "42"));
 const outDir = path.resolve(flag("out", path.join(ROOT, "out/comfy-golden")));
 fs.mkdirSync(outDir, { recursive: true });
 
-// Read the pinned graph and the preset table straight from the shipped workflow
-// so this script cannot drift from what the app runs.
-const wf = JSON.parse(fs.readFileSync(WORKFLOW, "utf8"));
-const comfyNode = wf.graph.nodes.find((n) => n.type === "lib.comfy.RunWorkflowOnCloud");
-const composeNode = wf.graph.nodes.find((n) => n.id === "compose");
-const graph = JSON.parse(comfyNode.data.workflow);
-const presets = JSON.parse(composeNode.data.code.match(/^const PRESETS = ([\s\S]*?);\nconst move/)[1]);
+// Read the pinned graph straight from the shipped workflow so this script
+// cannot drift from what the app runs.
+const readJson = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
+const wf = readJson(WORKFLOW);
+const sockets = readJson(path.join(ROOT, "packages/runtime/tests/fixtures/comfy-templates/shot-director-sockets.json"));
+const graph = buildComfyPrompt(wf.graph, (cls) => sockets[cls]);
+const presets = readJson(path.join(ROOT, "scripts/comfy-challenge/camera-moves.json"))["Shot Director"];
 const preset = presets[move];
 if (!preset) throw new Error(`Unknown move "${move}". Options: ${Object.keys(presets).join(", ")}`);
 const prompt = [direction.trim(), preset.prompt].filter(Boolean).join(" ");

@@ -2222,7 +2222,7 @@ for the setup guide.
 ```bash
 # Register the stdio server with every client found on this machine.
 # Without a global install:
-npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install
+npx -y @nodetool-ai/cli-mcp install
 
 # Register for Claude Code only
 nodetool-mcp install --claude
@@ -2256,7 +2256,7 @@ nodetool-mcp uninstall
 `install` starts the server once before it writes a config, so a broken
 command never reaches a client config. The stdio entry runs `nodetool-mcp serve`
 when the MCP executable is first on `PATH`, else
-`npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp serve`.
+`npx -y @nodetool-ai/cli-mcp serve`.
 
 HTTP MCP (`/mcp`) needs the classic API server (`nodetool server serve` from `cli-server`). `nodetool-mcp serve`
 uses stdio for the client and forwards to the local API server when its MCP
@@ -2526,7 +2526,7 @@ worker bills by the minute, so `stop` is part of the workflow, not cleanup you
 get to postpone.
 
 **Subcommands:** `profile` (`add`, `list`, `rm`), `create`, `list`, `status`,
-`token`, `stop`, `models`
+`token`, `stop`, `terminate`, `models`
 
 **Options:**
 
@@ -2538,6 +2538,11 @@ get to postpone.
 - `--disk <gb>` — persistent volume size, which holds the model cache (default `100`).
 - `--token-policy <generate|fixed>` — default `generate`.
 - `--profile <name>` / `--attach` — for `create`.
+- `--comfy [port]` — run an unmodified ComfyUI image on RunPod and publish this
+  port (default `8188`). See [ComfyUI setup](comfyui-setup.md#expose-comfyui-yourself).
+- `--template <id>` — with `--comfy`, use a RunPod template instead of `--image`.
+- `--ready-timeout <minutes>` — for `create` with `--comfy`: how long to wait for
+  ComfyUI (default `10`).
 - `--all` — for `stop`, stops every non-stopped worker.
 - `--json` — for `list` and `profile list`.
 
@@ -2552,6 +2557,9 @@ nodetool worker create --profile hf-a40 --attach
 nodetool worker list
 nodetool worker status <instance-id>
 nodetool worker stop --all
+
+# Destroy one worker and its volume, which stops all billing
+nodetool worker terminate <instance-id>
 ```
 
 `token <id>` prints one worker's bearer token and nothing else — no table, no

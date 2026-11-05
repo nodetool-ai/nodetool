@@ -1,0 +1,138 @@
+{
+  "id": "51ced7d528367a777feb943395f6a996",
+  "name": "Comfy Clarity AI- Crystal Upscaler",
+  "description": "Upscale and enhance images with the precision-focused Crystal model, preserving real detail while adding resolution. Takes one image in and returns one upscaled image plus a side-by-side comparison view. Ideal for portraits, product shots, and print-ready enlargements where faithful detail matters. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image tools",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Clarity AI- Crystal Upscaler\n\nUpscale and enhance images with the precision-focused Crystal model, preserving real detail while adding resolution. Takes one image in and returns one upscaled image plus a side-by-side comparison view. Ideal for portraits, product shots, and print-ready enlargements where faithful detail matters. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_clarity_ai_crystal_upscale.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.ClarityCrystalUpscaleNode",
+        "data": {
+          "model": "crystal-upscaler",
+          "model.scale_factor": 0,
+          "model.creativity": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Clarity AI Crystal Upscale"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "watch_spa_black.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "4",
+        "type": "comfy.SaveImageAdvanced",
+        "data": {
+          "filename_prefix": "ComfyUI",
+          "format": "png",
+          "format.bit_depth": "8-bit",
+          "format.input_color_space": "sRGB"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5",
+        "type": "comfy.ImageCompare",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Compare Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "2-0-1-model.image",
+        "source": "2",
+        "sourceHandle": "IMAGE",
+        "target": "1",
+        "targetHandle": "model.image",
+        "ui_properties": null
+      },
+      {
+        "id": "1-0-4-images",
+        "source": "1",
+        "sourceHandle": "IMAGE",
+        "target": "4",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-5-image_a",
+        "source": "2",
+        "sourceHandle": "IMAGE",
+        "target": "5",
+        "targetHandle": "image_a",
+        "ui_properties": null
+      },
+      {
+        "id": "4-0-5-image_b",
+        "source": "4",
+        "sourceHandle": "images",
+        "target": "5",
+        "targetHandle": "image_b",
+        "ui_properties": null
+      }
+    ]
+  }
+}

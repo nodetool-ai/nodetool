@@ -1,0 +1,312 @@
+{
+  "id": "23b79215597ca8d91818f939b84468ef",
+  "name": "Comfy Gemini Omni Flash- Video Edit",
+  "description": "Edit videos with natural language using Gemini Omni Flash, transforming a single input video into one edited output based on your descriptive instructions. Specify the duration and aspect ratio in your prompt, and leverage Omni's world knowledge for intuitive edits like changing backgrounds or adding atmosphere. Ideal for quick social media remixes, cinematic scene adjustments, and iterative video refinements without technical prompts. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Gemini Omni Flash- Video Edit\n\nEdit videos with natural language using Gemini Omni Flash, transforming a single input video into one edited output based on your descriptive instructions. Specify the duration and aspect ratio in your prompt, and leverage Omni's world knowledge for intuitive edits like changing backgrounds or adding atmosphere. Ideal for quick social media remixes, cinematic scene adjustments, and iterative video refinements without technical prompts. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_google_gemini_omni_flash_video_edit.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "2",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ComfyUI",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "8",
+        "type": "comfy.LoadVideo",
+        "data": {
+          "file": "space_horse_rider.mp4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18",
+        "type": "comfy.GeminiVideoOmniV2",
+        "data": {
+          "model": "Omni Flash",
+          "model.aspect_ratio": "16:9",
+          "model.task_type": "auto",
+          "model.images": 1,
+          "model.videos": 0.95,
+          "model.temperature": 42,
+          "model.top_p": "randomize",
+          "model.seed": "randomize"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Google Gemini Omni (Video)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "17:9",
+        "type": "comfy.CustomCombo",
+        "data": {
+          "choice": "9:16"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Custom Combo"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "17:10",
+        "type": "comfy.CustomCombo",
+        "data": {
+          "choice": "3s "
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Custom Combo"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "17:11",
+        "type": "comfy.StringConcatenate",
+        "data": {
+          "string_a": "Aspect Ratio: ",
+          "delimiter": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Concatenate Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "17:12",
+        "type": "comfy.StringConcatenate",
+        "data": {
+          "string_a": "Duration: ",
+          "delimiter": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Concatenate Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "17:13",
+        "type": "comfy.StringConcatenate",
+        "data": {
+          "delimiter": ";"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Concatenate Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "17:15",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "Keep astronaut space galloping composition, replace white horse with chubby giant flying sheep, fluffy white fur, tiny short wings, clumsy floating, funny cartoon animation style, cosmic soft light, 8K"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Input Text (User Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "17:16",
+        "type": "comfy.StringConcatenate",
+        "data": {
+          "delimiter": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Concatenate Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "18-0-2-video",
+        "source": "18",
+        "sourceHandle": "VIDEO",
+        "target": "2",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "18-1-3-source",
+        "source": "18",
+        "sourceHandle": "STRING",
+        "target": "3",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "17:16-0-18-model.prompt",
+        "source": "17:16",
+        "sourceHandle": "STRING",
+        "target": "18",
+        "targetHandle": "model.prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "8-0-18-model.videos.video_1",
+        "source": "8",
+        "sourceHandle": "VIDEO",
+        "target": "18",
+        "targetHandle": "model.videos.video_1",
+        "ui_properties": null
+      },
+      {
+        "id": "17:9-0-17:11-string_b",
+        "source": "17:9",
+        "sourceHandle": "STRING",
+        "target": "17:11",
+        "targetHandle": "string_b",
+        "ui_properties": null
+      },
+      {
+        "id": "17:10-0-17:12-string_b",
+        "source": "17:10",
+        "sourceHandle": "STRING",
+        "target": "17:12",
+        "targetHandle": "string_b",
+        "ui_properties": null
+      },
+      {
+        "id": "17:11-0-17:13-string_a",
+        "source": "17:11",
+        "sourceHandle": "STRING",
+        "target": "17:13",
+        "targetHandle": "string_a",
+        "ui_properties": null
+      },
+      {
+        "id": "17:12-0-17:13-string_b",
+        "source": "17:12",
+        "sourceHandle": "STRING",
+        "target": "17:13",
+        "targetHandle": "string_b",
+        "ui_properties": null
+      },
+      {
+        "id": "17:15-0-17:16-string_a",
+        "source": "17:15",
+        "sourceHandle": "STRING",
+        "target": "17:16",
+        "targetHandle": "string_a",
+        "ui_properties": null
+      },
+      {
+        "id": "17:13-0-17:16-string_b",
+        "source": "17:13",
+        "sourceHandle": "STRING",
+        "target": "17:16",
+        "targetHandle": "string_b",
+        "ui_properties": null
+      }
+    ]
+  }
+}

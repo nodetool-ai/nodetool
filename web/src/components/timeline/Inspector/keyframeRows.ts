@@ -430,11 +430,11 @@ export function toggleRowKeyframeAt(
       )
     };
   }
-  const remaining = rowKeyframeTimesMs(clip, row).filter(
-    (t) => Math.abs(t - atMs) > 0.5
-  );
-  if (remaining.length === 0) return toggleRowStopwatch(clip, row, atMs);
-  return { animations: removeKeyframes(clip, properties, atMs) };
+  const animations = removeKeyframes(clip, properties, atMs);
+  if (!isRowKeyframed({ ...clip, animations }, row)) {
+    return toggleRowStopwatch(clip, row, atMs);
+  }
+  return { animations };
 }
 
 /**

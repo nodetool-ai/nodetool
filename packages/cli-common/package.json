@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/cli-common",
-  "version": "0.8.10",
+  "version": "0.8.11",
   "description": "Independent NodeTool common command module",
   "type": "module",
   "engines": {

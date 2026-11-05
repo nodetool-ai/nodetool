@@ -1,0 +1,455 @@
+{
+  "id": "341caee6693c23d07d3cf7218c4f7452",
+  "name": "Comfy Image Upscale- Z-Image-Turbo 2K",
+  "description": "Upload an image to upscale it to 2K resolution using the Z-Image-Turbo model. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image tools",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Image Upscale- Z-Image-Turbo 2K\n\nUpload an image to upscale it to 2K resolution using the Z-Image-Turbo model. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/utility_z_image_turbo_2k_upscaler.app.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "9",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "z-image-upscaled"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "77",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "fighter_jet.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "86",
+        "type": "comfy.ImageCompare",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Compare Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "87:71",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Negative Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "87:79",
+        "type": "comfy.ImageUpscaleWithModel",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Upscale Image (using Model)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "87:80",
+        "type": "comfy.VAEEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Encode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "87:81",
+        "type": "comfy.ImageScaleBy",
+        "data": {
+          "upscale_method": "lanczos",
+          "scale_by": 0.5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Upscale Image By"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "87:69",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 824287194145573,
+          "steps": 5,
+          "cfg": 1,
+          "sampler_name": "dpmpp_2m_sde",
+          "scheduler": "beta",
+          "denoise": 0.33
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "87:66",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "z_image_turbo_bf16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "87:62",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen_3_4b.safetensors",
+          "type": "lumina2",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "87:67",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "masterpiece, 8k"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Positive Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "87:63",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "ae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "87:76",
+        "type": "comfy.UpscaleModelLoader",
+        "data": {
+          "model_name": "RealESRGAN_x4plus.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Load Upscale Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "87:70",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 3,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "ModelSamplingAuraFlow"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "87:65",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "87:78",
+        "type": "comfy.ImageScaleToTotalPixels",
+        "data": {
+          "upscale_method": "lanczos",
+          "megapixels": 1,
+          "resolution_steps": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Scale Image to Total Pixels"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "87:65-0-9-images",
+        "source": "87:65",
+        "sourceHandle": "IMAGE",
+        "target": "9",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "77-0-86-image_a",
+        "source": "77",
+        "sourceHandle": "IMAGE",
+        "target": "86",
+        "targetHandle": "image_a",
+        "ui_properties": null
+      },
+      {
+        "id": "87:65-0-86-image_b",
+        "source": "87:65",
+        "sourceHandle": "IMAGE",
+        "target": "86",
+        "targetHandle": "image_b",
+        "ui_properties": null
+      },
+      {
+        "id": "87:62-0-87:71-clip",
+        "source": "87:62",
+        "sourceHandle": "CLIP",
+        "target": "87:71",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "87:76-0-87:79-upscale_model",
+        "source": "87:76",
+        "sourceHandle": "UPSCALE_MODEL",
+        "target": "87:79",
+        "targetHandle": "upscale_model",
+        "ui_properties": null
+      },
+      {
+        "id": "87:78-0-87:79-image",
+        "source": "87:78",
+        "sourceHandle": "IMAGE",
+        "target": "87:79",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "87:81-0-87:80-pixels",
+        "source": "87:81",
+        "sourceHandle": "IMAGE",
+        "target": "87:80",
+        "targetHandle": "pixels",
+        "ui_properties": null
+      },
+      {
+        "id": "87:63-0-87:80-vae",
+        "source": "87:63",
+        "sourceHandle": "VAE",
+        "target": "87:80",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "87:79-0-87:81-image",
+        "source": "87:79",
+        "sourceHandle": "IMAGE",
+        "target": "87:81",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "87:70-0-87:69-model",
+        "source": "87:70",
+        "sourceHandle": "MODEL",
+        "target": "87:69",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "87:67-0-87:69-positive",
+        "source": "87:67",
+        "sourceHandle": "CONDITIONING",
+        "target": "87:69",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "87:71-0-87:69-negative",
+        "source": "87:71",
+        "sourceHandle": "CONDITIONING",
+        "target": "87:69",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "87:80-0-87:69-latent_image",
+        "source": "87:80",
+        "sourceHandle": "LATENT",
+        "target": "87:69",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "87:62-0-87:67-clip",
+        "source": "87:62",
+        "sourceHandle": "CLIP",
+        "target": "87:67",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "87:66-0-87:70-model",
+        "source": "87:66",
+        "sourceHandle": "MODEL",
+        "target": "87:70",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "87:69-0-87:65-samples",
+        "source": "87:69",
+        "sourceHandle": "LATENT",
+        "target": "87:65",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "87:63-0-87:65-vae",
+        "source": "87:63",
+        "sourceHandle": "VAE",
+        "target": "87:65",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "77-0-87:78-image",
+        "source": "77",
+        "sourceHandle": "IMAGE",
+        "target": "87:78",
+        "targetHandle": "image",
+        "ui_properties": null
+      }
+    ]
+  }
+}

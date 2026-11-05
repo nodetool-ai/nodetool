@@ -1,0 +1,161 @@
+{
+  "id": "c40afad3163d314d2582c057f34496e2",
+  "name": "Comfy HeyGen Voice 1.0 Turbo- Voice Clone to Speech",
+  "description": "Clone a voice from a short recording with HeyGen Voice 1.0 Turbo, then speak any script in that voice. It is the same instant clone as Voice 1.0, run through the turbo model, which renders faster for quick drafts and iteration. Connect one audio clip to Instant Clone and the resulting voice_id feeds straight into text to speech, while SaveText keeps the ID on disk for the next session. Ideal for narration in your own voice, character dialogue, and multilingual voiceover. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "audio",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy HeyGen Voice 1.0 Turbo- Voice Clone to Speech\n\nClone a voice from a short recording with HeyGen Voice 1.0 Turbo, then speak any script in that voice. It is the same instant clone as Voice 1.0, run through the turbo model, which renders faster for quick drafts and iteration. Connect one audio clip to Instant Clone and the resulting voice_id feeds straight into text to speech, while SaveText keeps the ID on disk for the next session. Ideal for narration in your own voice, character dialogue, and multilingual voiceover. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_heygen_voice_1_turbo.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "2",
+        "type": "comfy.LoadAudio",
+        "data": {
+          "audio": "long_demo.mp3"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.HeyGenVoiceCloneNode",
+        "data": {
+          "language": "auto",
+          "similarity": "max",
+          "remove_background_noise": true,
+          "seed": 42
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "HeyGen Voice 1.0 Instant Clone"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5",
+        "type": "comfy.SaveAudioAdvanced",
+        "data": {
+          "filename_prefix": "audio/heygen_voice_1_turbo",
+          "format": "mp3",
+          "format.quality": "V0"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Audio (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "6",
+        "type": "comfy.HeyGenVoiceTextToSpeechNode",
+        "data": {
+          "model": "heygen-voice-1-turbo",
+          "model.text": "HeyGen Voice 1.0 turns a ten second recording into a voice you can reuse. Write your script here. Pauses come from punctuation, not tags: full stops, commas and paragraph breaks. Run the prompt once to hear how it lands, then replace this text with your own.",
+          "model.language": "auto",
+          "model.expressiveness_boost": 0.5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "HeyGen Voice 1.0 Text to Speech"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.SaveText",
+        "data": {
+          "filename_prefix": "txt",
+          "format": "txt"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "2-0-3-audio",
+        "source": "2",
+        "sourceHandle": "AUDIO",
+        "target": "3",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-5-audio",
+        "source": "6",
+        "sourceHandle": "AUDIO",
+        "target": "5",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-6-model.voice_id",
+        "source": "7",
+        "sourceHandle": "text",
+        "target": "6",
+        "targetHandle": "model.voice_id",
+        "ui_properties": null
+      },
+      {
+        "id": "3-0-7-text",
+        "source": "3",
+        "sourceHandle": "voice_id",
+        "target": "7",
+        "targetHandle": "text",
+        "ui_properties": null
+      }
+    ]
+  }
+}

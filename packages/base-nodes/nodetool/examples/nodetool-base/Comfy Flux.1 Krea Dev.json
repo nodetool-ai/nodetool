@@ -1,0 +1,267 @@
+{
+  "id": "b4e1a6a93dad8d67e14f6264892af4e3",
+  "name": "Comfy Flux.1 Krea Dev",
+  "description": "A fine-tuned FLUX model pushing photorealism to the max Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Flux.1 Krea Dev\n\nA fine-tuned FLUX model pushing photorealism to the max Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/flux1_krea_dev.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "9",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "flux_krea"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "200:63",
+        "type": "comfy.DualCLIPLoader",
+        "data": {
+          "clip_name1": "clip_l.safetensors",
+          "clip_name2": "t5xxl_fp16.safetensors",
+          "type": "flux",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load CLIP (Dual)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "200:64",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "ae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "200:65",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "flux1-krea-dev_fp8_scaled.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "200:195",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "Highly realistic portrait of a Nordic woman with blonde hair and blue eyes, gaze sharp and intellectual. The lighting should reflect the unique coolness of Northern Europe. Outfit is minimalist and modern, background is blurred in cool tones. Needs to perfectly capture the characteristics of a Scandinavian woman. solo, Centered composition\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "200:196",
+        "type": "comfy.EmptySD3LatentImage",
+        "data": {
+          "width": 1024,
+          "height": 1024,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "EmptySD3LatentImage"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "200:197",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 0,
+          "steps": 20,
+          "cfg": 1,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "200:198",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "200:199",
+        "type": "comfy.ConditioningZeroOut",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Conditioning Zero Out"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "200:198-0-9-images",
+        "source": "200:198",
+        "sourceHandle": "IMAGE",
+        "target": "9",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "200:63-0-200:195-clip",
+        "source": "200:63",
+        "sourceHandle": "CLIP",
+        "target": "200:195",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "200:65-0-200:197-model",
+        "source": "200:65",
+        "sourceHandle": "MODEL",
+        "target": "200:197",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "200:195-0-200:197-positive",
+        "source": "200:195",
+        "sourceHandle": "CONDITIONING",
+        "target": "200:197",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "200:199-0-200:197-negative",
+        "source": "200:199",
+        "sourceHandle": "CONDITIONING",
+        "target": "200:197",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "200:196-0-200:197-latent_image",
+        "source": "200:196",
+        "sourceHandle": "LATENT",
+        "target": "200:197",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "200:197-0-200:198-samples",
+        "source": "200:197",
+        "sourceHandle": "LATENT",
+        "target": "200:198",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "200:64-0-200:198-vae",
+        "source": "200:64",
+        "sourceHandle": "VAE",
+        "target": "200:198",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "200:195-0-200:199-conditioning",
+        "source": "200:195",
+        "sourceHandle": "CONDITIONING",
+        "target": "200:199",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      }
+    ]
+  }
+}

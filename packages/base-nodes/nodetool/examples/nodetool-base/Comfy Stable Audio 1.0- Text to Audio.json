@@ -1,0 +1,250 @@
+{
+  "id": "85b8733ad02c008af6f132c4827334de",
+  "name": "Comfy Stable Audio 1.0- Text to Audio",
+  "description": "Generate audio from text prompts using Stable Audio. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "audio",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Stable Audio 1.0- Text to Audio\n\nGenerate audio from text prompts using Stable Audio. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/audio_stable_audio_example.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "3",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 840755638734093,
+          "steps": 50,
+          "cfg": 4.98,
+          "sampler_name": "dpmpp_3m_sde_gpu",
+          "scheduler": "exponential",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "4",
+        "type": "comfy.CheckpointLoaderSimple",
+        "data": {
+          "ckpt_name": "stable-audio-open-1.0.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Checkpoint"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "6",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "heaven church electronic dance music"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "10",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "t5-base.safetensors",
+          "type": "stable_audio",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "11",
+        "type": "comfy.EmptyLatentAudio",
+        "data": {
+          "seconds": 47.6,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Empty Latent Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12",
+        "type": "comfy.VAEDecodeAudio",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "20",
+        "type": "comfy.SaveAudioAdvanced",
+        "data": {
+          "filename_prefix": "audio/ComfyUI",
+          "format": "flac"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Audio (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "4-0-3-model",
+        "source": "4",
+        "sourceHandle": "MODEL",
+        "target": "3",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-3-positive",
+        "source": "6",
+        "sourceHandle": "CONDITIONING",
+        "target": "3",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-3-negative",
+        "source": "7",
+        "sourceHandle": "CONDITIONING",
+        "target": "3",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "11-0-3-latent_image",
+        "source": "11",
+        "sourceHandle": "LATENT",
+        "target": "3",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "10-0-6-clip",
+        "source": "10",
+        "sourceHandle": "CLIP",
+        "target": "6",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "10-0-7-clip",
+        "source": "10",
+        "sourceHandle": "CLIP",
+        "target": "7",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "3-0-12-samples",
+        "source": "3",
+        "sourceHandle": "LATENT",
+        "target": "12",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "4-2-12-vae",
+        "source": "4",
+        "sourceHandle": "VAE",
+        "target": "12",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "12-0-20-audio",
+        "source": "12",
+        "sourceHandle": "AUDIO",
+        "target": "20",
+        "targetHandle": "audio",
+        "ui_properties": null
+      }
+    ]
+  }
+}

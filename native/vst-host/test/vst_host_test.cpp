@@ -79,7 +79,11 @@ int main(int argc, char** argv) {
         if (argc >= 3) {
             check(juce::File(juce::String(argv[2])).replaceWithText(changed), "writes nondefault state fixture");
         }
-        check(inst.setState({}, error) && inst.getState() == state, "empty state restores the default", error);
+        juce::AudioBuffer<float> live;
+        check(renderWithState(inst, false, {}, rate, 48000, events, live, error) && inst.getState() == changed,
+              "render without applying state preserves editor changes", error);
+        check(renderWithState(inst, true, {}, rate, 48000, events, live, error) && inst.getState() == state,
+              "render with empty state restores the default", error);
         check(inst.setState(changed, error) && inst.getState() == changed, "and the changed state applies again", error);
         check(inst.setState(state, error), "back to the default", error);
     }

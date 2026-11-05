@@ -6,6 +6,13 @@ export type {
   WorkerManagerDeps,
   WorkerOrphan,
 } from "./manager.js";
+export {
+  comfyEndpointFromWsUrl,
+  isComfyServerReady,
+  waitForComfyServer,
+} from "./comfy-server.js";
+export { COMFY_PRESETS } from "./comfy-presets.js";
+export type { ComfyPreset } from "./comfy-presets.js";
 export { runReaperOnce, startReaper } from "./reaper.js";
 export {
   attachWorkerActivityHeartbeat,

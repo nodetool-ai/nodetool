@@ -1,0 +1,351 @@
+{
+  "id": "77193e93d25acf14f9ff11cc1e8a9b1a",
+  "name": "Comfy Kandinsky 5.0 Video Lite Text to Video",
+  "description": "A lightweight 2B model that generates videos from English and Russian prompts with high visual quality. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "video",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Kandinsky 5.0 Video Lite Text to Video\n\nA lightweight 2B model that generates videos from English and Russian prompts with high visual quality. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/video_kandinsky5_t2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "11",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Kandinsky5",
+          "format": "mp4",
+          "format.codec": "h264",
+          "format.codec.encoding": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12:2",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Negative Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12:1",
+        "type": "comfy.DualCLIPLoader",
+        "data": {
+          "clip_name1": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+          "clip_name2": "clip_l.safetensors",
+          "type": "kandinsky5",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load CLIP (Dual)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12:6",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "hunyuan_video_vae_bf16.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12:7",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "Rim light, side light, soft light, medium close-up, dusk, sunset, central composition, warm tones with low saturation, telephoto lens. A woman with fluffy brown curly hair stands elegantly in front of a magnificent stained glass window. She is wearing a flowing white dress, her hair neatly combed back, and her soft facial contours are gently illuminated by the colorful light filtering through the window from outside. The woman is talking to someone off-camera, yet there is a hint of sadness in her eyes, adding a layer of depth to her mysterious temperament. The background is dim, with a strong contrast between light and shadow, further emphasizing the tension of the character's emotions. The stained glass, under the glow of the setting sun, casts colorful light and shadows, enhancing the artistic sense and atmosphere of the overall picture."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Positive Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12:9",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12:3",
+        "type": "comfy.ModelSamplingSD3",
+        "data": {
+          "shift": 5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "ModelSamplingSD3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12:8",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 102704842425568,
+          "steps": 50,
+          "cfg": 5,
+          "sampler_name": "euler_ancestral",
+          "scheduler": "beta",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12:5",
+        "type": "comfy.Kandinsky5ImageToVideo",
+        "data": {
+          "width": 768,
+          "height": 512,
+          "length": 121,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Kandinsky5ImageToVideo"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12:10",
+        "type": "comfy.CreateVideo",
+        "data": {
+          "fps": 24,
+          "bit_depth": "auto",
+          "color_space": "sRGB",
+          "codec": "none"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Create Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12:4",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "kandinsky5lite_t2v_sft_5s.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "12:10-0-11-video",
+        "source": "12:10",
+        "sourceHandle": "VIDEO",
+        "target": "11",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "12:1-0-12:2-clip",
+        "source": "12:1",
+        "sourceHandle": "CLIP",
+        "target": "12:2",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "12:1-0-12:7-clip",
+        "source": "12:1",
+        "sourceHandle": "CLIP",
+        "target": "12:7",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "12:8-0-12:9-samples",
+        "source": "12:8",
+        "sourceHandle": "LATENT",
+        "target": "12:9",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "12:6-0-12:9-vae",
+        "source": "12:6",
+        "sourceHandle": "VAE",
+        "target": "12:9",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "12:4-0-12:3-model",
+        "source": "12:4",
+        "sourceHandle": "MODEL",
+        "target": "12:3",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "12:3-0-12:8-model",
+        "source": "12:3",
+        "sourceHandle": "MODEL",
+        "target": "12:8",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "12:5-0-12:8-positive",
+        "source": "12:5",
+        "sourceHandle": "positive",
+        "target": "12:8",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "12:5-1-12:8-negative",
+        "source": "12:5",
+        "sourceHandle": "negative",
+        "target": "12:8",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "12:5-2-12:8-latent_image",
+        "source": "12:5",
+        "sourceHandle": "latent",
+        "target": "12:8",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "12:7-0-12:5-positive",
+        "source": "12:7",
+        "sourceHandle": "CONDITIONING",
+        "target": "12:5",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "12:2-0-12:5-negative",
+        "source": "12:2",
+        "sourceHandle": "CONDITIONING",
+        "target": "12:5",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "12:6-0-12:5-vae",
+        "source": "12:6",
+        "sourceHandle": "VAE",
+        "target": "12:5",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "12:9-0-12:10-images",
+        "source": "12:9",
+        "sourceHandle": "IMAGE",
+        "target": "12:10",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

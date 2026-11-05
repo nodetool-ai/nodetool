@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/error-trace-services",
-  "version": "0.8.10",
+  "version": "0.8.11",
   "description": "NodeTool error trace services",
   "type": "module",
   "engines": {

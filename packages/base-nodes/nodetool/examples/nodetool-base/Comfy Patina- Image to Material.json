@@ -1,0 +1,268 @@
+{
+  "id": "8382c19547e9da87001f5a0ecf9a78ff",
+  "name": "Comfy Patina- Image to Material",
+  "description": "Turn a photo of a surface into a seamless, tiling PBR material with Patina. The source image sets the pattern and Patina redraws it as a tileable material, returning basecolor, normal, roughness, metalness and height maps that line up pixel for pixel. Built for brick, stone, wood, plaster, fabric and ceramic tile; a mask can restrict the redraw to part of the image. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "3d model",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Patina- Image to Material\n\nTurn a photo of a surface into a seamless, tiling PBR material with Patina. The source image sets the pattern and Patina redraws it as a tileable material, returning basecolor, normal, roughness, metalness and height maps that line up pixel for pixel. Built for brick, stone, wood, plaster, fabric and ceramic tile; a mask can restrict the redraw to part of the image. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_patina_material_i2m.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "21",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "patina/%year%%month%%day%-%hour%%minute%_basecolor"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "basecolor"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "22",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "patina/%year%%month%%day%-%hour%%minute%_normal"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "normal"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "23",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "patina/%year%%month%%day%-%hour%%minute%_texture"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "texture"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "24",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "patina/%year%%month%%day%-%hour%%minute%_roughness"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 990
+          },
+          "width": 280,
+          "title": "roughness"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "25",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "patina/%year%%month%%day%-%hour%%minute%_metalness"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "metalness"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "26",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "patina/%year%%month%%day%-%hour%%minute%_height"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "height"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "27",
+        "type": "comfy.SaveText",
+        "data": {
+          "filename_prefix": "txt",
+          "format": "txt"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "expanded prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "patina_brick_wall.jpg"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "31",
+        "type": "comfy.PatinaMaterialNode",
+        "data": {
+          "prompt": "seamless tiling grey-brown brick wall, keep the running bond and pale lime mortar joints of the source photo, weathered stone faces with fine grain, flat even lighting, no perspective",
+          "image_size": "1:1 (1024x1024)",
+          "basecolor": true,
+          "normal": true,
+          "roughness": true,
+          "metalness": true,
+          "height": true,
+          "upscale_factor": 0,
+          "seed": 42,
+          "tiling_mode": "both",
+          "num_inference_steps": 8,
+          "tile_size": 128,
+          "tile_stride": 64,
+          "strength": 0.6,
+          "prompt_expansion": false,
+          "safety_checker": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Patina Material"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "31-1-21-images",
+        "source": "31",
+        "sourceHandle": "basecolor",
+        "target": "21",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "31-2-22-images",
+        "source": "31",
+        "sourceHandle": "normal",
+        "target": "22",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "31-0-23-images",
+        "source": "31",
+        "sourceHandle": "texture",
+        "target": "23",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "31-3-24-images",
+        "source": "31",
+        "sourceHandle": "roughness",
+        "target": "24",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "31-4-25-images",
+        "source": "31",
+        "sourceHandle": "metalness",
+        "target": "25",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "31-5-26-images",
+        "source": "31",
+        "sourceHandle": "height",
+        "target": "26",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "31-6-27-text",
+        "source": "31",
+        "sourceHandle": "expanded_prompt",
+        "target": "27",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "30-0-31-image",
+        "source": "30",
+        "sourceHandle": "IMAGE",
+        "target": "31",
+        "targetHandle": "image",
+        "ui_properties": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "id": "5f44ad0407501e1c723bb2eb92358417",
+  "name": "Comfy Mai Image 2.6 Flash- Text to Image",
+  "description": "Generate images from text prompts with Microsoft's MAI Image 2.6 Flash, a fast, cost-efficient model that emphasizes low latency and high throughput for rapid visual ideation. The workflow takes a single text prompt and produces one image output. Ideal for concept sketches, marketing mockups, and batch asset drafts where speed matters more than final polish. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Mai Image 2.6 Flash- Text to Image\n\nGenerate images from text prompts with Microsoft's MAI Image 2.6 Flash, a fast, cost-efficient model that emphasizes low latency and high throughput for rapid visual ideation. The workflow takes a single text prompt and produces one image output. Ideal for concept sketches, marketing mockups, and batch asset drafts where speed matters more than final polish. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_openrouter_mai_image_26_flash.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "2",
+        "type": "comfy.OpenRouterImageNode",
+        "data": {
+          "model": "microsoft/mai-image-2.6-flash",
+          "model.prompt": "ethereal fashion portrait, pastel blue and pink hair blown across a face, single dark eye peering through colorful strands, elaborate collar of bright pink lilies and white baby's breath, green ferns, white anthurium flower behind the head, sleeveless cream top, solid off-white background, soft lighting",
+          "model.aspect_ratio": "1:1",
+          "model.resolution": "1K",
+          "model.images": 1584992575,
+          "model.seed": "randomize"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "OpenRouter Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.SaveImageAdvanced",
+        "data": {
+          "filename_prefix": "ComfyUI",
+          "format": "png",
+          "format.bit_depth": "8-bit",
+          "format.input_color_space": "sRGB"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "2-0-3-images",
+        "source": "2",
+        "sourceHandle": "IMAGE",
+        "target": "3",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

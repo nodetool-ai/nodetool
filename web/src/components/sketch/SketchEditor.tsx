@@ -58,6 +58,7 @@ import {
   FlexRow,
   InspectorSectionTitle,
   MobileBottomSheet,
+  ResizableDock,
   Tooltip,
   Z_INDEX
 } from "../ui_primitives";
@@ -162,6 +163,9 @@ const ConnectedColorPanel = memo(function ConnectedColorPanel() {
 });
 
 /** Mounts before its first activation, so the canvas is ready under any layout. */
+/** Width of Simple mode's assistant column, in px. Matches the other editors. */
+const SIMPLE_ASSISTANT_WIDTH = 340;
+
 const EAGER_DOCK_PANELS: readonly SketchPanelId[] = ["canvas"];
 
 /** Scrolling body of a docked side panel. The dock tab names the panel. */
@@ -241,14 +245,16 @@ function SketchEditor({
   const panelsHidden = useSketchStore((s) => s.panelsHidden);
   const togglePanelsHidden = useSketchStore((s) => s.togglePanelsHidden);
   const assistantPanelOpen = useSketchStore((s) => s.assistantPanelOpen);
-  // Simple mode keeps the canvas, a short tool rail and a layer column.
-  // Expert mode is the full dock. The choice is remembered per user.
-  const { mode: editorMode, setMode: setEditorMode } = useSketchEditorMode();
-  const simpleMode = editorMode === "simple";
-
   // Measure the editor itself, including when embedded in a workspace pane.
   const containerRef = useRef<HTMLDivElement>(null);
   const isMobile = useSketchIsMobile(containerRef);
+
+  // Simple mode keeps the canvas, a short tool rail and a layer column.
+  // Expert mode is the full dock. The choice is remembered per user. The
+  // mobile layout is always Simple and offers no switch; the remembered
+  // choice comes back once the editor is wide again.
+  const { mode: storedEditorMode, setMode: setEditorMode } = useSketchEditorMode();
+  const simpleMode = isMobile || storedEditorMode === "simple";
   const mobilePanelsOpen = useSketchStore((s) => s.mobilePanelsOpen);
   const setMobilePanelsOpen = useSketchStore((s) => s.setMobilePanelsOpen);
   const setAssistantPanelOpen = useSketchStore((s) => s.setAssistantPanelOpen);
@@ -479,13 +485,22 @@ function SketchEditor({
     () => (
       <>
         {!isMobile && simpleMode && <SimpleDocumentChips />}
-        <SketchModeSwitch mode={editorMode} onChange={setEditorMode} />
+        {!isMobile && (
+          <SketchModeSwitch mode={storedEditorMode} onChange={setEditorMode} />
+        )}
         {!isMobile && !simpleMode && (
           <DockLayoutMenu store={dockStore} panels={dockRegistrations} />
         )}
       </>
     ),
-    [dockStore, dockRegistrations, isMobile, simpleMode, editorMode, setEditorMode]
+    [
+      dockStore,
+      dockRegistrations,
+      isMobile,
+      simpleMode,
+      storedEditorMode,
+      setEditorMode
+    ]
   );
   const openExpertMode = () => setEditorMode("expert");
   const handleSimpleAddLayer = () => {
@@ -730,10 +745,12 @@ function SketchEditor({
   // The side panels sit in the dock on desktop. On a phone, in Simple mode,
   // and while Tab hides the chrome, only the canvas shows; the panels keep
   // their places in the layout. The canvas never leaves the dock, so it never
-  // remounts when the mode changes. Simple mode still docks the assistant
-  // while it is open.
+  // remounts when the mode changes. Simple mode shows the assistant in a
+  // column at the right edge instead, like the other editors.
   const chromeShown = !isMobile && !panelsHidden;
   const sidePanelsShown = chromeShown && !simpleMode;
+  const simpleAssistantShown =
+    chromeShown && simpleMode && assistantPanelOpen;
   const dockViews: DockPanelView[] = [
     { id: "canvas", node: canvasPane },
     {
@@ -773,7 +790,7 @@ function SketchEditor({
           <SketchAgentPanel />
         </FlexColumn>
       ),
-      visible: chromeShown
+      visible: sidePanelsShown
     }
   ];
   const shownDockViews = dockViews.filter((view) => view.visible !== false);
@@ -825,6 +842,23 @@ function SketchEditor({
             onOpenExpert={openExpertMode}
           />
         )}
+
+        {simpleAssistantShown && (
+          <ResizableDock
+            storageKey="sketch_simple_assistant"
+            defaultWidth={SIMPLE_ASSISTANT_WIDTH}
+            ariaLabel={t("i18n-next4.sketch.resizeAssistant")}
+          >
+            <FlexColumn
+              className="sketch-editor__assistant-panel"
+              gap={0}
+              fullWidth
+              sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}
+            >
+              <SketchAgentPanel />
+            </FlexColumn>
+          </ResizableDock>
+        )}
       </FlexRow>
 
       {/* ── Mobile chrome ─────────────────────────────────────────────
@@ -872,7 +906,6 @@ function SketchEditor({
                     sheet
                     onToggleVisibility={session.layerActions.handleToggleVisibility}
                     onAddLayer={handleSimpleAddLayer}
-                    onOpenExpert={openExpertMode}
                   />
                 ) : (
                   mobilePanelSections

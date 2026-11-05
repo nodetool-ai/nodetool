@@ -222,6 +222,27 @@ s(
   "Base URL of the Ollama server (default: http://127.0.0.1:11434). Set it when Ollama runs on another host or port, for example in WSL, Docker or on another machine."
 );
 s(
+  "COMFY_SERVER_URL",
+  "ComfyUI",
+  "Base URL of your own ComfyUI server, for example http://127.0.0.1:8188. Comfy workflows use it when COMFY_TARGET is server."
+);
+s(
+  "COMFY_TARGET",
+  "ComfyUI",
+  "Where Comfy workflows run: cloud, server or worker. When unset, they run on COMFY_SERVER_URL if it has a value, and otherwise on Comfy Cloud.",
+  ["cloud", "server", "worker"]
+);
+s(
+  "COMFY_WORKER_URL",
+  "ComfyUI",
+  "WebSocket URL of the NodeTool ComfyUI worker, for example wss://host/ws. Comfy workflows use it when COMFY_TARGET is worker."
+);
+sec(
+  "COMFY_WORKER_TOKEN",
+  "ComfyUI",
+  "Bearer token of the worker in COMFY_WORKER_URL, if that worker requires one."
+);
+s(
   "OLLAMA_KEEP_ALIVE",
   "Ollama",
   "How long Ollama keeps a model loaded after a request, in Ollama's duration syntax (default: 10m). -1 keeps it loaded, 0 unloads it at once."
@@ -366,6 +387,11 @@ sec(
   "OPPER_API_KEY",
   "Opper",
   "Opper API key for accessing multiple AI models through one EU-hosted OpenAI-compatible gateway. Get yours at https://platform.opper.ai"
+);
+sec(
+  "CHEAPER_INFERENCE_API_KEY",
+  "Cheaper Inference",
+  "Cheaper Inference API key for accessing multiple AI models through one OpenAI-compatible gateway. Get yours at https://cheaperinference.com/signup"
 );
 sec(
   "API_ROUTE_API_KEY",

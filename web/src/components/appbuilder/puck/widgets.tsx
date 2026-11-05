@@ -67,7 +67,11 @@ const slotStack: React.CSSProperties = {
   minWidth: 0
 };
 
-/** A Puck slot — a render function that accepts drop-zone styling props. */
+/**
+ * A Puck slot — a render function that accepts drop-zone styling props. Call it
+ * as a function, never as `<Slot />`: Puck builds a new function whenever the
+ * parent re-renders, and a new element type remounts the slot and drops focus.
+ */
 type SlotComponent = (props?: {
   style?: React.CSSProperties;
   className?: string;
@@ -1804,7 +1808,7 @@ export const ContainerWidget: React.FC<{
 }> = ({ title, variant = "panel", columns, content: Content }) => {
   const count = Math.max(1, Math.floor(numOr(columns, 1)));
   const slot = Content ? (
-    <Content style={count > 1 ? gridStack(count) : variant === "card" ? { ...slotStack, gap: `${SPACING_PX.md}px` } : slotStack} />
+    Content({ style: count > 1 ? gridStack(count) : variant === "card" ? { ...slotStack, gap: `${SPACING_PX.md}px` } : slotStack })
   ) : null;
   if (variant === "plain") {
     return (
@@ -1883,16 +1887,15 @@ export const ColumnsWidget: React.FC<{
       width: "100%"
     }}
   >
-    {Left ? <Left style={slotStack} /> : null}
-    {Right ? (
-      <Right
-        style={
-          layout === "main-aside"
-            ? { display: "flex", flexDirection: "row", flexWrap: "wrap", gap: `${SPACING_PX.md}px`, minWidth: 0 }
-            : slotStack
-        }
-      />
-    ) : null}
+    {Left ? Left({ style: slotStack }) : null}
+    {Right
+      ? Right({
+          style:
+            layout === "main-aside"
+              ? { display: "flex", flexDirection: "row", flexWrap: "wrap", gap: `${SPACING_PX.md}px`, minWidth: 0 }
+              : slotStack
+        })
+      : null}
   </Box>
 );
 
@@ -1958,7 +1961,7 @@ export const TabsWidget: React.FC<{
               ...(value !== current && { display: "none" })
             }}
           >
-            <Slot style={slotStack} />
+            {Slot({ style: slotStack })}
           </Box>
         ) : null
       )}
@@ -1980,7 +1983,7 @@ export const AccordionWidget: React.FC<{
       defaultOpen={defaultOpen !== false}
       compact
     >
-      {Content ? <Content style={slotStack} /> : null}
+      {Content ? Content({ style: slotStack }) : null}
     </CollapsibleSection>
   );
 };

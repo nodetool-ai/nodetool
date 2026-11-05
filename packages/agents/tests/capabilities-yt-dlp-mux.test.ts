@@ -53,16 +53,26 @@ echo "$*" >> '${callLog}'
 outtmpl=""
 format=""
 print_id=0
+probe=0
 while [ $# -gt 0 ]; do
   case "$1" in
+    --dump-single-json) probe=1; shift ;;
     -o) outtmpl="$2"; shift 2 ;;
     -f) format="$2"; shift 2 ;;
     --print) [ "$2" = "after_move:format_id" ] && print_id=1; shift 2 ;;
     *) shift ;;
   esac
 done
+if [ "$probe" -eq 1 ]; then
+  if [ "$format" = "bv+ba/b" ]; then
+    echo '{"format_id":"18"}'
+  else
+    echo '{"requested_formats":[{"format_id":"137"},{"format_id":"140"}]}'
+  fi
+  exit 0
+fi
 case "$format" in
-  bv*) src='${video}'; fid=137; ext=mp4 ;;
+  *137*) src='${video}'; fid=137; ext=mp4 ;;
   *) src='${audio}'; fid=140; ext=m4a ;;
 esac
 out=$(printf '%s' "$outtmpl" | sed "s/%(id)s/clip1/; s/%(format_id)s/$fid/; s/%(ext)s/$ext/")
@@ -97,9 +107,10 @@ describe("yt_dlp without ffmpeg", () => {
 
     expect(result).toMatchObject({ success: true, output_file: "downloads/yt-dlp/clip1.mp4" });
     const calls = (await readFile(callLog, "utf8")).trim().split("\n");
-    expect(calls).toHaveLength(2);
-    expect(calls[0]).toContain("-f bv* ");
-    expect(calls[1]).toContain("-f ba/b ");
+    expect(calls).toHaveLength(3);
+    expect(calls[0]).toContain("-f bv*+ba/b ");
+    expect(calls[1]).toContain('-f [format_id="137"] ');
+    expect(calls[2]).toContain('-f [format_id="140"] ');
     for (const line of calls) expect(line).not.toMatch(/--merge-output-format|--remux-video|-x /);
 
     const out = path.join(workspace, "downloads/yt-dlp/clip1.mp4");
@@ -109,6 +120,14 @@ describe("yt_dlp without ffmpeg", () => {
     await expect(stat(ffmpegMarker)).rejects.toThrow();
   });
 
+  it("downloads the combined fallback chosen for the complete selector", async () => {
+    const result = await runYtDlp({ url: "https://example.com/v", format: "bv+ba/b", output_file: "fallback/clip.%(ext)s" });
+    expect(result).toMatchObject({ success: true, output_file: "fallback/clip.m4a" });
+    const calls = (await readFile(callLog, "utf8")).trim().split("\n");
+    expect(calls.at(-2)).toContain("-f bv+ba/b ");
+    expect(calls.at(-1)).toContain('-f [format_id="18"] ');
+  });
+
   it("names the formats when the requested container cannot hold them", async () => {
     const result = await runYtDlp({
       url: "https://example.com/v",
@@ -116,7 +135,7 @@ describe("yt_dlp without ffmpeg", () => {
       output_file: "out/clip.webm"
     });
     expect(String(result["error"])).toMatch(
-      /format "bv" \(clip\.f137\.mp4\) and format "ba" \(clip\.f140\.m4a\) could not be muxed: Cannot stream-copy h264 video with aac audio into webm/
+      /format "\[format_id="137"\]" \(clip\.f137\.mp4\) and format "\[format_id="140"\]" \(clip\.f140\.m4a\) could not be muxed: Cannot stream-copy h264 video with aac audio into webm/
     );
   });
 

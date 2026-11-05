@@ -38,6 +38,7 @@ import { useCanvasConversation } from "../../hooks/useCanvasConversation";
 import { DOCUMENT_BAR_HEIGHT } from "../ui_primitives";
 import CanvasChatWindow from "./CanvasChatWindow";
 import TriggerActivationButton from "./TriggerActivationButton";
+import ComfyTargetSelector from "./ComfyTargetSelector";
 
 const MOBILE_DOCK_LAYER_STYLE: React.CSSProperties = {
   bottom: "calc(8px + env(safe-area-inset-bottom, 0px))"
@@ -387,6 +388,8 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             loading={isStopping}
           />
         )}
+
+        <ComfyTargetSelector />
 
         <Tooltip title={runTooltip} placement="top">
           <button

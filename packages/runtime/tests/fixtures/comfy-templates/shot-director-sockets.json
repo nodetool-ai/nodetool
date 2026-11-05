@@ -1,0 +1,124 @@
+{
+  "BasicGuider": [
+    "GUIDER"
+  ],
+  "BasicScheduler": [
+    "SIGMAS"
+  ],
+  "CFGGuider": [
+    "GUIDER"
+  ],
+  "CLIPLoader": [
+    "CLIP"
+  ],
+  "CLIPTextEncode": [
+    "CONDITIONING"
+  ],
+  "CheckpointLoaderSimple": [
+    "MODEL",
+    "CLIP",
+    "VAE"
+  ],
+  "CreateVideo": [
+    "VIDEO"
+  ],
+  "EmptyLTXVLatentVideo": [
+    "LATENT"
+  ],
+  "ImageScale": [
+    "IMAGE"
+  ],
+  "KSampler": [
+    "LATENT"
+  ],
+  "KSamplerAdvanced": [
+    "LATENT"
+  ],
+  "KSamplerSelect": [
+    "SAMPLER"
+  ],
+  "LTXAVTextEncoderLoader": [
+    "CLIP"
+  ],
+  "LTXVAudioVAEDecode": [
+    "Audio"
+  ],
+  "LTXVAudioVAELoader": [
+    "Audio VAE"
+  ],
+  "LTXVConcatAVLatent": [
+    "latent"
+  ],
+  "LTXVConditioning": [
+    "positive",
+    "negative"
+  ],
+  "LTXVCropGuides": [
+    "positive",
+    "negative",
+    "latent"
+  ],
+  "LTXVEmptyLatentAudio": [
+    "Latent"
+  ],
+  "LTXVImgToVideoInplace": [
+    "latent"
+  ],
+  "LTXVLatentUpsampler": [
+    "LATENT"
+  ],
+  "LTXVPreprocess": [
+    "output_image"
+  ],
+  "LTXVSeparateAVLatent": [
+    "video_latent",
+    "audio_latent"
+  ],
+  "LatentUpscaleModelLoader": [
+    "LATENT_UPSCALE_MODEL"
+  ],
+  "LoadImage": [
+    "IMAGE",
+    "MASK"
+  ],
+  "LoraLoaderModelOnly": [
+    "MODEL"
+  ],
+  "ManualSigmas": [
+    "SIGMAS"
+  ],
+  "ModelSamplingSD3": [
+    "MODEL"
+  ],
+  "RandomNoise": [
+    "NOISE"
+  ],
+  "SamplerCustomAdvanced": [
+    "output",
+    "denoised_output"
+  ],
+  "SaveVideo": [],
+  "UNETLoader": [
+    "MODEL"
+  ],
+  "VAEDecode": [
+    "IMAGE"
+  ],
+  "VAEDecodeAudio": [
+    "AUDIO"
+  ],
+  "VAEDecodeTiled": [
+    "IMAGE"
+  ],
+  "VAELoader": [
+    "VAE"
+  ],
+  "Wan22ImageToVideoLatent": [
+    "LATENT"
+  ],
+  "WanImageToVideo": [
+    "positive",
+    "negative",
+    "latent"
+  ]
+}

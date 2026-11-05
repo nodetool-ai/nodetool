@@ -1,0 +1,108 @@
+{
+  "id": "c909ee52e6fe58dcd8dba30826d35955",
+  "name": "Comfy Add Color to Line Art Illustration",
+  "description": "Input a black and white illustration and generate a colored output. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Add Color to Line Art Illustration\n\nInput a black and white illustration and generate a colored output. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/templates-color_illustration.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "10",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "illustration_bw.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "11",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-color_illustration"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "prompt": "Color this image",
+          "model": "gemini-3-pro-image-preview",
+          "seed": 563362989397284,
+          "aspect_ratio": "auto",
+          "resolution": "1K",
+          "response_modalities": "IMAGE",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "12-0-11-images",
+        "source": "12",
+        "sourceHandle": "IMAGE",
+        "target": "11",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "10-0-12-images",
+        "source": "10",
+        "sourceHandle": "IMAGE",
+        "target": "12",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

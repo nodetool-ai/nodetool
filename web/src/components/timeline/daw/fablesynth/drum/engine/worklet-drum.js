@@ -1292,9 +1292,9 @@ class DrumProcessor extends AudioWorkletProcessor {
 
   // `ev` is flat [frame, on, pitch, velocity] quadruples. The queue stays
   // sorted by frame; equal frames keep their arrival order.
-  queueEvents(ev) {
+  queueEvents(ev, tag) {
     const pending = this.evq.slice(this.evHead);
-    for (let i = 0; i + 3 < ev.length; i += 4) pending.push([ev[i], ev[i + 1], ev[i + 2], ev[i + 3]]);
+    for (let i = 0; i + 3 < ev.length; i += 4) pending.push([ev[i], ev[i + 1], ev[i + 2], ev[i + 3], tag]);
     pending.sort((a, b) => a[0] - b[0]);
     this.evq = pending;
     this.evHead = 0;
@@ -1382,8 +1382,8 @@ class DrumProcessor extends AudioWorkletProcessor {
       case 'seed': this.rng = new Rng(d.v | 0); break;
       case 'tables': this.setTables(d.list); break;
       case 'samples': this.setSamples(d.list); break;
-      case 'evs': this.queueEvents(d.ev); break;
-      case 'evclear': this.evq = []; this.evHead = 0; break;
+      case 'evs': this.queueEvents(d.ev, d.tag); break;
+      case 'evclear': this.evq = d.tag === undefined ? [] : this.evq.slice(this.evHead).filter((e) => e[4] !== d.tag); this.evHead = 0; break;
       case 'base': if (Number.isFinite(d.note)) this.baseNote = d.note; break;
       case 'trig': this.trigger(d.pad | 0, d.v); break;
       case 'pats': this.pats = new Uint8Array(d.data.slice(0)); break;

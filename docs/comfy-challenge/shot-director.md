@@ -83,13 +83,14 @@ open-weights.
 3. **Open ComfyUI workflow** in the render dialog opens an editable copy of the
    graph.
 
-The example workflow also runs on its own. Headless, from the repository. Pass the still as a `file://` ref, because the
-CLI run context does not resolve the default `package://` sample:
+The example workflow also runs on its own. It is a native ComfyUI graph, so its
+inputs are `image` and `prompt`. Add a camera clause from the example's intro
+comment to the prompt. Headless, from the repository:
 
 ```bash
-COMFY_API_KEY=... npm run dev:nodetool -- run \
+npm run dev:nodetool -- run \
   "packages/base-nodes/nodetool/examples/nodetool-base/Shot Director.json" \
-  --params '{"camera_move":"orbit","seed":7,"source_image":{"type":"image","uri":"file:///path/to/still.jpg"}}'
+  --params '{"prompt":"Steam curls up from the cup. The camera glides forward.","image":{"type":"image","uri":"file:///path/to/still.jpg"}}'
 ```
 
 The golden-render script submits the same pinned graph straight through the

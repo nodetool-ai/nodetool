@@ -1,3 +1,4 @@
+import { collapseComfyGraph } from "@nodetool-ai/protocol";
 import { findMissingPacks } from "./missing-packs.js";
 import { MissingPackError } from "@nodetool-ai/protocol";
 import { withRegisteredRunTrace, settleRegisteredRunTrace } from "./service/run-trace-lifecycle.js";
@@ -262,7 +263,8 @@ export class ExecutionSession {
     };
 
     try {
-      const normalized = normalizeGraph(options.graph);
+      // A Comfy workflow runs as one Comfy Cloud job, not node by node.
+      const normalized = collapseComfyGraph(normalizeGraph(options.graph));
       if (registry) {
         const missing = await findMissingPacks(normalized, registry, {
           loadWorkflow: options.loadWorkflow ?? (async (id) => {

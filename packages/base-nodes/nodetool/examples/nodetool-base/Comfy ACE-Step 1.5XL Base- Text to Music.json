@@ -1,0 +1,338 @@
+{
+  "id": "00c0339db173c60ec1e9f4fca682da2d",
+  "name": "Comfy ACE-Step 1.5XL Base- Text to Music",
+  "description": "Generate high-quality audio from text prompts using the 4B parameter ACE-Step 1.5 XL model. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "audio",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy ACE-Step 1.5XL Base- Text to Music\n\nGenerate high-quality audio from text prompts using the 4B parameter ACE-Step 1.5 XL model. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/audio_ace_step1_5_xl_base.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "3",
+        "type": "comfy.KSampler",
+        "data": {
+          "steps": 50,
+          "cfg": 6,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18",
+        "type": "comfy.VAEDecodeAudio",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "47",
+        "type": "comfy.ConditioningZeroOut",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Conditioning Zero Out"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "78",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 3,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ModelSamplingAuraFlow"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "94",
+        "type": "comfy.TextEncodeAceStepAudio1.5",
+        "data": {
+          "tags": "A quiet, meditative ambient electronic track at 72 BPM in 4/4 time. The piece opens with slowly evolving pad textures layered with gentle granular synthesis and the faint crackle of vinyl, creating a warm, intimate atmosphere. A breathy female vocal enters softly, singing sparse, whispered phrases with long reverb tails that dissolve into the surrounding soundscape. A delicate fingerpicked acoustic guitar weaves between the pads, its notes ringing out with natural decay. A subtle sub-bass pulse anchors the track without intruding, and a sparse, brushed drum pattern rests far back in the mix. The arrangement barely moves — it breathes and shifts slowly like clouds, building to a gentle swell of layered vocals and pads in the final section before fading to near-silence. The production is hushed and intimate, leaving generous space between every element.\n",
+          "lyrics": "\n[Intro - Granular pad texture, vinyl crackle, guitar fades in]\n\n[Verse 1 - Whispered female vocal over sparse guitar]\nStill water holds the sky\nI keep forgetting how to rest\nEvery thought drifts out like smoke\nNothing here needs to be fixed\n\n[Interlude - Pads evolve, guitar continues, sub-bass enters softly]\n\n[Verse 2 - Vocal slightly warmer, longer phrases]\nThe window frames the afternoon\nA rectangle of yellow light\nI've been sitting in this chair\nLong enough to feel alright\n\n[Chorus - Layered vocal harmonies swell gently over full pads]\nLet it go quiet\nLet it go slow\nNothing is lost\nJust below\n\n[Instrumental Section - Guitar and pads breathe, no vocal]\n\n[Final Verse - Vocal returns, softest delivery]\nSomewhere between awake and sleep\nThe mind forgets to keep its score\nI don't need to understand\nWhat the silence is here for\n\n[Outro - Layers dissolve one by one, guitar last, fades to silence]",
+          "bpm": 72,
+          "duration": 120,
+          "timesignature": "4",
+          "language": "en",
+          "keyscale": "E minor",
+          "generate_audio_codes": true,
+          "cfg_scale": 2,
+          "temperature": 0.85,
+          "top_p": 0.9,
+          "top_k": 0,
+          "min_p": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "TextEncodeAceStepAudio1.5"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "98",
+        "type": "comfy.EmptyAceStep1.5LatentAudio",
+        "data": {
+          "seconds": 120,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Empty Ace Step 1.5 Latent Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "104",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "acestep_v1.5_xl_base_bf16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "105",
+        "type": "comfy.DualCLIPLoader",
+        "data": {
+          "clip_name1": "qwen_0.6b_ace15.safetensors",
+          "clip_name2": "qwen_4b_ace15.safetensors",
+          "type": "ace",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load CLIP (Dual)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "106",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "ace_1.5_vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "109",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Int"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "111",
+        "type": "comfy.SaveAudioAdvanced",
+        "data": {
+          "filename_prefix": "audio/ace_step1.5_xl_base",
+          "format": "mp3",
+          "format.quality": "V0"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Audio (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "109-0-3-seed",
+        "source": "109",
+        "sourceHandle": "INT",
+        "target": "3",
+        "targetHandle": "seed",
+        "ui_properties": null
+      },
+      {
+        "id": "78-0-3-model",
+        "source": "78",
+        "sourceHandle": "MODEL",
+        "target": "3",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "94-0-3-positive",
+        "source": "94",
+        "sourceHandle": "CONDITIONING",
+        "target": "3",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "47-0-3-negative",
+        "source": "47",
+        "sourceHandle": "CONDITIONING",
+        "target": "3",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "98-0-3-latent_image",
+        "source": "98",
+        "sourceHandle": "LATENT",
+        "target": "3",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "3-0-18-samples",
+        "source": "3",
+        "sourceHandle": "LATENT",
+        "target": "18",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "106-0-18-vae",
+        "source": "106",
+        "sourceHandle": "VAE",
+        "target": "18",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "94-0-47-conditioning",
+        "source": "94",
+        "sourceHandle": "CONDITIONING",
+        "target": "47",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "104-0-78-model",
+        "source": "104",
+        "sourceHandle": "MODEL",
+        "target": "78",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "109-0-94-seed",
+        "source": "109",
+        "sourceHandle": "INT",
+        "target": "94",
+        "targetHandle": "seed",
+        "ui_properties": null
+      },
+      {
+        "id": "105-0-94-clip",
+        "source": "105",
+        "sourceHandle": "CLIP",
+        "target": "94",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "18-0-111-audio",
+        "source": "18",
+        "sourceHandle": "AUDIO",
+        "target": "111",
+        "targetHandle": "audio",
+        "ui_properties": null
+      }
+    ]
+  }
+}

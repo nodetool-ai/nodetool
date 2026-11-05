@@ -1,0 +1,330 @@
+{
+  "id": "e7c15ea39b9d627ae2e084d21c4ac880",
+  "name": "Comfy Z-Image- Text to Image",
+  "description": "Foundation for creative freedom. Diverse aesthetics with exceptional photorealistic quality; ideal for fine-tuning; responsive to negative prompts; high generation diversity. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Z-Image- Text to Image\n\nFoundation for creative freedom. Diverse aesthetics with exceptional photorealistic quality; ideal for fine-tuning; responsive to negative prompts; high generation diversity. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/image_z_image.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "94",
+        "type": "comfy.ResolutionSelector",
+        "data": {
+          "aspect_ratio": "1:1 (Square)",
+          "megapixels": 1,
+          "multiple": 8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Resolution Selector"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "95",
+        "type": "comfy.SaveImageAdvanced",
+        "data": {
+          "filename_prefix": "Z_image_base",
+          "format": "png",
+          "format.bit_depth": "8-bit",
+          "format.input_color_space": "sRGB"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "76:67",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "A fashion photography work full of surreal romanticism, using a low-angle upward shooting composition, with a clear light blue sky as the background, and the visual focus concentrated on the fantasy blue vegetation and the model walking through it.\n\nThe vegetation in the picture is processed into varying shades of blue, from light ice blue to deep cobalt blue. The textures of the leaves and branches are delicate and realistic. The warm brown tree trunks form a sharp contrast with the cool blue leaves, resembling a dreamy forest from another world. An African-American model wearing a yellow and white vertical striped long dress walks slowly on the sand. The warm tones of the dress echo with the surrounding cool blue vegetation. The noon sun casts clear shadows on the sand, enhancing the sense of space and reality in the picture.\n\nThe entire scene, with its clean and transparent colors and fantasy settings, not only exudes the vastness of the natural wilderness but also presents a quiet and poetic high-fashion sense due to the surreal vegetation."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Positive Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "76:68",
+        "type": "comfy.EmptySD3LatentImage",
+        "data": {
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "EmptySD3LatentImage"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "76:63",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "ae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "76:62",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen_3_4b.safetensors",
+          "type": "lumina2",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "76:65",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "76:70",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 3,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "ModelSamplingAuraFlow"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "76:66",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "z_image_bf16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "76:71",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Negative Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "76:69",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 677498465340151,
+          "steps": 25,
+          "cfg": 4,
+          "sampler_name": "res_multistep",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "76:65-0-95-images",
+        "source": "76:65",
+        "sourceHandle": "IMAGE",
+        "target": "95",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "76:62-0-76:67-clip",
+        "source": "76:62",
+        "sourceHandle": "CLIP",
+        "target": "76:67",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "94-0-76:68-width",
+        "source": "94",
+        "sourceHandle": "width",
+        "target": "76:68",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "94-1-76:68-height",
+        "source": "94",
+        "sourceHandle": "height",
+        "target": "76:68",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "76:69-0-76:65-samples",
+        "source": "76:69",
+        "sourceHandle": "LATENT",
+        "target": "76:65",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "76:63-0-76:65-vae",
+        "source": "76:63",
+        "sourceHandle": "VAE",
+        "target": "76:65",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "76:66-0-76:70-model",
+        "source": "76:66",
+        "sourceHandle": "MODEL",
+        "target": "76:70",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "76:62-0-76:71-clip",
+        "source": "76:62",
+        "sourceHandle": "CLIP",
+        "target": "76:71",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "76:70-0-76:69-model",
+        "source": "76:70",
+        "sourceHandle": "MODEL",
+        "target": "76:69",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "76:67-0-76:69-positive",
+        "source": "76:67",
+        "sourceHandle": "CONDITIONING",
+        "target": "76:69",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "76:71-0-76:69-negative",
+        "source": "76:71",
+        "sourceHandle": "CONDITIONING",
+        "target": "76:69",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "76:68-0-76:69-latent_image",
+        "source": "76:68",
+        "sourceHandle": "LATENT",
+        "target": "76:69",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      }
+    ]
+  }
+}

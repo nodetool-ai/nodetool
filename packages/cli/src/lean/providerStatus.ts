@@ -41,6 +41,7 @@ export const KEYED_PROVIDERS: readonly ProviderCredential[] = [
   { id: "openrouter", name: "OpenRouter", credentials: ["OPENROUTER_API_KEY"] },
   { id: "requesty", name: "Requesty", credentials: ["REQUESTY_API_KEY"] },
   { id: "opper", name: "Opper", credentials: ["OPPER_API_KEY"] },
+  { id: "cheaperinference", name: "Cheaper Inference", credentials: ["CHEAPER_INFERENCE_API_KEY"] },
   { id: "api_route", name: "API Route", credentials: ["API_ROUTE_API_KEY"] },
   { id: "together", name: "Together", credentials: ["TOGETHER_API_KEY"] },
   { id: "alibaba", name: "Alibaba", credentials: ["DASHSCOPE_API_KEY"] },

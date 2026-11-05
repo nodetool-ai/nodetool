@@ -1,11 +1,10 @@
 /**
- * Merge the Comfy Cloud node catalog into the node menu while a Comfy
+ * Merge the Comfy target's node catalog into the node menu while a Comfy
  * workflow (`run_mode: "comfy"`) is open.
  *
  * `/api/comfy/nodes` returns one `comfy.<ClassName>` metadata record per
- * ComfyUI node class Comfy Cloud serves. The catalog needs the user's
- * COMFY_API_KEY, so it is fetched on demand rather than at boot, once per
- * page load. The records render with the standard `BaseNode`, which is what
+ * ComfyUI node class the selected target serves. The catalog depends on the
+ * user's settings, so it is fetched on demand rather than at boot. The records render with the standard `BaseNode`, which is what
  * lets the NodeTool graph editor edit Comfy graphs unchanged.
  */
 import { useEffect, useState } from "react";
@@ -38,6 +37,39 @@ export const loadComfyNodeCatalog = (): Promise<NodeMetadata[]> => {
   return catalog;
 };
 
+/**
+ * Put a catalog in the store. Comfy nodes the new catalog lacks stay registered
+ * but hidden from the menu, because `BaseNode` throws for a node on the canvas
+ * that has no metadata. A run on the new target reports those classes.
+ */
+const mergeComfyCatalog = async (records: NodeMetadata[]): Promise<void> => {
+  const { default: BaseNode } = await import("../components/node/BaseNode");
+  const store = useMetadataStore.getState();
+  const next: Record<string, NodeMetadata> = {};
+  for (const [key, record] of Object.entries(store.metadata)) {
+    next[key] = key.startsWith(COMFY_NODE_PREFIX)
+      ? { ...record, hidden: true }
+      : record;
+  }
+  const nodeTypes = { ...store.nodeTypes };
+  for (const record of records) {
+    next[record.node_type] = record;
+    nodeTypes[record.node_type] = BaseNode;
+  }
+  store.setNodeTypes(nodeTypes);
+  store.setMetadata(next);
+  createConnectabilityMatrix(Object.values(next));
+};
+
+/**
+ * Load the catalog of a newly selected target. The previous catalog stays in
+ * place until the new one arrives, and also when the load fails.
+ */
+export const reloadComfyNodeCatalog = async (): Promise<void> => {
+  catalog = null;
+  await mergeComfyCatalog(await loadComfyNodeCatalog());
+};
+
 export type ComfyCatalogState =
   | { status: "idle" | "loading" | "ready" }
   | { status: "error"; error: string };
@@ -56,19 +88,10 @@ export const useComfyNodeMetadata = (enabled: boolean): ComfyCatalogState => {
     }
     let cancelled = false;
     setState({ status: "loading" });
-    void Promise.all([loadComfyNodeCatalog(), import("../components/node/BaseNode")])
-      .then(([records, { default: BaseNode }]) => {
+    void loadComfyNodeCatalog()
+      .then(async (records) => {
         if (cancelled) return;
-        const store = useMetadataStore.getState();
-        const next = { ...store.metadata };
-        const nodeTypes = { ...store.nodeTypes };
-        for (const record of records) {
-          next[record.node_type] = record;
-          nodeTypes[record.node_type] = BaseNode;
-        }
-        store.setNodeTypes(nodeTypes);
-        store.setMetadata(next);
-        createConnectabilityMatrix(Object.values(next));
+        await mergeComfyCatalog(records);
         setState({ status: "ready" });
       })
       .catch((error: unknown) => {

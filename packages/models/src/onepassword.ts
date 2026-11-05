@@ -24,6 +24,7 @@
  */
 
 import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import type { Client as SdkClient } from "@1password/sdk";
 import { createLogger, isAuthEnforced } from "@nodetool-ai/config";
 import { Setting } from "./setting.js";
@@ -58,8 +59,8 @@ interface CacheEntry {
   expiresAt: number;
 }
 
-const cache = new Map<string, CacheEntry>();
-const inflight = new Map<string, Promise<string | null>>();
+let cache = new Map<string, CacheEntry>();
+let inflight = new Map<string, Promise<string | null>>();
 
 /** True when the value is a 1Password secret reference (`op://...`). */
 export function isOnePasswordReference(value: unknown): value is string {
@@ -178,8 +179,9 @@ export async function onePasswordAccount(userId?: string): Promise<string> {
 
 /** Clear resolved 1Password values. */
 export function clearOnePasswordCache(): void {
-  cache.clear();
-  inflight.clear();
+  // Existing reads retain their old maps and cannot repopulate the new cache.
+  cache = new Map();
+  inflight = new Map();
   sdkClient = null;
 }
 
@@ -206,39 +208,44 @@ export async function resolveOnePasswordReference(
   reference: string,
   userId?: string
 ): Promise<string | null> {
+  const values = cache;
+  const reads = inflight;
+  const backend = selectBackend(await onePasswordAccount(userId));
+  const key = JSON.stringify([userId ?? null, backend.cacheKey, reference]);
   const now = Date.now();
-  const cached = cache.get(reference);
+  const cached = values.get(key);
   if (cached && cached.expiresAt > now) {
     return cached.value;
   }
 
-  const pending = inflight.get(reference);
+  const pending = reads.get(key);
   if (pending) {
     return pending;
   }
 
-  const promise = readReference(reference, userId).finally(() => {
-    inflight.delete(reference);
+  const promise = readReference(reference, backend, values, key).finally(() => {
+    reads.delete(key);
   });
-  inflight.set(reference, promise);
+  reads.set(key, promise);
   return promise;
 }
 
 async function readReference(
   reference: string,
-  userId: string | undefined
+  backend: Backend,
+  values: Map<string, CacheEntry>,
+  key: string
 ): Promise<string | null> {
   const parsed = parseOnePasswordReference(reference);
   if (!parsed) {
     log.error("Malformed 1Password secret reference", { reference });
-    remember(reference, null, FAILURE_TTL_MS);
+    remember(values, key, null, FAILURE_TTL_MS);
     return null;
   }
 
-  const backend = selectBackend(await onePasswordAccount(userId));
   try {
     const value = await backend.read(reference, parsed);
-    remember(reference, value, cacheTtlMs());
+    remember(values, key, value, cacheTtlMs());
     return value;
   } catch (err) {
     log.error("1Password secret reference could not be read", {
@@ -246,7 +253,7 @@ async function readReference(
       backend: backend.name,
       error: err instanceof Error ? err.message : String(err)
     });
-    remember(reference, null, FAILURE_TTL_MS);
+    remember(values, key, null, FAILURE_TTL_MS);
     return null;
   }
 }
@@ -260,6 +267,7 @@ export type OnePasswordBackendName =
 
 interface Backend {
   name: OnePasswordBackendName;
+  cacheKey: string;
   read(reference: string, parsed: OnePasswordReference): Promise<string>;
 }
 
@@ -291,18 +299,41 @@ function selectBackend(account: string): Backend {
       const token = (process.env["OP_CONNECT_TOKEN"] ?? "").trim();
       return {
         name,
+        cacheKey: authCacheKey([name, host, token]),
         read: (_reference, parsed) => readViaConnect(parsed, host, token)
       };
     }
     case "sdk-service-account":
-    case "sdk-desktop":
+    case "sdk-desktop": {
+      const auth =
+        name === "sdk-service-account"
+          ? (process.env["OP_SERVICE_ACCOUNT_TOKEN"] ?? "").trim()
+          : account;
       return {
         name,
-        read: (reference) => readViaSdk(reference, name, account)
+        cacheKey: authCacheKey([name, auth]),
+        read: (reference) => readViaSdk(reference, name, auth)
       };
-    case "cli":
-      return { name, read: (reference) => readViaCli(reference) };
+    }
+    case "cli": {
+      const binary = process.env["NODETOOL_1PASSWORD_CLI"]?.trim() || "op";
+      const env = { ...process.env };
+      return {
+        name,
+        // The CLI can select credentials through inherited environment variables.
+        cacheKey: authCacheKey([
+          name,
+          binary,
+          Object.entries(env).sort(([a], [b]) => a.localeCompare(b))
+        ]),
+        read: (reference) => readViaCli(reference, binary, env)
+      };
+    }
   }
+}
+
+function authCacheKey(identity: readonly unknown[]): string {
+  return createHash("sha256").update(JSON.stringify(identity)).digest("hex");
 }
 
 /** One SDK client per auth configuration, reused across reads. */
@@ -313,11 +344,9 @@ const SDK_INTEGRATION_VERSION = "v1.0.0";
 
 function sdkClientFor(
   backend: "sdk-service-account" | "sdk-desktop",
-  account: string
+  auth: string
 ): Promise<SdkClient> {
-  const token = (process.env["OP_SERVICE_ACCOUNT_TOKEN"] ?? "").trim();
-  const key =
-    backend === "sdk-service-account" ? `token:${token}` : `desktop:${account}`;
+  const key = authCacheKey([backend, auth]);
   if (sdkClient && sdkClient.key === key) {
     return sdkClient.client;
   }
@@ -327,9 +356,7 @@ function sdkClientFor(
     const sdk = await import("@1password/sdk");
     return sdk.createClient({
       auth:
-        backend === "sdk-service-account"
-          ? token
-          : new sdk.DesktopAuth(account),
+        backend === "sdk-service-account" ? auth : new sdk.DesktopAuth(auth),
       integrationName: SDK_INTEGRATION_NAME,
       integrationVersion: SDK_INTEGRATION_VERSION
     });
@@ -341,24 +368,27 @@ function sdkClientFor(
 async function readViaSdk(
   reference: string,
   backend: "sdk-service-account" | "sdk-desktop",
-  account: string
+  auth: string
 ): Promise<string> {
-  return withSdkClient(backend, account, (client) =>
+  return withSdkClient(backend, auth, (client) =>
     client.secrets.resolve(reference)
   );
 }
 
 async function withSdkClient<T>(
   backend: "sdk-service-account" | "sdk-desktop",
-  account: string,
+  auth: string,
   run: (client: SdkClient) => Promise<T>
 ): Promise<T> {
+  const client = sdkClientFor(backend, auth);
   try {
-    return await run(await sdkClientFor(backend, account));
+    return await run(await client);
   } catch (err) {
     // A desktop session expires after inactivity and a token can be revoked.
     // Drop the client so the next call authenticates again.
-    sdkClient = null;
+    if (sdkClient?.client === client) {
+      sdkClient = null;
+    }
     throw err;
   }
 }
@@ -394,8 +424,12 @@ export async function onePasswordBrowser(userId: string) {
         : "Connect a 1Password account first."
     );
   }
+  const auth =
+    backend === "sdk-service-account"
+      ? (process.env["OP_SERVICE_ACCOUNT_TOKEN"] ?? "").trim()
+      : account;
   const call = <T>(run: (client: SdkClient) => Promise<T>) =>
-    withSdkClient(backend, account, run);
+    withSdkClient(backend, auth, run);
   return {
     backend,
     account,
@@ -491,23 +525,28 @@ export function buildOnePasswordReference(opts: {
 }
 
 function remember(
-  reference: string,
+  values: Map<string, CacheEntry>,
+  key: string,
   value: string | null,
   ttlMs: number
 ): void {
   if (ttlMs <= 0) {
     return;
   }
-  cache.set(reference, { value, expiresAt: Date.now() + ttlMs });
+  values.set(key, { value, expiresAt: Date.now() + ttlMs });
 }
 
-function readViaCli(reference: string): Promise<string> {
-  const binary = process.env["NODETOOL_1PASSWORD_CLI"]?.trim() || "op";
+function readViaCli(
+  reference: string,
+  binary: string,
+  env: NodeJS.ProcessEnv
+): Promise<string> {
   return new Promise((resolve, reject) => {
     execFile(
       binary,
       ["read", "--no-newline", reference],
       {
+        env,
         timeout: CLI_TIMEOUT_MS,
         maxBuffer: MAX_SECRET_BYTES,
         windowsHide: true,

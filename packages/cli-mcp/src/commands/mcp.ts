@@ -31,7 +31,7 @@ const loadConfig = () => import("@nodetool-ai/websocket/mcp-client-config");
 
 /**
  * `--http` or `--url` selects the HTTP transport. Otherwise the client starts
- * `nodetool-mcp mcp serve` itself: through the installed CLI when it is on PATH,
+ * `nodetool-mcp serve` itself: through the installed CLI when it is on PATH,
  * or through `npx` when it is not.
  */
 export async function resolveLaunch(opts: LaunchOptions): Promise<McpLaunch> {

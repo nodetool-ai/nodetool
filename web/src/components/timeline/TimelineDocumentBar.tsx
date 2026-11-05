@@ -25,6 +25,7 @@ import AspectRatioOutlinedIcon from "@mui/icons-material/AspectRatioOutlined";
 import VideoLibraryOutlinedIcon from "@mui/icons-material/VideoLibraryOutlined";
 import SubjectIcon from "@mui/icons-material/Subject";
 import ViewSidebarOutlinedIcon from "@mui/icons-material/ViewSidebarOutlined";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { useDocumentDraftStore } from "../../stores/DocumentDraftStore";
 import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
 import type { WorkspaceTab } from "../../stores/WorkspaceTabsStore";
@@ -65,6 +66,9 @@ export interface TimelineDocumentBarProps {
   /** Shows or hides the right panel. Omit where there is none (phones). */
   onToggleSidePanel?: () => void;
   sidePanelVisible?: boolean;
+  /** Shows or hides Simple mode's assistant column. Omit where there is none. */
+  onToggleAssistant?: () => void;
+  assistantVisible?: boolean;
   onExportVideo?: () => void;
   isExporting?: boolean;
   onOpenSettings?: () => void;
@@ -134,6 +138,8 @@ export const TimelineDocumentBar: React.FC<TimelineDocumentBarProps> = memo(
     transcriptVisible = true,
     onToggleSidePanel,
     sidePanelVisible = true,
+    onToggleAssistant,
+    assistantVisible = true,
     onExportVideo,
     isExporting = false,
     onOpenSettings,
@@ -177,7 +183,11 @@ export const TimelineDocumentBar: React.FC<TimelineDocumentBarProps> = memo(
     const hasOverflowActions = modeInMenu || hasOtherOverflowActions;
 
     const view =
-      modeControls || workspaceMenu || onToggleTranscript || onToggleSidePanel ? (
+      modeControls ||
+      workspaceMenu ||
+      onToggleTranscript ||
+      onToggleSidePanel ||
+      onToggleAssistant ? (
         <>
           {modeControls}
           {workspaceMenu}
@@ -197,6 +207,21 @@ export const TimelineDocumentBar: React.FC<TimelineDocumentBarProps> = memo(
               active={sidePanelVisible}
             >
               <ViewSidebarOutlinedIcon />
+            </ToolbarIconButton>
+          )}
+          {onToggleAssistant && (
+            <ToolbarIconButton
+              onClick={onToggleAssistant}
+              tooltip={
+                assistantVisible
+                  ? t("timelineSimpleMode.hideAssistant")
+                  : t("timelineSimpleMode.showAssistant")
+              }
+              active={assistantVisible}
+              aria-pressed={assistantVisible}
+              data-testid="timeline-assistant-toggle"
+            >
+              <AutoAwesomeIcon />
             </ToolbarIconButton>
           )}
         </>

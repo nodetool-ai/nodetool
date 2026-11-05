@@ -1,0 +1,317 @@
+{
+  "id": "a89b2aa13aac99cffd539bd802a7de70",
+  "name": "Comfy Prompt Multi Batch Generation",
+  "description": "Send multiple prompts simultaneously to generate independent outputs in a single queue. Connect to Blueprint or Partner Nodes for batch processing of any modality. Use for prompt variation comparisons and batch generation. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "node basics",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Prompt Multi Batch Generation\n\nSend multiple prompts simultaneously to generate independent outputs in a single queue. Connect to Blueprint or Partner Nodes for batch processing of any modality. Use for prompt variation comparisons and batch generation. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/templates_purz_batch_generation.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.FL_PromptMulti",
+        "data": {
+          "positive_text": "Cinematic film photography, dark horse galloping in front with white Porsche sports car following behind on desert road at dusk, side tracking shot, motion blur, warm film grain, gradient twilight sky, moody editorial aesthetic\nUltra-realistic cinematic equestrian photography, man in teal shirt and white trousers riding a galloping brown horse, motion blur, deep turquoise sky, warm film grain aesthetic, shallow depth of field\nUltra-realistic macro photography, honeybee in flight over pink wildflowers, clear turquoise sky, vintage film aesthetic, shallow depth of field, warm natural tones\nVintage film photography, back view of a woman in a black dress running through a misty wildflower meadow, soft foggy atmosphere, muted green tones, subtle film grain",
+          "negative_text": "",
+          "name_prefix": "prompt_"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "FL Prompt Multi"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "36",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "z_image_turbo"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "62:30",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen_3_4b.safetensors",
+          "type": "lumina2",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "62:29",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "ae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "62:33",
+        "type": "comfy.ConditioningZeroOut",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Conditioning Zero Out"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "62:8",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "62:28",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "z_image_turbo_bf16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "62:27",
+        "type": "comfy.CLIPTextEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "62:13",
+        "type": "comfy.EmptySD3LatentImage",
+        "data": {
+          "width": 1024,
+          "height": 1024,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "EmptySD3LatentImage"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "62:11",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 3,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "ModelSamplingAuraFlow"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "62:3",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 0,
+          "steps": 8,
+          "cfg": 1,
+          "sampler_name": "res_multistep",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "62:8-0-36-images",
+        "source": "62:8",
+        "sourceHandle": "IMAGE",
+        "target": "36",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "62:27-0-62:33-conditioning",
+        "source": "62:27",
+        "sourceHandle": "CONDITIONING",
+        "target": "62:33",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "62:3-0-62:8-samples",
+        "source": "62:3",
+        "sourceHandle": "LATENT",
+        "target": "62:8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "62:29-0-62:8-vae",
+        "source": "62:29",
+        "sourceHandle": "VAE",
+        "target": "62:8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "1-0-62:27-text",
+        "source": "1",
+        "sourceHandle": "positive",
+        "target": "62:27",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "62:30-0-62:27-clip",
+        "source": "62:30",
+        "sourceHandle": "CLIP",
+        "target": "62:27",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "62:28-0-62:11-model",
+        "source": "62:28",
+        "sourceHandle": "MODEL",
+        "target": "62:11",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "62:11-0-62:3-model",
+        "source": "62:11",
+        "sourceHandle": "MODEL",
+        "target": "62:3",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "62:27-0-62:3-positive",
+        "source": "62:27",
+        "sourceHandle": "CONDITIONING",
+        "target": "62:3",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "62:33-0-62:3-negative",
+        "source": "62:33",
+        "sourceHandle": "CONDITIONING",
+        "target": "62:3",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "62:13-0-62:3-latent_image",
+        "source": "62:13",
+        "sourceHandle": "LATENT",
+        "target": "62:3",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      }
+    ]
+  }
+}

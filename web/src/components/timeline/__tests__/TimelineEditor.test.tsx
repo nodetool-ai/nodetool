@@ -641,6 +641,19 @@ describe("TimelineEditor", () => {
       ).not.toBeInTheDocument();
     });
 
+    it("docks the assistant at the right edge, with a toggle in the bar", async () => {
+      renderEditor();
+      const column = screen.getByTestId("assistant-side-dock");
+      expect(column).toContainElement(screen.getByTestId("assistant-panel"));
+      expect(column.parentElement?.lastElementChild).toBe(column);
+
+      const toggle = screen.getByTestId("timeline-assistant-toggle");
+      expect(toggle).toHaveAttribute("aria-pressed", "true");
+      await userEvent.click(toggle);
+      expect(screen.queryByTestId("assistant-panel")).not.toBeInTheDocument();
+      expect(toggle).toHaveAttribute("aria-pressed", "false");
+    });
+
     it("opens Project settings from a format chip", async () => {
       renderEditor();
       await userEvent.click(screen.getByTestId("timeline-simple-fps"));

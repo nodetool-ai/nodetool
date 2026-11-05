@@ -1,0 +1,256 @@
+{
+  "id": "b5ebbd5fbce19016511c75621c94e5c6",
+  "name": "Comfy HY 3D- Image to Model",
+  "description": "Upload an image to generate a 3D model with geometry and PBR textures. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "3d model",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy HY 3D- Image to Model\n\nUpload an image to generate a 3D model with geometry and PBR textures. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_hunyuan3d_image_to_model.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "pink_robot_front.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2",
+        "type": "comfy.TencentImageToModelNode",
+        "data": {
+          "model": "3.1",
+          "face_count": 500000,
+          "generate_type": "Normal",
+          "generate_type.pbr": true,
+          "seed": 382182111
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Hunyuan3D: Image(s) to Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "10",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "pink_robot_back.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13",
+        "type": "comfy.SaveGLB",
+        "data": {
+          "filename_prefix": "3d/hunyuan3d_image_to_3d"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save 3D Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "14",
+        "type": "comfy.SaveGLB",
+        "data": {
+          "filename_prefix": "3d/hunyuan3d_image_to_3d"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save 3D Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "17",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "HY_texture"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "HY_metallic"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "HY_normal"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "20",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "HY_roughness"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "1-0-2-image",
+        "source": "1",
+        "sourceHandle": "IMAGE",
+        "target": "2",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "10-0-2-image_back",
+        "source": "10",
+        "sourceHandle": "IMAGE",
+        "target": "2",
+        "targetHandle": "image_back",
+        "ui_properties": null
+      },
+      {
+        "id": "2-1-13-mesh",
+        "source": "2",
+        "sourceHandle": "GLB",
+        "target": "13",
+        "targetHandle": "mesh",
+        "ui_properties": null
+      },
+      {
+        "id": "2-2-14-mesh",
+        "source": "2",
+        "sourceHandle": "OBJ",
+        "target": "14",
+        "targetHandle": "mesh",
+        "ui_properties": null
+      },
+      {
+        "id": "2-3-17-images",
+        "source": "2",
+        "sourceHandle": "texture_image",
+        "target": "17",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "2-4-18-images",
+        "source": "2",
+        "sourceHandle": "optional_metallic",
+        "target": "18",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "2-5-19-images",
+        "source": "2",
+        "sourceHandle": "optional_normal",
+        "target": "19",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "2-6-20-images",
+        "source": "2",
+        "sourceHandle": "optional_roughness",
+        "target": "20",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

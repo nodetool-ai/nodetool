@@ -1,0 +1,78 @@
+{
+  "id": "99f9019b4ce56095fd05dfbf0c946350",
+  "name": "Comfy Runway- Text to Image",
+  "description": "Generate high-quality images from text prompts using Runway's AI model. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Runway- Text to Image\n\nGenerate high-quality images from text prompts using Runway's AI model. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_runway_text_to_image.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "3",
+        "type": "comfy.RunwayTextToImageNode",
+        "data": {
+          "prompt": "Close-up portrait of a 20-year-old Nordic girl with fair skin, delicate facial features, and long flowing hair, surrounded by softly drifting strands. Her skin has a gentle, dewy glow (not overly glossy). Vibrant, scattered color spots (pastel pinks, blues, greens) in a diffused, prismatic pattern dance across her face and hair, creating a dreamy, magical atmosphere—like light filtering through a rainbow-hued crystal. The focus is on her expressive eyes (with subtle catchlights mirroring the color spots) and subtle makeup. Ethereal lighting features soft shadows, pastel tones, and a blurred, cinematic depth of field, where the background bokeh echoes the same scattered color palette. Ultra-detailed, 8K quality, fantasy-inspired, with an emotional tone and a whimsical, otherworldly ambiance.",
+          "ratio": "1024:1024"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Runway Text to Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "6",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "3-0-6-images",
+        "source": "3",
+        "sourceHandle": "IMAGE",
+        "target": "6",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

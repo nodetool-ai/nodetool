@@ -2968,6 +2968,140 @@ export const audioConfig: ModuleConfig = {
           "message": "Model is required"
         }
       ]
+    },
+    {
+      "className": "Gemini38FlashTts",
+      "modelId": "google/gemini-3-8-flash-tts",
+      "title": "Gemini 3.8 Flash Text to speech",
+      "description": "Gemini 3.8 Flash Text to speech via Kie.ai.\n\n    kie, audio, ai\n\n    Text-to-speech with Gemini 3.8 Flash.",
+      "outputType": "audio",
+      "fields": [
+        {
+          "name": "temperature",
+          "type": "float",
+          "default": 1,
+          "title": "Temperature",
+          "description": "Sampling temperature, e.g., 1",
+          "required": false,
+          "min": 0,
+          "max": 2
+        },
+        {
+          "name": "speakers",
+          "type": "list[dict]",
+          "default": [],
+          "title": "Speakers",
+          "description": "List of speaker configurations. Each speaker uses either `voice_name` (preset voice) or `replica` (voice clone); the two are mutually exclusive. If neither is sent, the speaker defaults to `Fola`.",
+          "required": true
+        },
+        {
+          "name": "filler_words",
+          "type": "bool",
+          "default": false,
+          "title": "Filler Words",
+          "description": "Whether to insert filler words in two-speaker dialogue. Off by default (omit this field); when enabled, the request includes `\"filler_words\": true`. Only takes effect when `speakers` has two speakers (e.g. Speaker 1 and Speaker 2). When two people are speaking, you can turn on this switch.",
+          "required": false
+        },
+        {
+          "name": "dialogue_turns",
+          "type": "list[dict]",
+          "default": [],
+          "title": "Dialogue Turns",
+          "description": "List of dialogue turns, output in sequential order",
+          "required": true
+        }
+      ]
+    },
+    {
+      "className": "Gemini38FlashLiteTts",
+      "modelId": "google/gemini-3-8-flash-lite-tts",
+      "title": "Gemini 3.8 Flash Lite Text to speech",
+      "description": "Gemini 3.8 Flash Lite Text to speech via Kie.ai.\n\n    kie, audio, ai\n\n    Text-to-speech with Gemini 3.8 Flash Lite.",
+      "outputType": "audio",
+      "fields": [
+        {
+          "name": "temperature",
+          "type": "float",
+          "default": 1,
+          "title": "Temperature",
+          "description": "Sampling temperature, e.g., 1",
+          "required": false,
+          "min": 0,
+          "max": 2
+        },
+        {
+          "name": "speakers",
+          "type": "list[dict]",
+          "default": [],
+          "title": "Speakers",
+          "description": "List of speaker configurations. Each speaker uses either `voice_name` (preset voice) or `replica` (voice clone); the two are mutually exclusive. If neither is sent, the speaker defaults to `Fola`.",
+          "required": true
+        },
+        {
+          "name": "filler_words",
+          "type": "bool",
+          "default": false,
+          "title": "Filler Words",
+          "description": "Whether to insert filler words in two-speaker dialogue. Off by default (omit this field); when enabled, the request includes `\"filler_words\": true`. Only takes effect when `speakers` has two speakers (e.g. Speaker 1 and Speaker 2). When two people are speaking, you can turn on this switch.",
+          "required": false
+        },
+        {
+          "name": "dialogue_turns",
+          "type": "list[dict]",
+          "default": [],
+          "title": "Dialogue Turns",
+          "description": "List of dialogue turns, output in sequential order",
+          "required": true
+        }
+      ]
+    },
+    {
+      "className": "AiMusicApiValidationPhrase",
+      "modelId": "ai-music-api/validation-phrase",
+      "title": "Suno Voice Generate Verification Phrase API",
+      "description": "Suno Voice Generate Verification Phrase API via Kie.ai.\n\n    kie, audio, ai\n\n    :::warning Document updated",
+      "outputType": "audio",
+      "fields": [
+        {
+          "name": "voice_url",
+          "type": "str",
+          "default": "",
+          "title": "Voice Url",
+          "description": "The original recording URL uploaded by the user [Required]",
+          "required": true
+        },
+        {
+          "name": "vocal_start_s",
+          "type": "int",
+          "default": 0,
+          "title": "Vocal Start S",
+          "description": "Start time (in seconds) for extracting the vocal segment [Required]",
+          "required": true
+        },
+        {
+          "name": "vocal_end_s",
+          "type": "int",
+          "default": 0,
+          "title": "Vocal End S",
+          "description": "End time (in seconds) for extracting the vocal segment, must be greater than vocal_start_s [Required]",
+          "required": true
+        },
+        {
+          "name": "language",
+          "type": "str",
+          "default": "",
+          "title": "Language",
+          "description": "Verify the language of the short phrase. Supported languages ​​include: English (en), Chinese (zh), Spanish (es), French (fr), Portuguese (pt), German (de), Japanese (ja), Korean (ko), Hindi (hi), and Russian (ru).",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "voice_url",
+          "rule": "not_empty",
+          "message": "Voice Url is required"
+        }
+      ]
     }
   ]
 };

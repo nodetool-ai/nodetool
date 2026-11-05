@@ -1,0 +1,80 @@
+{
+  "id": "d44d91474cf8e0b0fce601b360b66f51",
+  "name": "Comfy Ideogram v4- Text to Image (API)",
+  "description": "Input a text prompt in structured JSON format. Generate a high-quality image with precise layout control, text rendering, and color palette support. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Ideogram v4- Text to Image (API)\n\nInput a text prompt in structured JSON format. Generate a high-quality image with precise layout control, text rendering, and color palette support. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_ideogram_v4_t2i.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "6",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ideogram_v4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.IdeogramV4",
+        "data": {
+          "prompt": "{\n  \"high_level_description\": \"A surreal, retro-futuristic vintage collage poster featuring a vintage orange train carriage suspended within a fluffy white cloud in a grainy blue sky. An astronaut sits casually on the edge of the floating train with a wooden ladder dangling to the rolling green meadows below, surrounded by nostalgic, distressed typographic elements evoking a cozy atmosphere.\",\n  \"style_description\": {\n    \"aesthetics\": \"surreal vintage collage poster, heavy nostalgic film grain, distressed textures, retro-futuristic montage, whimsical and cozy\",\n    \"lighting\": \"soft, dreamy ambient lighting with a flat, printed-poster illumination and faded shadows\",\n    \"photo\": \"vintage film scan, heavy analog film grain, halftone print artifacts\",\n    \"medium\": \"mixed media collage illustration, vintage poster design\",\n    \"color_palette\": [\n      \"#4A6B8A\",\n      \"#D96C33\",\n      \"#F0EAD6\",\n      \"#4C7348\",\n      \"#2B2522\"\n    ]\n  },\n  \"compositional_deconstruction\": {\n    \"background\": \"A vintage grainy blue sky that fades toward the horizon, transitioning into distant majestic rocky mountain peaks. Below the mountains, the bottom third of the frame is filled with a lush, rolling green meadow dotted with tiny, colorful wildflowers.\",\n    \"elements\": [\n      {\n        \"type\": \"obj\",\n        \"bbox\": [\n          750,\n          100,\n          850,\n          200\n        ],\n        \"desc\": \"A subtle crescent moon glowing gently in the upper right sky, featuring a faded, distressed vintage paper texture.\",\n        \"color_palette\": [\n          \"#E8E3D5\",\n          \"#C4BFB3\"\n        ]\n      },\n      {\n        \"type\": \"obj\",\n        \"bbox\": [\n          30,\n          30,\n          150,\n          80\n        ],\n        \"desc\": \"Small vintage typography reading 'STAY' positioned in the top left corner, styled in a distressed and faded white font.\",\n        \"color_palette\": [\n          \"#F4F1E1\",\n          \"#E6E2D6\"\n        ]\n      },\n      {\n        \"type\": \"obj\",\n        \"bbox\": [\n          850,\n          30,\n          970,\n          80\n        ],\n        \"desc\": \"Small vintage typography reading 'COZY' positioned in the top right corner, matching the distressed and faded aesthetic of the other text.\",\n        \"color_palette\": [\n          \"#F4F1E1\",\n          \"#E6E2D6\"\n        ]\n      },\n      {\n        \"type\": \"obj\",\n        \"bbox\": [\n          250,\n          200,\n          850,\n          400\n        ],\n        \"desc\": \"Large, bold, distressed white retro typography spelling 'COMFY', integrated directly into the background sky directly behind the train and cloud.\",\n        \"color_palette\": [\n          \"#FFFFFF\",\n          \"#F4F1E1\",\n          \"#E6E2D6\"\n        ]\n      },\n      {\n        \"type\": \"obj\",\n        \"bbox\": [\n          150,\n          200,\n          320,\n          300\n        ],\n        \"desc\": \"Smaller white distressed text reading 'RELAX IN THIS', placed on an angle in the mid-left sky area just to the left of the main 'COMFY' text.\",\n        \"color_palette\": [\n          \"#F4F1E1\",\n          \"#D8D4C7\"\n        ]\n      },\n      {\n        \"type\": \"obj\",\n        \"bbox\": [\n          250,\n          350,\n          750,\n          600\n        ],\n        \"desc\": \"A large, fluffy white cloud floating centrally in the sky. It has soft, rounded edges and a vintage halftone texture, acting as a magical nest for the train.\",\n        \"color_palette\": [\n          \"#FFFFFF\",\n          \"#F0EAD6\",\n          \"#D4CFCA\"\n        ]\n      },\n      {\n        \"type\": \"obj\",\n        \"bbox\": [\n          300,\n          380,\n          700,\n          520\n        ],\n        \"desc\": \"A vintage orange train carriage magically nestled inside the cloud, featuring retro metal siding, small windows, and heavily weathered paint.\",\n        \"color_palette\": [\n          \"#D96C33\",\n          \"#B54E1D\",\n          \"#7A4B3A\",\n          \"#F4F1E1\"\n        ]\n      },\n      {\n        \"type\": \"obj\",\n        \"bbox\": [\n          450,\n          460,\n          550,\n          580\n        ],\n        \"desc\": \"An astronaut wearing a retro orange spacesuit and helmet, sitting casually and comfortably with legs dangling off the bottom edge of the floating train.\",\n        \"color_palette\": [\n          \"#D96C33\",\n          \"#F0EAD6\",\n          \"#3A4550\"\n        ]\n      },\n      {\n        \"type\": \"obj\",\n        \"bbox\": [\n          480,\n          520,\n          520,\n          900\n        ],\n        \"desc\": \"A long, rustic wooden ladder dangling straight down from the open doorway of the train carriage towards the grassy meadow below.\",\n        \"color_palette\": [\n          \"#7A4B3A\",\n          \"#5C3A21\",\n          \"#3B2615\"\n        ]\n      },\n      {\n        \"type\": \"obj\",\n        \"bbox\": [\n          100,\n          880,\n          900,\n          970\n        ],\n        \"desc\": \"A long quote written in a small vintage serif font, overlaid across the grassy hill at the bottom: 'Sometimes just slowing down is exactly what you need. The right environment and comfort should be used to find true peace. Just rushing blindly is never enough. Take a deep breath and relax.'\",\n        \"color_palette\": [\n          \"#F4F1E1\",\n          \"#E6E2D6\"\n        ]\n      }\n    ]\n  }\n}",
+          "resolution": "Auto",
+          "rendering_speed": "DEFAULT",
+          "seed": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "IdeogramV4 — JSON prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "7-0-6-images",
+        "source": "7",
+        "sourceHandle": "IMAGE",
+        "target": "6",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

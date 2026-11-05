@@ -135,6 +135,10 @@ export class Wt1Device extends WorkletInstrumentDevice {
     }
   }
 
+  protected get authoredParams(): Readonly<Record<string, number>> {
+    return this.params;
+  }
+
   setInstrument(instrument: MidiInstrument): void {
     if (instrument.type !== "wavetable") return;
     this.applyParams({ ...wt1ParamsFromInstrument(instrument), "seq.bpm": this.bpm });

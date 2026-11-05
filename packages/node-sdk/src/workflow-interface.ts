@@ -1,3 +1,4 @@
+import { exposeComfyInterface } from "@nodetool-ai/protocol";
 import type { NodeMetadata, TypeMetadata } from "./metadata.js";
 import {
   isBoolean,
@@ -475,8 +476,9 @@ export function deriveWorkflowInterfaceV1(args: {
   registry: WorkflowInterfaceRegistry;
 }): WorkflowInterfaceV1 {
   const diagnostics: WorkflowInterfaceDiagnostic[] = [];
-  const nodes = Array.isArray(args.graph.nodes) ? args.graph.nodes : [];
-  const edges = Array.isArray(args.graph.edges) ? args.graph.edges : [];
+  const rawNodes = Array.isArray(args.graph.nodes) ? args.graph.nodes : [];
+  const rawEdges = Array.isArray(args.graph.edges) ? args.graph.edges : [];
+  const { nodes, edges } = exposeComfyInterface({ nodes: rawNodes, edges: rawEdges });
   const nodesById = new Map<string, WorkflowInterfaceGraphNode>();
   for (const node of nodes) {
     if (isString(node.id)) nodesById.set(node.id, node);

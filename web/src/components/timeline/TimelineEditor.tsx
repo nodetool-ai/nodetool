@@ -61,6 +61,7 @@ import {
   TabGroup,
   type TabItem,
   ToolbarIconButton,
+  ResizableDock,
   ResizeHandle
 } from "../ui_primitives";
 import { isElectron, isLocalhost } from "../../lib/env";
@@ -182,6 +183,9 @@ import "./fonts.css";
 /** Phone drag handle — 6px is under any reasonable touch target. */
 const TOUCH_HANDLE_HEIGHT_PX = SPACING.xxl * 4;
 /** Phone layout only: on desktop the dock sizes the Timeline panel. */
+/** Width of Simple mode's assistant column, in px. Matches the other editors. */
+const SIMPLE_ASSISTANT_WIDTH = 340;
+
 const DEFAULT_TRACKS_HEIGHT_PX = 240;
 const MIN_TRACKS_HEIGHT_PX = 80;
 const MAX_TRACKS_HEIGHT_PX = 600;
@@ -599,6 +603,14 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   const simpleMode = editorMode === "simple";
   /** Phones and Simple mode stack the preview over the tracks, with no dock. */
   const stacked = isMobile || simpleMode;
+  // Simple mode docks the assistant at the right edge on desktop, as the
+  // other editors do. Phones keep the stacked editor alone.
+  const [simpleAssistantOpen, setSimpleAssistantOpen] = useState(true);
+  const toggleSimpleAssistant = useCallback(
+    () => setSimpleAssistantOpen((open) => !open),
+    []
+  );
+  const simpleAssistantShown = simpleMode && !isMobile && simpleAssistantOpen;
   const [generateOpen, setGenerateOpen] = useState(false);
   const openGenerate = useCallback(() => setGenerateOpen(true), []);
   const closeGenerate = useCallback(() => setGenerateOpen(false), []);
@@ -1164,6 +1176,10 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       modeControls={modeControls}
       editorMode={editorMode}
       onSetEditorMode={setEditorMode}
+      onToggleAssistant={
+        isMobile || sequenceUnavailable ? undefined : toggleSimpleAssistant
+      }
+      assistantVisible={simpleAssistantOpen}
       onExportVideo={sequenceUnavailable ? undefined : handleExportVideo}
       isExporting={isExporting}
     />
@@ -1310,6 +1326,20 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       </>
       )}
       </FlexColumn>
+      {simpleAssistantShown && !sequenceUnavailable && (
+        <ResizableDock
+          storageKey="timeline_simple_assistant"
+          defaultWidth={SIMPLE_ASSISTANT_WIDTH}
+          ariaLabel={t("timelineSimpleMode.resizeAssistant")}
+        >
+          <FlexColumn
+            fullWidth
+            sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}
+          >
+            <TimelineAgentPanel />
+          </FlexColumn>
+        </ResizableDock>
+      )}
       </FlexRow>
       ) : (
       /* ── Desktop: the dock ─────────────────────────────────────── */

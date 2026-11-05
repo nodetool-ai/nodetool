@@ -111228,5 +111228,5380 @@
         "description": "Constrains effort on reasoning."
       }
     ]
+  },
+  {
+    "endpointId": "quiverai/arrow-1.1",
+    "className": "Arrow_1_1",
+    "moduleName": "image-generate",
+    "docstring": "Generate editable SVG graphics from text prompts with Quiver's Arrow 1.1 model. Great for icons, logos, and illustrations.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "image",
+    "inputFields": [
+      {
+        "name": "instructions",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Additional style or formatting guidance, separate from the prompt.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "presence_penalty",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0,
+        "description": "Penalty for tokens already present in prior output.",
+        "fieldType": "input",
+        "required": false,
+        "min": -2,
+        "max": 2
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text description of the desired SVG.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "references",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "Optional reference images (PNG, JPEG, or WebP) to guide generation. Arrow 1.1 supports up to 4; Arrow 1.1 Max supports up to 16.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "temperature",
+        "tsType": "number",
+        "propType": "float",
+        "default": 1,
+        "description": "Sampling temperature. Lower is more deterministic.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 2
+      },
+      {
+        "name": "top_p",
+        "tsType": "number",
+        "propType": "float",
+        "default": 1,
+        "description": "Nucleus sampling probability.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 1
+      }
+    ],
+    "outputFields": [],
+    "enums": []
+  },
+  {
+    "endpointId": "quiverai/arrow-1.1-max",
+    "className": "Arrow_1_1_Max",
+    "moduleName": "image-generate",
+    "docstring": "Generate high-fidelity SVG graphics from text prompts with Quiver's Arrow 1.1 Max model. Tuned for dense illustrations, detailed logos, and technical diagrams.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "image",
+    "inputFields": [
+      {
+        "name": "instructions",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Additional style or formatting guidance, separate from the prompt.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "presence_penalty",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0,
+        "description": "Penalty for tokens already present in prior output.",
+        "fieldType": "input",
+        "required": false,
+        "min": -2,
+        "max": 2
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text description of the desired SVG.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "references",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "Optional reference images (PNG, JPEG, or WebP) to guide generation. Arrow 1.1 supports up to 4; Arrow 1.1 Max supports up to 16.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "temperature",
+        "tsType": "number",
+        "propType": "float",
+        "default": 1,
+        "description": "Sampling temperature. Lower is more deterministic.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 2
+      },
+      {
+        "name": "top_p",
+        "tsType": "number",
+        "propType": "float",
+        "default": 1,
+        "description": "Nucleus sampling probability.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 1
+      }
+    ],
+    "outputFields": [],
+    "enums": []
+  },
+  {
+    "endpointId": "quiverai/arrow-1.1-vectorize",
+    "className": "Arrow_1_1_Vectorize",
+    "moduleName": "image-generate",
+    "docstring": "Convert raster images (PNG, JPEG, WebP) into clean SVGs with Quiver's Arrow 1.1 vectorization model. Great for turning logos and icons into editable vectors.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "image",
+    "inputFields": [
+      {
+        "name": "auto_crop",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Automatically crop the image to the dominant subject before vectorization.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Input raster image (PNG, JPEG, or WebP) to convert to SVG.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "presence_penalty",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0,
+        "description": "Penalty for tokens already present in prior output.",
+        "fieldType": "input",
+        "required": false,
+        "min": -2,
+        "max": 2
+      },
+      {
+        "name": "target_size",
+        "tsType": "number",
+        "propType": "int",
+        "default": 0,
+        "description": "Square resize target in pixels (128 - 4096). Set to 0 to leave the image at its original size.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 4096
+      },
+      {
+        "name": "temperature",
+        "tsType": "number",
+        "propType": "float",
+        "default": 1,
+        "description": "Sampling temperature. Lower is more deterministic.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 2
+      },
+      {
+        "name": "top_p",
+        "tsType": "number",
+        "propType": "float",
+        "default": 1,
+        "description": "Nucleus sampling probability.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 1
+      }
+    ],
+    "outputFields": [],
+    "enums": []
+  },
+  {
+    "endpointId": "quiverai/arrow-1.1-max-vectorize",
+    "className": "Arrow_1_1_Max_Vectorize",
+    "moduleName": "image-generate",
+    "docstring": "Convert complex raster images into high-fidelity SVGs with Quiver's Arrow 1.1 Max vectorization model. Tuned for detailed images where fine structure and alignment matter.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "image",
+    "inputFields": [
+      {
+        "name": "auto_crop",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Automatically crop the image to the dominant subject before vectorization.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Input raster image (PNG, JPEG, or WebP) to convert to SVG.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "presence_penalty",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0,
+        "description": "Penalty for tokens already present in prior output.",
+        "fieldType": "input",
+        "required": false,
+        "min": -2,
+        "max": 2
+      },
+      {
+        "name": "target_size",
+        "tsType": "number",
+        "propType": "int",
+        "default": 0,
+        "description": "Square resize target in pixels (128 - 4096). Set to 0 to leave the image at its original size.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 4096
+      },
+      {
+        "name": "temperature",
+        "tsType": "number",
+        "propType": "float",
+        "default": 1,
+        "description": "Sampling temperature. Lower is more deterministic.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 2
+      },
+      {
+        "name": "top_p",
+        "tsType": "number",
+        "propType": "float",
+        "default": 1,
+        "description": "Nucleus sampling probability.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 1
+      }
+    ],
+    "outputFields": [],
+    "enums": []
+  },
+  {
+    "endpointId": "google/nano-banana-2.1",
+    "className": "Nano_Banana_2_1",
+    "moduleName": "image-generate",
+    "docstring": "Google's fast image generation and editing model, with sharp text rendering, multi-image editing, and up to 4K output.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "image",
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "match_input_image",
+        "description": "Aspect ratio of the generated image",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "match_input_image",
+          "1:1",
+          "1:4",
+          "1:8",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:1",
+          "4:3",
+          "4:5",
+          "5:4",
+          "8:1",
+          "9:16",
+          "16:9",
+          "21:9"
+        ]
+      },
+      {
+        "name": "google_search",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Use Google Web Search grounding to generate images based on real-time information (e.g. weather, sports scores, recent events).",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "image_input",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "Input images to transform or use as reference (supports up to 14 images)",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "image_search",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Use Google Image Search grounding to find web images as visual context for generation. When enabled, web search is also used automatically.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "jpg",
+        "description": "Format of the output image",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "jpg",
+          "png"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "A text description of the image you want to generate",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "1K",
+        "description": "Resolution of the generated image. Higher resolutions take longer to generate.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "1K",
+          "2K",
+          "4K"
+        ]
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "MATCH_INPUT_IMAGE",
+            "match_input_image"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_1_4",
+            "1:4"
+          ],
+          [
+            "RATIO_1_8",
+            "1:8"
+          ],
+          [
+            "RATIO_2_3",
+            "2:3"
+          ],
+          [
+            "RATIO_3_2",
+            "3:2"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_4_1",
+            "4:1"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_4_5",
+            "4:5"
+          ],
+          [
+            "RATIO_5_4",
+            "5:4"
+          ],
+          [
+            "RATIO_8_1",
+            "8:1"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_21_9",
+            "21:9"
+          ]
+        ],
+        "description": "Aspect ratio of the generated image"
+      },
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "JPG",
+            "jpg"
+          ],
+          [
+            "PNG",
+            "png"
+          ]
+        ],
+        "description": "Format of the output image"
+      },
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "_1K",
+            "1K"
+          ],
+          [
+            "_2K",
+            "2K"
+          ],
+          [
+            "_4K",
+            "4K"
+          ]
+        ],
+        "description": "Resolution of the generated image. Higher resolutions take longer to generate."
+      }
+    ]
+  },
+  {
+    "endpointId": "black-forest-labs/flux-3-image",
+    "className": "Flux_3_Image",
+    "moduleName": "image-generate",
+    "docstring": "FLUX 3 is Black Forest Labs' text-to-image and image-editing model. Generate images from a prompt, or edit with up to 10 reference images.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "image",
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Aspect ratio of the generated image. 'auto' picks the ratio from the prompt and the first reference image.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "auto",
+          "21:9",
+          "2:1",
+          "16:9",
+          "3:2",
+          "7:5",
+          "4:3",
+          "5:4",
+          "1:1",
+          "4:5",
+          "3:4",
+          "5:7",
+          "2:3",
+          "9:16",
+          "1:2",
+          "9:21"
+        ]
+      },
+      {
+        "name": "grounding",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Let the model research the prompt with web search and image search before generating.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "Up to 10 reference images the prompt edits or draws from. When present, the request runs as an edit and the first image drives 'auto' aspect ratio. Each image must be at least 256x256 px and at most 16 MP. Must be jpeg, png, gif, or webp.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "webp",
+        "description": "Format of the output images.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "webp",
+          "jpg",
+          "png"
+        ]
+      },
+      {
+        "name": "output_quality",
+        "tsType": "number",
+        "propType": "int",
+        "default": 80,
+        "description": "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 100
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text description of the image to generate, or of the edit to apply to the reference images.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "1k",
+        "description": "Resolution of the output image. Input images are resized to the closest bin, up to 2k.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "768sq",
+          "1k",
+          "1.5k",
+          "2k",
+          "4k"
+        ]
+      },
+      {
+        "name": "safety_tolerance",
+        "tsType": "number",
+        "propType": "int",
+        "default": 2,
+        "description": "Moderation tolerance for inputs and outputs. 0 is the strictest, 4 is the most permissive.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 4
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "RATIO_21_9",
+            "21:9"
+          ],
+          [
+            "RATIO_2_1",
+            "2:1"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_3_2",
+            "3:2"
+          ],
+          [
+            "RATIO_7_5",
+            "7:5"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_5_4",
+            "5:4"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_4_5",
+            "4:5"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_5_7",
+            "5:7"
+          ],
+          [
+            "RATIO_2_3",
+            "2:3"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_1_2",
+            "1:2"
+          ],
+          [
+            "RATIO_9_21",
+            "9:21"
+          ]
+        ],
+        "description": "Aspect ratio of the generated image. 'auto' picks the ratio from the prompt and the first reference image."
+      },
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "WEBP",
+            "webp"
+          ],
+          [
+            "JPG",
+            "jpg"
+          ],
+          [
+            "PNG",
+            "png"
+          ]
+        ],
+        "description": "Format of the output images."
+      },
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "_768SQ",
+            "768sq"
+          ],
+          [
+            "_1K",
+            "1k"
+          ],
+          [
+            "_1_5K",
+            "1.5k"
+          ],
+          [
+            "_2K",
+            "2k"
+          ],
+          [
+            "_4K",
+            "4k"
+          ]
+        ],
+        "description": "Resolution of the output image. Input images are resized to the closest bin, up to 2k."
+      }
+    ]
+  },
+  {
+    "endpointId": "black-forest-labs/flux-1.1-pro",
+    "className": "Flux_1_1_Pro",
+    "moduleName": "image-generate",
+    "docstring": "Faster, better FLUX Pro. Text-to-image model with excellent image quality, prompt adherence, and output diversity.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "image",
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "1:1",
+        "description": "Aspect ratio for the generated image",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "custom",
+          "1:1",
+          "16:9",
+          "3:2",
+          "2:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "3:4",
+          "4:3"
+        ]
+      },
+      {
+        "name": "height",
+        "tsType": "number",
+        "propType": "int",
+        "default": 0,
+        "description": "Height of the generated image in text-to-image mode. Only used when aspect_ratio=custom. Must be a multiple of 32 (if it's not, it will be rounded to nearest multiple of 32). Note: Ignored in img2img and inpainting modes.",
+        "fieldType": "input",
+        "required": false,
+        "min": 256,
+        "max": 1440
+      },
+      {
+        "name": "image_prompt",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Image to use with Flux Redux. This is used together with the text prompt to guide the generation towards the composition of the image_prompt. Must be jpeg, png, gif, or webp.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "webp",
+        "description": "Format of the output images.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "webp",
+          "jpg",
+          "png"
+        ]
+      },
+      {
+        "name": "output_quality",
+        "tsType": "number",
+        "propType": "int",
+        "default": 80,
+        "description": "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 100
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt for image generation",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "prompt_upsampling",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Automatically modify the prompt for more creative generation",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "safety_tolerance",
+        "tsType": "number",
+        "propType": "int",
+        "default": 2,
+        "description": "Safety tolerance, 1 is most strict and 6 is most permissive",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 6
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "Random seed. Set for reproducible generation",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "width",
+        "tsType": "number",
+        "propType": "int",
+        "default": 0,
+        "description": "Width of the generated image in text-to-image mode. Only used when aspect_ratio=custom. Must be a multiple of 32 (if it's not, it will be rounded to nearest multiple of 32). Note: Ignored in img2img and inpainting modes.",
+        "fieldType": "input",
+        "required": false,
+        "min": 256,
+        "max": 1440
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "CUSTOM",
+            "custom"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_3_2",
+            "3:2"
+          ],
+          [
+            "RATIO_2_3",
+            "2:3"
+          ],
+          [
+            "RATIO_4_5",
+            "4:5"
+          ],
+          [
+            "RATIO_5_4",
+            "5:4"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ]
+        ],
+        "description": "Aspect ratio for the generated image"
+      },
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "WEBP",
+            "webp"
+          ],
+          [
+            "JPG",
+            "jpg"
+          ],
+          [
+            "PNG",
+            "png"
+          ]
+        ],
+        "description": "Format of the output images."
+      }
+    ]
+  },
+  {
+    "endpointId": "krea/krea-3",
+    "className": "Krea_3",
+    "moduleName": "image-generate",
+    "docstring": "Krea 3 is a fast image editing model that follows plain-language instructions. It also generates images from text.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "image",
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Aspect ratio of the output. 'auto' picks the framing from your input images and prompt.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "auto",
+          "1:1",
+          "4:5",
+          "3:4",
+          "2:3",
+          "9:16",
+          "5:4",
+          "4:3",
+          "3:2",
+          "16:9",
+          "21:9"
+        ]
+      },
+      {
+        "name": "images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "Up to 8 input images to edit or combine. Leave empty for text-to-image generation. When using several images, refer to each by what it shows in the prompt.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "negative_prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "What to avoid in the output.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Instruction describing the image to generate, or the edit to make. For edits, say what should change and what should stay the same.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "regional_edit",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Experimental. Change only the parts of the image that need to change and keep the rest unchanged. Needs at least one input image. Quality may be lower and generation slower than a regular edit.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "2k",
+        "description": "Output resolution.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "1k",
+          "2k"
+        ]
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "Random seed. Reusing a seed does not guarantee identical results, because the prompt is expanded before generation.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "thinking_mode",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "fast",
+        "description": "How much planning happens before generation. 'fast' is quicker and works for most requests. 'high' plans complex or multi-step edits more carefully, but is slower and costs more.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "ThinkingMode",
+        "enumValues": [
+          "fast",
+          "high"
+        ]
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_4_5",
+            "4:5"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_2_3",
+            "2:3"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_5_4",
+            "5:4"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_3_2",
+            "3:2"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_21_9",
+            "21:9"
+          ]
+        ],
+        "description": "Aspect ratio of the output. 'auto' picks the framing from your input images and prompt."
+      },
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "_1K",
+            "1k"
+          ],
+          [
+            "_2K",
+            "2k"
+          ]
+        ],
+        "description": "Output resolution."
+      },
+      {
+        "name": "ThinkingMode",
+        "values": [
+          [
+            "FAST",
+            "fast"
+          ],
+          [
+            "HIGH",
+            "high"
+          ]
+        ],
+        "description": "How much planning happens before generation. 'fast' is quicker and works for most requests. 'high' plans complex or multi-step edits more carefully, but is slower and costs more."
+      }
+    ]
+  },
+  {
+    "endpointId": "ideogram-ai/ideogram-4-5",
+    "className": "Ideogram_4_5",
+    "moduleName": "image-generate",
+    "docstring": "Generate and edit images with Ideogram 4.5, the latest for precise image generation.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "image",
+    "inputFields": [
+      {
+        "name": "images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "Up to 5 source images to edit. Omit for text-to-image generation. When a mask is provided, the first image is edited and the rest are used as references.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "mask",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Optional black and white mask for editing. Black pixels are edited, white pixels are preserved. Only used when at least one source image is provided. When a mask is used, the output matches the source size and the size input is ignored.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "num_images",
+        "tsType": "number",
+        "propType": "int",
+        "default": 1,
+        "description": "Number of images to generate.",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 8
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt. Describe the image to generate, or the edit to apply to the source images.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "quality",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "medium",
+        "description": "Edit quality. Higher quality is slower and more expensive.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Quality",
+        "enumValues": [
+          "very_low",
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "Random seed. Set for reproducible generation.",
+        "fieldType": "input",
+        "required": false,
+        "max": 2147483647
+      },
+      {
+        "name": "size",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "source",
+        "description": "Output size. 'source' preserves the source image proportions. Ignored when a mask is provided.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Size",
+        "enumValues": [
+          "source",
+          "1024x1024",
+          "1280x896",
+          "896x1280",
+          "1344x768",
+          "768x1344",
+          "1536x640",
+          "640x1536"
+        ]
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "Quality",
+        "values": [
+          [
+            "VERY_LOW",
+            "very_low"
+          ],
+          [
+            "LOW",
+            "low"
+          ],
+          [
+            "MEDIUM",
+            "medium"
+          ],
+          [
+            "HIGH",
+            "high"
+          ]
+        ],
+        "description": "Edit quality. Higher quality is slower and more expensive."
+      },
+      {
+        "name": "Size",
+        "values": [
+          [
+            "SOURCE",
+            "source"
+          ],
+          [
+            "_1024X1024",
+            "1024x1024"
+          ],
+          [
+            "_1280X896",
+            "1280x896"
+          ],
+          [
+            "_896X1280",
+            "896x1280"
+          ],
+          [
+            "_1344X768",
+            "1344x768"
+          ],
+          [
+            "_768X1344",
+            "768x1344"
+          ],
+          [
+            "_1536X640",
+            "1536x640"
+          ],
+          [
+            "_640X1536",
+            "640x1536"
+          ]
+        ],
+        "description": "Output size. 'source' preserves the source image proportions. Ignored when a mask is provided."
+      }
+    ]
+  },
+  {
+    "endpointId": "ideogram-ai/ideogram-4-5-precise-edit",
+    "className": "Ideogram_4_5_Precise_Edit",
+    "moduleName": "image-generate",
+    "docstring": "Precisely edit source images with Ideogram 4.5.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "image",
+    "inputFields": [
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "The source image to edit.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "mask",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Optional black and white mask matching the source dimensions. Black pixels are edited, white pixels are preserved.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "num_images",
+        "tsType": "number",
+        "propType": "int",
+        "default": 1,
+        "description": "Number of images to generate.",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 8
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt describing the edit to apply.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "quality",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "medium",
+        "description": "Edit quality. Higher quality is slower and more expensive.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Quality",
+        "enumValues": [
+          "very_low",
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      {
+        "name": "reference_images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "Up to 4 reference images to guide the edit (3 when a mask is provided).",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "Random seed. Set for reproducible generation.",
+        "fieldType": "input",
+        "required": false,
+        "max": 2147483647
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "Quality",
+        "values": [
+          [
+            "VERY_LOW",
+            "very_low"
+          ],
+          [
+            "LOW",
+            "low"
+          ],
+          [
+            "MEDIUM",
+            "medium"
+          ],
+          [
+            "HIGH",
+            "high"
+          ]
+        ],
+        "description": "Edit quality. Higher quality is slower and more expensive."
+      }
+    ]
+  },
+  {
+    "endpointId": "openai/gpt-image-2.5-flare",
+    "className": "GPT_Image_2_5_Flare",
+    "moduleName": "image-generate",
+    "docstring": "OpenAI's fastest model for high-quality, everyday image generation. Generate and edit images from text and image inputs with strong instruction following and sharp text rendering.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "image",
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "1:1",
+        "description": "The size of the generated image. Use 'auto' to let the model pick. Sizes above 2560x1440 are experimental and may give more variable results.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "1:1",
+          "3:2",
+          "2:3",
+          "4:3",
+          "3:4",
+          "16:9",
+          "9:16",
+          "auto",
+          "1024x1024",
+          "1536x1024",
+          "1024x1536",
+          "1536x1152",
+          "1152x1536",
+          "2048x2048",
+          "2048x1152",
+          "1152x2048",
+          "3840x2160",
+          "2160x3840"
+        ]
+      },
+      {
+        "name": "background",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Set whether the background is transparent or opaque or choose automatically",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Background",
+        "enumValues": [
+          "auto",
+          "transparent",
+          "opaque"
+        ]
+      },
+      {
+        "name": "input_images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "A list of images to use as input for the generation",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "moderation",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Content moderation level",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Moderation",
+        "enumValues": [
+          "auto",
+          "low"
+        ]
+      },
+      {
+        "name": "number_of_images",
+        "tsType": "number",
+        "propType": "int",
+        "default": 1,
+        "description": "Number of images to generate (1-10)",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 10
+      },
+      {
+        "name": "openai_api_key",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Your OpenAI API key (optional - uses proxy if not provided)",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "output_compression",
+        "tsType": "number",
+        "propType": "int",
+        "default": 90,
+        "description": "Compression level (0-100%)",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 100
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "webp",
+        "description": "Output format",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "png",
+          "jpeg",
+          "webp"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "A text description of the desired image",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "quality",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "The quality of the generated image. Higher quality takes longer and costs more.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Quality",
+        "enumValues": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+          "auto"
+        ]
+      },
+      {
+        "name": "user_id",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "An optional unique identifier representing your end-user. This helps OpenAI monitor and detect abuse.",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_3_2",
+            "3:2"
+          ],
+          [
+            "RATIO_2_3",
+            "2:3"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "_1024X1024",
+            "1024x1024"
+          ],
+          [
+            "_1536X1024",
+            "1536x1024"
+          ],
+          [
+            "_1024X1536",
+            "1024x1536"
+          ],
+          [
+            "_1536X1152",
+            "1536x1152"
+          ],
+          [
+            "_1152X1536",
+            "1152x1536"
+          ],
+          [
+            "_2048X2048",
+            "2048x2048"
+          ],
+          [
+            "_2048X1152",
+            "2048x1152"
+          ],
+          [
+            "_1152X2048",
+            "1152x2048"
+          ],
+          [
+            "_3840X2160",
+            "3840x2160"
+          ],
+          [
+            "_2160X3840",
+            "2160x3840"
+          ]
+        ],
+        "description": "The size of the generated image. Use 'auto' to let the model pick. Sizes above 2560x1440 are experimental and may give more variable results."
+      },
+      {
+        "name": "Background",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "TRANSPARENT",
+            "transparent"
+          ],
+          [
+            "OPAQUE",
+            "opaque"
+          ]
+        ],
+        "description": "Set whether the background is transparent or opaque or choose automatically"
+      },
+      {
+        "name": "Moderation",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "LOW",
+            "low"
+          ]
+        ],
+        "description": "Content moderation level"
+      },
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "PNG",
+            "png"
+          ],
+          [
+            "JPEG",
+            "jpeg"
+          ],
+          [
+            "WEBP",
+            "webp"
+          ]
+        ],
+        "description": "Output format"
+      },
+      {
+        "name": "Quality",
+        "values": [
+          [
+            "LOW",
+            "low"
+          ],
+          [
+            "MEDIUM",
+            "medium"
+          ],
+          [
+            "HIGH",
+            "high"
+          ],
+          [
+            "XHIGH",
+            "xhigh"
+          ],
+          [
+            "MAX",
+            "max"
+          ],
+          [
+            "AUTO",
+            "auto"
+          ]
+        ],
+        "description": "The quality of the generated image. Higher quality takes longer and costs more."
+      }
+    ]
+  },
+  {
+    "endpointId": "openai/gpt-image-2.5-sunburst",
+    "className": "GPT_Image_2_5_Sunburst",
+    "moduleName": "image-generate",
+    "docstring": "OpenAI's most capable image model, built for workflows where editing precision matters most. Generate and edit images from text and image inputs with strong instruction following, sharp text rendering, and detailed control.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "image",
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "1:1",
+        "description": "The size of the generated image. Use 'auto' to let the model pick. Sizes above 2560x1440 are experimental and may give more variable results.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "1:1",
+          "3:2",
+          "2:3",
+          "4:3",
+          "3:4",
+          "16:9",
+          "9:16",
+          "auto",
+          "1024x1024",
+          "1536x1024",
+          "1024x1536",
+          "1536x1152",
+          "1152x1536",
+          "2048x2048",
+          "2048x1152",
+          "1152x2048",
+          "3840x2160",
+          "2160x3840"
+        ]
+      },
+      {
+        "name": "background",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Set whether the background is transparent or opaque or choose automatically",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Background",
+        "enumValues": [
+          "auto",
+          "transparent",
+          "opaque"
+        ]
+      },
+      {
+        "name": "input_images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "A list of images to use as input for the generation",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "moderation",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Content moderation level",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Moderation",
+        "enumValues": [
+          "auto",
+          "low"
+        ]
+      },
+      {
+        "name": "number_of_images",
+        "tsType": "number",
+        "propType": "int",
+        "default": 1,
+        "description": "Number of images to generate (1-10)",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 10
+      },
+      {
+        "name": "openai_api_key",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Your OpenAI API key (optional - uses proxy if not provided)",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "output_compression",
+        "tsType": "number",
+        "propType": "int",
+        "default": 90,
+        "description": "Compression level (0-100%)",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 100
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "webp",
+        "description": "Output format",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "png",
+          "jpeg",
+          "webp"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "A text description of the desired image",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "quality",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "The quality of the generated image. Higher quality takes longer and costs more.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Quality",
+        "enumValues": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+          "auto"
+        ]
+      },
+      {
+        "name": "user_id",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "An optional unique identifier representing your end-user. This helps OpenAI monitor and detect abuse.",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_3_2",
+            "3:2"
+          ],
+          [
+            "RATIO_2_3",
+            "2:3"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "_1024X1024",
+            "1024x1024"
+          ],
+          [
+            "_1536X1024",
+            "1536x1024"
+          ],
+          [
+            "_1024X1536",
+            "1024x1536"
+          ],
+          [
+            "_1536X1152",
+            "1536x1152"
+          ],
+          [
+            "_1152X1536",
+            "1152x1536"
+          ],
+          [
+            "_2048X2048",
+            "2048x2048"
+          ],
+          [
+            "_2048X1152",
+            "2048x1152"
+          ],
+          [
+            "_1152X2048",
+            "1152x2048"
+          ],
+          [
+            "_3840X2160",
+            "3840x2160"
+          ],
+          [
+            "_2160X3840",
+            "2160x3840"
+          ]
+        ],
+        "description": "The size of the generated image. Use 'auto' to let the model pick. Sizes above 2560x1440 are experimental and may give more variable results."
+      },
+      {
+        "name": "Background",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "TRANSPARENT",
+            "transparent"
+          ],
+          [
+            "OPAQUE",
+            "opaque"
+          ]
+        ],
+        "description": "Set whether the background is transparent or opaque or choose automatically"
+      },
+      {
+        "name": "Moderation",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "LOW",
+            "low"
+          ]
+        ],
+        "description": "Content moderation level"
+      },
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "PNG",
+            "png"
+          ],
+          [
+            "JPEG",
+            "jpeg"
+          ],
+          [
+            "WEBP",
+            "webp"
+          ]
+        ],
+        "description": "Output format"
+      },
+      {
+        "name": "Quality",
+        "values": [
+          [
+            "LOW",
+            "low"
+          ],
+          [
+            "MEDIUM",
+            "medium"
+          ],
+          [
+            "HIGH",
+            "high"
+          ],
+          [
+            "XHIGH",
+            "xhigh"
+          ],
+          [
+            "MAX",
+            "max"
+          ],
+          [
+            "AUTO",
+            "auto"
+          ]
+        ],
+        "description": "The quality of the generated image. Higher quality takes longer and costs more."
+      }
+    ]
+  },
+  {
+    "endpointId": "openai/dall-e-3",
+    "className": "Dall_E_3",
+    "moduleName": "image-generate",
+    "docstring": "An AI system that can create realistic images and art from a description in natural language.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "image",
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "1:1",
+        "description": "The aspect ratio of the generated image",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "1:1",
+          "3:2",
+          "2:3"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "A text description of the desired image",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "style",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "vivid",
+        "description": "The style of the generated images",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Style",
+        "enumValues": [
+          "vivid",
+          "natural"
+        ]
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_3_2",
+            "3:2"
+          ],
+          [
+            "RATIO_2_3",
+            "2:3"
+          ]
+        ],
+        "description": "The aspect ratio of the generated image"
+      },
+      {
+        "name": "Style",
+        "values": [
+          [
+            "VIVID",
+            "vivid"
+          ],
+          [
+            "NATURAL",
+            "natural"
+          ]
+        ],
+        "description": "The style of the generated images"
+      }
+    ]
+  },
+  {
+    "endpointId": "xai/grok-imagine-image-2",
+    "className": "Grok_Imagine_Image_2",
+    "moduleName": "image-generate",
+    "docstring": "xAI's Grok Imagine Image 2.0 — text-to-image generation and editing with a quality control and output up to 2k",
+    "tags": [],
+    "useCases": [],
+    "outputType": "image",
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "1:1",
+        "description": "Aspect ratio of the generated image. Ignored when editing an image.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3",
+          "2:1",
+          "1:2",
+          "19.5:9",
+          "9:19.5",
+          "20:9",
+          "9:20",
+          "auto"
+        ]
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Input image for editing. When provided, the model edits this image based on the prompt. Supports jpg, jpeg, png, webp.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt for image generation or editing",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "quality",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "medium",
+        "description": "Generation quality. 'medium' produces the best results, 'low' is faster and cheaper.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Quality",
+        "enumValues": [
+          "low",
+          "medium"
+        ]
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "2k",
+        "description": "Resolution of the generated image.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "1k",
+          "2k"
+        ]
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_3_2",
+            "3:2"
+          ],
+          [
+            "RATIO_2_3",
+            "2:3"
+          ],
+          [
+            "RATIO_2_1",
+            "2:1"
+          ],
+          [
+            "RATIO_1_2",
+            "1:2"
+          ],
+          [
+            "_19_5_9",
+            "19.5:9"
+          ],
+          [
+            "_9_19_5",
+            "9:19.5"
+          ],
+          [
+            "RATIO_20_9",
+            "20:9"
+          ],
+          [
+            "RATIO_9_20",
+            "9:20"
+          ],
+          [
+            "AUTO",
+            "auto"
+          ]
+        ],
+        "description": "Aspect ratio of the generated image. Ignored when editing an image."
+      },
+      {
+        "name": "Quality",
+        "values": [
+          [
+            "LOW",
+            "low"
+          ],
+          [
+            "MEDIUM",
+            "medium"
+          ]
+        ],
+        "description": "Generation quality. 'medium' produces the best results, 'low' is faster and cheaper."
+      },
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "_1K",
+            "1k"
+          ],
+          [
+            "_2K",
+            "2k"
+          ]
+        ],
+        "description": "Resolution of the generated image."
+      }
+    ]
+  },
+  {
+    "endpointId": "prunaai/p-image-ideogram",
+    "className": "P_Image_Ideogram",
+    "moduleName": "image-generate",
+    "docstring": "P-Image-Ideogram is Pruna AI’s text-to-image model starting from 0,003$ per generation.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "image",
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "1:1",
+        "description": "Aspect ratio for generation. Use 'custom' to set width/height directly.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3",
+          "custom"
+        ]
+      },
+      {
+        "name": "enable_copyright_filter",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Reject prompts that ask for copyrighted characters, trademarks or logos, or a real person's likeness.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "enable_safety_filter",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Also block prompts with hate, harassment, threats, illicit content or graphic violence. Some content, such as sexual content involving minors and self-harm, is always blocked, whatever this is set to.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "height",
+        "tsType": "number",
+        "propType": "int",
+        "default": 1024,
+        "description": "Height when aspect_ratio=custom (rounded to nearest multiple of 16).",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 2560
+      },
+      {
+        "name": "image_size",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "1K",
+        "description": "Output resolution budget (ignored when aspect_ratio=custom).",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "ImageSize",
+        "enumValues": [
+          "1K",
+          "2K"
+        ]
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "jpg",
+        "description": "Output image format.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "png",
+          "jpg",
+          "webp"
+        ]
+      },
+      {
+        "name": "output_quality",
+        "tsType": "number",
+        "propType": "int",
+        "default": 80,
+        "description": "Output quality (0-100; ignored for png).",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 100
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Short text prompt for image generation.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "prompt_upsampling",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Enable prompt enhancement before image generation. Set to false to pass the raw prompt directly to the image model.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "Random seed.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "thinking",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "high",
+        "description": "the higher the thinking, the higher the quality of the image",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Thinking",
+        "enumValues": [
+          "very low",
+          "low",
+          "medium",
+          "high",
+          "very high"
+        ]
+      },
+      {
+        "name": "width",
+        "tsType": "number",
+        "propType": "int",
+        "default": 1024,
+        "description": "Width when aspect_ratio=custom (rounded to nearest multiple of 16).",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 2560
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_3_2",
+            "3:2"
+          ],
+          [
+            "RATIO_2_3",
+            "2:3"
+          ],
+          [
+            "CUSTOM",
+            "custom"
+          ]
+        ],
+        "description": "Aspect ratio for generation. Use 'custom' to set width/height directly."
+      },
+      {
+        "name": "ImageSize",
+        "values": [
+          [
+            "_1K",
+            "1K"
+          ],
+          [
+            "_2K",
+            "2K"
+          ]
+        ],
+        "description": "Output resolution budget (ignored when aspect_ratio=custom)."
+      },
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "PNG",
+            "png"
+          ],
+          [
+            "JPG",
+            "jpg"
+          ],
+          [
+            "WEBP",
+            "webp"
+          ]
+        ],
+        "description": "Output image format."
+      },
+      {
+        "name": "Thinking",
+        "values": [
+          [
+            "VERY_LOW",
+            "very low"
+          ],
+          [
+            "LOW",
+            "low"
+          ],
+          [
+            "MEDIUM",
+            "medium"
+          ],
+          [
+            "HIGH",
+            "high"
+          ],
+          [
+            "VERY_HIGH",
+            "very high"
+          ]
+        ],
+        "description": "the higher the thinking, the higher the quality of the image"
+      }
+    ]
+  },
+  {
+    "endpointId": "recraft-ai/recraft-v4-styles-pro-svg",
+    "className": "Recraft_V4_Styles_Pro_SVG",
+    "moduleName": "image-generate",
+    "docstring": "Recraft V4 Styles Pro SVG generates high-quality editable vector images that match a reusable style or attached reference images.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "image",
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "Not set",
+        "description": "Aspect ratio of the generated image",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "Not set",
+          "1:1",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3",
+          "16:9",
+          "9:16",
+          "1:2",
+          "2:1",
+          "4:5",
+          "5:4",
+          "6:10",
+          "14:10",
+          "10:14"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt for image generation (up to 10,000 characters)",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "size",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "2048x2048",
+        "description": "Width and height of the generated image. Size is ignored if an aspect ratio is set.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Size",
+        "enumValues": [
+          "2048x2048",
+          "3072x1536",
+          "1536x3072",
+          "2560x1664",
+          "1664x2560",
+          "2432x1792",
+          "1792x2432",
+          "2304x1792",
+          "1792x2304",
+          "1664x2688",
+          "2560x1792",
+          "1792x2560",
+          "2688x1536",
+          "1536x2688"
+        ]
+      },
+      {
+        "name": "style_id",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Reusable Recraft style ID created with the Create style endpoint. Mutually exclusive with style_reference_images.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "style_match",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "precise",
+        "description": "How closely the generated image should follow the style.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "StyleMatch",
+        "enumValues": [
+          "precise",
+          "flexible"
+        ]
+      },
+      {
+        "name": "style_reference_images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "PNG, JPG, or WEBP reference images used to create a private style for this generation. Supports 1-10 images. Mutually exclusive with style_id.",
+        "fieldType": "input",
+        "required": true
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "NOT_SET",
+            "Not set"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_3_2",
+            "3:2"
+          ],
+          [
+            "RATIO_2_3",
+            "2:3"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_1_2",
+            "1:2"
+          ],
+          [
+            "RATIO_2_1",
+            "2:1"
+          ],
+          [
+            "RATIO_4_5",
+            "4:5"
+          ],
+          [
+            "RATIO_5_4",
+            "5:4"
+          ],
+          [
+            "RATIO_6_10",
+            "6:10"
+          ],
+          [
+            "RATIO_14_10",
+            "14:10"
+          ],
+          [
+            "RATIO_10_14",
+            "10:14"
+          ]
+        ],
+        "description": "Aspect ratio of the generated image"
+      },
+      {
+        "name": "Size",
+        "values": [
+          [
+            "_2048X2048",
+            "2048x2048"
+          ],
+          [
+            "_3072X1536",
+            "3072x1536"
+          ],
+          [
+            "_1536X3072",
+            "1536x3072"
+          ],
+          [
+            "_2560X1664",
+            "2560x1664"
+          ],
+          [
+            "_1664X2560",
+            "1664x2560"
+          ],
+          [
+            "_2432X1792",
+            "2432x1792"
+          ],
+          [
+            "_1792X2432",
+            "1792x2432"
+          ],
+          [
+            "_2304X1792",
+            "2304x1792"
+          ],
+          [
+            "_1792X2304",
+            "1792x2304"
+          ],
+          [
+            "_1664X2688",
+            "1664x2688"
+          ],
+          [
+            "_2560X1792",
+            "2560x1792"
+          ],
+          [
+            "_1792X2560",
+            "1792x2560"
+          ],
+          [
+            "_2688X1536",
+            "2688x1536"
+          ],
+          [
+            "_1536X2688",
+            "1536x2688"
+          ]
+        ],
+        "description": "Width and height of the generated image. Size is ignored if an aspect ratio is set."
+      },
+      {
+        "name": "StyleMatch",
+        "values": [
+          [
+            "PRECISE",
+            "precise"
+          ],
+          [
+            "FLEXIBLE",
+            "flexible"
+          ]
+        ],
+        "description": "How closely the generated image should follow the style."
+      }
+    ]
+  },
+  {
+    "endpointId": "luma/photon",
+    "className": "Photon",
+    "moduleName": "image-generate",
+    "docstring": "High-quality image generation model optimized for creative professional workflows and ultra-high fidelity outputs",
+    "tags": [],
+    "useCases": [],
+    "outputType": "image",
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "16:9",
+        "description": "Aspect ratio of the generated image",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "1:1",
+          "3:4",
+          "4:3",
+          "9:16",
+          "16:9",
+          "9:21",
+          "21:9"
+        ]
+      },
+      {
+        "name": "character_reference",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Character reference image to guide generation",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "character_reference_url",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Deprecated: Use character_reference instead",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "image_reference",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Reference image to guide generation",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "image_reference_url",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Deprecated: Use image_reference instead",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "image_reference_weight",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0.85,
+        "description": "Weight of the reference image. Larger values will make the reference image have a stronger influence on the generated image.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt for image generation",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "Random seed. Set for reproducible generation",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "style_reference",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Style reference image to guide generation",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "style_reference_url",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Deprecated: Use style_reference instead",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "style_reference_weight",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0.85,
+        "description": "Weight of the style reference image",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 1
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_9_21",
+            "9:21"
+          ],
+          [
+            "RATIO_21_9",
+            "21:9"
+          ]
+        ],
+        "description": "Aspect ratio of the generated image"
+      }
+    ]
+  },
+  {
+    "endpointId": "stability-ai/stable-diffusion-3",
+    "className": "StableDiffusion3",
+    "moduleName": "image-generate",
+    "docstring": "A text-to-image model with greatly improved performance in image quality, typography, complex prompt understanding, and resource-efficiency",
+    "tags": [],
+    "useCases": [],
+    "outputType": "image",
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "1:1",
+        "description": "The aspect ratio of your output image. This value is ignored if you are using an input image.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "1:1",
+          "16:9",
+          "21:9",
+          "3:2",
+          "2:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "9:21"
+        ]
+      },
+      {
+        "name": "cfg",
+        "tsType": "number",
+        "propType": "float",
+        "default": 3.5,
+        "description": "The guidance scale tells the model how similar the output should be to the prompt.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 20
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Input image for image to image mode. The aspect ratio of your output will match this image.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "negative_prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Negative prompts do not really work in SD3. Using a negative prompt will change your output in unpredictable ways.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "webp",
+        "description": "Format of the output images",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "webp",
+          "jpg",
+          "png"
+        ]
+      },
+      {
+        "name": "output_quality",
+        "tsType": "number",
+        "propType": "int",
+        "default": 90,
+        "description": "Quality of the output images, from 0 to 100. 100 is best quality, 0 is lowest quality.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 100
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt_strength",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0.85,
+        "description": "Prompt strength (or denoising strength) when using image to image. 1.0 corresponds to full destruction of information in image.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "Set a seed for reproducibility. Random by default.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "steps",
+        "tsType": "number",
+        "propType": "int",
+        "default": 28,
+        "description": "Number of steps to run the sampler for.",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 28
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_21_9",
+            "21:9"
+          ],
+          [
+            "RATIO_3_2",
+            "3:2"
+          ],
+          [
+            "RATIO_2_3",
+            "2:3"
+          ],
+          [
+            "RATIO_4_5",
+            "4:5"
+          ],
+          [
+            "RATIO_5_4",
+            "5:4"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_9_21",
+            "9:21"
+          ]
+        ],
+        "description": "The aspect ratio of your output image. This value is ignored if you are using an input image."
+      },
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "WEBP",
+            "webp"
+          ],
+          [
+            "JPG",
+            "jpg"
+          ],
+          [
+            "PNG",
+            "png"
+          ]
+        ],
+        "description": "Format of the output images"
+      }
+    ]
+  },
+  {
+    "endpointId": "kwaivgi/kling-v4.0",
+    "className": "Kling_V4_0",
+    "moduleName": "video-generate",
+    "docstring": "Kling 4.0: generate 3 to 30 second videos at up to 1080p from text, keyframes, reference images, or reference videos, and edit existing videos",
+    "tags": [],
+    "useCases": [],
+    "outputType": "video",
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "16:9",
+        "description": "Aspect ratio of the output video. Ignored when start_image, middle_images, end_image or base_video is set, since the aspect ratio then comes from the input.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "21:9"
+        ]
+      },
+      {
+        "name": "base_video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "Video to edit (.mp4/.mov, 3-30 seconds, 700-4553px per side, max 300MB). Referred to as @video_1. When set, the output keeps the length and aspect ratio of this video.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "duration",
+        "tsType": "number",
+        "propType": "int",
+        "default": 5,
+        "description": "Video duration in seconds. Ignored when base_video is set.",
+        "fieldType": "input",
+        "required": false,
+        "min": 3,
+        "max": 30
+      },
+      {
+        "name": "end_image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Last frame of the video. Same format requirements as start_image.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "middle_images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "Keyframes between the first and last frame, in order. Same format requirements as start_image.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt describing the video. Refer to images as @image_1, @image_2, ... and videos as @video_1, @video_2, ... (see start_image and reference_images for numbering). Up to 26,000 English characters or 11,000 non-English characters.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "reference_images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "Reference images for characters, objects, scenes or style. Images are numbered in this order: start_image, middle_images, end_image, reference_images. Up to 10 images in total across all image inputs.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "reference_videos",
+        "tsType": "video[]",
+        "propType": "list[video]",
+        "default": [],
+        "description": "Reference videos to take motion, camera work or style from (.mp4/.mov, 3-30 seconds each, 700-4553px per side, max 300MB). Numbered after base_video.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "1080p",
+        "description": "Output resolution.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "start_image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "First frame of the video. Supports .jpg/.jpeg/.png, max 30MB, min 300px, aspect ratio between 2:5 and 5:2.",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_21_9",
+            "21:9"
+          ]
+        ],
+        "description": "Aspect ratio of the output video. Ignored when start_image, middle_images, end_image or base_video is set, since the aspect ratio then comes from the input."
+      },
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "_720P",
+            "720p"
+          ],
+          [
+            "_1080P",
+            "1080p"
+          ]
+        ],
+        "description": "Output resolution."
+      }
+    ]
+  },
+  {
+    "endpointId": "black-forest-labs/flux-3",
+    "className": "Flux_3",
+    "moduleName": "video-generate",
+    "docstring": "Generate video with synchronized audio from text, images, or video. FLUX 3 is Black Forest Labs' multimodal model (early access preview).",
+    "tags": [],
+    "useCases": [],
+    "outputType": "video",
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Aspect ratio of the generated video. 'auto' picks a ratio from your prompt and any inputs.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "auto",
+          "21:9",
+          "2:1",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "draft",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Generate a fast, low-cost draft preview instead of a full-quality clip. Drafts are 720p.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "duration",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Length of the generated clip in seconds. 'auto' lets the model pick to fit the content. Three or more images need an explicit duration.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Duration",
+        "enumValues": [
+          "auto",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "11",
+          "12",
+          "13",
+          "14",
+          "15",
+          "16",
+          "17",
+          "18",
+          "19",
+          "20"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Generate synchronized audio (ambient sound, speech, effects). Set to false for a silent clip.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "Optional images to drive the video, placed on screen pixel for pixel. One image opens the clip (image-to-video). Two images start and end it. Three or more (up to 10) become a storyboard — the first starts it, the last ends it, and the rest fall evenly in between (needs a duration). Leave empty for text-to-video. Must be PNG, JPEG, or WebP.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text description of the video to generate. Plain language works — the prompt is interpreted and expanded before generation. Describe the scene, action, camera moves, and any audio you want.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "720p",
+        "description": "Output resolution.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "safety_tolerance",
+        "tsType": "number",
+        "propType": "int",
+        "default": 2,
+        "description": "Moderation tolerance for input and output, 0 (strictest) to 4 (most permissive). Requests with image or video inputs are limited to 2.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 4
+      },
+      {
+        "name": "start_video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "A video to continue from its final frames. Use this to extend a shot or chain generations into a longer sequence. Must be an mp4, at most 50MB and 15 seconds. Can't be combined with images.",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "RATIO_21_9",
+            "21:9"
+          ],
+          [
+            "RATIO_2_1",
+            "2:1"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ]
+        ],
+        "description": "Aspect ratio of the generated video. 'auto' picks a ratio from your prompt and any inputs."
+      },
+      {
+        "name": "Duration",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "VALUE_5",
+            "5"
+          ],
+          [
+            "VALUE_6",
+            "6"
+          ],
+          [
+            "VALUE_7",
+            "7"
+          ],
+          [
+            "VALUE_8",
+            "8"
+          ],
+          [
+            "VALUE_9",
+            "9"
+          ],
+          [
+            "VALUE_10",
+            "10"
+          ],
+          [
+            "VALUE_11",
+            "11"
+          ],
+          [
+            "VALUE_12",
+            "12"
+          ],
+          [
+            "VALUE_13",
+            "13"
+          ],
+          [
+            "VALUE_14",
+            "14"
+          ],
+          [
+            "VALUE_15",
+            "15"
+          ],
+          [
+            "VALUE_16",
+            "16"
+          ],
+          [
+            "VALUE_17",
+            "17"
+          ],
+          [
+            "VALUE_18",
+            "18"
+          ],
+          [
+            "VALUE_19",
+            "19"
+          ],
+          [
+            "VALUE_20",
+            "20"
+          ]
+        ],
+        "description": "Length of the generated clip in seconds. 'auto' lets the model pick to fit the content. Three or more images need an explicit duration."
+      },
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "_720P",
+            "720p"
+          ],
+          [
+            "_1080P",
+            "1080p"
+          ]
+        ],
+        "description": "Output resolution."
+      }
+    ]
+  },
+  {
+    "endpointId": "google/gemini-omni-1.1",
+    "className": "Gemini_Omni_1_1",
+    "moduleName": "video-generate",
+    "docstring": "Google's fast multimodal video generation and editing model with native audio, using the Interactions API",
+    "tags": [],
+    "useCases": [],
+    "outputType": "video",
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "16:9",
+        "description": "Video aspect ratio. Ignored when editing an existing video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "16:9",
+          "9:16"
+        ]
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Starting image to animate into a video. When provided without \"\n            \"last_frame, the video is generated from this image.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "last_frame",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Ending image. When provided together with image, the model \"\n            \"interpolates a smooth transition between the two frames.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt describing the video. Include details like scene, \"\n            \"camera movement, lighting, mood, and audio for best results. Put anything \"\n            \"you want to avoid in the prompt too (e.g. 'no dialogue').",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "reference_images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "Reference images that guide the subject and style of the video \"\n            \"(not used as literal frames). Use this to generate a video featuring \"\n            \"specific characters or objects.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "720p",
+        "description": "Resolution of the generated video. 360p is a fast draft mode.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "360p",
+          "720p",
+          "1080p",
+          "4k"
+        ]
+      },
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "An existing video to edit. Describe the change in the prompt \"\n            \"(e.g. 'make the sky stormy, keep everything else the same'). The model \"\n            \"applies the edit while preserving the rest of the video.",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ]
+        ],
+        "description": "Video aspect ratio. Ignored when editing an existing video."
+      },
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "_360P",
+            "360p"
+          ],
+          [
+            "_720P",
+            "720p"
+          ],
+          [
+            "_1080P",
+            "1080p"
+          ],
+          [
+            "_4K",
+            "4k"
+          ]
+        ],
+        "description": "Resolution of the generated video. 360p is a fast draft mode."
+      }
+    ]
+  },
+  {
+    "endpointId": "lightricks/ltx-2.5-fast",
+    "className": "LTX_2_5_Fast",
+    "moduleName": "video-generate",
+    "docstring": "Fast video generation with text-to-video and image-to-video, portrait and landscape support, synchronized audio, and frame interpolation. Up to 20 seconds at 1080p, and 4K resolution.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "video",
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "16:9",
+        "description": "Aspect ratio of the generated video",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "16:9",
+          "9:16"
+        ]
+      },
+      {
+        "name": "duration",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": 6,
+        "description": "Duration of the video in seconds. Durations longer than 10 seconds are only available at 720p or 1080p resolution with 24 or 25 FPS. 48/50 FPS caps at 10 seconds.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Duration",
+        "enumValues": [
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "8",
+          "10",
+          "12",
+          "14",
+          "16",
+          "18",
+          "20"
+        ]
+      },
+      {
+        "name": "fps",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": 25,
+        "description": "Frame rate in frames per second",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Fps",
+        "enumValues": [
+          "24",
+          "25",
+          "48",
+          "50"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Generate audio for the video. Used for text_to_video and image_to_video tasks.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "First frame image for image-to-video generation",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "last_frame_image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Last frame image for image-to-video generation. When provided, the video interpolates between the first frame and this last frame.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt describing the video to generate",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "1080p",
+        "description": "Resolution quality of the generated video. Higher resolutions cap the maximum duration.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "720p",
+          "1080p",
+          "2k",
+          "4k"
+        ]
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ]
+        ],
+        "description": "Aspect ratio of the generated video"
+      },
+      {
+        "name": "Duration",
+        "values": [
+          [
+            "VALUE_2",
+            "2"
+          ],
+          [
+            "VALUE_3",
+            "3"
+          ],
+          [
+            "VALUE_4",
+            "4"
+          ],
+          [
+            "VALUE_5",
+            "5"
+          ],
+          [
+            "VALUE_6",
+            "6"
+          ],
+          [
+            "VALUE_8",
+            "8"
+          ],
+          [
+            "VALUE_10",
+            "10"
+          ],
+          [
+            "VALUE_12",
+            "12"
+          ],
+          [
+            "VALUE_14",
+            "14"
+          ],
+          [
+            "VALUE_16",
+            "16"
+          ],
+          [
+            "VALUE_18",
+            "18"
+          ],
+          [
+            "VALUE_20",
+            "20"
+          ]
+        ],
+        "description": "Duration of the video in seconds. Durations longer than 10 seconds are only available at 720p or 1080p resolution with 24 or 25 FPS. 48/50 FPS caps at 10 seconds."
+      },
+      {
+        "name": "Fps",
+        "values": [
+          [
+            "VALUE_24",
+            "24"
+          ],
+          [
+            "VALUE_25",
+            "25"
+          ],
+          [
+            "VALUE_48",
+            "48"
+          ],
+          [
+            "VALUE_50",
+            "50"
+          ]
+        ],
+        "description": "Frame rate in frames per second"
+      },
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "_720P",
+            "720p"
+          ],
+          [
+            "_1080P",
+            "1080p"
+          ],
+          [
+            "_2K",
+            "2k"
+          ],
+          [
+            "_4K",
+            "4k"
+          ]
+        ],
+        "description": "Resolution quality of the generated video. Higher resolutions cap the maximum duration."
+      }
+    ]
+  },
+  {
+    "endpointId": "pixverse/pixverse-v6-max",
+    "className": "Pixverse_V6_Max",
+    "moduleName": "video-generate",
+    "docstring": "PixVerse's highest-quality video model. Generate up to 15 seconds of 1080p video with synchronized audio, from text or an image.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "video",
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "16:9",
+        "description": "Aspect ratio of the video. Only used for text-to-video. Ignored when image is provided.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ]
+      },
+      {
+        "name": "duration",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": 5,
+        "description": "Duration of the video in seconds. Billing is per second.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Duration",
+        "enumValues": [
+          "5",
+          "8",
+          "10",
+          "15"
+        ]
+      },
+      {
+        "name": "generate_audio_switch",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Enable AI-generated audio including background music, sound effects, and character dialogue",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "generate_multi_clip_switch",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Enable multi-shot generation for cinematic sequences with scene transitions",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Image to use for the first frame of the video. If provided, the video is generated from this image.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "negative_prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Negative prompt to avoid certain elements in the video",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt for video generation. Supports detailed, multi-shot prompts up to 5000 characters for text-to-video, 2048 for image-to-video.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "quality",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "720p",
+        "description": "Resolution of the video. Higher resolutions cost more. See pricing for details.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Quality",
+        "enumValues": [
+          "360p",
+          "540p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "Random seed. Set for reproducible generation",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ]
+        ],
+        "description": "Aspect ratio of the video. Only used for text-to-video. Ignored when image is provided."
+      },
+      {
+        "name": "Duration",
+        "values": [
+          [
+            "VALUE_5",
+            "5"
+          ],
+          [
+            "VALUE_8",
+            "8"
+          ],
+          [
+            "VALUE_10",
+            "10"
+          ],
+          [
+            "VALUE_15",
+            "15"
+          ]
+        ],
+        "description": "Duration of the video in seconds. Billing is per second."
+      },
+      {
+        "name": "Quality",
+        "values": [
+          [
+            "_360P",
+            "360p"
+          ],
+          [
+            "_540P",
+            "540p"
+          ],
+          [
+            "_720P",
+            "720p"
+          ],
+          [
+            "_1080P",
+            "1080p"
+          ]
+        ],
+        "description": "Resolution of the video. Higher resolutions cost more. See pricing for details."
+      }
+    ]
+  },
+  {
+    "endpointId": "prunaai/p-video-2",
+    "className": "P_Video_2",
+    "moduleName": "video-generate",
+    "docstring": "P-Video-2 is the quality-focused successor to P-Video from $0.025/s",
+    "tags": [],
+    "useCases": [],
+    "outputType": "video",
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "16:9",
+        "description": "Aspect ratio of the video. Ignored when an input image is provided.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3",
+          "1:1"
+        ]
+      },
+      {
+        "name": "audio",
+        "tsType": "audio",
+        "propType": "audio",
+        "default": null,
+        "description": "Input audio to condition video generation. Supports flac, mp3, wav.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "disable_safety_filter",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Disable safety filter for prompts (and input image). When disabled, prompts are not checked for unsafe content before generation.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "draft",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Draft mode. Generates a lower-quality preview of the video.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "duration",
+        "tsType": "number",
+        "propType": "int",
+        "default": 0,
+        "description": "Duration of the video in seconds (1-20). Leave empty to let the model choose length from the prompt. Ignored when audio is provided.",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 20
+      },
+      {
+        "name": "fps",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": 24,
+        "description": "Frames per second of the video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Fps",
+        "enumValues": [
+          "24",
+          "48"
+        ]
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Input image to generate video from (image-to-video). Supports jpg, jpeg, png, webp.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "last_frame_image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Reference image for the last frame of the video. Supports jpg, jpeg, png, webp.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "no_op",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Health check mode - returns status without inference.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt for video generation.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "prompt_upsampling",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Use prompt upsampling to enhance the prompt.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "720p",
+        "description": "Resolution of the video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "save_audio",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Save the video with audio.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "Random seed. Set for reproducible generation.",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_3_2",
+            "3:2"
+          ],
+          [
+            "RATIO_2_3",
+            "2:3"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ]
+        ],
+        "description": "Aspect ratio of the video. Ignored when an input image is provided."
+      },
+      {
+        "name": "Fps",
+        "values": [
+          [
+            "VALUE_24",
+            "24"
+          ],
+          [
+            "VALUE_48",
+            "48"
+          ]
+        ],
+        "description": "Frames per second of the video."
+      },
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "_720P",
+            "720p"
+          ],
+          [
+            "_1080P",
+            "1080p"
+          ]
+        ],
+        "description": "Resolution of the video."
+      }
+    ]
+  },
+  {
+    "endpointId": "prunaai/p-video-2-pro",
+    "className": "P_Video_2_Pro",
+    "moduleName": "video-generate",
+    "docstring": "Pruna's highest-quality video model. Generate video from text or images with speed and quality modes, first- and last-frame control, and durations up to 15 seconds.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "video",
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "16:9",
+        "description": "Aspect ratio; reference images determine the canvas when provided.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3",
+          "1:1"
+        ]
+      },
+      {
+        "name": "duration",
+        "tsType": "number",
+        "propType": "int",
+        "default": 5,
+        "description": "Video duration in seconds.",
+        "fieldType": "input",
+        "required": false,
+        "min": 5,
+        "max": 15
+      },
+      {
+        "name": "enable_safety_filter",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Check the inputs against the content policy. When off, only the always-on categories (sexual content involving minors, self-harm intent or instructions) are still blocked.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "First-frame reference image.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "last_frame_image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Last-frame reference image.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "mode",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "speed",
+        "description": "Generation mode: quality, speed, or cost.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Mode",
+        "enumValues": [
+          "quality",
+          "speed",
+          "cost"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt for video generation.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "prompt_upsampler",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "turbo",
+        "description": "Expand your prompt before video generation.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "PromptUpsampler",
+        "enumValues": [
+          "off",
+          "turbo",
+          "max"
+        ]
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "768p",
+        "description": "Video resolution. 1080p, 2k and 4k generate at 768p and upscale it (24 fps kept).",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "480p",
+          "768p",
+          "1080p",
+          "2k",
+          "4k"
+        ]
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "Random seed for reproducible generation.",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_3_2",
+            "3:2"
+          ],
+          [
+            "RATIO_2_3",
+            "2:3"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ]
+        ],
+        "description": "Aspect ratio; reference images determine the canvas when provided."
+      },
+      {
+        "name": "Mode",
+        "values": [
+          [
+            "QUALITY",
+            "quality"
+          ],
+          [
+            "SPEED",
+            "speed"
+          ],
+          [
+            "COST",
+            "cost"
+          ]
+        ],
+        "description": "Generation mode: quality, speed, or cost."
+      },
+      {
+        "name": "PromptUpsampler",
+        "values": [
+          [
+            "OFF",
+            "off"
+          ],
+          [
+            "TURBO",
+            "turbo"
+          ],
+          [
+            "MAX",
+            "max"
+          ]
+        ],
+        "description": "Expand your prompt before video generation."
+      },
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "_480P",
+            "480p"
+          ],
+          [
+            "_768P",
+            "768p"
+          ],
+          [
+            "_1080P",
+            "1080p"
+          ],
+          [
+            "_2K",
+            "2k"
+          ],
+          [
+            "_4K",
+            "4k"
+          ]
+        ],
+        "description": "Video resolution. 1080p, 2k and 4k generate at 768p and upscale it (24 fps kept)."
+      }
+    ]
+  },
+  {
+    "endpointId": "prunaai/p-video-2-pro-avatar",
+    "className": "P_Video_2_Pro_Avatar",
+    "moduleName": "video-generate",
+    "docstring": "Pruna's talking-avatar model. Turn a portrait and an audio file or script into a talking video with synced lips and expressions, from 1 second to 3 minutes long.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "video",
+    "inputFields": [
+      {
+        "name": "audio",
+        "tsType": "audio",
+        "propType": "audio",
+        "default": null,
+        "description": "Speech audio, up to 3 minutes; the video matches its length. Overrides voice_script.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "enable_safety_filter",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Block content in the toggleable moderation categories. The always-on rules apply either way.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Portrait of the person who speaks (first frame). Supports jpg, jpeg, png, webp.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "The person is talking.",
+        "description": "What the video should show.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt_upsampling",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Let a vision model look at the image and append the scene's own motion (rain, lights, background, body movement) to your prompt. Your words stay unchanged and come first.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "768p",
+        "description": "Video resolution. 1080p, 2k and 4k generate at 768p and upscale it (24 fps kept); 4k is limited to 125 s of audio.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "480p",
+          "768p",
+          "1080p",
+          "2k",
+          "4k"
+        ]
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "Random seed for reproducible generation.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "voice",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "Zephyr (Female)",
+        "description": "Gemini TTS voice for voice_script.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Voice",
+        "enumValues": [
+          "Zephyr (Female)",
+          "Puck (Male)",
+          "Charon (Male)",
+          "Kore (Female)",
+          "Fenrir (Male)",
+          "Leda (Female)",
+          "Orus (Male)",
+          "Aoede (Female)",
+          "Callirrhoe (Female)",
+          "Autonoe (Female)",
+          "Enceladus (Male)",
+          "Iapetus (Male)",
+          "Umbriel (Male)",
+          "Algenib (Male)",
+          "Despina (Female)",
+          "Erinome (Female)",
+          "Laomedeia (Female)",
+          "Achernar (Female)",
+          "Algieba (Male)",
+          "Schedar (Male)",
+          "Gacrux (Female)",
+          "Pulcherrima (Female)",
+          "Achird (Male)",
+          "Zubenelgenubi (Male)",
+          "Vindemiatrix (Female)",
+          "Sadachbia (Male)",
+          "Sadaltager (Male)",
+          "Sulafat (Female)",
+          "Alnilam (Male)",
+          "Rasalgethi (Male)"
+        ]
+      },
+      {
+        "name": "voice_language",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "English (US)",
+        "description": "Language of voice_script.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "VoiceLanguage",
+        "enumValues": [
+          "English (US)",
+          "English (UK)",
+          "Spanish",
+          "French",
+          "German",
+          "Italian",
+          "Portuguese (Brazil)",
+          "Japanese",
+          "Korean",
+          "Hindi"
+        ]
+      },
+      {
+        "name": "voice_prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "Say the following.",
+        "description": "Delivery instructions for the TTS voice (tone, pacing, accent, emotion). Not spoken.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "voice_script",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Exact words to speak with Gemini TTS. Required when no audio is uploaded.",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "_480P",
+            "480p"
+          ],
+          [
+            "_768P",
+            "768p"
+          ],
+          [
+            "_1080P",
+            "1080p"
+          ],
+          [
+            "_2K",
+            "2k"
+          ],
+          [
+            "_4K",
+            "4k"
+          ]
+        ],
+        "description": "Video resolution. 1080p, 2k and 4k generate at 768p and upscale it (24 fps kept); 4k is limited to 125 s of audio."
+      },
+      {
+        "name": "Voice",
+        "values": [
+          [
+            "ZEPHYR_FEMALE",
+            "Zephyr (Female)"
+          ],
+          [
+            "PUCK_MALE",
+            "Puck (Male)"
+          ],
+          [
+            "CHARON_MALE",
+            "Charon (Male)"
+          ],
+          [
+            "KORE_FEMALE",
+            "Kore (Female)"
+          ],
+          [
+            "FENRIR_MALE",
+            "Fenrir (Male)"
+          ],
+          [
+            "LEDA_FEMALE",
+            "Leda (Female)"
+          ],
+          [
+            "ORUS_MALE",
+            "Orus (Male)"
+          ],
+          [
+            "AOEDE_FEMALE",
+            "Aoede (Female)"
+          ],
+          [
+            "CALLIRRHOE_FEMALE",
+            "Callirrhoe (Female)"
+          ],
+          [
+            "AUTONOE_FEMALE",
+            "Autonoe (Female)"
+          ],
+          [
+            "ENCELADUS_MALE",
+            "Enceladus (Male)"
+          ],
+          [
+            "IAPETUS_MALE",
+            "Iapetus (Male)"
+          ],
+          [
+            "UMBRIEL_MALE",
+            "Umbriel (Male)"
+          ],
+          [
+            "ALGENIB_MALE",
+            "Algenib (Male)"
+          ],
+          [
+            "DESPINA_FEMALE",
+            "Despina (Female)"
+          ],
+          [
+            "ERINOME_FEMALE",
+            "Erinome (Female)"
+          ],
+          [
+            "LAOMEDEIA_FEMALE",
+            "Laomedeia (Female)"
+          ],
+          [
+            "ACHERNAR_FEMALE",
+            "Achernar (Female)"
+          ],
+          [
+            "ALGIEBA_MALE",
+            "Algieba (Male)"
+          ],
+          [
+            "SCHEDAR_MALE",
+            "Schedar (Male)"
+          ],
+          [
+            "GACRUX_FEMALE",
+            "Gacrux (Female)"
+          ],
+          [
+            "PULCHERRIMA_FEMALE",
+            "Pulcherrima (Female)"
+          ],
+          [
+            "ACHIRD_MALE",
+            "Achird (Male)"
+          ],
+          [
+            "ZUBENELGENUBI_MALE",
+            "Zubenelgenubi (Male)"
+          ],
+          [
+            "VINDEMIATRIX_FEMALE",
+            "Vindemiatrix (Female)"
+          ],
+          [
+            "SADACHBIA_MALE",
+            "Sadachbia (Male)"
+          ],
+          [
+            "SADALTAGER_MALE",
+            "Sadaltager (Male)"
+          ],
+          [
+            "SULAFAT_FEMALE",
+            "Sulafat (Female)"
+          ],
+          [
+            "ALNILAM_MALE",
+            "Alnilam (Male)"
+          ],
+          [
+            "RASALGETHI_MALE",
+            "Rasalgethi (Male)"
+          ]
+        ],
+        "description": "Gemini TTS voice for voice_script."
+      },
+      {
+        "name": "VoiceLanguage",
+        "values": [
+          [
+            "ENGLISH_US",
+            "English (US)"
+          ],
+          [
+            "ENGLISH_UK",
+            "English (UK)"
+          ],
+          [
+            "SPANISH",
+            "Spanish"
+          ],
+          [
+            "FRENCH",
+            "French"
+          ],
+          [
+            "GERMAN",
+            "German"
+          ],
+          [
+            "ITALIAN",
+            "Italian"
+          ],
+          [
+            "PORTUGUESE_BRAZIL",
+            "Portuguese (Brazil)"
+          ],
+          [
+            "JAPANESE",
+            "Japanese"
+          ],
+          [
+            "KOREAN",
+            "Korean"
+          ],
+          [
+            "HINDI",
+            "Hindi"
+          ]
+        ],
+        "description": "Language of voice_script."
+      }
+    ]
+  },
+  {
+    "endpointId": "prunaai/p-video-2-pro-reference",
+    "className": "P_Video_2_Pro_Reference",
+    "moduleName": "video-generate",
+    "docstring": "Pruna's reference-to-video model, built on MiniMax H3. Generate 5–15 second video from a prompt plus up to 9 images, 3 videos, and 3 audio clips, with speed and cost modes.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "video",
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "16:9",
+        "description": "Aspect ratio of the generated video. adaptive uses the most common one among the reference images and videos.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "adaptive",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3",
+          "1:1"
+        ]
+      },
+      {
+        "name": "audio",
+        "tsType": "audio[]",
+        "propType": "list[audio]",
+        "default": [],
+        "description": "Reference audio files to condition the generation on. Set keep_audio to use a single file as the video's audio.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "duration",
+        "tsType": "number",
+        "propType": "int",
+        "default": 5,
+        "description": "Video duration in seconds. With keep_audio, an audio file within 1 s of it sets the length instead.",
+        "fieldType": "input",
+        "required": false,
+        "min": 5,
+        "max": 15
+      },
+      {
+        "name": "enable_safety_filter",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Check the inputs against the content policy. When off, only the always-on categories (sexual content involving minors, self-harm intent or instructions) are still blocked.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "first_frame_image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Optional image the video should open on. Combines with the other references. Needs prompt upsampling, so prompt_upsampler=off runs turbo when a start or end frame is given.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "image",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "Reference images to condition the generation on.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "keep_audio",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Keep the uploaded audio as the video's audio instead of only using it as a reference. Needs exactly one audio file. The video is generated to match it. If the audio is shorter than duration, the video plays it first and the model generates the rest. If it is longer, it is cut to duration. If it is within 1 s of duration, the video's length follows the audio's.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "last_frame_image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Optional image the video should end on. Combines with the other references.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "mode",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "speed",
+        "description": "speed runs on 4x B200; cost runs the same model on one B200 (slower, cheaper).",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Mode",
+        "enumValues": [
+          "speed",
+          "cost"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt for video generation.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "prompt_upsampler",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "turbo",
+        "description": "Rewrite the prompt into a detailed H3 brief that looks at the references first: turbo (our upsampler), max (MiniMax; falls back to turbo), or off. With adaptive aspect ratio, turbo also picks the ratio.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "PromptUpsampler",
+        "enumValues": [
+          "turbo",
+          "max",
+          "off"
+        ]
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "768p",
+        "description": "Video resolution. 1080p, 2k and 4k generate at 768p and upscale it (24 fps kept).",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "768p",
+          "480p",
+          "1080p",
+          "2k",
+          "4k"
+        ]
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "Random seed for reproducible generation.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "video",
+        "tsType": "video[]",
+        "propType": "list[video]",
+        "default": [],
+        "description": "Reference videos to condition the generation on.",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "ADAPTIVE",
+            "adaptive"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_3_2",
+            "3:2"
+          ],
+          [
+            "RATIO_2_3",
+            "2:3"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ]
+        ],
+        "description": "Aspect ratio of the generated video. adaptive uses the most common one among the reference images and videos."
+      },
+      {
+        "name": "Mode",
+        "values": [
+          [
+            "SPEED",
+            "speed"
+          ],
+          [
+            "COST",
+            "cost"
+          ]
+        ],
+        "description": "speed runs on 4x B200; cost runs the same model on one B200 (slower, cheaper)."
+      },
+      {
+        "name": "PromptUpsampler",
+        "values": [
+          [
+            "TURBO",
+            "turbo"
+          ],
+          [
+            "MAX",
+            "max"
+          ],
+          [
+            "OFF",
+            "off"
+          ]
+        ],
+        "description": "Rewrite the prompt into a detailed H3 brief that looks at the references first: turbo (our upsampler), max (MiniMax; falls back to turbo), or off. With adaptive aspect ratio, turbo also picks the ratio."
+      },
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "_768P",
+            "768p"
+          ],
+          [
+            "_480P",
+            "480p"
+          ],
+          [
+            "_1080P",
+            "1080p"
+          ],
+          [
+            "_2K",
+            "2k"
+          ],
+          [
+            "_4K",
+            "4k"
+          ]
+        ],
+        "description": "Video resolution. 1080p, 2k and 4k generate at 768p and upscale it (24 fps kept)."
+      }
+    ]
+  },
+  {
+    "endpointId": "prunaai/p-video-edit",
+    "className": "P_Video_Edit",
+    "moduleName": "video-generate",
+    "docstring": "Edit videos with a text prompt and optional reference images.",
+    "tags": [],
+    "useCases": [],
+    "outputType": "video",
+    "inputFields": [
+      {
+        "name": "draft",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Draft mode. Generates a faster, lower-quality preview of the edit.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "enable_safety_filter",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Check the inputs against the content policy. When off, only the always-on categories (sexual content involving minors, self-harm intent or instructions) are still blocked.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "Optional reference image(s) for reference-guided editing. Up to 4 images. Supports jpg, jpeg, png, webp.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt describing the edit.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "prompt_upsampling",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Use prompt upsampling to enhance the edit prompt.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "save_audio",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Save the video with audio.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "Random seed. Set for reproducible generation.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 2147483647
+      },
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "Input video to edit. Maximum length: 15 seconds.",
+        "fieldType": "input",
+        "required": true
+      }
+    ],
+    "outputFields": [],
+    "enums": []
+  },
+  {
+    "endpointId": "anthropic/claude-opus-5.5",
+    "className": "Claude_Opus_5_5",
+    "moduleName": "text-generate",
+    "docstring": "Anthropic's Opus model for long-running agentic coding and knowledge work, at a lower price than Opus 5",
+    "tags": [],
+    "useCases": [],
+    "outputType": "str",
+    "inputFields": [
+      {
+        "name": "effort",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "low",
+        "description": "How much thinking Claude does before responding. Opus 5.5 always uses adaptive thinking; higher effort improves quality on hard coding and agentic tasks, but is slower and uses more output tokens. 'low' is the fastest and cheapest.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Effort",
+        "enumValues": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max"
+        ]
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Optional input image. Images are priced as (width px * height px)/750 input tokens",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "max_image_resolution",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0.5,
+        "description": "Maximum image resolution in megapixels. Scales down image before sending it to Claude, to save time and money.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0.001,
+        "max": 2
+      },
+      {
+        "name": "max_tokens",
+        "tsType": "number",
+        "propType": "int",
+        "default": 8192,
+        "description": "Maximum number of output tokens, including thinking tokens. Opus 5.5 always thinks before responding, so leave headroom at higher effort levels (Anthropic recommends starting at 64000 for 'xhigh' and 'max').",
+        "fieldType": "input",
+        "required": false,
+        "min": 1024,
+        "max": 128000
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Input prompt",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "system_prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "System prompt",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputFields": [],
+    "enums": [
+      {
+        "name": "Effort",
+        "values": [
+          [
+            "LOW",
+            "low"
+          ],
+          [
+            "MEDIUM",
+            "medium"
+          ],
+          [
+            "HIGH",
+            "high"
+          ],
+          [
+            "XHIGH",
+            "xhigh"
+          ],
+          [
+            "MAX",
+            "max"
+          ]
+        ],
+        "description": "How much thinking Claude does before responding. Opus 5.5 always uses adaptive thinking; higher effort improves quality on hard coding and agentic tasks, but is slower and uses more output tokens. 'low' is the fastest and cheapest."
+      }
+    ]
   }
 ]

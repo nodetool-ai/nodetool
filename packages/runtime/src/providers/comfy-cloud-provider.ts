@@ -1,13 +1,13 @@
 /**
  * Comfy Provider — every model behind one `COMFY_API_KEY`.
  *
- * Generation runs through the Comfy Router (https://api.comfy.org/v2/models),
- * which fronts the partner models Comfy resells: image, video, speech and
- * chat. Calls use the Router's queue, and each request body is built from the
- * model's published input schema (see `comfy-router.ts`).
+ * GPU models run official ComfyUI templates through the Comfy API v2 job and
+ * asset endpoints. The generated `comfy-gpu-catalog.json` supplies templates
+ * and provider tasks. Cloud's node schemas drive saved-workflow conversion.
  *
- * The model list is the generated table in `comfy-router-catalog.ts`,
- * intersected with the live listing when it can be read.
+ * Partner models use the Comfy Router (https://api.comfy.org/v2/models).
+ * Their request bodies follow the published input schemas, and their generated
+ * catalog is intersected with the live Router listing when available.
  *
  * Running an arbitrary ComfyUI graph on Comfy Cloud stays with the `lib.comfy`
  * nodes; the same key authenticates partner API nodes inside those graphs.
@@ -19,6 +19,9 @@
  */
 
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
+import { ComfyGpuClient, comfyGpuTemplate, listedComfyGpuTemplates, type ComfyGpuInput } from "./comfy-gpu-models.js";
+import type { MusicModel, TextToMusicParams, AudioToAudioModel, AudioToAudioParams, Model3D, TextTo3DParams, ImageTo3DParams } from "./types.js";
+import { comfyTemplate, listedComfyTemplates, runComfyTemplate } from "./comfy-template-models.js";
 import {
   COMFY_RESTRICTED_MODELS_ENV,
   comfyWorkflowModel,
@@ -85,6 +88,8 @@ const STRENGTH_FIELDS = ["strength", "image_strength", "prompt_strength"] as con
 const SPEECH_TEXT_FIELDS = ["text", "text_prompt", "input", "prompt"] as const;
 const VOICE_FIELDS = ["voice_id", "voice", "speaker", "voice_type"] as const;
 
+const SIZE_FIELDS = ["size", "image_size"] as const;
+
 const IMAGE_SIZES: Record<string, string> = {
   "1:1": "1024x1024",
   "16:9": "1536x864",
@@ -112,6 +117,16 @@ export function mp4DurationSeconds(bytes: Uint8Array): number | undefined {
     return timescale > 0 ? duration / timescale : undefined;
   }
   return undefined;
+}
+
+/**
+ * Free-text size fields accept one separator, which only the field description
+ * states. DashScope models reject `1024x1024` and require `1024*1024`.
+ */
+function formatImageSize(b: RouterArgsBuilder, size: string): string {
+  const name = b.firstDeclared(SIZE_FIELDS);
+  const description = name ? b.field(name)?.description : undefined;
+  return description && /(width|\d)\s*\*\s*(height|\d)/i.test(description) ? size.replace("x", "*") : size;
 }
 
 interface PresetInput {
@@ -229,6 +244,29 @@ export class ComfyCloudProvider extends BaseProvider {
   private router: ComfyRouterClient | null = null;
   private liveIds: Promise<Set<string> | null> | null = null;
 
+  private gpuClient: ComfyGpuClient | undefined;
+
+  protected createGpuClient(): ComfyGpuClient {
+    return new ComfyGpuClient(this.requireApiKey());
+  }
+
+  private gpuRun(id: string, task: string, input: ComfyGpuInput): Promise<EncodedAudioResult> | undefined {
+    const template = comfyGpuTemplate(id);
+    if (!template) {
+      if (id.startsWith("comfyui-gpu/")) { throw new Error(`Unknown Comfy GPU model: ${id}`); }
+      return undefined;
+    }
+    if (template.task !== task) { throw new Error(`${template.name} supports ${template.task}, not ${task}`); }
+    this.gpuClient ??= this.createGpuClient();
+    return this.gpuClient.run(template, input);
+  }
+
+  private gpuModels(task: string) {
+    return listedComfyGpuTemplates().filter((entry) => entry.task === task).map((entry) => ({
+      id: entry.id, name: `${entry.name} (Comfy GPU)`, provider: PROVIDER_IDS.COMFY_CLOUD, supportedTasks: [entry.task]
+    }));
+  }
+
   static override requiredSecrets(): string[] {
     return ["COMFY_API_KEY"];
   }
@@ -241,7 +279,11 @@ export class ComfyCloudProvider extends BaseProvider {
       "image_to_video",
       "reference_to_video",
       "video_to_video",
-      "text_to_speech"
+      "text_to_speech",
+      "text_to_music",
+      "audio_to_audio",
+      "text_to_3d",
+      "image_to_3d"
     ];
   }
 
@@ -303,12 +345,21 @@ export class ComfyCloudProvider extends BaseProvider {
   }
 
   override async getAvailableImageModels(): Promise<ImageModel[]> {
-    return (await this.entries("image")).map((entry) => ({
+    const templates: ImageModel[] = listedComfyTemplates(process.env)
+      .filter((template) => template.task === "text_to_image")
+      .map((template) => ({
+        id: template.id,
+        name: `${template.name} (ComfyUI workflow)`,
+        provider: PROVIDER_IDS.COMFY_CLOUD,
+        supportedTasks: ["text_to_image"]
+      }));
+    const router = (await this.entries("image")).map((entry) => ({
       id: entry.id,
       name: routerModelName(entry.id),
       provider: PROVIDER_IDS.COMFY_CLOUD,
       supportedTasks: [...entry.tasks]
     }));
+    return [...templates, ...this.gpuModels("text_to_image"), ...this.gpuModels("image_to_image"), ...router];
   }
 
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
@@ -324,27 +375,41 @@ export class ComfyCloudProvider extends BaseProvider {
       provider: PROVIDER_IDS.COMFY_CLOUD,
       supportedTasks: [...entry.tasks]
     }));
-    return [...workflowModels, ...router];
+    const templates: VideoModel[] = listedComfyTemplates(process.env)
+      .filter((template) => template.task === "text_to_video")
+      .map((template) => ({
+        id: template.id,
+        name: `${template.name} (ComfyUI workflow)`,
+        provider: PROVIDER_IDS.COMFY_CLOUD,
+        supportedTasks: ["text_to_video"]
+      }));
+    return [...workflowModels, ...templates, ...["text_to_video", "image_to_video", "reference_to_video", "video_to_video"].flatMap((task) => this.gpuModels(task)), ...router];
   }
 
   override async getAvailableTTSModels(): Promise<TTSModel[]> {
-    return (await this.entries("speech")).map((entry) => ({
+    return [...this.gpuModels("text_to_speech"), ...(await this.entries("speech")).map((entry) => ({
       id: entry.id,
       name: routerModelName(entry.id),
       provider: PROVIDER_IDS.COMFY_CLOUD
-    }));
+    }))];
   }
+
+  override async getAvailableMusicModels(): Promise<MusicModel[]> { return this.gpuModels("text_to_music"); }
+
+  override async getAvailableAudioToAudioModels(): Promise<AudioToAudioModel[]> { return this.gpuModels("audio_to_audio"); }
+
+  override async getAvailable3DModels(): Promise<Model3D[]> { return [...this.gpuModels("text_to_3d"), ...this.gpuModels("image_to_3d")]; }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    return (await this.entries("text")).map((entry) => ({
+    return [...this.gpuModels("generate_message"), ...(await this.entries("text")).map((entry) => ({
       id: entry.id,
       name: routerModelName(entry.id),
       provider: PROVIDER_IDS.COMFY_CLOUD
-    }));
+    }))];
   }
 
-  override async hasToolSupport(_model: string): Promise<boolean> {
-    return true;
+  override async hasToolSupport(model: string): Promise<boolean> {
+    return comfyGpuTemplate(model) === undefined;
   }
 
   // ── Request building ───────────────────────────────────────────────────────
@@ -480,11 +545,11 @@ export class ComfyCloudProvider extends BaseProvider {
         b.set("width", width).set("height", height);
         return;
       }
-      b.setFirst(["size", "image_size"], `${width}x${height}`);
+      b.setFirst(SIZE_FIELDS, formatImageSize(b, `${width}x${height}`));
       return;
     }
     if (aspect && !b.firstDeclared(ASPECT_FIELDS) && IMAGE_SIZES[aspect]) {
-      b.setFirst(["size", "image_size"], IMAGE_SIZES[aspect]);
+      b.setFirst(SIZE_FIELDS, formatImageSize(b, IMAGE_SIZES[aspect]));
     }
   }
 
@@ -504,6 +569,15 @@ export class ComfyCloudProvider extends BaseProvider {
 
   override async textToImage(params: TextToImageParams): Promise<Uint8Array> {
     const modelId = params.model.id;
+    const gpu = this.gpuRun(modelId, "text_to_image", params);
+    if (gpu) { return (await gpu).data; }
+    const template = comfyTemplate(modelId);
+    if (template) {
+      if (template.task !== "text_to_image") {
+        throw new Error(`${template.name} does not support text-to-image`);
+      }
+      return runComfyTemplate(template, this.requireApiKey(), params);
+    }
     const b = await this.builder(modelId, params.signal);
     this.setCommon(b, params);
     this.setImageSize(b, params.width, params.height, params.aspectRatio);
@@ -517,6 +591,8 @@ export class ComfyCloudProvider extends BaseProvider {
 
   override async imageToImage(images: Uint8Array[], params: ImageToImageParams): Promise<Uint8Array> {
     const modelId = params.model.id;
+    const gpu = this.gpuRun(modelId, "image_to_image", { ...params, images, width: params.targetWidth, height: params.targetHeight });
+    if (gpu) { return (await gpu).data; }
     if (images.length === 0) throw new Error("imageToImage needs at least one image");
     const b = await this.builder(modelId, params.signal);
     this.setCommon(b, params);
@@ -540,6 +616,15 @@ export class ComfyCloudProvider extends BaseProvider {
 
   override async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
     const modelId = params.model.id;
+    const gpu = this.gpuRun(modelId, "text_to_video", params);
+    if (gpu) { return (await gpu).data; }
+    const template = comfyTemplate(modelId);
+    if (template) {
+      if (template.task !== "text_to_video") {
+        throw new Error(`${template.name} does not support text-to-video`);
+      }
+      return runComfyTemplate(template, this.requireApiKey(), params);
+    }
     const b = await this.builder(modelId, params.signal);
     this.setCommon(b, params);
     this.setVideoTiming(b, params.durationSeconds, params.numFrames);
@@ -553,6 +638,8 @@ export class ComfyCloudProvider extends BaseProvider {
 
   override async imageToVideo(image: Uint8Array, params: ImageToVideoParams): Promise<Uint8Array> {
     const modelId = params.model.id;
+    const gpu = this.gpuRun(modelId, "image_to_video", { ...params, images: params.endImage ? [image, params.endImage] : [image] });
+    if (gpu) { return (await gpu).data; }
     const workflowModel = comfyWorkflowModel(modelId);
     if (workflowModel) {
       // A pinned ComfyUI graph, not a Comfy Router model.
@@ -596,6 +683,8 @@ export class ComfyCloudProvider extends BaseProvider {
     params: ReferenceToVideoParams
   ): Promise<Uint8Array> {
     const modelId = params.model.id;
+    const gpu = this.gpuRun(modelId, "reference_to_video", { ...params, images: inputs.images, videos: inputs.videos, audios: inputs.audios ?? [] });
+    if (gpu) { return (await gpu).data; }
     const b = await this.builder(modelId, params.signal);
     this.setCommon(b, params);
     this.setVideoTiming(b, params.durationSeconds, params.numFrames);
@@ -621,6 +710,8 @@ export class ComfyCloudProvider extends BaseProvider {
 
   override async videoToVideo(video: Uint8Array, params: VideoToVideoParams): Promise<Uint8Array> {
     const modelId = params.model.id;
+    const gpu = this.gpuRun(modelId, "video_to_video", { ...params, videos: [video], images: params.referenceImages ?? [] });
+    if (gpu) { return (await gpu).data; }
     const b = await this.builder(modelId, params.signal);
     this.setCommon(b, { ...params, prompt: params.prompt ?? undefined });
     const source = { bytes: video, mimeType: sniffMime(video, "video/mp4") };
@@ -641,6 +732,8 @@ export class ComfyCloudProvider extends BaseProvider {
 
   override async textToSpeechEncoded(args: TextToSpeechParams): Promise<EncodedAudioResult | null> {
     const modelId = args.model;
+    const gpu = this.gpuRun(modelId, "text_to_speech", { prompt: args.text, audios: args.referenceAudio ? [args.referenceAudio] : [], signal: args.signal });
+    if (gpu) { return gpu; }
     const b = await this.builder(modelId, args.signal);
     const voice = args.voice || (modelId.startsWith("elevenlabs/") ? ELEVENLABS_DEFAULT_VOICE : undefined);
     const inputs = b.field("inputs");
@@ -666,6 +759,30 @@ export class ComfyCloudProvider extends BaseProvider {
       signal: args.signal
     });
     return { data: result.bytes, mimeType: result.mimeType };
+  }
+
+  override async textToMusic(params: TextToMusicParams): Promise<EncodedAudioResult> {
+    const result = this.gpuRun(params.model.id, "text_to_music", params);
+    if (!result) { throw new Error(`Comfy model ${params.model.id} does not support music generation`); }
+    return result;
+  }
+
+  override async audioToAudio(audio: Uint8Array, params: AudioToAudioParams): Promise<EncodedAudioResult> {
+    const result = this.gpuRun(params.model.id, "audio_to_audio", { ...params, audios: [audio] });
+    if (!result) { throw new Error(`Comfy model ${params.model.id} does not support audio transformation`); }
+    return result;
+  }
+
+  override async textTo3D(params: TextTo3DParams): Promise<Uint8Array> {
+    const result = this.gpuRun(params.model.id, "text_to_3d", params);
+    if (!result) { throw new Error(`Comfy model ${params.model.id} does not support text-to-3D`); }
+    return (await result).data;
+  }
+
+  override async imageTo3D(image: Uint8Array, params: ImageTo3DParams): Promise<Uint8Array> {
+    const result = this.gpuRun(params.model.id, "image_to_3d", { ...params, images: [image] });
+    if (!result) { throw new Error(`Comfy model ${params.model.id} does not support image-to-3D`); }
+    return (await result).data;
   }
 
   // ── Chat ───────────────────────────────────────────────────────────────────
@@ -824,6 +941,11 @@ export class ComfyCloudProvider extends BaseProvider {
   }
 
   async generateMessage(args: Parameters<BaseProvider["generateMessage"]>[0]): Promise<Message> {
+    if (comfyGpuTemplate(args.model) && args.tools?.length) { throw new Error("Comfy GPU text workflows do not support tool calls"); }
+    const gpu = this.gpuRun(args.model, "generate_message", { prompt: args.messages.map((message) => `${message.role}: ${textOf(message.content)}`).join("\n"), maxTokens: args.maxTokens, signal: args.signal });
+    if (gpu) {
+      return { role: "assistant", content: new TextDecoder().decode((await gpu).data), toolCalls: null };
+    }
     const { shape, body } = await this.chatRequest(args);
     const result = await this.getRouter().runJson(args.model, body, { signal: args.signal });
     this.recordUsage(args.model, result);
