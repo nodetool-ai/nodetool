@@ -354,10 +354,10 @@ function clipName(sequence: TimelineSequence, clipId: string): string {
 export async function renderTimelineFrames(
   options: RenderTimelineFramesOptions
 ): Promise<RenderTimelineFramesResult> {
-  assertTimelineColorSpaceSupported(options.sequence);
   const { createCanvas } = await loadCanvas();
   const { ensureGoogleFonts } = await import("@nodetool-ai/timeline/fonts/google-node");
   const { sequence, loadAsset } = options;
+  assertTimelineColorSpaceSupported(sequence);
   const onlyClipIds = options.onlyClipIds ? new Set(options.onlyClipIds) : undefined;
   const { width, height } = frameSize(sequence, options.width);
   // Animation offsets and text sizes are authored against the sequence's own
