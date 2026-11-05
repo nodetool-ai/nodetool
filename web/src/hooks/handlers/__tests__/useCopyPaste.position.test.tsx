@@ -1,6 +1,6 @@
 import { renderHook, act } from "@testing-library/react";
 import { asMock } from "../../../test-utils/doubles";
-import type { Node } from "@xyflow/react";
+import { useReactFlow, type Node } from "@xyflow/react";
 import { useCopyPaste } from "../useCopyPaste";
 import { useNodeStoreRef } from "../../../contexts/NodeContext";
 import useSessionStateStore from "../../../stores/SessionStateStore";
@@ -128,25 +128,40 @@ describe("useCopyPaste positions of group children", () => {
     expect(pastedChild?.position).toEqual({ x: 10, y: 20 });
   });
 
-  it("offsets a second paste at the same spot", async () => {
+  it("keeps offsetting repeated pastes and resets when the pointer moves", async () => {
     selected = [other];
     const { result } = renderHook(() => useCopyPaste());
     await act(async () => {
       await result.current.handleCopy();
     });
-    await act(async () => {
-      await result.current.handlePaste();
-    });
-    await act(async () => {
-      await result.current.handlePaste();
-    });
+    for (let paste = 0; paste < 5; paste += 1) {
+      await act(async () => {
+        await result.current.handlePaste();
+      });
+    }
 
     const pastedAt = (call: number) =>
       (setNodes.mock.calls[call][0] as Node<NodeData>[]).filter((n) =>
         n.id.startsWith("new-")
       )[0].position;
-    expect(pastedAt(0)).toEqual({ x: 1000, y: 1000 });
-    expect(pastedAt(1)).toEqual({ x: 1040, y: 1040 });
+    expect(Array.from({ length: 5 }, (_, i) => pastedAt(i))).toEqual([
+      { x: 1000, y: 1000 },
+      { x: 1040, y: 1040 },
+      { x: 1080, y: 1080 },
+      { x: 1120, y: 1120 },
+      { x: 1160, y: 1160 }
+    ]);
+
+    const flow = asMock(useReactFlow).mock.results.at(-1)?.value;
+    flow.screenToFlowPosition.mockReturnValue({ x: 1160, y: 1160 });
+    await act(async () => {
+      await result.current.handlePaste({ x: 160, y: 160 });
+    });
+    await act(async () => {
+      await result.current.handlePaste({ x: 160, y: 160 });
+    });
+    expect(pastedAt(5)).toEqual({ x: 1160, y: 1160 });
+    expect(pastedAt(6)).toEqual({ x: 1200, y: 1200 });
   });
 
   it("pastes the in-app copy when the system clipboard is unavailable", async () => {
