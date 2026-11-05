@@ -222,6 +222,11 @@ s(
   "Base URL of the Ollama server (default: http://127.0.0.1:11434). Set it when Ollama runs on another host or port, for example in WSL, Docker or on another machine."
 );
 s(
+  "COMFY_SERVER_URL",
+  "ComfyUI",
+  "Base URL of your own ComfyUI server, for example http://127.0.0.1:8188. When set, Comfy workflows run on this server instead of Comfy Cloud and need no COMFY_API_KEY."
+);
+s(
   "OLLAMA_KEEP_ALIVE",
   "Ollama",
   "How long Ollama keeps a model loaded after a request, in Ollama's duration syntax (default: 10m). -1 keeps it loaded, 0 unloads it at once."

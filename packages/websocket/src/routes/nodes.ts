@@ -128,24 +128,31 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   );
 
   /**
-   * Comfy workflows (`run_mode: "comfy"`): the Comfy Cloud node catalog as
+   * Comfy workflows (`run_mode: "comfy"`): the selected server's node catalog as
    * NodeTool node metadata, one `comfy.<ClassName>` type per ComfyUI class.
-   * Needs the caller's COMFY_API_KEY, so unlike `/api/nodes/metadata` it is
+   * Needs the caller's COMFY_SERVER_URL or COMFY_API_KEY, so unlike `/api/nodes/metadata` it is
    * per user.
    */
   app.get("/api/comfy/nodes", async (req, reply) => {
     await bridge(req, reply, async (request) => {
       const userId = getUserId(request, apiOptions.userIdHeader ?? "x-user-id");
+      const serverUrl = (await getSecret("COMFY_SERVER_URL", userId))?.trim();
       const apiKey = (await getSecret("COMFY_API_KEY", userId))?.trim();
-      if (!apiKey) {
+      if (!serverUrl && !apiKey) {
         return Response.json(
-          apiError(ApiErrorCode.INVALID_INPUT, "Add COMFY_API_KEY in Settings to load Comfy nodes."),
+          apiError(
+            ApiErrorCode.INVALID_INPUT,
+            "Set COMFY_SERVER_URL or add COMFY_API_KEY in Settings to load Comfy nodes."
+          ),
           { status: 400 }
         );
       }
       try {
-        const { fetchComfyObjectInfo } = await importPack<IntegrationModule>("integration");
-        const info = await fetchComfyObjectInfo(apiKey, { signal: request.signal });
+        const { fetchComfyObjectInfo, fetchComfyServerObjectInfo } =
+          await importPack<IntegrationModule>("integration");
+        const info = serverUrl
+          ? await fetchComfyServerObjectInfo(serverUrl, { signal: request.signal })
+          : await fetchComfyObjectInfo(apiKey as string, { signal: request.signal });
         return Response.json(comfyObjectInfoToMetadata(info));
       } catch (error) {
         return Response.json(
@@ -182,12 +189,16 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
         );
       }
       const prompt = workflow as ComfyApiPrompt;
+      const serverUrl = (await getSecret("COMFY_SERVER_URL", userId))?.trim();
       const apiKey = (await getSecret("COMFY_API_KEY", userId))?.trim();
       let outputNames: (cls: string) => string[] | undefined = () => undefined;
-      if (apiKey) {
+      if (serverUrl || apiKey) {
         try {
-          const { fetchComfyObjectInfo } = await importPack<IntegrationModule>("integration");
-          const info = await fetchComfyObjectInfo(apiKey, { signal: request.signal });
+          const { fetchComfyObjectInfo, fetchComfyServerObjectInfo } =
+            await importPack<IntegrationModule>("integration");
+          const info = serverUrl
+            ? await fetchComfyServerObjectInfo(serverUrl, { signal: request.signal })
+            : await fetchComfyObjectInfo(apiKey as string, { signal: request.signal });
           outputNames = (cls) => (info[cls] ? comfyOutputNames(info[cls]) : undefined);
         } catch {
           // Without the catalog, edges fall back to `output_<index>` handles.

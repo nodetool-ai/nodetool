@@ -15,6 +15,9 @@
  * `current_node` empty. Per-node state comes from the Cloud WebSocket, which
  * reports every job of the account, so its frames are filtered by prompt id.
  * That socket only adds detail: a run without it still finishes and saves.
+ *
+ * When the `COMFY_SERVER_URL` setting names a self-hosted ComfyUI, the same run
+ * goes to that server through its native API and needs no `COMFY_API_KEY`.
  */
 
 import { Buffer } from "node:buffer";
@@ -36,6 +39,7 @@ import {
   applyComfyInputs,
   cloudTransport,
   describeComfyError,
+  stripTrailingSlashes,
   jobFailure,
   extFromUri,
   outputFrame,
@@ -43,11 +47,13 @@ import {
   type ComfyPrompt,
   type ComfyTransport
 } from "./comfy-sdk.js";
+import { serverTransport } from "./comfy-server-transport.js";
 
 /** Comfy Cloud origin. The v2 job API and the v1 node catalog share it. */
 export const COMFY_CLOUD_ORIGIN = "https://cloud.comfy.org";
 
 const OBJECT_INFO_TTL_MS = 30 * 60 * 1000;
+const SERVER_OBJECT_INFO_TTL_MS = 30 * 1000;
 const objectInfoCache = new Map<
   string,
   { at: number; info: Promise<ComfyObjectInfo> }
@@ -62,13 +68,8 @@ export function fetchComfyObjectInfo(
   options: { signal?: AbortSignal; fetchImpl?: typeof fetch } = {}
 ): Promise<ComfyObjectInfo> {
   // In-memory only, so the key itself is the cache key; nothing is persisted.
-  const key = apiKey;
-  const cached = objectInfoCache.get(key);
-  if (cached && Date.now() - cached.at < OBJECT_INFO_TTL_MS) {
-    return cached.info;
-  }
   const doFetch = options.fetchImpl ?? fetch;
-  const info = (async () => {
+  return cachedObjectInfo(apiKey, OBJECT_INFO_TTL_MS, async () => {
     const res = await doFetch(`${COMFY_CLOUD_ORIGIN}/api/object_info`, {
       headers: { "X-API-Key": apiKey, Accept: "application/json" },
       signal: options.signal
@@ -79,12 +80,59 @@ export function fetchComfyObjectInfo(
       );
     }
     return (await res.json()) as ComfyObjectInfo;
-  })();
+  });
+}
+
+function cachedObjectInfo(
+  key: string,
+  ttlMs: number,
+  load: () => Promise<ComfyObjectInfo>
+): Promise<ComfyObjectInfo> {
+  const cached = objectInfoCache.get(key);
+  if (cached && Date.now() - cached.at < ttlMs) {
+    return cached.info;
+  }
+  const info = load();
   objectInfoCache.set(key, { at: Date.now(), info });
   info.catch(() => {
     if (objectInfoCache.get(key)?.info === info) objectInfoCache.delete(key);
   });
   return info;
+}
+
+/** The URL of a self-hosted ComfyUI, with a bare host:port given `http://`. */
+export function normalizeComfyServerUrl(value: string): string {
+  const trimmed = stripTrailingSlashes(value.trim());
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `http://${trimmed}`;
+}
+
+/**
+ * A self-hosted ComfyUI's node catalog. It is cached briefly, because a restart
+ * of the server can add custom nodes and models.
+ */
+export function fetchComfyServerObjectInfo(
+  serverUrl: string,
+  options: { signal?: AbortSignal; fetchImpl?: typeof fetch } = {}
+): Promise<ComfyObjectInfo> {
+  const url = normalizeComfyServerUrl(serverUrl);
+  const doFetch = options.fetchImpl ?? fetch;
+  return cachedObjectInfo(url, SERVER_OBJECT_INFO_TTL_MS, async () => {
+    let res: Response;
+    try {
+      res = await doFetch(`${url}/object_info`, {
+        headers: { Accept: "application/json" },
+        signal: options.signal
+      });
+    } catch (err) {
+      throw new Error(
+        `Could not reach the ComfyUI server at ${url}. Start it or correct COMFY_SERVER_URL in Settings. (${err instanceof Error ? err.message : String(err)})`
+      );
+    }
+    if (!res.ok) {
+      throw new Error(`The ComfyUI server at ${url} returned HTTP ${res.status} for its node catalog.`);
+    }
+    return (await res.json()) as ComfyObjectInfo;
+  });
 }
 
 /** Test hook: forget cached catalogs. */
@@ -122,14 +170,13 @@ function abortError(message: string): Error {
 
 export class ComfyCloudGraphNode extends BaseNode {
   static readonly nodeType = COMFY_CLOUD_GRAPH_NODE_TYPE;
-  static readonly title = "Run Comfy Workflow (Comfy Cloud)";
+  static readonly title = "Run Comfy Workflow";
   static readonly description =
-    "Runs a whole Comfy workflow on Comfy Cloud as one job through the Comfy API v2.\n    comfy, comfyui, cloud, workflow";
+    "Runs a whole Comfy workflow as one job on the ComfyUI server in COMFY_SERVER_URL, or else on Comfy Cloud.\n    comfy, comfyui, cloud, workflow";
   static readonly hidden = true;
   static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   static readonly autoSaveAsset = true;
-  static readonly requiredSettings = ["COMFY_API_KEY"];
   static readonly metadataOutputTypes = {
     output: "dict[str, any]"
   };
@@ -180,6 +227,19 @@ export class ComfyCloudGraphNode extends BaseNode {
     signal: AbortSignal
   ): Promise<ComfyObjectInfo> {
     return fetchComfyObjectInfo(apiKey, { signal });
+  }
+
+  /** Split out so tests can reach a local server through a real executor. */
+  protected createServerTransport(url: string, timeoutMs: number): ComfyTransport {
+    return serverTransport(url, timeoutMs);
+  }
+
+  /** Split out so tests run without a ComfyUI server. */
+  protected loadServerObjectInfo(
+    url: string,
+    signal: AbortSignal
+  ): Promise<ComfyObjectInfo> {
+    return fetchComfyServerObjectInfo(url, { signal });
   }
 
   /**
@@ -275,12 +335,18 @@ export class ComfyCloudGraphNode extends BaseNode {
     context: ProcessingContext | undefined,
     live: { close: () => void }
   ): AsyncGenerator<Record<string, unknown>> {
-    const apiKey = this._secrets.COMFY_API_KEY?.trim();
-    if (!apiKey) {
+    const configuredServer = (await context?.getSecret("COMFY_SERVER_URL"))?.trim();
+    const serverUrl = configuredServer ? normalizeComfyServerUrl(configuredServer) : null;
+    const apiKey =
+      this._secrets.COMFY_API_KEY?.trim() ||
+      (await context?.getSecret("COMFY_API_KEY"))?.trim() ||
+      "";
+    if (!serverUrl && !apiKey) {
       throw new Error(
-        "COMFY_API_KEY is required to run a Comfy workflow. Add it in Settings; get a key at https://platform.comfy.org."
+        "A Comfy workflow needs a place to run. Set COMFY_SERVER_URL for your own ComfyUI server, or add COMFY_API_KEY for Comfy Cloud, in Settings."
       );
     }
+    const where = serverUrl ? `the ComfyUI server at ${serverUrl}` : "Comfy Cloud";
     const graph: ComfyGraph = {
       nodes: (Array.isArray(this.nodes) ? this.nodes : []).filter((n) =>
         isComfyNodeType(n?.type)
@@ -340,7 +406,9 @@ export class ComfyCloudGraphNode extends BaseNode {
 
     let info: ComfyObjectInfo;
     try {
-      info = await this.loadObjectInfo(apiKey, signal);
+      info = serverUrl
+        ? await this.loadServerObjectInfo(serverUrl, signal)
+        : await this.loadObjectInfo(apiKey, signal);
     } catch (err) {
       throw describeComfyError(err);
     }
@@ -349,7 +417,7 @@ export class ComfyCloudGraphNode extends BaseNode {
       .filter((cls) => !(cls in info));
     if (unknown.length > 0) {
       throw new Error(
-        `Comfy Cloud does not have these node classes: ${[...new Set(unknown)].join(", ")}`
+        `${where} does not have these node classes: ${[...new Set(unknown)].join(", ")}`
       );
     }
     // A Comfy job returns files only for its output nodes, so a socket wired to
@@ -368,11 +436,13 @@ export class ComfyCloudGraphNode extends BaseNode {
       info[cls] ? comfyOutputNames(info[cls]) : undefined
     ) as ComfyPrompt;
 
-    const transport = this.createTransport(apiKey);
+    const transport = serverUrl
+      ? this.createServerTransport(serverUrl, timeoutSeconds * 1000)
+      : this.createTransport(apiKey);
     await applyComfyInputs(prompt, this.dynamicProps, transport, context);
 
     for (const node of graph.nodes) nodeUpdate(node.id, "queued");
-    log(`Submitting Comfy workflow to Comfy Cloud (${graph.nodes.length} nodes)`);
+    log(`Submitting Comfy workflow to ${where} (${graph.nodes.length} nodes)`);
 
     const done = new Set<string>();
     const finish = (nodeId: string | null): void => {
@@ -418,7 +488,8 @@ export class ComfyCloudGraphNode extends BaseNode {
         }
       }
     };
-    try {
+    // A self-hosted job reports its nodes through its own events.
+    if (!serverUrl) try {
       live.close = this.openLiveFrames(
         apiKey,
         (frame) => {
@@ -435,7 +506,7 @@ export class ComfyCloudGraphNode extends BaseNode {
 
     let job;
     try {
-      job = await transport.submit(prompt, { signal, apiKey });
+      job = await transport.submit(prompt, { signal, apiKey: serverUrl ? undefined : apiKey });
     } catch (err) {
       const error = describeComfyError(err);
       for (const node of graph.nodes) nodeUpdate(node.id, "error", { error: error.message });
@@ -551,7 +622,7 @@ export class ComfyCloudGraphNode extends BaseNode {
       signal.removeEventListener("abort", onAbort);
       if (signal.aborted) {
         if (timeoutSignal.aborted && !context?.signal?.aborted) {
-          throw new Error(`Comfy Cloud job did not finish within ${timeoutSeconds}s`);
+          throw new Error(`Comfy job did not finish within ${timeoutSeconds}s`);
         }
         throw abortError(`Comfy job ${job.id} was canceled`);
       }

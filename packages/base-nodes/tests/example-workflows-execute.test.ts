@@ -118,15 +118,14 @@ const EXAMPLES_DIR = path.resolve(
 const PER_WORKFLOW_TIMEOUT_MS = 30_000;
 
 /**
- * Examples whose real ffmpeg work outlasts the default timeout: denoising the
- * 8 s sample clip, reframing it, and rendering a timeline to video. Alone on
+ * Examples whose real ffmpeg work outlasts the default timeout: reframing the
+ * 8 s sample clip and rendering a timeline to video. Alone on
  * one machine they take 13–80 s. The CI nodes shard runs them beside the
  * other package suites on four cores, where the 30 s and 120 s limits
  * expired, so each gets several times its solo duration.
  */
 const SLOW_WORKFLOW_TIMEOUT_MS: Record<string, number> = {
   "Cut a Landscape Clip for Vertical.json": 120_000,
-  "Denoise Footage.json": 300_000,
   "Direct a Short Film.json": 300_000,
   "Directed Film to Timeline.json": 300_000
 };

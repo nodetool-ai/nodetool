@@ -102,7 +102,8 @@ function setup(result: ComfyJob) {
   const messages: Array<Record<string, unknown>> = [];
   const context = {
     postMessage: (m: Record<string, unknown>) => messages.push(m),
-    normalizeOutputValue: async (v: unknown) => v
+    normalizeOutputValue: async (v: unknown) => v,
+    getSecret: async () => null
   } as unknown as ProcessingContext;
   return { node, messages, context };
 }

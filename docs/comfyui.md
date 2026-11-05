@@ -463,6 +463,15 @@ node scripts/comfy-templates/gpu-catalog.mjs
 node scripts/comfy-templates/gpu-catalog.mjs --check
 ```
 
+### Run Comfy workflows on your own server
+
+Set `COMFY_SERVER_URL` in Settings or in the server's environment, for example
+`http://127.0.0.1:8188`. Comfy workflows then run on that ComfyUI through its
+native API, the node menu shows that server's nodes, and no `COMFY_API_KEY` is
+needed. The server must have the models and custom nodes that the workflow uses.
+Clear the setting to run on Comfy Cloud again. Partner nodes need a Comfy account
+key, which this path does not send, so use Comfy Cloud for them.
+
 The `Comfy *` examples are compiled from UI-format templates by
 `scripts/comfy-templates/ui-examples.mjs`. `--refresh` keeps only the templates
 whose values and models Comfy Cloud's node catalog accepts. A kept template has

@@ -65,11 +65,6 @@
     },
     {
       "package_name": "nodetool-base",
-      "name": "Conditional Logic Engine.jpg",
-      "path": ""
-    },
-    {
-      "package_name": "nodetool-base",
       "name": "Music Video Visualizer.jpg",
       "path": ""
     },
@@ -681,40 +676,55 @@
   ],
   "examples": [
     {
-      "id": "",
-      "name": "Count to Three with a Loop",
-      "description": "Start at zero and add one on each pass. Stop when the result reaches three, then return the final value.",
-      "tags": ["control", "loop", "getting-started", "example"]
-    },
-    {
       "id": "directed-campaign-directions",
       "name": "Propose Three Campaign Directions",
       "description": "Validate one product brief and optional role-labelled reference, then propose exactly three written campaign directions before any image generation.",
-      "tags": ["campaign", "image", "example"]
+      "tags": [
+        "campaign",
+        "image",
+        "example"
+      ]
     },
     {
       "id": "directed-campaign-hero",
       "name": "Render a Directed Campaign Hero",
       "description": "Select one captured direction deterministically, edit the product reference into a 16:9 hero, and emit its creative contract only after the image succeeds.",
-      "tags": ["campaign", "image", "example"]
+      "tags": [
+        "campaign",
+        "image",
+        "example"
+      ]
     },
     {
       "id": "directed-campaign-layouts",
       "name": "Compose Directed Campaign Formats",
       "description": "Compose one accepted hero into deterministic 1080×1350 and 1080×1920 PNG and self-contained SVG formats, then export a portable versioned campaign record.",
-      "tags": ["campaign", "image", "svg", "example"]
+      "tags": [
+        "campaign",
+        "image",
+        "svg",
+        "example"
+      ]
     },
     {
       "id": "directed-campaign-revision",
       "name": "Revise an Accepted Campaign Hero",
       "description": "Apply one bounded revision to the accepted campaign hero while recording the exact change, preservation instructions, allowed response, and parent contract.",
-      "tags": ["campaign", "image", "example"]
+      "tags": [
+        "campaign",
+        "image",
+        "example"
+      ]
     },
     {
       "id": "directed-campaign-restore",
       "name": "Reopen a Directed Campaign",
       "description": "Validate a portable schema-version-1 campaign record and restore its accepted original and optional revision without calling a model.",
-      "tags": ["campaign", "document", "example"]
+      "tags": [
+        "campaign",
+        "document",
+        "example"
+      ]
     },
     {
       "id": "data_generator",
@@ -743,14 +753,6 @@
         "audio",
         "music",
         "visualization"
-      ]
-    },
-    {
-      "id": "",
-      "name": "Conditional Logic Engine",
-      "description": "Routes one number to a low, medium or high output with two Code comparisons and If nodes. Teaches branching and how two If nodes chained on their false handles form an else branch. No model runs.",
-      "tags": [
-        "boolean"
       ]
     },
     {

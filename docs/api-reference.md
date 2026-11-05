@@ -1011,8 +1011,8 @@ curl "http://localhost:7777/api/workflows/examples/nodetool-base/Sharpen%20Foota
 {
   "id": "",
   "access": "private",
-  "name": "Sharpen Footage",
-  "description": "Add apparent detail back after a denoise or a downscale. …",
+  "name": "Trim a Clip",
+  "description": "Cut a clip down to an in and out point. …",
   "tags": ["video", "utility", "example"],
   "package_name": "nodetool-base",
   "graph": { "nodes": [ … ], "edges": [ … ] },

@@ -246,6 +246,11 @@ at 24 hours.
   case. The address is the node's `endpoint` property, so the graph author picks
   it, and `lib.comfy.RunWorkflow` / `lib.comfy.RunWorkflowOnWorker` are
   allowlisted on the cloud profile.
+- `packages/integration-nodes/src/nodes/comfy-graph-cloud.ts`,
+  `packages/integration-nodes/src/nodes/comfy-server-transport.ts`, and
+  `GET /api/comfy/nodes` — a self-hosted ComfyUI named by the `COMFY_SERVER_URL`
+  setting. It is normally localhost or the LAN, the same case as
+  `comfy-executor.ts`, and the setting holder picks the address.
 - `packages/integration-nodes/src/nodes/comfy-sdk.ts` — the Comfy API v2
   transport. `@comfyorg/sdk` opens the socket. For
   `lib.comfy.RunWorkflowOnCloud` it opens against the constant

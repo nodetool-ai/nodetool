@@ -64,7 +64,7 @@ runWorkflowOnCloud.stream = function (inputs: RunWorkflowOnCloudInputs): AsyncIt
   return streamNode<Partial<RunWorkflowOnCloudOutputs>>("lib.comfy.RunWorkflowOnCloud", inputs);
 };
 
-// Run Comfy Workflow (Comfy Cloud) — lib.comfy.RunComfyGraphOnCloud
+// Run Comfy Workflow — lib.comfy.RunComfyGraphOnCloud
 export type RunComfyGraphOnCloudInputs = {
   nodes?: Record<string, unknown>[];
   edges?: Record<string, unknown>[];

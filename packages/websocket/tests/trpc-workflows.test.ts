@@ -782,7 +782,7 @@ describe("workflows router", () => {
         run_mode: "comfy",
         needs: { modelKinds: [], requiredSettings: ["COMFY_API_KEY"] }
       }));
-      expect(needsOf("Blur an Image")).toEqual({
+      expect(needsOf("Trim a Clip")).toEqual({
         modelKinds: [],
         requiredSettings: []
       });

@@ -67,32 +67,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "black-and-white-hard",
-        "name": "Black and White, Hard",
-        "description": "Grayscale first, then a soft-edged threshold. Thresholding colour directly gives you the luminance of whichever channel happens to dominate, which is rarely what you want.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "slug": "blur-a-channel",
-        "name": "Blur a Channel",
-        "description": "Pull one colour channel, then blur it. A deliberately odd chain: it exists to check that single-channel output stays a valid image for the next node rather than silently losing its mode.",
-        "tags": [
-          "image",
-          "utility"
-        ]
-      },
-      {
-        "slug": "blur-an-image",
-        "name": "Blur an Image",
-        "description": "Soften an image. Useful for backplates behind text, or for anonymising a background before publishing. Local pixel work - no model, no key, no cost.",
-        "tags": [
-          "image",
-          "utility"
-        ]
-      },
-      {
         "slug": "brand-asset-generator",
         "name": "Brand Asset Generator",
         "description": "Turn a brand name and vibe into a whole social kit in one run: the graph fans out to two branches at once — a streamed gallery of four on-brand, text-overlaid social images (Instagram, LinkedIn, X, product launch) and a one-page brand brief (voice, palette, tagline options). Differentiator: structured multi-asset outputs from a single fan-out graph. Each model step uses your default model for its type, and the image steps are paid.",
@@ -160,24 +134,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "crop-an-image",
-        "name": "Crop an Image",
-        "description": "Cut a rectangle out of an image by pixel bounds. The blunt instrument - use Fit when you want the whole frame at a new size. Local pixel work - no model, no key, no cost.",
-        "tags": [
-          "image",
-          "utility"
-        ]
-      },
-      {
-        "slug": "crop-then-fit",
-        "name": "Crop then Fit",
-        "description": "Two image steps composed: cut to a region, then scale that region into a thumbnail box. Doing it in this order means the crop decides the subject and the fit only decides the size.",
-        "tags": [
-          "image",
-          "utility"
-        ]
-      },
-      {
         "slug": "cut-out-the-subject",
         "name": "Cut Out the Subject",
         "description": "Strip an image down to its subject on transparency, ready to composite over any background. The usual first step for a product cut-out or a cast of characters that has to sit on brand colour.",
@@ -229,31 +185,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "emboss-a-still",
-        "name": "Emboss a Still",
-        "description": "Turn the image into a relief. Emboss reads gradients rather than colour, so a flat region goes grey and only the edges survive.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "slug": "find-the-edges",
-        "name": "Find the Edges",
-        "description": "Canny edge detection with the two thresholds it actually turns on: the low one decides what counts as a weak edge, the high one what counts as certain.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "slug": "fit-an-image",
-        "name": "Fit an Image",
-        "description": "Scale an image to fit a box while keeping its aspect ratio. What you want for thumbnails, where a hard resize would distort. Local pixel work - no model, no key, no cost.",
-        "tags": [
-          "image",
-          "utility"
-        ]
-      },
-      {
         "slug": "generate-then-upscale-a-poster",
         "name": "Generate then Upscale a Poster",
         "description": "Generate small and cheap, then pay for resolution only on the frame you keep. Iterating at 1K and upscaling once at the end costs a fraction of generating every draft at full size.",
@@ -290,14 +221,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "invert-a-still",
-        "name": "Invert a Still",
-        "description": "A straight negative — every channel flipped. The cheapest way to see whether a filter chain is operating on the pixels you think it is.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
         "slug": "lens-and-look",
         "name": "Lens and Look",
         "description": "Dial focal length (14mm to 135mm, macro, or anamorphic), aperture depth of field, film stock grain, and camera motion before generating a keyframe still and its animated shot. Estimated cost is about $0.05 for the keyframe plus $0.35 to $0.85 for the clip on fal, or $0 locally with Flux and Wan 2.2.",
@@ -325,15 +248,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "pad-a-canvas",
-        "name": "Pad a Canvas",
-        "description": "Place an image on a larger canvas without scaling it - the way to letterbox a landscape shot into a square post without cropping the subject. Local pixel work - no model, no key, no cost.",
-        "tags": [
-          "image",
-          "utility"
-        ]
-      },
-      {
         "slug": "photo-enhancement-suite",
         "name": "Photo Enhancement Suite",
         "description": "Batch-enhance a list of photos through a fixed retouch chain — auto-contrast, color, sharpening, and an AI cinematic-grade pass — with no folder path required, just drop images in.",
@@ -344,25 +258,9 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "pixelate-a-still",
-        "name": "Pixelate a Still",
-        "description": "Cell size is the whole control. Useful for redaction, and the one filter where a bigger number is more privacy rather than more effect.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
         "slug": "poster-on-kie",
         "name": "Poster on Kie",
         "description": "Generate a poster-style image on a Kie model that you pick on \"Render\". Kie fronts several model families behind one key, so this is the shortest path to checking a Kie credential actually works.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "slug": "posterize-to-four-bits",
-        "name": "Posterize to Four Bits",
-        "description": "Reduce the bits per channel and the image collapses into flat bands — a screenprint look, and a quick way to see banding before it bites you.",
         "tags": [
           "image"
         ]
@@ -459,23 +357,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "solarize-a-still",
-        "name": "Solarize a Still",
-        "description": "Invert only the tones above a threshold — the darkroom accident that became a look.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
-        "slug": "split-a-channel",
-        "name": "Split a Channel",
-        "description": "Pull one colour channel out as its own image. A quick way to inspect where an artefact lives, or to build a mask from one channel. Local pixel work - no model, no key, no cost.",
-        "tags": [
-          "image",
-          "utility"
-        ]
-      },
-      {
         "slug": "still-on-replicate",
         "name": "Still on Replicate",
         "description": "Generate an image with a Replicate model rather than a fal one. Pick a Replicate model on Render. Same graph shape as the fal and Kie variants - swapping provider is a model-field change, not a rewrite, which is the point worth demonstrating.",
@@ -547,14 +428,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "vignette-a-portrait",
-        "name": "Vignette a Portrait",
-        "description": "Darken the corners to pull the eye inward. Radius sets where the falloff starts, softness how abruptly it arrives.",
-        "tags": [
-          "image"
-        ]
-      },
-      {
         "slug": "write-a-listing-from-the-product-photo",
         "name": "Write a Listing from the Product Photo",
         "description": "Hand the model the photograph rather than a description of it. Marketplace copy written from the actual image catches details a spec sheet omits — finish, proportion, what it sits next to.",
@@ -619,15 +492,6 @@ export const templateCatalog: CatalogCategory[] = [
         "tags": [
           "video",
           "content"
-        ]
-      },
-      {
-        "slug": "boost-saturation",
-        "name": "Boost Saturation",
-        "description": "Push colour intensity. Values above 1 saturate, below 1 move toward greyscale. Unlike the Color Boost template this runs on the CPU media engine, so it needs no GPU. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
-        "tags": [
-          "video",
-          "utility"
         ]
       },
       {
@@ -699,15 +563,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "denoise-footage",
-        "name": "Denoise Footage",
-        "description": "Reduce sensor grain in footage shot at high ISO. Higher strength smooths more and softens fine detail with it. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
-        "tags": [
-          "video",
-          "utility"
-        ]
-      },
-      {
         "slug": "direct-a-short-film",
         "name": "Direct a Short Film",
         "description": "Type a brief, get a cut film. A language model directs — it writes the screenplay, the shot list and the narration — then each shot is filmed and the clips are assembled into a timeline and rendered.\n\nTwo video models, not one, and that is deliberate: shot 1 has nothing to seed from so it is text-to-video, while every later shot is seeded from the previous clip's last frame for continuity, which is image-to-video. Some providers publish those as separate model ids, so Continuation Model carries the second. On a provider where one id does both you can leave it empty.\n\nCost scales with shot count and with the video models you pick. Text costs pennies.",
@@ -750,16 +605,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "fade-audio-in-and-out",
-        "name": "Fade Audio In and Out",
-        "description": "Ease a track in from silence so it does not start on a hard edit. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Built-in media engine - no API cost.",
-        "tags": [
-          "audio",
-          "video",
-          "utility"
-        ]
-      },
-      {
         "slug": "generate-a-native-audio-ugc-testimonial",
         "name": "Generate a Native-Audio UGC Testimonial",
         "description": "Turn creator and product references plus one short script into a continuous 15-second testimonial with native voice and lip-sync.",
@@ -768,24 +613,6 @@ export const templateCatalog: CatalogCategory[] = [
           "marketing",
           "ugc",
           "native-audio"
-        ]
-      },
-      {
-        "slug": "inspect-a-clip",
-        "name": "Inspect a Clip",
-        "description": "Read a clip's duration straight from its header, with dimensions, frame rate and codec one connection away. Cheap pre-flight before an expensive generation step - check what you actually have before paying to transform it.",
-        "tags": [
-          "video",
-          "data",
-          "utility"
-        ]
-      },
-      {
-        "slug": "key-out-a-green-screen",
-        "name": "Key Out a Green Screen",
-        "description": "Chroma key with the two dials that matter: similarity decides how much of the colour range goes transparent, blend softens the edge.",
-        "tags": [
-          "video"
         ]
       },
       {
@@ -833,16 +660,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "normalize-a-clips-audio",
-        "name": "Normalize a Clip's Audio",
-        "description": "Even out loudness on a track that was recorded too quiet or too hot. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Built-in media engine - no API cost.",
-        "tags": [
-          "audio",
-          "video",
-          "utility"
-        ]
-      },
-      {
         "slug": "per-sku-ad-factory",
         "name": "Per-SKU Ad Factory",
         "description": "One approved board becomes one ad per product. CreateEntity upserts the SKU's entity on its stock code, RecastStoryboard copies the board onto it and keeps every frame whose prompt did not change, the render nodes pay only for the stale ones, and the assembled cut inherits the template's titles and music before the overlay is filled with this product's name and price. Run it once per SKU — from a CSV loop, a webhook, or by hand.",
@@ -850,15 +667,6 @@ export const templateCatalog: CatalogCategory[] = [
           "video",
           "storyboard",
           "batch"
-        ]
-      },
-      {
-        "slug": "picture-in-picture",
-        "name": "Picture in Picture",
-        "description": "Inset one clip over another - a webcam corner over a screen recording, or a reaction shot over the footage being reacted to. The inset's audio is muted by default so the main track stays clean.",
-        "tags": [
-          "video",
-          "utility"
         ]
       },
       {
@@ -894,42 +702,6 @@ export const templateCatalog: CatalogCategory[] = [
           "business",
           "data",
           "video"
-        ]
-      },
-      {
-        "slug": "read-a-clips-frame-rate",
-        "name": "Read a Clip's Frame Rate",
-        "description": "Fps reads the rate off the header without decoding the video. Cheap enough to run before deciding whether a clip needs conforming.",
-        "tags": [
-          "video"
-        ]
-      },
-      {
-        "slug": "reverse-audio",
-        "name": "Reverse Audio",
-        "description": "Play a track backwards - the basis of reverse-cymbal risers and pre-echo effects. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Built-in media engine - no API cost.",
-        "tags": [
-          "audio",
-          "video",
-          "utility"
-        ]
-      },
-      {
-        "slug": "reverse-a-clip",
-        "name": "Reverse a Clip",
-        "description": "Play a clip backwards. Useful for loop-and-return transitions where the return leg is the same footage reversed. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
-        "tags": [
-          "video",
-          "utility"
-        ]
-      },
-      {
-        "slug": "rotate-footage",
-        "name": "Rotate Footage",
-        "description": "Rotate a clip by a fixed angle - the fix for phone footage that arrives on its side. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
-        "tags": [
-          "video",
-          "utility"
         ]
       },
       {
@@ -972,15 +744,6 @@ export const templateCatalog: CatalogCategory[] = [
           "creative",
           "director",
           "storyboard"
-        ]
-      },
-      {
-        "slug": "sharpen-footage",
-        "name": "Sharpen Footage",
-        "description": "Add apparent detail back after a denoise or a downscale. Luma carries most of the perceived sharpness; chroma is kept low to avoid colour fringing. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
-        "tags": [
-          "video",
-          "utility"
         ]
       },
       {
@@ -1034,29 +797,11 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "soften-a-plate",
-        "name": "Soften a Plate",
-        "description": "Blur a clip so it can sit behind titles or a picture-in-picture inset without competing for attention. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
-        "tags": [
-          "video",
-          "utility"
-        ]
-      },
-      {
         "slug": "spin-a-packshot-into-a-turntable-clip",
         "name": "Spin a Packshot into a Turntable Clip",
         "description": "A still becomes motion for the product page. Image-to-video keeps the product identical and adds only the camera move, which a text-to-video model would not.",
         "tags": [
           "video"
-        ]
-      },
-      {
-        "slug": "stabilize-handheld",
-        "name": "Stabilize Handheld",
-        "description": "Smooth out handheld camera shake. Stabilising moves the frame, so `crop_black` trims the empty edges it exposes. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
-        "tags": [
-          "video",
-          "utility"
         ]
       },
       {
@@ -1096,14 +841,6 @@ export const templateCatalog: CatalogCategory[] = [
           "video",
           "utility"
         ]
-      },
-      {
-        "slug": "warm-up-a-cold-clip",
-        "name": "Warm Up a Cold Clip",
-        "description": "Per-channel colour balance — lift red, drop blue. A grade you can apply without a GPU, since it runs on the CPU media engine rather than a shader.",
-        "tags": [
-          "video"
-        ]
       }
     ]
   },
@@ -1119,14 +856,6 @@ export const templateCatalog: CatalogCategory[] = [
         "tags": [
           "audio",
           "text"
-        ]
-      },
-      {
-        "slug": "add-reverb-to-a-voice",
-        "name": "Add Reverb to a Voice",
-        "description": "Put a dry vocal in a room. Wet level is the send, dry level the original — keeping both is what makes it sound like a space rather than a wash.",
-        "tags": [
-          "audio"
         ]
       },
       {
@@ -1147,56 +876,12 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "crush-it-to-8-bits",
-        "name": "Crush It to 8 Bits",
-        "description": "Quantise to fewer bits and decimate the sample rate. Two independent controls: bit depth is the vertical resolution, sample-rate reduction the horizontal.",
-        "tags": [
-          "audio"
-        ]
-      },
-      {
-        "slug": "fade-audio-out",
-        "name": "Fade Audio Out",
-        "description": "Taper a track to silence over the last few seconds so a cut does not end on an abrupt chop. Set the duration longer than you think - a fade that reads as deliberate is usually slower than it feels while editing.",
-        "tags": [
-          "audio",
-          "utility"
-        ]
-      },
-      {
-        "slug": "gate-out-the-room-noise",
-        "name": "Gate Out the Room Noise",
-        "description": "Silence anything below the threshold, so the hiss between phrases disappears while the phrases themselves are untouched.",
-        "tags": [
-          "audio"
-        ]
-      },
-      {
-        "slug": "generate-a-silent-bed",
-        "name": "Generate a Silent Bed",
-        "description": "Make a silent audio track of a fixed length. Used as spacing between concatenated takes, or as a placeholder while the real voiceover is still being written.",
-        "tags": [
-          "audio",
-          "utility"
-        ]
-      },
-      {
         "slug": "how-long-is-this-transcript",
         "name": "How Long Is This Transcript",
         "description": "Transcribe a clip and count the tokens. Worth knowing before you feed a transcript to a model that bills per token or caps context.",
         "tags": [
           "audio",
           "text"
-        ]
-      },
-      {
-        "slug": "inspect-a-clips-audio",
-        "name": "Inspect a Clip's Audio",
-        "description": "Read the sample rate of a clip's audio track, with channel count and duration one connection away. Worth running before a lip-sync or transcription step, both of which are picky about what they are fed.",
-        "tags": [
-          "audio",
-          "data",
-          "utility"
         ]
       },
       {
@@ -1252,14 +937,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "pitch-a-voice-up",
-        "name": "Pitch a Voice Up",
-        "description": "Shift pitch in semitones while duration stays put — the counterpart to time stretch.",
-        "tags": [
-          "audio"
-        ]
-      },
-      {
         "slug": "podcast-episode-to-show-notes",
         "name": "Podcast Episode to Show Notes",
         "description": "The job every podcast has and nobody enjoys. Transcribe, then write the notes — summary, topic bullets, and the resources mentioned.",
@@ -1298,14 +975,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "slow-a-clip-without-dropping-pitch",
-        "name": "Slow a Clip Without Dropping Pitch",
-        "description": "Time stretch changes duration and leaves pitch alone — which is the whole point. Changing playback speed instead would take the pitch down with it.",
-        "tags": [
-          "audio"
-        ]
-      },
-      {
         "slug": "speak-a-line-then-trim-the-silence",
         "name": "Speak a Line, Then Trim the Silence",
         "description": "Synthesise speech and strip the dead air off both ends. TTS often leaves padding; RemoveSilence gives you a tight clip you can drop into a timeline.",
@@ -1332,25 +1001,9 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "swirl-and-echo",
-        "name": "Swirl and Echo",
-        "description": "A phaser sweeping under a feedback delay. Both are mix-based, so the dry signal survives underneath rather than being replaced.",
-        "tags": [
-          "audio"
-        ]
-      },
-      {
         "slug": "take-the-first-few-seconds-of-a-bed",
         "name": "Take the First Few Seconds of a Bed",
         "description": "Generate music and slice a short section out of it. Cheaper than regenerating when you only need a sting rather than a full bed.",
-        "tags": [
-          "audio"
-        ]
-      },
-      {
-        "slug": "telephone-voice",
-        "name": "Telephone Voice",
-        "description": "Band-limit to a narrow midrange and drive it. Cutting both ends is what sells the effect — the distortion alone just sounds loud.",
         "tags": [
           "audio"
         ]
@@ -1371,15 +1024,6 @@ export const templateCatalog: CatalogCategory[] = [
         "tags": [
           "audio",
           "data"
-        ]
-      },
-      {
-        "slug": "trim-audio-to-a-range",
-        "name": "Trim Audio to a Range",
-        "description": "Cut an audio track to a start and end point. Pair it with Inspect a Clip's Audio when you need the duration before deciding where to cut.",
-        "tags": [
-          "audio",
-          "utility"
         ]
       },
       {
@@ -1498,14 +1142,6 @@ export const templateCatalog: CatalogCategory[] = [
     "description": "Campaign assets and content at scale — ad creative, social calendars, SEO copy, and outreach.",
     "templates": [
       {
-        "slug": "a-campaign-concept-from-a-brief",
-        "name": "A Campaign Concept from a Brief",
-        "description": "A brief becomes a concept with a line, a visual idea and three channel executions. Asking for the executions is what forces the concept to be one that survives contact with a media plan.",
-        "tags": [
-          "text"
-        ]
-      },
-      {
         "slug": "a-webhook-that-answers",
         "name": "A Webhook That Answers",
         "description": "An HTTP POST arrives and the graph replies in prose. The trigger hands you the request body, headers and method; this one reads the body and writes a one-line summary a human can act on. Register the workflow to get a delivery URL, or drive it from the CLI with `--trigger-event '{\"node_id\":\"hook\",\"payload\":{\"body\":{...}}}'`.",
@@ -1533,22 +1169,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "blog-post-to-social-thread",
-        "name": "Blog Post to Social Thread",
-        "description": "One long piece becomes a numbered thread. The constraint that each post stand alone is what stops the model producing a summary chopped into pieces.",
-        "tags": [
-          "text"
-        ]
-      },
-      {
-        "slug": "bullet-points-to-press-release",
-        "name": "Bullet Points to Press Release",
-        "description": "Facts in, a structured release out — headline, dateline, body, boilerplate. Keeping the quote attributable to a named role stops the model inventing a spokesperson.",
-        "tags": [
-          "text"
-        ]
-      },
-      {
         "slug": "chat-with-your-documents",
         "name": "Chat With Your Documents",
         "description": "Retrieval-augmented Q&A over your own documents. Index a small knowledge base into a vector collection, pull the passages matching a search keyword, and get a Markdown answer that cites its sources and refuses to guess when the answer isn't in the docs. NodeTool's first RAG example. The answer step uses your default language model; the collection is configured for Ollama nomic-embed-text embeddings.",
@@ -1561,54 +1181,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "chunk-a-transcript-for-indexing",
-        "name": "Chunk a Transcript for Indexing",
-        "description": "Split a long passage into overlapping windows the way a RAG ingest does, then count them. `length` and `overlap` are counted in WORDS, not characters — a 90 here would swallow this whole passage into one chunk. Overlap is the point: a boundary landing mid-sentence loses the claim that straddles it, so neighbouring chunks share a tail. Counting needs Collection first, because Count consumes a stream and a list handed to it arrives as a single item.",
-        "tags": [
-          "text"
-        ]
-      },
-      {
-        "slug": "conditional-logic-engine",
-        "name": "Conditional Logic Engine",
-        "description": "Routes one number to a low, medium or high output with two Code comparisons and If nodes. Teaches branching and how two If nodes chained on their false handles form an else branch. No model runs.",
-        "tags": [
-          "boolean"
-        ]
-      },
-      {
-        "slug": "count-to-three-with-a-loop",
-        "name": "Count to Three with a Loop",
-        "description": "Start at zero and add one on each pass. Stop when the result reaches three, then return the final value.",
-        "tags": [
-          "control",
-          "loop",
-          "getting-started"
-        ]
-      },
-      {
-        "slug": "does-this-text-mention-the-deadline",
-        "name": "Does This Text Mention the Deadline",
-        "description": "A containment check returning a boolean — the branch condition for a workflow that routes on what a document says.",
-        "tags": [
-          "text"
-        ]
-      },
-      {
-        "slug": "draft-answers-for-an-faq",
-        "name": "Draft Answers for an FAQ",
-        "description": "Questions in, answers out, each short enough to survive being pasted into a help centre without editing.",
-        "tags": [
-          "text"
-        ]
-      },
-      {
-        "slug": "drop-the-first-few",
-        "name": "Drop the First Few",
-        "description": "Skip a fixed number of items off the front of a stream — the header rows of a feed, or a warm-up you do not want to pay to process.",
-        "tags": []
-      },
-      {
         "slug": "dungeon-and-ruins-starter-pack",
         "name": "Dungeon and Ruins Starter Pack",
         "description": "Low-poly dungeon models for adventure games: modular stone rooms, doors, gates, traps, torches, tombs and treasure. Includes seven animation clips. Run to expose each GLB as a named output. No provider or API key required.",
@@ -1618,36 +1190,6 @@ export const templateCatalog: CatalogCategory[] = [
           "low-poly",
           "dungeon",
           "assets"
-        ]
-      },
-      {
-        "slug": "every-combination",
-        "name": "Every Combination",
-        "description": "Cross product of two streams — every left item against every right one. The sweep you build before a batch of paid renders, so you can see the count before you pay for it.",
-        "tags": []
-      },
-      {
-        "slug": "executive-summary-of-a-long-document",
-        "name": "Executive Summary of a Long Document",
-        "description": "One page for someone who will not read twelve. Leading with the decision required is what makes it a briefing rather than a précis.",
-        "tags": [
-          "text"
-        ]
-      },
-      {
-        "slug": "extract-the-claims-worth-checking",
-        "name": "Extract the Claims Worth Checking",
-        "description": "Separates the factual claims from the opinions, and rates how checkable each one is — the triage step before any verification work.",
-        "tags": [
-          "text"
-        ]
-      },
-      {
-        "slug": "find-every-number-in-a-sentence",
-        "name": "Find Every Number in a Sentence",
-        "description": "A Code node with a global regular expression returns each match rather than the first, which is what you want when pulling figures out of a report.",
-        "tags": [
-          "text"
         ]
       },
       {
@@ -1664,26 +1206,6 @@ export const templateCatalog: CatalogCategory[] = [
         "description": "Upload any photo and a vision agent narrates a spoken story about it — one image in, one audio clip out",
         "tags": [
           "multimodal"
-        ]
-      },
-      {
-        "slug": "keep-only-the-matches",
-        "name": "Keep Only the Matches",
-        "description": "Equality filter over a stream. `invert` turns it into a reject list without a second node.",
-        "tags": []
-      },
-      {
-        "slug": "last-one-wins",
-        "name": "Last One Wins",
-        "description": "Collapse a stream to its final item. The natural end of a loop that refines a value rather than accumulating one.",
-        "tags": []
-      },
-      {
-        "slug": "localise-a-product-listing",
-        "name": "Localise a Product Listing",
-        "description": "Currency, units and address format are where listings actually break in a new market — more often than the prose does.",
-        "tags": [
-          "text"
         ]
       },
       {
@@ -1708,14 +1230,6 @@ export const templateCatalog: CatalogCategory[] = [
           "low-poly",
           "seaside",
           "assets"
-        ]
-      },
-      {
-        "slug": "one-tagline-six-markets",
-        "name": "One Tagline, Six Markets",
-        "description": "A tagline in six languages with a back-translation for each, so someone who reads none of them can still see what was actually said.",
-        "tags": [
-          "text"
         ]
       },
       {
@@ -1759,44 +1273,12 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "redact-email-addresses",
-        "name": "Redact Email Addresses",
-        "description": "A regex replace standing in for the everyday cleanup step — strip personal data out of text before it reaches a model or a log.",
-        "tags": [
-          "text"
-        ]
-      },
-      {
-        "slug": "redact-and-tidy-a-log-line",
-        "name": "Redact and Tidy a Log Line",
-        "description": "Two regex passes and a whitespace collapse, in the order that matters: redact before you normalise, or the pattern you are matching may already have been reshaped.",
-        "tags": [
-          "text"
-        ]
-      },
-      {
         "slug": "reopen-a-directed-campaign",
         "name": "Reopen a Directed Campaign",
         "description": "Validate a portable schema-version-1 campaign record and restore its accepted original and optional revision without calling a model.",
         "tags": [
           "campaign",
           "document"
-        ]
-      },
-      {
-        "slug": "rewrite-this-so-a-customer-understands-it",
-        "name": "Rewrite This So a Customer Understands It",
-        "description": "Jargon in, plain and simple language out, at a stated reading level. The most common editing job there is, and the one most worth a repeatable workflow.",
-        "tags": [
-          "text"
-        ]
-      },
-      {
-        "slug": "seo-title-and-meta-description",
-        "name": "SEO Title and Meta Description",
-        "description": "The two fields every CMS demands, written to their real limits — 60 and 155 characters — so nothing is truncated in the results page.",
-        "tags": [
-          "text"
         ]
       },
       {
@@ -1822,22 +1304,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "split-a-log-into-records",
-        "name": "Split a Log into Records",
-        "description": "Regex split turns one blob into a list. The pattern is the record boundary, which is often more reliable than a fixed delimiter.",
-        "tags": [
-          "text"
-        ]
-      },
-      {
-        "slug": "subject-lines-worth-testing",
-        "name": "Subject Lines Worth Testing",
-        "description": "Eight subject lines split between curiosity and clarity — the two strategies that behave differently enough to be worth an A/B, unlike eight variations on one.",
-        "tags": [
-          "text"
-        ]
-      },
-      {
         "slug": "subtitle-lines-from-a-script",
         "name": "Subtitle Lines from a Script",
         "description": "A finished script broken into numbered subtitle captions of at most two short lines, split at natural phrase boundaries.",
@@ -1846,71 +1312,9 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "take-while-the-numbers-are-small",
-        "name": "Take While the Numbers Are Small",
-        "description": "TakeWhile stops at the first item that fails the predicate, unlike a filter, which would keep testing the rest. That difference is the reason to reach for it: it caps work rather than selecting from it. The expression binds each item as `item`.",
-        "tags": []
-      },
-      {
-        "slug": "themes-across-customer-feedback",
-        "name": "Themes Across Customer Feedback",
-        "description": "Raw feedback becomes named themes with counts and a representative verbatim each. The verbatim is what makes the theme arguable rather than asserted.",
-        "tags": [
-          "text"
-        ]
-      },
-      {
-        "slug": "tidy-up-messy-text",
-        "name": "Tidy Up Messy Text",
-        "description": "Three cleanups in a row — collapse runs of whitespace, strip punctuation, then lowercase. The order matters, which is the point of showing it as a chain rather than one node.",
-        "tags": [
-          "text"
-        ]
-      },
-      {
-        "slug": "translate-marketing-copy-to-german",
-        "name": "Translate Marketing Copy to German",
-        "description": "Marketing copy translated for effect rather than word-for-word, with the formal/informal choice stated. That decision is the one that most often gets a translation rejected.",
-        "tags": [
-          "text"
-        ]
-      },
-      {
         "slug": "translate-a-script-for-dubbing",
         "name": "Translate a Script for Dubbing",
         "description": "A spoken script translated into the language you name, kept close to the original length so the new voice track fits the same footage.",
-        "tags": [
-          "text"
-        ]
-      },
-      {
-        "slug": "trim-a-blurb-to-length",
-        "name": "Trim a Blurb to Length",
-        "description": "Cap text at a character budget with an ellipsis. The everyday fix for a card or preview that must not overflow.",
-        "tags": [
-          "text"
-        ]
-      },
-      {
-        "slug": "turn-specs-into-product-copy",
-        "name": "Turn Specs into Product Copy",
-        "description": "Paste a spec sheet, get copy. The system prompt forbids inventing anything not in the input, which is the difference between usable product text and a liability.",
-        "tags": [
-          "text"
-        ]
-      },
-      {
-        "slug": "turn-a-changelog-into-release-notes",
-        "name": "Turn a Changelog into Release Notes",
-        "description": "Commit messages are written for engineers; release notes are read by customers. Grouping by what changed for the user is the whole translation.",
-        "tags": [
-          "text"
-        ]
-      },
-      {
-        "slug": "turn-a-support-thread-into-a-bug-report",
-        "name": "Turn a Support Thread into a Bug Report",
-        "description": "A frustrated email chain or chat thread becomes something an engineer can act on: steps, expected, actual, environment — with the missing pieces named as missing.",
         "tags": [
           "text"
         ]
@@ -1933,33 +1337,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "batch-a-list",
-        "name": "Batch a List",
-        "description": "Group a stream into fixed-size batches. The standard shape for anything rate-limited or priced per call: batch, send, repeat, rather than one request per item.",
-        "tags": [
-          "data",
-          "utility"
-        ]
-      },
-      {
-        "slug": "count-a-list",
-        "name": "Count a List",
-        "description": "Count the items flowing through a stream. The counter sits on the stream rather than on a stored array, so it works the same whether the items came from a constant, a folder scan, or a generator. Runs entirely in-process: no model, no key, no cost.",
-        "tags": [
-          "data",
-          "utility"
-        ]
-      },
-      {
-        "slug": "drop-duplicates",
-        "name": "Drop Duplicates",
-        "description": "Pass each distinct value through once and swallow repeats. Set `key` to dedupe objects on one field instead of on the whole value. Runs entirely in-process: no model, no key, no cost.",
-        "tags": [
-          "data",
-          "utility"
-        ]
-      },
-      {
         "slug": "every-hour-on-the-hour",
         "name": "Every Hour, On the Hour",
         "description": "A clock, and the two numbers a schedule actually needs: which tick this is, and when it fired. Set `interval_seconds` and the trigger emits on its own — no input, no caller. Everything downstream of it becomes a cron job. Leave `max_events` at 0 to run forever, or set it to stop after N.",
@@ -1967,24 +1344,6 @@ export const templateCatalog: CatalogCategory[] = [
           "trigger",
           "interval",
           "automation"
-        ]
-      },
-      {
-        "slug": "fill-a-template",
-        "name": "Fill a Template",
-        "description": "Substitute values into a text template. This is the seam between a workflow's inputs and a model prompt - keep the wording in one Template node rather than scattering it across several prompt fields.",
-        "tags": [
-          "data",
-          "utility"
-        ]
-      },
-      {
-        "slug": "find-and-replace",
-        "name": "Find and Replace",
-        "description": "Swap one substring for another across a block of text. The find and replace terms are inputs rather than baked into the node, so the same graph can be reused from the API without editing it.",
-        "tags": [
-          "data",
-          "utility"
         ]
       },
       {
@@ -1997,59 +1356,6 @@ export const templateCatalog: CatalogCategory[] = [
           "ai",
           "flashcards",
           "learning"
-        ]
-      },
-      {
-        "slug": "keep-only-the-long-lines",
-        "name": "Keep Only the Long Lines",
-        "description": "Fan a list into a stream, drop the items that fail a predicate, then gather what survived back into a list. Two nodes carry the lesson: Collection is the fan-out — a list fed straight into a stream operator arrives as one item — and Collect is the reverse, without which an output on a stream shows only the last value that passed.",
-        "tags": [
-          "data"
-        ]
-      },
-      {
-        "slug": "pull-a-field-out-of-json-text",
-        "name": "Pull a Field out of JSON Text",
-        "description": "Read a value from JSON text using a dotted path. This example extracts the name Ada.",
-        "tags": [
-          "text",
-          "data"
-        ]
-      },
-      {
-        "slug": "re-delimit-a-list",
-        "name": "Re-delimit a List",
-        "description": "Split text on one delimiter and rejoin it on another - turning a comma list into a pipe list, or CSV-ish text into newline records. Pure string work: no model, no key, no cost.",
-        "tags": [
-          "data",
-          "utility"
-        ]
-      },
-      {
-        "slug": "slice-text",
-        "name": "Slice Text",
-        "description": "Take a fixed range out of a string by index. The blunt way to truncate a caption to a length limit.",
-        "tags": [
-          "data",
-          "utility"
-        ]
-      },
-      {
-        "slug": "take-the-first-few",
-        "name": "Take the First Few",
-        "description": "Stop a stream after n items. The cheap way to cap an expensive downstream step while iterating on a workflow - take 3 while you tune, remove it when you ship. Runs entirely in-process: no model, no key, no cost.",
-        "tags": [
-          "data",
-          "utility"
-        ]
-      },
-      {
-        "slug": "turn-research-notes-into-a-comparison-table",
-        "name": "Turn Research Notes into a Comparison Table",
-        "description": "Messy notes become a markdown table with one row per option. Unknown cells are marked as unknown rather than filled in, which is the entire value of the exercise.",
-        "tags": [
-          "text",
-          "data"
         ]
       },
       {
