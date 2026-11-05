@@ -13,6 +13,8 @@ All routes share this exact report, with the document's value substituted:
 
 > Document workingColorSpaceVersion is 3. This build supports versions up to 1. Open it with a build that supports this value.
 
+The web read-only view says the same thing in plain language: "This timeline uses color version 2. This version of NodeTool supports up to version 1. Update NodeTool to edit or export it."
+
 The wording matches the inspected `origin/film/color-n4` files
 `native/timeline/src/model/TimelineJson.cpp` and
 `docs/plans/color-precision/results/n4-version-field.md`. Agent wrappers can

@@ -85,7 +85,7 @@ it.each([2, 3])("shows metadata instead of embedded version %s pixels", (working
   const saved = JSON.stringify(document);
   const view = render(<ThemeProvider theme={mockTheme}><TimelineRenderer sequence={document} /></ThemeProvider>);
   expect(view.queryByTestId("preview-area-stub")).toBeNull();
-  expect(view.getByText(`Document workingColorSpaceVersion is ${workingColorSpaceVersion}. This build supports versions up to 1. Open it with a build that supports this value.`)).toBeInTheDocument();
+  expect(view.getByText(`This timeline uses color version ${workingColorSpaceVersion}. This version of NodeTool supports up to version 1. Update NodeTool to edit or export it.`)).toBeInTheDocument();
   expect(mockPaints()).toHaveLength(0);
   expect(JSON.stringify(document)).toBe(saved);
 });

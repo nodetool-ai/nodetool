@@ -230,7 +230,7 @@ describe("TimelineEditor", () => {
     (useTimeline as jest.Mock).mockReturnValue({ data: sequence, isLoading: false, isError: false });
     renderEditor();
     expect(screen.getByText("Future cut")).toBeInTheDocument();
-    expect(screen.getByText(`Document workingColorSpaceVersion is ${workingColorSpaceVersion}. This build supports versions up to 1. Open it with a build that supports this value.`)).toBeInTheDocument();
+    expect(screen.getByText(`This timeline uses color version ${workingColorSpaceVersion}. This version of NodeTool supports up to version 1. Update NodeTool to edit or export it.`)).toBeInTheDocument();
     expect(screen.queryByTestId("tracks-region")).not.toBeInTheDocument();
     expect(useLoadTimelineIntoStore).not.toHaveBeenCalled();
     expect(useTimelineAutosave).not.toHaveBeenCalled();
