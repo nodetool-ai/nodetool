@@ -127,6 +127,31 @@ describe("pasteClipAttributes", () => {
 });
 
 describe("applyDefaultAudioTransition", () => {
+  it.each(["outgoing", "incoming", "track"])("preserves a locked %s at an audio cut", (locked) => {
+    const store = createTimelineStore();
+    store.getState().addTrack("audio", "Audio");
+    const trackId = store.getState().tracks[0].id;
+    const a = makeClip({ trackId, mediaType: "audio", startMs: 0, durationMs: 2000 });
+    const b = makeClip({ trackId, mediaType: "audio", startMs: 2000, durationMs: 2000 });
+    store.getState().addClips([a, b]);
+    if (locked === "track") {
+      store.getState().setTrackLocked(trackId, true);
+    } else {
+      store.getState().setClipLocked(locked === "outgoing" ? a.id : b.id, true);
+    }
+    const before = store.getState().clips;
+    store.getState().applyDefaultAudioTransition(new Set([locked === "incoming" ? a.id : b.id]), 500);
+    const after = store.getState().clips;
+    const frozenId = locked === "outgoing" ? a.id : b.id;
+    expect(after.find((c) => c.id === frozenId)).toEqual(before.find((c) => c.id === frozenId));
+    if (locked === "track") {
+      expect(after).toEqual(before);
+    } else {
+      const editable = after.find((c) => c.id !== frozenId)!;
+      expect(locked === "incoming" ? editable.fadeInMs : editable.fadeOutMs).toBe(500);
+    }
+  });
+
   it("cross-fades audio clips at a cut and leaves video alone", () => {
     const { store, a, vo, music, clip } = storeWithCut();
     store
