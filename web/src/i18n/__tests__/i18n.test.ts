@@ -1,5 +1,5 @@
 import { createAppI18n } from "../i18n";
-import { resolveLocale } from "../locales";
+import { LOCALE_OPTIONS, resolveLocale } from "../locales";
 
 describe("translation resources", () => {
   it("initializes bundled English, German, Finnish, Russian, and Chinese synchronously", () => {
@@ -10,14 +10,30 @@ describe("translation resources", () => {
     expect(createAppI18n("zh-CN").t("common.save")).toBe("保存");
   });
 
-  it.each(["de", "fi", "ru", "zh-CN"] as const)(
-    "falls back to English when a %s message is missing",
-    (locale) => {
-      const instance = createAppI18n(locale);
-      instance.removeResourceBundle(locale, "translation");
-      expect(instance.t("common.save")).toBe("Save");
-    }
-  );
+  it.each(
+    LOCALE_OPTIONS.map(({ value }) => value).filter((value) => value !== "en")
+  )("falls back to English when a %s message is missing", (locale) => {
+    const instance = createAppI18n(locale);
+    instance.removeResourceBundle(locale, "translation");
+    expect(instance.t("common.save")).toBe("Save");
+  });
+
+  it.each([
+    ["es", "Guardar"],
+    ["pt", "Salvar"],
+    ["fr", "Enregistrer"],
+    ["it", "Salva"],
+    ["pl", "Zapisz"],
+    ["sv", "Spara"],
+    ["nb", "Lagre"],
+    ["nl", "Opslaan"],
+    ["ko", "저장"],
+    ["ja", "保存"],
+    ["hi", "सहेजें"]
+  ] as const)("loads and persists %s", (locale, save) => {
+    expect(resolveLocale(locale)).toBe(locale);
+    expect(createAppI18n(locale).t("common.save")).toBe(save);
+  });
 
   it("accepts German as a persisted locale", () => {
     expect(resolveLocale("de")).toBe("de");
@@ -53,6 +69,17 @@ describe("translation resources", () => {
     ).toBe(label);
   });
 
+  it.each([
+    [1, "1 kolekcja"],
+    [3, "3 kolekcje"],
+    [5, "5 kolekcji"],
+    [1.5, "1.5 kolekcji"]
+  ])("uses the Polish plural form for %s collections", (count, label) => {
+    expect(
+      createAppI18n("pl").t("i18n-next30.collections.count", { count })
+    ).toBe(label);
+  });
+
   it("supports interpolation and language-specific plural forms", () => {
     const instance = createAppI18n();
     instance.addResourceBundle("en", "test", {
@@ -71,7 +98,7 @@ describe("translation resources", () => {
     expect(translate(key, { count: 2, name: "Ada" })).toBe("Ada的 2 个文件");
   });
 
-  it.each([undefined, null, "fr", "zh-TW", {}, 7])(
+  it.each([undefined, null, "xx", "zh-TW", {}, 7])(
     "defaults unsupported persisted locale %p to English",
     (value) => expect(resolveLocale(value)).toBe("en")
   );
