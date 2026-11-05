@@ -65,6 +65,11 @@ private:
     static constexpr int block_ = 512;
 };
 
+// Apply the requested state and render as one serialized operation.
+bool renderWithState(Instance& inst, bool applyState, const juce::String& state,
+                     double sampleRate, juce::int64 frames, const std::vector<NoteEvent>& events,
+                     juce::AudioBuffer<float>& out, juce::String& error);
+
 // Planar float32 little-endian: every left frame, then every right frame.
 bool writePlanarF32(const juce::AudioBuffer<float>& buffer, const juce::File& file);
 

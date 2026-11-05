@@ -2,6 +2,14 @@
 
 namespace vsthost {
 
+bool renderWithState(Instance& inst, bool applyState, const juce::String& state,
+                     double sampleRate, juce::int64 frames, const std::vector<NoteEvent>& events,
+                     juce::AudioBuffer<float>& out, juce::String& error) {
+    std::lock_guard<std::recursive_mutex> guard(inst.lock);
+    if (applyState && !inst.setState(state, error)) return false;
+    return inst.render(sampleRate, frames, events, out, error);
+}
+
 juce::FileSearchPath defaultSearchPath() {
     juce::VST3PluginFormat format;
     return format.getDefaultLocationsToSearch();

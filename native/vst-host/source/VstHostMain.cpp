@@ -193,14 +193,13 @@ private:
         const int64 frames = (int64)req["frames"];
         const File out(req["out"].toString());
         if (!File::isAbsolutePath(req["out"].toString())) { fail(id, "Render output must be an absolute path"); return; }
-        const String state = applyState ? req["state"].toString() : String();
-        std::thread([id, inst = std::move(inst), events, rate, frames, out, state]() mutable {
+        const String state = req["state"].toString();
+        std::thread([id, inst = std::move(inst), events, rate, frames, out, state, applyState]() mutable {
             [&] {
                 AudioBuffer<float> buffer;
                 String error;
                 std::lock_guard<std::recursive_mutex> guard(inst->lock);
-                if (!inst->setState(state, error)) { fail(id, error); return; }
-                if (!inst->render(rate, frames, events, buffer, error)) { fail(id, error); return; }
+                if (!renderWithState(*inst, applyState, state, rate, frames, events, buffer, error)) { fail(id, error); return; }
                 if (!writePlanarF32(buffer, out)) { fail(id, "Cannot write " + out.getFullPathName()); return; }
                 auto body = object();
                 body.getDynamicObject()->setProperty("channels", 2);
