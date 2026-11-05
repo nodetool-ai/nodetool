@@ -162,13 +162,24 @@ private slots:
 
     void resumeWithChangedSizeRestartsFromZero() {
         const QByteArray v1 = pattern(300000, 6);
-        m_http->setFile("/s.mp4", ServedFile{v1});
-        makePartial("/s.mp4", QStringLiteral("v1"), v1.size(), 120000);
-        if (QTest::currentTestFailed()) return;
+        // Seed the interrupted download on disk. Qt can replay a dropped GET
+        // after fetch() returns, which would pollute the restart's request count.
+        const auto oldFile = remote("/s.mp4", QStringLiteral("v1"), v1.size());
+        const QString part = cache().pathFor(QStringLiteral("a1"), QStringLiteral("original"), oldFile) +
+                             QStringLiteral(".part");
+        QVERIFY(QDir().mkpath(QFileInfo(part).absolutePath()));
+        QFile partial(part);
+        QVERIFY(partial.open(QIODevice::WriteOnly));
+        QCOMPARE(partial.write(v1.left(120000)), qint64(120000));
+        partial.close();
+        QFile total(part + QStringLiteral(".total"));
+        QVERIFY(total.open(QIODevice::WriteOnly));
+        const QByteArray oldSize = QByteArray::number(v1.size());
+        QCOMPARE(total.write(oldSize), qint64(oldSize.size()));
+        total.close();
         // The asset changed on the server: a new size, so a new version.
         const QByteArray v2 = pattern(250000, 7);
         m_http->setFile("/s.mp4", ServedFile{v2});
-        m_http->clearRequests();
         const FetchResult r = cache().fetch(QStringLiteral("a1"), QStringLiteral("original"),
                                             remote("/s.mp4", QStringLiteral("v1"), v1.size()), [&]() {
                                                 return std::optional<RemoteFile>(remote("/s.mp4", QStringLiteral("v2"), v2.size()));
