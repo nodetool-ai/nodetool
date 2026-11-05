@@ -5,8 +5,7 @@ cask "nodetool" do
   sha256 arm:   "@SHA256_ARM64@",
          intel: "@SHA256_X64@"
 
-  url "https://github.com/nodetool-ai/nodetool/releases/download/v#{version}/Nodetool-#{version}-#{arch}.dmg",
-      verified: "github.com/nodetool-ai/nodetool/"
+  url "https://github.com/nodetool-ai/nodetool/releases/download/v#{version}/Nodetool-#{version}-#{arch}.dmg"
   name "NodeTool"
   desc "Visual builder for AI workflows and agents"
   homepage "https://nodetool.ai/"
