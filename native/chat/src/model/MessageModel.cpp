@@ -1,4 +1,5 @@
 #include "MessageModel.h"
+#include "PlanDocument.h"
 #include <QDateTime>
 #include <QJsonDocument>
 #include <QRegularExpression>
@@ -153,6 +154,42 @@ QString durationLabel(qint64 ms) {
 }
 QJsonObject presentPart(QJsonObject part) {
   const auto type = part["type"].toString();
+  if (type == "plan_approval_request" || type == "plan" || type == "plan_document" || part["name"] == "create_plan") {
+    const QJsonValue input = type == "plan_approval_request" ? part["plan"]
+        : part["name"] == "create_plan" ? part["result"] : part.contains("plan") ? part.value("plan") : part.contains("content") ? part.value("content") : QJsonValue(part);
+    const auto plan = parsePlanDocument(input);
+    if (!plan.isEmpty()) {
+      part["planDocument"] = plan;
+      part["planText"] = planDocumentText(plan);
+      part["label"] = "Plan";
+      part["text"] = QString();
+      return part;
+    }
+    if (type == "plan_approval_request") {
+      part["label"] = "Run this plan?";
+      part["text"] = "Plan preview unavailable. You can reject this request.\n" + displayJson(input);
+      return part;
+    }
+  }
+  if (type == "tool_approval_request") {
+    const auto category = part["category"].toString();
+    part["label"] = category == "execute" ? "Run this action?" : category == "write" ? "Make this change?" : "Allow this action?";
+    const auto description = part["description"].toString().trimmed();
+    part["text"] = description.isEmpty() ? part["message"].toString() : description;
+    auto args = part["args"].toObject();
+    part["code"] = args["code"].toString();
+    args.remove("code");
+    part["argumentsText"] = part["args"].isObject() ? (args.isEmpty() ? QString() : displayJson(args)) : displayJson(part["args"]);
+    part["collapsible"] = true;
+    return part;
+  }
+  if (type == "secret_request") {
+    const QUrl help(part["help_url"].toString());
+    part["helpUrl"] = help.isValid() && help.scheme() == "https" && !help.host().isEmpty() ? help.toString() : QString();
+    part["label"] = "Credential requested: " + part["key"].toString();
+    part["text"] = part["reason"].toString() + "\n" + part["description"].toString() + "\nManage credentials in settings. Never enter a secret in chat.";
+    return part;
+  }
   if (type != "tool_call" && type != "tool_call_update" &&
       type != "tool_result_update") {
     if (!part.contains("text") && !part.contains("actionId")) {
@@ -220,6 +257,26 @@ QJsonObject presentPart(QJsonObject part) {
 }
 QJsonArray projectedParts(const QJsonObject &m, const QHash<QString, QJsonObject> &results, const QList<qsizetype> &offsets) {
   QJsonArray parts;
+  if (m["execution_event_type"] == "compaction") {
+    QString summary;
+    if (m["content"].isString()) { summary = m["content"].toString(); }
+    else {
+      for (const auto &value : m["content"].toArray()) {
+        const auto block = value.toObject();
+        if (block["type"] == "text") { summary += block["text"].toString(); }
+      }
+    }
+    summary = summary.trimmed();
+    const QString header = "[Conversation so far]";
+    if (summary.startsWith(header)) { summary = summary.mid(header.size()).trimmed(); }
+    return {QJsonObject{{"type", "compaction"}, {"label", "Earlier conversation summarized"},
+                        {"collapsible", true}, {"text", summary.isEmpty() ? "No summary available." : summary}}};
+  }
+  const auto contentPlan = parsePlanDocument(m["content"]);
+  if (!contentPlan.isEmpty()) {
+    return {QJsonObject{{"type", "plan_document"}, {"label", "Plan"},
+                        {"planDocument", contentPlan}, {"planText", planDocumentText(contentPlan)}}};
+  }
   const auto nativeParts = m["parts"].toArray();
   int thoughtIndex = 0;
   auto appendText = [&](const QString &body) {
@@ -416,6 +473,7 @@ QVariant PartModel::data(const QModelIndex &index, int role) const {
   const auto part = m_parts[index.row()];
   if (part.isObject()) {
     auto data = part.toObject().toVariantMap();
+    data["feedback"] = m_feedback.value(data.value("actionId").toString());
     if (data.value("type") == "thought") {
       const auto key = data.value("thoughtKey").toString();
       const bool running = data.value("running").toBool();
@@ -424,7 +482,7 @@ QVariant PartModel::data(const QModelIndex &index, int role) const {
           ? QString("Thought for %1s").arg(std::max<qint64>(1, qRound64(m_thoughtDurations[key] / 1000.0)))
           : QString("Thought");
     }
-    if (data.value("tool").toBool()) {
+    if (data.value("tool").toBool() || data.value("collapsible").toBool()) {
       data["expanded"] = m_expanded.contains(expansionKey(index.row()));
       auto calls = data.value("calls").toList();
       for (auto &value : calls) {
@@ -458,6 +516,13 @@ QString PartModel::expansionKey(int row) const {
   const auto call = part["tool_call_id"].toString();
   return (part["grouped"].toBool() ? "group:" : "call:") +
          (call.isEmpty() ? QString::number(row) : call);
+}
+void PartModel::setFeedback(int row, const QString &text) {
+  if (row < 0 || row >= m_parts.size()) { return; }
+  const auto id = m_parts[row].toObject()["actionId"].toString();
+  if (id.isEmpty() || m_feedback.value(id) == text) { return; }
+  m_feedback[id] = text;
+  emit dataChanged(index(row), index(row), {ModelDataRole});
 }
 void PartModel::toggleExpanded(int row) {
   if (row < 0 || row >= m_parts.size()) {
@@ -569,7 +634,7 @@ QVariant MessageModel::data(const QModelIndex &i, int role) const {
   case TextRole:
     return textOf(m["content"]);
   case DisplayTextRole:
-    return m["content"].isArray() || !m["parts"].toArray().isEmpty() || textOf(m["content"]).contains("<think>") ? QString() : textOf(m["content"]);
+    return m["execution_event_type"] == "compaction" || !parsePlanDocument(m["content"]).isEmpty() || m["content"].isArray() || !m["parts"].toArray().isEmpty() || textOf(m["content"]).contains("<think>") ? QString() : textOf(m["content"]);
   case TimestampRole:
     return m["created_at"].toString();
   case PartsRole: {
@@ -951,6 +1016,16 @@ void MessageModel::addPart(const QJsonObject &part) {
             {"created_at", QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs)}});
   }
   int targetRow = rowCount() - 1;
+  const auto incomingAction = part["actionId"].toString();
+  if (!incomingAction.isEmpty()) {
+    for (int candidate = rowCount() - 1; candidate >= 0; --candidate) {
+      bool found = false;
+      for (const auto &existing : m_rows[candidate]["parts"].toArray()) {
+        if (existing.toObject()["actionId"] == incomingAction) { found = true; break; }
+      }
+      if (found) { targetRow = candidate; break; }
+    }
+  }
   const auto incomingCall = part["tool_call_id"].toString();
   if (!incomingCall.isEmpty()) {
     for (int candidate = rowCount() - 1; candidate >= 0; --candidate) {

@@ -17,6 +17,7 @@ public:
   void setParts(const QJsonArray &);
   void setChild(const QString &, QAbstractItemModel *, int count);
   Q_INVOKABLE void toggleExpanded(int row);
+  Q_INVOKABLE void setFeedback(int row, const QString &text);
   Q_INVOKABLE void toggleCall(int row, const QString &id);
 
 private:
@@ -25,6 +26,7 @@ private:
   QHash<QString, bool> m_treeExpanded;
   QJsonArray m_parts;
   QSet<QString> m_expanded;
+  QHash<QString, QString> m_feedback;
   QHash<QString, bool> m_thoughtExpanded;
   QHash<QString, qint64> m_thoughtStarts;
   QHash<QString, qint64> m_thoughtDurations;
