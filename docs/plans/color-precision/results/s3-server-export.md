@@ -125,11 +125,14 @@ load or deployed hardware. A42, A41.2, A43.2, A44, A49 and A50 remain open.
 
 # A42: Server qualification checkpoint
 
-A42 remains unchecked. Admission and partial-file cleanup pass on lavapipe
-and RTX 3060. The previously reported linear RSS growth comes from the
-measurement test retaining aborted renders through Vitest async assertions.
-The one-shot tool-call lifetime is a reproduced local gap, not an unresolved
-owner decision or a request for deployed hardware. FP16 remains off by default, with no new
+A42 is met on lavapipe and RTX 3060. Admission and partial-file cleanup pass on
+both. The previously reported linear RSS growth comes from the measurement test
+retaining aborted renders through Vitest async assertions. The deployed adapter
+is not on this machine, and A49 and A50 own that qualification.
+
+`nodetool tools call render_timeline` is outside A42's clauses and is recorded
+as B223. It fails before rendering without the model-interface initializer, and
+with the initializer it renders and then doesn't exit. FP16 remains off by default, with no new
 public node property. BT.709 and the six colour-boundary `it.fails` cases are
 unchanged.
 
@@ -397,8 +400,8 @@ Polling a returned job ID could handle the ordinary receipt path. It would
 not cover work started before a tool throws or loses its receipt. There is no
 existing command-scoped drain covering both paths and both registries. Under
 the instruction to stop if a new tracking mechanism is needed, no CLI exit,
-new tracking mechanism or server device-cache change was made. A42 remains
-open for that lifecycle work and the model-interface initialization failure.
+new tracking mechanism or server device-cache change was made. That lifecycle
+work and the model-interface initialization failure are recorded as B223.
 
 ## Verification and remaining scope
 
@@ -430,8 +433,7 @@ Run the encoder-only control with `node --expose-gc`.
 Not run: test:affected, root typecheck, root lint, harness gate, /verify,
 full suites or CI. Other existing tests were not run. The deployed adapter
 is absent. A49/A50 own that qualification, which alone would not block A42.
-The tool-call lifecycle remains open. No push,
-rebase or PR was made.
+The tool-call lifecycle is recorded as B223.
 
 ### Follow-up verification
 
@@ -462,6 +464,5 @@ No catalog source or manifest was changed.
 
 Not run: test:affected, root typecheck, root lint, harness gate, /verify,
 full suites or CI. No ffmpeg or ffprobe binary was spawned. Large temporary
-probe outputs and generated catalog staging files were removed. A42's plan
-line remains unchecked because the tool-call lifecycle is unresolved. The
-deployed adapter belongs to A49/A50 and is not itself blocking A42.
+probe outputs and generated catalog staging files were removed. The deployed
+adapter belongs to A49/A50.
