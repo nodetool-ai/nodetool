@@ -561,6 +561,20 @@ export async function exportApplicationBundle(
   );
 }
 
+const unpinWorkflowVersions = (
+  document: ApplicationDocument
+): ApplicationDocument => ({
+  ...document,
+  operations: document.operations.map((operation) => {
+    const { workflowVersion: _workflowVersion, ...unpinned } = operation;
+    if (unpinned.target?.kind !== "workflow") {
+      return unpinned;
+    }
+    const { workflowVersion: _targetVersion, ...target } = unpinned.target;
+    return { ...unpinned, target };
+  })
+});
+
 /**
  * Import an {@link ApplicationBundle}: create a workflow row per carried
  * workflow, then the application with its operations pointing at the new ids.
@@ -634,10 +648,13 @@ export async function importApplicationBundle(
     scriptVersions.set(script.id, version.version);
   }
 
+  // An import writes no workflow version rows, so a pin from the export names
+  // nothing here. The operations run the imported workflow's current graph.
+  const importedDocument = unpinWorkflowVersions(result.app.document);
   const document =
     scriptVersions.size > 0
-      ? pinScriptVersions(result.app.document, scriptVersions)
-      : result.app.document;
+      ? pinScriptVersions(importedDocument, scriptVersions)
+      : importedDocument;
 
   const app = await insertApplication(userId, {
     user_id: userId,
