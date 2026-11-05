@@ -134,3 +134,10 @@ Metal and D3D11/WARP await CI. No TypeScript tests, typecheck, lint,
 or hardware-decode tests ran. `check-precision.py` was not rerun because no
 backend selection, shader or delivery behavior changed. Nothing was pushed,
 rebased or opened as a PR. `build-scene-asan/` was left alone.
+
+## CI confirmation
+
+CI on #7284 completed A34. `export_precision`, `native_backend_routes` and
+`tst_workingprecision` pass on Metal, on D3D11 with WARP, and on Vulkan with
+lavapipe under sanitizers. `tst_workingprecision_opengl` passes on Linux. WARP is
+a software renderer, so this does not qualify Windows GPUs. A49.2 covers those.
