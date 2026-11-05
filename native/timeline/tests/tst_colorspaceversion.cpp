@@ -21,10 +21,20 @@ private slots:
     void versions_data() {
         QTest::addColumn<QJsonValue>("version");
         QTest::addColumn<bool>("supported");
-        QTest::newRow("absent") << QJsonValue(QJsonValue::Undefined) << true;
-        QTest::newRow("1") << QJsonValue(1) << true;
-        QTest::newRow("2") << QJsonValue(2) << false;
-        QTest::newRow("3") << QJsonValue(3) << false;
+        QFile fixtures(QStringLiteral(NT_COLOR_VERSION_FIXTURES));
+        QVERIFY2(fixtures.open(QIODevice::ReadOnly), qPrintable(fixtures.errorString()));
+        QJsonParseError error;
+        const auto document = QJsonDocument::fromJson(fixtures.readAll(), &error);
+        QCOMPARE(error.error, QJsonParseError::NoError);
+        QVERIFY(document.isArray());
+        QVERIFY(!document.array().isEmpty());
+        for (const auto& entry : document.array()) {
+            const auto fixture = entry.toObject();
+            const auto version = fixture.value("document").toObject().value("workingColorSpaceVersion");
+            const auto name = fixture.value("name").toString().toUtf8();
+            QVERIFY(!name.isEmpty());
+            QTest::newRow(name.constData()) << version << (version.isUndefined() || version == QJsonValue(1));
+        }
         QTest::newRow("zero") << QJsonValue(0) << false;
         QTest::newRow("negative") << QJsonValue(-1) << false;
         QTest::newRow("fraction") << QJsonValue(1.5) << false;
@@ -86,6 +96,10 @@ private slots:
         for (auto it = sent.begin(); it != sent.end(); ++it) { roundTrip.insert(it.key(), it.value()); }
         const auto reparsed = nt::parseTimeline(roundTrip);
         QCOMPARE(reparsed.timeline.has_value(), supported);
+        if (supported) {
+            QCOMPARE(reparsed.timeline->raw.value("workingColorSpaceVersion"), version);
+            QCOMPARE(reparsed.timeline->raw.contains("workingColorSpaceVersion"), !version.isUndefined());
+        }
 
         const auto path = dir.filePath("input.json");
         QFile file(path);
