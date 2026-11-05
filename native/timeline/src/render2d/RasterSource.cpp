@@ -30,6 +30,8 @@ LayerFrame RasterSource::frameAt(const FrameContext& context, double) {
     }
     m_lastUse = context.frameNumber;
     result.format = LayerFrame::Format::Rgba8Premultiplied;
+    // QColor/QPainter authored encoded RGB, uploaded without transfer conversion.
+    result.transfer = "iec61966-2-1";
     result.planes[0] = m_texture.get();
     result.size = image.size();
     return result;

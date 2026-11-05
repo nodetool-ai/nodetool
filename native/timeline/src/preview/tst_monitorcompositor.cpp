@@ -7,6 +7,8 @@
 #include "preview/layers/SceneHooks.h"
 #include "preview/layers/LayerRegistry.h"
 #include <QGuiApplication>
+#include <QDir>
+#include <QCryptographicHash>
 #include <QJsonArray>
 #include <QQuickRenderControl>
 #include <QQuickRenderTarget>
@@ -15,8 +17,12 @@
 #include <QtTest>
 #include <rhi/qrhi.h>
 #include <memory>
+#include <qfloat16.h>
+#include <cmath>
+#include <vector>
 
 namespace {
+nt::WorkingFormat testFormat = nt::WorkingFormat::Rgba8;
 class SolidSource final : public nt::LayerSource {
 public:
     explicit SolidSource(QColor color) : m_color(color) {}
@@ -38,6 +44,35 @@ public:
 private:
     QColor m_color;
     std::unique_ptr<QRhiTexture> m_texture;
+};
+
+class FloatTiles final : public nt::LayerSource {
+    std::unique_ptr<QRhiTexture> m_texture;
+public:
+    static float value(int x, int y) {
+        return float(qfloat16(((y / 32 * 20 + x / 32) % 256 + 0.37f) / 256.f));
+    }
+    QSize frameSize() const override { return {640, 360}; }
+    nt::LayerFrame frameAt(const nt::FrameContext& ctx, double) override {
+        if (!m_texture) {
+            m_texture.reset(ctx.rhi->newTexture(QRhiTexture::RGBA16F, frameSize()));
+            if (!m_texture->create()) { return {}; }
+            std::vector<qfloat16> pixels(640 * 360 * 4);
+            for (int y = 0; y < 360; ++y) {
+                for (int x = 0; x < 640; ++x) {
+                    const int i = (y * 640 + x) * 4;
+                    for (int c = 0; c < 3; ++c) { pixels[i + c] = qfloat16(value(x, y)); }
+                    pixels[i + 3] = qfloat16(1.f);
+                }
+            }
+            ctx.updates->uploadTexture(m_texture.get(), QRhiTextureUploadDescription{{{0, 0,
+                QRhiTextureSubresourceUploadDescription(pixels.data(), int(pixels.size() * sizeof(qfloat16)))}}});
+        }
+        nt::LayerFrame frame;
+        frame.format = nt::LayerFrame::rgbaFormat(m_texture.get());
+        frame.planes[0] = m_texture.get(); frame.size = frameSize();
+        return frame;
+    }
 };
 
 nt::Timeline picture() {
@@ -75,6 +110,7 @@ public:
         window.resize(320, 180);
         item = new PreviewCompositor(window.contentItem());
         item->setTimeline(&model);
+        item->setWorkingFormat(testFormat);
         item->setClock(&clock);
         item->setSize({320, 180});
         item->setCollectFrameStats(true);
@@ -130,6 +166,31 @@ class MonitorCompositorTest : public QObject {
     Q_OBJECT
     nt::LayerSourceToken m_source = 0;
 private slots:
+    void initTestCase_data() {
+        QTest::addColumn<bool>("fp16");
+        QTest::newRow("rgba8") << false;
+        QTest::newRow("fp16") << true;
+    }
+    void init() {
+        QFETCH_GLOBAL(bool, fp16);
+        testFormat = fp16 ? nt::WorkingFormat::Rgba16F : nt::WorkingFormat::Rgba8;
+    }
+    void defaultPresentationBaseline() {
+        Monitor monitor;
+        for (const int denominator : {1, 2, 4, 8}) {
+            monitor.item->setPausedResolution(denominator);
+            const auto frame = monitor.frame();
+            QCOMPARE(monitor.frame(), frame);
+            const auto bytes = QByteArrayView(reinterpret_cast<const char*>(frame.constBits()), frame.sizeInBytes());
+            qInfo() << "presentation" << int(testFormat) << denominator << bytes.size()
+                    << QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex();
+            const auto directory = qEnvironmentVariable("NT_PRESENTATION_BASELINE");
+            if (!directory.isEmpty() && testFormat == nt::WorkingFormat::Rgba8) {
+                QVERIFY(QDir().mkpath(directory));
+                QVERIFY(frame.save(directory + QStringLiteral("/frame-%1.png").arg(denominator)));
+            }
+        }
+    }
     void initTestCase() {
         if (qEnvironmentVariable("QT_QUICK_BACKEND") == u"software") {
             QSKIP("monitor compositor needs the platform QRhi, not the software scene graph");
@@ -139,6 +200,56 @@ private slots:
         });
     }
     void cleanupTestCase() { nt::unregisterLayerSource(m_source); }
+    void presentationQuantization() {
+        const auto source = nt::registerLayerSource("video", [](const nt::ActiveLayer&) {
+            return std::make_unique<FloatTiles>();
+        });
+        const auto guard = qScopeGuard([&] { nt::unregisterLayerSource(source); });
+        Monitor monitor;
+        auto clips = monitor.model.clipsJson();
+        auto clip = clips[0].toObject(); clip.remove("transform");
+        QVERIFY(monitor.model.replaceClips(QJsonArray{clip}));
+        const auto image = monitor.frame();
+        for (int i = 0; i < 4; ++i) { QCOMPARE(monitor.frame(), image); }
+        // Each 32x32 source patch becomes 16x16 presentation pixels. Measure a
+        // complete interior Bayer tile, excluding the resampled patch boundary.
+        double maxError = 0, maxBias = 0;
+        for (int ty = 0; ty < 11; ++ty) {
+            for (int tx = 0; tx < 20; ++tx) {
+                const double expected = FloatTiles::value(tx * 32, ty * 32) * 255.0;
+                double sum = 0;
+                for (int y = 0; y < 8; ++y) {
+                    for (int x = 0; x < 8; ++x) {
+                        const auto color = image.pixelColor(tx * 16 + 4 + x, ty * 16 + 4 + y);
+                        QCOMPARE(color.alpha(), 255);
+                        QCOMPARE(color.red(), color.green()); QCOMPARE(color.red(), color.blue());
+                        const double error = color.red() - expected;
+                        sum += error; maxError = std::max(maxError, std::abs(error));
+                    }
+                }
+                maxBias = std::max(maxBias, std::abs(sum / 64));
+            }
+        }
+        qInfo() << "presentation max code error/tile bias" << maxError << maxBias;
+        QVERIFY(maxError <= 1.0);
+        if (testFormat == nt::WorkingFormat::Rgba16F) { QVERIFY(maxBias < 0.1); }
+        const auto working = monitor.capture();
+        QCOMPARE(working.size(), QSize(640, 360));
+        QCOMPARE(working.format(), testFormat == nt::WorkingFormat::Rgba16F
+            ? QImage::Format_RGBA16FPx4_Premultiplied : QImage::Format_RGBA8888_Premultiplied);
+        // Working capture has no spatial noise within a constant patch.
+        for (int y = 0; y < 16; ++y) {
+            for (int x = 0; x < 16; ++x) {
+                const int bytes = working.depth() / 8;
+                QCOMPARE(QByteArrayView(reinterpret_cast<const char*>(working.constScanLine(y)) + x * bytes, bytes),
+                         QByteArrayView(reinterpret_cast<const char*>(working.constBits()), bytes));
+            }
+        }
+        monitor.item->setAlphaDisplay(true);
+        const auto alpha = monitor.frame();
+        QCOMPARE(alpha.pixelColor(20, 20), QColor(Qt::white));
+        QCOMPARE(monitor.capture(), working);
+    }
     void resolution() {
         Monitor monitor;
         const auto full = monitor.frame();
@@ -163,6 +274,12 @@ private slots:
         QCOMPARE(monitor.frame(false), full);
         monitor.frame();
         QCOMPARE(monitor.item->lastCanvasSize(), QSize(320, 180));
+        for (const int denominator : {1, 2, 4, 8}) {
+            monitor.item->setPlaybackResolution(denominator);
+            monitor.frame(); monitor.frame();
+            QCOMPARE(monitor.item->lastCanvasSize(), QSize(640 / denominator, 360 / denominator));
+        }
+        monitor.item->setPlaybackResolution(2);
         monitor.clock.pause();
         QCOMPARE(monitor.frame(false), full);
         monitor.frame();
@@ -344,6 +461,15 @@ private slots:
         monitor.clock.seek(500);
         QVERIFY(monitor.model.replaceClips(clips));
         const auto groupFull = monitor.frame();
+        for (const int denominator : {1, 2, 4, 8}) {
+            monitor.item->setPausedResolution(denominator);
+            monitor.frame(); monitor.frame();
+            const auto& stat = monitor.item->frameStats().back();
+            QVERIFY(stat.surfaceTargets > 0);
+            QCOMPARE(stat.surfaceBytes, static_cast<long long>(stat.surfaceTargets) *
+                (640 / denominator) * (360 / denominator) * (testFormat == nt::WorkingFormat::Rgba16F ? 8 : 4));
+            qInfo() << "scratch allocation" << int(testFormat) << denominator << stat.surfaceBytes;
+        }
         monitor.item->setPausedResolution(4);
         const auto groupReduced = monitor.frame(false);
         for (const QPoint p : {QPoint(80, 45), QPoint(240, 45), QPoint(80, 135)}) {
@@ -352,6 +478,10 @@ private slots:
         for (int i = 0; i < 4; ++i) { monitor.frame(); }
         const auto created = monitor.item->frameStats().back().surfaceTargetsCreated;
         QVERIFY(created > 0);
+        const auto bytes = monitor.item->frameStats().back().surfaceBytes;
+        const auto targets = monitor.item->frameStats().back().surfaceTargets;
+        QCOMPARE(bytes, static_cast<long long>(targets) * 160 * 90 * (testFormat == nt::WorkingFormat::Rgba16F ? 8 : 4));
+        qInfo() << "actual pooled scratch targets/bytes" << targets << bytes;
         for (int i = 0; i < 60; ++i) {
             monitor.frame();
             QCOMPARE(monitor.item->lastCanvasSize(), QSize(160, 90));

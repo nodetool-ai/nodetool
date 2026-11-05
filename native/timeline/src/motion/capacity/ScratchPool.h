@@ -26,7 +26,7 @@ public:
 
     std::shared_ptr<Surface> acquire(Lease lease, QRhi* rhi, QSize size, long long frame,
                                      QRhiTexture* source = nullptr, QRhiTexture* other = nullptr,
-                                     QRhiTexture* saved = nullptr) {
+                                     QRhiTexture* saved = nullptr, WorkingFormat format = WorkingFormat::Rgba8) {
         if (!rhi || size.isEmpty() || lease == 0) return {};
         if (m_rhi && m_rhi != rhi) {
             if (std::any_of(m_slots.begin(), m_slots.end(), [](const Slot& slot) { return slot.lease != 0; })) return {};
@@ -36,17 +36,17 @@ public:
         m_rhi = rhi;
         for (auto& slot : m_slots) {
             auto* texture = slot.surface->texture.get();
-            if ((slot.lease == 0 || slot.lease == lease) && texture->pixelSize() == size &&
+            if ((slot.lease == 0 || slot.lease == lease) && texture->pixelSize() == size && texture->format() == (format == WorkingFormat::Rgba16F ? QRhiTexture::RGBA16F : QRhiTexture::RGBA8) &&
                 texture != source && texture != other && texture != saved) {
                 slot.lease = lease;
                 slot.lastUsed = frame;
                 return slot.surface;
             }
         }
-        const auto bytes = SurfacePool<int>::bytesFor(size);
+        const auto bytes = SurfacePool<int>::bytesFor(size, format);
         evictFreeUntil(bytes, frame);
         auto surface = std::make_shared<Surface>();
-        surface->texture.reset(rhi->newTexture(QRhiTexture::RGBA8, size, 1, QRhiTexture::RenderTarget));
+        surface->texture.reset(rhi->newTexture(format == WorkingFormat::Rgba16F ? QRhiTexture::RGBA16F : QRhiTexture::RGBA8, size, 1, QRhiTexture::RenderTarget));
         if (!surface->texture->create()) return {};
         surface->target.reset(rhi->newTextureRenderTarget({QRhiColorAttachment(surface->texture.get())}));
         surface->descriptor.reset(surface->target->newCompatibleRenderPassDescriptor());
@@ -74,7 +74,7 @@ private:
                 if (victim == m_slots.end() || it->lastUsed < victim->lastUsed) victim = it;
             }
             if (victim == m_slots.end()) return;
-            m_bytes -= SurfacePool<int>::bytesFor(victim->surface->texture->pixelSize());
+            m_bytes -= SurfacePool<int>::bytesFor(victim->surface->texture->pixelSize(), victim->surface->texture->format() == QRhiTexture::RGBA16F ? WorkingFormat::Rgba16F : WorkingFormat::Rgba8);
             m_slots.erase(victim);
         }
     }

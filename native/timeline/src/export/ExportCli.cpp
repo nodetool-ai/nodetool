@@ -13,6 +13,7 @@
 #include <QJsonObject>
 #include <cstdio>
 #include <stop_token>
+#include <stdexcept>
 #include <chrono>
 #include <cmath>
 #include <condition_variable>
@@ -68,6 +69,18 @@ int exportCli(int argc, char** argv) {
     }
     Options options{parser.value("export"), parser.value("format"), parser.isSet("alpha"),
         parser.value("video-encoder"), parser.value("audio-encoder"), parser.value("staging-directory")};
+    if (qEnvironmentVariable("NT_TEST_EXPORT_FP16") == u"1") {
+        options.workingFormat = nt::WorkingFormat::Rgba16F;
+    }
+    const auto testYuvPath = qEnvironmentVariable("NT_TEST_EXPORT_YUV");
+    if (!testYuvPath.isEmpty()) {
+        options.videoFrameForTest = [testYuvPath](const QByteArray& bytes) {
+            QFile file(testYuvPath);
+            if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size()) {
+                throw std::runtime_error("Cannot save test YUV observation");
+            }
+        };
+    }
     const auto number = [&](const char* name, auto& target) {
         if (!parser.isSet(name)) return true;
         using Value = std::remove_reference_t<decltype(target)>;

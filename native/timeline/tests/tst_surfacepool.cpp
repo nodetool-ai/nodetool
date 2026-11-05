@@ -151,6 +151,27 @@ private slots:
         QCOMPARE(pool.created(), 1LL);
     }
 
+    void workingFormatsHaveSeparateIdentityAndBudgets() {
+        int live = 0;
+        SurfacePool<FakeTarget> pool([&](QSize, WorkingFormat) { return std::make_unique<FakeTarget>(&live); }, 1200);
+        const QSize size(10, 10);
+        auto* byte = pool.acquire(size, 1);
+        pool.endFrame(1, size);
+        auto* half = pool.acquire(size, 2, WorkingFormat::Rgba16F);
+        QVERIFY(half != byte);
+        QCOMPARE(pool.bytes(), size_t(1200));
+        pool.setBudgetBytes(800);
+        pool.endFrame(2, size);
+        QCOMPARE(pool.acquire(size, 3, WorkingFormat::Rgba16F), half);
+        pool.endFrame(3, size);
+        QCOMPARE(pool.created(), 2LL);
+        QCOMPARE(pool.freed(), 1LL);
+        pool.acquire({5, 5}, 4, WorkingFormat::Rgba16F);
+        pool.endFrame(4, {5, 5});
+        QCOMPARE(pool.bytes(), size_t(200));
+        pool.clear();
+        QCOMPARE(live, 0);
+    }
     void failedCreateReturnsNull() {
         SurfacePool<FakeTarget> pool([](QSize) { return std::unique_ptr<FakeTarget>(); });
         QVERIFY(!pool.acquire(QSize(10, 10), 1));

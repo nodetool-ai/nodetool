@@ -15,13 +15,17 @@ vec4 currentRaw(ivec2 at) {
     if (geometry.x>.5) { at.y=int(dimensions.y)-1-at.y; }
     return texelFetch(source,at,0);
 }
-vec4 current(ivec2 at) { vec4 c=currentRaw(at);return vec4(c.rgb/max(c.a,1./255.),c.a); }
+vec3 straight(vec4 c) {
+    if (geometry.y > 3.5) { return c.a > 0.0 ? c.rgb/c.a : vec3(0.0); }
+    return c.rgb/max(c.a,1./255.);
+}
+vec4 current(ivec2 at) { vec4 c=currentRaw(at);return vec4(straight(c),c.a); }
 vec4 neighbor(int index,ivec2 at) {
     ivec2 coord=clamp(at-ivec2(origin.xy)+ivec2(p[1].xy),ivec2(p[1].xy),ivec2(p[1].xy+dimensions.zw)-1);
     vec4 c;
     if (index==0) { if (p[1].z>.5) { coord.y=textureSize(second,0).y-1-coord.y; } c=texelFetch(second,coord,0); }
     else { if (p[1].w>.5) { coord.y=textureSize(third,0).y-1-coord.y; } c=texelFetch(third,coord,0); }
-    return vec4(c.rgb/max(c.a,1./255.),c.a);
+    return vec4(straight(c),c.a);
 }
 ivec2 patchOffset(int i) {
     if (i==1) return ivec2(-1,0);if (i==2) return ivec2(1,0);
@@ -34,7 +38,7 @@ vec4 meanColor(int index) {
         ivec2 at=ivec2(origin.xy)+ivec2(floor(vec2(float(x)+.5+jitter,float(y)+.5-jitter)*dimensions.zw/4.));
         vec4 c=ycc(index<0 ? current(at) : neighbor(index,at));sum+=vec4(c.rgb*c.a,c.a)/16.;
     } }
-    return vec4(sum.rgb/max(sum.a,1./255.),sum.a);
+    return vec4(straight(sum),sum.a);
 }
 float patchError(int index,ivec2 at,ivec2 offset,vec4 reference[5]) {
     float error=0;
