@@ -11,7 +11,11 @@ const options = { sequence, width: 160, timesMs: [0, 500], loadAsset: async () =
 let peakBytes = 0;
 let peakSample;
 const childPeaks = {};
+// Let module initialization settle before any CPU or GPU render.
+await new Promise(resolve => setTimeout(resolve, 1000));
 const parentBaseline = process.memoryUsage().rss;
+let parentPeak = parentBaseline;
+let childrenPeak = 0;
 function rss(pid) {
   try { return Number(readFileSync(`/proc/${pid}/status`, 'utf8').match(/VmRSS:\s+(\d+)/)?.[1] ?? 0) * 1024; }
   catch { return 0; }
@@ -21,25 +25,32 @@ const sampler = setInterval(() => {
   const parent = rss(process.pid);
   const childRss = Object.fromEntries(children.map(pid => [pid, rss(pid)]));
   for (const [pid, bytes] of Object.entries(childRss)) childPeaks[pid] = Math.max(childPeaks[pid] ?? 0, bytes);
-  const total = parent + Object.values(childRss).reduce((sum, bytes) => sum + bytes, 0);
+  const childrenTotal = Object.values(childRss).reduce((sum, bytes) => sum + bytes, 0);
+  parentPeak = Math.max(parentPeak, parent);
+  childrenPeak = Math.max(childrenPeak, childrenTotal);
+  const total = parent + childrenTotal;
   if (total > peakBytes) { peakBytes = total; peakSample = { parent, children: childRss }; }
 }, 25);
-const start = performance.now();
-const before = await renderTimelineFrames(options);
-const cpuMs = performance.now() - start;
 const timings = [];
 let firstRss;
 for (let i = 0; i < Number(process.env.S5_CYCLES ?? 20); i++) {
   const start = performance.now();
   const result = await renderTimelineFrames(options, true);
-  if (!result.complete || result.frames.length !== before.frames.length) throw new Error('Incomplete probe');
+  if (!result.complete || result.frames.length !== options.timesMs.length) throw new Error('Incomplete probe');
   timings.push(performance.now() - start);
   firstRss ??= process.memoryUsage().rss;
 }
 const growthBytes = process.memoryUsage().rss - firstRss;
-const serialPeak = { peakBytes, peakSample };
+const serialPeak = { peakBytes, peakSample, parentPeak, childrenPeak, parentGrowth: Math.max(0, parentPeak - parentBaseline), addedBytes: childrenPeak + Math.max(0, parentPeak - parentBaseline) };
 peakBytes = 0;
+parentPeak = parentBaseline;
+childrenPeak = 0;
 const concurrentStart = performance.now();
 await Promise.all([renderTimelineFrames(options, true), renderTimelineFrames(options, true)]);
 clearInterval(sampler);
-console.log(JSON.stringify({ cpuMs, timings, concurrentMs: performance.now() - concurrentStart, serialPeak, peakBytes, peakSample, childPeaks, parentBaseline, growthBytes }));
+const concurrentPeak = { peakBytes, peakSample, parentPeak, childrenPeak, parentGrowth: Math.max(0, parentPeak - parentBaseline), addedBytes: childrenPeak + Math.max(0, parentPeak - parentBaseline) };
+const concurrentMs = performance.now() - concurrentStart;
+const start = performance.now();
+await renderTimelineFrames(options);
+const cpuMs = performance.now() - start;
+console.log(JSON.stringify({ cpuMs, timings, concurrentMs, serialPeak, concurrentPeak, peakBytes, peakSample, childPeaks, parentBaseline, growthBytes }));
