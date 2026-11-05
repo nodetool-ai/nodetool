@@ -29,7 +29,7 @@ struct Resources {
 };
 LayerFrame frameFor(QRhiTexture *texture, bool flip) {
     LayerFrame frame;
-    frame.format = LayerFrame::Format::Rgba8Premultiplied;
+    frame.format = LayerFrame::rgbaFormat(texture);
     frame.size = texture->pixelSize();
     frame.planes[0] = texture;
     frame.flipV = flip;
@@ -54,7 +54,7 @@ class Encoder {
     }
     QRhiTextureRenderTarget *surface(QSize size, QRhiTexture *source = nullptr, QRhiTexture *other = nullptr,
                                      QRhiTexture *saved = nullptr) {
-        auto surface = m_scratch->acquire(m_lease, m_ctx.rhi, size, m_ctx.frameNumber, source, other, saved);
+        auto surface = m_scratch->acquire(m_lease, m_ctx.rhi, size, m_ctx.frameNumber, source, other, saved, m_ctx.workingFormat);
         if (!surface) return nullptr;
         auto* result = surface->target.get();
         m_resources->surfaces.push_back(std::move(surface));
@@ -98,7 +98,8 @@ class Encoder {
         const int format = input.format == LayerFrame::Format::I420   ? 1
                            : input.format == LayerFrame::Format::Nv12 ? 2
                                                                       : 0;
-        u.geometry = {input.flipV ? 1.f : 0.f, float(format), float(pass.op), boundedCrop ? 1.f : 0.f};
+        const bool floatWorking = m_ctx.workingFormat == WorkingFormat::Rgba16F;
+        u.geometry = {input.flipV ? 1.f : 0.f, float(format) + (floatWorking ? 4.f : 0.f), float(pass.op), boundedCrop ? 1.f : 0.f};
         u.dimensions = {float(input.size.width()), float(input.size.height()), float(logical.width()),
                         float(logical.height())};
         u.origin = {float(logicalOrigin.x()), float(logicalOrigin.y()), 0, 0};
@@ -193,7 +194,7 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
             if (!step(pass,before->second.planes[0],after->second.planes[0])) { return false; }
             continue;
         }
-        if (pass.op == Op::ChromaKey) {
+        if (pass.op == Op::ChromaKey && ctx.workingFormat == WorkingFormat::Rgba8) {
             Pass bridge;
             bridge.op = Op::ToStraight;
             if (!step(bridge)) {
@@ -275,7 +276,7 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
             return false;
         }
     }
-    if (!ext.value("effectGroupSurface").toBool()) {
+    if (ctx.workingFormat == WorkingFormat::Rgba8 && !ext.value("effectGroupSurface").toBool()) {
         // Web clip chains return straight RGBA8. S4 consumes premultiplied.
         // Preserve both quantized boundary conversions instead of folding them.
         Pass bridge;
@@ -376,7 +377,7 @@ bool ShapeMaskStage::render(const EffectContext &ctx, const LayerFrame &input, Q
         return false;
     }
     current = encoder.result(masked);
-    if (!alphaBridge(encoder, current, work, Op::ToStraight) || !alphaBridge(encoder, current, work, Op::ToPremul)) {
+    if (ctx.workingFormat == WorkingFormat::Rgba8 && (!alphaBridge(encoder, current, work, Op::ToStraight) || !alphaBridge(encoder, current, work, Op::ToPremul))) {
         return false;
     }
     return encoder.draw(current, output, {}, work, {}, nullptr, &window);
@@ -390,8 +391,8 @@ bool ImageMatteStage::render(const EffectContext &ctx, const LayerFrame &layer, 
     auto current = matte;
     // composeToTexture resolves its accumulation to straight, then deriveMask
     // bridges back. Luma adds a second premultiply to weight by coverage.
-    if (!alphaBridge(encoder, current, matte.size, Op::ToStraight) ||
-        !alphaBridge(encoder, current, matte.size, Op::ToPremul)) {
+    if (ctx.workingFormat == WorkingFormat::Rgba8 && (!alphaBridge(encoder, current, matte.size, Op::ToStraight) ||
+        !alphaBridge(encoder, current, matte.size, Op::ToPremul))) {
         return false;
     }
     if (info.mode == "luma" && !alphaBridge(encoder, current, matte.size, Op::ToPremul)) {
@@ -418,8 +419,8 @@ bool ImageMatteStage::render(const EffectContext &ctx, const LayerFrame &layer, 
     }
     const auto mask = current;
     current = layer;
-    if (!alphaBridge(encoder, current, layer.size, Op::ToStraight, mask.planes[0]) ||
-        !alphaBridge(encoder, current, layer.size, Op::ToPremul, mask.planes[0])) {
+    if (ctx.workingFormat == WorkingFormat::Rgba8 && (!alphaBridge(encoder, current, layer.size, Op::ToStraight, mask.planes[0]) ||
+        !alphaBridge(encoder, current, layer.size, Op::ToPremul, mask.planes[0]))) {
         return false;
     }
     auto *masked = encoder.surface(layer.size, current.planes[0], mask.planes[0]);
@@ -430,8 +431,8 @@ bool ImageMatteStage::render(const EffectContext &ctx, const LayerFrame &layer, 
         return false;
     }
     current = encoder.result(masked);
-    if (!alphaBridge(encoder, current, layer.size, Op::ToStraight, mask.planes[0]) ||
-        !alphaBridge(encoder, current, layer.size, Op::ToPremul, mask.planes[0])) {
+    if (ctx.workingFormat == WorkingFormat::Rgba8 && (!alphaBridge(encoder, current, layer.size, Op::ToStraight, mask.planes[0]) ||
+        !alphaBridge(encoder, current, layer.size, Op::ToPremul, mask.planes[0]))) {
         return false;
     }
     Pass strength;
@@ -445,7 +446,7 @@ bool AdjustmentTreatment::applies(const QJsonObject &ext) const {
 bool AdjustmentTreatment::render(const EffectContext &ctx, const LayerFrame &input, QRhiTextureRenderTarget &output,
                                   const SceneAdjustment &adjustment) {
     if (!ctx.rhi || !ctx.commands || !ctx.retire || !input.planes[0] || input.size.isEmpty() ||
-        input.format != LayerFrame::Format::Rgba8Premultiplied || output.pixelSize() != input.size ||
+        (input.format != LayerFrame::Format::Rgba8Premultiplied && input.format != LayerFrame::Format::Rgba16FPremultiplied) || output.pixelSize() != input.size ||
         !initializeMaskCache(ctx, m_cache)) {
         return false;
     }

@@ -15,7 +15,7 @@ layout(std140, binding = 0) uniform buf {
     mat4 colorMatrix;
     float opacity;
     float flipV;
-    float mode;  // 0 premultiplied RGBA, 1 I420, 2 NV12, 3 straight-filtered leaf RGBA
+    float mode;  // 0 premultiplied RGBA, 1 I420, 2 NV12, 3 straight-filtered byte leaf, 4 straight-filtered float leaf
     vec4 sourceRect;
     vec4 sourceTexelSize;
     vec4 border;
@@ -35,7 +35,10 @@ vec4 straightPixel(vec2 cell) {
     vec2 center = (clamp(cell, vec2(0.0), size - vec2(1.0)) + vec2(0.5)) * sourceTexelSize.xy;
     vec4 pixel = texture(plane0, center);
     vec3 rgb = pixel.a > 0.0 ? pixel.rgb / pixel.a : vec3(0.0);
-    return vec4(floor(clamp(rgb, 0.0, 1.0) * 255.0 + 0.5) / 255.0, pixel.a);
+    if (mode < 3.5) {
+        rgb = floor(clamp(rgb, 0.0, 1.0) * 255.0 + 0.5) / 255.0;
+    }
+    return vec4(rgb, pixel.a);
 }
 vec4 straightFiltered(vec2 uv) {
     vec2 point = uv / sourceTexelSize.xy - vec2(0.5);

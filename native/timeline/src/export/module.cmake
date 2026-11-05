@@ -8,6 +8,13 @@ nt_qml_sources(src/export/ExportSettings.h src/export/ExportSettings.cpp
     src/export/ExportController.h src/export/ExportController.cpp
     src/export/FrameCapture.h src/export/FrameCapture.cpp src/export/FrameImage.h src/export/FrameImage.cpp)
 function(nt_export_tests)
+    add_test(NAME export_precision COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/src/export/check-precision.py
+        $<TARGET_FILE:nodetool-timeline>)
+    set_tests_properties(export_precision PROPERTIES LABELS render RUN_SERIAL TRUE)
+    qt_add_executable(tst_deliveryframe src/export/tst_deliveryframe.cpp)
+    target_include_directories(tst_deliveryframe PRIVATE src)
+    target_link_libraries(tst_deliveryframe PRIVATE Qt6::Gui Qt6::Test PkgConfig::FFMPEG)
+    add_test(NAME tst_deliveryframe COMMAND tst_deliveryframe)
     qt_add_executable(tst_pngzip src/export/tst_pngzip.cpp src/export/PngZip.cpp)
     set_target_properties(tst_pngzip PROPERTIES MACOSX_BUNDLE FALSE)
     target_include_directories(tst_pngzip PRIVATE src)
@@ -60,7 +67,11 @@ function(nt_export_tests)
     target_link_libraries(tst_framecapture PRIVATE timeline_core timeline_decode timeline_server
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::Test)
     nt_add_timeline_qml(tst_framecapture)
+    nt_effects_shaders(tst_framecapture)
     add_test(NAME tst_framecapture COMMAND tst_framecapture)
+    add_test(NAME tst_colormatch_render COMMAND tst_framecapture colorMatchWorkingFormat offscreenTypedCapture)
+    set_tests_properties(tst_colormatch_render PROPERTIES LABELS render
+        ENVIRONMENT_MODIFICATION "QT_QUICK_BACKEND=unset:")
     set_tests_properties(tst_framecapture PROPERTIES LABELS render FIXTURES_REQUIRED media
         ENVIRONMENT_MODIFICATION "QT_QUICK_BACKEND=unset:")
     add_test(NAME export_original_pixels COMMAND tst_exportdialog snapshotRendersOriginalPicture

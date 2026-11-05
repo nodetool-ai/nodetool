@@ -37,12 +37,12 @@ void main() {
     int mode = int(flipsMode.z);
     // Both inputs already contain coverage and opacity. The export's source
     // is straight, so undo premultiplication once before applying its math.
-    vec3 sc = l.rgb/max(l.a,1.0/65535.0);
+    vec3 sc = l.rgb/(flipsMode.w > 0.5 ? l.a : max(l.a,1.0/65535.0));
     if (mode == 12) {
         color = min(vec4(sc*l.a+b.rgb,l.a+b.a),vec4(1.0));
         return;
     }
-    vec3 dc = b.a > 0.0 ? b.rgb/max(b.a,1.0/65535.0) : vec3(0.0);
+    vec3 dc = b.a > 0.0 ? b.rgb/(flipsMode.w > 0.5 ? b.a : max(b.a,1.0/65535.0)) : vec3(0.0);
     vec3 blended = vec3(blendChannel(sc.r,dc.r,mode), blendChannel(sc.g,dc.g,mode), blendChannel(sc.b,dc.b,mode));
     // packages/gpu/src/compositor/shaders.ts fs_blend, premultiplied output.
     color = vec4(l.a*(1.0-b.a)*sc+l.a*b.a*blended+(1.0-l.a)*b.rgb, l.a+b.a*(1.0-l.a));

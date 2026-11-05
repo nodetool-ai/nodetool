@@ -842,50 +842,52 @@ Item {
             editor.dockStore.resetWorkspace()
             editor.dockStore.dispatch({type: "reveal", panelId: "inspector"})
         }
-        function build100Keys() {
+        function buildKeys(count) {
             const kfs = n => Array.from({length: n}, (_, i) => ({t: i / (n - 1), value: i % 7}))
             testTimeline.applyEdit("keyframes.animations", {clipId: "c", action: "animations", animations: [{
                 id: "keys", role: "emphasis", preset: "custom", durationMs: 2000, delayMs: 0, enabled: true,
                 params: {keyframed: true}, custom: {curves: [
-                    {property: "offsetX", keyframes: kfs(100)}, {property: "offsetY", keyframes: kfs(100)},
-                    {property: "scale", keyframes: kfs(100)}, {property: "rotation", keyframes: kfs(100)},
-                    {property: "opacity", keyframes: kfs(100)}]}}]})
-            compare(times("position").length, 100)
+                    {property: "offsetX", keyframes: kfs(count)}, {property: "offsetY", keyframes: kfs(count)},
+                    {property: "scale", keyframes: kfs(count)}, {property: "rotation", keyframes: kfs(count)},
+                    {property: "opacity", keyframes: kfs(count)}]}}]})
+            compare(times("position").length, count)
         }
-        // A frame at 60 fps. The steps include the read-back of a whole frame, so each is
-        // an upper bound on what one playhead tick, drag move or zoom step costs on screen.
-        function test_a100KeyframeClipStaysWithinTheFrameBudget() {
-            build100Keys()
-            click(child("effectControlsGraphs_position"))
-            waitForRendering(panel)
-            const budget = 16.6
-            // The best of three runs, since agents and CI share the machine.
-            const best = (step, count) => {
-                let result = Infinity
-                for (let run = 0; run < 3 && result >= budget; ++run) {
-                    result = Math.min(result, testHarness.medianFrameMs(panel, step, count))
+        // Four times the keys may take up to twice linear growth, but not quadratic growth.
+        // Compare on the same machine, including sanitized builds, instead of enforcing 60 fps in CI.
+        function test_keyframeFrameCostScalesBelowQuadratic() {
+            function measure(count) {
+                panel.selectedKeys = {}
+                buildKeys(count)
+                panel.setView(2000, 0)
+                if (count === 100) {
+                    click(child("effectControlsGraphs_position"))
                 }
-                return result
+                tryVerify(() => findChild(panel, "effectControlsGraph_position") !== null)
+                waitForRendering(panel)
+                const seek = testHarness.meanFrameMs(panel, i => testClock.seek(i * 13), 41)
+                panel.selectedKeys = {}
+                for (const ms of times("position").slice(0, count / 2)) {
+                    panel.toggleSelected("position", ms)
+                }
+                panel.beginRetime(times("position")[10])
+                let moved = 0
+                const retime = testHarness.meanFrameMs(panel, i => {
+                    panel.updateRetime(panel.xOf(100 + i * 25))
+                    moved = panel.retimeDeltaMs
+                }, 41)
+                verify(moved > 0)
+                panel.endGestures()
+                const zoom = testHarness.meanFrameMs(panel, i => panel.setView(1000 + (i % 10) * 100, 0), 21)
+                console.info(count, "keys frame CPU ms: seek", seek, "retime", retime, "zoom", zoom)
+                return {seek, retime, zoom}
             }
-            const seek = best(i => testClock.seek(i * 13), 41)
-            panel.selectedKeys = {}
-            for (const ms of times("position").slice(0, 50)) {
-                panel.toggleSelected("position", ms)
+            const baseline = measure(100)
+            const larger = measure(400)
+            for (const operation of ["seek", "retime", "zoom"]) {
+                verify(baseline[operation] > 0)
+                verify(larger[operation] < baseline[operation] * 8,
+                       operation + " growth " + larger[operation] / baseline[operation])
             }
-            panel.beginRetime(times("position")[10])
-            let moved = 0
-            const retime = best(i => { panel.updateRetime(panel.xOf(100 + i * 25)); moved = panel.retimeDeltaMs }, 41)
-            verify(moved > 0)
-            panel.endGestures()
-            const zoom = best(i => panel.setView(1000 + (i % 10) * 100, 0), 21)
-            console.info("frame ms: seek", seek, "retime", retime, "zoom", zoom)
-            // A sanitizer build pays more than twice as much for a frame, which says nothing about a user's frame.
-            if (testHarness.sanitized()) {
-                skip("The frame budget applies only to a build without sanitizers")
-            }
-            verify(seek < budget, "seek " + seek)
-            verify(retime < budget, "retime " + retime)
-            verify(zoom < budget, "zoom " + zoom)
         }
     }
 }
