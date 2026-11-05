@@ -1,6 +1,214 @@
 # S5 agent rendering qualification
 
-A91 is in progress. No production caller has switched yet. A92 is excluded.
+A91 implementation now uses one renderer child per parent and switches the
+agent callers to shared shaders. A91 remains unchecked because a fresh minimal
+installation cannot resolve a required dependency. The owner must
+provide or publish `@nodetool-ai/presets`, or accept the isolated missing-addon
+qualification in place of an install. A92 and FP16 remain excluded.
+
+## Current qualification: queued child and migrated callers
+
+This section supersedes the historical checkpoints below. The implemented
+policy waits for the preceding render pass and its child exit before starting
+the next child. There is no warm retained child, scheduler, routing service,
+busy rejection or CPU fallback. The existing frame protocol still serializes
+frames within a pass. Layout checks borrow the child across all same-size
+backdrop and isolated-layer renders, then await its exit in a finally block.
+A cancelled waiter rejects before the active pass ends
+and does not release later waiters ahead of that pass. Child close rejects a
+pending frame with exit status and releases ownership. A later pass starts a
+fresh child. Real-child tests cover queueing, cancelled waiters, continued
+rendering by another caller, SIGKILL during a pending frame and recovery.
+
+### Memory and queue latency
+
+The unchanged fixture renders two 160×90 shape frames per pass. Its parent
+baseline is recorded after importing preview modules and one idle second.
+Twenty serial passes precede batches of two and four concurrent requests.
+Sampling is every 25 ms and may miss shorter peaks. The concurrent row covers
+both batches. Added RSS is child peak plus maximum positive parent growth.
+The combined column is a simultaneous sample, not a sum of separate maxima.
+
+| Adapter / phase | Baseline MiB | Child peak MiB | Parent growth MiB | Added MiB | Combined MiB |
+|---|---:|---:|---:|---:|---:|
+| lavapipe / serial | 357.78 | 262.62 | 93.61 | 356.23 | 713.95 |
+| lavapipe / concurrent 2 and 4 | 357.78 | 243.56 | 99.25 | 342.81 | 697.26 |
+| RTX 3060 / serial | 358.46 | 283.39 | 92.87 | 376.25 | 732.46 |
+| RTX 3060 / concurrent 2 and 4 | 358.46 | 282.24 | 98.73 | 380.96 | 738.21 |
+
+Both adapters pass the owner-approved 512 MiB renderer-added gate. Parent
+growth from the first to twentieth completed pass is 14.88 MiB on lavapipe and
+13.99 MiB on RTX, below the existing 64 MiB limit. These are small-preview
+measurements, not bounds for arbitrary resolution or source sizes.
+
+| Adapter | Cold call ms | Two completions ms | Four completions ms | Added completion delay, last minus first ms |
+|---|---:|---|---|---|
+| lavapipe | 595.05 | 517.11, 1017.17 | 538.32, 1043.41, 1548.91, 2047.68 | 500.06 / 1509.36 |
+| RTX 3060 | 988.36 | 701.02, 1377.21 | 701.28, 1408.44, 2122.08, 2813.76 | 676.19 / 2112.48 |
+
+The last column reports added latency for two and four requests respectively.
+It includes scheduling and render-duration variation, rather than pretending
+to measure only time inside a queue. Calls and batch completion remain below
+the existing ten-second small-fixture limits. Warm CPU calls measured last
+were 3.11 and 3.18 ms. They are not cold-start baselines.
+
+GPU runs unset DISPLAY. Lavapipe sets both ICD variables to
+`/usr/share/vulkan/icd.d/lvp_icd.json`. RTX sources the NVIDIA 610 environment
+after `bin/ntenv`. Long runs use a 6 GiB systemd scope. Available memory was
+checked above 5 GB. No ffmpeg or ffprobe binary was used.
+
+### Callers, outputs and cancellation
+
+`renderTimelineFrames` now defaults to the headless child. Its explicit false
+argument retains CPU qualification. This switches preview and comparison in
+`capabilities/timelines.ts`, reference and final storyboard-finishing renders,
+storyboard layout checks, and generated clip frame inspection. The callers
+now pass their existing run or context AbortSignal into rendering. Source
+rasterization, media decoding, frame geometry, timecodes, PNG encoding and
+output persistence stay in the parent. Native initialization is lazy. The
+child uses the existing 8-bit compositor default. BT.709 and the six expected
+GPU boundary failures are unchanged.
+
+The opaque fixture matches decoded RGBA exactly, including geometry, times
+and reports. Existing preview regression assertions are retained. An unknown
+mask kind initially produced a transparent mask in the shared adapter. The
+adapter now respects the rasterizer's false return and preserves the CPU
+unmasked behavior. The static-motion test now counts real shared draws and
+still requires one draw for a static frame and eight for moving content.
+Strict absent-field assertions were not changed.
+
+The first broad caller run exposed 40 failing storyboard-finishing tests,
+mostly at the unchanged 30-second test deadline. Starting a child for every
+isolated layout frame was too slow. Reusing one child within each layout-check
+batch made the first failing test pass in about 12 seconds. No Vitest wall timeout was
+raised. The original failure log remains available. Two script-deadline cases
+also needed their simulated script budget changed from two to ten seconds,
+matching the cold-preview qualification budget. The real sandbox timer was
+expiring during renderer preflight before the provider pause could be reached.
+They still advance exactly to the deadline, require prompt cancellation and
+reject a late commit within the unchanged twelve-second test wall limit.
+
+`preview-output-differences.mjs` compares the existing Serein gap fixture at
+eleven clip-midpoint times, 480×270, before PNG encoding differences can affect
+the comparison. It decodes both PNGs and measures their RGBA channels. The
+table below is populated from the retained adapter logs. Effects and visual
+features are named by fixture, without treating Canvas2D as a precision oracle.
+
+| Time ms | Max channel delta lavapipe / RTX | Mean absolute channel delta lavapipe / RTX | Changed channels lavapipe / RTX |
+|---|---:|---:|---:|
+| 600 | 63 / 63 | 0.035818 / 0.035745 | 757 / 661 |
+| 1900 | 0 / 0 | 0.000000 / 0.000000 | 0 / 0 |
+| 2850 | 63 / 63 | 0.026671 / 0.026603 | 867 / 816 |
+| 3250 | 63 / 63 | 0.018991 / 0.018900 | 926 / 876 |
+| 4100 | 55 / 55 | 0.012747 / 0.012654 | 369 / 332 |
+| 4550 | 55 / 54 | 0.012458 / 0.013750 | 1826 / 2511 |
+| 5500 | 55 / 55 | 0.021779 / 0.021661 | 717 / 641 |
+| 6700 | 0 / 1 | 0.000000 / 0.027691 | 0 / 14355 |
+| 7700 | 2 / 3 | 0.005866 / 0.011908 | 2954 / 5850 |
+| 8700 | 44 / 44 | 0.141935 / 0.141713 | 3701 / 3311 |
+| 9700 | 26 / 26 | 0.031034 / 0.030820 | 1216 / 1032 |
+
+RGB split at 1900 ms and the gradient-field generator at 6700 ms match
+exactly. Fitted-pill transitions, grouped text, gradient text, projective
+depth cards and source clipping have the differences listed above. Both
+renderers report no omitted effects on this fixture. The measurements report
+differences rather than changing tolerances to suppress them. They do not
+establish equivalence for arbitrary authored effects.
+
+### CLI startup and API contention
+
+The actual built CLI command `nodetool tools call preview_timeline_frame`
+rendered an inline red shape, persisted its PNG and exited naturally with code
+0 in 4.284 seconds on lavapipe and 4.750 seconds on RTX. The ten-second
+completion gate passes. A cold `tools info preview_timeline_frame` completed
+in 4.403 seconds. Those timings include process startup, tool registration,
+database setup and output handling. A stale generated catalog initially
+reported core 0.8.11 against CLI 0.8.10. Running `pack-core/build.mjs` copied
+this branch's checked-in catalog into dist and resolved that mismatch.
+
+The complete API server ran on isolated loopback ports with a separate SQLite
+database. The retained client uses `/mcp`, `execute_code` and
+`nodetool.timelines.preview`, including actual asset persistence. Six requests
+per adapter all reported complete. Concurrent request arrival order is not
+guaranteed through the sandbox, so the table reports final completion.
+
+| Adapter | Two requests ms | Four requests ms | Health p95 during four ms | Health max during four ms |
+|---|---:|---:|---:|---:|
+| lavapipe | 1420.73 | 2258.85 | 2.06 | 23.67 |
+| RTX 3060 | 2230.56 | 3686.56 | 4.08 | 16.71 |
+
+Baseline health maxima were 3.22/4.06 ms. During the first pair, maxima were
+39.41/63.45 ms. Server time from entering startup to listen was 1.905/1.915 seconds
+on the successful lavapipe/RTX file-entry runs. This excludes module import.
+The API servers were deliberately stopped after measurement because a server
+is meant to stay alive. That is separate from the natural CLI exit check.
+
+A smaller isolated HTTP capability probe also measured cold lazy-module
+import contention. Its initial maximum stall was 1524.89 ms on lavapipe and
+1392.89 ms on RTX. Warm four-request health maxima were 10.92/15.41 ms.
+Those import stalls remain reported even though the complete server loads
+more of those modules before accepting requests.
+
+### Minimal installation and remaining boundary
+
+Packed the current agents workspace and attempted installation into a new
+directory with `npm install --omit=optional --ignore-scripts`. Installation
+failed with registry HTTP 404 for required `@nodetool-ai/presets@*`, before
+runtime qualification. The attempted install is not a passing minimal install.
+The `--ignore-scripts` approximation would also need native build setup if
+dependency resolution succeeded. No installed shared dependency was removed.
+
+The isolated missing-addon fixture still proves ordinary tool registration
+loads no Dawn and a child render returns `nodetool packs add webgpu --yes`.
+The real child with invalid ICD variables returns `mesa-vulkan-drivers`
+guidance. Neither failure silently retries through Canvas2D. A publishable
+dependency closure is needed for a fresh-install result. No hardware purchase
+or change to the memory budget is required by these measurements.
+
+### Verification and logs
+
+All checks used one Vitest worker on lavapipe. The selected preview baseline
+passed 154 tests in 17 files. After migration, 151 initially passed and three
+failed. The mask and draw-count corrections passed all 15 tests in those two
+files. The final static test passed both cases after removing an inherited
+conditional spread. After layout batching, shared-preview and mask regressions
+passed 16 tests. The real-child lifecycle file passed all 14 tests.
+
+The seven affected caller files initially passed 224 tests and failed 40 in
+`capabilities-agentic-storyboard-finish.test.ts`. With layout batching, that
+file passed 39 cases and failed four deadline/spy cases. The focused rerun
+passed all four after correcting the script-deadline setup. Thus every one of
+the 264 selected caller cases has passing evidence after its relevant fix.
+The six other files were `capabilities-timelines`, `capabilities-timeline-render`,
+`capabilities-timeline-preview`, `timelines-op-input`, `timeline-render-wait-budget`
+and `timeline-headless-media-parity`. No dependency-resolution failure prevented
+a test from running. The existing execution dist was available, so no temporary
+Vitest configuration was required.
+
+Agents build and agents-only typecheck passed. Enforced oxlint passed on
+`src/timeline-preview` and `src/capabilities`, and on the changed tests.
+It reported pre-existing unused-import/variable warnings in untouched
+capability files including assets, ui, files, video-production, timeline-bridge,
+scripts, models and memory. There were no enforced source errors.
+Agent-doc validation, whitespace checks and the control-byte scan passed.
+
+As requested, test:affected, root typecheck, root lint, harness gate, /verify,
+full suites, full builds and full Electron packaging checks were not run.
+No `it.fails` cases or pixel tolerances were added or weakened.
+
+Logs are under `/home/mg/Projects/nodetool-film/tmp/color-s5/`, prefixed
+`a91-queue-`, `a91-output-`, `a91-cli-`, `a91-api-`, `a91-full-api-`,
+`a91-minimal-`, `a91-migration-`, `a91-callers-`, `a91-final-`, `a91-batch-`,
+`a91-finishing-`, `a91-deadline-` and `a91-borrowed-`.
+Only small JSON, text, database, PNG and package artifacts remain. No branch
+switch, merge, rebase, push or PR occurred. The task started with the reported
+38-commit deficit. A later read of the shared local tracking ref showed 73
+missing commits. This task did not fetch or merge that ref.
+
+## Historical checkpoints
+
+The remaining sections preserve earlier evidence and decisions. Their claims
+about the current implementation are superseded by the section above.
 
 ## Current gate after owner decision
 
