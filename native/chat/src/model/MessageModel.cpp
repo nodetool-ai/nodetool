@@ -275,10 +275,10 @@ QJsonObject mediaPresentation(QJsonObject part) {
   } else if (type == "document") {
     const auto doc = part["document"].toObject();
     part["label"] = doc["name"].toString("Document");
-    part["text"] = part["text"].toString(doc["text"].toString(doc["content"].toString("Document attached")));
+    part["text"] = doc["text"].toString(doc["content"].toString("Document attached"));
   } else if (type == "resource") {
     const QUrl uri(part["uri"].toString());
-    const QSet<QString> kinds{"asset", "workflow", "app", "sketch", "timeline", "model3d", "game", "storyboard", "thread", "document", "collection"};
+    const QSet<QString> kinds{"asset", "workflow", "app", "sketch", "timeline", "model3d", "game", "storyboard", "thread", "script", "jsscript", "collection"};
     if (kinds.contains(uri.scheme()) && !uri.host().isEmpty()) {
       part["resourceKind"] = uri.scheme();
       part["label"] = uri.scheme() + " · " + part["label"].toString(uri.host());

@@ -15,6 +15,27 @@ ColumnLayout {
     readonly property bool userMessage: role === "user"
     spacing: Ui.Metrics.md
     objectName: "message_" + messageId
+    Ui.Dialog {
+        id: imagePreview
+        property string mediaUrl: ""
+        width: Math.min(root.width, ChatMetrics.columnWidth, parent ? parent.width - Ui.Metrics.lg : ChatMetrics.columnWidth)
+        height: Math.min(parent ? parent.height - Ui.Metrics.lg : Ui.Metrics.comfortable * 12, Ui.Metrics.comfortable * 12)
+        title: qsTr("Image preview")
+        onClosed: mediaUrl = ""
+        contentItem: ColumnLayout {
+            Ui.EditorButton { text: qsTr("Close image"); onClicked: imagePreview.close() }
+            Image {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                source: imagePreview.mediaUrl
+                sourceSize.width: 1600
+                sourceSize.height: 1600
+                asynchronous: true
+                cache: false
+                fillMode: Image.PreserveAspectFit
+            }
+        }
+    }
     Ui.Text { id: userFont; visible: false; role: Ui.Typography.SansBody }
     TextMetrics {
         id: userMetrics
@@ -54,7 +75,28 @@ ColumnLayout {
                         onClicked: if (paged.chatSession) paged.chatSession.copyText(section.modelData.copy)
                     }
                 }
+                Ui.Surface {
+                    visible: !!section.modelData.resourceUri
+                    Layout.fillWidth: true
+                    implicitHeight: resourceRow.implicitHeight + Ui.Metrics.md
+                    RowLayout {
+                        id: resourceRow
+                        anchors.fill: parent
+                        anchors.margins: Ui.Metrics.sm
+                        Ui.Text {
+                            text: (section.modelData.resourceKind || "") + " · " + section.modelData.text
+                            Layout.fillWidth: true
+                            elide: Text.ElideRight
+                        }
+                        Ui.EditorButton {
+                            visible: !!paged.chatSession && (paged.chatSession.resourceKinds || []).indexOf(section.modelData.resourceKind) >= 0
+                            text: qsTr("Open resource")
+                            onClicked: paged.chatSession.openResource(section.modelData.resourceUri)
+                        }
+                    }
+                }
                 Ui.TextArea {
+                    visible: !section.modelData.resourceUri
                     Layout.fillWidth: true
                     id: markdownText
                     readonly property color linkColour: Ui.Theme.statusInfo
@@ -322,20 +364,43 @@ ColumnLayout {
                 }
                 PagedText {
                     Layout.fillWidth: true
-                    visible: partFrame.kind !== "tool_approval_request" && !partFrame.part.planText && !partFrame.part.tool && (partFrame.kind !== "compaction" || partFrame.detailsOpen) && (!partFrame.part.tree || (partFrame.detailsOpen && !!partFrame.part.text)) && (partFrame.kind !== "thought" || partFrame.detailsOpen) && (partFrame.kind !== "image" || !partFrame.part.mediaUrl)
+                    visible: !partFrame.part.resourceKind && partFrame.kind !== "tool_approval_request" && !partFrame.part.planText && !partFrame.part.tool && (partFrame.kind !== "compaction" || partFrame.detailsOpen) && (!partFrame.part.tree || (partFrame.detailsOpen && !!partFrame.part.text)) && (partFrame.kind !== "thought" || partFrame.detailsOpen) && (!partFrame.part.media || !partFrame.part.mediaUrl)
                     markdown: partFrame.kind === "thought" || partFrame.kind === "prose"
                     sourceText: (partFrame.kind === "thought" || partFrame.kind === "compaction" || partFrame.part.tree) && !partFrame.detailsOpen ? "" : partFrame.part.text || partFrame.part.content || (typeof partFrame.part.result === "string" ? partFrame.part.result : "") || qsTr("This content is preserved by the server. Open the web app to use this content type.")
                     chatSession: root.session
                 }
                 Image {
+                    id: mediaImage
+                    sourceSize.width: 800
+                    sourceSize.height: 800
                     Layout.fillWidth: true
                     Layout.preferredHeight: Math.min(implicitHeight, Ui.Metrics.comfortable * 8)
-                    visible: partFrame.kind === "image" && String(partFrame.part.mediaUrl || "").indexOf("data:image/") === 0
+                    visible: !!partFrame.part.media && String(partFrame.part.mediaUrl || "").indexOf("data:image/") === 0
                     source: visible ? partFrame.part.mediaUrl : ""
                     fillMode: Image.PreserveAspectFit
                     asynchronous: true
                     cache: false
                     Accessible.name: partFrame.part.name || qsTr("Image result")
+                }
+                Ui.Text {
+                    visible: mediaImage.status === Image.Error
+                    text: qsTr("Image preview unavailable")
+                    tone: Ui.Text.Error
+                }
+                Ui.EditorButton {
+                    visible: mediaImage.visible && mediaImage.status === Image.Ready
+                    text: qsTr("Open large image")
+                    onClicked: { imagePreview.returnFocusTo = this; imagePreview.mediaUrl = mediaImage.source; imagePreview.open() }
+                }
+                Ui.EditorButton {
+                    visible: partFrame.kind === "audio" || partFrame.kind === "video"
+                    text: qsTr("Open media")
+                    onClicked: if (root.session) root.session.openMedia(partFrame.part.locator)
+                }
+                Ui.EditorButton {
+                    visible: !!partFrame.part.resourceKind && !!root.session && (root.session.resourceKinds || []).indexOf(partFrame.part.resourceKind) >= 0
+                    text: qsTr("Open resource")
+                    onClicked: root.session.openResource(partFrame.part.uri)
                 }
                 Ui.EditorButton {
                     visible: !!partFrame.part.helpUrl

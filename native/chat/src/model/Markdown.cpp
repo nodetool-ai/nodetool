@@ -36,7 +36,19 @@ QVariantList markdownPages(const QString &source) {
   };
   auto add = [&](const QString &body, bool code, const QString &language, const QString &copy) {
     if (size + body.size() > limit) { flush(); }
-    page.append(QVariantMap{{"text", body}, {"code", code}, {"language", language}, {"copy", copy}});
+    static const QRegularExpression resourceLink(R"(\[([^\]\n]+)\]\(((?:asset|workflow|app|sketch|timeline|model3d|game|storyboard|thread|script|jsscript|collection)://[A-Za-z0-9._~-]+(?:#[A-Za-z0-9._~-]+=[A-Za-z0-9._~-]+)?)\))");
+    qsizetype cursor = 0;
+    auto matches = resourceLink.globalMatch(body);
+    while (!code && matches.hasNext()) {
+      const auto match = matches.next();
+      if (match.capturedStart() > cursor) { page.append(QVariantMap{{"text", body.mid(cursor, match.capturedStart() - cursor)}}); }
+      const auto uri = match.captured(2);
+      page.append(QVariantMap{{"text", match.captured(1)}, {"resourceUri", uri}, {"resourceKind", uri.section(':', 0, 0)}});
+      cursor = match.capturedEnd();
+    }
+    if (cursor < body.size() || body.isEmpty()) {
+      page.append(QVariantMap{{"text", body.mid(cursor)}, {"code", code}, {"language", language}, {"copy", copy}});
+    }
     size += body.size();
   };
   static const QRegularExpression fence("^ {0,3}(`{3,}|~{3,})(.*)$");

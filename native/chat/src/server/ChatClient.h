@@ -5,6 +5,7 @@
 #include <QTemporaryDir>
 #include <QWebSocket>
 #include <functional>
+#include <memory>
 namespace nt::chat {
 class ChatClient : public QObject {
   Q_OBJECT
