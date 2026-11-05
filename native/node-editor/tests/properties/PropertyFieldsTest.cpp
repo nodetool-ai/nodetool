@@ -5,13 +5,57 @@ using namespace nodetool::node_editor;
 class PropertyFieldsTest : public QObject {
  Q_OBJECT
 private slots:
+ void conditionalRuleSemantics() {
+  const auto check = [](QJsonValue rule, QJsonObject values) { return propertyConditionSatisfied(QJsonObject{{"json_schema_extra", QJsonObject{{"visible_when", rule}}}}, values); };
+  QVERIFY(check("future", {}));
+  QVERIFY(check(QJsonObject{{"property", 7}}, {}));
+  const QJsonObject nested{{"property", "model"}, {"path", "capabilities"}, {"includes", "clone"}};
+  QVERIFY(check(nested, {{"model", QJsonObject{{"capabilities", QJsonArray{"clone"}}}}}));
+  QVERIFY(!check(nested, {{"model", QJsonObject{{"capabilities", QJsonArray{}}}}}));
+  QVERIFY(!check(nested, {{"model", QJsonArray{}}}));
+  QVERIFY(check(QJsonObject{{"property", "flags"}, {"includes_any", QJsonArray{"a", "b"}}, {"equals", false}}, {{"flags", QJsonArray{"b"}}}));
+  QVERIFY(!check(QJsonObject{{"property", "flags"}, {"includes_any", QJsonArray{}}}, {{"flags", QJsonArray{"b"}}}));
+  QVERIFY(!check(QJsonObject{{"property", "v"}, {"equals", false}}, {}));
+  QVERIFY(!check(QJsonObject{{"property", "v"}, {"equals", false}}, {{"v", 0}}));
+  QVERIFY(check(QJsonObject{{"property", "v"}, {"equals", QJsonValue::Null}}, {{"v", QJsonValue::Null}}));
+  QVERIFY(!check(QJsonObject{{"property", "v"}, {"equals", QJsonObject{}}}, {{"v", QJsonObject{}}}));
+  QVERIFY(!check(QJsonObject{{"property", "v"}, {"includes", QJsonObject{}}}, {{"v", QJsonArray{QJsonObject{}}}}));
+  for (const auto &v : QJsonArray{false, 0, "", QJsonValue::Null}) { QVERIFY(!check(QJsonObject{{"property", "v"}}, {{"v", v}})); }
+  for (const auto &v : QJsonArray{true, 1, "false", QJsonArray{}, QJsonObject{}}) { QVERIFY(check(QJsonObject{{"property", "v"}}, {{"v", v}})); }
+ }
+ void conditionalVisibility() {
+  const QJsonObject field{{"name", "folder"}, {"type", "str"}, {"json_schema_extra", QJsonObject{{"visible_when", QJsonObject{{"property", "workspace"}, {"equals", false}}}}}};
+  const QJsonObject metadata{{"properties", QJsonArray{field}}};
+  QJsonObject node{{"id", "n"}, {"data", QJsonObject{{"folder", "keep"}, {"workspace", true}}}};
+  const auto find = [](const QVariantList &rows) { for (const auto &row : rows) { if (row.toMap()["name"] == "folder") { return row.toMap(); } } return QVariantMap{}; };
+  QVERIFY(find(propertyFields(node, metadata, {})).isEmpty());
+  const QJsonArray edges{QJsonObject{{"target", "n"}, {"targetHandle", "folder"}}};
+  const auto connected = find(propertyFields(node, metadata, edges));
+  QVERIFY(!connected.isEmpty());
+  QVERIFY(connected["conditionalUnavailable"].toBool());
+  QVERIFY(!connected["editable"].toBool());
+  node["data"] = QJsonObject{{"folder", "keep"}, {"workspace", false}};
+  const auto shown = find(propertyFields(node, metadata, {}));
+  QCOMPARE(shown["value"].toString(), QString("keep"));
+  QVERIFY(shown["editable"].toBool());
+  node["data"] = QJsonObject{{"workspace", true}};
+  node["dynamic_inputs"] = QJsonObject{{"extra", field}};
+  node["dynamic_properties"] = QJsonObject{{"extra", "preserve and edit"}};
+  const auto rows = propertyFields(node, metadata, {});
+  bool dynamicVisible = false;
+  for (const auto &entry : rows) {
+    const auto row = entry.toMap();
+    if (row["name"] == "extra") { dynamicVisible = true; QVERIFY(row["editable"].toBool()); QCOMPARE(row["value"].toString(), QString("preserve and edit")); }
+  }
+  QVERIFY(dynamicVisible);
+ }
  void structuredTransactions() {
   const QJsonObject intType{{"type", "int"}};
   const QJsonObject listType{{"type", "list"}, {"type_args", QJsonArray{intType}}};
   const QJsonObject dictType{{"type", "dict"}, {"type_args", QJsonArray{QJsonObject{{"type", "str"}}, listType}}};
   const QJsonObject declaration{{"name", "values"}, {"type", dictType}};
   QCOMPARE(propertyKind(declaration), QString("dict"));
-  QCOMPARE(propertyKind({{"type", QJsonObject{{"type", "list"}, {"type_args", QJsonArray{QJsonObject{{"type", "image"}}}}}}}), QString("unsupported"));
+  QCOMPARE(propertyKind({{"type", QJsonObject{{"type", "list"}, {"type_args", QJsonArray{QJsonObject{{"type", "image"}}}}}}}), QString("media_list"));
   QCOMPARE(propertyKind({{"type", QJsonObject{{"type", "str"}}}, {"json_schema_extra", QJsonObject{{"type", "json"}}}}), QString("json"));
   QVERIFY(validatePropertyValue(declaration, QJsonObject{{"numbers", QJsonArray{1, 2}}}).isEmpty());
   QVERIFY(!validatePropertyValue(declaration, QJsonObject{{"numbers", QJsonArray{1, "two"}}}).isEmpty());

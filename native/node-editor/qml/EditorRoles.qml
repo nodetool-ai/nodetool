@@ -11,6 +11,8 @@ QtObject {
     readonly property color chrome: dark ? "#08090a" : "#f5f5f6"
     readonly property color panel: Ui.Theme.surfacePanel
     readonly property color paper: dark ? "#101113" : "#fafafb"
+    readonly property color reroutePaper: dark ? "#101113" : "#ffffff"
+    readonly property color rerouteBorder: dark ? "#808590" : "#71717a"
     readonly property color overlay: dark ? "#17181b" : "#f2f2f4"
     readonly property color divider: dark ? "#14ffffff" : "#e4e4e7"
     readonly property color field: dark ? "#08ffffff" : "#062a2a2a"

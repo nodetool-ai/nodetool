@@ -114,7 +114,13 @@ Rectangle {
                     implicitHeight: 40
                     text: modelData.label
                     enabled: editor && !editor.readOnly
+                    objectName: "catalog-node-" + modelData.type
                     onClicked: editor.addNode(modelData.type)
+                    DragHandler {
+                        objectName: "catalog-drag-" + nodeRow.modelData.type
+                        target: null
+                        onActiveChanged: if (active && editor) editor.dragNode(nodeRow.modelData.type)
+                    }
                     onHoveredChanged: root.hovered = hovered ? modelData : null
                     RowLayout {
                         anchors.fill: parent
@@ -158,7 +164,7 @@ Rectangle {
             verticalAlignment: Text.AlignVCenter
             wrapMode: Text.WordWrap
             elide: Text.ElideRight
-            text: root.hovered ? (root.hovered.description || root.hovered.label) : "Click a node to add it to the canvas. Hover for details."
+            text: root.hovered ? (root.hovered.description || root.hovered.label) : "Click or drag a node onto the canvas. Hover for details."
             role: Ui.Typography.SansLabel
             font.weight: Font.Normal
             tone: Ui.Text.Secondary
@@ -170,7 +176,7 @@ Rectangle {
             Layout.leftMargin: Ui.Metrics.lg
             Layout.rightMargin: Ui.Metrics.lg
             Ui.Text { Layout.fillWidth: true; text: root.category === "" ? "All" : root.category; role: Ui.Typography.SansLabel; font.weight: Font.Normal; tone: Ui.Text.Secondary; lineHeight: 1 }
-            Ui.Text { text: "click to add"; role: Ui.Typography.SansLabel; font.weight: Font.Normal; tone: Ui.Text.Secondary; lineHeight: 1 }
+            Ui.Text { text: "click or drag to add"; role: Ui.Typography.SansLabel; font.weight: Font.Normal; tone: Ui.Text.Secondary; lineHeight: 1 }
         }
     }
 }

@@ -2,6 +2,7 @@
 #include <QJsonDocument>
 #include <QSignalSpy>
 #include <QtTest>
+#include <limits>
 using namespace nodetool::node_editor;
 namespace {
 QJsonObject fixture() {
@@ -11,6 +12,301 @@ QJsonObject fixture() {
 class WorkflowDocumentTest final : public QObject {
     Q_OBJECT
 private slots:
+    void groupCommandsPreserveWebFieldsAndHistory() {
+        WorkflowDocument d;
+        // Protocol shape used by graphNodeToReactFlowNode and GroupNode:
+        // data.headline, data.comment, ui_properties geometry, parent_id.
+        QVERIFY(d.loadJson(R"({"graph":{"nodes":[
+            {"id":"outer","type":"nodetool.workflows.base_node.Group","data":{"headline":"Outer","future":7},"ui_properties":{"position":{"x":100,"y":200},"width":500,"height":400}},
+            {"id":"inner","type":"nodetool.workflows.base_node.Group","parent_id":"outer","ui_properties":{"position":{"x":20,"y":30}}},
+            {"id":"a","type":"Node","parent_id":"inner","data":{"future":true},"ui_properties":{"position":{"x":5,"y":6,"future":9},"width":80,"height":60}},
+            {"id":"comment","type":"nodetool.workflows.base_node.Comment","data":{"comment":{"root":{"type":"root","children":[],"version":1}},"comment_color":"red","future":42},"ui_properties":{"position":{"x":300,"y":400}}}
+        ],"edges":[{"id":"e","source":"a","sourceHandle":"out","target":"comment","targetHandle":"in","future":11}],"links":[{"id":"l","source":"a","target":"comment","future":12}]}})"));
+        const auto before = d.snapshot();
+        QVERIFY(d.applyCommand({{"op", "groupNodes"}, {"ids", QJsonArray{"inner", "a", "comment"}}, {"id", "new-group"}, {"title", "Together"}}));
+        QCOMPARE(d.undoStack()->count(), 1);
+        QCOMPARE(d.nodes()[0].toObject()["id"].toString(), "new-group");
+        QCOMPARE(d.node("a")["parent_id"].toString(), "inner");
+        QCOMPARE(d.node("inner")["parent_id"].toString(), "new-group");
+        QCOMPARE(d.node("new-group")["ui_properties"].toObject()["position"].toObject(), (QJsonObject{{"x",100},{"y",180}}));
+        QCOMPARE(d.node("inner")["ui_properties"].toObject()["position"].toObject(), (QJsonObject{{"x",20},{"y",50}}));
+        QCOMPARE(d.graph()["edges"], before["graph"].toObject()["edges"]);
+        QCOMPARE(d.graph()["links"], before["graph"].toObject()["links"]);
+        const auto grouped = d.snapshot(); d.undo(); QCOMPARE(d.snapshot(), before); d.redo(); QCOMPARE(d.snapshot(), grouped);
+        QVERIFY(d.applyCommand({{"op","renameNode"},{"id","new-group"},{"title","Renamed"}}));
+        QCOMPARE(d.node("new-group")["data"].toObject()["headline"].toString(), "Renamed");
+        QVERIFY(d.applyCommand({{"op","renameNode"},{"id","a"},{"title","A"}}));
+        QCOMPARE(d.node("a")["ui_properties"].toObject()["title"].toString(), "A");
+        QVERIFY(d.applyCommand({{"op","setComment"},{"id","comment"},{"value","**Markdown**"}}));
+        QCOMPARE(d.node("comment")["data"].toObject()["future"].toInt(), 42);
+        QCOMPARE(d.node("comment")["data"].toObject()["comment_color"].toString(), "red");
+        d.undo(); QVERIFY(d.node("comment")["data"].toObject()["comment"].isObject());
+        const QJsonObject lexical{{"root",QJsonObject{{"type","root"},{"children",QJsonArray{}},{"future",19}}}};
+        QVERIFY(d.applyCommand({{"op","setComment"},{"id","comment"},{"value",lexical}}));
+        QCOMPARE(d.node("comment")["data"].toObject()["comment"].toObject(), lexical);
+        const auto valid = d.snapshot(); const auto count = d.undoStack()->count();
+        QVERIFY(!d.applyCommand({{"op","setComment"},{"id","a"},{"value","bad"}}));
+        QVERIFY(!d.applyCommand({{"op","setComment"},{"id","comment"},{"value",QJsonObject{{"invalid",true}}}}));
+        QVERIFY(!d.applyCommand({{"op","ungroupNodes"},{"ids",QJsonArray{"a"}}}));
+        QVERIFY(!d.applyCommand({{"op","groupNodes"},{"ids",QJsonArray{"a"}},{"id","a"}}));
+        QVERIFY(!d.applyCommand({{"op","setNodeField"},{"id","new-group"},{"field","parent_id"},{"value","a"}}));
+        QCOMPARE(d.snapshot(), valid); QCOMPARE(d.undoStack()->count(), count);
+    }
+    void ungroupDetachAndAbsoluteMove() {
+        WorkflowDocument d;
+        QVERIFY(d.loadJson(R"({"graph":{"nodes":[
+            {"id":"outer","type":"nodetool.workflows.base_node.Group","ui_properties":{"position":{"x":100,"y":200}}},
+            {"id":"inner","type":"nodetool.workflows.base_node.Group","parent_id":"outer","ui_properties":{"position":{"x":20,"y":30}}},
+            {"id":"a","type":"Node","parent_id":"inner","ui_properties":{"position":{"x":5,"y":6,"future":9}}},
+            {"id":"b","type":"Node","parent_id":"outer","ui_properties":{"position":{"x":50,"y":60}}}
+        ],"edges":[{"id":"e","source":"a","sourceHandle":"out","target":"b","targetHandle":"in","future":11}],"links":[{"id":"frame-link","source":"outer","target":"b"}]}})"));
+        const auto before = d.snapshot();
+        QVERIFY(d.applyCommand({{"op","moveNodes"},{"space","absolute"},{"positions",QJsonObject{{"outer",QJsonObject{{"x",200},{"y",300}}},{"a",QJsonObject{{"x",250},{"y",360}}}}}}));
+        QCOMPARE(d.node("a")["ui_properties"].toObject()["position"].toObject(), (QJsonObject{{"x",30},{"y",30},{"future",9}}));
+        d.undo(); QCOMPARE(d.snapshot(), before);
+        QVERIFY(d.applyCommand({{"op","ungroupNodes"},{"ids",QJsonArray{"inner"}}}));
+        QCOMPARE(d.node("a")["parent_id"].toString(), "outer");
+        QCOMPARE(d.node("a")["ui_properties"].toObject()["position"].toObject(), (QJsonObject{{"x",25},{"y",36},{"future",9}}));
+        QCOMPARE(d.edges().size(), 1); d.undo(); QCOMPARE(d.snapshot(), before);
+        QVERIFY(d.applyCommand({{"op","ungroupNodes"},{"ids",QJsonArray{"outer","inner"}}}));
+        QVERIFY(!d.node("a").contains("parent_id"));
+        QCOMPARE(d.node("a")["ui_properties"].toObject()["position"].toObject(), (QJsonObject{{"x",125},{"y",236},{"future",9}}));
+        QCOMPARE(d.edges().size(), 1); QVERIFY(d.graph()["links"].toArray().isEmpty());
+        d.undo(); QCOMPARE(d.snapshot(), before);
+        QVERIFY(d.applyCommand({{"op","detachNodes"},{"ids",QJsonArray{"a"}}}));
+        QVERIFY(!d.node("a").contains("parent_id")); QVERIFY(!d.node("inner").isEmpty());
+        QCOMPARE(d.node("a")["ui_properties"].toObject()["position"].toObject(), (QJsonObject{{"x",125},{"y",236},{"future",9}}));
+        d.undo(); QCOMPARE(d.snapshot(), before);
+        const auto copied = d.copy({"a"});
+        QCOMPARE(copied["nodes"].toArray()[0].toObject()["ui_properties"].toObject()["position"].toObject()["x"].toDouble(),125.0);
+        const auto pasted = d.applyCommand({{"op","paste"},{"fragment",copied},{"offset",QJsonObject{{"x",10},{"y",20}}}});
+        QVERIFY(pasted); const auto pastedId = pasted.idMap["a"].toString();
+        QCOMPARE(d.node(pastedId)["ui_properties"].toObject()["position"].toObject()["x"].toDouble(),135.0);
+        d.undo(); d.redo(); QVERIFY(!d.node(pastedId).isEmpty());
+    }
+    void groupCommandsRejectWithoutDataLoss() {
+        WorkflowDocument d;
+        QVERIFY(d.loadJson(R"({"graph":{"nodes":[{"id":"a","type":"Node","ui_properties":{"position":"future-geometry"}},{"id":"b","type":"Node"}],"edges":[]}})"));
+        const auto before = d.snapshot();
+        QVERIFY(!d.applyCommand({{"op","groupNodes"},{"ids",QJsonArray{"a"}}}));
+        QVERIFY(!d.applyCommand({{"op","moveNodes"},{"positions",QJsonObject{{"a",QJsonObject{{"x",1},{"y",2}}}}}}));
+        QVERIFY(!d.applyCommand({{"op","batch"},{"commands",QJsonArray{
+            QJsonObject{{"op","groupNodes"},{"ids",QJsonArray{"b"}},{"id","frame"}},
+            QJsonObject{{"op","ungroupNodes"},{"ids",QJsonArray{"a"}}}
+        }}}));
+        QCOMPARE(d.snapshot(),before); QCOMPARE(d.undoStack()->count(),0);
+    }
+    void groupMeasuredBoundsAndDefaults() {
+        WorkflowDocument d;
+        QVERIFY(d.loadJson(R"({"graph":{"nodes":[{"id":"a","type":"Node","ui_properties":{"position":{"x":10,"y":20}}},{"id":"b","type":"Node","ui_properties":{"position":{"x":500,"y":200},"width":120,"height":90,"future":42}}],"edges":[]}})"));
+        const auto before = d.snapshot();
+        QVERIFY(d.applyCommand({{"op","groupNodes"},{"ids",QJsonArray{"a"}},{"id","default-frame"}}));
+        const auto defaultUi = d.node("default-frame")["ui_properties"].toObject();
+        QCOMPARE(defaultUi["width"].toDouble(),360.0); QCOMPARE(defaultUi["height"].toDouble(),200.0);
+        QVERIFY(!d.node("a")["ui_properties"].toObject().contains("width"));
+        d.undo(); QCOMPARE(d.snapshot(),before);
+        QVERIFY(d.applyCommand({{"op","groupNodes"},{"ids",QJsonArray{"a","b"}},{"id","measured-frame"},
+            {"sizes",QJsonObject{{"a",QJsonObject{{"width",480},{"height",600}}},{"b",QJsonObject{{"width",320},{"height",240}}}}}}));
+        const auto measuredUi = d.node("measured-frame")["ui_properties"].toObject();
+        QCOMPARE(measuredUi["width"].toDouble(),890.0); QCOMPARE(measuredUi["height"].toDouble(),690.0);
+        QCOMPARE(d.node("b")["ui_properties"].toObject()["width"].toInt(),120);
+        QCOMPARE(d.node("b")["ui_properties"].toObject()["height"].toInt(),90);
+        QCOMPARE(d.node("b")["ui_properties"].toObject()["future"].toInt(),42);
+        d.undo(); QCOMPARE(d.snapshot(),before);
+        for (const auto& invalid : QJsonArray{
+            QJsonObject{{"a",QJsonObject{{"width",0},{"height",100}}}},
+            QJsonObject{{"a",QJsonObject{{"width",100},{"height",-1}}}},
+            QJsonObject{{"a",QJsonObject{{"width","100"},{"height",100}}}},
+            QJsonObject{{"missing",QJsonObject{{"width",100},{"height",100}}}},
+            QJsonObject{{"a",QJsonObject{{"width",100}}}}, QJsonArray{}
+        }) {
+            QVERIFY(!d.applyCommand({{"op","groupNodes"},{"ids",QJsonArray{"a"}},{"sizes",invalid}}));
+            QCOMPARE(d.snapshot(),before);
+        }
+        QVERIFY(d.applyCommand({{"op","groupNodes"},{"ids",QJsonArray{"b"}},{"id","authored-frame"}}));
+        QCOMPARE(d.node("authored-frame")["ui_properties"].toObject()["width"].toDouble(),200.0);
+        QCOMPARE(d.node("authored-frame")["ui_properties"].toObject()["height"].toDouble(),200.0);
+    }
+    void largeBatchMovement() {
+        constexpr int size = 12000;
+        QJsonArray nodes; QJsonObject positions;
+        for (int i = 0; i < size; ++i) {
+            const auto id = QString::number(i);
+            QJsonObject node{{"id",id},{"type","Node"},{"ui_properties",QJsonObject{{"position",QJsonObject{{"x",1},{"y",2},{"future",7}}}}}};
+            if (i > 0) { node.insert("parent_id",QString::number(i-1)); }
+            nodes.append(node); positions.insert(id,QJsonObject{{"x",i*3.0},{"y",i*4.0}});
+        }
+        WorkflowDocument d; QVERIFY(d.load({{"graph",QJsonObject{{"nodes",nodes},{"edges",QJsonArray{}}}}}));
+        const auto before = d.snapshot();
+        QVERIFY(d.applyCommand({{"op","moveNodes"},{"space","absolute"},{"positions",positions}}));
+        QCOMPARE(d.undoStack()->count(),1);
+        const auto moved = d.nodes();
+        for (int i = 0; i < size; ++i) {
+            const auto position = moved[i].toObject()["ui_properties"].toObject()["position"].toObject();
+            QCOMPARE(position["x"].toDouble(),i == 0 ? 0.0 : 3.0);
+            QCOMPARE(position["y"].toDouble(),i == 0 ? 0.0 : 4.0);
+            QCOMPARE(position["future"].toInt(),7);
+        }
+        const auto after = d.snapshot(); d.undo(); QCOMPARE(d.snapshot(),before); d.redo(); QCOMPARE(d.snapshot(),after);
+    }
+    void deepGroupHierarchy() {
+        QJsonArray nodes; QJsonArray ids;
+        constexpr int size = 12000;
+        for (int i = 0; i < size; ++i) {
+            QJsonObject node{{"id",QString::number(i)},{"type","nodetool.workflows.base_node.Group"},{"ui_properties",QJsonObject{{"position",QJsonObject{{"x",1},{"y",2}}}}}};
+            if (i > 0) { node.insert("parent_id",QString::number(i-1)); }
+            nodes.append(node); ids.append(QString::number(i));
+        }
+        WorkflowDocument d; QVERIFY(d.load({{"graph",QJsonObject{{"nodes",nodes},{"edges",QJsonArray{}}}}}));
+        QVERIFY(!d.isReadOnly());
+        const auto before = d.snapshot();
+        const auto copied = d.copy({QString::number(size-1)});
+        QCOMPARE(copied["nodes"].toArray()[0].toObject()["ui_properties"].toObject()["position"].toObject()["x"].toInt(),size);
+        QVERIFY(d.applyCommand({{"op","groupNodes"},{"ids",ids},{"id","wrapper"}}));
+        QCOMPARE(d.node("0")["parent_id"].toString(),"wrapper");
+        QCOMPARE(d.node(QString::number(size-1))["parent_id"].toString(),QString::number(size-2));
+        d.undo(); QCOMPARE(d.snapshot(),before);
+        QVERIFY(d.applyCommand({{"op","ungroupNodes"},{"ids",ids}})); QVERIFY(d.nodes().isEmpty());
+        d.undo(); QCOMPARE(d.snapshot(),before);
+    }
+    void reconnectPreservesIdentityMetadataAndReplacementOrder() {
+        WorkflowDocument document;
+        const auto original=QJsonDocument::fromJson(R"({"future":42,"graph":{"nodes":[{"id":"a","type":"Node"},{"id":"b","type":"Node"},{"id":"c","type":"Node"},{"id":"target","type":"Node"}],"edges":[
+          {"id":"occupant","source":"b","sourceHandle":"out","target":"target","targetHandle":"other","future":{"keep":"occupant"}},
+          {"id":"0123456789abcdef0123456789abcdef","source":"a","sourceHandle":"out","target":"target","targetHandle":"input","edge_type":"data","label":"Keep label","style":{"stroke":"red"},"future":{"keep":[1,2]}},
+          {"id":"untouched","source":"c","sourceHandle":"out","target":"target","targetHandle":"third","future":99}],"links":[{"id":"lineage","source":"a","target":"target","future":true}]}})").object();
+        const QJsonObject type{{"type","int"}};
+        document.setNodeMetadata({QJsonObject{{"node_type","Node"},{"outputs",QJsonArray{QJsonObject{{"name","out"},{"type",type}}}},{"properties",QJsonArray{QJsonObject{{"name","input"},{"type",type}},QJsonObject{{"name","other"},{"type",type}},QJsonObject{{"name","third"},{"type",type}}}}}});
+        QVERIFY(document.load(original));
+        const QString id="0123456789abcdef0123456789abcdef";
+        const QJsonObject connection{{"source","c"},{"sourceHandle","out"},{"target","target"},{"targetHandle","other"}};
+        QVERIFY(document.applyCommand({{"op","reconnectEdge"},{"id",id},{"connection",connection}}));
+        QCOMPARE(document.undoStack()->count(),1);QCOMPARE(document.edges().size(),2);
+        auto expected=original["graph"].toObject()["edges"].toArray()[1].toObject();
+        for(auto it=connection.cbegin();it!=connection.cend();++it){expected[it.key()]=it.value();}
+        QCOMPARE(document.edges()[0].toObject(),expected);QCOMPARE(document.edges()[1].toObject(),original["graph"].toObject()["edges"].toArray()[2].toObject());
+        QCOMPARE(document.graph()["links"],original["graph"].toObject()["links"]);QCOMPARE(document.snapshot()["future"].toInt(),42);
+        const auto after=document.snapshot();document.undo();QCOMPARE(document.snapshot(),original);document.redo();QCOMPARE(document.snapshot(),after);
+        QVERIFY(document.applyCommand({{"op","reconnectEdge"},{"id",id},{"connection",connection}}));QCOMPARE(document.snapshot(),after);QCOMPARE(document.undoStack()->count(),1);
+        document.setNodeMetadata({});
+        QVERIFY(document.applyCommand({{"op","reconnectEdge"},{"id",id},{"connection",connection}}));QCOMPARE(document.undoStack()->count(),1);
+    }
+    void reconnectCollectRetainsContributorsAndAnyReplaces() {
+        const QJsonObject integer{{"type","int"}};
+        const QJsonObject list{{"type","list"},{"type_args",QJsonArray{integer}}};
+        const QJsonObject anyList{{"type","list"},{"type_args",QJsonArray{QJsonObject{{"type","any"}}}}};
+        const QJsonArray metadata{QJsonObject{{"node_type","Node"},{"outputs",QJsonArray{QJsonObject{{"name","out"},{"type",integer}}}},{"properties",QJsonArray{QJsonObject{{"name","input"},{"type",integer}},QJsonObject{{"name","collect"},{"type",list}},QJsonObject{{"name","any"},{"type",anyList}}}}}};
+        WorkflowDocument document;document.setNodeMetadata(metadata);
+        QVERIFY(document.loadJson(R"({"graph":{"nodes":[{"id":"a","type":"Node"},{"id":"b","type":"Node"},{"id":"t","type":"Node"}],"edges":[{"id":"moving","source":"a","sourceHandle":"out","target":"t","targetHandle":"input","future":42},{"id":"collect","source":"b","sourceHandle":"out","target":"t","targetHandle":"collect"},{"id":"any","source":"b","sourceHandle":"out","target":"t","targetHandle":"any"}]}})"));
+        const auto before=document.snapshot();
+        QVERIFY(document.applyCommand({{"op","reconnectEdge"},{"id","moving"},{"connection",QJsonObject{{"source","a"},{"sourceHandle","out"},{"target","t"},{"targetHandle","collect"}}}}));
+        QCOMPARE(document.edges().size(),3);QCOMPARE(document.edges()[0].toObject()["future"].toInt(),42);QCOMPARE(document.edges()[1].toObject()["id"].toString(),"collect");
+        const auto valid=document.snapshot();
+        QVERIFY(!document.applyCommand({{"op","reconnectEdge"},{"id","moving"},{"connection",QJsonObject{{"source","b"},{"sourceHandle","out"},{"target","t"},{"targetHandle","collect"}}}}));
+        QCOMPARE(document.snapshot(),valid);QCOMPARE(document.undoStack()->count(),1);
+        document.undo();QCOMPARE(document.snapshot(),before);
+        QVERIFY(document.applyCommand({{"op","reconnectEdge"},{"id","moving"},{"connection",QJsonObject{{"source","a"},{"sourceHandle","out"},{"target","t"},{"targetHandle","any"}}}}));
+        QCOMPARE(document.edges().size(),2);QCOMPARE(document.edges()[0].toObject()["targetHandle"].toString(),"any");QCOMPARE(document.edges()[1].toObject()["id"].toString(),"collect");
+        document.undo();QCOMPARE(document.snapshot(),before);
+    }
+    void reconnectValidationExcludesRemovedEdgesAndIsAtomic() {
+        const QJsonObject integer{{"type","int"}};
+        const QJsonArray metadata{QJsonObject{{"node_type","Node"},{"outputs",QJsonArray{QJsonObject{{"name","out"},{"type",integer}},QJsonObject{{"name","wrong"},{"type",QJsonObject{{"type","str"}}}}}},{"properties",QJsonArray{QJsonObject{{"name","input"},{"type",integer}}}}}};
+        WorkflowDocument document;document.setNodeMetadata(metadata);
+        QVERIFY(document.loadJson(R"({"graph":{"nodes":[{"id":"a","type":"Node"},{"id":"b","type":"Node"},{"id":"c","type":"Node"}],"edges":[{"id":"moving","source":"a","sourceHandle":"out","target":"b","targetHandle":"input","future":42},{"id":"tail","source":"b","sourceHandle":"out","target":"c","targetHandle":"input"}]}})"));
+        const auto before=document.snapshot();
+        // Reversing this edge is legal once the old direction has been removed.
+        QVERIFY(document.applyCommand({{"op","reconnectEdge"},{"id","moving"},{"connection",QJsonObject{{"source","b"},{"sourceHandle","out"},{"target","a"},{"targetHandle","input"}}}}));
+        document.undo();QCOMPARE(document.snapshot(),before);
+        const auto count=document.undoStack()->count();
+        for(const auto& connection:QJsonArray{
+            QJsonObject{{"source","c"},{"sourceHandle","out"},{"target","b"},{"targetHandle","input"}},
+            QJsonObject{{"source","a"},{"sourceHandle","wrong"},{"target","b"},{"targetHandle","input"}},
+            QJsonObject{{"source","missing"},{"sourceHandle","out"},{"target","b"},{"targetHandle","input"}},
+            QJsonObject{{"source","a"},{"sourceHandle","out"},{"target","a"},{"targetHandle","input"}},
+            QJsonObject{{"source","a"},{"sourceHandle","out"},{"target","b"},{"targetHandle","missing"}},
+            QJsonObject{{"source","a"},{"sourceHandle",42},{"target","b"},{"targetHandle","input"}}}){
+            QVERIFY(!document.applyCommand({{"op","reconnectEdge"},{"id","moving"},{"connection",connection}}));QCOMPARE(document.snapshot(),before);QCOMPARE(document.undoStack()->count(),count);
+        }
+        QVERIFY(!document.applyCommand({{"op","reconnectEdge"},{"id","missing"},{"connection",QJsonObject{}}}));
+        QVERIFY(!document.applyCommand({{"op","batch"},{"commands",QJsonArray{QJsonObject{{"op","reconnectEdge"},{"id","moving"},{"connection",QJsonObject{{"source","b"},{"sourceHandle","out"},{"target","a"},{"targetHandle","input"}}}},QJsonObject{{"op","removeEdge"},{"id","missing"}}}}}));QCOMPARE(document.snapshot(),before);
+    }
+    void reconnectAgentControlReplacesTargetOccupant() {
+        WorkflowDocument document;
+        QVERIFY(document.loadJson(R"({"graph":{"nodes":[{"id":"agent","type":"nodetool.agents.Agent"},{"id":"other","type":"nodetool.agents.Agent"},{"id":"one","type":"Node"},{"id":"two","type":"Node"}],"edges":[{"id":"moving","source":"agent","sourceHandle":"__control__","target":"one","targetHandle":"__control__","edge_type":"control","future":42},{"id":"occupant","source":"other","sourceHandle":"__control__","target":"two","targetHandle":"__control__","edge_type":"control","future":43}]}})"));
+        const auto before=document.snapshot();
+        QVERIFY(document.applyCommand({{"op","reconnectEdge"},{"id","moving"},{"connection",QJsonObject{{"source","agent"},{"sourceHandle","__control__"},{"target","two"},{"targetHandle","__control__"}}}}));
+        QCOMPARE(document.edges().size(),1);QCOMPARE(document.edges()[0].toObject()["id"].toString(),"moving");QCOMPARE(document.edges()[0].toObject()["future"].toInt(),42);QCOMPARE(document.edges()[0].toObject()["edge_type"].toString(),"control");
+        document.undo();QCOMPARE(document.snapshot(),before);
+        QVERIFY(!document.applyCommand({{"op","reconnectEdge"},{"id","moving"},{"connection",QJsonObject{{"source","one"},{"sourceHandle","__control__"},{"target","two"},{"targetHandle","__control__"}}}}));QCOMPARE(document.snapshot(),before);
+    }
+    void rerouteInsertionPreservesMetadataValuesAndUndo() {
+        const QJsonObject any{{"type","any"}};
+        const QJsonArray catalog{
+            QJsonObject{{"node_type","Node"},{"properties",QJsonArray{QJsonObject{{"name","in"},{"type",any}}}},{"outputs",QJsonArray{QJsonObject{{"name","out"},{"type",any}}}}},
+            QJsonObject{{"node_type","nodetool.control.Reroute"},{"properties",QJsonArray{QJsonObject{{"name","input_value"},{"type",any},{"default",QJsonArray{}}}}},{"outputs",QJsonArray{QJsonObject{{"name","output"},{"type",any}}}}}};
+        WorkflowDocument document;document.setNodeMetadata(catalog);
+        QVERIFY(document.loadJson(R"({"futureWorkflow":42,"graph":{"futureGraph":true,"nodes":[{"id":"a","type":"Node","data":{"false":false,"zero":0,"null":null,"list":[false,0,null,{"future":7}]}},{"id":"b","type":"Node"},{"id":"c","type":"Node"},{"id":"d","type":"Node"}],"edges":[
+            {"id":"before","source":"c","sourceHandle":"out","target":"d","targetHandle":"in","future":1},
+            {"id":"0123456789abcdef0123456789abcdef","source":"a","sourceHandle":"out","target":"b","targetHandle":"in","edge_type":"data","label":"keep","style":{"color":"red"},"future":{"flags":[false,0,null]}},
+            {"id":"after","source":"c","sourceHandle":"out","target":"b","targetHandle":"in","future":2}],"links":[{"id":"lineage","source":"a","target":"b","future":3}]}})"));
+        const auto before=document.snapshot();const QString oldId="0123456789abcdef0123456789abcdef";
+        const auto result=document.applyCommand({{"op","insertReroute"},{"id",oldId},{"position",QJsonObject{{"x",125.5},{"y",-42}}}});
+        QVERIFY2(result.ok,qPrintable(result.error));QCOMPARE(result.idMap.size(),2);
+        const auto reroute=result.idMap["reroute"].toString(),upstream=result.idMap["upstreamEdge"].toString();QCOMPARE(reroute.size(),32);QCOMPARE(upstream.size(),32);
+        QCOMPARE(document.nodes().size(),5);QCOMPARE(document.node(reroute)["type"].toString(),"nodetool.control.Reroute");QVERIFY(!document.node(reroute).contains("parent_id"));
+        QCOMPARE(document.node(reroute)["data"].toObject()["input_value"].toArray(),QJsonArray{});
+        QCOMPARE(document.node(reroute)["ui_properties"].toObject()["position"].toObject(),(QJsonObject{{"x",125.5},{"y",-42}}));
+        QCOMPARE(document.edges().size(),4);QCOMPARE(document.edges()[0],before["graph"].toObject()["edges"].toArray()[0]);QCOMPARE(document.edges()[3],before["graph"].toObject()["edges"].toArray()[2]);
+        QCOMPARE(document.edges()[1].toObject(),(QJsonObject{{"id",upstream},{"source","a"},{"sourceHandle","out"},{"target",reroute},{"targetHandle","input_value"},{"edge_type","data"}}));
+        auto downstream=before["graph"].toObject()["edges"].toArray()[1].toObject();downstream["source"]=reroute;downstream["sourceHandle"]="output";QCOMPARE(document.edges()[2].toObject(),downstream);
+        QCOMPARE(document.graph()["links"],before["graph"].toObject()["links"]);QCOMPARE(document.node("a"),before["graph"].toObject()["nodes"].toArray()[0].toObject());QCOMPARE(document.undoStack()->count(),1);
+        const auto after=document.snapshot();document.undo();QCOMPARE(document.snapshot(),before);document.redo();QCOMPARE(document.snapshot(),after);
+        WorkflowDocument restored;restored.setNodeMetadata(catalog);QVERIFY(restored.loadJson(QJsonDocument(after).toJson()));QCOMPARE(restored.snapshot(),after);
+        const auto copied=restored.duplicate({reroute});QVERIFY(copied);QCOMPARE(copied.idMap.size(),1);restored.undo();QCOMPARE(restored.snapshot(),after);
+        QVERIFY(restored.applyCommand({{"op","reconnectEdge"},{"id",oldId},{"connection",QJsonObject{{"source",reroute},{"sourceHandle","output"},{"target","d"},{"targetHandle","in"}}}}));restored.undo();QCOMPARE(restored.snapshot(),after);
+        QVERIFY(restored.applyCommand({{"op","removeNodes"},{"ids",QJsonArray{reroute}}}));QCOMPARE(restored.edges().size(),2);QVERIFY(restored.node(reroute).isEmpty());restored.undo();QCOMPARE(restored.snapshot(),after);
+    }
+    void rerouteInsertionRejectsInvalidRequestsAtomically() {
+        const QJsonObject any{{"type","any"}};
+        const QJsonObject normal{{"node_type","Node"},{"properties",QJsonArray{QJsonObject{{"name","in"},{"type",any}}}},{"outputs",QJsonArray{QJsonObject{{"name","out"},{"type",any}}}}};
+        const QJsonObject reroute{{"node_type","nodetool.control.Reroute"},{"properties",QJsonArray{QJsonObject{{"name","input_value"},{"type",any}}}},{"outputs",QJsonArray{QJsonObject{{"name","output"},{"type",any}}}}};
+        WorkflowDocument document;document.setNodeMetadata({normal,reroute});
+        QVERIFY(document.loadJson(R"({"graph":{"nodes":[{"id":"a","type":"Node"},{"id":"b","type":"Node"}],"edges":[{"id":"edge","source":"a","sourceHandle":"out","target":"b","targetHandle":"in","future":42}],"links":[{"id":"link","source":"a","target":"b"}]}})"));
+        const auto before=document.snapshot();const QJsonObject position{{"x",100},{"y",100}};
+        for(const auto& invalid:QJsonArray{QJsonObject{},QJsonObject{{"x",0}},QJsonObject{{"x","100"},{"y",0}},QJsonObject{{"x",QJsonValue::Null},{"y",0}},QJsonObject{{"x",std::numeric_limits<double>::infinity()},{"y",0}},QJsonObject{{"x",0},{"y",std::numeric_limits<double>::quiet_NaN()}},QJsonArray{}}){
+            QVERIFY(!document.applyCommand({{"op","insertReroute"},{"id","edge"},{"position",invalid}}));QCOMPARE(document.snapshot(),before);QCOMPARE(document.undoStack()->count(),0);
+        }
+        QVERIFY(!document.applyCommand({{"op","insertReroute"},{"id","link"},{"position",position}}));QVERIFY(!document.applyCommand({{"op","insertReroute"},{"id","missing"},{"position",position}}));
+        for(const auto& metadata:QList<QJsonArray>{QJsonArray{},QJsonArray{normal},QJsonArray{reroute}}){document.setNodeMetadata(metadata);QVERIFY(!document.applyCommand({{"op","insertReroute"},{"id","edge"},{"position",position}}));QCOMPARE(document.snapshot(),before);}
+        for (const auto& declaration : QJsonArray{
+            QJsonObject{{"node_type","nodetool.control.Reroute"},{"properties",QJsonArray{}},{"outputs",reroute["outputs"]}},
+            QJsonObject{{"node_type","nodetool.control.Reroute"},{"properties",reroute["properties"]},{"outputs",QJsonArray{}}},
+            QJsonObject{{"node_type","nodetool.control.Reroute"},{"properties",QJsonArray{QJsonObject{{"name","input_value"},{"type",QJsonObject{{"type","str"}}}}}},{"outputs",reroute["outputs"]}}}) {
+            document.setNodeMetadata({normal,declaration});
+            QVERIFY(!document.applyCommand({{"op","insertReroute"},{"id","edge"},{"position",position}}));QCOMPARE(document.snapshot(),before);
+        }
+        document.setNodeMetadata({normal,reroute});
+        auto invalid=before;auto graph=invalid["graph"].toObject();auto edges=graph["edges"].toArray();auto edge=edges[0].toObject();edge["sourceHandle"]="missing";edges[0]=edge;graph["edges"]=edges;invalid["graph"]=graph;QVERIFY(document.load(invalid));
+        QVERIFY(!document.applyCommand({{"op","insertReroute"},{"id","edge"},{"position",position}}));QCOMPARE(document.snapshot(),invalid);
+        edge["sourceHandle"]="__control__";edge["targetHandle"]="__control__";edge["edge_type"]="control";edges[0]=edge;graph["edges"]=edges;invalid["graph"]=graph;QVERIFY(document.load(invalid));
+        QVERIFY(!document.applyCommand({{"op","insertReroute"},{"id","edge"},{"position",position}}));QCOMPARE(document.snapshot(),invalid);QCOMPARE(document.undoStack()->count(),0);
+        QVERIFY(document.load(before));
+        QVERIFY(!document.applyCommand({{"op","batch"},{"commands",QJsonArray{QJsonObject{{"op","insertReroute"},{"id","edge"},{"position",position}},QJsonObject{{"op","removeNodes"},{"ids",QJsonArray{"missing"}}}}}}));QCOMPARE(document.snapshot(),before);QCOMPARE(document.undoStack()->count(),0);
+    }
+    void rerouteDefaultsKeepExactJsonTypes() {
+        const QJsonObject any{{"type","any"}};
+        for (const auto& value : QJsonArray{false,0,QJsonValue::Null,QJsonArray{false,0,QJsonValue::Null}}) {
+            WorkflowDocument document;
+            document.setNodeMetadata({
+                QJsonObject{{"node_type","Node"},{"properties",QJsonArray{QJsonObject{{"name","in"},{"type",any}}}},{"outputs",QJsonArray{QJsonObject{{"name","out"},{"type",any}}}}},
+                QJsonObject{{"node_type","nodetool.control.Reroute"},{"properties",QJsonArray{QJsonObject{{"name","input_value"},{"type",any},{"default",value}}}},{"outputs",QJsonArray{QJsonObject{{"name","output"},{"type",any}}}}}});
+            QVERIFY(document.loadJson(R"({"graph":{"nodes":[{"id":"a","type":"Node"},{"id":"b","type":"Node"}],"edges":[{"id":"edge","source":"a","sourceHandle":"out","target":"b","targetHandle":"in"}]}})"));
+            const auto inserted=document.applyCommand({{"op","insertReroute"},{"id","edge"},{"position",QJsonObject{{"x",0},{"y",0}}}});QVERIFY(inserted);
+            const auto id=inserted.idMap["reroute"].toString();QCOMPARE(document.node(id)["data"].toObject()["input_value"],value);
+            const auto snapshot=document.snapshot();WorkflowDocument restored;QVERIFY(restored.loadJson(QJsonDocument(snapshot).toJson()));QCOMPARE(restored.snapshot(),snapshot);
+        }
+    }
     void dynamicPortsAtomic() {
         WorkflowDocument d;
         QVERIFY(d.load(fixture()));
@@ -279,6 +575,31 @@ private slots:
         d.undo(); QCOMPARE(d.snapshot(), source);
         QVERIFY(d.applyCommand({{"op", "removeNodes"}, {"ids", QJsonArray{"1"}}}));
         d.undo(); QCOMPARE(d.snapshot(), source);
+    }
+    void groupDisableAffectsRunnableDescendantsAtomically() {
+        WorkflowDocument d;
+        QVERIFY(d.loadJson(R"({"graph":{"nodes":[
+            {"id":"group","type":"nodetool.workflows.base_node.Group","data":{"headline":"Group","future":7}},
+            {"id":"nested","type":"nodetool.workflows.Group","parent_id":"group","future":8},
+            {"id":"comment","type":"nodetool.workflows.base_node.Comment","parent_id":"nested","data":{"comment":"Keep"}},
+            {"id":"a","type":"Node","parent_id":"nested","ui_properties":{"position":{"x":3,"y":4},"future":9}},
+            {"id":"b","type":"Node","parent_id":"group","ui_properties":{"bypassed":true}},
+            {"id":"unrelated","type":"Node"}
+        ],"edges":[]}})"));
+        const auto before=d.snapshot();
+        QVERIFY(d.applyCommand({{"op","setDisabled"},{"ids",QJsonArray{"group","nested","a","comment"}},{"disabled",true}}));
+        QCOMPARE(d.undoStack()->count(),1);
+        QVERIFY(d.node("a")["ui_properties"].toObject()["bypassed"].toBool());
+        QVERIFY(d.node("b")["ui_properties"].toObject()["bypassed"].toBool());
+        QCOMPARE(d.node("a")["ui_properties"].toObject()["future"].toInt(),9);
+        const auto originalNodes=before["graph"].toObject()["nodes"].toArray();
+        for(int i : {0,1,2,5}){QCOMPARE(d.node(originalNodes[i].toObject()["id"].toString()),originalNodes[i].toObject());}
+        const auto disabled=d.snapshot(); d.undo(); QCOMPARE(d.snapshot(),before); d.redo(); QCOMPARE(d.snapshot(),disabled);
+        QVERIFY(d.applyCommand({{"op","setDisabled"},{"ids",QJsonArray{"group"}},{"disabled",false}}));
+        QVERIFY(!d.node("a")["ui_properties"].toObject()["bypassed"].toBool()); QVERIFY(!d.node("b")["ui_properties"].toObject()["bypassed"].toBool());
+        d.undo(); QCOMPARE(d.snapshot(),disabled);
+        QVERIFY(d.applyCommand({{"op","setDisabled"},{"ids",QJsonArray{"comment"}},{"disabled",true}})); QCOMPARE(d.snapshot(),disabled);
+        QVERIFY(!d.applyCommand({{"op","setDisabled"},{"ids",QJsonArray{"group","missing"}},{"disabled",true}})); QCOMPARE(d.snapshot(),disabled);
     }
     void groupsAndDisabled() {
         WorkflowDocument d; QVERIFY(d.load(fixture()));

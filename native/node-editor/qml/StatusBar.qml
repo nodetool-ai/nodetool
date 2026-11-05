@@ -19,6 +19,7 @@ Rectangle {
         Ui.Text { text: editor ? editor.connectionState.toLowerCase() : ""; role: Ui.Typography.SansLabel; tone: Ui.Text.Secondary; font.weight: Font.Normal; lineHeight: 1 }
         NodeButton { objectName: "status-reconnect"; text: "Connect"; variant: NodeButton.Flat; implicitHeight: Ui.Metrics.small; onClicked: editor.action("Connect") }
         NodeButton { objectName: "status-output"; text: "Output"; iconName: ""; variant: NodeButton.Flat; implicitHeight: Ui.Metrics.small; onClicked: editor.action("Output") }
+        NodeButton { objectName: "status-server-sync"; visible: editor && editor.serverSyncAvailable; text: editor ? editor.serverSaveState : ""; variant: editor && editor.serverSyncNeedsAttention ? NodeButton.Outlined : NodeButton.Flat; implicitHeight: Ui.Metrics.small; onClicked: editor.action("Server sync") }
         Ui.Text {
             objectName: "status-message"
             Layout.fillWidth: true

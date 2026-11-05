@@ -86,12 +86,25 @@ Rectangle {
                 width: scroll.width
                 spacing: Ui.Metrics.md
                 Repeater {
-                    model: editor ? editor.outputMedia : []
-                    MediaPreview {
-                        required property var modelData
+                    model: runOutput ? runOutput.collections : null
+                    ColumnLayout {
+                        id: collection
+                        required property string collectionKey
+                        required property var collectionItems
+                        required property string collectionTitle
+                        required property string collectionNotice
                         Layout.fillWidth: true
-                        mediaKind: modelData.kind
-                        locator: modelData.locator
+                        spacing: Ui.Metrics.xs
+                        Ui.Text { Layout.fillWidth: true; text: collectionTitle; role: Ui.Typography.SansCaption; wrapMode: Text.WrapAnywhere }
+                        MediaGallery {
+                            objectName: "output-gallery"
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: preferredHeight
+                            active: editor && editor.outputVisible && collection.y + collection.height >= scroll.contentY && collection.y <= scroll.contentY + scroll.height
+                            items: collectionItems
+                            scopeKey: "panel:" + collectionKey
+                            notice: collectionNotice
+                        }
                     }
                 }
                 Repeater {
@@ -106,17 +119,9 @@ Rectangle {
                             role: Ui.Typography.SansCaption
                             wrapMode: Text.WrapAnywhere
                         }
-                        Ui.TextArea {
-                            objectName: "run-output-text"
-                            visible: !modelData.media || modelData.media.length === 0
+                        RichOutput {
                             Layout.fillWidth: true
-                            variant: Ui.TextArea.Plain
-                            role: Ui.Typography.MonoCode
-                            accessibleName: "Run output"
-                            readOnly: true
-                            textFormat: TextEdit.PlainText
-                            value: modelData.text || ""
-                            wrapMode: TextEdit.WrapAnywhere
+                            modelData: parent.modelData
                         }
                         Ui.Separator { Layout.fillWidth: true }
                     }

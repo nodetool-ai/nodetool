@@ -10,7 +10,7 @@ Item {
     EditorRoles { id: roles }
     function syncTheme() {
         if (!editor) return
-        editor.presentation({canvas: roles.canvas, grid: roles.grid, node: roles.node, panel: roles.panel, overlay: roles.overlay, divider: roles.divider, field: roles.field, checker: roles.checker, shadow: roles.shadow, primary: Ui.Theme.accentPrimary, text: Ui.Theme.textPrimary, secondary: Ui.Theme.textSecondary, border: roles.divider, focus: Ui.Theme.borderFocus, error: Ui.Theme.statusError, warning: Ui.Theme.statusWarning, sans: Ui.Typography.sansFamily, reducedMotion: Ui.Theme.reducedMotion})
+        editor.presentation({canvas: roles.canvas, grid: roles.grid, node: roles.node, reroutePaper: roles.reroutePaper, rerouteBorder: roles.rerouteBorder, panel: roles.panel, overlay: roles.overlay, divider: roles.divider, field: roles.field, checker: roles.checker, shadow: roles.shadow, primary: Ui.Theme.accentPrimary, text: Ui.Theme.textPrimary, secondary: Ui.Theme.textSecondary, border: roles.divider, focus: Ui.Theme.borderFocus, error: Ui.Theme.statusError, warning: Ui.Theme.statusWarning, sans: Ui.Typography.sansFamily, captionSize: Ui.Typography.pixelSize(Ui.Typography.SansCaption), reducedMotion: Ui.Theme.reducedMotion})
     }
     Component.onCompleted: syncTheme()
     Connections { target: Ui.Theme; function onEffectiveSchemeChanged() { root.syncTheme() } function onReducedMotionChanged() { root.syncTheme() } }
@@ -25,6 +25,7 @@ Item {
         implicitWidth: Ui.Metrics.comfortable
         implicitHeight: Ui.Metrics.comfortable
         enabled: editor && (!editor.readOnly || !["Run", "Add node"].includes(text))
+        objectName: "toolbar-" + text.toLowerCase().split(" ").join("-")
         onClicked: editor.action(text)
         HoverHandler { onHoveredChanged: if (hovered && editor) editor.showToolTip(action.text); else if (editor) editor.showToolTip("") }
         TypeIcon { anchors.centerIn: parent; visible: action.glyph !== ""; name: action.glyph; size: Ui.Metrics.iconMd; ink: action.enabled ? Ui.Theme.textSecondary : Ui.Theme.textDisabled }

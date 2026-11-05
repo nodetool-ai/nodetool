@@ -22,10 +22,13 @@ void WorkflowBrowser::configure(const QUrl &origin, const QString &token, const 
   m_origin = QUrl{};
   m_token.clear();
   m_user.clear();
+  m_project.clear();
+  m_search.clear();
   m_rows = {};
   m_projects = {};
   m_next.clear();
   m_error.clear();
+  if (origin.isEmpty()) { emit changed(); return; }
   if ((origin.scheme() != "http" && origin.scheme() != "https") || origin.host().isEmpty() ||
       !origin.userInfo().isEmpty() || origin.hasQuery() || origin.hasFragment() ||
       (!origin.path().isEmpty() && origin.path() != "/")) {

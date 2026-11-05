@@ -1,0 +1,15 @@
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    cmake_minimum_required(VERSION 3.24)
+    project(NodeEditorLineageTests LANGUAGES CXX)
+    enable_testing()
+    set(CMAKE_AUTOMOC ON)
+    find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Test)
+endif()
+add_executable(node_editor_lineage_tests LineageLayerTest.cpp
+    ../../src/graph/LineageLayer.cpp ../../src/graph/LineageLayer.h
+    ../../src/document/WorkflowDocument.cpp ../../src/document/WorkflowDocument.h)
+target_compile_features(node_editor_lineage_tests PRIVATE cxx_std_20)
+target_include_directories(node_editor_lineage_tests PRIVATE ../../src)
+target_link_libraries(node_editor_lineage_tests PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Test)
+add_test(NAME node_editor_lineage COMMAND node_editor_lineage_tests)
+set_tests_properties(node_editor_lineage PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")

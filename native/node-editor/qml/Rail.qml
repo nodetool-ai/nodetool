@@ -27,6 +27,7 @@ Rectangle {
         spacing: Ui.Metrics.md
         Image { Layout.alignment: Qt.AlignHCenter; Layout.preferredWidth: Ui.Metrics.iconLg; Layout.preferredHeight: Ui.Metrics.iconLg; source: "qrc:/editor/resources/nodetool_48px.png"; sourceSize: Qt.size(48, 48); fillMode: Image.PreserveAspectFit; Accessible.name: "NodeTool" }
         Item { Layout.preferredHeight: Ui.Metrics.xs }
+        RailButton { objectName: "rail-workflows"; text: "Workflows"; glyph: "folderOpen"; active: editor && editor.browserVisible; onClicked: editor.action("Workflows") }
         RailButton { objectName: "rail-nodes"; text: "Nodes"; glyph: "hub"; active: editor && editor.catalogVisible; onClicked: editor.action("Toggle nodes") }
         RailButton { objectName: "rail-inspector"; text: "Inspector"; primitiveGlyph: "tune"; active: editor && editor.inspectorVisible; onClicked: editor.action("Toggle inspector") }
         RailButton { objectName: "rail-output"; text: "Output"; glyph: "article"; active: editor && editor.outputVisible; onClicked: editor.action("Output") }

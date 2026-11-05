@@ -4,6 +4,7 @@ import QtQuick
 
 // SVG path data in a 24 by 24 box.
 QtObject {
+    readonly property string alignHorizontalLeft: "M4 22H2V2h2zM22 7H6v3h16zm-6 7H6v3h10z"
     readonly property string crossFadeIn: "M11 9h2v2h-2zm-2 2h2v2H9zm4 0h2v2h-2zm2-2h2v2h-2zM7 9h2v2H7zm12-6H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2M9 18H7v-2h2zm4 0h-2v-2h2zm4 0h-2v-2h2zm2-7h-2v2h2v2h-2v-2h-2v2h-2v-2h-2v2H9v-2H7v2H5v-2h2v-2H5V5h14z"
     readonly property string rename: "M18.41 5.8 17.2 4.59c-.78-.78-2.05-.78-2.83 0l-2.68 2.68L3 15.96V20h4.04l8.74-8.74 2.63-2.63c.79-.78.79-2.05 0-2.83M6.21 18H5v-1.21l8.66-8.66 1.21 1.21zM11 20l4-4h6v4z"
     readonly property string insertAbove: "M8 11h3v10h2V11h3l-4-4zM4 3v2h16V3z"

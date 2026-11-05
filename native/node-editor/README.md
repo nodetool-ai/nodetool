@@ -14,7 +14,7 @@ share one QML engine and therefore one `Ui.Theme`.
 
 [`EditorScene`](src/graph/EditorScene.h) installs its geometry, node painter,
 and connection painter through the QtNodes extension points. It draws the node
-card, type-colored handles, inline value previews, the canvas grid, and wires.
+card, type-colored handles, inline scalar fields, the canvas grid, and wires.
 `wireCurve` is the one curve for wire painting and the hit stroke. QtNodes
 computes connection bounds from its own control points, so the bounds margin and
 a reverse-offset limit keep the curve inside them. A wire running backward by
@@ -59,21 +59,87 @@ server URL (default `http://localhost:7777`) and an optional access token withou
 restarting. Tokens stay in memory and are never saved in preferences. Remote
 authentication requires HTTPS. Connection errors appear in the status bar.
 Use More → Reconnect to retry the current server, or Connect to change it.
-Connecting and failed connections preserve the current document. More → Server
-Open and Server Save load and save server workflows. Open and Save operate on local files. Opening dirty work
-prompts for save, discard, or cancel. Saving locally uses `QSaveFile`.
+Connecting and failed connections preserve the current document. Open, the
+Workflows rail button, and More → Server Open show the workflow browser. Search
+filters loaded pages. Choose a project or load more pages to extend the list.
+Create, rename, and delete act on the server. Delete requires confirmation.
+Opening a workflow prompts to save, discard, or keep unsaved work. More → Open
+file and Save operate on local files. Saving locally uses `QSaveFile`.
 
 ## Interaction
 
-Search the Nodes panel or pick a namespace, then click a result to add it with
-metadata defaults. Canvas fields are read-only previews. Select a node to open
-the inspector's Params, I/O, and Help tabs and edit metadata-driven text, multiline, numeric, boolean, and
-choice properties. Titles, help, constraints, nullable values, and defaults come
+Search the Nodes panel or pick a namespace, then click a result or drag it onto
+the canvas to add it with metadata defaults. Drag placement follows canvas zoom
+and pan. More → Auto layout arranges the graph. More → Layout selection arranges
+selected nodes. Both use current card dimensions, fit the result, and undo in one
+step. Unsupported documents remain read-only.
+
+Select nodes to show Run selected and Enable/Disable selected in the toolbar.
+These actions also appear in More, including on compact canvases. Run selected
+submits those nodes and the upstream dependencies that need execution. Live
+constant/input values are inlined. Completed upstream generations can be reused,
+with signatures and metadata TTLs checking computed values. Saved single pins
+and ordered multi-generation selections are honored. A missing generation
+blocks an unselected generator, while explicitly selecting it authorizes a new
+run. Reusing a generation from an edited generator shows a status notice.
+Downstream and unrelated nodes are excluded. Opening a saved server workflow
+hydrates its durable generations. The inspector
+History tab previews text and media, pins a value or returns to latest, and adds
+ordered replay items. Pin/replay edits undo in one step. Missing or deleted pins
+remain visible with a recovery message and block reuse. History refresh itself
+does not edit the workflow.
+Disabled nodes
+retain their properties and connections in the document, but are omitted with
+attached edges from submitted execution graphs. Enable/disable is one undo step.
+
+Click a card's text, multiline, numeric, boolean, or choice field to edit it.
+A shared-primitives Quick overlay follows the field through canvas zoom, pan,
+and resize. Enter commits single-line text and numbers. Ctrl+Enter commits
+multiline text. Expand and Collapse keep the draft. Escape cancels it, and
+canvas shortcuts stay inactive while typing. Each commit creates one undo step.
+Connected inputs and handle-only fields have no inline editor. Clicking back
+onto the canvas commits a valid draft before selecting another node. Workflow,
+server, and programmatic selection changes invalidate drafts and queued writes.
+
+Select a node to open the inspector's Params, I/O, and Help tabs for the full
+metadata-driven property controls. Titles, help, constraints, nullable values, and defaults come
 from the property descriptors. Ordinary strings use multiline editing unless metadata requests a single line.
 Single-line fields also offer multiline editing. Escape cancels the draft. Each committed field
 edit creates one undo step and is bound to its original node. Connected inputs are disabled with an explanation.
-Structured values remain visible and preserved without an editor. Drag named ports to connect matching known
-types. Unknown nodes retain their JSON and incident named ports. Unsupported
+Lists, dictionaries, records, and JSON have validated editors where their entry
+types are supported. Image/audio/video and generic asset properties offer authenticated library
+search, pagination, file upload/drop, progress, cancel/retry, and previews through
+the shared media resolver. Selection stores canonical `asset://` references with
+full asset IDs. Media lists append, remove, and reorder references while retaining
+unknown metadata. File-picker/drop batches append once after all uploads succeed.
+A failed batch leaves property references unchanged, and successful uploads remain
+in the library. Metadata-declared static append lists stay editable while
+connected. Other connected fields remain locked. Language-model properties offer configured-provider search,
+provider restrictions, and typed selection. Other model types remain preserved
+without a selector. Workflow single/list fields offer authorized selection,
+loaded-page search, pagination, missing-target checks, and list ordering/removal.
+Collection fields select the caller's visible collection names. Existing wrapper
+metadata survives selection, undo, and reopen. In the I/O
+tab, metadata-enabled dynamic ports can be added, renamed, and deleted. Renaming
+updates connected handles. Deleting a connected port also deletes its connections
+in the same undo step. Drag named ports to connect matching known
+types. Drop a new wire on the canvas or a group backdrop, or click its starting
+handle, to search compatible nodes. Arrow keys and Enter choose a node/port,
+and Escape cancels. Multiple compatible ports remain explicit choices. Creation
+uses metadata defaults and one undoable add-node/add-edge batch. Output starts
+place the receiver to the right and align its input with the drop anchor. Input
+starts place the producer to the left. Native card geometry and vertical
+clearance keep new cards near that anchor. Creation over a group keeps the new
+node at the root level. Account, document, metadata, and read-only changes
+invalidate the picker. Reconnecting existing edges does not open this creation
+picker. Dropping onto an existing card body connects its single compatible port
+or opens a port chooser. Scalar inputs replace their previous wire. Typed list
+inputs keep existing contributors. Nodes supporting dynamic outputs create an
+output first. Dynamic inputs are added when no compatible input exists, except
+on schema-only providers. Slot changes, inferred types, exposed handles and the
+wire undo together. Invalid cycles leave the graph unchanged.
+
+Unknown nodes retain their JSON and incident named ports. Unsupported
 semantics open read-only with the document module's reason in the inspector.
 
 Drag nodes or rubber-band a selection. A pointer gesture commits one document
@@ -119,18 +185,53 @@ a node before capture, and `--theme` takes `dark` or `light`.
 Presentation parity is measured per component, not claimed for the whole app. The
 [comparison guide](../../docs/native-node-editor-visual-comparison.md#known-deviations)
 lists the differences that remain. This is an initial editor, not full web
-parity. Dynamic-port editing, groups,
-comments, subgraphs, reroutes, lineage visualization, auto layout, partial runs,
-compatible-node picking from loose connections, rich model selectors, remain deferred. Existing unsupported data is preserved by the document
-module. The inspector uses metadata-specific scalar widgets. Structured JSON, media,
-and model values remain read-only until dedicated validated editors exist. See the [parity checklist](docs/parity.md) for supported runtime and media behavior. Server connection configuration currently uses CLI
-arguments. There is no application menu yet.
+parity. Specialized subgraph editing, live execution and branch overlays,
+grouped history thumbnails and the single-view history pager remain deferred. Existing unsupported data is preserved by the document
+module. The inspector provides scalar and supported structured editors, image/audio/video
+asset pickers, and language-model selection. Media recording, crop/trim,
+internal library drag payloads, connected upstream-list previews, legacy nested-list
+flattening, other model families, provider setup,
+and model download/install progress remain unavailable. In-card editing currently
+covers scalar properties. Model, media, workflow, collection, list, dictionary,
+record, and JSON controls remain in the inspector. See the [parity checklist](docs/parity.md) for supported authoring, browsing, runtime, and media behavior. There is no application menu yet.
 
 Offscreen tests cover QML panel creation, metadata defaults, typed connection
 commands, document history, file round trips, and pointer movement as one undo
 entry. They do not establish real-platform IME, accessibility, mixed-renderer
 input, installed-app behavior, high-DPI behavior, or large-graph frame latency.
-Those require separate acceptance. A separate synthetic test projects 1,000 nodes
+Those require separate acceptance.
+[CompatibleNodePickerTest](tests/graph/CompatibleNodePickerTest.cpp) checks
+filtering, defaults, port choice, placement, undo, and stale popup callbacks.
+[CompatiblePickerHostTest](tests/ui/CompatiblePickerHostTest.cpp) drives actual
+EditorWindow wire drags and top-level popup clicks, including toolbar stacking
+and wheel/padding isolation. Run them with `ctest --test-dir <build> -R
+'node_editor_compatible_picker(_host)?$' --output-on-failure`.
+`NODETOOL_COMPATIBLE_CAPTURE=/path/prefix` captures that EditorWindow fixture in
+both themes. [BodyConnectionTest](tests/graph/BodyConnectionTest.cpp) and
+[BodyDropHostTest](tests/ui/BodyDropHostTest.cpp) cover existing-card body matching,
+dynamic slots, scalar replacement/list fan-in, rollback and stale active-drag
+scope changes. Run them with `ctest --test-dir <build> -R
+'node_editor_body_(connection|drop_host)$' --output-on-failure`.
+Complete successful-reconnect acceptance, inferred Code ports, dedicated canvas
+add-variable targets, full Agent-control presentation, value/code convenience
+actions remain outside these subsets.
+[NodeCreation](src/graph/NodeCreation.h) shares metadata defaults, property
+overrides, unique input names, rich-preview and bespoke creation sizes, optional
+model pins, and palette Concat starters across creation entry points. The
+output-side picker also applies receiving-name and metadata-style rules.
+[NodeCreationTest](tests/graph/NodeCreationTest.cpp) checks this policy and
+canonical undo. Run `ctest --test-dir <build> -R 'node_editor_creation$'
+--output-on-failure`. User-script/snippet materialization, the virtual AI code
+entry, and native model-preference persistence remain open.
+[InlinePropertyTest](tests/graph/InlinePropertyTest.cpp) drives real card mouse
+activation and Quick typing, popup choice navigation, expansion, range
+validation, shortcut isolation, and viewport alignment. Its optional
+`NODETOOL_INLINE_CAPTURE=/path/prefix` writes dark/light fixture screenshots.
+[InlineHostTest](tests/ui/InlineHostTest.cpp) checks actual EditorWindow click,
+commit, undo, and credential-change rejection. Fixture captures do not establish
+EditorWindow visual parity. Run both with `ctest --test-dir <build> -R
+'node_editor_inline_(property|host)' --output-on-failure`.
+A separate synthetic test projects 1,000 nodes
 and 2,000 edges and checks their adjacency, without measuring input-to-paint
 latency. No performance target is claimed.
 
@@ -161,3 +262,46 @@ to its owning source. Differences are diagnostic until explicitly checked.
 
 Offscreen UI tests cover the node card geometry, wire and grid painting, shell
 panel state, shared theme changes, catalog filtering, and the narrow layout.
+
+## Property picker verification
+
+[AssetPickerTest](tests/models/AssetPickerTest.cpp) checks authenticated library
+search, pagination, streaming multipart upload, failure/cancellation,
+QML dispatch, connected/read-only controls, stale node/server isolation,
+canonical full-ID references, undo, and reopen.
+[ModelPickerTest](tests/models/ModelPickerTest.cpp) checks language-model provider
+queries, provider restrictions, typed selection, cancellation, undo, and reopen.
+
+Run `ctest --test-dir <build> -R 'node_editor_(models|asset_picker)'
+--output-on-failure` after building the native host. The fixtures run without
+npm or live providers. They do not establish platform file-dialog acceptance,
+cross-window desktop drops, or live-provider availability.
+
+[ResourcePickerTest](tests/models/ResourcePickerTest.cpp) checks workflow
+single/list selection and collection names against deterministic authenticated
+HTTP fixtures. It covers workflow pagination and missing targets, ordered list
+changes, preserved wrapper metadata, empty/error responses, cancellation, undo,
+and reopen. Run `ctest --test-dir <build> -R node_editor_resource_picker
+--output-on-failure`. Tool lists, folder/document/entity selectors, and
+document-specific create/open flows remain unavailable.
+
+[PropertyPickerHostTest](tests/models/PropertyPickerHostTest.cpp) renders populated
+media-list and generic-asset inspectors in dark/light and wide/narrow layouts.
+Set `NODETOOL_PROPERTY_CAPTURE_DIR` and run
+`node_editor_property_picker_host_tests` to save its captures. Focused picker
+tests also check ordered batch upload, failure without reference changes,
+metadata-preserving list operations, generic file MIME handling, and cancellation
+after replacing a workflow with the same node IDs.
+
+[PresentationPropertyTest](tests/models/PresentationPropertyTest.cpp) verifies
+color and image-size values, custom controls, canceled/invalid drafts, metadata
+defaults, connected descriptors, undo, and reopen. It also checks the mirrored
+preset data against the web source. The host property test exercises real
+keyboard commits and dark/light wide/narrow captures. Font, media-parameter,
+file/path, and folder-path editors remain unavailable, as do the web color
+modal's saved swatches/history, harmony/contrast tools, eyedropper, and gradients.
+
+Inspector field delegates persist across value updates. Their identity and
+workflow/credential epochs cancel stale drafts and queued commands when the
+scope changes, including when conditional fields replace a same-kind slot.
+Image-size ratio lock survives ordinary dimension commits.

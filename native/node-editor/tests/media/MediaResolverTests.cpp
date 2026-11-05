@@ -4,10 +4,139 @@
 #include <QTcpSocket>
 #include <QSignalSpy>
 #include <QFile>
+#include <QTemporaryDir>
 using namespace nodetool::node_editor;
 class Tests : public QObject {
  Q_OBJECT
 private slots:
+ void authenticatedTextRetryAndScope() {
+  QTcpServer server; QVERIFY(server.listen(QHostAddress::LocalHost));
+  int attempts = 0;
+  connect(&server, &QTcpServer::newConnection, this, [&] {
+   auto socket = server.nextPendingConnection();
+   connect(socket, &QTcpSocket::readyRead, socket, [&, socket] {
+    const auto request = socket->readAll();
+    QVERIFY(request.contains("Authorization: Bearer text-account"));
+    if (++attempts == 1) { socket->write("HTTP/1.1 503 Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"); }
+    else { socket->write("HTTP/1.1 200 OK\r\nContent-Length: 12\r\nConnection: close\r\n\r\n# Saved text"); }
+    socket->disconnectFromHost();
+   });
+   connect(socket, &QTcpSocket::disconnected, socket, &QObject::deleteLater);
+  });
+  MediaResolver resolver;
+  const QUrl base(QString("http://127.0.0.1:%1").arg(server.serverPort()));
+  resolver.configure(base, "text-account");
+  QSignalSpy failed(&resolver, &MediaResolver::failed), loaded(&resolver, &MediaResolver::resolved);
+  resolver.resolve("text", base.resolved(QUrl("/text")).toString());
+  QTRY_COMPARE(failed.size(), 1);
+  QCOMPARE(resolver.resolvedText("text"), QString());
+  resolver.resolve("text", base.resolved(QUrl("/text")).toString());
+  QTRY_COMPARE(loaded.size(), 1);
+  QCOMPARE(resolver.resolvedText("text"), QString("# Saved text"));
+  resolver.configure(base, "other-account");
+  QCOMPARE(resolver.resolvedText("text"), QString());
+ }
+ void visibleGridDownloadsQueueWithoutDroppingRequests() {
+  QTcpServer server;
+  QVERIFY(server.listen(QHostAddress::LocalHost));
+  QHash<QString, QPointer<QTcpSocket>> requests;
+  connect(&server, &QTcpServer::newConnection, this, [&] {
+    auto socket = server.nextPendingConnection();
+    connect(socket, &QTcpSocket::readyRead, socket, [&, socket] {
+      const auto bytes = socket->readAll();
+      const auto path = QString::fromLatin1(bytes.split(' ').value(1));
+      requests[path] = socket;
+    });
+    connect(socket, &QTcpSocket::disconnected, socket, &QObject::deleteLater);
+  });
+  MediaResolver resolver;
+  QSignalSpy failed(&resolver, &MediaResolver::failed), loaded(&resolver, &MediaResolver::resolved);
+  const QUrl base(QString("http://127.0.0.1:%1").arg(server.serverPort()));
+  for (int i = 0; i < 12; ++i) { resolver.resolve(QString::number(i), base.resolved(QUrl('/' + QString::number(i))).toString()); }
+  QCOMPARE(failed.size(), 0);
+  QTRY_COMPARE(requests.size(), 4);
+  resolver.cancel("5");
+  resolver.cancel("0");
+  QTRY_VERIFY(requests.contains("/4"));
+  QSet<QString> replied;
+  QTRY_VERIFY(([&] {
+    for (auto it = requests.cbegin(); it != requests.cend(); ++it) {
+      if (it.key() == "/0" || replied.contains(it.key()) || !it.value()) { continue; }
+      replied.insert(it.key());
+      it.value()->write("HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\nimage");
+      it.value()->disconnectFromHost();
+    }
+    return loaded.size() == 10;
+  })());
+  QVERIFY(!requests.contains("/5"));
+  QCOMPARE(failed.size(), 0);
+ }
+ void queuedScopeResetCapacityAndKeyReuse() {
+  QTcpServer server; QVERIFY(server.listen(QHostAddress::LocalHost));
+  QHash<QString, QPointer<QTcpSocket>> requests;
+  QHash<QString, QByteArray> headers;
+  connect(&server, &QTcpServer::newConnection, this, [&] {
+    auto socket = server.nextPendingConnection();
+    connect(socket, &QTcpSocket::readyRead, socket, [&, socket] {
+      const auto bytes = socket->property("request").toByteArray() + socket->readAll();
+      socket->setProperty("request", bytes);
+      if (!bytes.contains("\r\n\r\n")) { return; }
+      const auto path = QString::fromLatin1(bytes.split(' ').value(1));
+      requests[path] = socket; headers[path] = bytes;
+    });
+    connect(socket, &QTcpSocket::disconnected, socket, &QObject::deleteLater);
+  });
+  MediaResolver resolver;
+  const QUrl base(QString("http://127.0.0.1:%1").arg(server.serverPort()));
+  resolver.configure(base, "account-one");
+  QSignalSpy failed(&resolver, &MediaResolver::failed), loaded(&resolver, &MediaResolver::resolved);
+  for (int i = 0; i < 300; ++i) { resolver.resolve(QString::number(i), base.resolved(QUrl('/' + QString::number(i))).toString()); }
+  QCOMPARE(failed.size(), 40);
+  QVERIFY(failed.first()[1].toString().contains("pending"));
+  QTRY_COMPARE(requests.size(), 4);
+  for (const auto &bytes : headers) { QVERIFY(bytes.contains("Authorization: Bearer account-one")); }
+  resolver.configure(base, "account-two");
+  resolver.resolve("0", base.resolved(QUrl("/fresh")).toString());
+  QTRY_VERIFY(requests.contains("/fresh"));
+  QVERIFY(headers["/fresh"].contains("Authorization: Bearer account-two"));
+  requests["/fresh"]->write("HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\nfresh");
+  requests["/fresh"]->disconnectFromHost();
+  QTRY_COMPARE(loaded.size(), 1);
+  QCOMPARE(loaded[0][0].toString(), QString("0"));
+  QFile file(loaded[0][1].toUrl().toLocalFile()); QVERIFY(file.open(QIODevice::ReadOnly));
+  QCOMPARE(file.readAll(), QByteArray("fresh"));
+  QCOMPARE(requests.size(), 5);
+  QCOMPARE(failed.size(), 40);
+ }
+ void saveResolvedBytesAndNames() {
+  MediaResolver resolver;
+  QTemporaryDir directory;
+  QVERIFY(directory.isValid());
+  const auto destination = QUrl::fromLocalFile(directory.filePath("download.wav"));
+  resolver.resolve("audio", "data:audio/x-wav;base64,c291bmQ=");
+  QCOMPARE(resolver.suggestedFilename("audio", "", "audio"), QString("audio.wav"));
+  QCOMPARE(resolver.suggestedFilename("audio", "Room tone", "audio"), QString("Room tone.wav"));
+  QCOMPARE(resolver.suggestedFilename("audio", "Take.flac", "audio"), QString("Take.flac"));
+  QCOMPARE(resolver.suggestedFilename("audio", "../folder\\Room tone", "audio"), QString("Room tone.wav"));
+  QVERIFY(resolver.saveResolved("audio", destination));
+  QFile saved(destination.toLocalFile());
+  QVERIFY(saved.open(QIODevice::ReadOnly));
+  QCOMPARE(saved.readAll(), QByteArray("sound"));
+  saved.close();
+  resolver.release("audio");
+  QVERIFY(!resolver.saveResolved("audio", destination));
+  resolver.resolve("audio", "data:audio/flac;base64,bmV3");
+  QCOMPARE(resolver.suggestedFilename("audio", "", "audio"), QString("audio.flac"));
+  QVERIFY(resolver.saveResolved("audio", destination));
+  QVERIFY(saved.open(QIODevice::ReadOnly));
+  QCOMPARE(saved.readAll(), QByteArray("new"));
+  saved.close();
+  QVERIFY(!resolver.saveResolved("audio", QUrl("https://example.com/write")));
+  resolver.clear();
+  QVERIFY(!resolver.saveResolved("audio", destination));
+  QVERIFY(saved.open(QIODevice::ReadOnly));
+  QCOMPARE(saved.readAll(), QByteArray("new"));
+ }
  void inlineAndReject() {
   MediaResolver resolver;
   QSignalSpy loaded(&resolver, &MediaResolver::resolved), failed(&resolver, &MediaResolver::failed);
@@ -117,6 +246,14 @@ private slots:
   resolver.resolve("asset", QVariantMap{{"asset_id", "0123456789ab"}});
   QCOMPARE(loaded.size(), 2);
   QCOMPARE(loaded[1][1].toUrl(), firstUrl);
+  QCOMPARE(requests.size(), 2);
+  QTemporaryDir downloads;
+  QVERIFY(downloads.isValid());
+  const auto destination = QUrl::fromLocalFile(downloads.filePath("asset.png"));
+  QVERIFY(resolver.saveResolved("asset", destination));
+  QFile downloaded(destination.toLocalFile());
+  QVERIFY(downloaded.open(QIODevice::ReadOnly));
+  QCOMPARE(downloaded.readAll(), QByteArray("image-bytes"));
   QCOMPARE(requests.size(), 2);
   resolver.resolve("changing", base.resolved(QUrl("/slow")).toString());
   QTRY_COMPARE(requests.size(), 3);

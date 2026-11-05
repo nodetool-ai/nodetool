@@ -70,6 +70,7 @@ Rectangle {
                 TabButton { objectName: "tab-params"; index: 0; text: "Params"; count: root.fieldsModel.length }
                 TabButton { objectName: "tab-io"; index: 1; text: "I/O"; count: (root.info.inputs ? root.info.inputs.length : 0) + (root.info.outputs ? root.info.outputs.length : 0) }
                 TabButton { objectName: "tab-help"; index: 2; text: "Help" }
+                TabButton { objectName: "tab-history"; index: 3; text: "History" }
             }
         }
         Rectangle { visible: root.hasSelection; Layout.fillWidth: true; Layout.preferredHeight: Ui.Metrics.border; color: roles.divider }
@@ -100,11 +101,11 @@ Rectangle {
                 width: scroll.width - Ui.Metrics.lg * 2
                 spacing: Ui.Metrics.lg
                 Repeater {
-                    model: root.fieldsModel
+                    model: root.fieldsModel.length
                     PropertyField {
-                        required property var modelData
+                        required property int index
                         Layout.fillWidth: true
-                        descriptor: modelData
+                        descriptor: root.fieldsModel[index] || ({})
                         host: root.propertyHost
                         nodeId: root.propertyHost ? root.propertyHost.selection : ""
                     }
@@ -128,6 +129,7 @@ Rectangle {
                 y: Ui.Metrics.lg
                 width: ioScroll.width - Ui.Metrics.lg * 2
                 spacing: Ui.Metrics.sm
+                Loader { Layout.fillWidth: true; active: root.propertyHost && root.propertyHost.dynamicPorts !== undefined; sourceComponent: DynamicPorts { controller: root.propertyHost.dynamicPorts; enabled: !root.propertyHost.readOnly } }
                 Repeater {
                     model: [{title: "Inputs", ports: root.info.inputs || []}, {title: "Outputs", ports: root.info.outputs || []}]
                     ColumnLayout {
@@ -174,6 +176,13 @@ Rectangle {
                 role: Ui.Typography.SansBody
                 tone: Ui.Text.Secondary
             }
+        }
+        Loader {
+            visible: root.hasSelection && root.tab === 3
+            active: visible
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            sourceComponent: Component { GenerationHistory { propertyHost: root.propertyHost } }
         }
         Item { visible: !root.hasSelection; Layout.fillHeight: true }
         Ui.Text {

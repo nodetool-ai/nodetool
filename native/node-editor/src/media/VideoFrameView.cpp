@@ -1,4 +1,6 @@
 #include "VideoFrameView.h"
+#include "AudioWaveform.h"
+#include "MediaGalleryModel.h"
 #include <QPainter>
 #include <QVideoFrame>
 #include <qqml.h>
@@ -25,6 +27,6 @@ void VideoFrameView::paint(QPainter *painter) {
 }
 void registerMediaTypes() {
   static std::once_flag registered;
-  std::call_once(registered, [] { qmlRegisterType<VideoFrameView>("NodeTool.NodeEditor.Media", 1, 0, "VideoFrameView"); });
+  std::call_once(registered, [] { qmlRegisterType<MediaGalleryModel>("NodeTool.NodeEditor.Media", 1, 0, "MediaGalleryModel"); qmlRegisterType<AudioWaveform>("NodeTool.NodeEditor.Media", 1, 0, "AudioWaveform"); qmlRegisterType<VideoFrameView>("NodeTool.NodeEditor.Media", 1, 0, "VideoFrameView"); });
 }
 }

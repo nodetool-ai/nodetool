@@ -3,6 +3,7 @@
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QElapsedTimer>
+#include <QDir>
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QWebSocketServer>
@@ -113,6 +114,44 @@ private:
     QCoreApplication::processEvents();
   }
 private slots:
+  void conditionalFieldsFollowPointerToggleAndUndo() {
+    EditorWindow w;
+    auto enabled = property_fixture::property("Enabled", "bool", true);
+    auto detail = property_fixture::property("Detail", "str", "preserved draft");
+    detail["json_schema_extra"] = QJsonObject{{"multiline", false}, {"visible_when", QJsonObject{{"property", "Enabled"}, {"equals", true}}}};
+    const QJsonArray catalog{QJsonObject{{"node_type", "Conditional"}, {"title", "Conditional settings"}, {"properties", QJsonArray{enabled, detail}}, {"outputs", QJsonArray{QJsonObject{{"name", "out"}, {"type", "str"}}}}}};
+    const QJsonObject node{{"id", "n"}, {"type", "Conditional"}, {"data", QJsonObject{{"Enabled", true}, {"Detail", "preserved draft"}}}, {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", 100}, {"y", 100}}}}}};
+    w.setCatalog(catalog);
+    QVERIFY(w.document()->load({{"graph", QJsonObject{{"nodes", QJsonArray{node}}, {"edges", QJsonArray{}}}}}));
+    w.show(); QVERIFY(w.selectNode("n")); w.action("Fit");
+    QTRY_VERIFY(control(w, "Enabled")); QTRY_VERIFY(control(w, "Detail"));
+    click(w, control(w, "Enabled"));
+    QTRY_COMPARE(w.document()->node("n")["data"].toObject()["Enabled"].toBool(), false);
+    QTRY_VERIFY(!control(w, "Detail"));
+    QCOMPARE(w.document()->node("n")["data"].toObject()["Detail"].toString(), QString("preserved draft"));
+    QCOMPARE(w.document()->undoStack()->count(), 1);
+    w.document()->undo();
+    QTRY_VERIFY(control(w, "Detail"));
+    auto connected = w.document()->snapshot(); auto graph = connected["graph"].toObject();
+    auto hidden = node; hidden["data"] = QJsonObject{{"Enabled", false}, {"Detail", "preserved draft"}};
+    auto source = node; source["id"] = "source";
+    source["ui_properties"] = QJsonObject{{"position", QJsonObject{{"x", -280}, {"y", 100}}}};
+    graph["nodes"] = QJsonArray{source, hidden};
+    graph["edges"] = QJsonArray{QJsonObject{{"id", "edge"}, {"source", "source"}, {"sourceHandle", "out"}, {"target", "n"}, {"targetHandle", "Detail"}}};
+    connected["graph"] = graph;
+    QVERIFY(w.document()->load(connected)); QVERIFY(w.selectNode("n"));
+    QTRY_VERIFY(containsText(inspector(w)->rootObject(), "Unavailable for the selected settings"));
+    const auto snapshot = w.document()->snapshot();
+    const auto capture = qEnvironmentVariable("NODETOOL_VISIBILITY_CAPTURE");
+    for (bool dark : {true, false}) {
+      w.setDarkTheme(dark); w.resize(1440, 900); w.action("Fit"); QTest::qWait(60);
+      if (!capture.isEmpty()) {
+        QVERIFY(QDir().mkpath(capture));
+        QVERIFY(w.grab().save(capture + (dark ? "/conditional-dark.png" : "/conditional-light.png")));
+      }
+    }
+    QCOMPARE(w.document()->snapshot(), snapshot); QCOMPARE(w.document()->undoStack()->count(), 0);
+  }
   void connectActionPreservesDocument() {
     EditorWindow w;
     prepare(w);
@@ -438,7 +477,8 @@ private slots:
     QVERIFY(output);
     QCoreApplication::processEvents();
     QVERIFY(containsText(output->rootObject(), "asset://preserved"));
-    QVERIFY(containsText(output->rootObject(), "answer"));
+    // A single-key object renders its value directly, as ObjectRenderer.tsx does.
+    QTRY_VERIFY(containsText(output->rootObject(), "42"));
     QVERIFY(containsText(output->rootObject(), "completed"));
     QVERIFY(containsText(output->rootObject(), "Fixture log"));
     const auto capture = qEnvironmentVariable("NODETOOL_RUN_OUTPUT_CAPTURE");
@@ -477,8 +517,8 @@ private slots:
     w.show();
     QTest::qWait(50);
     auto panels = w.findChildren<QQuickWidget *>();
-    // Rail, tabs, status, catalog, inspector, output, toolbar, viewport readout.
-    QCOMPARE(panels.size(), 8);
+    // Rail, tabs, status, catalog, browser, inspector, output, both toolbars, viewport readout.
+    QCOMPARE(panels.size(), 10);
     for (auto p : panels) {
       QCOMPARE(p->status(), QQuickWidget::Ready);
     }
@@ -880,7 +920,8 @@ private slots:
         socket->setProperty("handled", true);
         if (bytes.startsWith("GET /ws")) { socket->disconnectFromHost(); return; }
         QJsonObject response;
-        if (!bytes.startsWith("GET /api/nodes")) {
+        const auto target = bytes.left(bytes.indexOf('\r')).split(' ').value(1);
+        if (target == "/api/workflows" || target.startsWith("/api/workflows/")) {
           requests.append(bytes);
           if (bytes.startsWith("GET ")) {
             response = {{"id", "other"}, {"name", "Other"}, {"updated_at", "r9"},

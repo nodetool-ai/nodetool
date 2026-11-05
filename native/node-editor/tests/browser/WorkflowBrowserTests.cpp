@@ -42,6 +42,29 @@ public:
 class Tests final : public QObject {
   Q_OBJECT
 private slots:
+  void configurationClearsScopeAndDisconnects() {
+    Fixture server;
+    server.respond = [](QByteArray) { return QByteArray(R"({"workflows":[{"id":"a","name":"Alpha"}],"next":"next"})"); };
+    WorkflowBrowser browser;
+    browser.configure(server.url(), "secret");
+    browser.setProjectId("old-project");
+    QTRY_VERIFY(!browser.loading());
+    browser.setSearch("Alpha");
+    QVERIFY(!browser.rows().isEmpty());
+    browser.configure(QUrl("http://localhost:7778"));
+    QVERIFY(browser.projectId().isEmpty());
+    QVERIFY(browser.search().isEmpty());
+    QVERIFY(browser.rows().isEmpty());
+    QVERIFY(!browser.hasNext());
+    browser.configure(QUrl{});
+    QVERIFY(browser.error().isEmpty());
+    QVERIFY(browser.projects().isEmpty());
+    QVERIFY(!browser.loading());
+    QVERIFY(!browser.projectsLoading());
+    QVERIFY(!browser.busy());
+    browser.refresh();
+    QVERIFY(browser.error().contains("Connect to a server first"));
+  }
   void liveDisposableWorkflow() {
     const auto origin = qEnvironmentVariable("NODETOOL_BROWSER_LIVE_URL");
     if (origin.isEmpty()) { QSKIP("Set NODETOOL_BROWSER_LIVE_URL for the disposable live contract test"); }

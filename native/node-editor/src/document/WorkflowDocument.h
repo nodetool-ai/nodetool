@@ -16,8 +16,17 @@ struct EditResult {
 
 // Canonical protocol JSON, never QtNodes scene JSON. Unknown members are retained.
 // Commands: batch(commands), addNode(node), addEdge(edge), removeNodes(ids),
+// addLink(link), linkNodes(ids: exactly two[,id,label,kind]), removeLink(id),
+// insertReroute(id,position:{x,y}) returns idMap.reroute/idMap.upstreamEdge,
+// reconnectEdge(id,connection: {source,target,sourceHandle,targetHandle}),
 // removeEdge(id), moveNodes(positions: {id: {x,y}}), setProperty(id,name,value),
-// setDisabled(ids,disabled), setNodeField(id,field,value), paste(fragment,offset).
+// setDisabled(ids,disabled) expands groups to runnable descendants, setNodeField(id,field,value), paste(fragment,offset).
+// groupNodes(ids[,id,title,sizes: {id: {width,height}}]) returns idMap.group, ungroupNodes(ids) removes
+// frames and promotes children, detachNodes(ids) keeps frames. Group sizes are
+// measured finite positive dimensions used only for bounds. renameNode(id,title)
+// writes group data.headline or ordinary ui_properties.title. setComment(id,value)
+// accepts markdown or Lexical JSON. moveNodes uses relative coordinates unless
+// space:"absolute" is supplied. Imported nested groups remain supported.
 // addDynamicInput(id,name[,type,value]), addDynamicOutput(id,name,type),
 // renameDynamicInput/Output(id,name,newName), removeDynamicInput/Output(id,name).
 class WorkflowDocument final : public QObject {
@@ -41,10 +50,12 @@ public:
     [[nodiscard]] bool isReadOnly() const { return !readOnlyReason_.isEmpty(); }
     [[nodiscard]] QString readOnlyReason() const { return readOnlyReason_; }
     QUndoStack* undoStack() { return &undo_; }
+    const QUndoStack* undoStack() const { return &undo_; }
 public slots:
     void undo() { undo_.undo(); }
     void redo() { undo_.redo(); }
 signals:
+    void replaced();
     void changed();
 private:
     friend class DocumentEdit;

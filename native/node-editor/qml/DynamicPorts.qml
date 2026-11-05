@@ -89,5 +89,5 @@ ColumnLayout {
     }
     PortDirection { output: false }
     PortDirection { output: true }
-    Ui.Text { text: root.controller.error; visible: text !== ""; tone: Ui.Text.Error; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    Ui.Text { role: Ui.Typography.SansCaption; text: root.controller.error; visible: text !== ""; tone: Ui.Text.Error; Layout.fillWidth: true; wrapMode: Text.Wrap }
 }

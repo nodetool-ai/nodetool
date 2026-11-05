@@ -24,10 +24,10 @@ Item {
             NodeButton { objectName: "zoom-out"; text: ""; accessibleName: "Zoom out"; iconName: "remove"; variant: NodeButton.Flat; implicitWidth: Ui.Metrics.small; implicitHeight: Ui.Metrics.small; onClicked: editor.action("Zoom out") }
             PanelRow {
                 objectName: "zoom-reset"
-                accessibleName: "Reset zoom"
-                Layout.preferredWidth: 48
+                accessibleName: "Zoom presets"
+                Layout.preferredWidth: Ui.Metrics.xl * 3
                 Layout.preferredHeight: Ui.Metrics.small
-                onClicked: editor.action("Reset zoom")
+                onClicked: editor.action("Zoom presets")
                 Ui.Text {
                     anchors.fill: parent
                     horizontalAlignment: Text.AlignHCenter
@@ -40,6 +40,7 @@ Item {
             }
             NodeButton { objectName: "zoom-in"; text: ""; accessibleName: "Zoom in"; iconName: "add"; variant: NodeButton.Flat; implicitWidth: Ui.Metrics.small; implicitHeight: Ui.Metrics.small; onClicked: editor.action("Zoom in") }
             Rectangle { width: Ui.Metrics.border; height: Ui.Metrics.iconSm; color: roles.divider }
+            NodeButton { objectName: "fit-selection"; text: ""; accessibleName: "Fit selection"; iconName: "fitScreen"; variant: NodeButton.Flat; implicitWidth: Ui.Metrics.small; implicitHeight: Ui.Metrics.small; onClicked: editor.action("Fit selection") }
             NodeButton { objectName: "fit-view"; text: ""; accessibleName: "Fit view"; iconName: "fitScreen"; variant: NodeButton.Flat; implicitWidth: Ui.Metrics.small; implicitHeight: Ui.Metrics.small; onClicked: editor.action("Fit") }
         }
     }

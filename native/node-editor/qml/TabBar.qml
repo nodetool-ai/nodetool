@@ -21,7 +21,7 @@ Rectangle {
             Ui.Text { text: editor ? editor.workflowName : ""; role: Ui.Typography.SansLabel; font.weight: Font.Normal; lineHeight: 1 }
             Rectangle {
                 objectName: "unsaved-indicator"
-                visible: editor && editor.saveState !== "Saved"
+                visible: editor && editor.hasUnsavedChanges
                 width: Ui.Metrics.sm; height: width; radius: width / 2
                 color: Ui.Theme.statusWarning
                 Accessible.name: "Unsaved changes"

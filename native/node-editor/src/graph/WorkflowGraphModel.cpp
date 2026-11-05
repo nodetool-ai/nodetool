@@ -1,6 +1,8 @@
 #include "WorkflowGraphModel.h"
+#include "document/ConnectionTypes.h"
 #include "properties/PropertyFields.h"
 #include <QJsonArray>
+#include <QSet>
 #include <QUuid>
 #include <QtNodes/NodeData>
 #include <QtNodes/NodeStyle>
@@ -14,12 +16,14 @@ QString WorkflowGraphModel::resourceId(NodeId id) const {
 }
 void WorkflowGraphModel::project(const QJsonObject &snapshot,
                                  const QJsonArray &catalog, bool readOnly) {
+  emit projectionAboutToChange();
   readOnly_ = readOnly;
   catalog_ = catalog;
   inputs_.clear();
   outputs_.clear();
   layouts_.clear();
   adjacency_.clear();
+  edgeByConnection_.clear();
   nodes_.clear();
   auto graph =
       snapshot.contains("graph") ? snapshot["graph"].toObject() : snapshot;
@@ -31,7 +35,32 @@ void WorkflowGraphModel::project(const QJsonObject &snapshot,
     }
     nodes_[ids_[id]] = n;
   }
+  positions_.clear();
+  depths_.clear();
+  children_.clear();
+  QVector<NodeId> pending;
+  for (auto it = nodes_.cbegin(); it != nodes_.cend(); ++it) {
+    const auto parent = ids_.value(it.value()["parent_id"].toString(), InvalidNodeId);
+    if (nodeExists(parent) && isGroup(parent) && parent != it.key()) {
+      children_[parent].append(it.key());
+    } else { pending.append(it.key()); }
+  }
+  for (qsizetype i = 0; i < pending.size(); ++i) {
+    const auto id = pending[i];
+    const auto local = nodes_.value(id)["ui_properties"].toObject()["position"].toObject();
+    const auto parent = ids_.value(nodes_.value(id)["parent_id"].toString(), InvalidNodeId);
+    positions_[id] = QPointF(local["x"].toDouble(), local["y"].toDouble()) + positions_.value(parent);
+    depths_[id] = positions_.contains(parent) ? depths_.value(parent) + 1 : 0;
+    pending += children_.value(id);
+  }
+  // Invalid cycles remain visible at their local coordinates, without recursion.
+  for (auto it = nodes_.cbegin(); it != nodes_.cend(); ++it) {
+    if (positions_.contains(it.key())) { continue; }
+    const auto local = it.value()["ui_properties"].toObject()["position"].toObject();
+    positions_[it.key()] = QPointF(local["x"].toDouble(), local["y"].toDouble());
+  }
   edges_ = graph["edges"].toArray();
+  displayTypes_=resolveForwardDisplayTypes(graph["nodes"].toArray(),edges_,catalog_);
   for (auto v : edges_) {
     auto e = v.toObject();
     auto source = ids_.value(e["source"].toString(), InvalidNodeId),
@@ -45,6 +74,7 @@ void WorkflowGraphModel::project(const QJsonObject &snapshot,
         if (out[x].toObject()["name"] == e["sourceHandle"] &&
             in[y].toObject()["name"] == e["targetHandle"]) {
           ConnectionId connection{source, unsigned(x), target, unsigned(y)};
+          edgeByConnection_.try_emplace(connection,e);
           adjacency_[source].insert(connection);
           adjacency_[target].insert(connection);
         }
@@ -94,6 +124,19 @@ void WorkflowGraphModel::setRuntimePreview(const QString &nodeId, const QImage &
   emit runtimeChanged();
 }
 QImage WorkflowGraphModel::runtimePreview(NodeId id) const { return previews_.value(resourceId(id)); }
+void WorkflowGraphModel::setCanvasMediaNodes(const QSet<QString> &nodes) {
+  if (canvasMediaNodes_ == nodes) { return; }
+  const auto affected = canvasMediaNodes_ | nodes;
+  canvasMediaNodes_ = nodes;
+  for (const auto &id : affected) { refreshRuntimeNode(id); }
+}
+QRectF WorkflowGraphModel::canvasPlaybackRect(NodeId id) const {
+  if (!canvasMediaNodes_.contains(resourceId(id))) { return {}; }
+  const auto size = layout(id).size;
+  constexpr auto inset = node_metrics::padding + node_metrics::borderWidth;
+  return QRectF(inset, size.height() - node_metrics::playbackHeight - node_metrics::rowHeight,
+                size.width() - 2 * inset, node_metrics::playbackHeight);
+}
 QJsonObject WorkflowGraphModel::runtimeState(NodeId id) const {
   return runtime_ ? runtime_->nodeState(resourceId(id)) : QJsonObject{};
 }
@@ -113,8 +156,29 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
   };
   NodeLayout result;
   result.unknown = meta.isEmpty();
+  if (isReroute(id)) {
+    result.size=QSize(node_metrics::rerouteWidth,node_metrics::rerouteHeight);
+    result.minimumSize=result.size;result.unknown=false;
+    result.inputY={node_metrics::rerouteHeight/2.0};result.outputY=result.inputY;
+    return *layouts_.insert(id,result);
+  }
+  if (isGroup(id) || isComment(id)) {
+    const auto data = node["data"].toObject();
+    result.title = isGroup(id) ? data["headline"].toString() : QString{};
+    if (isGroup(id) && result.title.isEmpty()) result.title = "Group";
+    result.accent = QColor(data[isGroup(id) ? "group_color" : "comment_color"].toString());
+    const auto minimumWidth = isGroup(id) ? 200 : 30;
+    const auto minimumHeight = isGroup(id) ? 200 : 40;
+    result.minimumSize = QSize(minimumWidth, minimumHeight);
+    result.size = QSize(std::max(minimumWidth, ui["width"].toInt(isGroup(id) ? 400 : 300)),
+                        std::max(minimumHeight, ui["height"].toInt(isGroup(id) ? 300 : 160)));
+    return *layouts_.insert(id, result);
+  }
   const auto type = node["type"].toString();
-  result.title = ui["title"].toString(meta["title"].toString(type.section('.', -1)));
+  // Ordinary ui titles are below-card notes in the web editor. Code nodes use
+  // the same field as their header title and have no note surface.
+  result.title = type == "nodetool.code.Code" ? ui["title"].toString(meta["title"].toString(type.section('.', -1)))
+      : meta["title"].toString(type.section('.', -1));
   const auto outputs = ports(id, PortType::Out);
   const auto primary = outputs.isEmpty() ? QString{} : typeOf(outputs[0].toObject());
   result.icon = typeIcon(primary);
@@ -126,6 +190,10 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
   }
   QSet<QString> handleOnly;
   for (const auto &name : meta["input_fields"].toArray()) { handleOnly.insert(name.toString()); }
+  for (const auto &name : ui["exposed_inputs"].toArray()) { handleOnly.insert(name.toString()); }
+  for (const auto &key : {"exposed_inputs_hidden", "exposed_inputs_labeled"}) {
+    for (const auto &name : ui[key].toArray()) { handleOnly.remove(name.toString()); }
+  }
   const auto inputs = ports(id, PortType::In);
   result.inputY.resize(inputs.size());
   double y = nm::contentTop;
@@ -177,6 +245,8 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
     const auto connected = field["connected"].toBool();
     auto value = field["value"];
     NodeRow row;
+    row.propertyName = name;
+    row.conditionalUnavailable = field["conditionalUnavailable"].toBool();
     row.label = titleOf(port);
     row.typeName = typeOf(port);
     row.port = i;
@@ -202,6 +272,7 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
       row.kind = NodeRowKind::Toggle;
       row.checked = value.toBool();
     }
+    if (row.conditionalUnavailable) { y += nm::rowHeight; }
     result.rows.append(row);
     end = y;
   }
@@ -215,7 +286,10 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
   const auto minimum = nm::contentTop + nm::rowHeight + nm::padding + nm::borderWidth;
   result.size = QSize(width > 0 ? int(width) : nm::defaultWidth,
                       int(std::ceil(std::max<double>(end, minimum) + nm::padding)));
-  if (!runtimeState(id).isEmpty()) { result.size.rheight() += nm::previewHeight + nm::rowHeight; }
+  if (canvasMediaNodes_.contains(resourceId(id))) { result.size.rheight() += nm::playbackHeight + nm::rowHeight; }
+  else if (!runtimeState(id).isEmpty()) { result.size.rheight() += nm::previewHeight + nm::rowHeight; }
+  result.minimumSize = QSize(150, result.size.height());
+  result.size.setHeight(std::max(result.size.height(), ui["height"].toInt()));
   return *layouts_.insert(id, result);
 }
 std::unordered_set<NodeId> WorkflowGraphModel::allNodeIds() const {
@@ -226,42 +300,79 @@ std::unordered_set<NodeId> WorkflowGraphModel::allNodeIds() const {
   return result;
 }
 QJsonArray WorkflowGraphModel::ports(NodeId id, PortType type) const {
+  if (isReroute(id)) {
+    return QJsonArray{QJsonObject{{"name",type==PortType::In ? "input_value" : "output"},{"type",QJsonObject{{"type","any"}}}}};
+  }
+  if (isGroup(id) || isComment(id)) { return {}; }
   auto &cache = type == PortType::In ? inputs_ : outputs_;
   if (cache.contains(id)) {
     return cache.value(id);
   }
   const auto n = nodes_.value(id);
   QJsonArray result;
-  for (auto v : catalog_) {
-    auto m = v.toObject();
-    if (m["node_type"] == n["type"] || m["type"] == n["type"]) {
-      result = m[type == PortType::In ? "properties" : "outputs"].toArray();
+  QSet<QString> names;
+  const auto append = [&result, &names](QJsonObject port) {
+    const auto name = port["name"].toString();
+    if (name.isEmpty() || names.contains(name)) { return; }
+    names.insert(name);
+    result.append(port);
+  };
+  for (const auto &value : catalog_) {
+    const auto metadata = value.toObject();
+    if (metadata["node_type"] == n["type"] || metadata["type"] == n["type"]) {
+      QSet<QString> connectedInputs;
+      if (type == PortType::In) {
+        for (const auto &value : edges_) {
+          const auto edge = value.toObject();
+          if (edge["target"] == n["id"]) { connectedInputs.insert(edge["targetHandle"].toString()); }
+        }
+      }
+      for (const auto &port : metadata[type == PortType::In ? "properties" : "outputs"].toArray()) {
+        const auto declaration = port.toObject();
+        const auto name = declaration["name"];
+        const auto ui = n["ui_properties"].toObject();
+        const bool handleOnly = (metadata["input_fields"].toArray().contains(name) || ui["exposed_inputs"].toArray().contains(name)) &&
+            !ui["exposed_inputs_hidden"].toArray().contains(name) && !ui["exposed_inputs_labeled"].toArray().contains(name);
+        if (type == PortType::In && !handleOnly && !connectedInputs.contains(name.toString()) &&
+            !node_editor::propertyConditionSatisfied(declaration, n["data"].toObject())) {
+          names.insert(declaration["name"].toString());
+          continue;
+        }
+        append(declaration);
+      }
       break;
     }
   }
-  // Unknown nodes expose incident named ports without changing the saved
-  // document.
-  for (auto v : edges_) {
-    auto e = v.toObject();
-    auto key = type == PortType::In ? "target" : "source";
-    auto handle = type == PortType::In ? "targetHandle" : "sourceHandle";
-    if (e[key].toString() != resourceId(id)) {
-      continue;
+  const auto declarations = n[type == PortType::In ? "dynamic_inputs" : "dynamic_outputs"].toObject();
+  for (auto it = declarations.begin(); it != declarations.end(); ++it) {
+    auto port = it.value().toObject();
+    port["name"] = it.key();
+    port["type"] = node_editor::normalizedDynamicPortType(it.value());
+    append(port);
+  }
+  if (type == PortType::In) {
+    const auto properties = n["dynamic_properties"].toObject();
+    const auto outputDeclarations = n["dynamic_outputs"].toObject();
+    for (auto it = properties.begin(); it != properties.end(); ++it) {
+      if (outputDeclarations.contains(it.key())) { continue; }
+      append(QJsonObject{{"name", it.key()}, {"type", "any"}});
     }
-    bool found = false;
-    for (auto p : result) {
-      if (p.toObject()["name"] == e[handle]) {
-        found = true;
-      }
-    }
-    if (!found) {
-      result.append(QJsonObject{{"name", e[handle]}});
+  }
+  // Unknown incident names remain available without changing the document.
+  for (const auto &value : edges_) {
+    const auto edge = value.toObject();
+    const auto key = type == PortType::In ? "target" : "source";
+    const auto handle = type == PortType::In ? "targetHandle" : "sourceHandle";
+    if (edge[key].toString() == resourceId(id)) {
+      append(QJsonObject{{"name", edge[handle]}});
     }
   }
   cache.insert(id, result);
   return result;
 }
 QJsonObject WorkflowGraphModel::edge(ConnectionId c) const {
+  if (const auto found=edgeByConnection_.find(c);found!=edgeByConnection_.end()) { return found->second; }
+
   auto out = ports(c.outNodeId, PortType::Out),
        in = ports(c.inNodeId, PortType::In);
   if (c.outPortIndex >= unsigned(out.size()) ||
@@ -340,6 +451,89 @@ void WorkflowGraphModel::addConnection(ConnectionId c) {
     commit({{"op", "addEdge"}, {"edge", e}});
   }
 }
+bool WorkflowGraphModel::isGroup(NodeId id) const {
+  const auto type = nodes_.value(id)["type"].toString();
+  return type == "nodetool.workflows.base_node.Group" || type == "nodetool.workflows.Group";
+}
+bool WorkflowGraphModel::isReroute(NodeId id) const { return nodes_.value(id)["type"]=="nodetool.control.Reroute"; }
+QString WorkflowGraphModel::rerouteHandleType(NodeId id) const { return displayTypes_.rerouteHandles.value(resourceId(id),"any"); }
+QString WorkflowGraphModel::effectiveSourceType(NodeId id, PortIndex port) const {
+  const auto output=ports(id,PortType::Out);
+  if (port>=unsigned(output.size())) { return "any"; }
+  return displayTypes_.sources.value(displayPortKey(resourceId(id),output[port].toObject()["name"].toString()),"any");
+}
+QColor WorkflowGraphModel::wirePortColor(ConnectionId id, PortType side) const {
+  const auto source=effectiveSourceType(id.outNodeId,id.outPortIndex);
+  if (side==PortType::Out) { return typeColor(source); }
+  const auto input=ports(id.inNodeId,PortType::In);
+  if (id.inPortIndex>=unsigned(input.size())) { return typeColor("any"); }
+  const auto port=input[id.inPortIndex].toObject();
+  if (forwardDisplayInput(nodes_.value(id.inNodeId)["type"].toString(),port["name"].toString())) { return typeColor(source); }
+  const auto raw=port["type"];return typeColor(raw.isString() ? raw.toString() : raw.toObject()["type"].toString());
+}
+bool WorkflowGraphModel::isComment(NodeId id) const {
+  const auto type = nodes_.value(id)["type"].toString();
+  return type == "nodetool.workflows.base_node.Comment" || type == "nodetool.workflows.Comment";
+}
+QVariantMap WorkflowGraphModel::inlineDescriptor(NodeId id, const QString &name) const {
+  if (readOnly_ || !nodeExists(id) || inlineFieldRect(id, name).isEmpty()) { return {}; }
+  for (const auto &value : node_editor::propertyFields(nodes_.value(id), metadata(id), edges_)) {
+    const auto field = value.toMap();
+    if (field["name"].toString() != name || !field["editable"].toBool() || field["connected"].toBool()) { continue; }
+    const auto kind = field["kind"].toString();
+    if (kind == "text" || kind == "multiline" || kind == "number" || kind == "integer" || kind == "choice" || kind == "boolean") { return field; }
+  }
+  return {};
+}
+QRectF WorkflowGraphModel::inlineFieldRect(NodeId id, const QString &name) const {
+  const auto &card = layout(id);
+  const auto inset = node_metrics::borderWidth + node_metrics::padding;
+  for (const auto &row : card.rows) {
+    if (row.propertyName != name || name.isEmpty()) { continue; }
+    if (row.kind == NodeRowKind::Field || row.kind == NodeRowKind::Multiline) { return QRectF(inset, row.fieldY, card.size.width() - 2 * inset, row.height); }
+    if (row.kind == NodeRowKind::Number) { return QRectF(card.size.width() / 2.0, row.y, card.size.width() / 2.0 - inset, node_metrics::rowHeight); }
+    if (row.kind == NodeRowKind::Toggle) { return QRectF(card.size.width() - inset - 32, row.y, 32, node_metrics::rowHeight); }
+  }
+  return {};
+}
+QVector<NodeId> WorkflowGraphModel::descendants(NodeId id) const {
+  QVector<NodeId> result = children_.value(id);
+  QSet<NodeId> visited{id};
+  for (qsizetype i = 0; i < result.size(); ++i) {
+    if (visited.contains(result[i])) { continue; }
+    visited.insert(result[i]);
+    for (const auto child : children_.value(result[i])) {
+      if (!visited.contains(child)) { result.append(child); }
+    }
+  }
+  return result;
+}
+void WorkflowGraphModel::moveDescendants(const QHash<NodeId, QPointF> &before) {
+  QVector<NodeId> pending;
+  QSet<NodeId> visited;
+  for (auto it = nodes_.cbegin(); it != nodes_.cend(); ++it) {
+    const auto parent = ids_.value(it.value()["parent_id"].toString(), InvalidNodeId);
+    if (!nodeExists(parent) || !isGroup(parent)) { pending.append(it.key()); }
+  }
+  for (qsizetype i = 0; i < pending.size(); ++i) {
+    const auto id = pending[i];
+    if (visited.contains(id)) { continue; }
+    visited.insert(id);
+    const auto parent = ids_.value(nodes_.value(id)["parent_id"].toString(), InvalidNodeId);
+    const auto inherited = positions_.value(parent) - before.value(parent);
+    // QtNodes already moves selected descendants. Only inherit when this item
+    // did not move itself, so a parent and child selection never doubles motion.
+    if (before.contains(parent) && positions_.value(id) == before.value(id) && !inherited.isNull()) {
+      positions_[id] += inherited;
+      emit nodePositionUpdated(id);
+    }
+    pending += children_.value(id);
+  }
+}
+QJsonValue WorkflowGraphModel::comment(NodeId id) const { return nodes_.value(id)["data"].toObject()["comment"]; }
+bool WorkflowGraphModel::bypassed(NodeId id) const {
+  return nodes_.value(id)["ui_properties"].toObject()["bypassed"].toBool();
+}
 QVariant WorkflowGraphModel::nodeData(NodeId id, NodeRole r) const {
   auto n = nodes_.value(id);
   switch (r) {
@@ -352,8 +546,7 @@ QVariant WorkflowGraphModel::nodeData(NodeId id, NodeRole r) const {
   case NodeRole::CaptionVisible:
     return true;
   case NodeRole::Position: {
-    auto p = n["ui_properties"].toObject()["position"].toObject();
-    return QPointF(p["x"].toDouble(), p["y"].toDouble());
+    return positions_.value(id);
   }
   case NodeRole::InPortCount:
     return unsigned(ports(id, PortType::In).size());
@@ -366,12 +559,28 @@ QVariant WorkflowGraphModel::nodeData(NodeId id, NodeRole r) const {
   }
 }
 bool WorkflowGraphModel::setNodeData(NodeId id, NodeRole r, QVariant v) {
-  if (r != NodeRole::Position || !nodeExists(id)) {
-    return false;
+  if (readOnly_ || !nodeExists(id)) { return false; }
+  if (r == NodeRole::Size) {
+    if (isReroute(id)) { return false; }
+    const auto size = v.toSize();
+    if (size.width() <= 0 || size.height() <= 0) { return false; }
+    auto ui = nodes_[id]["ui_properties"].toObject();
+    ui["width"] = size.width();
+    ui["height"] = size.height();
+    nodes_[id]["ui_properties"] = ui;
+    layouts_.remove(id);
+    emit nodeUpdated(id);
+    return true;
   }
-  auto p = v.toPointF();
+  if (r != NodeRole::Position) { return false; }
+  const auto p = v.toPointF();
+  const auto delta = p - positions_.value(id);
+  if (delta.isNull()) { return true; }
+  positions_[id] = p;
   auto ui = nodes_[id]["ui_properties"].toObject();
-  ui["position"] = QJsonObject{{"x", p.x()}, {"y", p.y()}};
+  const auto parent = ids_.value(nodes_.value(id)["parent_id"].toString(), InvalidNodeId);
+  const auto local = p - positions_.value(parent);
+  ui["position"] = QJsonObject{{"x", local.x()}, {"y", local.y()}};
   nodes_[id]["ui_properties"] = ui;
   emit nodePositionUpdated(id);
   return true;

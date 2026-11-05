@@ -1,6 +1,7 @@
 #include "WorkflowSession.h"
 #include "MsgPack.h"
 #include <QJsonArray>
+#include <QDateTime>
 #include <QJsonDocument>
 #include <QNetworkCookieJar>
 #include <QNetworkReply>
@@ -8,13 +9,15 @@
 #include <QUuid>
 namespace nodetool::node_editor {
 WorkflowSession::WorkflowSession(QObject *parent)
-    : QObject(parent), m_network(this),
+    : QObject(parent), m_autosave(this, [this] { flushAutosave(); }), m_history(&m_generations, this), m_network(this),
       m_socket(QString(), QWebSocketProtocol::VersionLatest, this) {
+  connect(&m_history, &GenerationHistory::changed, this, &WorkflowSession::generationsChanged);
   m_socket.setMaxAllowedIncomingMessageSize(32 * 1024 * 1024);
   connect(&m_socket, &QWebSocket::connected, this, [this] {
     m_connected = true;
     emit stateChanged();
     reconnectRuns();
+    if (serverBound()) refreshRemoteWorkflow();
   });
   connect(&m_socket, &QWebSocket::disconnected, this, [this] {
     m_connected = false;
@@ -33,6 +36,12 @@ WorkflowSession::WorkflowSession(QObject *parent)
           });
 }
 void WorkflowSession::disconnectFromServer() {
+  m_autosave.cancel();
+  clearConflict();
+  m_autosaveState = "saved";
+  m_history.configure({}, {}, {});
+  m_generations.clear();
+  m_runMetadata = {};
   ++m_epoch;
   ++m_documentEpoch;
   for (auto *r : m_network.findChildren<QNetworkReply *>()) {
@@ -46,13 +55,14 @@ void WorkflowSession::disconnectFromServer() {
   m_userId.clear();
   m_runs.clear();
   m_workflow = {};
+  m_persistedWorkflow = {};
   m_catalog = {};
   m_id.clear();
   m_revision.clear();
   m_connected = false;
   m_dirty = false;
   m_saving = false;
-  emit credentialsChanged({}, {});
+  emit credentialsChanged({}, {}, {});
   emit workflowChanged();
   emit catalogChanged();
   emit stateChanged();
@@ -76,7 +86,8 @@ void WorkflowSession::connectToServer(const QUrl &base, const QString &token,
   m_base = base;
   m_token = token;
   m_userId = userId;
-  emit credentialsChanged(m_base, m_token);
+  m_history.configure(m_base, m_token, m_userId);
+  emit credentialsChanged(m_base, m_token, m_userId);
   auto ws = base;
   ws.setScheme(base.scheme() == "https" ? "wss" : "ws");
   ws.setPath("/ws");
@@ -168,12 +179,18 @@ void WorkflowSession::openWorkflow(const QString &id) {
           return;
         }
         ++m_documentEpoch;
+        m_autosave.cancel();
+        clearConflict();
+        m_autosaveState = "saved";
         m_saving = false;
         m_id = id;
         m_workflow = o;
+        m_persistedWorkflow = o;
         m_revision = o["updated_at"].toString();
         m_dirty = false;
         ++m_edit;
+        m_history.setWorkflow(o);
+        m_history.refresh();
         emit workflowOpened();
         emit workflowChanged();
         emit stateChanged();
@@ -185,6 +202,8 @@ void WorkflowSession::setSnapshot(const QJsonObject &o) {
   }
   if (o.value("id") != m_workflow.value("id")) {
     ++m_documentEpoch;
+    m_autosave.cancel();
+    clearConflict();
     m_id.clear();
     m_revision.clear();
     m_saving = false;
@@ -192,6 +211,8 @@ void WorkflowSession::setSnapshot(const QJsonObject &o) {
   m_workflow = o;
   ++m_edit;
   m_dirty = true;
+  m_autosaveState = "unsaved";
+  if (serverBound() && !m_conflictPending) m_autosave.changed();
   emit workflowChanged();
   emit stateChanged();
 }
@@ -199,6 +220,15 @@ void WorkflowSession::save() {
   if (m_saving) {
     return;
   }
+  if (m_remoteLoading) {
+    emit errorOccurred("Wait for the remote workflow comparison before saving");
+    return;
+  }
+  if (m_conflictPending) {
+    emit errorOccurred("Compare the remote workflow, then reload or keep local before saving");
+    return;
+  }
+  m_autosave.cancel();
   const bool creating = m_id.isEmpty();
   if (!creating &&
       (m_revision.isEmpty() || m_workflow["id"].toString() != m_id)) {
@@ -220,6 +250,7 @@ void WorkflowSession::save() {
   }
   const auto edit = m_edit, epoch = m_documentEpoch;
   m_saving = true;
+  m_autosaveState = "saving";
   emit stateChanged();
   request(
       creating ? "POST" : "PUT",
@@ -233,7 +264,11 @@ void WorkflowSession::save() {
         }
         m_saving = false;
         if (!error.isEmpty()) {
+          m_autosaveState = "error";
           if (status == 409) {
+            m_conflictPending = true;
+            m_autosaveState = "conflict";
+            refreshRemoteWorkflow();
             emit saveConflict(m_id);
           }
           emit errorOccurred(error);
@@ -244,6 +279,7 @@ void WorkflowSession::save() {
               "Save response omitted revision. Reload before saving again");
           m_revision.clear();
         } else {
+          m_persistedWorkflow = o;
           m_id = o["id"].toString();
           m_revision = o["updated_at"].toString();
           if (edit == m_edit) {
@@ -256,10 +292,201 @@ void WorkflowSession::save() {
             m_workflow.insert("updated_at", m_revision);
             emit workflowChanged();
           }
+          if (!m_conflictPending) {
+            m_autosaveState = m_dirty ? "unsaved" : "saved";
+            if (m_dirty) m_autosave.changed();
+          }
           emit saved(m_id);
         }
         emit stateChanged();
+        if (m_remoteAgain) { m_remoteAgain = false; refreshRemoteWorkflow(); }
       });
+}
+void WorkflowSession::detachServerWorkflow() {
+  ++m_documentEpoch;
+  ++m_loadEpoch;
+  m_autosave.cancel();
+  clearConflict();
+  m_id.clear();
+  m_revision.clear();
+  m_saving = false;
+  m_autosaveState = m_dirty ? "unsaved" : "saved";
+  emit stateChanged();
+}
+void WorkflowSession::setAutosaveEnabled(bool enabled) {
+  m_autosave.setEnabled(enabled);
+  if (enabled && m_dirty && serverBound() && !m_conflictPending) m_autosave.changed();
+  emit stateChanged();
+}
+void WorkflowSession::flushAutosave() {
+  if (!m_autosave.enabled() || !m_dirty || !serverBound() || m_saving ||
+      m_conflictPending || m_remoteLoading) return;
+  m_autosave.cancel();
+  const auto graph = m_workflow["graph"].toObject();
+  bool compatible = m_workflow["graph"].isObject() && graph["nodes"].isArray() && graph["edges"].isArray();
+  for (auto it = graph.begin(); it != graph.end(); ++it)
+    if (it.key() != "nodes" && it.key() != "edges" && it.key() != "links") compatible = false;
+  if (graph.contains("links") && !graph["links"].isArray()) compatible = false;
+  for (const auto &entry : graph["links"].toArray()) {
+    if (!entry.isObject()) { compatible = false; continue; }
+    const auto link = entry.toObject();
+    for (auto it = link.begin(); it != link.end(); ++it)
+      if (it.key() != "id" && it.key() != "source" && it.key() != "target" && it.key() != "label" && it.key() != "kind") compatible = false;
+  }
+  if (!compatible) {
+    m_autosaveState = "error";
+    emit errorOccurred("Autosave cannot preserve unsupported graph metadata. Local edits are preserved. Save a local file before editing this document on the server.");
+    emit stateChanged();
+    return;
+  }
+  const auto epoch = m_documentEpoch, edit = m_edit;
+  const auto id = m_id;
+  const auto body = QJsonObject{{"id", id}, {"save_type", "autosave"},
+    {"force", false}, {"client_id", "system"}, {"max_versions", 50},
+    {"graph", m_workflow["graph"]}, {"expected_updated_at", m_revision}};
+  const auto sent = m_workflow;
+  m_saving = true;
+  m_autosaveState = "saving";
+  emit stateChanged();
+  request("POST", "/trpc/workflows.autosave", body,
+    [this, epoch, edit, id, sent](QJsonObject response, int status, QString error) {
+      if (epoch != m_documentEpoch || id != m_id) return;
+      m_saving = false;
+      auto result = response["result"].toObject()["data"].toObject();
+      if (result["json"].isObject()) result = result["json"].toObject();
+      if (!error.isEmpty()) {
+        m_autosaveState = "error";
+        if (status == 409) {
+          m_conflictPending = true;
+          m_autosaveState = "conflict";
+          refreshRemoteWorkflow();
+          emit saveConflict(id);
+        }
+        emit errorOccurred(error);
+      } else if (result["skipped"].toBool()) {
+        // Rate limiting does not acknowledge our snapshot. Retry after the server window.
+        m_autosaveState = "unsaved";
+        m_autosave.later(30000);
+      } else if (result["updated_at"].toString().isEmpty() || !result.contains("skipped")) {
+        m_autosaveState = "error";
+        m_revision.clear();
+        emit errorOccurred("Autosave response omitted revision. Reopen the remote workflow before saving.");
+      } else {
+        m_revision = result["updated_at"].toString();
+        m_workflow.insert("updated_at", m_revision);
+        if (result.contains("etag")) m_workflow.insert("etag", result["etag"]);
+        // Autosave only persists these supported fields. Metadata edited by
+        // another surface still requires an explicit full save.
+        auto unsupported = [](QJsonObject value) {
+          for (const auto &key : {"graph", "updated_at", "etag"}) value.remove(key);
+          return value;
+        };
+        const bool fullyPersisted = unsupported(sent) == unsupported(m_persistedWorkflow);
+        m_persistedWorkflow["graph"] = sent["graph"];
+        m_persistedWorkflow["updated_at"] = m_revision;
+        if (edit == m_edit && fullyPersisted) m_dirty = false;
+        if (!m_conflictPending) {
+          m_autosaveState = m_dirty ? "unsaved" : "saved";
+          if (m_dirty && edit != m_edit) m_autosave.changed();
+        }
+        emit workflowChanged();
+        emit saved(id);
+      }
+      emit stateChanged();
+      if (m_remoteAgain) { m_remoteAgain = false; refreshRemoteWorkflow(); }
+    });
+}
+void WorkflowSession::clearConflict() {
+  ++m_remoteEpoch;
+  m_remoteWorkflow = {};
+  m_conflictPending = false;
+  m_remoteLoading = false;
+  m_remoteAgain = false;
+}
+void WorkflowSession::refreshRemoteWorkflow() {
+  if (m_id.isEmpty()) return;
+  if (m_saving || m_remoteLoading) { m_remoteAgain = true; return; }
+  const auto epoch = m_documentEpoch, remoteEpoch = ++m_remoteEpoch;
+  const auto id = m_id;
+  m_remoteLoading = true;
+  m_autosave.cancel();
+  request("GET", "/api/workflows/" + QString::fromLatin1(QUrl::toPercentEncoding(id)), {},
+    [this, epoch, remoteEpoch, id](QJsonObject remote, int status, QString error) {
+      if (epoch != m_documentEpoch || remoteEpoch != m_remoteEpoch || id != m_id) return;
+      m_remoteLoading = false;
+      if (!error.isEmpty()) {
+        // A deleted/unreadable remote must never turn into an unconditional create.
+        m_conflictPending = true;
+        m_remoteWorkflow = {};
+        m_autosaveState = status == 404 ? "deleted" : "error";
+        emit errorOccurred(status == 404 ? "Remote workflow was deleted. Local edits are preserved." : error);
+      } else if (remote["id"].toString() != id || remote["updated_at"].toString().isEmpty() || !remote["graph"].isObject()) {
+        m_conflictPending = true;
+        m_autosaveState = "error";
+        emit errorOccurred("Invalid remote workflow response. Local edits are preserved.");
+      } else if (remote["updated_at"].toString() == m_revision) {
+        if (!m_conflictPending && m_dirty) m_autosave.changed();
+      } else if (m_dirty || m_conflictPending) {
+        const bool newConflict = !m_conflictPending;
+        m_remoteWorkflow = remote;
+        m_conflictPending = true;
+        m_autosaveState = "conflict";
+        if (newConflict) emit saveConflict(id);
+      } else {
+        m_remoteWorkflow = remote;
+        reloadRemoteWorkflow();
+      }
+      emit stateChanged();
+      if (m_remoteAgain) { m_remoteAgain = false; refreshRemoteWorkflow(); }
+    });
+}
+void WorkflowSession::reloadRemoteWorkflow() {
+  if (m_remoteWorkflow.isEmpty() || m_remoteWorkflow["id"].toString() != m_id || m_saving) return;
+  m_workflow = m_remoteWorkflow;
+  m_persistedWorkflow = m_remoteWorkflow;
+  m_revision = m_workflow["updated_at"].toString();
+  ++m_edit;
+  ++m_documentEpoch;
+  m_dirty = false;
+  m_autosave.cancel();
+  clearConflict();
+  m_autosaveState = "reloaded";
+  m_history.setWorkflow(m_workflow);
+  m_history.refresh();
+  emit workflowOpened();
+  emit workflowChanged();
+  emit stateChanged();
+}
+void WorkflowSession::keepLocalWorkflow() {
+  if (!m_conflictPending || m_remoteWorkflow.isEmpty() || m_remoteLoading || m_saving) return;
+  // Explicit user consent advances CAS to the compared remote revision. A newer
+  // concurrent write still conflicts on the next save.
+  m_revision = m_remoteWorkflow["updated_at"].toString();
+  clearConflict();
+  m_dirty = true;
+  m_autosaveState = "unsaved";
+  ++m_edit;
+  emit stateChanged();
+  save();
+}
+void WorkflowSession::externalWorkflowChange(const QJsonObject &event) {
+  if (event["resource_type"] != "workflow" || !serverBound()) return;
+  const auto resource = event["resource"].toObject();
+  if (resource["id"].toString() != m_id) return;
+  if (event["event"] == "deleted") {
+    clearConflict();
+    m_autosave.cancel();
+    m_conflictPending = true;
+    m_remoteWorkflow = {};
+    m_autosaveState = "deleted";
+    emit saveConflict(m_id);
+    emit stateChanged();
+    return;
+  }
+  if (event["event"] != "updated" && event["event"] != "created") return;
+  if (resource["updated_at"].toString() == m_revision) return;
+  // Notices carry row metadata, never an authoritative editable snapshot.
+  refreshRemoteWorkflow();
 }
 bool WorkflowSession::send(const QString &cmd, const QJsonObject &data) {
   if (!m_connected) {
@@ -269,8 +496,29 @@ bool WorkflowSession::send(const QString &cmd, const QJsonObject &data) {
   return m_socket.sendBinaryMessage(encodeMsgPack(QJsonObject{
              {"type", cmd}, {"command", cmd}, {"data", data}})) >= 0;
 }
-QString WorkflowSession::run(const QJsonObject &snapshot,
-                             const QJsonObject &params) {
+QString WorkflowSession::runSelected(const QJsonObject &snapshot,
+                                     const QStringList &nodeIds,
+                                     const QJsonArray &metadata,
+                                     const QJsonObject &params) {
+  m_history.setWorkflow(snapshot);
+  if (m_history.loading()) { emit errorOccurred("Generation history is loading. Run the selection when loading finishes."); return {}; }
+  PartialRunPlanner planner(snapshot, metadata, m_generations.generations(snapshot["id"].toString()), QDateTime::currentMSecsSinceEpoch());
+  m_lastPlan = planner.plan(nodeIds);
+  if (!m_lastPlan.ok) { emit errorOccurred(m_lastPlan.error); return {}; }
+  return submitRun(m_lastPlan.snapshot, params, snapshot, metadata, m_lastPlan.executed);
+}
+QString WorkflowSession::run(const QJsonObject &snapshot, const QJsonObject &params) {
+  m_lastPlan = {};
+  QStringList executed;
+  for (const auto &value : snapshot["graph"].toObject()["nodes"].toArray()) {
+    const auto node = value.toObject();
+    if (!node["ui_properties"].toObject()["bypassed"].toBool()) { executed.append(node["id"].toString()); }
+  }
+  return submitRun(snapshot, params, snapshot, m_runMetadata, executed);
+}
+QString WorkflowSession::submitRun(const QJsonObject &snapshot, const QJsonObject &params,
+                                   const QJsonObject &fullSnapshot, const QJsonArray &metadata,
+                                   const QStringList &executed) {
   if (!m_connected) {
     emit errorOccurred("Connect before running");
     return {};
@@ -320,6 +568,7 @@ QString WorkflowSession::run(const QJsonObject &snapshot,
                    {"settings", snapshot["settings"].toObject()},
                    {"graph", QJsonObject{{"nodes", nodes}, {"edges", edges}}}};
   m_runs.insert(id, {{"workflow_id", snapshot["id"]}, {"last_seq", 0}});
+  m_generations.submitted(id, fullSnapshot, metadata, executed);
   if (!send("run_job", data)) {
     m_runs[id].insert("uncertain", true);
     emit errorOccurred(
@@ -370,6 +619,10 @@ void WorkflowSession::receive(const QByteArray &bytes) {
     m_socket.sendBinaryMessage(encodeMsgPack(QJsonObject{{"type", "pong"}}));
     return;
   }
+  if (event["type"] == "resource_change") {
+    externalWorkflowChange(event);
+    return;
+  }
   const auto id = event["job_id"].toString();
   if (!m_runs.contains(id)) {
     return;
@@ -400,6 +653,8 @@ void WorkflowSession::receive(const QByteArray &bytes) {
     }
     run.insert("last_seq", seq);
   }
+  m_generations.ingest(id, event, QDateTime::currentMSecsSinceEpoch());
+  if (type == "generation_complete") { m_history.liveChanged(); }
   emit runEvent(id, event);
 }
 } // namespace nodetool::node_editor

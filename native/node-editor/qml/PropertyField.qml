@@ -10,11 +10,14 @@ ColumnLayout {
     property bool multiline: false
     property int commitGeneration: 0
     property string editNodeId: ""
-    readonly property bool writable: descriptor.editable && !descriptor.connected && host && !host.readOnly
+    readonly property var credentialsEpoch: host && typeof host.credentialsEpoch !== "undefined" ? host.credentialsEpoch : 0
+    readonly property string descriptorIdentity: JSON.stringify([nodeId, descriptor.storage || "", descriptor.name || "", descriptor.kind || "", descriptor.dataType || {}])
+    readonly property var documentEpoch: host && typeof host.documentEpoch !== "undefined" ? host.documentEpoch : 0
+    readonly property bool writable: descriptor.editable && (!descriptor.connected || descriptor.appendStatic) && host && !host.readOnly
     readonly property var effectiveValue: descriptor.hasValue ? descriptor.value : descriptor.hasDefault ? descriptor.defaultValue : null
-    readonly property string title: descriptor.label || descriptor.name
+    readonly property string title: descriptor.label || descriptor.name || ""
     // A connected or preserved value explains itself in the hint below the label.
-    readonly property string error: descriptor.editable === false || descriptor.connected ? "" : (descriptor.error || "")
+    readonly property string error: descriptor.editable === false || (descriptor.connected && !descriptor.appendStatic) ? "" : (descriptor.error || "")
     spacing: Ui.Metrics.xs
     EditorRoles { id: roles }
     // The web inspector field: a quiet translucent fill with no idle border.
@@ -33,7 +36,7 @@ ColumnLayout {
         const id = editNodeId
         const name = descriptor.name
         Qt.callLater(function() {
-            if (root.commitGeneration === generation && target.selection === id)
+            if (root.commitGeneration === generation && root.writable && root.host === target && root.nodeId === id && target.selection === id)
                 target.commitProperty(id, name, value)
         })
     }
@@ -41,7 +44,26 @@ ColumnLayout {
         ++commitGeneration
         if (fieldLoader.item && fieldLoader.item.cancelEdit) fieldLoader.item.cancelEdit()
     }
-    onNodeIdChanged: cancelDraft()
+    function resetFieldScope() {
+        ++commitGeneration; editNodeId = ""; multiline = false
+        if (typeof fieldLoader === "undefined" || !fieldLoader || !fieldLoader.item) return
+        if (fieldLoader.item.resetScope) fieldLoader.item.resetScope()
+        else if (fieldLoader.item.cancelEdit) fieldLoader.item.cancelEdit()
+    }
+    onDescriptorIdentityChanged: resetFieldScope()
+    onDocumentEpochChanged: resetFieldScope()
+    onCredentialsEpochChanged: resetFieldScope()
+    onHostChanged: resetFieldScope()
+    onWritableChanged: if (!writable) resetFieldScope()
+    function removeValue() {
+        cancelDraft()
+        if (!writable || host.selection !== nodeId) return
+        const generation = commitGeneration, target = host, id = nodeId, name = descriptor.name
+        Qt.callLater(function() {
+            if (root.commitGeneration === generation && root.writable && root.host === target && root.nodeId === id && target.selection === id)
+                target.removeProperty(id, name)
+        })
+    }
     function immediate(value) { cancelDraft(); begin(); commit(value) }
     Ui.Text {
         text: root.title + (root.descriptor.required ? " *" : "")
@@ -55,12 +77,19 @@ ColumnLayout {
         id: fieldLoader
         Layout.fillWidth: true
         // The web inspector shows a connected input as its dimmed label alone.
-        visible: !root.descriptor.connected
+        visible: !root.descriptor.connected || root.descriptor.appendStatic === true
         sourceComponent: root.descriptor.kind === "text" ? (root.multiline ? multilineField : textField)
             : root.descriptor.kind === "multiline" ? multilineField
             : ["number", "integer"].includes(root.descriptor.kind) ? numberField
             : root.descriptor.kind === "boolean" ? booleanField
             : root.descriptor.kind === "choice" ? choiceField
+            : root.descriptor.kind === "model" ? modelField
+            : root.descriptor.kind === "media" ? mediaField
+            : root.descriptor.kind === "media_list" ? mediaListField
+            : root.descriptor.kind === "color" ? colorField
+            : root.descriptor.kind === "image_size" ? imageSizeField
+            : ["workflow", "workflow_list"].includes(root.descriptor.kind) ? workflowField
+            : root.descriptor.kind === "collection" ? collectionField
             : ["list", "dict", "json", "record_type"].includes(root.descriptor.kind) ? structuredField : preservedField
     }
     Component {
@@ -154,6 +183,77 @@ ColumnLayout {
         }
     }
     Component {
+        id: collectionField
+        CollectionPropertyEditor {
+            descriptor: root.descriptor
+            value: root.effectiveValue
+            writable: root.writable
+            nodeId: root.nodeId
+            onScopeInvalidated: { ++root.commitGeneration; root.editNodeId = "" }
+            onValueCommitted: value => root.immediate(value)
+        }
+    }
+    Component {
+        id: workflowField
+        WorkflowPropertyEditor {
+            descriptor: root.descriptor
+            value: root.effectiveValue
+            writable: root.writable
+            nodeId: root.nodeId
+            onScopeInvalidated: { ++root.commitGeneration; root.editNodeId = "" }
+            onValueCommitted: value => root.immediate(value)
+        }
+    }
+    Component {
+        id: colorField
+        ColorPropertyEditor {
+            descriptor: root.descriptor
+            value: root.effectiveValue
+            writable: root.writable
+            onValueCommitted: value => root.immediate(value)
+        }
+    }
+    Component {
+        id: imageSizeField
+        ImageSizePropertyEditor {
+            descriptor: root.descriptor
+            value: root.effectiveValue
+            writable: root.writable
+            onValueCommitted: value => root.immediate(value)
+        }
+    }
+    Component {
+        id: mediaListField
+        MediaListPropertyEditor {
+            descriptor: root.descriptor
+            value: root.effectiveValue
+            writable: root.writable
+            nodeId: root.nodeId
+            onScopeInvalidated: { ++root.commitGeneration; root.editNodeId = "" }
+            onValueCommitted: value => root.immediate(value)
+        }
+    }
+    Component {
+        id: mediaField
+        AssetPropertyEditor {
+            descriptor: root.descriptor
+            value: root.effectiveValue
+            writable: root.writable
+            nodeId: root.nodeId
+            onScopeInvalidated: { ++root.commitGeneration; root.editNodeId = "" }
+            onValueCommitted: value => root.immediate(value)
+        }
+    }
+    Component {
+        id: modelField
+        ModelPropertyEditor {
+            descriptor: root.descriptor
+            value: root.effectiveValue
+            writable: root.writable
+            onValueCommitted: value => root.immediate(value)
+        }
+    }
+    Component {
         id: preservedField
         Ui.Text {
             text: root.effectiveValue === null ? "Not set" : JSON.stringify(root.effectiveValue, null, 2)
@@ -171,7 +271,9 @@ ColumnLayout {
     }
     Ui.Text {
         visible: text !== ""
-        text: root.descriptor.connected ? "Connected input. Disconnect it to edit this value."
+        text: root.descriptor.conditionalUnavailable ? "Unavailable for the selected settings"
+            : root.descriptor.connected && root.descriptor.appendStatic ? "Connected items precede these editable static items."
+            : root.descriptor.connected ? "Connected input. Disconnect it to edit this value."
             : !root.descriptor.editable ? "This value is preserved. A dedicated editor is required."
             : root.descriptor.hasValue && root.descriptor.value === null ? "Stored null. Choose a value to replace it."
             : !root.descriptor.hasValue && !root.descriptor.hasDefault ? "Not set. This property is omitted."
@@ -220,9 +322,7 @@ ColumnLayout {
             visible: root.descriptor.required === false && !root.descriptor.hasDefault
             enabled: root.descriptor.hasValue
             onClicked: {
-                root.cancelDraft()
-                if (root.writable && root.host.selection === root.nodeId)
-                    Qt.callLater(root.host.removeProperty, root.nodeId, root.descriptor.name)
+                root.removeValue()
             }
         }
         NodeButton {
@@ -233,9 +333,7 @@ ColumnLayout {
             visible: root.descriptor.hasDefault === true
             enabled: root.descriptor.hasValue
             onClicked: {
-                root.cancelDraft()
-                if (root.writable && root.host.selection === root.nodeId)
-                    Qt.callLater(root.host.removeProperty, root.nodeId, root.descriptor.name)
+                root.removeValue()
             }
         }
     }

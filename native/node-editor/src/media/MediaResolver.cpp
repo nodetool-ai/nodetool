@@ -3,6 +3,9 @@
 #include <QCryptographicHash>
 #include <QFile>
 #include <QFileInfo>
+#include <QMimeDatabase>
+#include <QSaveFile>
+#include <QTimer>
 #include <QRegularExpression>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -33,7 +36,15 @@ void MediaResolver::configure(const QUrl &server, const QString &token) {
   server_ = server;
   token_ = token;
 }
+QString MediaResolver::resolvedText(const QString &key) const {
+  const auto identity = identities_.value(key);
+  if (!leases_.value(key).contains(identity) || !entries_.contains(identity)) { return {}; }
+  QFile file(entries_.value(identity).url.toLocalFile());
+  if (!file.open(QIODevice::ReadOnly)) { return {}; }
+  return QString::fromUtf8(file.read(65536));
+}
 void MediaResolver::cancel(const QString &key) {
+  pending_.removeIf([&key](const auto &request) { return request.key == key; });
   serials_.remove(key);
   identities_.remove(key);
   auto reply = replies_.take(key);
@@ -68,6 +79,7 @@ bool MediaResolver::makeRoom(qint64 bytes) {
 }
 void MediaResolver::clear() {
   emit cleared();
+  pending_.clear();
   serials_.clear();
   identities_.clear();
   leases_.clear();
@@ -138,7 +150,7 @@ void MediaResolver::resolve(const QString &key, const QVariant &source) {
     const auto decoded = QByteArray::fromBase64Encoding(uri.mid(comma + 1).toLatin1(), QByteArray::AbortOnBase64DecodingErrors);
     if (!decoded) { emit failed(key, "Invalid inline media data"); return; }
     if (useCached(key, serial, "bytes:" + QString::fromLatin1(QCryptographicHash::hash(decoded.decoded, QCryptographicHash::Sha256).toHex()))) { return; }
-    store(key, serial, decoded.decoded, {});
+    store(key, serial, decoded.decoded, {}, uri.mid(5, comma - 5).section(';', 0, 0));
     return;
   }
   if (uri.startsWith("package://")) { uri = "/api/assets/packages/" + uri.mid(10); }
@@ -154,9 +166,21 @@ void MediaResolver::resolve(const QString &key, const QVariant &source) {
   if (useCached(key, serial, url.toString(QUrl::FullyEncoded))) { return; }
   fetch(key, serial, url, false);
 }
+void MediaResolver::drainFetches() {
+  while (replies_.size() < 4 && !pending_.isEmpty()) {
+    const auto request = pending_.dequeue();
+    if (current(request.key, request.serial) && !useCached(request.key, request.serial, identities_.value(request.key))) {
+      fetch(request.key, request.serial, request.url, request.lookup, request.redirects);
+    }
+  }
+}
 void MediaResolver::fetch(const QString &key, quint64 serial, const QUrl &url, bool lookup, int redirects) {
   if (!current(key, serial)) { return; }
-  if (replies_.size() >= 4) { emit failed(key, "Too many media downloads. Retry after another preview loads"); return; }
+  if (replies_.size() >= 4) {
+    if (pending_.size() >= 256) { emit failed(key, "Too many pending media previews. Close another gallery and retry"); return; }
+    pending_.enqueue({key, serial, url, lookup, redirects});
+    return;
+  }
   QNetworkRequest request(url);
   request.setTransferTimeout(30000);
   request.setAttribute(QNetworkRequest::CookieLoadControlAttribute, QNetworkRequest::Manual);
@@ -165,6 +189,7 @@ void MediaResolver::fetch(const QString &key, quint64 serial, const QUrl &url, b
   if (sameOrigin(server_, url) && !token_.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + token_.toUtf8()); }
   auto *reply = network_.get(request);
   replies_[key] = reply;
+  connect(reply, &QNetworkReply::finished, this, [this] { QTimer::singleShot(0, this, [this] { drainFetches(); }); });
   connect(reply, &QNetworkReply::readyRead, this, [reply] {
     if (reply->bytesAvailable() > ItemLimit) { reply->abort(); }
   });
@@ -198,10 +223,63 @@ void MediaResolver::fetch(const QString &key, quint64 serial, const QUrl &url, b
       fetch(key, serial, target, false);
       return;
     }
-    store(key, serial, bytes, QFileInfo(url.path()).suffix());
+    store(key, serial, bytes, QFileInfo(url.path()).suffix(), reply->header(QNetworkRequest::ContentTypeHeader).toString());
   });
 }
-void MediaResolver::store(const QString &key, quint64 serial, const QByteArray &bytes, const QString &suffix) {
+QString MediaResolver::suggestedFilename(const QString &key, const QString &requested, const QString &kind) const {
+  // The name is a suggestion inside the user's chosen directory, never a path.
+  auto name = QFileInfo(QString(requested).replace('\\', '/')).fileName().trimmed();
+  if (!name.isEmpty() && !QFileInfo(name).suffix().isEmpty()) { return name; }
+  const auto identity = identities_.value(key);
+  const auto entry = entries_.constFind(identity);
+  QString extension;
+  if (entry != entries_.cend() && leases_.value(key).contains(identity)) {
+    const auto mime = entry->contentType.section(';', 0, 0).trimmed().toLower();
+    static const QHash<QString, QString> audioExtensions{
+      {"audio/mp3", "mp3"}, {"audio/mpeg", "mp3"}, {"audio/mpeg3", "mp3"},
+      {"audio/wav", "wav"}, {"audio/wave", "wav"}, {"audio/x-wav", "wav"}, {"audio/vnd.wave", "wav"},
+      {"audio/ogg", "ogg"}, {"audio/vorbis", "ogg"}, {"audio/opus", "opus"},
+      {"audio/webm", "webm"}, {"audio/flac", "flac"}, {"audio/x-flac", "flac"},
+      {"audio/aac", "aac"}, {"audio/aacp", "aac"}, {"audio/mp4", "m4a"}, {"audio/x-m4a", "m4a"},
+      {"audio/aiff", "aiff"}, {"audio/x-aiff", "aiff"}, {"audio/basic", "au"}, {"audio/x-ms-wma", "wma"}
+    };
+    extension = audioExtensions.value(mime);
+    if (extension.isEmpty() && mime.startsWith("audio/")) {
+      extension = mime.mid(6);
+      if (extension.startsWith("x-")) { extension.remove(0, 2); }
+      extension = extension.section('+', 0, 0);
+      if (!extension.contains(QRegularExpression("^[a-z0-9]{1,8}$"))) { extension.clear(); }
+    }
+    if (extension.isEmpty() && (mime.startsWith("video/") || mime.startsWith("image/"))) {
+      extension = QMimeDatabase().mimeTypeForName(mime).preferredSuffix();
+    }
+    if (extension.isEmpty()) { extension = QFileInfo(entry->url.path()).suffix(); }
+  }
+  if (name.isEmpty()) { name = kind == "audio" ? "audio" : kind == "video" ? "video" : "image"; }
+  return extension.isEmpty() ? name : name + '.' + extension;
+}
+bool MediaResolver::saveResolved(const QString &key, const QUrl &destination) {
+  const auto identity = identities_.value(key);
+  const auto entry = entries_.constFind(identity);
+  if (!serials_.contains(key) || entry == entries_.cend() || !leases_.value(key).contains(identity) || !destination.isLocalFile()) {
+    emit saveFailed(key, "The media preview is no longer available"); return false;
+  }
+  QFile source(entry->url.toLocalFile());
+  QSaveFile output(destination.toLocalFile());
+  if (!source.open(QIODevice::ReadOnly) || !output.open(QIODevice::WriteOnly)) {
+    emit saveFailed(key, "Could not save media to the selected file"); return false;
+  }
+  while (!source.atEnd()) {
+    const auto bytes = source.read(64 * 1024);
+    if (bytes.isEmpty() || output.write(bytes) != bytes.size()) {
+      output.cancelWriting(); emit saveFailed(key, "Could not save media to the selected file"); return false;
+    }
+  }
+  if (!output.commit()) { emit saveFailed(key, "Could not save media to the selected file"); return false; }
+  emit saved(key, destination);
+  return true;
+}
+void MediaResolver::store(const QString &key, quint64 serial, const QByteArray &bytes, const QString &suffix, const QString &contentType) {
   if (!current(key, serial)) { return; }
   const auto knownIdentity = identities_.value(key);
   if (entries_.contains(knownIdentity) && useCached(key, serial, knownIdentity)) { return; }
@@ -216,7 +294,7 @@ void MediaResolver::store(const QString &key, quint64 serial, const QByteArray &
   file.close();
   diskBytes_ += bytes.size();
   const auto identity = identities_.value(key);
-  entries_.insert(identity, {QUrl::fromLocalFile(path), bytes.size(), ++next_});
+  entries_.insert(identity, {QUrl::fromLocalFile(path), bytes.size(), ++next_, contentType.isEmpty() ? QMimeDatabase().mimeTypeForData(bytes).name() : contentType});
   leases_[key].insert(identity);
   emit resolved(key, QUrl::fromLocalFile(path));
 }

@@ -1,12 +1,18 @@
 #include "WorkflowDocument.h"
+#include "ConnectionTypes.h"
 #include "properties/PropertyFields.h"
 #include <QJsonDocument>
+#include <QCollator>
+#include <QLocale>
 #include <QJsonParseError>
 #include <QSet>
+#include <QRegularExpression>
 #include <QPointF>
 #include <QUuid>
 #include <QUndoCommand>
 #include <cmath>
+#include <algorithm>
+#include <limits>
 
 namespace nodetool::node_editor {
 namespace {
@@ -18,6 +24,54 @@ int indexOf(const QJsonArray& values, const QString& id) {
         if (values[i].toObject().value("id").toString() == id) { return static_cast<int>(i); }
     }
     return -1;
+}
+constexpr auto groupType = "nodetool.workflows.base_node.Group";
+constexpr auto commentType = "nodetool.workflows.base_node.Comment";
+bool isGroup(const QJsonObject& node) {
+    return node.value("type") == groupType || node.value("type") == "nodetool.workflows.Group";
+}
+bool isComment(const QJsonObject& node) {
+    return node.value("type") == commentType || node.value("type") == "nodetool.workflows.Comment";
+}
+QPointF positionOf(const QJsonObject& node) {
+    const auto position = node.value("ui_properties").toObject().value("position").toObject();
+    return {position.value("x").toDouble(), position.value("y").toDouble()};
+}
+bool editableGeometry(const QJsonObject& node) {
+    const auto ui = node.value("ui_properties");
+    if (!ui.isUndefined() && !ui.isNull() && !ui.isObject()) { return false; }
+    const auto position = ui.toObject().value("position");
+    return position.isUndefined() || position.isNull() || position.isObject();
+}
+void setPosition(QJsonObject& node, const QPointF& position) {
+    auto ui = node.value("ui_properties").toObject();
+    auto stored = ui.value("position").toObject();
+    stored.insert("x", position.x()); stored.insert("y", position.y());
+    ui.insert("position", stored); node.insert("ui_properties", ui);
+}
+// Iterative memoization handles deep imported hierarchies without recursion or
+// repeatedly walking each node's ancestors. validate() has rejected cycles.
+QHash<QString, QPointF> absolutePositions(const QJsonArray& nodes, const QJsonObject& targets = {}) {
+    QHash<QString, QJsonObject> byId;
+    QHash<QString, QPointF> absolute;
+    for (const auto& value : nodes) {
+        const auto node = value.toObject(); byId.insert(node.value("id").toString(), node);
+    }
+    for (auto it = byId.cbegin(); it != byId.cend(); ++it) {
+        QStringList path;
+        auto current = it.key();
+        while (byId.contains(current) && !absolute.contains(current)) {
+            path.append(current); current = byId.value(current).value("parent_id").toString();
+        }
+        auto position = absolute.value(current);
+        while (!path.isEmpty()) {
+            const auto id = path.takeLast();
+            if (targets.contains(id)) { const auto target = targets.value(id).toObject(); position = QPointF(target.value("x").toDouble(), target.value("y").toDouble()); }
+            else { position += positionOf(byId.value(id)); }
+            absolute.insert(id, position);
+        }
+    }
+    return absolute;
 }
 bool validType(const QJsonValue& value, int depth = 0) {
     if (!value.isObject() || depth > 128) { return false; }
@@ -58,6 +112,13 @@ QString validate(const QJsonObject& workflow) {
             const auto edge = value.toObject();
             const auto id = edge.value("id").toString();
             if (!value.isObject() || !ids.contains(edge.value("source").toString()) || !ids.contains(edge.value("target").toString())) { return "Invalid " + field + " endpoint"; }
+            if (field == "links") {
+                if (id.isEmpty()) { return "Link requires a nonempty ID"; }
+                for (const auto& member : {QStringLiteral("label"), QStringLiteral("kind")}) {
+                    const auto entry = edge.value(member);
+                    if (!entry.isUndefined() && !entry.isNull() && !entry.isString()) { return "Link label and kind must be strings or null"; }
+                }
+            }
             if (!id.isEmpty() && edgeIds.contains(id)) { return "Duplicate " + field + " ID"; }
             edgeIds.insert(id);
             if (ports && (!edge.value("sourceHandle").isString() || !edge.value("targetHandle").isString())) { return "Edge requires named ports"; }
@@ -89,44 +150,7 @@ QString validate(const QJsonObject& workflow) {
 bool loopFeedback(const QJsonObject& node, const QString& handle) {
     return node.value("type") == "nodetool.control.Loop" && (handle == "next" || handle == "condition");
 }
-// Mirrors web TypeHandler.isConnectable, including its permissive union overlap.
-bool connectable(const QJsonObject& source, const QJsonObject& target, int depth = 0) {
-    if (depth > 128) { return false; }
-    const auto a = source.value("type").toString(), b = target.value("type").toString();
-    if (a.isEmpty() || b.isEmpty()) { return false; }
-    if (a == "any" || b == "any") { return true; }
-    if ((a == "cv" && b == "chunk") || (a == "chunk" && b == "cv")) { return true; }
-    const auto aa = source.value("type_args").toArray(), ba = target.value("type_args").toArray();
-    if (a != "list" && b == "list" && ba.size() == 1 && connectable(source, ba[0].toObject(), depth + 1)) { return true; }
-    if (a == "union") {
-        for (const auto& arg : aa) { if (connectable(arg.toObject(), target, depth + 1)) { return true; } }
-        return false;
-    }
-    if (b == "union") {
-        for (const auto& arg : ba) { if (connectable(source, arg.toObject(), depth + 1)) { return true; } }
-        return false;
-    }
-    if (b == "object") {
-        const QSet<QString> nonObjects{"str", "number", "boolean", "null", "enum", "list", "dict", "union", "tuple"};
-        return !nonObjects.contains(a);
-    }
-    if (b == "enum") {
-        return a == "str" || (a == "enum" && !source.value("type_name").toString().isEmpty()
-            && source.value("type_name") == target.value("type_name"));
-    }
-    if (a == "enum") { return b == "str"; }
-    if (a == "list") {
-        return b == "list" && (aa.size() != 1 || ba.size() != 1 || connectable(aa[0].toObject(), ba[0].toObject(), depth + 1));
-    }
-    if (a == "dict") {
-        if (b != "dict") { return false; }
-        if (aa.size() < 2 || ba.size() < 2) { return true; }
-        return aa.size() == 2 && ba.size() == 2
-            && connectable(aa[0].toObject(), ba[0].toObject(), depth + 1)
-            && connectable(aa[1].toObject(), ba[1].toObject(), depth + 1);
-    }
-    return a == b;
-}
+
 QJsonObject portType(const QJsonObject& node, const QString& handle, bool output,
                      const QHash<QString, QJsonObject>& metadata) {
     const auto type = node.value("type").toString();
@@ -135,11 +159,10 @@ QJsonObject portType(const QJsonObject& node, const QString& handle, bool output
         const auto port = value.toObject();
         if (port.value("name") == handle) { return port.value("type").toObject(); }
     }
-    if (output) { return node.value("dynamic_outputs").toObject().value(handle).toObject(); }
+    if (output) { return normalizedDynamicPortType(node.value("dynamic_outputs").toObject().value(handle)); }
     const auto inputs = node.value("dynamic_inputs").toObject();
     if (inputs.contains(handle)) {
-        const auto declaration = inputs.value(handle).toObject();
-        return declaration.value("type").isObject() ? declaration.value("type").toObject() : declaration;
+        return normalizedDynamicPortType(inputs.value(handle));
     }
     if (node.value("dynamic_properties").toObject().contains(handle)
         && !node.value("dynamic_outputs").toObject().contains(handle)) { return {{"type", "any"}}; }
@@ -177,7 +200,7 @@ QString validateNewEdge(const QJsonArray& nodes, const QJsonArray& edges, const 
         const auto output = portType(byId.value(source), sourceHandle, true, metadata);
         const auto input = portType(byId.value(target), targetHandle, false, metadata);
         if (!validType(output) || !validType(input)) { return "Unknown port or unavailable type metadata"; }
-        if (!connectable(output, input)) { return "Incompatible port types"; }
+        if (!connectionTypesCompatible(output, input)) { return "Incompatible port types"; }
     }
     if (source == target) { return "Self connections are unsupported"; }
     if (!control && loopFeedback(byId.value(target), edge.value("targetHandle").toString())) { return {}; }
@@ -222,6 +245,285 @@ EditResult edit(QJsonObject& workflow, const QJsonObject& command, const QHash<Q
         if (node.value("id").toString().isEmpty()) { node.insert("id", newId()); }
         if (indexOf(nodes, node.value("id").toString()) >= 0) { return failure("Node ID already exists"); }
         nodes.append(node);
+    } else if (op == "groupNodes" || op == "ungroupNodes" || op == "detachNodes") {
+        QHash<QString, int> indices;
+        for (qsizetype i = 0; i < nodes.size(); ++i) { indices.insert(nodes[i].toObject().value("id").toString(), static_cast<int>(i)); }
+        QSet<QString> selected;
+        for (const auto& value : command.value("ids").toArray()) {
+            if (!value.isString() || !indices.contains(value.toString())) { return failure("Unknown node ID"); }
+            selected.insert(value.toString());
+        }
+        if (selected.isEmpty()) { return failure("Select at least one node"); }
+        const auto absolute = absolutePositions(nodes);
+        if (op == "groupNodes") {
+            if (command.contains("sizes") && !command.value("sizes").isObject()) { return failure("Group sizes must be an object"); }
+            const auto sizes = command.value("sizes").toObject();
+            const auto validDimension = [](const QJsonValue& dimension) {
+                return dimension.isDouble() && std::isfinite(dimension.toDouble()) && dimension.toDouble() > 0;
+            };
+            for (auto it = sizes.begin(); it != sizes.end(); ++it) {
+                const auto size = it.value().toObject();
+                if (!indices.contains(it.key()) || !validDimension(size.value("width")) || !validDimension(size.value("height"))) {
+                    return failure("Group sizes require known nodes and finite positive dimensions");
+                }
+            }
+            // Keep only selected roots. An already selected ancestor carries its
+            // descendants, even when that ancestor is several levels above.
+            QHash<QString, bool> beneathSelection;
+            for (const auto& selectedId : selected) {
+                QStringList path;
+                auto current = nodes[indices.value(selectedId)].toObject().value("parent_id").toString();
+                while (!current.isEmpty() && !selected.contains(current) && !beneathSelection.contains(current)) {
+                    path.append(current); current = nodes[indices.value(current)].toObject().value("parent_id").toString();
+                }
+                const bool beneath = selected.contains(current) || beneathSelection.value(current);
+                for (const auto& ancestor : path) { beneathSelection.insert(ancestor, beneath); }
+                beneathSelection.insert(selectedId, beneath);
+            }
+            QSet<QString> roots;
+            constexpr auto infinity = std::numeric_limits<double>::infinity();
+            double left = infinity, top = infinity, right = -infinity, bottom = -infinity;
+            for (const auto& selectedId : selected) {
+                if (beneathSelection.value(selectedId)) { continue; }
+                if (!editableGeometry(nodes[indices.value(selectedId)].toObject())) { return failure("Unsupported node geometry"); }
+                roots.insert(selectedId);
+                const auto position = absolute.value(selectedId);
+                const auto node = nodes[indices.value(selectedId)].toObject();
+                const auto ui = node.value("ui_properties").toObject();
+                const bool comment = node.value("type") == commentType || node.value("type") == "nodetool.workflows.Comment";
+                // The host supplies rendered card bounds, including dynamic
+                // properties. Headless callers use authored dimensions or the
+                // same fallback footprint as native layout.
+                const auto measured = sizes.value(selectedId).toObject();
+                const auto width = measured.contains("width") ? measured.value("width").toDouble()
+                    : validDimension(ui.value("width")) ? ui.value("width").toDouble() : isGroup(node) ? 400.0 : comment ? 300.0 : 280.0;
+                const auto height = measured.contains("height") ? measured.value("height").toDouble()
+                    : validDimension(ui.value("height")) ? ui.value("height").toDouble() : isGroup(node) ? 300.0 : comment ? 160.0 : 100.0;
+                left = std::min(left, position.x()); top = std::min(top, position.y());
+                right = std::max(right, position.x() + width + 40);
+                bottom = std::max(bottom, position.y() + height + 50);
+            }
+            const auto groupId = id.isEmpty() ? newId() : id;
+            if (indices.contains(groupId)) { return failure("Node ID already exists"); }
+            const auto title = command.value("title").toString("Group");
+            QJsonObject group{{"id", groupId}, {"type", groupType}, {"data", QJsonObject{{"headline", title}}},
+                {"ui_properties", QJsonObject{{"title", title}, {"width", std::max(right - left + 40, 200.0)}, {"height", std::max(bottom - top + 40, 200.0)}}}};
+            const QPointF origin(left - 20, top - 50);
+            setPosition(group, origin);
+            QJsonArray updated{group};
+            for (const auto& value : nodes) {
+                auto node = value.toObject(); const auto nodeId = node.value("id").toString();
+                if (roots.contains(nodeId)) { node.insert("parent_id", groupId); setPosition(node, absolute.value(nodeId) - origin); }
+                updated.append(node);
+            }
+            nodes = updated; result.idMap.insert("group", groupId);
+        } else if (op == "detachNodes") {
+            for (qsizetype i = 0; i < nodes.size(); ++i) {
+                auto node = nodes[i].toObject(); const auto nodeId = node.value("id").toString();
+                if (selected.contains(nodeId) && !node.value("parent_id").toString().isEmpty()) {
+                    if (!editableGeometry(node)) { return failure("Unsupported node geometry"); }
+                    node.remove("parent_id"); setPosition(node, absolute.value(nodeId)); nodes[i] = node;
+                }
+            }
+        } else {
+            for (const auto& selectedId : selected) { if (!isGroup(nodes[indices.value(selectedId)].toObject())) { return failure("Ungroup requires group nodes"); } }
+            // Resolve promoted parents once per removed frame, including chains
+            // of selected nested frames, to keep the operation linear.
+            QHash<QString, QString> promotedParents;
+            for (const auto& selectedId : selected) {
+                QStringList path; auto current = selectedId;
+                while (selected.contains(current) && !promotedParents.contains(current)) {
+                    path.append(current); current = nodes[indices.value(current)].toObject().value("parent_id").toString();
+                }
+                const auto parent = promotedParents.contains(current) ? promotedParents.value(current) : current;
+                for (const auto& frame : path) { promotedParents.insert(frame, parent); }
+            }
+            QJsonArray updated;
+            for (const auto& value : nodes) {
+                auto node = value.toObject(); const auto nodeId = node.value("id").toString();
+                if (selected.contains(nodeId)) { continue; }
+                const auto oldParent = node.value("parent_id").toString();
+                if (selected.contains(oldParent)) {
+                    if (!editableGeometry(node)) { return failure("Unsupported node geometry"); }
+                    const auto parent = promotedParents.value(oldParent);
+                    if (parent.isEmpty()) { node.remove("parent_id"); } else { node.insert("parent_id", parent); }
+                    setPosition(node, absolute.value(nodeId) - absolute.value(parent));
+                }
+                updated.append(node);
+            }
+            nodes = updated;
+            // A frame may carry imported links. Remove only connections whose
+            // endpoint was the removed frame, preserving all child wires.
+            const auto prune = [&](const QJsonArray& values) {
+                QJsonArray kept;
+                for (const auto& value : values) { const auto edge = value.toObject(); if (!selected.contains(edge.value("source").toString()) && !selected.contains(edge.value("target").toString())) { kept.append(value); } }
+                return kept;
+            };
+            edges = prune(edges); links = prune(links);
+        }
+    } else if (op == "renameNode" || op == "setComment" || op == "setCommentColor" || op == "setGroupColor") {
+        const auto index = indexOf(nodes, id);
+        if (index < 0) { return failure("Unknown node ID"); }
+        auto node = nodes[index].toObject();
+        const auto field = op == "renameNode" && !isGroup(node) ? "ui_properties" : "data";
+        if (node.contains(field) && !node.value(field).isObject() && !node.value(field).isNull()) { return failure("Unsupported node container"); }
+        auto container = node.value(field).toObject();
+        if (op == "renameNode") {
+            if (!command.value("title").isString()) { return failure("Title must be a string"); }
+            container.insert(isGroup(node) ? "headline" : "title", command.value("title"));
+        } else if (op == "setCommentColor" || op == "setGroupColor") {
+            if (op == "setGroupColor" ? !isGroup(node) : !isComment(node)) { return failure("Select an authored node"); }
+            const auto value = command.value("value");
+            if (!value.isNull() && (!value.isString() || !QRegularExpression("^#[0-9a-fA-F]{6}$").match(value.toString()).hasMatch())) { return failure("Invalid comment color"); }
+            container.insert(op == "setGroupColor" ? "group_color" : "comment_color", value);
+        } else {
+            if (node.value("type") != commentType && node.value("type") != "nodetool.workflows.Comment") { return failure("Select a comment node"); }
+            const auto value = command.value("value");
+            if (!value.isString() && !(value.isObject() && value.toObject().value("root").isObject())) { return failure("Comment must be markdown or Lexical JSON"); }
+            container.insert("comment", value);
+        }
+        node.insert(field, container); nodes[index] = node;
+    } else if (op == "addLink" || op == "linkNodes") {
+        auto link = command.value("link").toObject();
+        if (op == "linkNodes") {
+            const auto ids = command.value("ids").toArray();
+            if (ids.size() != 2 || !ids[0].isString() || !ids[1].isString() || ids[0] == ids[1]) { return failure("Link requires exactly two different selected nodes"); }
+            const auto first = indexOf(nodes, ids[0].toString()), second = indexOf(nodes, ids[1].toString());
+            if (first < 0 || second < 0) { return failure("Unknown node ID"); }
+            auto source = nodes[first].toObject(), target = nodes[second].toObject();
+            const auto a = positionOf(source), b = positionOf(target);
+            const QCollator collator(QLocale(QLocale::English, QLocale::UnitedStates));
+            if (a.x() > b.x() || (a.x() == b.x() && (a.y() > b.y() || (a.y() == b.y() && collator.compare(source.value("id").toString(), target.value("id").toString()) > 0)))) { std::swap(source, target); }
+            link.insert("source", source.value("id")); link.insert("target", target.value("id"));
+            if (command.contains("id")) { link.insert("id", command.value("id")); }
+            for (const auto& field : {QStringLiteral("label"), QStringLiteral("kind")}) { if (command.contains(field)) { link.insert(field, command.value(field)); } }
+        }
+        if (link.contains("id") && !link.value("id").isString()) { return failure("Link ID must be a string"); }
+        const auto source = link.value("source").toString(), target = link.value("target").toString();
+        if (source.isEmpty() || target.isEmpty() || source == target || indexOf(nodes, source) < 0 || indexOf(nodes, target) < 0) { return failure("Link requires two existing different nodes"); }
+        for (const auto& field : {QStringLiteral("label"), QStringLiteral("kind")}) {
+            const auto value = link.value(field);
+            if (!value.isUndefined() && !value.isNull() && !value.isString()) { return failure("Link label and kind must be strings or null"); }
+            if (value.isUndefined()) { link.insert(field, QJsonValue::Null); }
+        }
+        for (const auto& value : links) {
+            const auto existing = value.toObject();
+            if (existing.value("source") == source && existing.value("target") == target && (existing.value("kind").isUndefined() ? QJsonValue(QJsonValue::Null) : existing.value("kind")) == link.value("kind")) {
+                result.idMap.insert("link", existing.value("id")); return result;
+            }
+        }
+        if (link.value("id").toString().isEmpty()) { link.insert("id", newId()); }
+        if (indexOf(links, link.value("id").toString()) >= 0) { return failure("Link ID already exists"); }
+        result.idMap.insert("link", link.value("id")); links.append(link);
+    } else if (op == "removeLink") {
+        auto index = indexOf(links, id);
+        if (index < 0 && id.size() == 12 && std::all_of(id.cbegin(), id.cend(), [](QChar c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'); })) {
+            for (qsizetype i = 0; i < links.size(); ++i) {
+                if (!links[i].toObject().value("id").toString().startsWith(id)) { continue; }
+                if (index >= 0) { return failure("Ambiguous link ID prefix"); }
+                index = static_cast<int>(i);
+            }
+        }
+        if (id.isEmpty() || index < 0) { return failure("Unknown link ID"); }
+        links.removeAt(index);
+    } else if (op == "insertReroute") {
+        const auto edgeIndex = indexOf(edges, id);
+        if (id.isEmpty() || edgeIndex < 0) { return failure("Unknown data edge ID"); }
+        const auto position = command.value("position").toObject();
+        if (!position.value("x").isDouble() || !position.value("y").isDouble()
+            || !std::isfinite(position.value("x").toDouble()) || !std::isfinite(position.value("y").toDouble())) {
+            return failure("Reroute requires a finite canvas position");
+        }
+        const auto original = edges[edgeIndex].toObject();
+        if (original.value("edge_type") == "control" || original.value("type") == "control"
+            || original.value("data").toObject().value("edge_type") == "control"
+            || original.value("sourceHandle") == "__control__" || original.value("targetHandle") == "__control__") {
+            return failure("Reroutes cannot split control edges");
+        }
+        constexpr auto rerouteType = "nodetool.control.Reroute";
+        const auto definition = metadata.value(rerouteType);
+        QJsonObject reroute{{"id", newId()}, {"type", rerouteType}};
+        const auto input = portType(reroute, "input_value", false, metadata);
+        const auto output = portType(reroute, "output", true, metadata);
+        if (!validType(input) || !validType(output) || input.value("type") != "any" || output.value("type") != "any") {
+            return failure("Load canonical Reroute metadata before inserting it");
+        }
+        QJsonArray remaining;
+        for (qsizetype i = 0; i < edges.size(); ++i) { if (i != edgeIndex) { remaining.append(edges[i]); } }
+        // Validate the saved endpoint contract before introducing an `any`
+        // passthrough, which must not make an invalid saved edge appear valid.
+        if (const auto error = validateNewEdge(nodes, remaining, original, metadata); !error.isEmpty()) { return failure(error); }
+        QJsonObject defaults;
+        for (const auto& value : definition.value("properties").toArray()) {
+            const auto property = value.toObject();
+            if (property.contains("default")) { defaults.insert(property.value("name").toString(), property.value("default")); }
+        }
+        reroute.insert("data", defaults);
+        setPosition(reroute, QPointF(position.value("x").toDouble(), position.value("y").toDouble()));
+        const auto rerouteId = reroute.value("id").toString();
+        QJsonObject upstream{{"id", newId()}, {"source", original.value("source")}, {"sourceHandle", original.value("sourceHandle")},
+            {"target", rerouteId}, {"targetHandle", "input_value"}, {"edge_type", "data"}};
+        auto downstream = original;
+        downstream.insert("source", rerouteId); downstream.insert("sourceHandle", "output");
+        nodes.append(reroute);
+        if (const auto error = validateNewEdge(nodes, remaining, upstream, metadata); !error.isEmpty()) { return failure(error); }
+        remaining.append(upstream);
+        if (const auto error = validateNewEdge(nodes, remaining, downstream, metadata); !error.isEmpty()) { return failure(error); }
+        QJsonArray updated;
+        for (qsizetype i = 0; i < edges.size(); ++i) {
+            if (i == edgeIndex) { updated.append(upstream); updated.append(downstream); }
+            else { updated.append(edges[i]); }
+        }
+        edges = updated;
+        result.idMap.insert("reroute", rerouteId);
+        result.idMap.insert("upstreamEdge", upstream.value("id"));
+    } else if (op == "reconnectEdge") {
+        const auto index = indexOf(edges, id);
+        if (id.isEmpty() || index < 0) { return failure("Unknown edge ID"); }
+        if (!command.value("connection").isObject()) { return failure("Reconnect requires a connection"); }
+        const auto connection = command.value("connection").toObject();
+        const QStringList fields{"source", "target", "sourceHandle", "targetHandle"};
+        auto edge = edges[index].toObject();
+        bool unchanged = true;
+        for (const auto& field : fields) {
+            const auto value = connection.value(field);
+            if (!value.isString() || value.toString().isEmpty()) { return failure("Reconnect requires existing endpoints and named ports"); }
+            unchanged = unchanged && edge.value(field) == value;
+            edge.insert(field, value);
+        }
+        // Returning to the original endpoint remains a successful no-op even
+        // when metadata is unavailable for an imported node type.
+        if (unchanged) { return success(); }
+        const auto sourceHandle = edge.value("sourceHandle").toString();
+        const auto targetHandle = edge.value("targetHandle").toString();
+        const bool control = edge.value("edge_type") == "control" || sourceHandle == "__control__" || targetHandle == "__control__";
+        QJsonObject input;
+        const auto targetIndex = indexOf(nodes, edge.value("target").toString());
+        if (!control && targetIndex >= 0) { input = portType(nodes[targetIndex].toObject(), targetHandle, false, metadata); }
+        const auto arguments = input.value("type_args").toArray();
+        // Web isCollectType excludes list[any], bare lists and unions.
+        const bool collect = !control && input.value("type") == "list" && arguments.size() == 1 && arguments.first().toObject().value("type") != "any";
+        QSet<qsizetype> replaced;
+        QJsonArray remaining;
+        for (qsizetype i = 0; i < edges.size(); ++i) {
+            if (i == index) { continue; }
+            const auto existing = edges[i].toObject();
+            if (!collect && existing.value("target") == edge.value("target") && existing.value("targetHandle") == edge.value("targetHandle")) {
+                replaced.insert(i);
+                continue;
+            }
+            bool duplicate = true;
+            for (const auto& field : fields) { duplicate = duplicate && existing.value(field) == edge.value(field); }
+            if (duplicate) { return failure("Connection already exists"); }
+            remaining.append(existing);
+        }
+        if (const auto error = validateNewEdge(nodes, remaining, edge, metadata); !error.isEmpty()) { return failure(error); }
+        QJsonArray updated;
+        for (qsizetype i = 0; i < edges.size(); ++i) {
+            if (i == index) { updated.append(edge); }
+            else if (!replaced.contains(i)) { updated.append(edges[i]); }
+        }
+        edges = updated;
     } else if (op == "addEdge") {
         auto edge = command.value("edge").toObject();
         if (edge.value("id").toString().isEmpty()) { edge.insert("id", newId()); }
@@ -238,9 +540,11 @@ EditResult edit(QJsonObject& workflow, const QJsonObject& command, const QHash<Q
         if (id.isEmpty() || index < 0) { return failure("Unknown edge ID"); }
         edges.removeAt(index);
     } else if (op == "removeNodes" || op == "setDisabled") {
+        QHash<QString, QJsonObject> byId;
+        for (const auto& value : nodes) { const auto node = value.toObject(); byId.insert(node.value("id").toString(), node); }
         QSet<QString> selected;
         for (const auto& value : command.value("ids").toArray()) {
-            if (!value.isString() || indexOf(nodes, value.toString()) < 0) { return failure("Unknown node ID"); }
+            if (!value.isString() || !byId.contains(value.toString())) { return failure("Unknown node ID"); }
             selected.insert(value.toString());
         }
         if (selected.isEmpty()) { return failure("Select at least one node"); }
@@ -260,9 +564,22 @@ EditResult edit(QJsonObject& workflow, const QJsonObject& command, const QHash<Q
             edges = prune(edges); links = prune(links);
         } else {
             if (!command.value("disabled").isBool()) { return failure("Disabled must be boolean"); }
+            // A frame is an authoring aid, not an execution bypass. Apply the
+            // explicit state to its runnable descendants in one undo step.
+            QHash<QString, QStringList> children;
+            for (const auto& value : nodes) { const auto node = value.toObject(); children[node.value("parent_id").toString()].append(node.value("id").toString()); }
+            QStringList pending;
+            for (const auto& selectedId : selected) { if (isGroup(byId.value(selectedId))) { pending.append(selectedId); } }
+            QSet<QString> expanded;
+            while (!pending.isEmpty()) {
+                const auto parent = pending.takeLast();
+                if (expanded.contains(parent)) { continue; }
+                expanded.insert(parent);
+                for (const auto& child : children.value(parent)) { selected.insert(child); if (isGroup(byId.value(child))) { pending.append(child); } }
+            }
             for (qsizetype i = 0; i < nodes.size(); ++i) {
                 auto n = nodes[i].toObject();
-                if (selected.contains(n.value("id").toString())) {
+                if (selected.contains(n.value("id").toString()) && !isGroup(n) && !isComment(n)) {
                     if (n.contains("ui_properties") && !n.value("ui_properties").isObject() && !n.value("ui_properties").isNull()) { return failure("Unsupported UI properties"); }
                     auto ui = n.value("ui_properties").toObject(); ui.insert("bypassed", command.value("disabled")); n.insert("ui_properties", ui); nodes[i] = n;
                 }
@@ -271,12 +588,23 @@ EditResult edit(QJsonObject& workflow, const QJsonObject& command, const QHash<Q
     } else if (op == "moveNodes") {
         if (!command.value("positions").isObject()) { return failure("Positions must be an object"); }
         const auto positions = command.value("positions").toObject();
+        const auto space = command.value("space").toString("relative");
+        if (space != "relative" && space != "absolute") { return failure("Unknown position space"); }
+        const auto absolute = space == "absolute" ? absolutePositions(nodes, positions) : QHash<QString, QPointF>{};
+        QHash<QString, int> indices;
+        for (qsizetype i = 0; i < nodes.size(); ++i) { indices.insert(nodes[i].toObject().value("id").toString(), static_cast<int>(i)); }
         for (auto it = positions.begin(); it != positions.end(); ++it) {
-            const auto index = indexOf(nodes, it.key()); const auto position = it.value().toObject();
+            const auto index = indices.value(it.key(), -1); const auto position = it.value().toObject();
             if (index < 0 || !position.value("x").isDouble() || !position.value("y").isDouble() || !std::isfinite(position.value("x").toDouble()) || !std::isfinite(position.value("y").toDouble())) { return failure("Invalid node position"); }
             auto n = nodes[index].toObject();
             if (n.contains("ui_properties") && !n.value("ui_properties").isObject() && !n.value("ui_properties").isNull()) { return failure("Unsupported UI properties"); }
-            auto ui = n.value("ui_properties").toObject(); ui.insert("position", position); n.insert("ui_properties", ui); nodes[index] = n;
+            auto target = QPointF(position.value("x").toDouble(), position.value("y").toDouble());
+            if (space == "absolute") {
+                const auto parent = n.value("parent_id").toString();
+                target -= absolute.value(parent);
+            }
+            if (!editableGeometry(n)) { return failure("Unsupported node geometry"); }
+            setPosition(n, target); nodes[index] = n;
         }
     } else if (op == "addDynamicInput" || op == "renameDynamicInput" || op == "removeDynamicInput"
                || op == "addDynamicOutput" || op == "renameDynamicOutput" || op == "removeDynamicOutput") {
@@ -294,8 +622,7 @@ EditResult edit(QJsonObject& workflow, const QJsonObject& command, const QHash<Q
         }
         auto ports = n.value(field).toObject(), values = n.value("dynamic_properties").toObject();
         for (auto it = ports.begin(); it != ports.end(); ++it) {
-            const auto declaration = it.value().toObject();
-            if (!validType(!output && declaration.value("type").isObject() ? declaration.value("type") : it.value())) {
+            if (!validType(output ? it.value() : QJsonValue(normalizedDynamicPortType(it.value())))) {
                 return failure("Unsupported dynamic port declaration");
             }
         }
@@ -511,7 +838,7 @@ void WorkflowDocument::setNodeMetadata(const QJsonArray& metadata) {
 EditResult WorkflowDocument::load(const QJsonObject& workflow) {
     const auto error = validate(workflow);
     if (!workflow.value("graph").isObject()) { return failure(error); }
-    undo_.clear(); workflow_ = workflow; readOnlyReason_ = error; emit changed();
+    undo_.clear(); workflow_ = workflow; readOnlyReason_ = error; emit replaced(); emit changed();
     return success();
 }
 EditResult WorkflowDocument::loadJson(const QByteArray& json) {

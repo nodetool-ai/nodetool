@@ -4,6 +4,7 @@
 #include <QJsonDocument>
 #include <QTcpServer>
 #include <QTcpSocket>
+#include <QNetworkReply>
 #include <QWebSocketServer>
 #include <QtTest>
 using namespace nodetool::node_editor;
@@ -41,6 +42,129 @@ private slots:
     QVERIFY(!decodeMsgPack(QByteArray::fromHex("82a17801a17802")));
     QVERIFY(!decodeMsgPack(QByteArray::fromHex("cb7ff0000000000000")));
     QVERIFY(!decodeMsgPack(QByteArray::fromHex("c000")));
+  }
+  void selectedRunValidationDependenciesAndConstants() {
+    QWebSocketServer server("selected run", QWebSocketServer::NonSecureMode);
+    QVERIFY(server.listen(QHostAddress::LocalHost));
+    QList<QJsonObject> commands;
+    connect(&server, &QWebSocketServer::newConnection, this, [&] {
+      auto peer = server.nextPendingConnection(); peer->setParent(&server);
+      connect(peer, &QWebSocket::binaryMessageReceived, this, [&](const QByteArray &bytes) {
+        const auto message = decodeMsgPack(bytes); QVERIFY(message); commands.append(message->toObject());
+      });
+    });
+    WorkflowSession session;
+    QSignalSpy errors(&session, &WorkflowSession::errorOccurred);
+    session.connectToServer(QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort())), {});
+    QTRY_VERIFY(session.connected());
+    const auto node = [](const QString &id, const QString &type) { return QJsonObject{{"id", id}, {"type", type}, {"future", true}, {"data", QJsonObject{{"value", id}}}}; };
+    const auto edge = [](const QString &source, const QString &target, const QString &handle = "input") { return QJsonObject{{"id", source + target}, {"source", source}, {"target", target}, {"sourceHandle", "value"}, {"targetHandle", handle}, {"futureEdge", true}}; };
+    auto constant = node("constant", "nodetool.constant.String");
+    constant["dynamic_properties"] = QJsonObject{{"value", "live dynamic constant"}};
+    auto disabled = node("disabled", "computed"); disabled["ui_properties"] = QJsonObject{{"bypassed", true}, {"future", true}};
+    const QJsonArray metadata{QJsonObject{{"node_type", "computed"}}, QJsonObject{{"node_type", "generative"}, {"auto_save_asset", true}, {"title", "Generator"}}};
+    const QJsonObject graph{{"nodes", QJsonArray{constant, node("upstream", "computed"), node("target", "computed"), node("downstream", "computed"), node("unrelated", "computed"), disabled}},
+      {"edges", QJsonArray{edge("constant", "upstream"), edge("upstream", "target"), edge("target", "downstream"), edge("disabled", "target", "other")}}, {"futureGraph", true}};
+    const QJsonObject snapshot{{"id", "workflow"}, {"name", "Selection"}, {"futureWorkflow", true}, {"graph", graph}};
+    QVERIFY(session.runSelected(snapshot, {}, metadata).isEmpty());
+    QVERIFY(session.runSelected(snapshot, {"missing"}, metadata).isEmpty());
+    QVERIFY(session.runSelected(snapshot, {"target", "missing"}, metadata).isEmpty());
+    QVERIFY(session.runSelected(snapshot, {"disabled"}, metadata).isEmpty());
+    QVERIFY(errors.count() >= 4); QTest::qWait(20); QVERIFY(commands.isEmpty());
+    auto id = session.runSelected(snapshot, {"target", "target"}, metadata, {{"parameter", 7}}); QVERIFY(!id.isEmpty());
+    QTRY_COMPARE(commands.size(), 1);
+    const auto data = commands.last()["data"].toObject(); const auto submitted = data["graph"].toObject();
+    QCOMPARE(data["params"].toObject()["parameter"].toInt(), 7);
+    QCOMPARE(submitted["nodes"].toArray().size(), 2); QCOMPARE(submitted["edges"].toArray(), QJsonArray{edge("upstream", "target")});
+    const auto upstream = submitted["nodes"].toArray().first().toObject();
+    QCOMPARE(upstream["id"].toString(), QString("upstream")); QCOMPARE(upstream["data"].toObject()["input"].toString(), QString("live dynamic constant")); QVERIFY(upstream["future"].toBool());
+    QCOMPARE(snapshot["graph"].toObject(), graph);
+    auto generated = snapshot; auto generatedGraph = graph; auto nodes = graph["nodes"].toArray();
+    auto generator = nodes[1].toObject(); generator["type"] = "generative"; nodes[1] = generator; generatedGraph["nodes"] = nodes; generated["graph"] = generatedGraph;
+    QVERIFY(session.runSelected(generated, {"target"}, metadata).isEmpty());
+    QVERIFY(errors.last().first().toString().contains("generative")); QTest::qWait(20); QCOMPARE(commands.size(), 1);
+    QVERIFY(!session.runSelected(generated, {"target", "upstream"}, metadata).isEmpty()); QTRY_COMPARE(commands.size(), 2);
+    QCOMPARE(commands.last()["data"].toObject()["graph"].toObject()["nodes"].toArray().size(), 2);
+    QVERIFY(!session.runSelected(snapshot, {"disabled", "target"}, metadata).isEmpty()); QTRY_COMPARE(commands.size(), 3);
+    QCOMPARE(commands.last()["data"].toObject()["graph"].toObject()["nodes"].toArray().size(), 2);
+    auto first = node("first", "nodetool.constant.String"); first["data"] = QJsonObject{{"value", QJsonValue::Null}};
+    auto second = node("second", "nodetool.input.String");
+    auto target = node("collect", "computed"); target["dynamic_properties"] = QJsonObject{{"input", "old"}};
+    auto collectMetadata = metadata;
+    collectMetadata[0] = QJsonObject{{"node_type", "computed"}, {"properties", QJsonArray{QJsonObject{{"name", "input"}, {"type", QJsonObject{{"type", "list"}, {"type_args", QJsonArray{QJsonObject{{"type", "str"}}}}}}}}}};
+    const QJsonObject collect{{"graph", QJsonObject{{"nodes", QJsonArray{first, second, target}}, {"edges", QJsonArray{edge("first", "collect"), edge("second", "collect")}}}}};
+    QVERIFY(!session.runSelected(collect, {"collect"}, collectMetadata).isEmpty()); QTRY_COMPARE(commands.size(), 4);
+    const auto submittedCollect = commands.last()["data"].toObject()["graph"].toObject();
+    QCOMPARE(submittedCollect["nodes"].toArray().size(), 1); QVERIFY(submittedCollect["edges"].toArray().isEmpty());
+    QCOMPARE(submittedCollect["nodes"].toArray().first().toObject()["dynamic_properties"].toObject()["input"].toArray(), (QJsonArray{QJsonValue::Null, "second"}));
+    QJsonArray chain, chainEdges;
+    for (int i = 0; i < 1000; ++i) { chain.append(node(QString::number(i), "computed")); if (i > 0) { chainEdges.append(edge(QString::number(i-1), QString::number(i))); } }
+    chainEdges.append(edge("999", "0"));
+    const QJsonObject cyclic{{"graph", QJsonObject{{"nodes", chain}, {"edges", chainEdges}}}};
+    QVERIFY(!session.runSelected(cyclic, {"999"}, metadata).isEmpty()); QTRY_COMPARE(commands.size(), 5);
+    QCOMPARE(commands.last()["data"].toObject()["graph"].toObject()["nodes"].toArray().size(), 1000);
+  }
+  void authoritativeGenerationReuseOnTheWire() {
+    QWebSocketServer server("generation reuse", QWebSocketServer::NonSecureMode);
+    QVERIFY(server.listen(QHostAddress::LocalHost));
+    QList<QJsonObject> commands; QPointer<QWebSocket> peer;
+    connect(&server,&QWebSocketServer::newConnection,this,[&]{peer=server.nextPendingConnection();peer->setParent(&server);connect(peer,&QWebSocket::binaryMessageReceived,this,[&](const QByteArray &bytes){const auto message=decodeMsgPack(bytes);QVERIFY(message);commands.append(message->toObject());});});
+    WorkflowSession session; QSignalSpy events(&session,&WorkflowSession::runEvent);
+    session.connectToServer(QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort())),{}); QTRY_VERIFY(session.connected());
+    const QJsonArray metadata{QJsonObject{{"node_type","generator"},{"auto_save_asset",true}},QJsonObject{{"node_type","target"}}}; session.setNodeMetadata(metadata);
+    const QJsonObject snapshot{{"id","workflow"},{"graph",QJsonObject{{"nodes",QJsonArray{QJsonObject{{"id","g"},{"type","generator"},{"data",QJsonObject{{"prompt","first"}}}},QJsonObject{{"id","t"},{"type","target"}},QJsonObject{{"id","unrelated"},{"type","target"}}}},{"edges",QJsonArray{QJsonObject{{"id","edge"},{"source","g"},{"target","t"},{"sourceHandle","out"},{"targetHandle","input"}}}}}}};
+    const auto full=session.run(snapshot); QVERIFY(!full.isEmpty()); QTRY_COMPARE(commands.size(),1);
+    peer->sendBinaryMessage(encodeMsgPack(QJsonObject{{"type","output_update"},{"job_id",full},{"job_seq",1},{"node_id","g"},{"output_name","out"},{"value","incomplete preview"}})); QTRY_COMPARE(events.count(),1);
+    QVERIFY(session.runSelected(snapshot,{"t"},metadata).isEmpty()); QCOMPARE(commands.size(),1);
+    peer->sendBinaryMessage(encodeMsgPack(QJsonObject{{"type","generation_complete"},{"job_id",full},{"job_seq",2},{"index",0},{"node_id","g"},{"outputs",QJsonObject{{"out","complete authoritative value"}}}}));
+    peer->sendBinaryMessage(encodeMsgPack(QJsonObject{{"type","job_update"},{"job_id",full},{"job_seq",3},{"status","completed"}})); QTRY_COMPARE(events.count(),3);
+    const auto partial=session.runSelected(snapshot,{"t"},metadata); QVERIFY(!partial.isEmpty()); QTRY_COMPARE(commands.size(),2);
+    const auto graph=commands.last()["data"].toObject()["graph"].toObject(); QCOMPARE(graph["nodes"].toArray().size(),1); QVERIFY(graph["edges"].toArray().isEmpty());
+    const auto target=graph["nodes"].toArray().first().toObject(); QCOMPARE(target["id"].toString(),QString("t")); QCOMPARE(target["data"].toObject()["input"].toString(),QString("complete authoritative value"));
+    QCOMPARE(session.lastPartialPlan().reused,QStringList{"g"});
+    auto pinned=snapshot; auto pinnedGraph=pinned["graph"].toObject(); auto nodes=pinnedGraph["nodes"].toArray(); auto g=nodes[0].toObject(); g["ui_properties"]=QJsonObject{{"selected_generation","missing"}}; nodes[0]=g; pinnedGraph["nodes"]=nodes; pinned["graph"]=pinnedGraph;
+    QVERIFY(session.runSelected(pinned,{"t"},metadata).isEmpty()); QTest::qWait(20); QCOMPARE(commands.size(),2);
+    session.clearGenerations(); QVERIFY(session.runSelected(snapshot,{"t"},metadata).isEmpty()); QCOMPARE(commands.size(),2);
+  }
+  void liveDeterministicSubsetAndCache() {
+    const auto base=qEnvironmentVariable("NODETOOL_PARTIAL_LIVE_URL");
+    if(base.isEmpty()){QSKIP("Set NODETOOL_PARTIAL_LIVE_URL to a disposable backend for live partial execution");}
+    WorkflowSession session; QSignalSpy events(&session,&WorkflowSession::runEvent),errors(&session,&WorkflowSession::errorOccurred);
+    session.connectToServer(QUrl(base),{}); QTRY_VERIFY_WITH_TIMEOUT(session.connected(),10000); QTRY_VERIFY_WITH_TIMEOUT(!session.catalog().isEmpty(),10000);
+    const auto metadata=session.catalog()["nodes"].toArray(); QVERIFY(!metadata.isEmpty()); session.setNodeMetadata(metadata);
+    const auto textNode=[](QString id,QString type,QJsonObject data){return QJsonObject{{"id",id},{"type",type},{"data",data},{"future",true}};};
+    auto constant=textNode("source","nodetool.constant.String",{{"value","native"}});
+    auto transform=textNode("transform","nodetool.text.Prompt",{{"prompt","{{ input|upper }}"}});
+    auto target=textNode("target","nodetool.text.Prompt",{{"prompt","Result {{ input }}"}});
+    const QJsonObject input{{"input",QJsonObject{{"type",QJsonObject{{"type","str"},{"type_args",QJsonArray{}}}},{"required",true}}}};
+    transform["dynamic_inputs"]=input; transform["dynamic_properties"]=QJsonObject{{"input",""}};
+    target["dynamic_inputs"]=input; target["dynamic_properties"]=QJsonObject{{"input",""}};
+    auto disabled=textNode("disabled","nodetool.text.Prompt",{{"prompt","must not execute"}}); disabled["ui_properties"]=QJsonObject{{"bypassed",true}};
+    const auto edge=[](QString source,QString target,QString handle="input"){return QJsonObject{{"id",source+target},{"source",source},{"sourceHandle","output"},{"target",target},{"targetHandle",handle}};};
+    QJsonObject snapshot{{"name","Native deterministic partial execution"},{"graph",QJsonObject{{"nodes",QJsonArray{constant,transform,target,textNode("unrelated","nodetool.text.Prompt",{{"prompt","unrelated"}}),disabled}},{"edges",QJsonArray{edge("source","transform"),edge("transform","target"),edge("disabled","target","ignored")}}}}};
+    QNetworkAccessManager network;
+    const auto request=[&](const QByteArray &method,const QString &path,const QJsonObject &body){QNetworkRequest req(QUrl(base).resolved(QUrl(path)));req.setHeader(QNetworkRequest::ContentTypeHeader,"application/json");auto reply=network.sendCustomRequest(req,method,(method=="GET" || method=="DELETE") ? QByteArray{} : QJsonDocument(body).toJson(QJsonDocument::Compact));QSignalSpy done(reply,&QNetworkReply::finished);if(!reply->isFinished()){done.wait(10000);}const auto bytes=reply->readAll();const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();reply->deleteLater();return qMakePair(status,QJsonDocument::fromJson(bytes).object());};
+    const auto created=request("POST","/api/workflows",snapshot); QVERIFY2(created.first>=200 && created.first<300,qPrintable(QString::number(created.first))); const auto workflowId=created.second["id"].toString(); QVERIFY(!workflowId.isEmpty()); snapshot["id"]=workflowId;
+    const auto persistedBefore=request("GET","/api/workflows/"+workflowId,{}); QCOMPARE(persistedBefore.first,200);
+    const auto authored=snapshot;
+    const auto terminal=[&](const QString &job){for(const auto &row:events){const auto event=row[1].toJsonObject();if(row[0].toString()==job && event["type"]=="job_update" && (event["status"]=="completed" || event["status"]=="failed" || event["status"]=="cancelled")){return true;}}return false;};
+    const auto executed=[&](const QString &job){QSet<QString> result;for(const auto &row:events){const auto event=row[1].toJsonObject();if(row[0].toString()==job && (event["type"]=="generation_complete" || (event["type"]=="node_update" && event["status"]=="completed"))){result.insert(event["node_id"].toString());}}return result;};
+    const auto output=[&](const QString &job){QString result;for(const auto &row:events){const auto event=row[1].toJsonObject();if(row[0].toString()==job && event["type"]=="generation_complete" && event["node_id"]=="target"){result=event["outputs"].toObject()["output"].toString();}}return result;};
+    const auto full=session.run(snapshot); QVERIFY(!full.isEmpty()); QTRY_VERIFY_WITH_TIMEOUT(terminal(full),20000); QCOMPARE(output(full),QString("Result NATIVE")); QCOMPARE(executed(full),(QSet<QString>{"transform","target","unrelated"}));
+    const auto cached=session.runSelected(snapshot,{"target"},metadata); QVERIFY2(!cached.isEmpty(),qPrintable(session.lastPartialPlan().error)); QTRY_VERIFY_WITH_TIMEOUT(terminal(cached),20000); QCOMPARE(executed(cached),(QSet<QString>{"target"})); QCOMPARE(output(cached),QString("Result NATIVE")); QCOMPARE(snapshot,authored);
+    auto graph=snapshot["graph"].toObject(); auto nodes=graph["nodes"].toArray(); constant["data"]=QJsonObject{{"value","changed"}}; nodes[0]=constant; graph["nodes"]=nodes; snapshot["graph"]=graph; const auto edited=snapshot;
+    const auto fresh=session.runSelected(snapshot,{"target"},metadata); QVERIFY2(!fresh.isEmpty(),qPrintable(session.lastPartialPlan().error)); QTRY_VERIFY_WITH_TIMEOUT(terminal(fresh),20000); QCOMPARE(executed(fresh),(QSet<QString>{"transform","target"})); QCOMPARE(output(fresh),QString("Result CHANGED")); QCOMPARE(snapshot,edited);
+    // Use deterministic Prompt outputs as a generative-metadata fixture to
+    // verify the real ForEach replay protocol without a provider-paid call.
+    auto replayMetadata=metadata;
+    for(qsizetype i=0;i<replayMetadata.size();++i){auto entry=replayMetadata[i].toObject();if(entry["node_type"]=="nodetool.text.Prompt"){entry["auto_save_asset"]=true;replayMetadata[i]=entry;}}
+    auto replay=snapshot; auto replayGraph=replay["graph"].toObject(); auto replayNodes=replayGraph["nodes"].toArray(); auto replaySource=replayNodes[1].toObject(); replaySource["ui_properties"]=QJsonObject{{"selected_generations",QJsonArray{fresh,full}}}; replayNodes[1]=replaySource; replayGraph["nodes"]=replayNodes; replay["graph"]=replayGraph; const auto replayOriginal=replay;
+    const auto replayJob=session.runSelected(replay,{"target"},replayMetadata); QVERIFY2(!replayJob.isEmpty(),qPrintable(session.lastPartialPlan().error)); QTRY_VERIFY_WITH_TIMEOUT(terminal(replayJob),20000);
+    QStringList replayValues; for(const auto &row:events){const auto event=row[1].toJsonObject();if(row[0].toString()==replayJob && event["type"]=="generation_complete" && event["node_id"]=="target"){replayValues.append(event["outputs"].toObject()["output"].toString());}}
+    QCOMPARE(replayValues,(QStringList{"Result CHANGED","Result NATIVE"})); const auto replayExecuted=executed(replayJob); QVERIFY(replayExecuted.contains("target")); QVERIFY(!replayExecuted.contains("transform")); QVERIFY(!replayExecuted.contains("disabled")); QVERIFY(!replayExecuted.contains("unrelated")); QCOMPARE(replay,replayOriginal);
+    const auto persistedAfter=request("GET","/api/workflows/"+workflowId,{}); QCOMPARE(persistedAfter.first,200); QCOMPARE(persistedAfter.second["graph"],persistedBefore.second["graph"]);
+    const auto removed=request("DELETE","/api/workflows/"+workflowId,{}); QVERIFY(removed.first>=200 && removed.first<300);
+    qInfo()<<"Live partial execution verified cached target only, edited dependency rerun, ordered replay via deterministic generative-metadata fixture, correct output, disabled/unrelated omission, unchanged local/server workflow";
   }
   void websocketRunsAreIndependent() {
     QWebSocketServer server("test", QWebSocketServer::NonSecureMode);
@@ -352,14 +476,12 @@ private slots:
     QCOMPARE(session.workflow()["name"].toString(), QString("second"));
     put.clear();
     session.save();
-    QTRY_VERIFY(!put.isEmpty());
+    QTest::qWait(20);
+    QVERIFY(put.isEmpty()); // An unresolved conflict cannot silently overwrite.
     session.setSnapshot({{"id", "other"},
                          {"name", "local"},
                          {"graph", QJsonObject{{"nodes", QJsonArray{}},
                                                {"edges", QJsonArray{}}}}});
-    pending->write("HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: " +
-                   QByteArray::number(response.size()) + "\r\n\r\n" + response);
-    pending->disconnectFromHost();
     QTest::qWait(20);
     QCOMPARE(saved.count(), 1);
     QCOMPARE(session.workflow()["id"].toString(), QString("other"));
