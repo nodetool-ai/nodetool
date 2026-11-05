@@ -63,6 +63,8 @@ import {
 import { NodeRasterizer } from "./rasterizers.js";
 
 interface CompositeRenderOptions {
+  /** Internal opt-in. Delivery remains straight-alpha RGBA8 in either mode. */
+  workingFormat?: "rgba8unorm" | "rgba16float";
   sequence: TimelineSequence;
   /** Sequence resolution and rate the frames are composited at. */
   width: number;
@@ -225,7 +227,9 @@ export async function renderTimelineComposited(
   if (signal?.aborted) throw abortError();
   const device = await acquireDevice();
   if (signal?.aborted) throw abortError();
-  const compositor = new HeadlessFrameCompositor(device, width, height);
+  const compositor = new HeadlessFrameCompositor(device, width, height, {
+    workingFormat: opts.workingFormat
+  });
   compositor.setReferenceSize(referenceWidth, referenceHeight);
   const { unavailable: fontsUnavailable } = await ensureGoogleFonts(sequence);
   const rasterizer = new NodeRasterizer(referenceWidth, referenceHeight);
