@@ -1196,6 +1196,16 @@ export class RenderTimelineNode extends BaseNode {
       let renderMode: "browser" | "composited" | "rough_cut";
 
       const browserPath = path.join(workDir, `rendered.${output.extension}`);
+      const missingBrowserAssets = new Set<string>();
+      const resolveFinalAssetPath = async (assetId: string): Promise<string | null> => {
+        // Managed preview sidecars may be supplied as URIs as well as asset IDs.
+        const proxy = /(?:^|[/\\])[a-f0-9]{32}_proxy(?:\.(?:mp4|webm|json))?(?:[?#].*)?$/;
+        if (proxy.test(assetId)) {
+          return null;
+        }
+        const file = await assets.path(assetId);
+        return file && !proxy.test(file) ? file : null;
+      };
       const renderedInBrowser = browserRendererEnabled()
         ? await this.renderInBrowser(ctx, {
             sequence: seq,
@@ -1205,12 +1215,23 @@ export class RenderTimelineNode extends BaseNode {
             durationMs,
             output,
             bitrate: Math.max(0, Number(this.bitrate) || 0),
-            resolveAssetPath: (assetId) => assets.path(assetId),
+            resolveAssetPath: async (assetId) => {
+              const file = await resolveFinalAssetPath(assetId);
+              if (!file) {
+                missingBrowserAssets.add(assetId);
+              }
+              return file;
+            },
             outPath: browserPath,
             workDir
           })
         : false;
       if (renderedInBrowser) {
+        if (missingBrowserAssets.size > 0) {
+          throw new Error(
+            `Timeline export is incomplete: media asset ${[...missingBrowserAssets].map((id) => `"${id}"`).join(", ")} has no readable original. Restore the original media and export again.`
+          );
+        }
         basePath = browserPath;
         renderMode = "browser";
         // The browser writes picture only: every audible clip is mixed in
@@ -1227,7 +1248,7 @@ export class RenderTimelineNode extends BaseNode {
           height,
           fps,
           durationMs,
-          resolveAssetPath: (assetId) => assets.path(assetId),
+          resolveAssetPath: resolveFinalAssetPath,
           outPath: basePath,
           output,
           onProgress: this.progressReporter(ctx),
