@@ -734,10 +734,12 @@ int main(int argc, char** argv) {
     QGuiApplication app(argc, argv);
     nt::render2d::loadTimelineFonts();
     app.setApplicationName(QStringLiteral("nodetool-timeline"));
+    app.setApplicationVersion(QStringLiteral(NT_APP_VERSION));
 
     QCommandLineParser parser;
     parser.setApplicationDescription(QStringLiteral("NodeTool timeline editor, native prototype"));
     parser.addHelpOption();
+    parser.addVersionOption();
     parser.addPositionalArgument(QStringLiteral("fixture"), QStringLiteral("Timeline JSON file"));
     const QCommandLineOption benchOpt(QStringLiteral("bench"), QStringLiteral("Render N frames and print timings"));
     const QCommandLineOption previewResolutionOpt(QStringLiteral("preview-resolution"),
