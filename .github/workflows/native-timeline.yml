@@ -128,7 +128,16 @@ jobs:
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
         run: |
-          choco install -y ninja pkgconfiglite
+          # The Chocolatey feed times out at times, and then choco reports nothing fatal.
+          for attempt in 1 2 3 4 5; do
+            choco install -y ninja pkgconfiglite || true
+            if command -v pkg-config.exe >/dev/null; then break; fi
+            sleep 60
+          done
+          if ! command -v pkg-config.exe >/dev/null; then
+            echo "::error::Chocolatey could not install pkg-config"
+            exit 1
+          fi
           # HarfBuzz and FreeType for the 2D rasterizer (src/render2d).
           vcpkg install harfbuzz freetype --triplet x64-windows
           vcpkg_root="$VCPKG_INSTALLATION_ROOT/installed/x64-windows"
