@@ -26,6 +26,7 @@
  * `timeline/outputFormats.ts`.
  */
 
+import { assertTimelineColorSpaceSupported } from "@nodetool-ai/timeline";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { DocumentRef, TimelineRef, VideoRef } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
@@ -1153,6 +1154,7 @@ export class RenderTimelineNode extends BaseNode {
     context?: ProcessingContext
   ): Promise<RenderTimelineNodeOutputs> {
     const seq = await loadTimelineSequence(this.timeline, context);
+    assertTimelineColorSpaceSupported(seq);
     const ctx = context as ProcessingContext;
     const scale = previewScaleOf(this.preview_scale);
     const width = evenScaled(seq.width > 0 ? seq.width : 1920, scale);

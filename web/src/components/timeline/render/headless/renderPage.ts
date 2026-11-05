@@ -14,6 +14,7 @@
  * is the backpressure.
  */
 
+import { assertTimelineColorSpaceSupported } from "@nodetool-ai/timeline";
 import { canEncodeVideo, QUALITY_HIGH, QUALITY_VERY_HIGH } from "mediabunny";
 import {
   HEADLESS_RENDER_ENTRY,
@@ -158,6 +159,7 @@ async function webgpuReadbackFailure(): Promise<string | null> {
 }
 
 window[HEADLESS_RENDER_ENTRY] = async (request) => {
+  assertTimelineColorSpaceSupported(request);
   const encoding = await chooseEncoding(request);
   const webgpuUnusable = await webgpuReadbackFailure();
   const sink: RenderSink = {
@@ -169,6 +171,7 @@ window[HEADLESS_RENDER_ENTRY] = async (request) => {
   const intermediate = encoding.kind === "video" && encoding.intermediate === true;
   let frames = 0;
   const result = await renderTimeline({
+    workingColorSpaceVersion: request.workingColorSpaceVersion,
     tracks: request.tracks,
     clips: request.clips,
     mediaTracks: request.mediaTracks,

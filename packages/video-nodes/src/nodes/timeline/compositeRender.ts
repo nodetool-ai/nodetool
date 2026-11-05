@@ -1,5 +1,6 @@
 import { rm } from "node:fs/promises";
 import { withTimelineRenderSlot } from "@nodetool-ai/runtime";
+import { assertTimelineColorSpaceSupported } from "@nodetool-ai/timeline";
 import { hasTemporalDenoise, denoiseSourceTimes, type TemporalSources, type FrameLayerPixels } from "@nodetool-ai/timeline/render";
 /**
  * Frame-by-frame render of a timeline sequence, server-side.
@@ -201,6 +202,8 @@ interface ClipVideoSource {
 export async function renderTimelineComposited(
   opts: CompositeRenderOptions
 ): Promise<CompositeRenderResult> {
+  // Refuse before queuing, so an unsupported document never waits for a slot.
+  assertTimelineColorSpaceSupported(opts.sequence);
   return withTimelineRenderSlot(() => renderTimelineCompositedAdmitted(opts), opts.signal);
 }
 
