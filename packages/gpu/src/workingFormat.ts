@@ -23,8 +23,8 @@ export function resolveWorkingModule<S extends AnyWgslStruct>(module: ShaderModu
   }
   const previous = cache.get(module);
   if (previous) {
-    // Cached specializations retain the original uniform schema.
-    return previous as unknown as ShaderModule<S>;
+    // SAFETY: this cache is keyed by the module, and a specialization keeps its uniform schema S.
+    return previous as ShaderModule<S>;
   }
   const specialize = (shader: Pick<ShaderModule, "layout" | "wgsl" | "workingWgsl">) => {
     const layout = tgpu.bindGroupLayout(Object.fromEntries(Object.entries(shader.layout.entries).map(([name, entry]) => {
