@@ -747,6 +747,36 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "list_workers",
+    module: "workers",
+    impl: "packages/agents/src/capabilities/workers.ts",
+    contract: "f5b61b2ae34c",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workers.test.ts",
+    ],
+  },
+  {
+    name: "get_worker_status",
+    module: "workers",
+    impl: "packages/agents/src/capabilities/workers.ts",
+    contract: "ea27affc592c",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workers.test.ts",
+    ],
+  },
+  {
+    name: "stop_worker",
+    module: "workers",
+    impl: "packages/agents/src/capabilities/workers.ts",
+    contract: "08363e9c263b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workers.test.ts",
+    ],
+  },
+  {
     name: "list_nodes",
     module: "nodes",
     impl: "packages/agents/src/capabilities/nodes.ts",

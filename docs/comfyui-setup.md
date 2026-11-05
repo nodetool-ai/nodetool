@@ -81,6 +81,18 @@ reach the address can submit prompts to it, so keep it on a network you trust.
 
 ## A rented GPU
 
+### Start a model with one click
+
+Open the Workers panel and select **Start** beside a model. NodeTool rents a
+RunPod pod from a tested template and tries the next GPU when RunPod has no
+capacity. Copy the URL from the pod's row into the `endpoint` of Run ComfyUI
+Workflow when the row shows **Ready**. The first start can take several minutes.
+
+The pod ends after the time on the card and deletes its files, while the
+NodeTool server runs. Anyone with the URL can use the pod. MiniMax H3 is tested.
+Wan 2.2 and LTX 2.3 are untested. The models are listed in
+[`comfy-presets.ts`](../packages/compute/src/comfy-presets.ts).
+
 ### Expose ComfyUI yourself
 
 Run ComfyUI on a pod and reach the port from outside: a RunPod pod's HTTP proxy
@@ -92,6 +104,30 @@ This publishes ComfyUI to whoever holds the URL. There is no `Authorization`
 header on the direct node's requests, so the proxy URL is the only secret, and
 anyone with it can queue prompts, read `/history`, and download outputs. Put a
 tunnel with its own auth in front of it, or use the worker below.
+
+`nodetool worker` can rent this pod from any ComfyUI image:
+
+```bash
+nodetool worker create --target runpod --image <comfyui-image> \
+  --gpu "NVIDIA A40" --comfy --max-lifetime 240
+```
+
+The command waits for `/system_stats`, then prints the `https://` endpoint. It
+terminates the pod if ComfyUI does not answer within 10 minutes. A pod that
+downloads models at boot needs a longer `--ready-timeout <minutes>`.
+
+To start from a RunPod template, replace `--image` with `--template <id>`. RunPod
+supplies the template's image, environment, ports and disks, and `--disk`
+overrides the volume size. The template must publish the `--comfy` port. A pod
+that bills for a volume keeps billing after `worker stop`, and
+`nodetool worker terminate <id>` ends all billing.
+
+- `--max-lifetime` is required, and only a running NodeTool API server enforces
+  it. Without the server, stop the pod yourself.
+- `--idle-timeout` and `--attach` are rejected. The idle clock reads worker
+  bridge traffic, and this pod has no bridge.
+- The persistent volume mounts at `/workspace`. An image that keeps ComfyUI or
+  its models in that path needs its own copy step at start.
 
 ### The NodeTool ComfyUI worker
 
