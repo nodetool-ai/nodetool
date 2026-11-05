@@ -260,7 +260,7 @@ jobs:
           exit "$diagnostic_status"
 
       - name: Upload export golden failure frames
-        if: failure()
+        if: github.event_name != 'push' && failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: native-timeline-export-golden-${{ runner.os }}
