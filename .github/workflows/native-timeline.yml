@@ -32,6 +32,7 @@ env:
   NT_NO_HW_DECODE: "1"
   CCACHE_BASEDIR: ${{ github.workspace }}
   CCACHE_COMPILERCHECK: content
+  CCACHE_MAXSIZE: 2G
 
 jobs:
   build:
@@ -70,7 +71,7 @@ jobs:
         env:
           NODETOOL_TURBO_CONCURRENCY: "2"
         run: |
-          npm ci --ignore-scripts
+          bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" npm ci --ignore-scripts
           npm run rebuild:native
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             npm run build:packages:tsc
@@ -93,9 +94,9 @@ jobs:
       - name: Free disk space (Linux)
         if: runner.os == 'Linux'
         run: |
-          df -h /
+          bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh"
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
-          df -h /
+          bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh"
 
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
@@ -120,7 +121,7 @@ jobs:
           pipx run aqtinstall install-qt linux desktop "$QT_VERSION" linux_gcc_64 -m qtshadertools qtwebsockets -O "$RUNNER_TEMP/qt"
           echo "QT_PREFIX=$RUNNER_TEMP/qt/$QT_VERSION/gcc_64" >> "$GITHUB_ENV"
           # FFmpeg as LGPL shared libraries, as the packages ship it.
-          native/timeline/scripts/build-ffmpeg-lgpl.sh
+          bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" native/timeline/scripts/build-ffmpeg-lgpl.sh
           echo "PKG_CONFIG_PATH=$GITHUB_WORKSPACE/native/timeline/build-ffmpeg-lgpl/install/lib/pkgconfig" >> "$GITHUB_ENV"
           echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/native/timeline/build-ffmpeg-lgpl/install/lib" >> "$GITHUB_ENV"
 
@@ -179,6 +180,10 @@ jobs:
           restore-keys: |
             native-ccache-${{ runner.os }}-qt${{ env.QT_VERSION }}-
 
+      - name: Bound restored compiler cache
+        if: runner.os != 'Windows'
+        run: ccache --cleanup
+
       - name: Verify prerequisites and prepare media
         run: |
           node native/timeline/scripts/check-ci-prerequisites.mjs
@@ -200,7 +205,7 @@ jobs:
       - name: Build
         id: native-build
         # -k 0 reports every failing file in one run, not only the first.
-        run: cmake --build native/timeline/build-ci --parallel 3 -- -k 0
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" cmake --build native/timeline/build-ci --parallel 3 -- -k 0
 
       # Preserve successful compilation even when a later test fails.
       - name: Save compiler cache
@@ -410,15 +415,15 @@ jobs:
       - name: Build the server and timeline packages
         working-directory: .
         run: |
-          npm ci --ignore-scripts
+          bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" npm ci --ignore-scripts
           npm run rebuild:native
           npm run build:packages
       # Hosted runners have run out of disk while building FFmpeg (No space left on device).
       - name: Free disk space
         run: |
-          df -h /
+          bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh"
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
-          df -h /
+          bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh"
 
       - name: Install dependencies (Linux)
         working-directory: .
@@ -443,7 +448,7 @@ jobs:
           pipx run aqtinstall install-qt linux desktop "$QT_VERSION" linux_gcc_64 -m qtshadertools qtwebsockets -O "$RUNNER_TEMP/qt"
           echo "QT_PREFIX=$RUNNER_TEMP/qt/$QT_VERSION/gcc_64" >> "$GITHUB_ENV"
           # FFmpeg as LGPL shared libraries, as the packages ship it.
-          native/timeline/scripts/build-ffmpeg-lgpl.sh
+          bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" native/timeline/scripts/build-ffmpeg-lgpl.sh
           echo "PKG_CONFIG_PATH=$GITHUB_WORKSPACE/native/timeline/build-ffmpeg-lgpl/install/lib/pkgconfig" >> "$GITHUB_ENV"
           echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/native/timeline/build-ffmpeg-lgpl/install/lib" >> "$GITHUB_ENV"
 
@@ -453,10 +458,12 @@ jobs:
           scripts/make-fixtures.sh
       - name: Configure
         run: |
+          # ELF compression keeps line tables without duplicating large debug sections.
           cmake --preset "${{ matrix.preset }}" -DCMAKE_PREFIX_PATH="$QT_PREFIX" \
+            -DCMAKE_EXE_LINKER_FLAGS="-Wl,--compress-debug-sections=zlib" \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
       - name: Build
-        run: nice -n 10 cmake --build --preset "${{ matrix.preset }}" -j 3
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" nice -n 10 cmake --build --preset "${{ matrix.preset }}" -j 3
       - name: Verify checker fixtures
         run: |
           node tools/sanitizers/check-plants.mjs --self-test

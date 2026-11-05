@@ -7,6 +7,7 @@
 #include <QSettings>
 #include <QTemporaryDir>
 #include <QTest>
+#include <QThread>
 #include <QUrlQuery>
 
 namespace {
@@ -20,6 +21,17 @@ QJsonObject input(const QUrl& url) {
 class CatalogServerTest : public QObject {
     Q_OBJECT
 private slots:
+    void teardownWithoutEventLoop() {
+        auto catalog = std::make_unique<ModelCatalogController>();
+        // No event processing: completion and deferred deletion remain queued,
+        // as when the application event loop has already stopped.
+        catalog->configure(QUrl("invalid://catalog"));
+        QPointer<QThread> worker = catalog->findChild<QThread*>();
+        QVERIFY(worker);
+        QVERIFY(worker->wait(10000));
+        catalog.reset();
+        QVERIFY(worker.isNull());
+    }
     void providerContracts() {
         QTemporaryDir settings;
         QSettings::setDefaultFormat(QSettings::IniFormat);

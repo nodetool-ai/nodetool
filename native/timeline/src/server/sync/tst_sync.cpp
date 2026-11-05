@@ -538,12 +538,32 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(refreshes.size(), 1, 1000);
         fixture.peers[0]->close(QWebSocketProtocol::CloseCodeGoingAway, "restart");
         fixture.server.close();
+        // Reject the retry at the HTTP handshake. A closed TCP port can take
+        // seconds to fail on Windows, independently of the reconnect backoff.
+        QTcpServer unavailable;
+        QVERIFY(unavailable.listen(QHostAddress::LocalHost, port));
+        int rejected = 0;
+        connect(&unavailable, &QTcpServer::newConnection, &unavailable, [&] {
+            auto* socket = unavailable.nextPendingConnection();
+            socket->setParent(&unavailable);
+            connect(socket, &QTcpSocket::readyRead, socket, [socket, &rejected] {
+                socket->setProperty("request", socket->property("request").toByteArray() + socket->readAll());
+                if (!socket->property("request").toByteArray().contains("\r\n\r\n")) {
+                    return;
+                }
+                ++rejected;
+                socket->write("HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\nContent-Length: 0\r\n\r\n");
+                socket->disconnectFromHost();
+            });
+        });
         QTRY_COMPARE_WITH_TIMEOUT(delays.size(), 1, 1000);
         QCOMPARE(delays[0][0].toInt(), first);
         QVERIFY(!client.connected());
         QCOMPARE(client.state(), ResourceChangeClient::State::Reconnecting);
         QTRY_VERIFY2_WITH_TIMEOUT(delays.size() == 2, qPrintable(transitions.join("; ")), 1000);
         QCOMPARE(delays[1][0].toInt(), second);
+        QCOMPARE(rejected, 1);
+        unavailable.close();
         QVERIFY(fixture.server.listen(QHostAddress::LocalHost, port));
         QTRY_COMPARE_WITH_TIMEOUT(fixture.peers.size(), 2, 1000);
         QTRY_COMPARE_WITH_TIMEOUT(refreshes.size(), 2, 1000);

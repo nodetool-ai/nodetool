@@ -191,8 +191,29 @@ struct Editor {
 }
 class TestClipEffects : public QObject {
     Q_OBJECT
+    // These groups vary only the effect. Keep the editor mounted and reset the document per row.
+    std::unique_ptr<Editor> dataEditor;
+    QByteArray dataDocument;
+    QByteArray dataFunction;
+    Editor& editorForDataRow() {
+        const QByteArray function = QTest::currentTestFunction();
+        if (!dataEditor || dataFunction != function) {
+            dataEditor = std::make_unique<Editor>();
+            dataDocument = dataEditor->model.documentJson();
+            dataFunction = function;
+        } else {
+            auto parsed = nt::parseTimelineJson(dataDocument);
+            dataEditor->model.setTimeline(std::move(*parsed.timeline));
+            dataEditor->select("picture");
+        }
+        return *dataEditor;
+    }
 private slots:
     void init() {
+        const QByteArray function = QTest::currentTestFunction();
+        if (function != "catalogue" && function != "parameterFields") {
+            dataEditor.reset();
+        }
         QTest::failOnWarning(QRegularExpression("(EffectFields|ToneCurveEditor)\\.qml:.*(Unable to assign|TypeError|ReferenceError)"));
         QTest::failOnWarning(QRegularExpression(
             "(InspectorActionButton|InspectorSectionTitle)\\.qml:.*does not support customization"));
@@ -409,7 +430,9 @@ void TestClipEffects::catalogue_data() {
 void TestClipEffects::catalogue() {
         QFETCH(QByteArray,expected);
         const auto wanted = QJsonDocument::fromJson(expected).object();
-        Editor e; QVERIFY2(e.object,qPrintable(e.error));
+        Editor& e = editorForDataRow(); QVERIFY2(e.object,qPrintable(e.error));
+        QCOMPARE(e.model.documentJson(), dataDocument);
+        QCOMPARE(e.model.undoStack()->count(), 0);
         const auto before = e.model.documentJson();
         QVERIFY2(e.add(wanted["type"].toString()),"Add effect must be reachable through the searchable popover");
         QCOMPARE(e.effects().size(),1); auto actual = e.effects()[0].toObject();
@@ -500,7 +523,9 @@ void TestClipEffects::parameterFields_data() {
 
 void TestClipEffects::parameterFields() {
         QFETCH(QString,type); QFETCH(QString,field); QFETCH(QString,input); QFETCH(QByteArray,expected);
-        Editor e; QVERIFY2(e.object,qPrintable(e.error));
+        Editor& e = editorForDataRow(); QVERIFY2(e.object,qPrintable(e.error));
+        QCOMPARE(e.model.documentJson(), dataDocument);
+        QCOMPARE(e.model.undoStack()->count(), 0);
         if (type=="denoise") { e.patch({{"mediaType","video"}}); e.model.undoStack()->clear(); }
         if (type == "liftGammaGain") { QVERIFY(e.addGrade("grade",{{"type",type},{"enabled",true},{"lift",QJsonArray{0,0,0}},{"gamma",QJsonArray{1,1,1}},{"gain",QJsonArray{1,1,1}}})); }
         else { QVERIFY(e.add(type)); }
