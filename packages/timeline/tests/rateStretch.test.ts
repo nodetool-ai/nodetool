@@ -50,6 +50,28 @@ describe("rateStretchClips", () => {
     expect(byId(out, "a")).toMatchObject({ startMs: 1500, durationMs: 500, speedMultiplier: 2 });
   });
 
+  it.each([1, 2])("caps a start-edge stretch at timeline zero with source rate %s", (speed) => {
+    const original = clip("a", 1000, 1000, { inPointMs: 500, outPointMs: 500 + 1000 * speed, speedMultiplier: speed });
+    const [out] = rateStretchClips([original], new Set(["a"]), "a", "start", 3000);
+    expect(out).toMatchObject({ startMs: 0, durationMs: 2000, speedMultiplier: speed / 2, inPointMs: 500, outPointMs: 500 + 1000 * speed });
+    expect(out.startMs + out.durationMs).toBe(2000);
+  });
+
+  it("caps every linked member by the earliest start relative to its duration", () => {
+    const clips = [
+      clip("a", 1000, 1000, { linkId: "L" }),
+      clip("b", 250, 500, { linkId: "L", trackId: "a1" })
+    ];
+    const out = rateStretchClips(clips, new Set(["a", "b"]), "a", "start", 3000);
+    expect(byId(out, "a")).toMatchObject({ startMs: 500, durationMs: 1500 });
+    expect(byId(out, "b")).toMatchObject({ startMs: 0, durationMs: 750 });
+    for (const original of clips) {
+      const retimed = byId(out, original.id);
+      expect(retimed.startMs + retimed.durationMs).toBe(original.startMs + original.durationMs);
+      expect(retimed.durationMs * retimed.speedMultiplier!).toBeCloseTo(original.durationMs);
+    }
+  });
+
   it("stops at the neighbour on the track", () => {
     const out = rateStretchClips(
       [clip("a", 0, 1000), clip("b", 1500, 1000)],

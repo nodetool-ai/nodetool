@@ -43,21 +43,25 @@ const CREDENTIAL_KEY_RE =
   /(^|_)(api_?key|secret|token|password|passwd|credentials?|bearer|access_?key|private_?key)$/i;
 
 const blankCredentials = (record: unknown): unknown => {
-  if (record === null || typeof record !== "object" || Array.isArray(record)) {
+  if (Array.isArray(record)) {
+    return record.map(blankCredentials);
+  }
+  if (record === null || typeof record !== "object") {
     return record;
   }
   return Object.fromEntries(
-    Object.entries(record as Record<string, unknown>).map(([key, value]) => [
+    Object.entries(record).map(([key, value]) => [
       key,
       typeof value === "string" && value !== "" && CREDENTIAL_KEY_RE.test(key)
         ? ""
-        : value
+        : blankCredentials(value)
     ])
   );
 };
 
 /**
- * A shared graph with credential properties blanked. A public link reaches
+ * A shared graph with credential properties blanked, including embedded
+ * Workflow/App snapshots and nested property bags. A public link reaches
  * anyone, and a copy belongs to someone else, so neither may carry the
  * owner's tokens.
  */
@@ -71,6 +75,9 @@ export function redactSharedGraph<T extends { nodes: unknown[] }>(graph: T): T {
         ...record,
         data: blankCredentials(record.data)
       };
+      if ("properties" in record) {
+        redacted.properties = blankCredentials(record.properties);
+      }
       if ("dynamic_properties" in record) {
         redacted.dynamic_properties = blankCredentials(
           record.dynamic_properties

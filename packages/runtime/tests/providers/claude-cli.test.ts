@@ -1,4 +1,6 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
+import { EventEmitter } from "node:events";
+import { PassThrough } from "node:stream";
 import { spawn } from "node:child_process";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
@@ -15,6 +17,7 @@ import {
   type ClaudeCliLookupEnv,
   type ClaudeCliMessage,
   type ClaudeCliOptions,
+  type ClaudeCliProcess,
   type ClaudeCliSpawnFn,
   type ClaudeToolServer
 } from "../../src/providers/claude-cli.js";
@@ -301,6 +304,39 @@ describe("resolveClaudeCliPath", () => {
 });
 
 describe("runClaudeCli against a fake CLI", () => {
+  it("kills a child cancelled during spawn without sending a prompt or waiting for close", async () => {
+    const started = Promise.withResolvers<void>();
+    const spawning = Promise.withResolvers<ClaudeCliProcess>();
+    const stdin = new PassThrough();
+    const stdout = new PassThrough();
+    const stderr = new PassThrough();
+    const child = Object.assign(new EventEmitter(), { stdin, stdout, stderr, kill: vi.fn(() => true) });
+    const options = baseOptions();
+    const result = collect(runClaudeCli({
+      cliPath: "claude", prompt: "hello", options,
+      spawn: async () => {
+        started.resolve();
+        return spawning.promise;
+      }
+    }));
+    await started.promise;
+    options.abortController.abort();
+    spawning.resolve(child);
+    try {
+      await expect.poll(() => child.kill.mock.calls.length).toBeGreaterThan(0);
+      expect(stdin.readableLength).toBe(0);
+      expect(stdin.writableEnded).toBe(true);
+      await expect(result).resolves.toEqual([]);
+      expect(() => stdin.emit("error", new Error("closed pipe"))).not.toThrow();
+      expect(() => child.emit("error", new Error("cancelled spawn"))).not.toThrow();
+    } finally {
+      child.emit("close", null, "SIGTERM");
+      stdout.end();
+      stderr.end();
+      await result;
+    }
+  });
+
   it("sends initialize then the prompt, and streams messages until the result", async () => {
     const log = await logFile();
     const messages = await collect(

@@ -44,6 +44,24 @@ async function rows(): Promise<Prediction[]> {
 }
 
 describe("priceGeneration", () => {
+  it.each(["duration_seconds", "duration", "seconds"])(
+    "prices a per-megapixel video using %s",
+    (durationKey) => {
+      const priced = priceGeneration({
+        userId: USER,
+        provider: "fal_ai",
+        model: "fal-ai/ltx-2-19b/distilled/text-to-video",
+        capability: "text_to_video",
+        params: { [durationKey]: 5, resolution: "720p" }
+      });
+
+      expect(priced).not.toBeNull();
+      expect(priced!.quantity).toBe(115.2);
+      expect(priced!.cost).toBeCloseTo(priced!.unit_price * 115.2);
+      expect(priced!.cost).toBeGreaterThan(0);
+    }
+  );
+
   it("prices a per-megapixel video on every frame", () => {
     const spend = {
       userId: USER,

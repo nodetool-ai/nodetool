@@ -9037,6 +9037,10 @@
           "button": "Opper-API-Schlüssel abrufen",
           "tooltip": "Rufe die Opper-Plattform auf, um deinen API-Schlüssel zu erhalten"
         },
+        "CHEAPER_INFERENCE_API_KEY": {
+          "button": "Cheaper-Inference-API-Schlüssel abrufen",
+          "tooltip": "Rufe Cheaper Inference auf, um deinen API-Schlüssel zu erhalten"
+        },
         "API_ROUTE_API_KEY": {
           "button": "API-Route-Schlüssel abrufen",
           "tooltip": "Zur API-Route-API-Schlüsselseite"
@@ -9534,6 +9538,16 @@
         "title": "Graphen auf einer gemieteten GPU ausführen",
         "description": "Verbinde RunPod einmal und wähle eine GPU. NodeTool führt dann deine Python-Nodes darauf aus, und Worker im Leerlauf pausieren von selbst.",
         "action": "Worker einrichten"
+      },
+      "presets": {
+        "summary_one": "Etwa {{min}}–{{max}} pro Stunde. Endet nach {{count}} Stunde und löscht seine Dateien.",
+        "summary_other": "Etwa {{min}}–{{max}} pro Stunde. Endet nach {{count}} Stunden und löscht seine Dateien.",
+        "start": "Starten",
+        "starting": "Wird gestartet…",
+        "startAria": "{{name}} auf einer gemieteten GPU starten",
+        "bootingHint": "ComfyUI wird geladen. Der erste Start kann einige Minuten dauern.",
+        "readyHint": "Kopiere die URL in „Run ComfyUI Workflow“. Jeder mit dieser URL kann den Pod nutzen.",
+        "copyEndpoint": "ComfyUI-URL kopieren"
       }
     }
   },

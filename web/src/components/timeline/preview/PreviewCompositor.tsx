@@ -211,6 +211,10 @@ function hasAnimatedGrain(effects: readonly ClipEffect[] | undefined): boolean {
   return effects?.some((effect) => effect.type === "grain" && effect.enabled && effect.animate) ?? false;
 }
 
+function hasClipFade(clip: TimelineClip): boolean {
+  return (clip.fadeInMs ?? 0) > 0 || (clip.fadeOutMs ?? 0) > 0;
+}
+
 /** Scene properties that the shared model, rather than animation sampling, resolves. */
 export function sceneRequiresPerFrameResolution(
   layers: readonly ActiveLayer[],
@@ -220,12 +224,13 @@ export function sceneRequiresPerFrameResolution(
 ): boolean {
   return animatedLayout ||
     precomposites.some((group) => group.transition !== undefined || hasAnimatedGrain(group.effects)) ||
-    clips.some((clip) => clip.mediaType === "adjustment" && hasAnimatedGrain(clip.effects)) || layers.some(
+    clips.some((clip) => clip.mediaType === "adjustment" && (hasClipFade(clip) || hasAnimatedGrain(clip.effects))) || layers.some(
     (layer) =>
       layer.transition !== undefined || layer.clip.reframe !== undefined ||
       // A clip fade is folded into the layer's opacity by the scene model, so
       // the layer set from the clip's first frame (opacity 0) cannot be reused.
-      (layer.clip.fadeInMs ?? 0) > 0 || (layer.clip.fadeOutMs ?? 0) > 0 ||
+      hasClipFade(layer.clip) ||
+      (layer.matte !== undefined && hasClipFade(layer.matte.layer.clip)) ||
       layer.camera2d?.keyframes !== undefined ||
       isRunningModel3DLayer(layer) ||
       hasAnimatedAncestorGroup(layer, clips) ||
@@ -2184,7 +2189,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
   buildLayersRef.current = buildLayers;
   const precompositesRef = useRef(precomposites);
   precompositesRef.current = precomposites;
-  const hasAnimatedAdjustments = previewClips.some((clip) => clip.mediaType === "adjustment" && (clip.animations?.length || hasAnimatedGrain(clip.effects)));
+  const hasAnimatedAdjustments = previewClips.some((clip) => clip.mediaType === "adjustment" && (clip.animations?.length || hasClipFade(clip) || hasAnimatedGrain(clip.effects)));
   const hasAnimatedAdjustmentsRef = useRef(hasAnimatedAdjustments);
   hasAnimatedAdjustmentsRef.current = hasAnimatedAdjustments;
   const adjustmentsRef = useRef(adjustments);

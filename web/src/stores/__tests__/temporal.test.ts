@@ -265,6 +265,35 @@ describe("temporal middleware", () => {
       expect(temporalOf(store).futureStates).toEqual([{ count: 1 }]);
     });
 
+    it.each([1, 3])("keeps all prior entries when an empty group starts at limit %s", (limit) => {
+      const store = makeStore({ equality: sameCount, limit });
+      for (let i = 1; i <= limit; i++) {
+        store.getState().setCount(i);
+      }
+      const before = temporalOf(store).pastStates;
+      temporalOf(store).beginGroup();
+      expect(temporalOf(store).pastStates).toHaveLength(limit);
+      temporalOf(store).endGroup();
+      expect(temporalOf(store).pastStates).toEqual(before);
+      temporalOf(store).undo(limit);
+      expect(store.getState().count).toBe(0);
+    });
+
+    it("keeps rebased history when an unchanged group's checkpoint was replaced", () => {
+      const store = makeStore({ equality: sameCount, limit: 2 });
+      store.getState().setCount(1);
+      store.getState().setCount(2);
+      temporalOf(store).beginGroup();
+      store.getState().setCount(12);
+      store.temporal.setState({
+        pastStates: temporalOf(store).pastStates.map(({ count }) => ({ count: count + 10 }))
+      });
+      temporalOf(store).endGroup();
+      expect(temporalOf(store).pastStates).toEqual([{ count: 11 }]);
+      temporalOf(store).undo();
+      expect(store.getState().count).toBe(11);
+    });
+
     it("nests, recording only for the outermost group", () => {
       const store = makeStore({ equality: sameCount });
       temporalOf(store).beginGroup();

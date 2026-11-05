@@ -1,6 +1,9 @@
 import { act, renderHook } from "@testing-library/react";
 import { useOpenPresetAsWorkflow } from "../useOpenPresetAsWorkflow";
 import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
+import type { WorkflowRequest } from "../../../stores/ApiTypes";
+import { graphNodeToReactFlowNode } from "../../../stores/graphNodeToReactFlowNode";
+import { ejectPresetIds } from "../../../lib/presets/ejectPresets";
 
 const mockCreate = jest.fn();
 const mockNotify = jest.fn();
@@ -62,6 +65,34 @@ describe("useOpenPresetAsWorkflow", () => {
       (node: { id: string }) => node.id === "generate"
     );
     expect(generator.data.model.id).toBe("");
+  });
+
+  it("preserves Golden embers node positions when the saved graph opens in the editor", async () => {
+    const presetIds = ["effect.golden-embers"];
+    const model = { provider: "fake", id: "fake-video" };
+    const ejected = ejectPresetIds(presetIds, "video", model);
+    if (!ejected) {
+      throw new Error("Golden embers must eject a workflow");
+    }
+    mockCreate.mockResolvedValue({ id: "wf-embers", name: "Golden embers" });
+    const { result } = renderHook(() => useOpenPresetAsWorkflow());
+    await act(async () => {
+      await result.current(presetIds, { kind: "video", model });
+    });
+
+    const request: WorkflowRequest = mockCreate.mock.calls[0][0];
+    if (!request.graph) {
+      throw new Error("The created workflow must contain a graph");
+    }
+    expect(request.graph.nodes).toHaveLength(ejected.graph.nodes.length);
+    for (const node of request.graph.nodes) {
+      const original = ejected.graph.nodes.find((source) => source.id === node.id);
+      expect(original).toBeDefined();
+      expect(graphNodeToReactFlowNode({ id: "wf-embers" }, node).position).toEqual(
+        original!.position
+      );
+    }
+    expect(request.graph.edges).toEqual(ejected.graph.edges);
   });
 
   it("reports an unknown preset and a failed create as notifications, not dead clicks", async () => {

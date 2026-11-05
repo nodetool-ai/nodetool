@@ -16,8 +16,8 @@ const mockFakeEditor = {
     getLineMaxColumn: () => 14,
     getEOL: () => "\n",
     getValueInRange: () => "",
-    getAlternativeVersionId: () => 1,
-    getVersionId: () => 1
+    canUndo: () => false,
+    canRedo: () => false
   }),
   getSelection: () => ({
     startLineNumber: 1,
@@ -26,7 +26,9 @@ const mockFakeEditor = {
     endColumn: 1
   }),
   executeEdits: mockExecuteEdits,
-  onDidChangeModelContent: jest.fn(),
+  onDidChangeModelContent: () => ({ dispose: jest.fn() }),
+  onDidChangeModel: () => ({ dispose: jest.fn() }),
+  onDidDispose: () => ({ dispose: jest.fn() }),
   setPosition: jest.fn(),
   focus: jest.fn()
 };

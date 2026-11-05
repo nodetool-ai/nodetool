@@ -168,3 +168,21 @@ describe("clip fade preview scheduling", () => {
     expect(sceneRequiresPerFrameResolution(computeActiveLayers([track], [plain], 0))).toBe(false);
   });
 });
+
+
+describe("nested fade preview resolution", () => {
+  it.each(["alpha", "luma"] as const)("resolves a fading still %s matte every frame", (mode) => {
+    const track = makeTrack({ id: "picture", type: "video" });
+    const picture = makeClip({ id: "picture", trackId: track.id, mediaType: "image", currentAssetId: "picture", status: "generated", durationMs: 4000, matte: { sourceClipId: "matte", mode } });
+    const matte = makeClip({ id: "matte", trackId: track.id, mediaType: "image", currentAssetId: "matte", status: "generated", durationMs: 4000, fadeInMs: 1000 });
+    const layers = computeActiveLayers([track], [picture, matte], 250);
+    expect(layers).toHaveLength(1);
+    expect(sceneRequiresPerFrameResolution(layers)).toBe(true);
+  });
+
+  it("resolves adjustment fades on a still scene", () => {
+    const adjustment = makeClip({ mediaType: "adjustment", durationMs: 4000, fadeInMs: 1000 });
+    expect(sceneRequiresPerFrameResolution([layer(false)], false, [], [adjustment])).toBe(true);
+    expect(sceneRequiresPerFrameResolution([layer(false)], false, [], [{ ...adjustment, fadeInMs: 0 }])).toBe(false);
+  });
+});

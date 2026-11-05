@@ -54,6 +54,7 @@ import { MoonshotProvider } from "./moonshot-provider.js";
 import { OpenRouterProvider } from "./openrouter-provider.js";
 import { RequestyProvider } from "./requesty-provider.js";
 import { OpperProvider } from "./opper-provider.js";
+import { CheaperInferenceProvider } from "./cheaperinference-provider.js";
 import { APIRouteProvider } from "./api-route-provider.js";
 import { TogetherProvider } from "./together-provider.js";
 import {
@@ -309,6 +310,7 @@ export { MoonshotProvider };
 export { OpenRouterProvider };
 export { RequestyProvider };
 export { OpperProvider };
+export { CheaperInferenceProvider };
 export { APIRouteProvider };
 export { TogetherProvider };
 export { AlibabaProvider };
@@ -688,6 +690,9 @@ registerBuiltinProvider(PROVIDER_IDS.REQUESTY, RequestyProvider, {
 });
 registerBuiltinProvider(PROVIDER_IDS.OPPER, OpperProvider, {
   OPPER_API_KEY: ""
+});
+registerBuiltinProvider(PROVIDER_IDS.CHEAPER_INFERENCE, CheaperInferenceProvider, {
+  CHEAPER_INFERENCE_API_KEY: ""
 });
 registerBuiltinProvider(PROVIDER_IDS.API_ROUTE, APIRouteProvider, {
   API_ROUTE_API_KEY: ""

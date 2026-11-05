@@ -32,6 +32,9 @@
       "path": "../model-pricing"
     },
     {
+      "path": "../compute"
+    },
+    {
       "path": "../models"
     },
     {

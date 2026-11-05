@@ -41,6 +41,18 @@ describe("applyAudioCrossfades", () => {
     expect(byId(out, "b").startMs).toBe(2000);
   });
 
+  it.each(["a", "b"])("does not alter a cut touching locked clip %s", (lockedId) => {
+    const clips = [
+      clip("a", 0, 2000, { locked: lockedId === "a" }),
+      clip("b", 2000, 2000, { locked: lockedId === "b" })
+    ];
+    const out = applyAudioCrossfades(clips, new Set(["a", "b"]), 500);
+    expect(byId(out, lockedId)).toBe(byId(clips, lockedId));
+    expect(byId(out, "a").durationMs).toBe(2000);
+    expect(byId(out, "a").fadeOutMs).toBeUndefined();
+    expect(byId(out, "b").fadeInMs).toBeUndefined();
+  });
+
   it("fades a free edge from silence", () => {
     const clips = [clip("a", 0, 2000)];
     const out = applyAudioCrossfades(clips, new Set(["a"]), 500);

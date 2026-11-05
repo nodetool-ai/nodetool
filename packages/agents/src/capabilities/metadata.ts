@@ -10,6 +10,7 @@ import { codeSpecs } from "./code.specs.js";
 import { collectionsSpecs } from "./collections.specs.js";
 import { compositionsSpecs } from "./compositions.specs.js";
 import { costsSpecs } from "./costs.specs.js";
+import { workersSpecs } from "./workers.specs.js";
 import { documentsSpecs } from "./documents.specs.js";
 import { emailSpecs } from "./email.specs.js";
 import { exampleTimelinesSpecs } from "./example-timelines.specs.js";
@@ -51,6 +52,7 @@ export const CAPABILITY_SPECS = {
   media: mediaSpecs,
   collections: collectionsSpecs,
   costs: costsSpecs,
+  workers: workersSpecs,
   nodes: nodesSpecs,
   jobs: jobsSpecs,
   errors: errorsSpecs,

@@ -106,24 +106,17 @@ export function useTimelineHistoryBatch(
 }
 
 /**
- * Run `fn` so every mutation it makes lands as ONE undo entry (the state
- * before `fn`). Entries pushed during `fn` are collapsed onto the first one.
- * Synchronous only. Handles a stack sitting at its limit by locating the
- * pre-`fn` newest entry by identity rather than by length.
+ * Run synchronous `fn` in one temporal edit group. The middleware owns
+ * nesting, paused tracking, and dropping an unchanged group's checkpoint.
  */
 export function runAsOneUndoEntry<T>(api: TimelineStoreApi, fn: () => T): T {
-  const before = timelineTemporalOf(api).pastStates;
-  const lastBefore = before[before.length - 1];
-  const result = fn();
-  const after = timelineTemporalOf(api).pastStates;
-  const anchor = lastBefore === undefined ? -1 : after.lastIndexOf(lastBefore);
-  const added = after.length - (anchor + 1);
-  if (added > 1) {
-    api.temporal.setState({
-      pastStates: [...after.slice(0, anchor + 1), after[anchor + 1]]
-    });
+  const temporal = timelineTemporalOf(api);
+  temporal.beginGroup();
+  try {
+    return fn();
+  } finally {
+    temporal.endGroup();
   }
-  return result;
 }
 
 /**

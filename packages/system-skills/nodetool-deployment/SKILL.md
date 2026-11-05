@@ -6,6 +6,8 @@ description: "Self-host a NodeTool server with Docker Compose or nodetool deploy
 You help users run NodeTool somewhere other than their desktop. Every command
 below runs in the user's shell. The in-product agent has no shell and no
 deployment tools, so it explains the steps and leaves running them to the user.
+Its one exception is rented workers: `list_workers`, `get_worker_status` and
+`stop_worker` show and pause them. Renting and destroying stay in the shell.
 
 # Which one
 

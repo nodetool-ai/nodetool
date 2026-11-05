@@ -604,143 +604,148 @@ export async function* runClaudeCli(params: {
   // An inherited NODE_OPTIONS (Electron sets some) breaks an npm-installed CLI.
   delete env["NODE_OPTIONS"];
 
+  const readline = await importNodeBuiltin<typeof import("node:readline")>("node:readline");
+  if (!readline) throw new ClaudeCliNotFoundError("The Claude Agent provider requires Node.js.");
+  if (signal.aborted) return;
+
   log.debug("Spawning Claude CLI", { cliPath: params.cliPath });
   const child = await (params.spawn ?? defaultSpawn)(params.cliPath, args, {
     cwd: options.cwd,
     env
   });
 
-  let stderrTail = "";
-  child.stderr.setEncoding?.("utf8");
-  child.stderr.on("data", (data: string | Buffer) => {
-    stderrTail = (stderrTail + String(data)).slice(-STDERR_TAIL_CHARS);
-  });
-  const withStderr = (message: string) => {
-    const tail = stderrTail.trim();
-    return tail ? `${message}. stderr: ${tail}` : message;
-  };
-
-  const queue = new LineQueue<ClaudeCliMessage>();
   let sawResult = false;
   let stdinOpen = true;
-  const write = (frame: unknown) => {
-    if (!stdinOpen) return;
-    child.stdin.write(`${JSON.stringify(frame)}\n`);
-  };
+  let lines: ReturnType<typeof readline.createInterface> | undefined;
   const endInput = () => {
     if (!stdinOpen) return;
     stdinOpen = false;
     child.stdin.end();
   };
-  child.stdin.on("error", () => {
-    // The process may exit before reading stdin. Its exit status reports why.
-    stdinOpen = false;
-  });
-
-  child.once("error", (err) => {
-    queue.fail(
-      err.code === "ENOENT"
-        ? new ClaudeCliNotFoundError(`The Claude Code CLI was not found at ${params.cliPath}.`)
-        : new ClaudeCliError(`Failed to start the Claude Code CLI: ${err.message}`)
-    );
-  });
-
-  const servers = options.mcpServers ?? {};
-  const answerControlRequest = async (frame: ControlRequestFrame) => {
-    const { request } = frame;
-    let response: ControlResponseFrame["response"];
-    try {
-      if (request.subtype !== "mcp_message") {
-        throw new Error(`Unsupported control request: ${request.subtype}`);
-      }
-      const server = servers[request.server_name ?? ""];
-      if (!server) throw new Error(`Unknown MCP server: ${String(request.server_name)}`);
-      response = {
-        subtype: "success",
-        request_id: frame.request_id,
-        response: { mcp_response: await handleMcpMessage(server, request.message ?? {}) }
-      };
-    } catch (err) {
-      response = {
-        subtype: "error",
-        request_id: frame.request_id,
-        error: err instanceof Error ? err.message : String(err)
-      };
-    }
-    write({ type: "control_response", response });
-  };
-
-  const initRequestId = `init_${crypto.randomUUID()}`;
-  const onLine = (line: string) => {
-    const trimmed = line.trim();
-    if (!trimmed.startsWith("{")) return;
-    let frame: unknown;
-    try {
-      frame = JSON.parse(trimmed);
-    } catch {
-      log.debug("Skipping a non-JSON Claude CLI output line");
-      return;
-    }
-    if (!isObjectLike(frame) || !isString(frame.type)) return;
-    const typed = frame as unknown as { type: string };
-    if (typed.type === "control_request") {
-      void answerControlRequest(typed as ControlRequestFrame);
-      return;
-    }
-    if (typed.type === "control_response") {
-      const response = (typed as ControlResponseFrame).response;
-      if (response.request_id === initRequestId && response.subtype === "error") {
-        queue.fail(new ClaudeCliError(`Claude Code rejected the session: ${response.error ?? "unknown error"}`));
-      }
-      return;
-    }
-    if (typed.type === "control_cancel_request" || typed.type === "keep_alive") return;
-    if (typed.type === "result") {
-      sawResult = true;
-      // One prompt per session: the first result ends it.
-      endInput();
-      setTimeout(() => child.kill("SIGTERM"), RESULT_EXIT_GRACE_MS).unref?.();
-    }
-    queue.push(typed as ClaudeCliMessage);
-  };
-
-  const readline = await importNodeBuiltin<typeof import("node:readline")>("node:readline");
-  if (!readline) throw new ClaudeCliNotFoundError("The Claude Agent provider requires Node.js.");
-  const lines = readline.createInterface({ input: child.stdout, crlfDelay: Infinity });
-  lines.on("line", onLine);
-
-  child.once("close", (code, exitSignal) => {
-    if (signal.aborted || sawResult) {
-      queue.end();
-    } else if (code !== 0) {
-      queue.fail(
-        new ClaudeCliError(
-          withStderr(
-            exitSignal
-              ? `Claude Code CLI was terminated by ${exitSignal}`
-              : `Claude Code CLI exited with code ${code}`
-          )
-        )
-      );
-    } else {
-      queue.fail(new ClaudeCliError(withStderr("Claude Code CLI exited without a result")));
-    }
-  });
-
   const onAbort = () => {
     endInput();
     child.kill("SIGTERM");
   };
-  signal.addEventListener("abort", onAbort, { once: true });
-
-  write({ type: "control_request", request_id: initRequestId, request: buildInitializeRequest(options) });
-  write(userMessageLine(params.prompt));
-
   try {
+    let stderrTail = "";
+    child.stderr.setEncoding?.("utf8");
+    child.stderr.on("data", (data: string | Buffer) => {
+      stderrTail = (stderrTail + String(data)).slice(-STDERR_TAIL_CHARS);
+    });
+    const withStderr = (message: string) => {
+      const tail = stderrTail.trim();
+      return tail ? `${message}. stderr: ${tail}` : message;
+    };
+
+    const queue = new LineQueue<ClaudeCliMessage>();
+    const write = (frame: unknown) => {
+      if (!stdinOpen) return;
+      child.stdin.write(`${JSON.stringify(frame)}\n`);
+    };
+    child.stdin.on("error", () => {
+      // The process may exit before reading stdin. Its exit status reports why.
+      stdinOpen = false;
+    });
+
+    child.once("error", (err) => {
+      queue.fail(
+        err.code === "ENOENT"
+          ? new ClaudeCliNotFoundError(`The Claude Code CLI was not found at ${params.cliPath}.`)
+          : new ClaudeCliError(`Failed to start the Claude Code CLI: ${err.message}`)
+      );
+    });
+
+    if (signal.aborted) return;
+
+    const servers = options.mcpServers ?? {};
+    const answerControlRequest = async (frame: ControlRequestFrame) => {
+      const { request } = frame;
+      let response: ControlResponseFrame["response"];
+      try {
+        if (request.subtype !== "mcp_message") {
+          throw new Error(`Unsupported control request: ${request.subtype}`);
+        }
+        const server = servers[request.server_name ?? ""];
+        if (!server) throw new Error(`Unknown MCP server: ${String(request.server_name)}`);
+        response = {
+          subtype: "success",
+          request_id: frame.request_id,
+          response: { mcp_response: await handleMcpMessage(server, request.message ?? {}) }
+        };
+      } catch (err) {
+        response = {
+          subtype: "error",
+          request_id: frame.request_id,
+          error: err instanceof Error ? err.message : String(err)
+        };
+      }
+      write({ type: "control_response", response });
+    };
+
+    const initRequestId = `init_${crypto.randomUUID()}`;
+    const onLine = (line: string) => {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("{")) return;
+      let frame: unknown;
+      try {
+        frame = JSON.parse(trimmed);
+      } catch {
+        log.debug("Skipping a non-JSON Claude CLI output line");
+        return;
+      }
+      if (!isObjectLike(frame) || !isString(frame.type)) return;
+      const typed = frame as unknown as { type: string };
+      if (typed.type === "control_request") {
+        void answerControlRequest(typed as ControlRequestFrame);
+        return;
+      }
+      if (typed.type === "control_response") {
+        const response = (typed as ControlResponseFrame).response;
+        if (response.request_id === initRequestId && response.subtype === "error") {
+          queue.fail(new ClaudeCliError(`Claude Code rejected the session: ${response.error ?? "unknown error"}`));
+        }
+        return;
+      }
+      if (typed.type === "control_cancel_request" || typed.type === "keep_alive") return;
+      if (typed.type === "result") {
+        sawResult = true;
+        // One prompt per session: the first result ends it.
+        endInput();
+        setTimeout(() => child.kill("SIGTERM"), RESULT_EXIT_GRACE_MS).unref?.();
+      }
+      queue.push(typed as ClaudeCliMessage);
+    };
+
+    lines = readline.createInterface({ input: child.stdout, crlfDelay: Infinity });
+    lines.on("line", onLine);
+
+    child.once("close", (code, exitSignal) => {
+      if (signal.aborted || sawResult) {
+        queue.end();
+      } else if (code !== 0) {
+        queue.fail(
+          new ClaudeCliError(
+            withStderr(
+              exitSignal
+                ? `Claude Code CLI was terminated by ${exitSignal}`
+                : `Claude Code CLI exited with code ${code}`
+            )
+          )
+        );
+      } else {
+        queue.fail(new ClaudeCliError(withStderr("Claude Code CLI exited without a result")));
+      }
+    });
+
+    signal.addEventListener("abort", onAbort, { once: true });
+
+    write({ type: "control_request", request_id: initRequestId, request: buildInitializeRequest(options) });
+    write(userMessageLine(params.prompt));
+
     yield* queue.drain();
   } finally {
     signal.removeEventListener("abort", onAbort);
-    lines.close();
+    lines?.close();
     endInput();
     // A consumer that stopped early leaves the process running its loop.
     if (!sawResult || signal.aborted) child.kill("SIGTERM");
