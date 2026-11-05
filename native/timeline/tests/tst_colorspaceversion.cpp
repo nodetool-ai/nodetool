@@ -21,10 +21,20 @@ private slots:
     void versions_data() {
         QTest::addColumn<QJsonValue>("version");
         QTest::addColumn<bool>("supported");
-        QTest::newRow("absent") << QJsonValue(QJsonValue::Undefined) << true;
-        QTest::newRow("1") << QJsonValue(1) << true;
-        QTest::newRow("2") << QJsonValue(2) << false;
-        QTest::newRow("3") << QJsonValue(3) << false;
+        QFile fixtures(QStringLiteral(NT_COLOR_VERSION_FIXTURES));
+        QVERIFY2(fixtures.open(QIODevice::ReadOnly), qPrintable(fixtures.errorString()));
+        QJsonParseError error;
+        const auto document = QJsonDocument::fromJson(fixtures.readAll(), &error);
+        QCOMPARE(error.error, QJsonParseError::NoError);
+        QVERIFY(document.isArray());
+        QVERIFY(!document.array().isEmpty());
+        for (const auto& entry : document.array()) {
+            const auto fixture = entry.toObject();
+            const auto version = fixture.value("document").toObject().value("workingColorSpaceVersion");
+            const auto name = fixture.value("name").toString().toUtf8();
+            QVERIFY(!name.isEmpty());
+            QTest::newRow(name.constData()) << version << (version.isUndefined() || version == QJsonValue(1));
+        }
         QTest::newRow("zero") << QJsonValue(0) << false;
         QTest::newRow("negative") << QJsonValue(-1) << false;
         QTest::newRow("fraction") << QJsonValue(1.5) << false;
@@ -86,6 +96,10 @@ private slots:
         for (auto it = sent.begin(); it != sent.end(); ++it) { roundTrip.insert(it.key(), it.value()); }
         const auto reparsed = nt::parseTimeline(roundTrip);
         QCOMPARE(reparsed.timeline.has_value(), supported);
+        if (supported) {
+            QCOMPARE(reparsed.timeline->raw.value("workingColorSpaceVersion"), version);
+            QCOMPARE(reparsed.timeline->raw.contains("workingColorSpaceVersion"), !version.isUndefined());
+        }
 
         const auto path = dir.filePath("input.json");
         QFile file(path);
@@ -104,7 +118,7 @@ private slots:
             if (route == "export") { args = {"--export", dir.filePath("out.zip"), "--format", "png_sequence", path}; }
             else if (route == "stills") { args = {"--stills", dir.filePath("stills"), "--still-frames", "0", path}; }
             else if (route.startsWith("frame-server")) { args = {"--frame-server"}; }
-            else { args = {path}; }
+            else { args = {"--screenshot", dir.filePath("editor.png"), path}; }
             QByteArray response;
             process.start(QStringLiteral(NT_TIMELINE_BINARY), args);
             QVERIFY(process.waitForStarted());
@@ -127,7 +141,7 @@ private slots:
             const bool finished = process.waitForFinished(30000);
             const auto diagnostics = process.readAllStandardError();
             QVERIFY2(finished, qPrintable(route + ": " + QString::fromUtf8(diagnostics)));
-            QVERIFY2(process.exitStatus() == QProcess::NormalExit && process.exitCode() == (supported ? 0 : 1),
+            QVERIFY2(process.exitStatus() == QProcess::NormalExit && process.exitCode() == (supported || route == "editor" ? 0 : 1),
                      qPrintable(route + ": exit " + QString::number(process.exitCode()) + ": " + QString::fromUtf8(diagnostics.right(4000))));
             const auto output = process.readAllStandardOutput();
             const auto report = diagnostics + output;
@@ -137,18 +151,66 @@ private slots:
             } else {
                 if (route.startsWith("frame-server")) {
                     QCOMPARE(QJsonDocument::fromJson(output).object().value("error").toString(), parsed.error);
+                } else if (route == "editor") {
+                    const QImage reportImage(dir.filePath("editor.png"));
+                    QVERIFY(!reportImage.isNull());
+                    // The source is solid red. The report must contain text but no media pixels.
+                    int textPixels = 0;
+                    for (int y = 0; y < reportImage.height(); ++y) {
+                        for (int x = 0; x < reportImage.width(); ++x) {
+                            const auto pixel = reportImage.pixelColor(x, y);
+                            QVERIFY(!(pixel.red() > 200 && pixel.green() < 40 && pixel.blue() < 40));
+                            if (pixel.red() > 150 && pixel.green() > 150 && pixel.blue() > 150) { ++textPixels; }
+                        }
+                    }
+                    QVERIFY(textPixels > 100);
+                    const auto message = QStringLiteral("This timeline uses color version %1. This version of NodeTool supports up to version 1. Update NodeTool to edit or export it.")
+                                             .arg(parsed.unsupportedColorSpaceVersionText);
+                    QVERIFY2(report.contains(message.toUtf8()), report.constData());
+                    // Without a capture request the launcher window stays open.
+                    process.start(QStringLiteral(NT_TIMELINE_BINARY), {path});
+                    QVERIFY(process.waitForStarted());
+                    QVERIFY(!process.waitForFinished(1500));
+                    QCOMPARE(process.state(), QProcess::Running);
+                    process.terminate();
+                    QVERIFY(process.waitForFinished(10000));
                 } else {
                     QVERIFY2(report.contains(parsed.error.toUtf8()), report.constData());
                 }
                 QVERIFY(!QFileInfo::exists(dir.filePath("out.zip")));
                 QVERIFY(!QFileInfo::exists(dir.filePath("stills")));
-                QVERIFY(!QFileInfo::exists(dir.filePath("editor.png")));
+                if (route != "editor") { QVERIFY(!QFileInfo::exists(dir.filePath("editor.png"))); }
+                else { QVERIFY(QFile::remove(dir.filePath("editor.png"))); }
                 QVERIFY(QDir(dir.path()).entryList({"*.rgba"}, QDir::Files).isEmpty());
             }
             QVERIFY(file.open(QIODevice::ReadOnly));
             QCOMPARE(file.readAll(), bytes);
             file.close();
         }
+        if (!supported) {
+            http.setJson([&raw](const QByteArray&, const QUrl&) {
+                return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", raw}}}}).toJson();
+            });
+            http.clearRequests();
+            QProcess process;
+            auto env = QProcessEnvironment::systemEnvironment();
+            env.insert("XDG_CONFIG_HOME", dir.filePath("server-config"));
+            process.setProcessEnvironment(env);
+            process.start(QStringLiteral(NT_TIMELINE_BINARY),
+                          {"--server", http.base().toString(), "--timeline", "seq",
+                           "--cache-dir", dir.filePath("cache"), "--screenshot", dir.filePath("server-report.png")});
+            QVERIFY(process.waitForStarted());
+            QTRY_VERIFY_WITH_TIMEOUT(process.state() == QProcess::NotRunning, 15000);
+            QCOMPARE(process.exitCode(), 0);
+            const auto diagnostics = process.readAllStandardError();
+            QVERIFY2(diagnostics.contains("Update NodeTool to edit or export it."), diagnostics.constData());
+            QVERIFY(QFileInfo::exists(dir.filePath("server-report.png")));
+            // Opening the report may fetch the document, but cannot fetch media or save it.
+            QVERIFY(http.countRequests("GET", "/trpc/timeline.get") > 0);
+            QCOMPARE(http.countRequests("POST", "/"), 0);
+            QCOMPARE(http.countRequests("GET", "/trpc/assets."), 0);
+        }
+
     }
 };
 QTEST_GUILESS_MAIN(TestColorSpaceVersion)
