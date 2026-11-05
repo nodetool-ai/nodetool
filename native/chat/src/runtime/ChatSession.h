@@ -10,6 +10,8 @@
 namespace nt::chat {
 class ChatSession : public QObject {
   Q_OBJECT
+public:
+  Q_INVOKABLE void copyText(const QString &text);
   Q_PROPERTY(QAbstractItemModel *threads READ threads CONSTANT)
   Q_PROPERTY(QAbstractItemModel *messages READ messages NOTIFY stateChanged)
   Q_PROPERTY(QString selectedThreadId READ selectedThreadId NOTIFY stateChanged)

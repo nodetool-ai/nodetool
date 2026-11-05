@@ -1,5 +1,7 @@
 #include "runtime/ChatSession.h"
 #include <QQmlContext>
+#include <QFile>
+#include <QJsonDocument>
 #include <QClipboard>
 #include <QGuiApplication>
 #include <QQmlEngine>
@@ -8,6 +10,24 @@ class ChatTestDriver : public QObject {
     Q_OBJECT
 public:
     explicit ChatTestDriver(nt::chat::ChatSession* session) : QObject(session), m_session(session) {}
+    Q_INVOKABLE void replay(const QString& name) {
+        QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/") + name + ".json");
+        if (!file.open(QIODevice::ReadOnly)) { return; }
+        const auto fixture = QJsonDocument::fromJson(file.readAll()).object();
+        for (auto event : fixture["events"].toArray()) {
+            auto object = event.toObject(); object["thread_id"] = "a";
+            m_session->applyEvent(object);
+        }
+    }
+    Q_INVOKABLE void toolHistory(int count) {
+        QJsonArray rows;
+        for (int i = 0; i < count; ++i) {
+            rows.append(QJsonObject{{"id", QString::number(i)}, {"role", "assistant"}, {"content", ""},
+                {"tool_calls", QJsonArray{QJsonObject{{"id", QString("call-%1").arg(i)}, {"name", "read_file"},
+                    {"args", QJsonObject{{"path", "notes.txt"}}}}}}});
+        }
+        m_session->importHistory("a", rows);
+    }
     Q_INVOKABLE void history(const QString& thread, int count) {
         QJsonArray rows;
         for (int index = 0; index < count; ++index) {

@@ -52,3 +52,49 @@ These are transport/control events, not all message cards. Native routes threadl
 ## Reproduction
 
 The fixtures `tool-calls.json` and `code-execution.json` use protocol-shaped sanitized events. They are deterministic examples, not captured private conversations. Replaying them before changes shows only the result JSON. The original arguments and code disappear. Screenshots and state dumps are under `/home/mg/Projects/nodetool-film/tmp/chat-parity/`, named `tool-calls-before` and `code-execution-before`.
+
+## Implemented increment
+
+Tool result updates retain the call arguments and update the owning row, including
+when later messages have arrived. The projection supplies plain tool phrases,
+running/done/failed state, arguments, result text, and JavaScript code separately.
+QML uses monospaced bounded sections and copies the full code or result. Unknown
+array parts expose their payload as readable details. Consecutive same-name parts
+within one message fold into a group, excluding the web's ungroupable names.
+The original parts remain in the model.
+
+This increment does not close web parity. Remaining tool work includes persisted
+role-tool result association, cross-message grouping, exact group preview/list
+rules, MCP formatting, duration and prediction presentation, and expandable
+individual call details within groups. Output is paged JSON rather than the web's
+specialized search/media result renderers. Code has no syntax highlighting.
+
+The other gaps in the baseline table remain open. Thinking and sub-agent reduction
+need dedicated state and fixtures. Agent trees, plan documents, compaction cards,
+resource navigation and media playback need native renderers. Full math needs a
+native typesetting capability. Approval actions remain explicit and retain the
+existing decline path. Malformed requests without an authoritative approval ID
+still cannot be answered safely.
+
+The timeline panel was inspected: `TimelineAgentPanel.qml` embeds the same
+`ChatPanel` and supplies its session. A running timeline-host visual check has
+not been completed. No new QML file was added, so the migration ledger needs no
+new entry.
+
+## Verification of this increment
+
+`ntbuild fix-win-4 nodetool-chat chat-model-tests chat-quick-tests` succeeded.
+`citest fix-win-4 '^chat-(model|quick)-tests$' reports 100% passing, including
+the prerequisite fixture setup. Model coverage includes retained arguments,
+delayed results targeting one row, grouping, errors and 2,000 tool messages.
+QML coverage includes code/result copy and bounded delegate count for 2,000
+tool-call messages. This establishes virtualization, not measured scrolling
+frame latency. Both native design and dependency checks passed.
+
+After screenshots are `tool-calls-after.png` and `code-execution-after.png` in
+the same evidence directory. Code/result text was visually inspected after
+fixing an invalidated QJsonValueRef found in the first screenshot review.
+
+TypeScript tests, fixture conformance in TypeScript, typecheck, lint, harness
+gate and `/verify` were not run, as requested. Platform accessibility, full
+timeline-host rendering and full web-content visual coverage were not run.

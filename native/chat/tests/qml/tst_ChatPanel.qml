@@ -63,6 +63,36 @@ TestCase {
         testDriver.clearHistory("b")
         wait(30)
     }
+    function test_longToolConversationStaysVirtualized() {
+        testDriver.toolHistory(2000)
+        const list = findChild(panel, "chatMessages")
+        tryCompare(list, "count", 2000)
+        list.positionViewAtEnd()
+        wait(50)
+        verify(list.contentItem.children.length < 100)
+        list.positionViewAtBeginning()
+        wait(50)
+        verify(findText(panel, "Read notes.txt") !== null)
+    }
+    function test_toolResultKeepsArguments() {
+        testDriver.replay("tool-calls")
+        tryVerify(function() { return findText(panel, "Read notes.txt") !== null })
+        verify(findText(panel, "Arguments") !== null)
+        verify(findText(panel, "Result") !== null)
+        verify(findText(panel, "Done") !== null)
+    }
+    function test_executionCodeAndCopy() {
+        testDriver.replay("code-execution")
+        tryVerify(function() { return findText(panel, "Code · javascript") !== null })
+        const copy = findText(panel, "Copy code")
+        verify(copy !== null)
+        mouseClick(copy)
+        compare(testDriver.clipboardText(), 'const scenes = ["Opening", "Finale"];\nconsole.log(scenes.length);')
+        const resultCopy = findText(panel, "Copy result")
+        verify(resultCopy !== null)
+        mouseClick(resultCopy)
+        verify(testDriver.clipboardText().indexOf('"stdout": "2\\n"') >= 0)
+    }
     function test_composerMultilineAndDraftSwitch() {
         const input = findChild(panel, "chatInput")
         verify(input !== null)

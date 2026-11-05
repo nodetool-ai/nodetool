@@ -1,7 +1,9 @@
 #include "MessageModel.h"
 #include <QDateTime>
 #include <QJsonDocument>
+#include <QRegularExpression>
 #include <QSet>
+#include <QUrl>
 #include <QUuid>
 #include <algorithm>
 namespace nt::chat {
@@ -18,6 +20,113 @@ QString textOf(const QJsonValue &value) {
     }
   }
   return text;
+}
+QString displayJson(const QJsonValue &value) {
+  if (value.isString()) {
+    return value.toString();
+  }
+  if (value.isUndefined() || value.isNull()) {
+    return {};
+  }
+  if (value.isObject()) {
+    return QString::fromUtf8(
+        QJsonDocument(value.toObject()).toJson(QJsonDocument::Indented));
+  }
+  if (value.isArray()) {
+    return QString::fromUtf8(
+        QJsonDocument(value.toArray()).toJson(QJsonDocument::Indented));
+  }
+  auto encoded =
+      QJsonDocument(QJsonArray{value}).toJson(QJsonDocument::Compact);
+  return QString::fromUtf8(encoded.mid(1, encoded.size() - 2));
+}
+QJsonObject presentPart(QJsonObject part) {
+  const auto type = part["type"].toString();
+  if (type != "tool_call" && type != "tool_call_update" &&
+      type != "tool_result_update") {
+    if (!part.contains("text") && !part.contains("actionId")) {
+      part["text"] = "Content details\n" + displayJson(part);
+    }
+    return part;
+  }
+  auto args = part.value("args");
+  if (args.isString()) {
+    const auto parsed = QJsonDocument::fromJson(args.toString().toUtf8());
+    if (parsed.isObject()) {
+      args = parsed.object();
+    }
+  }
+  const auto name = part["name"].toString();
+  auto words = name;
+  words.replace(QRegularExpression("([a-z0-9])([A-Z])"), "\\1_\\2");
+  const auto segments = words.toLower().split(QRegularExpression("[^a-z0-9]+"),
+                                              Qt::SkipEmptyParts);
+  auto label = words;
+  label.replace('_', ' ');
+  if (!label.isEmpty()) {
+    label[0] = label[0].toUpper();
+  }
+  QString detail;
+  for (const auto key : {"url", "uri", "path", "file", "filename", "target",
+                         "query", "q", "objective"}) {
+    detail = args.toObject()[key].toString().trimmed();
+    if (!detail.isEmpty()) {
+      if (QString(key) == "url" || QString(key) == "uri") {
+        const QUrl url(detail);
+        if (!url.host().isEmpty()) {
+          auto host = url.host();
+          if (host.startsWith("www.")) {
+            host.remove(0, 4);
+          }
+          detail = host + (url.path() == "/" ? QString() : url.path()) +
+                   (url.hasQuery() ? "?" + url.query() : QString());
+        }
+      }
+      break;
+    }
+  }
+  const auto has = [&segments](const QStringList &keys) {
+    return std::any_of(
+        keys.cbegin(), keys.cend(),
+        [&segments](const QString &key) { return segments.contains(key); });
+  };
+  if (has({"plan"})) {
+    label = detail.isEmpty() ? "Wrote a plan" : "Planned";
+  } else if (has({"search", "grep", "glob", "lookup", "query"})) {
+    label = detail.isEmpty() ? "Ran 1 search" : "Searched";
+  } else if (has({"browser", "crawl", "scrape", "fetch", "http", "url",
+                  "download", "visit"})) {
+    label = detail.isEmpty() ? "Opened 1 page" : "Opened page";
+  } else if (has({"write", "edit", "save", "update", "create", "delete",
+                  "upload"}) &&
+             !detail.isEmpty()) {
+    label = "Edited";
+  } else if (has({"read", "open", "cat", "list"}) && !detail.isEmpty()) {
+    label = "Read";
+  }
+  part["label"] = label + (detail.isEmpty() ? QString() : " " + detail);
+  part["tool"] = true;
+  const auto result = part.value("result");
+  const bool failed = part["is_error"].toBool() ||
+                      result.toObject()["error"].isString() ||
+                      result.toObject()["is_error"].toBool();
+  part["displayStatus"] = failed                    ? "Failed"
+                          : part.contains("result") ? "Done"
+                                                    : "Running";
+  part["argumentsText"] = displayJson(args);
+  part["resultText"] = displayJson(result);
+  if (name == "execute_code") {
+    part["code"] = args.toObject()["code"];
+    part["language"] = "javascript";
+    if (!args.toObject()["title"].toString().isEmpty()) {
+      part["label"] = args.toObject()["title"];
+    }
+    auto other = args.toObject();
+    other.remove("code");
+    other.remove("title");
+    part["argumentsText"] = other.isEmpty() ? QString() : displayJson(other);
+  }
+  return part;
 }
 QJsonArray projectedParts(const QJsonObject &m) {
   auto parts = m["parts"].toArray();
@@ -37,13 +146,15 @@ QJsonArray projectedParts(const QJsonObject &m) {
             ? args.toString()
             : QString::fromUtf8(QJsonDocument(QJsonArray{args})
                                     .toJson(QJsonDocument::Compact));
-    parts.append(QJsonObject{
-        {"type", "tool_call"},
-        {"tool_call_id", call["id"].toString(call["tool_call_id"].toString())},
-        {"name", name},
-        {"args", args},
-        {"payload", call},
-        {"text", name + "\n" + argsText}});
+    auto projected = call;
+    projected.insert("type", "tool_call");
+    projected.insert("args", args);
+    projected.insert("name", name);
+    projected.insert("tool_call_id",
+                     call["id"].toString(call["tool_call_id"].toString()));
+    projected.insert("payload", call);
+    projected.insert("text", name + "\n" + argsText);
+    parts.append(projected);
   }
   if (m["content"].isArray()) {
     for (auto p : m["content"].toArray()) {
@@ -64,7 +175,64 @@ QJsonArray projectedParts(const QJsonObject &m) {
         QJsonObject{{"type", "unsupported"},
                     {"text", "Unsupported message content: " + encoded}});
   }
-  return parts;
+  QJsonArray displayed;
+  for (const auto &part : parts) {
+    displayed.append(presentPart(part.isObject()
+                                     ? part.toObject()
+                                     : QJsonObject{{"type", "unsupported"},
+                                                   {"text", displayJson(part)},
+                                                   {"payload", part}}));
+  }
+  QJsonArray grouped;
+  const QSet<QString> separate{"execute_code", "run_subtask",    "run_search",
+                               "ask_user",     "request_secret", "create_plan"};
+  for (qsizetype first = 0; first < displayed.size();) {
+    auto group = displayed[first].toObject();
+    const auto name = group.value("name").toString();
+    qsizetype end = first + 1;
+    if (group.value("tool").toBool() && !name.isEmpty() &&
+        !separate.contains(name)) {
+      while (end < displayed.size() &&
+             displayed[end].toObject()["tool"].toBool() &&
+             displayed[end].toObject()["name"] == name) {
+        ++end;
+      }
+    }
+    if (end - first > 1) {
+      QString details;
+      QString status = "Done";
+      for (auto i = first; i < end; ++i) {
+        const auto item = displayed[i].toObject();
+        details += item["label"].toString() + " · " +
+                   item["displayStatus"].toString() + "\nArguments\n" +
+                   item["argumentsText"].toString() + "\nResult\n" +
+                   item["resultText"].toString() + "\n";
+        if (item["displayStatus"] == "Failed") {
+          status = "Failed";
+        } else if (status != "Failed" && item["displayStatus"] == "Running") {
+          status = "Running";
+        }
+      }
+      const auto label = group.value("label").toString();
+      const auto count = end - first;
+      group["label"] =
+          label.startsWith("Searched") || label == "Ran 1 search"
+              ? QString("Ran %1 searches").arg(count)
+          : label.startsWith("Opened") ? QString("Opened %1 pages").arg(count)
+          : label.startsWith("Read")   ? QString("Read %1 items").arg(count)
+          : label.startsWith("Edited") ? QString("Made %1 edits").arg(count)
+          : label.startsWith("Planned") || label == "Wrote a plan"
+              ? QString("Wrote %1 plans").arg(count)
+              : QString("%1 %2 times").arg(label).arg(count);
+      group["displayStatus"] = status;
+      group["argumentsText"] = QString();
+      group["resultText"] = details;
+      group["grouped"] = true;
+    }
+    grouped.append(group);
+    first = end;
+  }
+  return grouped;
 }
 } // namespace
 int PartModel::rowCount(const QModelIndex &parent) const {
@@ -285,7 +453,24 @@ void MessageModel::addPart(const QJsonObject &part) {
             {"role", "assistant"},
             {"content", ""}});
   }
-  auto &row = m_rows.last();
+  int targetRow = rowCount() - 1;
+  const auto incomingCall = part["tool_call_id"].toString();
+  if (!incomingCall.isEmpty()) {
+    for (int candidate = rowCount() - 1; candidate >= 0; --candidate) {
+      bool found = false;
+      for (const auto &existing : m_rows[candidate]["parts"].toArray()) {
+        if (existing.toObject()["tool_call_id"] == incomingCall) {
+          found = true;
+          break;
+        }
+      }
+      if (found) {
+        targetRow = candidate;
+        break;
+      }
+    }
+  }
+  auto &row = m_rows[targetRow];
   auto parts = row["parts"].toArray();
   const auto action = part["actionId"].toString();
   const auto call = part["tool_call_id"].toString();
@@ -294,7 +479,10 @@ void MessageModel::addPart(const QJsonObject &part) {
     auto p = parts[i].toObject();
     if ((!action.isEmpty() && p["actionId"] == action) ||
         (!call.isEmpty() && p["tool_call_id"] == call)) {
-      parts[i] = part;
+      for (auto it = part.begin(); it != part.end(); ++it) {
+        p[it.key()] = it.value();
+      }
+      parts[i] = p;
       replaced = true;
       break;
     }
@@ -303,8 +491,8 @@ void MessageModel::addPart(const QJsonObject &part) {
     parts.append(part);
   }
   row["parts"] = parts;
-  refreshParts(rowCount() - 1);
-  emit dataChanged(index(rowCount() - 1), index(rowCount() - 1), {PartsRole});
+  refreshParts(targetRow);
+  emit dataChanged(index(targetRow), index(targetRow), {PartsRole});
 }
 void MessageModel::importHistory(const QJsonArray &rows, bool prepend) {
   if (!prepend) {

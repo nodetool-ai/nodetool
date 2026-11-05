@@ -78,8 +78,40 @@ private slots:
             {"tool_call_id", "call"}, {"result", QJsonObject{{"stdout", "2"}}}});
         QCOMPARE(parts->rowCount(), 1);
         QCOMPARE(partAt(parts, 0)["args"].toMap()["code"].toString(), QString("console.log(2)"));
+        QVERIFY(partAt(parts, 0)["resultText"].toString().contains("2"));
         QCOMPARE(reset.count(), 0);
         QCOMPARE(changed.count(), 1);
+    }
+    void longToolConversationUpdatesOnlyOwningRow() {
+        MessageModel model;
+        for (int i = 0; i < 2000; ++i) {
+            model.upsert({{"id", QString::number(i)}, {"role", "assistant"}, {"content", ""}});
+            model.addPart({{"type", "tool_call_update"}, {"tool_call_id", QString("call-%1").arg(i)},
+                {"name", "read_file"}, {"args", QJsonObject{{"path", "notes.txt"}}}});
+        }
+        auto* parts = partsFor(model, 5);
+        QSignalSpy reset(&model, &QAbstractItemModel::modelReset);
+        QSignalSpy changed(&model, &QAbstractItemModel::dataChanged);
+        model.addPart({{"type", "tool_result_update"}, {"tool_call_id", "call-5"},
+            {"is_error", true}, {"result", QJsonObject{{"error", "File not found"}}}});
+        QCOMPARE(model.rowCount(), 2000);
+        QCOMPARE(reset.count(), 0);
+        QCOMPARE(changed.count(), 1);
+        QCOMPARE(changed.first().first().value<QModelIndex>().row(), 5);
+        QCOMPARE(partAt(parts, 0)["displayStatus"].toString(), QString("Failed"));
+        QCOMPARE(partAt(parts, 0)["argumentsText"].toString().contains("notes.txt"), true);
+    }
+    void consecutiveToolsGroupWithoutLosingResults() {
+        MessageModel model;
+        model.upsert({{"id", "group"}, {"role", "assistant"}, {"content", ""}});
+        model.addPart({{"type", "tool_call_update"}, {"name", "search"}, {"tool_call_id", "one"}, {"args", QJsonObject{{"query", "first"}}}});
+        model.addPart({{"type", "tool_call_update"}, {"name", "search"}, {"tool_call_id", "two"}, {"args", QJsonObject{{"query", "second"}}}});
+        auto* parts = partsFor(model);
+        QCOMPARE(parts->rowCount(), 1);
+        QCOMPARE(partAt(parts, 0)["label"].toString(), QString("Ran 2 searches"));
+        QVERIFY(partAt(parts, 0)["resultText"].toString().contains("first"));
+        QVERIFY(partAt(parts, 0)["resultText"].toString().contains("second"));
+        QCOMPARE(model.snapshot()[0].toObject()["parts"].toArray().size(), 2);
     }
     void fixtureConformance() {
         const auto data = fixture();

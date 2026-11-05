@@ -6,7 +6,7 @@ set_tests_properties(chat-model-tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=of
 qt_add_executable(chat-quick-tests QuickTests.cpp)
 nodetool_use_ui_primitives(chat-quick-tests)
 target_link_libraries(chat-quick-tests PRIVATE nodetool_chat nodetool_chatplugin Qt6::QuickTest)
-target_compile_definitions(chat-quick-tests PRIVATE QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/qml")
+target_compile_definitions(chat-quick-tests PRIVATE QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/qml" CHAT_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../fixtures")
 add_test(NAME chat-quick-tests COMMAND chat-quick-tests)
 set_tests_properties(chat-quick-tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QSG_RHI_BACKEND=software")
 

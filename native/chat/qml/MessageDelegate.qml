@@ -25,6 +25,8 @@ ColumnLayout {
         id: paged
         property string sourceText: ""
         property bool markdown: false
+        property bool monospaced: false
+        property string copyLabel: ""
         property bool userBubble: false
         property var chatSession
         property int page: 0
@@ -76,8 +78,8 @@ ColumnLayout {
                 readOnly: true
                 selectByMouse: true
                 wrapMode: TextEdit.Wrap
-                role: modelData.code ? Ui.Typography.MonoCode : Ui.Typography.SansBody
-                variant: paged.userBubble ? Ui.TextArea.Bubble : modelData.code ? Ui.TextArea.Code : Ui.TextArea.Plain
+                role: modelData.code || paged.monospaced ? Ui.Typography.MonoCode : Ui.Typography.SansBody
+                variant: paged.monospaced ? Ui.TextArea.Code : paged.userBubble ? Ui.TextArea.Bubble : modelData.code ? Ui.TextArea.Code : Ui.TextArea.Plain
                 accessibleName: modelData.text
                 onLinkActivated: link => {
                     if (paged.chatSession) {
@@ -85,6 +87,11 @@ ColumnLayout {
                     }
                 }
             }
+        }
+        Ui.EditorButton {
+            visible: paged.copyLabel.length > 0
+            text: paged.copyLabel
+            onClicked: if (paged.chatSession) paged.chatSession.copyText(paged.sourceText)
         }
         RowLayout {
             visible: paged.pages > 1
@@ -137,6 +144,7 @@ ColumnLayout {
             required property var modelData
             readonly property var part: modelData
             readonly property string kind: part.type || "unknown"
+            property bool detailsOpen: !part.grouped
             Layout.fillWidth: true
             implicitHeight: partContent.implicitHeight + Ui.Metrics.md * 2
             ColumnLayout {
@@ -147,9 +155,59 @@ ColumnLayout {
                 Ui.Text {
                     role: Ui.Typography.SansLabel
                     Layout.fillWidth: true
-                    text: partFrame.part.tool_name || partFrame.part.name || partFrame.part.title || partFrame.kind
+                    text: partFrame.part.label || partFrame.part.tool_name || partFrame.part.name || partFrame.part.title || partFrame.kind
                     tone: Ui.Text.Secondary
                     wrapMode: Text.WordWrap
+                }
+                Ui.Text {
+                    Layout.fillWidth: true
+                    visible: !!partFrame.part.tool
+                    text: partFrame.part.displayStatus || ""
+                    role: Ui.Typography.SansCaption
+                    tone: partFrame.part.displayStatus === "Failed" ? Ui.Text.Error : Ui.Text.Secondary
+                }
+                Ui.Text {
+                    visible: !!partFrame.part.code
+                    text: qsTr("Code · %1").arg(partFrame.part.language || "")
+                    role: Ui.Typography.SansLabel
+                }
+                PagedText {
+                    Layout.fillWidth: true
+                    visible: !!partFrame.part.code
+                    sourceText: partFrame.part.code || ""
+                    monospaced: true
+                    copyLabel: qsTr("Copy code")
+                    chatSession: root.session
+                }
+                Ui.Text {
+                    visible: !!partFrame.part.argumentsText
+                    text: qsTr("Arguments")
+                    role: Ui.Typography.SansLabel
+                }
+                PagedText {
+                    Layout.fillWidth: true
+                    visible: !!partFrame.part.argumentsText
+                    sourceText: partFrame.part.argumentsText || ""
+                    monospaced: true
+                    chatSession: root.session
+                }
+                Ui.EditorButton {
+                    visible: !!partFrame.part.grouped
+                    text: partFrame.detailsOpen ? qsTr("Hide calls") : qsTr("Show calls")
+                    onClicked: partFrame.detailsOpen = !partFrame.detailsOpen
+                }
+                Ui.Text {
+                    visible: !!partFrame.part.resultText && partFrame.detailsOpen
+                    text: qsTr("Result")
+                    role: Ui.Typography.SansLabel
+                }
+                PagedText {
+                    Layout.fillWidth: true
+                    visible: !!partFrame.part.resultText && partFrame.detailsOpen
+                    sourceText: partFrame.part.resultText || ""
+                    monospaced: true
+                    copyLabel: qsTr("Copy result")
+                    chatSession: root.session
                 }
                 PagedText {
                     Layout.fillWidth: true
@@ -159,7 +217,7 @@ ColumnLayout {
                 }
                 PagedText {
                     Layout.fillWidth: true
-                    visible: partFrame.kind !== "image" || !partFrame.part.mediaUrl
+                    visible: !partFrame.part.tool && (partFrame.kind !== "image" || !partFrame.part.mediaUrl)
                     sourceText: partFrame.part.text || partFrame.part.content || (typeof partFrame.part.result === "string" ? partFrame.part.result : "") || qsTr("This content is preserved by the server. Open the web app to use this content type.")
                     chatSession: root.session
                 }
