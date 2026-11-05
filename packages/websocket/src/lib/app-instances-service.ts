@@ -103,7 +103,12 @@ async function freezeSnapshot(
     if (target.kind === "script") {
       // Inline bundles carry their own script documents. A stored release
       // always resolves the declared immutable version through its owner.
-      if (input.version == null && frozen.script_documents[target.scriptId]) {
+      const key = `${target.scriptId}@${target.scriptVersion}`;
+      const inline =
+        snapshot.script_documents[key] ??
+        snapshot.script_documents[target.scriptId];
+      if (input.version == null && inline) {
+        frozen.script_documents[key] = inline;
         continue;
       }
       const resolved = await createJsScriptResolver().resolve(
@@ -116,7 +121,7 @@ async function freezeSnapshot(
           "Operation script version not found"
         );
       }
-      frozen.script_documents[target.scriptId] = jsScriptDocument.parse(
+      frozen.script_documents[key] = jsScriptDocument.parse(
         resolved.document
       );
     } else if (

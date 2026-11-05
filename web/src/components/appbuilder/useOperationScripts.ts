@@ -40,14 +40,15 @@ export const useOperationScripts = (
           : await trpcClient.jsScripts.documentVersions.get.query({id, version});
         return jsScriptDocument.parse(result.document);
       },
-      enabled: !overrides?.[id],
+      enabled: !(overrides?.[`${id}@${version}`] ?? overrides?.[id]),
       staleTime: 60_000,
       retry: false
     }))
   });
   const loaded = new Map<string, JsScriptDocument>();
-  targets.forEach(({ operationId, id }, index) => {
-    const document = overrides?.[id] ?? queries[index]?.data;
+  targets.forEach(({ operationId, id, version }, index) => {
+    const document =
+      overrides?.[`${id}@${version}`] ?? overrides?.[id] ?? queries[index]?.data;
     if (document) {
       loaded.set(operationId, document);
     }

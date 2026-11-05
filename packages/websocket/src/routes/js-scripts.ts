@@ -616,7 +616,8 @@ async function resolveAppScriptRun(
     );
   }
   const document = jsScriptDocument.safeParse(
-    run.snapshot.script_documents[target.scriptId]
+    run.snapshot.script_documents[`${target.scriptId}@${target.scriptVersion}`] ??
+      run.snapshot.script_documents[target.scriptId]
   );
   if (!document.success) {
     await settleAppRun(userId, run.id, {
