@@ -7,6 +7,7 @@ import fs from "fs";
 import path from "path";
 import vm from "vm";
 
+import { Bl1Device } from "../bl1Device";
 import { generateTables } from "../../fablesynth/engine/wavetables";
 import { defaultBassParams } from "../../fablesynth/bass/params";
 
@@ -99,6 +100,26 @@ describe("FableSynth timeline automation lanes", () => {
     r.send({ t: "p", k: "flt.cut", v: 900 });
     r.quantum();
     expect(r.proc.p["flt.cut"]).toBe(900);
+  });
+
+  it("restores authored BL-1 values when automation lanes are removed", () => {
+    const r = bass();
+    const params = defaultBassParams();
+    const node = { port: { postMessage: (message: unknown) => r.send(message) } } as unknown as AudioWorkletNode;
+    const device = new Bl1Device({ sampleRate: SR } as BaseAudioContext, node, params);
+    device.setAutomation([
+      { param: "flt.cut", points: [{ timeSec: 0, value: 5000 }] },
+      { param: "flt.res", points: [{ timeSec: 0, value: 0.8 }] }
+    ]);
+    r.quantum();
+    expect(r.proc.p["flt.cut"]).toBe(5000);
+    device.setAutomation([{ param: "flt.res", points: [{ timeSec: 0, value: 0.8 }] }]);
+    r.quantum();
+    expect(r.proc.p["flt.cut"]).toBe(params["flt.cut"]);
+    expect(r.proc.p["flt.res"]).toBeCloseTo(0.8);
+    device.setAutomation([]);
+    r.quantum();
+    expect(r.proc.p["flt.res"]).toBe(params["flt.res"]);
   });
 
   it("acknowledges a sync once every earlier message has arrived", () => {

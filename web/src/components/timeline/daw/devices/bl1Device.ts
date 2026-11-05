@@ -77,6 +77,10 @@ export class Bl1Device extends WorkletInstrumentDevice {
     return this.params;
   }
 
+  protected get authoredParams(): Readonly<Record<string, number>> {
+    return this.params;
+  }
+
   setInstrument(instrument: MidiInstrument): void {
     if (instrument === this.lastInstrument) return;
     this.lastInstrument = instrument;
