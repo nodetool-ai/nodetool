@@ -50,6 +50,68 @@ QJsonObject message(int id) {
 class ChatModelTests : public QObject {
     Q_OBJECT
 private slots:
+    void mediaBoundaryAndResources() {
+        ChatClient client;
+        bool rejected = false;
+        client.openMedia(QUrl("file:///private.mp4"), [&](QJsonValue, QString error) { rejected = !error.isEmpty(); });
+        QVERIFY(rejected);
+        rejected = false;
+        client.fetchMedia(QUrl("data:image/png;base64,invalid"), [&](QJsonValue, QString error) { rejected = !error.isEmpty(); });
+        QVERIFY(rejected);
+        ChatSession session;
+        QSignalSpy navigation(&session, &ChatSession::resourceRequested);
+        const QString uri = "timeline://0123456789abcdef0123456789abcdef";
+        session.openResource(uri);
+        QCOMPARE(navigation.size(), 0);
+        session.setProperty("resourceKinds", QStringList{"timeline"});
+        session.openResource(uri);
+        QCOMPARE(navigation.size(), 1);
+        QCOMPARE(navigation[0][0].toString(), uri);
+        const auto pages = markdownPages("[Evening cut](" + uri + ")");
+        QCOMPARE(pages[0].toList()[0].toMap().value("resourceUri").toString(), uri);
+        const auto code = markdownPages("```md\n[Evening cut](" + uri + ")\n```");
+        QVERIFY(!code[0].toList()[0].toMap().contains("resourceUri"));
+        QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/media-resources.json"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        auto row = QJsonDocument::fromJson(file.readAll()).object()["events"].toArray()[0].toObject();
+        row["thread_id"] = "a";
+        session.applyEvent(row);
+        session.selectThread("a");
+        auto *parts = session.messages()->data(session.messages()->index(0, 0), MessageModel::PartsRole).value<QAbstractItemModel *>();
+        QVERIFY(partAt(parts, 1).value("mediaUrl").toString().startsWith("data:image/png"));
+        session.disconnectFromServer();
+        QCOMPARE(session.messages()->rowCount(), 0);
+    }
+    void mediaHelperCasesAndUpdates() {
+        QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/media-resources.json"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto fixture = QJsonDocument::fromJson(file.readAll()).object();
+        for (const auto &value : fixture["helperCases"].toArray()) {
+            const auto item = value.toObject();
+            MessageModel model;
+            model.upsert({{"id", "media"}, {"role", "assistant"}, {"content", item["content"]}});
+            const auto first = partAt(partsFor(model), 0);
+            QCOMPARE(first.value("type") == "media_group", item["expected"].toBool());
+            QCOMPARE(model.snapshot()[0].toObject()["content"], item["content"]);
+        }
+        MessageModel model;
+        QJsonArray rows;
+        for (int i = 0; i < 2000; ++i) {
+            auto row = fixture["events"].toArray()[0].toObject();
+            row["id"] = QString::number(i);
+            rows.append(row);
+        }
+        model.importHistory(rows);
+        QCOMPARE(model.rowCount(), 2000);
+        model.addPart({{"type", "prediction"}, {"id", "full-prediction-id"}, {"status", "running"}, {"progress", 0.2}});
+        model.upsert({{"id", "later"}, {"role", "assistant"}, {"content", "Later"}});
+        QSignalSpy changed(&model, &MessageModel::dataChanged);
+        model.addPart({{"type", "prediction"}, {"id", "full-prediction-id"}, {"status", "completed"}, {"progress", 1}});
+        QCOMPARE(changed.size(), 1);
+        QCOMPARE(changed[0][0].value<QModelIndex>().row(), 1999);
+        const auto parts = partsFor(model, 1999);
+        QVERIFY(partAt(parts, parts->rowCount() - 1).value("text").toString().contains("completed"));
+    }
     void planParserWebCases() {
         QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/plans-approvals.json"));
         QVERIFY(file.open(QIODevice::ReadOnly));

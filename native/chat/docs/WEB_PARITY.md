@@ -15,10 +15,10 @@ This is a source inventory, not a claim that every row has visual acceptance cov
 | Kind | Web | Native baseline | Gap |
 | --- | --- | --- | --- |
 | String / text blocks (all roles) | Markdown, Harmony cleanup, thought sections | Selectable paged Markdown, Harmony cleanup and ordered mixed parts | Native HTML and resource-link presentation differ |
-| image_url | Resolved image, canvas action | Authenticated image preview | No canvas action |
-| audio | Player | Fallback | Playback missing |
-| video | Player | Fallback | Playback missing |
-| document | Document text | Fallback | Document presentation missing |
+| image_url | Resolved image, canvas action | Authenticated asynchronous preview and large-image dialog | No canvas action, external storage origins remain restricted |
+| audio | Player | Duration, optional thumbnail, authenticated system-viewer open | No embedded player |
+| video | Player | Duration, optional thumbnail, authenticated system-viewer open | No embedded player |
+| document | Document text | Named document with paged readable text | No document viewer |
 | Unknown content / null | Renderer-dependent fallback | Generic fallback, raw model retained | Needs readable payload details |
 | tool_calls / tool_call_update / tool_result_update | Phrased grouped rows with arguments and results | Raw JSON, result replaces arguments | Priority: retain call and render execution |
 | execute_code | JavaScript code, title, copy, result, running state | Raw JSON, code lost after result | Priority: code and output presentation |
@@ -26,8 +26,8 @@ This is a source inventory, not a claim that every row has visual acceptance cov
 | planning_update / task_update / log_update | Agent execution tree by execution ID and step | JSON cards | Execution tree missing |
 | Thinking chunks / thought markup | Collapsible thinking with timing | C++ thought projection with timing and retained expansion | Fresh history requires server-supplied markup. Web shimmer and rail differ |
 | Markdown fences / tables / math | Highlighted copyable code, GFM tables, KaTeX | Labelled copyable fences and header-preserving table pages | Syntax highlighting and math typesetting remain gaps |
-| Media output groups / prediction | Grouped media, progress and generation metadata | Individual fallback cards | Grouping and metadata missing |
-| Resource mentions | Typed chips, preview and navigation | Plain text | Native resource navigation integration missing |
+| Media output groups / prediction | Grouped media, progress and generation metadata | Shared media-only header, generation metadata, prediction status/progress/cost | Vertical rows instead of grid, no shimmer |
+| Resource mentions | Typed chips, preview and navigation | Typed Markdown-link chips and explicit resource rows, capability-gated host signal | Bare/backticked mentions and inline resource previews missing |
 | tool_approval_request | Review arguments, allow/deny | Folded code and arguments, description, allow/deny with authoritative ID | Separate web folds and chat-wide grants are not implemented |
 | plan_approval_request | Plan preview, feedback, approve/reject | Parsed preview, feedback, run/revise/reject | Native typography and single-line feedback differ |
 | create_plan / plan document | Structured plan document | C++ parser, task and step counts, dependencies, instructions and execution note | Native text document layout differs |
@@ -424,3 +424,65 @@ Offscreen screenshots and logs are under
 TypeScript tests, TypeScript fixture conformance, typecheck, lint, harness gate
 and `/verify` were not run, as requested. Platform accessibility and installed
 application checks were not run.
+
+
+## Media and resources checkpoint
+
+C++ recognizes media-only arrays using the cases in the web helper tests.
+A shared generation header precedes the media rows. It shows model, resolution,
+aspect ratio, variations, duration, strength, inference steps, voice and speed
+when supplied. Pending requests show a generation label. Prediction rows show
+status, progress, provider/output/attachment status, cost and errors. Updates
+with the same prediction ID notify the original owning row even after later
+messages arrive. Raw content and unknown fields remain retained.
+
+Images use the authenticated client and asynchronous QML decoding, bounded to
+800-pixel previews and 1,600-pixel dialog images. Downloads retain the existing
+16 MiB and 16-megapixel limits. Inline PNG/JPEG sources are limited to 2 MiB.
+The session preview budget is 32 MiB of UTF-16 source strings. Failures show
+an error instead of silently disappearing. The large-image dialog supports
+Escape and returns focus. Account changes clear protected projections and
+client-owned temporary media files.
+
+Chat has no playback stack in its CMake dependencies. Its plan excludes the
+timeline's FFmpeg and private QRhi dependencies. Audio and video therefore show
+duration, an available thumbnail and an explicit system-viewer action. That
+action resolves assets through `assets.get`, downloads with authentication,
+then opens a temporary local file. It accepts a bounded set of audio/video MIME
+types up to 32 MiB. Same-origin enforcement and manual redirect policy prevent
+credentials from reaching another origin. Signed external storage URLs remain
+a gap. No dependency was added. System-player availability was not manually
+tested on this machine.
+
+Documents show their name and paged text. Markdown resource links become typed
+chips outside fenced code. Full URIs reach `ChatSession.resourceRequested` only
+for kinds advertised in `resourceKinds`. The timeline assistant panel exposes
+no resource-opening hook, so it retains noninteractive chips. No timeline
+navigation or inline sketch, timeline, model or game renderer was invented.
+Bare URIs, URI-only code spans, legacy `nodetool://` links and exact Markdown
+AST handling remain gaps.
+Native uses vertical media rows rather than the web grid, and has no canvas
+insertion, drag action or pending shimmer.
+
+`media-resources.json` covers mixed media, generation metadata, prediction,
+document and resource presentation. Model tests port the media-only helper
+cases, check row-specific prediction updates across 2,000 media messages,
+reject unsupported URLs, retain full navigation IDs, resolve inline images and
+clear protected state. QML tests cover virtualization with 2,000 media messages,
+document text, inactive resource navigation and the large-image dialog.
+
+Offscreen evidence lives in `/home/mg/Projects/nodetool-film/tmp/chat-parity/`:
+`media-group.png`, `media-large.png`, and `media-resources.png`.
+The build and test logs are `media-build.log` and `media-tests.log`.
+
+TypeScript tests, typecheck, lint, harness gate and `/verify` were not run, as
+requested. Running-web comparisons, timeline-host rendering, platform
+accessibility and system-player playback were not run.
+
+The requested `ntbuild` completed successfully. `citest` reported all three
+CTest entries passing, including fixture setup. Qt reported 37 model passes
+and 39 QML passes, including initialization and cleanup, without failures or
+skips. Existing 2,000-message coverage and the new media-heavy case passed.
+Both `check_design.py --strict` and `check_dependencies.py` passed. The three
+screenshots were inspected after the final changes. This does not establish
+scrolling frame latency or web pixel parity.

@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Window
 import QtQuick.Controls
 import QtTest
 import NodeTool.Chat
@@ -32,6 +33,42 @@ TestCase {
         active: false
         sourceComponent: Component { ConversationView { session: loadingSession } }
     }
+    function test_mediaResources() {
+        testDriver.replay("media-resources")
+        tryVerify(() => findText(panel, "Production notes") !== null)
+        verify(findText(panel, "timeline · Evening cut") !== null)
+        verify(findText(panel, "Exterior at dusk. Hold the final frame for two seconds.") !== null)
+        verify(findText(panel, "Open resource") === null)
+        const directory = testDriver.screenshotDirectory()
+        const list = findChild(panel, "chatMessages")
+        list.positionViewAtEnd()
+        wait(100)
+        if (directory) grabImage(panel).save(directory + "/media-resources.png")
+    }
+    function test_mediaHeavyHistory() {
+        testDriver.mediaHistory(2000)
+        const list = findChild(panel, "chatMessages")
+        tryCompare(list, "count", 2000)
+        list.positionViewAtBeginning()
+        wait(100)
+        verify(list.contentItem.children.length < 100)
+        tryVerify(() => findText(panel, "Open large image") !== null)
+    }
+    function test_mediaImageDialog() {
+        testDriver.mediaHistory(1)
+        tryVerify(() => findText(panel, "Open large image") !== null)
+        const list = findChild(panel, "chatMessages")
+        list.positionViewAtBeginning()
+        wait(150)
+        const directory = testDriver.screenshotDirectory()
+        if (directory) grabImage(panel).save(directory + "/media-group.png")
+        mouseClick(findText(panel, "Open large image"))
+        tryVerify(() => findText(Overlay.overlay, "Close image") !== null)
+        wait(150)
+        if (directory) grabImage(panel.Window.window.contentItem).save(directory + "/media-large.png")
+        keyClick(Qt.Key_Escape)
+    }
+
     function typeLetters(text) {
         for (let i = 0; i < text.length; ++i) keyClick(text[i].toUpperCase().charCodeAt(0))
     }

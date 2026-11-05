@@ -31,6 +31,18 @@ public:
             m_session->applyEvent(object);
         }
     }
+    Q_INVOKABLE void mediaHistory(int count) {
+        QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/media-resources.json"));
+        if (!file.open(QIODevice::ReadOnly)) { return; }
+        const auto sample = QJsonDocument::fromJson(file.readAll()).object()["events"].toArray()[0].toObject();
+        QJsonArray rows;
+        for (int i = 0; i < count; ++i) {
+            auto row = sample;
+            row["id"] = QString::number(i);
+            rows.append(row);
+        }
+        m_session->importHistory("a", rows);
+    }
     Q_INVOKABLE void longExecution() {
         for (int i = 0; i < 2000; ++i) {
             m_session->applyEvent({{"type", "log_update"}, {"thread_id", "a"},
