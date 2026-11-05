@@ -49,6 +49,7 @@ export async function inspectTimelineClipFrames(
     clip.mediaType === "model3d"
   ) {
     const rendered = await renderTimelineFrames({
+      signal: context.signal,
       sequence,
       onlyClipIds: [clip.id],
       timesMs,

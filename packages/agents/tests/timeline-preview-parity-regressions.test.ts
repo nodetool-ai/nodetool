@@ -2,7 +2,7 @@ import { createCanvas, loadImage } from "@napi-rs/canvas";
 import type { TimelineClip, TimelineSequence } from "@nodetool-ai/timeline";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { describe, expect, it } from "vitest";
-import { renderTimelineFrames } from "../src/timeline-preview/frames.js";
+import { renderTimelineFrames, renderTimelineFrames as renderFrames } from "../src/timeline-preview/frames.js";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 
 const WIDTH = 160;
@@ -48,7 +48,8 @@ async function centerPixel(png: Uint8Array): Promise<number[]> {
   return [...context.getImageData(WIDTH / 2, HEIGHT / 2, 1, 1).data];
 }
 
-describe("motion-blur preview sample diagnostics", () => {
+describe.each([false, true])("motion-blur preview sample diagnostics shared=%s", (shared) => {
+  const renderTimelineFrames = (options: Parameters<typeof renderFrames>[0]) => renderFrames(options, shared);
   it("preserves failures that occur only after the representative first sample", async () => {
     let reads = 0;
     const result = await renderTimelineFrames({

@@ -48,6 +48,7 @@ jobs:
         with:
           cache: "read-only"
           build-packages: "false"
+          extra-apt: mesa-vulkan-drivers
 
       - name: Install mobile dependencies
         run: cd mobile && npm ci

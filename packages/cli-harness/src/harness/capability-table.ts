@@ -2335,7 +2335,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "preview_timeline_frame",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "de9bcce846ee",
+    contract: "2c403692e0f6",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timeline-preview.test.ts",

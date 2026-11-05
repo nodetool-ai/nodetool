@@ -1089,6 +1089,22 @@ async function buildSandboxWorkerBundle() {
   console.log("  Wrote js-sandbox-worker/worker-entry.js");
 }
 
+// The child must remain a separate executable beside the flattened server.
+async function buildPreviewRenderChildBundle() {
+  await esbuild.build({
+    entryPoints: [path.join(ROOT_DIR, "packages/agents/dist/timeline-preview/render-child.js")],
+    bundle: true,
+    platform: "node",
+    format: "esm",
+    target: "node22",
+    outfile: path.join(BUNDLE_DIR, "preview-render-child.mjs"),
+    external: ESBUILD_EXTERNAL_PACKAGES,
+    banner: { js: 'import { createRequire as __ntCreateRequire } from "node:module"; const require = __ntCreateRequire(import.meta.url);' },
+    logLevel: "warning",
+  });
+}
+
+
 /**
  * Bundle the Chrome extension's native messaging host into
  * <out>/native-host-bin.js.
@@ -1098,6 +1114,7 @@ async function buildSandboxWorkerBundle() {
  * import.meta.url, which in the packaged app is server.mjs, so the file name
  * and location are part of the contract. The host uses only Node built-ins.
  */
+
 async function buildNativeHostBundle() {
   console.log("\nBundling native messaging host (native-host-bin.js)...");
   if (!fs.existsSync(NATIVE_HOST_ENTRY_POINT)) {
@@ -1549,6 +1566,7 @@ async function main() {
   //     in-process without it, which blocks the event loop for a whole run) ---
   await buildSandboxWorkerBundle();
   await buildNativeHostBundle();
+  await buildPreviewRenderChildBundle();
 
   // --- Migration runner entry (opt-in) ---
   if (OPTIONS.withMigrate) {
