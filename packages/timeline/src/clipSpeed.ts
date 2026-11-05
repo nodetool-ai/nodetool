@@ -106,7 +106,7 @@ export function rateStretchClips(
   let maxRatio = Number.POSITIVE_INFINITY;
   for (const m of members) {
     const endMs = m.startMs + m.durationMs;
-    let roomMs = Number.POSITIVE_INFINITY;
+    let roomMs = edge === "start" ? endMs : Number.POSITIVE_INFINITY;
     for (const c of clips) {
       if (c.trackId !== m.trackId || memberIds.has(c.id)) continue;
       if (edge === "end" && c.startMs >= endMs) {
