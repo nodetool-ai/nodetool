@@ -26,6 +26,7 @@ qt_add_qml_module(nodetool_chat
     SOURCES
         src/model/ThreadModel.h src/model/ThreadModel.cpp
         src/model/MessageModel.h src/model/MessageModel.cpp
+        src/model/Markdown.h src/model/Markdown.cpp
         src/runtime/ChatSession.h src/runtime/ChatSession.cpp
         src/server/ChatClient.h src/server/ChatClient.cpp)
 target_include_directories(nodetool_chat PUBLIC src)

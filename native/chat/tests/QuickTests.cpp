@@ -3,13 +3,18 @@
 #include <QFile>
 #include <QJsonDocument>
 #include <QClipboard>
+#include <QDesktopServices>
 #include <QGuiApplication>
 #include <QQmlEngine>
 #include <QtQuickTest/quicktest.h>
 class ChatTestDriver : public QObject {
     Q_OBJECT
 public:
-    explicit ChatTestDriver(nt::chat::ChatSession* session) : QObject(session), m_session(session) {}
+    explicit ChatTestDriver(nt::chat::ChatSession* session) : QObject(session), m_session(session) {
+        QDesktopServices::setUrlHandler("https", this, "recordUrl");
+    }
+    ~ChatTestDriver() override { QDesktopServices::unsetUrlHandler("https"); }
+    Q_INVOKABLE QString openedLink() const { return m_openedLink; }
     Q_INVOKABLE void replay(const QString& name, int limit = 100000) {
         QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/") + name + ".json");
         if (!file.open(QIODevice::ReadOnly)) { return; }
@@ -69,7 +74,10 @@ public:
             {"message", "Review the proposed edit"}, {"args", QJsonObject{{"value", 1}}}});
     }
     Q_INVOKABLE void clearHistory(const QString& thread) { m_session->importHistory(thread, {}); }
+public slots:
+    void recordUrl(const QUrl &url) { m_openedLink = url.toString(); }
 private:
+    QString m_openedLink;
     nt::chat::ChatSession* m_session;
 };
 class ChatQuickSetup : public QObject {

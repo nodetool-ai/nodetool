@@ -14,7 +14,7 @@ This is a source inventory, not a claim that every row has visual acceptance cov
 
 | Kind | Web | Native baseline | Gap |
 | --- | --- | --- | --- |
-| String / text blocks (all roles) | Markdown, Harmony cleanup, thought sections | Selectable paged Markdown | Harmony and mixed-content ordering missing |
+| String / text blocks (all roles) | Markdown, Harmony cleanup, thought sections | Selectable paged Markdown, Harmony cleanup and ordered mixed parts | Native HTML and resource-link presentation differ |
 | image_url | Resolved image, canvas action | Authenticated image preview | No canvas action |
 | audio | Player | Fallback | Playback missing |
 | video | Player | Fallback | Playback missing |
@@ -24,8 +24,8 @@ This is a source inventory, not a claim that every row has visual acceptance cov
 | execute_code | JavaScript code, title, copy, result, running state | Raw JSON, code lost after result | Priority: code and output presentation |
 | run_subtask / run_search | Nested transcript and objective | Generic card | Nested transcripts missing |
 | planning_update / task_update / log_update | Agent execution tree by execution ID and step | JSON cards | Execution tree missing |
-| Thinking chunks / thought markup | Collapsible thinking with timing | Thinking chunks dropped | Thinking stream missing |
-| Markdown fences / tables / math | Highlighted copyable code, GFM tables, KaTeX | Qt Markdown and unlabelled fences | No syntax highlighting or math engine, pagination loses Markdown structure |
+| Thinking chunks / thought markup | Collapsible thinking with timing | C++ thought projection with timing and retained expansion | Fresh history requires server-supplied markup. Web shimmer and rail differ |
+| Markdown fences / tables / math | Highlighted copyable code, GFM tables, KaTeX | Labelled copyable fences and header-preserving table pages | Syntax highlighting and math typesetting remain gaps |
 | Media output groups / prediction | Grouped media, progress and generation metadata | Individual fallback cards | Grouping and metadata missing |
 | Resource mentions | Typed chips, preview and navigation | Plain text | Native resource navigation integration missing |
 | tool_approval_request | Review arguments, allow/deny | Approve/decline with authoritative ID | Detailed matching layout missing |
@@ -69,8 +69,8 @@ rules, MCP formatting, duration and prediction presentation, and expandable
 individual call details within groups. Output is paged JSON rather than the web's
 specialized search/media result renderers. Code has no syntax highlighting.
 
-The other gaps in the baseline table remain open. Thinking and sub-agent reduction
-need dedicated state and fixtures. Agent trees, plan documents, compaction cards,
+Later checkpoints below supersede the thinking and Markdown baseline. Sub-agent
+reduction still needs dedicated state and fixtures. Agent trees, plan documents, compaction cards,
 resource navigation and media playback need native renderers. Full math needs a
 native typesetting capability. Approval actions remain explicit and retain the
 existing decline path. Malformed requests without an authoritative approval ID
@@ -139,9 +139,9 @@ The requested sequence remains open:
 | --- | --- | --- |
 | 1. Tool presentation | Closed details, external expansion state, compact header, visible failure | Cross-message grouping, exact count/list/preview rules, complete phrasing, per-call expansion inside groups and web timeline footer |
 | 2. Persisted history | No change | Role-tool results associated with persisted calls and live/reloaded equivalence |
-| 3. Thinking | No change | Chunk reduction, markup, timing and collapsible presentation |
+| 3. Thinking | Chunk reduction, markup, timing and collapsible presentation | Server persistence of reasoning, web shimmer and rail |
 | 4. Execution | No change | Execution ID/step tree and nested transcripts |
-| 5. Markdown | No change | Labelled fences, tables, Harmony cleanup and mixed ordering. Math remains readable source only |
+| 5. Markdown | Labelled fences, tables, Harmony cleanup and mixed ordering | Syntax highlighting and math typesetting. Math remains readable source |
 | 6. Media/resources | No change | Grouping, progress, prediction metadata, playback/link metadata and typed resource navigation |
 | 7. Plans | No change | Structured documents, approval preview and compaction card |
 | 8. Timeline host | No change | Narrow embedded rendering and screenshot |
@@ -226,3 +226,49 @@ design checks passed. The inspected offscreen screenshot is
 `/home/mg/Projects/nodetool-film/tmp/chat-parity/thinking.png`.
 TypeScript tests, typecheck, lint, harness gate and `/verify` were not run.
 No dependencies were added.
+
+## Markdown parity
+
+`markdown.json` exercises labelled code with full-block copy, a table, an HTTPS
+link, Harmony markers, math source and ordered text/tool/image/text content.
+C++ prepares Markdown pages. Top-level backtick and tilde fences retain their
+language and code identity across pages, including unfinished streaming fences.
+Long tables repeat the header and split between rows. Ordinary prose remains
+Markdown on later pages. Qt renders tables and standard links. HTTP, HTTPS and
+mailto links use the existing external-link boundary. Unsupported schemes are
+rejected. Resource chips and inline media-link previews remain separate gaps.
+
+Array content keeps its order. Streamed native parts retain their insertion
+position outside the raw payload, and resolved image previews replace the
+corresponding image position. Unknown payloads and complete resource IDs remain
+in the raw snapshot. Prose now participates in the ordered part model when a
+message has mixed content. Both models use row-level notifications.
+
+No existing syntax highlighter was found in chat, shared primitives or timeline
+sources. Syntax highlighting remains a gap. Math typesetting remains a gap and
+math source stays visible. HTML and inline Markdown images retain the existing
+plain-text fallback. This is not full CommonMark/GFM conformance: nested
+container fences and oversized individual table rows have no dedicated coverage.
+A table row stays intact even when it exceeds the nominal page size.
+
+The requested native build passed. CTest reported all three selected tests
+passing, including setup. Qt reported 29 model and 28 QML passes, with no
+failures or skips. Existing 2,000-message checks pass. New checks cover long
+code/table pagination, ordered streaming, and 60 updates growing a document
+past 100,000 characters while retaining the composer draft. The GUI timer test
+requires every observed interval to stay below 500 ms. This is a responsiveness
+regression check, not a claim of display-rate rendering.
+
+Both native design checks passed. Inspected offscreen screenshots are in
+`/home/mg/Projects/nodetool-film/tmp/chat-parity/`:
+
+- `markdown.png` shows code, copy, table, link and math source.
+- `markdown-mixed.png` shows the tool, following text, unresolved image fallback
+  and final text in order. The fixture's asset is synthetic.
+- `markdown-long-stream.png` shows the long document and retained draft.
+
+Build and test output is in `markdown-build.log` and `markdown-tests.log` in
+that directory. No dependencies were added. TypeScript tests, TypeScript fixture
+conformance, typecheck, lint, harness gate and `/verify` were not run, as requested.
+Platform accessibility, a running web comparison and timeline-host rendering
+were not run.

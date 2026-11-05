@@ -22,6 +22,14 @@ QString textOf(const QJsonValue &value) {
   }
   return text;
 }
+qsizetype contentLength(const QJsonValue &value) {
+  if (value.isString()) { return value.toString().size(); }
+  qsizetype length = 0;
+  for (const auto &part : value.toArray()) {
+    length += part.toObject()["type"] == "text" ? part.toObject()["text"].toString().size() : 1;
+  }
+  return length;
+}
 bool openThought(const QString &text) {
   const auto start = text.lastIndexOf("<think>");
   return start >= 0 && text.indexOf("</think>", start) < 0 &&
@@ -199,24 +207,74 @@ QJsonObject presentPart(QJsonObject part) {
   }
   return part;
 }
-QJsonArray projectedParts(const QJsonObject &m, const QHash<QString, QJsonObject> &results) {
-  auto parts = m["parts"].toArray();
-  const auto body = textOf(m["content"]);
-  auto thoughts = thoughtPattern().globalMatch(body);
+QJsonArray projectedParts(const QJsonObject &m, const QHash<QString, QJsonObject> &results, const QList<qsizetype> &offsets) {
+  QJsonArray parts;
+  const auto nativeParts = m["parts"].toArray();
   int thoughtIndex = 0;
-  qsizetype cursor = 0;
-  while (thoughts.hasNext()) {
-    const auto match = thoughts.next();
-    if (match.capturedStart() > cursor) {
-      parts.append(QJsonObject{{"type", "prose"}, {"text", body.mid(cursor, match.capturedStart() - cursor)}});
+  auto appendText = [&](const QString &body) {
+    auto thoughts = thoughtPattern().globalMatch(body);
+    qsizetype cursor = 0;
+    while (thoughts.hasNext()) {
+      const auto match = thoughts.next();
+      if (match.capturedStart() > cursor) {
+        parts.append(QJsonObject{{"type", "prose"}, {"text", body.mid(cursor, match.capturedStart() - cursor)}});
+      }
+      const bool running = match.captured(2).isEmpty() && m["status"] == "streaming";
+      parts.append(QJsonObject{{"type", "thought"}, {"thoughtKey", QString::number(thoughtIndex++)},
+                              {"text", match.captured(1)}, {"running", running}});
+      cursor = match.capturedEnd();
     }
-    const bool running = match.captured(2).isEmpty() && m["status"] == "streaming";
-    parts.append(QJsonObject{{"type", "thought"}, {"thoughtKey", QString::number(thoughtIndex++)},
-                            {"text", match.captured(1)}, {"running", running}});
-    cursor = match.capturedEnd();
-  }
-  if (thoughtIndex > 0 && cursor < body.size()) {
-    parts.append(QJsonObject{{"type", "prose"}, {"text", body.mid(cursor)}});
+    if (cursor < body.size()) { parts.append(QJsonObject{{"type", "prose"}, {"text", body.mid(cursor)}}); }
+  };
+  if (m["content"].isArray()) {
+    qsizetype textOffset = 0;
+    int nativeIndex = 0;
+    const auto totalLength = contentLength(m["content"]);
+    auto appendNativeThrough = [&](qsizetype end, const QString &body) {
+      qsizetype cursor = 0;
+      while (nativeIndex < nativeParts.size()) {
+        const auto part = nativeParts[nativeIndex].toObject();
+        if (part["type"] == "image") { ++nativeIndex; continue; }
+        const auto offset = offsets.value(nativeIndex, totalLength);
+        if (offset > end) { break; }
+        const auto local = std::clamp<qsizetype>(offset - textOffset, cursor, body.size());
+        appendText(body.mid(cursor, local - cursor));
+        parts.append(part);
+        cursor = local;
+        ++nativeIndex;
+      }
+      appendText(body.mid(cursor));
+      textOffset = end;
+    };
+    for (const auto &value : m["content"].toArray()) {
+      const auto part = value.toObject();
+      if (part["type"] == "text") {
+        const auto body = part["text"].toString();
+        appendNativeThrough(textOffset + body.size(), body);
+      } else {
+        auto displayed = value;
+        for (const auto &preview : nativeParts) {
+          if (part["type"] == "image_url" && preview.toObject()["type"] == "image" && preview.toObject()["image"] == part["image"]) {
+            displayed = preview;
+            break;
+          }
+        }
+        parts.append(displayed);
+        ++textOffset;
+      }
+    }
+    appendNativeThrough(textOffset, {});
+  } else {
+    const auto body = textOf(m["content"]);
+    qsizetype cursor = 0;
+    int nativeIndex = 0;
+    for (const auto &value : nativeParts) {
+      const auto offset = std::clamp<qsizetype>(offsets.value(nativeIndex++, body.size()), cursor, body.size());
+      appendText(body.mid(cursor, offset - cursor));
+      parts.append(value);
+      cursor = offset;
+    }
+    if (!nativeParts.isEmpty() || body.contains("<think>")) { appendText(body.mid(cursor)); }
   }
   bool hasToolCalls = false;
   for (const auto &value : m["tool_calls"].toArray()) {
@@ -245,13 +303,7 @@ QJsonArray projectedParts(const QJsonObject &m, const QHash<QString, QJsonObject
     projected.insert("text", name + "\n" + argsText);
     parts.append(projected);
   }
-  if (m["content"].isArray()) {
-    for (auto p : m["content"].toArray()) {
-      if (p.toObject()["type"] != "text") {
-        parts.append(p);
-      }
-    }
-  } else if (!m["content"].isString() &&
+  if (!m["content"].isArray() && !m["content"].isString() &&
              !(hasToolCalls &&
                (m["content"].isNull() || m["content"].isUndefined()))) {
     const auto content = m["content"];
@@ -448,10 +500,11 @@ void PartModel::setParts(const QJsonArray &parts) {
 void MessageModel::refreshParts(int row) {
   const auto key = m_projectionKeys[row];
   if (auto *model = m_partModels.value(key, nullptr)) {
-    model->setParts(projectedParts(m_rows[row], m_results));
+    model->setParts(projectedParts(m_rows[row], m_results, m_partOffsets.value(key)));
   }
 }
 void MessageModel::releaseParts(const QString &key) {
+  m_partOffsets.remove(key);
   if (auto *model = m_partModels.take(key)) {
     model->deleteLater();
   }
@@ -462,7 +515,7 @@ int MessageModel::rowCount(const QModelIndex &p) const {
 QHash<int, QByteArray> MessageModel::roleNames() const {
   return {{MessageIdRole, "messageId"}, {RoleRole, "role"},
           {TextRole, "text"},           {TimestampRole, "timestamp"},
-          {PartsRole, "parts"},         {StatusRole, "status"}};
+          {PartsRole, "parts"},         {StatusRole, "status"}, {DisplayTextRole, "displayText"}};
 }
 QVariant MessageModel::data(const QModelIndex &i, int role) const {
   if (!i.isValid() || i.row() < 0 || i.row() >= m_rows.size()) {
@@ -475,7 +528,9 @@ QVariant MessageModel::data(const QModelIndex &i, int role) const {
   case RoleRole:
     return m["role"].toString();
   case TextRole:
-    return textOf(m["content"]).contains("<think>") ? QString() : textOf(m["content"]);
+    return textOf(m["content"]);
+  case DisplayTextRole:
+    return m["content"].isArray() || !m["parts"].toArray().isEmpty() || textOf(m["content"]).contains("<think>") ? QString() : textOf(m["content"]);
   case TimestampRole:
     return m["created_at"].toString();
   case PartsRole: {
@@ -484,7 +539,7 @@ QVariant MessageModel::data(const QModelIndex &i, int role) const {
     if (!parts) {
       parts = new PartModel(const_cast<MessageModel *>(this));
       m_partModels[key] = parts;
-      parts->setParts(projectedParts(m, m_results));
+      parts->setParts(projectedParts(m, m_results, m_partOffsets.value(key)));
     }
     return QVariant::fromValue(static_cast<QAbstractItemModel *>(parts));
   }
@@ -497,7 +552,7 @@ QVariant MessageModel::data(const QModelIndex &i, int role) const {
 int MessageModel::callOwner(const QString &id) const {
   if (id.isEmpty()) { return -1; }
   for (int row = m_rows.size() - 1; row >= 0; --row) {
-    for (const auto key : {"tool_calls", "parts"}) {
+    for (const auto key : {"tool_calls", "parts", "content"}) {
       for (const auto &value : m_rows[row][key].toArray()) {
         const auto call = value.toObject();
         if (call["tool_call_id"] == id || call["id"] == id) { return row; }
@@ -526,7 +581,7 @@ QString MessageModel::upsert(const QJsonObject &message) {
       m_resultMessages[id.isEmpty() ? call : id] = message;
       if (owner >= 0) {
         refreshParts(owner);
-        emit dataChanged(index(owner), index(owner), {PartsRole});
+        emit dataChanged(index(owner), index(owner), {PartsRole, DisplayTextRole});
         return m_projectionKeys[owner];
       }
       return id;
@@ -547,7 +602,7 @@ QString MessageModel::upsert(const QJsonObject &message) {
     m_rows[row]["tool_calls"] = calls;
     m_indices[key] = row;
     refreshParts(row);
-    emit dataChanged(index(row), index(row), {PartsRole});
+    emit dataChanged(index(row), index(row), {PartsRole, DisplayTextRole});
     return owner;
   }
   if (!id.isEmpty() && m_indices.contains(id)) {
@@ -574,6 +629,7 @@ QString MessageModel::upsert(const QJsonObject &message) {
     const auto i = rowCount() - 1;
     const auto oldKey = m_projectionKeys.last();
     m_indices.remove(oldKey);
+    if (m_partOffsets.contains(oldKey)) { m_partOffsets[key] = m_partOffsets.take(oldKey); }
     auto row = message;
     const auto thoughts = thoughtsOnly(textOf(m_rows.last()["content"]));
     if (!thoughts.isEmpty() && !textOf(row["content"]).contains("<think>")) {
@@ -660,7 +716,7 @@ void MessageModel::appendChunk(const QString &input, bool done, bool thinking) {
       if (m_dirtyRow >= 0 && m_dirtyRow < rowCount()) {
         refreshParts(m_dirtyRow);
         emit dataChanged(index(m_dirtyRow), index(m_dirtyRow),
-                         {TextRole, PartsRole, StatusRole});
+                         {TextRole, DisplayTextRole, PartsRole, StatusRole});
       }
       m_dirtyRow = -1;
     });
@@ -669,7 +725,7 @@ void MessageModel::appendChunk(const QString &input, bool done, bool thinking) {
     m_frameTimer->stop();
     refreshParts(m_dirtyRow);
     emit dataChanged(index(m_dirtyRow), index(m_dirtyRow),
-                     {TextRole, PartsRole, StatusRole});
+                     {TextRole, DisplayTextRole, PartsRole, StatusRole});
     m_dirtyRow = -1;
   } else if (!m_frameTimer->isActive()) {
     m_frameTimer->start();
@@ -692,7 +748,7 @@ bool MessageModel::addResolvedPart(const QString &id, const QJsonObject &part) {
   parts.append(part);
   m_rows[i]["parts"] = parts;
   refreshParts(i);
-  emit dataChanged(index(i), index(i), {PartsRole});
+  emit dataChanged(index(i), index(i), {PartsRole, DisplayTextRole});
   return true;
 }
 void MessageModel::addPart(const QJsonObject &part) {
@@ -704,7 +760,7 @@ void MessageModel::addPart(const QJsonObject &part) {
     if (part.contains("result_created_at")) { result["result_created_at"] = part["result_created_at"]; }
     m_results[part["tool_call_id"].toString()] = result;
     refreshParts(owner);
-    emit dataChanged(index(owner), index(owner), {PartsRole});
+    emit dataChanged(index(owner), index(owner), {PartsRole, DisplayTextRole});
     return;
   }
   if (m_rows.isEmpty() || m_rows.last()["role"] != "assistant") {
@@ -743,7 +799,7 @@ void MessageModel::addPart(const QJsonObject &part) {
       calls[i] = call;
       row["tool_calls"] = calls;
       refreshParts(targetRow);
-      emit dataChanged(index(targetRow), index(targetRow), {PartsRole});
+      emit dataChanged(index(targetRow), index(targetRow), {PartsRole, DisplayTextRole});
       return;
     }
   }
@@ -764,11 +820,14 @@ void MessageModel::addPart(const QJsonObject &part) {
     }
   }
   if (!replaced && parts.size() < 1000) {
+    auto &offsets = m_partOffsets[m_projectionKeys[targetRow]];
+    while (offsets.size() < parts.size()) { offsets.append(contentLength(row["content"])); }
+    offsets.append(contentLength(row["content"]));
     parts.append(part);
   }
   row["parts"] = parts;
   refreshParts(targetRow);
-  emit dataChanged(index(targetRow), index(targetRow), {PartsRole});
+  emit dataChanged(index(targetRow), index(targetRow), {PartsRole, DisplayTextRole});
 }
 void MessageModel::importHistory(const QJsonArray &rows, bool prepend) {
   if (!prepend) {
@@ -848,6 +907,7 @@ void MessageModel::clear() {
   m_indices.clear();
   m_groupSources.clear();
   m_results.clear();
+  m_partOffsets.clear();
   m_resultMessages.clear();
   endResetModel();
 }

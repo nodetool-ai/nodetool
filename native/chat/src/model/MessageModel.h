@@ -35,7 +35,8 @@ public:
     TextRole,
     TimestampRole,
     PartsRole,
-    StatusRole
+    StatusRole,
+    DisplayTextRole
   };
   explicit MessageModel(QObject *parent = nullptr)
       : QAbstractListModel(parent) {}
@@ -53,6 +54,7 @@ public:
 
 private:
   int callOwner(const QString &id) const;
+  QHash<QString, QList<qsizetype>> m_partOffsets;
   QHash<QString, QJsonObject> m_results;
   QHash<QString, QJsonObject> m_resultMessages;
   QList<QJsonObject> m_rows;

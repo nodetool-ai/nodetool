@@ -31,59 +31,41 @@ ColumnLayout {
         property var chatSession
         property int page: 0
         readonly property int pageSize: 4096
-        readonly property int pages: Math.max(1, Math.ceil(sourceText.length / pageSize))
+        readonly property var documentPages: markdown && chatSession ? chatSession.markdownPages(sourceText) : []
+        readonly property int pages: markdown ? Math.max(1, documentPages.length) : Math.max(1, Math.ceil(sourceText.length / pageSize))
         readonly property string pageText: sourceText.slice(Math.min(page, pages - 1) * pageSize, (Math.min(page, pages - 1) + 1) * pageSize)
         spacing: Ui.Metrics.md
-        function sections() {
-            if (!markdown || pages > 1) {
-                return [
-                    {
-                        text: pageText,
-                        code: false
-                    }
-                ];
-            }
-            const result = [];
-            const pattern = /```[^\n]*\n([\s\S]*?)(?:```|$)/g;
-            let cursor = 0;
-            let match;
-            while ((match = pattern.exec(pageText)) !== null) {
-                if (match.index > cursor) {
-                    result.push({
-                        text: pageText.slice(cursor, match.index),
-                        code: false
-                    });
-                }
-                result.push({
-                    text: match[1],
-                    code: true
-                });
-                cursor = pattern.lastIndex;
-            }
-            if (cursor < pageText.length) {
-                result.push({
-                    text: pageText.slice(cursor),
-                    code: false
-                });
-            }
-            return result;
-        }
         Repeater {
-            model: paged.sections()
-            delegate: Ui.TextArea {
+            model: paged.markdown ? (paged.documentPages[Math.min(paged.page, paged.pages - 1)] || []) : [{text: paged.pageText, code: false}]
+            delegate: ColumnLayout {
+                id: section
                 required property var modelData
                 Layout.fillWidth: true
-                value: modelData.text
-                textFormat: !modelData.code && paged.markdown && paged.pages === 1 && !/!\[|<\/?[A-Za-z]/.test(paged.pageText) ? TextEdit.MarkdownText : TextEdit.PlainText
-                readOnly: true
-                selectByMouse: true
-                wrapMode: TextEdit.Wrap
-                role: modelData.code || paged.monospaced ? Ui.Typography.MonoCode : Ui.Typography.SansBody
-                variant: paged.monospaced ? Ui.TextArea.Code : paged.userBubble ? Ui.TextArea.Bubble : modelData.code ? Ui.TextArea.Code : Ui.TextArea.Plain
-                accessibleName: modelData.text
-                onLinkActivated: link => {
-                    if (paged.chatSession) {
-                        paged.chatSession.openExternal(link);
+                RowLayout {
+                    visible: !!section.modelData.code
+                    Layout.fillWidth: true
+                    Ui.Text {
+                        text: section.modelData.language || qsTr("Code")
+                        role: Ui.Typography.MonoLabel
+                        Layout.fillWidth: true
+                    }
+                    Ui.EditorButton {
+                        text: qsTr("Copy code")
+                        onClicked: if (paged.chatSession) paged.chatSession.copyText(section.modelData.copy)
+                    }
+                }
+                Ui.TextArea {
+                    Layout.fillWidth: true
+                    value: section.modelData.text
+                    textFormat: !section.modelData.code && paged.markdown && !/!\[|<\/?[A-Za-z]|\$\$|\\[([]/.test(section.modelData.text) ? TextEdit.MarkdownText : TextEdit.PlainText
+                    readOnly: true
+                    selectByMouse: true
+                    wrapMode: TextEdit.Wrap
+                    role: section.modelData.code || paged.monospaced ? Ui.Typography.MonoCode : Ui.Typography.SansBody
+                    variant: paged.monospaced ? Ui.TextArea.Code : paged.userBubble ? Ui.TextArea.Bubble : section.modelData.code ? Ui.TextArea.Code : Ui.TextArea.Plain
+                    accessibleName: section.modelData.text
+                    onLinkActivated: link => {
+                        if (paged.chatSession) { paged.chatSession.openExternal(link); }
                     }
                 }
             }
@@ -105,7 +87,7 @@ ColumnLayout {
             Ui.Text {
                 role: Ui.Typography.SansLabel
                 visible: paged.pages > 1
-                text: qsTr("Section %1 of %2 · Plain text").arg(Math.min(paged.page, paged.pages - 1) + 1).arg(paged.pages)
+                text: qsTr("Section %1 of %2").arg(Math.min(paged.page, paged.pages - 1) + 1).arg(paged.pages)
                 tone: Ui.Text.Secondary
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true

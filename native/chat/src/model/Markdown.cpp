@@ -1,0 +1,76 @@
+#include "Markdown.h"
+#include <QRegularExpression>
+namespace nt::chat {
+QString cleanHarmony(const QString &source) {
+  auto text = source;
+  static const QRegularExpression header("<\\|start\\|>[^<]*(?:<\\|channel\\|>[^<]*)?(?:<\\|message\\|>|$)");
+  text.remove(header);
+  text.remove("<|end|>");
+  return text;
+}
+QVariantList markdownPages(const QString &source) {
+  constexpr qsizetype limit = 4096;
+  const auto text = cleanHarmony(source);
+  const auto lines = text.split('\n');
+  QVariantList pages, page;
+  qsizetype size = 0;
+  auto flush = [&] {
+    if (!page.isEmpty()) { pages.append(QVariant(page)); page.clear(); size = 0; }
+  };
+  auto add = [&](const QString &body, bool code, const QString &language, const QString &copy) {
+    if (size + body.size() > limit) { flush(); }
+    page.append(QVariantMap{{"text", body}, {"code", code}, {"language", language}, {"copy", copy}});
+    size += body.size();
+  };
+  static const QRegularExpression fence("^ {0,3}(`{3,}|~{3,})(.*)$");
+  static const QRegularExpression divider("^\\s*\\|?\\s*:?-{3,}:?\\s*(?:\\|\\s*:?-{3,}:?\\s*)+\\|?\\s*$");
+  QString prose;
+  auto flushProse = [&] {
+    for (qsizetype offset = 0; offset < prose.size(); offset += limit) {
+      add(prose.mid(offset, limit), false, {}, {});
+    }
+    prose.clear();
+  };
+  for (qsizetype i = 0; i < lines.size();) {
+    const auto match = fence.match(lines[i]);
+    if (match.hasMatch()) {
+      flushProse();
+      const auto marker = match.captured(1);
+      const auto language = match.captured(2).trimmed().section(' ', 0, 0);
+      QString code;
+      ++i;
+      while (i < lines.size()) {
+        const auto end = lines[i].trimmed();
+        if (end.size() >= marker.size() && end == QString(end.size(), marker[0])) { ++i; break; }
+        code += lines[i++];
+        if (i < lines.size()) { code += '\n'; }
+      }
+      if (code.isEmpty()) { add({}, true, language, code); }
+      for (qsizetype offset = 0; offset < code.size(); offset += limit) {
+        add(code.mid(offset, limit), true, language, code);
+      }
+    } else if (i + 1 < lines.size() && lines[i].contains('|') && divider.match(lines[i + 1]).hasMatch()) {
+      flushProse();
+      const auto header = lines[i] + '\n' + lines[i + 1] + '\n';
+      auto table = header;
+      i += 2;
+      while (i < lines.size() && lines[i].contains('|') && !lines[i].trimmed().isEmpty()) {
+        if (table.size() + lines[i].size() > limit && table != header) {
+          add(table, false, {}, {});
+          flush();
+          table = header;
+        }
+        table += lines[i++] + '\n';
+      }
+      add(table, false, {}, {});
+    } else {
+      prose += lines[i++];
+      if (i < lines.size()) { prose += '\n'; }
+    }
+  }
+  flushProse();
+  flush();
+  if (pages.isEmpty()) { pages.append(QVariant(QVariantList{})); }
+  return pages;
+}
+}

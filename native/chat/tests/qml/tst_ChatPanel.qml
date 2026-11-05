@@ -63,6 +63,59 @@ TestCase {
         testDriver.clearHistory("b")
         wait(30)
     }
+    function test_markdownAndScreenshot() {
+        testDriver.replay("markdown")
+        tryVerify(function() { return findText(panel, "cpp") !== null })
+        mouseClick(findText(panel, "Copy code"))
+        compare(testDriver.clipboardText(), "int answer = 42;\n")
+        const list = findChild(panel, "chatMessages")
+        list.positionViewAtBeginning()
+        wait(100)
+        const directory = testDriver.screenshotDirectory()
+        if (directory) grabImage(panel).save(directory + "/markdown.png")
+        list.positionViewAtEnd()
+        wait(100)
+        if (directory) grabImage(panel).save(directory + "/markdown-mixed.png")
+    }
+    function test_zz_linkSchemes() {
+        testSession.openExternal("https://nodetool.ai")
+        compare(testDriver.openedLink(), "https://nodetool.ai")
+        testSession.openExternal("file:///etc/passwd")
+        compare(testDriver.openedLink(), "https://nodetool.ai")
+        verify(testSession.error.indexOf("not supported") >= 0)
+    }
+    property int streamTicks: 0
+    property double lastTick: 0
+    property double longestTick: 0
+    Timer {
+        id: streamTimer
+        interval: 10
+        repeat: true
+        onTriggered: {
+            const now = Date.now()
+            if (test.lastTick) test.longestTick = Math.max(test.longestTick, now - test.lastTick)
+            test.lastTick = now
+            testDriver.stream("a", "A long streamed paragraph with **Markdown**.\n\n".repeat(45))
+            test.streamTicks++
+            if (test.streamTicks === 60) {
+                stop()
+                testDriver.stream("a", "Done", true)
+            }
+        }
+    }
+    function test_longDocumentRemainsInteractive() {
+        streamTicks = 0
+        lastTick = 0
+        longestTick = 0
+        streamTimer.start()
+        testSession.draft = "Keep this draft while streaming"
+        tryCompare(test, "streamTicks", 60, 10000)
+        compare(testSession.draft, "Keep this draft while streaming")
+        verify(longestTick < 500, "Longest GUI timer interval: " + longestTick + "ms")
+        compare(testSession.turnStatus, "idle")
+        const directory = testDriver.screenshotDirectory()
+        if (directory) grabImage(panel).save(directory + "/markdown-long-stream.png")
+    }
     function test_thinkingAndScreenshot() {
         testDriver.replay("thinking", 1)
         tryVerify(function() { return findText(panel, "Thinking") !== null })
@@ -250,7 +303,7 @@ TestCase {
         tryVerify(function() { return findVisible(panel, "message_long") !== null })
         const message = findVisible(panel, "message_long")
         verify(message !== null)
-        verify(findText(message, "Section 1 of 3 · Plain text") !== null)
+        verify(findText(message, "Section 1 of 3") !== null)
         const next = findText(message, "Next section")
         verify(next !== null)
         const view = findChild(panel, "chatMessages")
@@ -258,7 +311,7 @@ TestCase {
         wait(30)
         verify(next.visible)
         mouseClick(next)
-        tryVerify(function() { return findText(message, "Section 2 of 3 · Plain text") !== null })
+        tryVerify(function() { return findText(message, "Section 2 of 3") !== null })
         compare(findText(message, "Copy full text"), null)
     }
     function test_historyLoadingIsSeparateFromTurnAndEmptyState() {

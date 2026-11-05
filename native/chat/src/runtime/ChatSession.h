@@ -11,6 +11,7 @@ namespace nt::chat {
 class ChatSession : public QObject {
   Q_OBJECT
 public:
+  Q_INVOKABLE QVariantList markdownPages(const QString &text) const;
   Q_INVOKABLE void copyText(const QString &text);
   Q_PROPERTY(QAbstractItemModel *threads READ threads CONSTANT)
   Q_PROPERTY(QAbstractItemModel *messages READ messages NOTIFY stateChanged)

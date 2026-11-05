@@ -1,5 +1,6 @@
 #include "runtime/ChatSession.h"
 #include "model/MessageModel.h"
+#include "model/Markdown.h"
 #include <QFile>
 #include <QJsonDocument>
 #include <QSignalSpy>
@@ -45,6 +46,90 @@ QJsonObject message(int id) {
 class ChatModelTests : public QObject {
     Q_OBJECT
 private slots:
+    void markdownStructureAndOrdering() {
+        QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/markdown.json"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto fixture = QJsonDocument::fromJson(file.readAll()).object();
+        MessageModel model;
+        model.importHistory(fixture["messages"].toArray());
+        auto *parts = partsFor(model);
+        QCOMPARE(parts->rowCount(), 5);
+        QCOMPARE(partAt(parts, 0)["type"].toString(), "prose");
+        QVERIFY(partAt(parts, 1)["tool"].toBool());
+        QCOMPARE(partAt(parts, 2)["text"].toString(), "Text after the tool.");
+        QCOMPARE(partAt(parts, 3)["image"].toMap()["uri"].toString(), "asset://00000000000000000000000000000045");
+        QCOMPARE(partAt(parts, 4)["text"].toString(), "Text after the image.");
+        QCOMPARE(model.snapshot(), fixture["messages"].toArray());
+        const auto pages = markdownPages(partAt(parts, 0)["text"].toString());
+        bool code = false, table = false, link = false;
+        for (const auto &page : pages) {
+            for (const auto &section : page.toList()) {
+                const auto block = section.toMap();
+                QVERIFY(!block["text"].toString().contains("<|"));
+                if (block["code"].toBool()) {
+                    code = true;
+                    QCOMPARE(block["language"].toString(), "cpp");
+                    QCOMPARE(block["copy"].toString(), "int answer = 42;\n");
+                }
+                table |= block["text"].toString().contains("| --- | --- |");
+                link |= block["text"].toString().contains("https://nodetool.ai");
+            }
+        }
+        QVERIFY(code && table && link);
+        QCOMPARE(cleanHarmony("prefix<|start|>assistant<|channel|>final<|message|>partial"), "prefixpartial");
+        MessageModel stream;
+        stream.appendChunk("Before", false);
+        stream.addPart({{"type", "tool_call_update"}, {"name", "read_file"}, {"tool_call_id", "call"}});
+        stream.appendChunk("After", true);
+        QCOMPARE(partAt(partsFor(stream), 0)["text"].toString(), "Before");
+        QVERIFY(partAt(partsFor(stream), 1)["tool"].toBool());
+        QCOMPARE(partAt(partsFor(stream), 2)["text"].toString(), "After");
+        MessageModel arrayStream;
+        arrayStream.upsert({{"id", "array"}, {"role", "assistant"}, {"status", "streaming"},
+            {"content", QJsonArray{QJsonObject{{"type", "text"}, {"text", "Before"}},
+                                  QJsonObject{{"type", "image_url"}, {"image", QJsonObject{{"uri", "asset://full-id"}}}}}}});
+        arrayStream.addPart({{"type", "tool_call_update"}, {"name", "read_file"}, {"tool_call_id", "call"}});
+        arrayStream.appendChunk("After", true);
+        auto *arrayParts = partsFor(arrayStream);
+        QCOMPARE(partAt(arrayParts, 1)["type"].toString(), "image_url");
+        QVERIFY(partAt(arrayParts, 2)["tool"].toBool());
+        QCOMPARE(partAt(arrayParts, 3)["text"].toString(), "After");
+
+    }
+    void longMarkdownStreaming() {
+        const QString code = QString("int value = 42;\n").repeated(2000);
+        const auto pages = markdownPages("```cpp\n" + code + "```\n");
+        QVERIFY(pages.size() > 1);
+        QString reconstructed;
+        for (const auto &page : pages) {
+            for (const auto &section : page.toList()) {
+                const auto block = section.toMap();
+                if (!block["code"].toBool()) { continue; }
+                QCOMPARE(block["copy"].toString(), code);
+                QVERIFY(block["text"].toString().size() <= 4096);
+                reconstructed += block["text"].toString();
+            }
+        }
+        QCOMPARE(reconstructed, code);
+        const QString header = "| Name | Value |\n| --- | --- |\n";
+        const auto tables = markdownPages(header + QString("| row | value |\n").repeated(2000));
+        QVERIFY(tables.size() > 1);
+        for (const auto &page : tables) {
+            QVERIFY(page.toList().first().toMap()["text"].toString().startsWith(header));
+        }
+        MessageModel model;
+        QSignalSpy reset(&model, &QAbstractItemModel::modelReset);
+        QElapsedTimer elapsed;
+        elapsed.start();
+        for (int i = 0; i < 100; ++i) {
+            model.appendChunk(code.left(2048), false);
+            QVERIFY(!markdownPages(model.data(model.index(0), MessageModel::TextRole).toString()).isEmpty());
+            QCoreApplication::processEvents();
+        }
+        model.appendChunk({}, true);
+        QCOMPARE(reset.count(), 0);
+        QVERIFY2(elapsed.elapsed() < 5000, "Long-document reduction exceeded five seconds");
+    }
     void thinkingLifecycleAndHistory() {
         QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/thinking.json"));
         QVERIFY(file.open(QIODevice::ReadOnly));
@@ -420,17 +505,18 @@ private slots:
             {"pending", true}, {"args", QJsonObject{{"title", "Preserved argument"}}}};
         model.addPart(request);
         QCOMPARE(partsFor(model), parts);
-        QCOMPARE(parts->rowCount(), 1);
+        QCOMPARE(parts->rowCount(), 2);
         QCOMPARE(inserted.count(), 1);
-        QCOMPARE(QJsonObject::fromVariantMap(partAt(parts, 0)), request);
+        QCOMPARE(partAt(parts, 0)["text"].toString(), "Review this action");
+        QCOMPARE(QJsonObject::fromVariantMap(partAt(parts, 1)), request);
         auto response = request;
         response["pending"] = false;
         model.addPart(response);
         QCOMPARE(partsFor(model), parts);
-        QCOMPARE(parts->rowCount(), 1);
+        QCOMPARE(parts->rowCount(), 2);
         QVERIFY(changed.count() > 0);
-        QCOMPARE(partAt(parts, 0)["pending"].toBool(), false);
-        QCOMPARE(QJsonObject::fromVariantMap(partAt(parts, 0)), response);
+        QCOMPARE(partAt(parts, 1)["pending"].toBool(), false);
+        QCOMPARE(QJsonObject::fromVariantMap(partAt(parts, 1)), response);
         QCOMPARE(model.snapshot()[0].toObject()["parts"].toArray()[0].toObject(), response);
         QCOMPARE(resets.count(), 0);
         QCOMPARE(messageResets.count(), 0);
