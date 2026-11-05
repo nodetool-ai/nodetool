@@ -139,6 +139,10 @@ function createTemporal<
     // recorded an entry, the redo stack it cleared (kept for an empty group).
     let groupDepth = 0;
     let groupFuture: PartialState[] | null = null;
+    let groupPast: {
+      before: PartialState[];
+      recorded: PartialState[];
+    } | null = null;
 
     const temporalStore = createStore<TemporalState<PartialState>>(
       (tset, tget) => ({
@@ -192,11 +196,14 @@ function createTemporal<
           const { isTracking, pastStates, futureStates } = tget();
           if (!isTracking) {
             groupFuture = null;
+            groupPast = null;
             return;
           }
           groupFuture = futureStates;
+          const recorded = [...withinLimit(pastStates), partialize(get())];
+          groupPast = { before: pastStates, recorded };
           tset({
-            pastStates: [...withinLimit(pastStates), partialize(get())],
+            pastStates: recorded,
             futureStates: [],
             isTracking: false
           });
@@ -210,7 +217,9 @@ function createTemporal<
             return;
           }
           const savedFuture = groupFuture;
+          const savedPast = groupPast;
           groupFuture = null;
+          groupPast = null;
           const { pastStates, futureStates } = tget();
           const last = pastStates[pastStates.length - 1];
           // The entry may have been rebased since beginGroup, so compare by
@@ -222,7 +231,12 @@ function createTemporal<
             unchanged
               ? {
                   isTracking: true,
-                  pastStates: pastStates.slice(0, -1),
+                  // Restore any entry evicted for this no-op, unless history
+                  // was replaced or rebased while the group was open.
+                  pastStates:
+                    savedPast && pastStates === savedPast.recorded
+                      ? savedPast.before
+                      : pastStates.slice(0, -1),
                   futureStates:
                     futureStates.length === 0 ? savedFuture : futureStates
                 }
