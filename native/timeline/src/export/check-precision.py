@@ -7,6 +7,7 @@ import json
 import math
 import os
 from pathlib import Path
+import struct
 import subprocess
 import sys
 import tempfile
@@ -58,7 +59,7 @@ def command(args):
     return subprocess.check_output(args, stderr=subprocess.PIPE)
 
 
-def export(name, fp16, fmt, effects, size=(), opacity=1, cancel=False):
+def export(name, fp16, fmt, effects, size=(), opacity=1, cancel=False, spatial=None):
     folder = root / name
     folder.mkdir()
     doc = {'width': 65, 'height': 49, 'fps': 1, 'durationMs': 2000 if cancel else 1000,
@@ -69,11 +70,20 @@ def export(name, fp16, fmt, effects, size=(), opacity=1, cancel=False):
                       'effects': effects}]}
     if name.startswith('identity-'):
         doc['width'], doc['height'] = 64, 48
+    if spatial is not None:
+        doc['clips'][0]['shapeStyle']['fill'] = '#315b89'
+        for i, (x, y, w, h, color) in enumerate(((7, 5, 19, 13, '#db7935'),
+                                                (-13, -9, 11, 17, '#45bc93'))):
+            clip = dict(doc['clips'][0], id=f'patch{i}', width=w, height=h,
+                        transform={'position': {'x': x, 'y': y}},
+                        shapeStyle={'kind': 'rect', 'fill': color})
+            doc['clips'].append(clip)
     source = folder / 'scene.json'
     source.write_text(json.dumps(doc))
     output = folder / ('output.zip' if fmt == 'png_sequence' else 'output.mp4')
     env = os.environ.copy()
     env['NT_TEST_EXPORT_YUV'] = str(folder / 'unencoded.yuv') if fmt == 'mp4' else ''
+    env['NT_TEST_EXPORT_FLOAT'] = str(folder / 'canvas.f32') if spatial is not None else ''
     env['NT_TEST_EXPORT_FP16'] = '1' if fp16 else '0'
     with tempfile.TemporaryDirectory(dir=folder) as config:
         env['XDG_CONFIG_HOME'] = config
@@ -119,17 +129,92 @@ def export(name, fp16, fmt, effects, size=(), opacity=1, cancel=False):
     (folder / 'decoded.rgba').write_bytes(pixels)
     assert len(pixels) == width * height * 4
     assert all(a == 255 for a in pixels[3::4])
+    if spatial is not None:
+        reference = spatial_reference(folder, width, height, *spatial)
+        if fmt == 'mp4':
+            # Only color conversion/subsampling uses FFmpeg. Resizing above is
+            # independent Python math, with no Qt or renderer helper calls.
+            rgba64 = b''.join(struct.pack('<H', round(max(0, min(1, v)) * 65535))
+                              for v in reference)
+            raw = folder / 'reference.rgba64'
+            raw.write_bytes(rgba64)
+            wide = command(['ffmpeg', '-v', 'error', '-f', 'rawvideo', '-pixel_format',
+                            'rgba64le', '-video_size', f'{width}x{height}', '-i', str(raw),
+                            '-vf', 'scale=iw:ih:flags=bicubic:in_range=full:out_range=limited:out_color_matrix=bt709:sws_dither=none',
+                            '-frames:v', '1', '-pix_fmt', 'yuv420p16le', '-f', 'rawvideo', '-'])
+            reference = [v[0] / 256 for v in struct.iter_unpack('<H', wide)]
+            resize = spatial_error(unencoded, reference)
+            decoded = spatial_error(decoded_yuv, reference)
+            assert resize['max_code_error'] <= 1, (name, 'resize', resize)
+            assert decoded['max_code_error'] <= 1 + codec['max_code_error'], (name, decoded)
+        else:
+            reference = [v * 255 for i, v in enumerate(reference) if i % 4 != 3]
+            decoded = spatial_error([v for i, v in enumerate(pixels) if i % 4 != 3], reference)
+            resize = decoded
+            assert decoded['max_code_error'] <= 1, (name, decoded)
+        metrics[name + '-spatial'] = {'resize': resize, 'decoded': decoded}
+        print(f'{name} spatial: {json.dumps(metrics[name + "-spatial"])}', flush=True)
     center = [pixels[(y * width + x) * 4 + c]
               for y in range(height // 2 - 4, height // 2 + 4)
               for x in range(width // 2 - 4, width // 2 + 4) for c in range(3)]
     return center, (width, height)
 
 
+def spatial_error(actual, reference):
+    assert len(actual) == len(reference) and reference
+    errors = [abs(a - b) for a, b in zip(actual, reference)]
+    return {'max_code_error': max(errors), 'mean_absolute_code_error': sum(errors) / len(errors)}
+
+
+def spatial_reference(folder, width, height, scaled, offset):
+    # Observe the same undithered canvas, before any export resizing. Capturing
+    # avoids folding renderer error into the resize measurement.
+    raw = (folder / 'canvas.f32').read_bytes()
+    assert len(raw) == 65 * 49 * 4 * 4
+    source = [v[0] for v in struct.iter_unpack('=f', raw)]
+    assert all(math.isfinite(v) for v in source)
+    assert max(source[::4]) - min(source[::4]) > 0.25
+
+    def weights(old, new, position):
+        if new >= old:
+            center = max(0, min(old - 1, (position + 0.5) * old / new - 0.5))
+            low = math.floor(center)
+            return ((low, 1 - (center - low)), (min(low + 1, old - 1), center - low))
+        # Integrate the overlap of source cells with the destination footprint.
+        lo, hi = position * old / new, (position + 1) * old / new
+        return [(i, max(0, min(hi, i + 1) - max(lo, i)) / (hi - lo))
+                for i in range(old) if i < hi and i + 1 > lo]
+
+    result = []
+    for y in range(height):
+        for x in range(width):
+            sx, sy = x - offset[0], y - offset[1]
+            if not (0 <= sx < scaled[0] and 0 <= sy < scaled[1]):
+                result.extend((0, 0, 0, 1))
+                continue
+            wx, wy = weights(65, scaled[0], sx), weights(49, scaled[1], sy)
+            for c in range(4):
+                result.append(sum(source[(iy * 65 + ix) * 4 + c] * ax * ay
+                                  for ix, ax in wx for iy, ay in wy))
+    return result
+
+
+# One code covers final rounding (half a code) plus centered dithering
+# (less than half a code). Codec error is measured independently, then added
+# by the triangle inequality. These budgets are not fitted to test output.
+
 inverse = [{'id': 'compress', 'type': 'levels', 'enabled': True, 'outWhite': 0.1},
            {'id': 'expand', 'type': 'levels', 'enabled': True, 'inWhite': 0.1}]
 metrics = {}
 failures = []
 for fmt in ('png_sequence', 'mp4'):
+    for geometry, size, scaled, offset in (
+        ('fit-down', ('--width', '48', '--height', '32', '--scale-mode', 'fit'), (42, 32), (3, 0)),
+        ('fill-down', ('--width', '48', '--height', '32', '--scale-mode', 'fill'), (48, 36), (0, -2)),
+        ('fit-up', ('--width', '96', '--height', '80', '--scale-mode', 'fit'), (96, 72), (0, 4)),
+        ('fill-up', ('--width', '96', '--height', '80', '--scale-mode', 'fill'), (106, 80), (-5, 0)),
+        *([('odd-canvas', (), (64, 48), (0, 0))] if fmt == 'mp4' else [])):
+        export(f'spatial-{fmt}-{geometry}', True, fmt, inverse, size, spatial=(scaled, offset))
     for geometry, size, expected in (
         ('canvas', (), (65, 49) if fmt == 'png_sequence' else (64, 48)),
         ('fit-down', ('--width', '48', '--height', '32', '--scale-mode', 'fit'), (48, 32)),
