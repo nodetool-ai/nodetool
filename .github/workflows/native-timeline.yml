@@ -251,9 +251,10 @@ jobs:
         env:
           QSG_RHI_BACKEND: d3d11
           QSG_RHI_PREFER_SOFTWARE_RENDERER: "1"
-          QT_QPA_FONTDIR: ${{ github.workspace }}/native/ui_primitives/resources/fonts
           QT_FORCE_STDERR_LOGGING: "1"
         run: |
+          # Offscreen FreeType does not discover Windows system fallback fonts.
+          export QT_QPA_FONTDIR="$(cygpath -m "$WINDIR/Fonts")"
           ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -LE render
           QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" \
             ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -L render --no-tests=error -V \
