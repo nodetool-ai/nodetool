@@ -22,6 +22,33 @@ function difference(a: readonly Uint8Array[], b: readonly Uint8Array[]) {
   }
   return { max, mean: sum / count };
 }
+// Group straight RGB differences by both delivered alpha codes. This keeps
+// alpha rounding visible instead of assigning a pixel to only one format.
+function differenceByAlpha(fp16: readonly Uint8Array[], rgba8: readonly Uint8Array[]) {
+  const groups = new Map<string, { pixels: number; max: number; sum: number; witness: unknown }>();
+  for (let f = 0; f < fp16.length; f++) {
+    for (let i = 0; i < fp16[f].length; i += 4) {
+      const key = `${rgba8[f][i + 3]}/${fp16[f][i + 3]}`;
+      const group = groups.get(key) ?? { pixels: 0, max: -1, sum: 0, witness: null };
+      group.pixels++;
+      for (let channel = 0; channel < 3; channel++) {
+        const error = Math.abs(fp16[f][i + channel] - rgba8[f][i + channel]);
+        group.sum += error;
+        if (error > group.max) {
+          group.max = error;
+          group.witness = { frame: f, x: (i / 4) % width, y: Math.floor(i / 4 / width),
+            channel, rgba8: rgba8[f][i + channel], fp16: fp16[f][i + channel] };
+        }
+      }
+      groups.set(key, group);
+    }
+  }
+  expect([...groups.values()].reduce((sum, group) => sum + group.pixels, 0)).toBe(width * height * frames);
+  return [...groups].map(([alphaCodesRGBA8FP16, group]) => ({
+    alphaCodesRGBA8FP16, pixels: group.pixels, max: group.max,
+    meanRGB: group.sum / (group.pixels * 3), witness: group.witness
+  }));
+}
 function sequence() {
   const track = makeTrack({ id: "v", type: "video", index: 0 });
   return makeSequence({ width, height, fps: 10, durationMs: 400, tracks: [track],
@@ -115,6 +142,6 @@ it.each(deliveries)("measures real $format alpha=$alpha delivery in RGBA8 and FP
     // The inverse exposure chain must expose working-byte quantization.
     expect(inputs[2]).not.toEqual(inputs[1]);
     process.stdout.write(JSON.stringify({ format, alpha, adapter: { vendor: device.adapterInfo.vendor, device: device.adapterInfo.device, description: device.adapterInfo.description },
-      workingPrecisionError: difference(inputs[2], inputs[1]), metrics }) + "\n");
+      workingPrecisionError: difference(inputs[2], inputs[1]), workingErrorByAlpha: differenceByAlpha(inputs[2], inputs[1]), metrics }) + "\n");
   } finally { spy.mockRestore(); await rm(dir, { recursive: true, force: true }); }
 }, 120000);

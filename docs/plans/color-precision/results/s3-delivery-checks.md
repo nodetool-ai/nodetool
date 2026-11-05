@@ -246,3 +246,38 @@ CI, deployment, native delivery, long render, audio delivery, new codec or
 codec override qualification was run. HEVC remains deferred and its known
 mux failure was not revisited. No source in `compositeRender.ts`,
 `host-binaries.ts` or `s3-server-export.md` was edited for this work.
+
+## A43.2 prerequisite: locate the 35-code difference
+
+The delivery test now reports RGB error grouped by the pair of RGBA8/FP16
+alpha codes, with frame and pixel witnesses. Both alpha codes agree in every
+pixel on each adapter. These are Node/Dawn RGBA8 versus FP16 pre-encode
+delivery bytes, including the existing FP16 delivery dither, not browser parity.
+
+| Alpha code, both formats | Pixels across four frames | llvmpipe RGB max / mean | RTX 3060 RGB max / mean |
+|---|---:|---:|---:|
+| 0 | 3328 | 0 / 0 | 0 / 0 |
+| 5 | 128 | 35 / 15.125000 | 35 / 12.937500 |
+| 11 | 128 | 19 / 7.875000 | 19 / 7.875000 |
+| 16 | 128 | 11 / 4.929688 | 11 / 5.054688 |
+| 85 | 128 | 7 / 2.375000 | 7 / 2.734375 |
+| 170 | 128 | 9 / 2.968750 | 8 / 2.718750 |
+| 255 | 128 | 8 / 2.492188 | 8 / 2.617188 |
+
+The 35 occurs only at alpha 5/255 (1.96% coverage), in frame 1 at 100 ms.
+A llvmpipe witness is (42,4), red 204 in RGBA8 versus 169 in FP16.
+An RTX witness is (54,4), red 255 versus 220. Coordinates are zero-based.
+This straight-RGB difference contributes only 35 × 5/255 = 0.6863 codes
+when composited over black at that alpha. It is not a 35-code discrepancy at
+meaningful coverage.
+
+Above alpha 5 the maximum is 19 at alpha 11 on both adapters. Above the
+fixture's entire low-alpha range, 5–16/255 (1.96–6.27%), the maximum is 9
+on llvmpipe and 8 on RTX. The next sampled alpha is 85. No conclusion about
+unsampled alpha values is implied. The inverse exposure pair deliberately
+amplifies RGBA8 intermediate quantization, so these higher-coverage
+byte-versus-float differences are not a server/browser defect.
+
+All seven delivery cases pass on each adapter. The alpha formats share the
+same grouped measurements. Logs: TMPDIR/a432-alpha-lvp.log and
+TMPDIR/a432-alpha-rtx.log. No production code changed.
