@@ -1,0 +1,199 @@
+{
+  "parseCases": [
+    {
+      "input": {
+        "title": "Add caching",
+        "tasks": [
+          {
+            "id": "inspect",
+            "title": "Inspect the cache layer",
+            "depends_on": [],
+            "steps": [
+              {
+                "id": "s1",
+                "instructions": "Read the current cache config"
+              }
+            ]
+          },
+          {
+            "id": "add",
+            "title": "Add Redis",
+            "depends_on": [
+              "inspect"
+            ],
+            "steps": [
+              {
+                "id": "s2",
+                "instructions": "Wire the client"
+              },
+              {
+                "id": "s3",
+                "instructions": "Add a smoke test"
+              }
+            ]
+          }
+        ],
+        "executed": false,
+        "parallelizable": 1
+      },
+      "title": "Add caching",
+      "parallelizable": 1
+    },
+    {
+      "input": "{\"title\": \"Add caching\", \"tasks\": [{\"id\": \"inspect\", \"title\": \"Inspect the cache layer\", \"depends_on\": [], \"steps\": [{\"id\": \"s1\", \"instructions\": \"Read the current cache config\"}]}, {\"id\": \"add\", \"title\": \"Add Redis\", \"depends_on\": [\"inspect\"], \"steps\": [{\"id\": \"s2\", \"instructions\": \"Wire the client\"}, {\"id\": \"s3\", \"instructions\": \"Add a smoke test\"}]}], \"executed\": false, \"parallelizable\": 1}",
+      "title": "Add caching",
+      "parallelizable": 1
+    },
+    {
+      "input": {
+        "title": "Draft",
+        "tasks": [
+          {
+            "id": "a",
+            "title": "Write",
+            "dependsOn": [],
+            "steps": [
+              {
+                "id": "s",
+                "instructions": "Draft the copy"
+              }
+            ]
+          }
+        ]
+      },
+      "title": "Draft",
+      "parallelizable": 1
+    },
+    {
+      "input": {
+        "error": "plan_failed",
+        "message": "The planner did not commit a plan."
+      },
+      "title": ""
+    },
+    {
+      "input": {
+        "title": "Empty",
+        "tasks": []
+      },
+      "title": ""
+    },
+    {
+      "input": {
+        "title": "No tasks"
+      },
+      "title": ""
+    },
+    {
+      "input": "not json",
+      "title": ""
+    },
+    {
+      "input": null,
+      "title": ""
+    },
+    {
+      "input": [],
+      "title": ""
+    },
+    {
+      "input": {
+        "title": "Bad",
+        "tasks": [
+          {},
+          null
+        ]
+      },
+      "title": ""
+    },
+    {
+      "input": {
+        "title": "Two tracks",
+        "tasks": [
+          {
+            "id": "a",
+            "title": "A",
+            "depends_on": []
+          },
+          {
+            "id": "b",
+            "title": "B",
+            "depends_on": []
+          },
+          {
+            "id": "c",
+            "title": "C",
+            "depends_on": [
+              "a"
+            ]
+          }
+        ]
+      },
+      "title": "Two tracks",
+      "parallelizable": 2
+    }
+  ],
+  "events": [
+    {
+      "type": "plan_approval_request",
+      "approval_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "plan": {
+        "title": "Add caching",
+        "tasks": [
+          {
+            "id": "inspect",
+            "title": "Inspect the cache layer",
+            "depends_on": [],
+            "steps": [
+              {
+                "id": "s1",
+                "instructions": "Read the current cache config"
+              }
+            ]
+          },
+          {
+            "id": "add",
+            "title": "Add Redis",
+            "depends_on": [
+              "inspect"
+            ],
+            "steps": [
+              {
+                "id": "s2",
+                "instructions": "Wire the client"
+              },
+              {
+                "id": "s3",
+                "instructions": "Add a smoke test"
+              }
+            ]
+          }
+        ],
+        "executed": false,
+        "parallelizable": 1
+      },
+      "unknown": {
+        "kept": true
+      }
+    },
+    {
+      "type": "tool_approval_request",
+      "approval_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "tool_name": "execute_code",
+      "category": "execute",
+      "description": "Deletes the archived workflows.",
+      "args": {
+        "code": "await deleteWorkflows(ids);\nreturn ids.length;",
+        "workflow_id": "dddddddddddddddddddddddddddddddd",
+        "risk": "high"
+      }
+    },
+    {
+      "type": "secret_request",
+      "approval_id": "cccccccccccccccccccccccccccccccc",
+      "key": "STRIPE_API_KEY",
+      "reason": "Look up the invoice",
+      "description": "Stripe API key for payments."
+    }
+  ]
+}

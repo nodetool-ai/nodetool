@@ -1,0 +1,74 @@
+{
+  "events": [
+    {
+      "type": "message",
+      "id": "parent",
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-1",
+          "name": "run_subtask",
+          "args": {
+            "description": "Audit the config loader",
+            "prompt": "Read every config file and report unused keys."
+          }
+        }
+      ]
+    },
+    {
+      "type": "chunk",
+      "parent_tool_call_id": "call-1",
+      "content": "Checked three "
+    },
+    {
+      "type": "chunk",
+      "parent_tool_call_id": "call-1",
+      "content": "files."
+    },
+    {
+      "type": "message",
+      "id": "child-1",
+      "role": "assistant",
+      "content": "Checked three files.",
+      "parent_tool_call_id": "call-1"
+    },
+    {
+      "type": "message",
+      "id": "child-2",
+      "role": "assistant",
+      "content": null,
+      "parent_tool_call_id": "call-1",
+      "tool_calls": [
+        {
+          "id": "grep-1",
+          "name": "search",
+          "args": {
+            "query": "todo"
+          }
+        }
+      ]
+    },
+    {
+      "type": "tool_result_update",
+      "parent_tool_call_id": "call-1",
+      "tool_call_id": "grep-1",
+      "name": "search",
+      "result": "No unused keys."
+    },
+    {
+      "type": "message",
+      "id": "empty",
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "id": "call-2",
+          "name": "run_search",
+          "args": {
+            "description": "Find it"
+          }
+        }
+      ]
+    }
+  ]
+}

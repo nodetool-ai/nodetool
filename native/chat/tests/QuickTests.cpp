@@ -3,23 +3,60 @@
 #include <QFile>
 #include <QJsonDocument>
 #include <QClipboard>
+#include <QDesktopServices>
 #include <QGuiApplication>
 #include <QQmlEngine>
 #include <QtQuickTest/quicktest.h>
 class ChatTestDriver : public QObject {
     Q_OBJECT
 public:
-    explicit ChatTestDriver(nt::chat::ChatSession* session) : QObject(session), m_session(session) {}
-    Q_INVOKABLE void replay(const QString& name, int limit = 100000) {
+    explicit ChatTestDriver(nt::chat::ChatSession* session) : QObject(session), m_session(session) {
+        QDesktopServices::setUrlHandler("https", this, "recordUrl");
+    }
+    ~ChatTestDriver() override { QDesktopServices::unsetUrlHandler("https"); }
+    Q_INVOKABLE QAbstractItemModel *currentParts() const {
+        auto *model = m_session->messages();
+        return model->data(model->index(0, 0), nt::chat::MessageModel::PartsRole).value<QAbstractItemModel *>();
+    }
+    Q_INVOKABLE QString openedLink() const { return m_openedLink; }
+    Q_INVOKABLE void replay(const QString& name, int limit = 100000, int offset = 0) {
         QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/") + name + ".json");
         if (!file.open(QIODevice::ReadOnly)) { return; }
         const auto fixture = QJsonDocument::fromJson(file.readAll()).object();
         int count = 0;
         for (auto event : fixture["events"].toArray()) {
-            if (count++ >= limit) { break; }
+            if (count++ < offset) { continue; }
+            if (count > offset + limit) { break; }
             auto object = event.toObject(); object["thread_id"] = "a";
             m_session->applyEvent(object);
         }
+    }
+    Q_INVOKABLE void mediaHistory(int count) {
+        QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/media-resources.json"));
+        if (!file.open(QIODevice::ReadOnly)) { return; }
+        const auto sample = QJsonDocument::fromJson(file.readAll()).object()["events"].toArray()[0].toObject();
+        QJsonArray rows;
+        for (int i = 0; i < count; ++i) {
+            auto row = sample;
+            row["id"] = QString::number(i);
+            rows.append(row);
+        }
+        m_session->importHistory("a", rows);
+    }
+    Q_INVOKABLE void longExecution() {
+        for (int i = 0; i < 2000; ++i) {
+            m_session->applyEvent({{"type", "log_update"}, {"thread_id", "a"},
+                {"agent_execution_id", "long-run"}, {"node_id", QString::number(i)},
+                {"content", QString(8192, QLatin1Char('x'))}});
+        }
+    }
+    Q_INVOKABLE void thoughtHistory(int count) {
+        QJsonArray rows;
+        for (int i = 0; i < count; ++i) {
+            rows.append(QJsonObject{{"id", QString::number(i)}, {"role", "assistant"},
+                {"content", "<think>Saved reasoning</think>Answer"}});
+        }
+        m_session->importHistory("a", rows);
     }
     Q_INVOKABLE void persistedTools() {
         QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/persisted-tools.json"));
@@ -60,8 +97,15 @@ public:
             {"approval_id", "qml-approval"}, {"tool_name", "test_write"},
             {"message", "Review the proposed edit"}, {"args", QJsonObject{{"value", 1}}}});
     }
-    Q_INVOKABLE void clearHistory(const QString& thread) { m_session->importHistory(thread, {}); }
+    Q_INVOKABLE void resetSession() {
+        m_session->upsertThread({{"id", "a"}, {"title", "First conversation"}});
+        m_session->upsertThread({{"id", "b"}, {"title", "Second conversation"}});
+        m_session->selectThread("a");
+    }
+public slots:
+    void recordUrl(const QUrl &url) { m_openedLink = url.toString(); }
 private:
+    QString m_openedLink;
     nt::chat::ChatSession* m_session;
 };
 class ChatQuickSetup : public QObject {

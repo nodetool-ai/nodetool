@@ -4,6 +4,8 @@
 #include "server/ChatClient.h"
 #include "ModelPickerCatalog.h"
 #include <QHash>
+#include <QQuickTextDocument>
+#include <QColor>
 #include <QSet>
 #include <map>
 #include <memory>
@@ -11,6 +13,8 @@ namespace nt::chat {
 class ChatSession : public QObject {
   Q_OBJECT
 public:
+  Q_INVOKABLE QVariantList markdownPages(const QString &text) const;
+  Q_INVOKABLE void styleMarkdownLinks(QQuickTextDocument *document, const QColor &colour);
   Q_INVOKABLE void copyText(const QString &text);
   Q_PROPERTY(QAbstractItemModel *threads READ threads CONSTANT)
   Q_PROPERTY(QAbstractItemModel *messages READ messages NOTIFY stateChanged)
@@ -70,6 +74,9 @@ public:
   Q_INVOKABLE void removeAttachment(const QString &);
   Q_INVOKABLE void completeHostTool(const QString &, const QVariantMap &,
                                     const QString &error = {});
+  Q_PROPERTY(QStringList resourceKinds MEMBER m_resourceKinds NOTIFY stateChanged)
+  Q_INVOKABLE void openResource(const QString &uri);
+  Q_INVOKABLE void openMedia(const QVariantMap &locator);
   Q_INVOKABLE void openExternal(const QUrl &);
   Q_INVOKABLE void setHostTools(const QVariantList &tools);
   bool sendHostRequest(const QString &command, const QJsonObject &data,
@@ -81,6 +88,7 @@ public:
   void upsertThread(const QJsonObject &);
 signals:
   void stateChanged();
+  void resourceRequested(QString uri);
   void hostToolRequested(QString id, QString name, QVariantMap args);
   void hostResponseReceived(QJsonObject response);
 
@@ -101,11 +109,13 @@ private:
   void fail(const QString &);
   void resolveMedia(const QString &, const QJsonObject &,
                     const QString &projectionKey = {});
+  QStringList m_resourceKinds;
   ThreadModel m_threads;
   MessageModel m_empty;
   ChatClient m_client;
   nt::modelpicker::Catalog m_catalog;
   std::map<QString, State> m_states;
+  QSet<QString> m_answeredActions;
   QHash<QString, QJsonObject> m_actions, m_hostCalls;
   QHash<QString, QJsonObject> m_hostResults;
   QHash<QString, quint64> m_hostRequests;

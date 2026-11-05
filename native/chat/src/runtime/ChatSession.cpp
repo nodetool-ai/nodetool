@@ -1,3 +1,4 @@
+#include "model/Markdown.h"
 #include <QClipboard>
 #include <QGuiApplication>
 #include "ChatSession.h"
@@ -11,6 +12,10 @@
 #include <QTimer>
 #include <QUuid>
 namespace nt::chat {
+QVariantList ChatSession::markdownPages(const QString &text) const { return nt::chat::markdownPages(text); }
+void ChatSession::styleMarkdownLinks(QQuickTextDocument *document, const QColor &colour) {
+  if (document && document->textDocument()) { nt::chat::styleMarkdownLinks(*document->textDocument(), colour); }
+}
 void ChatSession::copyText(const QString &text) { QGuiApplication::clipboard()->setText(text); }
 
 ChatSession::ChatSession(QObject *parent)
@@ -172,6 +177,7 @@ void ChatSession::disconnectFromServer() {
   m_threads.clear();
   m_selected.clear();
   m_actions.clear();
+  m_answeredActions.clear();
   m_hostCalls.clear();
   m_hostResults.clear();
   m_hostRequests.clear();
@@ -315,6 +321,15 @@ bool ChatSession::hasMoreHistory() const {
 void ChatSession::importHistory(const QString &id, const QJsonArray &rows,
                                 bool prepend) {
   state(id).messages->importHistory(rows, prepend);
+  if (!prepend) {
+    for (auto it = m_actions.cbegin(); it != m_actions.cend(); ++it) {
+      if (it.value()["thread_id"] != id) { continue; }
+      auto part = it.value();
+      part["actionId"] = it.key();
+      part["pending"] = true;
+      state(id).messages->addPart(part);
+    }
+  }
   for (const auto &row : rows) {
     resolveMedia(id, row.toObject());
   }
@@ -324,42 +339,52 @@ void ChatSession::resolveMedia(const QString &id, const QJsonObject &message,
                                const QString &projectionKey) {
   for (const auto &value : message["content"].toArray()) {
     const auto part = value.toObject();
-    if (part["type"] != "image_url") {
-      continue;
+    const auto kind = part["type"].toString();
+    const bool thumbnail = kind == "audio" || kind == "video";
+    if (kind != "image_url" && !thumbnail) { continue; }
+    auto image = part["image"].toObject();
+    if (thumbnail) {
+      const auto ref = part[kind].toObject();
+      const auto source = ref["thumbnail"];
+      image = source.isObject() ? source.toObject() : QJsonObject{{"uri", source.toString(ref["thumbnail_url"].toString())}};
+      if (image["uri"].toString().isEmpty() && image["asset_id"].toString().isEmpty()) { continue; }
     }
-    const auto image = part["image"].toObject();
-    const auto uri = image["uri"].toString();
+    const auto uri = image.value("uri").toString(image.value("data").toString());
     const auto key =
         projectionKey.isEmpty() ? message["id"].toString() : projectionKey;
     auto receive = [this, id, key, part](QJsonValue data, QString error) {
-      if (!error.isEmpty() ||
-          m_previewBytes + data.toString().size() > 32 * 1024 * 1024) {
-        return;
+      if (m_previewBytes + data.toString().size() * 2 > 32 * 1024 * 1024) {
+        error = "Image preview memory limit reached";
+        data = {};
       }
       auto preview = part;
       preview["mediaUrl"] = data;
-      preview["type"] = "image";
+      preview["mediaError"] = error;
+      preview["originalMedia"] = part;
+      preview["resolvedMedia"] = true;
+      if (part["type"] == "image_url") { preview["type"] = "image"; }
       if (state(id).messages->addResolvedPart(key, preview)) {
-        m_previewBytes += data.toString().size();
+        m_previewBytes += data.toString().size() * 2;
       }
     };
     if (uri.startsWith("asset://") || !image["asset_id"].toString().isEmpty()) {
       const auto asset = image["asset_id"].toString().isEmpty()
-                             ? uri.mid(8).section('.', 0, 0)
+                             ? uri.mid(8)
                              : image["asset_id"].toString();
       m_client.call("assets.get", {{"id", asset}}, false,
                     [this, receive](QJsonValue value, QString error) {
                       if (!error.isEmpty()) {
+                        receive({}, "Image preview unavailable");
                         return;
                       }
                       const auto url = value.toObject()["get_url"].toString();
                       if (!url.isEmpty()) {
                         m_client.fetchMedia(QUrl(url), receive);
-                      }
+                      } else { receive({}, "Image source unavailable"); }
                     });
     } else if (!uri.isEmpty()) {
       m_client.fetchMedia(QUrl(uri), receive);
-    }
+    } else { receive({}, "Image source unavailable"); }
   }
 }
 void ChatSession::send() {
@@ -452,6 +477,16 @@ void ChatSession::stop() {
   }
   if (m_client.send({{"command", "stop"},
                      {"data", QJsonObject{{"thread_id", m_selected}}}})) {
+    const auto ids = m_actions.keys();
+    for (const auto &id : ids) {
+      if (m_actions.value(id)["thread_id"] != m_selected) { continue; }
+      auto part = m_actions.take(id);
+      m_answeredActions.insert(id);
+      part["actionId"] = id;
+      part["pending"] = false;
+      part["status"] = "Cancelled";
+      state(m_selected).messages->addPart(part);
+    }
     state(m_selected).status = "stopping";
     m_threads.setStatus(m_selected, "stopping");
     emit stateChanged();
@@ -504,7 +539,7 @@ void ChatSession::completeHostTool(const QString &id, const QVariantMap &result,
 void ChatSession::respondToAction(const QString &id, bool approved,
                                   const QString &text) {
   const auto action = m_actions.value(id);
-  if (action.isEmpty()) {
+  if (action.isEmpty() || !m_client.ready()) {
     return;
   }
   const auto kind = action["type"].toString();
@@ -515,8 +550,8 @@ void ChatSession::respondToAction(const QString &id, bool approved,
   } else if (kind == "plan_approval_request") {
     response["type"] = "plan_approval_response";
     response["decision"] = approved ? "approve" : "reject";
-    if (!text.isEmpty()) {
-      response["feedback"] = text;
+    if (!approved && !text.trimmed().isEmpty()) {
+      response["feedback"] = text.trimmed();
     }
   } else if (kind == "secret_request") {
     response["type"] = "secret_request_response";
@@ -528,10 +563,11 @@ void ChatSession::respondToAction(const QString &id, bool approved,
     return;
   }
   m_actions.remove(id);
+  m_answeredActions.insert(id);
   auto part = action;
   part["actionId"] = id;
   part["pending"] = false;
-  part["status"] = approved ? "approved" : "declined";
+  part["status"] = kind != "secret_request" && approved ? "approved" : "declined";
   state(action["thread_id"].toString()).messages->addPart(part);
   emit stateChanged();
 }
@@ -603,6 +639,26 @@ void ChatSession::removeAttachment(const QString &id) {
   m_client.cancelUpload(id);
   emit stateChanged();
 }
+void ChatSession::openResource(const QString &uri) {
+  const QUrl url(uri);
+  if (m_resourceKinds.contains(url.scheme()) && !url.host().isEmpty()) { emit resourceRequested(uri); }
+}
+void ChatSession::openMedia(const QVariantMap &locator) {
+  const auto uri = locator.value("uri").toString();
+  const auto asset = locator.value("asset_id", uri.startsWith("asset://") ? uri.mid(8) : QString()).toString();
+  auto open = [this](const QUrl &url) {
+    m_client.openMedia(url, [this](QJsonValue, const QString &error) { if (!error.isEmpty()) { fail(error); } });
+  };
+  if (!asset.isEmpty()) {
+    m_client.call("assets.get", {{"id", asset}}, false, [this, open](QJsonValue value, QString error) {
+      if (!error.isEmpty()) { fail("Media unavailable"); return; }
+      const auto url = value.toObject()["get_url"].toString();
+      if (url.isEmpty()) { fail("Media source unavailable"); return; }
+      open(QUrl(url));
+    });
+  } else if (!uri.isEmpty()) { open(QUrl(uri)); }
+  else { fail("Media source unavailable"); }
+}
 void ChatSession::openExternal(const QUrl &url) {
   if (url.scheme() == "https" || url.scheme() == "http" ||
       url.scheme() == "mailto") {
@@ -663,6 +719,10 @@ void ChatSession::applyEvent(const QJsonObject &event) {
       type != "error" && type != "job_update") {
     return;
   }
+  if (!s.uncertainReplay && s.messages->reduceNested(event)) {
+    emit stateChanged();
+    return;
+  }
   if (type == "chunk") {
     if (s.uncertainReplay) {
       s.status = "interrupted";
@@ -670,10 +730,10 @@ void ChatSession::applyEvent(const QJsonObject &event) {
       emit stateChanged();
       return;
     }
-    if (event["content"].isString() && !event["thinking"].toBool() &&
+    if ((event["content"].isString() || event["done"].toBool()) &&
         event["sub_agent_call_id"].toString().isEmpty()) {
       s.messages->appendChunk(event["content"].toString(),
-                              event["done"].toBool());
+                              event["done"].toBool(), event["thinking"].toBool());
     }
     s.status = event["done"].toBool() ? "idle" : "streaming";
   } else if (type == "message") {
@@ -687,10 +747,12 @@ void ChatSession::applyEvent(const QJsonObject &event) {
       s.status = "idle";
     }
   } else if (type == "error") {
+    s.messages->finishThinking();
     s.status = "error";
     s.error = event["message"].toString("Chat failed");
     s.messages->addPart({{"type", "error"}, {"text", s.error}});
   } else if (type == "generation_stopped") {
+    s.messages->finishThinking();
     s.status = "idle";
   } else if (type == "chat_resumed") {
     if (event["status"] == "unknown" || event["replay_incomplete"].toBool()) {
@@ -748,12 +810,16 @@ void ChatSession::applyEvent(const QJsonObject &event) {
     if (type == "tool_approval_request" || type == "plan_approval_request" ||
         type == "secret_request") {
       const auto actionId = event["approval_id"].toString();
-      if (actionId.isEmpty()) {
-        return;
+      if (!actionId.trimmed().isEmpty() && !m_answeredActions.contains(actionId)) {
+        m_actions[actionId] = event;
+        part["actionId"] = actionId;
+        part["pending"] = true;
+      } else {
+        part["pending"] = false;
+        part["actionId"] = actionId;
+        part["status"] = actionId.trimmed().isEmpty()
+            ? "Cannot answer: the server supplied no approval ID." : "Already answered or cancelled";
       }
-      m_actions[actionId] = event;
-      part["actionId"] = actionId;
-      part["pending"] = true;
       part["text"] = event["description"].toString(
           event["message"].toString(part["text"].toString()));
     }
