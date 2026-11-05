@@ -203,6 +203,7 @@ results rather than a review finding.
 | B212 | P2 | notes (fix-ci-2) | `qml/effectcontrols/EffectControlsRow.qml` | A row with no keys still builds its graph, previous, toggle and next buttons at opacity 0. Those are four of the five buttons in a row, and most rows have no keys, so building them on the first key would lower the cost of selecting a clip. | fix-ci-2 |
 | B213 | P2 | notes (fix-ci-3) | `../ui_primitives/qml/ListRow.qml` | Changing appearance scales in `tst_appshell_preferences` emits an `implicitHeight` binding-loop warning. The row measures `childrenRect.height` while its parent sizes from that measurement. | native UI |
 | B214 | P2 | notes (fix-ci-3) | `qml/menus/module.cmake`, `src/wiring/module.cmake` | The menu and wiring fixtures register the external-conflicts panel without its QML resource. Loading the editor warns that `qrc:/nodetool/sync/ExternalConflictsBanner.qml` is missing, so these fixtures do not exercise the banner. | sync |
+| B222 | P2 | notes (color-n4) | `src/main.cpp` | An editor opening a document at an unsupported `workingColorSpaceVersion` prints the message to stderr and exits 1. Someone starting it from a launcher sees the app vanish, with no reason given. D5.3 and D5.4 ask for a read-only open with a report in the window. Fix before A102 can create version 2 documents. |
 
 ## Closed
 
