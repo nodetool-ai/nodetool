@@ -42,17 +42,28 @@ export class ShellRunner implements CommandRunner {
       child.stdout.on("data", collect);
       child.stderr.on("data", collect);
       let timedOut = false;
+      let finished = false;
+      let deadline: ReturnType<typeof setTimeout> | undefined;
+      let exitCode: number | undefined;
       const timer =
         timeoutSeconds === null
           ? null
           : setTimeout(() => {
               timedOut = true;
               killGroup(child.pid);
+              // A detached descendant may keep these pipes open after the
+              // group is killed. It is outside the group and may outlive us.
+              child.stdout.destroy();
+              child.stderr.destroy();
+              deadline = setTimeout(() => finish(128), 1000);
             }, timeoutSeconds * 1000);
       const finish = (code: number) => {
+        if (finished) return;
+        finished = true;
         if (timer) {
           clearTimeout(timer);
         }
+        if (deadline) clearTimeout(deadline);
         // A test runner can leave workers behind after its main process exits.
         killGroup(child.pid);
         resolvePromise({ code, timedOut, seconds: (performance.now() - started) / 1000, output });
@@ -61,7 +72,21 @@ export class ShellRunner implements CommandRunner {
         output += String(error);
         finish(127);
       });
-      child.once("close", (code, signal) => finish(code ?? (signal ? 128 : 1)));
+      child.once("exit", (code, signal) => {
+        exitCode = code ?? (signal ? 128 : 1);
+        if (timer) clearTimeout(timer);
+        killGroup(child.pid);
+        if (timedOut) {
+          finish(exitCode);
+        } else {
+          deadline = setTimeout(() => {
+            child.stdout.destroy();
+            child.stderr.destroy();
+            finish(exitCode!);
+          }, 1000);
+        }
+      });
+      child.once("close", (code, signal) => finish(exitCode ?? code ?? (signal ? 128 : 1)));
     });
   }
 }

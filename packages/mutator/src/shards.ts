@@ -8,7 +8,8 @@ export interface MutationShard {
 
 export interface MutationObserver {
   selection(file: string, selectedIds: string[]): void;
-  completed(id: string, outcome: Outcome): void;
+  started?(id: string, timeoutSeconds: number): void;
+  completed(id: string, outcome: Outcome, timedOut?: boolean): void;
 }
 
 /** Assign IDs independently of traversal order or the number of other sites. */
