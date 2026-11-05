@@ -63,6 +63,25 @@ TestCase {
         testDriver.clearHistory("b")
         wait(30)
     }
+    function test_persistedToolsAndScreenshot() {
+        testDriver.persistedTools()
+        const list = findChild(panel, "chatMessages")
+        tryCompare(list, "count", 2)
+        tryVerify(function() { return findText(panel, "Failed") !== null })
+        verify(findText(panel, "Ran 2 searches") !== null)
+        verify(findText(panel, "1.2s") !== null)
+        const code = findVisible(panel, "toolDetails_00000000000000000000000000000003")
+        verify(code !== null)
+        wait(80)
+        mouseClick(code)
+        tryVerify(function() { return findText(panel, "Code · javascript") !== null })
+        wait(80)
+        mouseClick(findText(panel, "Copy code"))
+        compare(testDriver.clipboardText(), "console.log(2);")
+        wait(80)
+        const directory = testDriver.screenshotDirectory()
+        if (directory) grabImage(panel).save(directory + "/persisted-tools.png")
+    }
     function test_groupFormationKeepsScroll() {
         testDriver.history("a", 100)
         testDriver.replay("tool-presentation", 1)

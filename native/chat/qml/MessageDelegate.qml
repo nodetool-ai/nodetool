@@ -164,9 +164,15 @@ ColumnLayout {
                     }
                     Ui.Text {
                         visible: !!partFrame.part.tool
-                        text: (partFrame.part.displayStatus || "") + (partFrame.part.duration ? " · " + partFrame.part.duration : "")
+                        text: partFrame.part.displayStatus || ""
                         role: Ui.Typography.SansCaption
                         tone: partFrame.part.displayStatus === "Failed" ? Ui.Text.Error : Ui.Text.Secondary
+                    }
+                    Ui.Text {
+                        visible: !!partFrame.part.duration
+                        text: partFrame.part.duration || ""
+                        role: Ui.Typography.SansCaption
+                        tone: Ui.Text.Secondary
                     }
                     Ui.EditorButton {
                         visible: !!partFrame.part.tool
@@ -199,7 +205,7 @@ ColumnLayout {
                         RowLayout {
                             Layout.fillWidth: true
                             Ui.Text {
-                                text: groupedCall.modelData.label + " · " + groupedCall.modelData.displayStatus
+                                text: groupedCall.modelData.label + " · " + groupedCall.modelData.displayStatus + (groupedCall.modelData.duration ? " · " + groupedCall.modelData.duration : "")
                                 role: Ui.Typography.SansLabel
                                 Layout.fillWidth: true
                                 elide: Text.ElideRight

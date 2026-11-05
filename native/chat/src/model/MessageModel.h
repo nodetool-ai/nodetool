@@ -48,6 +48,9 @@ public:
   void clear();
 
 private:
+  int callOwner(const QString &id) const;
+  QHash<QString, QJsonObject> m_results;
+  QHash<QString, QJsonObject> m_resultMessages;
   QList<QJsonObject> m_rows;
   QHash<QString, QList<QJsonObject>> m_groupSources;
   QHash<QString, int> m_indices;

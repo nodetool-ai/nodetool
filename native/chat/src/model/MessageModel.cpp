@@ -181,7 +181,7 @@ QJsonObject presentPart(QJsonObject part) {
   }
   return part;
 }
-QJsonArray projectedParts(const QJsonObject &m) {
+QJsonArray projectedParts(const QJsonObject &m, const QHash<QString, QJsonObject> &results) {
   auto parts = m["parts"].toArray();
   bool hasToolCalls = false;
   for (const auto &value : m["tool_calls"].toArray()) {
@@ -230,12 +230,15 @@ QJsonArray projectedParts(const QJsonObject &m) {
                     {"text", "Unsupported message content: " + encoded}});
   }
   QJsonArray displayed;
-  for (const auto &part : parts) {
-    displayed.append(presentPart(part.isObject()
-                                     ? part.toObject()
-                                     : QJsonObject{{"type", "unsupported"},
-                                                   {"text", displayJson(part)},
-                                                   {"payload", part}}));
+  for (const auto &value : parts) {
+    auto part = value.isObject() ? value.toObject() : QJsonObject{{"type", "unsupported"}, {"text", displayJson(value)}, {"payload", value}};
+    const auto id = part.value("tool_call_id").toString(part.value("id").toString());
+    if (results.contains(id)) {
+      const auto result = results.value(id);
+      for (auto it = result.begin(); it != result.end(); ++it) { part[it.key()] = it.value(); }
+    }
+    if (!part.contains("started_at")) { part["started_at"] = m["created_at"]; }
+    displayed.append(presentPart(part));
   }
   QJsonArray grouped;
   const QSet<QString> separate{"execute_code", "run_subtask",    "run_search",
@@ -384,7 +387,7 @@ void PartModel::setParts(const QJsonArray &parts) {
 void MessageModel::refreshParts(int row) {
   const auto key = m_projectionKeys[row];
   if (auto *model = m_partModels.value(key, nullptr)) {
-    model->setParts(projectedParts(m_rows[row]));
+    model->setParts(projectedParts(m_rows[row], m_results));
   }
 }
 void MessageModel::releaseParts(const QString &key) {
@@ -420,7 +423,7 @@ QVariant MessageModel::data(const QModelIndex &i, int role) const {
     if (!parts) {
       parts = new PartModel(const_cast<MessageModel *>(this));
       m_partModels[key] = parts;
-      parts->setParts(projectedParts(m));
+      parts->setParts(projectedParts(m, m_results));
     }
     return QVariant::fromValue(static_cast<QAbstractItemModel *>(parts));
   }
@@ -430,8 +433,44 @@ QVariant MessageModel::data(const QModelIndex &i, int role) const {
     return {};
   }
 }
+int MessageModel::callOwner(const QString &id) const {
+  if (id.isEmpty()) { return -1; }
+  for (int row = m_rows.size() - 1; row >= 0; --row) {
+    for (const auto key : {"tool_calls", "parts"}) {
+      for (const auto &value : m_rows[row][key].toArray()) {
+        const auto call = value.toObject();
+        if (call["tool_call_id"] == id || call["id"] == id) { return row; }
+      }
+    }
+  }
+  return -1;
+}
 QString MessageModel::upsert(const QJsonObject &message) {
   const auto id = message["id"].toString();
+  if (message["role"] == "tool") {
+    const auto call = message["tool_call_id"].toString();
+    const auto owner = callOwner(call);
+    if (!call.isEmpty()) {
+      auto result = message["content"];
+      if (result.isString()) {
+        QJsonParseError error;
+        const auto parsed = QJsonDocument::fromJson(result.toString().toUtf8(), &error);
+        if (error.error == QJsonParseError::NoError) {
+          if (parsed.isObject()) { result = parsed.object(); }
+          else if (parsed.isArray()) { result = parsed.array(); }
+        }
+      }
+      m_results[call] = {{"result", result}, {"is_error", message["is_error"]},
+                         {"result_created_at", message["created_at"]}};
+      m_resultMessages[id.isEmpty() ? call : id] = message;
+      if (owner >= 0) {
+        refreshParts(owner);
+        emit dataChanged(index(owner), index(owner), {PartsRole});
+        return m_projectionKeys[owner];
+      }
+      return id;
+    }
+  }
   const auto key =
       id.isEmpty() ? "projection:" + QUuid::createUuid().toString(QUuid::Id128)
                    : id;
@@ -577,10 +616,22 @@ bool MessageModel::addResolvedPart(const QString &id, const QJsonObject &part) {
   return true;
 }
 void MessageModel::addPart(const QJsonObject &part) {
+  const auto owner = callOwner(part["tool_call_id"].toString());
+  if (part.contains("result") && owner >= 0) {
+    auto result = part;
+    result["result_created_at"] = QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs);
+    if (part.contains("created_at")) { result["result_created_at"] = part["created_at"]; }
+    if (part.contains("result_created_at")) { result["result_created_at"] = part["result_created_at"]; }
+    m_results[part["tool_call_id"].toString()] = result;
+    refreshParts(owner);
+    emit dataChanged(index(owner), index(owner), {PartsRole});
+    return;
+  }
   if (m_rows.isEmpty() || m_rows.last()["role"] != "assistant") {
     upsert({{"id", QUuid::createUuid().toString(QUuid::Id128)},
             {"role", "assistant"},
-            {"content", ""}});
+            {"content", ""},
+            {"created_at", QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs)}});
   }
   int targetRow = rowCount() - 1;
   const auto incomingCall = part["tool_call_id"].toString();
@@ -653,6 +704,10 @@ void MessageModel::importHistory(const QJsonArray &rows, bool prepend) {
   QSet<QString> pageIds;
   for (const auto &value : rows) {
     const auto row = value.toObject();
+    if (row["role"] == "tool" && !row["tool_call_id"].toString().isEmpty()) {
+      upsert(row);
+      continue;
+    }
     const auto id = row["id"].toString();
     bool exists = m_indices.contains(id) || pageIds.contains(id);
     if (!exists && fresh.size() + m_rows.size() < 10000) {
@@ -678,6 +733,9 @@ void MessageModel::importHistory(const QJsonArray &rows, bool prepend) {
   m_indices.clear();
   for (int i = 0; i < m_rows.size(); ++i) {
     m_indices[m_projectionKeys[i]] = i;
+    for (const auto &source : m_groupSources.value(m_projectionKeys[i])) {
+      m_indices[source["id"].toString()] = i;
+    }
   }
   endInsertRows();
 }
@@ -689,6 +747,7 @@ QJsonArray MessageModel::snapshot() const {
       for (const auto &source : m_groupSources.value(key)) { out.append(source); }
     } else { out.append(m_rows[i]); }
   }
+  for (const auto &message : m_resultMessages) { out.append(message); }
   return out;
 }
 void MessageModel::clear() {
@@ -696,7 +755,7 @@ void MessageModel::clear() {
     m_frameTimer->stop();
   }
   m_dirtyRow = -1;
-  if (m_rows.isEmpty()) {
+  if (m_rows.isEmpty() && m_results.isEmpty() && m_resultMessages.isEmpty()) {
     return;
   }
   beginResetModel();
@@ -708,6 +767,8 @@ void MessageModel::clear() {
   m_projectionKeys.clear();
   m_indices.clear();
   m_groupSources.clear();
+  m_results.clear();
+  m_resultMessages.clear();
   endResetModel();
 }
 } // namespace nt::chat

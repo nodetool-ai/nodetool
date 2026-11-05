@@ -21,6 +21,11 @@ public:
             m_session->applyEvent(object);
         }
     }
+    Q_INVOKABLE void persistedTools() {
+        QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/persisted-tools.json"));
+        if (!file.open(QIODevice::ReadOnly)) { return; }
+        m_session->importHistory("a", QJsonDocument::fromJson(file.readAll()).object()["messages"].toArray());
+    }
     Q_INVOKABLE void toolHistory(int count) {
         QJsonArray rows;
         for (int i = 0; i < count; ++i) {
