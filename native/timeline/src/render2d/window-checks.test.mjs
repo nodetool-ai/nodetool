@@ -55,7 +55,8 @@ for (const settles of [false, true]) {
   test(`section 8 ${settles ? "waits for acceptable load" : "refuses a persistently overloaded bench"}`, (t) => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "serein-load-"));
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-    const source = fs.readFileSync(new URL("../../scripts/window-checks.sh", import.meta.url), "utf8");
+    // Git checks out this shell source with CRLF on Windows.
+    const source = fs.readFileSync(new URL("../../scripts/window-checks.sh", import.meta.url), "utf8").replaceAll("\r\n", "\n");
     const body = source.slice(source.indexOf("serein_m0() {"), source.indexOf("\nif [[ $dry_run == 1 ]]; then\n    serein_m0"));
     const script = `set -uo pipefail
 out="$1"
@@ -86,7 +87,8 @@ for (const phase of ["before", "waiting", "after"]) {
   test(`section 8 records unreadable load ${phase} without an invalid measurement`, (t) => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "serein-unreadable-"));
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-    const source = fs.readFileSync(new URL("../../scripts/window-checks.sh", import.meta.url), "utf8");
+    // Git checks out this shell source with CRLF on Windows.
+    const source = fs.readFileSync(new URL("../../scripts/window-checks.sh", import.meta.url), "utf8").replaceAll("\r\n", "\n");
     const body = source.slice(source.indexOf("serein_m0() {"), source.indexOf("\nif [[ $dry_run == 1 ]]; then\n    serein_m0"));
     const script = `set -uo pipefail
 out="$1"
@@ -129,7 +131,8 @@ for (const [name, proc, sysctl, expected] of [
     const procPath = path.join(root, "loadavg");
     if (proc !== null) fs.writeFileSync(procPath, proc);
     fs.writeFileSync(path.join(root, "sysctl"), '#!/bin/bash\n[[ -n "$TEST_SYSCTL_LOAD" ]] || exit 1\nprintf "%s\\n" "$TEST_SYSCTL_LOAD"\n', { mode: 0o755 });
-    const source = fs.readFileSync(new URL("../../scripts/window-checks.sh", import.meta.url), "utf8");
+    // Git checks out this shell source with CRLF on Windows.
+    const source = fs.readFileSync(new URL("../../scripts/window-checks.sh", import.meta.url), "utf8").replaceAll("\r\n", "\n");
     const body = source.slice(source.indexOf("load1() {"), source.indexOf("\nidle="));
     const run = runBash(["-c", `set -uo pipefail\n${body}\nload1`], {
       encoding: "utf8", timeout: 3000,
@@ -150,7 +153,8 @@ for (const phase of ["before", "waiting"]) {
   test(`section 0 marks unreadable load ${phase} as not idle and writes valid JSON`, (t) => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "seek-unreadable-"));
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-    const source = fs.readFileSync(new URL("../../scripts/window-checks.sh", import.meta.url), "utf8");
+    // Git checks out this shell source with CRLF on Windows.
+    const source = fs.readFileSync(new URL("../../scripts/window-checks.sh", import.meta.url), "utf8").replaceAll("\r\n", "\n");
     const body = source.slice(source.indexOf("\nidle="), source.indexOf("\n# Section 8"));
     const script = `set -uo pipefail
 out="$1"
