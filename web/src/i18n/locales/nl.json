@@ -9037,6 +9037,10 @@
           "button": "Verkrijg de Opper API-sleutel",
           "tooltip": "Ga naar het Opper-platform om uw API-sleutel op te halen"
         },
+        "CHEAPER_INFERENCE_API_KEY": {
+          "button": "Verkrijg de Cheaper Inference API-sleutel",
+          "tooltip": "Ga naar het Cheaper Inference-platform om uw API-sleutel op te halen"
+        },
         "API_ROUTE_API_KEY": {
           "button": "API-routesleutel ophalen",
           "tooltip": "Ga naar de pagina API Route API-sleutels"

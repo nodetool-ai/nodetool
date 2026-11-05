@@ -183,8 +183,8 @@ export async function confineMediaPaths(
  * - **`--`** ends the options, so a URL cannot be read as a flag.
  *
  * `--max-filesize` is the disk bound, and `--no-playlist` keeps one URL to one
- * download. `format` must hold no top-level `+`: the caller splits a merge
- * with `splitYtDlpFormat` and muxes in process, since a merge runs ffmpeg.
+ * download. `format` must hold no top-level `+`: the caller resolves a merge
+ * to individual format IDs and muxes in process, since a merge runs ffmpeg.
  * `printFormatId` prints the format id on the line before the file path.
  */
 export function buildYtDlpArgv(options: {

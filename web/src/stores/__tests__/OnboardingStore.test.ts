@@ -7,8 +7,7 @@ describe("OnboardingStore", () => {
   beforeEach(() => {
     useOnboardingStore.setState({
       completedSteps: [],
-      dismissed: false,
-      providerSignInOffered: false
+      dismissed: false
     });
   });
 
@@ -54,11 +53,6 @@ describe("OnboardingStore", () => {
       version
     );
     expect(next.completedSteps).toEqual([]);
-  });
-  it("records that the first-run provider sign-in was offered", () => {
-    expect(useOnboardingStore.getState().providerSignInOffered).toBe(false);
-    useOnboardingStore.getState().markProviderSignInOffered();
-    expect(useOnboardingStore.getState().providerSignInOffered).toBe(true);
   });
 
   describe("isOnboardingFinished", () => {

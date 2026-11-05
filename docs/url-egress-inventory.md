@@ -251,6 +251,9 @@ at 24 hours.
   `GET /api/comfy/nodes` — a self-hosted ComfyUI named by the `COMFY_SERVER_URL`
   setting. It is normally localhost or the LAN, the same case as
   `comfy-executor.ts`, and the setting holder picks the address.
+- `packages/integration-nodes/src/nodes/comfy-worker-transport.ts` — a NodeTool
+  worker named by the `COMFY_WORKER_URL` setting. The setting holder picks the
+  address, the same case as `COMFY_SERVER_URL`.
 - `packages/integration-nodes/src/nodes/comfy-sdk.ts` — the Comfy API v2
   transport. `@comfyorg/sdk` opens the socket. For
   `lib.comfy.RunWorkflowOnCloud` it opens against the constant

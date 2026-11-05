@@ -43,7 +43,8 @@ import {
   DEFAULT_YT_DLP_FORMAT,
   loadMediaModule,
   loadMediaRefBytes,
-  splitYtDlpFormat
+  splitYtDlpFormat,
+  selectedYtDlpFormats
 } from "@nodetool-ai/runtime";
 import { getMaxLocalUploadBytes } from "@nodetool-ai/storage";
 import {
@@ -2686,6 +2687,17 @@ const ytDlp: CapabilityExport = {
     });
 
     try {
+      if (formats.length === 2) {
+        const selection = await runHostBinary(
+          "yt-dlp",
+          ["--ignore-config", "--no-exec", "--no-playlist", "--no-warnings", "--skip-download", "--dump-single-json", "-f", format, "--", url],
+          { cwd, timeoutMs: Math.max(1000, deadline - Date.now()) }
+        );
+        if (selection.exitCode !== 0) {
+          return { success: false, url, error: `yt-dlp format selection failed: ${selection.stderr || selection.stdout}`, exit_code: selection.exitCode };
+        }
+        formats = selectedYtDlpFormats(JSON.parse(selection.stdout) as unknown);
+      }
       if (formats.length === 1) {
         const result = await download(outputFile, formats[0]);
         const printed = lastPrintedLine(result.stdout);

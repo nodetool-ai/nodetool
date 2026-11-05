@@ -53,77 +53,41 @@ function toOutput(
   };
 }
 
-class ComfyServerJob implements ComfyJob {
+/**
+ * A job whose events arrive through callbacks. Subclasses push events, and
+ * {@link events} drains them until the subclass calls {@link settle}.
+ */
+export abstract class QueuedComfyJob implements ComfyJob {
   readonly id = randomUUID();
   status = "queued";
   outputs: ComfyOutput[] = [];
   error: ComfyJobError | null = null;
-  private cancelRun: () => void = () => {};
   private readonly queue: ComfyRunEvent[] = [];
   private wake: () => void = () => {};
   private settled = false;
 
-  constructor(prompt: ComfyPrompt, url: string, timeoutMs: number) {
-    const { result, cancel } = executeComfy(
-      prompt,
-      url,
-      (event) => this.onProgress(event),
-      timeoutMs,
-      (nodeId, outputs) => this.onOutputs(nodeId, outputs)
-    );
-    this.cancelRun = cancel;
-    void result
-      .then((outcome) => {
-        if (outcome.status === "completed") {
-          this.setStatus("succeeded");
-        } else if (this.status !== "canceled") {
-          this.fail(outcome.error ?? "ComfyUI reported a failure");
-        }
-      })
-      .catch((err: unknown) => {
-        this.fail(err instanceof Error ? err.message : String(err));
-      })
-      .finally(() => {
-        this.settled = true;
-        this.wake();
-      });
-  }
-
-  private push(event: ComfyRunEvent): void {
+  protected push(event: ComfyRunEvent): void {
     this.queue.push(event);
     this.wake();
   }
 
-  private setStatus(status: string): void {
+  protected setStatus(status: string): void {
     if (this.status === status) return;
     this.status = status;
     this.push({ kind: "statusChange", status, queuePosition: null });
   }
 
-  private fail(message: string): void {
+  protected fail(message: string): void {
     this.error = { code: "comfy_server_error", message };
     this.setStatus("failed");
   }
 
-  private onProgress(event: ComfyProgressEvent): void {
-    if (event.type === "execution_start") {
-      this.setStatus("running");
-    } else if (event.type === "execution_interrupted") {
-      this.setStatus("canceled");
-    } else if (event.type === "executing" && event.node) {
-      this.setStatus("running");
-      this.push(this.progressEvent(event.node, null, null));
-    } else if (
-      event.type === "progress" &&
-      typeof event.progress === "number" &&
-      typeof event.total === "number" &&
-      event.total > 0
-    ) {
-      this.push(this.progressEvent(event.node ?? null, event.progress, event.total));
-    }
+  protected settle(): void {
+    this.settled = true;
+    this.wake();
   }
 
-  private progressEvent(
+  protected progressEvent(
     currentNode: string | null,
     step: number | null,
     steps: number | null
@@ -138,16 +102,6 @@ class ComfyServerJob implements ComfyJob {
       step,
       steps
     };
-  }
-
-  private onOutputs(nodeId: string, outputs: ComfyNodeOutputs): void {
-    for (const [group, type] of KINDS) {
-      for (const file of outputs[group] ?? []) {
-        const output = toOutput(nodeId, type, file);
-        this.outputs.push(output);
-        this.push({ kind: "outputReady", output });
-      }
-    }
   }
 
   async *events(signal?: AbortSignal): AsyncGenerator<ComfyRunEvent, void, void> {
@@ -177,6 +131,66 @@ class ComfyServerJob implements ComfyJob {
 
   async refresh(): Promise<this> {
     return this;
+  }
+
+  abstract cancel(): Promise<this>;
+}
+
+class ComfyServerJob extends QueuedComfyJob {
+  private cancelRun: () => void = () => {};
+
+  constructor(prompt: ComfyPrompt, url: string, timeoutMs: number) {
+    super();
+    const { result, cancel } = executeComfy(
+      prompt,
+      url,
+      (event) => this.onProgress(event),
+      timeoutMs,
+      (nodeId, outputs) => this.onOutputs(nodeId, outputs)
+    );
+    this.cancelRun = cancel;
+    void result
+      .then((outcome) => {
+        if (outcome.status === "completed") {
+          this.setStatus("succeeded");
+        } else if (this.status !== "canceled") {
+          this.fail(outcome.error ?? "ComfyUI reported a failure");
+        }
+      })
+      .catch((err: unknown) => {
+        this.fail(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        this.settle();
+      });
+  }
+
+  private onProgress(event: ComfyProgressEvent): void {
+    if (event.type === "execution_start") {
+      this.setStatus("running");
+    } else if (event.type === "execution_interrupted") {
+      this.setStatus("canceled");
+    } else if (event.type === "executing" && event.node) {
+      this.setStatus("running");
+      this.push(this.progressEvent(event.node, null, null));
+    } else if (
+      event.type === "progress" &&
+      typeof event.progress === "number" &&
+      typeof event.total === "number" &&
+      event.total > 0
+    ) {
+      this.push(this.progressEvent(event.node ?? null, event.progress, event.total));
+    }
+  }
+
+  private onOutputs(nodeId: string, outputs: ComfyNodeOutputs): void {
+    for (const [group, type] of KINDS) {
+      for (const file of outputs[group] ?? []) {
+        const output = toOutput(nodeId, type, file);
+        this.outputs.push(output);
+        this.push({ kind: "outputReady", output });
+      }
+    }
   }
 
   async cancel(): Promise<this> {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_YT_DLP_FORMAT, splitYtDlpFormat } from "../src/yt-dlp-format.js";
+import { DEFAULT_YT_DLP_FORMAT, selectedYtDlpFormats, splitYtDlpFormat } from "../src/yt-dlp-format.js";
 
 describe("splitYtDlpFormat", () => {
   it("keeps a selector with no + as one component", () => {
@@ -56,5 +56,18 @@ describe("splitYtDlpFormat", () => {
 
   it("allows a top-level , with no +", () => {
     expect(splitYtDlpFormat("bv,ba")).toEqual(["bv,ba"]);
+  });
+});
+
+describe("selectedYtDlpFormats", () => {
+  it("extracts a combined fallback or the selected stream pair", () => {
+    expect(selectedYtDlpFormats({ format_id: "18" })).toEqual(['[format_id="18"]']);
+    expect(selectedYtDlpFormats({ requested_formats: [{ format_id: "137" }, { format_id: "140" }] })).toEqual(['[format_id="137"]', '[format_id="140"]']);
+  });
+
+  it("rejects invalid IDs and selections that cannot be muxed", () => {
+    expect(selectedYtDlpFormats({ format_id: 'a:b"c' })).toEqual(['[format_id="a:b\\"c"]']);
+    expect(() => selectedYtDlpFormats({ format_id: "" })).toThrow(/invalid/);
+    expect(() => selectedYtDlpFormats({ requested_formats: [{}, {}, {}] })).toThrow(/more than two/);
   });
 });

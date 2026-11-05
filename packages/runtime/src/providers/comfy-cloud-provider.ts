@@ -88,6 +88,8 @@ const STRENGTH_FIELDS = ["strength", "image_strength", "prompt_strength"] as con
 const SPEECH_TEXT_FIELDS = ["text", "text_prompt", "input", "prompt"] as const;
 const VOICE_FIELDS = ["voice_id", "voice", "speaker", "voice_type"] as const;
 
+const SIZE_FIELDS = ["size", "image_size"] as const;
+
 const IMAGE_SIZES: Record<string, string> = {
   "1:1": "1024x1024",
   "16:9": "1536x864",
@@ -115,6 +117,16 @@ export function mp4DurationSeconds(bytes: Uint8Array): number | undefined {
     return timescale > 0 ? duration / timescale : undefined;
   }
   return undefined;
+}
+
+/**
+ * Free-text size fields accept one separator, which only the field description
+ * states. DashScope models reject `1024x1024` and require `1024*1024`.
+ */
+function formatImageSize(b: RouterArgsBuilder, size: string): string {
+  const name = b.firstDeclared(SIZE_FIELDS);
+  const description = name ? b.field(name)?.description : undefined;
+  return description && /(width|\d)\s*\*\s*(height|\d)/i.test(description) ? size.replace("x", "*") : size;
 }
 
 interface PresetInput {
@@ -533,11 +545,11 @@ export class ComfyCloudProvider extends BaseProvider {
         b.set("width", width).set("height", height);
         return;
       }
-      b.setFirst(["size", "image_size"], `${width}x${height}`);
+      b.setFirst(SIZE_FIELDS, formatImageSize(b, `${width}x${height}`));
       return;
     }
     if (aspect && !b.firstDeclared(ASPECT_FIELDS) && IMAGE_SIZES[aspect]) {
-      b.setFirst(["size", "image_size"], IMAGE_SIZES[aspect]);
+      b.setFirst(SIZE_FIELDS, formatImageSize(b, IMAGE_SIZES[aspect]));
     }
   }
 

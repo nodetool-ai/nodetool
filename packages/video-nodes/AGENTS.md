@@ -14,8 +14,9 @@
   `@nodetool-ai/runtime/media/testing`, never the CLI.
 - **yt-dlp never merges.** A merge, `-x` and every `--remux`, `--recode` or
   `--embed` flag run ffmpeg. `YtDlpDownload` splits the selector on its
-  top-level `+` with `splitYtDlpFormat`, downloads each side with its own
-  call, and joins them with `muxStreamCopy`; audio mode encodes mp3 with
+  selector with `splitYtDlpFormat`, resolves the complete selection through
+  yt-dlp metadata, downloads each selected format, and joins a pair with
+  `muxStreamCopy`; audio mode encodes mp3 with
   `transformMedia`.
 - **A terminal failure throws**, it never returns the unchanged input.
   `mediaTransform` rejects with `Video processing failed: <reason>`; a no-op

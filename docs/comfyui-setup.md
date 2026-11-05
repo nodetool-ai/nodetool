@@ -91,7 +91,7 @@ Workflow when the row shows **Ready**. The first start can take several minutes.
 The pod ends after the time on the card and deletes its files, while the
 NodeTool server runs. Anyone with the URL can use the pod. MiniMax H3 is tested.
 Wan 2.2 and LTX 2.3 are untested. The models are listed in
-[`comfy-presets.ts`](../packages/compute/src/comfy-presets.ts).
+[`comfy-presets.ts`](https://github.com/nodetool-ai/nodetool/blob/main/packages/compute/src/comfy-presets.ts).
 
 ### Expose ComfyUI yourself
 

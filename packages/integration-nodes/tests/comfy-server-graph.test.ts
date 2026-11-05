@@ -151,6 +151,35 @@ describe("Comfy workflow on a self-hosted ComfyUI", () => {
     expect(fake.prompts).toHaveLength(1);
   });
 
+  it("runs on Comfy Cloud when the target says cloud, even with a server URL", async () => {
+    const { node, context } = run({
+      COMFY_TARGET: "cloud",
+      COMFY_SERVER_URL: fake.url
+    });
+    await expect(node.process(context)).rejects.toThrow("COMFY_API_KEY");
+    expect(fake.requests).toEqual([]);
+  });
+
+  it("does not fall back to Comfy Cloud when the selected server is not set", async () => {
+    const { node, context } = run({ COMFY_TARGET: "server", COMFY_API_KEY: "ck" });
+    await expect(node.process(context)).rejects.toThrow("COMFY_SERVER_URL is not set");
+  });
+
+  it("does not fall back when the selected worker is not set", async () => {
+    const { node, context } = run({
+      COMFY_TARGET: "worker",
+      COMFY_SERVER_URL: fake.url,
+      COMFY_API_KEY: "ck"
+    });
+    await expect(node.process(context)).rejects.toThrow("COMFY_WORKER_URL is not set");
+    expect(fake.requests).toEqual([]);
+  });
+
+  it("rejects an unknown target", async () => {
+    const { node, context } = run({ COMFY_TARGET: "mars", COMFY_API_KEY: "ck" });
+    await expect(node.process(context)).rejects.toThrow('COMFY_TARGET is "mars"');
+  });
+
   it("reports the error ComfyUI raised", async () => {
     fake.fail = "CUDA out of memory";
     const { node, context } = run({ COMFY_SERVER_URL: fake.url });

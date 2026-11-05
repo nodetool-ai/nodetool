@@ -517,7 +517,7 @@
         "id": "320:305",
         "type": "comfy.LTXVEmptyLatentAudio",
         "data": {
-          "batch_size": 25
+          "batch_size": 1
         },
         "ui_properties": {
           "position": {

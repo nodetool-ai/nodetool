@@ -366,6 +366,17 @@ describe("ComfyCloudProvider — real Router schemas", () => {
     expect(body.input).toEqual({ messages: [{ role: "user", content: [{ text: "a leaf" }] }] });
   });
 
+  it("Qwen image: size uses the width*height form the schema documents", async () => {
+    const explicit = await submittedBody("qwen/qwen-image-3.0", (p, model) =>
+      p.textToImage({ model, prompt: "a leaf", width: 1024, height: 768 })
+    );
+    expect(explicit.parameters).toMatchObject({ size: "1024*768" });
+    const fromAspect = await submittedBody("qwen/qwen-image-3.0", (p, model) =>
+      p.textToImage({ model, prompt: "a leaf", aspectRatio: "16:9" })
+    );
+    expect(fromAspect.parameters).toMatchObject({ size: "1536*864" });
+  });
+
   it("Wan 2.7: the start frame as a typed media item, with a billing resolution", async () => {
     const body = await submittedBody("wan/wan2.7-i2v", (p, model) =>
       p.imageToVideo(PNG, { model, prompt: "waves", durationSeconds: 5 })

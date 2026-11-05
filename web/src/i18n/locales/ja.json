@@ -9037,6 +9037,10 @@
           "button": "Opper API キーを取得する",
           "tooltip": "Opper プラットフォームに移動して API キーを取得します"
         },
+        "CHEAPER_INFERENCE_API_KEY": {
+          "button": "Cheaper Inference API キーを取得する",
+          "tooltip": "Cheaper Inference プラットフォームに移動して API キーを取得します"
+        },
         "API_ROUTE_API_KEY": {
           "button": "APIルートキーの取得",
           "tooltip": "API ルートの API キー ページに移動する"

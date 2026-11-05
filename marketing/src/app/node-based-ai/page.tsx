@@ -5,6 +5,7 @@ import SiteFooter from "../../components/SiteFooter";
 import JsonLd from "../../components/JsonLd";
 import ReadMoreLinks from "@/components/ReadMoreLinks";
 import FaqSection from "../../components/FaqSection";
+import HeroDemoPlayer from "../../components/HeroDemoPlayer";
 import SearchStarter from "../../components/SearchStarter";
 import { breadcrumbSchema, itemListSchema } from "../../lib/jsonld";
 import { SmartDownloadButton } from "../SmartDownloadButton";
@@ -197,6 +198,31 @@ export default function NodeBasedAiPage() {
             </a>
           </div>
         </section>
+
+        {/* The hero reel shared with /node-based-workflows, rendered from
+            demo/src/nodeshero/. It shows the answer above as one real graph. */}
+        <div className="relative mx-auto mt-14 max-w-6xl px-6 sm:mt-16">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -inset-x-8 -top-10 bottom-10 -z-10 rounded-[3rem] bg-gradient-to-b from-fuchsia-500/20 via-blue-500/10 to-transparent blur-3xl"
+          />
+          <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-2 shadow-2xl shadow-black/70">
+            <HeroDemoPlayer
+              mediaBase="/hero-nodes"
+              alt="A NodeTool workflow is wired, a mismatched wire is refused, five shots run through For Each, Text To Image, Image To Video, Collect, and Concatenate Video into one cut, and the image model is swapped"
+            />
+          </div>
+          <p className="mt-4 text-center text-sm text-slate-400">
+            One workflow from wiring to a finished cut. The shots come from the{" "}
+            <a
+              href="/storyboards/under-the-bed"
+              className="text-blue-300 underline decoration-blue-500/40 underline-offset-2 transition-colors hover:text-blue-200"
+            >
+              Under the Bed
+            </a>{" "}
+            example that ships with NodeTool.
+          </p>
+        </div>
 
         <SearchStarter
           starter="generate-then-upscale-a-poster"

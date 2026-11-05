@@ -41,8 +41,6 @@ export const isOnboardingFinished = ({
 interface OnboardingStore {
   completedSteps: OnboardingStepId[];
   dismissed: boolean;
-  /** The first-run provider sign-in offer has been shown once already. */
-  providerSignInOffered: boolean;
   /**
    * The user sent a description from the new-project composer. The
    * describe-idea step completes on the first finished run after that, so
@@ -56,7 +54,6 @@ interface OnboardingStore {
   markStep: (step: OnboardingStepId) => void;
   markIdeaDescribed: () => void;
   dismiss: () => void;
-  markProviderSignInOffered: () => void;
   addActiveUsage: (ms: number) => void;
   markGithubStarPromptShown: () => void;
 }
@@ -66,7 +63,6 @@ export const useOnboardingStore = create<OnboardingStore>()(
     (set) => ({
       completedSteps: [],
       dismissed: false,
-      providerSignInOffered: false,
       ideaDescribed: false,
       activeUsageMs: 0,
       githubStarPromptShown: false,
@@ -85,10 +81,6 @@ export const useOnboardingStore = create<OnboardingStore>()(
 
       dismiss: () => {
         set({ dismissed: true });
-      },
-
-      markProviderSignInOffered: () => {
-        set({ providerSignInOffered: true });
       },
 
       addActiveUsage: (ms: number) => {
