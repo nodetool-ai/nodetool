@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -141,6 +142,7 @@ function golden() {
   const out = fs.mkdtempSync(path.join(scratchBase, "nt-export-golden-"));
   let goldOut = out;
   const rows = [];
+  let diagnostics;
   const unmet = [];
   try {
     const goldenBase = goldenOutputBase(bin);
@@ -190,11 +192,33 @@ function golden() {
         if (!(value >= 40)) { failedFrames.push(frame); }
       }
       if (failedFrames.length > 0) {
-        const native = path.join(out, `${name}-native`);
+        // Retain only failures, outside the temporary folders cleaned below.
+        const artifactBase = path.join(scratchBase, "export-golden-failures");
+        fs.mkdirSync(artifactBase, { recursive: true });
+        diagnostics ??= fs.mkdtempSync(path.join(artifactBase, "run-"));
+        const fixtureOut = path.join(diagnostics, path.basename(name, ".json"));
+        const retainedGolden = path.join(fixtureOut, "golden");
+        fs.mkdirSync(retainedGolden, { recursive: true });
+        for (const frame of failedFrames) {
+          const file = `frame_${String(frame).padStart(6, "0")}.png`;
+          fs.copyFileSync(path.join(gold, "stills", file), path.join(retainedGolden, file));
+        }
+        fs.writeFileSync(path.join(fixtureOut, "failures.json"), JSON.stringify({
+          platform: process.platform,
+          frames: rows.filter(row => row.fixture === name && failedFrames.includes(row.frame)),
+          sources: doc.clips.filter(clip => clip.mediaPath).map(clip => ({
+            path: clip.mediaPath,
+            sha256: createHash("sha256").update(fs.readFileSync(path.resolve(path.dirname(fixture), clip.mediaPath))).digest("hex")
+          }))
+        }, null, 2));
+        fs.writeFileSync(path.join(fixtureOut, "golden.log"), goldenResult.stdout + goldenResult.stderr);
+        console.log(`export_golden diagnostics: ${fixtureOut}`);
+        const native = path.join(fixtureOut, "native");
         // The same compositor without H.264: separate rendering disagreement
         // from export conversion/encoding loss, in the same 4:2:0 metric.
         const capture = spawnSync(bin, [fixture, "--stills", native, "--still-frames",
           failedFrames.join(","), "--decode", "sw"], { encoding: "utf8", maxBuffer: 128 * 1024 * 1024 });
+        fs.writeFileSync(path.join(fixtureOut, "native.log"), capture.stdout + capture.stderr);
         if (capture.status !== 0) {
           console.log(JSON.stringify({ fixture: name, diagnosticError: capture.stderr,
             error: capture.error?.message, status: capture.status }));
@@ -213,7 +237,7 @@ function golden() {
             console.log(JSON.stringify({ fixture: name, diagnosticError: error.message }));
           }
         }
-        fs.rmSync(native, { recursive: true, force: true });
+
       }
       fs.rmSync(movie, { force: true });
       fs.rmSync(gold, { recursive: true, force: true });
