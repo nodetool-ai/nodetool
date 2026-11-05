@@ -15,7 +15,7 @@ import { createLogger } from "@nodetool-ai/config";
 import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { findInstalledWan2GP, withWan2GPClient } from "./wan2gp-server.js";
-import { markWan2GPModelAvailable, wan2gpCatalog } from "./wan2gp-models.js";
+import { captureWan2GPModelAvailability, wan2gpCatalog } from "./wan2gp-models.js";
 import {
   WAN2GP_MAX_MEDIA_BYTES,
   Wan2GPClient,
@@ -395,6 +395,10 @@ export class Wan2GPProvider extends BaseProvider {
     media: (client: Wan2GPClient, settings: Wan2GPRecord) => Promise<void>
   ): Promise<{ data: Uint8Array; filename?: string }> {
     const timeoutMs = (options.timeoutSeconds ?? DEFAULT_TIMEOUT_SECONDS) * 1000;
+    const markAvailable = await captureWan2GPModelAvailability(
+      this.serverUrl ? null : await findInstalledWan2GP(),
+      options.signal
+    );
     const result = await this.withClient(options.signal, async (client) => {
       await media(client, settings);
       const jobId = await client.submit(settings);
@@ -407,7 +411,7 @@ export class Wan2GPProvider extends BaseProvider {
       return { data, filename: item.filename };
     });
     // A finished generation downloaded whatever the model lacked.
-    if (!this.serverUrl) void markWan2GPModelAvailable(String(settings.model_type));
+    if (!this.serverUrl) void markAvailable(String(settings.model_type));
     return result;
   }
 

@@ -50,6 +50,7 @@ vi.mock("../src/lib/asset-response.js", () => ({
   }))
 }));
 
+import { initTestDb, ModelObserver, Project } from "@nodetool-ai/models";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
@@ -118,6 +119,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  ModelObserver.clear();
   vi.unstubAllGlobals();
 });
 
@@ -245,6 +247,35 @@ describe("openverse.search", () => {
 });
 
 describe("openverse.import", () => {
+  it.each(["0123456789abcdef0123456789abcdef", "0123456789ab"])(
+    "imports into the resolved owned project for %s", async (projectId) => {
+      initTestDb();
+      await Project.create<Project>({ id: "0123456789abcdef0123456789abcdef", user_id: "user-1", name: "Owned" });
+      api(json(IMAGE));
+      mocks.safeFetch.mockResolvedValue(new Response(new Uint8Array([1]), { headers: { "content-type": "image/jpeg" } }));
+      const { Asset } = await vi.importActual<typeof import("@nodetool-ai/models")>("@nodetool-ai/models");
+      mocks.createAsset.mockImplementation(async (args) => {
+        const asset = new Asset({ user_id: args.userId, project_id: args.projectId, name: args.name, content_type: args.contentType, parent_id: args.parentId });
+        await asset.save();
+        return { id: asset.id, ...args };
+      });
+      const result = await caller().openverse.import({ media_type: "images", ids: [IMAGE_ID], project_id: projectId });
+      expect(result.failed).toEqual([]);
+      expect(mocks.createAsset).toHaveBeenCalledWith(expect.objectContaining({ projectId: "0123456789abcdef0123456789abcdef" }));
+      expect(await Asset.listByProject("user-1", "0123456789abcdef0123456789abcdef")).toHaveLength(1);
+    }
+  );
+
+  it("rejects missing and foreign projects before fetching", async () => {
+    initTestDb();
+    await Project.create<Project>({ id: "abcdefabcdefabcdefabcdefabcdefab", user_id: "user-2", name: "Foreign" });
+    const fetchMock = api();
+    for (const projectId of ["missing", "abcdefabcdef"]) {
+      await expect(caller().openverse.import({ media_type: "images", ids: [IMAGE_ID], project_id: projectId })).rejects.toThrow("Project not found");
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("looks the item up by id, downloads it safely and stores its license", async () => {
     const fetchMock = api(json(IMAGE));
     mocks.safeFetch.mockResolvedValue(

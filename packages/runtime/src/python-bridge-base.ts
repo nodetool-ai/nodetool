@@ -821,6 +821,7 @@ export abstract class PythonBridgeBase
     const signal = options?.signal;
     const chunks: ExecuteResult[] = [];
     let done = false;
+    let dispatched = false;
     let error: Error | null = null;
     let finalResult: ExecuteResult | null = null;
     let emittedCount = 0;
@@ -835,7 +836,21 @@ export abstract class PythonBridgeBase
       });
     }
 
+    const detach = () => {
+      const pending = this._pendingStream.delete(requestId);
+      this._pending.delete(requestId);
+      chunks.length = 0;
+      if (dispatched && pending) {
+        try {
+          this.cancel(requestId);
+        } catch {
+          // Worker may already be gone. Cancellation is best-effort.
+        }
+      }
+    };
+
     const onChunk = (chunk: Record<string, unknown>) => {
+      if (error) return;
       chunks.push({
         outputs: (chunk.outputs as Record<string, unknown>) ?? {},
         blobs: (chunk.blobs as Record<string, Uint8Array>) ?? {}
@@ -866,7 +881,7 @@ export abstract class PythonBridgeBase
         }
       })
       .catch((err) => {
-        error = err;
+        error ??= err;
         done = true;
         this._pending.delete(requestId);
         if (resolveWait) {
@@ -875,10 +890,10 @@ export abstract class PythonBridgeBase
         }
       });
 
-    // A run cancel ends the stream: the loop below throws, and `finally`
-    // sends the worker a `cancel` because the terminal frame never came.
+    // The consumer may be suspended at yield, so cleanup cannot wait for finally.
     const onAbort = () => {
       error = new Error(`Python node "${nodeType}" was cancelled.`);
+      detach();
       if (resolveWait) {
         resolveWait();
         resolveWait = null;
@@ -900,9 +915,12 @@ export abstract class PythonBridgeBase
           ...this._identityPayload(identity)
         }
       });
+      dispatched = true;
 
       while (true) {
+        if (error) throw error;
         while (chunks.length > 0) {
+          if (error) throw error;
           emittedCount += 1;
           yield chunks.shift()!;
         }
@@ -915,22 +933,11 @@ export abstract class PythonBridgeBase
       if (error) throw error;
       if (emittedCount === 0 && finalResult) {
         yield finalResult;
+        if (error) throw error;
       }
     } finally {
       signal?.removeEventListener("abort", onAbort);
-      // If the stream never reached its terminal frame (consumer abandoned the
-      // generator via break/return, or the initial _send threw), the worker is
-      // still producing output nobody reads. Cancel it and release pending
-      // state so chunks[] stops growing and the entries don't leak.
-      if (!done) {
-        this._pending.delete(requestId);
-        this._pendingStream.delete(requestId);
-        try {
-          this.cancel(requestId);
-        } catch {
-          // Worker may already be gone; cancel is best-effort.
-        }
-      }
+      detach();
     }
   }
 
@@ -1329,10 +1336,25 @@ export abstract class PythonBridgeBase
     const requestId = randomUUID();
     const chunks: Uint8Array[] = [];
     let done = false;
+    let dispatched = false;
     let error: Error | null = null;
     let resolveWait: (() => void) | null = null;
 
+    const detach = () => {
+      const pending = this._pendingStream.delete(requestId);
+      this._pending.delete(requestId);
+      chunks.length = 0;
+      if (dispatched && pending) {
+        try {
+          this.cancel(requestId);
+        } catch {
+          // Worker may already be gone. Cancellation is best-effort.
+        }
+      }
+    };
+
     const onChunk = (chunk: Record<string, unknown>) => {
+      if (error) return;
       const blobs = chunk.blobs as Record<string, Uint8Array> | undefined;
       if (blobs?.audio) chunks.push(blobs.audio);
       if (resolveWait) {
@@ -1356,7 +1378,7 @@ export abstract class PythonBridgeBase
         }
       })
       .catch((err) => {
-        error = err;
+        error ??= err;
         done = true;
         if (resolveWait) {
           resolveWait();
@@ -1364,9 +1386,10 @@ export abstract class PythonBridgeBase
         }
       });
 
-    // Aborting ends the stream; `finally` then cancels the worker request.
+    // The consumer may be suspended at yield, so cleanup cannot wait for finally.
     const onAbort = () => {
       error = new Error(`Provider request "${requestId}" was cancelled.`);
+      detach();
       if (resolveWait) {
         resolveWait();
         resolveWait = null;
@@ -1382,9 +1405,14 @@ export abstract class PythonBridgeBase
         request_id: requestId,
         data: { provider: providerId, text, model, ...options }
       });
+      dispatched = true;
 
       while (true) {
-        while (chunks.length > 0) yield chunks.shift()!;
+        if (error) throw error;
+        while (chunks.length > 0) {
+          if (error) throw error;
+          yield chunks.shift()!;
+        }
         if (done) break;
         if (error) throw error;
         await new Promise<void>((resolve) => {
@@ -1394,17 +1422,7 @@ export abstract class PythonBridgeBase
       if (error) throw error;
     } finally {
       signal?.removeEventListener("abort", onAbort);
-      // Cancel the worker-side stream and drop pending state if the generator
-      // is torn down before its terminal frame (consumer break/return, or a
-      // throwing initial _send).
-      if (!done) {
-        this._pendingStream.delete(requestId);
-        try {
-          this.cancel(requestId);
-        } catch {
-          // Worker may already be gone; cancel is best-effort.
-        }
-      }
+      detach();
     }
   }
 

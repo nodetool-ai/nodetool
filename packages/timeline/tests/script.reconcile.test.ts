@@ -9,6 +9,8 @@ import {
   reconcileScriptClips,
   type ScriptAssemblyInput
 } from "../src/script.js";
+import { splitClip } from "../src/splitClip.js";
+import { trimClip } from "../src/trimClip.js";
 import { makeClip, makeTrack } from "../src/defaults.js";
 
 const take = (id: string, durationMs: number, text = "Hi."): Take => ({
@@ -43,6 +45,113 @@ const startOf = (clips: { scriptLineId?: string; startMs: number }[], lineId: st
   clips.find((c) => c.scriptLineId === lineId)?.startMs;
 
 describe("reconcileScriptClips", () => {
+  it.each([250, 750, 1000, 2000])(
+    "replaces every split fragment with a %dms take without changing the cut",
+    (durationMs) => {
+      const lines = [line("a", take("old", 1000)), line("b", take("next", 500))];
+      const built = assembled(lines);
+      const fragments = splitClip(built.clips[0], 500);
+      const doc = { ...built, clips: [...fragments, built.clips[1]] };
+      const replacement = {
+        ...take("new", durationMs),
+        words: [
+          { word: "First", startMs: 0, endMs: Math.min(400, durationMs) },
+          ...(durationMs > 500
+            ? [{ word: "Second", startMs: 500, endMs: Math.min(900, durationMs) }]
+            : [])
+        ]
+      };
+      const script = input([line("a", replacement), lines[1]]);
+      const result = reconcileScriptClips(doc, script);
+      for (const [index, fragment] of fragments.entries()) {
+        expect(result.clips[index]).toMatchObject({
+          id: fragment.id,
+          currentAssetId: "asset-new",
+          startMs: fragment.startMs,
+          durationMs: 500,
+          inPointMs: fragment.inPointMs,
+          outPointMs: fragment.outPointMs
+        });
+        expect(result.clips[index].versions).toEqual([
+          expect.objectContaining({ assetId: "asset-new", durationMs })
+        ]);
+      }
+      expect(result.clips[0].caption?.words).toEqual([replacement.words[0]]);
+      expect(result.clips[1].caption?.words).toEqual(durationMs > 500
+        ? [{ word: "Second", startMs: 0, endMs: Math.min(400, durationMs - 500) }]
+        : []);
+      expect(result.clips[2]).toBe(built.clips[1]);
+      const again = reconcileScriptClips(result, script);
+      expect(again.changed).toBe(false);
+      expect(again.clips).toBe(result.clips);
+    }
+  );
+
+  it.each([500, 3000])("keeps a crossing word on the left when the right fragment starts at %dms", (startMs) => {
+    const built = assembled([line("a", take("old", 1000))]);
+    const [left, right] = splitClip(built.clips[0], 500);
+    const replacement = {
+      ...take("new", 1000),
+      words: [
+        { word: "hello", startMs: 400, endMs: 600 },
+        { word: "there", startMs: 600, endMs: 900 }
+      ]
+    };
+    const result = reconcileScriptClips(
+      { ...built, clips: [{ ...right, startMs }, left] },
+      input([line("a", replacement)])
+    );
+    expect(result.clips[0].startMs).toBe(startMs);
+    expect(result.clips[0].caption?.words).toEqual([{ word: "there", startMs: 100, endMs: 400 }]);
+    expect(result.clips[1].caption?.words).toEqual([{ word: "hello", startMs: 400, endMs: 500 }]);
+  });
+
+  it("retains the overlapping word after a lone head trim", () => {
+    const built = assembled([line("a", take("old", 1000))]);
+    const trimmed = trimClip(built.clips[0], "start", -500);
+    const result = reconcileScriptClips(
+      { ...built, clips: [trimmed] },
+      input([line("a", {
+        ...take("new", 1000),
+        words: [{ word: "hello", startMs: 400, endMs: 600 }]
+      })])
+    );
+    expect(result.clips[0].caption?.words).toEqual([{ word: "hello", startMs: 0, endMs: 100 }]);
+  });
+
+  it("preserves the surviving trimmed fragment and its playback rate", () => {
+    const built = assembled([line("a", take("old", 1000))]);
+    const sped = { ...built.clips[0], speedMultiplier: 2, durationMs: 500 };
+    const [, right] = splitClip(sped, 250);
+    const trimmed = trimClip(right, "end", -50);
+    const result = reconcileScriptClips(
+      { ...built, clips: [trimmed] },
+      input([line("a", {
+        ...take("new", 2000),
+        words: [{ word: "Second", startMs: 600, endMs: 800 }]
+      })])
+    );
+    expect(result.clips[0]).toMatchObject({
+      startMs: 250, durationMs: 200, inPointMs: 500, outPointMs: 900,
+      speedMultiplier: 2, currentAssetId: "asset-new",
+      caption: { words: [{ word: "Second", startMs: 50, endMs: 150 }] }
+    });
+  });
+
+  it("relabels every fragment and anchors a new line after the latest fragment", () => {
+    const a = line("a", take("old", 1000));
+    const built = assembled([a]);
+    const [left, right] = splitClip(built.clips[0], 500);
+    const moved = { ...right, startMs: 3000 };
+    const result = reconcileScriptClips(
+      { ...built, clips: [moved, left] },
+      input([{ ...a, text: "Updated", pauseAfterMs: 200 }, line("b", take("new", 100))])
+    );
+    expect(result.clips.slice(0, 2).map((clip) => clip.prompt)).toEqual(["Updated", "Updated"]);
+    expect(startOf(result.clips, "b")).toBe(3700);
+    expect(reconcileScriptClips(result, input([])).clips).toEqual([]);
+  });
+
   it("returns the same document when the script did not change", () => {
     const lines = [line("a", take("t1", 1000)), line("b", take("t2", 500))];
     const doc = assembled(lines);

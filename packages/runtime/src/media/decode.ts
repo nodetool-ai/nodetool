@@ -4,11 +4,16 @@
  * subtracted, so the first frame of a file sits near zero.
  */
 
+import { endianness } from "node:os";
+
 import {
+  AV_FRAME_DATA_DISPLAYMATRIX,
   AV_NOPTS_VALUE,
+  AV_PKT_DATA_DISPLAYMATRIX,
   AVSEEK_FLAG_BACKWARD,
   Decoder,
   Demuxer,
+  FilterAPI,
   type Frame,
   type Stream
 } from "node-av";
@@ -33,10 +38,39 @@ export interface DecodedStream {
 
 const AV_TIME_BASE_Q = { num: 1, den: 1_000_000 };
 
+function displayTransform(stream: Stream): string | null {
+  const matrix = stream.codecpar.getCodedSideData(AV_PKT_DATA_DISPLAYMATRIX);
+  if (!matrix || matrix.length < 36) {
+    return null;
+  }
+  // libav exposes native int32 values, unlike the big-endian MP4 track header.
+  const read = (index: number): number =>
+    endianness() === "LE" ? matrix.readInt32LE(index * 4) : matrix.readInt32BE(index * 4);
+  const [a, b, c, d] = [read(0), read(1), read(3), read(4)];
+  const angle = ((Math.atan2(b, a) * 180 / Math.PI) + 360) % 360;
+  const filters: string[] = [];
+  if (a * d - b * c < 0) {
+    filters.push("vflip");
+  }
+  if (Math.abs(angle - 90) < 0.001) {
+    filters.push("transpose=clock");
+  } else if (Math.abs(angle - 180) < 0.001) {
+    filters.push("hflip", "vflip");
+  } else if (Math.abs(angle - 270) < 0.001) {
+    filters.push("transpose=cclock");
+  } else if (angle > 0.001 && angle < 359.999) {
+    const radians = angle * Math.PI / 180;
+    filters.push(`rotate=${radians}:ow=rotw(${radians}):oh=roth(${radians})`);
+  }
+  return filters.length > 0 ? filters.join(",") : null;
+}
+
 /**
  * Open `filePath` and decode its first `kind` stream. `seekSec` seeks to the
  * keyframe at or before that source time; the frames before it are still
  * decoded, as the CLI's `-ss` before `-i` decodes them, and the caller trims.
+ * Video frames have the stream's display rotation applied before callers filter
+ * or encode them. Packet-copy paths retain their original matrix instead.
  * Returns `null` when the file has no stream of that kind.
  */
 export async function openDecodedStream(
@@ -49,6 +83,7 @@ export async function openDecodedStream(
   throwIfAborted(signal);
   const demuxer = await Demuxer.open(filePath, { signal });
   let decoder: Decoder | null = null;
+  let orientation: FilterAPI | null = null;
   try {
     const found = kind === "audio" ? demuxer.audio() : demuxer.video();
     if (!found) {
@@ -64,7 +99,12 @@ export async function openDecodedStream(
       await demuxer.seek(formatStartSec + seekSec, -1, AVSEEK_FLAG_BACKWARD);
     }
     decoder = await Decoder.create(stream, { signal });
+    const transform = kind === "video" ? displayTransform(stream) : null;
+    if (transform) {
+      orientation = FilterAPI.create(transform, { signal });
+    }
     const activeDecoder = decoder;
+    const activeOrientation = orientation;
     const offsetSec = formatStartSec + seekSec;
     let active: AsyncGenerator<Frame> | null = null;
     let closed = false;
@@ -81,7 +121,24 @@ export async function openDecodedStream(
           const timeBase = frame.timeBase.den > 0 ? frame.timeBase : stream.timeBase;
           frame.pts -= BigInt(Math.round((offsetSec * timeBase.den) / timeBase.num));
         }
-        yield frame;
+        if (!activeOrientation) {
+          yield frame;
+          continue;
+        }
+        try {
+          // The pixels will carry this transform, so output metadata must not
+          // ask players to apply it a second time.
+          frame.removeSideData(AV_FRAME_DATA_DISPLAYMATRIX);
+          await activeOrientation.process(frame);
+        } finally {
+          frame.free();
+        }
+        for (let out = await activeOrientation.receive(); out; out = await activeOrientation.receive()) {
+          yield out;
+        }
+      }
+      if (activeOrientation) {
+        yield* activeOrientation.flushFrames();
       }
     }
 
@@ -99,11 +156,13 @@ export async function openDecodedStream(
         // `return()` waits for a pull in progress, so native calls finish
         // before the decoder and demuxer they use are freed.
         if (active) await active.return(undefined);
+        activeOrientation?.close();
         activeDecoder.close();
         await demuxer.close();
       }
     };
   } catch (error) {
+    orientation?.close();
     decoder?.close();
     await demuxer.close();
     throw error;

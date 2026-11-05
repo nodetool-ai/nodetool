@@ -22,6 +22,8 @@ const TOUCH_MS = 1;
 const endOf = (c: TimelineClip): number => c.startMs + c.durationMs;
 
 export interface AudioCrossfadeOptions {
+  /** Whether fades or timing may change, including on unselected neighbours. */
+  canEdit?: (clip: TimelineClip) => boolean;
   /** Whether the clip may be lengthened under its neighbour. */
   canExtend?: (clip: TimelineClip) => boolean;
   /** The clip's source length in ms, when known. Unknown is not capped. */
@@ -50,11 +52,13 @@ export function applyAudioCrossfades(
   options: AudioCrossfadeOptions = {}
 ): readonly TimelineClip[] {
   if (!(durationMs > 0)) return clips;
+  const canEdit = (clip: TimelineClip): boolean =>
+    !clip.locked && (options.canEdit?.(clip) ?? true);
   const canExtend = options.canExtend ?? (() => true);
   const next = new Map<string, TimelineClip>();
   const current = (c: TimelineClip): TimelineClip => next.get(c.id) ?? c;
   const audio = clips.filter((c) => c.mediaType === "audio");
-  const chosen = audio.filter((c) => clipIds.has(c.id));
+  const chosen = audio.filter((c) => clipIds.has(c.id) && canEdit(c));
 
   // Each cut once, even when both of its clips are chosen.
   const cuts = new Map<string, [TimelineClip, TimelineClip]>();
@@ -90,6 +94,9 @@ export function applyAudioCrossfades(
   }
 
   for (const [outgoing, incoming] of cuts.values()) {
+    if (!canEdit(outgoing) || !canEdit(incoming)) {
+      continue;
+    }
     const a = current(outgoing);
     const b = current(incoming);
     const handleMs = canExtend(a)

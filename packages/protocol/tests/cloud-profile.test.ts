@@ -200,6 +200,7 @@ describe("cloud provider + pack allowlists", () => {
       "openrouter",
       "requesty",
       "opper",
+      "cheaperinference",
       "api_route",
       "fal_ai",
       "kie",

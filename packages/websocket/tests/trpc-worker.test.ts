@@ -25,7 +25,9 @@ function makeManager(): Record<keyof WorkerManager, ReturnType<typeof vi.fn>> {
     apiKeyStatus: vi.fn(),
     resume: vi.fn(),
     terminate: vi.fn(),
-    connectionInfo: vi.fn()
+    connectionInfo: vi.fn(),
+    comfyEndpoint: vi.fn().mockResolvedValue(null),
+    startComfyPreset: vi.fn()
   } as unknown as Record<keyof WorkerManager, ReturnType<typeof vi.fn>>;
 }
 
@@ -261,6 +263,21 @@ describe("worker router", () => {
       expect(manager.connectionInfo).toHaveBeenCalledWith("i1");
       expect(probe).toHaveBeenCalledWith(connection);
       expect(result).toEqual({ healthy: true });
+    });
+
+    it("health probes a ComfyUI pod over HTTP, not the worker bridge", async () => {
+      manager.comfyEndpoint.mockResolvedValue("https://p-8188.proxy");
+      const probe = vi.fn();
+      const fetchMock = vi
+        .spyOn(globalThis, "fetch")
+        .mockResolvedValue(new Response("{}", { status: 200 }));
+      const caller = createCaller(makeCtx(manager, repoint, probe));
+      await expect(caller.worker.health({ id: "i1" })).resolves.toEqual({
+        healthy: true,
+        comfyEndpoint: "https://p-8188.proxy"
+      });
+      expect(probe).not.toHaveBeenCalled();
+      fetchMock.mockRestore();
     });
 
     it("health fails INTERNAL_SERVER_ERROR when no probe is wired", async () => {

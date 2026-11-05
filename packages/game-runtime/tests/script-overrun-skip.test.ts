@@ -13,12 +13,12 @@ const SOURCES = {
 };
 const WORKER = "(input) => ({ state: { seen: input.tick, roll: input.random() }, commands: [{ kind: \"setVelocity\", x: 1, y: 0 }] })";
 
-function fixture(looper: string): GameDocument {
+function fixture(looper: string, worker = WORKER): GameDocument {
   const base = createTopDownRoomGame("a".repeat(32));
   return gameDocument.parse({ ...base, scenes: base.scenes.map((scene) => ({ ...scene, entities: [
     ...scene.entities.map((entity) => ({ ...entity, behaviors: [] })),
     { id: "looper", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "script", source: looper, maxTickMs: 20, maxCommands: 8 }] },
-    { id: "worker", transform2d: { x: 1, y: 0 }, behaviors: [{ kind: "script", source: WORKER, maxTickMs: 20, maxCommands: 8 }] }
+    { id: "worker", transform2d: { x: 1, y: 0 }, behaviors: [{ kind: "script", source: worker, maxTickMs: 20, maxCommands: 8 }] }
   ] })) });
 }
 
@@ -92,6 +92,28 @@ describe("script overruns with skip", () => {
           message: `Game script ${callOf("looper", null).sourceKey} for looper skipped at tick 3: batch 50 ms at tick 3 budget exceeded` },
         { tick: 3, level: "warning", message: "1 game script call skipped at tick 3: batch 50 ms at tick 3 budget exceeded" }
       ]);
+    } finally { runner.dispose(); }
+  });
+
+  it.each(["save", "load"])("discards a skipped %s request", async (kind) => {
+    const command = kind === "save" ? '{kind:"save",slot:"checkpoint",data:{level:2}}' : '{kind:"load",slot:"checkpoint"}';
+    const runner = await prepareGameScripts(fixture(`(input) => ({state:{saved:true},commands:[${command}]})`,
+      '() => ({state:null,commands:[{kind:"load",slot:"first"},{kind:"load",slot:"second"}]})'),
+      { overrun: "skip", callClock: wallScriptCallClock });
+    try {
+      runner.run([callOf("worker", null)], input(0), 1);
+      let clock = 0;
+      vi.spyOn(performance, "now").mockImplementation(() => clock);
+      const originalStringify = JSON.stringify;
+      vi.spyOn(JSON, "stringify").mockImplementation(function (this: JSON, ...args: Parameters<typeof JSON.stringify>) {
+        const value = args[0] as { entityId?: unknown; value?: unknown } | null;
+        if (value?.entityId === "looper" && value.value) { clock = 21; }
+        return originalStringify.apply(this, args);
+      });
+      const batch = runner.run([callOf("worker", null), callOf("looper", { saved: false }), callOf("worker", null)], input(1), 1);
+      expect(batch.results[1]).toEqual({ entityId: "looper", state: { saved: false }, commands: [] });
+      expect(batch.logs?.[0].level).toBe("warning");
+      expect(batch.saves?.map((request) => request.slot)).toEqual(["first", "second", "first", "second"]);
     } finally { runner.dispose(); }
   });
 

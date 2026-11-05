@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { readWan2GPCatalog, setWan2GPCatalogStatus, wan2gpCatalogPath } from "../src/wan2gp-helper.js";
+import { readWan2GPCatalog, setWan2GPCatalogStatus, wan2gpCatalogPath, wan2gpCatalogKey, wan2gpSourceIdentity } from "../src/wan2gp-helper.js";
 
 let root: string;
 let sourceDir: string;
@@ -41,9 +41,25 @@ describe("Wan2GP model catalog", () => {
     await writeFile(file, JSON.stringify({ version: 1, models: [{ ...row, status: "missing", extra: 1 }] }));
     await setWan2GPCatalogStatus(sourceDir, "flux", "available");
     await setWan2GPCatalogStatus(sourceDir, "not_a_model", "available");
-    expect(JSON.parse(await readFile(file, "utf8"))).toEqual({
+    expect(JSON.parse(await readFile(file, "utf8"))).toMatchObject({
       version: 1,
       models: [{ ...row, status: "available", extra: 1 }]
     });
   });
+  it("preserves independent status updates from the same catalog generation", async () => {
+    const file = await wan2gpCatalogPath(sourceDir);
+    await writeFile(file, JSON.stringify({ version: 1, models: [
+      { ...row, status: "missing" },
+      { ...row, model_type: "other", status: "missing" }
+    ] }));
+    const key = await wan2gpCatalogKey(sourceDir, await wan2gpSourceIdentity(sourceDir));
+    expect(await setWan2GPCatalogStatus(sourceDir, "flux", "available", key)).not.toBeNull();
+    expect(await setWan2GPCatalogStatus(sourceDir, "other", "available", key)).not.toBeNull();
+    expect((await readWan2GPCatalog(sourceDir))?.map((model) => model.status)).toEqual(["available", "available"]);
+    // Repair writes a fresh catalog generation at the same source path.
+    await writeFile(file, JSON.stringify({ version: 1, models: [{ ...row, status: "missing" }] }));
+    expect(await setWan2GPCatalogStatus(sourceDir, "flux", "available", key)).toBeNull();
+    expect((await readWan2GPCatalog(sourceDir))?.[0].status).toBe("missing");
+  });
+
 });
