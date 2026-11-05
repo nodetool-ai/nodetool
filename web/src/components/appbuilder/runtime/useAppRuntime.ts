@@ -22,11 +22,13 @@ import { useQueries } from "@tanstack/react-query";
 import {
   appendValue,
   decideRun,
+  findWidgetLabel,
   parseApplicationDocument,
   implicitOperation,
   initialVariableValues,
   isLiveInvocation,
   isMissingRequiredMediaValue,
+  isMissingRequiredModelValue,
   liveInvocations,
   mergeVariables,
   messageToEvents,
@@ -1248,6 +1250,29 @@ export const useAppRuntime = (
         );
         return;
       }
+      const missingModel =
+        binding.kind === "script"
+          ? undefined
+          : entry.io.inputs.find((input) =>
+              isMissingRequiredModelValue(
+                input.nodeType,
+                params[input.name],
+                input.defaultValue
+              )
+            );
+      if (missingModel) {
+        const mapping = entry.operation.inputs[missingModel.nodeId];
+        const widgetLabel =
+          mapping?.from === "variable"
+            ? findWidgetLabel(document?.ui, `var:${mapping.variableId}`)
+            : undefined;
+        failInvocation(
+          operationId,
+          `Choose a model in "${widgetLabel ?? missingModel.label}" before you run this operation.`,
+          reservationId
+        );
+        return;
+      }
       if (appRunId) {
         try {
           await updateAppRun(appRunId, { status: "running", inputs: params });
@@ -1406,6 +1431,7 @@ export const useAppRuntime = (
       cancelInvocations,
       claimInvocation,
       designMode,
+      document,
       failInvocation,
       mountedRef,
       rememberBrowserTrace,
