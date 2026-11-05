@@ -293,6 +293,26 @@ TestCase {
         list.positionViewAtBeginning()
         tryVerify(() => findText(list, "Section 1 of 2") !== null)
     }
+    function test_executionTreeShrinksWithHost() {
+        testDriver.replay("execution-tree")
+        tryVerify(() => findVisible(panel, "nested_audit") !== null)
+        const execution = findVisible(panel, "nested_execution:0123456789abcdef0123456789abcdef")
+        const task = findVisible(panel, "nested_audit")
+        tryCompare(execution, "width", ChatMetrics.columnWidth - Ui.Metrics.md * 2)
+        tryCompare(task, "width", execution.width - Ui.Metrics.md * 2)
+        for (const width of [100, 520, 360, 320, 1100, 100]) {
+            test.width = width
+            const viewport = findChild(panel, "chatWidthViewport")
+            tryCompare(viewport, "contentWidth", Math.max(width, ChatMetrics.minimumContentWidth))
+            tryCompare(execution, "width", Math.min(viewport.contentWidth - Ui.Metrics.xl * 2, ChatMetrics.columnWidth) - Ui.Metrics.md * 2)
+            tryCompare(task, "width", execution.width - Ui.Metrics.md * 2)
+            compare(execution.highlightItem.width, execution.width)
+            compare(task.highlightItem.width, task.width)
+        }
+        const failures = []
+        overflow(panel, panel, failures)
+        compare(failures.join("\n"), "")
+    }
     function test_executionTree() {
         testDriver.replay("execution-tree")
         tryVerify(() => findText(panel, "Agent execution") !== null)

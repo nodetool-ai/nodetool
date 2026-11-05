@@ -260,6 +260,14 @@ ColumnLayout {
                     model: visible ? partFrame.part.childModel : null
                     clip: true
                     reuseItems: true
+                    // The default highlight animates its old width when the host shrinks.
+                    highlightFollowsCurrentItem: false
+                    highlight: Item {
+                        objectName: nested.objectName + "_highlight"
+                        width: nested.width
+                        height: nested.currentItem ? nested.currentItem.height : 0
+                        y: nested.currentItem ? nested.currentItem.y : 0
+                    }
                     spacing: Ui.Metrics.sm
                     ScrollBar.vertical: Ui.ScrollBar {}
                     delegate: Loader {
