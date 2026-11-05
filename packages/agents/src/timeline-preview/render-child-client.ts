@@ -5,7 +5,12 @@ import { serialize } from "node:v8";
 import type { FrameLayer, FramePrecomposite, FrameAdjustment } from "@nodetool-ai/timeline/render";
 
 export const MAX_RENDER_BYTES = 64 * 1024 * 1024;
-let activeChildren = 0;
+let previousExit: Promise<void> = Promise.resolve();
+
+export interface RenderChild {
+  render(request: RenderChildRequest): Promise<RenderChildResult>;
+  dispose(): Promise<void>;
+}
 
 export interface RenderChildResult { pixels: Uint8Array; skippedLayerIds: string[]; effectsNotApplied: string[]; }
 
@@ -28,17 +33,37 @@ export function renderChildEntry(base = import.meta.url): URL {
   throw new Error("Timeline render child is missing. Rebuild or reinstall the backend.");
 }
 
-/** Own one bounded renderer process for a pass. dispose waits for its exit. */
-export function createRenderChild(signal?: AbortSignal, entry = renderChildEntry(), timeoutMs = 30_000) {
+/** Wait for the preceding pass to exit before acquiring the only renderer. */
+export async function createRenderChild(signal?: AbortSignal, entry = renderChildEntry(), timeoutMs = 30_000): Promise<RenderChild> {
   signal?.throwIfAborted();
-  if (activeChildren >= 2) throw new Error("Timeline renderer busy: two render passes are already active. Retry after they complete.");
+  const predecessor = previousExit;
+  let release = (): void => undefined;
+  previousExit = new Promise<void>(resolve => { release = resolve; });
+  let abort = (): void => undefined;
+  const cancelled = new Promise<never>((_resolve, reject) => {
+    abort = (): void => reject(new DOMException("Timeline rendering cancelled", "AbortError"));
+    signal?.addEventListener("abort", abort, { once: true });
+  });
+  try {
+    await Promise.race([predecessor, cancelled]);
+    signal?.throwIfAborted();
+    return startRenderChild(release, signal, entry, timeoutMs);
+  } catch (error) {
+    // A cancelled waiter must not release the next waiter ahead of its predecessor.
+    void predecessor.then(release);
+    throw error;
+  } finally {
+    signal?.removeEventListener("abort", abort);
+  }
+}
+
+function startRenderChild(release: () => void, signal: AbortSignal | undefined, entry: URL, timeoutMs: number): RenderChild {
   const child = fork(fileURLToPath(entry), {
     serialization: "advanced",
     stdio: ["ignore", "ignore", "pipe", "ipc"],
     execArgv: entry.pathname.endsWith(".ts") ? ["--import", "tsx"] : [],
     env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" }
   });
-  activeChildren++;
   let failure: Error | undefined;
   let closed = false;
   let stopping = false;
@@ -63,7 +88,7 @@ export function createRenderChild(signal?: AbortSignal, entry = renderChildEntry
   const exited = new Promise<void>((resolve) => {
     child.once("close", (code, exitSignal) => {
       closed = true;
-      activeChildren--;
+      release();
       clearTimeout(timer);
       clearTimeout(killTimer);
       signal?.removeEventListener("abort", abort);
@@ -81,11 +106,12 @@ export function createRenderChild(signal?: AbortSignal, entry = renderChildEntry
       return;
     }
     try {
-      const reply = message as { pixels?: Uint8Array; skippedLayerIds?: string[]; effectsNotApplied?: string[]; error?: string };
-      if (reply.error) { fail(new Error(reply.error)); return; }
-      if (!(reply.pixels instanceof Uint8Array) || reply.pixels.byteLength > MAX_RENDER_BYTES) throw new Error("Missing render pixels");
-      if (!Array.isArray(reply.skippedLayerIds) || !reply.skippedLayerIds.every(id => typeof id === "string")) throw new Error("Missing render diagnostics");
-      if (!Array.isArray(reply.effectsNotApplied) || !reply.effectsNotApplied.every(type => typeof type === "string")) throw new Error("Missing effect diagnostics");
+      const reply = message;
+      if (!("pixels" in reply) && !("error" in reply)) throw new Error("Missing render response");
+      if ("error" in reply && typeof reply.error === "string") { fail(new Error(reply.error)); return; }
+      if (!("pixels" in reply) || !(reply.pixels instanceof Uint8Array) || reply.pixels.byteLength > MAX_RENDER_BYTES) throw new Error("Missing render pixels");
+      if (!("skippedLayerIds" in reply) || !Array.isArray(reply.skippedLayerIds) || !reply.skippedLayerIds.every(id => typeof id === "string")) throw new Error("Missing render diagnostics");
+      if (!("effectsNotApplied" in reply) || !Array.isArray(reply.effectsNotApplied) || !reply.effectsNotApplied.every(type => typeof type === "string")) throw new Error("Missing effect diagnostics");
       pending.resolve({ effectsNotApplied: reply.effectsNotApplied, pixels: reply.pixels, skippedLayerIds: reply.skippedLayerIds });
       pending = undefined;
     } catch (error) {

@@ -45,12 +45,19 @@ const serialPeak = { peakBytes, peakSample, parentPeak, childrenPeak, parentGrow
 peakBytes = 0;
 parentPeak = parentBaseline;
 childrenPeak = 0;
-const concurrentStart = performance.now();
-await Promise.all([renderTimelineFrames(options, true), renderTimelineFrames(options, true)]);
+const concurrency = [];
+for (const count of [2, 4]) {
+  const start = performance.now();
+  const completionsMs = await Promise.all(Array.from({ length: count }, async () => {
+    await renderTimelineFrames(options, true);
+    return performance.now() - start;
+  }));
+  concurrency.push({ count, completionsMs });
+}
 clearInterval(sampler);
 const concurrentPeak = { peakBytes, peakSample, parentPeak, childrenPeak, parentGrowth: Math.max(0, parentPeak - parentBaseline), addedBytes: childrenPeak + Math.max(0, parentPeak - parentBaseline) };
-const concurrentMs = performance.now() - concurrentStart;
+const concurrentMs = concurrency[0].completionsMs.at(-1);
 const start = performance.now();
 await renderTimelineFrames(options);
 const cpuMs = performance.now() - start;
-console.log(JSON.stringify({ cpuMs, timings, concurrentMs, serialPeak, concurrentPeak, peakBytes, peakSample, childPeaks, parentBaseline, growthBytes }));
+console.log(JSON.stringify({ cpuMs, timings, concurrency, concurrentMs, serialPeak, concurrentPeak, peakBytes, peakSample, childPeaks, parentBaseline, growthBytes }));

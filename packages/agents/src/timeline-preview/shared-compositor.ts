@@ -11,7 +11,7 @@ type Source = Canvas | Image;
 export async function createSharedPreviewCompositor(width: number, height: number, referenceWidth: number, referenceHeight: number, signal?: AbortSignal) {
   const { createCanvas } = await loadCanvas();
   if (![width, height, referenceWidth, referenceHeight].every((value) => Number.isSafeInteger(value) && value > 0) || width * height * 4 > MAX_RENDER_BYTES) throw new Error("Timeline output exceeds the 64 MiB transfer limit");
-  const compositor = createRenderChild(signal);
+  const compositor = await createRenderChild(signal);
   let frameBytes = 0;
   const pixels = (source: Source): FrameLayerPixels => {
     frameBytes += source.width * source.height * 4;
