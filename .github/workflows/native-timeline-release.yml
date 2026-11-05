@@ -55,7 +55,8 @@ jobs:
     env:
       VERSION: ${{ needs.version.outputs.version }}
       APP_VERSION: ${{ needs.version.outputs.app_version }}
-      PLATFORM: ${{ matrix.platform }}
+      # Not PLATFORM: the Visual Studio shell sets that to x64 on Windows.
+      RELEASE_PLATFORM: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -86,9 +87,9 @@ jobs:
           # Use the same built app for the existing parity check: no second build.
           DEV_BIN='build-package/nodetool-timeline.app/Contents/MacOS/nodetool-timeline' native/timeline/scripts/check-package-macos.sh
           # Future signing and notarization belongs here, before archiving.
-          ditto -c -k --sequesterRsrc --keepParent 'native/timeline/build-package/NodeTool Timeline.app' "release-assets/nodetool-timeline-$VERSION-$PLATFORM.zip"
+          ditto -c -k --sequesterRsrc --keepParent 'native/timeline/build-package/NodeTool Timeline.app' "release-assets/nodetool-timeline-$VERSION-$RELEASE_PLATFORM.zip"
           mkdir "$RUNNER_TEMP/release-extracted"
-          ditto -x -k "release-assets/nodetool-timeline-$VERSION-$PLATFORM.zip" "$RUNNER_TEMP/release-extracted"
+          ditto -x -k "release-assets/nodetool-timeline-$VERSION-$RELEASE_PLATFORM.zip" "$RUNNER_TEMP/release-extracted"
           python3 native/timeline/scripts/smoke-package.py "$RUNNER_TEMP/release-extracted/NodeTool Timeline.app/Contents/MacOS/nodetool-timeline" \
             --package "$RUNNER_TEMP/release-extracted" --version "$APP_VERSION"
       - name: Package and verify Windows
@@ -96,8 +97,8 @@ jobs:
         run: |
           bash native/timeline/scripts/package-windows.sh
           # Future Windows signing belongs here, before archiving.
-          7z a "release-assets/nodetool-timeline-$VERSION-$PLATFORM.zip" ./native/timeline/build-ci/package-windows/*
-          7z x -o"$RUNNER_TEMP/release-extracted" "release-assets/nodetool-timeline-$VERSION-$PLATFORM.zip"
+          7z a "release-assets/nodetool-timeline-$VERSION-$RELEASE_PLATFORM.zip" ./native/timeline/build-ci/package-windows/*
+          7z x -o"$RUNNER_TEMP/release-extracted" "release-assets/nodetool-timeline-$VERSION-$RELEASE_PLATFORM.zip"
           python native/timeline/scripts/smoke-package.py "$RUNNER_TEMP/release-extracted/nodetool-timeline.exe" \
             --package "$RUNNER_TEMP/release-extracted" --version "$APP_VERSION"
       - name: Package and verify Linux
@@ -107,8 +108,8 @@ jobs:
           # Future Linux package signing belongs here.
           images=(./*.AppImage)
           [[ ${#images[@]} == 1 ]]
-          mv "${images[0]}" "release-assets/nodetool-timeline-$VERSION-$PLATFORM.AppImage"
-          image="$GITHUB_WORKSPACE/release-assets/nodetool-timeline-$VERSION-$PLATFORM.AppImage"
+          mv "${images[0]}" "release-assets/nodetool-timeline-$VERSION-$RELEASE_PLATFORM.AppImage"
+          image="$GITHUB_WORKSPACE/release-assets/nodetool-timeline-$VERSION-$RELEASE_PLATFORM.AppImage"
           chmod +x "$image"
           mkdir "$RUNNER_TEMP/release-extracted"
           (cd "$RUNNER_TEMP/release-extracted" && "$image" --appimage-extract)
