@@ -160,7 +160,7 @@ export class TimelineSequence extends DBModel {
       width: this.width,
       height: this.height,
       durationMs: this.duration_ms,
-      ...(doc.workingColorSpaceVersion === undefined ? {} : { workingColorSpaceVersion: doc.workingColorSpaceVersion }),
+      workingColorSpaceVersion: doc.workingColorSpaceVersion,
       dropFrame: doc.dropFrame,
       tracks: doc.tracks,
       trackFolders: doc.trackFolders,
@@ -186,7 +186,7 @@ export class TimelineSequence extends DBModel {
     seq: TimelineSequenceDoc
   ): TimelineSequence {
     const doc: TimelineDocument = {
-      ...(seq.workingColorSpaceVersion === undefined ? {} : { workingColorSpaceVersion: seq.workingColorSpaceVersion }),
+      workingColorSpaceVersion: seq.workingColorSpaceVersion,
       dropFrame: seq.dropFrame,
       tracks: seq.tracks,
       trackFolders: seq.trackFolders,
