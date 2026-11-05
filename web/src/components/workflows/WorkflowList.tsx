@@ -243,6 +243,7 @@ const WorkflowList = ({ projectId }: WorkflowListProps) => {
         projectId
       });
       navigate("/workspace");
+      usePanelStore.getState().setVisibility(false);
     },
     [
       addNotification,
