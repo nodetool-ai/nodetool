@@ -78,36 +78,24 @@
                 "type": "string"
               },
               "path": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
+                "type": [
+                  "string",
+                  "null"
                 ]
               },
               "provider": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
+                "type": [
+                  "string",
+                  "null"
                 ]
               },
               "recommended": {
                 "type": "boolean"
               },
               "repo_id": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
+                "type": [
+                  "string",
+                  "null"
                 ]
               },
               "scope": {
@@ -162,13 +150,9 @@
           "type": "array"
         },
         "next_cursor": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
+          "type": [
+            "string",
+            "null"
           ]
         },
         "scope": {
@@ -222,36 +206,24 @@
           "type": "string"
         },
         "path": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
+          "type": [
+            "string",
+            "null"
           ]
         },
         "provider": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
+          "type": [
+            "string",
+            "null"
           ]
         },
         "recommended": {
           "type": "boolean"
         },
         "repo_id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
+          "type": [
+            "string",
+            "null"
           ]
         },
         "scope": {
@@ -505,24 +477,16 @@
                 "type": "array"
               },
               "type_name": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
+                "type": [
+                  "string",
+                  "null"
                 ]
               },
               "values": {
                 "items": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    }
+                  "type": [
+                    "string",
+                    "number"
                   ]
                 },
                 "maxItems": 64,
@@ -613,26 +577,18 @@
               "type": "array"
             },
             "type_name": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
+              "type": [
+                "string",
+                "null"
               ]
             },
             "values": {
               "anyOf": [
                 {
                   "items": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "number"
-                      }
+                    "type": [
+                      "string",
+                      "number"
                     ]
                   },
                   "type": "array"
@@ -716,13 +672,9 @@
           "type": "array"
         },
         "etag": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
+          "type": [
+            "string",
+            "null"
           ]
         },
         "inputs": {
@@ -879,26 +831,18 @@
               "type": "array"
             },
             "type_name": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
+              "type": [
+                "string",
+                "null"
               ]
             },
             "values": {
               "anyOf": [
                 {
                   "items": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "number"
-                      }
+                    "type": [
+                      "string",
+                      "number"
                     ]
                   },
                   "type": "array"
@@ -1013,13 +957,9 @@
                 "type": "array"
               },
               "etag": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
+                "type": [
+                  "string",
+                  "null"
                 ]
               },
               "inputs": {
@@ -1145,13 +1085,9 @@
       "additionalProperties": true,
       "properties": {
         "next": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
+          "type": [
+            "string",
+            "null"
           ]
         },
         "workflows": {
@@ -1183,13 +1119,9 @@
                 "type": "string"
               },
               "run_mode": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
+                "type": [
+                  "string",
+                  "null"
                 ]
               }
             },
