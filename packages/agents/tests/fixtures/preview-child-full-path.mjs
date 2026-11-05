@@ -58,6 +58,6 @@ clearInterval(sampler);
 const concurrentPeak = { peakBytes, peakSample, parentPeak, childrenPeak, parentGrowth: Math.max(0, parentPeak - parentBaseline), addedBytes: childrenPeak + Math.max(0, parentPeak - parentBaseline) };
 const concurrentMs = concurrency[0].completionsMs.at(-1);
 const start = performance.now();
-await renderTimelineFrames(options);
+await renderTimelineFrames(options, false);
 const cpuMs = performance.now() - start;
 console.log(JSON.stringify({ cpuMs, timings, concurrency, concurrentMs, serialPeak, concurrentPeak, peakBytes, peakSample, childPeaks, parentBaseline, growthBytes }));

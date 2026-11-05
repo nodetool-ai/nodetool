@@ -927,6 +927,7 @@ export async function finishStoryboardAgentically(
   const { loadMediaRefBytes } = await import("@nodetool-ai/runtime");
   signal?.throwIfAborted();
   const referenceRender = await renderTimelineFrames({
+    signal: signal,
     sequence: { ...sequence.toTimelineSequence(), ...references[0].document },
     timesMs: references.map((reference) => reference.timeMs),
     width: 540,
@@ -1503,6 +1504,7 @@ export async function finishStoryboardAgentically(
     ].sort((left, right) => left - right);
     signal?.throwIfAborted();
     const frames = await renderTimelineFrames({
+      signal: signal,
       sequence: candidateSequence,
       timesMs,
       width: 540,

@@ -1339,6 +1339,7 @@ const previewTimelineFrame: CapabilityExport = {
     let result;
     try {
       result = await renderTimelineFrames({
+        signal: run.signal ?? run.context.signal,
         sequence: {
           ...(document as object),
           tracks,
@@ -1571,6 +1572,7 @@ const compareTimelineFrames: CapabilityExport = {
     const width = numberParam(params["width"]) ?? DEFAULT_COMPARE_WIDTH;
     const renderSide = (side: CompareSide) =>
       renderTimelineFrames({
+        signal: run.signal ?? run.context.signal,
         sequence: {
           ...side.document,
           tracks: Array.isArray(side.document["tracks"])

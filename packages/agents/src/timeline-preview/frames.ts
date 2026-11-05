@@ -11,11 +11,10 @@
  * It resolves the scene the same way every other render surface does
  * (`computeActiveLayers` → `resolveAnimatedLayerProps`), rasterizes the
  * text/shape/caption layers through the shared drawing rules, decodes the media
- * layers with Mediabunny, and composites on `@napi-rs/canvas` through the
- * shared Canvas 2D rules. So it needs no GPU, no ffmpeg and no browser, and it
- * runs anywhere the agent runs.
+ * layers with Mediabunny, and composites through a lazy WebGPU child.
+ * Previews use 8-bit targets and require Dawn plus an adapter.
  *
- * Effects run through CPU pixel passes matching the GPU chain. Unknown effect
+ * The CPU comparison route remains until A92. Unknown effect
  * types are reported in `effects_not_applied`, and missing render resources
  * are reported on each frame.
  */
@@ -350,11 +349,11 @@ function clipName(sequence: TimelineSequence, clipId: string): string {
 /**
  * Composite `timesMs` and return the PNG of each, plus what each layer
  * contributed. Asset bytes are loaded once per asset across all timecodes.
- * The sharedShaders flag is an A91 qualification seam, not a production default.
+ * The legacy CPU route remains available for numerical comparison until A92.
  */
 export async function renderTimelineFrames(
   options: RenderTimelineFramesOptions,
-  sharedShaders = false
+  sharedShaders = true
 ): Promise<RenderTimelineFramesResult> {
   options.signal?.throwIfAborted();
   const { createCanvas } = await loadCanvas();

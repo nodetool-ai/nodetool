@@ -22,7 +22,7 @@ async function rgba(png: Uint8Array) {
 describe("shared preview qualification", () => {
   it("preserves opaque geometry, timecodes and diagnostics on a real adapter", async () => {
     const options = { sequence, width: 160, timesMs: [0, 500], loadAsset: async () => null };
-    const before = await renderTimelineFrames(options);
+    const before = await renderTimelineFrames(options, false);
     const after = await renderTimelineFrames(options, true);
     expect(after.complete).toBe(true);
     expect(after.effectsNotApplied).toEqual(before.effectsNotApplied);
@@ -34,7 +34,7 @@ describe("shared preview qualification", () => {
 
   it("preserves the agent-facing unknown-effect report", async () => {
     const options = { sequence: { ...sequence, clips: sequence.clips.map(clip => ({ ...clip, effects: [{ id: "future", type: "future-look", enabled: true }] })) }, width: 160, timesMs: [0], loadAsset: async () => null };
-    const cpu = await renderTimelineFrames(options);
+    const cpu = await renderTimelineFrames(options, false);
     const gpu = await renderTimelineFrames(options, true);
     expect(gpu.effectsNotApplied).toEqual(["future-look"]);
     expect(gpu.effectsNotApplied).toEqual(cpu.effectsNotApplied);

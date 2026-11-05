@@ -1,14 +1,21 @@
 import type { Canvas, Image } from "@napi-rs/canvas";
 import { loadCanvas } from "@nodetool-ai/runtime";
-import { drawMask, type Canvas2DLayer, type Canvas2DPrecomposite, type Canvas2DAdjustment, type MaskContext2D } from "@nodetool-ai/timeline/scene";
+import { drawMask, type Canvas2DLayer, type Canvas2DPrecomposite, type Canvas2DAdjustment, type MaskContext2D, type Canvas2DFrameReport } from "@nodetool-ai/timeline/scene";
 import type { FrameLayer, FrameLayerPixels } from "@nodetool-ai/timeline/render";
 
 import { createRenderChild, MAX_RENDER_BYTES } from "./render-child-client.js";
 
 type Source = Canvas | Image;
+interface SharedPreviewReport extends Canvas2DFrameReport<Source> {
+  effectsNotApplied: string[];
+}
+interface SharedPreviewCompositor {
+  dispose(): Promise<void>;
+  draw(canvas: Canvas, layers: Canvas2DLayer<Source>[], groups: Canvas2DPrecomposite[], adjustments: Canvas2DAdjustment[]): Promise<SharedPreviewReport>;
+}
 
 /** Acquire the optional native renderer only when a preview is requested. */
-export async function createSharedPreviewCompositor(width: number, height: number, referenceWidth: number, referenceHeight: number, signal?: AbortSignal) {
+export async function createSharedPreviewCompositor(width: number, height: number, referenceWidth: number, referenceHeight: number, signal?: AbortSignal): Promise<SharedPreviewCompositor> {
   const { createCanvas } = await loadCanvas();
   if (![width, height, referenceWidth, referenceHeight].every((value) => Number.isSafeInteger(value) && value > 0) || width * height * 4 > MAX_RENDER_BYTES) throw new Error("Timeline output exceeds the 64 MiB transfer limit");
   const compositor = await createRenderChild(signal);
@@ -22,11 +29,11 @@ export async function createSharedPreviewCompositor(width: number, height: numbe
     const data = ctx.getImageData(0, 0, source.width, source.height).data;
     return { rgba: new Uint8Array(data.buffer, data.byteOffset, data.byteLength), width: source.width, height: source.height };
   };
-  const maskPixels = (mask: NonNullable<Canvas2DLayer<Source>["shapeMask"]>, w: number, h: number): FrameLayerPixels => {
+  const maskPixels = (mask: NonNullable<Canvas2DLayer<Source>["shapeMask"]>, w: number, h: number): FrameLayerPixels | undefined => {
     if (frameBytes + w * h * 4 > MAX_RENDER_BYTES) throw new Error("Timeline mask exceeds the 64 MiB transfer limit");
     const canvas = createCanvas(w, h);
     // SAFETY: Skia provides the subset of Canvas2D used by the shared mask rasterizer.
-    drawMask(canvas.getContext("2d") as unknown as MaskContext2D, mask, w, h);
+    if (!drawMask(canvas.getContext("2d") as unknown as MaskContext2D, mask, w, h)) return undefined;
     return pixels(canvas);
   };
   const layerPixels = (layer: Canvas2DLayer<Source>): FrameLayer => ({
@@ -39,7 +46,7 @@ export async function createSharedPreviewCompositor(width: number, height: numbe
   });
   return {
     dispose: (): Promise<void> => compositor.dispose(),
-    async draw(canvas: Canvas, layers: Canvas2DLayer<Source>[], groups: Canvas2DPrecomposite[], adjustments: Canvas2DAdjustment[]) {
+    async draw(canvas: Canvas, layers: Canvas2DLayer<Source>[], groups: Canvas2DPrecomposite[], adjustments: Canvas2DAdjustment[]): Promise<SharedPreviewReport> {
       signal?.throwIfAborted();
       frameBytes = 0;
       const result = await compositor.render({ width, height, referenceWidth, referenceHeight, layers: layers.map(layerPixels), groups, adjustments: adjustments.map((adjustment) => ({

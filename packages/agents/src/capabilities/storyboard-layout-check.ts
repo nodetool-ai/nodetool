@@ -208,6 +208,7 @@ export async function findLayoutDefects(options: {
       options.signal?.throwIfAborted();
       const frame = (
         await renderTimelineFrames({
+          signal: options.signal,
           sequence: backdrop.sequence,
           timesMs: [timeMs],
           width: CHECK_WIDTH,
