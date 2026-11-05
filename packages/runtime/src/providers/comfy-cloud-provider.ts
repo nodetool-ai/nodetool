@@ -120,6 +120,31 @@ export function mp4DurationSeconds(bytes: Uint8Array): number | undefined {
 }
 
 /**
+ * Scale a size into the pixel area a free-text size field documents, and keep
+ * its aspect ratio. The router accepts an oversized job and fails it only when
+ * the result is fetched, with an `invalid_input` that names no field.
+ */
+function fitPixelArea(
+  description: string | undefined,
+  width: number,
+  height: number
+): { width: number; height: number } {
+  const match = description?.match(/pixel area between (\d+)[^.]*? and (\d+)/i);
+  if (!match) return { width, height };
+  const area = width * height;
+  const [min, max] = [Number(match[1]), Number(match[2])];
+  if (area > max) {
+    const scale = Math.sqrt(max / area);
+    return { width: Math.floor(width * scale), height: Math.floor(height * scale) };
+  }
+  if (area < min) {
+    const scale = Math.sqrt(min / area);
+    return { width: Math.ceil(width * scale), height: Math.ceil(height * scale) };
+  }
+  return { width, height };
+}
+
+/**
  * Free-text size fields accept one separator, which only the field description
  * states. DashScope models reject `1024x1024` and require `1024*1024`.
  */
@@ -545,7 +570,9 @@ export class ComfyCloudProvider extends BaseProvider {
         b.set("width", width).set("height", height);
         return;
       }
-      b.setFirst(SIZE_FIELDS, formatImageSize(b, `${width}x${height}`));
+      const name = b.firstDeclared(SIZE_FIELDS);
+      const fitted = fitPixelArea(name ? b.field(name)?.description : undefined, width, height);
+      b.setFirst(SIZE_FIELDS, formatImageSize(b, `${fitted.width}x${fitted.height}`));
       return;
     }
     if (aspect && !b.firstDeclared(ASPECT_FIELDS) && IMAGE_SIZES[aspect]) {
