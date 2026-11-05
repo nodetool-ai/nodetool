@@ -9037,6 +9037,10 @@
           "button": "Opper API कुंजी प्राप्त करें",
           "tooltip": "अपने एपीआई कुंजी प्राप्त करने के लिए ओपर प्लेटफॉर्म पर जाएं"
         },
+        "CHEAPER_INFERENCE_API_KEY": {
+          "button": "Cheaper Inference API कुंजी प्राप्त करें",
+          "tooltip": "अपने एपीआई कुंजी प्राप्त करने के लिए Cheaper Inference प्लेटफॉर्म पर जाएं"
+        },
         "API_ROUTE_API_KEY": {
           "button": "API रूट कुंजी प्राप्त करें",
           "tooltip": "API रूट API कुंजी पृष्ठ पर जाएं"
