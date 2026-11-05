@@ -2,6 +2,112 @@
 
 A91 is in progress. No production caller has switched yet. A92 is excluded.
 
+## Current gate after owner decision
+
+Owner decision on 2026-11-05 replaces the combined 512 MiB RSS gate with
+renderer-added RSS below 512 MiB. Measure the idle parent after loading agent
+preview modules, before any render, in the same process that renders. Add the
+child peak RSS to the parent's maximum positive growth above that baseline.
+The twenty-cycle growth limit remains below 64 MiB. Cold render, concurrent
+completion and one-shot completion limits remain unchanged. The historical
+combined-gate failures below are retained as evidence, not the current policy.
+
+A91 remains incomplete. Serial rendering passes this new memory gate on both
+adapters. The existing two-child concurrency limit fails it on both adapters.
+No production caller switched. A92 and FP16 remain excluded. Stopped at this
+resource gate as requested. An owner decision is needed on reducing allowed
+concurrency or further memory work before migration. This report does not
+reinterpret 512 MiB as a separate allowance for each concurrent child.
+
+### New memory measurements
+
+Compiled `preview-child-full-path.mjs` loads the agent preview module and its
+dependencies, waits one second idle, and records RSS before any render. It then
+runs twenty serial two-frame 160×90 shape passes and two concurrent passes.
+The CPU comparison runs last, outside memory sampling. No forced GC is used.
+Each phase reports the peak simultaneous child RSS, maximum parent growth,
+their sum, and peak simultaneous combined RSS. The sum is conservative because
+its two maxima can occur at different samples. All RSS sampling is at 25 ms
+and can miss shorter peaks. Individual child peaks remain in the JSON.
+
+| Adapter / phase | Parent baseline MiB | Child RSS peak MiB | Parent growth MiB | Added sum MiB | Combined peak MiB | Added gate |
+|---|---:|---:|---:|---:|---:|---|
+| lavapipe / serial | 357.40 | 263.80 | 93.05 | 356.86 | 712.12 | Pass |
+| lavapipe / concurrent | 357.40 | 495.07 | 95.02 | 590.09 | 946.59 | Fail |
+| RTX 3060 / serial | 356.94 | 282.52 | 93.45 | 375.97 | 727.18 | Pass |
+| RTX 3060 / concurrent | 356.94 | 546.84 | 95.35 | 642.19 | 997.86 | Fail |
+
+Concurrent child RSS is the simultaneous total of both children. The baseline
+is reused across both phases. Parent growth between completion of the first
+and twentieth serial passes is 14.38 MiB on lavapipe and 14.24 MiB on RTX,
+passing the unchanged 64 MiB limit. Combined totals remain reported for audit.
+Even simultaneous combined peak minus baseline exceeds 512 MiB for both
+concurrent phases, so independently timed maxima do not explain the failure.
+
+The companion staged probe identified Mesa software llvmpipe, Mesa 26.2.5,
+and NVIDIA Ampere GeForce RTX 3060, driver 610.57.04. DISPLAY was unset.
+Lavapipe set both VK_ICD_FILENAMES and VK_DRIVER_FILES to
+`/usr/share/vulkan/icd.d/lvp_icd.json`. RTX sourced
+`/home/mg/.local/nvidia-610/env.sh` after the project `bin/ntenv`.
+Twenty-cycle runs used `systemd-run --user --scope -p MemoryMax=6G`.
+Available host memory exceeded 5 GB before the runs.
+
+### Timing, completion and remaining qualification
+
+Cold render calls took 0.641 s on lavapipe and 0.841 s on RTX. Serial calls
+ranged 0.511–0.699 s and 0.678–0.841 s respectively. Concurrent pairs took
+0.796 s and 0.896 s. These pass the existing ten-second call budgets on this
+small fixture. They exclude module import and the deliberate idle second.
+The CPU timing now runs warm at the end and is not a cold-start comparison.
+Both full-path processes exited 0 naturally after the loops and awaited child
+teardown. This establishes probe completion, not complete one-shot CLI startup
+under ten seconds. No API-contention or representative-media claim is made.
+
+B223 is not fixed or reproduced by this checkpoint. Inspection of
+`capabilities/timelines.ts` shows `render_timeline` starts a workflow through
+`runWorkflow`, not the child-preview compositor. The child removes retained
+Dawn from the preview probe's parent lifetime. It does not change that export
+path or its model-interface initializer. No job tracker was added.
+
+The missing-addon simulation was rerun and exited 0: ordinary tool registration
+loaded no Dawn, and child rendering returned `nodetool packs add webgpu --yes`.
+This is still an import-hook simulation, not a fresh minimal installation.
+A real minimal-install test, full CLI timing, representative numerical media
+coverage and packaged runtime qualification remain outstanding. Earlier
+correctness and cancellation evidence below was not rerun or broadened here.
+
+### CI audit and verification
+
+Reinspection confirms Mesa setup in quality-checks' agent matrix,
+quality-assurance, mutation-testing and both quality-guard jobs. The latter
+jobs received that setup in earlier commits on this branch. Root prerequisites
+now explicitly say to set both ICD variables for lavapipe and keep deliberately
+missing-addon/adapter tests separate. Adapter-backed tests must fail if an
+adapter is unavailable. CI jobs were inspected, not executed.
+
+Agents-only `run-tsc.mjs --noEmit` passed. The requested
+`npx oxlint --config .oxlintrc.anti-slop-enforced.json packages/agents` exited 1
+on existing errors in untouched files, including memory-propagation,
+media-tools and timeline-motion-blur-static tests. The changed fixture passes
+the same lint configuration. Unrelated package-wide lint cleanup was not made.
+The fixture was exercised directly on both adapters. No Vitest file changed,
+and no Vitest suite ran in this checkpoint. No ffmpeg or ffprobe was spawned.
+
+As requested, test:affected, root typecheck, root lint, harness gate, /verify,
+full suites, full builds and package installation were not run. Root agent-doc
+validation and diff whitespace checks passed. No branch switch, merge, rebase,
+push or PR occurred. Against the local origin/feat/native-timeline ref, this
+branch had 31 unique commits and was missing 38 at the start. The missing
+commits contain no changes under agents/src/timeline-preview, gpu or timeline,
+so they do not block this measurement. That is not a qualification of their
+other integration changes. No remote fetch was performed.
+
+Raw logs are in `/home/mg/Projects/nodetool-film/tmp/color-s5/`:
+`a91-owner-final-{lvp,rtx}.json`, `a91-owner-adapter-{lvp,rtx}.json`,
+`a91-owner-lint.log` and `a91-owner-typecheck.log`. Earlier
+`a91-owner-gate-*` measurements included a CPU render before the child calls
+and are superseded by the final measurements. Only small logs were created.
+
 ## Qualification limits
 
 For the existing small agent preview fixtures, set these trial limits before
