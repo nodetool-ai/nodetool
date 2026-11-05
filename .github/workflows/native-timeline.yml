@@ -237,12 +237,19 @@ jobs:
       - name: Test (headless, macOS)
         if: runner.os == 'macOS'
         run: |
-          ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -LE render
+          # The render tests run even when the others fail, so one failure cannot hide
+          # theirs. The crash diagnoses read the failure list, which each run rewrites.
+          failed=native/timeline/build-ci/Testing/Temporary/LastTestsFailed.log
+          status=0
+          ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -LE render || status=$?
+          cp "$failed" "$RUNNER_TEMP/failed-non-render.log" 2>/dev/null || true
           QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" \
             ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -L render --no-tests=error -V \
-            | tee "$RUNNER_TEMP/render.log"
+            | tee "$RUNNER_TEMP/render.log" || status=$?
+          cat "$RUNNER_TEMP/failed-non-render.log" >> "$failed" 2>/dev/null || true
           grep -q "Creating QRhi with backend Metal" "$RUNNER_TEMP/render.log" ||
             { echo "::error::the render tests did not run on Metal"; exit 1; }
+          exit "$status"
 
       - name: Test (headless, Linux)
         if: runner.os == 'Linux'
@@ -250,15 +257,22 @@ jobs:
           QT_QPA_PLATFORM: xcb
           QSG_RHI_BACKEND: vulkan
         run: |
+          # The render tests run even when the others fail, so one failure cannot hide
+          # theirs. The crash diagnoses read the failure list, which each run rewrites.
+          failed=native/timeline/build-ci/Testing/Temporary/LastTestsFailed.log
+          status=0
           xvfb-run -a -s "-screen 0 1920x1080x24" \
-            ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -LE render
+            ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -LE render || status=$?
+          cp "$failed" "$RUNNER_TEMP/failed-non-render.log" 2>/dev/null || true
           QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" xvfb-run -a -s "-screen 0 1920x1080x24" \
             ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -L render --no-tests=error -V \
-            | tee "$RUNNER_TEMP/render.log"
+            | tee "$RUNNER_TEMP/render.log" || status=$?
+          cat "$RUNNER_TEMP/failed-non-render.log" >> "$failed" 2>/dev/null || true
           grep -q "Creating QRhi with backend Vulkan" "$RUNNER_TEMP/render.log" ||
             { echo "::error::the render tests did not run on Vulkan"; exit 1; }
           grep -A1 "Physical device [0-9]*: 'llvmpipe" "$RUNNER_TEMP/render.log" | grep "using this physical device" > /dev/null ||
             { echo "::error::the render tests did not run on lavapipe"; exit 1; }
+          exit "$status"
 
       - name: Test (headless, Windows)
         if: runner.os == 'Windows'
@@ -269,14 +283,21 @@ jobs:
         run: |
           # Offscreen FreeType does not discover Windows system fallback fonts.
           export QT_QPA_FONTDIR="$(cygpath -m "$WINDIR/Fonts")"
-          ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -LE render
+          # The render tests run even when the others fail, so one failure cannot hide
+          # theirs. The crash diagnoses read the failure list, which each run rewrites.
+          failed=native/timeline/build-ci/Testing/Temporary/LastTestsFailed.log
+          status=0
+          ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -LE render || status=$?
+          cp "$failed" "$RUNNER_TEMP/failed-non-render.log" 2>/dev/null || true
           QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" \
             ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -L render --no-tests=error -V \
-            | tee "$RUNNER_TEMP/render.log"
+            | tee "$RUNNER_TEMP/render.log" || status=$?
+          cat "$RUNNER_TEMP/failed-non-render.log" >> "$failed" 2>/dev/null || true
           grep -q "Creating QRhi with backend D3D11" "$RUNNER_TEMP/render.log" ||
             { echo "::error::the render tests did not run on D3D11"; exit 1; }
           grep -A1 "Adapter [0-9]*: 'Microsoft Basic Render Driver'" "$RUNNER_TEMP/render.log" | grep "using this adapter" > /dev/null ||
             { echo "::error::the render tests did not run on WARP"; exit 1; }
+          exit "$status"
 
       - name: Diagnose macOS entity panel crash
         if: failure() && runner.os == 'macOS'
