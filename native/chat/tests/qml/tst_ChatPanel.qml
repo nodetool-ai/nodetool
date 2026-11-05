@@ -165,6 +165,15 @@ TestCase {
         }
         return null
     }
+    function findTextStarting(item, prefix) {
+        if (!item.visible) return null
+        if (item.linkColour !== undefined && typeof item.text === "string" && item.text.startsWith(prefix)) return item
+        for (let i = 0; i < item.children.length; ++i) {
+            const found = findTextStarting(item.children[i], prefix)
+            if (found) return found
+        }
+        return null
+    }
     function findText(item, text) {
         if (!item.visible) return null
         if (item.visible && item.text !== undefined && item.text === text) return item
@@ -311,9 +320,10 @@ TestCase {
     }
     function test_linkColours() {
         testDriver.replay("link-colours")
-        const source = "## Markdown colours\n\n[NodeTool](https://nodetool.ai) with **bold**, *italic* and `inline code`.\n\n> Quoted text\n\n"
-        tryVerify(() => findText(panel, source) !== null)
-        const area = findText(panel, source)
+        // Pages split by layout, which differs between platforms, so match the Markdown page by its start.
+        const source = "## Markdown colours\n\n[NodeTool](https://nodetool.ai) with"
+        tryVerify(() => findTextStarting(panel, source) !== null)
+        const area = findTextStarting(panel, source)
         const original = Ui.Theme.preference
         try {
             for (const scheme of [Ui.Theme.Dark, Ui.Theme.Light]) {
