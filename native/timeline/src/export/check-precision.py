@@ -19,8 +19,7 @@ root.mkdir(parents=True, exist_ok=False)
 
 
 CODEC_MEAN_CODE_ERROR = 1
-# Allow one extra quantization step for 99% of samples, but only one tenth
-# of the absolute one-code mean budget across the frame, relative to RGBA8.
+# Allow one extra quantization step for 99% of samples, relative to RGBA8.
 CODEC_P99_REGRESSION = 1
 # Dither moves a pixel by at most half a code, so it can add at most that to a mean.
 CODEC_MEAN_REGRESSION = 0.5
