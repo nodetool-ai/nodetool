@@ -63,6 +63,24 @@ private slots:
         QCOMPARE(QJsonObject::fromVariantMap(part["payload"].toMap()), call);
         QCOMPARE(model.snapshot().first().toObject(), raw);
     }
+    void streamedToolResultRetainsArguments() {
+        ChatSession session;
+        const QString thread = QString(32, 'a');
+        session.upsertThread({{"id", thread}});
+        session.selectThread(thread);
+        session.applyEvent({{"type", "tool_call_update"}, {"thread_id", thread},
+            {"tool_call_id", "call"}, {"name", "execute_code"},
+            {"args", QJsonObject{{"code", "console.log(2)"}}}});
+        auto* parts = partsFor(*qobject_cast<MessageModel*>(session.messages()));
+        QSignalSpy reset(parts, &QAbstractItemModel::modelReset);
+        QSignalSpy changed(parts, &QAbstractItemModel::dataChanged);
+        session.applyEvent({{"type", "tool_result_update"}, {"thread_id", thread},
+            {"tool_call_id", "call"}, {"result", QJsonObject{{"stdout", "2"}}}});
+        QCOMPARE(parts->rowCount(), 1);
+        QCOMPARE(partAt(parts, 0)["args"].toMap()["code"].toString(), QString("console.log(2)"));
+        QCOMPARE(reset.count(), 0);
+        QCOMPARE(changed.count(), 1);
+    }
     void fixtureConformance() {
         const auto data = fixture();
         QVERIFY(!data.isEmpty());
