@@ -15,6 +15,7 @@ add_library(node_editor_core STATIC
  src/server/SetupController.cpp src/server/SetupController.h
  src/layout/AutoLayout.cpp src/layout/AutoLayout.h
  src/layout/SelectionLayout.cpp src/layout/SelectionLayout.h
+ src/document/GroupIntoSubgraph.cpp src/document/GroupIntoSubgraph.h
  src/document/WorkflowDocument.cpp src/document/WorkflowDocument.h
  src/server/WorkflowVersions.cpp src/server/WorkflowVersions.h
  src/server/WorkflowBrowser.cpp src/server/WorkflowBrowser.h
@@ -348,4 +349,12 @@ if(BUILD_TESTING)
     nodetool_use_ui_primitives(node_editor_queue_data_tests)
     add_test(NAME node_editor_queue_data COMMAND node_editor_queue_data_tests)
     set_tests_properties(node_editor_queue_data PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endif()
+
+if(BUILD_TESTING)
+    qt_add_executable(node_editor_subgraph_card_tests tests/ui/SubgraphCardTest.cpp)
+    target_link_libraries(node_editor_subgraph_card_tests PRIVATE node_editor_core Qt6::Test)
+    nodetool_use_ui_primitives(node_editor_subgraph_card_tests)
+    add_test(NAME node_editor_subgraph_card COMMAND node_editor_subgraph_card_tests)
+    set_tests_properties(node_editor_subgraph_card PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endif()

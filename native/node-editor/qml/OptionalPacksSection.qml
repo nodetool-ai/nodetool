@@ -29,15 +29,21 @@ ColumnLayout {
     Ui.Popover {
         id: popup
         objectName: "optional-packs-popover"
-        width: Ui.Metrics.dialogCompactWidth
-        height: Math.min(content.implicitHeight + padding * 2, parent.height * 0.7)
+        popupType: Basic.Popup.Window
+        width: Ui.Metrics.dialogCompactWidth - Ui.Metrics.xxxl * 3 - Ui.Metrics.md
+        height: Ui.Metrics.dialogWidth
+        onAboutToShow: height = Math.min(content.implicitHeight + padding * 2, editor.height * 0.7)
         Basic.ScrollView {
+            id: scroller
             anchors.fill: parent
             clip: true
+            Basic.ScrollBar.vertical: Ui.ScrollBar {}
             contentWidth: availableWidth
+            contentHeight: content.implicitHeight
             ColumnLayout {
                 id: content
-                width: parent.width
+                width: scroller.availableWidth
+                height: implicitHeight
                 spacing: Ui.Metrics.sm
                 Ui.Text {
                     text: "Optional node packs"
@@ -60,10 +66,12 @@ ColumnLayout {
                         Layout.fillWidth: true
                     }
                     Ui.EditorButton {
+                        variant: Ui.EditorButton.Flat
                         text: "Show all"
                         onClicked: root.controller.setAllCategories(true)
                     }
                     Ui.EditorButton {
+                        variant: Ui.EditorButton.Flat
                         text: "Hide all"
                         onClicked: root.controller.setAllCategories(false)
                     }
@@ -110,9 +118,16 @@ ColumnLayout {
                             role: Ui.Typography.SansLabel
                         }
                         Ui.Text {
-                            text: modelData.pending ? "Enabling…" : modelData.keySet ? "Key set" : "Add API key"
+                            visible: modelData.keySet || modelData.pending
+                            text: modelData.pending ? "Enabling…" : "Key set"
                             role: Ui.Typography.SansCaption
                             tone: modelData.keySet ? Ui.Text.Success : Ui.Text.Secondary
+                        }
+                        Ui.EditorButton {
+                            visible: !modelData.keySet && !modelData.pending
+                            variant: Ui.EditorButton.Flat
+                            text: "Add API key"
+                            onClicked: root.controller.openProviderSettings()
                         }
                     }
                 }

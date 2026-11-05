@@ -185,6 +185,13 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
   const auto primary = outputs.isEmpty() ? QString{} : typeOf(outputs[0].toObject());
   result.icon = typeIcon(primary);
   result.accent = typeColor(primary);
+    result.subgraph = type == "nodetool.workflows.subgraph.Subgraph";
+    if (result.subgraph) {
+        result.icon = "accountTree";
+        result.title = node["data"].toObject()["title"].toString(result.title);
+        const auto count = node_editor::childGraph(node)["nodes"].toArray().size();
+        result.childCount = count == 0 ? tr("empty") : count == 1 ? tr("1 inner node") : tr("%1 inner nodes").arg(count);
+    }
   QHash<QString, QVariantMap> fields;
   for (const auto &row : node_editor::propertyFields(node, meta, edges_)) {
     const auto map = row.toMap();
@@ -295,6 +302,11 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
                       int(std::ceil(std::max<double>(end, minimum) + nm::padding)));
   if (canvasMediaNodes_.contains(resourceId(id))) { result.size.rheight() += nm::playbackHeight + nm::rowHeight; }
   else if (!runtimeState(id).isEmpty()) { result.size.rheight() += nm::previewHeight + nm::rowHeight; }
+    result.runningProgress = result.subgraph && runtimeState(id)["status"] == "running" && runtimeState(id)["total"].toDouble() > 0;
+    if (result.runningProgress) { result.size.rheight() += nm::handleRowStep; }
+    result.addOutput = result.subgraph && meta["supports_dynamic_outputs"].toBool();
+    if (result.addOutput) { result.size.rheight() += nm::handleRowStep; }
+    if (result.subgraph) { result.size.rheight() += nm::handleRowStep; }
   result.minimumSize = QSize(150, result.size.height());
   result.size.setHeight(std::max(result.size.height(), ui["height"].toInt()));
   return *layouts_.insert(id, result);
@@ -337,6 +349,7 @@ QJsonArray WorkflowGraphModel::ports(NodeId id, PortType type) const {
       for (const auto &port : metadata[type == PortType::In ? "properties" : "outputs"].toArray()) {
         const auto declaration = port.toObject();
         const auto name = declaration["name"];
+        if (n["type"] == "nodetool.workflows.subgraph.Subgraph" && name == "graph") { continue; }
         const auto ui = n["ui_properties"].toObject();
         const bool handleOnly = (metadata["input_fields"].toArray().contains(name) || ui["exposed_inputs"].toArray().contains(name)) &&
             !ui["exposed_inputs_hidden"].toArray().contains(name) && !ui["exposed_inputs_labeled"].toArray().contains(name);
@@ -357,6 +370,12 @@ QJsonArray WorkflowGraphModel::ports(NodeId id, PortType type) const {
     port["type"] = node_editor::normalizedDynamicPortType(it.value());
     append(port);
   }
+    if (type == PortType::Out && n["type"] == "nodetool.workflows.subgraph.Subgraph") {
+        const auto authored = nodes_.value(id)["dynamic_outputs"].toObject();
+        for (auto it = authored.begin(); it != authored.end(); ++it) {
+            append(QJsonObject{{"name", it.key()}, {"type", node_editor::normalizedDynamicPortType(it.value())}});
+        }
+    }
   if (type == PortType::In) {
     const auto properties = n["dynamic_properties"].toObject();
     const auto outputDeclarations = n["dynamic_outputs"].toObject();

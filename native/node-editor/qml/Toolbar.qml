@@ -10,7 +10,7 @@ Item {
     EditorRoles { id: roles }
     function syncTheme() {
         if (!editor) return
-        editor.presentation({canvas: roles.canvas, grid: roles.grid, node: roles.node, reroutePaper: roles.reroutePaper, rerouteBorder: roles.rerouteBorder, panel: roles.panel, overlay: roles.overlay, divider: roles.divider, field: roles.field, checker: roles.checker, shadow: roles.shadow, primary: Ui.Theme.accentPrimary, text: Ui.Theme.textPrimary, secondary: Ui.Theme.textSecondary, border: roles.divider, focus: Ui.Theme.borderFocus, error: Ui.Theme.statusError, warning: Ui.Theme.statusWarning, sans: Ui.Typography.sansFamily, captionSize: Ui.Typography.pixelSize(Ui.Typography.SansCaption), reducedMotion: Ui.Theme.reducedMotion})
+        editor.presentation({subgraphAccent: roles.subgraphAccent, canvas: roles.canvas, grid: roles.grid, node: roles.node, reroutePaper: roles.reroutePaper, rerouteBorder: roles.rerouteBorder, panel: roles.panel, overlay: roles.overlay, divider: roles.divider, field: roles.field, checker: roles.checker, shadow: roles.shadow, primary: Ui.Theme.accentPrimary, text: Ui.Theme.textPrimary, secondary: Ui.Theme.textSecondary, border: roles.divider, focus: Ui.Theme.borderFocus, error: Ui.Theme.statusError, warning: Ui.Theme.statusWarning, sans: Ui.Typography.sansFamily, captionSize: Ui.Typography.pixelSize(Ui.Typography.SansCaption), reducedMotion: Ui.Theme.reducedMotion})
     }
     Component.onCompleted: syncTheme()
     Connections { target: Ui.Theme; function onEffectiveSchemeChanged() { root.syncTheme() } function onReducedMotionChanged() { root.syncTheme() } }
@@ -20,8 +20,10 @@ Item {
         const jobs = workflowSession.queue
         let latest = null
         for (const job of jobs) {
-            if (job.workflow_id === workflowSession.workflow.id && job.order !== undefined
-                && (!latest || job.order > latest.order)) latest = job
+            if (job.workflow_id !== workflowSession.workflow.id || job.order === undefined) continue
+            if (!latest || (latest.terminal && !job.terminal)
+                || (!latest.terminal && !job.terminal && job.order < latest.order)
+                || (latest.terminal && job.terminal && job.order > latest.order)) latest = job
         }
         return latest
     }

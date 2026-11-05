@@ -17,6 +17,7 @@
 #include <QJsonArray>
 #include <QMainWindow>
 #include <QPointer>
+class QTimer;
 class QDialog;
 class QQmlEngine;
 class QQuickWidget;
@@ -40,6 +41,7 @@ class EditorWindow final : public QMainWindow {
   Q_PROPERTY(nodetool::node_editor::SetupController* setup READ setup CONSTANT)
     Q_PROPERTY(nodetool::node_editor::PackSetup* packSetup READ packSetup CONSTANT)
   Q_PROPERTY(QVariantList workflowTabs READ workflowTabs NOTIFY tabsChanged)
+    Q_PROPERTY(QVariantList canvasStrips READ canvasStrips NOTIFY tabsChanged)
   Q_PROPERTY(int activeTab READ activeTab NOTIFY tabsChanged)
   Q_PROPERTY(QString selection READ selection NOTIFY panelChanged)
   Q_PROPERTY(quint64 documentEpoch READ documentEpoch NOTIFY documentEpochChanged)
@@ -84,6 +86,11 @@ public:
   Q_INVOKABLE void setupAction(const QString &name);
   QVariantList workflowTabs() const;
   int activeTab() const;
+    QVariantList canvasStrips() const;
+    Q_INVOKABLE void activateSurface(int index);
+    Q_INVOKABLE bool closeSurface(int index);
+    void flushChild();
+    void closeChildSurfaces();
   Q_INVOKABLE void newTab();
   Q_INVOKABLE void activateTab(int index);
   Q_INVOKABLE bool closeTab(int index);
@@ -138,7 +145,16 @@ public:
   QString serverSaveState() const;
   bool serverSyncAvailable() const { if (activeEditor() != this) return activeEditor()->serverSyncAvailable(); return !session_.serverUrl().isEmpty() || serverSyncNeedsAttention(); }
   bool serverSyncNeedsAttention() const { if (activeEditor() != this) return activeEditor()->serverSyncNeedsAttention(); return session_.conflictPending() || session_.autosaveState() == "error"; }
-  bool hasUnsavedChanges() const { if (activeEditor() != this) return activeEditor()->hasUnsavedChanges(); return !document_.undoStack()->isClean() || session_.conflictPending() || (session_.serverBound() && session_.dirty()); }
+    bool hasUnsavedChanges() const {
+        if (activeEditor() != this) {
+            return activeEditor()->hasUnsavedChanges();
+        }
+        if (inlineChild_ && childParent_) {
+            return childParent_->hasUnsavedChanges() || document_.graph() != syncedChildGraph_;
+        }
+        return !document_.undoStack()->isClean() || session_.conflictPending()
+            || (session_.serverBound() && session_.dirty());
+    }
   QString connectionState() const { if (activeEditor() != this) return activeEditor()->connectionState(); return session_.connected() ? tr("Connected") : tr("Disconnected"); }
   QString localFilePath() const { return activeEditor() == this ? file_ : activeEditor()->localFilePath(); }
   QString message() const { return activeEditor() == this ? message_ : activeEditor()->message(); }
@@ -183,6 +199,9 @@ private:
   QString requestedWorkflow_;
   QPointer<EditorWindow> childParent_;
   QString childNode_;
+    bool inlineChild_ = false;
+    QPointer<EditorWindow> shownSurface_;
+    QTimer *childWriteTimer_ = nullptr;
   QJsonObject syncedChildGraph_;
   quint64 childParentEpoch_ = 0;
   bool childSyncing_ = false;
@@ -244,6 +263,7 @@ private:
   QQuickWidget *toolbarOverlay_ = nullptr;
   QQuickWidget *queueOverlay_ = nullptr;
   quint64 instantUpdateGeneration_ = 0;
+  bool canvasReducedMotion_ = false;
   bool instantUpdate_ = false;
   QQuickWidget *selectionOverlay_ = nullptr;
   InlinePropertyPresenter *inlinePresenter_ = nullptr;

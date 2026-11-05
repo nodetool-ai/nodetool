@@ -1,4 +1,5 @@
 import QtQuick
+
 Rectangle {
     property bool active: true
     implicitWidth: Metrics.md

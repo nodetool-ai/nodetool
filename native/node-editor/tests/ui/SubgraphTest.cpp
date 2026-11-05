@@ -51,7 +51,9 @@ public:
                 accept + "\r\n\r\n");
             return;
           }
-          if (bytes.startsWith("GET /api/workflows/linked")) {
+          if (bytes.startsWith("GET /trpc/jobs.list")) {
+              respond(socket, {{"result", QJsonObject{{"data", QJsonObject{{"jobs", QJsonArray{}}}}}}});
+          } else if (bytes.startsWith("GET /api/workflows/linked")) {
             pending = socket;
           } else {
             respond(socket, {{"nodes", QJsonArray{}}});
@@ -108,7 +110,7 @@ class SubgraphTest : public QObject {
         continue;
       }
       auto item = find(panel->rootObject(), name);
-      if (!item) {
+      if (!item || !item->isVisible()) {
         continue;
       }
       QTest::mouseClick(
@@ -312,6 +314,94 @@ private slots:
     QVERIFY(derived["dynamic_inputs"].toObject().contains("custom"));
     QVERIFY(derived["dynamic_outputs"].toObject().contains("Output"));
   }
+  void stripCloseCascadeAndRestore() {
+      QTemporaryDir files;
+      QVERIFY(files.isValid());
+      EditorWindow window;
+      window.show();
+      QVERIFY(window.canvasStrips().isEmpty());
+      window.setCatalog({QJsonObject{
+          {"node_type", "nodetool.input.StringInput"},
+          {"properties",
+           QJsonArray{QJsonObject{{"name", "name"}, {"type", QJsonObject{{"type", "str"}}}}}}}});
+      auto child = subgraph();
+      auto inner = graph();
+      inner["nodes"] = QJsonArray{subgraph()};
+      child["data"] = QJsonObject{{"graph", inner}};
+      QVERIFY(window.document()->load(
+          {{"name", "Host"},
+           {"graph", QJsonObject{{"nodes", QJsonArray{child}}, {"edges", QJsonArray{}}}}}));
+      auto parent = window.document();
+      QVERIFY(window.saveFile(files.filePath("host.json")));
+      QVERIFY(window.selectNode("child"));
+      QVERIFY(click(window, "selection-open-child"));
+      QPointer<EditorWindow> first = window.activeEditor();
+      QCOMPARE(window.workflowTabs().size(), 1);
+      QCOMPARE(window.canvasStrips().size(), 1);
+      QVERIFY(!click(window, "close-canvas-0-0"));
+      QVERIFY(click(window, "activate-canvas-0-0"));
+      QCOMPARE(window.document(), parent);
+      QVERIFY(click(window, "activate-canvas-0-1"));
+      QCOMPARE(window.activeEditor(), first.data());
+      QVERIFY(window.selectNode("child"));
+      QVERIFY(click(window, "selection-open-child"));
+      QPointer<EditorWindow> second = window.activeEditor();
+      QCOMPARE(window.canvasStrips().size(), 2);
+      const auto entries = window.canvasStrips().first().toMap()["entries"].toList();
+      QVERIFY(entries[1].toMap()["selected"].toBool());
+      QVERIFY(window.document()->applyCommand(
+          {{"op", "setProperty"}, {"id", "input"}, {"name", "name"}, {"value", "changed"}}));
+      QTRY_VERIFY(!parent->undoStack()->isClean());
+      QVERIFY(click(window, "toolbar-save"));
+      QVERIFY(parent->undoStack()->isClean());
+      QVERIFY(!window.hasUnsavedChanges());
+      window.persistTabs();
+      const auto restoredEntries =
+          QJsonDocument::fromJson(QSettings().value("workflowTabs/documents").toByteArray())
+              .array();
+      QCOMPARE(restoredEntries.size(), 1);
+      QCOMPARE(QSettings().value("workflowTabs/active").toInt(), 0);
+      QVERIFY(click(window, "close-canvas-0-1"));
+      QTRY_VERIFY(first.isNull());
+      QVERIFY(second.isNull());
+      QVERIFY(window.canvasStrips().isEmpty());
+      QVERIFY(window.selectNode("child"));
+      QVERIFY(click(window, "selection-open-child"));
+      QVERIFY(window.selectNode("child"));
+      QVERIFY(click(window, "selection-open-child"));
+      QCOMPARE(window.document()->node("input")["data"].toObject()["name"].toString(),
+               QString("changed"));
+      first = window.activeEditor();
+      QVERIFY(click(window, "close-tab-0"));
+      QTRY_VERIFY(first.isNull());
+      QVERIFY(window.canvasStrips().isEmpty());
+      EditorWindow restored;
+      restored.restoreTabs();
+      QCOMPARE(restored.workflowTabs().size(), 1);
+      QVERIFY(restored.canvasStrips().isEmpty());
+      QCOMPARE(restored.document()->snapshot()["name"].toString(), QString("Host"));
+  }
+  void replacementDiscardsPendingChildWriteback() {
+      EditorWindow window;
+      window.show();
+      const QJsonObject workflow{
+          {"name", "Host"},
+          {"graph", QJsonObject{{"nodes", QJsonArray{subgraph()}}, {"edges", QJsonArray{}}}}};
+      QVERIFY(window.document()->load(workflow));
+      auto parent = window.document();
+      QVERIFY(window.selectNode("child"));
+      QVERIFY(click(window, "selection-open-child"));
+      QPointer<EditorWindow> child = window.activeEditor();
+      QVERIFY(window.document()->applyCommand(
+          {{"op", "moveNodes"},
+           {"positions", QJsonObject{{"input", QJsonObject{{"x", 100}, {"y", 100}}}}}}));
+      QVERIFY(parent->load(workflow));
+      QVERIFY(child.isNull());
+      QCOMPARE(parent->snapshot(), workflow);
+      QTest::qWait(350);
+      QCOMPARE(parent->snapshot(), workflow);
+      QVERIFY(window.canvasStrips().isEmpty());
+  }
   void childEditingRoundTrip() {
     EditorWindow window;
     window.show();
@@ -331,7 +421,8 @@ private slots:
     auto inner = graph();
     auto keep = input("keep");
     keep["id"] = "keep";
-    inner["nodes"] = QJsonArray{input(), keep};
+    auto nested = subgraph(); nested["id"] = "nested";
+    inner["nodes"] = QJsonArray{input(), keep, nested};
     child["data"] = QJsonObject{{"graph", inner}};
     const QJsonObject edge{{"id", "kept-edge"},      {"source", "source"},
                            {"sourceHandle", "out"},  {"target", "child"},
@@ -346,8 +437,11 @@ private slots:
     auto parent = window.document();
     QVERIFY(window.selectNode("child"));
     QVERIFY(click(window, "selection-open-child"));
-    QCOMPARE(window.workflowTabs().size(), 2);
-    QCOMPARE(window.document()->nodes().size(), 2);
+    QCOMPARE(window.workflowTabs().size(), 1);
+    QCOMPARE(window.document()->nodes().size(), 3);
+    QVERIFY(window.selectNode("nested")); QVERIFY(click(window, "selection-open-child"));
+    QCOMPARE(window.workflowTabs().size(), 1); QCOMPARE(window.document()->nodes().size(), 1);
+    QVERIFY(click(window, "activate-canvas-0-1"));
     QVERIFY(window.selectNode("input"));
     QVERIFY(click(window, "property-name"));
     for (auto panel : window.findChildren<QQuickWidget *>()) {
@@ -371,7 +465,9 @@ private slots:
     QTRY_COMPARE(
         window.document()->node("input")["data"].toObject()["name"].toString(),
         QString("renamed"));
-    QVERIFY(click(window, "activate-tab-0"));
+    QTRY_VERIFY(!parent->undoStack()->isClean());
+    QVERIFY(window.hasUnsavedChanges());
+    QVERIFY(click(window, "activate-canvas-0-0"));
     QCOMPARE(window.document(), parent);
     QVERIFY(withChildPorts(parent->node("child"))["dynamic_inputs"]
                 .toObject()
@@ -399,37 +495,51 @@ private slots:
     }
 
     auto childDocument = window.document();
-    QVERIFY(click(window, "activate-tab-1"));
+    QVERIFY(click(window, "activate-canvas-0-1"));
     childDocument = window.document();
     const auto childUndo = childDocument->undoStack()->index();
-    QVERIFY(click(window, "activate-tab-0"));
+    QVERIFY(click(window, "activate-canvas-0-0"));
     window.action("Undo");
     QCOMPARE(childDocument->undoStack()->index(), childUndo);
-    QVERIFY(click(window, "activate-tab-1"));
+    QVERIFY(click(window, "activate-canvas-0-1"));
     QCOMPARE(
         window.document()->node("input")["data"].toObject()["name"].toString(),
         QString("prompt"));
     QCOMPARE(window.document()->undoStack()->index(), 0);
-    QVERIFY(click(window, "activate-tab-0"));
+    QCOMPARE(window.canvasStrips().size(), 1);
+    QVERIFY(click(window, "activate-canvas-0-0"));
     window.action("Redo");
     QVERIFY(window.selectNode("child"));
     QVERIFY(click(window, "selection-duplicate"));
     QCOMPARE(parent->nodes().size(), 3);
+    QJsonObject positions;
+    int column = 0;
+    for (const auto &v : parent->nodes()) positions[v.toObject()["id"].toString()] = QJsonObject{{"x", column++ * 360}, {"y", 100}};
+    QVERIFY(parent->applyCommand({{"op", "moveNodes"}, {"positions", positions}}));
     QTemporaryDir files;
     QVERIFY(window.saveFile(files.filePath("parent.json")));
     auto saved = parent->snapshot();
     QVERIFY(window.openFile(files.filePath("parent.json")));
     QCOMPARE(window.document()->snapshot(), saved);
+    QVERIFY(window.selectNode("child"));
+    QVERIFY(click(window, "selection-open-child"));
     const auto dir = qEnvironmentVariable("NODETOOL_SUBGRAPH_CAPTURE_DIR");
     for (bool dark : {true, false}) {
-      window.setDarkTheme(dark);
-      window.fit();
-      QTest::qWait(100);
-      if (!dir.isEmpty()) {
-        QVERIFY(QDir().mkpath(dir));
-        QVERIFY(window.grab().save(
-            dir + (dark ? "/subgraph-dark.png" : "/subgraph-light.png")));
-      }
+        window.setDarkTheme(dark);
+        window.fit();
+        QTest::qWait(100);
+        if (!dir.isEmpty()) {
+            QVERIFY(QDir().mkpath(dir));
+            QVERIFY(window.grab().save(
+                    dir + (dark ? "/subgraph-dark.png" : "/subgraph-light.png")));
+        }
+        QVERIFY(window.selectNode("nested"));
+        QVERIFY(click(window, "selection-open-child"));
+        QTest::qWait(100);
+        if (!dir.isEmpty()) {
+            QVERIFY(window.grab().save(dir + (dark ? "/subgraph-nested-dark.png" : "/subgraph-nested-light.png")));
+        }
+        QVERIFY(click(window, "close-canvas-1-1"));
     }
   }
 };

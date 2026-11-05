@@ -37,7 +37,7 @@ class WorkflowTabsTest final : public QObject {
     for (auto panel : window.findChildren<QQuickWidget *>()) {
       if (!panel->isVisible() || !panel->rootObject()) continue;
       auto item = find(panel->rootObject(), name);
-      if (!item) continue;
+      if (!item || !item->isVisible()) continue;
       QTest::mouseClick(panel->quickWindow(), Qt::LeftButton, Qt::NoModifier,
         item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint());
       QCoreApplication::processEvents();
@@ -53,7 +53,7 @@ class WorkflowTabsTest final : public QObject {
     return {{"name", name}, {"graph", QJsonObject{{"nodes", nodes}, {"edges", QJsonArray{}}}}};
   }
   static void moveNode(EditorWindow &window) {
-    window.fit(); QTest::qWait(30);
+    window.fit(); QTest::qWait(100);
     auto scene = window.scene();
     auto view = scene->views().first();
     auto node = scene->nodeGraphicsObject(*scene->graphModel().allNodeIds().begin());
@@ -235,6 +235,36 @@ private slots:
     window.session()->disconnectFromServer();
     QVERIFY(window.session()->serverUrl().isEmpty());
     window.activateTab(1); QVERIFY(window.session()->serverUrl().isEmpty());
+  }
+  void restoreExcludesActiveChildCanvas() {
+      QTemporaryDir files;
+      QVERIFY(files.isValid());
+      EditorWindow window;
+      window.show();
+      auto host = workflow("Host");
+      auto graph = host["graph"].toObject();
+      graph["nodes"] =
+          QJsonArray{QJsonObject{{"id", "sub"},
+                                 {"type", "nodetool.workflows.subgraph.Subgraph"},
+                                 {"data", QJsonObject{{"graph", workflow("Inner")["graph"]}}}}};
+      host["graph"] = graph;
+      QVERIFY(window.document()->load(host));
+      QVERIFY(window.saveFile(files.filePath("host.json")));
+      QVERIFY(click(window, "new-workflow-tab"));
+      QVERIFY(window.document()->load(workflow("Other")));
+      QVERIFY(window.saveFile(files.filePath("other.json")));
+      QVERIFY(click(window, "activate-tab-0"));
+      QVERIFY(window.selectNode("sub"));
+      QVERIFY(click(window, "selection-open-child"));
+      QCOMPARE(window.workflowTabs().size(), 2);
+      QCOMPARE(window.activeTab(), 0);
+      window.persistTabs();
+      EditorWindow restored;
+      restored.restoreTabs();
+      QCOMPARE(restored.workflowTabs().size(), 2);
+      QCOMPARE(restored.activeTab(), 0);
+      QCOMPARE(restored.workflowName(), QString("Host"));
+      QVERIFY(restored.canvasStrips().isEmpty());
   }
   void restoreAndReuseOpenWorkflow() {
     QTemporaryDir files; QVERIFY(files.isValid());

@@ -8,6 +8,9 @@
 #include <QTcpSocket>
 #include <QJsonDocument>
 #include <QDir>
+#include <QCryptographicHash>
+#include <QPainter>
+#include <QWheelEvent>
 #include <QtTest>
 using namespace nodetool;
 namespace {
@@ -43,6 +46,17 @@ public:
                         return;
                     }
                     socket->setProperty("done", true);
+                    if (bytes.toLower().contains("upgrade: websocket")) {
+                        QByteArray key;
+                        for (const auto &line : bytes.left(split).split('\n')) {
+                            if (line.toLower().startsWith("sec-websocket-key:")) {
+                                key = line.mid(18).trimmed();
+                            }
+                        }
+                        const auto accept = QCryptographicHash::hash(key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11", QCryptographicHash::Sha1).toBase64();
+                        socket->write("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: " + accept + "\r\n\r\n");
+                        return;
+                    }
                     const auto route = bytes.split(' ').value(1);
                     QJsonObject data;
                     if (route.startsWith("/trpc/packs.setBuiltinEnabled")) {
@@ -54,7 +68,7 @@ public:
                             return;
                         }
                         if (reject) {
-                            send(socket, {{"error", QJsonObject{{"message", "Pack configuration is disabled in production"}, {"code", -32003}}}}, 403);
+                            send(socket, {{"error", QJsonObject{{"message", "Changing packs is disabled in production"}, {"code", -32003}, {"data", QJsonObject{{"code", "FORBIDDEN"}, {"httpStatus", 403}, {"path", "packs.setBuiltinEnabled"}}}}}}, 403);
                             return;
                         }
                         enabled = body["enabled"].toBool();
@@ -111,7 +125,7 @@ QQuickItem *find(QQuickItem *item, const QString &name) {
 bool click(EditorWindow &window, const QString &name) {
     QCoreApplication::processEvents();
     for (auto *host : window.findChildren<QQuickWidget *>()) {
-        if (!host->isVisible() || !host->rootObject()) {
+        if (!host->isVisible() || !host->rootObject() || host->quickWindow()->height() <= 0) {
             continue;
         }
         auto *item = find(host->rootObject(), name);
@@ -122,6 +136,18 @@ bool click(EditorWindow &window, const QString &name) {
                           item->mapToScene({item->width() / 2, item->height() / 2}).toPoint());
         QCoreApplication::processEvents();
         return true;
+    }
+    for (auto *top : QGuiApplication::topLevelWindows()) {
+        auto *quick = qobject_cast<QQuickWindow *>(top);
+        if (!quick || !quick->isVisible()) {
+            continue;
+        }
+        auto *item = find(quick->contentItem(), name);
+        if (item && item->isVisible() && item->isEnabled()) {
+            QTest::mouseClick(quick, Qt::LeftButton, Qt::NoModifier,
+                              item->mapToScene({item->width() / 2, item->height() / 2}).toPoint());
+            return true;
+        }
     }
     return false;
 }
@@ -156,6 +182,7 @@ private slots:
         QCOMPARE(window.document()->snapshot(), graph);
         QCOMPARE(window.document()->undoStack()->count(), undo);
         QVERIFY(window.document()->undoStack()->isClean());
+        QVERIFY(!window.activeEditor()->isWindowModified());
     }
     void configuredKeyAndNoEnabledOrRequiredMutation() {
         for (int mode = 0; mode < 3; ++mode) {
@@ -186,15 +213,15 @@ private slots:
         window.session()->connectToServer(server.url(), {}, "one");
         auto *first = window.activeEditor();
         QTRY_COMPARE(window.packSetup()->packs().size(), 2);
-        QVERIFY(click(window, "new-workflow-tab"));
+        QTRY_VERIFY(click(window, "new-workflow-tab"));
         auto *second = window.activeEditor();
         QVERIFY(second != first);
         QVERIFY(first->document()->load(workflow()));
         QTest::qWait(100);
         QCOMPARE(server.mutations, 0);
-        QVERIFY(click(window, "activate-tab-0"));
+        QTRY_VERIFY(click(window, "activate-tab-0"));
         QTRY_COMPARE(server.mutations, 1);
-        QVERIFY(click(window, "activate-tab-1"));
+        QTRY_VERIFY(click(window, "activate-tab-1"));
         QVERIFY(second->document()->load(workflow()));
         QTest::qWait(100);
         QCOMPARE(server.mutations, 1);
@@ -245,21 +272,45 @@ private slots:
                 server.delay = state == "enabling";
                 window.packSetup()->refresh();
                 QTest::qWait(100);
-                if (state == "enabling") {
-                    window.packSetup()->setEnabled("transformers-js", true);
-                    QTRY_COMPARE(server.pending.size(), 1);
-                }
                 QVERIFY(click(window, "catalog-optional-packs"));
                 QTest::qWait(100);
+                for (auto *top : QGuiApplication::topLevelWindows()) {
+                    auto *quick = qobject_cast<QQuickWindow *>(top);
+                    if (quick && quick->isVisible() && quick->flags().testFlag(Qt::Popup)) {
+                        const QPointF point(quick->width() / 2, quick->height() / 2);
+                        QWheelEvent event(point, quick->mapToGlobal(point.toPoint()), QPoint(0, -1000), QPoint(0, -1200),
+                                          Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
+                        QCoreApplication::sendEvent(quick, &event);
+                    }
+                }
+                QTest::qWait(500);
+                if (state == "enabling") {
+                    QVERIFY(click(window, "optional-pack-transformers-js"));
+                    QTRY_COMPARE(server.pending.size(), 1);
+                }
                 if (!directory.isEmpty()) {
                     QVERIFY(QDir().mkpath(directory));
-                    QVERIFY(window.grab().save(QDir(directory).filePath((dark ? "dark-" : "light-") + state + ".png")));
+                    auto capture = window.grab();
+                    QPainter painter(&capture);
+                    for (auto *top : QGuiApplication::topLevelWindows()) {
+                        auto *quick = qobject_cast<QQuickWindow *>(top);
+                        if (quick && quick->isVisible() && quick->flags().testFlag(Qt::Popup)) {
+                            painter.drawImage(window.mapFromGlobal(quick->position()), quick->grabWindow());
+                        }
+                    }
+                    painter.end();
+                    QVERIFY(capture.save(QDir(directory).filePath((dark ? "dark-" : "light-") + state + ".png")));
                 }
                 QTest::keyClick(window.activeEditor(), Qt::Key_Escape);
                 // Closing the popup through its Quick window restores trigger focus.
                 for (auto *host : window.findChildren<QQuickWidget *>()) {
                     if (host->isVisible()) {
                         QTest::keyClick(host->quickWindow(), Qt::Key_Escape);
+                    }
+                }
+                for (auto *top : QGuiApplication::topLevelWindows()) {
+                    if (top->isVisible() && top->flags().testFlag(Qt::Popup)) {
+                        QTest::keyClick(top, Qt::Key_Escape);
                     }
                 }
                 if (state == "enabling") {

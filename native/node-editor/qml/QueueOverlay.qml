@@ -11,7 +11,9 @@ Ui.Surface {
     property var retained: []
     property var localStarts: ({})
     property double now: Date.now()
-    readonly property var live: (workflowSession.queue || []).map((job, index) => Object.assign({}, job, {queueIndex: index}))
+    readonly property var live: (workflowSession.queue || []).map((job, index) => Object.assign({}, job, {
+            queueIndex: index
+        }))
     readonly property int runningCount: live.filter(job => job.status === "running").length
     readonly property bool hasJobs: live.some(job => ["running", "queued", "scheduled", "starting"].includes(job.status))
     readonly property bool presented: hasJobs || exitDelay.running
@@ -25,29 +27,47 @@ Ui.Surface {
     opacity: hasJobs ? 1 : 0
     scale: hasJobs || Ui.Theme.reducedMotion ? 1 : 0.98
     transformOrigin: Item.TopLeft
-    transform: Translate { y: root.hasJobs || Ui.Theme.reducedMotion ? 0 : -Ui.Metrics.sm; Behavior on y { NumberAnimation { duration: Ui.Theme.reducedMotion ? 0 : Ui.Metrics.motionNormal } } }
-    Behavior on opacity { NumberAnimation { duration: Ui.Theme.reducedMotion ? 0 : Ui.Metrics.motionNormal } }
-    Behavior on scale { NumberAnimation { duration: Ui.Theme.reducedMotion ? 0 : Ui.Metrics.motionNormal } }
-    onLiveChanged: {
-        if (hasJobs) {
-            retained = live
-        }
-        const starts = Object.assign({}, localStarts)
-        for (const job of live) {
-            if (job.status === "running" && !starts[job.jobId || job.id]) {
-                starts[job.jobId || job.id] = Date.now()
+    transform: Translate {
+        y: root.hasJobs || Ui.Theme.reducedMotion ? 0 : -Ui.Metrics.sm
+        Behavior on y {
+            NumberAnimation {
+                duration: Ui.Theme.reducedMotion ? 0 : Ui.Metrics.motionNormal
             }
         }
-        localStarts = starts
+    }
+    Behavior on opacity {
+        NumberAnimation {
+            duration: Ui.Theme.reducedMotion ? 0 : Ui.Metrics.motionNormal
+        }
+    }
+    Behavior on scale {
+        NumberAnimation {
+            duration: Ui.Theme.reducedMotion ? 0 : Ui.Metrics.motionNormal
+        }
+    }
+    onLiveChanged: {
+        if (hasJobs) {
+            retained = live;
+        }
+        const starts = Object.assign({}, localStarts);
+        for (const job of live) {
+            if (job.status === "running" && !starts[job.jobId || job.id]) {
+                starts[job.jobId || job.id] = Date.now();
+            }
+        }
+        localStarts = starts;
     }
     onHasJobsChanged: {
         if (hasJobs) {
-            exitDelay.stop()
+            exitDelay.stop();
         } else if (!Ui.Theme.reducedMotion) {
-            exitDelay.restart()
+            exitDelay.restart();
         }
     }
-    Timer { id: exitDelay; interval: Ui.Metrics.motionNormal }
+    Timer {
+        id: exitDelay
+        interval: Ui.Metrics.motionNormal
+    }
     Timer {
         id: clock
         interval: 1000
@@ -55,12 +75,14 @@ Ui.Surface {
         running: root.runningCount > 0
         onTriggered: root.now = Date.now()
     }
-    function name(job) { return job.name || job.workflow_name || "Untitled" }
+    function name(job) {
+        return job.name || job.workflow_name || "Untitled";
+    }
     function clockText(job) {
-        const parsed = Date.parse(job.started_at || "")
-        const start = isNaN(parsed) ? localStarts[job.jobId || job.id] : parsed
-        const total = Math.max(0, Math.floor((now - (start || now)) / 1000))
-        return Math.floor(total / 60) + ":" + String(total % 60).padStart(2, "0")
+        const parsed = Date.parse(job.started_at || "");
+        const start = isNaN(parsed) ? localStarts[job.jobId || job.id] : parsed;
+        const total = Math.max(0, Math.floor((now - (start || now)) / 1000));
+        return Math.floor(total / 60) + ":" + String(total % 60).padStart(2, "0");
     }
     ColumnLayout {
         id: summary
@@ -71,7 +93,9 @@ Ui.Surface {
         RowLayout {
             Layout.fillWidth: true
             spacing: Ui.Metrics.md
-            Ui.StatusDot { active: root.running.length > 0 }
+            Ui.StatusDot {
+                active: root.running.length > 0
+            }
             Ui.Text {
                 objectName: "queue-summary"
                 Layout.fillWidth: true
@@ -79,14 +103,41 @@ Ui.Surface {
                 role: Ui.Typography.SansLabel
                 elide: Text.ElideRight
             }
-            Ui.Text { visible: root.running.length === 1; text: visible ? root.clockText(root.running[0]) : ""; role: Ui.Typography.MonoCaption; tone: Ui.Text.Secondary }
-            Ui.ToolbarIconButton { objectName: "queue-toggle"; iconName: "expandMore"; accessibleName: "Expand queue"; description: accessibleName; onClicked: root.expanded = true }
+            Ui.Text {
+                objectName: "queue-clock"
+                visible: root.running.length === 1
+                text: visible ? root.clockText(root.running[0]) : ""
+                role: Ui.Typography.MonoCaption
+                tone: Ui.Text.Secondary
+            }
+            Ui.ToolbarIconButton {
+                objectName: "queue-toggle"
+                iconName: "expandMore"
+                accessibleName: "Expand queue"
+                description: accessibleName
+                onClicked: root.expanded = true
+            }
         }
-        Ui.Progress { visible: root.running.length > 0; Layout.fillWidth: true; implicitHeight: Ui.Metrics.xs; indeterminate: true; accessibleName: "Running" }
+        Ui.Progress {
+            visible: root.running.length > 0
+            Layout.fillWidth: true
+            implicitHeight: Ui.Metrics.xs
+            indeterminate: true
+            accessibleName: "Running"
+        }
         RowLayout {
             visible: root.queued.length > 0
-            Ui.Icon { name: "schedule"; size: Ui.Metrics.iconXs; tone: Ui.Text.Secondary }
-            Ui.Text { objectName: "queue-queued-count"; text: root.queued.length + " queued"; role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary }
+            Ui.Icon {
+                name: "schedule"
+                size: Ui.Metrics.iconXs
+                tone: Ui.Text.Secondary
+            }
+            Ui.Text {
+                objectName: "queue-queued-count"
+                text: root.queued.length + " queued"
+                role: Ui.Typography.SansCaption
+                tone: Ui.Text.Secondary
+            }
         }
     }
     ColumnLayout {
@@ -97,34 +148,78 @@ Ui.Surface {
         RowLayout {
             id: header
             Layout.fillWidth: true
-            Ui.Icon { name: "layers" }
+            Ui.Icon {
+                name: "layers"
+            }
             Ui.PanelHeader {
                 text: "Queue"
                 Layout.fillWidth: true
-                Ui.Icon { name: "playArrow"; size: Ui.Metrics.iconXs; tone: Ui.Text.Secondary }
-                Ui.Text { text: root.running.length; role: Ui.Typography.MonoCaption; tone: Ui.Text.Secondary }
-                Ui.Icon { name: "schedule"; size: Ui.Metrics.iconXs; tone: Ui.Text.Secondary }
-                Ui.Text { text: root.queued.length; role: Ui.Typography.MonoCaption; tone: Ui.Text.Secondary }
-                Ui.ToolbarIconButton { objectName: "queue-collapse"; iconName: "remove"; accessibleName: "Collapse queue"; description: accessibleName; onClicked: root.expanded = false }
+                Ui.Icon {
+                    name: "playArrow"
+                    size: Ui.Metrics.iconXs
+                    tone: Ui.Text.Secondary
+                }
+                Ui.Text {
+                    text: root.running.length
+                    role: Ui.Typography.MonoCaption
+                    tone: Ui.Text.Secondary
+                }
+                Ui.Icon {
+                    name: "schedule"
+                    size: Ui.Metrics.iconXs
+                    tone: Ui.Text.Secondary
+                }
+                Ui.Text {
+                    text: root.queued.length
+                    role: Ui.Typography.MonoCaption
+                    tone: Ui.Text.Secondary
+                }
+                Ui.ToolbarIconButton {
+                    objectName: "queue-collapse"
+                    iconName: "remove"
+                    accessibleName: "Collapse queue"
+                    description: accessibleName
+                    onClicked: root.expanded = false
+                }
             }
         }
         Basic.ScrollView {
+            id: queueScroll
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
             ColumnLayout {
                 id: sections
-                width: parent.width
+                width: queueScroll.availableWidth
                 spacing: Ui.Metrics.md
                 Repeater {
-                    model: [{title: "Running", jobs: root.running}, {title: "Enqueued", jobs: root.queued}, {title: "Cancelled", jobs: root.cancelled}]
+                    model: [
+                        {
+                            title: "Running",
+                            jobs: root.running
+                        },
+                        {
+                            title: "Enqueued",
+                            jobs: root.queued
+                        },
+                        {
+                            title: "Cancelled",
+                            jobs: root.cancelled
+                        }
+                    ]
                     delegate: ColumnLayout {
                         id: section
                         required property var modelData
                         visible: modelData.jobs.length > 0
                         Layout.fillWidth: true
                         spacing: Ui.Metrics.md
-                        Ui.Text { text: section.modelData.title; role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary; Layout.topMargin: Ui.Metrics.lg }
+                        Ui.Text {
+                            objectName: "queue-section-" + section.modelData.title
+                            text: section.modelData.title
+                            role: Ui.Typography.SansCaption
+                            tone: Ui.Text.Secondary
+                            Layout.topMargin: Ui.Metrics.lg
+                        }
                         Repeater {
                             model: section.modelData.jobs
                             delegate: Ui.Surface {
@@ -147,21 +242,33 @@ Ui.Surface {
                                 Accessible.name: focusable ? "Show run on canvas" : root.name(modelData)
                                 Accessible.checkable: focusable
                                 Accessible.checked: focused
-                                function activate() { if (focusable) { runOutput.selectRun(jobId) } }
+                                function activate() {
+                                    if (focusable) {
+                                        runOutput.selectRun(jobId);
+                                    }
+                                }
                                 Keys.onReturnPressed: activate()
                                 Keys.onEnterPressed: activate()
                                 Keys.onSpacePressed: activate()
-                                HoverHandler { id: hover }
+                                HoverHandler {
+                                    id: hover
+                                }
                                 MouseArea {
                                     anchors.fill: parent
                                     enabled: card.focusable
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: {
-                                        card.forceActiveFocus()
-                                        card.activate()
+                                        card.forceActiveFocus();
+                                        card.activate();
                                     }
                                 }
-                                Ui.Surface { visible: card.focused; width: Ui.Metrics.micro + Ui.Metrics.border; height: parent.height; color: Ui.Theme.accentPrimary; border.width: 0 }
+                                Ui.Surface {
+                                    visible: card.focused
+                                    width: Ui.Metrics.micro + Ui.Metrics.border
+                                    height: parent.height
+                                    color: Ui.Theme.accentPrimary
+                                    border.width: 0
+                                }
                                 ColumnLayout {
                                     id: cardContent
                                     anchors.fill: parent
@@ -170,11 +277,33 @@ Ui.Surface {
                                     RowLayout {
                                         Layout.fillWidth: true
                                         spacing: Ui.Metrics.md
-                                        Ui.StatusDot { visible: section.modelData.title !== "Enqueued"; active: card.isRunning }
-                                        Ui.Text { visible: section.modelData.title === "Enqueued"; text: "#" + (card.index + 1); role: Ui.Typography.MonoCaption; tone: Ui.Text.Secondary }
-                                        Ui.Text { Layout.fillWidth: true; text: root.name(card.modelData); role: Ui.Typography.SansLabel; elide: Text.ElideRight }
-                                        Ui.Icon { visible: card.focused; name: "visibility"; size: Ui.Metrics.iconXs }
-                                        Ui.Text { text: card.focused ? "On canvas" : card.isRunning ? root.clockText(card.modelData) : "Cancelled"; visible: card.isRunning || section.modelData.title === "Cancelled"; role: Ui.Typography.MonoCaption; tone: Ui.Text.Secondary }
+                                        Ui.StatusDot {
+                                            visible: section.modelData.title !== "Enqueued"
+                                            active: card.isRunning
+                                        }
+                                        Ui.Text {
+                                            visible: section.modelData.title === "Enqueued"
+                                            text: "#" + (card.index + 1)
+                                            role: Ui.Typography.MonoCaption
+                                            tone: Ui.Text.Secondary
+                                        }
+                                        Ui.Text {
+                                            Layout.fillWidth: true
+                                            text: root.name(card.modelData)
+                                            role: Ui.Typography.SansLabel
+                                            elide: Text.ElideRight
+                                        }
+                                        Ui.Icon {
+                                            visible: card.focused
+                                            name: "visibility"
+                                            size: Ui.Metrics.iconXs
+                                        }
+                                        Ui.Text {
+                                            text: card.focused ? "On canvas" : card.isRunning ? root.clockText(card.modelData) : "Cancelled"
+                                            visible: card.isRunning || section.modelData.title === "Cancelled"
+                                            role: Ui.Typography.MonoCaption
+                                            tone: Ui.Text.Secondary
+                                        }
                                         Ui.CloseButton {
                                             objectName: "queue-stop-" + card.modelData.queueIndex
                                             visible: section.modelData.title !== "Cancelled"
@@ -184,7 +313,13 @@ Ui.Surface {
                                             onClicked: workflowSession.stop(card.jobId)
                                         }
                                     }
-                                    Ui.Progress { visible: card.isRunning; Layout.fillWidth: true; implicitHeight: Ui.Metrics.xs; indeterminate: true; accessibleName: "Running" }
+                                    Ui.Progress {
+                                        visible: card.isRunning
+                                        Layout.fillWidth: true
+                                        implicitHeight: Ui.Metrics.xs
+                                        indeterminate: true
+                                        accessibleName: "Running"
+                                    }
                                 }
                             }
                         }

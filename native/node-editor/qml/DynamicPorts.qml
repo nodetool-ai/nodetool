@@ -5,6 +5,7 @@ import NodeTool.UiPrimitives as Ui
 
 ColumnLayout {
     id: root
+    property bool outputsOnly: false
     required property var controller
     spacing: Ui.Metrics.md
     visible: controller.supportsInputs || controller.supportsOutputs
@@ -15,7 +16,7 @@ ColumnLayout {
         property string draftNode: ""
         Component.onCompleted: draftNode = root.controller.selectedNode
         spacing: Ui.Metrics.xs
-        visible: output ? root.controller.supportsOutputs : root.controller.supportsInputs
+        visible: output ? root.controller.supportsOutputs : !root.outputsOnly && root.controller.supportsInputs
         Layout.fillWidth: true
         function cancelDraft() { nameField.text = ""; typeField.value = typeField.options.length ? typeField.options[0].value : ""; draftNode = root.controller.selectedNode }
         Connections { target: root.controller; function onChanged() { if (direction.draftNode !== root.controller.selectedNode) direction.cancelDraft() } }

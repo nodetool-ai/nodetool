@@ -24,6 +24,7 @@ struct CanvasTheme {
   QColor textPrimary{"#f7f8f8"};
   QColor textSecondary{"#8a8f98"};
   QColor checker{0xff, 0xff, 0xff, 0x06};
+    QColor subgraphAccent{"#7C3AED"};
   QColor primary{"#3d68a8"};
   QColor selectionShadow{0, 0, 0, 77};
   QString sansFamily{"Inter"};
@@ -49,6 +50,8 @@ public:
   void resetDraftConnection();
 
 signals:
+    void outputFormRequested(const QString &id);
+    void childOpenRequested(const QString &id);
   void canvasContextMenuRequested(const QString &nodeId, const QPoint &screenPosition);
   void dataEdgeContextMenuRequested(const QString &edgeId, const QPointF &scenePosition, const QPoint &screenPosition);
   void reconnectRequested(const QString &id, const QJsonObject &connection);
@@ -78,6 +81,9 @@ private:
   QTimer animation_;
   double phase_ = 0;
   bool reducedMotion_ = false;
+    bool outputFormPress_ = false;
+    QtNodes::NodeId footerPress_ = QtNodes::InvalidNodeId;
+    QtNodes::NodeId footerHover_ = QtNodes::InvalidNodeId;
   bool inlinePress_ = false;
   bool wireReconnect_ = false;
   QJsonObject reconnectEdge_;

@@ -1,4 +1,5 @@
 #include "EditorWindow.h"
+#include "document/ChildPorts.h"
 #include "graph/EditorScene.h"
 #include <QApplication>
 #include <QClipboard>
@@ -43,6 +44,10 @@ QString EditorWindow::shortcutCommand(int key, Qt::KeyboardModifiers modifiers) 
 }
 bool EditorWindow::menuActionEnabled(const QString &name) const {
  const auto count = selectedCount();
+    if (name == "Group into subgraph") {
+        return !readOnly() && count > 0 && knownNodeType("nodetool.workflows.subgraph.Subgraph");
+    }
+ if (name == "Open child") { return count == 1 && node_editor::isChildNode(document_.node(selectedIds().first())); }
  if (name == "Link selected") { return !readOnly() && count == 2; }
  if (name == "Stop") { return runActive() && session_.connected(); }
  if (name == "Undo") { return !readOnly() && document_.undoStack()->canUndo(); }
@@ -100,7 +105,7 @@ void EditorWindow::showActionMenu(const QString &kind, const QPoint &position) {
    if (!names.contains(name)) { names.append(name); }
    keys[name].append(QKeySequence(QString::fromLatin1(entry.keys)).toString(QKeySequence::NativeText));
   }
-  if (kind == "command") { names += QStringList{"Add comment", "Run selected", "Disable selected", "Enable selected", "Auto layout", "Zoom in", "Zoom out", "Reset zoom", "Stop", "Open file", "Layout selection", "Remove from group", "Ungroup", "Rename group", "Edit note", "Rename node", "Edit comment", "Output", "Toggle nodes", "Fit selection", "Zoom presets", "Connect", "Server Open", "Server Save", "Reconnect", "Server sync", "Version history", "Share workflow", "Workflow metadata", "Canvas uploads", "Link selected", "Open child", "Linked workflows"}; }
+  if (kind == "command") { names += QStringList{"Add comment", "Run selected", "Disable selected", "Enable selected", "Auto layout", "Zoom in", "Zoom out", "Reset zoom", "Stop", "Open file", "Layout selection", "Remove from group", "Ungroup", "Rename group", "Edit note", "Rename node", "Edit comment", "Output", "Toggle nodes", "Fit selection", "Zoom presets", "Connect", "Server Open", "Server Save", "Reconnect", "Server sync", "Version history", "Share workflow", "Workflow metadata", "Canvas uploads", "Link selected", "Group into subgraph", "Open child", "Linked workflows"}; }
   names.removeDuplicates();
   const auto group = [](const QString &name) {
    if (name.startsWith("Align") || name.startsWith("Distribute") || name == "Stack selection" || name == "Arrange grid") { return QString("Layout & Alignment"); }
@@ -126,8 +131,8 @@ void EditorWindow::showActionMenu(const QString &kind, const QPoint &position) {
  {
   QStringList names;
   if (kind == "pane") { names = {"Add node", "Add comment", "Paste", "Select all", "Fit", "Command menu", "Keyboard shortcuts"}; }
-  else if (kind == "more") { names = {instantUpdate_ ? "Instant Update: On" : "Instant Update: Off", "Open child", "Linked workflows","Stop", "Run selected", "Disable selected", "Enable selected", "Find node", "Auto layout", "Layout selection", "Arrange selection", "Link selected", "Group selection", "Ungroup", "Remove from group", "Rename group", "Rename node", "Edit note", "Add comment", "Edit comment", "Open file", "Server Open", "Server Save", "Server sync", "Version history", "Share workflow", "Workflow metadata", "Reconnect", "Canvas uploads", "Command menu", "Keyboard shortcuts"}; }
-  else { names = {"Copy", "Cut", "Duplicate", "Delete", "Run selected", "Disable selected", "Enable selected", "Group selection", "Remove from group", "Ungroup", "Rename group", "Edit note", "Rename node", "Edit comment", "Layout selection", "Align left", "Align center", "Align right", "Align top", "Align middle", "Align bottom", "Distribute horizontally", "Stack selection", "Arrange grid"}; }
+  else if (kind == "more") { names = {instantUpdate_ ? "Instant Update: On" : "Instant Update: Off", "Open child", "Linked workflows","Stop", "Run selected", "Disable selected", "Enable selected", "Find node", "Auto layout", "Layout selection", "Arrange selection", "Link selected", "Group selection", "Group into subgraph", "Ungroup", "Remove from group", "Rename group", "Rename node", "Edit note", "Add comment", "Edit comment", "Open file", "Server Open", "Server Save", "Server sync", "Version history", "Share workflow", "Workflow metadata", "Reconnect", "Canvas uploads", "Command menu", "Keyboard shortcuts"}; }
+  else { names = {"Copy", "Cut", "Duplicate", "Delete", "Run selected", "Disable selected", "Enable selected", "Group selection", "Group into subgraph", "Remove from group", "Ungroup", "Rename group", "Edit note", "Rename node", "Edit comment", "Layout selection", "Align left", "Align center", "Align right", "Align top", "Align middle", "Align bottom", "Distribute horizontally", "Stack selection", "Arrange grid"}; }
 #ifndef Q_OS_MACOS
   if (kind == "more") { names.insert(1, mouseNavigation() ? "Canvas navigation: Mouse" : "Canvas navigation: Trackpad"); }
 #endif

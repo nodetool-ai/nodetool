@@ -3,11 +3,15 @@
 #include <QApplication>
 #include <QDateTime>
 #include <QDir>
+#include <QDockWidget>
+#include <QJsonDocument>
 #include <QMenu>
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QQuickItem>
 #include <QQuickWidget>
+#include <QTcpServer>
+#include <QTcpSocket>
 #include <QUrl>
 #include <QWebSocket>
 #include <QWebSocketServer>
@@ -19,7 +23,7 @@ class QueueFixture final : public QObject {
     Q_PROPERTY(QVariantList queue MEMBER rows NOTIFY changed)
     Q_PROPERTY(QVariantMap workflow MEMBER workflow CONSTANT)
     Q_PROPERTY(bool connected MEMBER connected CONSTANT)
-  public:
+public:
     QVariantList rows;
     QVariantMap workflow{{"id", "current"}};
     bool connected = true;
@@ -31,24 +35,32 @@ class QueueFixture final : public QObject {
     Q_INVOKABLE void stop(QString id) {
         stopped = id;
     }
-  signals:
+signals:
     void changed();
 };
 class QueueUiTest final : public QObject {
     Q_OBJECT
     static QQuickItem *find(QQuickItem *root, const QString &name) {
+        if (!root) {
+            return nullptr;
+        }
         if (root->objectName() == name ||
-            root->property("accessibleName").toString() == name)
+            root->property("accessibleName").toString() == name) {
             return root;
-        for (auto child : root->childItems())
-            if (auto result = find(child, name))
+        }
+        for (auto child : root->childItems()) {
+            if (auto result = find(child, name)) {
                 return result;
+            }
+        }
         return nullptr;
     }
     static QQuickWidget *panel(EditorWindow &w, const QString &file) {
-        for (auto widget : w.findChildren<QQuickWidget *>())
-            if (widget->isVisible() && widget->source().fileName() == file)
+        for (auto widget : w.findChildren<QQuickWidget *>()) {
+            if (widget->isVisible() && widget->source().fileName() == file) {
                 return widget;
+            }
+        }
         return nullptr;
     }
     static void click(QQuickWidget *widget, const QString &name) {
@@ -61,7 +73,7 @@ class QueueUiTest final : public QObject {
             item->mapToScene({item->width() / 2, item->height() / 2})
                 .toPoint());
     }
-  private slots:
+private slots:
     void presentation() {
         QueueFixture session;
         RunOutputModel output;
@@ -86,7 +98,15 @@ class QueueUiTest final : public QObject {
                                {"name", "Workflow " + id},
                                {"workflow_id", workflow}};
         };
-        session.setRows({job("a", "running")});
+        auto timed = job("a", "running");
+        timed.insert(
+            "started_at",
+            QDateTime::fromMSecsSinceEpoch(
+                root->property("now").toLongLong() - 125000, QTimeZone::UTC)
+                .toString(Qt::ISODateWithMs));
+        session.setRows({timed});
+        QCOMPARE(find(root, "queue-clock")->property("text").toString(),
+                 QString("2:05"));
         QTRY_COMPARE(find(root, "queue-summary")->property("text").toString(),
                      QString("Workflow a"));
         QVERIFY(root->property("clockRunning").toBool());
@@ -100,15 +120,11 @@ class QueueUiTest final : public QObject {
         QVERIFY(root->property("expanded").toBool());
         for (const auto &title :
              {QString("Running"), QString("Enqueued"), QString("Cancelled")}) {
-            bool found = false;
-            const auto texts = root->findChildren<QObject *>();
-            for (const auto *text : texts) {
-                found |= text->property("text").toString() == title;
-            }
-            QVERIFY2(found, qPrintable(title));
+            QVERIFY(find(root, "queue-section-" + title));
         }
         auto card = find(root, "queue-focus-0");
         QVERIFY(card);
+        QTRY_VERIFY(card->width() > 250);
         QVERIFY(card->property("focusable").toBool());
         QVERIFY(!find(root, "queue-focus-1")->property("focusable").toBool());
         click(&widget, "queue-focus-0");
@@ -122,17 +138,21 @@ class QueueUiTest final : public QObject {
         QTRY_COMPARE(output.selectedRunId(), QString("a"));
         click(&widget, "queue-focus-1");
         QCOMPARE(output.selectedRunId(), QString("a"));
+        output.selectRun("b");
         click(&widget, "queue-stop-0");
         QCOMPARE(session.stopped, QString("a"));
         click(&widget, "queue-stop-2");
         QCOMPARE(session.stopped, QString("q"));
-        QCOMPARE(output.selectedRunId(), QString("a"));
+        QCOMPARE(output.selectedRunId(), QString("b"));
         click(&widget, "queue-collapse");
         QVERIFY(!root->property("expanded").toBool());
         session.setRows(
             {job("x", "cancelled"), job("c", "completed"), job("f", "failed")});
         QTRY_VERIFY(!root->property("presented").toBool());
         QVERIFY(!root->property("clockRunning").toBool());
+        const auto idleNow = root->property("now");
+        QTest::qWait(1100);
+        QCOMPARE(root->property("now"), idleNow);
         auto theme = widget.engine()->singletonInstance<QObject *>(
             "NodeTool.UiPrimitives", "Theme");
         QVERIFY(theme);
@@ -146,7 +166,53 @@ class QueueUiTest final : public QObject {
     }
     void lifecycle() {
         QWebSocketServer server("queue", QWebSocketServer::NonSecureMode);
-        QVERIFY(server.listen(QHostAddress::LocalHost));
+        QTcpServer http;
+        QVERIFY(http.listen(QHostAddress::LocalHost));
+        QStringList cancellations;
+        connect(&http, &QTcpServer::newConnection, this, [&] {
+            auto socket = http.nextPendingConnection();
+            connect(socket, &QTcpSocket::readyRead, &http, [&, socket] {
+                const auto bytes = socket->peek(socket->bytesAvailable());
+                if (!bytes.contains("\r\n\r\n")) {
+                    return;
+                }
+                if (bytes.startsWith("GET /ws ")) {
+                    socket->disconnect(&http);
+                    server.handleConnection(socket);
+                    return;
+                }
+                const auto split = bytes.indexOf("\r\n\r\n");
+                int length = 0;
+                for (const auto &line : bytes.left(split).split('\n')) {
+                    if (line.toLower().startsWith("content-length:")) {
+                        length = line.mid(15).trimmed().toInt();
+                    }
+                }
+                if (bytes.size() < split + 4 + length) {
+                    return;
+                }
+                socket->readAll();
+                socket->disconnect(&http);
+                QJsonObject data{{"jobs", QJsonArray{}}};
+                if (bytes.contains("/trpc/jobs.cancel ")) {
+                    const auto id =
+                        QJsonDocument::fromJson(bytes.mid(split + 4))
+                            .object()["id"]
+                            .toString();
+                    cancellations.append(id);
+                    data = {{"job_id", id}, {"status", "cancelled"}};
+                }
+                const auto body =
+                    QJsonDocument(
+                        QJsonObject{{"result", QJsonObject{{"data", data}}}})
+                        .toJson(QJsonDocument::Compact);
+                socket->write("HTTP/1.1 200 OK\r\nContent-Type: "
+                              "application/json\r\nContent-Length: " +
+                              QByteArray::number(body.size()) +
+                              "\r\nConnection: close\r\n\r\n" + body);
+                socket->disconnectFromHost();
+            });
+        });
         QPointer<QWebSocket> peer;
         QList<QJsonObject> commands;
         connect(&server, &QWebSocketServer::newConnection, this, [&] {
@@ -163,7 +229,7 @@ class QueueUiTest final : public QObject {
         window.resize(1200, 800);
         window.show();
         window.session()->connectToServer(
-            QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort())), {});
+            QUrl(QString("http://127.0.0.1:%1").arg(http.serverPort())), {});
         QTRY_VERIFY(window.session()->connected());
         const auto before = window.document()->snapshot();
         const auto undo = window.document()->undoStack()->index();
@@ -176,9 +242,11 @@ class QueueUiTest final : public QObject {
                 qobject_cast<QMenu *>(QApplication::activePopupWidget());
             QTRY_VERIFY(menu);
             QAction *toggle = nullptr;
-            for (auto action : menu->actions())
-                if (action->text() == label)
+            for (auto action : menu->actions()) {
+                if (action->text() == label) {
                     toggle = action;
+                }
+            }
             QVERIFY(toggle);
             QTest::mouseClick(menu, Qt::LeftButton, Qt::NoModifier,
                               menu->actionGeometry(toggle).center());
@@ -217,14 +285,21 @@ class QueueUiTest final : public QObject {
         click(queue, "queue-focus-0");
         QCOMPARE(window.runOutput()->selectedRunId(), first);
         click(queue, "queue-stop-0");
-        QTRY_COMPARE(commands.size(), 2);
-        QCOMPARE(commands.last()["command"].toString(), QString("cancel_job"));
+        QTRY_COMPARE(cancellations, QStringList{first});
         update(first, "cancelled", 3);
         QTRY_VERIFY(window.session()
                         ->property("queue")
                         .toList()[0]
                         .toMap()["terminal"]
                         .toBool());
+        const auto rowFor = [&](const QString &id) {
+            for (const auto &row : window.session()->queue()) {
+                if (row.toMap()["jobId"] == id) {
+                    return row.toMap();
+                }
+            }
+            return QVariantMap{};
+        };
         for (const auto status :
              {QString("failed"), QString("completed"), QString("running")}) {
             const auto previous = commands.size();
@@ -235,15 +310,12 @@ class QueueUiTest final : public QObject {
             const auto id =
                 commands.last()["data"].toObject()["job_id"].toString();
             QVERIFY(id != first);
-            const auto count =
-                window.session()->property("queue").toList().size();
             update(id, status, 1);
-            QTRY_COMPARE(window.session()
-                             ->property("queue")
-                             .toList()[count - 1]
-                             .toMap()["status"]
-                             .toString(),
-                         status);
+            QTRY_COMPARE(rowFor(id)["status"].toString(), status);
+            if (status == "failed") {
+                QTRY_COMPARE(window.message(), QString("Submit rejected"));
+                QVERIFY(panel(window, "RunOutput.qml"));
+            }
         }
         QVERIFY(window.message() != "Run completed");
         bool failureVisible = false;
@@ -259,18 +331,15 @@ class QueueUiTest final : public QObject {
         const auto pendingId =
             commands.last()["data"].toObject()["job_id"].toString();
         update(pendingId, "queued", 1);
-        QTRY_COMPARE(window.session()
-                         ->property("queue")
-                         .toList()
-                         .last()
-                         .toMap()["status"]
-                         .toString(),
-                     QString("queued"));
+        QTRY_COMPARE(rowFor(pendingId)["status"].toString(), QString("queued"));
         const auto capture = qEnvironmentVariable("NODETOOL_QUEUE_CAPTURE_DIR");
         if (!capture.isEmpty()) {
             QVERIFY(QDir().mkpath(capture));
             for (const QSize size : {QSize(1200, 800), QSize(760, 700)}) {
                 window.resize(size);
+                auto outputDock = window.findChild<QDockWidget *>("run-output-dock");
+                QVERIFY(outputDock);
+
                 for (bool dark : {true, false}) {
                     window.setDarkTheme(dark);
                     for (bool expanded : {true, false}) {
@@ -281,6 +350,12 @@ class QueueUiTest final : public QObject {
                                   expanded ? "queue-toggle" : "queue-collapse");
                         }
                         QTest::qWait(250);
+                        auto catalog = panel(window, "Catalog.qml");
+                        QVERIFY(catalog);
+                        auto empty = find(catalog->rootObject(), "catalog-empty-state");
+                        QVERIFY(empty);
+                        QVERIFY(empty->isVisible());
+                        QVERIFY(empty->width() >= 250);
                         const auto name =
                             QString("/queue-%1-%2-%3.png")
                                 .arg(size.width())
@@ -289,8 +364,7 @@ class QueueUiTest final : public QObject {
                         QVERIFY(window.grab().save(capture + name));
                         QVERIFY(queue->geometry().right() <=
                                 queue->parentWidget()->width());
-                        QVERIFY(queue->geometry().bottom() <
-                                toolbar->geometry().top());
+                        QVERIFY(queue->geometry().bottom() <= queue->parentWidget()->height());
                     }
                 }
             }
@@ -301,7 +375,7 @@ class QueueUiTest final : public QObject {
         QCOMPARE(window.document()->snapshot(), before);
         QCOMPARE(window.document()->undoStack()->index(), undo);
         window.session()->connectToServer(
-            QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort())), {},
+            QUrl(QString("http://127.0.0.1:%1").arg(http.serverPort())), {},
             "different-account");
         QTRY_VERIFY(window.session()->connected());
         QVERIFY(window.session()->property("queue").toList().isEmpty());

@@ -23,7 +23,9 @@ public:
     QString error() const { return error_; }
     void configure(const QUrl &origin, const QString &token, const QString &user);
     void setNodeTypes(const QStringList &types);
+    void activeEditorChanged() { sync(); }
     Q_INVOKABLE void refreshSecrets();
+    Q_INVOKABLE void openProviderSettings();
     Q_INVOKABLE void refresh();
     Q_INVOKABLE void setEnabled(const QString &id, bool enabled);
 signals:

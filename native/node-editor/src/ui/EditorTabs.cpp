@@ -18,13 +18,30 @@ QVariantList EditorWindow::workflowTabs() const {
   const auto owner = tabOwner_ ? tabOwner_ : this;
   QVariantList result;
   for (auto tab : owner->tabs_) {
-    result.append(QVariantMap{{"title", tab->childParent_ ? tab->childParent_->workflowName() + " › " + tab->workflowName() : tab->workflowName()}, {"dirty", tab->hasUnsavedChanges()}});
+    if (tab->inlineChild_) { continue; }
+    result.append(QVariantMap{
+        {"title", tab->childParent_ ? tab->childParent_->workflowName() + " › " + tab->workflowName() : tab->workflowName()},
+        {"dirty", tab->hasUnsavedChanges()}});
   }
   return result;
 }
 int EditorWindow::activeTab() const {
-  const auto owner = tabOwner_ ? tabOwner_ : this;
-  return owner->tabs_.indexOf(owner->activeEditor_);
+    const auto owner = tabOwner_ ? tabOwner_ : this;
+    auto host = owner->activeEditor_;
+    while (host && host->inlineChild_ && host->childParent_) {
+        host = host->childParent_;
+    }
+    int index = 0;
+    for (auto tab : owner->tabs_) {
+        if (tab->inlineChild_) {
+            continue;
+        }
+        if (tab == host) {
+            return index;
+        }
+        ++index;
+    }
+    return -1;
 }
 void EditorWindow::notifyTabs() {
   auto owner = tabOwner_ ? tabOwner_ : this;
@@ -57,117 +74,283 @@ void EditorWindow::newTab() {
     tab->closeAfterServerSave_ = false;
     if (close) {
       QPointer<EditorWindow> target = tab;
-      QTimer::singleShot(0, this, [this, target] { if (target) closeTab(tabs_.indexOf(target)); });
+      QTimer::singleShot(0, this, [this, target] { if (target) closeSurface(tabs_.indexOf(target)); });
     }
   });
   connect(&tab->session_, &node_editor::WorkflowSession::errorOccurred, tab, [tab] { tab->closeAfterServerSave_ = false; });
   connect(&tab->session_, &node_editor::WorkflowSession::credentialsChanged, tab, [tab] { tab->closeAfterServerSave_ = false; });
-  activateTab(tabs_.size() - 1);
+  activateSurface(tabs_.size() - 1);
 }
 void EditorWindow::activateTab(int index) {
-  if (tabOwner_) { tabOwner_->activateTab(index); return; }
-  if (index < 0 || index >= tabs_.size() || (activeEditor_ == tabs_[index] && tabStack_->currentWidget() == activeEditor_)) return;
-  if (activeEditor_) {
-    // A tab switch cancels editable drafts, but retains its graph and view.
-    activeEditor_->invalidateGesture();
-    emit activeEditor_->documentEpochChanged();
-  }
-  auto target = tabs_[index];
-  if (target->childParent_ && target->childParentEpoch_ == target->childParent_->documentEpoch_) {
-    const auto stored = node_editor::childGraph(target->childParent_->document_.node(target->childNode_));
-    if (stored != target->syncedChildGraph_) {
-      auto snapshot = target->document_.snapshot(); snapshot["graph"] = stored;
-      target->childSyncing_ = true;
-      (void)target->document_.load(snapshot);
-      target->childSyncing_ = false; target->syncedChildGraph_ = stored;
+    auto owner = tabOwner_ ? tabOwner_ : this;
+    for (auto tab : owner->tabs_) {
+        if (tab->inlineChild_) {
+            continue;
+        }
+        if (index-- == 0) {
+            auto shown = tab->shownSurface_ ? tab->shownSurface_.data() : tab;
+            owner->activateSurface(owner->tabs_.indexOf(shown));
+            return;
+        }
     }
-  }
-  activeEditor_ = target;
-    target->syncPackSetup();
-  tabStack_->setCurrentWidget(activeEditor_);
-  setWindowTitle(activeEditor_->windowTitle());
-  setWindowModified(activeEditor_->isWindowModified());
-  notifyTabs();
-  emit panelChanged(); emit mediaChanged(); emit zoomChanged();
-}
-bool EditorWindow::confirmTabClose(bool closeAfterSave) {
-  if (childParent_ && node_editor::childGraphKey(childParent_->document_.node(childNode_)) == "graph" && document_.graph() == node_editor::childGraph(childParent_->document_.node(childNode_))) return true;
-  if (!hasUnsavedChanges()) return true;
-  tabOwner_->activateTab(tabOwner_->tabs_.indexOf(this));
-  const auto choice = QMessageBox::warning(this, tr("Unsaved workflow"), tr("Save changes before closing?"),
-    QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Cancel);
-  if (choice == QMessageBox::Discard) return true;
-  if (choice != QMessageBox::Save) return false;
-  if (session_.serverBound()) {
-    closeAfterServerSave_ = closeAfterSave;
-    session_.setSnapshot(document_.snapshot());
-    session_.save();
-    return false;
-  }
-  action("Save");
-  return !hasUnsavedChanges();
 }
 bool EditorWindow::closeTab(int index) {
-  if (tabOwner_) {
+    auto owner = tabOwner_ ? tabOwner_ : this;
+    for (auto tab : owner->tabs_) {
+        if (tab->inlineChild_) {
+            continue;
+        }
+        if (index-- == 0) {
+            return closeSurface(owner->tabs_.indexOf(tab));
+        }
+    }
+    return false;
+}
+QVariantList EditorWindow::canvasStrips() const {
+    auto owner = tabOwner_ ? tabOwner_ : this;
+    QList<EditorWindow *> chain;
+    auto host = owner->activeEditor_;
+    while (host) {
+        chain.prepend(host);
+        host = host->inlineChild_ ? host->childParent_.data() : nullptr;
+    }
+    QVariantList strips;
+    for (int depth = 0; depth < chain.size(); ++depth) {
+        host = chain[depth];
+        QVariantList entries;
+        entries.append(QVariantMap{{"title", host->workflowName()},
+                                   {"surface", owner->tabs_.indexOf(host)},
+                                   {"host", true},
+                                   {"selected", depth == chain.size() - 1}});
+        for (auto child : owner->tabs_) {
+            if (!child->inlineChild_ || child->childParent_ != host) {
+                continue;
+            }
+            entries.append(QVariantMap{{"title", child->workflowName()},
+                                       {"surface", owner->tabs_.indexOf(child)},
+                                       {"host", false},
+                                       {"selected", chain.value(depth + 1) == child}});
+        }
+        if (entries.size() > 1) {
+            strips.append(QVariantMap{{"entries", entries}, {"depth", depth}});
+        }
+    }
+    return strips;
+}
+void EditorWindow::flushChild() {
+    if (childWriteTimer_ && childWriteTimer_->isActive()) {
+        childWriteTimer_->stop();
+        syncChild();
+    }
+    if (inlineChild_ && childParent_) {
+        childParent_->flushChild();
+    }
+}
+void EditorWindow::closeChildSurfaces() {
+    if (!tabOwner_) {
+        return;
+    }
     auto owner = tabOwner_;
-    QPointer<EditorWindow> target = owner->tabs_.value(index);
-    QTimer::singleShot(0, owner, [owner, target] {
-      if (target) owner->closeTab(owner->tabs_.indexOf(target));
-    });
+    for (int i = owner->tabs_.size() - 1; i >= 0; --i) {
+        if (owner->tabs_[i]->inlineChild_ && owner->tabs_[i]->childParent_ == this) {
+            owner->closeSurface(i);
+        }
+    }
+}
+void EditorWindow::activateSurface(int index) {
+    if (tabOwner_) {
+        tabOwner_->activateSurface(index);
+        return;
+    }
+    if (index < 0 || index >= tabs_.size() ||
+        (activeEditor_ == tabs_[index] && tabStack_->currentWidget() == activeEditor_)) {
+        return;
+    }
+    if (activeEditor_) {
+        activeEditor_->flushChild();
+        // A tab switch cancels editable drafts, but retains its graph and view.
+        activeEditor_->invalidateGesture();
+        emit activeEditor_->documentEpochChanged();
+    }
+    auto target = tabs_[index];
+    if (target->childParent_ && target->childParentEpoch_ == target->childParent_->documentEpoch_) {
+        const auto stored =
+            node_editor::childGraph(target->childParent_->document_.node(target->childNode_));
+        if (stored != target->syncedChildGraph_) {
+            target->closeChildSurfaces();
+            auto snapshot = target->document_.snapshot();
+            snapshot["graph"] = stored;
+            target->childSyncing_ = true;
+            (void)target->document_.load(snapshot);
+            target->childSyncing_ = false;
+            target->syncedChildGraph_ = stored;
+        }
+    }
+    if (target->inlineChild_ && target->childParent_ &&
+        target->childParent_->document_.node(target->childNode_).isEmpty()) {
+        closeSurface(index);
+        return;
+    }
+    activeEditor_ = target;
+    auto host = target;
+    while (host->inlineChild_ && host->childParent_) {
+        host = host->childParent_;
+    }
+    host->shownSurface_ = target;
+    target->syncPackSetup();
+    packSetup_.activeEditorChanged();
+    tabStack_->setCurrentWidget(activeEditor_);
+    setWindowTitle(activeEditor_->windowTitle());
+    setWindowModified(activeEditor_->isWindowModified());
+    notifyTabs();
+    emit panelChanged();
+    emit mediaChanged();
+    emit zoomChanged();
+}
+bool EditorWindow::confirmTabClose(bool closeAfterSave) {
+    if (childParent_ &&
+        node_editor::childGraphKey(childParent_->document_.node(childNode_)) == "graph" &&
+        document_.graph() == node_editor::childGraph(childParent_->document_.node(childNode_))) {
+        return true;
+    }
+    if (!hasUnsavedChanges()) {
+        return true;
+    }
+    tabOwner_->activateSurface(tabOwner_->tabs_.indexOf(this));
+    const auto choice = QMessageBox::warning(
+        this, tr("Unsaved workflow"), tr("Save changes before closing?"),
+        QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Cancel);
+    if (choice == QMessageBox::Discard) {
+        return true;
+    }
+    if (choice != QMessageBox::Save) {
+        return false;
+    }
+    if (session_.serverBound()) {
+        closeAfterServerSave_ = closeAfterSave;
+        session_.setSnapshot(document_.snapshot());
+        session_.save();
+        return false;
+    }
+    action("Save");
+    return !hasUnsavedChanges();
+}
+bool EditorWindow::closeSurface(int index) {
+    if (tabOwner_) {
+        auto owner = tabOwner_;
+        QPointer<EditorWindow> target = owner->tabs_.value(index);
+        QTimer::singleShot(0, owner, [owner, target] {
+            if (target) {
+                owner->closeSurface(owner->tabs_.indexOf(target));
+            }
+        });
+        return true;
+    }
+    if (index < 0 || index >= tabs_.size()) {
+        return false;
+    }
+    auto tab = tabs_[index];
+    if (activeEditor_) {
+        activeEditor_->flushChild();
+    }
+    if (!tab->inlineChild_ && !tab->confirmTabClose(true)) {
+        return false;
+    }
+    // Inline descendants are already written into this document. Closing the
+    // owning workflow closes their canvases, as the web subgraph strip does.
+    for (int i = tabs_.size() - 1; i >= 0; --i) {
+        const auto child = tabs_[i];
+        if (child->childParent_ == tab && child->inlineChild_) {
+            if (!closeSurface(i)) {
+                return false;
+            }
+        }
+    }
+    QPointer<EditorWindow> fallback = tab->inlineChild_ ? tab->childParent_ : nullptr;
+    if (fallback) {
+        const auto position = tabs_.indexOf(tab);
+        for (int i = position + 1; i < tabs_.size(); ++i) {
+            if (tabs_[i]->inlineChild_ && tabs_[i]->childParent_ == tab->childParent_) {
+                fallback = tabs_[i];
+                break;
+            }
+        }
+        if (fallback == tab->childParent_) {
+            for (int i = position - 1; i >= 0; --i) {
+                if (tabs_[i]->inlineChild_ && tabs_[i]->childParent_ == tab->childParent_) {
+                    fallback = tabs_[i];
+                    break;
+                }
+            }
+        }
+    }
+    index = tabs_.indexOf(tab);
+    const bool wasActive = activeEditor_ == tab;
+    tabs_.removeAt(index);
+    tabStack_->removeWidget(tab);
+    if (wasActive) {
+        activeEditor_ = nullptr;
+    }
+    // Destruction invalidates context-bound requests and all picker callbacks.
+    delete tab;
+    if (tabs_.isEmpty()) {
+        newTab();
+    } else if (wasActive) {
+        activateSurface(fallback ? tabs_.indexOf(fallback) : qMin(index, int(tabs_.size()) - 1));
+    } else {
+        notifyTabs();
+    }
     return true;
-  }
-  if (index < 0 || index >= tabs_.size()) return false;
-  auto tab = tabs_[index];
-  if (!tab->confirmTabClose(true)) return false;
-  // Inline descendants are already written into this document. Closing the
-  // owning workflow closes their canvases, as the web subgraph strip does.
-  for (int i = tabs_.size() - 1; i >= 0; --i) {
-    const auto child = tabs_[i];
-    if (child->childParent_ == tab && node_editor::childGraphKey(tab->document_.node(child->childNode_)) == "graph") { if (!closeTab(i)) { return false; } }
-  }
-  index = tabs_.indexOf(tab);
-  const bool wasActive = activeEditor_ == tab;
-  tabs_.removeAt(index);
-  tabStack_->removeWidget(tab);
-  if (wasActive) activeEditor_ = nullptr;
-  // Destruction invalidates context-bound requests and all picker callbacks.
-  delete tab;
-  if (tabs_.isEmpty()) newTab();
-  else if (wasActive) activateTab(qMin(index, int(tabs_.size()) - 1));
-  else notifyTabs();
-  return true;
 }
 void EditorWindow::persistTabs() const {
-  if (tabOwner_) { tabOwner_->persistTabs(); return; }
-  QJsonArray entries;
-  for (auto tab : tabs_) {
-    if (tab->childParent_) continue;
-    entries.append(QJsonObject{{"file", tab->file_}, {"workflow", tab->session_.serverBound() ? tab->session_.workflow()["id"].toString() : tab->requestedWorkflow_},
-      {"origin", tab->session_.serverUrl().toString()}});
-  }
-  QSettings settings;
-  settings.setValue("workflowTabs/documents", QJsonDocument(entries).toJson(QJsonDocument::Compact));
-  settings.setValue("workflowTabs/active", activeTab());
+    if (tabOwner_) {
+        tabOwner_->persistTabs();
+        return;
+    }
+    QJsonArray entries;
+    for (auto tab : tabs_) {
+        if (tab->childParent_) {
+            continue;
+        }
+        entries.append(QJsonObject{{"file", tab->file_},
+                                   {"workflow", tab->session_.serverBound()
+                                                    ? tab->session_.workflow()["id"].toString()
+                                                    : tab->requestedWorkflow_},
+                                   {"origin", tab->session_.serverUrl().toString()}});
+    }
+    QSettings settings;
+    settings.setValue("workflowTabs/documents",
+                      QJsonDocument(entries).toJson(QJsonDocument::Compact));
+    settings.setValue("workflowTabs/active", activeTab());
 }
 void EditorWindow::restoreTabs() {
-  if (tabOwner_) { tabOwner_->restoreTabs(); return; }
-  QSettings settings;
-  const auto entries = QJsonDocument::fromJson(settings.value("workflowTabs/documents").toByteArray()).array();
-  if (entries.isEmpty()) return;
-  for (int i = 0; i < entries.size(); ++i) {
-    if (i) newTab();
-    auto tab = activeEditor_;
-    const auto entry = entries[i].toObject();
-    const auto path = entry["file"].toString();
-    const auto id = entry["workflow"].toString();
-    if (!path.isEmpty()) tab->openFile(path);
-    else if (!id.isEmpty()) {
-      tab->session_.connectToServer(QUrl(entry["origin"].toString()), qEnvironmentVariable("NODETOOL_TOKEN"));
-      tab->requestedWorkflow_ = id;
-      tab->session_.openWorkflow(id);
+    if (tabOwner_) {
+        tabOwner_->restoreTabs();
+        return;
     }
-  }
-  activateTab(settings.value("workflowTabs/active", 0).toInt());
+    QSettings settings;
+    const auto entries =
+        QJsonDocument::fromJson(settings.value("workflowTabs/documents").toByteArray()).array();
+    if (entries.isEmpty()) {
+        return;
+    }
+    for (int i = 0; i < entries.size(); ++i) {
+        if (i)
+            newTab();
+        auto tab = activeEditor_;
+        const auto entry = entries[i].toObject();
+        const auto path = entry["file"].toString();
+        const auto id = entry["workflow"].toString();
+        if (!path.isEmpty())
+            tab->openFile(path);
+        else if (!id.isEmpty()) {
+            tab->session_.connectToServer(QUrl(entry["origin"].toString()),
+                                          qEnvironmentVariable("NODETOOL_TOKEN"));
+            tab->requestedWorkflow_ = id;
+            tab->session_.openWorkflow(id);
+        }
+    }
+    activateTab(settings.value("workflowTabs/active", 0).toInt());
 }
 } // namespace nodetool
 
@@ -188,7 +371,7 @@ void EditorWindow::openChild() {
     auto tab = owner->tabs_[i];
     if (tab->childParent_ == this && tab->childNode_ == selected_ &&
         tab->childParentEpoch_ == documentEpoch_) {
-      owner->activateTab(i);
+      owner->activateSurface(i);
       return;
     }
   }
@@ -212,6 +395,8 @@ void EditorWindow::openChild() {
                               .toJson(QJsonDocument::Compact)));
     url.setQuery(query);
     QNetworkRequest request(url);
+    request.setTransferTimeout(30000);
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
     request.setRawHeader("Authorization",
                          "Bearer " + owner->tabsToken_.toUtf8());
     auto reply = network->get(request);
@@ -292,6 +477,10 @@ void EditorWindow::openChild() {
   owner->newTab();
   auto child = owner->activeEditor_;
   child->childParent_ = this;
+    child->inlineChild_ = key == "graph";
+    if (child->inlineChild_) {
+        connect(this, &EditorWindow::panelChanged, child, &EditorWindow::panelChanged);
+    }
   child->childNode_ = selected_;
   child->childParentEpoch_ = documentEpoch_;
   child->syncedChildGraph_ = graph;
@@ -300,47 +489,64 @@ void EditorWindow::openChild() {
   workflow["name"] = node["ui_properties"].toObject()["title"].toString(
       snapshot["name"].toString(key == "graph" ? tr("Subgraph")
                                                : tr("Linked workflow")));
-  workflow["graph"] = graph.isEmpty() ? QJsonObject{{"nodes", QJsonArray{}},
-                                                    {"edges", QJsonArray{}}}
-                                      : graph;
+  workflow["graph"] =
+      graph.isEmpty() ? QJsonObject{{"nodes", QJsonArray{}}, {"edges", QJsonArray{}}} : graph;
   (void)child->document_.load(workflow);
   child->childSyncing_ = false;
-  connect(&child->document_, &node_editor::WorkflowDocument::changed, child,
-          &EditorWindow::syncChild);
-  connect(&child->session_, &node_editor::WorkflowSession::credentialsChanged,
-          child, [child] { child->childParent_.clear(); });
+    child->childWriteTimer_ = new QTimer(child);
+    child->childWriteTimer_->setSingleShot(true);
+    child->childWriteTimer_->setInterval(300);
+    connect(child->childWriteTimer_, &QTimer::timeout, child, &EditorWindow::syncChild);
+    connect(&child->document_, &node_editor::WorkflowDocument::changed, child, [child] {
+        if (child->childSyncing_) {
+            return;
+        }
+        if (child->inlineChild_) {
+            child->childWriteTimer_->start();
+        } else {
+            child->syncChild();
+        }
+    });
+    connect(&child->session_, &node_editor::WorkflowSession::credentialsChanged, child, [child] {
+        if (!child->inlineChild_) {
+            child->childParent_.clear();
+        }
+    });
   if (key != "graph" && !id.isEmpty() && !owner->tabsOrigin_.isEmpty()) {
-    child->requestedWorkflow_ = id;
-    child->session_.openWorkflow(id);
+      child->requestedWorkflow_ = id;
+      child->session_.openWorkflow(id);
   }
   child->fit();
-  owner->notifyTabs();
+    auto host = child;
+    while (host->inlineChild_ && host->childParent_) {
+        host = host->childParent_;
+    }
+    host->shownSurface_ = child;
+    owner->notifyTabs();
 }
 void EditorWindow::syncChild() {
-  if (childSyncing_ || !childParent_ ||
-      childParentEpoch_ != childParent_->documentEpoch_) {
-    return;
-  }
-  const auto node = childParent_->document_.node(childNode_);
-  if (node.isEmpty()) {
-    message_ = tr(
-        "The parent node was removed. Child edits are retained in this tab.");
-    emit panelChanged();
-    return;
-  }
-  const auto graph = document_.graph();
-  if (graph == syncedChildGraph_) {
-    return;
-  }
-  const auto result = childParent_->document_.applyCommand(
-      {{"op", "setChildGraph"}, {"id", childNode_}, {"graph", graph}},
-      tr("Edit child graph and synchronize ports"));
-  if (!result) {
-    message_ = result.error;
-    emit panelChanged();
-    return;
-  }
-  syncedChildGraph_ = graph;
+    if (childSyncing_ || !childParent_ || childParentEpoch_ != childParent_->documentEpoch_) {
+        return;
+    }
+    const auto node = childParent_->document_.node(childNode_);
+    if (node.isEmpty()) {
+        message_ = tr("The parent node was removed. Child edits are retained in this tab.");
+        emit panelChanged();
+        return;
+    }
+    const auto graph = document_.graph();
+    if (graph == syncedChildGraph_) {
+        return;
+    }
+    const auto result = childParent_->document_.applyCommand(
+        {{"op", "setChildGraph"}, {"id", childNode_}, {"graph", graph}},
+        tr("Edit child graph and synchronize ports"));
+    if (!result) {
+        message_ = result.error;
+        emit panelChanged();
+        return;
+    }
+    syncedChildGraph_ = graph;
 }
 void EditorWindow::showLinkedWorkflows() {
   auto menu = new QMenu(this);
@@ -405,6 +611,7 @@ void EditorWindow::refreshChildReferences() {
     QNetworkRequest request(tabOwner_->tabsOrigin_.resolved(QUrl(
         "/api/workflows/" + QString::fromLatin1(QUrl::toPercentEncoding(id)))));
     request.setTransferTimeout(30000);
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
     request.setRawHeader("Authorization",
                          "Bearer " + tabOwner_->tabsToken_.toUtf8());
     auto reply = network->get(request);

@@ -11,6 +11,7 @@
 #include <QWebSocketServer>
 #include <QWebSocket>
 #include <QtTest>
+using namespace nodetool;
 using namespace nodetool::node_editor;
 
 class JobsServer final : public QObject {
@@ -133,6 +134,7 @@ class QueueDataTest final : public QObject {
     }
     static void click(QQuickWidget *widget, QString name) {
         QVERIFY(widget);
+        QTRY_VERIFY(widget->height() > 0);
         auto item = find(widget->rootObject(), name);
         QVERIFY(item);
         QVERIFY(item->isEnabled());
@@ -212,6 +214,24 @@ private slots:
         QTest::qWait(80);
         QVERIFY(fresh.queue().isEmpty());
     }
+    void closedTabPointer() {
+        JobsServer server;
+        server.hold = true;
+        EditorWindow window;
+        window.resize(1280, 900);
+        window.show();
+        window.session()->connectToServer(server.url(), {});
+        QTRY_COMPARE(server.held.size(), 1);
+        QPointer<WorkflowSession> closed = window.session();
+        click(panel(window, "TabBar.qml"), "new-workflow-tab");
+        QTRY_COMPARE(window.workflowTabs().size(), 2);
+        click(panel(window, "TabBar.qml"), "close-tab-0");
+        QTRY_VERIFY(closed.isNull());
+        JobsServer::respond(server.held[0], {{"jobs", QJsonArray{JobsServer::job("shared", "running")}}, {"next_start_key", QJsonValue::Null}});
+        QTRY_COMPARE(window.session()->queue().size(), 1);
+        QCOMPARE(window.session()->queue()[0].toMap()["jobId"].toString(), QString("shared"));
+        QCOMPARE(server.lists, 1);
+    }
     void externalCancellationPointer() {
         JobsServer server;
         server.jobs = {JobsServer::job("external", "running")};
@@ -248,11 +268,13 @@ private slots:
             nodes.append(QJsonObject{{"id", id}, {"type", "nodetool.input.StringInput"}, {"data", QJsonObject{{"value", "initial"}}}});
         }
         workflow["graph"] = QJsonObject{{"nodes", nodes}, {"edges", QJsonArray{QJsonObject{{"id", "ab"}, {"source", "a"}, {"sourceHandle", "value"}, {"target", "b"}, {"targetHandle", "value"}}}}};
-        QVERIFY(window.document()->load(workflow));
+        QVERIFY(window.document()->load(workflow).ok);
         QApplication::processEvents();
         QVERIFY(window.selectNode("a"));
         window.session()->connectToServer(server.url(), {});
         QTRY_VERIFY(window.session()->connected());
+        window.setCatalog(QJsonDocument::fromJson(R"([{"node_type":"nodetool.input.StringInput","properties":[{"name":"value","type":{"type":"str"}}]}])").array());
+        QVERIFY(window.selectNode("a"));
         QVERIFY(window.commitProperty("a", "value", "off"));
         QTest::qWait(350);
         QVERIFY(server.commands.isEmpty());
@@ -307,6 +329,10 @@ private slots:
         QCOMPARE(root->property("runLabel").toString(), QString("Run entire workflow"));
         const auto id = window.session()->run(snapshot());
         QTRY_COMPARE(root->property("runLabel").toString(), QString("Starting"));
+        for (const auto &status : {"starting", "scheduled", "queued"}) {
+            server.update(id, status);
+            QTRY_COMPARE(root->property("runLabel").toString(), QString("Starting"));
+        }
         server.update(id, "queued", 3);
         QTRY_COMPARE(root->property("runLabel").toString(), QString("Queued (#3)"));
         QCOMPARE(root->property("runTooltip").toString(), QString("Queued (#3)"));
@@ -327,6 +353,10 @@ private slots:
         edited["name"] = "Edited";
         window.session()->setSnapshot(edited);
         QTRY_COMPARE(root->property("runLabel").toString(), QString("Run entire workflow"));
+        for (const auto &status : {"completed", "cancelled"}) {
+            server.update(id, status);
+            QTRY_COMPARE(root->property("runLabel").toString(), QString("Run entire workflow"));
+        }
     }
 };
 QTEST_MAIN(QueueDataTest)

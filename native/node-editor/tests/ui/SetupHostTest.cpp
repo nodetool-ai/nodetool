@@ -12,6 +12,7 @@
 #include <QTemporaryDir>
 #include <QWebSocket>
 #include <QWebSocketServer>
+#include <QWheelEvent>
 #include <QtTest>
 using namespace nodetool;
 namespace {
@@ -45,7 +46,8 @@ public:
             while (hasPendingConnections()) {
                 auto socket = nextPendingConnection();
                 connect(socket, &QTcpSocket::readyRead, this, [this, socket] {
-                    if (socket->peek(socket->bytesAvailable()).contains("Upgrade: websocket")) {
+                    if (socket->peek(socket->bytesAvailable())
+                            .contains("Upgrade: websocket")) {
                         socket->disconnect(this);
                         websocket.handleConnection(socket);
                         return;
@@ -103,6 +105,33 @@ public:
                                       bytes.mid(bytes.indexOf("\r\n\r\n") + 4))
                                       .object();
                         data = {{"id", "created-template"}};
+                    } else if (route.startsWith(
+                                   "/api/workflows/created-template")) {
+                        send(socket,
+                             {{"id", "created-template"},
+                              {"name", "Template"},
+                              {"updated_at", "2026-01-01T00:00:00Z"},
+                              {"graph",
+                               QJsonObject{
+                                   {"nodes",
+                                    QJsonArray{QJsonObject{
+                                        {"id", "template-input"},
+                                        {"type", "nodetool.input.StringInput"},
+                                        {"data", QJsonObject{{"properties",
+                                                              QJsonObject{}}}},
+                                        {"position",
+                                         QJsonObject{{"x", 0}, {"y", 0}}}}}},
+                                   {"edges", QJsonArray{}}}}});
+                        return;
+                    } else if (route == "/api/workflows") {
+                        auto workflow =
+                            QJsonDocument::fromJson(
+                                bytes.mid(bytes.indexOf("\r\n\r\n") + 4))
+                                .object();
+                        workflow["id"] = "saved-first-workflow";
+                        workflow["updated_at"] = "2026-01-01T00:00:00Z";
+                        send(socket, workflow);
+                        return;
                     } else if (route.startsWith("/api/nodes/metadata")) {
                         send(socket, {{"nodes", metadata()}});
                         return;
@@ -152,16 +181,54 @@ QQuickItem *find(QQuickItem *item, const QString &name) {
 }
 bool click(EditorWindow &window, const QString &name) {
     QCoreApplication::processEvents();
+    QList<QQuickWindow *> surfaces;
     for (auto host : window.findChildren<QQuickWidget *>()) {
-        if (!host->isVisible() || !host->rootObject()) {
-            continue;
+        if (host->isVisible() && host->rootObject()) {
+            surfaces.append(host->quickWindow());
         }
-        auto item = find(host->rootObject(), name);
+    }
+    for (auto surface : QGuiApplication::allWindows()) {
+        if (auto quick = qobject_cast<QQuickWindow *>(surface);
+            quick && quick->isVisible() && !surfaces.contains(quick)) {
+            surfaces.append(quick);
+        }
+    }
+    for (auto surface : surfaces) {
+        auto item = find(surface->contentItem(), name);
         if (!item || !item->isVisible() || !item->isEnabled()) {
             continue;
         }
+        for (int attempt = 0; attempt < 12; ++attempt) {
+            const auto point =
+                item->mapToScene({item->width() / 2, item->height() / 2});
+            QQuickItem *clipped = nullptr;
+            for (auto ancestor = item->parentItem(); ancestor;
+                 ancestor = ancestor->parentItem()) {
+                if (ancestor->clip() &&
+                    !ancestor->mapRectToScene(ancestor->boundingRect())
+                         .contains(point)) {
+                    clipped = ancestor;
+                    break;
+                }
+            }
+            if (!clipped) {
+                break;
+            }
+            const auto position =
+                clipped->mapToScene(clipped->boundingRect().center());
+            QWheelEvent wheel(position,
+                              surface->mapToGlobal(position.toPoint()), {},
+                              QPoint(0, -480), Qt::NoButton, Qt::NoModifier,
+                              Qt::NoScrollPhase, false);
+            QCoreApplication::sendEvent(surface, &wheel);
+            QTest::qWait(50);
+        }
+        QTest::mouseMove(
+            surface, item->mapToScene({item->width() / 2, item->height() / 2})
+                         .toPoint());
+        QTest::qWait(50);
         QTest::mouseClick(
-            host->quickWindow(), Qt::LeftButton, Qt::NoModifier,
+            surface, Qt::LeftButton, Qt::NoModifier,
             item->mapToScene({item->width() / 2, item->height() / 2})
                 .toPoint());
         QCoreApplication::processEvents();
@@ -169,6 +236,7 @@ bool click(EditorWindow &window, const QString &name) {
     }
     return false;
 }
+
 } // namespace
 class SetupHostTest : public QObject {
     Q_OBJECT
@@ -274,8 +342,7 @@ private slots:
     }
     void liveReadiness() {
         Server http;
-        QWebSocketServer ws("setup", QWebSocketServer::NonSecureMode);
-        QVERIFY(ws.listen(QHostAddress::LocalHost));
+        auto &ws = http.websocket;
         QPointer<QWebSocket> peer;
         QList<QJsonObject> commands;
         connect(&ws, &QWebSocketServer::newConnection, this, [&] {
@@ -291,8 +358,7 @@ private slots:
         });
         EditorWindow window;
         window.show();
-        window.session()->connectToServer(
-            QUrl(QString("http://127.0.0.1:%1").arg(ws.serverPort())), {});
+        window.session()->connectToServer(http.url(), {});
         QTRY_VERIFY(window.session()->connected());
         window.activeEditor()->setup()->configure(http.url(), {}, "one");
         QTRY_VERIFY(window.activeEditor()->guideVisible());
@@ -313,7 +379,7 @@ private slots:
         QVERIFY(window.document()->applyCommand(
             {{"op", "addEdge"}, {"edge", edge}}));
         QTRY_VERIFY(window.activeEditor()->guideReadiness()[2].toBool());
-        window.document()->undoStack()->setClean();
+        window.session()->save();
         QTRY_VERIFY(window.activeEditor()->guideReadiness()[3].toBool());
         QVERIFY(click(window, "run-workflow"));
         QTRY_VERIFY(!commands.isEmpty());
@@ -352,24 +418,34 @@ private slots:
                  QString("template-seed"));
         QCOMPARE(server.created["from_example_package"].toString(),
                  QString("nodetool-base"));
+        QTRY_COMPARE(window.document()->nodes().size(), 1);
+        QCOMPARE(window.document()->nodes()[0].toObject()["id"].toString(),
+                 QString("template-input"));
     }
     void packFailureRetryCancelAndAccountChange() {
         Server server;
         EditorWindow window;
+        window.resize(1200, 1200);
         window.show();
         window.session()->connectToServer(server.url(), {}, "one");
         auto controller = window.activeEditor()->setup();
         QTRY_COMPARE(controller->state(), QString("ready"));
         QCOMPARE(server.mutations, 0);
+        if (window.outputVisible()) {
+            window.action("Output");
+        }
         QVERIFY(click(window, "catalog-optional-packs"));
+        QTest::qWait(200);
         QVERIFY(click(window, "catalog-runtimes"));
         QTRY_COMPARE(controller->state(), QString("ready"));
+        QTest::qWait(200);
         QVERIFY(click(window, "setup-close"));
         QVERIFY(click(window, "setup-templates"));
         QTRY_COMPARE(controller->state(), QString("templates"));
         QCOMPARE(controller->templates().size(), 1);
         QVERIFY(click(window, "setup-close"));
         QVERIFY(click(window, "catalog-optional-packs"));
+        QTest::qWait(200);
         QVERIFY(click(window, "catalog-runtimes"));
         QTRY_COMPARE(controller->state(), QString("ready"));
         server.fail = true;

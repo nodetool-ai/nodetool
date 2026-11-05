@@ -65,13 +65,17 @@ Rectangle {
             TypeIcon { x: Ui.Metrics.sm; anchors.verticalCenter: parent.verticalCenter; name: "search"; size: Ui.Metrics.iconSm }
         }
         Rectangle { Layout.fillWidth: true; Layout.preferredHeight: Ui.Metrics.border; color: roles.divider }
-        RowLayout {
+        GridLayout {
+            columns: root.nodes.length === 0 ? 1 : 2
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: 0
+            rowSpacing: Ui.Metrics.none
+            columnSpacing: Ui.Metrics.none
             ColumnLayout {
-                Layout.preferredWidth: Ui.Metrics.xxxl * 4
-                Layout.fillHeight: true
+                Layout.preferredWidth: root.nodes.length === 0 ? root.width : Ui.Metrics.xxxl * 5
+                Layout.minimumWidth: root.nodes.length === 0 ? root.width : Ui.Metrics.xxxl * 5
+                Layout.maximumWidth: root.nodes.length === 0 ? root.width : Ui.Metrics.xxxl * 5
+                Layout.fillHeight: root.nodes.length > 0
                 spacing: Ui.Metrics.sm
             ListView {
                 id: namespaces
@@ -160,6 +164,7 @@ Rectangle {
                     }
                 }
                 Ui.EmptyState {
+                    objectName: "catalog-empty-state"
                     anchors.centerIn: parent
                     width: parent.width
                     maxTextWidth: width - Ui.Metrics.xl
@@ -172,6 +177,7 @@ Rectangle {
         Rectangle { Layout.fillWidth: true; Layout.preferredHeight: Ui.Metrics.border; color: roles.divider }
         Ui.Text {
             objectName: "catalog-help"
+            visible: root.nodes.length > 0
             Layout.fillWidth: true
             Layout.preferredHeight: 96
             leftPadding: Ui.Metrics.lg; rightPadding: Ui.Metrics.lg

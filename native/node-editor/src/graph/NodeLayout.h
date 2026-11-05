@@ -1,6 +1,7 @@
 #pragma once
 #include <QColor>
 #include <QSize>
+#include <QRectF>
 #include <QString>
 #include <QVector>
 
@@ -78,6 +79,12 @@ struct NodeLayout {
   QString icon;
   QColor accent;
   bool unknown = false;
+    bool subgraph = false;
+    bool addOutput = false;
+    bool runningProgress = false;
+    QRectF outputFormRect() const { return QRectF(node_metrics::padding, footerRect().y() - node_metrics::handleRowStep * (runningProgress ? 2 : 1), size.width() - 2 * node_metrics::padding, node_metrics::handleRowStep); }
+    QString childCount;
+    QRectF footerRect() const { return QRectF(0, size.height() - node_metrics::handleRowStep, size.width(), node_metrics::handleRowStep); }
   QVector<NodeRow> rows;
   QVector<double> inputY;
   QVector<double> outputY;

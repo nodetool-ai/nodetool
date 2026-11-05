@@ -1,6 +1,11 @@
 // Port of packages/protocol/src/builtin-packs.ts and web/src/utils/providerPacks.ts
 // (using nodeProvider.ts). Keep namespace ownership and key gates in sync with those sources.
-struct PackMapping { const char *id; QStringList namespaces; const char *key; bool required; };
+struct PackMapping {
+    const char *id;
+    QStringList namespaces;
+    const char *key;
+    bool required;
+};
 const QList<PackMapping> mappings = {
     {"whisper-cpp", {"whisper_cpp"}, "", false},
     {"base", {"anthropic", "claude_code", "codex", "gemini", "kie", "lib", "messaging", "mistral", "nodetool", "openai", "vector", "vertex", "xai"}, "ANTHROPIC_API_KEY", true},

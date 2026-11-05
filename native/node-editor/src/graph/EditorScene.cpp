@@ -188,14 +188,19 @@ public:
         painter->drawRoundedRect(box.adjusted(-spread, 1 - spread, spread, 1 + spread), nm::radius + spread, nm::radius + spread);
       }
     }
-    painter->setPen(QPen(item.isSelected() ? layout.accent : theme.divider, nm::borderWidth, disabled ? Qt::DashLine : Qt::SolidLine));
+    auto borderColor = theme.divider;
+    if (layout.subgraph) {
+        borderColor = theme.subgraphAccent;
+        borderColor.setAlpha(64);
+    }
+    painter->setPen(QPen(item.isSelected() ? (layout.subgraph ? theme.subgraphAccent : layout.accent) : borderColor, layout.subgraph && item.isSelected() ? 2 * nm::borderWidth : nm::borderWidth, disabled ? Qt::DashLine : Qt::SolidLine));
     painter->setBrush(theme.node);
     painter->drawRoundedRect(box.adjusted(0.5, 0.5, -0.5, -0.5), nm::radius - 0.5, nm::radius - 0.5);
 
     const auto inset = double(nm::borderWidth + nm::padding);
     auto iconColor = theme.textSecondary;
     iconColor.setAlphaF(0.65);
-    paintIcon(painter, layout.icon, QRectF(inset + 2, inset + 4, 16, 16), iconColor);
+    paintIcon(painter, layout.icon, QRectF(inset + 2, inset + 4, 16, 16), layout.subgraph ? theme.subgraphAccent : iconColor);
     painter->setPen(theme.textPrimary);
     painter->setFont(canvasFont(theme, nm::fontTitle, QFont::Normal));
     const QRectF title(inset + nm::titleOffset, inset, layout.size.width() - 2 * inset - nm::titleOffset - (disabled ? nm::disabledBadgeWidth : 0), nm::headerHeight);
@@ -208,6 +213,24 @@ public:
       painter->drawText(QRectF(box.width() - inset - nm::disabledBadgeWidth, inset, nm::disabledBadgeWidth, nm::headerHeight), Qt::AlignRight | Qt::AlignVCenter, QStringLiteral("Disabled"));
     }
     for (const auto &row : layout.rows) { paintRow(painter, layout, row, inset); }
+    if (layout.addOutput) {
+        painter->setPen(theme.textSecondary);
+        painter->setFont(canvasFont(theme, nm::fontValue, QFont::Normal));
+        painter->drawText(layout.outputFormRect(), Qt::AlignLeft | Qt::AlignVCenter, QObject::tr("+ Add output"));
+    }
+    if (layout.subgraph) {
+        const auto footer = layout.footerRect();
+        if (item.property("footerHovered").toBool()) {
+            painter->fillRect(footer.adjusted(1, 1, -1, -1), theme.field);
+        }
+        painter->setPen(theme.divider);
+        painter->drawLine(footer.topLeft(), footer.topRight());
+        painter->setPen(theme.textSecondary);
+        painter->setFont(canvasFont(theme, nm::fontValue, QFont::Normal));
+        paintIcon(painter, "accountTree", QRectF(inset, footer.y() + 7, 14, 14), theme.textSecondary);
+        painter->drawText(footer.adjusted(inset + 18, 0, -32, 0), Qt::AlignLeft | Qt::AlignVCenter, QObject::tr("Open subgraph"));
+        painter->drawText(footer.adjusted(inset, 0, -32, 0), Qt::AlignRight | Qt::AlignVCenter, layout.childCount);
+    }
     paintHandles(painter, model, item.nodeId(), layout);
     const auto runtime = model.runtimeState(item.nodeId());
     if (!runtime.isEmpty()) {
@@ -248,7 +271,16 @@ public:
       const auto total = runtime["total"].toDouble();
       if (total > 0) { label += QString(" %1%").arg(int(100 * std::clamp(runtime["progress"].toDouble() / total, 0.0, 1.0))); }
       if (!model.runtimeConnected() && running) { label += " · Disconnected"; }
-      painter->drawText(box.adjusted(inset, 0, -inset, -2), Qt::AlignRight | Qt::AlignBottom, label);
+        const auto bottomInset = layout.subgraph ? nm::handleRowStep : 0;
+        if (layout.subgraph && status == "running" && total > 0) {
+            const auto fraction = std::clamp(runtime["progress"].toDouble() / total, 0.0, 1.0);
+            const QRectF track(inset, box.height() - bottomInset - nm::rowHeight - nm::padding,
+                               box.width() - 2 * inset, nm::micro);
+            painter->fillRect(track, theme.field);
+            painter->fillRect(QRectF(track.topLeft(), QSizeF(track.width() * fraction, track.height())), theme.subgraphAccent);
+            label = QString("%1 / %2").arg(runtime["progress"].toDouble()).arg(total);
+        }
+        painter->drawText(box.adjusted(inset, 0, -inset, -2 - bottomInset), Qt::AlignRight | Qt::AlignBottom, label);
     }
     if (!model.readOnly()) { paintResizeHandle(painter, layout.size, theme.textSecondary); }
     painter->restore();
@@ -592,6 +624,27 @@ bool EditorScene::beginReconnect(ConnectionId connection, PortType side) {
 }
 
 void EditorScene::mousePressEvent(QGraphicsSceneMouseEvent *event) {
+    footerPress_ = InvalidNodeId;
+    outputFormPress_ = false;
+    if (event->button() == Qt::LeftButton) {
+        for (auto *item : items(event->scenePos(), Qt::IntersectsItemShape, Qt::DescendingOrder)) {
+            auto *node = qgraphicsitem_cast<NodeGraphicsObject *>(item);
+            if (!node) { continue; }
+            const auto &layout = model_.layout(node->nodeId());
+            if (layout.addOutput && !model_.readOnly() && layout.outputFormRect().contains(node->mapFromScene(event->scenePos()))) {
+                footerPress_ = node->nodeId();
+                outputFormPress_ = true;
+                event->accept();
+                return;
+            }
+            if (layout.subgraph && layout.footerRect().adjusted(0, 0, -16, 0).contains(node->mapFromScene(event->scenePos()))) {
+                footerPress_ = node->nodeId();
+                event->accept();
+                return;
+            }
+            break;
+        }
+    }
   inlinePress_ = false;
   resetDraftConnection();
   restoreGroupOrder();
@@ -722,6 +775,27 @@ void EditorScene::mousePressEvent(QGraphicsSceneMouseEvent *event) {
 }
 
 void EditorScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event) {
+    if (auto *old = nodeGraphicsObject(footerHover_)) {
+        old->setProperty("footerHovered", false);
+        old->setToolTip({});
+        old->update();
+    }
+    footerHover_ = InvalidNodeId;
+    for (auto *item : items(event->scenePos(), Qt::IntersectsItemShape, Qt::DescendingOrder)) {
+        auto *node = qgraphicsitem_cast<NodeGraphicsObject *>(item);
+        if (!node) { continue; }
+        const auto &layout = model_.layout(node->nodeId());
+        const bool hovered = layout.subgraph && layout.footerRect().contains(node->mapFromScene(event->scenePos()));
+        footerHover_ = hovered ? node->nodeId() : InvalidNodeId;
+        node->setProperty("footerHovered", hovered);
+        node->setToolTip(hovered ? tr("Open the subgraph in its own tab") : QString{});
+        node->update();
+        break;
+    }
+    if (footerPress_ != InvalidNodeId) {
+        event->accept();
+        return;
+    }
   QHash<NodeId, QPointF> before;
   for (const auto id : model_.allNodeIds()) { before[id] = model_.nodeData(id, NodeRole::Position).toPointF(); }
   if (gesture_ == Gesture::Label) {
@@ -752,6 +826,19 @@ void EditorScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event) {
 }
 
 void EditorScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
+    if (footerPress_ != InvalidNodeId) {
+        const auto id = footerPress_;
+        footerPress_ = InvalidNodeId;
+        auto *item = nodeGraphicsObject(id);
+        const auto rect = outputFormPress_ ? model_.layout(id).outputFormRect() : model_.layout(id).footerRect();
+        if (event->button() == Qt::LeftButton && item && rect.contains(item->mapFromScene(event->scenePos()))) {
+            if (outputFormPress_) { emit outputFormRequested(model_.resourceId(id)); }
+            else { emit childOpenRequested(model_.resourceId(id)); }
+        }
+        outputFormPress_ = false;
+        event->accept();
+        return;
+    }
   if (!reconnectEdge_.isEmpty() && event->button() == Qt::LeftButton) {
     const auto id = reconnectingEdgeId();
     auto connection = reconnectEdge_;

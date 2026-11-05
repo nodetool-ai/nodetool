@@ -4,6 +4,7 @@
 #include <QNetworkReply>
 #include <QUrlQuery>
 #include <QSettings>
+#include <QDesktopServices>
 
 namespace nodetool::node_editor {
 namespace {
@@ -94,6 +95,11 @@ void PackSetup::request(const QString &route, const QJsonObject &body, bool muta
         done(response["result"].toObject()["data"].toObject());
         emit changed();
     });
+}
+void PackSetup::openProviderSettings() {
+    if (!origin_.isEmpty()) {
+        QDesktopServices::openUrl(origin_.resolved(QUrl("/settings?tab=1")));
+    }
 }
 void PackSetup::refresh() {
     request("packs.listBuiltins", {}, false, [this](const QJsonObject &data) {

@@ -34,6 +34,7 @@ QString typeIcon(const QString &type) {
 QString iconPath(const QString &name) {
   // Material icon paths. See native/ui_primitives/resources/licenses/MATERIAL-ICONS.md.
   static const QHash<QString, QString> paths{
+      {"accountTree", "M22 11V3h-7v3H9V3H2v8h7V8h2v12h4v3h7v-8h-7v3h-2V8h2v3z"},
       {"quote", "M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z"},
       {"image", "M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2M8.5 13.5l2.5 3.01L14.5 12l4.5 6H5z"},
       {"movie", "M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H5L3 4H2v14c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4z"},

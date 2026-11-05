@@ -4,66 +4,153 @@ import NodeTool.UiPrimitives as Ui
 
 Rectangle {
     id: root
-    EditorRoles { id: roles }
+    EditorRoles {
+        id: roles
+    }
     color: roles.chrome
-    implicitHeight: roles.tabHeight
-    Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: Ui.Metrics.border; color: roles.divider }
-    Flickable {
-        anchors.fill: parent
-        contentWidth: tabRow.implicitWidth
-        clip: true
-        flickableDirection: Flickable.HorizontalFlick
-        Row {
-            id: tabRow
-            height: parent.height
-            Repeater {
-                model: editor ? editor.workflowTabs : []
-                delegate: Item {
-                    required property int index
-                    required property var modelData
-                    objectName: "workflow-tab-" + index
-                    height: tabRow.height
-                    width: controls.implicitWidth + Ui.Metrics.md * 2
-                    RowLayout {
-                        id: controls
-                        anchors.centerIn: parent
-                        spacing: Ui.Metrics.xs
-                        Ui.EditorButton {
-                density: Ui.EditorButton.Compact
-                variant: Ui.EditorButton.Flat
-                            objectName: "activate-tab-" + index
-                            text: modelData.title
-                            Accessible.name: modelData.title + (modelData.dirty ? " — Unsaved changes" : "")
-                            onClicked: editor.activateTab(index)
+    implicitHeight: roles.tabHeight + childRows.implicitHeight
+    Rectangle {
+        width: parent.width
+        height: roles.tabHeight
+        color: roles.chrome
+        Rectangle {
+            anchors.bottom: parent.bottom
+            width: parent.width
+            height: Ui.Metrics.border
+            color: roles.divider
+        }
+        Flickable {
+            anchors.fill: parent
+            contentWidth: tabRow.implicitWidth
+            clip: true
+            flickableDirection: Flickable.HorizontalFlick
+            Row {
+                id: tabRow
+                height: parent.height
+                Repeater {
+                    model: editor ? editor.workflowTabs : []
+                    delegate: Item {
+                        required property int index
+                        required property var modelData
+                        objectName: "workflow-tab-" + index
+                        height: tabRow.height
+                        width: controls.implicitWidth + Ui.Metrics.md * 2
+                        RowLayout {
+                            id: controls
+                            anchors.centerIn: parent
+                            spacing: Ui.Metrics.xs
+                            Ui.EditorButton {
+                                density: Ui.EditorButton.Compact
+                                variant: Ui.EditorButton.Flat
+                                objectName: "activate-tab-" + index
+                                text: modelData.title
+                                Accessible.name: modelData.title + (modelData.dirty ? " — Unsaved changes" : "")
+                                onClicked: editor.activateTab(index)
+                            }
+                            Rectangle {
+                                objectName: "unsaved-indicator"
+                                visible: modelData.dirty
+                                width: Ui.Metrics.sm
+                                height: width
+                                radius: width / 2
+                                color: Ui.Theme.statusWarning
+                                Accessible.name: "Unsaved changes"
+                            }
+                            Ui.EditorButton {
+                                density: Ui.EditorButton.Compact
+                                variant: Ui.EditorButton.Flat
+                                objectName: "close-tab-" + index
+                                text: "×"
+                                Accessible.name: "Close " + modelData.title
+                                onClicked: editor.closeTab(index)
+                            }
                         }
                         Rectangle {
-                            objectName: "unsaved-indicator"
-                            visible: modelData.dirty
-                            width: Ui.Metrics.sm; height: width; radius: width / 2
-                            color: Ui.Theme.statusWarning
-                            Accessible.name: "Unsaved changes"
+                            anchors.bottom: parent.bottom
+                            width: parent.width
+                            height: Ui.Metrics.focus
+                            visible: editor && editor.activeTab === index
+                            color: Ui.Theme.accentPrimary
                         }
-                        Ui.EditorButton {
-                density: Ui.EditorButton.Compact
-                variant: Ui.EditorButton.Flat
-                            objectName: "close-tab-" + index
-                            text: "×"
-                            Accessible.name: "Close " + modelData.title
-                            onClicked: editor.closeTab(index)
+                        Rectangle {
+                            anchors.right: parent.right
+                            width: Ui.Metrics.border
+                            height: parent.height
+                            color: roles.divider
                         }
                     }
-                    Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: Ui.Metrics.focus; visible: editor && editor.activeTab === index; color: Ui.Theme.accentPrimary }
-                    Rectangle { anchors.right: parent.right; width: Ui.Metrics.border; height: parent.height; color: roles.divider }
+                }
+                Ui.EditorButton {
+                    density: Ui.EditorButton.Compact
+                    variant: Ui.EditorButton.Flat
+                    objectName: "new-workflow-tab"
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "+"
+                    Accessible.name: "New workflow tab"
+                    onClicked: editor.newTab()
                 }
             }
-            Ui.EditorButton {
-                density: Ui.EditorButton.Compact
-                variant: Ui.EditorButton.Flat
-                objectName: "new-workflow-tab"
-                anchors.verticalCenter: parent.verticalCenter
-                text: "+"
-                Accessible.name: "New workflow tab"
-                onClicked: editor.newTab()
+        }
+    }
+    Column {
+        id: childRows
+        y: roles.tabHeight
+        width: parent.width
+        Repeater {
+            model: editor ? editor.canvasStrips : []
+            delegate: Rectangle {
+                required property var modelData
+                readonly property int depth: modelData.depth
+                objectName: "subgraph-strip-" + depth
+                width: childRows.width
+                height: Ui.Metrics.compact
+                color: roles.chrome
+                Flickable {
+                    anchors.fill: parent
+                    contentWidth: childrenRow.width
+                    clip: true
+                    Row {
+                        id: childrenRow
+                        height: parent.height
+                        Repeater {
+                            model: modelData.entries
+                            delegate: Item {
+                                required property var modelData
+                                required property int index
+                                width: entryControls.implicitWidth + Ui.Metrics.md * 2
+                                height: childrenRow.height
+                                Row {
+                                    id: entryControls
+                                    anchors.centerIn: parent
+                                    Ui.EditorButton {
+                                        density: Ui.EditorButton.Compact
+                                        variant: Ui.EditorButton.Flat
+                                        objectName: "activate-canvas-" + depth + "-" + index
+                                        text: modelData.title
+                                        onClicked: editor.activateSurface(modelData.surface)
+                                    }
+                                    Ui.EditorButton {
+                                        density: Ui.EditorButton.Compact
+                                        variant: Ui.EditorButton.Flat
+                                        objectName: "close-canvas-" + depth + "-" + index
+                                        visible: !modelData.host
+                                        text: "×"
+                                        Accessible.name: "Close " + modelData.title
+                                        onClicked: editor.closeSurface(modelData.surface)
+                                    }
+                                }
+                                Rectangle {
+                                    objectName: "canvas-selection"
+                                    anchors.top: parent.top
+                                    width: parent.width
+                                    height: Ui.Metrics.focus
+                                    visible: modelData.selected
+                                    color: modelData.host ? Ui.Theme.accentPrimary : roles.subgraphAccent
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

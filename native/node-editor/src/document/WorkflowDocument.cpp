@@ -156,7 +156,7 @@ bool loopFeedback(const QJsonObject& node, const QString& handle) {
 QJsonObject portType(const QJsonObject& rawNode, const QString& handle, bool output,
                      const QHash<QString, QJsonObject>& metadata) {
     QJsonArray catalog;
-    for (const auto &entry : metadata) catalog.append(entry);
+    for (const auto &entry : metadata) { catalog.append(entry); }
     const auto node = withChildPorts(withVisibleCodePorts(rawNode), catalog);
     const auto type = node.value("type").toString();
     if (handle.isEmpty() || !metadata.contains(type)) { return {}; }
@@ -730,18 +730,19 @@ EditResult edit(QJsonObject& workflow, const QJsonObject& command, const QHash<Q
         }
     } else if (op == "setChildGraph" || op == "setChildSnapshot") {
         const auto index = indexOf(nodes, id);
-        if (index < 0) return failure("Child owner no longer exists");
+        if (index < 0) { return failure("Child owner no longer exists"); }
         const auto previous = withChildPorts(nodes[index].toObject());
         auto n = nodes[index].toObject();
         const auto key = childGraphKey(n);
-        if (key.isEmpty() || !command["graph"].isObject()) return failure("Unsupported child graph");
+        if (key.isEmpty() || !command["graph"].isObject()) { return failure("Unsupported child graph"); }
+        if (op == "setChildSnapshot" && !command["snapshot"].isObject()) { return failure("Child snapshot must be an object"); }
         auto data = n["data"].toObject();
-        if (op == "setChildSnapshot") data[key] = command["snapshot"];
-        else if (key == "graph") data[key] = command["graph"];
+        if (op == "setChildSnapshot") { data[key] = command["snapshot"]; }
+        else if (key == "graph") { data[key] = command["graph"]; }
         else { auto snapshot = data[key].toObject(); snapshot["graph"] = command["graph"]; data[key] = snapshot; }
         n["data"] = data;
         QJsonArray catalog;
-        for (const auto &entry : metadata) catalog.append(entry);
+        for (const auto &entry : metadata) { catalog.append(entry); }
         n = withChildPorts(n, catalog);
         removeStaleChildEdges(previous, n, edges);
         nodes[index] = n;
@@ -750,6 +751,11 @@ EditResult edit(QJsonObject& workflow, const QJsonObject& command, const QHash<Q
         if (index < 0) { return failure("Unknown node ID"); }
         auto n = nodes[index].toObject();
         if (op == "setProperty" || op == "removeProperty") {
+            if (isChildNode(n)) {
+                QJsonArray catalog;
+                for (const auto &entry : metadata) { catalog.append(entry); }
+                n = withChildPorts(n, catalog);
+            }
             const auto name = command.value("name").toString();
             if (name.isEmpty() || (op == "setProperty" && !command.contains("value"))) { return failure("Property requires name and value"); }
             const auto rows = propertyFields(n, metadata.value(n.value("type").toString()), edges);

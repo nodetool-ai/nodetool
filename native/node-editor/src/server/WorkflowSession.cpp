@@ -18,6 +18,9 @@ WorkflowSession::WorkflowSession(QObject *parent)
     m_connected = true;
     emit stateChanged();
     reconnectRuns();
+    if (m_accountJobs) {
+        m_accountJobs->refresh(true);
+    }
     if (serverBound()) refreshRemoteWorkflow();
   });
   connect(&m_socket, &QWebSocket::disconnected, this, [this] {
@@ -57,7 +60,7 @@ QVariantList WorkflowSession::queue() const {
             if (m_runs.contains(id)) {
                 const auto live = m_runs.value(id);
                 for (const auto &key : {"status", "queue_position", "error", "uncertain", "order", "edit", "started_at"}) {
-                    if (live.contains(key)) {
+                    if (live.contains(key) && (QString::fromLatin1(key) != "started_at" || row["started_at"].isNull())) {
                         row[key] = live[key];
                     }
                 }
@@ -138,8 +141,12 @@ void WorkflowSession::connectToServer(const QUrl &base, const QString &token,
   m_base = base;
   m_token = token;
   m_userId = userId;
+    const auto accountEpoch = m_epoch;
     m_accountJobs = AccountJobs::acquire(m_base, m_token, m_userId);
-    connect(m_accountJobs.data(), &AccountJobs::changed, this, [this] {
+    connect(m_accountJobs.data(), &AccountJobs::changed, this, [this, accountEpoch] {
+        if (accountEpoch != m_epoch) {
+            return;
+        }
         for (const auto &value : m_accountJobs->rows()) {
             const auto row = value.toObject();
             const auto id = row["id"].toString();
@@ -150,7 +157,10 @@ void WorkflowSession::connectToServer(const QUrl &base, const QString &token,
         }
         emit stateChanged();
     });
-    connect(m_accountJobs.data(), &AccountJobs::cancelled, this, [this](QString id, QString status) {
+    connect(m_accountJobs.data(), &AccountJobs::cancelled, this, [this, accountEpoch](QString id, QString status) {
+        if (accountEpoch != m_epoch) {
+            return;
+        }
         if (m_runs.contains(id)) {
             m_runs[id]["status"] = status;
             m_runs[id]["terminal"] = QStringList{"cancelled", "failed", "completed"}.contains(status);

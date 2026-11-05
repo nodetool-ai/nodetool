@@ -4,6 +4,8 @@ import NodeTool.UiPrimitives as Ui
 // Web editor colors that the shared native palette flattens or does not define.
 // Values come from web/src/components/themes and the visual comparison capture.
 QtObject {
+    // web/src/constants/nodeTypes.ts: SUBGRAPH_ACCENT_COLOR
+    readonly property color subgraphAccent: "#7c3aed"
     readonly property bool dark: Ui.Theme.dark
     readonly property color canvas: dark ? "#08090a" : "#f6f6f8"
     readonly property color grid: dark ? "#1f2126" : "#d9d9df"

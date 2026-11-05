@@ -1167,13 +1167,15 @@ Child canvases and linked workflow navigation are described below.
 The guide waits for `workflows.list({ limit: 1 })` and appears only when the
 saved list is empty. Disconnected editors and unresolved lists hide it. Account
 changes invalidate pending responses. The guide offers the String Input → Output
-starter, choosing nodes, and server workflow templates. Starter creation is an explicit, atomic document edit. Starting or choosing nodes
+starter, choosing nodes, and server workflow templates. Starter creation is an
+explicit, atomic document edit. Starting or choosing nodes
 keeps the guide visible with the five readiness items. Closing dismisses it for
 the current document. Readiness follows
 `web/src/components/node/reactFlowGraphModel.ts:firstWorkflowReadiness`: exact
 starter node types, a directed edge between them, both nodes with a clean document,
 and any completed run.
-The catalog also opens the runtimes and packs dialog for existing workflows.
+The optional packs entry follows the namespace list in the catalog. Its popover
+also opens the runtimes and packs dialog for existing workflows.
 Missing metadata remains visible on its card. Missing runtime warnings use the
 server's runtime status response. Catalog refresh changes presentation metadata,
 without rewriting stored nodes, edges, properties, positions or undo history.
@@ -1184,23 +1186,63 @@ server exercises starter and template actions, unknown metadata, runtime warning
 pack progress, failure, retry, cancellation, account replacement and tab closure.
 It checks unchanged graph JSON and undo history after metadata disappears and
 returns. Capture output is enabled only by `NODETOOL_SETUP_CAPTURE_DIR`.
-The dark and light empty-canvas captures were opened at original resolution and
-inspected for readable text, visible actions and unclipped layout.
+Dark and light captures at 1200 × 800 cover the unstarted guide and started
+checklist. Each was opened at original resolution. The guide has a title, caption,
+one row of actions, a primary starter, and outlined alternatives. It sits 24
+logical pixels below the canvas top and centers in the canvas left by the docks.
+The checklist shows success checks and disabled circles without clipping. Native
+uses a fixed preferred panel width and a flat border rather than the web
+surface's content sizing and elevation shadow. Template browsing remains a native
+dialog rather than the web examples tab. F38 is not accepted.
 
 Pack enabling calls `packs.setBuiltinEnabled` and reloads the node catalog on
-success. It requires an explicit click. Cancel invalidates the local response
-rather than claiming to stop work already accepted by the server. Account changes
-clear the dependency scope. Closed tabs destroy the request owner.
+success. `PackSetup` shares pack state and pending IDs across tabs in one window.
+Only the active tab supplies node types. Disabled optional builtins enable when
+used by that workflow or when `settings.secrets.list` reports their key configured.
+The namespace and key mapping is a native port with source references in
+`src/server/PackMapping.inc`. The route does not expose that mapping.
+The category visibility catalog names its web source in `PackSetup.cpp`.
+
+A rejection changes the error alone and does not retrigger synchronization.
+New node types, changed secrets or an explicit refresh can retry, as with the web
+hook's effect inputs. Credential changes discard pending responses. The native
+key check uses `is_configured`, because the server includes unconfigured catalog
+rows. The web hook currently checks row presence alone, unlike its stated intent.
+Secret metadata refreshes every 30 seconds and when the optional packs panel opens.
+Automatic pack operations never invoke a document command.
+
+`tests/ui/PackSetupHostTest.cpp` is registered as `node_editor_pack_setup_host`.
+It uses a local fake server with builtin and secret response shapes from the
+server routers. Capture output uses `NODETOOL_PACK_SETUP_CAPTURE_DIR`.
+The focused host checks key and workflow enabling, already enabled and required
+packs, inactive tabs, shared pending requests, rejection without a retry loop,
+stale account responses, unchanged graph and undo state, and catalog refresh.
+Removing workflow pack discovery made its test fail with zero mutations instead
+of one. Removing the pending guard made the two-tab test fail with two mutations
+instead of one. Both mutations were restored before the passing focused run.
+
+The dark and light `disabled`, `enabling` and `enabled` PNGs were opened at
+original 1200 × 800 resolution. The scrolled panel shows provider credentials,
+local pack state, refresh and runtimes access. The local toggle is off, disabled
+while enabling, then on. The trigger sits below the namespace list, separated
+from the panel edges. The popup uses the web's 340 logical pixel width and a
+70% height limit, with native typography, flat borders and native controls.
+The trigger lacks the web inventory icon and separate accent-colored count.
+“Add API key” opens the connected server's provider settings in the browser,
+rather than an embedded workspace tab. Native adds refresh and runtime actions.
+F38 remains unaccepted.
 
 Runtime installation remains unavailable in this native host. The server router
 at `packages/websocket/src/trpc/routers/packs.ts` exposes `runtimeStatuses`,
 `setBuiltinEnabled` and `reload`, but no runtime install or cancellation procedure.
 The web installer calls Electron's `window.api.packages.installRuntime`, handled
-in `electron/src/ipc.ts`. The native dialog explains installation on the server
-machine rather than issuing an invented install request.
+in `electron/src/ipc.ts`. Open scope decision for the user: whether native should
+gain a local runtime installer equivalent to Electron IPC. The native editor currently offers server
+runtime detection, missing-runtime warnings, builtin pack enabling and instructions
+to install runtimes on the server machine through Electron Package Manager.
+It offers no runtime installation, progress or installation cancellation operation.
+No server route was added.
 
-Pack enabling is explicit rather than
-the web hook's automatic enabling for configured keys or loaded builtin nodes.
 Template browsing uses `workflows.examples` inside the native dialog. Its list
 contains empty graph placeholders. Selection calls `workflows.create` with the
 example seed reference and package, then opens the created server workflow.
@@ -1210,13 +1252,21 @@ router. The tested pack operation enables a builtin already shipped on the serve
 
 ### F24 run queue
 
-`WorkflowSession` exposes its own submitted jobs to `QueueOverlay.qml`. Jobs
-remain scoped to the tab that submitted them. Switching credentials clears the
-queue, and closing the tab destroys its session and pending callbacks. Unknown
-job events cannot create queue entries. Run remains available during execution
-and submits a distinct job. Stop and Remove use the existing `cancel_job`
-WebSocket command and wait for the server's terminal event. Disconnected buttons
-cannot submit or cancel. An uncertain run must be reconciled before resubmission.
+`AccountJobs` shares the authenticated `jobs.list({limit: 20})` query across tabs.
+It retains server ordering and merges local run events by job ID. Rows expose
+`name`, `status`, `started_at`, `workflow_id` and `jobId`. Missing job names use
+the workflow name. Account replacement disconnects the old cache subscription.
+Closing the last tab destroys its cache and pending callbacks. Like
+`useRunningJobs`, there is no polling interval. Mounts reuse results for ten
+seconds, and submission, lifecycle events, reconnects and cancellation refresh
+the query. A window with N tabs makes one initial list request per account,
+with no per-tab polling. Invalidation during an in-flight fetch schedules one
+shared follow-up fetch.
+
+Stop and Remove call `jobs.cancel`, including jobs submitted by another client.
+Failures reach the editor error surface and clear the stopping state. Run labels
+and tooltips include queue position and pending count. Ctrl/Cmd+Enter runs the
+workflow, and Escape stops active work before clearing canvas gestures.
 
 The queue starts collapsed with a status dot, one run name or a running count,
 an elapsed clock, an expand control and queued count. Expanded content groups
@@ -1227,7 +1277,8 @@ Enter or Space activation. The selected card shows On canvas. Pinned canvas
 focus remains different from the web store.
 
 The overlay is 304 logical pixels wide at the canvas leading margin, beyond the
-native rail and catalog. Its height stops above the floating toolbar. Narrow
+native rail and catalog. Its maximum height is the window height minus 112 logical pixels. Like the web
+overlay, it floats above the output dock. Narrow
 canvases constrain its width to keep controls inside the viewport. Enter and exit
 use the primitive normal motion duration with retained exit content. Reduced
 motion removes transitions and progress animation. Elapsed clocks use server
@@ -1239,15 +1290,47 @@ MsgPack events through EditorWindow. `NODETOOL_QUEUE_CAPTURE_DIR` enables dark
 and light captures at wide and narrow sizes, in both expansion states. F24 remains
 partial pending visual acceptance and pinned canvas focus parity.
 
-More includes Instant Update. Native property commits run the changed node and
-its downstream targets through the partial-run planner when connected and idle.
-The web also debounces preview changes in
-`web/src/hooks/nodes/useInputNodeAutoRun.ts`. Native drafts stay local until
-commit in `EditorWindow::commitProperty`. Job discovery and cancellation
-transport are tracked separately from overlay presentation.
+More includes Instant Update. Numeric commits immediately run the changed node
+and its downstream targets when connected and idle. Other commits debounce for
+300 milliseconds. Drafts remain local. This follows the server auto-run path in
+`web/src/hooks/nodes/useInputNodeAutoRun.ts`. Both clients freeze canvas execution animation while Instant Update is enabled.
+The web also provides unconditional in-browser image-slider previews through
+`useLiveSliderWriter.ts`. Native has no browser kernel preview host, so that
+local-preview path remains different.
+
+`QueueDataTest.cpp`, registered as `node_editor_queue_data`, uses real jobs-router
+response envelopes from a local HTTP and MsgPack server. It covers account-wide
+rows, deduplication, status fields, shared requests, account and closed-session
+isolation, cancellation success and rejection, toolbar text, shortcuts and
+Instant Update execution. F24 remains partial.
 
 
 ## F09 child graphs and derived ports
+
+Subgraph cards use the shared violet role, editable derived inputs and an
+Open subgraph footer with inner-node counts. The footer opens the child by
+pointer and keeps its count clear of the resize handle. Graph storage is hidden
+from property fields without changing the document. Running cards show progress
+above the footer. Add output opens the native dynamic-port form.
+
+[GroupIntoSubgraph](../src/document/GroupIntoSubgraph.cpp) follows
+`useGroupIntoSubgraph.ts` lines 79–161 for internal and boundary edges, port
+deduplication, `inN`/`outN` names and boundary-node positions. Lines 190–208 define
+selection expansion, metadata requirements and centroid placement. Native node
+creation supplies the standard width, and one graph replacement provides the
+single undo entry from lines 237–245. Existing node, edge and graph extension
+fields survive. The web offers no inverse subgraph operation or dedicated
+shortcut in these call sites.
+
+[SubgraphCardTest](../tests/ui/SubgraphCardTest.cpp), registered as
+`node_editor_subgraph_card`, covers footer counts and opening, hidden graph
+storage, inline input editing, output creation, boundary grouping and exact JSON
+undo/redo through pointer and keyboard events. Removing the graph filter and
+boundary rewrite makes those regression tests fail. Set
+`NODETOOL_SUBGRAPH_CARD_CAPTURE_DIR` to capture dark and light cards with their
+inspectors. F09 remains partial pending visual acceptance. The native output
+form opens in a popup rather than expanding inside the card. Running progress
+has no web elapsed-time estimate.
 
 [ChildPorts](../src/document/ChildPorts.cpp) reads inline subgraphs and stored
 workflow/app snapshots. It uses the web input/output type mappings, metadata
@@ -1256,10 +1339,20 @@ app constants, variable defaults and streamed output correlation. Projection
 keeps unknown incident handles without rewriting imported JSON.
 
 [EditorTabs](../src/ui/EditorTabs.cpp) opens child canvases from the selection
-bar, double-click, More or the command menu. Tab labels show the parent and
-child. Each child has its own document and undo stack. Inline edits write back
-to the owning node. Returning after parent undo reloads the stored child graph
-and resets stale child history. Closing a parent closes its inline descendants.
+bar, double-click, More or the command menu. Inline subgraphs appear in a
+per-workflow strip below the workflow tabs. Each strip starts with a host tab
+that cannot close. Nested strips keep the ancestor child tab marked. The
+subgraph accent role follows the web violet. Each surface retains its own
+EditorWindow, QML engine, document and undo stack. The owner keeps a surface
+registry, while the workflow list and persisted state exclude inline children.
+
+Inline edits write back after 300 ms of inactivity and flush through ancestors
+before switching, closing or saving, following
+[SubgraphTabContent](../../../web/src/components/workspace/SubgraphTabContent.tsx).
+Returning after parent undo reloads the stored child graph, resets stale child
+history and closes its descendants. Replacing a workflow closes its child
+surfaces. Closing a child closes its descendants. Reopening reads the parent
+graph. Canvas shortcuts, inspector data and run controls use the shown surface.
 Inline Save uses the parent document. Unknown child graph fields and nested
 snapshots survive copy and local save/reopen.
 
@@ -1277,16 +1370,18 @@ responses. Linked workflows is available from More and the command menu.
 entry with a deterministic HTTP/WebSocket fixture. It covers child editing and
 return, retained edges, independent undo scope, parent reconciliation, nested
 copy, unknown-field round trips, app binding/stream derivation, missing children
-and delayed responses after tab closure or account replacement. Set
-`NODETOOL_SUBGRAPH_CAPTURE_DIR` for dark and light host captures. Run with:
+and delayed responses after tab closure or account replacement. Pointer tests
+cover host activation, nested marks, cascade closure, reopening, workflow
+closure and child Save. Restore tests exclude child canvases and retain the
+owning workflow selection. Replacement rejects pending child writeback. Set
+`NODETOOL_SUBGRAPH_CAPTURE_DIR` for dark and light captures with one and two
+levels of child strips. Run with:
 
 ```sh
 QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software ctest --test-dir <build> --output-on-failure -R '^node_editor_(subgraph|workflow_tabs|ui|menus)$'
 ```
 
-Native child canvases use the document strip with parent labels rather than the
-web's recursive strip within a workspace tab. Child writes are committed with
-each document command rather than a debounce. App and workflow choice currently
+F09 remains partial. App and workflow choice currently
 uses the existing node properties and saved snapshots rather than the web's
 specialized selection controls. The linked-workflows menu lists workflow/app
 nodes in the current graph rather than a mini app document's operation bindings.

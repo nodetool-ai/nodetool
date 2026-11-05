@@ -39,6 +39,7 @@ Rectangle {
             }
             Ui.EditorButton {
                 objectName: "setup-guide-close"
+                Layout.alignment: Qt.AlignTop
                 visible: editor.guideStarted
                 iconName: "close"
                 accessibleName: "Close guide"

@@ -9,6 +9,13 @@
 namespace nodetool::node_editor {
 QSharedPointer<AccountJobs> AccountJobs::acquire(const QUrl &base, const QString &token, const QString &user) {
     static QHash<QString, QWeakPointer<AccountJobs>> caches;
+    for (auto it = caches.begin(); it != caches.end();) {
+        if (it.value().isNull()) {
+            it = caches.erase(it);
+        } else {
+            ++it;
+        }
+    }
     const auto key = base.toString() + '\n' + user + '\n' + token;
     auto cache = caches.value(key).toStrongRef();
     if (!cache) {

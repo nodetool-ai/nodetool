@@ -1,5 +1,6 @@
 #pragma once
 #include "PropertyVisibility.h"
+#include "document/ChildPorts.h"
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QJsonDocument>
@@ -301,11 +302,13 @@ inline QJsonObject propertyEditorType(const QJsonObject& p) {
     }
     return type;
 }
-inline QVariantList propertyFields(const QJsonObject& node, const QJsonObject& metadata, const QJsonArray& edges) {
+inline QVariantList propertyFields(const QJsonObject& rawNode, const QJsonObject& metadata, const QJsonArray& edges) {
+    const auto node = withChildPorts(rawNode);
     QVariantList rows;
     QSet<QString> names;
     const auto append = [&](QJsonObject p, const QString& storage) {
         const auto name = p.value("name").toString();
+        if (node.value("type") == "nodetool.workflows.subgraph.Subgraph" && name == "graph") { return; }
         if (name.isEmpty() || names.contains(name)) { return; }
         names.insert(name);
         const auto data = node.value(storage).toObject();
