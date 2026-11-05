@@ -1,4 +1,4 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 
 import { getGameConsoleStore } from "../../../../stores/game/GameConsoleStore";
 import { promptForMissingRuntimePackage } from "../../../../stores/RuntimePackagePromptStore";
@@ -35,9 +35,9 @@ it("shows the console, streams cargo's output into it and reports the executable
   });
   const onStart = jest.fn();
   const { result } = renderHook(() => useGameExecutableBuild({ id: gameId, name: "Cave Run" }, onStart));
-  act(() => result.current.run());
+  await act(async () => result.current.run());
   expect(onStart).toHaveBeenCalledTimes(1);
-  await waitFor(() => expect(result.current.binaryPath).toBe("/w/bin/cave-run"));
+  expect(result.current.binaryPath).toBe("/w/bin/cave-run");
   expect(result.current.building).toBe(false);
   const lines = getGameConsoleStore(gameId).getState().groups.map((group) => [group.level, group.source, group.message]);
   expect(lines).toEqual([
@@ -52,8 +52,9 @@ it("offers to install Rust when cargo is missing", async () => {
   const gameId = "exec-build-no-rust";
   mockBuild.mockRejectedValue(new GameExecutableBuildError("cargo was not found", "rust"));
   const { result } = renderHook(() => useGameExecutableBuild({ id: gameId, name: "Cave Run" }, () => undefined));
-  act(() => result.current.run());
-  await waitFor(() => expect(result.current.error).toBe("cargo was not found"));
+  await act(async () => result.current.run());
+  expect(result.current.error).toBe("cargo was not found");
+  expect(result.current.building).toBe(false);
   expect(mockPrompt).toHaveBeenCalledWith("rust");
   expect(getGameConsoleStore(gameId).getState().groups.at(-1)).toMatchObject({ level: "error", message: "cargo was not found" });
 });

@@ -1266,8 +1266,8 @@ export const SANDBOX_API_COVERAGE: Readonly<
   },
   "worker.comfyPresets": {
     withheld:
-      "Lists the RunPod templates that worker.startComfyPreset rents. " +
-      "Provisioning is withheld, so a run has no use for the list."
+      "Worker provisioning presets are host configuration for starting " +
+      "compute, not a sandbox capability."
   },
   "worker.detach": {
     withheld:
@@ -1320,9 +1320,8 @@ export const SANDBOX_API_COVERAGE: Readonly<
   },
   "worker.startComfyPreset": {
     withheld:
-      "Provisioning and terminating compute, and reading the API key " +
-      "a worker authenticates with. Host control, not the caller's " +
-      "data."
+      "Starting a preset provisions compute and is restricted to local " +
+      "host control."
   },
   "worker.stop": { capability: "stop_worker" },
   "worker.stopAll": {

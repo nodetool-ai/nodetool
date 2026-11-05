@@ -44,6 +44,10 @@ export class GameScriptSaveCollector {
     return rest;
   }
 
+  rollback(length: number): void {
+    this.requests.length = length;
+  }
+
   entries(): readonly GameSaveRequest[] {
     return this.requests;
   }

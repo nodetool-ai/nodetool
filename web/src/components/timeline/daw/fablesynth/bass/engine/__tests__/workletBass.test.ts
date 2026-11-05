@@ -136,6 +136,43 @@ describe("BL-1 worklet timeline protocol", () => {
     expect(accented.proc.acc).toBe(true);
   });
 
+  it("plays the latest tagged note even when its pitch is already owned", () => {
+    const r = makeRunner({});
+    r.send({ t: "evs", tag: "a", ev: ev([0, 1, 36, 0.5]) });
+    r.send({ t: "evs", tag: "b", ev: ev([128, 1, 43, 0.5]) });
+    r.send({ t: "evs", tag: "c", ev: ev([256, 1, 36, 1]) });
+    for (let i = 0; i < 3; i++) r.quantum();
+    expect(r.proc.semiTarget).toBe(0);
+  });
+
+  it("plays a tagged note after a live note released the same pitch", () => {
+    const r = makeRunner({});
+    r.send({ t: "evs", tag: "a", ev: ev([0, 1, 36, 0.8]) });
+    r.quantum();
+    r.send({ t: "noteon", pitch: 36, vel: 0.8 });
+    r.send({ t: "noteoff", pitch: 36 });
+    expect(r.proc.gate).toBe(true);
+    r.send({ t: "evs", tag: "b", ev: ev([128, 1, 36, 1]) });
+    r.quantum();
+    expect(r.proc.gate).toBe(true);
+  });
+
+  it("clears one tag while preserving a shared held pitch and future events", () => {
+    const r = makeRunner({});
+    r.send({ t: "evs", tag: "a", ev: ev([0, 1, 36, 0.8], [9000, 1, 40, 0.8]) });
+    r.send({ t: "evs", tag: "b", ev: ev([0, 1, 36, 0.8], [12000, 1, 43, 0.8], [16000, 0, 43, 0], [17000, 0, 36, 0]) });
+    r.quantum();
+    const before = r.proc.fenvT;
+    r.send({ t: "evclear", tag: "a" });
+    r.quantum();
+    expect(r.proc.gate).toBe(true);
+    expect(r.proc.fenvT).toBeGreaterThan(before);
+    for (let i = 0; i < 95; i++) r.quantum();
+    expect(r.proc.semiTarget).toBe(7);
+    for (let i = 0; i < 60; i++) r.quantum();
+    expect(r.proc.gate).toBe(false);
+  });
+
   it("evclear drops queued events and releases the voice", () => {
     const r = makeRunner({ events: ev([0, 1, 36, 0.8], [9000, 1, 40, 0.8]) });
     r.quantum();

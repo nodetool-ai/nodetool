@@ -993,6 +993,8 @@ class BassProcessor extends AudioWorkletProcessor {
     // Timeline note events, sorted by frame (note-offs first within a frame).
     this.evq = [];
     this.evHead = 0;
+    this.eventHeld = new Map();
+    this.liveEventTag = Symbol();
     this.bpm = 120;
     this.anchor = 0; // context frame of the timeline's beat zero
     this.songPos = 0; // frames since beat zero, for the bar-locked LFO
@@ -1080,10 +1082,10 @@ class BassProcessor extends AudioWorkletProcessor {
   }
 
   // ev: flat [frame, on, pitch, velocity] quadruples (any order).
-  queueEvents(ev) {
+  queueEvents(ev, tag) {
     const pending = this.evq.slice(this.evHead);
     for (let i = 0; i + 3 < ev.length; i += 4) {
-      pending.push({ f: ev[i], on: ev[i + 1] > 0.5, pitch: ev[i + 2] | 0, vel: ev[i + 3] });
+      pending.push({ f: ev[i], on: ev[i + 1] > 0.5, pitch: ev[i + 2] | 0, vel: ev[i + 3], tag });
     }
     pending.sort((a, b) => a.f - b.f || (a.on ? 1 : 0) - (b.on ? 1 : 0));
     this.evq = pending;
@@ -1091,8 +1093,30 @@ class BassProcessor extends AudioWorkletProcessor {
   }
 
   applyEvent(e) {
-    if (e.on) this.keyOn(e.pitch - ROOT_MIDI, e.vel);
-    else this.keyOff(e.pitch - ROOT_MIDI);
+    this.applyTaggedEvent(e, e.pitch, () => this.keyOn(e.pitch - ROOT_MIDI, e.vel), () => this.keyOff(e.pitch - ROOT_MIDI));
+  }
+
+  applyTaggedEvent(e, pitch, on, off) {
+    if (e.tag === undefined) { if (e.on) on(); else off(); return; }
+    let held = this.eventHeld.get(e.tag);
+    if (!held) { held = new Set(); this.eventHeld.set(e.tag, held); }
+    if (e.on) {
+      held.add(pitch);
+      on();
+    } else if (held.delete(pitch)) {
+      if (![...this.eventHeld.values()].some((notes) => notes.has(pitch))) off();
+      if (!held.size) this.eventHeld.delete(e.tag);
+    }
+  }
+
+  clearEventTag(tag) {
+    this.evq = this.evq.slice(this.evHead).filter((e) => e.tag !== tag);
+    this.evHead = 0;
+    const held = this.eventHeld.get(tag);
+    this.eventHeld.delete(tag);
+    if (held) for (const pitch of held) {
+      if (![...this.eventHeld.values()].some((notes) => notes.has(pitch))) this.keyOff(pitch - ROOT_MIDI);
+    }
   }
 
   onMsg(d) {
@@ -1120,20 +1144,23 @@ class BassProcessor extends AudioWorkletProcessor {
         this.setTables(d.list);
         break;
       case 'evs':
-        this.queueEvents(d.ev);
+        this.queueEvents(d.ev, d.tag);
         break;
       case 'evclear':
+        if (d.tag !== undefined) { this.clearEventTag(d.tag); break; }
+        this.eventHeld.clear();
         this.evq = []; this.evHead = 0;
         this.held.length = 0;
         this.release();
         break;
-      case 'noteon': this.keyOn((d.pitch | 0) - ROOT_MIDI, d.vel); break;
-      case 'noteoff': this.keyOff((d.pitch | 0) - ROOT_MIDI); break;
+      case 'noteon': this.applyTaggedEvent({ tag: this.liveEventTag, on: true }, d.pitch | 0, () => this.keyOn((d.pitch | 0) - ROOT_MIDI, d.vel), () => {}); break;
+      case 'noteoff': this.applyTaggedEvent({ tag: this.liveEventTag, on: false }, d.pitch | 0, () => {}, () => this.keyOff((d.pitch | 0) - ROOT_MIDI)); break;
       case 'tempo':
         if (Number.isFinite(d.bpm)) this.bpm = d.bpm;
         if (Number.isFinite(d.anchor)) this.anchor = d.anchor;
         break;
       case 'panic':
+        this.eventHeld.clear();
         this.kill(); this.held.length = 0;
         this.evq = []; this.evHead = 0;
         this.fx.reset();
