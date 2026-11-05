@@ -1,8 +1,8 @@
 # N1 native working resources
 
-The requested N1 work that does not depend on N2 is complete on Vulkan/lavapipe. A30 declares source transfer and A31 compares the shared inverse-Levels diagnostic. A109's precision-aware Color Match model waits for N2's capture boundary and is outside this task. The complete corrected N1 task list therefore remains unfinished. Keep FP16 off by default.
+N1's functional gate is met on Vulkan/lavapipe, Metal and D3D11/WARP. A30, A31, A33 and A35 have production-compositor tests in the combined CI logs. A109 is implemented and tested against actual renders in the [N2 result](n2-native-export.md#a109-color-match-working-format-model). FP16 remains off by default. See the [clause audit](plan-status-audit.md) for test names, evidence locations and hardware limits.
 
-No schema, document setting, capture, export or presentation behavior changed. The internal entry point remains `PreviewCompositor::setWorkingFormat(nt::WorkingFormat::Rgba16F)`.
+The N1 resource changes did not alter schema, document settings, capture, export or presentation behavior. The internal entry point remains `PreviewCompositor::setWorkingFormat(nt::WorkingFormat::Rgba16F)`.
 
 ## Full-scene qualification
 
@@ -68,7 +68,7 @@ Build and test logs are under `/home/mg/Projects/nodetool-film/build/color-n0/`:
 
 Production FP16 capture still rejects the request with `FP16 working capture requires the N2 delivery boundary`. The new test asserts both the rejection and absence of a byte capture. The hook is absent from production builds. N2 was not started.
 
-The local compositor exit checks pass on the named software backend. Color Match still models byte intermediates. A109 remains a corrected N1 item, but this task explicitly leaves it until N2 supplies the capture boundary.
+At this local checkpoint, the compositor exit checks passed on the named software backend. Color Match still modeled byte intermediates. The later A109 implementation and combined CI supersede that limitation, as linked above.
 
 Metal, D3D11/WARP, Windows hardware, OpenGL, FP16 hardware-decode interop, device loss, constrained physical-GPU peaks and release performance remain unverified. This run does not enable FP16 or qualify a release backend. Unsupported-format fallback remains N3 work.
 
@@ -149,5 +149,5 @@ passed seven cases without skips in `n1-transfer-tests.log`.
 
 `git diff --check` and the changed-file control-byte scan passed. No TypeScript
 tests, typecheck, lint, affected tests, harness gate or full CTest suite ran.
-FP16 remains off by default. N2 and A109 were not started. No schema or setting
+FP16 remains off by default. At this checkpoint, N2 and A109 had not started. No schema or setting
 was added.

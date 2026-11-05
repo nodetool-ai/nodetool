@@ -129,7 +129,7 @@ are in `tmp/a34-measure.py` and `tmp/a34-final/` under the same project root.
 `git diff --check`, changed-file control-byte checks and local Markdown file
 links pass. Editor logs are `tmp/a34/editor-{sw,auto}.log`. Baseline PNGs are in `tmp/a34/`.
 
-Metal and D3D11/WARP await CI. No TypeScript tests, typecheck, lint,
+At this local checkpoint, Metal and D3D11/WARP awaited CI. The CI confirmation below supersedes that limit. No TypeScript tests, typecheck, lint,
 `test:affected`, harness gate, `/verify`, full CTest suite, release-performance
 or hardware-decode tests ran. `check-precision.py` was not rerun because no
 backend selection, shader or delivery behavior changed. Nothing was pushed,

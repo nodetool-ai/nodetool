@@ -1,7 +1,10 @@
 # A43.2: Undithered server/browser WebGPU parity
 
-A43.2's working-frame comparison is met on SwiftShader through real Chromium
-WebGPU and Node/Dawn. Agent output is excluded until A91 passes. This does not
+A43.2 is partly met. Its browser/server working-frame comparison passes on
+SwiftShader through real Chromium WebGPU and Node/Dawn. A91 is now met, but
+this comparison still excludes migrated-agent output. The agent's decoded-PNG
+comparisons in [S5](s5-agent-rendering.md#current-qualification-queued-child-and-migrated-callers)
+do not establish undithered working-frame parity. This does not
 enable FP16 or qualify live editor presentation, WebCodecs, video decoding,
 native delivery or the browser's public exporter.
 
@@ -173,7 +176,7 @@ are removed by Playwright. No ffmpeg or ffprobe binary ran.
 
 Not run: test:affected, root typecheck, root lint, harness gate, /verify, full
 suites, hosted CI, video decode parity, presentation checks, WebCodecs delivery,
-native output or agent output. A91 has not passed. No push, rebase, branch
+native output or agent output. A91 passed later, but no agent comparison was added here. No push, rebase, branch
 switch or PR was performed.
 
 Implementation commits: d22426a418 records the alpha diagnostic and
