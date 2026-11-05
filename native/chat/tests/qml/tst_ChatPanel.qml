@@ -53,6 +53,43 @@ TestCase {
         }
         return null
     }
+    function test_subAgentTranscript() {
+        testDriver.replay("sub-agents")
+        tryVerify(() => findText(panel, "Audit the config loader") !== null)
+        verify(findText(panel, "2 messages") !== null)
+        verify(findText(panel, "Checked three files.") === null)
+        const button = findVisible(panel, "toolDetails_call-1")
+        verify(button !== null)
+        mouseClick(button)
+        tryVerify(() => findText(panel, "Checked three files.") !== null)
+        verify(findText(panel, "Read every config file and report unused keys.") !== null)
+        tryVerify(() => findText(panel, "Searched todo") !== null)
+        const directory = testDriver.screenshotDirectory()
+        if (directory) grabImage(panel).save(directory + "/sub-agents.png")
+    }
+    function test_longExecutionExpansionSurvivesScroll() {
+        testDriver.longExecution()
+        tryVerify(() => findVisible(panel, "nested_execution:long-run") !== null)
+        const list = findVisible(panel, "nested_execution:long-run")
+        tryCompare(list, "count", 2000)
+        list.positionViewAtBeginning()
+        tryVerify(() => findVisible(list, "message_log:0") !== null)
+        mouseClick(findText(findVisible(list, "message_log:0"), "Show details"))
+        tryVerify(() => findText(list, "Section 1 of 2") !== null)
+        list.positionViewAtEnd()
+        wait(100)
+        verify(list.contentItem.children.length < 80)
+        list.positionViewAtBeginning()
+        tryVerify(() => findText(list, "Section 1 of 2") !== null)
+    }
+    function test_executionTree() {
+        testDriver.replay("execution-tree")
+        tryVerify(() => findText(panel, "Agent execution") !== null)
+        tryVerify(() => findText(panel, "Audit configuration") !== null)
+        tryVerify(() => findText(panel, "Read config files") !== null)
+        const directory = testDriver.screenshotDirectory()
+        if (directory) grabImage(panel).save(directory + "/execution-tree.png")
+    }
     function init() {
         loadingView.active = false
         loadingSession.historyLoading = true

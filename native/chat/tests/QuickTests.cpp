@@ -26,6 +26,13 @@ public:
             m_session->applyEvent(object);
         }
     }
+    Q_INVOKABLE void longExecution() {
+        for (int i = 0; i < 2000; ++i) {
+            m_session->applyEvent({{"type", "log_update"}, {"thread_id", "a"},
+                {"agent_execution_id", "long-run"}, {"node_id", QString::number(i)},
+                {"content", QString(8192, QLatin1Char('x'))}});
+        }
+    }
     Q_INVOKABLE void thoughtHistory(int count) {
         QJsonArray rows;
         for (int i = 0; i < count; ++i) {

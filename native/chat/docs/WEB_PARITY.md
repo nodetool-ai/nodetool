@@ -272,3 +272,61 @@ that directory. No dependencies were added. TypeScript tests, TypeScript fixture
 conformance, typecheck, lint, harness gate and `/verify` were not run, as requested.
 Platform accessibility, a running web comparison and timeline-host rendering
 were not run.
+
+## Execution tree and child transcripts
+
+Execution messages now reduce in C++ into a model per execution ID, with task
+and step models below it. Planning text, task/step status, step results and
+step tool calls render in the tree. Completed and failed tasks close by
+default. Explicit expansion overrides stay in the part model, so delegate
+recycling does not discard them. Logs are closed rows with selectable
+4,096-character pages when expanded. Nested lists are virtualized and have
+bounded viewport heights. A streamed step update changes its owning row,
+without resetting the conversation.
+
+The `execution-tree.json` fixture covers planning, task creation, step progress
+and logs. Saved `agent_execution` messages accept object or JSON-encoded
+content, as the web execution hook does. Loading older execution history
+refolds the loaded execution events in chronological order. This history load
+resets presentation expansion, as an explicit reload does.
+
+The `sub-agents.json` fixture replays the cases in
+[MessageView.subAgent.test.tsx](../../../web/src/components/chat/message/__tests__/MessageView.subAgent.test.tsx).
+`run_subtask` and `run_search` use description/title/query labels and
+prompt/instructions objectives. Child chunks, final messages and results stay
+under the spawning call, with a folded message count excluding tool results.
+The card starts closed and an empty child stays a plain row. Nested tool calls
+reuse the existing grouping, phrasing, result and expansion implementation.
+The native model retains original event payloads and full IDs.
+
+Reload has the same server-data limit as web. The
+[message model](../../../packages/models/src/message.ts) stores execution IDs
+and event types, and the
+[history router](../../../packages/websocket/src/trpc/routers/messages.ts)
+returns them. Child transcript tags are absent from that persisted schema.
+The server's
+[synthetic child cards](../../../packages/websocket/src/session/chat-turn.ts)
+are socket messages, and web keeps their transcripts in `subAgentMessages`.
+A fresh reload therefore keeps the persisted parent call/objective/result,
+but cannot recover the live child transcript. Native does not invent or save
+that missing history. Bare planning/task/log events also require persisted
+execution messages to survive reload.
+
+Native uses nested scrollable surfaces and explicit detail buttons instead of
+web's connecting rail, task inspector and inline log layout. Planning currently
+shows the latest planning entry, with earlier payloads retained in the model
+snapshot. Wall-clock task durations and the web execution phase summary are
+not rendered. These are presentation differences, not persisted additions.
+
+Native coverage includes live versus encoded-history replay, owning-row
+notifications, the existing long message history tests, a long execution run,
+and expansion after log delegate recycling. Offscreen evidence is in
+`/home/mg/Projects/nodetool-film/tmp/chat-parity/execution-tree.png` and
+`/home/mg/Projects/nodetool-film/tmp/chat-parity/sub-agents.png`.
+Build and CTest logs use the `execution-` prefix in the same directory.
+The strict native design and dependency checks apply to the changed QML.
+
+TypeScript tests, TypeScript fixture conformance, typecheck, lint, harness gate
+and `/verify` were not run, per the task's native-only verification scope.
+Platform accessibility, measured input-to-paint latency and a running web
+screenshot comparison were not performed.

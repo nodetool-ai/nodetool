@@ -102,6 +102,7 @@ ColumnLayout {
     }
     Item {
         id: proseContainer
+        visible: root.text.length > 0
         Layout.fillWidth: !root.userMessage
         Layout.maximumWidth: root.userMessage ? root.width * (root.width < ChatMetrics.narrow ? 0.88 : 0.75) : root.width
         Layout.alignment: root.userMessage ? Qt.AlignRight : Qt.AlignLeft
@@ -146,7 +147,7 @@ ColumnLayout {
                         elide: Text.ElideRight
                     }
                     Ui.Text {
-                        visible: !!partFrame.part.tool
+                        visible: !!partFrame.part.tool || !!partFrame.part.tree
                         text: partFrame.part.displayStatus || ""
                         role: Ui.Typography.SansCaption
                         tone: partFrame.part.displayStatus === "Failed" ? Ui.Text.Error : Ui.Text.Secondary
@@ -158,12 +159,53 @@ ColumnLayout {
                         tone: Ui.Text.Secondary
                     }
                     Ui.EditorButton {
-                        visible: !!partFrame.part.tool || partFrame.kind === "thought"
+                        visible: (!!partFrame.part.tool && (!partFrame.part.subAgent || !!partFrame.part.objective || !!partFrame.part.argumentsText || !!partFrame.part.resultText || !!partFrame.part.childModel)) || !!partFrame.part.tree || partFrame.kind === "thought"
                         objectName: "toolDetails_" + (partFrame.part.tool_call_id || partFrame.index)
                         text: partFrame.detailsOpen ? qsTr("Hide details") : qsTr("Show details")
                         Accessible.expandable: true
                         Accessible.expanded: partFrame.detailsOpen
                         onClicked: root.parts.toggleExpanded(partFrame.index)
+                    }
+                }
+                Ui.Text {
+                    visible: (partFrame.part.transcriptCount || 0) > 0
+                    text: qsTr("%1 messages").arg(partFrame.part.transcriptCount || 0)
+                    role: Ui.Typography.SansCaption
+                }
+                PagedText {
+                    Layout.fillWidth: true
+                    visible: partFrame.detailsOpen && !!partFrame.part.objective
+                    sourceText: partFrame.detailsOpen ? (partFrame.part.objective || "") : ""
+                    chatSession: root.session
+                }
+                ListView {
+                    id: nested
+                    objectName: "nested_" + (partFrame.part.childKey || partFrame.part.tool_call_id || "")
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: visible ? Math.min(contentHeight, Ui.Metrics.comfortable * 8) : 0
+                    visible: partFrame.detailsOpen && !!partFrame.part.childModel
+                    model: visible ? partFrame.part.childModel : null
+                    clip: true
+                    reuseItems: true
+                    spacing: Ui.Metrics.sm
+                    ScrollBar.vertical: Ui.ScrollBar {}
+                    delegate: Loader {
+                        id: childRow
+                        required property string messageId
+                        required property string role
+                        required property string displayText
+                        required property var parts
+                        required property string status
+                        width: nested.width
+                        height: item ? item.implicitHeight : 0
+                        Component.onCompleted: setSource("MessageDelegate.qml", {
+                            messageId: Qt.binding(() => childRow.messageId),
+                            role: Qt.binding(() => childRow.role),
+                            text: Qt.binding(() => childRow.displayText),
+                            parts: Qt.binding(() => childRow.parts),
+                            status: Qt.binding(() => childRow.status),
+                            session: root.session
+                        })
                     }
                 }
                 Ui.Text {
@@ -264,9 +306,9 @@ ColumnLayout {
                 }
                 PagedText {
                     Layout.fillWidth: true
-                    visible: !partFrame.part.tool && (partFrame.kind !== "thought" || partFrame.detailsOpen) && (partFrame.kind !== "image" || !partFrame.part.mediaUrl)
+                    visible: !partFrame.part.tool && (!partFrame.part.tree || (partFrame.detailsOpen && !!partFrame.part.text)) && (partFrame.kind !== "thought" || partFrame.detailsOpen) && (partFrame.kind !== "image" || !partFrame.part.mediaUrl)
                     markdown: partFrame.kind === "thought" || partFrame.kind === "prose"
-                    sourceText: partFrame.kind === "thought" && !partFrame.detailsOpen ? "" : partFrame.part.text || partFrame.part.content || (typeof partFrame.part.result === "string" ? partFrame.part.result : "") || qsTr("This content is preserved by the server. Open the web app to use this content type.")
+                    sourceText: (partFrame.kind === "thought" || partFrame.part.tree) && !partFrame.detailsOpen ? "" : partFrame.part.text || partFrame.part.content || (typeof partFrame.part.result === "string" ? partFrame.part.result : "") || qsTr("This content is preserved by the server. Open the web app to use this content type.")
                     chatSession: root.session
                 }
                 Image {
