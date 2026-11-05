@@ -177,6 +177,7 @@ void ChatSession::disconnectFromServer() {
   m_threads.clear();
   m_selected.clear();
   m_actions.clear();
+  m_answeredActions.clear();
   m_hostCalls.clear();
   m_hostResults.clear();
   m_hostRequests.clear();
@@ -320,6 +321,15 @@ bool ChatSession::hasMoreHistory() const {
 void ChatSession::importHistory(const QString &id, const QJsonArray &rows,
                                 bool prepend) {
   state(id).messages->importHistory(rows, prepend);
+  if (!prepend) {
+    for (auto it = m_actions.cbegin(); it != m_actions.cend(); ++it) {
+      if (it.value()["thread_id"] != id) { continue; }
+      auto part = it.value();
+      part["actionId"] = it.key();
+      part["pending"] = true;
+      state(id).messages->addPart(part);
+    }
+  }
   for (const auto &row : rows) {
     resolveMedia(id, row.toObject());
   }
@@ -457,6 +467,16 @@ void ChatSession::stop() {
   }
   if (m_client.send({{"command", "stop"},
                      {"data", QJsonObject{{"thread_id", m_selected}}}})) {
+    const auto ids = m_actions.keys();
+    for (const auto &id : ids) {
+      if (m_actions.value(id)["thread_id"] != m_selected) { continue; }
+      auto part = m_actions.take(id);
+      m_answeredActions.insert(id);
+      part["actionId"] = id;
+      part["pending"] = false;
+      part["status"] = "Cancelled";
+      state(m_selected).messages->addPart(part);
+    }
     state(m_selected).status = "stopping";
     m_threads.setStatus(m_selected, "stopping");
     emit stateChanged();
@@ -509,7 +529,7 @@ void ChatSession::completeHostTool(const QString &id, const QVariantMap &result,
 void ChatSession::respondToAction(const QString &id, bool approved,
                                   const QString &text) {
   const auto action = m_actions.value(id);
-  if (action.isEmpty()) {
+  if (action.isEmpty() || !m_client.ready()) {
     return;
   }
   const auto kind = action["type"].toString();
@@ -520,8 +540,8 @@ void ChatSession::respondToAction(const QString &id, bool approved,
   } else if (kind == "plan_approval_request") {
     response["type"] = "plan_approval_response";
     response["decision"] = approved ? "approve" : "reject";
-    if (!text.isEmpty()) {
-      response["feedback"] = text;
+    if (!approved && !text.trimmed().isEmpty()) {
+      response["feedback"] = text.trimmed();
     }
   } else if (kind == "secret_request") {
     response["type"] = "secret_request_response";
@@ -533,10 +553,11 @@ void ChatSession::respondToAction(const QString &id, bool approved,
     return;
   }
   m_actions.remove(id);
+  m_answeredActions.insert(id);
   auto part = action;
   part["actionId"] = id;
   part["pending"] = false;
-  part["status"] = approved ? "approved" : "declined";
+  part["status"] = kind != "secret_request" && approved ? "approved" : "declined";
   state(action["thread_id"].toString()).messages->addPart(part);
   emit stateChanged();
 }
@@ -759,12 +780,16 @@ void ChatSession::applyEvent(const QJsonObject &event) {
     if (type == "tool_approval_request" || type == "plan_approval_request" ||
         type == "secret_request") {
       const auto actionId = event["approval_id"].toString();
-      if (actionId.isEmpty()) {
-        return;
+      if (!actionId.trimmed().isEmpty() && !m_answeredActions.contains(actionId)) {
+        m_actions[actionId] = event;
+        part["actionId"] = actionId;
+        part["pending"] = true;
+      } else {
+        part["pending"] = false;
+        part["actionId"] = actionId;
+        part["status"] = actionId.trimmed().isEmpty()
+            ? "Cannot answer: the server supplied no approval ID." : "Already answered or cancelled";
       }
-      m_actions[actionId] = event;
-      part["actionId"] = actionId;
-      part["pending"] = true;
       part["text"] = event["description"].toString(
           event["message"].toString(part["text"].toString()));
     }

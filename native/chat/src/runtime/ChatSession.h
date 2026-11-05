@@ -110,6 +110,7 @@ private:
   ChatClient m_client;
   nt::modelpicker::Catalog m_catalog;
   std::map<QString, State> m_states;
+  QSet<QString> m_answeredActions;
   QHash<QString, QJsonObject> m_actions, m_hostCalls;
   QHash<QString, QJsonObject> m_hostResults;
   QHash<QString, quint64> m_hostRequests;

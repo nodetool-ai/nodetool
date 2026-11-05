@@ -169,13 +169,19 @@ ColumnLayout {
                         tone: Ui.Text.Secondary
                     }
                     Ui.EditorButton {
-                        visible: (!!partFrame.part.tool && (!partFrame.part.subAgent || !!partFrame.part.objective || !!partFrame.part.argumentsText || !!partFrame.part.resultText || !!partFrame.part.childModel)) || !!partFrame.part.tree || partFrame.kind === "thought"
+                        visible: (!!partFrame.part.tool && (!partFrame.part.subAgent || !!partFrame.part.objective || !!partFrame.part.argumentsText || !!partFrame.part.resultText || !!partFrame.part.childModel)) || !!partFrame.part.tree || !!partFrame.part.collapsible || partFrame.kind === "thought"
                         objectName: "toolDetails_" + (partFrame.part.tool_call_id || partFrame.index)
                         text: partFrame.detailsOpen ? qsTr("Hide details") : qsTr("Show details")
                         Accessible.expandable: true
                         Accessible.expanded: partFrame.detailsOpen
                         onClicked: root.parts.toggleExpanded(partFrame.index)
                     }
+                }
+                PagedText {
+                    Layout.fillWidth: true
+                    visible: partFrame.kind === "tool_approval_request" && !!partFrame.part.text
+                    sourceText: partFrame.kind === "tool_approval_request" ? (partFrame.part.text || "") : ""
+                    chatSession: root.session
                 }
                 Ui.Text {
                     visible: (partFrame.part.transcriptCount || 0) > 0
@@ -310,15 +316,15 @@ ColumnLayout {
                 }
                 PagedText {
                     Layout.fillWidth: true
-                    visible: !!partFrame.part.actionId
-                    sourceText: (partFrame.part.message || "") + (partFrame.part.args ? "\n" + JSON.stringify(partFrame.part.args, null, 2) : "")
+                    visible: !!partFrame.part.planText
+                    sourceText: partFrame.part.planText || ""
                     chatSession: root.session
                 }
                 PagedText {
                     Layout.fillWidth: true
-                    visible: !partFrame.part.tool && (!partFrame.part.tree || (partFrame.detailsOpen && !!partFrame.part.text)) && (partFrame.kind !== "thought" || partFrame.detailsOpen) && (partFrame.kind !== "image" || !partFrame.part.mediaUrl)
+                    visible: partFrame.kind !== "tool_approval_request" && !partFrame.part.planText && !partFrame.part.tool && (partFrame.kind !== "compaction" || partFrame.detailsOpen) && (!partFrame.part.tree || (partFrame.detailsOpen && !!partFrame.part.text)) && (partFrame.kind !== "thought" || partFrame.detailsOpen) && (partFrame.kind !== "image" || !partFrame.part.mediaUrl)
                     markdown: partFrame.kind === "thought" || partFrame.kind === "prose"
-                    sourceText: (partFrame.kind === "thought" || partFrame.part.tree) && !partFrame.detailsOpen ? "" : partFrame.part.text || partFrame.part.content || (typeof partFrame.part.result === "string" ? partFrame.part.result : "") || qsTr("This content is preserved by the server. Open the web app to use this content type.")
+                    sourceText: (partFrame.kind === "thought" || partFrame.kind === "compaction" || partFrame.part.tree) && !partFrame.detailsOpen ? "" : partFrame.part.text || partFrame.part.content || (typeof partFrame.part.result === "string" ? partFrame.part.result : "") || qsTr("This content is preserved by the server. Open the web app to use this content type.")
                     chatSession: root.session
                 }
                 Image {
@@ -331,29 +337,56 @@ ColumnLayout {
                     cache: false
                     Accessible.name: partFrame.part.name || qsTr("Image result")
                 }
-                RowLayout {
+                Ui.EditorButton {
+                    visible: !!partFrame.part.helpUrl
+                    text: qsTr("Where to get this key")
+                    onClicked: if (root.session) root.session.openExternal(partFrame.part.helpUrl)
+                }
+                Ui.Text {
+                    visible: !!partFrame.part.status && !partFrame.part.pending
+                    text: partFrame.part.status || ""
+                    Layout.fillWidth: true
+                    wrapMode: Text.Wrap
+                    role: Ui.Typography.SansLabel
+                }
+                Flow {
+                    spacing: Ui.Metrics.sm
                     visible: ["tool_approval_request", "plan_approval_request", "secret_request"].indexOf(partFrame.kind) >= 0 && !!partFrame.part.actionId && !!partFrame.part.pending
                     Layout.fillWidth: true
                     Ui.TextField {
                         id: response
+                        objectName: "planFeedback"
                         Layout.fillWidth: true
                         visible: partFrame.kind === "plan_approval_request"
-                        placeholderText: qsTr("Feedback (optional)")
+                        text: partFrame.part.feedback || ""
+                        onTextEdited: root.parts.setFeedback(partFrame.index, text)
+                        placeholderText: qsTr("What should change?")
                         accessibleName: qsTr("Plan feedback")
                     }
                     Ui.EditorButton {
                         visible: partFrame.kind !== "secret_request"
-                        text: qsTr("Approve")
-                        enabled: !!root.session && root.session.connectionStatus === "connected"
+                        text: partFrame.kind === "plan_approval_request" ? qsTr("Run this plan") : qsTr("Allow")
+                        enabled: !!root && !!root.session && root.session.connectionStatus === "connected"
                         onClicked: {
-                            root.session.respondToAction(partFrame.part.actionId, true, response.text);
+                            root.session.respondToAction(partFrame.part.actionId, true);
                         }
                     }
                     Ui.EditorButton {
-                        text: qsTr("Decline")
-                        enabled: !!root.session && root.session.connectionStatus === "connected"
+                        visible: partFrame.kind === "plan_approval_request"
+                        text: qsTr("Revise")
+                        enabled: !!response && response.text.trim().length > 0 && !!root && !!root.session && root.session.connectionStatus === "connected"
+                        onClicked: root.session.respondToAction(partFrame.part.actionId, false, response.text)
+                    }
+                    Ui.EditorButton {
+                        visible: partFrame.kind === "secret_request"
+                        text: qsTr("Open settings")
+                        onClicked: if (root.session) root.session.openProviderSettings()
+                    }
+                    Ui.EditorButton {
+                        text: partFrame.kind === "plan_approval_request" ? qsTr("Don’t run") : partFrame.kind === "tool_approval_request" ? qsTr("Deny") : qsTr("Decline")
+                        enabled: !!root && !!root.session && root.session.connectionStatus === "connected"
                         onClicked: {
-                            root.session.respondToAction(partFrame.part.actionId, false, response.text);
+                            root.session.respondToAction(partFrame.part.actionId, false);
                         }
                     }
                 }
