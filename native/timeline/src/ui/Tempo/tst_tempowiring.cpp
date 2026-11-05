@@ -275,23 +275,20 @@ private slots:
         QTRY_VERIFY(!initialFrame.isEmpty());
         auto* toolbar = item("timelineToolbar");
         QVERIFY(toolbar);
-        const double overflow = qMax(
-            select->mapToItem(region, {select->width(), 0}).x() - region->width(),
-            toolbar->property("rowWidth").toDouble() - toolbar->property("available").toDouble());
-        if (overflow > 0) {
-            view->resize(view->width() + qCeil(overflow) + 100, view->height());
-        }
         view->requestActivate();
         QVERIFY(QTest::qWaitForWindowActive(view.get()));
         QVERIFY(QTest::qWaitForWindowExposed(view.get()));
+        // The production toolbar scrolls on narrow docks. Bring the grid
+        // control into view instead of requesting a window wider than the screen.
+        auto* viewport = item("timelineToolViewport");
+        QVERIFY(viewport);
+        QVERIFY(viewport->width() >= select->width());
+        const double right = select->mapToItem(viewport, {select->width(), 0}).x();
+        const double offset = viewport->property("contentX").toDouble();
+        QVERIFY(viewport->setProperty("contentX", qMax(0.0, offset + right - viewport->width())));
         QSignalSpy frame(view.get(), &QQuickWindow::frameSwapped);
         view->update();
         QTRY_VERIFY(!frame.isEmpty());
-        QVERIFY2(toolbar->property("rowWidth").toDouble() <= toolbar->property("available").toDouble(),
-            qPrintable(QString("Popup fixture overflow: window=%1 region=%2 row=%3 available=%4 narrow=%5 compact=%6")
-                .arg(view->width()).arg(region->width()).arg(toolbar->property("rowWidth").toDouble())
-                .arg(toolbar->property("available").toDouble()).arg(toolbar->property("narrow").toBool())
-                .arg(item("toolToggle")->property("compact").toBool())));
         const auto clickPoint = select->mapToScene({select->width() - 8, select->height() / 2});
         for (auto* parent = select; parent; parent = parent->parentItem()) {
             if (parent->clip()) {
