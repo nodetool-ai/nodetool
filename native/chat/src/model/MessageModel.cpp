@@ -194,6 +194,17 @@ QJsonObject presentPart(QJsonObject part) {
   part["args"] = args;
   part["argumentsText"] = displayJson(args);
   part["resultText"] = displayJson(result);
+  if (name == "run_subtask" || name == "run_search") {
+    part["subAgent"] = true;
+    auto other = args.toObject();
+    for (const auto key : {"description", "title", "query"}) {
+      const auto title = other[key].toString().trimmed();
+      if (!title.isEmpty()) { part["label"] = title; break; }
+    }
+    part["objective"] = other.value("prompt").toString(other.value("instructions").toString());
+    for (const auto key : {"description", "title", "query", "prompt", "instructions"}) { other.remove(key); }
+    part["argumentsText"] = other.isEmpty() ? QString() : displayJson(other);
+  }
   if (name == "execute_code") {
     part["code"] = args.toObject()["code"];
     part["language"] = "javascript";
@@ -423,6 +434,14 @@ QVariant PartModel::data(const QModelIndex &index, int role) const {
       }
       data["calls"] = calls;
     }
+    const auto childKey = data.value("childKey", data.value("tool_call_id")).toString();
+    if (m_children.contains(childKey)) {
+      data["childModel"] = QVariant::fromValue(m_children.value(childKey));
+      data["transcriptCount"] = m_counts.value(childKey);
+    }
+    if (data.value("tree").toBool()) {
+      data["expanded"] = m_treeExpanded.value(childKey, data.value("defaultExpanded").toBool());
+    }
     return data;
   }
   return QVariantMap{
@@ -451,6 +470,13 @@ void PartModel::toggleExpanded(int row) {
     emit dataChanged(index(row), index(row), {ModelDataRole});
     return;
   }
+  const auto part = m_parts[row].toObject();
+  if (part["tree"].toBool()) {
+    const auto key = part["childKey"].toString();
+    m_treeExpanded[key] = !m_treeExpanded.value(key, part["defaultExpanded"].toBool());
+    emit dataChanged(index(row), index(row), {ModelDataRole});
+    return;
+  }
   const auto key = expansionKey(row);
   if (!m_expanded.remove(key)) {
     m_expanded.insert(key);
@@ -462,6 +488,18 @@ void PartModel::toggleCall(int row, const QString &id) {
   const auto key = "call:" + id;
   if (!m_expanded.remove(key)) { m_expanded.insert(key); }
   emit dataChanged(index(row), index(row), {ModelDataRole});
+}
+void PartModel::setChild(const QString &key, QAbstractItemModel *model, int count) {
+  const bool changed = m_children.value(key) != model || m_counts.value(key, -1) != count;
+  m_children[key] = model;
+  m_counts[key] = count;
+  if (!changed) { return; }
+  for (int row = 0; row < m_parts.size(); ++row) {
+    const auto part = m_parts[row].toObject();
+    if (part["childKey"].toString(part["tool_call_id"].toString()) == key) {
+      emit dataChanged(index(row), index(row), {ModelDataRole});
+    }
+  }
 }
 void PartModel::setParts(const QJsonArray &parts) {
   for (const auto &value : parts) {
@@ -501,6 +539,7 @@ void MessageModel::refreshParts(int row) {
   const auto key = m_projectionKeys[row];
   if (auto *model = m_partModels.value(key, nullptr)) {
     model->setParts(projectedParts(m_rows[row], m_results, m_partOffsets.value(key)));
+    attachChildren(model);
   }
 }
 void MessageModel::releaseParts(const QString &key) {
@@ -540,6 +579,7 @@ QVariant MessageModel::data(const QModelIndex &i, int role) const {
       parts = new PartModel(const_cast<MessageModel *>(this));
       m_partModels[key] = parts;
       parts->setParts(projectedParts(m, m_results, m_partOffsets.value(key)));
+      attachChildren(parts);
     }
     return QVariant::fromValue(static_cast<QAbstractItemModel *>(parts));
   }
@@ -548,6 +588,146 @@ QVariant MessageModel::data(const QModelIndex &i, int role) const {
   default:
     return {};
   }
+}
+void MessageModel::attachChildren(PartModel *parts) const {
+  for (auto it = m_children.cbegin(); it != m_children.cend(); ++it) {
+    parts->setChild(it.key(), it.value(), m_childCounts.value(it.key()));
+  }
+}
+MessageModel *MessageModel::child(const QString &key) {
+  if (!m_children.contains(key)) {
+    auto *model = new MessageModel(this);
+    m_children[key] = model;
+    for (auto *parts : m_partModels) { parts->setChild(key, model, 0); }
+  }
+  return m_children[key];
+}
+void MessageModel::treeRow(const QString &id, const QString &label, const QString &status,
+                           const QString &body, bool expanded) {
+  upsert({{"id", id}, {"role", "execution"}, {"nativeTree", true}, {"content", ""},
+    {"parts", QJsonArray{QJsonObject{{"type", "execution"}, {"tree", true}, {"childKey", id},
+      {"label", label}, {"displayStatus", status}, {"text", body}, {"defaultExpanded", expanded}}}}});
+}
+bool MessageModel::reduceNested(const QJsonObject &event) {
+  const auto parent = event["parent_tool_call_id"].toString();
+  if (!parent.isEmpty()) {
+    auto *transcript = child(parent);
+    auto message = event;
+    message.remove("parent_tool_call_id");
+    const auto type = message["type"].toString();
+    bool addsMessage = false;
+    if (type == "chunk") {
+      if (!message["content"].toString().isEmpty()) {
+        const bool continues = !transcript->m_rows.isEmpty() &&
+          transcript->m_rows.last()["role"] == "assistant" &&
+          !transcript->m_rows.last().contains("tool_calls");
+        if (continues) { transcript->m_rows.last()["status"] = "streaming"; }
+        transcript->appendChunk(message["content"].toString(), false);
+        addsMessage = !continues;
+      }
+    } else if (type == "tool_call_update") {
+      // The server emits the transcript card as a separate assistant message.
+    } else if (type == "tool_result_update") {
+      transcript->addPart(message);
+    } else {
+      bool finalizes = false;
+      if (!transcript->m_rows.isEmpty()) {
+        const auto &last = transcript->m_rows.last();
+        auto previousText = textOf(last["content"]);
+        while (!previousText.isEmpty() && previousText.back().isSpace()) { previousText.chop(1); }
+        finalizes = message["role"] == "assistant" && last["role"] == "assistant" &&
+          !previousText.isEmpty() && textOf(message["content"]).startsWith(previousText);
+        if (finalizes) { message["id"] = last["id"]; }
+        // Only prefix-matching final messages replace a streamed child row.
+        transcript->m_rows.last().remove("temporary");
+      }
+      transcript->upsert(message);
+      addsMessage = message["role"] != "tool" && !finalizes;
+    }
+    if (addsMessage) { ++m_childCounts[parent]; }
+    m_nestedEvents.append(event);
+    for (auto *parts : m_partModels) { parts->setChild(parent, transcript, m_childCounts.value(parent)); }
+    return true;
+  }
+  auto payload = event;
+  if (event["role"] == "agent_execution") {
+    QJsonValue content = event["content"];
+    for (int i = 0; i < 2 && content.isString(); ++i) {
+      const auto parsed = QJsonDocument::fromJson(("[" + content.toString() + "]").toUtf8());
+      if (!parsed.isArray() || parsed.array().isEmpty()) { break; }
+      content = parsed.array().first();
+    }
+    payload = content.toObject();
+    if (event.contains("execution_event_type")) { payload["type"] = event["execution_event_type"]; }
+  }
+  const auto type = payload["type"].toString();
+  if (type != "planning_update" && type != "task_update" && type != "log_update" &&
+      !((event["role"] == "agent_execution" || !event["agent_execution_id"].toString().isEmpty()) &&
+        (type == "step_result" || type == "tool_call_update" || type == "tool_result_update"))) { return false; }
+  const auto eventId = event["id"].toString();
+  if (!eventId.isEmpty() && m_eventIds.contains(eventId)) { return true; }
+  if (!eventId.isEmpty()) { m_eventIds.insert(eventId); }
+  m_nestedEvents.append(event);
+  const auto execution = event["agent_execution_id"].toString(payload["agent_execution_id"].toString("execution"));
+  const auto key = "execution:" + execution;
+  auto *run = child(key);
+  if (!m_indices.contains(key)) { treeRow(key, "Agent execution", "", {}, true); }
+  if (type == "planning_update") {
+    run->treeRow("planning", "Planning · " + payload["phase"].toString(), payload["status"].toString(),
+                 payload["content"].toString(), true);
+  } else if (type == "log_update") {
+    const auto logId = "log:" + QString::number(run->m_nestedEvents.size());
+    run->m_nestedEvents.append(payload);
+    run->treeRow(logId, payload["severity"].toString("info") + " · " + payload["node_id"].toString(),
+                 "", displayJson(payload["content"]));
+  } else if (type == "task_update") {
+    const auto task = payload["task"].toObject();
+    const auto taskId = task["id"].toString();
+    const auto action = payload["event"].toString();
+    if (action == "task_created") {
+      if (run->m_indices.contains(taskId)) { return true; }
+      auto *steps = run->child(taskId);
+      run->treeRow(taskId, task["title"].toString(taskId), "running", {}, true);
+      for (const auto &value : task["steps"].toArray()) {
+        const auto step = value.toObject();
+        const auto stepId = step["id"].toString();
+        steps->treeRow(stepId, step["instructions"].toString(stepId).left(80), "waiting", step["instructions"].toString());
+        run->m_stepTasks.insert(stepId, taskId);
+      }
+    } else if (run->m_indices.contains(taskId)) {
+      auto *steps = run->child(taskId);
+      const auto step = payload["step"].toObject();
+      const auto stepId = step["id"].toString();
+      if (action.startsWith("step_") && !stepId.isEmpty()) {
+        const auto old = steps->m_indices.value(stepId, -1);
+        const auto previous = old >= 0 ? steps->m_rows[old]["parts"].toArray().first().toObject() : QJsonObject{};
+        steps->treeRow(stepId, previous["label"].toString(step["instructions"].toString(stepId)).left(80),
+          action == "step_started" ? "running" : action == "step_failed" ? "failed" : "completed",
+          previous["text"].toString(step["instructions"].toString()));
+        run->m_stepTasks.insert(stepId, taskId);
+      } else if (action == "task_completed" || action == "task_failed") {
+        const auto row = run->m_rows[run->m_indices[taskId]]["parts"].toArray().first().toObject();
+        run->treeRow(taskId, row["label"].toString(), action == "task_failed" ? "failed" : "completed");
+      }
+    }
+  } else {
+    const auto stepId = type == "step_result" ? payload["step"].toObject()["id"].toString()
+      : type == "tool_result_update" ? run->m_callSteps.value(payload["tool_call_id"].toString())
+      : payload.value("node_id").toString(payload.value("step_id").toString());
+    if (run->m_stepTasks.contains(stepId)) {
+      auto *steps = run->child(run->m_stepTasks[stepId]);
+      if (type == "tool_call_update" || type == "tool_result_update") {
+        run->m_callSteps[payload["tool_call_id"].toString()] = stepId;
+        steps->child(stepId)->addPart(payload);
+      }
+      else {
+        const auto previous = steps->m_rows[steps->m_indices[stepId]]["parts"].toArray().first().toObject();
+        steps->treeRow(stepId, previous["label"].toString(), payload["error"].isNull() || !payload.contains("error") ? "completed" : "failed",
+          previous["text"].toString() + "\n" + displayJson(payload["result"]) + displayJson(payload["error"]));
+      }
+    }
+  }
+  return true;
 }
 int MessageModel::callOwner(const QString &id) const {
   if (id.isEmpty()) { return -1; }
@@ -562,6 +742,7 @@ int MessageModel::callOwner(const QString &id) const {
   return -1;
 }
 QString MessageModel::upsert(const QJsonObject &message) {
+  if (reduceNested(message)) { return message["id"].toString(); }
   const auto id = message["id"].toString();
   if (message["role"] == "tool") {
     const auto call = message["tool_call_id"].toString();
@@ -830,6 +1011,16 @@ void MessageModel::addPart(const QJsonObject &part) {
   emit dataChanged(index(targetRow), index(targetRow), {PartsRole, DisplayTextRole});
 }
 void MessageModel::importHistory(const QJsonArray &rows, bool prepend) {
+  if (prepend) {
+    for (const auto &value : rows) {
+      if (value.toObject()["role"] == "agent_execution") {
+        auto combined = rows;
+        for (const auto &existing : snapshot()) { combined.append(existing); }
+        importHistory(combined);
+        return;
+      }
+    }
+  }
   if (!prepend) {
     clear();
     for (const auto &row : rows) {
@@ -879,17 +1070,24 @@ void MessageModel::importHistory(const QJsonArray &rows, bool prepend) {
   endInsertRows();
 }
 QJsonArray MessageModel::snapshot() const {
-  QJsonArray out;
+  QJsonArray out = m_nestedEvents;
   for (int i = 0; i < m_rows.size(); ++i) {
     const auto key = m_projectionKeys[i];
     if (m_groupSources.contains(key)) {
       for (const auto &source : m_groupSources.value(key)) { out.append(source); }
-    } else { out.append(m_rows[i]); }
+    } else if (!m_rows[i]["nativeTree"].toBool()) { out.append(m_rows[i]); }
   }
   for (const auto &message : m_resultMessages) { out.append(message); }
   return out;
 }
 void MessageModel::clear() {
+  for (auto *model : m_children) { model->deleteLater(); }
+  m_children.clear();
+  m_childCounts.clear();
+  m_nestedEvents = {};
+  m_eventIds.clear();
+  m_stepTasks.clear();
+  m_callSteps.clear();
   if (m_frameTimer) {
     m_frameTimer->stop();
   }

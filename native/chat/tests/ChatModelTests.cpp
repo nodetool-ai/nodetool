@@ -46,6 +46,89 @@ QJsonObject message(int id) {
 class ChatModelTests : public QObject {
     Q_OBJECT
 private slots:
+    void subAgentWebCases() {
+        QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/sub-agents.json"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto events = QJsonDocument::fromJson(file.readAll()).object()["events"].toArray();
+        MessageModel model;
+        for (const auto &event : events) { model.upsert(event.toObject()); }
+        QCOMPARE(model.rowCount(), 2);
+        auto *parts = partsFor(model);
+        auto part = partAt(parts, 0);
+        QCOMPARE(part["label"].toString(), "Audit the config loader");
+        QCOMPARE(part["objective"].toString(), "Read every config file and report unused keys.");
+        QCOMPARE(part["transcriptCount"].toInt(), 2);
+        QVERIFY(!part["expanded"].toBool());
+        auto *child = qobject_cast<MessageModel *>(part["childModel"].value<QAbstractItemModel *>());
+        QVERIFY(child);
+        QCOMPARE(child->rowCount(), 2);
+        QCOMPARE(child->data(child->index(0), MessageModel::TextRole).toString(), "Checked three files.");
+        const auto nestedTool = partAt(partsFor(*child, 1), 0);
+        QCOMPARE(nestedTool["label"].toString(), "Searched todo");
+        QCOMPARE(nestedTool["resultText"].toString(), "No unused keys.");
+        QCOMPARE(nestedTool["displayStatus"].toString(), "Done");
+        qobject_cast<PartModel *>(parts)->toggleExpanded(0);
+        QVERIFY(partAt(parts, 0)["expanded"].toBool());
+        QVERIFY(!partAt(partsFor(model, 1), 0).contains("transcriptCount"));
+        QSignalSpy reset(&model, &QAbstractItemModel::modelReset);
+        model.reduceNested({{"type", "chunk"}, {"parent_tool_call_id", "call-1"}, {"content", "More findings"}});
+        QVERIFY(partAt(parts, 0)["expanded"].toBool());
+        QCOMPARE(reset.count(), 0);
+    }
+    void executionTreeReplayAndLongRun() {
+        QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/execution-tree.json"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto events = QJsonDocument::fromJson(file.readAll()).object()["events"].toArray();
+        MessageModel live, saved;
+        for (const auto &value : events) { live.upsert(value.toObject()); }
+        QJsonArray encoded;
+        for (const auto &value : events) {
+            auto event = value.toObject();
+            event["content"] = QString::fromUtf8(QJsonDocument(event["content"].toObject()).toJson(QJsonDocument::Compact));
+            encoded.append(event);
+        }
+        saved.importHistory(encoded);
+        QCOMPARE(live.rowCount(), 1);
+        QCOMPARE(saved.rowCount(), 1);
+        auto childOf = [](MessageModel &model, int row) {
+            return qobject_cast<MessageModel *>(partAt(partsFor(model, row), 0)["childModel"].value<QAbstractItemModel *>());
+        };
+        auto *run = childOf(live, 0);
+        auto *savedRun = childOf(saved, 0);
+        QVERIFY(run && savedRun);
+        QCOMPARE(run->rowCount(), 3);
+        auto *steps = childOf(*run, 1);
+        auto *savedSteps = childOf(*savedRun, 1);
+        QVERIFY(steps && savedSteps);
+        QCOMPARE(steps->rowCount(), 2);
+        QCOMPARE(partAt(partsFor(*steps, 0), 0)["displayStatus"].toString(), "completed");
+        QCOMPARE(partAt(partsFor(*steps, 1), 0), partAt(partsFor(*savedSteps, 1), 0));
+        QSignalSpy changed(steps, &QAbstractItemModel::dataChanged);
+        QSignalSpy reset(&live, &QAbstractItemModel::modelReset);
+        const QJsonValue execution = events.first().toObject()["agent_execution_id"];
+        live.reduceNested({{"type", "task_update"}, {"agent_execution_id", execution},
+            {"event", "step_failed"}, {"task", QJsonObject{{"id", "audit"}}}, {"step", QJsonObject{{"id", "report"}}}});
+        QCOMPARE(changed.count(), 1);
+        QCOMPARE(changed.first()[0].value<QModelIndex>().row(), 1);
+        QCOMPARE(partAt(partsFor(*steps, 1), 0)["displayStatus"].toString(), "failed");
+        QJsonArray many;
+        for (int i = 0; i < 2000; ++i) {
+            many.append(QJsonObject{{"id", QString("step-%1").arg(i)}, {"instructions", "Inspect file"}});
+        }
+        QElapsedTimer timer; timer.start();
+        live.reduceNested({{"type", "task_update"}, {"agent_execution_id", execution}, {"event", "task_created"},
+            {"task", QJsonObject{{"id", "long"}, {"title", "Long run"}, {"steps", many}}}});
+        for (int i = 0; i < 2000; ++i) {
+            live.reduceNested({{"type", "log_update"}, {"agent_execution_id", execution},
+                {"node_id", "long"}, {"content", QString(8192, QLatin1Char('x'))}});
+        }
+        QCOMPARE(childOf(*run, 3)->rowCount(), 2000);
+        QCOMPARE(run->rowCount(), 2004);
+        QCOMPARE(reset.count(), 0);
+        qInfo() << "2000 steps and 2000 long logs reduced in" << timer.elapsed() << "ms";
+        QVERIFY(timer.elapsed() < 10000);
+        QCOMPARE(live.snapshot().first().toObject()["agent_execution_id"], execution);
+    }
     void markdownStructureAndOrdering() {
         QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/markdown.json"));
         QVERIFY(file.open(QIODevice::ReadOnly));

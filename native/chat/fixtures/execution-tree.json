@@ -1,0 +1,106 @@
+{
+  "events": [
+    {
+      "type": "message",
+      "role": "agent_execution",
+      "id": "execution-event-0",
+      "agent_execution_id": "0123456789abcdef0123456789abcdef",
+      "execution_event_type": "planning_update",
+      "content": {
+        "type": "planning_update",
+        "phase": "plan",
+        "status": "Running",
+        "content": "Inspect the configuration and report findings."
+      }
+    },
+    {
+      "type": "message",
+      "role": "agent_execution",
+      "id": "execution-event-1",
+      "agent_execution_id": "0123456789abcdef0123456789abcdef",
+      "execution_event_type": "task_update",
+      "content": {
+        "type": "task_update",
+        "event": "task_created",
+        "task": {
+          "id": "audit",
+          "title": "Audit configuration",
+          "steps": [
+            {
+              "id": "read",
+              "instructions": "Read config files"
+            },
+            {
+              "id": "report",
+              "instructions": "Report unused keys"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "message",
+      "role": "agent_execution",
+      "id": "execution-event-2",
+      "agent_execution_id": "0123456789abcdef0123456789abcdef",
+      "execution_event_type": "task_update",
+      "content": {
+        "type": "task_update",
+        "event": "step_started",
+        "task": {
+          "id": "audit"
+        },
+        "step": {
+          "id": "read"
+        }
+      }
+    },
+    {
+      "type": "message",
+      "role": "agent_execution",
+      "id": "execution-event-3",
+      "agent_execution_id": "0123456789abcdef0123456789abcdef",
+      "execution_event_type": "log_update",
+      "content": {
+        "type": "log_update",
+        "node_id": "read",
+        "severity": "info",
+        "content": "Opened configuration files."
+      }
+    },
+    {
+      "type": "message",
+      "role": "agent_execution",
+      "id": "execution-event-4",
+      "agent_execution_id": "0123456789abcdef0123456789abcdef",
+      "execution_event_type": "task_update",
+      "content": {
+        "type": "task_update",
+        "event": "step_completed",
+        "task": {
+          "id": "audit"
+        },
+        "step": {
+          "id": "read"
+        }
+      }
+    },
+    {
+      "type": "message",
+      "role": "agent_execution",
+      "id": "execution-event-5",
+      "agent_execution_id": "0123456789abcdef0123456789abcdef",
+      "execution_event_type": "task_update",
+      "content": {
+        "type": "task_update",
+        "event": "step_started",
+        "task": {
+          "id": "audit"
+        },
+        "step": {
+          "id": "report"
+        }
+      }
+    }
+  ]
+}

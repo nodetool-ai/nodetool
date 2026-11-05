@@ -665,6 +665,10 @@ void ChatSession::applyEvent(const QJsonObject &event) {
       type != "error" && type != "job_update") {
     return;
   }
+  if (!s.uncertainReplay && s.messages->reduceNested(event)) {
+    emit stateChanged();
+    return;
+  }
   if (type == "chunk") {
     if (s.uncertainReplay) {
       s.status = "interrupted";

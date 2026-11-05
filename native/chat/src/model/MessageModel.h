@@ -15,10 +15,14 @@ public:
   QVariant data(const QModelIndex &, int role) const override;
   QHash<int, QByteArray> roleNames() const override;
   void setParts(const QJsonArray &);
+  void setChild(const QString &, QAbstractItemModel *, int count);
   Q_INVOKABLE void toggleExpanded(int row);
   Q_INVOKABLE void toggleCall(int row, const QString &id);
 
 private:
+  QHash<QString, QAbstractItemModel *> m_children;
+  QHash<QString, int> m_counts;
+  QHash<QString, bool> m_treeExpanded;
   QJsonArray m_parts;
   QSet<QString> m_expanded;
   QHash<QString, bool> m_thoughtExpanded;
@@ -46,6 +50,7 @@ public:
   QString upsert(const QJsonObject &message);
   void appendChunk(const QString &text, bool done, bool thinking = false);
   void finishThinking();
+  bool reduceNested(const QJsonObject &event);
   void addPart(const QJsonObject &part);
   bool addResolvedPart(const QString &messageId, const QJsonObject &part);
   void importHistory(const QJsonArray &, bool prepend = false);
@@ -53,6 +58,15 @@ public:
   void clear();
 
 private:
+  MessageModel *child(const QString &key);
+  void attachChildren(PartModel *) const;
+  void treeRow(const QString &id, const QString &label, const QString &status, const QString &body = {}, bool expanded = false);
+  QHash<QString, MessageModel *> m_children;
+  QHash<QString, int> m_childCounts;
+  QJsonArray m_nestedEvents;
+  QSet<QString> m_eventIds;
+  QHash<QString, QString> m_stepTasks;
+  QHash<QString, QString> m_callSteps;
   int callOwner(const QString &id) const;
   QHash<QString, QList<qsizetype>> m_partOffsets;
   QHash<QString, QJsonObject> m_results;
