@@ -260,11 +260,22 @@ export function clipAutomationIdentity(property: string): number {
   return ANIMATED_PROPERTY_FOLD[property as AnimatedProperty] === "multiply" ? 1 : 0;
 }
 
-/**
- * One clip-spanning custom animation that plays a track's picture lanes over
- * `clip`: each lane cut to the clip's window, with an interpolated keyframe on
- * each edge, in the clip's 0..1 `t`.
- */
+/** First point at or after a document time in the lane's ordered points. */
+function pointLowerBound(points: readonly AutomationPoint[], timeMs: number): number {
+  let lo = 0;
+  let hi = points.length;
+  while (lo < hi) {
+    const mid = lo + Math.floor((hi - lo) / 2);
+    if (points[mid].timeMs < timeMs) {
+      lo = mid + 1;
+    } else {
+      hi = mid;
+    }
+  }
+  return lo;
+}
+
+/** Preserve the original segment endpoints, including outside the clip window. */
 function clipAutomationAnimation(
   track: TimelineTrack,
   lanes: readonly AutomationLane[],
@@ -277,24 +288,13 @@ function clipAutomationAnimation(
   for (const lane of lanes) {
     if (lane.target.kind !== "clip") continue;
     const toT = (ms: number) => (ms - start) / clip.durationMs;
-    const keyframes: { t: number; value: number; easing?: string }[] = [
-      { t: 0, value: automationValueAt(lane.points, start) }
-    ];
-    for (const p of lane.points) {
-      if (p.timeMs <= start || p.timeMs >= end) continue;
-      keyframes.push(
-        p.easing === undefined
-          ? { t: toT(p.timeMs), value: p.value }
-          : { t: toT(p.timeMs), value: p.value, easing: p.easing }
-      );
-    }
-    const tail: { t: number; value: number; easing?: string } = {
-      t: 1,
-      value: automationValueAt(lane.points, end)
-    };
-    const after = lane.points.find((p) => p.timeMs >= end);
-    if (after?.easing !== undefined) tail.easing = after.easing;
-    keyframes.push(tail);
+    const first = Math.max(0, pointLowerBound(lane.points, start) - 1);
+    const last = Math.min(lane.points.length - 1, pointLowerBound(lane.points, end));
+    const keyframes = lane.points.slice(first, last + 1).map((p) =>
+      p.easing === undefined
+        ? { t: toT(p.timeMs), value: p.value }
+        : { t: toT(p.timeMs), value: p.value, easing: p.easing }
+    );
     curves.push({ property: lane.target.property, keyframes });
   }
   if (curves.length === 0) return null;
