@@ -156,3 +156,49 @@ Both `check_design.py --strict` and `check_dependencies.py` passed.
 No new dependencies or TypeScript changes were introduced. TypeScript tests,
 typecheck, lint, harness gate, `/verify`, platform accessibility and timeline
 host verification were not run.
+
+## Tool grouping and phrasing
+
+Tool-only assistant messages with one groupable name now retain the first row
+identity while accumulating consecutive calls. The six web exclusions remain
+individual calls. Runs of up to four location-bearing read, write or page calls
+remain listed. Other runs show the shared message or counted headline, a unique
+three-value preview and completion progress. Individual calls expand independently
+inside counted groups. C++ owns the phrase classification, MCP name formatting,
+URL details, grouping and expansion state. Timestamp-backed durations use the
+web's formatting.
+
+`tool-presentation.json` ports phrase and grouping examples from the web tests.
+The model test verifies stable row identity and a single-row result notification.
+QML tests exercise nested expansion and scroll stability as a trailing group
+forms. The offscreen screenshot is
+`/home/mg/Projects/nodetool-film/tmp/chat-parity/tool-presentation.png`.
+Native still uses bordered surfaces and labelled expansion buttons. The web's
+connecting rail, aggregate timeline footer and specialized result renderers are
+not implemented. This is behavioral coverage, not a pixel comparison with web.
+
+
+## Persisted tool history
+
+Role-tool messages now supply a result overlay keyed by the full tool-call ID.
+Their original payloads remain retained, including unknown fields. Calls and
+server message content are not replaced by their presentation. No history-write
+operation was added. Results arriving before their calls are retained until the
+call is available. The same overlay handles live result updates, errors and
+result timestamps, with notifications restricted to the owning row.
+
+`persisted-tools.json` supplies equivalent live events and server messages.
+The model test compares message identities, roles, text, timestamps, status and
+rendered tool rows, including a grouped failure and code execution. It also
+checks preserved server payloads, repeated-result stability and results arriving
+before calls. The QML test checks failure, duration, expanded code and copy.
+The inspected offscreen screenshot is
+`/home/mg/Projects/nodetool-film/tmp/chat-parity/persisted-tools.png`.
+
+The requested native build and CTest selection pass. Qt reports 26 model passes
+and 23 QML passes, including setup and cleanup, without failures or skips.
+CTest reports three passing tests including its prerequisite setup. The existing
+2,000-message model and QML coverage passes. Both native design and dependency
+checks pass. TypeScript tests, typecheck, lint, harness gate and `/verify` were
+not run, as requested. No running-web pixel comparison, platform accessibility
+check or timeline-host screenshot was performed.

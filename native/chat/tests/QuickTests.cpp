@@ -10,20 +10,27 @@ class ChatTestDriver : public QObject {
     Q_OBJECT
 public:
     explicit ChatTestDriver(nt::chat::ChatSession* session) : QObject(session), m_session(session) {}
-    Q_INVOKABLE void replay(const QString& name) {
+    Q_INVOKABLE void replay(const QString& name, int limit = 100000) {
         QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/") + name + ".json");
         if (!file.open(QIODevice::ReadOnly)) { return; }
         const auto fixture = QJsonDocument::fromJson(file.readAll()).object();
+        int count = 0;
         for (auto event : fixture["events"].toArray()) {
+            if (count++ >= limit) { break; }
             auto object = event.toObject(); object["thread_id"] = "a";
             m_session->applyEvent(object);
         }
+    }
+    Q_INVOKABLE void persistedTools() {
+        QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/persisted-tools.json"));
+        if (!file.open(QIODevice::ReadOnly)) { return; }
+        m_session->importHistory("a", QJsonDocument::fromJson(file.readAll()).object()["messages"].toArray());
     }
     Q_INVOKABLE void toolHistory(int count) {
         QJsonArray rows;
         for (int i = 0; i < count; ++i) {
             rows.append(QJsonObject{{"id", QString::number(i)}, {"role", "assistant"}, {"content", ""},
-                {"tool_calls", QJsonArray{QJsonObject{{"id", QString("call-%1").arg(i)}, {"name", "read_file"},
+                {"tool_calls", QJsonArray{QJsonObject{{"id", QString("call-%1").arg(i)}, {"name", i % 2 ? "open_file" : "read_file"},
                     {"args", QJsonObject{{"path", "notes.txt"}}}}}}});
         }
         m_session->importHistory("a", rows);

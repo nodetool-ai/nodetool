@@ -45,6 +45,103 @@ QJsonObject message(int id) {
 class ChatModelTests : public QObject {
     Q_OBJECT
 private slots:
+    void webToolPresentationCases() {
+        QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/tool-presentation.json"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto fixture = QJsonDocument::fromJson(file.readAll()).object();
+        for (const auto &value : fixture["phrases"].toArray()) {
+            auto call = value.toObject();
+            MessageModel model;
+            call["type"] = "tool_call_update";
+            model.addPart(call);
+            QCOMPARE(partAt(partsFor(model), 0)["label"].toString(), call["label"].toString());
+        }
+        for (const auto &value : fixture["groups"].toArray()) {
+            const auto test = value.toObject();
+            MessageModel model;
+            model.upsert({{"id", "group"}, {"role", "assistant"}, {"content", ""}, {"tool_calls", test["calls"]}});
+            auto *parts = partsFor(model);
+            QCOMPARE(parts->rowCount(), test["rows"].toInt());
+            const auto labels = test["labels"].toArray();
+            for (int i = 0; i < labels.size(); ++i) {
+                QCOMPARE(partAt(parts, i)["label"].toString(), labels[i].toString());
+            }
+            if (test.contains("preview")) { QCOMPARE(partAt(parts, 0)["preview"].toString(), test["preview"].toString()); }
+        }
+        MessageModel model;
+        const auto messages = fixture["messages"].toArray();
+        model.upsert(messages[0].toObject());
+        auto *parts = partsFor(model);
+        QSignalSpy inserted(&model, &QAbstractItemModel::rowsInserted);
+        QSignalSpy reset(&model, &QAbstractItemModel::modelReset);
+        model.upsert(messages[1].toObject());
+        model.upsert(messages[2].toObject());
+        QCOMPARE(model.rowCount(), 1);
+        QCOMPARE(model.data(model.index(0), MessageModel::MessageIdRole).toString(), messages[0].toObject()["id"].toString());
+        QCOMPARE(partsFor(model), parts);
+        QCOMPARE(inserted.count(), 0);
+        QCOMPARE(reset.count(), 0);
+        QCOMPARE(model.snapshot(), messages);
+        QSignalSpy changed(parts, &QAbstractItemModel::dataChanged);
+        model.addPart({{"type", "tool_result_update"}, {"tool_call_id", QString("%1").arg(2, 32, 16, QLatin1Char('0'))}, {"result", "found"}});
+        QCOMPARE(changed.count(), 1);
+        QCOMPARE(partAt(parts, 0)["progress"].toString(), QString("1/3"));
+    }
+    void persistedToolsMatchLiveRows() {
+        QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/persisted-tools.json"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto fixture = QJsonDocument::fromJson(file.readAll()).object();
+        ChatSession live;
+        live.upsertThread({{"id", "a"}});
+        live.selectThread("a");
+        for (const auto &event : fixture["events"].toArray()) { live.applyEvent(event.toObject()); }
+        auto *streamed = qobject_cast<MessageModel *>(live.messages());
+        MessageModel loaded;
+        const auto raw = fixture["messages"].toArray();
+        loaded.importHistory(raw);
+        QCOMPARE(loaded.rowCount(), 2);
+        QCOMPARE(loaded.rowCount(), streamed->rowCount());
+        const auto presentation = [](const QVariantMap &part) {
+            QVariantMap out;
+            for (const auto key : {"label", "preview", "count", "progress", "displayStatus", "argumentsText", "resultText", "code", "duration"}) {
+                out[key] = part.value(key);
+            }
+            QVariantList calls;
+            for (const auto &value : part.value("calls").toList()) {
+                auto call = value.toMap();
+                QVariantMap item;
+                for (const auto key : {"tool_call_id", "label", "displayStatus", "argumentsText", "resultText", "duration"}) { item[key] = call.value(key); }
+                calls.append(item);
+            }
+            out["calls"] = calls;
+            return out;
+        };
+        for (int row = 0; row < loaded.rowCount(); ++row) {
+            for (const auto role : {MessageModel::MessageIdRole, MessageModel::RoleRole, MessageModel::TextRole, MessageModel::TimestampRole, MessageModel::StatusRole}) {
+                QCOMPARE(loaded.data(loaded.index(row), role), streamed->data(streamed->index(row), role));
+            }
+            auto *a = partsFor(loaded, row);
+            auto *b = partsFor(*streamed, row);
+            QCOMPARE(a->rowCount(), b->rowCount());
+            for (int part = 0; part < a->rowCount(); ++part) {
+                QCOMPARE(presentation(partAt(a, part)), presentation(partAt(b, part)));
+            }
+        }
+        for (const auto &original : raw) { QVERIFY(loaded.snapshot().contains(original)); }
+        QCOMPARE(partAt(partsFor(loaded), 0)["displayStatus"].toString(), QString("Failed"));
+        QCOMPARE(partAt(partsFor(loaded, 1), 0)["duration"].toString(), QString("1.2s"));
+        QCOMPARE(partAt(partsFor(loaded, 1), 0)["code"].toString(), QString("console.log(2);"));
+        auto *parts = partsFor(loaded, 1);
+        QSignalSpy changed(parts, &QAbstractItemModel::dataChanged);
+        loaded.upsert(raw.last().toObject());
+        QCOMPARE(changed.count(), 0);
+        // Results can arrive before their call when history pages are fetched separately.
+        MessageModel reordered;
+        reordered.upsert(raw.last().toObject());
+        reordered.upsert(raw[raw.size() - 2].toObject());
+        QCOMPARE(reordered.rowCount(), 1);
+        QCOMPARE(presentation(partAt(partsFor(reordered), 0)), presentation(partAt(partsFor(loaded, 1), 0)));
+    }
     void persistedAssistantToolCallsRemainReadable() {
         MessageModel model;
         const QJsonObject call{{"id", "call-authoritative"}, {"type", "function"},
@@ -109,8 +206,8 @@ private slots:
         auto* parts = partsFor(model);
         QCOMPARE(parts->rowCount(), 1);
         QCOMPARE(partAt(parts, 0)["label"].toString(), QString("Ran 2 searches"));
-        QVERIFY(partAt(parts, 0)["resultText"].toString().contains("first"));
-        QVERIFY(partAt(parts, 0)["resultText"].toString().contains("second"));
+        QVERIFY(partAt(parts, 0)["preview"].toString().contains("first"));
+        QVERIFY(partAt(parts, 0)["preview"].toString().contains("second"));
         QCOMPARE(model.snapshot()[0].toObject()["parts"].toArray().size(), 2);
     }
     void failedToolRemainsVisibleWhenCollapsed() {

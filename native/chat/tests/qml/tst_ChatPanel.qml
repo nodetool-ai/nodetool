@@ -63,6 +63,55 @@ TestCase {
         testDriver.clearHistory("b")
         wait(30)
     }
+    function test_persistedToolsAndScreenshot() {
+        testDriver.persistedTools()
+        const list = findChild(panel, "chatMessages")
+        tryCompare(list, "count", 2)
+        tryVerify(function() { return findText(panel, "Failed") !== null })
+        verify(findText(panel, "Ran 2 searches") !== null)
+        verify(findText(panel, "1.2s") !== null)
+        const code = findVisible(panel, "toolDetails_00000000000000000000000000000003")
+        verify(code !== null)
+        wait(80)
+        mouseClick(code)
+        tryVerify(function() { return findText(panel, "Code · javascript") !== null })
+        wait(80)
+        mouseClick(findText(panel, "Copy code"))
+        compare(testDriver.clipboardText(), "console.log(2);")
+        wait(80)
+        const directory = testDriver.screenshotDirectory()
+        if (directory) grabImage(panel).save(directory + "/persisted-tools.png")
+    }
+    function test_groupFormationKeepsScroll() {
+        testDriver.history("a", 100)
+        testDriver.replay("tool-presentation", 1)
+        const list = findChild(panel, "chatMessages")
+        const conversation = findChild(panel, "chatConversation")
+        conversation.followBottom = false
+        list.positionViewAtIndex(40, ListView.Beginning)
+        wait(80)
+        conversation.captureAnchor()
+        const before = list.contentY
+        testDriver.replay("tool-presentation")
+        wait(80)
+        compare(list.count, 101)
+        verify(Math.abs(list.contentY - before) < 1)
+    }
+    function test_groupedCallsAndScreenshot() {
+        testDriver.replay("tool-presentation")
+        const list = findChild(panel, "chatMessages")
+        tryCompare(list, "count", 1)
+        tryVerify(function() { return findText(panel, "Ran 3 searches") !== null })
+        mouseClick(findText(panel, "Show details"))
+        const toggle = findVisible(panel, "groupCall_00000000000000000000000000000002")
+        verify(toggle !== null)
+        wait(80)
+        mouseClick(toggle)
+        tryVerify(function() { return findText(panel, '{\n    "query": "tiktok creative"\n}\n') !== null })
+        const directory = testDriver.screenshotDirectory()
+        wait(80)
+        if (directory) grabImage(panel).save(directory + "/tool-presentation.png")
+    }
     function test_longToolConversationStaysVirtualized() {
         testDriver.toolHistory(2000)
         const list = findChild(panel, "chatMessages")
@@ -108,6 +157,7 @@ TestCase {
         if (directory) grabImage(panel).save(directory + "/compact-tools-collapsed.png")
         const toggle = findVisible(panel, "toolDetails_cccccccccccccccccccccccccccccccc")
         verify(toggle !== null)
+        wait(80)
         mouseClick(toggle)
         tryVerify(function() { return findText(panel, "Code · javascript") !== null })
         wait(80)

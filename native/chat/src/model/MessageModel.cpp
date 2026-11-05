@@ -6,6 +6,7 @@
 #include <QUrl>
 #include <QUuid>
 #include <algorithm>
+#include <cmath>
 namespace nt::chat {
 namespace {
 QString textOf(const QJsonValue &value) {
@@ -40,6 +41,90 @@ QString displayJson(const QJsonValue &value) {
       QJsonDocument(QJsonArray{value}).toJson(QJsonDocument::Compact);
   return QString::fromUtf8(encoded.mid(1, encoded.size() - 2));
 }
+QString formatToolName(QString name) {
+  const auto match = QRegularExpression("^mcp__[^_]+(?:_[^_]+)*__(.+)$").match(name);
+  if (match.hasMatch()) { name = match.captured(1); }
+  name.remove(QRegularExpression("^(ui_|tool_)"));
+  auto words = name.split('_');
+  for (auto &word : words) {
+    if (!word.isEmpty()) { word[0] = word[0].toUpper(); }
+  }
+  return words.join(' ');
+}
+QString toolKind(QString name) {
+  name.replace(QRegularExpression("([a-z0-9])([A-Z])"), "\\1_\\2");
+  const auto segments = name.toLower().split(QRegularExpression("[^a-z0-9]+"), Qt::SkipEmptyParts);
+  const QList<QPair<QString, QStringList>> kinds{
+    {"plan", {"plan"}}, {"search", {"search", "grep", "glob", "lookup", "query"}},
+    {"page", {"browser", "crawl", "scrape", "fetch", "http", "url", "download", "visit"}},
+    {"write", {"write", "edit", "save", "update", "create", "delete", "upload"}},
+    {"read", {"read", "open", "cat", "list"}},
+    {"run", {"run", "exec", "execute", "bash", "shell", "command", "script"}}};
+  for (const auto &[kind, words] : kinds) {
+    for (const auto &word : words) {
+      if (segments.contains(word)) { return kind; }
+    }
+  }
+  return "generic";
+}
+QString toolDetail(const QJsonObject &args, bool shortUrl = false) {
+  for (const auto key : {"url", "uri", "path", "file", "filename", "target", "query", "q", "objective"}) {
+    auto value = args[key].toString().trimmed();
+    if (value.isEmpty()) { continue; }
+    if (QString(key) == "url" || QString(key) == "uri") {
+      const QUrl url(value);
+      if (url.isValid() && !url.scheme().isEmpty()) {
+        auto host = url.host();
+        if (host.startsWith("www.")) { host.remove(0, 4); }
+        return host + (shortUrl ? QString() :
+          (url.path() == "/" ? QString() : url.path()) + (url.hasQuery() ? "?" + url.query() : QString()));
+      }
+    }
+    return value;
+  }
+  return {};
+}
+QString countLabel(const QString &name, int count) {
+  const auto kind = toolKind(name);
+  if (kind == "plan") { return count == 1 ? "Wrote a plan" : QString("Wrote %1 plans").arg(count); }
+  if (kind == "search") { return QString("Ran %1 %2").arg(count).arg(count == 1 ? "search" : "searches"); }
+  if (kind == "page") { return QString("Opened %1 %2").arg(count).arg(count == 1 ? "page" : "pages"); }
+  if (kind == "read") { return QString("Read %1 %2").arg(count).arg(count == 1 ? "item" : "items"); }
+  if (kind == "write") { return QString("Made %1 %2").arg(count).arg(count == 1 ? "edit" : "edits"); }
+  return (kind == "run" ? "Ran " : "") + formatToolName(name) + (count == 1 ? QString() : QString(" %1 times").arg(count));
+}
+bool groupable(const QString &name) {
+  static const QSet<QString> separate{"execute_code", "run_subtask", "run_search", "ask_user", "request_secret", "create_plan"};
+  return !name.isEmpty() && !separate.contains(name);
+}
+QString mergeableName(const QJsonObject &message) {
+  if (message["role"] != "assistant") { return {}; }
+  const auto content = message["content"];
+  if (content.isString() && !content.toString().trimmed().isEmpty()) { return {}; }
+  if (content.isObject() || content.isBool() || content.isDouble()) { return {}; }
+  for (const auto &value : content.toArray()) {
+    if (!value.isObject()) { continue; }
+    const auto block = value.toObject();
+    if (block["type"] != "text" || !block["text"].toString().trimmed().isEmpty()) { return {}; }
+  }
+  if (!message["parts"].toArray().isEmpty()) { return {}; }
+  const auto calls = message["tool_calls"].toArray();
+  if (calls.isEmpty()) { return {}; }
+  const auto name = calls.first().toObject()["name"].toString();
+  if (!groupable(name)) { return {}; }
+  for (const auto &call : calls) {
+    if (call.toObject()["name"] != name) { return {}; }
+  }
+  return name;
+}
+QString durationLabel(qint64 ms) {
+  if (ms < 0) { return {}; }
+  if (ms < 1000) { return QString::number(ms) + "ms"; }
+  const auto seconds = std::round(ms / 100.0) / 10.0;
+  if (seconds < 60) { return QString::number(seconds, 'f', seconds == std::floor(seconds) ? 0 : 1) + "s"; }
+  const auto whole = qRound64(ms / 1000.0);
+  return QString("%1m %2s").arg(whole / 60).arg(whole % 60, 2, 10, QLatin1Char('0'));
+}
 QJsonObject presentPart(QJsonObject part) {
   const auto type = part["type"].toString();
   if (type != "tool_call" && type != "tool_call_update" &&
@@ -57,53 +142,14 @@ QJsonObject presentPart(QJsonObject part) {
     }
   }
   const auto name = part["name"].toString();
-  auto words = name;
-  words.replace(QRegularExpression("([a-z0-9])([A-Z])"), "\\1_\\2");
-  const auto segments = words.toLower().split(QRegularExpression("[^a-z0-9]+"),
-                                              Qt::SkipEmptyParts);
-  auto label = words;
-  label.replace('_', ' ');
-  if (!label.isEmpty()) {
-    label[0] = label[0].toUpper();
-  }
-  QString detail;
-  for (const auto key : {"url", "uri", "path", "file", "filename", "target",
-                         "query", "q", "objective"}) {
-    detail = args.toObject()[key].toString().trimmed();
-    if (!detail.isEmpty()) {
-      if (QString(key) == "url" || QString(key) == "uri") {
-        const QUrl url(detail);
-        if (!url.host().isEmpty()) {
-          auto host = url.host();
-          if (host.startsWith("www.")) {
-            host.remove(0, 4);
-          }
-          detail = host + (url.path() == "/" ? QString() : url.path()) +
-                   (url.hasQuery() ? "?" + url.query() : QString());
-        }
-      }
-      break;
-    }
-  }
-  const auto has = [&segments](const QStringList &keys) {
-    return std::any_of(
-        keys.cbegin(), keys.cend(),
-        [&segments](const QString &key) { return segments.contains(key); });
-  };
-  if (has({"plan"})) {
-    label = detail.isEmpty() ? "Wrote a plan" : "Planned";
-  } else if (has({"search", "grep", "glob", "lookup", "query"})) {
-    label = detail.isEmpty() ? "Ran 1 search" : "Searched";
-  } else if (has({"browser", "crawl", "scrape", "fetch", "http", "url",
-                  "download", "visit"})) {
-    label = detail.isEmpty() ? "Opened 1 page" : "Opened page";
-  } else if (has({"write", "edit", "save", "update", "create", "delete",
-                  "upload"}) &&
-             !detail.isEmpty()) {
-    label = "Edited";
-  } else if (has({"read", "open", "cat", "list"}) && !detail.isEmpty()) {
-    label = "Read";
-  }
+  const auto detail = toolDetail(args.toObject());
+  const auto kind = toolKind(name);
+  auto label = formatToolName(name);
+  if (kind == "plan") label = detail.isEmpty() ? "Wrote a plan" : "Planned";
+  else if (kind == "search") label = detail.isEmpty() ? "Ran 1 search" : "Searched";
+  else if (kind == "page") label = detail.isEmpty() ? "Opened 1 page" : "Opened page";
+  else if (kind == "write" && !detail.isEmpty()) label = "Edited";
+  else if (kind == "read" && !detail.isEmpty()) label = "Read";
   part["label"] = label + (detail.isEmpty() ? QString() : " " + detail);
   part["tool"] = true;
   const auto result = part.value("result");
@@ -113,6 +159,13 @@ QJsonObject presentPart(QJsonObject part) {
   part["displayStatus"] = failed                    ? "Failed"
                           : part.contains("result") ? "Done"
                                                     : "Running";
+  const auto start = QDateTime::fromString(part["started_at"].toString(), Qt::ISODateWithMs);
+  const auto end = QDateTime::fromString(part["result_created_at"].toString(), Qt::ISODateWithMs);
+  if (part.contains("result") && start.isValid() && end.isValid()) {
+    part["durationMs"] = start.msecsTo(end);
+    part["duration"] = durationLabel(start.msecsTo(end));
+  }
+  part["args"] = args;
   part["argumentsText"] = displayJson(args);
   part["resultText"] = displayJson(result);
   if (name == "execute_code") {
@@ -128,7 +181,7 @@ QJsonObject presentPart(QJsonObject part) {
   }
   return part;
 }
-QJsonArray projectedParts(const QJsonObject &m) {
+QJsonArray projectedParts(const QJsonObject &m, const QHash<QString, QJsonObject> &results) {
   auto parts = m["parts"].toArray();
   bool hasToolCalls = false;
   for (const auto &value : m["tool_calls"].toArray()) {
@@ -153,6 +206,7 @@ QJsonArray projectedParts(const QJsonObject &m) {
     projected.insert("tool_call_id",
                      call["id"].toString(call["tool_call_id"].toString()));
     projected.insert("payload", call);
+    projected.insert("started_at", m["created_at"]);
     projected.insert("text", name + "\n" + argsText);
     parts.append(projected);
   }
@@ -176,12 +230,15 @@ QJsonArray projectedParts(const QJsonObject &m) {
                     {"text", "Unsupported message content: " + encoded}});
   }
   QJsonArray displayed;
-  for (const auto &part : parts) {
-    displayed.append(presentPart(part.isObject()
-                                     ? part.toObject()
-                                     : QJsonObject{{"type", "unsupported"},
-                                                   {"text", displayJson(part)},
-                                                   {"payload", part}}));
+  for (const auto &value : parts) {
+    auto part = value.isObject() ? value.toObject() : QJsonObject{{"type", "unsupported"}, {"text", displayJson(value)}, {"payload", value}};
+    const auto id = part.value("tool_call_id").toString(part.value("id").toString());
+    if (results.contains(id)) {
+      const auto result = results.value(id);
+      for (auto it = result.begin(); it != result.end(); ++it) { part[it.key()] = it.value(); }
+    }
+    if (!part.contains("started_at")) { part["started_at"] = m["created_at"]; }
+    displayed.append(presentPart(part));
   }
   QJsonArray grouped;
   const QSet<QString> separate{"execute_code", "run_subtask",    "run_search",
@@ -199,34 +256,49 @@ QJsonArray projectedParts(const QJsonObject &m) {
       }
     }
     if (end - first > 1) {
-      QString details;
+      QJsonArray calls;
+      QStringList preview;
+      QSet<QString> seen;
       QString status = "Done";
+      QString shared = group["message"].toString().trimmed();
+      bool sameMessage = !shared.isEmpty();
+      const auto kind = toolKind(name);
+      bool listed = end - first <= 4 && (kind == "page" || kind == "read" || kind == "write");
+      int completed = 0;
+      qint64 duration = -1;
       for (auto i = first; i < end; ++i) {
         const auto item = displayed[i].toObject();
-        details += item["label"].toString() + " · " +
-                   item["displayStatus"].toString() + "\nArguments\n" +
-                   item["argumentsText"].toString() + "\nResult\n" +
-                   item["resultText"].toString() + "\n";
-        if (item["displayStatus"] == "Failed") {
-          status = "Failed";
-        } else if (status != "Failed" && item["displayStatus"] == "Running") {
-          status = "Running";
+        calls.append(item);
+        sameMessage = sameMessage && item["message"].toString().trimmed() == shared;
+        const auto args = item["args"].toObject();
+        bool location = false;
+        for (const auto key : {"url", "uri", "path", "file", "filename"}) {
+          location = location || !args[key].toString().trimmed().isEmpty();
         }
+        listed = listed && location;
+        const auto value = toolDetail(args, true);
+        if (!value.isEmpty() && !seen.contains(value)) { preview.append(value); seen.insert(value); }
+        if (item.contains("result")) { ++completed; }
+        if (item.contains("durationMs")) { duration = std::max(duration, item["durationMs"].toInteger()); }
+        if (item["displayStatus"] == "Failed") { status = "Failed"; }
+        else if (status != "Failed" && item["displayStatus"] == "Running") { status = "Running"; }
       }
-      const auto label = group.value("label").toString();
-      const auto count = end - first;
-      group["label"] =
-          label.startsWith("Searched") || label == "Ran 1 search"
-              ? QString("Ran %1 searches").arg(count)
-          : label.startsWith("Opened") ? QString("Opened %1 pages").arg(count)
-          : label.startsWith("Read")   ? QString("Read %1 items").arg(count)
-          : label.startsWith("Edited") ? QString("Made %1 edits").arg(count)
-          : label.startsWith("Planned") || label == "Wrote a plan"
-              ? QString("Wrote %1 plans").arg(count)
-              : QString("%1 %2 times").arg(label).arg(count);
+      if (listed) {
+        for (const auto &call : calls) { grouped.append(call); }
+        first = end;
+        continue;
+      }
+      const auto headline = sameMessage ? shared : countLabel(name, calls.size());
+      if (preview.size() == 1 && headline.contains(preview.first())) { preview.clear(); }
+      group["label"] = headline;
+      group["preview"] = preview.mid(0, 3).join(" · ") + (preview.size() > 3 ? QString(" +%1").arg(preview.size() - 3) : QString());
+      group["count"] = calls.size();
+      group["duration"] = completed == calls.size() ? durationLabel(duration) : QString();
+      group["progress"] = completed < calls.size() ? QString("%1/%2").arg(completed).arg(calls.size()) : QString();
+      group["calls"] = calls;
       group["displayStatus"] = status;
       group["argumentsText"] = QString();
-      group["resultText"] = details;
+      group["resultText"] = QString();
       group["grouped"] = true;
     }
     grouped.append(group);
@@ -248,6 +320,13 @@ QVariant PartModel::data(const QModelIndex &index, int role) const {
     auto data = part.toObject().toVariantMap();
     if (data.value("tool").toBool()) {
       data["expanded"] = m_expanded.contains(expansionKey(index.row()));
+      auto calls = data.value("calls").toList();
+      for (auto &value : calls) {
+        auto call = value.toMap();
+        call["expanded"] = m_expanded.contains("call:" + call["tool_call_id"].toString());
+        value = call;
+      }
+      data["calls"] = calls;
     }
     return data;
   }
@@ -276,6 +355,12 @@ void PartModel::toggleExpanded(int row) {
   }
   emit dataChanged(index(row), index(row), {ModelDataRole});
 }
+void PartModel::toggleCall(int row, const QString &id) {
+  if (row < 0 || row >= m_parts.size()) { return; }
+  const auto key = "call:" + id;
+  if (!m_expanded.remove(key)) { m_expanded.insert(key); }
+  emit dataChanged(index(row), index(row), {ModelDataRole});
+}
 void PartModel::setParts(const QJsonArray &parts) {
   const auto shared = std::min(m_parts.size(), parts.size());
   for (qsizetype i = 0; i < shared; ++i) {
@@ -302,7 +387,7 @@ void PartModel::setParts(const QJsonArray &parts) {
 void MessageModel::refreshParts(int row) {
   const auto key = m_projectionKeys[row];
   if (auto *model = m_partModels.value(key, nullptr)) {
-    model->setParts(projectedParts(m_rows[row]));
+    model->setParts(projectedParts(m_rows[row], m_results));
   }
 }
 void MessageModel::releaseParts(const QString &key) {
@@ -338,7 +423,7 @@ QVariant MessageModel::data(const QModelIndex &i, int role) const {
     if (!parts) {
       parts = new PartModel(const_cast<MessageModel *>(this));
       m_partModels[key] = parts;
-      parts->setParts(projectedParts(m));
+      parts->setParts(projectedParts(m, m_results));
     }
     return QVariant::fromValue(static_cast<QAbstractItemModel *>(parts));
   }
@@ -348,14 +433,77 @@ QVariant MessageModel::data(const QModelIndex &i, int role) const {
     return {};
   }
 }
+int MessageModel::callOwner(const QString &id) const {
+  if (id.isEmpty()) { return -1; }
+  for (int row = m_rows.size() - 1; row >= 0; --row) {
+    for (const auto key : {"tool_calls", "parts"}) {
+      for (const auto &value : m_rows[row][key].toArray()) {
+        const auto call = value.toObject();
+        if (call["tool_call_id"] == id || call["id"] == id) { return row; }
+      }
+    }
+  }
+  return -1;
+}
 QString MessageModel::upsert(const QJsonObject &message) {
   const auto id = message["id"].toString();
+  if (message["role"] == "tool") {
+    const auto call = message["tool_call_id"].toString();
+    const auto owner = callOwner(call);
+    if (!call.isEmpty()) {
+      auto result = message["content"];
+      if (result.isString()) {
+        QJsonParseError error;
+        const auto parsed = QJsonDocument::fromJson(result.toString().toUtf8(), &error);
+        if (error.error == QJsonParseError::NoError) {
+          if (parsed.isObject()) { result = parsed.object(); }
+          else if (parsed.isArray()) { result = parsed.array(); }
+        }
+      }
+      m_results[call] = {{"result", result}, {"is_error", message["is_error"]},
+                         {"result_created_at", message["created_at"]}};
+      m_resultMessages[id.isEmpty() ? call : id] = message;
+      if (owner >= 0) {
+        refreshParts(owner);
+        emit dataChanged(index(owner), index(owner), {PartsRole});
+        return m_projectionKeys[owner];
+      }
+      return id;
+    }
+  }
   const auto key =
       id.isEmpty() ? "projection:" + QUuid::createUuid().toString(QUuid::Id128)
                    : id;
+  const auto mergeName = mergeableName(message);
+  if (!m_indices.contains(id) && !mergeName.isEmpty() && !m_rows.isEmpty() &&
+      mergeableName(m_rows.last()) == mergeName) {
+    const int row = m_rows.size() - 1;
+    const auto owner = m_projectionKeys[row];
+    if (!m_groupSources.contains(owner)) { m_groupSources[owner] = {m_rows[row]}; }
+    m_groupSources[owner].append(message);
+    auto calls = m_rows[row]["tool_calls"].toArray();
+    for (const auto &call : message["tool_calls"].toArray()) { calls.append(call); }
+    m_rows[row]["tool_calls"] = calls;
+    m_indices[key] = row;
+    refreshParts(row);
+    emit dataChanged(index(row), index(row), {PartsRole});
+    return owner;
+  }
   if (!id.isEmpty() && m_indices.contains(id)) {
     const auto i = m_indices.value(id);
-    m_rows[i] = message;
+    const auto owner = m_projectionKeys[i];
+    if (m_groupSources.contains(owner)) {
+      auto &sources = m_groupSources[owner];
+      QJsonArray calls;
+      for (auto &source : sources) {
+        if (source["id"] == id) { source = message; }
+        for (const auto &call : source["tool_calls"].toArray()) { calls.append(call); }
+      }
+      m_rows[i] = sources.first();
+      m_rows[i]["tool_calls"] = calls;
+    } else {
+      m_rows[i] = message;
+    }
     refreshParts(i);
     emit dataChanged(index(i), index(i));
     return id;
@@ -468,16 +616,32 @@ bool MessageModel::addResolvedPart(const QString &id, const QJsonObject &part) {
   return true;
 }
 void MessageModel::addPart(const QJsonObject &part) {
+  const auto owner = callOwner(part["tool_call_id"].toString());
+  if (part.contains("result") && owner >= 0) {
+    auto result = part;
+    result["result_created_at"] = QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs);
+    if (part.contains("created_at")) { result["result_created_at"] = part["created_at"]; }
+    if (part.contains("result_created_at")) { result["result_created_at"] = part["result_created_at"]; }
+    m_results[part["tool_call_id"].toString()] = result;
+    refreshParts(owner);
+    emit dataChanged(index(owner), index(owner), {PartsRole});
+    return;
+  }
   if (m_rows.isEmpty() || m_rows.last()["role"] != "assistant") {
     upsert({{"id", QUuid::createUuid().toString(QUuid::Id128)},
             {"role", "assistant"},
-            {"content", ""}});
+            {"content", ""},
+            {"created_at", QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs)}});
   }
   int targetRow = rowCount() - 1;
   const auto incomingCall = part["tool_call_id"].toString();
   if (!incomingCall.isEmpty()) {
     for (int candidate = rowCount() - 1; candidate >= 0; --candidate) {
       bool found = false;
+      for (const auto &value : m_rows[candidate]["tool_calls"].toArray()) {
+        const auto call = value.toObject();
+        if (call["id"] == incomingCall || call["tool_call_id"] == incomingCall) { found = true; break; }
+      }
       for (const auto &existing : m_rows[candidate]["parts"].toArray()) {
         if (existing.toObject()["tool_call_id"] == incomingCall) {
           found = true;
@@ -491,6 +655,18 @@ void MessageModel::addPart(const QJsonObject &part) {
     }
   }
   auto &row = m_rows[targetRow];
+  auto calls = row["tool_calls"].toArray();
+  for (int i = 0; i < calls.size(); ++i) {
+    auto call = calls[i].toObject();
+    if (!incomingCall.isEmpty() && (call["id"] == incomingCall || call["tool_call_id"] == incomingCall)) {
+      for (auto it = part.begin(); it != part.end(); ++it) { call[it.key()] = it.value(); }
+      calls[i] = call;
+      row["tool_calls"] = calls;
+      refreshParts(targetRow);
+      emit dataChanged(index(targetRow), index(targetRow), {PartsRole});
+      return;
+    }
+  }
   auto parts = row["parts"].toArray();
   const auto action = part["actionId"].toString();
   const auto call = part["tool_call_id"].toString();
@@ -528,6 +704,10 @@ void MessageModel::importHistory(const QJsonArray &rows, bool prepend) {
   QSet<QString> pageIds;
   for (const auto &value : rows) {
     const auto row = value.toObject();
+    if (row["role"] == "tool" && !row["tool_call_id"].toString().isEmpty()) {
+      upsert(row);
+      continue;
+    }
     const auto id = row["id"].toString();
     bool exists = m_indices.contains(id) || pageIds.contains(id);
     if (!exists && fresh.size() + m_rows.size() < 10000) {
@@ -553,14 +733,21 @@ void MessageModel::importHistory(const QJsonArray &rows, bool prepend) {
   m_indices.clear();
   for (int i = 0; i < m_rows.size(); ++i) {
     m_indices[m_projectionKeys[i]] = i;
+    for (const auto &source : m_groupSources.value(m_projectionKeys[i])) {
+      m_indices[source["id"].toString()] = i;
+    }
   }
   endInsertRows();
 }
 QJsonArray MessageModel::snapshot() const {
   QJsonArray out;
-  for (const auto &row : m_rows) {
-    out.append(row);
+  for (int i = 0; i < m_rows.size(); ++i) {
+    const auto key = m_projectionKeys[i];
+    if (m_groupSources.contains(key)) {
+      for (const auto &source : m_groupSources.value(key)) { out.append(source); }
+    } else { out.append(m_rows[i]); }
   }
+  for (const auto &message : m_resultMessages) { out.append(message); }
   return out;
 }
 void MessageModel::clear() {
@@ -568,7 +755,7 @@ void MessageModel::clear() {
     m_frameTimer->stop();
   }
   m_dirtyRow = -1;
-  if (m_rows.isEmpty()) {
+  if (m_rows.isEmpty() && m_results.isEmpty() && m_resultMessages.isEmpty()) {
     return;
   }
   beginResetModel();
@@ -579,6 +766,9 @@ void MessageModel::clear() {
   m_rows.clear();
   m_projectionKeys.clear();
   m_indices.clear();
+  m_groupSources.clear();
+  m_results.clear();
+  m_resultMessages.clear();
   endResetModel();
 }
 } // namespace nt::chat
