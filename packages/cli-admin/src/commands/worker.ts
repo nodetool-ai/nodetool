@@ -17,6 +17,7 @@
  *   worker list [--json]
  *   worker status <id>
  *   worker stop <id> | --all
+ *   worker terminate <id>
  */
 
 import { readFileSync } from "node:fs";
@@ -24,7 +25,11 @@ import { resolve as resolvePath } from "node:path";
 
 import { Command } from "commander";
 
-import { WorkerManager } from "@nodetool-ai/compute";
+import {
+  comfyEndpointFromWsUrl,
+  waitForComfyServer,
+  WorkerManager
+} from "@nodetool-ai/compute";
 import { initDb, type TokenPolicy } from "@nodetool-ai/models";
 import { initMasterKey } from "@nodetool-ai/security";
 import { getDefaultDbPath } from "@nodetool-ai/config";
@@ -166,14 +171,87 @@ function readSshPublicKey(path: string): string {
   return key;
 }
 
+const DEFAULT_COMFY_PORT = 8188;
+
+/**
+ * Validate `--comfy [port]` and return the port to publish.
+ *
+ * The idle clock moves only on worker bridge traffic, and this pod has no
+ * bridge, so an idle timeout would pause it during a run. The pod has no
+ * authentication and bills by the minute, so a hard TTL is required.
+ */
+function parseComfyFlags(opts: {
+  comfy?: string | boolean;
+  target?: string;
+  idleTimeout?: string;
+  maxLifetime?: string;
+}): number | undefined {
+  if (opts.comfy === undefined) {
+    return undefined;
+  }
+  if (opts.target !== "runpod") {
+    throw new Error("--comfy requires --target runpod.");
+  }
+  if (opts.idleTimeout !== undefined) {
+    throw new Error(
+      "--idle-timeout does not work with --comfy: the idle clock reads worker " +
+        "bridge traffic, so it would pause the pod during a run. Use --max-lifetime."
+    );
+  }
+  if (opts.maxLifetime === undefined) {
+    throw new Error("--comfy requires --max-lifetime <minutes>.");
+  }
+  if (opts.comfy === true) {
+    return DEFAULT_COMFY_PORT;
+  }
+  const port = parsePositiveInt(String(opts.comfy), "--comfy");
+  if (port === undefined || port > 65_535) {
+    throw new Error(`Invalid --comfy '${String(opts.comfy)}': expected a port.`);
+  }
+  return port;
+}
+
+/** The profile image: a template names its own, so this only labels the row. */
+function imageFromFlags(opts: { image?: string; template?: string }): string {
+  if (opts.template !== undefined) {
+    return `runpod-template:${opts.template}`;
+  }
+  if (opts.image === undefined) {
+    throw new Error("Provide --image <image>, or --comfy --template <id>.");
+  }
+  return opts.image;
+}
+
 /** Build a profile `spec` JSON blob from the inline provisioning flags. */
 function specFromFlags(opts: {
   gpu?: string;
   vcpu?: string;
   disk?: string;
   sshKey?: string;
+  comfy?: string | boolean;
+  template?: string;
+  image?: string;
+  target?: string;
+  idleTimeout?: string;
+  maxLifetime?: string;
 }) {
   const spec: Record<string, unknown> = {};
+  const comfyPort = parseComfyFlags(opts);
+  if (comfyPort !== undefined) {
+    spec.comfyPort = comfyPort;
+  }
+  if (opts.template !== undefined) {
+    if (comfyPort === undefined) {
+      throw new Error("--template requires --comfy.");
+    }
+    if (opts.image !== undefined) {
+      throw new Error("Use --template or --image, not both.");
+    }
+    if (!/^[a-z0-9]+$/i.test(opts.template)) {
+      throw new Error(`Invalid --template '${opts.template}'.`);
+    }
+    spec.templateId = opts.template;
+  }
   if (opts.gpu) {
     spec.gpu = opts.gpu;
   }
@@ -206,6 +284,7 @@ export function registerWorkerCommands(program: Command): void {
   registerStatus(worker);
   registerToken(worker);
   registerStop(worker);
+  registerTerminate(worker);
   registerWorkerModelsCommands(worker, getWorkerManager);
 }
 
@@ -222,7 +301,8 @@ function registerProfile(worker: Command): void {
     .command("add <name>")
     .description("Create a worker profile")
     .requiredOption("--target <target>", "Provider target (runpod | vast)")
-    .requiredOption("--image <image>", "Worker container image")
+    .option("--image <image>", "Worker container image")
+    .option("--template <id>", "RunPod template id, with --comfy")
     .option("--gpu <gpu>", "GPU type (provider-specific)")
     .option(
       "--ssh-key <path>",
@@ -240,13 +320,18 @@ function registerProfile(worker: Command): void {
     )
     .option("--idle-timeout <minutes>", "Idle auto-stop timeout in minutes")
     .option("--max-lifetime <minutes>", "Hard TTL in minutes")
+    .option(
+      "--comfy [port]",
+      "Run an unmodified ComfyUI image and publish this port (default 8188)"
+    )
     .action(
       runAction(
         async (
           name: string,
           opts: {
             target: string;
-            image: string;
+            image?: string;
+            template?: string;
             gpu?: string;
             vcpu?: string;
             disk?: string;
@@ -254,6 +339,7 @@ function registerProfile(worker: Command): void {
             tokenPolicy: string;
             idleTimeout?: string;
             maxLifetime?: string;
+            comfy?: string | boolean;
           }
         ) => {
           const target = assertTarget(opts.target);
@@ -261,7 +347,7 @@ function registerProfile(worker: Command): void {
           const created = await manager.createProfile({
             name,
             target,
-            image: opts.image,
+            image: imageFromFlags(opts),
             spec: specFromFlags(opts),
             token_policy: assertTokenPolicy(opts.tokenPolicy),
             idle_timeout_minutes: parsePositiveMinutes(
@@ -326,6 +412,11 @@ function registerCreate(worker: Command): void {
     .option("--profile <name>", "Provision from an existing profile")
     .option("--target <target>", "Inline: provider target (runpod | vast)")
     .option("--image <image>", "Inline: worker container image")
+    .option("--template <id>", "Inline: RunPod template id, with --comfy")
+    .option(
+      "--ready-timeout <minutes>",
+      "With a ComfyUI server: minutes to wait for it to answer (default 10)"
+    )
     .option("--gpu <gpu>", "Inline: GPU type")
     .option(
       "--ssh-key <path>",
@@ -343,6 +434,10 @@ function registerCreate(worker: Command): void {
     )
     .option("--idle-timeout <minutes>", "Inline: idle auto-stop in minutes")
     .option("--max-lifetime <minutes>", "Inline: hard TTL in minutes")
+    .option(
+      "--comfy [port]",
+      "Inline: run an unmodified ComfyUI image and publish this port (default 8188)"
+    )
     .option("--attach", "Attach the new worker once it is running")
     .action(
       runAction(
@@ -350,6 +445,8 @@ function registerCreate(worker: Command): void {
           profile?: string;
           target?: string;
           image?: string;
+          template?: string;
+          readyTimeout?: string;
           gpu?: string;
           vcpu?: string;
           disk?: string;
@@ -357,14 +454,33 @@ function registerCreate(worker: Command): void {
           tokenPolicy: string;
           idleTimeout?: string;
           maxLifetime?: string;
+          comfy?: string | boolean;
           attach?: boolean;
         }) => {
           const manager = await getWorkerManager();
 
           let profileName = opts.profile;
+          let isComfyServer = opts.comfy !== undefined;
+          if (profileName) {
+            const profiles = await manager.listProfiles();
+            const profile = profiles.find((p) => p.name === profileName);
+            isComfyServer = profile?.spec?.comfyPort !== undefined;
+          }
+          if (isComfyServer && opts.attach) {
+            throw new Error(
+              "--attach does not work with a ComfyUI server: it has no worker bridge."
+            );
+          }
+          const readyMinutes = parsePositiveInt(
+            opts.readyTimeout,
+            "--ready-timeout"
+          );
+          if (readyMinutes !== undefined && !isComfyServer) {
+            throw new Error("--ready-timeout works only with a ComfyUI server.");
+          }
           if (!profileName) {
             // Inline form: synthesise a one-off profile from the flags.
-            if (!opts.target || !opts.image) {
+            if (!opts.target || (!opts.image && !opts.template)) {
               throw new Error(
                 "Provide --profile <name>, or the inline form " +
                   "--target <t> --image <img> [--gpu <g>]."
@@ -375,7 +491,7 @@ function registerCreate(worker: Command): void {
             await manager.createProfile({
               name: profileName,
               target,
-              image: opts.image,
+              image: imageFromFlags(opts),
               spec: specFromFlags(opts),
               token_policy: assertTokenPolicy(opts.tokenPolicy),
               idle_timeout_minutes: parsePositiveMinutes(
@@ -390,6 +506,30 @@ function registerCreate(worker: Command): void {
           }
 
           const instance = await manager.provision(profileName);
+          if (isComfyServer) {
+            const endpoint = comfyEndpointFromWsUrl(instance.ws_url);
+            console.log(`Provisioned pod '${instance.id}'. Waiting for ComfyUI...`);
+            try {
+              await waitForComfyServer(endpoint, {
+                timeoutMs:
+                  readyMinutes === undefined ? undefined : readyMinutes * 60_000
+              });
+            } catch (err) {
+              // The pod bills and serves nothing, so do not leave it behind.
+              await manager.terminate(instance.id);
+              throw err;
+            }
+            console.log(`ComfyUI is ready. Endpoint: ${endpoint}`);
+            console.log(
+              "Anyone with this URL can use the server. Use it as the " +
+                "'endpoint' of lib.comfy.RunWorkflow."
+            );
+            console.log(
+              "--max-lifetime is enforced only while the NodeTool API server runs. " +
+                `Otherwise end the pod with: nodetool worker terminate ${instance.id}`
+            );
+            return;
+          }
           console.log(`Provisioned worker '${instance.id}'.`);
           console.log(`  wsUrl: ${instance.ws_url}`);
           console.log(`  token: ${maskToken(instance.token)}`);
@@ -513,6 +653,23 @@ function registerStop(worker: Command): void {
         }
         await manager.stop(id);
         console.log(`Stopped worker '${id}'.`);
+      })
+    );
+}
+
+// ---------------------------------------------------------------------------
+// worker terminate
+// ---------------------------------------------------------------------------
+
+function registerTerminate(worker: Command): void {
+  worker
+    .command("terminate <id>")
+    .description("Destroy a worker and its volume. This stops all billing")
+    .action(
+      runAction(async (id: string) => {
+        const manager = await getWorkerManager();
+        await manager.terminate(id);
+        console.log(`Terminated worker '${id}'. Its volume is deleted.`);
       })
     );
 }

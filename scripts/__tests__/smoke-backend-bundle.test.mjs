@@ -68,15 +68,16 @@ test("native codec probe uses bundled Node and closes before Windows-style clean
       }
       return remove(target, options);
     });
-    const result = await smokeBackendBundle(bundle, { timeoutMs: 5_000 });
+    const result = await smokeBackendBundle(bundle, { timeoutMs: 15_000 });
     const [loaded, closed] = (await readFile(report, "utf8")).trim().split("\n").map(JSON.parse);
     expect(result.healthy).toBe(true);
     expect(loaded.pid).not.toBe(process.pid);
     expect(loaded.execPath).toBe(result.nodeBinary);
     expect(closed).toEqual({ event: "close", pid: loaded.pid });
     expect(fs.existsSync(result.nodeBinary)).toBe(false);
-  });
-});
+  // A valid slow probe must finish before the test deadline and cleanup.
+  }, { probe: 'await new Promise((resolve) => setTimeout(resolve, 5_200));' });
+}, 45_000);
 
 test("native probe failure includes child output and exit status", async () => {
   await smokeFixture(async ({ bundle }) => {

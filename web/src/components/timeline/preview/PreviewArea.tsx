@@ -739,34 +739,35 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       };
       const scrubber = new AudioScrubber({
         start: async (position, isStale) => {
-          const state = timelineApi.getState();
-          const clipsNow = auditionedClips(
-            state.clips,
-            useTimelineUIStore.getState().audition,
-            state
-          );
-          const ownAudio = ownAudioClipIds(clipsNow, state.tracks);
-          const soundsAt = (clip: TimelineClip, atMs: number): boolean =>
-            clip.startMs <= atMs && isPendingAudioClip(clip, atMs, ownAudio);
-          const sounding = clipsNow.filter((c) => soundsAt(c, position()));
-          if (sounding.length === 0) return position();
-          const resolved = await Promise.all(
-            sounding.map((clip) => resolveScheduledClip(clip, lookupAsset))
-          );
-          // The cursor moved on while the clips resolved: play where it is
-          // now, with the resolved clips that still sound there.
-          const atMs = position();
-          if (isStale()) return atMs;
-          await graph.playGrain(
-            resolved.filter(
-              (c): c is ScheduledAudioClip =>
-                c !== null && soundsAt(c.clip, atMs)
-            ),
-            state.tracks,
-            atMs,
-            isStale
-          );
-          return atMs;
+          while (!isStale()) {
+            const atMs = position();
+            const state = timelineApi.getState();
+            const clipsNow = auditionedClips(
+              state.clips,
+              useTimelineUIStore.getState().audition,
+              state
+            );
+            const ownAudio = ownAudioClipIds(clipsNow, state.tracks);
+            const sounding = clipsNow.filter((clip) =>
+              clip.startMs <= atMs && isPendingAudioClip(clip, atMs, ownAudio)
+            );
+            if (sounding.length === 0) return atMs;
+            const resolved = await Promise.all(
+              sounding.map((clip) => resolveScheduledClip(clip, lookupAsset))
+            );
+            if (isStale()) return atMs;
+            if (position() !== atMs) continue;
+            // Movement during decoding invalidates this grain as well. Resolve
+            // the destination before acknowledging the pending scrub request.
+            await graph.playGrain(
+              resolved.filter((c): c is ScheduledAudioClip => c !== null),
+              state.tracks,
+              atMs,
+              () => isStale() || position() !== atMs
+            );
+            if (position() === atMs) return atMs;
+          }
+          return position();
         },
         release: (fadeMs) => graph.releaseGrain(fadeMs / 1000),
         stop: () => graph.stopAll(),

@@ -54,7 +54,7 @@ const INFO: ComfyObjectInfo = {
           "COMFY_DYNAMICCOMBO_V3",
           {
             options: [
-              { key: "auto", inputs: { required: { codec: ["COMFY_DYNAMICCOMBO_V3", { options: [{ key: "auto", inputs: { required: {} } }] }] } } },
+              { key: "auto", inputs: { required: { codec: ["COMFY_DYNAMICCOMBO_V3", { options: [{ key: "h264", inputs: { required: { encoding: ["STRING", { default: "fast" }] } } }] }] } } },
               { key: "mp4", inputs: { required: {} } }
             ]
           }
@@ -94,8 +94,31 @@ describe("comfyEntryToMetadata", () => {
 
   it("flattens the default branch of a dynamic combo", () => {
     const md = comfyEntryToMetadata("SaveVideo", INFO.SaveVideo);
-    expect(md.properties.map((p) => p.name)).toEqual(["video", "format", "codec"]);
+    expect(md.properties.map((p) => p.name)).toEqual(["video", "format", "format.codec", "format.codec.encoding"]);
     expect(md.properties[1].values).toEqual(["auto", "mp4"]);
+  });
+
+  it("compiles dynamic combo defaults with their full paths while preserving ordinary inputs", () => {
+    const entry = {
+      ...INFO.SaveVideo,
+      input: {
+        required: {
+          ...INFO.SaveVideo.input?.required,
+          codec: ["STRING", { default: "legacy" }],
+          quality: [["high", "low"], {}]
+        }
+      }
+    };
+    const metadata = comfyEntryToMetadata("SaveVideo", entry);
+    const properties = Object.fromEntries(metadata.properties.map((property) => [property.name, property.default]));
+    const prompt = buildComfyPrompt({ nodes: [{ id: "1", type: metadata.node_type, properties }], edges: [] }, names);
+    expect(prompt["1"].inputs).toEqual({
+      format: "auto",
+      "format.codec": "h264",
+      "format.codec.encoding": "fast",
+      codec: "legacy",
+      quality: "high"
+    });
   });
 });
 

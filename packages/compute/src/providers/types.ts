@@ -89,6 +89,16 @@ export interface WorkerSpec {
    * rented worker can only be reached through the node-execution bridge.
    */
   sshPublicKey?: string;
+  /**
+   * Publish this port for an unmodified ComfyUI image instead of the worker's
+   * bridge port. The image gets no worker environment and no token.
+   */
+  comfyPort?: number;
+  /**
+   * RunPod template id. RunPod supplies the template's image, environment, disks
+   * and ports. Only `disk`, `env` and `gpu` are sent beside it.
+   */
+  templateId?: string;
 }
 
 /** Result of a successful `provision` — the attach handoff for an instance. */
@@ -138,7 +148,7 @@ export interface WorkerProvider {
    * fresh attach handoff (the URL/cost may differ). May fail if the provider
    * cannot re-allocate a GPU (e.g. RunPod capacity changed).
    */
-  resume(ref: string): Promise<ProvisionResult>;
+  resume(ref: string, options?: { comfyPort?: number }): Promise<ProvisionResult>;
   /**
    * Destroy the worker AND its volume (real teardown — non-negotiable). Stops
    * all billing; the cached models are gone for good.

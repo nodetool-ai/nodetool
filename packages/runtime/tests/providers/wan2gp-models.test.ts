@@ -1,9 +1,11 @@
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import * as config from "@nodetool-ai/config";
 import { WAN2GP_HELPER_SOURCE, readWan2GPCatalog, type Wan2GPInstallStatus } from "@nodetool-ai/config";
 import {
+  captureWan2GPModelAvailability,
   downloadWan2GPModel,
   markWan2GPModelAvailable,
   resetWan2GPFileStatus,
@@ -37,7 +39,16 @@ if (command === "catalog") {
   out({ type: "progress", downloaded_bytes: 1024, current_files: ["flux1-dev_bf16.safetensors"] });
   out({ type: "progress", downloaded_bytes: 4096, current_files: [] });
   out({ type: "progress", downloaded_bytes: 5000, current_files: ["config.json"] });
-  out({ type: "done", status: "available" });
+  if (process.env.FAKE_HELPER_RELEASE) {
+    const timer = setInterval(() => {
+      if (fs.existsSync(process.env.FAKE_HELPER_RELEASE)) {
+        clearInterval(timer);
+        out({ type: "done", status: "available" });
+      }
+    }, 10);
+  } else {
+    out({ type: "done", status: "available" });
+  }
 }
 `;
 
@@ -62,6 +73,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
   delete process.env.FAKE_HELPER_LOG;
+  delete process.env.FAKE_HELPER_RELEASE;
   await rm(root, { recursive: true, force: true });
 });
 
@@ -107,6 +119,111 @@ describe.skipIf(process.platform === "win32")("Wan2GP models", () => {
     expect((await readWan2GPCatalog(install.sourceDir!))?.find((model) => model.model_type === "flux")?.status).toBe(
       "available"
     );
+  });
+
+  it("forgets cached availability after reinstalling the same release", async () => {
+    await wan2gpCatalog(install);
+    await markWan2GPModelAvailable("flux");
+    expect((await wan2gpFileStatus(install)).get("flux")).toBe("available");
+    // Uninstall removes this release, and reinstall writes a fresh catalog
+    // at exactly the same source path and commit.
+    await rename(install.sourceDir!, `${install.sourceDir}-removed`);
+    await mkdir(install.sourceDir!);
+    const row = { model_type: "flux", name: "Flux", main_output: ["image"], capabilities: [], media_inputs: {}, status: "missing" };
+    await writeFile(catalogFile, JSON.stringify({ version: 1, models: [row] }));
+    expect((await wan2gpFileStatus(install)).get("flux")).toBe("missing");
+  });
+
+  it("reads a catalog replaced by repair without keeping an earlier generation's proof", async () => {
+    await wan2gpCatalog(install);
+    await markWan2GPModelAvailable("flux");
+    const row = { model_type: "flux", name: "Flux", main_output: ["image"], capabilities: [], media_inputs: {}, status: "missing" };
+    await writeFile(`${catalogFile}.replacement`, JSON.stringify({ version: 1, models: [row] }));
+    await rename(`${catalogFile}.replacement`, catalogFile);
+    expect((await wan2gpFileStatus(install)).get("flux")).toBe("missing");
+  });
+
+  it("discards a generation's late proof after a catalog repair", async () => {
+    await wan2gpCatalog(install);
+    const markAvailable = await captureWan2GPModelAvailability(install);
+    const row = { model_type: "flux", name: "Flux", main_output: ["image"], capabilities: [], media_inputs: {}, status: "missing" };
+    await writeFile(`${catalogFile}.replacement`, JSON.stringify({ version: 1, models: [row] }));
+    await rename(`${catalogFile}.replacement`, catalogFile);
+    await markAvailable("flux");
+    expect((await wan2gpFileStatus(install)).get("flux")).toBe("missing");
+    expect((await readWan2GPCatalog(install.sourceDir!))?.[0].status).toBe("missing");
+  });
+
+  it("discards a download's late completion after reinstalling the same release", async () => {
+    await wan2gpCatalog(install);
+    const release = join(root, "release-download");
+    process.env.FAKE_HELPER_RELEASE = release;
+    let started: (() => void) | undefined;
+    const progress = new Promise<void>((resolve) => { started = resolve; });
+    const download = downloadWan2GPModel(install, "flux", { onProgress: () => started?.() });
+    try {
+      await progress;
+      await rename(install.sourceDir!, `${install.sourceDir}-removed`);
+      await mkdir(install.sourceDir!);
+      const row = { model_type: "flux", name: "Flux", main_output: ["image"], capabilities: [], media_inputs: {}, status: "missing" };
+      await writeFile(catalogFile, JSON.stringify({ version: 1, models: [row] }));
+      expect((await wan2gpFileStatus(install)).get("flux")).toBe("missing");
+    } finally {
+      await writeFile(release, "done");
+      await download;
+    }
+    expect((await wan2gpFileStatus(install)).get("flux")).toBe("missing");
+    expect((await readWan2GPCatalog(install.sourceDir!))?.[0].status).toBe("missing");
+  });
+
+  it("does not retain old rows when the catalog is replaced during a read", async () => {
+    await wan2gpCatalog(install);
+    resetWan2GPFileStatus();
+    const read = config.readWan2GPCatalog;
+    vi.spyOn(config, "readWan2GPCatalog").mockImplementationOnce(async (sourceDir) => {
+      const rows = await read(sourceDir);
+      const row = { model_type: "flux", name: "Flux", main_output: ["image"], capabilities: [], media_inputs: {}, status: "missing" };
+      await writeFile(`${catalogFile}.replacement`, JSON.stringify({ version: 1, models: [row] }));
+      await rename(`${catalogFile}.replacement`, catalogFile);
+      return rows;
+    });
+    await expect(wan2gpCatalog(install)).rejects.toThrow("installation changed");
+    expect((await wan2gpFileStatus(install)).get("flux")).toBe("missing");
+  });
+
+  it("keeps independent completions from two catalog snapshots", async () => {
+    const first = await captureWan2GPModelAvailability(install);
+    resetWan2GPFileStatus();
+    const second = await captureWan2GPModelAvailability(install);
+    await first("flux");
+    await second("ace_step_v1");
+    const status = await wan2gpFileStatus(install);
+    expect(status.get("flux")).toBe("available");
+    expect(status.get("ace_step_v1")).toBe("available");
+  });
+
+  it.each(["generation", "download"])("cancels %s preflight while the installer owns the lock", async (operation) => {
+    const lock = `${root}.nodetool-lock`;
+    await mkdir(lock);
+    const started = Promise.withResolvers<void>();
+    const originalWrite = config.writeWan2GPCatalog;
+    vi.spyOn(config, "writeWan2GPCatalog").mockImplementationOnce((target, signal) => {
+      started.resolve();
+      return originalWrite(target, signal);
+    });
+    const controller = new AbortController();
+    const pending = operation === "generation"
+      ? captureWan2GPModelAvailability(install, controller.signal)
+      : downloadWan2GPModel(install, "flux", { signal: controller.signal });
+    const observed = expect(pending).rejects.toThrow("cancelled preflight");
+    try {
+      await started.promise;
+      controller.abort(new Error("cancelled preflight"));
+      await observed;
+      await expect(readFile(log, "utf8")).rejects.toThrow(/ENOENT/);
+    } finally {
+      await rm(lock, { recursive: true, force: true });
+    }
   });
 
   it("reports the downloader's error", async () => {

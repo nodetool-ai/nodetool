@@ -182,7 +182,7 @@ function enumProperty(
 /**
  * Properties for one ComfyUI input. A dynamic combo (`COMFY_DYNAMICCOMBO_V3`)
  * is an enum of its option keys plus the inputs of its default option,
- * flattened, which is how the API format carries them (`format`, `codec`).
+ * flattened, which is how the API format carries them (`format`, `format.codec`).
  */
 function inputProperties(
   name: string,
@@ -225,7 +225,7 @@ function inputProperties(
         if (!isRecord(group)) continue;
         for (const [child, childSpec] of Object.entries(group)) {
           out.push(
-            ...inputProperties(child, childSpec, section === "required" && required, depth + 1)
+            ...inputProperties(`${name}.${child}`, childSpec, section === "required" && required, depth + 1)
           );
         }
       }

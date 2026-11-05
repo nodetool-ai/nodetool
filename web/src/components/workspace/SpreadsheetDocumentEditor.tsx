@@ -52,13 +52,8 @@ const styles = (theme: Theme) =>
   css({
     width: "100%",
     height: "100%",
-    display: "flex",
-    flexDirection: "column",
     backgroundColor: theme.vars.palette.background.default,
     color: theme.vars.palette.common.white,
-    ".sheet-select": {
-      minWidth: 160
-    },
     ".table-host": {
       flex: 1,
       minHeight: 0,
@@ -97,7 +92,7 @@ const SpreadsheetDocumentEditor = ({
   const getUrl = asset.get_url ?? undefined;
 
   const {
-    data: workbook,
+    data: persisted,
     isLoading,
     error
   } = useQuery({
@@ -112,9 +107,12 @@ const SpreadsheetDocumentEditor = ({
       if (!response.ok) {
         throw new Error(`Failed to load spreadsheet: ${response.status}`);
       }
-      return loadWorkbook(await response.arrayBuffer());
+      const bytes = await response.arrayBuffer();
+      return { bytes, workbook: await loadWorkbook(bytes) };
     }
   });
+
+  const workbook = persisted?.workbook;
 
   // The dataframe each sheet was read as; edits are diffed against it on save.
   const loadedSheets = useMemo(
@@ -142,29 +140,33 @@ const SpreadsheetDocumentEditor = ({
   );
 
   const saveMutation = useMutation({
-    mutationFn: async () => {
-      if (!workbook) {
+    mutationFn: async (snapshot: Record<number, DataframeRef>) => {
+      if (!persisted) {
         throw new Error("Spreadsheet is not loaded");
       }
-      for (const [index, df] of Object.entries(edits)) {
+      const savedWorkbook = await loadWorkbook(persisted.bytes);
+      for (const [index, df] of Object.entries(snapshot)) {
         const i = Number(index);
-        applyDataframeToWorksheet(workbook.worksheets[i], loadedSheets[i], df);
+        applyDataframeToWorksheet(savedWorkbook.worksheets[i], loadedSheets[i], df);
       }
-      const bytes = await workbookToBytes(workbook);
-      return update({
+      const bytes = await workbookToBytes(savedWorkbook);
+      await update({
         id: asset.id,
         data: arrayBufferToBase64(bytes),
         data_encoding: "base64",
         content_type: XLSX_CONTENT_TYPE
       });
+      return { bytes, workbook: savedWorkbook };
     },
-    onSuccess: async () => {
-      // Re-read the saved workbook so the baselines match what was written,
-      // then drop the edits it now contains.
-      await queryClient.invalidateQueries({
-        queryKey: spreadsheetAssetKey(asset.id)
-      });
-      setEdits({});
+    onSuccess: (saved, snapshot) => {
+      queryClient.setQueryData(spreadsheetAssetKey(asset.id), saved);
+      setEdits((current) =>
+        Object.fromEntries(
+          Object.entries(current).filter(
+            ([index, df]) => df !== snapshot[Number(index)]
+          )
+        )
+      );
       addNotification({
         type: "success",
         alert: true,
@@ -187,8 +189,8 @@ const SpreadsheetDocumentEditor = ({
     if (readOnly || !isDirty || isSaving) {
       return;
     }
-    saveMutation.mutate();
-  }, [readOnly, isDirty, isSaving, saveMutation]);
+    saveMutation.mutate(edits);
+  }, [readOnly, isDirty, isSaving, saveMutation, edits]);
 
   const menuCommands = useMemo<ContextCommand[]>(
     () =>
@@ -202,7 +204,7 @@ const SpreadsheetDocumentEditor = ({
             }
           ]
         : [],
-    [isDirty, isSaving, readOnly, handleSave]
+    [isDirty, isSaving, readOnly, handleSave, t]
   );
   useContextCommands("Spreadsheet", menuCommands, active);
 
@@ -317,10 +319,10 @@ const SpreadsheetDocumentEditor = ({
   };
 
   return (
-    <div css={editorStyles}>
+    <FlexColumn css={editorStyles}>
       {bar}
       {body()}
-    </div>
+    </FlexColumn>
   );
 };
 

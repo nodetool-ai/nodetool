@@ -68,6 +68,9 @@ export interface CreateWorkerProfileInput {
   max_lifetime_minutes?: number | null;
 }
 
+/** A model that starts on a rented GPU with one click. */
+export type ComfyPreset = RouterOutputs["worker"]["comfyPresets"][number];
+
 type WorkerConnection = RouterOutputs["worker"]["attach"];
 
 /** Readiness of a `running` worker, from the backend health probe. */
@@ -81,6 +84,7 @@ const workerQueryKeys = {
   profiles: ["workers", "profiles"] as const,
   instances: ["workers", "instances"] as const,
   apiKeyStatus: ["workers", "api-key-status"] as const,
+  comfyPresets: ["workers", "comfy-presets"] as const,
   health: (id: string) => ["workers", "health", id] as const
 };
 
@@ -96,6 +100,7 @@ const INSTANCES_REFETCH_INTERVAL_MS = 10_000;
 const HEALTH_REFETCH_INTERVAL_MS = 4_000;
 const EMPTY_PROFILES: WorkerProfile[] = [];
 const EMPTY_INSTANCES: WorkerInstance[] = [];
+const EMPTY_PRESETS: ComfyPreset[] = [];
 
 /**
  * Poll a worker's readiness while it is `running` but not yet attached. The
@@ -152,6 +157,8 @@ interface UseWorkersResult {
    * same resolution provisioning uses. `undefined` while loading.
    */
   apiKeyStatus: Record<WorkerTarget, boolean> | undefined;
+  comfyPresets: ComfyPreset[];
+  startComfyPreset: (presetId: string) => Promise<WorkerInstance>;
   createProfile: (input: CreateWorkerProfileInput) => Promise<WorkerProfile>;
   deleteProfile: (name: string) => Promise<void>;
   provision: (profileName: string) => Promise<WorkerInstance>;
@@ -182,6 +189,13 @@ export const useWorkers = (): UseWorkersResult => {
     queryKey: workerQueryKeys.apiKeyStatus,
     queryFn: () => trpcClient.worker.apiKeyStatus.query(),
     enabled: WORKERS_AVAILABLE
+  });
+
+  const comfyPresetsQuery = useQuery<ComfyPreset[], Error>({
+    queryKey: workerQueryKeys.comfyPresets,
+    queryFn: () => trpcClient.worker.comfyPresets.query(),
+    enabled: WORKERS_AVAILABLE,
+    staleTime: Infinity
   });
 
   const invalidateInstances = useCallback(
@@ -226,6 +240,17 @@ export const useWorkers = (): UseWorkersResult => {
       return instance as WorkerInstance;
     },
     [invalidateInstances]
+  );
+
+  const startComfyPreset = useCallback(
+    async (presetId: string): Promise<WorkerInstance> => {
+      const instance = await trpcClient.worker.startComfyPreset.mutate({
+        presetId
+      });
+      await Promise.all([invalidateInstances(), invalidateProfiles()]);
+      return instance as WorkerInstance;
+    },
+    [invalidateInstances, invalidateProfiles]
   );
 
   const stop = useCallback(
@@ -290,6 +315,8 @@ export const useWorkers = (): UseWorkersResult => {
     profilesQuery,
     instancesQuery,
     apiKeyStatus: apiKeyStatusQuery.data,
+    comfyPresets: comfyPresetsQuery.data ?? EMPTY_PRESETS,
+    startComfyPreset,
     createProfile,
     deleteProfile,
     provision,

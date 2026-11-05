@@ -851,3 +851,56 @@ describe("WorkerManager — reconcile", () => {
     });
   });
 });
+
+describe("startComfyPreset", () => {
+  function setup(failures: string[]) {
+    const { manager, provider } = makeManager();
+    const provision = vi
+      .spyOn(provider, "provision")
+      .mockImplementation(async (spec: WorkerSpec): Promise<ProvisionResult> => {
+        const failure = failures.shift();
+        if (failure) {
+          throw new Error(failure);
+        }
+        return {
+          providerRef: `pod-${spec.gpu}`,
+          wsUrl: "wss://pod-8188.proxy.runpod.net",
+          status: "running",
+        };
+      });
+    return { manager, provision };
+  }
+
+  it("tries the next GPU only when RunPod has no capacity", async () => {
+    const { manager, provision } = setup(["There are no instances currently available"]);
+    const instance = await manager.startComfyPreset("minimax-h3");
+    expect(provision.mock.calls.map(([spec]) => spec.gpu)).toEqual([
+      "NVIDIA RTX PRO 4500 Blackwell",
+      "NVIDIA GeForce RTX 5090",
+    ]);
+    expect(provision.mock.calls[1][0]).toMatchObject({
+      comfyPort: 8188,
+      templateId: "dunz9ocpnc",
+      token: undefined,
+    });
+    await expect(manager.comfyEndpoint(instance.id)).resolves.toBe(
+      "https://pod-8188.proxy.runpod.net"
+    );
+  });
+
+  it("stops at any other provider error", async () => {
+    const { manager, provision } = setup(["invalid API key"]);
+    await expect(manager.startComfyPreset("minimax-h3")).rejects.toThrow("invalid API key");
+    expect(provision).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports when no GPU has capacity", async () => {
+    const { manager } = setup(["no instances", "no instances"]);
+    await expect(manager.startComfyPreset("minimax-h3")).rejects.toThrow("no capacity");
+  });
+
+  it("rejects an unknown preset", async () => {
+    const { manager } = setup([]);
+    await expect(manager.startComfyPreset("nope")).rejects.toThrow("Unknown");
+  });
+});

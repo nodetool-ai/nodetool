@@ -133,6 +133,11 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Free disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
       - uses: ./.github/actions/setup-build
         with:
           cache: off
@@ -143,6 +148,8 @@ jobs:
         run: node scripts/publish-packages.mjs --pack-only --tarballs-dir .packed-artifacts
       - name: Smoke-test the packed core-only CLI
         run: node scripts/smoke-packed-cli.mjs --core-only --tarballs-dir .packed-artifacts
+      - name: Report disk space before full smoke
+        run: df -h /
       - name: Smoke-test the packed full CLI
         run: node scripts/smoke-packed-cli.mjs --tarballs-dir .packed-artifacts
   core-smoke:

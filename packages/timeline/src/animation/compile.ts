@@ -7,6 +7,8 @@
  * Pure: no DOM, GPU, or store access.
  */
 
+import { TRACK_AUTOMATION_PARAM } from "../automation.js";
+
 import type {
   AnimatedProperty,
   AnimationStyleTrack,
@@ -32,7 +34,7 @@ import {
 } from "./custom.js";
 
 export interface Keyframe {
-  /** Normalized 0..1 within the animation window. */
+  /** Normalized within the window. Track automation may extend past 0..1. */
   t: number;
   value: number;
   /**
@@ -319,7 +321,11 @@ export function compileClipAnimations(
       const styleOnly = !animation.custom?.curves?.length && Boolean(animation.styleTracks?.length || animation.textAnimator);
       const baked = styleOnly
         ? { ok: true as const, curves: [] as PropertyCurve[], timeBase: "clip" as const }
-        : normalizeCustomCurves(animation.custom?.curves, animation.custom?.timeBase);
+        : normalizeCustomCurves(
+            animation.custom?.curves,
+            animation.custom?.timeBase,
+            animation.params?.[TRACK_AUTOMATION_PARAM] === true
+          );
       if (!baked.ok) {
         console.warn(
           `[timeline] custom animation "${animation.id}" has unusable curves (${baked.error}) — skipped`

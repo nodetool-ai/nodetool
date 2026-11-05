@@ -60,21 +60,30 @@ export class RunpodPodProvider implements WorkerProvider {
     const { podId, wsUrl, pod } = await deployWorkerPod(this.apiKey, {
       name: spec.name,
       image: spec.image,
+      templateId: spec.templateId,
       workerToken: spec.token,
-      internalPort: WORKER_PORT,
+      internalPort: spec.comfyPort ?? WORKER_PORT,
       exposure: EXPOSURE,
       computeType: useGpu ? "GPU" : "CPU",
       gpuTypeIds: spec.gpu ? [spec.gpu] : undefined,
       gpuCount: spec.gpuCount,
+      // The CUDA filter describes the worker image, not an arbitrary one.
+      allowedCudaVersions: spec.comfyPort ? [] : undefined,
       vcpuCount: spec.vcpu,
       // Point HF model downloads at the persistent volume so they survive a
       // stop/resume; merge over any caller env (caller wins on conflict? no —
       // we own HF_HOME, so it goes last).
-      env: { ...spec.env, HF_HOME: WORKER_HF_HOME },
+      env: spec.comfyPort
+        ? spec.env
+        : { ...spec.env, HF_HOME: WORKER_HF_HOME },
       sshPublicKey: spec.sshPublicKey,
-      containerDiskInGb: DEFAULT_CONTAINER_DISK_GB,
-      volumeInGb: spec.disk ?? DEFAULT_VOLUME_GB,
-      volumeMountPath: WORKER_VOLUME_MOUNT,
+      ...(spec.templateId
+        ? { volumeInGb: spec.disk }
+        : {
+            containerDiskInGb: DEFAULT_CONTAINER_DISK_GB,
+            volumeInGb: spec.disk ?? DEFAULT_VOLUME_GB,
+            volumeMountPath: WORKER_VOLUME_MOUNT
+          }),
     });
     return {
       providerRef: podId,
@@ -96,10 +105,13 @@ export class RunpodPodProvider implements WorkerProvider {
   }
 
   /** Resume a paused pod and re-derive its (possibly new) attach endpoint. */
-  async resume(ref: string): Promise<ProvisionResult> {
+  async resume(
+    ref: string,
+    options?: { comfyPort?: number }
+  ): Promise<ProvisionResult> {
     await startPod(this.apiKey, ref);
     const { pod, wsUrl } = await waitForPodEndpoint(this.apiKey, ref, {
-      internalPort: WORKER_PORT,
+      internalPort: options?.comfyPort ?? WORKER_PORT,
       exposure: EXPOSURE,
     });
     return {

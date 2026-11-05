@@ -743,6 +743,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
             if (!persistent && !reusable && realm) { disposeRealm(realm); }
           }
         };
+        const saveCount = saves.entries().length;
         try {
           let output: unknown;
           if (!reusableSources.has(call.sourceKey) || (!reusableRealms.has(call.sourceKey) && reusableRealms.size >= REUSABLE_REALM_LIMIT)) {
@@ -781,18 +782,20 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
             throw new Error(`Game script command limit exceeded for ${call.entityId}`);
           }
           const itemBytes = encoder.encode(JSON.stringify({ entityId: call.entityId, value })).byteLength;
-          serializedResultsBytes += itemBytes + (results.length > 0 ? 1 : 0);
-          const outputBytes = encoder.encode(JSON.stringify({ results: [], rngState: envelope.rngState })).byteLength + serializedResultsBytes;
+          const nextResultsBytes = serializedResultsBytes + itemBytes + (results.length > 0 ? 1 : 0);
+          const outputBytes = encoder.encode(JSON.stringify({ results: [], rngState: envelope.rngState })).byteLength + nextResultsBytes;
           if (outputBytes > 64 * 1024) {
             throw new Error(`Output exceeds 64 KiB (${outputBytes} bytes across ${results.length + 1} calls)`);
           }
           checkCallDeadline();
+          serializedResultsBytes = nextResultsBytes;
           commandCount += value.commands.length;
           nextRngState = envelope.rngState;
           results.push({ entityId: call.entityId, state: value.state, commands: value.commands });
         } catch (error) {
           const batchOverrun = performance.now() >= batchDeadline;
           if (skipOverruns && (batchOverrun || callExceeded())) {
+            saves.rollback(saveCount);
             // The interrupted call may have changed its retained realm, so the next call starts a fresh one.
             const realm = realms.get(call.stateKey);
             if (realm) { disposeRealm(realm); realms.delete(call.stateKey); }

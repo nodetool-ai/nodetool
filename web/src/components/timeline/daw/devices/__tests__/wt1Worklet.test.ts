@@ -9,6 +9,7 @@ import { join } from "path";
 
 import { generateTables } from "../../fablesynth/engine/wavetables";
 import { defaultParams } from "../../fablesynth/params";
+import { WorkletInstrumentDevice } from "../workletDevice";
 
 const ENGINE = join(__dirname, "../../fablesynth/engine");
 const SR = 48000;
@@ -103,6 +104,54 @@ describe("WT-1 worklet timeline events", () => {
     h.send({ t: "evs", ev: ev([late, 1, 67, 0.8]) });
     const after = h.render(60);
     expect(rms(after, 0, after.length)).toBeLessThan(1e-4);
+  });
+
+  it("clears one clip without releasing another clip's sounding note", () => {
+    const h = boot();
+    class Device extends WorkletInstrumentDevice {
+      protected readonly authoredParams: Readonly<Record<string, number>> = {};
+      constructor() {
+        super({ sampleRate: SR, get currentTime() { return h.frame() / SR; } } as BaseAudioContext,
+          { port: { postMessage: (message: unknown) => h.send(message) } } as unknown as AudioWorkletNode,
+          {} as AudioNode);
+      }
+      setInstrument(): void {}
+      noteOn(): void {}
+      noteOff(): void {}
+      setTempo(): void {}
+    }
+    const device = new Device();
+    device.schedule([{ timeSec: 0, on: true, pitch: 60, velocity: 127 }, { timeSec: 1, on: false, pitch: 60, velocity: 0 }], "held");
+    device.schedule([{ timeSec: 0, on: true, pitch: 72, velocity: 127 }, { timeSec: 0.2, on: false, pitch: 72, velocity: 0 }], "edited");
+    h.render(40);
+    device.clear("edited");
+    const out = h.render(450);
+    expect(rms(out, 10000, 20000)).toBeGreaterThan(0.01);
+    expect(rms(out, 50000, out.length)).toBeLessThan(1e-4);
+  });
+
+  it("keeps same-pitch ownership and unrelated queued notes when a tag is cleared", () => {
+    const h = boot();
+    h.send({ t: "evs", tag: "a", ev: ev([0, 1, 60, 1], [18000, 0, 60, 0], [25000, 1, 67, 1]) });
+    h.send({ t: "evs", tag: "b", ev: ev([0, 1, 60, 1], [35000, 0, 60, 0], [27000, 1, 72, 1]) });
+    h.render(40);
+    h.send({ t: "evclear", tag: "a" });
+    const held = h.render(110);
+    expect(rms(held, 2000, held.length)).toBeGreaterThan(0.01);
+    h.send({ t: "evclear", tag: "b" });
+    const after = h.render(300);
+    expect(rms(after, 12000, after.length)).toBeLessThan(1e-4);
+  });
+
+  it("retains another clip's future events and removes the cleared clip's events", () => {
+    const h = boot();
+    h.send({ t: "evs", tag: "a", ev: ev([8000, 1, 60, 1]) });
+    h.send({ t: "evs", tag: "b", ev: ev([16000, 1, 72, 1], [24000, 0, 72, 0]) });
+    h.send({ t: "evclear", tag: "a" });
+    const out = h.render(300);
+    expect(rms(out, 9000, 15000)).toBeLessThan(1e-4);
+    expect(rms(out, 18000, 23000)).toBeGreaterThan(0.01);
+    expect(rms(out, 30000, out.length)).toBeLessThan(1e-4);
   });
 
   it("evclear drops queued events and releases sounding notes", () => {
