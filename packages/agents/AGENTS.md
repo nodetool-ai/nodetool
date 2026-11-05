@@ -1112,8 +1112,9 @@ text, shapes and captions with the shared drawing rules, and decodes media
 with Mediabunny. A lazy child uses the headless compositor and shared shaders
 with 8-bit targets. FP16 stays off. The CPU route remains for A92 comparisons.
 
-- **One renderer child per parent.** Concurrent passes wait for the preceding
-  child to exit. Cancelling a waiter rejects without stopping the current pass.
+- **One renderer child per parent.** Concurrent requests wait for the preceding
+  child to exit. Layout checks reuse that child across their same-size frames
+  and release it at the end of the diagnostic batch. Cancelling a waiter rejects without stopping the current pass.
   A crash rejects the active request and releases ownership for the next pass.
 - **Dawn and an adapter are required only for rendering.** Install the addon
   with `nodetool packs add webgpu --yes`. A host without hardware can use

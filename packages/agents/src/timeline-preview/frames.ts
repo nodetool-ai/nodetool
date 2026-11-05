@@ -75,6 +75,7 @@ import {
   sessionOptionsFor
 } from "./model3d.js";
 import { PreviewRasterizer } from "./rasterize.js";
+import type { RenderChild } from "./render-child-client.js";
 
 /**
  * Reads of one asset allowed per render pass. See `bytesFor` for why a failed
@@ -120,6 +121,8 @@ type ResolvedPreviewSample = ReturnType<typeof computeActiveLayersWithHorizon> &
 };
 
 export interface RenderTimelineFramesOptions {
+  /** Borrow one child for a batch with identical output and reference dimensions. */
+  renderChild?: RenderChild;
   signal?: AbortSignal;
   sequence: TimelineSequence;
   /** Absolute timeline positions to composite, in milliseconds. */
@@ -385,7 +388,7 @@ export async function renderTimelineFrames(
 
   const shared = sharedShaders
     ? await (await import("./shared-compositor.js")).createSharedPreviewCompositor(
-        width, height, animationCanvas.width, animationCanvas.height, options.signal)
+        width, height, animationCanvas.width, animationCanvas.height, options.signal, options.renderChild)
     : undefined;
   try {
   const { unavailable: fontsUnavailable } = await ensureGoogleFonts(sequence);

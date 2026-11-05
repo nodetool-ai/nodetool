@@ -113,11 +113,16 @@ describe("preview child ownership", () => {
     const controller = new AbortController();
     const cancelled = createRenderChild(controller.signal);
     const assertion = expect(cancelled).rejects.toMatchObject({ name: "AbortError" });
-    const next = createRenderChild();
+    let acquired = false;
+    const next = createRenderChild().then(child => { acquired = true; return child; });
     controller.abort();
     // Rejection must finish while the predecessor still owns a live renderer.
     await assertion;
-    try { expect((await first.render(request)).pixels.length).toBe(1024); }
+    expect(acquired).toBe(false);
+    try {
+      expect((await first.render(request)).pixels.length).toBe(1024);
+      expect(acquired).toBe(false);
+    }
     finally { await first.dispose(); }
     const second = await next;
     try { expect((await second.render(request)).pixels.length).toBe(1024); }

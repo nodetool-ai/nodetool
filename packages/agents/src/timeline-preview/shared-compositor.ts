@@ -3,7 +3,7 @@ import { loadCanvas } from "@nodetool-ai/runtime";
 import { drawMask, type Canvas2DLayer, type Canvas2DPrecomposite, type Canvas2DAdjustment, type MaskContext2D, type Canvas2DFrameReport } from "@nodetool-ai/timeline/scene";
 import type { FrameLayer, FrameLayerPixels } from "@nodetool-ai/timeline/render";
 
-import { createRenderChild, MAX_RENDER_BYTES } from "./render-child-client.js";
+import { createRenderChild, MAX_RENDER_BYTES, type RenderChild } from "./render-child-client.js";
 
 type Source = Canvas | Image;
 interface SharedPreviewReport extends Canvas2DFrameReport<Source> {
@@ -15,10 +15,10 @@ interface SharedPreviewCompositor {
 }
 
 /** Acquire the optional native renderer only when a preview is requested. */
-export async function createSharedPreviewCompositor(width: number, height: number, referenceWidth: number, referenceHeight: number, signal?: AbortSignal): Promise<SharedPreviewCompositor> {
+export async function createSharedPreviewCompositor(width: number, height: number, referenceWidth: number, referenceHeight: number, signal?: AbortSignal, renderChild?: RenderChild): Promise<SharedPreviewCompositor> {
   const { createCanvas } = await loadCanvas();
   if (![width, height, referenceWidth, referenceHeight].every((value) => Number.isSafeInteger(value) && value > 0) || width * height * 4 > MAX_RENDER_BYTES) throw new Error("Timeline output exceeds the 64 MiB transfer limit");
-  const compositor = await createRenderChild(signal);
+  const compositor = renderChild ?? await createRenderChild(signal);
   let frameBytes = 0;
   const pixels = (source: Source): FrameLayerPixels => {
     frameBytes += source.width * source.height * 4;
@@ -33,7 +33,9 @@ export async function createSharedPreviewCompositor(width: number, height: numbe
     if (frameBytes + w * h * 4 > MAX_RENDER_BYTES) throw new Error("Timeline mask exceeds the 64 MiB transfer limit");
     const canvas = createCanvas(w, h);
     // SAFETY: Skia provides the subset of Canvas2D used by the shared mask rasterizer.
-    if (!drawMask(canvas.getContext("2d") as unknown as MaskContext2D, mask, w, h)) return undefined;
+    if (!drawMask(canvas.getContext("2d") as unknown as MaskContext2D, mask, w, h)) {
+      return undefined;
+    }
     return pixels(canvas);
   };
   const layerPixels = (layer: Canvas2DLayer<Source>): FrameLayer => ({
@@ -45,7 +47,11 @@ export async function createSharedPreviewCompositor(width: number, height: numbe
     matte: layer.matte ? { ...layer.matte, layer: layerPixels(layer.matte.layer) } : undefined
   });
   return {
-    dispose: (): Promise<void> => compositor.dispose(),
+    dispose: async (): Promise<void> => {
+      if (!renderChild) {
+        await compositor.dispose();
+      }
+    },
     async draw(canvas: Canvas, layers: Canvas2DLayer<Source>[], groups: Canvas2DPrecomposite[], adjustments: Canvas2DAdjustment[]): Promise<SharedPreviewReport> {
       signal?.throwIfAborted();
       frameBytes = 0;
