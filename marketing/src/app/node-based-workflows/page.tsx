@@ -335,14 +335,10 @@ export default function NodeBasedWorkflowsPage() {
           <p className="mt-4 leading-relaxed text-slate-300">
             Seven nodes turn a list of five shot prompts into one edited video.
             Add a sixth prompt and the same graph makes six shots. The{" "}
-            <a href="/templates/batch-a-list" className={linkClass}>
-              Batch a List
-            </a>{" "}
-            and{" "}
             <a href="/templates/movie-trailer-generator" className={linkClass}>
               Movie Trailer Generator
             </a>{" "}
-            templates are built on the same pattern.
+            template is built on the same pattern.
           </p>
           <ol className="mt-8 space-y-3">
             {walkthrough.map((step, i) => (

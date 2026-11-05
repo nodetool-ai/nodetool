@@ -5,7 +5,6 @@ import {
   ejectPresetIds,
   type EjectModel
 } from "../../lib/presets/ejectPresets";
-import type { WorkflowRequest } from "../../stores/ApiTypes";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import {
   creationProjectId,
@@ -53,7 +52,13 @@ export const useOpenPresetAsWorkflow = (): ((
           tags: ["preset"],
           access: "private",
           project_id: projectId,
-          graph: graph as unknown as NonNullable<WorkflowRequest["graph"]>
+          graph: {
+            nodes: graph.nodes.map(({ position, ...node }) => ({
+              ...node,
+              ui_properties: { position }
+            })),
+            edges: graph.edges
+          }
         });
         openTab({
           type: "workflow",

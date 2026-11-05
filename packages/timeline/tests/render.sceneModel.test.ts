@@ -728,3 +728,23 @@ describe("resolveCaptionAtTime cues", () => {
     ]);
   });
 });
+
+
+describe("matte fade redraw", () => {
+  it.each(["alpha", "luma"] as const)("redraws a still %s matte through both fades", (mode) => {
+    const tracks = [track({ id: "v" })];
+    const clips = [
+      clip({ id: "picture", trackId: "v", mediaType: "image", durationMs: 4000, matte: { sourceClipId: "matte", mode } }),
+      clip({ id: "matte", trackId: "v", mediaType: "image", durationMs: 4000, fadeInMs: 1000, fadeOutMs: 1000 })
+    ];
+    const canvas = { width: 100, height: 100 };
+    for (const [ms, opacity] of [[250, 0.25], [750, 0.75], [3250, 0.75], [3750, 0.25]]) {
+      const layers = computeActiveLayers(tracks, clips, ms);
+      expect(layers.map((layer) => layer.clipId)).toEqual(["picture"]);
+      expect(layers[0].matte?.layer.opacity).toBeCloseTo(opacity);
+      expect(hasActiveAnimation(layers, ms, canvas, undefined, clips)).toBe(true);
+    }
+    const settled = computeActiveLayers(tracks, clips, 2000);
+    expect(hasActiveAnimation(settled, 2000, canvas, undefined, clips)).toBe(false);
+  });
+});

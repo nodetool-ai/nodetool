@@ -1,0 +1,524 @@
+{
+  "id": "01b535469db1a9cf7878b4461504dc8b",
+  "name": "Comfy Video Extend- Seedance 2.5",
+  "description": "Extend an existing video forward or backward by generating new segments that seamlessly preserve the original characters, scenes, and aspect ratio. The source video must be 1.9–30 seconds long, and you specify the duration of the new clip (4–30 seconds, default 5), with output delivered as MP4 or MOV. Ideal for continuing unfinished footage, creating extended narrative sequences, and building longer edit chains. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video tools",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Video Extend- Seedance 2.5\n\nExtend an existing video forward or backward by generating new segments that seamlessly preserve the original characters, scenes, and aspect ratio. The source video must be 1.9–30 seconds long, and you specify the duration of the new clip (4–30 seconds, default 5), with output delivered as MP4 or MOV. Ideal for continuing unfinished footage, creating extended narrative sequences, and building longer edit chains. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_seedance2_5_video_extend.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "16",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Seedance2.5_video_extend",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "35",
+        "type": "comfy.LoadVideo",
+        "data": {
+          "file": "sloth_bullfight.mp4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "36",
+        "type": "comfy.Video Slice",
+        "data": {
+          "start_time": 0,
+          "duration": 5,
+          "strict_duration": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Trim Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "38",
+        "type": "comfy.ByteDance2ReferenceNodeV2",
+        "data": {
+          "model": "Seedance 2.5",
+          "model.prompt": "Continuing from the previous shot, live-action western rodeo, dusty arena, golden hour. The raging bull calms down and stops, the buzzer rings. The sloth in the cowboy hat hops off the bull's back, lands steadily in the dust, slowly dusts off his hat, then strolls away unhurriedly with a deadpan expression. Slow motion, dust floating in warm sunlight, cheering crowd roars and waves hats in the background. Steadicam follow shot. Western arena music swells. No black frames, no text overlays.",
+          "model.resolution": "720p",
+          "model.ratio": "adaptive",
+          "model.duration": 5,
+          "model.generate_audio": true,
+          "model.task_type": "extend",
+          "model.output_format": "mp4",
+          "model.reference_images": true,
+          "model.reference_videos": false,
+          "model.reference_audios": 1672978219,
+          "model.reference_assets": "fixed",
+          "model.auto_downscale": false,
+          "model.auto_upscale": false,
+          "seed": 0,
+          "watermark": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ByteDance Seedance 2.5 Reference to Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "40",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Seedance2.5_video_extend_merged",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "39:11",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Boolean"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "39:10",
+        "type": "comfy.EmptyAudio",
+        "data": {
+          "duration": 60,
+          "sample_rate": 44100,
+          "channels": 2
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Empty Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "39:3",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "If/Else Switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "39:6",
+        "type": "comfy.ResizeAndPadImage",
+        "data": {
+          "padding_color": "white",
+          "interpolation": "lanczos"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Resize And Pad Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "39:8",
+        "type": "comfy.CreateVideo",
+        "data": {
+          "bit_depth": 8,
+          "color_space": "sRGB",
+          "codec": "none"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Create Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "39:2",
+        "type": "comfy.GetVideoComponents",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Get Video Components"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "39:27",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 330
+          },
+          "width": 280,
+          "title": "If/Else Switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "39:1",
+        "type": "comfy.GetVideoComponents",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Get Video Components"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "39:7",
+        "type": "comfy.GetImageSize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Get Image Size"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "39:28",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Boolean"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "39:13",
+        "type": "comfy.BatchImagesNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Batch Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "39:42",
+        "type": "comfy.AudioConcat",
+        "data": {
+          "direction": "after"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Concatenate Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "38-0-16-video",
+        "source": "38",
+        "sourceHandle": "VIDEO",
+        "target": "16",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "35-0-36-video",
+        "source": "35",
+        "sourceHandle": "VIDEO",
+        "target": "36",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "36-0-38-model.reference_videos.video_1",
+        "source": "36",
+        "sourceHandle": "VIDEO",
+        "target": "38",
+        "targetHandle": "model.reference_videos.video_1",
+        "ui_properties": null
+      },
+      {
+        "id": "39:8-0-40-video",
+        "source": "39:8",
+        "sourceHandle": "VIDEO",
+        "target": "40",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "39:11-0-39:3-switch",
+        "source": "39:11",
+        "sourceHandle": "BOOLEAN",
+        "target": "39:3",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "39:42-0-39:3-on_false",
+        "source": "39:42",
+        "sourceHandle": "AUDIO",
+        "target": "39:3",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "39:10-0-39:3-on_true",
+        "source": "39:10",
+        "sourceHandle": "AUDIO",
+        "target": "39:3",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "39:7-0-39:6-target_width",
+        "source": "39:7",
+        "sourceHandle": "width",
+        "target": "39:6",
+        "targetHandle": "target_width",
+        "ui_properties": null
+      },
+      {
+        "id": "39:7-1-39:6-target_height",
+        "source": "39:7",
+        "sourceHandle": "height",
+        "target": "39:6",
+        "targetHandle": "target_height",
+        "ui_properties": null
+      },
+      {
+        "id": "39:2-0-39:6-image",
+        "source": "39:2",
+        "sourceHandle": "images",
+        "target": "39:6",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "39:1-2-39:8-fps",
+        "source": "39:1",
+        "sourceHandle": "fps",
+        "target": "39:8",
+        "targetHandle": "fps",
+        "ui_properties": null
+      },
+      {
+        "id": "39:13-0-39:8-images",
+        "source": "39:13",
+        "sourceHandle": "IMAGE",
+        "target": "39:8",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "39:3-0-39:8-audio",
+        "source": "39:3",
+        "sourceHandle": "output",
+        "target": "39:8",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "38-0-39:2-video",
+        "source": "38",
+        "sourceHandle": "VIDEO",
+        "target": "39:2",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "39:28-0-39:27-switch",
+        "source": "39:28",
+        "sourceHandle": "BOOLEAN",
+        "target": "39:27",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "39:2-0-39:27-on_false",
+        "source": "39:2",
+        "sourceHandle": "images",
+        "target": "39:27",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "39:6-0-39:27-on_true",
+        "source": "39:6",
+        "sourceHandle": "IMAGE",
+        "target": "39:27",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "35-0-39:1-video",
+        "source": "35",
+        "sourceHandle": "VIDEO",
+        "target": "39:1",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "39:1-0-39:7-image",
+        "source": "39:1",
+        "sourceHandle": "images",
+        "target": "39:7",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "39:1-0-39:13-images.image0",
+        "source": "39:1",
+        "sourceHandle": "images",
+        "target": "39:13",
+        "targetHandle": "images.image0",
+        "ui_properties": null
+      },
+      {
+        "id": "39:27-0-39:13-images.image1",
+        "source": "39:27",
+        "sourceHandle": "output",
+        "target": "39:13",
+        "targetHandle": "images.image1",
+        "ui_properties": null
+      },
+      {
+        "id": "39:2-1-39:42-audio1",
+        "source": "39:2",
+        "sourceHandle": "audio",
+        "target": "39:42",
+        "targetHandle": "audio1",
+        "ui_properties": null
+      },
+      {
+        "id": "39:1-1-39:42-audio2",
+        "source": "39:1",
+        "sourceHandle": "audio",
+        "target": "39:42",
+        "targetHandle": "audio2",
+        "ui_properties": null
+      }
+    ]
+  }
+}

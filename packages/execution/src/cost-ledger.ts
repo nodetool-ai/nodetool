@@ -219,7 +219,10 @@ export function videoMegapixels(
   const frames =
     positive(params.num_frames) ??
     (() => {
-      const seconds = positive(params.duration) ?? positive(params.seconds);
+      const seconds =
+        positive(params.duration_seconds) ??
+        positive(params.duration) ??
+        positive(params.seconds);
       return seconds === undefined ? undefined : Math.round(seconds * fps);
     })();
   if (frames === undefined) return null;

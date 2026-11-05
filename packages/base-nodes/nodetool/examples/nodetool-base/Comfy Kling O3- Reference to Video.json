@@ -1,0 +1,112 @@
+{
+  "id": "96b39be6f0b703618dd81d7bd76002b3",
+  "name": "Comfy Kling O3- Reference to Video",
+  "description": "Upload a reference image and optional audio or text prompt. Generate a character-consistent video with native audio output and precise storyboard control. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Kling O3- Reference to Video\n\nUpload a reference image and optional audio or text prompt. Generate a character-consistent video with native audio output and precise storyboard control. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_kling_o3_i2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "17",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "chasing_the_light.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "20",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/kling_o3_i2v",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "21",
+        "type": "comfy.KlingOmniProImageToVideoNode",
+        "data": {
+          "model_name": "kling-v3-omni",
+          "prompt": "Wide shot of a free‑spirited young woman running toward the camera through a sun‑drenched field, white birds exploding upward all around her like symbols of freedom. Her hair and dress are caught by the wind, captured with crisp focus on her face and light motion blur in the foreground flowers and wings. Vivid colors, bright clear sky, optimistic, uplifting cinematic tone.\n",
+          "aspect_ratio": "16:9",
+          "duration": 5,
+          "resolution": "720p",
+          "storyboards": "disabled",
+          "generate_audio": true,
+          "seed": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Kling 3.0 Omni Image to Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "21-0-20-video",
+        "source": "21",
+        "sourceHandle": "VIDEO",
+        "target": "20",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "17-0-21-reference_images",
+        "source": "17",
+        "sourceHandle": "IMAGE",
+        "target": "21",
+        "targetHandle": "reference_images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

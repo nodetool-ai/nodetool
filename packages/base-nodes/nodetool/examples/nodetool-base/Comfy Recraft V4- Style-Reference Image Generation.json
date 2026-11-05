@@ -1,0 +1,237 @@
+{
+  "id": "7f0690c01f39a27780111f1b6e7c346c",
+  "name": "Comfy Recraft V4- Style-Reference Image Generation",
+  "description": "Generate images in the style of one or more reference images using Recraft V4 Styles, capturing texture, composition, and rendering without any training or fine-tuning. Feed in multiple reference images to sharpen or broaden the style match, and receive a single styled output. Ideal for brand-consistent asset creation, matching a client's existing campaign look, or adapting styles from any external image source. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Recraft V4- Style-Reference Image Generation\n\nGenerate images in the style of one or more reference images using Recraft V4 Styles, capturing texture, composition, and rendering without any training or fine-tuning. Feed in multiple reference images to sharpen or broaden the style match, and receive a single styled output. Ideal for brand-consistent asset creation, matching a client's existing campaign look, or adapting styles from any external image source. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_recraft_v4_style_reference.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "7",
+        "type": "comfy.RecraftV4CreateStyleNode",
+        "data": {
+          "model": "recraftv4_styles"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Recraft V4 Create Style"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "8",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "recraft_v4_style_ref_2.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "9",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "recraft_v4_style_ref_4.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "11",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "recraft_v4_style_ref_3.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "recraft_v4_style_ref_1.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13",
+        "type": "comfy.SaveText",
+        "data": {
+          "filename_prefix": "txt",
+          "format": "txt"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "14",
+        "type": "comfy.RecraftV4TextToImageNode",
+        "data": {
+          "prompt": "A dramatic silhouette portrait of an elegant neck in profile against a luminous, deep midnight-purple background. The jaw and throat are cast in plum-dark shadow, hair pinned high exposing the ear, while a teardrop ruby pendant earring hangs from the lobe, its crimson core lit from behind like an ember, scattering a faint red glow onto the shadowed skin below. The light passes through the blood-red stone itself, isolating its inner fire as the sole focal point of the high-contrast, minimalist composition. Absolutely no text, no typography, no letters, no words, no numbers, no logos, no watermark, no captions, pure imagery only.",
+          "negative_prompt": "",
+          "model": "recraftv4_1",
+          "model.size": "1024x1024",
+          "n": 1,
+          "seed": 308995972515692,
+          "style_match": "precise"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Recraft V4 Text to Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "15",
+        "type": "comfy.SaveImageAdvanced",
+        "data": {
+          "filename_prefix": "ComfyUI",
+          "format": "png",
+          "format.bit_depth": "8-bit",
+          "format.input_color_space": "sRGB"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "12-0-7-images.image0",
+        "source": "12",
+        "sourceHandle": "IMAGE",
+        "target": "7",
+        "targetHandle": "images.image0",
+        "ui_properties": null
+      },
+      {
+        "id": "8-0-7-images.image1",
+        "source": "8",
+        "sourceHandle": "IMAGE",
+        "target": "7",
+        "targetHandle": "images.image1",
+        "ui_properties": null
+      },
+      {
+        "id": "11-0-7-images.image2",
+        "source": "11",
+        "sourceHandle": "IMAGE",
+        "target": "7",
+        "targetHandle": "images.image2",
+        "ui_properties": null
+      },
+      {
+        "id": "9-0-7-images.image3",
+        "source": "9",
+        "sourceHandle": "IMAGE",
+        "target": "7",
+        "targetHandle": "images.image3",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-13-text",
+        "source": "7",
+        "sourceHandle": "style_id",
+        "target": "13",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "13-0-14-style_id",
+        "source": "13",
+        "sourceHandle": "text",
+        "target": "14",
+        "targetHandle": "style_id",
+        "ui_properties": null
+      },
+      {
+        "id": "14-0-15-images",
+        "source": "14",
+        "sourceHandle": "IMAGE",
+        "target": "15",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

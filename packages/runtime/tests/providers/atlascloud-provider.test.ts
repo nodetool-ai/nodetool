@@ -451,7 +451,7 @@ describe("AtlasCloudProvider — textToImage", () => {
       width: 1600,
       height: 1200
     });
-    expect(capture.submitBody!.size).toBe("2304*1728");
+    expect(capture.submitBody?.size).toBe("2368*1776");
   });
 
   it("drops a `size` request the model can't express", async () => {

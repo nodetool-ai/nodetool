@@ -714,6 +714,52 @@ export const todoUpdateSchema = z.object({
 });
 export type TodoUpdate = z.infer<typeof todoUpdateSchema>;
 
+export const generationBatchItemStatusSchema = z.enum([
+  "queued",
+  "running",
+  "completed",
+  "failed"
+]);
+export type GenerationBatchItemStatus = z.infer<
+  typeof generationBatchItemStatusSchema
+>;
+
+/** One request of a `generate_batch` call. Times are epoch milliseconds. */
+export const generationBatchItemSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  /** The media tool the request runs: `generate_image`, `animate_image`, … */
+  tool: z.string(),
+  provider: z.string().nullable().optional(),
+  model: z.string().nullable().optional(),
+  prompt: z.string().nullable().optional(),
+  status: generationBatchItemStatusSchema,
+  /** Expected run time, from this model's past generations or a default. */
+  estimate_seconds: z.number(),
+  started_at: z.number().nullable().optional(),
+  finished_at: z.number().nullable().optional(),
+  uri: z.string().nullable().optional(),
+  media_type: z.string().nullable().optional(),
+  error: z.string().nullable().optional()
+});
+export type GenerationBatchItem = z.infer<typeof generationBatchItemSchema>;
+
+/**
+ * The whole state of one `generate_batch` call, sent again on every change.
+ * `tool_call_id` is the call's own id, so a client puts the progress on that
+ * call's row.
+ */
+export const generationBatchUpdateSchema = z.object({
+  type: z.literal("generation_batch_update"),
+  thread_id: z.string().nullable().optional(),
+  workflow_id: z.string().nullable().optional(),
+  node_id: z.string().nullable().optional(),
+  tool_call_id: z.string(),
+  concurrency: z.number(),
+  items: z.array(generationBatchItemSchema)
+});
+export type GenerationBatchUpdate = z.infer<typeof generationBatchUpdateSchema>;
+
 /**
  * `Prediction` mixes fully-typed known fields with an index signature for
  * provider-specific extras. `.catchall(z.unknown())` matches that shape.
@@ -1046,6 +1092,7 @@ export const processingMessageSchema = z.discriminatedUnion("type", [
   llmCallUpdateSchema,
   providerCallFailedSchema,
   todoUpdateSchema,
+  generationBatchUpdateSchema,
   supervisorEscalationSchema,
   supervisorDecisionSchema
 ]);
@@ -1095,6 +1142,7 @@ export const processingMessageSchemas = {
   llm_call: llmCallUpdateSchema,
   provider_call_failed: providerCallFailedSchema,
   todo_update: todoUpdateSchema,
+  generation_batch_update: generationBatchUpdateSchema,
   supervisor_escalation: supervisorEscalationSchema,
   supervisor_decision: supervisorDecisionSchema
 } as const satisfies Record<MessageType, z.ZodType<ProcessingMessage>>;

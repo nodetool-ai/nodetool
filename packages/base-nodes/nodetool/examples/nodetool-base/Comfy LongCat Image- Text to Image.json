@@ -1,0 +1,377 @@
+{
+  "id": "e6cd91f4c85547d409b83c642cd755c1",
+  "name": "Comfy LongCat Image- Text to Image",
+  "description": "Generate an image from a text prompt. Input your desired scene description in English or Chinese. Output a photorealistic image with accurate text rendering. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy LongCat Image- Text to Image\n\nGenerate an image from a text prompt. Input your desired scene description in English or Chinese. Output a photorealistic image with accurate text rendering. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/image_longcat_text_to_image.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "9",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "LongCat-Image"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "14",
+        "type": "comfy.ResolutionSelector",
+        "data": {
+          "aspect_ratio": "1:1 (Square)",
+          "megapixels": 1,
+          "multiple": 8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Resolution Selector"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13:1",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "longcat_image_bf16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13:2",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+          "type": "longcat_image",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13:3",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "ae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13:11",
+        "type": "comfy.FluxGuidance",
+        "data": {
+          "guidance": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "FluxGuidance"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13:12",
+        "type": "comfy.FluxGuidance",
+        "data": {
+          "guidance": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "FluxGuidance"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13:10",
+        "type": "comfy.CFGNorm",
+        "data": {
+          "strength": 1,
+          "pre_cfg": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CFGNorm"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13:6",
+        "type": "comfy.EmptySD3LatentImage",
+        "data": {
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "EmptySD3LatentImage"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13:8",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13:4",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "High-fashion portrait of a man with a shaved head and stubble, head tilted back and gazing upward. His skin and thick-knitted dark green turtleneck sweater are bathed in a monochromatic teal-green light, creating a uniform, matte finish. He wears round, thin-framed sunglasses with reflective amber-orange lenses that catch the light. The background is a solid, vibrant burnt orange, creating a bold, high-contrast color palette. The lighting is hard and directional, casting sharp shadows on his face. Hyper-detailed, photorealistic, sharp focus on facial features and fabric texture, editorial photography, 8K."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13:7",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 284089112874294,
+          "steps": 20,
+          "cfg": 4,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13:5",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "blurry, low resolution, oversaturated, harsh lighting, messy composition, distorted face, extra fingers, bad anatomy, cheap jewelry, plastic texture, cartoon, illustration, anime, watermark, text, logo"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "13:8-0-9-images",
+        "source": "13:8",
+        "sourceHandle": "IMAGE",
+        "target": "9",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "13:4-0-13:11-conditioning",
+        "source": "13:4",
+        "sourceHandle": "CONDITIONING",
+        "target": "13:11",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "13:5-0-13:12-conditioning",
+        "source": "13:5",
+        "sourceHandle": "CONDITIONING",
+        "target": "13:12",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "13:1-0-13:10-model",
+        "source": "13:1",
+        "sourceHandle": "MODEL",
+        "target": "13:10",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "14-0-13:6-width",
+        "source": "14",
+        "sourceHandle": "width",
+        "target": "13:6",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "14-1-13:6-height",
+        "source": "14",
+        "sourceHandle": "height",
+        "target": "13:6",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "13:7-0-13:8-samples",
+        "source": "13:7",
+        "sourceHandle": "LATENT",
+        "target": "13:8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "13:3-0-13:8-vae",
+        "source": "13:3",
+        "sourceHandle": "VAE",
+        "target": "13:8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "13:2-0-13:4-clip",
+        "source": "13:2",
+        "sourceHandle": "CLIP",
+        "target": "13:4",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "13:10-0-13:7-model",
+        "source": "13:10",
+        "sourceHandle": "patched_model",
+        "target": "13:7",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "13:11-0-13:7-positive",
+        "source": "13:11",
+        "sourceHandle": "CONDITIONING",
+        "target": "13:7",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "13:12-0-13:7-negative",
+        "source": "13:12",
+        "sourceHandle": "CONDITIONING",
+        "target": "13:7",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "13:6-0-13:7-latent_image",
+        "source": "13:6",
+        "sourceHandle": "LATENT",
+        "target": "13:7",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "13:2-0-13:5-clip",
+        "source": "13:2",
+        "sourceHandle": "CLIP",
+        "target": "13:5",
+        "targetHandle": "clip",
+        "ui_properties": null
+      }
+    ]
+  }
+}

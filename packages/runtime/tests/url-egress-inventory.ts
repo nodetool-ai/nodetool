@@ -713,6 +713,30 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     note: "@comfyorg/sdk opens the socket against the constant https://cloud.comfy.org, which COMFY_BASE_URL can repoint at a local comfy-api-proxy. The key is attached only to requests on the client's own origin: a job's urls.* link resolves against that origin, and a signed output URL elsewhere is fetched without it."
   },
   {
+    file: "packages/runtime/src/providers/comfy-gpu-models.ts",
+    owner: "Comfy GPU model provider (@comfyorg/sdk)",
+    inputSource: "operator",
+    schemes: ["https"],
+    authScope: "the user's COMFY_API_KEY, same-origin only",
+    redirects: "runtime-follows",
+    dnsRebinding: "n/a",
+    policy: "private-integration",
+    guardedBy: [],
+    note: "The fetch is the retry wrapper handed to @comfyorg/sdk, so it sends the SDK's own requests. No caller, provider or model names the base URL: the client takes only an API key and uses the SDK's default. See comfy-sdk.ts for how the SDK scopes the key."
+  },
+  {
+    file: "packages/runtime/src/providers/comfy-template-models.ts",
+    owner: "Comfy template model provider (@comfyorg/sdk)",
+    inputSource: "operator",
+    schemes: ["https"],
+    authScope: "the user's COMFY_API_KEY, same-origin only",
+    redirects: "runtime-follows",
+    dnsRebinding: "n/a",
+    policy: "private-integration",
+    guardedBy: [],
+    note: "The fetch is the retry wrapper handed to @comfyorg/sdk, so it sends the SDK's own requests. No caller, provider or model names the base URL: the client takes only an API key and uses the SDK's default. See comfy-sdk.ts for how the SDK scopes the key."
+  },
+  {
     file: "packages/agents/src/capabilities/web.ts",
     owner: "browse / http_request / download_file / take_screenshot",
     inputSource: "model",

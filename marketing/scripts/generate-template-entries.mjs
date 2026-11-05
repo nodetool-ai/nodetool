@@ -10,6 +10,10 @@
 // Index gate: a template with a boilerplate description (< 80 chars) or no
 // matching thumbnail is emitted with indexable:false (noindex + kept out of the
 // sitemap and smoke walk), but its page still builds.
+//
+// Comfy templates (run_mode "comfy") are compiled from the upstream Comfy
+// template gallery. They get no page: their graphs are large enough to push the
+// Cloudflare worker past its size limit.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -250,6 +254,7 @@ function main() {
     const raw = JSON.parse(
       fs.readFileSync(path.join(EXAMPLES_DIR, file), "utf8"),
     );
+    if (raw.run_mode === "comfy") continue;
     const name = (raw.name || file.replace(/\.json$/, "")).trim();
     let slug = slugify(name);
     if (seenSlugs.has(slug)) slug = `${slug}-${entries.length}`;

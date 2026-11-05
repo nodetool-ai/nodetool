@@ -1,0 +1,1301 @@
+{
+  "id": "286f3930e930d2c7c81322d72b3b859e",
+  "name": "Comfy Skin Enhancer + Upscaler",
+  "description": "One click workflow to generate a character portrait, refine/add skin details, and upscale to 4k. All done in less than 60 seconds. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image tools",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Skin Enhancer + Upscaler\n\nOne click workflow to generate a character portrait, refine/add skin details, and upscale to 4k. All done in less than 60 seconds. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/templates_hellorob_facegen_skindetail_upscale.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "17",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "input_face-1.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "282",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "portrait-upscaled"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 6460,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "286",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "portrait-z-image-turbo"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "300",
+        "type": "comfy.ComfySwitchNode",
+        "data": {
+          "switch": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Image Switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "302",
+        "type": "comfy.ImageCompare",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 6460,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Image Compare (Before/After)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "283:43",
+        "type": "comfy.LayerUtility: If ",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 5440,
+            "y": 0
+          },
+          "width": 280,
+          "title": "IfElse"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "283:40",
+        "type": "comfy.ImpactCompare",
+        "data": {
+          "cmp": "a <= b"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 5100,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ImpactCompare"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "283:25",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a*b"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 5780,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Upscale to Shortest Edge (pixels)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "283:30",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Upscale Factor"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "283:27",
+        "type": "comfy.SeedVR2VideoUpscaler",
+        "data": {
+          "seed": 74825977,
+          "max_resolution": 0,
+          "batch_size": 1,
+          "uniform_batch_size": false,
+          "color_correction": "lab",
+          "temporal_overlap": 0,
+          "prepend_frames": 0,
+          "input_noise_scale": 0,
+          "latent_noise_scale": 0,
+          "offload_device": "cpu",
+          "enable_debug": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 6120,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SeedVR2 Video Upscaler (v2.5.24)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "283:22",
+        "type": "comfy.SeedVR2LoadVAEModel",
+        "data": {
+          "model": "ema_vae_fp16.safetensors",
+          "device": "cuda:0",
+          "encode_tiled": true,
+          "encode_tile_size": 1024,
+          "encode_tile_overlap": 128,
+          "decode_tiled": true,
+          "decode_tile_size": 1024,
+          "decode_tile_overlap": 128,
+          "tile_debug": "false",
+          "offload_device": "none",
+          "cache_model": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "SeedVR2 (Down)Load VAE Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "283:28",
+        "type": "comfy.SeedVR2LoadDiTModel",
+        "data": {
+          "model": "seedvr2_ema_7b_fp16.safetensors",
+          "device": "cuda:0",
+          "blocks_to_swap": 0,
+          "swap_io_components": false,
+          "offload_device": "cpu",
+          "cache_model": false,
+          "attention_mode": "sdpa"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "SeedVR2 (Down)Load DiT Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "283:21",
+        "type": "comfy.GetImageSize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 4760,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Get Image Size"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "285:288",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen_3_4b.safetensors",
+          "type": "lumina2",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "285:29",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "ae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "285:33",
+        "type": "comfy.ConditioningZeroOut",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Conditioning Zero Out"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "285:8",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "285:289",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "z_image_turbo_bf16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "285:290",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "A clean, high-key studio portrait features a central subject captured in a sharp headshot composition against a solid, vibrant cerulean blue backdrop. The lighting is soft and even, characteristic of a professional beauty dish or large softbox, which minimizes harsh shadows and creates a subtle, healthy glow across the skin. The focus is tack-sharp on the eyes, with a shallow depth of field that gently softens the texture of the hair as it recedes toward the shoulders.\n\nThe subject possesses a symmetrical, heart-shaped face with a neutral, poised expression and a direct gaze. Their hair is a bright, cool-toned platinum blonde, styled in a sleek, center-parted bob that falls just to the collarbone with slightly textured ends. Their complexion is smooth and radiant, complemented by a light application of makeup that emphasizes the natural arch of the well-defined, dark blonde eyebrows. The eyes are a warm hazel-brown, framed by dark, delicate lashes, while the lips are a soft, natural rose-pink with a slight satin finish.\n\nThe subject wears a crisp, minimalist white turtleneck sweater made of a fine-ribbed, lightweight knit fabric. The garment's clean lines and bright tone provide a high-contrast transition between the subject and the saturated blue background. The overall atmosphere is modern and clinical yet approachable, defined by the precision of the studio environment and the clarity of the facial features."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "285:13",
+        "type": "comfy.EmptySD3LatentImage",
+        "data": {
+          "width": 896,
+          "height": 1152,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "EmptySD3LatentImage"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "285:11",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 3,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "ModelSamplingAuraFlow"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "285:3",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 223832286985235,
+          "steps": 8,
+          "cfg": 1,
+          "sampler_name": "res_multistep",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "285:287",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "zimage-grainscape_ultrareal.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "284:160",
+        "type": "comfy.BBoxDetect(FaceParsing)",
+        "data": {
+          "threshold": 0.3,
+          "dilation": 8,
+          "dilation_ratio": 0.2,
+          "by_ratio": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "BBoxDetect(FaceParsing)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "284:161",
+        "type": "comfy.FaceParse(FaceParsing)",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 3060,
+            "y": 0
+          },
+          "width": 280,
+          "title": "FaceParse(FaceParsing)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "284:165",
+        "type": "comfy.FaceParsingProcessorLoader(FaceParsing)",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2640
+          },
+          "width": 280,
+          "title": "FaceParsingProcessorLoader(FaceParsing)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "284:162",
+        "type": "comfy.BBoxListItemSelect(FaceParsing)",
+        "data": {
+          "index": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "BBoxListItemSelect(FaceParsing)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "284:163",
+        "type": "comfy.ImageCropWithBBox(FaceParsing)",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ImageCropWithBBox(FaceParsing)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "284:196",
+        "type": "comfy.ImageResizeKJv2",
+        "data": {
+          "upscale_method": "lanczos",
+          "keep_proportion": "stretch",
+          "pad_color": "0, 0, 0",
+          "crop_position": "center",
+          "divisible_by": 2,
+          "device": "cpu"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3400,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Resize Image v2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "284:157",
+        "type": "comfy.FaceParsingModelLoader(FaceParsing)",
+        "data": {
+          "device": "cuda"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2970
+          },
+          "width": 280,
+          "title": "FaceParsingModelLoader(FaceParsing)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "284:193",
+        "type": "comfy.GetImageSize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 3060,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Get Image Size"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "284:76",
+        "type": "comfy.UltimateSDUpscale",
+        "data": {
+          "seed": 900811593556971,
+          "steps": 35,
+          "cfg": 4,
+          "sampler_name": "dpmpp_2m_sde",
+          "scheduler": "karras",
+          "denoise": 0.2,
+          "mode_type": "Linear",
+          "tile_width": 1024,
+          "tile_height": 1024,
+          "mask_blur": 32,
+          "tile_padding": 32,
+          "seam_fix_mode": "None",
+          "seam_fix_denoise": 1,
+          "seam_fix_width": 64,
+          "seam_fix_mask_blur": 8,
+          "seam_fix_padding": 16,
+          "force_uniform_tiles": true,
+          "tiled_decode": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3060,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Ultimate SD Upscale"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "284:116",
+        "type": "comfy.CheckpointLoaderSimple",
+        "data": {
+          "ckpt_name": "Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 3300
+          },
+          "width": 280,
+          "title": "Load Checkpoint"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "284:72",
+        "type": "comfy.UpscaleModelLoader",
+        "data": {
+          "model_name": "8xNMKDFaces160000G_v10.pt"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 3630
+          },
+          "width": 280,
+          "title": "Load Upscale Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "284:176",
+        "type": "comfy.ImageCompositeMasked",
+        "data": {
+          "x": 0,
+          "y": 0,
+          "resize_source": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4080,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Image Composite Masked"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "284:180",
+        "type": "comfy.ImageInsertWithBBox(FaceParsing)",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 4420,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ImageInsertWithBBox(FaceParsing)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "284:179",
+        "type": "comfy.GrowMaskWithBlur",
+        "data": {
+          "expand": -4,
+          "incremental_expandrate": 0,
+          "tapered_corners": true,
+          "flip_input": false,
+          "blur_radius": 8,
+          "lerp_alpha": 1,
+          "decay_factor": 1,
+          "fill_holes": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3740,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Grow Mask With Blur"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "284:117",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "plastic, smooth, glossy, cartoon, anime, worst quality, low quality, illustration, 3d, 2d, painting, cartoons, sketch, anime"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Negative Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "284:98",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 2
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 3960
+          },
+          "width": 280,
+          "title": "Upscale By"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "284:78",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "Close-up professional photograph of a woman, detailed face skin and visible skin pores, detailed natural skin and blemishes without-makeup, detailed skin texure, detailed lips, natural skin pores, subtle skin imperfections, visible skin pores, slightly cracked lips, skin discoloration, intricate detailed iris, perfect eyes, soft freckles"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Positive Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "284:156",
+        "type": "comfy.FaceParsingResultsParser(FaceParsing)",
+        "data": {
+          "background": false,
+          "skin": true,
+          "nose": true,
+          "eye_g": false,
+          "r_eye": false,
+          "l_eye": false,
+          "r_brow": true,
+          "l_brow": true,
+          "r_ear": false,
+          "l_ear": false,
+          "mouth": false,
+          "u_lip": true,
+          "l_lip": true,
+          "hair": false,
+          "hat": false,
+          "ear_r": false,
+          "neck_l": false,
+          "neck": false,
+          "cloth": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3400,
+            "y": 330
+          },
+          "width": 280,
+          "title": "FaceParsingResultsParser(FaceParsing)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "284:159",
+        "type": "comfy.BBoxDetectorLoader(FaceParsing)",
+        "data": {
+          "model_name": "bbox/face_yolov8m.pt"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 4290
+          },
+          "width": 280,
+          "title": "BBoxDetectorLoader(FaceParsing)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "284:227",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "sdxl-skin_realism_acne_skin_details_imperfections.safetensors",
+          "strength_model": 0.6
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "283:27-0-282-images",
+        "source": "283:27",
+        "sourceHandle": "IMAGE",
+        "target": "282",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "285:8-0-286-images",
+        "source": "285:8",
+        "sourceHandle": "IMAGE",
+        "target": "286",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "285:8-0-300-on_false",
+        "source": "285:8",
+        "sourceHandle": "IMAGE",
+        "target": "300",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "17-0-300-on_true",
+        "source": "17",
+        "sourceHandle": "IMAGE",
+        "target": "300",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "283:27-0-302-image_a",
+        "source": "283:27",
+        "sourceHandle": "IMAGE",
+        "target": "302",
+        "targetHandle": "image_a",
+        "ui_properties": null
+      },
+      {
+        "id": "300-0-302-image_b",
+        "source": "300",
+        "sourceHandle": "output",
+        "target": "302",
+        "targetHandle": "image_b",
+        "ui_properties": null
+      },
+      {
+        "id": "283:40-0-283:43-if_condition",
+        "source": "283:40",
+        "sourceHandle": "BOOLEAN",
+        "target": "283:43",
+        "targetHandle": "if_condition",
+        "ui_properties": null
+      },
+      {
+        "id": "283:21-0-283:43-when_TRUE",
+        "source": "283:21",
+        "sourceHandle": "width",
+        "target": "283:43",
+        "targetHandle": "when_TRUE",
+        "ui_properties": null
+      },
+      {
+        "id": "283:21-1-283:43-when_FALSE",
+        "source": "283:21",
+        "sourceHandle": "height",
+        "target": "283:43",
+        "targetHandle": "when_FALSE",
+        "ui_properties": null
+      },
+      {
+        "id": "283:21-0-283:40-a",
+        "source": "283:21",
+        "sourceHandle": "width",
+        "target": "283:40",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "283:21-1-283:40-b",
+        "source": "283:21",
+        "sourceHandle": "height",
+        "target": "283:40",
+        "targetHandle": "b",
+        "ui_properties": null
+      },
+      {
+        "id": "283:43-0-283:25-a",
+        "source": "283:43",
+        "sourceHandle": "?",
+        "target": "283:25",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "283:30-0-283:25-b",
+        "source": "283:30",
+        "sourceHandle": "FLOAT",
+        "target": "283:25",
+        "targetHandle": "b",
+        "ui_properties": null
+      },
+      {
+        "id": "283:25-0-283:27-resolution",
+        "source": "283:25",
+        "sourceHandle": "INT",
+        "target": "283:27",
+        "targetHandle": "resolution",
+        "ui_properties": null
+      },
+      {
+        "id": "284:180-0-283:27-image",
+        "source": "284:180",
+        "sourceHandle": "IMAGE",
+        "target": "283:27",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "283:28-0-283:27-dit",
+        "source": "283:28",
+        "sourceHandle": "SEEDVR2_DIT",
+        "target": "283:27",
+        "targetHandle": "dit",
+        "ui_properties": null
+      },
+      {
+        "id": "283:22-0-283:27-vae",
+        "source": "283:22",
+        "sourceHandle": "SEEDVR2_VAE",
+        "target": "283:27",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "284:180-0-283:21-image",
+        "source": "284:180",
+        "sourceHandle": "IMAGE",
+        "target": "283:21",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "285:290-0-285:33-conditioning",
+        "source": "285:290",
+        "sourceHandle": "CONDITIONING",
+        "target": "285:33",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "285:3-0-285:8-samples",
+        "source": "285:3",
+        "sourceHandle": "LATENT",
+        "target": "285:8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "285:29-0-285:8-vae",
+        "source": "285:29",
+        "sourceHandle": "VAE",
+        "target": "285:8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "285:288-0-285:290-clip",
+        "source": "285:288",
+        "sourceHandle": "CLIP",
+        "target": "285:290",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "285:287-0-285:11-model",
+        "source": "285:287",
+        "sourceHandle": "MODEL",
+        "target": "285:11",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "285:11-0-285:3-model",
+        "source": "285:11",
+        "sourceHandle": "MODEL",
+        "target": "285:3",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "285:290-0-285:3-positive",
+        "source": "285:290",
+        "sourceHandle": "CONDITIONING",
+        "target": "285:3",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "285:33-0-285:3-negative",
+        "source": "285:33",
+        "sourceHandle": "CONDITIONING",
+        "target": "285:3",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "285:13-0-285:3-latent_image",
+        "source": "285:13",
+        "sourceHandle": "LATENT",
+        "target": "285:3",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "285:289-0-285:287-model",
+        "source": "285:289",
+        "sourceHandle": "MODEL",
+        "target": "285:287",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "284:159-0-284:160-bbox_detector",
+        "source": "284:159",
+        "sourceHandle": "BBOX_DETECTOR",
+        "target": "284:160",
+        "targetHandle": "bbox_detector",
+        "ui_properties": null
+      },
+      {
+        "id": "300-0-284:160-image",
+        "source": "300",
+        "sourceHandle": "output",
+        "target": "284:160",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "284:157-0-284:161-model",
+        "source": "284:157",
+        "sourceHandle": "FACE_PARSING_MODEL",
+        "target": "284:161",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "284:165-0-284:161-processor",
+        "source": "284:165",
+        "sourceHandle": "FACE_PARSING_PROCESSOR",
+        "target": "284:161",
+        "targetHandle": "processor",
+        "ui_properties": null
+      },
+      {
+        "id": "284:163-0-284:161-image",
+        "source": "284:163",
+        "sourceHandle": "IMAGE",
+        "target": "284:161",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "284:160-0-284:162-bbox_list",
+        "source": "284:160",
+        "sourceHandle": "BBOX_LIST",
+        "target": "284:162",
+        "targetHandle": "bbox_list",
+        "ui_properties": null
+      },
+      {
+        "id": "284:162-0-284:163-bbox",
+        "source": "284:162",
+        "sourceHandle": "BBOX",
+        "target": "284:163",
+        "targetHandle": "bbox",
+        "ui_properties": null
+      },
+      {
+        "id": "300-0-284:163-image",
+        "source": "300",
+        "sourceHandle": "output",
+        "target": "284:163",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "284:193-0-284:196-width",
+        "source": "284:193",
+        "sourceHandle": "width",
+        "target": "284:196",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "284:193-1-284:196-height",
+        "source": "284:193",
+        "sourceHandle": "height",
+        "target": "284:196",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "284:76-0-284:196-image",
+        "source": "284:76",
+        "sourceHandle": "IMAGE",
+        "target": "284:196",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "284:163-0-284:193-image",
+        "source": "284:163",
+        "sourceHandle": "IMAGE",
+        "target": "284:193",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "284:98-0-284:76-upscale_by",
+        "source": "284:98",
+        "sourceHandle": "FLOAT",
+        "target": "284:76",
+        "targetHandle": "upscale_by",
+        "ui_properties": null
+      },
+      {
+        "id": "284:163-0-284:76-image",
+        "source": "284:163",
+        "sourceHandle": "IMAGE",
+        "target": "284:76",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "284:227-0-284:76-model",
+        "source": "284:227",
+        "sourceHandle": "MODEL",
+        "target": "284:76",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "284:78-0-284:76-positive",
+        "source": "284:78",
+        "sourceHandle": "CONDITIONING",
+        "target": "284:76",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "284:117-0-284:76-negative",
+        "source": "284:117",
+        "sourceHandle": "CONDITIONING",
+        "target": "284:76",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "284:116-2-284:76-vae",
+        "source": "284:116",
+        "sourceHandle": "VAE",
+        "target": "284:76",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "284:72-0-284:76-upscale_model",
+        "source": "284:72",
+        "sourceHandle": "UPSCALE_MODEL",
+        "target": "284:76",
+        "targetHandle": "upscale_model",
+        "ui_properties": null
+      },
+      {
+        "id": "284:163-0-284:176-destination",
+        "source": "284:163",
+        "sourceHandle": "IMAGE",
+        "target": "284:176",
+        "targetHandle": "destination",
+        "ui_properties": null
+      },
+      {
+        "id": "284:196-0-284:176-source",
+        "source": "284:196",
+        "sourceHandle": "IMAGE",
+        "target": "284:176",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "284:179-0-284:176-mask",
+        "source": "284:179",
+        "sourceHandle": "mask",
+        "target": "284:176",
+        "targetHandle": "mask",
+        "ui_properties": null
+      },
+      {
+        "id": "284:162-0-284:180-bbox",
+        "source": "284:162",
+        "sourceHandle": "BBOX",
+        "target": "284:180",
+        "targetHandle": "bbox",
+        "ui_properties": null
+      },
+      {
+        "id": "300-0-284:180-image_src",
+        "source": "300",
+        "sourceHandle": "output",
+        "target": "284:180",
+        "targetHandle": "image_src",
+        "ui_properties": null
+      },
+      {
+        "id": "284:176-0-284:180-image",
+        "source": "284:176",
+        "sourceHandle": "IMAGE",
+        "target": "284:180",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "284:156-0-284:179-mask",
+        "source": "284:156",
+        "sourceHandle": "MASK",
+        "target": "284:179",
+        "targetHandle": "mask",
+        "ui_properties": null
+      },
+      {
+        "id": "284:116-1-284:117-clip",
+        "source": "284:116",
+        "sourceHandle": "CLIP",
+        "target": "284:117",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "284:116-1-284:78-clip",
+        "source": "284:116",
+        "sourceHandle": "CLIP",
+        "target": "284:78",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "284:161-1-284:156-result",
+        "source": "284:161",
+        "sourceHandle": "FACE_PARSING_RESULT",
+        "target": "284:156",
+        "targetHandle": "result",
+        "ui_properties": null
+      },
+      {
+        "id": "284:116-0-284:227-model",
+        "source": "284:116",
+        "sourceHandle": "MODEL",
+        "target": "284:227",
+        "targetHandle": "model",
+        "ui_properties": null
+      }
+    ]
+  }
+}

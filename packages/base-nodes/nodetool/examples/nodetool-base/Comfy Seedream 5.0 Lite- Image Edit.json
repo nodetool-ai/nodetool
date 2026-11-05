@@ -1,0 +1,140 @@
+{
+  "id": "ff02ad0bac5af04888a26298292f8188",
+  "name": "Comfy Seedream 5.0 Lite- Image Edit",
+  "description": "Upload an image and a text prompt to edit it. Generate a modified image where the details align with your instructions. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Seedream 5.0 Lite- Image Edit\n\nUpload an image and a text prompt to edit it. Generate a modified image where the details align with your instructions. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_bytedance_seedream_5_0_lite_image_edit.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "29",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "man_with_old_computers.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "32",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "inflated_character.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "34",
+        "type": "comfy.SaveImageAdvanced",
+        "data": {
+          "filename_prefix": "Seedream5.0_lite",
+          "format": "png",
+          "format.bit_depth": "8-bit",
+          "format.input_color_space": "sRGB"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "35",
+        "type": "comfy.ByteDanceSeedreamNodeV3",
+        "data": {
+          "prompt": "Refer to the second image and change the style of the first picture to match that of the second image.",
+          "model": "seedream 5.0 lite",
+          "model.size_preset": "(2K) 2048x2048 (1:1)",
+          "model.width": 2048,
+          "model.height": 2048,
+          "model.max_images": 1,
+          "model.images": false,
+          "model.fail_on_partial": 42,
+          "model.seed": "randomize",
+          "model.watermark": false,
+          "model.thinking": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ByteDance Seedream 4.5 & 5.0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "35-0-34-images",
+        "source": "35",
+        "sourceHandle": "IMAGE",
+        "target": "34",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "29-0-35-model.images.image_1",
+        "source": "29",
+        "sourceHandle": "IMAGE",
+        "target": "35",
+        "targetHandle": "model.images.image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "32-0-35-model.images.image_2",
+        "source": "32",
+        "sourceHandle": "IMAGE",
+        "target": "35",
+        "targetHandle": "model.images.image_2",
+        "ui_properties": null
+      }
+    ]
+  }
+}

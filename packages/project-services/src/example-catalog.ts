@@ -10,7 +10,7 @@ import {
   loadPythonPackageMetadata,
   type NodeRegistry
 } from "@nodetool-ai/node-sdk";
-import { isObjectLike, isString, scanExampleNeeds } from "@nodetool-ai/protocol";
+import { isComfyNodeType, isObjectLike, isString, scanExampleNeeds } from "@nodetool-ai/protocol";
 import { withCacheBuster } from "./example-thumbnail.js";
 import {
   defaultExamplePackageName,
@@ -40,6 +40,7 @@ interface ExampleMetadata {
   name: string;
   description?: string;
   tags?: string[];
+  run_mode?: string;
 }
 
 /**
@@ -109,13 +110,15 @@ function buildExamplesFromDir(
           ? parsed.package_name
           : null,
         path: null,
-        run_mode: null,
+        run_mode: isString(parsed.run_mode) ? parsed.run_mode : null,
         workspace_id: null,
         required_providers: null,
         required_models: null,
         needs: scanExampleNeeds(
           parsed.graph,
-          (nodeType) => registry?.getMetadata(nodeType)?.required_settings
+          (nodeType) => isComfyNodeType(nodeType)
+            ? ["COMFY_API_KEY"]
+            : registry?.getMetadata(nodeType)?.required_settings
         ),
         html_app: null,
         app_doc: isObjectLike(parsed.app_doc) ? parsed.app_doc : null,
@@ -165,7 +168,7 @@ export function buildExampleWorkflows(
         settings: null,
         package_name: pkg.name,
         path: null,
-        run_mode: null,
+        run_mode: meta.run_mode ?? null,
         workspace_id: null,
         required_providers: null,
         required_models: null,

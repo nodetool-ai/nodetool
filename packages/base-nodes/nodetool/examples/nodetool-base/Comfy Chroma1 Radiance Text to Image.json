@@ -1,0 +1,452 @@
+{
+  "id": "241182e4466bd528a5fd38ab5bf5dcd3",
+  "name": "Comfy Chroma1 Radiance Text to Image",
+  "description": "Chroma1-Radiance works directly with image pixels instead of compressed latents, delivering higher quality images with reduced artifacts and distortion. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Chroma1 Radiance Text to Image\n\nChroma1-Radiance works directly with image pixels instead of compressed latents, delivering higher quality images with reduced artifacts and distortion. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/image_chroma1_radiance_text_to_image.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "740",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "Chroma-Radiance"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "762:694",
+        "type": "comfy.CFGGuider",
+        "data": {
+          "cfg": 3.5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CFG Guider"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "762:700",
+        "type": "comfy.KSamplerSelect",
+        "data": {
+          "sampler_name": "euler"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSamplerSelect"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "762:701",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 1,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Flow Shift"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "762:741",
+        "type": "comfy.T5TokenizerOptions",
+        "data": {
+          "min_padding": 0,
+          "min_length": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "T5 Tokenizer Options"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "762:747",
+        "type": "comfy.ChromaRadianceOptions",
+        "data": {
+          "preserve_wrapper": true,
+          "start_sigma": 1,
+          "end_sigma": 0,
+          "nerf_tile_size": -1,
+          "force_sequential_txt_ids": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "ChromaRadianceOptions"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "762:751",
+        "type": "comfy.BetaSamplingScheduler",
+        "data": {
+          "steps": 30,
+          "alpha": 0.4,
+          "beta": 0.4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "BetaSamplingScheduler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "762:753",
+        "type": "comfy.SamplerCustomAdvanced",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SamplerCustomAdvanced"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "762:733",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "t5xxl_fp8_e4m3fn_scaled.safetensors",
+          "type": "chroma",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "762:693",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "Hyperrealistic macro photograph of a team of tiny bakers—each precisely 2 inches tall—collaborating on an enormous, golden-brown croissant with flaky, layered textures. The bakers are engaged in dynamic, detailed actions: one uses a miniature wooden bucket to spread rich, creamy butter between the croissant’s layers, another climbs a thin rope ladder to evenly pipe smooth, glossy chocolate filling onto the top, and a third brushes a light egg wash with a tiny pastry brush. The scene is bathed in warm, soft kitchen lighting with cinematic depth—subtle highlights on the croissant’s golden crust, gentle shadows that emphasize texture, and a soft glow from overhead pendant lights. Floating flour dust particles catch the light, adding a sense of movement and realism, while tiny details like the bakers’ stitched cloth aprons, smudged flour on their faces, the rough wood of the worktable, and the slight sheen of melted butter on the croissant are rendered with ultra-precision. Ultra-detailed, 8K resolution, photorealistic textures, sharp focus on the bakers and croissant, shallow depth of field to blur the background slightly, rich warm color palette, lifelike proportions, and a cozy, whimsical atmosphere that balances realism with charm."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Positive"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "762:760",
+        "type": "comfy.EmptyChromaRadianceLatentImage",
+        "data": {
+          "width": 1024,
+          "height": 1024,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "EmptyChromaRadianceLatentImage"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "762:718",
+        "type": "comfy.RandomNoise",
+        "data": {
+          "noise_seed": 883855055680159
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "SEED"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "762:728",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "This low quality greyscale unfinished sketch is inaccurate and flawed. The image is very blurred and lacks detail with excessive chromatic aberrations and artifacts. The image is overly saturated with excessive bloom."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Negative"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "762:731",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "chroma-radiance-x0.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "762:298",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "762:710",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "pixel_space"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "762:298-0-740-images",
+        "source": "762:298",
+        "sourceHandle": "IMAGE",
+        "target": "740",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "762:701-0-762:694-model",
+        "source": "762:701",
+        "sourceHandle": "MODEL",
+        "target": "762:694",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "762:693-0-762:694-positive",
+        "source": "762:693",
+        "sourceHandle": "CONDITIONING",
+        "target": "762:694",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "762:728-0-762:694-negative",
+        "source": "762:728",
+        "sourceHandle": "CONDITIONING",
+        "target": "762:694",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "762:747-0-762:701-model",
+        "source": "762:747",
+        "sourceHandle": "MODEL",
+        "target": "762:701",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "762:733-0-762:741-clip",
+        "source": "762:733",
+        "sourceHandle": "CLIP",
+        "target": "762:741",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "762:731-0-762:747-model",
+        "source": "762:731",
+        "sourceHandle": "MODEL",
+        "target": "762:747",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "762:701-0-762:751-model",
+        "source": "762:701",
+        "sourceHandle": "MODEL",
+        "target": "762:751",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "762:718-0-762:753-noise",
+        "source": "762:718",
+        "sourceHandle": "NOISE",
+        "target": "762:753",
+        "targetHandle": "noise",
+        "ui_properties": null
+      },
+      {
+        "id": "762:694-0-762:753-guider",
+        "source": "762:694",
+        "sourceHandle": "GUIDER",
+        "target": "762:753",
+        "targetHandle": "guider",
+        "ui_properties": null
+      },
+      {
+        "id": "762:700-0-762:753-sampler",
+        "source": "762:700",
+        "sourceHandle": "SAMPLER",
+        "target": "762:753",
+        "targetHandle": "sampler",
+        "ui_properties": null
+      },
+      {
+        "id": "762:751-0-762:753-sigmas",
+        "source": "762:751",
+        "sourceHandle": "SIGMAS",
+        "target": "762:753",
+        "targetHandle": "sigmas",
+        "ui_properties": null
+      },
+      {
+        "id": "762:760-0-762:753-latent_image",
+        "source": "762:760",
+        "sourceHandle": "LATENT",
+        "target": "762:753",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "762:741-0-762:693-clip",
+        "source": "762:741",
+        "sourceHandle": "CLIP",
+        "target": "762:693",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "762:741-0-762:728-clip",
+        "source": "762:741",
+        "sourceHandle": "CLIP",
+        "target": "762:728",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "762:753-0-762:298-samples",
+        "source": "762:753",
+        "sourceHandle": "output",
+        "target": "762:298",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "762:710-0-762:298-vae",
+        "source": "762:710",
+        "sourceHandle": "VAE",
+        "target": "762:298",
+        "targetHandle": "vae",
+        "ui_properties": null
+      }
+    ]
+  }
+}

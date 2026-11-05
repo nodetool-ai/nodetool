@@ -8,7 +8,8 @@ import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import {
   modelIdOf,
   providerModelProp,
-  type ModelFieldValue
+  type ModelFieldValue,
+  type TTSModelFieldValue
 } from "./provider-model-prop.js";
 import {
   isNonEmptyString,
@@ -895,7 +896,7 @@ export class TextToSpeechGeminiNode extends BaseNode {
     "gemini-3.8-flash-tts",
     "The text-to-speech model to use"
   )
-  declare model: ModelFieldValue;
+  declare model: TTSModelFieldValue;
 
   @prop({
     type: "enum",
@@ -962,7 +963,9 @@ export class TextToSpeechGeminiNode extends BaseNode {
       "pulcherrima", "rasalgethi", "sadachbia", "sadaltager", "schedar",
       "sulafat", "umbriel", "vindemiatrix", "zephyr", "zubenelgenubi"
     ];
-    const rawVoice = this.voice_name.toLowerCase();
+    const pickedVoice =
+      isString(this.model) ? undefined : this.model?.selected_voice;
+    const rawVoice = (pickedVoice || this.voice_name).toLowerCase();
     const voiceName = VALID_VOICES.includes(rawVoice) ? rawVoice : "kore";
 
     if (!text) throw new Error("The input text cannot be empty.");
@@ -1312,7 +1315,7 @@ export class VertexTextToSpeechNode extends TextToSpeechGeminiNode {
   static readonly description = `Generate speech from text with Gemini text-to-speech models on Vertex AI, billed to your Google Cloud project.\n    ${VERTEX_TAGS}, text-to-speech, tts, audio, voice`;
 
   @vertexModel("tts_model", "gemini-3.8-flash-tts", "The text-to-speech model.")
-  declare model: GeminiModelValue;
+  declare model: TTSModelFieldValue;
 }
 
 export class VertexTranscribeNode extends TranscribeGeminiNode {

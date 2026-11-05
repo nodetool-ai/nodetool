@@ -1,0 +1,425 @@
+{
+  "id": "8c6bb6d0993ecdde29c602015b9a720f",
+  "name": "Comfy FLUX.2 [Klein] 9B- Text to Image",
+  "description": "BFL distilled model. Outstanding quality at sub-second speed. Great for real-time generation while retaining quality. Marketing launch will focus on this model. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy FLUX.2 [Klein] 9B- Text to Image\n\nBFL distilled model. Outstanding quality at sub-second speed. Great for real-time generation while retaining quality. Marketing launch will focus on this model. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/image_flux2_text_to_image_9b.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "9",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "Flux2-Klein"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "75:61",
+        "type": "comfy.KSamplerSelect",
+        "data": {
+          "sampler_name": "euler"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSamplerSelect"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "75:62",
+        "type": "comfy.Flux2Scheduler",
+        "data": {
+          "steps": 20
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Flux2Scheduler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "75:63",
+        "type": "comfy.CFGGuider",
+        "data": {
+          "cfg": 5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CFG Guider"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "75:64",
+        "type": "comfy.SamplerCustomAdvanced",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SamplerCustomAdvanced"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "75:65",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "75:66",
+        "type": "comfy.EmptyFlux2LatentImage",
+        "data": {
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Empty Flux 2 Latent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "75:67",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Negative Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "75:68",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 1024
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Width"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "75:69",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 1024
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Height"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "75:73",
+        "type": "comfy.RandomNoise",
+        "data": {
+          "noise_seed": 145965955694731
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "RandomNoise"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "75:70",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "flux-2-klein-base-9b-fp8.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "75:71",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen_3_8b_fp8mixed.safetensors",
+          "type": "flux2",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "75:72",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "full_encoder_small_decoder.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "75:74",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "A vintage motorcycle parked in front of a retro diner at sunset, warm orange and pink sky, neon signs glowing, 80s vintage photo style, film grain, warm color cast"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Positive Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "75:65-0-9-images",
+        "source": "75:65",
+        "sourceHandle": "IMAGE",
+        "target": "9",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "75:68-0-75:62-width",
+        "source": "75:68",
+        "sourceHandle": "INT",
+        "target": "75:62",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "75:69-0-75:62-height",
+        "source": "75:69",
+        "sourceHandle": "INT",
+        "target": "75:62",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "75:70-0-75:63-model",
+        "source": "75:70",
+        "sourceHandle": "MODEL",
+        "target": "75:63",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "75:74-0-75:63-positive",
+        "source": "75:74",
+        "sourceHandle": "CONDITIONING",
+        "target": "75:63",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "75:67-0-75:63-negative",
+        "source": "75:67",
+        "sourceHandle": "CONDITIONING",
+        "target": "75:63",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "75:73-0-75:64-noise",
+        "source": "75:73",
+        "sourceHandle": "NOISE",
+        "target": "75:64",
+        "targetHandle": "noise",
+        "ui_properties": null
+      },
+      {
+        "id": "75:63-0-75:64-guider",
+        "source": "75:63",
+        "sourceHandle": "GUIDER",
+        "target": "75:64",
+        "targetHandle": "guider",
+        "ui_properties": null
+      },
+      {
+        "id": "75:61-0-75:64-sampler",
+        "source": "75:61",
+        "sourceHandle": "SAMPLER",
+        "target": "75:64",
+        "targetHandle": "sampler",
+        "ui_properties": null
+      },
+      {
+        "id": "75:62-0-75:64-sigmas",
+        "source": "75:62",
+        "sourceHandle": "SIGMAS",
+        "target": "75:64",
+        "targetHandle": "sigmas",
+        "ui_properties": null
+      },
+      {
+        "id": "75:66-0-75:64-latent_image",
+        "source": "75:66",
+        "sourceHandle": "LATENT",
+        "target": "75:64",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "75:64-0-75:65-samples",
+        "source": "75:64",
+        "sourceHandle": "output",
+        "target": "75:65",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "75:72-0-75:65-vae",
+        "source": "75:72",
+        "sourceHandle": "VAE",
+        "target": "75:65",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "75:68-0-75:66-width",
+        "source": "75:68",
+        "sourceHandle": "INT",
+        "target": "75:66",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "75:69-0-75:66-height",
+        "source": "75:69",
+        "sourceHandle": "INT",
+        "target": "75:66",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "75:71-0-75:67-clip",
+        "source": "75:71",
+        "sourceHandle": "CLIP",
+        "target": "75:67",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "75:71-0-75:74-clip",
+        "source": "75:71",
+        "sourceHandle": "CLIP",
+        "target": "75:74",
+        "targetHandle": "clip",
+        "ui_properties": null
+      }
+    ]
+  }
+}

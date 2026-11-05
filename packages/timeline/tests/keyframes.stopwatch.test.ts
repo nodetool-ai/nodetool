@@ -5,6 +5,7 @@ import {
   composeKeyframeValue,
   findKeyframeAnimation,
   isPropertyKeyframed,
+  hasKeyframeAt,
   keyframeEasingAt,
   keyframeTimesMs,
   keyframeValueAt,
@@ -120,6 +121,21 @@ describe("stopwatch keyframe helpers", () => {
     expect(keyframeEasingAt(c, "opacity", 1500)).toBe("easeOut");
     expect(keyframeValueAt(c, "offsetX", 999)).toBe(0);
     expect(keyframeEasingAt(c, "offsetX", 500)).toBeUndefined();
+  });
+
+  it.each([30, 24])("round trips frame times at %s fps", (fps) => {
+    let c = clip({ durationMs: 1000 });
+    c = { ...c, animations: setKeyframes(c, [{ property: "opacity", value: 0.5 }], 1000 / fps) };
+    c = { ...c, animations: setKeyframes(c, [{ property: "opacity", value: 0.8 }], 1000 / fps + 0.6) };
+    const [first, second] = keyframeTimesMs(c);
+    expect(hasKeyframeAt(c, "opacity", first)).toBe(true);
+    c = { ...c, animations: setKeyframeEasing(c, ["opacity"], first, "hold") };
+    expect(keyframeEasingAt(c, "opacity", first)).toBe("hold");
+    expect(keyframeEasingAt(c, "opacity", second)).toBe("linear");
+    c = { ...c, animations: moveKeyframes(c, ["opacity"], first, 500) };
+    expect(keyframeTimesMs(c)).toEqual([second, 500]);
+    c = { ...c, animations: removeKeyframes(c, ["opacity"], second) };
+    expect(keyframeTimesMs(c)).toEqual([500]);
   });
 
   it("composes and inverts values by how the property folds", () => {

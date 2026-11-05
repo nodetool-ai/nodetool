@@ -1,0 +1,236 @@
+{
+  "id": "2ced2d6a0466710a825ca431a9c13a26",
+  "name": "Comfy Flux.1 Kontext Multiple Image Input",
+  "description": "Input multiple images and edit them with Flux.1 Kontext. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Flux.1 Kontext Multiple Image Input\n\nInput multiple images and edit them with Flux.1 Kontext. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_bfl_flux_1_kontext_multiple_images_input.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "83",
+        "type": "comfy.FluxKontextProImageNode",
+        "data": {
+          "prompt": "The character is sitting cross-legged on the sofa, and the Dalmatian is lying on the blanket sleeping.",
+          "aspect_ratio": "1:1",
+          "guidance": 3,
+          "steps": 50,
+          "seed": 323708991831609,
+          "prompt_upsampling": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Flux.1 Kontext [pro] Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "84",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "api_bfl_flux_1_kontext_multiple_images_input_girl.jpg"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "85",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "90",
+        "type": "comfy.PreviewImage",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Preview Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "91",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "api_bfl_flux_1_kontext_multiple_images_input_sofa.jpg"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "96",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "api_bfl_flux_1_kontext_multiple_images_input_dog.jpg"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "97",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "up",
+          "match_image_size": true,
+          "spacing_width": 8,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Stitch Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "98",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "right",
+          "match_image_size": true,
+          "spacing_width": 20,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Stitch Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "98-0-83-input_image",
+        "source": "98",
+        "sourceHandle": "IMAGE",
+        "target": "83",
+        "targetHandle": "input_image",
+        "ui_properties": null
+      },
+      {
+        "id": "83-0-85-images",
+        "source": "83",
+        "sourceHandle": "IMAGE",
+        "target": "85",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "98-0-90-images",
+        "source": "98",
+        "sourceHandle": "IMAGE",
+        "target": "90",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "84-0-97-image1",
+        "source": "84",
+        "sourceHandle": "IMAGE",
+        "target": "97",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "96-0-97-image2",
+        "source": "96",
+        "sourceHandle": "IMAGE",
+        "target": "97",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "97-0-98-image1",
+        "source": "97",
+        "sourceHandle": "IMAGE",
+        "target": "98",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "91-0-98-image2",
+        "source": "91",
+        "sourceHandle": "IMAGE",
+        "target": "98",
+        "targetHandle": "image2",
+        "ui_properties": null
+      }
+    ]
+  }
+}

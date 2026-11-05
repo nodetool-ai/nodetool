@@ -417,7 +417,7 @@ export const PROVIDER_META: ProviderMeta[] = [
     providerId: PROVIDER_IDS.COMFY_CLOUD,
     name: "Comfy Cloud",
     description:
-      "Run ComfyUI workflows on Comfy's hosted GPUs with your own key.",
+      "Image, video, speech and chat models through the Comfy Router, and ComfyUI workflows on Comfy's hosted GPUs, with one key.",
     section: "media",
     docsUrl: "https://platform.comfy.org",
     icon: comfyuiIcon,
@@ -551,6 +551,14 @@ export const PROVIDER_META: ProviderMeta[] = [
     description: "Access multiple AI models through one EU-hosted OpenAI-compatible gateway.",
     section: "gateways",
     docsUrl: "https://docs.opper.ai"
+  },
+  {
+    key: "CHEAPER_INFERENCE_API_KEY",
+    providerId: PROVIDER_IDS.CHEAPER_INFERENCE,
+    name: "Cheaper Inference",
+    description: "Access multiple AI models through one OpenAI-compatible gateway.",
+    section: "gateways",
+    docsUrl: "https://cheaperinference.com/docs"
   },
   {
     key: "API_ROUTE_API_KEY",

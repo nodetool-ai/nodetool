@@ -1,0 +1,164 @@
+{
+  "id": "13529aec521789cdf3a70e20e4e050da",
+  "name": "Comfy Seedream 5.0 Pro- Image Edit",
+  "description": "Edit images with precision using Seedream 5.0 Pro, targeting specific regions while preserving lighting, depth, and texture. The workflow takes 1 input image and produces 1 output image. Ideal for product photography edits, portrait consistency adjustments, and creating structured layouts with multilingual text. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Seedream 5.0 Pro- Image Edit\n\nEdit images with precision using Seedream 5.0 Pro, targeting specific regions while preserving lighting, depth, and texture. The workflow takes 1 input image and produces 1 output image. Ideal for product photography edits, portrait consistency adjustments, and creating structured layouts with multilingual text. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_bytedance_seedream_5_0_pro_image_edit.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "2",
+        "type": "comfy.SaveImageAdvanced",
+        "data": {
+          "filename_prefix": "Seedream5.0_Pro_image_edit",
+          "format": "png",
+          "format.bit_depth": "8-bit",
+          "format.input_color_space": "sRGB"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "interior_college.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5",
+        "type": "comfy.PreviewImage",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Preview Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.Painter",
+        "data": {
+          "mask": "",
+          "width": 1024,
+          "height": 1024
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Painter"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "8",
+        "type": "comfy.ByteDanceSeedreamNodeV3",
+        "data": {
+          "prompt": "Convert the entire collage into a cohesive, realistic interior design photo of a cozy living room. Render the sketched bay window area on the left into a real window filled with potted plants, including Swiss cheese plants and a fiddle-leaf fig, with a lush forest view outside. Transform the sketched snake plant in the bottom-left into a real potted snake plant. Blend the elements seamlessly under warm, natural afternoon sunlight.",
+          "model": "seedream 5.0 pro",
+          "model.size_preset": "(1K) 1024x1024 (1:1)",
+          "model.width": 2048,
+          "model.height": 2048,
+          "model.images": "standard",
+          "model.prompt_optimization": 42,
+          "model.seed": "randomize",
+          "model.watermark": false,
+          "model.thinking": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "ByteDance Seedream 4.5 & 5.0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "8-0-2-images",
+        "source": "8",
+        "sourceHandle": "IMAGE",
+        "target": "2",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-5-images",
+        "source": "7",
+        "sourceHandle": "IMAGE",
+        "target": "5",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "3-0-7-image",
+        "source": "3",
+        "sourceHandle": "IMAGE",
+        "target": "7",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-8-model.images.image_1",
+        "source": "7",
+        "sourceHandle": "IMAGE",
+        "target": "8",
+        "targetHandle": "model.images.image_1",
+        "ui_properties": null
+      }
+    ]
+  }
+}

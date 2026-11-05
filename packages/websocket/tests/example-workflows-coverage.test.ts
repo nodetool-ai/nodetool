@@ -135,8 +135,8 @@ describe("defaultExamplePackageName", () => {
   it("uses the shipped examples when no examplesDir is configured", () => {
     const packageName = defaultExamplePackageName({});
     expect(packageName).toBe("nodetool-base");
-    expect(loadExampleGraph(packageName ?? "", "Blur an Image")).toMatchObject({
-      name: "Blur an Image",
+    expect(loadExampleGraph(packageName ?? "", "Upscale a Still")).toMatchObject({
+      name: "Upscale a Still",
       graph: { nodes: expect.any(Array), edges: expect.any(Array) }
     });
   });

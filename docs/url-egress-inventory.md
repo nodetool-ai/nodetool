@@ -235,11 +235,25 @@ at 24 hours.
   server it started on `127.0.0.1`, at a port it picked, until that server
   answers. The cloud profile excludes the `wangp` provider and the
   `lib.wan2gp` nodes that start it.
+- `packages/runtime/src/providers/comfy-gpu-models.ts` and
+  `packages/runtime/src/providers/comfy-template-models.ts` inject retry-aware
+  fetch into the Comfy SDK. The SDK selects request URLs, including output
+  downloads, using its default cloud endpoint or operator configuration. These
+  transports do not screen URLs. Deployment egress controls govern redirects
+  and resolved addresses.
 - `packages/runtime/src/comfy-executor.ts` — a ComfyUI server, normally
   localhost or the LAN, so screening private addresses would refuse the ordinary
   case. The address is the node's `endpoint` property, so the graph author picks
   it, and `lib.comfy.RunWorkflow` / `lib.comfy.RunWorkflowOnWorker` are
   allowlisted on the cloud profile.
+- `packages/integration-nodes/src/nodes/comfy-graph-cloud.ts`,
+  `packages/integration-nodes/src/nodes/comfy-server-transport.ts`, and
+  `GET /api/comfy/nodes` — a self-hosted ComfyUI named by the `COMFY_SERVER_URL`
+  setting. It is normally localhost or the LAN, the same case as
+  `comfy-executor.ts`, and the setting holder picks the address.
+- `packages/integration-nodes/src/nodes/comfy-worker-transport.ts` — a NodeTool
+  worker named by the `COMFY_WORKER_URL` setting. The setting holder picks the
+  address, the same case as `COMFY_SERVER_URL`.
 - `packages/integration-nodes/src/nodes/comfy-sdk.ts` — the Comfy API v2
   transport. `@comfyorg/sdk` opens the socket. For
   `lib.comfy.RunWorkflowOnCloud` it opens against the constant
@@ -255,6 +269,11 @@ at 24 hours.
   requests on the client's own origin: a job's `urls.self` / `cancel` / `events`
   link resolves against that origin, and a signed output URL on another origin
   is fetched without the key.
+- `packages/runtime/src/providers/comfy-gpu-models.ts`,
+  `packages/runtime/src/providers/comfy-template-models.ts` — the retry wrapper
+  handed to `@comfyorg/sdk`. It sends the SDK's own requests. No caller, provider
+  or model names the base URL, because each client takes only an API key and uses
+  the SDK's default.
 - `packages/agents/src/capabilities/web.ts` — `BROWSER_URL`, the operator's
   screenshot service. Every model-named URL that file *fetches* goes through
   `safeFetch`; this one is the operator's own.

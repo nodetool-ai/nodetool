@@ -1,5 +1,5 @@
 {
-  "coreVersion": "0.8.10",
+  "coreVersion": "0.8.11",
   "installPins": [],
   "owners": {
     "anthropic.text.WebSearch": "llm",
@@ -113,6 +113,10 @@
     "atlascloud.video.KlingV3StdTextToVideo": "atlascloud",
     "atlascloud.video.KlingV3TurboImageToVideo": "atlascloud",
     "atlascloud.video.KlingV3TurboTextToVideo": "atlascloud",
+    "atlascloud.video.KlingV4ImageToVideo": "atlascloud",
+    "atlascloud.video.KlingV4ReferenceToVideo": "atlascloud",
+    "atlascloud.video.KlingV4TextToVideo": "atlascloud",
+    "atlascloud.video.KlingV4VideoEdit": "atlascloud",
     "atlascloud.video.KlingVideoO34kImageToVideo": "atlascloud",
     "atlascloud.video.KlingVideoO34kTextToVideo": "atlascloud",
     "atlascloud.video.KlingVideoO3ProImageToVideo": "atlascloud",
@@ -201,6 +205,9 @@
     "fal.3d_to_3d.MeshyRiggingMultiAnimation": "fal",
     "fal.3d_to_3d.MeshyV5Remesh": "fal",
     "fal.3d_to_3d.MeshyV5Retexture": "fal",
+    "fal.3d_to_3d.MeshyV6LiteRetexture": "fal",
+    "fal.3d_to_3d.MeshyV6Retexture": "fal",
+    "fal.3d_to_3d.MeshyV7Retexture": "fal",
     "fal.3d_to_3d.Sam33DAlign": "fal",
     "fal.3d_to_3d.Tripo3dRemesh": "fal",
     "fal.3d_to_3d.Tripo3dSegment": "fal",
@@ -271,6 +278,7 @@
     "fal.audio_to_video.Ltx23QualityAudioToVideoLora": "fal",
     "fal.audio_to_video.Ltx25AudioToVideoFast": "fal",
     "fal.audio_to_video.Ltx25AudioToVideoPro": "fal",
+    "fal.audio_to_video.MurekaLyricsVideo": "fal",
     "fal.audio_to_video.PixverseVibeMv": "fal",
     "fal.audio_to_video.StableAvatar": "fal",
     "fal.audio_to_video.VeedAvatarsAudioToVideo": "fal",
@@ -322,6 +330,7 @@
     "fal.image_to_3d.TripoP2ImageTo3d": "fal",
     "fal.image_to_3d.Triposplat": "fal",
     "fal.image_to_3d.Triposr": "fal",
+    "fal.image_to_image.AuraSr": "fal",
     "fal.image_to_image.BackgroundRemoval": "fal",
     "fal.image_to_image.BagelEdit": "fal",
     "fal.image_to_image.BenV2Image": "fal",
@@ -335,8 +344,10 @@
     "fal.image_to_image.BriaEraser": "fal",
     "fal.image_to_image.BriaEraserV2": "fal",
     "fal.image_to_image.BriaExpand": "fal",
+    "fal.image_to_image.BriaFibo2Edit": "fal",
     "fal.image_to_image.BriaFiboEdit": "fal",
     "fal.image_to_image.BriaFiboEdit15": "fal",
+    "fal.image_to_image.BriaFiboEdit15Expand": "fal",
     "fal.image_to_image.BriaFiboEdit15ProductHolding": "fal",
     "fal.image_to_image.BriaFiboEdit15VirtualTryOn": "fal",
     "fal.image_to_image.BriaFiboEditAddObjectByText": "fal",
@@ -351,6 +362,7 @@
     "fal.image_to_image.BriaFiboEditRewriteText": "fal",
     "fal.image_to_image.BriaFiboEditSketchToColoredImage": "fal",
     "fal.image_to_image.BriaGenfill": "fal",
+    "fal.image_to_image.BriaGuidedRemoveBackground": "fal",
     "fal.image_to_image.BriaProductShot": "fal",
     "fal.image_to_image.BriaReimagine": "fal",
     "fal.image_to_image.BriaReimagine32": "fal",
@@ -438,8 +450,11 @@
     "fal.image_to_image.Flux2ProEdit": "fal",
     "fal.image_to_image.Flux2ProOutpaint": "fal",
     "fal.image_to_image.Flux2TurboEdit": "fal",
+    "fal.image_to_image.Flux3EditImage": "fal",
+    "fal.image_to_image.Flux3KleinEditImage": "fal",
     "fal.image_to_image.FluxControlLoraCannyImageToImage": "fal",
     "fal.image_to_image.FluxControlLoraDepthImageToImage": "fal",
+    "fal.image_to_image.FluxDevImageToImage": "fal",
     "fal.image_to_image.FluxDevRedux": "fal",
     "fal.image_to_image.FluxGeneralDifferentialDiffusion": "fal",
     "fal.image_to_image.FluxGeneralImageToImage": "fal",
@@ -522,6 +537,7 @@
     "fal.image_to_image.IdeogramV4ImageToImageLora": "fal",
     "fal.image_to_image.IdeogramV4Tiling": "fal",
     "fal.image_to_image.IdeogramV4TilingLora": "fal",
+    "fal.image_to_image.IdeogramVectorImageToVector": "fal",
     "fal.image_to_image.Image2Pixel": "fal",
     "fal.image_to_image.Image2svg": "fal",
     "fal.image_to_image.ImageAppsV2AgeModify": "fal",
@@ -589,6 +605,8 @@
     "fal.image_to_image.KlingImageV3ImageToImage": "fal",
     "fal.image_to_image.KlingV15KolorsVirtualTryOn": "fal",
     "fal.image_to_image.KolorsImageToImage": "fal",
+    "fal.image_to_image.KreaV3Edit": "fal",
+    "fal.image_to_image.KreaV3Realtime": "fal",
     "fal.image_to_image.LcmSd15I2i": "fal",
     "fal.image_to_image.LeffaPoseTransfer": "fal",
     "fal.image_to_image.LeffaVirtualTryon": "fal",
@@ -604,12 +622,14 @@
     "fal.image_to_image.LumaPhotonReframe": "fal",
     "fal.image_to_image.MaiImage25Edit": "fal",
     "fal.image_to_image.MaiImage25ProEdit": "fal",
+    "fal.image_to_image.MarigoldV2": "fal",
     "fal.image_to_image.MinimaxImage01SubjectReference": "fal",
     "fal.image_to_image.Moondream3PreviewSegment": "fal",
     "fal.image_to_image.MoondreamNextDetection": "fal",
     "fal.image_to_image.MuseImageEdit": "fal",
     "fal.image_to_image.NafnetDeblur": "fal",
     "fal.image_to_image.NafnetDenoise": "fal",
+    "fal.image_to_image.NanoBanana21Edit": "fal",
     "fal.image_to_image.NanoBanana2Edit": "fal",
     "fal.image_to_image.NanoBananaEdit": "fal",
     "fal.image_to_image.NanoBananaLiteEdit": "fal",
@@ -783,6 +803,8 @@
     "fal.image_to_video.Flux3ImageToVideoDraft": "fal",
     "fal.image_to_video.Flux3KeyframesToVideo": "fal",
     "fal.image_to_video.Flux3KeyframesToVideoDraft": "fal",
+    "fal.image_to_video.Flux3MaxImageToVideo": "fal",
+    "fal.image_to_video.Flux3MaxKeyframesToVideo": "fal",
     "fal.image_to_video.Framepack": "fal",
     "fal.image_to_video.FramepackF1": "fal",
     "fal.image_to_video.FramepackFlf2v": "fal",
@@ -793,15 +815,22 @@
     "fal.image_to_video.GrokImagineVideoImageToVideo": "fal",
     "fal.image_to_video.GrokImagineVideoReferenceToVideo": "fal",
     "fal.image_to_video.GrokImagineVideoV15ImageToVideo": "fal",
+    "fal.image_to_video.GrokImagineVideoV15LiteImageToVideo": "fal",
     "fal.image_to_video.GrokImagineVideoV15ReferenceToVideo": "fal",
     "fal.image_to_video.HappyHorseV11ImageToVideo": "fal",
     "fal.image_to_video.HappyHorseV11ReferenceToVideo": "fal",
     "fal.image_to_video.HeygenAvatar4ImageToVideo": "fal",
+    "fal.image_to_video.HeygenVideoImageToVideo": "fal",
+    "fal.image_to_video.HeygenVideoReferenceToVideo": "fal",
     "fal.image_to_video.HunyuanAvatar": "fal",
     "fal.image_to_video.HunyuanCustom": "fal",
     "fal.image_to_video.HunyuanVideoImageToVideo": "fal",
     "fal.image_to_video.HunyuanVideoV15ImageToVideo": "fal",
     "fal.image_to_video.Kandinsky5ProImageToVideo": "fal",
+    "fal.image_to_video.Kandinsky6LiteImageToVideo": "fal",
+    "fal.image_to_video.Kandinsky6ProImageToVideo": "fal",
+    "fal.image_to_video.KlingV4ImageToVideo": "fal",
+    "fal.image_to_video.KlingV4ReferenceToVideo": "fal",
     "fal.image_to_video.KlingVideoAiAvatarV2Pro": "fal",
     "fal.image_to_video.KlingVideoAiAvatarV2Standard": "fal",
     "fal.image_to_video.KlingVideoO1ImageToVideo": "fal",
@@ -876,16 +905,19 @@
     "fal.image_to_video.MinimaxH3ReferenceToVideo": "fal",
     "fal.image_to_video.MinimaxHailuo02FastImageToVideo": "fal",
     "fal.image_to_video.MinimaxHailuo02ProImageToVideo": "fal",
+    "fal.image_to_video.MinimaxHailuo02StandardImageToVideo": "fal",
     "fal.image_to_video.MinimaxHailuo23FastProImageToVideo": "fal",
     "fal.image_to_video.MinimaxHailuo23FastStandardImageToVideo": "fal",
     "fal.image_to_video.MinimaxHailuo23ProImageToVideo": "fal",
     "fal.image_to_video.MinimaxHailuo23StandardImageToVideo": "fal",
     "fal.image_to_video.MinimaxVideo01DirectorImageToVideo": "fal",
+    "fal.image_to_video.MinimaxVideo01ImageToVideo": "fal",
     "fal.image_to_video.MinimaxVideo01LiveImageToVideo": "fal",
     "fal.image_to_video.MinimaxVideo01SubjectReference": "fal",
     "fal.image_to_video.MoonvalleyMareyI2v": "fal",
     "fal.image_to_video.Musetalk": "fal",
     "fal.image_to_video.OmniHumanV15": "fal",
+    "fal.image_to_video.OmnihumanV2": "fal",
     "fal.image_to_video.OviImageToVideo": "fal",
     "fal.image_to_video.PikaV15Pikaffects": "fal",
     "fal.image_to_video.PikaV21ImageToVideo": "fal",
@@ -903,6 +935,7 @@
     "fal.image_to_video.PixverseV35ImageToVideoFast": "fal",
     "fal.image_to_video.PixverseV35Transition": "fal",
     "fal.image_to_video.PixverseV45Effects": "fal",
+    "fal.image_to_video.PixverseV45ImageToVideo": "fal",
     "fal.image_to_video.PixverseV45ImageToVideoFast": "fal",
     "fal.image_to_video.PixverseV45Transition": "fal",
     "fal.image_to_video.PixverseV4Effects": "fal",
@@ -929,6 +962,7 @@
     "fal.image_to_video.Seedance20UsReferenceToVideo": "fal",
     "fal.image_to_video.Seedance25UsImageToVideo": "fal",
     "fal.image_to_video.Seedance25UsReferenceToVideo": "fal",
+    "fal.image_to_video.SeedanceV1ProImageToVideo": "fal",
     "fal.image_to_video.SkyreelsI2v": "fal",
     "fal.image_to_video.Sora2Characters": "fal",
     "fal.image_to_video.Sora2ImageToVideo": "fal",
@@ -957,6 +991,8 @@
     "fal.image_to_video.ViduQ3ImageToVideo": "fal",
     "fal.image_to_video.ViduQ3ImageToVideoTurbo": "fal",
     "fal.image_to_video.ViduQ3ReferenceToVideoMix": "fal",
+    "fal.image_to_video.ViduQ4ImageToVideo": "fal",
+    "fal.image_to_video.ViduQ4ReferenceToVideo": "fal",
     "fal.image_to_video.ViduReferenceToVideo": "fal",
     "fal.image_to_video.ViduStartEndToVideo": "fal",
     "fal.image_to_video.ViduTemplateToVideo": "fal",
@@ -966,8 +1002,10 @@
     "fal.image_to_video.Wan30ReferenceToVideo": "fal",
     "fal.image_to_video.WanAti": "fal",
     "fal.image_to_video.WanFlf2v": "fal",
+    "fal.image_to_video.WanI2V": "fal",
     "fal.image_to_video.WanI2vLora": "fal",
     "fal.image_to_video.WanMove": "fal",
+    "fal.image_to_video.WanProImageToVideo": "fal",
     "fal.image_to_video.WanV225bImageToVideo": "fal",
     "fal.image_to_video.WanV22A14bImageToVideo": "fal",
     "fal.image_to_video.WanV22A14bImageToVideoLora": "fal",
@@ -983,6 +1021,7 @@
     "fal.json_processing.OmnilottieImageToLottie": "fal",
     "fal.json_processing.OmnilottieVideoToLottie": "fal",
     "fal.llm.BytedanceSeedV2Mini": "fal",
+    "fal.llm.Nemotron35SuperText": "fal",
     "fal.llm.Nemotron3NanoOmni": "fal",
     "fal.llm.OpenRouter": "fal",
     "fal.llm.OpenRouterChatCompletions": "fal",
@@ -998,6 +1037,7 @@
     "fal.speech_to_text.ElevenLabsForcedAlignment": "fal",
     "fal.speech_to_text.ElevenLabsScribeV2": "fal",
     "fal.speech_to_text.ElevenLabsSpeechToText": "fal",
+    "fal.speech_to_text.KotobaSttV1SpeechToText": "fal",
     "fal.speech_to_text.NemotronAsrMultilingualAsr": "fal",
     "fal.speech_to_text.SmartTurn": "fal",
     "fal.speech_to_text.SpeechToText": "fal",
@@ -1060,8 +1100,12 @@
     "fal.text_to_audio.MinimaxMusicV25": "fal",
     "fal.text_to_audio.MinimaxMusicV26": "fal",
     "fal.text_to_audio.MmaudioV2TextToAudio": "fal",
+    "fal.text_to_audio.MurekaInstrumental": "fal",
+    "fal.text_to_audio.MurekaPodcast": "fal",
+    "fal.text_to_audio.MurekaSong": "fal",
     "fal.text_to_audio.SeedAudio10": "fal",
     "fal.text_to_audio.Sfx16TextToAudio": "fal",
+    "fal.text_to_audio.Sfx20TextToAudio": "fal",
     "fal.text_to_audio.SoniloV11TextToMusic": "fal",
     "fal.text_to_audio.SoniloV11TextToSoundEffects": "fal",
     "fal.text_to_audio.StableAudio": "fal",
@@ -1078,6 +1122,7 @@
     "fal.text_to_image.Bagel": "fal",
     "fal.text_to_image.Bitdance": "fal",
     "fal.text_to_image.BooguImage": "fal",
+    "fal.text_to_image.BriaFibo2Generate": "fal",
     "fal.text_to_image.BriaFiboGen15TextToImage": "fal",
     "fal.text_to_image.BriaFiboGenerate": "fal",
     "fal.text_to_image.BriaFiboLiteGenerate": "fal",
@@ -1131,9 +1176,12 @@
     "fal.text_to_image.Flux2Max": "fal",
     "fal.text_to_image.Flux2Pro": "fal",
     "fal.text_to_image.Flux2Turbo": "fal",
+    "fal.text_to_image.Flux3KleinTextToImage": "fal",
+    "fal.text_to_image.Flux3TextToImage": "fal",
     "fal.text_to_image.FluxControlLoraCanny": "fal",
     "fal.text_to_image.FluxControlLoraDepth": "fal",
     "fal.text_to_image.FluxDev": "fal",
+    "fal.text_to_image.FluxGeneral": "fal",
     "fal.text_to_image.FluxKontextLoraTextToImage": "fal",
     "fal.text_to_image.FluxKrea": "fal",
     "fal.text_to_image.FluxKreaLora": "fal",
@@ -1167,6 +1215,9 @@
     "fal.text_to_image.GrokImagineImage": "fal",
     "fal.text_to_image.GrokImagineImageQualityTextToImage": "fal",
     "fal.text_to_image.GrokImagineImageV20": "fal",
+    "fal.text_to_image.HidreamI1Dev": "fal",
+    "fal.text_to_image.HidreamI1Fast": "fal",
+    "fal.text_to_image.HidreamI1Full": "fal",
     "fal.text_to_image.HidreamO1Image": "fal",
     "fal.text_to_image.HidreamO1ImageDev": "fal",
     "fal.text_to_image.HunyuanImageV21TextToImage": "fal",
@@ -1184,6 +1235,7 @@
     "fal.text_to_image.IdeogramV4Fast": "fal",
     "fal.text_to_image.IdeogramV4Instant": "fal",
     "fal.text_to_image.IdeogramV4Lora": "fal",
+    "fal.text_to_image.IdeogramVectorTextToVector": "fal",
     "fal.text_to_image.IllusionDiffusion": "fal",
     "fal.text_to_image.Imagen3": "fal",
     "fal.text_to_image.Imagen3Fast": "fal",
@@ -1201,6 +1253,7 @@
     "fal.text_to_image.KreaV2LargeTextToImage": "fal",
     "fal.text_to_image.KreaV2MediumTextToImage": "fal",
     "fal.text_to_image.KreaV2MediumTurboTextToImage": "fal",
+    "fal.text_to_image.KreaV3TextToImage": "fal",
     "fal.text_to_image.Lcm": "fal",
     "fal.text_to_image.LightningModels": "fal",
     "fal.text_to_image.LongcatImage": "fal",
@@ -1212,9 +1265,11 @@
     "fal.text_to_image.MaiImage25": "fal",
     "fal.text_to_image.MaiImage25Pro": "fal",
     "fal.text_to_image.MinimaxImage01": "fal",
+    "fal.text_to_image.MossImage": "fal",
     "fal.text_to_image.MuseImageTextToImage": "fal",
     "fal.text_to_image.NanoBanana": "fal",
     "fal.text_to_image.NanoBanana2": "fal",
+    "fal.text_to_image.NanoBanana21": "fal",
     "fal.text_to_image.NanoBanana2Lite": "fal",
     "fal.text_to_image.NanoBananaLite": "fal",
     "fal.text_to_image.NanoBananaPro": "fal",
@@ -1238,6 +1293,7 @@
     "fal.text_to_image.RealisticVision": "fal",
     "fal.text_to_image.Recraft20b": "fal",
     "fal.text_to_image.RecraftV3": "fal",
+    "fal.text_to_image.RecraftV3TextToImage": "fal",
     "fal.text_to_image.RecraftV41FlashTextToImage": "fal",
     "fal.text_to_image.RecraftV41ProTextToImage": "fal",
     "fal.text_to_image.RecraftV41ProTextToVector": "fal",
@@ -1307,6 +1363,8 @@
     "fal.text_to_speech.Gemini31FlashTts": "fal",
     "fal.text_to_speech.Gemini38FlashLiteTts": "fal",
     "fal.text_to_speech.Gemini38FlashTts": "fal",
+    "fal.text_to_speech.HeygenVoice": "fal",
+    "fal.text_to_speech.HeygenVoiceTurbo": "fal",
     "fal.text_to_speech.IndexTts2TextToSpeech": "fal",
     "fal.text_to_speech.InworldTts": "fal",
     "fal.text_to_speech.KlingVideoV1Tts": "fal",
@@ -1334,6 +1392,7 @@
     "fal.text_to_speech.Vibevoice7b": "fal",
     "fal.text_to_speech.XaiTtsV1": "fal",
     "fal.text_to_speech.Zonos2": "fal",
+    "fal.text_to_text.MurekaLyrics": "fal",
     "fal.text_to_video.AlibabaHappyHorseTextToVideo": "fal",
     "fal.text_to_video.AnimateDiffTextToVideo": "fal",
     "fal.text_to_video.AnimateDiffTurboTextToVideo": "fal",
@@ -1351,11 +1410,13 @@
     "fal.text_to_video.CreatifyBoreal": "fal",
     "fal.text_to_video.FastSvdLcmTextToVideo": "fal",
     "fal.text_to_video.FastSvdTextToVideo": "fal",
+    "fal.text_to_video.Flux3MaxTextToVideo": "fal",
     "fal.text_to_video.Flux3TextToVideo": "fal",
     "fal.text_to_video.Flux3TextToVideoDraft": "fal",
     "fal.text_to_video.GeminiOmniFlash": "fal",
     "fal.text_to_video.GeminiOmniFlashV11TextToVideo": "fal",
     "fal.text_to_video.GrokImagineVideoTextToVideo": "fal",
+    "fal.text_to_video.GrokImagineVideoV15LiteTextToVideo": "fal",
     "fal.text_to_video.GrokImagineVideoV15TextToVideo": "fal",
     "fal.text_to_video.HappyHorseV11TextToVideo": "fal",
     "fal.text_to_video.HeygenAvatar3DigitalTwin": "fal",
@@ -1363,6 +1424,7 @@
     "fal.text_to_video.HeygenAvatar5DigitalTwin": "fal",
     "fal.text_to_video.HeygenV2VideoAgent": "fal",
     "fal.text_to_video.HeygenV3VideoAgent": "fal",
+    "fal.text_to_video.HeygenVideoTextToVideo": "fal",
     "fal.text_to_video.HunyuanVideo": "fal",
     "fal.text_to_video.HunyuanVideoLora": "fal",
     "fal.text_to_video.HunyuanVideoV15TextToVideo": "fal",
@@ -1371,6 +1433,9 @@
     "fal.text_to_video.Kandinsky5ProTextToVideo": "fal",
     "fal.text_to_video.Kandinsky5TextToVideo": "fal",
     "fal.text_to_video.Kandinsky5TextToVideoDistill": "fal",
+    "fal.text_to_video.Kandinsky6LiteTextToVideo": "fal",
+    "fal.text_to_video.Kandinsky6ProTextToVideo": "fal",
+    "fal.text_to_video.KlingV4TextToVideo": "fal",
     "fal.text_to_video.KlingVideoLipsyncAudioToVideo": "fal",
     "fal.text_to_video.KlingVideoLipsyncTextToVideo": "fal",
     "fal.text_to_video.KlingVideoO34kTextToVideo": "fal",
@@ -1436,6 +1501,7 @@
     "fal.text_to_video.MinimaxH3TextToVideo": "fal",
     "fal.text_to_video.MinimaxH3TextToVideoLora": "fal",
     "fal.text_to_video.MinimaxHailuo02ProTextToVideo": "fal",
+    "fal.text_to_video.MinimaxHailuo02StandardTextToVideo": "fal",
     "fal.text_to_video.MinimaxHailuo23ProTextToVideo": "fal",
     "fal.text_to_video.MinimaxHailuo23StandardTextToVideo": "fal",
     "fal.text_to_video.MinimaxVideo01": "fal",
@@ -1463,6 +1529,7 @@
     "fal.text_to_video.SeeDanceV1ProFastTextToVideo": "fal",
     "fal.text_to_video.Seedance20MiniTextToVideo": "fal",
     "fal.text_to_video.Seedance20UsTextToVideo": "fal",
+    "fal.text_to_video.Seedance25DraftComplete": "fal",
     "fal.text_to_video.Seedance25UsTextToVideo": "fal",
     "fal.text_to_video.Sora2TextToVideo": "fal",
     "fal.text_to_video.Sora2TextToVideoPro": "fal",
@@ -1491,6 +1558,7 @@
     "fal.text_to_video.WanV22A14bTextToVideo": "fal",
     "fal.text_to_video.WanV22A14bTextToVideoLora": "fal",
     "fal.text_to_video.WanV22A14bTextToVideoTurbo": "fal",
+    "fal.text_to_video.WanV26TextToVideo": "fal",
     "fal.text_to_video.WanV27TextToVideo": "fal",
     "fal.training.ErnieImageTrainer": "fal",
     "fal.training.Flux2Klein4BBaseTrainer": "fal",
@@ -1501,6 +1569,9 @@
     "fal.training.Flux2TrainerEdit": "fal",
     "fal.training.Flux2TrainerV2": "fal",
     "fal.training.Flux2TrainerV2Edit": "fal",
+    "fal.training.FluxKontextTrainer": "fal",
+    "fal.training.FluxLoraFastTraining": "fal",
+    "fal.training.FluxLoraPortraitTrainer": "fal",
     "fal.training.HunyuanVideoLoraTraining": "fal",
     "fal.training.IdeogramCustomModels": "fal",
     "fal.training.IdeogramV4Trainer": "fal",
@@ -1569,9 +1640,12 @@
     "fal.video_to_audio.KlingVideoVideoToAudio": "fal",
     "fal.video_to_audio.MireloAiSfxV15VideoToAudio": "fal",
     "fal.video_to_audio.MireloAiSfxV1VideoToAudio": "fal",
+    "fal.video_to_audio.MmaudioV2": "fal",
     "fal.video_to_audio.SamAudioVisualSeparate": "fal",
+    "fal.video_to_audio.Sfx20VideoToAudio": "fal",
     "fal.video_to_audio.SoniloV11VideoToMusic": "fal",
     "fal.video_to_audio.SoniloV11VideoToSoundEffects": "fal",
+    "fal.video_to_text.Nemotron35SuperVideo": "fal",
     "fal.video_to_text.Nemotron3NanoOmniVideo": "fal",
     "fal.video_to_text.RouterVideo": "fal",
     "fal.video_to_text.RouterVideoEnterprise": "fal",
@@ -1584,6 +1658,7 @@
     "fal.video_to_video.BerniniREditVideo": "fal",
     "fal.video_to_video.BerniniRReferenceEditVideo": "fal",
     "fal.video_to_video.BiRefNetV2Video": "fal",
+    "fal.video_to_video.BriaVideoBackgroundRemoval": "fal",
     "fal.video_to_video.BriaVideoEraseKeypoints": "fal",
     "fal.video_to_video.BriaVideoEraseMask": "fal",
     "fal.video_to_video.BriaVideoErasePrompt": "fal",
@@ -1632,6 +1707,9 @@
     "fal.video_to_video.IdV2VRelight": "fal",
     "fal.video_to_video.Infinitalk": "fal",
     "fal.video_to_video.InfinitalkVideoToVideo": "fal",
+    "fal.video_to_video.Kandinsky6Vsr": "fal",
+    "fal.video_to_video.Kandinsky6VsrLite": "fal",
+    "fal.video_to_video.KlingV4VideoToVideoEdit": "fal",
     "fal.video_to_video.KlingVideoO1StandardVideoToVideoEdit": "fal",
     "fal.video_to_video.KlingVideoO1StandardVideoToVideoReference": "fal",
     "fal.video_to_video.KlingVideoO1VideoToVideoEdit": "fal",
@@ -1712,6 +1790,10 @@
     "fal.video_to_video.MinimaxH3Max3dToVideo": "fal",
     "fal.video_to_video.MinimaxH3MaxExtendVideo": "fal",
     "fal.video_to_video.MinimaxH3MaxInsertVideo": "fal",
+    "fal.video_to_video.MinimaxH3MaxRecast": "fal",
+    "fal.video_to_video.MinimaxH3MaxReframeVideo": "fal",
+    "fal.video_to_video.MinimaxH3MaxRelight": "fal",
+    "fal.video_to_video.MinimaxH3MaxTurboExtendVideo": "fal",
     "fal.video_to_video.MinimaxH3ReferenceToVideoLora": "fal",
     "fal.video_to_video.MireloAiSfxV15VideoToVideo": "fal",
     "fal.video_to_video.MireloAiSfxV1VideoToVideo": "fal",
@@ -1734,6 +1816,7 @@
     "fal.video_to_video.Scail2": "fal",
     "fal.video_to_video.SeedvrUpscaleVideo": "fal",
     "fal.video_to_video.Sfx16VideoToVideo": "fal",
+    "fal.video_to_video.Sfx20VideoToVideo": "fal",
     "fal.video_to_video.SoniloV11VideoToVideoMusic": "fal",
     "fal.video_to_video.SoniloV11VideoToVideoSoundEffects": "fal",
     "fal.video_to_video.Sora2VideoToVideoRemix": "fal",
@@ -1825,6 +1908,7 @@
     "fal.vision.MoondreamBatched": "fal",
     "fal.vision.MoondreamNext": "fal",
     "fal.vision.MoondreamNextBatch": "fal",
+    "fal.vision.Nemotron35SuperVision": "fal",
     "fal.vision.Nemotron3NanoOmniVision": "fal",
     "fal.vision.NemotronDiffusionVlm": "fal",
     "fal.vision.RouterVision": "fal",
@@ -1944,6 +2028,7 @@
     "huggingface.ZeroShotClassification": "huggingface",
     "kie.audio.AddInstrumental": "kie",
     "kie.audio.AddVocals": "kie",
+    "kie.audio.AiMusicApiValidationPhrase": "kie",
     "kie.audio.BoostMusicStyle": "kie",
     "kie.audio.ConvertToWav": "kie",
     "kie.audio.CreateMusicVideo": "kie",
@@ -1954,6 +2039,8 @@
     "kie.audio.ExtendMusic": "kie",
     "kie.audio.Gemini25ProTts": "kie",
     "kie.audio.Gemini31FlashTts": "kie",
+    "kie.audio.Gemini38FlashLiteTts": "kie",
+    "kie.audio.Gemini38FlashTts": "kie",
     "kie.audio.GenerateCover": "kie",
     "kie.audio.GenerateLyrics": "kie",
     "kie.audio.GenerateMashup": "kie",
@@ -1979,6 +2066,8 @@
     "kie.image.Flux2FlexTextToImage": "kie",
     "kie.image.Flux2ProImageToImage": "kie",
     "kie.image.Flux2ProTextToImage": "kie",
+    "kie.image.Flux3KleinEditImage": "kie",
+    "kie.image.Flux3KleinTextToImage": "kie",
     "kie.image.Generate4oImage": "kie",
     "kie.image.GenerateOrEditImage": "kie",
     "kie.image.GoogleImagen4": "kie",
@@ -1986,6 +2075,7 @@
     "kie.image.GoogleImagen4Ultra": "kie",
     "kie.image.GoogleNanoBanana": "kie",
     "kie.image.GoogleNanoBanana2": "kie",
+    "kie.image.GoogleNanoBanana21": "kie",
     "kie.image.GoogleNanoBananaEdit": "kie",
     "kie.image.GptImage15ImageToImage": "kie",
     "kie.image.GptImage15TextToImage": "kie",
@@ -2024,6 +2114,9 @@
     "kie.image.RecraftRemoveBackground": "kie",
     "kie.image.Seedream45Edit": "kie",
     "kie.image.Seedream45TextToImage": "kie",
+    "kie.image.Seedream5FlashImageToImage": "kie",
+    "kie.image.Seedream5FlashLayerDecomposition": "kie",
+    "kie.image.Seedream5FlashTextToImage": "kie",
     "kie.image.Seedream5LiteImageToImage": "kie",
     "kie.image.Seedream5LiteTextToImage": "kie",
     "kie.image.Seedream5ProImageToImage": "kie",
@@ -2036,6 +2129,7 @@
     "kie.video.BytedanceSeedance15Pro": "kie",
     "kie.video.BytedanceSeedance2": "kie",
     "kie.video.BytedanceSeedance25": "kie",
+    "kie.video.BytedanceSeedance25Draft": "kie",
     "kie.video.BytedanceSeedance2Fast": "kie",
     "kie.video.BytedanceSeedance2Mini": "kie",
     "kie.video.BytedanceV1LiteImageToVideo": "kie",
@@ -2082,6 +2176,8 @@
     "kie.video.Kling30OmniReferenceToVideo": "kie",
     "kie.video.Kling30OmniTextToVideo": "kie",
     "kie.video.Kling30OmniTransformation": "kie",
+    "kie.video.Kling40KeyframeToVideo": "kie",
+    "kie.video.Kling40ReferenceToVideo": "kie",
     "kie.video.KlingAiAvatarPro": "kie",
     "kie.video.KlingAiAvatarStandard": "kie",
     "kie.video.KlingV21MasterImageToVideo": "kie",
@@ -2089,6 +2185,7 @@
     "kie.video.KlingV21MasterTextToVideo": "kie",
     "kie.video.KlingV21Pro": "kie",
     "kie.video.KlingV21Standard": "kie",
+    "kie.video.KlingV25TurboImageToVideoPro": "kie",
     "kie.video.KlingV25TurboTextToVideoPro": "kie",
     "kie.video.KlingV3TurboImageToVideo": "kie",
     "kie.video.KlingV3TurboTextToVideo": "kie",
@@ -2098,9 +2195,12 @@
     "kie.video.Omnihuman15": "kie",
     "kie.video.Omnihuman15HumanIdentification": "kie",
     "kie.video.Omnihuman15SubjectDetection": "kie",
+    "kie.video.Omnihuman20": "kie",
     "kie.video.PixverseV6FirstLastFrameTransition": "kie",
     "kie.video.PixverseV6FusionReferenceToVideo": "kie",
     "kie.video.PixverseV6ImageToVideo": "kie",
+    "kie.video.PixverseV6MaxImageToVideo": "kie",
+    "kie.video.PixverseV6MaxTextToVideo": "kie",
     "kie.video.PixverseV6TextToVideo": "kie",
     "kie.video.PixverseV6VideoExtension": "kie",
     "kie.video.TopazVideoUpscale": "kie",
@@ -2141,6 +2241,7 @@
     "lib.audio.TimeStretch": "audio",
     "lib.browser.Screenshot": "automation",
     "lib.charts.ChartRenderer": "data",
+    "lib.comfy.RunComfyGraphOnCloud": "integration",
     "lib.comfy.RunWorkflow": "integration",
     "lib.comfy.RunWorkflowOnCloud": "integration",
     "lib.comfy.RunWorkflowOnWorker": "integration",
@@ -2714,6 +2815,10 @@
     "replicate.image.face.PhotoMaker": "replicate",
     "replicate.image.face.PhotoMakerStyle": "replicate",
     "replicate.image.generate.AdInpaint": "replicate",
+    "replicate.image.generate.Arrow_1_1": "replicate",
+    "replicate.image.generate.Arrow_1_1_Max": "replicate",
+    "replicate.image.generate.Arrow_1_1_Max_Vectorize": "replicate",
+    "replicate.image.generate.Arrow_1_1_Vectorize": "replicate",
     "replicate.image.generate.Ascii_Style": "replicate",
     "replicate.image.generate.Bagel": "replicate",
     "replicate.image.generate.Blueprint_Qwen": "replicate",
@@ -2728,6 +2833,7 @@
     "replicate.image.generate.ControlNet_Tile": "replicate",
     "replicate.image.generate.Create": "replicate",
     "replicate.image.generate.Dall_E_2": "replicate",
+    "replicate.image.generate.Dall_E_3": "replicate",
     "replicate.image.generate.Depth_Of_Field": "replicate",
     "replicate.image.generate.Dolphin": "replicate",
     "replicate.image.generate.Dreamina_3_1": "replicate",
@@ -2737,6 +2843,7 @@
     "replicate.image.generate.Face_To_Many_Kontext": "replicate",
     "replicate.image.generate.Fibo": "replicate",
     "replicate.image.generate.Filters": "replicate",
+    "replicate.image.generate.Flux_1_1_Pro": "replicate",
     "replicate.image.generate.Flux_1_1_Pro_Ultra": "replicate",
     "replicate.image.generate.Flux_1_1_Pro_Ultra_Finetuned": "replicate",
     "replicate.image.generate.Flux_2_Dev": "replicate",
@@ -2750,6 +2857,7 @@
     "replicate.image.generate.Flux_2_Max": "replicate",
     "replicate.image.generate.Flux_2_Pro": "replicate",
     "replicate.image.generate.Flux_360": "replicate",
+    "replicate.image.generate.Flux_3_Image": "replicate",
     "replicate.image.generate.Flux_Black_Light": "replicate",
     "replicate.image.generate.Flux_Canny_Dev": "replicate",
     "replicate.image.generate.Flux_Canny_Pro": "replicate",
@@ -2782,6 +2890,8 @@
     "replicate.image.generate.Flux_Schnell_Lora": "replicate",
     "replicate.image.generate.GPT_Image_1_5": "replicate",
     "replicate.image.generate.GPT_Image_2": "replicate",
+    "replicate.image.generate.GPT_Image_2_5_Flare": "replicate",
+    "replicate.image.generate.GPT_Image_2_5_Sunburst": "replicate",
     "replicate.image.generate.Gemini_2_5_Flash_Image": "replicate",
     "replicate.image.generate.Gen4_Image": "replicate",
     "replicate.image.generate.Gen4_Image_Turbo": "replicate",
@@ -2790,6 +2900,7 @@
     "replicate.image.generate.Gpt_Oss_Safeguard_20b": "replicate",
     "replicate.image.generate.Granite_4_0_H_Small": "replicate",
     "replicate.image.generate.Grok_Imagine_Image": "replicate",
+    "replicate.image.generate.Grok_Imagine_Image_2": "replicate",
     "replicate.image.generate.Grok_Imagine_Image_Quality": "replicate",
     "replicate.image.generate.Happycat": "replicate",
     "replicate.image.generate.Hidream_L1_Dev": "replicate",
@@ -2804,6 +2915,8 @@
     "replicate.image.generate.IP_Adapter_Face_Inpaint": "replicate",
     "replicate.image.generate.IP_Adapter_SDXL_Face": "replicate",
     "replicate.image.generate.Iconic_Locations": "replicate",
+    "replicate.image.generate.Ideogram_4_5": "replicate",
+    "replicate.image.generate.Ideogram_4_5_Precise_Edit": "replicate",
     "replicate.image.generate.Ideogram_Character": "replicate",
     "replicate.image.generate.Ideogram_V2": "replicate",
     "replicate.image.generate.Ideogram_V2A": "replicate",
@@ -2833,6 +2946,7 @@
     "replicate.image.generate.Kontext_Realearth": "replicate",
     "replicate.image.generate.Krea_2_Large": "replicate",
     "replicate.image.generate.Krea_2_Medium": "replicate",
+    "replicate.image.generate.Krea_3": "replicate",
     "replicate.image.generate.Layerize": "replicate",
     "replicate.image.generate.Llama_Guard_4_12b": "replicate",
     "replicate.image.generate.Lucid_Origin": "replicate",
@@ -2845,17 +2959,20 @@
     "replicate.image.generate.Multi_Image_Kontext_Pro": "replicate",
     "replicate.image.generate.Multi_Image_List": "replicate",
     "replicate.image.generate.Nano_Banana_2": "replicate",
+    "replicate.image.generate.Nano_Banana_2_1": "replicate",
     "replicate.image.generate.Nano_Banana_2_Lite": "replicate",
     "replicate.image.generate.Nano_Banana_Pro": "replicate",
     "replicate.image.generate.OmniGen2": "replicate",
     "replicate.image.generate.P_Image": "replicate",
     "replicate.image.generate.P_Image_Edit": "replicate",
     "replicate.image.generate.P_Image_Edit_Lora": "replicate",
+    "replicate.image.generate.P_Image_Ideogram": "replicate",
     "replicate.image.generate.P_Image_Lora": "replicate",
     "replicate.image.generate.P_Image_Trainer": "replicate",
     "replicate.image.generate.P_Image_Try_On": "replicate",
     "replicate.image.generate.Pai_Qwen_21102568": "replicate",
     "replicate.image.generate.Phoenix_1_0": "replicate",
+    "replicate.image.generate.Photon": "replicate",
     "replicate.image.generate.Photon_Flash": "replicate",
     "replicate.image.generate.PlaygroundV2": "replicate",
     "replicate.image.generate.Portrait_Series": "replicate",
@@ -2914,6 +3031,7 @@
     "replicate.image.generate.Recraft_V4_Pro": "replicate",
     "replicate.image.generate.Recraft_V4_Pro_SVG": "replicate",
     "replicate.image.generate.Recraft_V4_SVG": "replicate",
+    "replicate.image.generate.Recraft_V4_Styles_Pro_SVG": "replicate",
     "replicate.image.generate.Recraft_Vectorize": "replicate",
     "replicate.image.generate.Reframe_Image": "replicate",
     "replicate.image.generate.Remix": "replicate",
@@ -2934,6 +3052,7 @@
     "replicate.image.generate.Seedream_5_Lite": "replicate",
     "replicate.image.generate.Seedream_5_Pro": "replicate",
     "replicate.image.generate.StableDiffusion": "replicate",
+    "replicate.image.generate.StableDiffusion3": "replicate",
     "replicate.image.generate.StableDiffusion3_5_Large": "replicate",
     "replicate.image.generate.StableDiffusion3_5_Large_Turbo": "replicate",
     "replicate.image.generate.StableDiffusion3_5_Medium": "replicate",
@@ -3001,6 +3120,7 @@
     "replicate.text.generate.Claude_Fable_5": "replicate",
     "replicate.text.generate.Claude_Opus_4_6": "replicate",
     "replicate.text.generate.Claude_Opus_4_7": "replicate",
+    "replicate.text.generate.Claude_Opus_5_5": "replicate",
     "replicate.text.generate.Claude_Sonnet_4_6": "replicate",
     "replicate.text.generate.Claude_Sonnet_5": "replicate",
     "replicate.text.generate.Deepseek_R1": "replicate",
@@ -3083,7 +3203,9 @@
     "replicate.video.generate.Audio_To_Video": "replicate",
     "replicate.video.generate.Avatar_Iv": "replicate",
     "replicate.video.generate.Avatar_V": "replicate",
+    "replicate.video.generate.Flux_3": "replicate",
     "replicate.video.generate.Frame_Extractor": "replicate",
+    "replicate.video.generate.Gemini_Omni_1_1": "replicate",
     "replicate.video.generate.Gen4_5": "replicate",
     "replicate.video.generate.Gen4_Aleph": "replicate",
     "replicate.video.generate.Gen4_Turbo": "replicate",
@@ -3115,7 +3237,9 @@
     "replicate.video.generate.Kling_V3_Motion_Control": "replicate",
     "replicate.video.generate.Kling_V3_Omni_Video": "replicate",
     "replicate.video.generate.Kling_V3_Video": "replicate",
+    "replicate.video.generate.Kling_V4_0": "replicate",
     "replicate.video.generate.Kontext_Ps1": "replicate",
+    "replicate.video.generate.LTX_2_5_Fast": "replicate",
     "replicate.video.generate.LTX_Video": "replicate",
     "replicate.video.generate.Lipsync_2": "replicate",
     "replicate.video.generate.Lipsync_2_Pro": "replicate",
@@ -3133,7 +3257,12 @@
     "replicate.video.generate.Omni_Human_1_5": "replicate",
     "replicate.video.generate.Ovi_I2v": "replicate",
     "replicate.video.generate.P_Video": "replicate",
+    "replicate.video.generate.P_Video_2": "replicate",
+    "replicate.video.generate.P_Video_2_Pro": "replicate",
+    "replicate.video.generate.P_Video_2_Pro_Avatar": "replicate",
+    "replicate.video.generate.P_Video_2_Pro_Reference": "replicate",
     "replicate.video.generate.P_Video_Animate": "replicate",
+    "replicate.video.generate.P_Video_Edit": "replicate",
     "replicate.video.generate.P_Video_Replace": "replicate",
     "replicate.video.generate.Pixverse_V3_5": "replicate",
     "replicate.video.generate.Pixverse_V4": "replicate",
@@ -3141,6 +3270,7 @@
     "replicate.video.generate.Pixverse_V5": "replicate",
     "replicate.video.generate.Pixverse_V5_6": "replicate",
     "replicate.video.generate.Pixverse_V6": "replicate",
+    "replicate.video.generate.Pixverse_V6_Max": "replicate",
     "replicate.video.generate.Q3_Pro": "replicate",
     "replicate.video.generate.Q3_Turbo": "replicate",
     "replicate.video.generate.Ray_2_540p": "replicate",
@@ -3337,11 +3467,11 @@
       "id": "atlascloud",
       "installBytes": 0,
       "kind": "node-pack",
-      "nodeCount": 180,
+      "nodeCount": 184,
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/atlascloud-nodes",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "registerAtlasCloudNodes",
@@ -3360,7 +3490,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/audio-nodes",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "registerAudioNodes",
@@ -3380,7 +3510,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/automation-nodes",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "registerAutomationNodes",
@@ -3399,7 +3529,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/blender-nodes",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "registerBlenderNodes",
@@ -3418,7 +3548,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/cli-admin",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "feature",
@@ -3435,7 +3565,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/cli-apps",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "feature",
@@ -3452,7 +3582,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/cli-chat",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "feature",
@@ -3469,7 +3599,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/cli-game",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "feature",
@@ -3489,7 +3619,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/cli-harness",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "feature",
@@ -3509,7 +3639,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/cli-mcp",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "feature",
@@ -3529,7 +3659,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/cli-models",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "feature",
@@ -3546,7 +3676,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/cli-script",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "feature",
@@ -3563,7 +3693,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/cli-server",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "feature",
@@ -3586,7 +3716,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/cli-sketch",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "feature",
@@ -3603,7 +3733,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/cli-timeline",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "feature",
@@ -3623,7 +3753,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/cli-workflow",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "feature",
@@ -3643,7 +3773,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/code-nodes",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "registerCodeNodes",
@@ -3662,7 +3792,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/core-nodes",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "registerCoreNodes",
@@ -3679,7 +3809,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/data-nodes",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "registerDataNodes",
@@ -3698,7 +3828,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/document-nodes",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "registerDocumentNodes",
@@ -3718,7 +3848,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/elevenlabs-nodes",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "registerElevenLabsNodes",
@@ -3733,11 +3863,11 @@
       "id": "fal",
       "installBytes": 0,
       "kind": "node-pack",
-      "nodeCount": 1645,
+      "nodeCount": 1725,
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/fal-nodes",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "registerFalNodes",
@@ -3756,7 +3886,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/game-nodes",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [
         "@nodetool-ai/game-renderer"
@@ -3780,7 +3910,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/higgsfield-nodes",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "registerHiggsfieldNodes",
@@ -3800,7 +3930,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/huggingface-nodes",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "registerHuggingFaceNodes",
@@ -3819,7 +3949,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/image-nodes",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "registerImageNodes",
@@ -3834,11 +3964,11 @@
       "id": "integration",
       "installBytes": 0,
       "kind": "node-pack",
-      "nodeCount": 11,
+      "nodeCount": 12,
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/integration-nodes",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "registerIntegrationNodes",
@@ -3858,11 +3988,11 @@
       "id": "kie",
       "installBytes": 0,
       "kind": "node-pack",
-      "nodeCount": 180,
+      "nodeCount": 196,
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/kie-nodes",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "registerKieNodes",
@@ -3881,7 +4011,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/llm-nodes",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "registerLlmNodes",
@@ -3905,7 +4035,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/manimgx-nodes",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "registerManimgxNodes",
@@ -3924,7 +4054,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/minimax-nodes",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "registerMinimaxNodes",
@@ -3939,11 +4069,11 @@
       "id": "replicate",
       "installBytes": 0,
       "kind": "node-pack",
-      "nodeCount": 662,
+      "nodeCount": 691,
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/replicate-nodes",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "registerReplicateNodes",
@@ -3962,7 +4092,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/reve-nodes",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "registerReveNodes",
@@ -3981,7 +4111,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/text-nodes",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "registerTextNodes",
@@ -3998,7 +4128,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/together-nodes",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "registerTogetherNodes",
@@ -4017,7 +4147,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/topaz-nodes",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "registerTopazNodes",
@@ -4038,7 +4168,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/transformers-js-nodes",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [
         "@nodetool-ai/transformers-js-provider"
@@ -4062,7 +4192,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/video-nodes",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "registerVideoNodes",
@@ -4085,7 +4215,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/whisper-cpp",
-        "version": "0.8.10"
+        "version": "0.8.11"
       },
       "provides": [],
       "registrar": "registerWhisperCppNodes",

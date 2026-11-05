@@ -9,7 +9,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { RAW_RGBA_MIME } from "@nodetool-ai/protocol";
-import { transformMedia } from "@nodetool-ai/runtime/media";
+import { probeMedia, transformMedia } from "@nodetool-ai/runtime/media";
 import {
   encodeWav,
   generateMedia,
@@ -399,6 +399,37 @@ describe("frames in and out", () => {
   it("ExtractFrame answers an empty image past the end", async () => {
     const { output } = await run(nodes.ExtractFrameVideoNode, { video: videoRef(grayAv), time: 30 });
     expect((output as { data: unknown }).data).toBeNull();
+  });
+
+  it("ExtractFrame decodes AVI when the optional alpha probe cannot read its container", async () => {
+    await generateMedia({
+      outPath: file("extract-mpeg4.mp4"),
+      video: { source: `color=c=red:size=${W}x${H}:rate=10:duration=1`, codec: "mpeg4" }
+    });
+    await transformMedia({
+      inputs: [{ filePath: file("extract-mpeg4.mp4") }],
+      outPath: file("extract.avi"),
+      format: "avi",
+      video: { copy: 0 },
+      audio: null
+    });
+    await expect(probeMedia(file("extract.avi"))).rejects.toThrow();
+    const video = videoRef(new Uint8Array(await fs.readFile(file("extract.avi"))));
+
+    const { output } = await run(nodes.ExtractFrameVideoNode, { video, time: 0 });
+
+    const { data, info } = await sharp(bytesOf(output)).raw().toBuffer({ resolveWithObject: true });
+    expect(info).toMatchObject({ width: W, height: H });
+    expect(data[0]).toBeGreaterThan(200);
+    expect(data[1]).toBeLessThan(20);
+  });
+
+  it("ExtractFrame answers an empty image for malformed media", async () => {
+    const { output } = await run(nodes.ExtractFrameVideoNode, {
+      video: videoRef(new Uint8Array(2048).fill(7)),
+      time: 0
+    });
+    expect(output).toEqual({ type: "image", data: null });
   });
 
   it("ForEachFrame yields the selected frames as PNG with their index", async () => {

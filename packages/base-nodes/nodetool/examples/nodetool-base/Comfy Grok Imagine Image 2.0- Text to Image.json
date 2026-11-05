@@ -1,0 +1,86 @@
+{
+  "id": "4f0da402636c57a9da852e31ea49a693",
+  "name": "Comfy Grok Imagine Image 2.0- Text to Image",
+  "description": "Generate images from text prompts using Grok Imagine Image 2.0, an Aurora-engine model that excels at crisp short-text rendering and 1K or 2K outputs across 14 aspect ratios. Enter one text prompt and receive one generated image, with low or medium quality options to control cost. Ideal for poster and cover design, product and brand visuals, and character-driven scenes where consistency matters. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Grok Imagine Image 2.0- Text to Image\n\nGenerate images from text prompts using Grok Imagine Image 2.0, an Aurora-engine model that excels at crisp short-text rendering and 1K or 2K outputs across 14 aspect ratios. Enter one text prompt and receive one generated image, with low or medium quality options to control cost. Ideal for poster and cover design, product and brand visuals, and character-driven scenes where consistency matters. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_grok_imagine_image_2_t2i.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.GrokImageNode",
+        "data": {
+          "model": "grok-imagine-image-2.0",
+          "prompt": "Editorial fashion photography poster design, square format. Whimsical surreal fantasy marketplace scene: giant oversized peaches, figs and citrus fruits, each fruit larger than the surrounding buildings, towering clusters of glossy fruit winding around and dwarfing the pastel European-style town architecture. An elevated light rail train travels along vine-covered aerial tracks. Tiny mechanical flying drone insects float through the warm golden sunset atmosphere. A fashionable modern woman stands on an enormous glossy green leaf in the center of frame, her figure between and overlapping the giant fruits. She wears a terracotta patterned oversized blazer, cream knit turtleneck, wide leg tailored trousers, chunky platform leather shoes, holding a woven terracotta round handbag, wavy dark hair flowing in the breeze, confident editorial pose with a subtle smile, high fashion model styling. Lush twisting green vines wrap all architecture, market stalls with striped canvas awnings line the street, the ground covered with huge fruit berries each the size of a car. Warm soft golden hour lighting, dreamy volumetric haze, vibrant warm pastel color palette, hyperrealistic 3D render, high fashion editorial aesthetic, playful uncanny scale distortion, intricate details, cinematic depth of field.Bold oversized display typography spelling the exact text \"GROK IMAGINE IMAGE 2.0\" in a playful rounded condensed sans-serif font, deep crimson red, the large letters weaving through the composition across the upper half of the frame, some letters passing behind the woman's figure and some in front of her, letters slightly overlapping the giant fruits and rooftops, creating a layered interweaving between text and subject, the only text in the scene, no other words. Small scattered graphic elements around the composition: a colorful sticker-style circular badge with orbiting dots in the upper right, a cute round rubber-stamp icon in the lower left, playful thin wavy line doodles, tiny star icons and a small crescent shape near the bottom, a small vertical stack of colorful abstract symbols on the right edge, and a small sun-shaped emblem in the bottom right corner. A short block of small justified caption-style text sits in the lower right area, paired with a subtitle line above it in thin tracked-out caps. Overall layout uses asymmetric grid placement, generous negative space, vibrant warm pastel palette of cream, terracotta, peach, sage green and deep crimson accents, soft grainy film texture, playful surrealist editorial poster aesthetic, ultra-detailed, 8k print quality.\n\n",
+          "aspect_ratio": "1:1",
+          "number_of_images": 1,
+          "seed": 156395678,
+          "resolution": "1K",
+          "quality": "medium"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Grok Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2",
+        "type": "comfy.SaveImageAdvanced",
+        "data": {
+          "filename_prefix": "Grok_imagine_image_2.0",
+          "format": "png",
+          "format.bit_depth": "8-bit",
+          "format.input_color_space": "sRGB"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "1-0-2-images",
+        "source": "1",
+        "sourceHandle": "IMAGE",
+        "target": "2",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

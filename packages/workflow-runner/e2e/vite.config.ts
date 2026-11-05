@@ -36,6 +36,9 @@ const BUILTIN_STUBS: Record<string, string> = {
   http2: `${STUBS}/empty.js`,
   perf_hooks: `${STUBS}/empty.js`,
   vm: `${STUBS}/empty.js`,
+  // Before `stream`: alias `find` strings match as path prefixes, so
+  // `node:stream/promises` would otherwise resolve to `stream-stub.js/promises`.
+  "stream/promises": `${STUBS}/stream-promises-stub.js`,
   // Not empty: memfs — pulled in by the QuickJS sandbox behind the Code node —
   // subclasses stream.Readable/Writable at module scope, and an undefined
   // super constructor throws while the chunk evaluates.

@@ -1,0 +1,138 @@
+{
+  "id": "ba4a0500df7e588d1ac631b9100ae72e",
+  "name": "Comfy Muse Image 1.0- Image Edit",
+  "description": "Edit an image with precision using Muse Image 1.0, following natural language instructions to alter specific elements while preserving the rest of the scene. Takes 2 input images and produces 1 edited output image. Ideal for product photography touch-ups, creative style transfers, and iterative visual refinement. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Muse Image 1.0- Image Edit\n\nEdit an image with precision using Muse Image 1.0, following natural language instructions to alter specific elements while preserving the rest of the scene. Takes 2 input images and produces 1 edited output image. Ideal for product photography touch-ups, creative style transfers, and iterative visual refinement. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_meta_muse_image_image_edit.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "2",
+        "type": "comfy.SaveImageAdvanced",
+        "data": {
+          "filename_prefix": "muse_image_1.0",
+          "format": "png",
+          "format.bit_depth": "8-bit",
+          "format.input_color_space": "sRGB"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.MetaMuseImageEditApi",
+        "data": {
+          "model": "muse-image-1.0",
+          "model.images": "Use the whale figure from @image1 and make it roam across the sky above the picture in @image2",
+          "model.prompt": "auto",
+          "model.aspect_ratio": "high",
+          "model.reasoning_strength": true,
+          "model.enable_web_search": true,
+          "model.enable_image_search": true,
+          "model.enable_shell": 1754835726,
+          "model.seed": "randomize"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Meta Muse Image Edit"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "4",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "deep_blue_whale_swim_scene.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "desert_red_modern_house.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "3-0-2-images",
+        "source": "3",
+        "sourceHandle": "IMAGE",
+        "target": "2",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "4-0-3-model.images.image_1",
+        "source": "4",
+        "sourceHandle": "IMAGE",
+        "target": "3",
+        "targetHandle": "model.images.image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "5-0-3-model.images.image_2",
+        "source": "5",
+        "sourceHandle": "IMAGE",
+        "target": "3",
+        "targetHandle": "model.images.image_2",
+        "ui_properties": null
+      }
+    ]
+  }
+}

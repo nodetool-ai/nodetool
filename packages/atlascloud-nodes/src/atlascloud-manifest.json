@@ -40,6 +40,7 @@
         "description": "Output image dimensions. Choose a preset up to 3840x2160 or let the model select the size.",
         "values": [
           "auto",
+          "1024x1024",
           "1024x768",
           "768x1024",
           "1024x1536",
@@ -158,6 +159,7 @@
         "description": "Output image dimensions. Choose a preset up to 3840x2160 or let the model select the size.",
         "values": [
           "auto",
+          "1024x1024",
           "1024x768",
           "768x1024",
           "1024x1536",
@@ -2993,12 +2995,13 @@
         "description": "Output image size in 'WIDTH*HEIGHT' pixels. Total pixels must stay within [1,048,576 (1024*1024), 4,194,304 (2048*2048)] and aspect ratio within [1/16, 16].",
         "values": [
           "2048*2048",
-          "2304*1728",
-          "1728*2304",
-          "2720*1530",
-          "1530*2720",
+          "2368*1776",
+          "1776*2368",
+          "2816*1584",
+          "1584*2816",
           "2496*1664",
           "1664*2496",
+          "3136*1344",
           "1024*1024",
           "1536*1536",
           "1776*1328",
@@ -3077,12 +3080,13 @@
         "description": "Output image size in 'WIDTH*HEIGHT' pixels. Total pixels must stay within [1,048,576 (1024*1024), 4,194,304 (2048*2048)] and aspect ratio within [1/16, 16].",
         "values": [
           "2048*2048",
-          "2304*1728",
-          "1728*2304",
-          "2720*1530",
-          "1530*2720",
+          "2368*1776",
+          "1776*2368",
+          "2816*1584",
+          "1584*2816",
           "2496*1664",
           "1664*2496",
+          "3136*1344",
           "1024*1024",
           "1536*1536",
           "1776*1328",
@@ -4862,17 +4866,6 @@
         "default": false,
         "title": "Multi-Shot",
         "description": "Whether to enable multi-shot generation."
-      },
-      {
-        "name": "shot_type",
-        "type": "enum",
-        "default": null,
-        "title": "Shot Type",
-        "description": "Multi-shot mode. customize = caller provides per-shot prompts; intelligence = model auto-splits the top-level prompt into shots. Required when multi_shot=true.",
-        "values": [
-          "customize",
-          "intelligence"
-        ]
       }
     ]
   },
@@ -4944,17 +4937,6 @@
         "default": false,
         "title": "Multi-Shot",
         "description": "Whether to enable multi-shot generation."
-      },
-      {
-        "name": "shot_type",
-        "type": "enum",
-        "default": null,
-        "title": "Shot Type",
-        "description": "Multi-shot mode. customize = caller provides per-shot prompts; intelligence = model auto-splits the top-level prompt into shots. Required when multi_shot=true.",
-        "values": [
-          "customize",
-          "intelligence"
-        ]
       }
     ]
   },
@@ -6405,29 +6387,11 @@
         "description": "The positive prompt for the generation."
       },
       {
-        "name": "negative_prompt",
-        "type": "str",
-        "default": "",
-        "title": "Negative Prompt",
-        "description": "The negative prompt for the generation."
-      },
-      {
         "name": "multi_shot",
         "type": "bool",
         "default": false,
         "title": "Multi Shot",
         "description": "Whether to enable multi-shot generation."
-      },
-      {
-        "name": "shot_type",
-        "type": "enum",
-        "default": null,
-        "title": "Shot Type",
-        "description": "Multi-shot mode. customize = caller provides per-shot prompts; intelligence = model auto-splits the top-level prompt into shots. Required when multi_shot=true.",
-        "values": [
-          "customize",
-          "intelligence"
-        ]
       },
       {
         "name": "duration",
@@ -6462,15 +6426,6 @@
           "9:16",
           "1:1"
         ]
-      },
-      {
-        "name": "cfg_scale",
-        "type": "float",
-        "default": 0.5,
-        "title": "CFG Scale",
-        "description": "Flexibility in video generation; The higher the value, the lower the model's degree of flexibility, and the stronger the relevance to the user's prompt.",
-        "min": 0,
-        "max": 1
       },
       {
         "name": "sound",
@@ -6500,13 +6455,6 @@
         "description": "The positive prompt for the generation. Maximum 2,500 characters; longer prompts will fail Kling generation, including SR modes."
       },
       {
-        "name": "negative_prompt",
-        "type": "str",
-        "default": "",
-        "title": "Negative Prompt",
-        "description": "The negative prompt for the generation."
-      },
-      {
         "name": "image",
         "type": "image",
         "default": null,
@@ -6529,28 +6477,6 @@
         "description": "Whether to enable multi-shot generation."
       },
       {
-        "name": "shot_type",
-        "type": "enum",
-        "default": null,
-        "title": "Shot Type",
-        "description": "Multi-shot mode. customize = caller provides per-shot prompts; intelligence = model auto-splits the top-level prompt into shots. Required when multi_shot=true.",
-        "values": [
-          "customize",
-          "intelligence"
-        ]
-      },
-      {
-        "name": "resolution",
-        "type": "enum",
-        "default": "1080P",
-        "title": "Resolution",
-        "description": "Native 1080P uses the original Kling v3.0 Pro route. 1440P-SR is a FlashVSR super-resolution mode generated from the native 1080P source.",
-        "values": [
-          "1080P",
-          "1440P-SR"
-        ]
-      },
-      {
         "name": "duration",
         "type": "int",
         "default": 5,
@@ -6571,15 +6497,6 @@
           14,
           15
         ]
-      },
-      {
-        "name": "cfg_scale",
-        "type": "float",
-        "default": 0.5,
-        "title": "CFG Scale",
-        "description": "Flexibility in video generation; The higher the value, the lower the model's degree of flexibility, and the stronger the relevance to the user's prompt.",
-        "min": 0,
-        "max": 1
       },
       {
         "name": "sound",
@@ -6609,29 +6526,11 @@
         "description": "The positive prompt for the generation."
       },
       {
-        "name": "negative_prompt",
-        "type": "str",
-        "default": "",
-        "title": "Negative Prompt",
-        "description": "The negative prompt for the generation."
-      },
-      {
         "name": "multi_shot",
         "type": "bool",
         "default": false,
         "title": "Multi Shot",
         "description": "Whether to enable multi-shot generation."
-      },
-      {
-        "name": "shot_type",
-        "type": "enum",
-        "default": null,
-        "title": "Shot Type",
-        "description": "Multi-shot mode. customize = caller provides per-shot prompts; intelligence = model auto-splits the top-level prompt into shots. Required when multi_shot=true.",
-        "values": [
-          "customize",
-          "intelligence"
-        ]
       },
       {
         "name": "duration",
@@ -6668,15 +6567,6 @@
         ]
       },
       {
-        "name": "cfg_scale",
-        "type": "float",
-        "default": 0.5,
-        "title": "CFG Scale",
-        "description": "Flexibility in video generation; The higher the value, the lower the model's degree of flexibility, and the stronger the relevance to the user's prompt.",
-        "min": 0,
-        "max": 1
-      },
-      {
         "name": "sound",
         "type": "bool",
         "default": true,
@@ -6704,13 +6594,6 @@
         "description": "The positive prompt for the generation. Maximum 2,500 characters; longer prompts will fail Kling generation, including SR modes."
       },
       {
-        "name": "negative_prompt",
-        "type": "str",
-        "default": "",
-        "title": "Negative Prompt",
-        "description": "The negative prompt for the generation."
-      },
-      {
         "name": "image",
         "type": "image",
         "default": null,
@@ -6733,29 +6616,6 @@
         "description": "Whether to enable multi-shot generation."
       },
       {
-        "name": "shot_type",
-        "type": "enum",
-        "default": null,
-        "title": "Shot Type",
-        "description": "Multi-shot mode. customize = caller provides per-shot prompts; intelligence = model auto-splits the top-level prompt into shots. Required when multi_shot=true.",
-        "values": [
-          "customize",
-          "intelligence"
-        ]
-      },
-      {
-        "name": "resolution",
-        "type": "enum",
-        "default": "720P",
-        "title": "Resolution",
-        "description": "Native 720P uses the original Kling v3.0 Std route. 1080P-SR and 1440P-SR are FlashVSR super-resolution modes generated from the native 720P source.",
-        "values": [
-          "720P",
-          "1080P-SR",
-          "1440P-SR"
-        ]
-      },
-      {
         "name": "duration",
         "type": "int",
         "default": 5,
@@ -6776,15 +6636,6 @@
           14,
           15
         ]
-      },
-      {
-        "name": "cfg_scale",
-        "type": "float",
-        "default": 0.5,
-        "title": "CFG Scale",
-        "description": "Flexibility in video generation; The higher the value, the lower the model's degree of flexibility, and the stronger the relevance to the user's prompt.",
-        "min": 0,
-        "max": 1
       },
       {
         "name": "sound",
@@ -7804,6 +7655,13 @@
           "mp4",
           "mov"
         ]
+      },
+      {
+        "name": "draft",
+        "type": "bool",
+        "default": false,
+        "title": "Draft",
+        "description": "Generate a draft preview at 480p, overriding resolution."
       }
     ]
   },
@@ -7931,6 +7789,13 @@
           "mp4",
           "mov"
         ]
+      },
+      {
+        "name": "draft",
+        "type": "bool",
+        "default": false,
+        "title": "Draft",
+        "description": "Generate a draft preview at 480p, overriding resolution."
       }
     ]
   },
@@ -8070,6 +7935,13 @@
           "mp4",
           "mov"
         ]
+      },
+      {
+        "name": "draft",
+        "type": "bool",
+        "default": false,
+        "title": "Draft",
+        "description": "Generate a draft preview at 480p, overriding resolution."
       }
     ]
   },
@@ -11423,17 +11295,6 @@
         "default": false,
         "title": "Multi Shot",
         "description": "Whether to enable multi-shot generation."
-      },
-      {
-        "name": "shot_type",
-        "type": "enum",
-        "default": null,
-        "title": "Shot Type",
-        "description": "Multi-shot mode. customize = caller provides per-shot prompts; intelligence = model auto-splits the top-level prompt into shots. Required when multi_shot=true.",
-        "values": [
-          "customize",
-          "intelligence"
-        ]
       }
     ]
   },
@@ -11505,17 +11366,6 @@
         "default": false,
         "title": "Multi Shot",
         "description": "Whether to enable multi-shot generation."
-      },
-      {
-        "name": "shot_type",
-        "type": "enum",
-        "default": null,
-        "title": "Shot Type",
-        "description": "Multi-shot mode. customize = caller provides per-shot prompts; intelligence = model auto-splits the top-level prompt into shots. Required when multi_shot=true.",
-        "values": [
-          "customize",
-          "intelligence"
-        ]
       }
     ]
   },
@@ -11572,13 +11422,6 @@
         "description": "Reference images that anchor subject and style."
       },
       {
-        "name": "keep_original_sound",
-        "type": "bool",
-        "default": true,
-        "title": "Keep Original Sound",
-        "description": "Whether to keep the original sound from the reference video."
-      },
-      {
         "name": "prompt",
         "type": "str",
         "default": "",
@@ -11605,17 +11448,6 @@
         "default": false,
         "title": "Multi Shot",
         "description": "Whether to enable multi-shot generation."
-      },
-      {
-        "name": "shot_type",
-        "type": "enum",
-        "default": null,
-        "title": "Shot Type",
-        "description": "Multi-shot mode. customize = caller provides per-shot prompts; intelligence = model auto-splits the top-level prompt into shots. Required when multi_shot=true.",
-        "values": [
-          "customize",
-          "intelligence"
-        ]
       }
     ]
   },
@@ -11684,17 +11516,6 @@
         "default": false,
         "title": "Multi Shot",
         "description": "Whether to enable multi-shot generation."
-      },
-      {
-        "name": "shot_type",
-        "type": "enum",
-        "default": null,
-        "title": "Shot Type",
-        "description": "Multi-shot mode. customize = caller provides per-shot prompts; intelligence = model auto-splits the top-level prompt into shots. Required when multi_shot=true.",
-        "values": [
-          "customize",
-          "intelligence"
-        ]
       }
     ]
   },
@@ -11766,17 +11587,6 @@
         "default": false,
         "title": "Multi Shot",
         "description": "Whether to enable multi-shot generation."
-      },
-      {
-        "name": "shot_type",
-        "type": "enum",
-        "default": null,
-        "title": "Shot Type",
-        "description": "Multi-shot mode. customize = caller provides per-shot prompts; intelligence = model auto-splits the top-level prompt into shots. Required when multi_shot=true.",
-        "values": [
-          "customize",
-          "intelligence"
-        ]
       }
     ]
   },
@@ -11833,13 +11643,6 @@
         "description": "Reference images that anchor subject and style."
       },
       {
-        "name": "keep_original_sound",
-        "type": "bool",
-        "default": true,
-        "title": "Keep Original Sound",
-        "description": "Whether to keep the original sound from the reference video."
-      },
-      {
         "name": "prompt",
         "type": "str",
         "default": "",
@@ -11866,17 +11669,6 @@
         "default": false,
         "title": "Multi Shot",
         "description": "Whether to enable multi-shot generation."
-      },
-      {
-        "name": "shot_type",
-        "type": "enum",
-        "default": null,
-        "title": "Shot Type",
-        "description": "Multi-shot mode. customize = caller provides per-shot prompts; intelligence = model auto-splits the top-level prompt into shots. Required when multi_shot=true.",
-        "values": [
-          "customize",
-          "intelligence"
-        ]
       }
     ]
   },
@@ -11904,15 +11696,6 @@
         ]
       },
       {
-        "name": "cfg_scale",
-        "type": "float",
-        "default": 0.5,
-        "title": "Cfg Scale",
-        "description": "Flexibility in video generation; The higher the value, the lower the model's degree of flexibility, and the stronger the relevance to the user's prompt.",
-        "min": 0,
-        "max": 1
-      },
-      {
         "name": "duration",
         "type": "enum",
         "default": 5,
@@ -11935,13 +11718,6 @@
         ]
       },
       {
-        "name": "negative_prompt",
-        "type": "str",
-        "default": null,
-        "title": "Negative Prompt",
-        "description": "The negative prompt for the generation."
-      },
-      {
         "name": "prompt",
         "type": "str",
         "default": "",
@@ -11961,17 +11737,6 @@
         "default": false,
         "title": "Multi Shot",
         "description": "Whether to enable multi-shot generation."
-      },
-      {
-        "name": "shot_type",
-        "type": "enum",
-        "default": null,
-        "title": "Shot Type",
-        "description": "Multi-shot mode. customize = caller provides per-shot prompts; intelligence = model auto-splits the top-level prompt into shots. Required when multi_shot=true.",
-        "values": [
-          "customize",
-          "intelligence"
-        ]
       }
     ]
   },
@@ -11986,15 +11751,6 @@
     "pollInterval": 3000,
     "maxAttempts": 600,
     "fields": [
-      {
-        "name": "cfg_scale",
-        "type": "float",
-        "default": 0.5,
-        "title": "Cfg Scale",
-        "description": "Flexibility in video generation; The higher the value, the lower the model's degree of flexibility, and the stronger the relevance to the user's prompt.",
-        "min": 0,
-        "max": 1
-      },
       {
         "name": "duration",
         "type": "enum",
@@ -12033,13 +11789,6 @@
         "required": true
       },
       {
-        "name": "negative_prompt",
-        "type": "str",
-        "default": null,
-        "title": "Negative Prompt",
-        "description": "The negative prompt for the generation."
-      },
-      {
         "name": "prompt",
         "type": "str",
         "default": "",
@@ -12054,29 +11803,11 @@
         "description": "Whether sound is generated simultaneously when generating a video."
       },
       {
-        "name": "resolution",
-        "type": "str",
-        "default": "1080P",
-        "title": "Resolution",
-        "description": "The resolution of the generated video."
-      },
-      {
         "name": "multi_shot",
         "type": "bool",
         "default": false,
         "title": "Multi Shot",
         "description": "Whether to enable multi-shot generation."
-      },
-      {
-        "name": "shot_type",
-        "type": "enum",
-        "default": null,
-        "title": "Shot Type",
-        "description": "Multi-shot mode. customize = caller provides per-shot prompts; intelligence = model auto-splits the top-level prompt into shots. Required when multi_shot=true.",
-        "values": [
-          "customize",
-          "intelligence"
-        ]
       }
     ]
   },
@@ -12104,15 +11835,6 @@
         ]
       },
       {
-        "name": "cfg_scale",
-        "type": "float",
-        "default": 0.5,
-        "title": "Cfg Scale",
-        "description": "Flexibility in video generation; The higher the value, the lower the model’s degree of flexibility, and the stronger the relevance to the user’s prompt.",
-        "min": 0,
-        "max": 1
-      },
-      {
         "name": "duration",
         "type": "enum",
         "default": 5,
@@ -12122,13 +11844,6 @@
           5,
           10
         ]
-      },
-      {
-        "name": "negative_prompt",
-        "type": "str",
-        "default": null,
-        "title": "Negative Prompt",
-        "description": "The negative prompt for the generation."
       },
       {
         "name": "prompt",
@@ -12159,15 +11874,6 @@
     "maxAttempts": 600,
     "fields": [
       {
-        "name": "cfg_scale",
-        "type": "float",
-        "default": 0.5,
-        "title": "Cfg Scale",
-        "description": "Flexibility in video generation; The higher the value, the lower the model’s degree of flexibility, and the stronger the relevance to the user’s prompt.",
-        "min": 0,
-        "max": 1
-      },
-      {
         "name": "duration",
         "type": "enum",
         "default": 5,
@@ -12187,13 +11893,6 @@
         "required": true
       },
       {
-        "name": "negative_prompt",
-        "type": "str",
-        "default": null,
-        "title": "Negative Prompt",
-        "description": "The negative prompt for the generation."
-      },
-      {
         "name": "prompt",
         "type": "str",
         "default": "",
@@ -12206,6 +11905,13 @@
         "default": true,
         "title": "Sound",
         "description": "Whether sound is generated simultaneously when generating a video"
+      },
+      {
+        "name": "last_image",
+        "type": "str",
+        "default": null,
+        "title": "Last Image",
+        "description": "Optional end frame; the video transitions from image to this frame."
       }
     ]
   },
@@ -14358,6 +14064,310 @@
         "default": 0,
         "title": "Seed",
         "description": "The random seed to use for the generation. -1 means a random seed will be used."
+      }
+    ]
+  },
+  {
+    "className": "KlingV4TextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "kwaivgi/kling-v4.0/text-to-video",
+    "outputType": "video",
+    "title": "Kling 4 — Text To Video",
+    "description": "Generate or edit video with Kling 4.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "title": "Prompt",
+        "default": "A single drop of water falls from the tip of a leaf into a shallow dish, creating concentric ripples; warm window light, macro cinematography, photorealistic.",
+        "description": "Text prompt describing the video. Up to 26,000 English characters (11,000 non-English). Can include negative descriptions.",
+        "required": true
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "title": "Duration",
+        "default": 5,
+        "min": 3,
+        "max": 30,
+        "description": "Length of the generated video in seconds, 3 to 30."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "title": "Aspect Ratio",
+        "default": "16:9",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "21:9"
+        ],
+        "description": "Aspect ratio of the output video."
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "title": "Resolution",
+        "default": "1080p",
+        "values": [
+          "720p",
+          "1080p",
+          "1080p-esr",
+          "2k-esr",
+          "4k-esr"
+        ],
+        "description": "720p and 1080p are native Kling outputs. 1080p-esr enhances a 720p source to 1080p using Tencent ESR; 2k-esr enhances a 1080p source to 1440p (2560×1440 at 16:9); 4k-esr enhances a 1080p source to 4K (3840×2160 at 16:9). Original aspect ratio is preserved. ESR is billed as source generation plus enhancement of output seconds."
+      }
+    ]
+  },
+  {
+    "className": "KlingV4ImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "kwaivgi/kling-v4.0/image-to-video",
+    "outputType": "video",
+    "title": "Kling 4 — Image To Video",
+    "description": "Generate or edit video with Kling 4.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "title": "Prompt",
+        "default": "She looks into the camera with a confident smile, adjusts her hair and walks two steps toward the camera; the camera slowly pushes in.",
+        "description": "Optional text prompt describing the motion between keyframes. Up to 26,000 English characters (11,000 non-English). Can include negative descriptions."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "description": "First keyframe image (URL or Base64). JPG / JPEG / PNG, max 30MB, at least 300px, aspect ratio 2:5 to 5:2.",
+        "required": true
+      },
+      {
+        "name": "middle_images",
+        "type": "list[image]",
+        "title": "Middle Images",
+        "description": "Optional keyframes between the first and last frame, in timeline order (URLs or Base64). Kling 4.0 accepts up to 10 images in total across image, middle_images and last_image. Refer to them in the prompt as @image_N (numbered first frame → middle frames → last frame).",
+        "maxItems": 8
+      },
+      {
+        "name": "last_image",
+        "type": "image",
+        "title": "Last Image",
+        "description": "Optional last keyframe image (URL or Base64)."
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "title": "Duration",
+        "default": 5,
+        "min": 3,
+        "max": 30,
+        "description": "Length of the generated video in seconds, 3 to 30."
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "title": "Resolution",
+        "default": "1080p",
+        "values": [
+          "720p",
+          "1080p",
+          "1080p-esr",
+          "2k-esr",
+          "4k-esr"
+        ],
+        "description": "720p and 1080p are native Kling outputs. 1080p-esr enhances a 720p source to 1080p using Tencent ESR; 2k-esr enhances a 1080p source to 1440p (2560×1440 at 16:9); 4k-esr enhances a 1080p source to 4K (3840×2160 at 16:9). Original aspect ratio is preserved. ESR is billed as source generation plus enhancement of output seconds."
+      }
+    ]
+  },
+  {
+    "className": "KlingV4ReferenceToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "kwaivgi/kling-v4.0/reference-to-video",
+    "outputType": "video",
+    "title": "Kling 4 — Reference To Video",
+    "description": "Generate or edit video with Kling 4.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "title": "Prompt",
+        "default": "The man in @image_1 walks through a park at golden hour, following the motion rhythm of @video_1. Photorealistic style.",
+        "description": "Text prompt describing the video. Up to 26,000 English characters (11,000 non-English). Can include negative descriptions. Reference inputs with @image_N, @video_N, @element_N and @voice_N.",
+        "required": true
+      },
+      {
+        "name": "reference_images",
+        "type": "list[image]",
+        "title": "Reference Images",
+        "description": "Reference images for subjects, scenes or styles (URLs or Base64). Up to 10 images in total including keyframes. Refer to them in the prompt as @image_N; they are numbered after any keyframes.",
+        "maxItems": 10
+      },
+      {
+        "name": "reference_videos",
+        "type": "list[video]",
+        "title": "Reference Videos",
+        "description": "Feature reference videos (motion, camera, style). MP4 / MOV, max 300MB, 3-30s each and 3-30s in total, 700-4553px. Up to 5 videos. Refer to them in the prompt as @video_N. Their duration is billed as input.",
+        "maxItems": 5
+      },
+      {
+        "name": "elements",
+        "type": "list[dict]",
+        "title": "Elements",
+        "description": "Subjects (Kling elements). Each item references an existing subject by element_id, or creates one inline with element_name + reference_type + frontal_image / refer_images / refer_videos. Up to 7, of which at most 3 video character subjects. Refer to them in the prompt as @element_N (1-based, array order).",
+        "maxItems": 7
+      },
+      {
+        "name": "voice_ids",
+        "type": "list[str]",
+        "title": "Voice Ids",
+        "description": "Optional Kling voice IDs (custom or preset voices) used for speech in the video. Up to 3. Refer to them in the prompt as @voice_N.",
+        "maxItems": 3
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "description": "Optional first keyframe (URL or Base64)."
+      },
+      {
+        "name": "middle_images",
+        "type": "list[image]",
+        "title": "Middle Images",
+        "description": "Optional keyframes between the first and last frame, in timeline order (URLs or Base64). Kling 4.0 accepts up to 10 images in total across image, middle_images and last_image. Refer to them in the prompt as @image_N (numbered first frame → middle frames → last frame).",
+        "maxItems": 8
+      },
+      {
+        "name": "last_image",
+        "type": "image",
+        "title": "Last Image",
+        "description": "Optional last keyframe image (URL or Base64)."
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "title": "Duration",
+        "default": 5,
+        "min": 3,
+        "max": 30,
+        "description": "Length of the generated video in seconds, 3 to 30."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "title": "Aspect Ratio",
+        "default": "auto",
+        "values": [
+          "auto",
+          "16:9",
+          "9:16",
+          "1:1",
+          "21:9"
+        ],
+        "description": "Aspect ratio of the output video. auto adapts to the references."
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "title": "Resolution",
+        "default": "1080p",
+        "values": [
+          "720p",
+          "1080p",
+          "1080p-esr",
+          "2k-esr",
+          "4k-esr"
+        ],
+        "description": "720p and 1080p are native Kling outputs. 1080p-esr enhances a 720p source to 1080p using Tencent ESR; 2k-esr enhances a 1080p source to 1440p (2560×1440 at 16:9); 4k-esr enhances a 1080p source to 4K (3840×2160 at 16:9). Original aspect ratio is preserved. ESR is billed as source generation plus enhancement of output seconds."
+      }
+    ]
+  },
+  {
+    "className": "KlingV4VideoEdit",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "kwaivgi/kling-v4.0/video-edit",
+    "outputType": "video",
+    "title": "Kling 4 — Video Edit",
+    "description": "Generate or edit video with Kling 4.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "title": "Prompt",
+        "default": "Turn the scene into a snowy winter evening while keeping the subject and camera motion of @video_1 unchanged.",
+        "description": "Text prompt describing the video. Up to 26,000 English characters (11,000 non-English). Can include negative descriptions. Refer to the video to edit as @video_1 and to other inputs with @image_N, @video_N, @element_N and @voice_N.",
+        "required": true
+      },
+      {
+        "name": "video",
+        "type": "video",
+        "title": "Video",
+        "description": "Video to edit (MP4 / MOV, max 300MB, 3-30s, 700-4553px). Refer to it in the prompt as @video_1. Its duration is billed as input.",
+        "required": true
+      },
+      {
+        "name": "reference_images",
+        "type": "list[image]",
+        "title": "Reference Images",
+        "description": "Reference images for subjects, scenes or styles (URLs or Base64). Up to 10 images in total including keyframes. Refer to them in the prompt as @image_N; they are numbered after any keyframes.",
+        "maxItems": 10
+      },
+      {
+        "name": "reference_videos",
+        "type": "list[video]",
+        "title": "Reference Videos",
+        "description": "Optional feature reference videos. Up to 4 (5 videos in total with the video to edit), 3-30s in total. Numbered @video_2 onward. Their duration is billed as input.",
+        "maxItems": 4
+      },
+      {
+        "name": "elements",
+        "type": "list[dict]",
+        "title": "Elements",
+        "description": "Subjects (Kling elements). Each item references an existing subject by element_id, or creates one inline with element_name + reference_type + frontal_image / refer_images / refer_videos. Up to 7, of which at most 3 video character subjects. Refer to them in the prompt as @element_N (1-based, array order).",
+        "maxItems": 7
+      },
+      {
+        "name": "voice_ids",
+        "type": "list[str]",
+        "title": "Voice Ids",
+        "description": "Optional Kling voice IDs (custom or preset voices) used for speech in the video. Up to 3. Refer to them in the prompt as @voice_N.",
+        "maxItems": 3
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "title": "Duration",
+        "default": 5,
+        "min": 3,
+        "max": 30,
+        "description": "Length of the generated video in seconds, 3 to 30."
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "title": "Resolution",
+        "default": "1080p",
+        "values": [
+          "720p",
+          "1080p",
+          "1080p-esr",
+          "2k-esr",
+          "4k-esr"
+        ],
+        "description": "720p and 1080p are native Kling outputs. 1080p-esr enhances a 720p source to 1080p using Tencent ESR; 2k-esr enhances a 1080p source to 1440p (2560×1440 at 16:9); 4k-esr enhances a 1080p source to 4K (3840×2160 at 16:9). Original aspect ratio is preserved. ESR is billed as source generation plus enhancement of output seconds."
       }
     ]
   }

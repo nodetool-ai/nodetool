@@ -1,0 +1,87 @@
+{
+  "id": "859d04717562874356758353673d10fc",
+  "name": "Comfy Seedance 2.0 Mini- Text to Video",
+  "description": "Generate cinematic videos from text prompts with Dreamina’s Seedance 2.0 Mini, supporting AI camera controls and consistent character generation across scenes. This workflow takes only prompt input and produces 1 video output. Ideal for AI filmmaking, branded content creation, and multi-shot storytelling projects. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Seedance 2.0 Mini- Text to Video\n\nGenerate cinematic videos from text prompts with Dreamina’s Seedance 2.0 Mini, supporting AI camera controls and consistent character generation across scenes. This workflow takes only prompt input and produces 1 video output. Ideal for AI filmmaking, branded content creation, and multi-shot storytelling projects. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_seedance2_0_mini_t2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.ByteDance2TextToVideoNode",
+        "data": {
+          "model": "Seedance 2.0 Mini",
+          "model.prompt": "[Style] Photorealistic futuristic space warfare, 8K, blockbuster fleet battle, cold silver hulls, rim-lit by a gas giant below.\n\n[Duration] ~5 seconds.\n\n[Scene] Low orbit above a massive ringed gas giant. A kilometer-scale carrier hangs in frame, launch bays glowing. Six small interceptors pour out in formation.\n\nShot 1: Slow crane down from the carrier's hull. Interceptors accelerate outward in a tight V-formation, exhaust trails curling against the planet's cloud bands.\n\nShot 2: Cut to medium chase shot behind the lead interceptor. It pitches up slightly, weaving through drifting orbital debris shields—movements smooth and controlled, not violent.\n\nShot 3: Wide static hold, then gentle push-in. The swarm spreads into attack spread as a distant enemy silhouette flickers on the horizon—one brief red warning glint on a HUD reflection in the canopy.\n\nConstraints: stable proportions, realistic space physics feel, smooth motion, no subtitles, no watermark, no logo.",
+          "model.resolution": "720p",
+          "model.ratio": "16:9",
+          "model.duration": 5,
+          "model.generate_audio": true,
+          "seed": 1973428150,
+          "watermark": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ByteDance Seedance 2.5 Text to Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Seedance2.0_mini",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "1-0-2-video",
+        "source": "1",
+        "sourceHandle": "VIDEO",
+        "target": "2",
+        "targetHandle": "video",
+        "ui_properties": null
+      }
+    ]
+  }
+}

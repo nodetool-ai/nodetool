@@ -525,11 +525,40 @@ function buildResult(result, ctx) {
   const nextId = ctx.nextId;
   const items = [];
 
+  if (result.steps !== undefined) {
+    if (!ctx.operations.has(result.steps)) {
+      fail(`${ctx.app.name}: steps names unknown operation "${result.steps}"`);
+    }
+    items.push({
+      type: "WorkflowSteps",
+      props: {
+        id: nextId(["steps", result.steps]),
+        operationId: result.steps,
+        label: result.label ?? ""
+      }
+    });
+    return items;
+  }
+
   if (result.progress !== undefined) {
     if (!ctx.operations.has(result.progress)) {
       fail(
         `${ctx.app.name}: progress names unknown operation "${result.progress}"`
       );
+    }
+    // A workflow run reports each node, so it shows its steps. A script run
+    // reports one number, so it keeps the bar.
+    if (ctx.operations.get(result.progress).kind !== "script") {
+      items.push({
+        type: "WorkflowSteps",
+        props: {
+          id: nextId(["progress", result.progress]),
+          operationId: result.progress,
+          label: result.label ?? "",
+          steps: result.stepNodes ?? []
+        }
+      });
+      return items;
     }
     items.push({
       type: "Progress",
@@ -718,6 +747,7 @@ function buildApp(app, templates) {
     for (const result of section.results ?? []) {
       if (result.op) operationIds.add(result.op);
       if (result.progress) operationIds.add(result.progress);
+      if (result.steps) operationIds.add(result.steps);
       if (result.error) operationIds.add(result.error);
     }
 

@@ -133,11 +133,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-research",
-                        "binding": "op:research/exec#progress",
-                        "label": "Reading your site and searching…"
+                        "operationId": "research",
+                        "label": "Reading your site and searching…",
+                        "steps": []
                       }
                     },
                     {
@@ -376,11 +377,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-kit",
-                        "binding": "op:kit/exec#progress",
-                        "label": "Designing your assets…"
+                        "operationId": "kit",
+                        "label": "Designing your assets…",
+                        "steps": []
                       }
                     },
                     {
@@ -591,11 +593,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-thumbnails",
-                        "binding": "op:thumbnails/exec#progress",
-                        "label": "Writing hooks & rendering thumbnails…"
+                        "operationId": "thumbnails",
+                        "label": "Writing hooks & rendering thumbnails…",
+                        "steps": []
                       }
                     },
                     {

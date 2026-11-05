@@ -63,3 +63,23 @@ export function runWorkflowOnCloud(inputs: RunWorkflowOnCloudInputs): Promise<Ru
 runWorkflowOnCloud.stream = function (inputs: RunWorkflowOnCloudInputs): AsyncIterable<Partial<RunWorkflowOnCloudOutputs>> {
   return streamNode<Partial<RunWorkflowOnCloudOutputs>>("lib.comfy.RunWorkflowOnCloud", inputs);
 };
+
+// Run Comfy Workflow — lib.comfy.RunComfyGraphOnCloud
+export type RunComfyGraphOnCloudInputs = {
+  nodes?: Record<string, unknown>[];
+  edges?: Record<string, unknown>[];
+  output_slots?: string[];
+  timeout?: number;
+};
+
+export interface RunComfyGraphOnCloudOutputs {
+  output: Record<string, unknown>;
+}
+
+export function runComfyGraphOnCloud(inputs: RunComfyGraphOnCloudInputs): Promise<RunComfyGraphOnCloudOutputs> {
+  return callNode<RunComfyGraphOnCloudOutputs>("lib.comfy.RunComfyGraphOnCloud", inputs);
+}
+
+runComfyGraphOnCloud.stream = function (inputs: RunComfyGraphOnCloudInputs): AsyncIterable<Partial<RunComfyGraphOnCloudOutputs>> {
+  return streamNode<Partial<RunComfyGraphOnCloudOutputs>>("lib.comfy.RunComfyGraphOnCloud", inputs);
+};

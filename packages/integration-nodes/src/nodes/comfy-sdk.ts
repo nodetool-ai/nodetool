@@ -402,7 +402,7 @@ export function describeComfyError(err: unknown): Error {
   return err;
 }
 
-function jobFailure(job: ComfyJob): Error {
+export function jobFailure(job: ComfyJob): Error {
   const error = job.error;
   if (!error) {
     return new Error(`Comfy job ${job.id} failed`);
@@ -415,21 +415,31 @@ function jobFailure(job: ComfyJob): Error {
   return new Error(`Comfy job ${job.id} failed${where}: ${error.message} [${error.code}]`);
 }
 
+/**
+ * The media kind of an output. Comfy Cloud reports SaveVideo and SaveAudio
+ * files with `type: "image"`, so a video or audio content type wins over it.
+ */
+export function outputKind(output: Pick<ComfyOutput, "type" | "contentType">): string {
+  const mime = (output.contentType ?? "").toLowerCase();
+  if (mime.startsWith("video/")) return "video";
+  if (mime.startsWith("audio/")) return "audio";
+  return output.type;
+}
+
 /** Map one finished output onto its dynamic slot name and frame value. */
-async function outputFrame(
+export async function outputFrame(
   output: ComfyOutput,
   signal: AbortSignal
 ): Promise<Record<string, unknown>> {
   // Signed output URLs expire, so the bytes are pulled during the run.
   const bytes = await output.toBytes({ signal });
-  const slot = `${output.nodeId}:${output.type}`;
-  if (output.type === "text") {
+  const type = outputKind(output);
+  const slot = `${output.nodeId}:${type}`;
+  if (type === "text") {
     return { [slot]: Buffer.from(bytes).toString("utf-8") };
   }
   const kind =
-    output.type === "image" || output.type === "audio" || output.type === "video"
-      ? output.type
-      : "document";
+    type === "image" || type === "audio" || type === "video" ? type : "document";
   return {
     [slot]: {
       type: kind,
@@ -438,6 +448,51 @@ async function outputFrame(
       mimeType: output.contentType
     }
   };
+}
+
+/**
+ * Write run inputs into `graph`. A key `<comfyNodeId>:<field>` names the field,
+ * and a media value is uploaded through `transport`.
+ */
+export async function applyComfyInputs(
+  graph: ComfyPrompt,
+  dynamicProps: Iterable<[string, unknown]>,
+  transport: ComfyTransport,
+  context: ProcessingContext | undefined
+): Promise<void> {
+  for (const [handle, value] of dynamicProps) {
+    if (value === undefined || value === null) continue;
+    const sep = handle.indexOf(":");
+    if (sep <= 0) continue;
+    const comfyNodeId = handle.slice(0, sep);
+    const field = handle.slice(sep + 1);
+    const target = graph[comfyNodeId];
+    if (!target || typeof target.inputs !== "object" || target.inputs === null) {
+      continue;
+    }
+    if (isMediaRef(value)) {
+      const bytes = await loadMediaRefBytes(value, context);
+      if (!bytes) {
+        // An empty ref leaves the graph's own value in place.
+        if (!value.uri && !value.asset_id && !value.data) continue;
+        // Skipping a ref that points somewhere would submit the graph's
+        // placeholder filename, and Comfy would fail with a misleading
+        // "file doesn't exist" error.
+        throw new Error(
+          `Could not read the ${value.type ?? "media"} connected to ${handle}. ` +
+            "Pick the file again or connect a different one."
+        );
+      }
+      const { filename, contentType } = uploadNaming(comfyNodeId, field, value);
+      target.inputs[field] = transport.assetFromBytes(
+        bytes,
+        filename,
+        contentType
+      );
+    } else {
+      target.inputs[field] = value;
+    }
+  }
 }
 
 /**
@@ -472,29 +527,7 @@ export async function* runComfyWorkflow(
   // Deep clone so injected inputs never mutate the stored workflow prop.
   const graph = JSON.parse(JSON.stringify(prompt)) as ComfyPrompt;
 
-  for (const [handle, value] of dynamicProps) {
-    if (value === undefined || value === null) continue;
-    const sep = handle.indexOf(":");
-    if (sep <= 0) continue;
-    const comfyNodeId = handle.slice(0, sep);
-    const field = handle.slice(sep + 1);
-    const target = graph[comfyNodeId];
-    if (!target || typeof target.inputs !== "object" || target.inputs === null) {
-      continue;
-    }
-    if (isMediaRef(value)) {
-      const bytes = await loadMediaRefBytes(value, context);
-      if (!bytes) continue;
-      const { filename, contentType } = uploadNaming(comfyNodeId, field, value);
-      target.inputs[field] = transport.assetFromBytes(
-        bytes,
-        filename,
-        contentType
-      );
-    } else {
-      target.inputs[field] = value;
-    }
-  }
+  await applyComfyInputs(graph, dynamicProps, transport, context);
 
   logLine(`Submitting ComfyUI workflow (${Object.keys(graph).length} nodes)`);
 
@@ -521,6 +554,7 @@ export async function* runComfyWorkflow(
 
   let terminalStatus: string | null = null;
   let fileCount = 0;
+  const emitted = new Set<string>();
   try {
     for await (const event of job.events(signal)) {
       switch (event.kind) {
@@ -570,6 +604,7 @@ export async function* runComfyWorkflow(
           break;
         case "outputReady": {
           fileCount += 1;
+          emitted.add(event.output.id);
           logLine(
             `Output from #${event.output.nodeId} (${event.output.name}, ${event.output.contentType})`
           );
@@ -604,6 +639,15 @@ export async function* runComfyWorkflow(
     throw error;
   }
 
+  // Comfy Cloud can finish a job without sending `outputReady` events, so
+  // every output on the finished job that the stream did not deliver is
+  // emitted here, or a downstream node wired to `<node>:video` gets nothing.
+  for (const output of job.outputs) {
+    if (emitted.has(output.id)) continue;
+    fileCount += 1;
+    yield await outputFrame(output, signal);
+  }
+
   logLine(
     `Comfy job ${job.id} completed (${fileCount} file${fileCount === 1 ? "" : "s"})`
   );
@@ -622,4 +666,73 @@ export async function* runComfyWorkflow(
       }))
     }
   };
+}
+
+/** Sniff a media kind + mime from the leading bytes of a ComfyUI output blob. */
+export function sniffMedia(bytes: Uint8Array): { kind: string; mime: string } {
+  const b = bytes;
+  // PNG
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) {
+    return { kind: "image", mime: "image/png" };
+  }
+  // JPEG
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) {
+    return { kind: "image", mime: "image/jpeg" };
+  }
+  // GIF
+  if (b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46) {
+    return { kind: "image", mime: "image/gif" };
+  }
+  // RIFF container — disambiguate by the form type in bytes 8-11. RIFF is
+  // generic (WEBP, WAVE, AVI, …), so only classify on an exact form match and
+  // fall through otherwise rather than assuming WebP.
+  if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46) {
+    // "WEBP"
+    if (b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) {
+      return { kind: "image", mime: "image/webp" };
+    }
+    // "WAVE"
+    if (b[8] === 0x57 && b[9] === 0x41 && b[10] === 0x56 && b[11] === 0x45) {
+      return { kind: "audio", mime: "audio/wav" };
+    }
+    // "AVI "
+    if (b[8] === 0x41 && b[9] === 0x56 && b[10] === 0x49 && b[11] === 0x20) {
+      return { kind: "video", mime: "video/x-msvideo" };
+    }
+  }
+  // ftyp box → MP4/MOV
+  if (b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) {
+    return { kind: "video", mime: "video/mp4" };
+  }
+  // OGG
+  if (b[0] === 0x4f && b[1] === 0x67 && b[2] === 0x67 && b[3] === 0x53) {
+    return { kind: "audio", mime: "audio/ogg" };
+  }
+  // ID3 / MPEG audio
+  if (b[0] === 0x49 && b[1] === 0x44 && b[2] === 0x33) {
+    return { kind: "audio", mime: "audio/mpeg" };
+  }
+  return { kind: "image", mime: "image/png" };
+}
+
+/**
+ * Turn a worker WebSocket URL into the HTTP origin its API v2 routes live on:
+ * `ws:` becomes `http:`, `wss:` becomes `https:`, and path and query are
+ * dropped (`wss://abc-7777.proxy.runpod.net/ws` →
+ * `https://abc-7777.proxy.runpod.net`).
+ */
+export function workerHttpOrigin(workerUrl: string): string {
+  const address = workerUrl.trim();
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(address)
+    ? address
+    : `ws://${address}`;
+  let url: URL;
+  try {
+    url = new URL(withScheme);
+  } catch {
+    throw new Error(`Worker URL is not a valid URL: ${workerUrl}`);
+  }
+  if (url.protocol === "ws:") url.protocol = "http:";
+  else if (url.protocol === "wss:") url.protocol = "https:";
+  return url.origin;
 }

@@ -85,6 +85,8 @@ import { SketchPadWidget } from "./SketchPadWidget";
 import { GalleryWidget, Model3DWidget, PDFWidget } from "./MediaWidgets";
 import { ImageComparerWidget } from "./ImageComparerWidget";
 import { WorkflowFormWidget } from "./WorkflowFormWidget";
+import { workflowStepsField } from "./WorkflowStepsField";
+import { WorkflowStepsWidget } from "./WorkflowStepsWidget";
 import {
   AudioRecorderWidget,
   CameraCaptureWidget
@@ -411,7 +413,7 @@ export const appConfig: Config = {
     },
     ai: {
       title: "Chat & AI",
-      components: ["ChatThread", "ChatComposer", "ModelSelect", "AgentActivity"]
+      components: ["ChatThread", "ChatComposer", "ModelSelect", "AgentActivity", "WorkflowSteps"]
     },
     actions: { title: "Actions", components: ["Button", "Approval"] },
     display: {
@@ -716,6 +718,17 @@ export const appConfig: Config = {
       },
       defaultProps: { label: "" },
       render: withConditions((props) => <ProgressWidget {...props} />)
+    },
+    WorkflowSteps: {
+      label: "Workflow Steps",
+      fields: {
+        label: { type: "text", label: "Label" },
+        operationId: operationField("Operation"),
+        steps: workflowStepsField("Steps"),
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: { label: "", steps: [] },
+      render: withConditions((props) => <WorkflowStepsWidget {...props} />)
     },
     AgentActivity: {
       label: "Agent Activity",

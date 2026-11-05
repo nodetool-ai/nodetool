@@ -210,4 +210,33 @@ describe("useSeedDefaultModels", () => {
       voice: "rachel"
     });
   });
+  it("starts the picture composer on the seeded image default", () => {
+    mockImage.models = [
+      { type: "image_model", provider: "openai", id: "gpt-image-1", name: "GPT Image 1" }
+    ];
+    useMediaGenerationStore.setState((state) => ({
+      image: { ...state.image, model: null }
+    }));
+    renderHook(() => useSeedDefaultModels());
+    expect(defaults()["image_model"]).toMatchObject({ provider: "openai", id: "gpt-image-1" });
+    expect(useMediaGenerationStore.getState().image.model).toMatchObject({
+      type: "image_model",
+      provider: "openai",
+      id: "gpt-image-1"
+    });
+  });
+
+  it("keeps a picture model the user already picked", () => {
+    mockImage.models = [
+      { type: "image_model", provider: "openai", id: "gpt-image-1", name: "GPT Image 1" }
+    ];
+    useMediaGenerationStore.setState((state) => ({
+      image: {
+        ...state.image,
+        model: { type: "image_model", provider: "fal_ai", id: "flux", name: "Flux", path: "" }
+      }
+    }));
+    renderHook(() => useSeedDefaultModels());
+    expect(useMediaGenerationStore.getState().image.model).toMatchObject({ id: "flux" });
+  });
 });

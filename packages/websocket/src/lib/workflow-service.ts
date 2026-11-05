@@ -168,12 +168,16 @@ export async function createWorkflow(
   }
   let graph = input.graph ?? null;
   let appDoc = input.app_doc ?? null;
+  let runMode = input.run_mode;
 
   if (seed && (!graph || graph.nodes?.length === 0)) {
     const packageName =
       seed.packageName ?? defaultExamplePackageName(seed.apiOptions) ?? "nodetool-base";
     const example = loadExampleGraph(packageName, seed.exampleName, seed.apiOptions);
     if (example?.graph) {
+      if (runMode == null && typeof example.run_mode === "string") {
+        runMode = example.run_mode;
+      }
       const configured = new Set(
         Object.keys(await loadConfiguredProviders(userId))
       );
@@ -190,7 +194,7 @@ export async function createWorkflow(
   const resolved = requireGraph({ ...input, graph });
   const workflow = (await createRow(
     userId,
-    input,
+    { ...input, run_mode: runMode },
     resolved,
     appDoc
   )) as WorkflowModel;

@@ -1,0 +1,195 @@
+{
+  "id": "fcca0d296345a85a2519054106fd9828",
+  "name": "Comfy Photo to Blueprint to Model",
+  "description": "Transform real building photos into architectural blueprints and then into detailed physical scale models. A complete architectural visualization pipeline from photo to miniature. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Photo to Blueprint to Model\n\nTransform real building photos into architectural blueprints and then into detailed physical scale models. A complete architectural visualization pipeline from photo to miniature. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_from_photo_2_miniature.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "11",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "api_from_photo_2_miniature_input_image.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "nano_banana_pro"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "37",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "nano_banana_pro"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "38",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "prompt": "Create an orthographic blueprint that describes this building in plan, elevation and section.\n\n\n\n\n",
+          "model": "gemini-3-pro-image-preview",
+          "seed": 42,
+          "aspect_ratio": "16:9",
+          "resolution": "1K",
+          "response_modalities": "IMAGE",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "39",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "prompt": "A miniature architectural scale model of a purple house, carefully crafted with clean edges and subtle textures. The model sits on an architect’s wooden work desk surrounded by design tools: cutting mats, rulers, pencils, foam board scraps, and a soft warm desk lamp. Behind the desk, pinned on the wall, is the blueprint shown in the reference image—detailed elevation lines, structural markings, and measurements clearly visible. The scene feels like a real architect’s workspace, with natural daylight from the side, a professional, realistic photography style, shallow depth of field, and high detail.\n",
+          "model": "gemini-3-pro-image-preview",
+          "seed": 42,
+          "aspect_ratio": "16:9",
+          "resolution": "1K",
+          "response_modalities": "IMAGE",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "40",
+        "type": "comfy.BatchImagesNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Batch Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "38-0-30-images",
+        "source": "38",
+        "sourceHandle": "IMAGE",
+        "target": "30",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "39-0-37-images",
+        "source": "39",
+        "sourceHandle": "IMAGE",
+        "target": "37",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "11-0-38-images",
+        "source": "11",
+        "sourceHandle": "IMAGE",
+        "target": "38",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "40-0-39-images",
+        "source": "40",
+        "sourceHandle": "IMAGE",
+        "target": "39",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "11-0-40-images.image0",
+        "source": "11",
+        "sourceHandle": "IMAGE",
+        "target": "40",
+        "targetHandle": "images.image0",
+        "ui_properties": null
+      },
+      {
+        "id": "38-0-40-images.image1",
+        "source": "38",
+        "sourceHandle": "IMAGE",
+        "target": "40",
+        "targetHandle": "images.image1",
+        "ui_properties": null
+      }
+    ]
+  }
+}

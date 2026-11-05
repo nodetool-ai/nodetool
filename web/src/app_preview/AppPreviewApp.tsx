@@ -294,7 +294,8 @@ const AppPreviewApp: React.FC = () => {
       write: () => {},
       selectResource: () => {},
       getNodeProperty: () => undefined,
-      getNodeType: () => undefined
+      getNodeType: () => undefined,
+      getOperationGraph: () => undefined
     };
   }, [bundle, operationIO, store, values]);
 

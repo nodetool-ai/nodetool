@@ -1,0 +1,360 @@
+{
+  "id": "3c3874e277da14f50466d29a8ae0dc04",
+  "name": "Comfy Mirelo SFX 2.0- Video to SFX",
+  "description": "Add picture-locked sound effects to a clip with Mirelo sfx-2.0: the model watches the video and times Foley to on-screen action, keeps speech by default, and saves the SFX track, the speech track and the video carrying the new mix. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "audio",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Mirelo SFX 2.0- Video to SFX\n\nAdd picture-locked sound effects to a clip with Mirelo sfx-2.0: the model watches the video and times Foley to on-screen action, keeps speech by default, and saves the SFX track, the speech track and the video carrying the new mix. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_mirelo_video_to_sfx.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "2",
+        "type": "comfy.SaveAudioAdvanced",
+        "data": {
+          "filename_prefix": "audio/Mirelo_SFX_2.0",
+          "format": "mp3",
+          "format.quality": "V0"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save SFX Track"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "4",
+        "type": "comfy.MireloVideoToSFX",
+        "data": {
+          "model": "sfx-2.0",
+          "model.prompt": "",
+          "model.negative_prompt": true,
+          "model.preserve_speech": 441944540,
+          "model.seed": "fixed",
+          "model.audio": "randomize"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Mirelo Video to SFX"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5",
+        "type": "comfy.SaveAudioAdvanced",
+        "data": {
+          "filename_prefix": "audio/Mirelo_SFX_2.0_speech",
+          "format": "mp3",
+          "format.quality": "V0"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save Speech Track"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.LoadVideo",
+        "data": {
+          "file": "mage_crash_discovery_video.mp4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "730",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Mirelo_SFX_2.0",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video with SFX"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "729:717",
+        "type": "comfy.GetVideoComponents",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Get Video Components"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "729:718",
+        "type": "comfy.CreateVideo",
+        "data": {
+          "codec": "none"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Create Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "729:719",
+        "type": "comfy.AudioAdjustVolume",
+        "data": {
+          "volume": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Adjust Audio Volume"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "729:721",
+        "type": "comfy.AudioMerge",
+        "data": {
+          "merge_method": "add"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Merge Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "729:722",
+        "type": "comfy.AudioAdjustVolume",
+        "data": {
+          "volume": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Adjust Audio Volume"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "729:732",
+        "type": "comfy.ComfySwitchNode",
+        "data": {
+          "switch": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "If/Else Switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "4-0-2-audio",
+        "source": "4",
+        "sourceHandle": "audio",
+        "target": "2",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-4-model.video",
+        "source": "7",
+        "sourceHandle": "VIDEO",
+        "target": "4",
+        "targetHandle": "model.video",
+        "ui_properties": null
+      },
+      {
+        "id": "4-1-5-audio",
+        "source": "4",
+        "sourceHandle": "speech",
+        "target": "5",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "729:718-0-730-video",
+        "source": "729:718",
+        "sourceHandle": "VIDEO",
+        "target": "730",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-729:717-video",
+        "source": "7",
+        "sourceHandle": "VIDEO",
+        "target": "729:717",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "729:717-2-729:718-fps",
+        "source": "729:717",
+        "sourceHandle": "fps",
+        "target": "729:718",
+        "targetHandle": "fps",
+        "ui_properties": null
+      },
+      {
+        "id": "729:717-3-729:718-bit_depth",
+        "source": "729:717",
+        "sourceHandle": "bit_depth",
+        "target": "729:718",
+        "targetHandle": "bit_depth",
+        "ui_properties": null
+      },
+      {
+        "id": "729:717-4-729:718-color_space",
+        "source": "729:717",
+        "sourceHandle": "color_space",
+        "target": "729:718",
+        "targetHandle": "color_space",
+        "ui_properties": null
+      },
+      {
+        "id": "729:717-0-729:718-images",
+        "source": "729:717",
+        "sourceHandle": "images",
+        "target": "729:718",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "729:732-0-729:718-audio",
+        "source": "729:732",
+        "sourceHandle": "output",
+        "target": "729:718",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-729:719-audio",
+        "source": "2",
+        "sourceHandle": "audio",
+        "target": "729:719",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "729:722-0-729:721-audio1",
+        "source": "729:722",
+        "sourceHandle": "AUDIO",
+        "target": "729:721",
+        "targetHandle": "audio1",
+        "ui_properties": null
+      },
+      {
+        "id": "729:719-0-729:721-audio2",
+        "source": "729:719",
+        "sourceHandle": "AUDIO",
+        "target": "729:721",
+        "targetHandle": "audio2",
+        "ui_properties": null
+      },
+      {
+        "id": "729:717-1-729:722-audio",
+        "source": "729:717",
+        "sourceHandle": "audio",
+        "target": "729:722",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "729:721-0-729:732-on_false",
+        "source": "729:721",
+        "sourceHandle": "AUDIO",
+        "target": "729:732",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "729:719-0-729:732-on_true",
+        "source": "729:719",
+        "sourceHandle": "AUDIO",
+        "target": "729:732",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      }
+    ]
+  }
+}

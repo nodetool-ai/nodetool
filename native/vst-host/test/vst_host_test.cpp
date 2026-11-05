@@ -76,7 +76,11 @@ int main(int argc, char** argv) {
         p->setValueNotifyingHost(p->getValue() > 0.5f ? 0.0f : 1.0f);
         const auto changed = inst.getState();
         check(changed != state, "a parameter change changes the state");
-        check(inst.setState({}, error) && inst.getState() == state, "empty state restores the default", error);
+        juce::AudioBuffer<float> live;
+        check(renderWithState(inst, false, {}, rate, 48000, events, live, error) && inst.getState() == changed,
+              "render without applying state preserves editor changes", error);
+        check(renderWithState(inst, true, {}, rate, 48000, events, live, error) && inst.getState() == state,
+              "render with empty state restores the default", error);
         check(inst.setState(changed, error) && inst.getState() == changed, "and the changed state applies again", error);
         check(inst.setState(state, error), "back to the default", error);
     }

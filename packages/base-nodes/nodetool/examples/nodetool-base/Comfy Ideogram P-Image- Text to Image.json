@@ -1,0 +1,164 @@
+{
+  "id": "9cd35b8017283a91a3024602ef4db1cd",
+  "name": "Comfy Ideogram P-Image- Text to Image",
+  "description": "Generate images from text descriptions using Ideogram's fast P-Image model, which delivers quality comparable to leading image models at significantly lower cost and latency. One text prompt is accepted and one image is output, with controls for quality level and resolution. Ideal for rapid iteration in design workflows, high-volume content production, and cost-sensitive A/B testing of visual concepts. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Ideogram P-Image- Text to Image\n\nGenerate images from text descriptions using Ideogram's fast P-Image model, which delivers quality comparable to leading image models at significantly lower cost and latency. One text prompt is accepted and one image is output, with controls for quality level and resolution. Ideal for rapid iteration in design workflows, high-volume content production, and cost-sensitive A/B testing of visual concepts. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_ideogram_p_image_t2i.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "4",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "9",
+        "type": "comfy.CreateBoundingBoxes",
+        "data": {
+          "width": 1024,
+          "height": 1024
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Create Bounding Boxes"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "11",
+        "type": "comfy.IdeogramPImage",
+        "data": {
+          "quality": "MEDIUM",
+          "resolution": "1K",
+          "aspect_ratio": "1:1",
+          "prompt_upsampling": "AUTO",
+          "seed": 1290088285
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Ideogram & Pruna P-Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12",
+        "type": "comfy.BuildJsonPromptIdeogram",
+        "data": {
+          "high_level_description": "An avant-garde high-fashion magazine cover titled 'Ideogram P-Image' featuring a masked figure in ornate Renaissance-inspired costume with voluminous red silk sleeves against a dark navy backdrop with subtle concentric graphic lines.",
+          "background": "dark",
+          "style": "photo",
+          "style.photo": "editorial",
+          "aesthetics": "High-fashion avant-garde editorial aesthetic with dramatic contrast and ornate costume details.",
+          "lighting": "Dramatic directional chiaroscuro lighting highlighting red silk and gold embroidery with deep shadows across the backdrop.",
+          "medium": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Build JSON Prompt (Ideogram)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13",
+        "type": "comfy.SaveImageAdvanced",
+        "data": {
+          "filename_prefix": "Ideogram_P-Image",
+          "format": "png",
+          "format.bit_depth": "8-bit",
+          "format.input_color_space": "sRGB"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "12-0-4-source",
+        "source": "12",
+        "sourceHandle": "prompt",
+        "target": "4",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "4-0-11-prompt",
+        "source": "4",
+        "sourceHandle": "STRING",
+        "target": "11",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "9-2-12-element",
+        "source": "9",
+        "sourceHandle": "elements",
+        "target": "12",
+        "targetHandle": "element",
+        "ui_properties": null
+      },
+      {
+        "id": "11-0-13-images",
+        "source": "11",
+        "sourceHandle": "IMAGE",
+        "target": "13",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

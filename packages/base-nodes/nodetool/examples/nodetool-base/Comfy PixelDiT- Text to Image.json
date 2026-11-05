@@ -1,0 +1,301 @@
+{
+  "id": "ec6a366824f77850da14614b1fe3e508",
+  "name": "Comfy PixelDiT- Text to Image",
+  "description": "Input a text prompt and optional negative prompt. Generate a 1024px image using PixelDiT's VAE-free pixel diffusion transformer. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy PixelDiT- Text to Image\n\nInput a text prompt and optional negative prompt. Generate a 1024px image using PixelDiT's VAE-free pixel diffusion transformer. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/image_pixeldit_t2i.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "43",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "PixelDiT"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "46",
+        "type": "comfy.ResolutionSelector",
+        "data": {
+          "aspect_ratio": "1:1 (Square)",
+          "megapixels": 1,
+          "multiple": 8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Resolution Selector"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "44:42",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 59233627785266,
+          "steps": 30,
+          "cfg": 4,
+          "sampler_name": "er_sde",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "44:30",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "low quality, worst quality, over-saturated, blurry, deformed, watermark"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "44:15",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "44:16",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "pixel_space"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "44:9",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "gemma_2_2b_it_elm_bf16.safetensors",
+          "type": "pixeldit",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "44:2",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "pixeldit_1300m_1024px_bf16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "44:31",
+        "type": "comfy.EmptyChromaRadianceLatentImage",
+        "data": {
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "EmptyChromaRadianceLatentImage"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "44:6",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "A surreal architectural scene featuring a woman in a flowing white dress walking away from the viewer through a narrow canyon of smooth, organic beige rock formations. The architecture resembles fluid sandstone or sculpted clay with undulating curves and soft edges. Bright sunlight streams from above, casting sharp shadows on the ground and illuminating the textured surfaces of the walls. The sky is a clear, deep blue visible at the top of the frame. The composition uses leading lines formed by the canyon walls to draw the eye toward the figure in the distance. High-quality photorealistic rendering with 8k resolution, cinematic lighting, dramatic contrast between light and shadow, and a sense of scale emphasizing the grandeur of the environment."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "44:15-0-43-images",
+        "source": "44:15",
+        "sourceHandle": "IMAGE",
+        "target": "43",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "44:2-0-44:42-model",
+        "source": "44:2",
+        "sourceHandle": "MODEL",
+        "target": "44:42",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "44:6-0-44:42-positive",
+        "source": "44:6",
+        "sourceHandle": "CONDITIONING",
+        "target": "44:42",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "44:30-0-44:42-negative",
+        "source": "44:30",
+        "sourceHandle": "CONDITIONING",
+        "target": "44:42",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "44:31-0-44:42-latent_image",
+        "source": "44:31",
+        "sourceHandle": "LATENT",
+        "target": "44:42",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "44:9-0-44:30-clip",
+        "source": "44:9",
+        "sourceHandle": "CLIP",
+        "target": "44:30",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "44:42-0-44:15-samples",
+        "source": "44:42",
+        "sourceHandle": "LATENT",
+        "target": "44:15",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "44:16-0-44:15-vae",
+        "source": "44:16",
+        "sourceHandle": "VAE",
+        "target": "44:15",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "46-0-44:31-width",
+        "source": "46",
+        "sourceHandle": "width",
+        "target": "44:31",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "46-1-44:31-height",
+        "source": "46",
+        "sourceHandle": "height",
+        "target": "44:31",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "44:9-0-44:6-clip",
+        "source": "44:9",
+        "sourceHandle": "CLIP",
+        "target": "44:6",
+        "targetHandle": "clip",
+        "ui_properties": null
+      }
+    ]
+  }
+}

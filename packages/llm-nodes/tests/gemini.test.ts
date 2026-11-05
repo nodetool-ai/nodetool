@@ -684,6 +684,32 @@ describe("TextToSpeechGeminiNode", () => {
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(body.contents[0].parts[0].text).toBe("Speak slowly: Hello");
   });
+
+  it.each([
+    { label: "picker voice", model: { id: "gemini-3.8-flash-tts", selected_voice: "Puck" }, expected: "puck" },
+    { label: "legacy model id", model: "gemini-3.8-flash-tts", expected: "zephyr" },
+    { label: "model without a picked voice", model: { id: "gemini-3.8-flash-tts" }, expected: "zephyr" },
+    { label: "empty picker voice", model: { id: "gemini-3.8-flash-tts", selected_voice: "" }, expected: "zephyr" },
+    { label: "invalid picker voice", model: { id: "gemini-3.8-flash-tts", selected_voice: "unknown" }, expected: "kore" }
+  ])("sends the $label to the speech API", async ({ model, expected }) => {
+    mockFetch.mockResolvedValueOnce(new Response(JSON.stringify({
+      candidates: [{ content: { parts: [{ inlineData: { data: "AAA=" } }] } }]
+    })));
+    const node = new TextToSpeechGeminiNode();
+    node.assign({ text: "Hello", model, voice_name: "zephyr" });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "k" });
+
+    await node.process();
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(mockFetch.mock.calls[0][0]).toBe(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash-tts:generateContent?key=k"
+    );
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig).toEqual({
+      voiceName: expected
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------

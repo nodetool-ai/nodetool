@@ -88,7 +88,7 @@ export interface AntigravityCliRun {
 /** Spawns `agy` with `args`, writing `stdin` and then closing it. */
 export type AntigravityCliRunner = (
   args: string[],
-  options: { stdin: string; cwd: string | null }
+  options: { stdin: string; cwd: string | null; signal?: AbortSignal }
 ) => Promise<AntigravityCliRun>;
 
 export interface AntigravityProviderOptions {
@@ -268,9 +268,11 @@ export class AntigravityProvider extends BaseProvider {
     const cliArgs = buildCliArgs(plan);
     this.recordRequestPayload({ args: cliArgs, prompt: plan.prompt });
     const cwd = await scratchWorkspace();
+    if (plan.signal?.aborted) return;
     const run = await this.runCli(cliArgs, {
       stdin: `${JSON.stringify({ event: "user", message: { content: plan.prompt } })}\n`,
-      cwd
+      cwd,
+      signal: plan.signal
     });
     const onAbort = () => run.kill();
     plan.signal?.addEventListener("abort", onAbort, { once: true });
@@ -278,6 +280,7 @@ export class AntigravityProvider extends BaseProvider {
     let sessionSent = false;
     let result: CliEvent | null = null;
     try {
+      if (plan.signal?.aborted) return;
       for await (const line of run.lines) {
         const event = parseEvent(line);
         if (!event) continue;
@@ -642,7 +645,7 @@ const spawnAgy: AntigravityCliRunner = async (args, options) => {
   child.stdin.on("error", () => {
     // The process may exit before reading stdin; its exit code reports why.
   });
-  child.stdin.end(options.stdin);
+  child.stdin.end(options.signal?.aborted ? undefined : options.stdin);
   const lines = readline.createInterface({
     input: child.stdout,
     crlfDelay: Infinity

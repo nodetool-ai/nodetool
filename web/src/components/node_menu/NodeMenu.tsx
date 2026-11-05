@@ -32,6 +32,8 @@ import {
   ResizeHandle
 } from "../ui_primitives";
 import { useShallow } from "zustand/react/shallow";
+import { COMFY_NODE_PREFIX, COMFY_RUN_MODE } from "@nodetool-ai/protocol";
+import { useNodes } from "../../contexts/NodeContext";
 
 const treeStyles = (theme: Theme) =>
   css({
@@ -201,7 +203,10 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
   const startResize = useResizable(nodeRef, resizeOptions);
   const edgeResize = useResizableEdges(nodeRef, resizeOptions);
 
-  const namespaceTree = useNamespaceTree();
+  const isComfyWorkflow = useNodes(
+    (state) => state.workflow?.run_mode === COMFY_RUN_MODE
+  );
+  const namespaceTree = useNamespaceTree(isComfyWorkflow);
   const { needsMissingKey, showNodesWithoutKey } = useNodeProviderFilter();
   const setNodeFilter = useNodeMenuStore((state) => state.setNodeFilter);
   const theme = useTheme();
@@ -231,10 +236,14 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
   // Search offers the same nodes as the namespace tree: none whose provider
   // has no API key, unless the user chose to see them.
   useEffect(() => {
+    // A Comfy workflow offers only ComfyUI node classes, and no other
+    // workflow offers them: the two kinds of graph run on different engines.
     setNodeFilter(
-      showNodesWithoutKey ? null : (node) => !needsMissingKey(node)
+      (node) =>
+        node.node_type.startsWith(COMFY_NODE_PREFIX) === isComfyWorkflow &&
+        (showNodesWithoutKey || !needsMissingKey(node))
     );
-  }, [setNodeFilter, showNodesWithoutKey, needsMissingKey]);
+  }, [setNodeFilter, showNodesWithoutKey, needsMissingKey, isComfyWorkflow]);
 
   // Ensure search is performed after menu opens with a preset term
   useEffect(() => {

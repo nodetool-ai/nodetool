@@ -1,0 +1,358 @@
+{
+  "id": "e6a0cd93f851cbf224edd8f4f3d08d95",
+  "name": "Comfy SDXL Refiner Prompt",
+  "description": "Enhance SDXL images using refiner models. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy SDXL Refiner Prompt\n\nEnhance SDXL images using refiner models. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/sdxl_refiner_prompt_example.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "4",
+        "type": "comfy.CheckpointLoaderSimple",
+        "data": {
+          "ckpt_name": "sd_xl_base_1.0.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Checkpoint - BASE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5",
+        "type": "comfy.EmptyLatentImage",
+        "data": {
+          "width": 1024,
+          "height": 1024,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Empty Latent Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "6",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "daytime sky nature dark blue galaxy bottle"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "text, watermark"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "10",
+        "type": "comfy.KSamplerAdvanced",
+        "data": {
+          "add_noise": "enable",
+          "noise_seed": 6767725640732,
+          "steps": 25,
+          "cfg": 8,
+          "sampler_name": "euler",
+          "scheduler": "normal",
+          "start_at_step": 0,
+          "end_at_step": 20,
+          "return_with_leftover_noise": "enable"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler (Advanced) - BASE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "11",
+        "type": "comfy.KSamplerAdvanced",
+        "data": {
+          "add_noise": "disable",
+          "noise_seed": 0,
+          "steps": 25,
+          "cfg": 8,
+          "sampler_name": "euler",
+          "scheduler": "normal",
+          "start_at_step": 20,
+          "end_at_step": 10000,
+          "return_with_leftover_noise": "disable"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler (Advanced) - REFINER"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12",
+        "type": "comfy.CheckpointLoaderSimple",
+        "data": {
+          "ckpt_name": "sd_xl_refiner_1.0.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load Checkpoint - REFINER"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "15",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "daytime scenery  sky nature dark blue bottle with a galaxy stars milky way in it"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "16",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "text, watermark"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "17",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "4-1-6-clip",
+        "source": "4",
+        "sourceHandle": "CLIP",
+        "target": "6",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "4-1-7-clip",
+        "source": "4",
+        "sourceHandle": "CLIP",
+        "target": "7",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "4-0-10-model",
+        "source": "4",
+        "sourceHandle": "MODEL",
+        "target": "10",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-10-positive",
+        "source": "6",
+        "sourceHandle": "CONDITIONING",
+        "target": "10",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-10-negative",
+        "source": "7",
+        "sourceHandle": "CONDITIONING",
+        "target": "10",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "5-0-10-latent_image",
+        "source": "5",
+        "sourceHandle": "LATENT",
+        "target": "10",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "12-0-11-model",
+        "source": "12",
+        "sourceHandle": "MODEL",
+        "target": "11",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "15-0-11-positive",
+        "source": "15",
+        "sourceHandle": "CONDITIONING",
+        "target": "11",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "16-0-11-negative",
+        "source": "16",
+        "sourceHandle": "CONDITIONING",
+        "target": "11",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "10-0-11-latent_image",
+        "source": "10",
+        "sourceHandle": "LATENT",
+        "target": "11",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "12-1-15-clip",
+        "source": "12",
+        "sourceHandle": "CLIP",
+        "target": "15",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "12-1-16-clip",
+        "source": "12",
+        "sourceHandle": "CLIP",
+        "target": "16",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "11-0-17-samples",
+        "source": "11",
+        "sourceHandle": "LATENT",
+        "target": "17",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "12-2-17-vae",
+        "source": "12",
+        "sourceHandle": "VAE",
+        "target": "17",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "17-0-19-images",
+        "source": "17",
+        "sourceHandle": "IMAGE",
+        "target": "19",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

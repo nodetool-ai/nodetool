@@ -1,0 +1,260 @@
+{
+  "id": "1fba0a0e3759eaf96272b8e336c86640",
+  "name": "Comfy Seedance 2.0 + LLM Prompt Helper",
+  "description": "Upload two reference images and input a short text description. Generate a detailed Seedance 2.0-style prompt automatically with an LLM helper. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Seedance 2.0 + LLM Prompt Helper\n\nUpload two reference images and input a short text description. Generate a detailed Seedance 2.0-style prompt automatically with an LLM helper. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/template_seedance_2_0_plus_llm_prompt_helper.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "344",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Seedance2.0_r2v",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "352",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "freezer.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "356",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "snowboarder.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "360",
+        "type": "comfy.GeminiNode",
+        "data": {
+          "prompt": "Create a ~15-second cinematic action sequence of a tiny snowboarder racing at high speed through a freezer environment designed like a chaotic obstacle course. The camera stays low and tightly behind him in one continuous shot with no cuts, maintaining constant forward motion.\n\nFocus on intensity and unpredictability: unstable terrain, falling and shifting objects, frequent near-collisions, and moments where he nearly loses balance but quickly recovers. The scene should feel dynamic, reactive, and alive, with realistic physics and environmental interaction rather than smooth or controlled movement.",
+          "model": "gemini-3-1-pro",
+          "seed": 66746703903294,
+          "system_prompt": "You are a cinematic prompt generator. Your task is to convert user ideas into structured prompts for high-fidelity video generation using a strict format and physically grounded cinematic logic. Always output using exactly these five sections in this order: Subject, Action, Camera, Style, Constraints. Do not include any extra commentary, explanations, or text outside these sections.\n\nSubject: Define a single dominant subject unless the user explicitly requests multiple. Describe the subject in precise visual detail including physical traits, clothing, and distinguishing features. Maintain subject identity consistently throughout the entire sequence and do not introduce new primary subjects.\n\nAction: This is the most important section. All motion must be physically grounded and follow clear cause-and-effect logic. Structure the entire sequence as a continuous timeline using explicit timestamps formatted like 0.0–X.Xs. Actions must flow as a chain: start, progression, escalation, peak, recovery, continuation. The subject must remain in continuous motion unless explicitly stated otherwise. Include environmental interaction where the subject affects surroundings (collisions, displacement, shifting objects), and those surroundings react accordingly. Incorporate instability, loss of balance, and recovery where appropriate. Add micro-detail layering such as particles, fabric movement, subtle adjustments, and secondary reactions. Avoid vague, symbolic, or abstract actions. No teleportation or discontinuity.\n\nCamera: Always specify shot size, angle, and movement. Ensure the camera maintains spatial continuity with no cuts unless explicitly requested. The subject must remain clearly visible and trackable at all times. Camera motion must feel physically plausible, including inertia and subtle shake when appropriate (e.g., at high speed). The camera should enhance depth using foreground, midground, and background parallax.\n\nStyle: Use exactly one strong visual anchor such as a film stock, cinematic style, or artist reference. Do not combine multiple styles. This style must consistently influence lighting, color, texture, and depth of field across the entire sequence.\n\nConstraints: Always include negative prompts such as no distortion, no flicker, no artifacts, no extra limbs or deformities. Include temporal definition specifying total duration and pacing of the shot. Enforce continuity rules including stable lighting direction, coherent shadows, preserved subject identity, and no morphing unless explicitly requested. Include any explicit constraints provided by the user (e.g., snowboard only, no skis or poles).\n\nCinematic principles must always be enforced: physical realism (weight, inertia, momentum), environmental interaction (surfaces and objects react to motion), depth and parallax (layered scene behavior), lighting continuity, and clear visual readability of the subject. Motion should escalate in intensity over time when appropriate.\n\nHard rules: never output anything outside the five required sections, never omit timestamps in the Action section, never introduce multiple subjects unless requested, never use abstract or symbolic motion, never include impossible camera behavior, and never stack multiple styles."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Google Gemini"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "361",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "363",
+        "type": "comfy.PreviewImage",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Preview Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "366",
+        "type": "comfy.ImageStitch",
+        "data": {
+          "direction": "right",
+          "match_image_size": true,
+          "spacing_width": 0,
+          "spacing_color": "white"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Stitch Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "368",
+        "type": "comfy.ByteDance2ReferenceNode",
+        "data": {
+          "model": "Seedance 2.0",
+          "model.resolution": "720p",
+          "model.ratio": "9:16",
+          "model.duration": 15,
+          "model.generate_audio": true,
+          "model.reference_images": true,
+          "model.reference_videos": false,
+          "model.reference_audios": 0,
+          "model.reference_assets": "randomize",
+          "model.auto_downscale": false,
+          "model.auto_upscale": false,
+          "seed": 0,
+          "watermark": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ByteDance Seedance 2.5 Reference to Video (Legacy)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "368-0-344-video",
+        "source": "368",
+        "sourceHandle": "VIDEO",
+        "target": "344",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "366-0-360-images",
+        "source": "366",
+        "sourceHandle": "IMAGE",
+        "target": "360",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "360-0-361-source",
+        "source": "360",
+        "sourceHandle": "STRING",
+        "target": "361",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "366-0-363-images",
+        "source": "366",
+        "sourceHandle": "IMAGE",
+        "target": "363",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "356-0-366-image1",
+        "source": "356",
+        "sourceHandle": "IMAGE",
+        "target": "366",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "352-0-366-image2",
+        "source": "352",
+        "sourceHandle": "IMAGE",
+        "target": "366",
+        "targetHandle": "image2",
+        "ui_properties": null
+      },
+      {
+        "id": "361-0-368-model.prompt",
+        "source": "361",
+        "sourceHandle": "STRING",
+        "target": "368",
+        "targetHandle": "model.prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "356-0-368-model.reference_images.image_1",
+        "source": "356",
+        "sourceHandle": "IMAGE",
+        "target": "368",
+        "targetHandle": "model.reference_images.image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "352-0-368-model.reference_images.image_2",
+        "source": "352",
+        "sourceHandle": "IMAGE",
+        "target": "368",
+        "targetHandle": "model.reference_images.image_2",
+        "ui_properties": null
+      }
+    ]
+  }
+}

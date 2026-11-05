@@ -13,14 +13,14 @@ afterEach(() => { vi.unstubAllEnvs(); rmSync(bin, { recursive: true, force: true
 
 describe("MCP CLI generated MCP launch", () => {
   it("selects the explicit MCP package when the MCP binary is absent", async () => {
-    expect(await resolveLaunch({})).toEqual({ transport: "stdio", command: "npx", args: ["-y", "--package=@nodetool-ai/cli-mcp", "nodetool-mcp", "serve"] });
+    expect(await resolveLaunch({})).toEqual({ transport: "stdio", command: "npx", args: ["-y", "@nodetool-ai/cli-mcp", "serve"] });
   });
 
   it("uses the installed MCP binary and preserves forced npx selection", async () => {
     const executable = process.platform === "win32" ? "nodetool-mcp.CMD" : "nodetool-mcp";
     writeFileSync(join(bin, executable), process.platform === "win32" ? "node cli-mcp/dist/nodetool.js" : "#!/usr/bin/env node\n");
     expect(await resolveLaunch({})).toEqual({ transport: "stdio", command: "nodetool-mcp", args: ["serve"] });
-    expect(await resolveLaunch({ npx: true })).toEqual({ transport: "stdio", command: "npx", args: ["-y", "--package=@nodetool-ai/cli-mcp", "nodetool-mcp", "serve"] });
+    expect(await resolveLaunch({ npx: true })).toEqual({ transport: "stdio", command: "npx", args: ["-y", "@nodetool-ai/cli-mcp", "serve"] });
   });
 
   it("preserves an explicitly requested HTTP endpoint", async () => {

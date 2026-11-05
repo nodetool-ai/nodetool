@@ -62,6 +62,20 @@ lists the messages.
 
 ---
 
+## Use a Comfy workflow like any other workflow
+
+A Comfy workflow (`run_mode: "comfy"`) has the same contract as a NodeTool
+workflow, and its stored graph holds only ComfyUI nodes. You can pick it wherever
+a workflow is accepted: `run_workflow`, a mini app operation, an asset transform,
+the Workflow node, or the SDK interface.
+
+NodeTool derives the contract from the graph. It finds one input per `LoadImage`,
+`LoadAudio` and `LoadVideo` node, one `prompt` input for the positive prompt, and
+one output per `Save*` node. A second input or output of the same kind gets a
+numbered name, such as `image_2`, so adding a node can change a name.
+
+---
+
 ## When to reach for a ComfyUI node
 
 NodeTool generates images and video with its own nodes.
@@ -396,6 +410,142 @@ Comfy's own, not NodeTool's:
   NodeTool side of the same run.
 - **Credit**: an account without enough credit gets `402` from the submit and
   the node fails with `Comfy account has insufficient credits: …`.
+
+---
+
+## Bundled workflow templates
+
+The Comfy Cloud model picker includes official ComfyUI API templates alongside
+the existing image-to-video workflows. Z-Image Turbo, Krea 2 Turbo, MOSS Image
+and Qwen Image 2.1 generate images. Hunyuan Video 1.5 and Wan 2.2 A14B generate
+video from text. MiniMax H3 and FastH3 text-to-video templates require the
+existing `NODETOOL_COMFY_ENABLE_RESTRICTED_LICENSE_MODELS=1` opt-in where their
+model licenses permit use.
+
+The **Comfy** examples include these image and video templates, plus ACE-Step
+1.5 XL Turbo, MiniMax Music 3, Stable Audio 3 Medium and YuE 2 audio workflows.
+They are native workflows with `run_mode: "comfy"`: opening an example shows
+its complete graph of `comfy.*` nodes. Copying an example preserves that mode.
+Edit prompts and settings on the nodes, then run the whole graph on Comfy Cloud.
+The restricted H3 video templates appear only through the provider opt-in.
+Music models also appear in the provider's music catalog and run through
+`textToMusic`. All require `COMFY_API_KEY` and the referenced
+nodes and model files on the Comfy deployment.
+
+The imports come from the API-format graphs in
+[Comfy-Org/workflow_templates](https://github.com/Comfy-Org/workflow_templates/tree/1ae390968e323dba24a6991d1860ded051f5a79b/benchmarks).
+The source revision and input bindings are pinned in
+[`scripts/comfy-templates/catalog.mjs`](https://github.com/nodetool-ai/nodetool/blob/main/scripts/comfy-templates/catalog.mjs).
+These benchmark graphs supply the curated examples. The broader provider
+catalog comes from the non-partner templates in the same repository and uses
+model ids beginning with `comfyui-gpu/`, displayed as **(Comfy GPU)**.
+It covers image generation and editing, video generation and editing, reference
+video, music, speech, audio transforms, text generation and image-to-3D.
+
+At execution, NodeTool reads Cloud's node schemas, converts the selected saved
+template to an API prompt, binds the request's inputs, uploads its media and
+submits one GPU job. Templates with missing Cloud nodes, partner API nodes or
+incompatible widget layouts fail before submission. Input counts are checked
+before uploading. Text workflows do not advertise tool calling.
+
+Templates needing inputs outside a provider method's contract are recorded
+with exclusion reasons in `comfy-gpu-catalog.json`. This includes mask-editor
+workflows and transforms requiring several independent audio recordings.
+Template metadata is a source catalog, not proof that every account currently
+has the referenced models installed. Live render verification requires a key.
+
+Regenerate from the checked-in JSON snapshots with:
+
+```bash
+node scripts/comfy-templates/generate.mjs
+node scripts/comfy-templates/generate.mjs --check
+node scripts/comfy-templates/gpu-catalog.mjs
+node scripts/comfy-templates/gpu-catalog.mjs --check
+```
+
+### Run Comfy workflows on your own server
+
+A global target decides where every Comfy workflow runs. The selector next to
+the Run button shows the target and changes it. It writes these settings:
+
+| `COMFY_TARGET` | Runs on | Also needs |
+|---|---|---|
+| `cloud` | Comfy Cloud | `COMFY_API_KEY` |
+| `server` | A ComfyUI through its native API | `COMFY_SERVER_URL` |
+| `worker` | A NodeTool worker that fronts ComfyUI | `COMFY_WORKER_URL`, and `COMFY_WORKER_TOKEN` if the worker requires one |
+
+A selected target that is not configured fails the run and never falls back to
+another target. When `COMFY_TARGET` is unset, a workflow runs on
+`COMFY_SERVER_URL` if it has a value, and otherwise on Comfy Cloud. The first
+run log line names the target, and the node menu shows that target's nodes.
+
+The target must have the models and custom nodes that the workflow uses. Partner
+nodes need a Comfy account key, which only the Cloud target sends. A worker
+without `comfy.api_v2` returns all files at the end of the run. The target does
+not affect the three `lib.comfy` runner nodes, because each of them names its
+own target, or the Comfy Cloud models in the model pickers.
+
+The `Comfy *` examples are compiled from UI-format templates by
+`scripts/comfy-templates/ui-examples.mjs`. `--refresh` keeps only the templates
+whose values and models Comfy Cloud's node catalog accepts. A kept template has
+passed that static check, and only a few have run. Examples tagged `partner` use
+Comfy's paid partner nodes.
+
+`node scripts/comfy-templates/thumbnails.mjs` stores each template's gallery
+image from the pinned revision as the example thumbnail. Audio templates with
+no gallery image keep the default tile.
+
+`--refresh` downloads only the selected JSON files from the pinned revision.
+It does not clone the repository or download weights or sample media. When
+changing the revision, review node availability, model filenames and bindings
+before refreshing. Output socket names are extracted from the corresponding
+UI templates into
+[`sockets.json`](https://github.com/nodetool-ai/nodetool/blob/main/packages/runtime/tests/fixtures/comfy-templates/sockets.json),
+so saved connections use the same names as the Comfy editor catalog.
+The template license is MIT. Model licenses apply separately.
+
+Headless validation checks the native graph's structure and its execution
+runner. Comfy Cloud validates the remote node classes, model files and input
+types when the job is submitted.
+
+## Comfy Router models
+
+The `comfy_cloud` provider also runs the partner models of the
+[Comfy Router](https://docs.comfy.org/development/comfy-router) with the same
+`COMFY_API_KEY`: image (FLUX, Seedream, GPT Image, Ideogram, Recraft…), video
+(Kling, Veo, Seedance, Wan, LTX, Luma, Runway…), speech (ElevenLabs, Seed
+Audio) and chat (Claude, GPT, Gemini). They appear in every model picker under
+**Comfy Cloud** — Create, the composer, storyboards and the generic generation
+nodes — with no ComfyUI graph involved.
+
+- **Catalog**: `comfy-router-catalog.ts` lists each model with the NodeTool
+  tasks it serves, generated by `scripts/generate-comfy-router-catalog.mjs` from
+  every schema's input and output modalities and required fields. Run it with
+  `COMFY_API_KEY` set to pick up new models. At runtime the table is
+  intersected with the live `GET /v2/models` listing so retired models drop
+  out. 3D models, audio-in models, mask-only editors and models that take their
+  source video only as a public URL are left out.
+- **Requests**: each model takes its provider's native JSON. The provider reads
+  the model's input schema (`/v2/models/{id}/openapi.json`) and sets only the
+  fields it declares, coercing enums and numbers. Media goes inline as a data
+  URI, or as raw base64 for fields that say so, since the Router has no upload
+  route. Native envelopes are built where a schema uses one: Vertex
+  `instances[]` (Veo), `content[]` parts (Seedance), Gemini `contents`, Qwen
+  `input.messages`, Wan `input.media` items and ElevenLabs `inputs[]`. A few
+  required fields the schema describes only in prose, such as Krea's
+  `resolution`, have a per-model preset. A required field the request cannot
+  fill fails before submitting.
+- **Queue**: runs submit to `/requests`, poll the status route honouring
+  `Retry-After`, then collect the native result; cancelling a run cancels the
+  queued request. Output media is found in the native result (URLs, base64
+  fields) or read as raw bytes.
+- **Chat**: Anthropic Messages for `anthropic/*`, Gemini `contents` when the
+  schema declares it, OpenAI chat completions otherwise, with tool calls. The
+  reply arrives whole, as one chunk.
+- **Cost**: the Router reports credits per run (`X-Comfy-Credits-Used`); NodeTool
+  does not convert them to a cost record yet.
+- **Open weights**: these are partner APIs. For an open-weights run, use a
+  ComfyUI graph with open models through the nodes above.
 
 ---
 

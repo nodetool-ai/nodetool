@@ -1,0 +1,81 @@
+{
+  "id": "a5b97558f61607aa5da6de794d16a6fa",
+  "name": "Comfy Sonilo- Text to Music Generation",
+  "description": "Generate high-quality, production-ready music from text prompts. Input descriptive text to create original soundtracks with streaming playback and precise duration control. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "audio",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Sonilo- Text to Music Generation\n\nGenerate high-quality, production-ready music from text prompts. Input descriptive text to create original soundtracks with streaming playback and precise duration control. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_sonilo_t2m.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "726",
+        "type": "comfy.SoniloTextToMusic",
+        "data": {
+          "prompt": "Ethereal light music, soft atmosphere, clean and healing\n",
+          "duration": 60,
+          "seed": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Sonilo Text to Music"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "728",
+        "type": "comfy.SaveAudioAdvanced",
+        "data": {
+          "filename_prefix": "audio/Sonilo",
+          "format": "mp3",
+          "format.quality": "V0"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Audio (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "726-0-728-audio",
+        "source": "726",
+        "sourceHandle": "AUDIO",
+        "target": "728",
+        "targetHandle": "audio",
+        "ui_properties": null
+      }
+    ]
+  }
+}

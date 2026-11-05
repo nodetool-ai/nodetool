@@ -1,0 +1,318 @@
+{
+  "id": "538e61da9b1ef53a9d71001d339e5c02",
+  "name": "Comfy Qwen-Image 2512 Turbo",
+  "description": "Qwen-Image 2512 Image generation with 2-steps Turbo LoRA. Input your text prompt to quickly produce a result, though some quality is sacrificed for speed. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Qwen-Image 2512 Turbo\n\nQwen-Image 2512 Image generation with 2-steps Turbo LoRA. Input your text prompt to quickly produce a result, though some quality is sacrificed for speed. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/image_qwen_image_2512_with_2steps_lora.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "103",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "qwen_image_vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "104",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+          "type": "qwen_image",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "105",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "qwen_image_2512_fp8_e4m3fn.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "106",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 318036859179089,
+          "steps": 2,
+          "cfg": 1,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "107",
+        "type": "comfy.EmptySD3LatentImage",
+        "data": {
+          "width": 1328,
+          "height": 1328,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "EmptySD3LatentImage"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "108",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "High-contrast black and white fashion photography, extreme side profile of a rugged European male model with tousled wet-look hair and stubble, wearing an unbuttoned textured black leather jacket over a fitted white crewneck shirt. Low-angle composition, dramatic side lighting carving sharp, sculpted shadows across his angular jawline and neck, minimalist stark white background, edgy tough masculine aesthetic, hyper-realistic studio quality.\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Positive Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "109",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "110",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 3,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ModelSamplingAuraFlow"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "114",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "Wuli-Qwen-Image-2512-Turbo-LoRA-2steps-V1.0-bf16.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "123",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "Qwen-2512-2steps-LoRA"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "128",
+        "type": "comfy.ConditioningZeroOut",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Conditioning Zero Out"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "110-0-106-model",
+        "source": "110",
+        "sourceHandle": "MODEL",
+        "target": "106",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "108-0-106-positive",
+        "source": "108",
+        "sourceHandle": "CONDITIONING",
+        "target": "106",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "128-0-106-negative",
+        "source": "128",
+        "sourceHandle": "CONDITIONING",
+        "target": "106",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "107-0-106-latent_image",
+        "source": "107",
+        "sourceHandle": "LATENT",
+        "target": "106",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "104-0-108-clip",
+        "source": "104",
+        "sourceHandle": "CLIP",
+        "target": "108",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "106-0-109-samples",
+        "source": "106",
+        "sourceHandle": "LATENT",
+        "target": "109",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "103-0-109-vae",
+        "source": "103",
+        "sourceHandle": "VAE",
+        "target": "109",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "114-0-110-model",
+        "source": "114",
+        "sourceHandle": "MODEL",
+        "target": "110",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "105-0-114-model",
+        "source": "105",
+        "sourceHandle": "MODEL",
+        "target": "114",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "109-0-123-images",
+        "source": "109",
+        "sourceHandle": "IMAGE",
+        "target": "123",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "108-0-128-conditioning",
+        "source": "108",
+        "sourceHandle": "CONDITIONING",
+        "target": "128",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      }
+    ]
+  }
+}

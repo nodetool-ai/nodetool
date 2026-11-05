@@ -3223,7 +3223,11 @@
         "resolution": "分辨率",
         "stillDescription": "选择此镜头静帧使用的模型。下次渲染时仍会使用此选择。",
         "stillModel": "静帧模型",
-        "stillRequired": "此镜头需要为静帧添加动画。请先渲染静帧，或将镜头设置为直接根据提示词渲染。"
+        "stillRequired": "此镜头需要为静帧添加动画。请先渲染静帧，或将镜头设置为直接根据提示词渲染。",
+        "comfyWorkflow": {
+          "note": "在 Comfy Cloud 上运行固定的 ComfyUI 工作流，仅使用 ComfyUI 核心节点。每个 5 秒镜头约需一到两分钟。镜头预设用于引导提示词，并非几何镜头控制。",
+          "open": "打开 ComfyUI 工作流"
+        }
       },
       "takesGallery": {
         "clips": "片段",
@@ -6293,6 +6297,7 @@
         "renderedExampleShots_other": "已渲染 {{count}} 个镜头",
         "blankEntries": {
           "workflow": "工作流",
+          "comfy-workflow": "Comfy 工作流",
           "chat": "聊天",
           "text": "文本",
           "image": "草图",
@@ -7918,14 +7923,18 @@
         "remove": "移除场景片段",
         "cancel": "取消",
         "render": "渲染场景片段{{cost}}",
-        "description": "将这些镜头渲染为一个连续片段。片段会放在第一个镜头上，其余镜头播放对应的片段区间，因此剪辑顺序保持不变。",
+        "description": "将这些镜头渲染为一个连续片段。片段落在第一个镜头上，其他镜头播放其中各自的时间窗口。每个镜头的动作、摄影机、灯光和声音都会自动发送，因此重新渲染会得到相同的指导。",
         "from": "起始镜头",
         "length": "镜头数",
         "shotStillAlt": "镜头静帧",
         "imageReference": "[Image {{number}}] ",
-        "promptLabel": "提示词",
-        "promptPlaceholder": "从门口到窗边的一段连续移动。",
-        "promptHelp": "选填。镜头的动作、运动和声音会追加在提示词后。请用 [Image N] 指代静帧。",
+        "references": "参考图像",
+        "referencesHelp": "静帧决定构图和姿势。实体图像决定人物和地点。",
+        "stills": "静帧",
+        "entities": "实体",
+        "addEntity": "从资料库添加",
+        "noStill": "无静帧",
+        "noEntityImage": "无图像",
         "renderSettings": "渲染设置",
         "videoModel": "视频模型",
         "duration": "时长",
@@ -7938,6 +7947,7 @@
           "addShot": "请先向分镜板添加镜头。",
           "renderStill": "请至少渲染一个镜头的静帧。",
           "addEntityImage": "请先为分镜板上的一个实体添加参考图。",
+          "noReference": "请至少选择一张参考图像。",
           "noVideoModel": "尚未选择视频模型。",
           "imageLimit": "{{imageCount}} 张图片超过了 {{limit}} 张的上限。请移除 {{remove}} 张。",
           "durationUnavailable": "{{model}} 不支持 {{duration}} 的片段时长。请选择以下时长之一：{{choices}}。",
@@ -7949,7 +7959,8 @@
         "shot_one": "镜头 {{number}}",
         "shots_one": "{{number}} 个镜头",
         "playTitle": "已渲染的片段",
-        "playLabel": "场景片段"
+        "playLabel": "场景片段",
+        "downloadClip": "下载片段"
       }
     }
   },
@@ -9026,6 +9037,10 @@
           "button": "获取 Opper API 密钥",
           "tooltip": "前往 Opper 平台获取 API 密钥"
         },
+        "CHEAPER_INFERENCE_API_KEY": {
+          "button": "获取 Cheaper Inference API 密钥",
+          "tooltip": "前往 Cheaper Inference 获取 API 密钥"
+        },
         "API_ROUTE_API_KEY": {
           "button": "获取 API Route 密钥",
           "tooltip": "前往 API Route API 密钥页面"
@@ -9523,6 +9538,16 @@
         "title": "在租用的 GPU 上运行工作流",
         "description": "连接一次 RunPod 并选择 GPU，NodeTool 就会在上面运行你的 Python 节点，空闲的工作器会自动暂停。",
         "action": "设置工作器"
+      },
+      "presets": {
+        "summary_one": "每小时约 {{min}}–{{max}}。{{count}} 小时后结束并删除其文件。",
+        "summary_other": "每小时约 {{min}}–{{max}}。{{count}} 小时后结束并删除其文件。",
+        "start": "启动",
+        "starting": "正在启动…",
+        "startAria": "在租用的 GPU 上启动 {{name}}",
+        "bootingHint": "ComfyUI 正在加载。首次启动可能需要几分钟。",
+        "readyHint": "将 URL 复制到 Run ComfyUI Workflow。任何拥有此 URL 的人都可以使用该 Pod。",
+        "copyEndpoint": "复制 ComfyUI URL"
       }
     }
   },
@@ -19599,6 +19624,43 @@
     "simple": "简单",
     "expert": "专家",
     "canvasSize": "{{width}} × {{height}}",
-    "frameRate": "{{fps}} 帧/秒"
+    "frameRate": "{{fps}} 帧/秒",
+    "showAssistant": "显示助手",
+    "hideAssistant": "隐藏助手",
+    "resizeAssistant": "调整时间线助手大小"
+  },
+  "generationBatch": {
+    "summary": "已完成 {{done}}/{{total}}",
+    "remaining": "剩余约 {{time}}",
+    "finishing": "正在收尾",
+    "failedCount": "失败：{{count}}",
+    "status": {
+      "queued": "排队中",
+      "running": "运行中",
+      "completed": "完成",
+      "failed": "失败"
+    },
+    "showRequests": "显示请求",
+    "hideRequests": "隐藏请求",
+    "expected": "预计 {{time}}",
+    "took": "用时 {{time}}",
+    "progressLabel": "生成进度"
+  },
+  "workflowSteps": {
+    "stepOf": "第 {{current}} 步，共 {{total}} 步",
+    "allDone": "全部 {{total}} 步已完成",
+    "waiting": "等待中",
+    "running": "运行中",
+    "done": "完成",
+    "failed": "失败",
+    "progressLabel": "工作流进度",
+    "steps": "步骤",
+    "addStep": "添加步骤",
+    "removeStep": "移除步骤",
+    "node": "节点",
+    "title": "标题",
+    "description": "描述",
+    "autoHint": "未设置步骤。组件会显示每个生成节点。",
+    "chooseNode": "选择节点"
   }
 }

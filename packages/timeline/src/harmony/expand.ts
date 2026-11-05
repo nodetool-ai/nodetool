@@ -235,12 +235,29 @@ export function expandClipHarmony(
   };
 
   if (h.style === "arp") {
+    let runStart = kFirst;
+    let previousKey = sourceAt(kFirst)?.key;
+    if (previousKey !== undefined) {
+      // A sampled source can only change at a quantized start or end. Probe
+      // those boundaries, not every step in the history of a trimmed clip.
+      const intervals = h.input === "chords"
+        ? chords.map((c) => [c.startTick, c.startTick + c.durationTick])
+        : snapped.map((n) => [shift + n.startTick, shift + n.startTick + n.durationTick]);
+      const boundaries = [...new Set(intervals.flat().map((tick) =>
+        Math.ceil((tick - EPS) / stepTicks)
+      ))].filter((k) => k <= kFirst).sort((a, b) => b - a);
+      for (const boundary of boundaries) {
+        runStart = boundary;
+        if (sourceAt(boundary - 1)?.key !== previousKey) break;
+      }
+    }
     for (let k = kFirst; k <= kLast; k++) {
       const src = sourceAt(k);
+      if (src?.key !== previousKey) {
+        runStart = k;
+        previousKey = src?.key;
+      }
       if (!src) continue;
-      // The pattern restarts where this source began.
-      let runStart = k;
-      while (runStart > k - LOOKBACK_STEPS && sourceAt(runStart - 1)?.key === src.key) runStart--;
       const r = lanePos(k);
       if (!h.hits[r]) continue;
       const pool = arpPool(h.order, h.octaves, src.notes);

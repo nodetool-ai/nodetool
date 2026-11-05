@@ -68,6 +68,8 @@ describe("example recipes", () => {
       // The first app is the one built for this chain, and a chain the app
       // does not cover is a recipe that cannot be run from one surface.
       const [primary] = recipe.apps;
+      // An app that runs the chain as one agent script binds no step workflows.
+      if (primary.runsAgent) continue;
       const bound = new Set(primary.workflows);
       const missing = recipe.steps
         .map((step) => step.example)

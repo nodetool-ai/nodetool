@@ -67,13 +67,15 @@ export async function stopSdServer(): Promise<void> {
   if (!server) {
     return;
   }
-  server.child.kill();
+  if (server.child.exitCode === null && server.child.signalCode === null) {
+    server.child.kill();
+  }
   await server.exited;
 }
 
 async function ensureServer(launch: SdServerLaunch, signal?: AbortSignal): Promise<RunningServer> {
   const key = JSON.stringify([launch.binary, ...launch.args]);
-  if (running?.key === key && running.child.exitCode === null) {
+  if (running?.key === key && running.child.exitCode === null && running.child.signalCode === null) {
     return running;
   }
   await stopSdServer();
@@ -116,28 +118,35 @@ async function ensureServer(launch: SdServerLaunch, signal?: AbortSignal): Promi
   const server: RunningServer = { key, baseUrl, child, exited };
   running = server;
   const deadline = Date.now() + READY_TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    signal?.throwIfAborted();
-    if (spawnError || child.exitCode !== null || child.signalCode !== null) {
-      running = null;
-      const reason = spawnError ? (spawnError as Error).message : `exit code ${child.exitCode ?? child.signalCode}`;
-      throw new Error(`sd-server stopped before it was ready (${reason}):\n${tail.join("\n")}`);
-    }
-    try {
-      const response = await fetch(`${baseUrl}/sdcpp/v1/capabilities`, {
-        signal: AbortSignal.timeout(2000)
-      });
-      if (response.ok) {
-        log.info("sd-server is ready", { baseUrl });
-        return server;
+  try {
+    while (Date.now() < deadline) {
+      signal?.throwIfAborted();
+      if (spawnError || child.exitCode !== null || child.signalCode !== null) {
+        const reason = spawnError ? (spawnError as Error).message : `exit code ${child.exitCode ?? child.signalCode}`;
+        throw new Error(`sd-server stopped before it was ready (${reason}):\n${tail.join("\n")}`);
       }
-    } catch {
-      // Not listening yet: the model is still loading.
+      try {
+        const response = await fetch(`${baseUrl}/sdcpp/v1/capabilities`, {
+          signal: AbortSignal.timeout(2000)
+        });
+        signal?.throwIfAborted();
+        if (response.ok) {
+          log.info("sd-server is ready", { baseUrl });
+          return server;
+        }
+      } catch {
+        signal?.throwIfAborted();
+        // Not listening yet: the model is still loading.
+      }
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    throw new Error(`sd-server did not become ready in ${READY_TIMEOUT_MS / 60000} minutes:\n${tail.join("\n")}`);
+  } catch (error) {
+    if (running === server) {
+      await stopSdServer();
+    }
+    throw error;
   }
-  await stopSdServer();
-  throw new Error(`sd-server did not become ready in ${READY_TIMEOUT_MS / 60000} minutes:\n${tail.join("\n")}`);
 }
 
 async function freePort(): Promise<number> {

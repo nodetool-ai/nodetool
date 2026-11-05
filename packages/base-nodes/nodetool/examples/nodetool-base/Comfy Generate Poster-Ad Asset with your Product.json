@@ -1,0 +1,365 @@
+{
+  "id": "f0d9e1dc5754536b777b18c7011ae935",
+  "name": "Comfy Generate Poster-Ad Asset with your Product",
+  "description": "Upload your product and a simple text prompt for the poster or ad design. Iterate on the look before swapping the product into the generated layout. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "product & ads",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Generate Poster-Ad Asset with your Product\n\nUpload your product and a simple text prompt for the poster or ad design. Iterate on the look before swapping the product into the generated layout. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/templates-poster_product_integration.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "10",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-poster"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-poster_product"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "14",
+        "type": "comfy.ByteDanceSeedreamNode",
+        "data": {
+          "model": "seedream-4-5-251128",
+          "size_preset": "1664x2496 (2:3)",
+          "width": 2048,
+          "height": 2048,
+          "sequential_image_generation": "auto",
+          "max_images": 1,
+          "seed": 123,
+          "watermark": false,
+          "fail_on_partial": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ByteDance Seedream 4.5 & 5.0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "15",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "comfy_cloud_water_can.jpg"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Product Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19",
+        "type": "comfy.ByteDanceSeedreamNode",
+        "data": {
+          "model": "seedream-4-5-251128",
+          "prompt": "Replace the product from image 1 with the product from image 2. Ensure the products dimensions stay consistent with input image 2.",
+          "size_preset": "1664x2496 (2:3)",
+          "width": 2048,
+          "height": 2048,
+          "sequential_image_generation": "disabled",
+          "max_images": 1,
+          "seed": 321,
+          "watermark": false,
+          "fail_on_partial": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ByteDance Seedream 4.5 & 5.0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "23",
+        "type": "comfy.GeminiNode",
+        "data": {
+          "prompt": "The canned product sits on a reflective glass table, faintly reflecting the sky, liquid water textures sit on the table, small silicon computer chips are scattered around. In the blue sky, clouds form as text that says \"Comfy Cloud\" amongst scattered clouds. Realistic product photography.",
+          "model": "gemini-3-pro-preview",
+          "seed": 12345,
+          "system_prompt": "# Role: Prompt Architect & Creative Director\n\n## 1. Core Objective\n\nYou are an expert **Prompt Engineer and Commercial Art Director**. Your mission is to transform natural language user requests—ranging from simple object/product names, mandatory H1 header titles, typography fonts styles to use, taglines phrases, to specific hex color codes, detailed brand briefs—into a **structured, detailed, and execution-ready English prompt**.\n\nYou must seamlessly integrate user-provided details (brand names, specific color codes, product features) while creatively \"gap-filling\" any missing aesthetic details to ensure a high-quality, cohesive visual output.\n\n\n## 2. Input Processing & Adaptation Strategy\n\nBefore generating the output, analyze the user's input against these three levels of granularity:\n\n* **Level 1: Sparse (e.g., \"a coffee poster\").**\n\n    * *Action:* You must invent a cohesive brand identity, mood, and style. Infer a suitable context (e.g., a cozy morning or a high-energy workspace).\n\n* **Level 2: Hybrid (e.g., \"Retro sci-fi poster for a sleek energy drink\").**\n\n    * *Action:* Adopt the requested style (\"Retro sci-fi\"). Create a visual scene that highlights the \"sleekness\" of the product. Invent a brand name if none is provided.\n\n* **Level 3: Specific (e.g., \"Rolex Submariner, underwater scene, emerald green and gold palette, Title: 'Deep Dive'\").**\n\n    * *Action:* strictly adhere to the brand name, color palette, and specific product details provided. Do not deviate from these constraints.\n\n\n## 3. Output Structure Requirements\n\nYou must organize the final prompt into **five distinct dimensions**. Do not use bullet points within the sections; instead, write coherent, descriptive paragraphs for each dimension.\n\n\n### Dimension 1: Poster Content & Hero Object\n\n* **Goal:** Define the visual reality and the Product/Subject placement.\n\n* **Instruction:** clearly describe the main visual elements. If a product is mentioned, treat it as the \"Hero Object\"—describe its lighting, material qualities (e.g., condensation on a can, sheen on leather), and interaction with the environment.\n\n* **Example logic:** Instead of \"a shoe,\" write \"a floating high-top sneaker with reflective holographic panels, surrounded by shattered concrete debris suspended in mid-air.\"\n\n\n### Dimension 2: Aesthetic Style & Brand Identity\n\n* **Goal:** Define the artistic lens and color strategy.\n\n* **Instruction:** Describe the visual tone (e.g., cinematic, minimalist, brutalist, ethereal). **Crucial:** If the user provided brand colors, explicitly mandate them here. Describe the hex code colors into natural english, DO NOT output the actual hex code #. If no colors are provided, define a sophisticated palette that compliments the subject. Mention textures (e.g., matte finish, film grain, glossy plastic) and lighting style (e.g., volumetric god-rays, neon rim lighting).\n\n\n### Dimension 3: Poster Text\n\n* **Goal:** Define the exact strings to render.\n\n* **Instruction:** Provide **only** the exact text content to appear on the poster.\n\n    1.  If the user provides a Brand Name/Title, use it exactly.\n\n    2.  If the user provides *no* text, you **must** invent a short, punchy, thematic title or brand name that fits the vibe.\n\n    3.  Maintain exact spelling and capitalization.\n\n\n### Dimension 4: Text Style and Position\n\n* **Goal:** Define typography and hierarchy.\n\n* **Instruction:**\n\n    * **Font:** Describe the font family (e.g., bold sans-serif, elegant serif, handwritten marker, futuristic digital display).\n\n    * **Attributes:** Specify material effects on the text (e.g., metallic gold, glowing neon, negative space cutout).\n\n    * **Placement:** Describe the layout of the text relative to the image (e.g., bold header centered at the top, small legal text at the bottom, vertical tagline interlaced with the main subject).\n\n\n### Dimension 5: Layout\n\n* **Goal:** Define composition and flow.\n\n* **Instruction:** Describe how elements are arranged to guide the viewer's eye. Explain the relationship between the background and the foreground. Define the camera angle (e.g., low-angle hero shot, top-down flat lay, macro close-up). Ensure there is clear \"safe space\" for the text defined in Dimension 4 so it does not clash with the busy parts of the image.\n\n\n## 4. Strict Constraints\n\n1.  **Language:** The final output must be in **English only**.\n\n2.  **Purity:** Output **only** the structured prompt content. Do not include conversational fillers (e.g., \"Here is your prompt\"), explanations, or markdown code block fences (like ```).\n\n3.  **Format:** Strictly follow the header structure shown in the \"Output Structure Requirements\"."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Prompt + Google Gemini Prompt Enhancer"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "24",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Preview Prompt as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "29:17",
+        "type": "comfy.ResizeAndPadImage",
+        "data": {
+          "padding_color": "black",
+          "interpolation": "area"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Resize And Pad Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "29:16",
+        "type": "comfy.GetImageSize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Get Image Size"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "29:29",
+        "type": "comfy.RemBGSession+",
+        "data": {
+          "model": "u2net: general purpose",
+          "providers": "CPU"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "🔧 RemBG Session"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "29:30",
+        "type": "comfy.ImageRemoveBackground+",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "🔧 Image Remove Background"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "29:33",
+        "type": "comfy.BatchImagesNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Batch Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "14-0-10-images",
+        "source": "14",
+        "sourceHandle": "IMAGE",
+        "target": "10",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "19-0-13-images",
+        "source": "19",
+        "sourceHandle": "IMAGE",
+        "target": "13",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "23-0-14-prompt",
+        "source": "23",
+        "sourceHandle": "STRING",
+        "target": "14",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "29:33-0-19-image",
+        "source": "29:33",
+        "sourceHandle": "IMAGE",
+        "target": "19",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "15-0-23-images",
+        "source": "15",
+        "sourceHandle": "IMAGE",
+        "target": "23",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "23-0-24-source",
+        "source": "23",
+        "sourceHandle": "STRING",
+        "target": "24",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "29:16-0-29:17-target_width",
+        "source": "29:16",
+        "sourceHandle": "width",
+        "target": "29:17",
+        "targetHandle": "target_width",
+        "ui_properties": null
+      },
+      {
+        "id": "29:16-1-29:17-target_height",
+        "source": "29:16",
+        "sourceHandle": "height",
+        "target": "29:17",
+        "targetHandle": "target_height",
+        "ui_properties": null
+      },
+      {
+        "id": "29:30-0-29:17-image",
+        "source": "29:30",
+        "sourceHandle": "IMAGE",
+        "target": "29:17",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "14-0-29:16-image",
+        "source": "14",
+        "sourceHandle": "IMAGE",
+        "target": "29:16",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "29:29-0-29:30-rembg_session",
+        "source": "29:29",
+        "sourceHandle": "REMBG_SESSION",
+        "target": "29:30",
+        "targetHandle": "rembg_session",
+        "ui_properties": null
+      },
+      {
+        "id": "15-0-29:30-image",
+        "source": "15",
+        "sourceHandle": "IMAGE",
+        "target": "29:30",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "14-0-29:33-images.image0",
+        "source": "14",
+        "sourceHandle": "IMAGE",
+        "target": "29:33",
+        "targetHandle": "images.image0",
+        "ui_properties": null
+      },
+      {
+        "id": "29:17-0-29:33-images.image1",
+        "source": "29:17",
+        "sourceHandle": "IMAGE",
+        "target": "29:33",
+        "targetHandle": "images.image1",
+        "ui_properties": null
+      }
+    ]
+  }
+}

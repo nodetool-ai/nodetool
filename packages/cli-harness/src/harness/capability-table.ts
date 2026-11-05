@@ -747,6 +747,36 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "list_workers",
+    module: "workers",
+    impl: "packages/agents/src/capabilities/workers.ts",
+    contract: "f5b61b2ae34c",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workers.test.ts",
+    ],
+  },
+  {
+    name: "get_worker_status",
+    module: "workers",
+    impl: "packages/agents/src/capabilities/workers.ts",
+    contract: "ea27affc592c",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workers.test.ts",
+    ],
+  },
+  {
+    name: "stop_worker",
+    module: "workers",
+    impl: "packages/agents/src/capabilities/workers.ts",
+    contract: "08363e9c263b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workers.test.ts",
+    ],
+  },
+  {
     name: "list_nodes",
     module: "nodes",
     impl: "packages/agents/src/capabilities/nodes.ts",
@@ -3219,7 +3249,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "get_storyboard_one_take",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "312a31bed7e2",
+    contract: "04db6bbdec7c",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboard-one-take.test.ts",
@@ -3349,7 +3379,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "run_code",
     module: "code",
     impl: "packages/agents/src/capabilities/code.ts",
-    contract: "ff41dab56c40",
+    contract: "f1d500e1777a",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/code-capabilities.test.ts",
@@ -3359,7 +3389,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "test_code",
     module: "code",
     impl: "packages/agents/src/capabilities/code.ts",
-    contract: "8db4b25f2583",
+    contract: "dd32f0edff38",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/code-capabilities.test.ts",

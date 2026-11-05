@@ -116,6 +116,17 @@ export const useTransformRun = (): TransformRun => {
         });
         // Generator nodes save their results as assets; show them in the grid.
         void queryClient.invalidateQueries({ queryKey: ["assets"] });
+      }).catch((error: unknown) => {
+        if (!isCurrent()) {
+          return;
+        }
+        abortRef.current = null;
+        setState((prev) => ({
+          ...prev,
+          status: "failed",
+          nodeProgress: null,
+          error: error instanceof Error ? error.message : "Failed to start job"
+        }));
       });
     },
     [cancel]

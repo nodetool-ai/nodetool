@@ -1,0 +1,89 @@
+{
+  "id": "67fdbe80ca150da1e8bf908ac6954f30",
+  "name": "Comfy Seedream 5.0 Pro- Text to Image",
+  "description": "Generate images from text prompts using Seedream 5.0 Pro, producing one high-quality output. Ideal for creative concept art, marketing visual mockups, and rapid ideation for design projects. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Seedream 5.0 Pro- Text to Image\n\nGenerate images from text prompts using Seedream 5.0 Pro, producing one high-quality output. Ideal for creative concept art, marketing visual mockups, and rapid ideation for design projects. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_bytedance_seedream_5_0_pro_t2i.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "2",
+        "type": "comfy.SaveImageAdvanced",
+        "data": {
+          "filename_prefix": "Seedream5.0_Pro_T2I",
+          "format": "png",
+          "format.bit_depth": "8-bit",
+          "format.input_color_space": "sRGB"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.ByteDanceSeedreamNodeV3",
+        "data": {
+          "prompt": "A sci-fi cyberpunk graphic design poster. In the center, a striking portrait of a female android with glossy, liquid chrome skin. A vivid swirling streak of neon orange, yellow, and pink liquid paint brush stroke horizontally covers her eyes, soft smudged color overlay with smooth flowing pigment texture, no cracks or broken facial surfaces. The background is a dark, textured charcoal gray. Behind the central figure, large bold white futuristic typography reads \"Seedream 5.0 Pro\" with a subtle digital glitch and halftone texture. The composition is decorated with technical HUD elements, thin white lines, geometric wireframe diagrams, barcodes, and small sci-fi text boxes. Semi-transparent glassy spheres with grid textures overlap the foreground, creating depth. The overall mood is high-tech, dystopian, and avant-garde.",
+          "model": "seedream 5.0 pro",
+          "model.size_preset": "(1K) 1024x1024 (1:1)",
+          "model.width": 2048,
+          "model.height": 2048,
+          "model.images": "standard",
+          "model.prompt_optimization": 42,
+          "model.seed": "randomize",
+          "model.watermark": false,
+          "model.thinking": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ByteDance Seedream 4.5 & 5.0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "3-0-2-images",
+        "source": "3",
+        "sourceHandle": "IMAGE",
+        "target": "2",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

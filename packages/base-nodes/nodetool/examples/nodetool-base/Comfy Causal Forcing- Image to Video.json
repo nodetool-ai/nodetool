@@ -1,0 +1,493 @@
+{
+  "id": "6271e11801061cd018285a134d6ddffb",
+  "name": "Comfy Causal Forcing- Image to Video",
+  "description": "Input a text prompt and select a model checkpoint. Generate a high-quality video using Causal Forcing or Causal Forcing++ with 1 to 4 inference steps. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "video",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Causal Forcing- Image to Video\n\nInput a text prompt and select a model checkpoint. Generate a high-quality video using Causal Forcing or Causal Forcing++ with 1 to 4 inference steps. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/video_causal_forcing_i2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "16",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/CausalForcing_I2V",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "girl_riding_a_wolf.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "29:1",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "causal_forcing-framewise.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "29:9",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走，不合理的动作"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Negative Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "29:12",
+        "type": "comfy.SamplerARVideo",
+        "data": {
+          "num_frame_per_block": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Sampler AR Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "29:3",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "wan_2.1_vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "29:11",
+        "type": "comfy.RandomNoise",
+        "data": {
+          "noise_seed": 483145124184881
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Random Noise"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "29:13",
+        "type": "comfy.BasicScheduler",
+        "data": {
+          "scheduler": "simple",
+          "steps": 4,
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Schedule (4 steps)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "29:14",
+        "type": "comfy.CFGGuider",
+        "data": {
+          "cfg": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CFG Guider (cfg=1)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "29:15",
+        "type": "comfy.SamplerCustomAdvanced",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SamplerCustomAdvanced"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "29:2",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+          "type": "wan",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "29:8",
+        "type": "comfy.ARVideoI2V",
+        "data": {
+          "width": 832,
+          "height": 480,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ARVideoI2V"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "29:6",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "29:17",
+        "type": "comfy.CreateVideo",
+        "data": {
+          "fps": 16,
+          "bit_depth": "auto",
+          "color_space": "sRGB",
+          "codec": "none"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Create Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "29:4",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "A blonde girl rides a white wolf running forward at night, camera locked on them, always centered in the shot."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Positive Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "29:23",
+        "type": "comfy.ComfyMathExpression",
+        "data": {
+          "expression": "min(a * 16 + 1, 81)"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Math Expression"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "29:28",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Float (Duration)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "29:17-0-16-video",
+        "source": "29:17",
+        "sourceHandle": "VIDEO",
+        "target": "16",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "29:2-0-29:9-clip",
+        "source": "29:2",
+        "sourceHandle": "CLIP",
+        "target": "29:9",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "29:8-0-29:13-model",
+        "source": "29:8",
+        "sourceHandle": "MODEL",
+        "target": "29:13",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "29:8-0-29:14-model",
+        "source": "29:8",
+        "sourceHandle": "MODEL",
+        "target": "29:14",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "29:4-0-29:14-positive",
+        "source": "29:4",
+        "sourceHandle": "CONDITIONING",
+        "target": "29:14",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "29:9-0-29:14-negative",
+        "source": "29:9",
+        "sourceHandle": "CONDITIONING",
+        "target": "29:14",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "29:11-0-29:15-noise",
+        "source": "29:11",
+        "sourceHandle": "NOISE",
+        "target": "29:15",
+        "targetHandle": "noise",
+        "ui_properties": null
+      },
+      {
+        "id": "29:14-0-29:15-guider",
+        "source": "29:14",
+        "sourceHandle": "GUIDER",
+        "target": "29:15",
+        "targetHandle": "guider",
+        "ui_properties": null
+      },
+      {
+        "id": "29:12-0-29:15-sampler",
+        "source": "29:12",
+        "sourceHandle": "SAMPLER",
+        "target": "29:15",
+        "targetHandle": "sampler",
+        "ui_properties": null
+      },
+      {
+        "id": "29:13-0-29:15-sigmas",
+        "source": "29:13",
+        "sourceHandle": "SIGMAS",
+        "target": "29:15",
+        "targetHandle": "sigmas",
+        "ui_properties": null
+      },
+      {
+        "id": "29:8-1-29:15-latent_image",
+        "source": "29:8",
+        "sourceHandle": "LATENT",
+        "target": "29:15",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "29:23-1-29:8-length",
+        "source": "29:23",
+        "sourceHandle": "INT",
+        "target": "29:8",
+        "targetHandle": "length",
+        "ui_properties": null
+      },
+      {
+        "id": "29:1-0-29:8-model",
+        "source": "29:1",
+        "sourceHandle": "MODEL",
+        "target": "29:8",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "29:3-0-29:8-vae",
+        "source": "29:3",
+        "sourceHandle": "VAE",
+        "target": "29:8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "18-0-29:8-start_image",
+        "source": "18",
+        "sourceHandle": "IMAGE",
+        "target": "29:8",
+        "targetHandle": "start_image",
+        "ui_properties": null
+      },
+      {
+        "id": "29:15-0-29:6-samples",
+        "source": "29:15",
+        "sourceHandle": "output",
+        "target": "29:6",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "29:3-0-29:6-vae",
+        "source": "29:3",
+        "sourceHandle": "VAE",
+        "target": "29:6",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "29:6-0-29:17-images",
+        "source": "29:6",
+        "sourceHandle": "IMAGE",
+        "target": "29:17",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "29:2-0-29:4-clip",
+        "source": "29:2",
+        "sourceHandle": "CLIP",
+        "target": "29:4",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "29:28-0-29:23-values.a",
+        "source": "29:28",
+        "sourceHandle": "FLOAT",
+        "target": "29:23",
+        "targetHandle": "values.a",
+        "ui_properties": null
+      }
+    ]
+  }
+}

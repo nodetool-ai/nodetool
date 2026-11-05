@@ -4,7 +4,8 @@ import {
   VertexEmbeddingNode,
   VertexImageGenerationNode,
   VertexTextToVideoNode,
-  VertexGroundedSearchNode
+  VertexGroundedSearchNode,
+  VertexTextToSpeechNode
 } from "@nodetool-ai/llm-nodes/gemini";
 import {
   ALL_LLM_NODES,
@@ -37,6 +38,42 @@ function contextWith(provider: unknown, extra: Record<string, unknown> = {}) {
 }
 
 describe("provider namespaces", () => {
+  it("sends the picked TTS voice through the Vertex provider", async () => {
+    const provider = vertexProvider(() => json({
+      candidates: [{ content: { parts: [{ inlineData: { data: "AAA=" } }] } }]
+    }));
+    const { context, getProvider } = contextWith(provider);
+    const node = new VertexTextToSpeechNode();
+    node.assign({
+      text: "Hello",
+      model: {
+        type: "tts_model",
+        provider: "gemini_vertex",
+        id: "gemini-3.8-flash-tts",
+        selected_voice: "Puck"
+      },
+      voice_name: "zephyr"
+    });
+
+    await node.process(context);
+
+    expect(getProvider).toHaveBeenCalledWith("gemini_vertex");
+    expect(provider.postModel).toHaveBeenCalledExactlyOnceWith(
+      "gemini-3.8-flash-tts",
+      "generateContent",
+      {
+        contents: [{ parts: [{ text: "Hello" }] }],
+        generationConfig: {
+          responseModalities: ["AUDIO"],
+          speechConfig: {
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: "puck" } }
+          }
+        }
+      },
+      undefined
+    );
+  });
+
   it("registers each separately configured provider under its own namespace", () => {
     const roots = new Set(ALL_LLM_NODES.map((n) => n.nodeType.split(".")[0]));
     for (const root of ["gemini", "vertex", "openai", "codex", "anthropic", "claude_code"]) {

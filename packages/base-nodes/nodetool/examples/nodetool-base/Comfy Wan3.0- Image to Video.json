@@ -1,0 +1,113 @@
+{
+  "id": "4866f3e655270e096999ae97249a3e74",
+  "name": "Comfy Wan3.0- Image to Video",
+  "description": "Create up to 30 seconds of high-fidelity video from a single image using Wan 3.0, which supports text, image, audio, and document inputs for versatile scene generation. Produces authentic, realistic footage with unique facial details and believable motion in one pass. Ideal for cinematic storytelling, product visualization, and documentary-style scene recreation. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Wan3.0- Image to Video\n\nCreate up to 30 seconds of high-fidelity video from a single image using Wan 3.0, which supports text, image, audio, and document inputs for versatile scene generation. Produces authentic, realistic footage with unique facial details and believable motion in one pass. Ideal for cinematic storytelling, product visualization, and documentary-style scene recreation. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_wan3_0_i2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "5",
+        "type": "comfy.Wan3ImageToVideoApi",
+        "data": {
+          "model": "wan3.0-video",
+          "model.prompt": "Generate a 5-second, 16:9 video using the input image as the first frame: a giant black beetle carrying bundled cargo and a hooded rider strides steadily across a slope carpeted in bright red moss, passing through a mist-shrouded alien fantasy landscape.\n\nMotion (keep the composition and subjects unchanged, animate only these elements):\n- The beetle's six segmented legs step alternately, pressing soft dents into the fluffy red moss, its body bobbing gently with each stride; its huge antennae sway slightly as it probes the air\n- The rider's robe drifts backward in the oncoming wind, the long staff staying pointed forward\n- The bundled cargo bobs gently with each step, ropes swaying\n- The mist ahead surges slowly and parts as the beetle pushes through, wisps flowing between its legs; fine spores and particles drift in the air above the red moss\n- The fog over the rocky peaks in the background rolls slowly\n\nCamera: keep the original side view with a slight low angle, slow lateral tracking shot following the beetle's forward motion, moving steadily from left to right across 5 seconds; no cuts, no rotation.\n\nAudio design: layered ambience: the dull thud of beetle feet on moss, soft rustle of drifting mist, distant wind through the valley, faint creak of shell joints; no dialogue, no music or a single restrained low string note.\n\nNegative constraints: do not change the subjects' shapes or the composition, no new characters, no text, no subtitles, no black frames, no camera shake, no excessive distortion.",
+          "model.resolution": "720P",
+          "model.ratio": "adaptive",
+          "model.duration": "auto",
+          "model.audio": true,
+          "model.prompt_extend": true,
+          "seed": 1032549103,
+          "watermark": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Wan 3.0 Image to Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "6",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "beetle_rider.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "8",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Wan3.0",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "6-0-5-first_frame",
+        "source": "6",
+        "sourceHandle": "IMAGE",
+        "target": "5",
+        "targetHandle": "first_frame",
+        "ui_properties": null
+      },
+      {
+        "id": "5-0-8-video",
+        "source": "5",
+        "sourceHandle": "VIDEO",
+        "target": "8",
+        "targetHandle": "video",
+        "ui_properties": null
+      }
+    ]
+  }
+}

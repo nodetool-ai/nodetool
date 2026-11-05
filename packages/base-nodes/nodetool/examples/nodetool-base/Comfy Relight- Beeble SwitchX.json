@@ -1,0 +1,240 @@
+{
+  "id": "594114d730234b5e297bc83bd648f4d2",
+  "name": "Comfy Relight- Beeble SwitchX",
+  "description": "Upload your character image and a reference style/lighting image. Generate an edited output with the reference lighting and style applied to your original image. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image tools",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Relight- Beeble SwitchX\n\nUpload your character image and a reference style/lighting image. Generate an edited output with the reference lighting and style applied to your original image. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_beeble_switchx_image_edit.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "7",
+        "type": "comfy.BeebleSwitchXImageEdit",
+        "data": {
+          "prompt": "Characters listening to music in the scene, product photography",
+          "alpha_mode": "auto",
+          "max_resolution": "720p",
+          "seed": 1784980040
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Beeble SwitchX Image Edit"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "8",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "Beeble_SwitchX"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "9",
+        "type": "comfy.JoinImageWithAlpha",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Join Image with Alpha"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "10",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "soft_light_headphones_man.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "11",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "Beeble_SX_cutout"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13",
+        "type": "comfy.InvertMask",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Invert Mask"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "16",
+        "type": "comfy.ImageCompare",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Compare Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "17",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "simple_modern_living_space.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Image (Optional)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "10-0-7-image",
+        "source": "10",
+        "sourceHandle": "IMAGE",
+        "target": "7",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "17-0-7-reference_image",
+        "source": "17",
+        "sourceHandle": "IMAGE",
+        "target": "7",
+        "targetHandle": "reference_image",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-8-images",
+        "source": "7",
+        "sourceHandle": "image",
+        "target": "8",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "10-0-9-image",
+        "source": "10",
+        "sourceHandle": "IMAGE",
+        "target": "9",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "13-0-9-alpha",
+        "source": "13",
+        "sourceHandle": "MASK",
+        "target": "9",
+        "targetHandle": "alpha",
+        "ui_properties": null
+      },
+      {
+        "id": "9-0-11-images",
+        "source": "9",
+        "sourceHandle": "IMAGE",
+        "target": "11",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "7-1-13-mask",
+        "source": "7",
+        "sourceHandle": "alpha",
+        "target": "13",
+        "targetHandle": "mask",
+        "ui_properties": null
+      },
+      {
+        "id": "10-0-16-image_a",
+        "source": "10",
+        "sourceHandle": "IMAGE",
+        "target": "16",
+        "targetHandle": "image_a",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-16-image_b",
+        "source": "7",
+        "sourceHandle": "image",
+        "target": "16",
+        "targetHandle": "image_b",
+        "ui_properties": null
+      }
+    ]
+  }
+}

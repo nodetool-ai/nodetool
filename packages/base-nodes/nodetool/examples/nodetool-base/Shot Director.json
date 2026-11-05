@@ -1,0 +1,348 @@
+{
+  "id": "shot-director-0000000000000001",
+  "access": "public",
+  "created_at": "2026-11-03T12:00:00.000000",
+  "updated_at": "2026-11-03T12:00:00.000000",
+  "name": "Shot Director",
+  "description": "Direct a cinematic take from one still as a native ComfyUI graph on Comfy Cloud (Wan 2.2 TI2V 5B, open weights). The same graph runs behind the Storyboard clip model \"Wan 2.2 TI2V 5B (ComfyUI workflow, open weights)\".",
+  "tags": [
+    "video",
+    "comfy",
+    "camera-moves",
+    "open-weights",
+    "example"
+  ],
+  "required_providers": [],
+  "thumbnail": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Shot Director\n\nDirect a cinematic take from one still as a native ComfyUI graph on Comfy Cloud (Wan 2.2 TI2V 5B, open weights). The same graph runs behind the Storyboard clip model \"Wan 2.2 TI2V 5B (ComfyUI workflow, open weights)\".\n\n**How it works:** Run submits this graph to Comfy Cloud and saves the take. Set the still on the Load Image node and describe the shot in the prompt.\n\n**Camera moves:** Add one of these clauses to the end of the prompt.\n\n- **dolly in:** The camera glides forward toward the subject in one continuous movement. Nearby objects slide past faster than the distant background as the subject grows larger. One continuous shot.\n- **orbit:** The camera circles all the way around the subject at a steady height and distance, revealing front, side, back and front again in a continuous shot. One continuous shot.\n- **crane up:** The camera lifts above the subject and gradually points downward. More of the surrounding ground becomes visible as the subject recedes below. One continuous shot.\n- **pull back reveal:** Beginning close to the subject, the camera retreats smoothly into a wide shot. Surrounding scenery progressively enters at the edges and reveals the larger setting. One continuous shot.\n- **handheld:** Small irregular camera movements drift gently up, down and sideways, like a person holding a camera while standing still. The subject remains clearly visible. One continuous shot.\n- **static:** The camera holds exactly the same viewpoint and framing throughout the shot. Motion belongs to the subject and the environment inside the stationary frame. One continuous shot."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -640
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "3",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 42,
+          "steps": 20,
+          "cfg": 5,
+          "sampler_name": "uni_pc",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "6",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "A cinematic shot."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "blurry, low quality, distorted, deformed, flicker, watermark, text, subtitles, jump cut, static frame, overexposed"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "8",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "37",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "wan2.2_ti2v_5B_fp16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "38",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+          "type": "wan",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "39",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "wan2.2_vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "48",
+        "type": "comfy.ModelSamplingSD3",
+        "data": {
+          "shift": 8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "55",
+        "type": "comfy.Wan22ImageToVideoLatent",
+        "data": {
+          "width": 1280,
+          "height": 704,
+          "length": 121,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "56",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "input.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "57",
+        "type": "comfy.CreateVideo",
+        "data": {
+          "fps": 24
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "58",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/shot-director",
+          "format": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "48-0-3-model",
+        "source": "48",
+        "sourceHandle": "MODEL",
+        "target": "3",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-3-positive",
+        "source": "6",
+        "sourceHandle": "CONDITIONING",
+        "target": "3",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-3-negative",
+        "source": "7",
+        "sourceHandle": "CONDITIONING",
+        "target": "3",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "55-0-3-latent_image",
+        "source": "55",
+        "sourceHandle": "LATENT",
+        "target": "3",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "38-0-6-clip",
+        "source": "38",
+        "sourceHandle": "CLIP",
+        "target": "6",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "38-0-7-clip",
+        "source": "38",
+        "sourceHandle": "CLIP",
+        "target": "7",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "3-0-8-samples",
+        "source": "3",
+        "sourceHandle": "LATENT",
+        "target": "8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "39-0-8-vae",
+        "source": "39",
+        "sourceHandle": "VAE",
+        "target": "8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "37-0-48-model",
+        "source": "37",
+        "sourceHandle": "MODEL",
+        "target": "48",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "39-0-55-vae",
+        "source": "39",
+        "sourceHandle": "VAE",
+        "target": "55",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "56-0-55-start_image",
+        "source": "56",
+        "sourceHandle": "IMAGE",
+        "target": "55",
+        "targetHandle": "start_image",
+        "ui_properties": null
+      },
+      {
+        "id": "8-0-57-images",
+        "source": "8",
+        "sourceHandle": "IMAGE",
+        "target": "57",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "57-0-58-video",
+        "source": "57",
+        "sourceHandle": "VIDEO",
+        "target": "58",
+        "targetHandle": "video",
+        "ui_properties": null
+      }
+    ]
+  },
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "comfy"
+}

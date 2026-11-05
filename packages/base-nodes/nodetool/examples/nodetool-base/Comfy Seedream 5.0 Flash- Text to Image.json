@@ -1,0 +1,87 @@
+{
+  "id": "a929230d903f6b1456ae3409e02c7da2",
+  "name": "Comfy Seedream 5.0 Flash- Text to Image",
+  "description": "Generate high-quality images from text prompts using Seedream 5.0 Flash, producing detailed 1K, 1.5K, or 2K visuals with cinematic lighting and accurate text rendering, saved as a single image output. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Seedream 5.0 Flash- Text to Image\n\nGenerate high-quality images from text prompts using Seedream 5.0 Flash, producing detailed 1K, 1.5K, or 2K visuals with cinematic lighting and accurate text rendering, saved as a single image output. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_bytedance_seedream_5_0_flash_t2i.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "35",
+        "type": "comfy.ByteDanceSeedreamNodeV3",
+        "data": {
+          "prompt": "High-fashion sports magazine editorial video. A powerful athletic runner sprinting forward across the frame against a glowing monochromatic amber-orange studio background. Artistic motion blur trails capturing explosive speed and fluid movement. Minimalist sleek black compression sportswear, no logos. Dramatic rim lighting, deep contrast shadows, dynamic high-impact composition, cinematic 4k aesthetic.",
+          "model": "seedream 5.0 flash",
+          "model.size_preset": "(1K) 1024x1024 (1:1)",
+          "model.width": 2048,
+          "model.height": 2048,
+          "model.images": 1161452782,
+          "model.seed": "randomize",
+          "model.watermark": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ByteDance Seedream 4.5 & 5.0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "37",
+        "type": "comfy.SaveImageAdvanced",
+        "data": {
+          "filename_prefix": "Seedream5.0_flash",
+          "format": "png",
+          "format.bit_depth": "8-bit",
+          "format.input_color_space": "sRGB"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "35-0-37-images",
+        "source": "35",
+        "sourceHandle": "IMAGE",
+        "target": "37",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

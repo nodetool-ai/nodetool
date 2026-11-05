@@ -6,15 +6,15 @@ brand
 
 ## Users
 
-Primary: **small production teams doing paid, repeated work** — performance and social teams shipping ad variants weekly, catalogue teams with more SKUs than shoot days, studios re-releasing a talk into another market. They arrive from a closed AI studio whose credits and model list they have outgrown, and they judge the product in the first ten seconds by whether it looks capable and whether it feels like it's on their side. The **solo filmmaker** making one trailer is the on-ramp: they arrive through the trailer recipe, pay little, and bring the team they work with. [NARRATIVE.md § Audience](NARRATIVE.md#audience) has the reasoning.
+Primary: **small production teams doing paid, repeated work** — performance and social teams shipping ad variants weekly, catalogue teams with more SKUs than shoot days, studios re-releasing a talk into another market. They arrive from hosted AI apps whose credits, model list, and locked exports they have outgrown, and they judge the product in the first ten seconds by whether it looks capable and whether it feels like it's on their side. The **solo filmmaker** making one trailer is the on-ramp: they arrive through the trailer recipe, pay little, and bring the team they work with. [NARRATIVE.md § Audience](NARRATIVE.md#audience) has the reasoning.
 
 Secondary tracks (each with its own surface, not the homepage's first voice): developers (`/developers` — CLI, API, self-hosting), agent builders (`/agents`), and business/teams evaluating cost, ownership, and deployment.
 
 ## Product Purpose
 
-NodeTool is an **agent-first creative workspace**: one canvas where every major model from every major provider is a node, called with the user's own API keys (BYOK). Users pay providers directly — no credits, no markup, no curated roster — and when a new model ships they swap one node and they're on it the same day. It's open source and runs anywhere (local-first or self-hosted).
+NodeTool is an **open-source agent-first creative workspace**. A creator gives the agent a brief, and it builds a project: the script, the storyboard, the takes, and a multi-track timeline, plus sketches, 3D scenes, games, and node workflows where the job needs them. Every part stays editable by hand, and the agent works in the same documents when sent back with a note. The work runs on the creator's own accounts: a ChatGPT, Claude, or Gemini plan for the agent, provider API keys at list price for every other model, or local models. Studio is free, and the source is AGPL-3.0.
 
-Success looks like a creator downloading it, wiring their first multi-model workflow within minutes, and feeling the difference from credit-gated competitors: this one is fast, capable, and theirs.
+Success looks like a creator downloading it, giving the agent a first brief, and opening the project it built: the board, the takes, and the cut, each one theirs to change.
 
 ## Brand Personality
 

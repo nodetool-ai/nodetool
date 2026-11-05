@@ -10,6 +10,7 @@ import {
   Text,
   Caption,
   LoadingSpinner,
+  CopyButton,
   EditorButton,
   ConfirmDialog,
   Dialog,
@@ -23,6 +24,7 @@ import {
 import {
   useWorkers,
   useWorkerHealth,
+  type ComfyPreset,
   type WorkerInstance,
   type WorkerProfile,
   type WorkerTarget
@@ -188,6 +190,70 @@ const ProvisionDialog: React.FC<ProvisionDialogProps> = ({
   );
 };
 
+interface ComfyPresetsSectionProps {
+  presets: ComfyPreset[];
+  runningProfiles: ReadonlySet<string>;
+  startingId: string | null;
+  apiKeyMissing: boolean;
+  onStart: (presetId: string) => void;
+}
+
+const ComfyPresetsSection: React.FC<ComfyPresetsSectionProps> = ({
+  presets,
+  runningProfiles,
+  startingId,
+  apiKeyMissing,
+  onStart
+}) => {
+  const { t, i18n } = useTranslation();
+  const money = new Intl.NumberFormat(i18n.language, {
+    style: "currency",
+    currency: "USD"
+  });
+  return (
+    <FlexColumn gap={SPACING.sm} sx={{ mt: SPACING.md }}>
+      {apiKeyMissing && presets.length > 0 && (
+        <WorkerApiKeySetup target="runpod" />
+      )}
+      {presets.map((preset) => (
+        <Card key={preset.id} variant="outlined" padding="normal">
+          <FlexRow align="center" justify="space-between" gap={SPACING.lg}>
+            <FlexColumn gap={SPACING.micro}>
+              <Text size="normal" weight={600}>
+                {preset.label}
+              </Text>
+              <Caption size="small">
+                {t("screens4_8.workers.presets.summary", {
+                  min: money.format(preset.hourlyUsd.min),
+                  max: money.format(preset.hourlyUsd.max),
+                  count: Math.round(preset.maxLifetimeMinutes / 60)
+                })}
+              </Caption>
+            </FlexColumn>
+            <EditorButton
+              density="compact"
+              variant="outlined"
+              aria-label={t("screens4_8.workers.presets.startAria", {
+                name: preset.label
+              })}
+              disabled={
+                apiKeyMissing ||
+                startingId !== null ||
+                runningProfiles.has(preset.profileName)
+              }
+              onClick={() => onStart(preset.id)}
+            >
+              {startingId === preset.id
+                ? t("screens4_8.workers.presets.starting")
+                : t("screens4_8.workers.presets.start")}
+            </EditorButton>
+          </FlexRow>
+        </Card>
+      ))}
+    </FlexColumn>
+  );
+};
+
 interface InstanceRowProps {
   instance: WorkerInstance;
   now: number;
@@ -227,6 +293,8 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
   const healthQuery = useWorkerHealth(instance.id, isRunning);
   const isHealthy = healthQuery.data?.healthy === true;
   const isBooting = isRunning && !isHealthy;
+  // A ComfyUI pod has no worker bridge to attach. Its URL goes in the node.
+  const comfyEndpoint = healthQuery.data?.comfyEndpoint;
 
   // Effective status presentation: the raw status, except a `running` worker is
   // shown as "booting" until it answers the probe, then "ready".
@@ -244,6 +312,10 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
   const statusHint =
     instance.status === "provisioning"
       ? t("screens4_8.workers.status.provisioningHint")
+      : comfyEndpoint && isRunning
+        ? isHealthy
+          ? t("screens4_8.workers.presets.readyHint")
+          : t("screens4_8.workers.presets.bootingHint")
       : isBooting
         ? autoAttach
           ? t("screens4_8.workers.status.bootingAutoAttachHint")
@@ -257,10 +329,10 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
   // A worker started here attaches the moment it answers, so the user does not
   // have to come back and press Attach.
   useEffect(() => {
-    if (autoAttach && isRunning && isHealthy && !busy) {
+    if (autoAttach && isRunning && isHealthy && !busy && !comfyEndpoint) {
       onAutoAttach(instance.id);
     }
-  }, [autoAttach, isRunning, isHealthy, busy, onAutoAttach, instance.id]);
+  }, [autoAttach, isRunning, isHealthy, busy, comfyEndpoint, onAutoAttach, instance.id]);
 
   return (
     <Card variant="outlined" padding="normal">
@@ -298,7 +370,15 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
               value: formatCost(instance.estimated_cost_usd, i18n.language, t)
             })}
           </Caption>
-          {isAttached ? (
+          {comfyEndpoint ? (
+            isRunning &&
+            isHealthy && (
+              <CopyButton
+                value={comfyEndpoint}
+                tooltip={t("screens4_8.workers.presets.copyEndpoint")}
+              />
+            )
+          ) : isAttached ? (
             <EditorButton
               density="compact"
               variant="outlined"
@@ -394,6 +474,8 @@ const WorkersPanel: React.FC = () => {
     instances,
     instancesQuery,
     apiKeyStatus,
+    comfyPresets,
+    startComfyPreset,
     createProfile,
     deleteProfile,
     provision,
@@ -409,6 +491,7 @@ const WorkersPanel: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [profilesOpen, setProfilesOpen] = useState(false);
   const [isProvisioning, setIsProvisioning] = useState(false);
+  const [startingPresetId, setStartingPresetId] = useState<string | null>(null);
   const [stoppingId, setStoppingId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -432,6 +515,11 @@ const WorkersPanel: React.FC = () => {
       shownInstances
         .filter((instance) => BILLING_STATUSES.has(instance.status))
         .reduce((sum, instance) => sum + (instance.estimated_cost_usd ?? 0), 0),
+    [shownInstances]
+  );
+
+  const runningProfiles = useMemo(
+    () => new Set(shownInstances.map((instance) => instance.profile_name)),
     [shownInstances]
   );
 
@@ -474,6 +562,15 @@ const WorkersPanel: React.FC = () => {
       if (ok) setDialogOpen(false);
     },
     [startWorker, runAction]
+  );
+
+  const handleStartPreset = useCallback(
+    async (presetId: string) => {
+      setStartingPresetId(presetId);
+      await runAction(() => startComfyPreset(presetId));
+      setStartingPresetId(null);
+    },
+    [startComfyPreset, runAction]
   );
 
   // With no profile yet, "Start worker" opens the setup form instead of a
@@ -654,6 +751,14 @@ const WorkersPanel: React.FC = () => {
             })}
           </AlertBanner>
         )}
+
+        <ComfyPresetsSection
+          presets={comfyPresets}
+          runningProfiles={runningProfiles}
+          startingId={startingPresetId}
+          apiKeyMissing={apiKeyStatus?.runpod === false}
+          onStart={handleStartPreset}
+        />
 
         <FlexColumn
           className="scrollable-content"

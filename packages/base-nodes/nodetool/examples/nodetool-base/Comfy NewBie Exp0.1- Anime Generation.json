@@ -1,0 +1,418 @@
+{
+  "id": "6873b40bf06437b8e1cdc7d4c98e8872",
+  "name": "Comfy NewBie Exp0.1- Anime Generation",
+  "description": "Generate detailed anime-style images with NewBie Exp0.1's Next-DiT architecture. Supports XML structured prompts for better multi-character scenes and attribute control. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy NewBie Exp0.1- Anime Generation\n\nGenerate detailed anime-style images with NewBie Exp0.1's Next-DiT architecture. Supports XML structured prompts for better multi-character scenes and attribute control. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/image_newbieimage_exp0_1-t2i.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "9",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "NewBie-Image-Exp0.1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "43",
+        "type": "comfy.StringReplace",
+        "data": {
+          "find": "{user_prompt}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Replace Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "44",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "An extremely detailed, vibrant, and dynamic digital illustration in an anime style features a young girl, identified as $character_1$, in an extreme close-up, tight shot, captured with a dramatic Dutch angle[cite: 36, 38]. $Character_1$, who resembles Roxy Migurdia, is positioned to fill the entire frame in the center-foreground, creating an intense, immersive perspective[cite: 15, 32]. She has long, bright **blue hair** that appears to be floating dynamically around her head and shoulders, with a small **ahoge** visible on top[cite: 31, 32]. Her intense, **concerned blue eyes** with sharp pupils stare directly out of the frame toward the viewer, conveying a serious and focused expression, categorized as **jitome**[cite: 31, 34]. The top half of her face is obscured by a shadow cast by her very large, wide-brimmed **black witch hat**, creating a dramatic **cut light** effect that enhances the intense atmosphere and contributes to her shaded face[cite: 36, 37]. She is wearing a complex, **multicolored outfit** that includes a high-collared garment, possibly a coat or shawl, over what appears to be a **white and blue dress** with intricate trim, suggesting a magical or fantasy setting[cite: 31]. The clothing is obscured in parts by the surrounding special effects[cite: 38]. Her action is highly dynamic: her left arm extends dramatically out of the image plane, with her **hand open and pointing towards the camera**[cite: 32]. Her right hand is used to hold or adjust the brim of the large hat on her head[cite: 32]. The entire scene is enveloped in a powerful, dynamic effect of **fluid dynamics** and a **vortex**[cite: 36, 38]. **Cerulean blue water, or fluid**, is spiraling and swirling around her body and hand, creating a **three-dimensional spiral structure** that dominates the composition[cite: 38]. Scattered among the fluid are multiple sharp, glowing **blue crystal petals** and shards, giving the scene a magical and crystalline quality[cite: 37, 38]. The art style is defined by high resolution, best quality, and master-level detail, with noticeable artistic effects such as **chromatic aberration** and **bokeh** enhancing the sense of motion and depth[cite: 37]. The dark, abstract background further emphasizes the character and the vibrant blue light of the surrounding magical effects[cite: 36]. The lighting is highly dramatic, with a strong, artificial light source highlighting the crystalline fluids and the bottom of her face[cite: 37]. This is an illustration with an epic composition[cite: 36]."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Caption"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "46",
+        "type": "comfy.StringReplace",
+        "data": {
+          "find": "{caption}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Replace Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "47",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "You are an assistant designed to generate high-quality anime images with the highest degree of image-text alignment based on xml format textual prompts. <Prompt Start>\n{\n\"character_1\": {\n\"bbox\": [\n0,\n0,\n1000,\n1000\n],\n\"name\": \"$character_1$\"\n},\n\"image\": {\n\"tags\": \"\n{user_prompt}\n\",\n\"caption\": \"{caption}\"\n}\n}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Prompt Template"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "48",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "<character_1>\n<n>$character_1$</n>\n<gender>1girl</gender>\n<appearance>blue hair, long hair, floating hair, ahoge, blue eyes, sharp pupils, fair skin, shaded face, beauty mark, Roxy Migurdia</appearance>\n<clothing>witch hat, large hat, black hat, shawl, coat, white and blue dress, multicolored clothing, high collar</clothing>\n<body_type>slender, small breasts</body_type>\n<expression>serious, concerned, concerned eyes, intense gaze, open mouth, slight frown, jitome</expression>\n<action>pointing at viewer, hand out, hand gesture, posing, head tilt, holding hat, supporting hat, dynamic pose, mid-action</action>\n<interaction>pointing towards the camera</interaction>\n<position>full-frame, center, foreground, tight shot, extreme close-up</position>\n</character_1>\n\n<general_tags>\n<count>1girl</count>\n<artists>yoneyama mai, Mika pikazo, Rolua</artists>\n<style>anime style, digital art, illustration, detailed shading, cut light, fluid dynamics, cerulean gold particle effects</style>\n<background>abstract, dark background, dynamic background</background>\n<environment>vortex, spiral, surrounded by floating crystal petals, caustics</environment>\n<perspective>dramatic angle, dutch angle, from below, tight shot, extreme close up</perspective>\n<atmosphere>intense, dynamic, magical, mysterious, epic composition, shaded</atmosphere>\n<lighting>cut light, shadow, strong contrast, dramatic lighting</lighting>\n<quality>masterpiece, best quality, very awa, newest, highres, absurdres, an extremely delicate and beautiful, original, illustration, amazing, detailed</quality>\n<objects>crystal, crystal petals</objects>\n<other>fluid dynamics, spiral, three-dimensional spiral structure, chromatic aberration, bokeh, floating, special effects covered in crystals and fluids obscure a part of the body</other>\n</general_tags>"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "User Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "41:32",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 6,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "ModelSamplingAuraFlow"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "41:30",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "NewBie-Image-Exp0.1-bf16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "41:26",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "ae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "41:34",
+        "type": "comfy.DualCLIPLoader",
+        "data": {
+          "clip_name1": "gemma_3_4b_it_bf16.safetensors",
+          "clip_name2": "jina_clip_v2_bf16.safetensors",
+          "type": "newbie",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Load CLIP (Dual)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "41:8",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "41:31",
+        "type": "comfy.EmptySD3LatentImage",
+        "data": {
+          "width": 1024,
+          "height": 1536,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "EmptySD3LatentImage"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "41:3",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 27582042565232,
+          "steps": 20,
+          "cfg": 5.5,
+          "sampler_name": "res_multistep",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "41:43",
+        "type": "comfy.CLIPTextEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Positive Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "41:49",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "You are an assistant designed to generate low-quality images based on textual prompts. <Prompt Start>"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Negative Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "41:8-0-9-images",
+        "source": "41:8",
+        "sourceHandle": "IMAGE",
+        "target": "9",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "47-0-43-string",
+        "source": "47",
+        "sourceHandle": "STRING",
+        "target": "43",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "48-0-43-replace",
+        "source": "48",
+        "sourceHandle": "STRING",
+        "target": "43",
+        "targetHandle": "replace",
+        "ui_properties": null
+      },
+      {
+        "id": "43-0-46-string",
+        "source": "43",
+        "sourceHandle": "STRING",
+        "target": "46",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "44-0-46-replace",
+        "source": "44",
+        "sourceHandle": "STRING",
+        "target": "46",
+        "targetHandle": "replace",
+        "ui_properties": null
+      },
+      {
+        "id": "41:30-0-41:32-model",
+        "source": "41:30",
+        "sourceHandle": "MODEL",
+        "target": "41:32",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "41:3-0-41:8-samples",
+        "source": "41:3",
+        "sourceHandle": "LATENT",
+        "target": "41:8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "41:26-0-41:8-vae",
+        "source": "41:26",
+        "sourceHandle": "VAE",
+        "target": "41:8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "41:32-0-41:3-model",
+        "source": "41:32",
+        "sourceHandle": "MODEL",
+        "target": "41:3",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "41:43-0-41:3-positive",
+        "source": "41:43",
+        "sourceHandle": "CONDITIONING",
+        "target": "41:3",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "41:49-0-41:3-negative",
+        "source": "41:49",
+        "sourceHandle": "CONDITIONING",
+        "target": "41:3",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "41:31-0-41:3-latent_image",
+        "source": "41:31",
+        "sourceHandle": "LATENT",
+        "target": "41:3",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "46-0-41:43-text",
+        "source": "46",
+        "sourceHandle": "STRING",
+        "target": "41:43",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "41:34-0-41:43-clip",
+        "source": "41:34",
+        "sourceHandle": "CLIP",
+        "target": "41:43",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "41:34-0-41:49-clip",
+        "source": "41:34",
+        "sourceHandle": "CLIP",
+        "target": "41:49",
+        "targetHandle": "clip",
+        "ui_properties": null
+      }
+    ]
+  }
+}

@@ -110,6 +110,10 @@ const MODELS = {
     kind: "image",
     keywords: ["retro-diffusion", "retro diffusion"],
   },
+  "ernie-image": { kind: "image", keywords: ["ernie-image"] },
+  "mai-image": { kind: "image", keywords: ["mai-image"] },
+  "uni-1": { kind: "image", keywords: ["uni-1"] },
+  "muse-image": { kind: "image", keywords: ["muse-image"] },
 };
 
 /** outputType values that count for each model kind (mirrors buildImageModels/buildVideoModels). */

@@ -1,0 +1,87 @@
+{
+  "id": "26f5e6b11e0c0390f730357f09ed389c",
+  "name": "Comfy Krea 3- Text to Image",
+  "description": "Generate images from text prompts using Krea 3, producing a single finished image per run with no input files required. Ideal for e-commerce product staging, fashion and portrait work, and architectural concept rendering. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Krea 3- Text to Image\n\nGenerate images from text prompts using Krea 3, producing a single finished image per run with no input files required. Ideal for e-commerce product staging, fashion and portrait work, and architectural concept rendering. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_krea3_t2i.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.Krea3ImageNode",
+        "data": {
+          "model": "Krea 3",
+          "model.images": "Extreme low-angle shot of a female athlete stretching under an overpass, emphasizing a prominent light-colored running shoe with orange accents in the foreground. She wears a dark jacket, cap, sunglasses, and light blue socks. Dramatic mixed lighting contrasts dark bridge shadows with bright background daylight. Captured with a wide-angle lens for dynamic forced perspective. Absolutely no text, no typography, no letters, no words, no numbers, no logos, no watermark, no captions, pure imagery only.",
+          "model.prompt": "auto",
+          "model.aspect_ratio": "1K",
+          "model.resolution": "fast",
+          "model.thinking_mode": false,
+          "model.precise_edit": 1356972165,
+          "model.seed": "randomize"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Krea 3 Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.SaveImageAdvanced",
+        "data": {
+          "filename_prefix": "api_krea3_t2i",
+          "format": "png",
+          "format.bit_depth": "8-bit",
+          "format.input_color_space": "sRGB"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "1-0-7-images",
+        "source": "1",
+        "sourceHandle": "IMAGE",
+        "target": "7",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

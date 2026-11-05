@@ -134,7 +134,8 @@ dialog while its batch dialog was filled (`study-11-I4`).
 A new model kind, a new picker or a new flow reads the Settings default for
 its kind, and connecting a provider seeds that default. An example app's model
 fields are pickers too: people picked the same model in four fields
-(`study-12-R2`).
+(`study-12-R2`). The picture composer that opens from "Create image" also
+started blank after a key was connected, in 3 of 3 sessions (`study-17-I2`).
 
 ### 2.3 Show which model is current, the same way everywhere
 
@@ -343,8 +344,10 @@ label, search the UI for the existing name of the thing.
 "worker:local", "Queue", "Workers", "Trace" and unlabeled icons were the
 words first looks named as unclear, in 10 of 12 sessions in study 3
 (`study-1-I5`). Raw storage paths, model ids and developer skills
-in the home list read as noise (study 3, D4 and D5). Show these only where a
-person asked for diagnostics.
+in the home list read as noise (study 3, D4 and D5). Study 17 found
+"worker:local" unclear in 5 of 9 first looks again (`study-17-I3`). Show these
+only where a person asked for diagnostics, and a panel tab only on the
+document it describes.
 
 ### 5.3 A button says what it does, and two buttons never sound alike
 
@@ -435,6 +438,7 @@ records the decision.
 |---|---|
 | Keep the first-run connection dialog, move it to first use, or give the key route equal weight | study-1-I2 |
 | Rail labels, and whether developer terms belong in the status bar | study-1-I5 |
+| What the home box's "Entities · none" control should be called, or whether it shows before the first entity | study-17-I4 |
 | A shorter path from one sentence to a picture, and a use case for an everyday picture | study-3-I4 |
 | How a scene-by-scene plan with pictures is reached from home | study-10-I1 |
 | Whether chat should hand "make me a page" or "make me a game" to the matching flow | study-6-I2 |

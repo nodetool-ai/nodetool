@@ -3223,7 +3223,11 @@
         "resolution": "Auflösung",
         "stillDescription": "Wähle das Modell für das Standbild dieser Einstellung. Deine Auswahl bleibt für den nächsten Render dieser Einstellung gespeichert.",
         "stillModel": "Standbildmodell",
-        "stillRequired": "Diese Einstellung animiert ihr Standbild. Rendere zuerst ein Standbild oder stelle ein, dass die Einstellung direkt aus ihrem Prompt gerendert wird."
+        "stillRequired": "Diese Einstellung animiert ihr Standbild. Rendere zuerst ein Standbild oder stelle ein, dass die Einstellung direkt aus ihrem Prompt gerendert wird.",
+        "comfyWorkflow": {
+          "note": "Führt einen festgelegten ComfyUI-Workflow in der Comfy Cloud aus, nur mit ComfyUI-Kernknoten. Ein 5-Sekunden-Take dauert etwa ein bis zwei Minuten. Kamera-Presets lenken den Prompt, sie sind keine geometrische Kamerasteuerung.",
+          "open": "ComfyUI-Workflow öffnen"
+        }
       },
       "takesGallery": {
         "clips": "Clips",
@@ -6293,6 +6297,7 @@
         "renderedExampleShots_other": "{{count}} Einstellungen, bereits gerendert",
         "blankEntries": {
           "workflow": "Workflow",
+          "comfy-workflow": "Comfy-Workflow",
           "chat": "Chat",
           "text": "Text",
           "image": "Skizze",
@@ -7922,14 +7927,18 @@
         "remove": "Szenenclip entfernen",
         "cancel": "Abbrechen",
         "render": "Szenenclip rendern{{cost}}",
-        "description": "Rendert diese Einstellungen als einen durchgehenden Clip. Der Clip liegt auf der ersten Einstellung, und jede weitere Einstellung verwendet ihr Zeitfenster daraus, damit der Schnitt in der richtigen Reihenfolge bleibt.",
+        "description": "Rendert diese Einstellungen als einen durchgehenden Clip. Der Clip liegt auf der ersten Einstellung, und jede weitere spielt ihr Zeitfenster daraus. Handlung, Kamera, Licht und Ton jeder Einstellung werden automatisch gesendet, sodass ein erneutes Rendern dieselbe Regie erhält.",
         "from": "Von",
         "length": "Länge",
         "shotStillAlt": "Standbild der Einstellung",
         "imageReference": "[Bild {{number}}] ",
-        "promptLabel": "Dein Prompt",
-        "promptPlaceholder": "Eine durchgehende Bewegung von der Tür zum Fenster.",
-        "promptHelp": "Optional. Die Aktionen, Bewegungen und Geräusche der Einstellungen werden danach hinzugefügt. Verweise auf Standbilder mit [Bild N].",
+        "references": "Referenzbilder",
+        "referencesHelp": "Standbilder legen Bildausschnitt und Pose fest. Entitätsbilder legen fest, wer und wo.",
+        "stills": "Standbilder",
+        "entities": "Entitäten",
+        "addEntity": "Aus Bibliothek hinzufügen",
+        "noStill": "Kein Standbild",
+        "noEntityImage": "Kein Bild",
         "renderSettings": "Rendereinstellungen",
         "videoModel": "Videomodell",
         "duration": "Dauer",
@@ -7942,6 +7951,7 @@
           "addShot": "Füge zuerst eine Einstellung zum Board hinzu.",
           "renderStill": "Rendere mindestens ein Standbild.",
           "addEntityImage": "Gib zuerst einer Entität auf dem Board ein Referenzbild.",
+          "noReference": "Wähle mindestens ein Referenzbild aus.",
           "noVideoModel": "Kein Videomodell ausgewählt.",
           "imageLimit": "{{imageCount}} Bilder überschreiten das Limit von {{limit}}. Entferne {{remove}}.",
           "durationUnavailable": "{{model}} bietet keinen {{duration}}-Clip an. Wähle eine dieser Optionen: {{choices}}.",
@@ -7949,7 +7959,8 @@
           "shotRange": "Ein Szenenclip umfasst {{min}} bis {{max}} Einstellungen."
         },
         "playTitle": "Gerenderter Clip",
-        "playLabel": "Szenen-Clip"
+        "playLabel": "Szenen-Clip",
+        "downloadClip": "Clip herunterladen"
       }
     }
   },
@@ -9026,6 +9037,10 @@
           "button": "Opper-API-Schlüssel abrufen",
           "tooltip": "Rufe die Opper-Plattform auf, um deinen API-Schlüssel zu erhalten"
         },
+        "CHEAPER_INFERENCE_API_KEY": {
+          "button": "Cheaper-Inference-API-Schlüssel abrufen",
+          "tooltip": "Rufe Cheaper Inference auf, um deinen API-Schlüssel zu erhalten"
+        },
         "API_ROUTE_API_KEY": {
           "button": "API-Route-Schlüssel abrufen",
           "tooltip": "Zur API-Route-API-Schlüsselseite"
@@ -9523,6 +9538,16 @@
         "title": "Graphen auf einer gemieteten GPU ausführen",
         "description": "Verbinde RunPod einmal und wähle eine GPU. NodeTool führt dann deine Python-Nodes darauf aus, und Worker im Leerlauf pausieren von selbst.",
         "action": "Worker einrichten"
+      },
+      "presets": {
+        "summary_one": "Etwa {{min}}–{{max}} pro Stunde. Endet nach {{count}} Stunde und löscht seine Dateien.",
+        "summary_other": "Etwa {{min}}–{{max}} pro Stunde. Endet nach {{count}} Stunden und löscht seine Dateien.",
+        "start": "Starten",
+        "starting": "Wird gestartet…",
+        "startAria": "{{name}} auf einer gemieteten GPU starten",
+        "bootingHint": "ComfyUI wird geladen. Der erste Start kann einige Minuten dauern.",
+        "readyHint": "Kopiere die URL in „Run ComfyUI Workflow“. Jeder mit dieser URL kann den Pod nutzen.",
+        "copyEndpoint": "ComfyUI-URL kopieren"
       }
     }
   },
@@ -19599,6 +19624,43 @@
     "simple": "Einfach",
     "expert": "Experte",
     "canvasSize": "{{width}} × {{height}}",
-    "frameRate": "{{fps}} fps"
+    "frameRate": "{{fps}} fps",
+    "showAssistant": "Assistent einblenden",
+    "hideAssistant": "Assistent ausblenden",
+    "resizeAssistant": "Größe des Timeline-Assistenten ändern"
+  },
+  "generationBatch": {
+    "summary": "{{done}} von {{total}} fertig",
+    "remaining": "Noch etwa {{time}}",
+    "finishing": "Wird abgeschlossen",
+    "failedCount": "Fehlgeschlagen: {{count}}",
+    "status": {
+      "queued": "Wartet",
+      "running": "Läuft",
+      "completed": "Fertig",
+      "failed": "Fehlgeschlagen"
+    },
+    "showRequests": "Anfragen anzeigen",
+    "hideRequests": "Anfragen ausblenden",
+    "expected": "Erwartet {{time}}",
+    "took": "Dauerte {{time}}",
+    "progressLabel": "Fortschritt der Generierung"
+  },
+  "workflowSteps": {
+    "stepOf": "Schritt {{current}} von {{total}}",
+    "allDone": "Alle {{total}} Schritte fertig",
+    "waiting": "Wartet",
+    "running": "Läuft",
+    "done": "Fertig",
+    "failed": "Fehlgeschlagen",
+    "progressLabel": "Fortschritt des Workflows",
+    "steps": "Schritte",
+    "addStep": "Schritt hinzufügen",
+    "removeStep": "Schritt entfernen",
+    "node": "Knoten",
+    "title": "Titel",
+    "description": "Beschreibung",
+    "autoHint": "Keine Schritte festgelegt. Das Widget zeigt jeden generativen Knoten.",
+    "chooseNode": "Knoten wählen"
   }
 }

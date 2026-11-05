@@ -1651,6 +1651,8 @@ class FableProcessor extends AudioWorkletProcessor {
     // Timeline event queue: sorted { f, on, n, v }, consumed from evHead.
     this.evq = [];
     this.evHead = 0;
+    this.eventHeld = new Map();
+    this.liveEventTag = Symbol();
     // Timeline automation lanes (devices/param-automation-worklet.js).
     this.pauto = globalThis.FableParamAutomation ? new globalThis.FableParamAutomation() : null;
     this.pautoSet = (k, v) => this.onMsg({ t: 'p', k, v });
@@ -1666,12 +1668,12 @@ class FableProcessor extends AudioWorkletProcessor {
     }
   }
 
-  queueEvents(ev) {
+  queueEvents(ev, tag) {
     const q = this.evHead ? this.evq.slice(this.evHead) : this.evq;
     for (let i = 0; i + 3 < ev.length; i += 4) {
       const n = ev[i + 2] | 0;
       if (!Number.isFinite(ev[i]) || n < 0 || n > 127) continue;
-      q.push({ f: ev[i], on: ev[i + 1] > 0, n, v: Math.min(1, Math.max(0, ev[i + 3] || 0)) });
+      q.push({ f: ev[i], on: ev[i + 1] > 0, n, tag, v: Math.min(1, Math.max(0, ev[i + 3] || 0)) });
     }
     // Same frame: a note-off sorts first, so a repeated note retriggers.
     q.sort((a, b) => a.f - b.f || (a.on === b.on ? 0 : a.on ? 1 : -1));
@@ -1686,8 +1688,7 @@ class FableProcessor extends AudioWorkletProcessor {
     const late = blockStart - EV_LATE_S * sampleRate;
     while (this.evHead < q.length && q[this.evHead].f <= frame) {
       const e = q[this.evHead++];
-      if (!e.on) this.noteOff(e.n);
-      else if (e.f >= late) this.noteOn(e.n, e.v);
+      if (!e.on || e.f >= late) this.applyTaggedEvent(e, e.n, () => this.noteOn(e.n, e.v), () => this.noteOff(e.n));
     }
     if (this.evHead > 512 && this.evHead * 2 > q.length) {
       this.evq = q.slice(this.evHead);
@@ -1703,11 +1704,36 @@ class FableProcessor extends AudioWorkletProcessor {
     this.held.length = 0;
   }
 
+  applyTaggedEvent(e, pitch, on, off) {
+    if (e.tag === undefined) { if (e.on) on(); else off(); return; }
+    let held = this.eventHeld.get(e.tag);
+    if (!held) { held = new Set(); this.eventHeld.set(e.tag, held); }
+    if (e.on) {
+      held.add(pitch);
+      on();
+    } else if (held.delete(pitch)) {
+      if (![...this.eventHeld.values()].some((notes) => notes.has(pitch))) off();
+      if (!held.size) this.eventHeld.delete(e.tag);
+    }
+  }
+
+  clearEventTag(tag) {
+    this.evq = this.evq.slice(this.evHead).filter((e) => e.tag !== tag);
+    this.evHead = 0;
+    const held = this.eventHeld.get(tag);
+    this.eventHeld.delete(tag);
+    if (held) for (const pitch of held) {
+      if (![...this.eventHeld.values()].some((notes) => notes.has(pitch))) this.noteOff(pitch);
+    }
+  }
+
   onMsg(d) {
     if (this.pauto && this.pauto.onMsg(d, this.port)) return;
     switch (d.t) {
-      case 'evs': this.queueEvents(d.ev); break;
+      case 'evs': this.queueEvents(d.ev, d.tag); break;
       case 'evclear':
+        if (d.tag !== undefined) { this.clearEventTag(d.tag); break; }
+        this.eventHeld.clear();
         this.evq = [];
         this.evHead = 0;
         this.releaseAll();
@@ -1765,8 +1791,8 @@ class FableProcessor extends AudioWorkletProcessor {
       case 'tablecount':
         this.tables.length = Math.max(0, Math.min(256, d.n | 0));
         break;
-      case 'on': this.noteOn(d.n, d.v); break;
-      case 'off': this.noteOff(d.n); break;
+      case 'on': this.applyTaggedEvent({ tag: this.liveEventTag, on: true }, d.n, () => this.noteOn(d.n, d.v), () => {}); break;
+      case 'off': this.applyTaggedEvent({ tag: this.liveEventTag, on: false }, d.n, () => {}, () => this.noteOff(d.n)); break;
       case 'bend': this.bend = d.s; break;
       case 'bpm': this.bpm = d.v > 1 ? Math.min(d.v, 1000) : 120; break;
       case 'pats': this.seqPats = new Uint8Array(d.data); break;
@@ -1834,6 +1860,7 @@ class FableProcessor extends AudioWorkletProcessor {
         this.seqGateOff();
         break;
       case 'panic':
+        this.eventHeld.clear();
         for (const v of this.voices) v.kill();
         this.seqOffQueue.length = 0;
         this.seqOnQueue.length = 0;

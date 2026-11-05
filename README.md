@@ -5,9 +5,8 @@
 [![Latest Release](https://img.shields.io/github/v/release/nodetool-ai/nodetool?display_name=tag&sort=semver)](https://github.com/nodetool-ai/nodetool/releases/latest)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/WmQTWZRcYE)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE.txt)
-[![Powered by Atlas Cloud](https://www.atlascloud.ai/oss-program/powered-by-atlas-cloud.svg)](https://www.atlascloud.ai/?ref=PW9AD2)
 
-**Agent-first creative workspace**
+**Open-source agent-first creative workspace**
 
 Create images, video, audio, and text with agents that work alongside you.
 Describe what you want, let the agent build it, then take over whenever you
@@ -162,12 +161,13 @@ a standalone web player that runs without NodeTool.
 
 <img src="marketing/public/surface-nodes-poster.webp" alt="NodeTool node editor" width="640">
 
-Every project is a graph you can open. Drag nodes in, connect typed ports, and
-read the live output at each step. Double-click the canvas to search for a
+Underneath the editors is the node graph. Drag nodes in, connect typed ports,
+and read the live output at each step. Double-click the canvas to search for a
 node, or drag a connection into empty space to see what fits. The editor
 refuses a mismatch, so an image cannot land in a text field.
 
-Every editor above sits on this canvas.
+The editors connect to it. A timeline clip or a sketch layer can bind to a
+workflow, and the storyboard sends its stills and clips to one.
 
 ## Example timelines
 
@@ -220,17 +220,19 @@ these films chain.
 
 ## How NodeTool compares
 
-The comparison is against the closed AI studios, because that is what a
-production team chooses between.
+Most AI video apps run only on their own servers. They choose which models you
+get, sell you credits for each try, and hand back an exported video while the
+project stays in their app. NodeTool leaves those choices, and the project,
+with you. The table compares the category, not a product.
 
-| | NodeTool | Closed AI studios |
+| | NodeTool | Hosted AI video apps |
 | :--- | :--- | :--- |
 | **Models** | Every major provider, switched in one click | The list they picked |
 | **When a better model ships** | Add it the day it ships | Wait for them to add it |
-| **What you pay** | Provider list prices, on your own keys | Their credits |
-| **What you keep** | The board, the takes, and the multi-track cut as an editable project | An exported video; the project stays in their app |
-| **Source** | Open, AGPL-3.0 | Closed |
-| **Where it runs** | Desktop app and browser, self-host any time | Their servers only |
+| **What you pay** | The provider's own price, through your own account | Credits you buy from them, at prices they set |
+| **What you keep** | The storyboard, every generated clip, and the edited video, as a project you can reopen | An exported video. The project stays in their app. |
+| **Source** | Open source, AGPL-3.0 | Closed |
+| **Where it runs** | Desktop app, browser (Cloud alpha), or your own server | Their servers only |
 
 Choosing against a node tool instead? See
 [ComfyUI](https://nodetool.ai/alternatives/comfyui) and
@@ -266,13 +268,13 @@ Everything the film surfaces do is reachable on the canvas without the film.
 | **Mini apps** | Give a workflow a screen: inputs, a Run button, the result. Hand it to a teammate who never sees the canvas. |
 | **Editing tools as nodes** | Mask, inpaint, outpaint, relight, upscale, layer, and composite. |
 | **Every modality** | Image, video, audio, and text in one workflow. |
-| **Every major provider** | OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, ElevenLabs, HuggingFace, plus one node for every model on Replicate, fal.ai, and KIE. |
+| **Every major provider** | OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, ElevenLabs, HuggingFace, plus generated nodes for the fal.ai, Replicate, and KIE model catalogs and a fal.ai node that calls any endpoint by id. |
 | **Open weights** | Ollama, MLX (Apple Silicon), and GGUF on your own hardware. |
 | **Document search** | Index and query your files with the built-in vector store. |
 | **JS scripts** | Versioned JavaScript documents with declared ports, saved test cases, and a QuickJS sandbox. |
 | **MCP server** | Point Claude Desktop, Claude Code, Codex, or any MCP agent at the toolbelt. |
 | **Custom nodes** | Extend in TypeScript or Python. |
-| **Deploy and scale** | Self-host with Docker. Rent GPU workers on RunPod or Vast. |
+| **Deploy and scale** | [Self-host with Docker](docs/self-hosted-deployment.md), with [backup and rollback](docs/upgrading.md#self-hosted-docker) steps. Rent GPU workers on RunPod or Vast. |
 
 ## Documentation
 
@@ -293,6 +295,13 @@ Everything the film surfaces do is reachable on the canvas without the film.
 - **[API Reference](https://docs.nodetool.ai/api)** — Programmatic access
 
 ## MCP
+
+**Give Claude Code a creative harness.** A harness is everything an agent works
+inside: tools, editors, models, keys, and a record of each step. NodeTool
+supplies all five to the coding agent you already use. It can build and run a
+workflow, read the log of the step that failed, and save the fix as a new
+version, or work the storyboard, timeline, and other editors directly. See
+[nodetool.ai/agents](https://nodetool.ai/agents).
 
 Use NodeTool from Claude Code, Codex, or OpenCode. One command registers the
 server with every client it finds. The desktop app is optional:

@@ -4,7 +4,7 @@ import path from "node:path";
 import os from "node:os";
 import { spawn } from "node:child_process";
 import { isString } from "@nodetool-ai/node-sdk";
-import { DEFAULT_YT_DLP_FORMAT, splitYtDlpFormat } from "@nodetool-ai/runtime";
+import { DEFAULT_YT_DLP_FORMAT, selectedYtDlpFormats, splitYtDlpFormat } from "@nodetool-ai/runtime";
 import { muxStreamCopy, transformMedia } from "@nodetool-ai/runtime/media";
 
 type ExecResult = {
@@ -310,6 +310,7 @@ export class YtDlpDownloadLibNode extends BaseNode {
         "--no-color",
         "--print-json",
         "--skip-download",
+        ...(components.length === 2 ? ["-f", formatSelector.trim() === "best" ? DEFAULT_YT_DLP_FORMAT : formatSelector] : []),
         url
       ];
       const metadataRes = await runCommand("yt-dlp", metadataArgs, timeoutMs);
@@ -423,8 +424,9 @@ export class YtDlpDownloadLibNode extends BaseNode {
           }
           output.audio = base64Ref(await fs.readFile(mp3), "audio");
         } else {
+          const selected = components.length === 2 ? selectedYtDlpFormats(parsedInfo) : components;
           const files: string[] = [];
-          for (const component of components) files.push(await download(component));
+          for (const component of selected) files.push(await download(component));
           let videoFile = files[0];
           if (files.length === 2) {
             try {
@@ -438,8 +440,8 @@ export class YtDlpDownloadLibNode extends BaseNode {
               ).outPath;
             } catch (error) {
               throw new Error(
-                `Format "${components[0]}" (${path.basename(files[0])}) and format ` +
-                  `"${components[1]}" (${path.basename(files[1])}) could not be muxed: ${
+                `Format "${selected[0]}" (${path.basename(files[0])}) and format ` +
+                  `"${selected[1]}" (${path.basename(files[1])}) could not be muxed: ${
                     error instanceof Error ? error.message : String(error)
                   }`
               );

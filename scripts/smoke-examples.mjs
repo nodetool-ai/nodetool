@@ -16,7 +16,7 @@
 // needs a provider API key", which today is nearly nothing. Extend this list
 // as Phase 3 lands local/keyless examples ("Private Assistant (local)" and
 // friends); each entry should be one of those, not a paid-model template.
-const CURATED_EXAMPLES = ["Conditional Logic Engine"];
+const CURATED_EXAMPLES = ["Circles and Lines"];
 
 import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";

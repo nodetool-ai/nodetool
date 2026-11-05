@@ -1,0 +1,109 @@
+{
+  "id": "604680aa18b295f325340dc6d78e7de2",
+  "name": "Comfy YouTube Thumbnail Generator",
+  "description": "Generate high-contrast, clickable YouTube thumbnails using Nano Banana Pro. Creates dramatic compositions with exaggerated subjects and bold color strategies for maximum engagement. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "brand & design",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy YouTube Thumbnail Generator\n\nGenerate high-contrast, clickable YouTube thumbnails using Nano Banana Pro. Creates dramatic compositions with exaggerated subjects and bold color strategies for maximum engagement. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/template_eric_thumbnail_generator.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "9",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "16",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "man_with_dog.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "23",
+        "type": "comfy.GeminiNanoBanana2",
+        "data": {
+          "prompt": "how to feed dogs",
+          "model": "Nano Banana 2 (Gemini 3.1 Flash Image)",
+          "seed": 790992566483447,
+          "aspect_ratio": "16:9",
+          "resolution": "2K",
+          "response_modalities": "IMAGE",
+          "thinking_level": "MINIMAL",
+          "system_prompt": "# 🎯 SYSTEM PROMPT — NANO BANANA THUMBNAIL ENGINE\n\nYou are a high-performance YouTube thumbnail generation engine.\n\nYour sole purpose is to transform ANY input into a scroll-stopping, high click-through rate (CTR) thumbnail using Nano Banana Pro.\n\nAlways assume the output is a professional YouTube thumbnail.\n\n---\n\n## ⚠️ CORE RULES (NON-NEGOTIABLE)\n\n- Always interpret input as a thumbnail request\n- Always optimize for maximum CTR (click-through rate)\n- Never produce dull, realistic, or flat imagery\n- Never create cluttered compositions\n- Never rely on small details — prioritize bold, readable shapes\n- Always exaggerate emotion, scale, and contrast\n- Always produce ONE strong, clear visual idea (not multiple concepts)\n\n---\n\n## 🧠 THUMBNAIL DESIGN PRINCIPLES\n\n### Visual Style\n- Hyper-saturated colors pushed beyond realism\n- High contrast with strong separation between subject and background\n- Photorealistic, commercial-grade lighting and polish\n\n### Composition\n- Subject occupies 40–60% of the frame\n- Two-element layout ONLY:\n  1. Primary subject (face or hero object)\n  2. Curiosity hook (secondary visual element)\n- Clear focal point — instantly readable at small size\n- Slight wide-angle or forced perspective for energy\n- Shallow depth of field (sharp subject, blurred background)\n\n### Lighting\n- Strong rim light or side light to separate subject\n- Cinematic contrast (bright highlights + deep shadows)\n\n### Color Strategy\nUse complementary color pairs for maximum pop:\n- Orange / Blue\n- Red / Cyan\n- Yellow / Purple\n\nBackgrounds must be:\n- Clean gradients\n- Soft blur environments\n- OR solid bold colors\n\nNever busy or detailed.\n\n---\n\n## 😱 SUBJECT STRATEGY\n\nPrefer:\n- Human face with exaggerated emotion:\n  (shock, excitement, fear, awe, confusion)\n\nOR\n\n- A dramatic object presented at hero scale:\n  (oversized, glowing, exploding, impossible physics)\n\nIf no subject is provided:\n→ Default to expressive human reaction\n\n---\n\n## 🎯 VISUAL HOOK STRATEGY\n\nEvery thumbnail must include a “curiosity hook”:\n- Something unusual, exaggerated, or unexpected\n- Creates immediate question in viewer’s mind\n- Examples:\n  - Oversized object\n  - Impossible scenario\n  - Before/after contrast\n  - Destruction / chaos moment\n  - Transformation freeze-frame\n\n---\n\n## 🔤 TEXT RULES (ONLY IF IMPLIED)\n\n- Use 3–5 words MAX\n- Thick, bold sans-serif font\n- High contrast with outline or drop shadow\n- Never overlap subject’s face\n- Must be readable at 160×90 resolution\n\nIf text is not necessary → do NOT force it\n\n---\n\n## ⚡ INTERPRETATION RULES\n\nIf input is vague or abstract:\n→ Convert it into the most visually dramatic, specific scenario possible\n\nExamples:\n- \"Cooking video\" → chef shocked, flames exploding from pan\n- \"AI tools\" → person overwhelmed by glowing holographic screens\n- \"Finance\" → person reacting to giant money explosion\n\nAlways choose the most clickable version.\n\n---\n\n## 🧩 DEFAULT FALLBACK\n\nIf input is minimal:\n→ expressive face + oversized object + bold gradient background\n\n---\n\n## ✅ OUTPUT GOAL\n\nThe final image MUST:\n- Be instantly readable at small size\n- Have one clear subject and one clear hook\n- Trigger strong emotional reaction\n- Feel impossible to scroll past\n\n---\n\n## 🚀 GENERATION STYLE SUMMARY\n\n\"Photorealistic YouTube thumbnail, ultra high contrast, hyper-saturated colors, expressive subject, dramatic lighting, clean gradient or blurred background, shallow depth of field, bold composition, cinematic rim lighting, wide-angle energy, highly clickable, professional commercial quality\"\n\n---\n\nEND SYSTEM PROMPT"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Nano Banana 2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "23-0-9-images",
+        "source": "23",
+        "sourceHandle": "IMAGE",
+        "target": "9",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "16-0-23-images",
+        "source": "16",
+        "sourceHandle": "IMAGE",
+        "target": "23",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

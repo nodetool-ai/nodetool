@@ -1,0 +1,299 @@
+{
+  "id": "423c9fdc12b631c268f17168d7d10d39",
+  "name": "Comfy Swap Product Into a Reference AD",
+  "description": "Create static ads for your product in the style of a reference advertisement Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "product & ads",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Swap Product Into a Reference AD\n\nCreate static ads for your product in the style of a reference advertisement Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/templates-product_ad-v2.0.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "reference_ad.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Ad Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "comfy_gpu.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Product Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "model": "gemini-3-pro-image-preview",
+          "seed": 611482562925396,
+          "aspect_ratio": "auto",
+          "resolution": "4K",
+          "response_modalities": "IMAGE+TEXT",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "9",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "11",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "Objective: Create a composite commercial image by synthesizing layout inputs with subject inputs. Target Product: {user_input}\n\n1. Inputs\nReference Input 1 (Style & Layout): Acts as the strict structural blueprint. This dictates composition, graphic elements, lighting direction, and text layout.\n\nReference Input 2 (Subject): Provides the primary subject matter (product shape, texture, branding).\n\n2. Execution Instructions\nPhase A: Scene & Design Analysis\nEnvironmental Scan: Analyze the perspective, depth, and lighting environment of [Input 1].\n\nDNA Deconstruction: Identify font styles, graphic shapes, and specific noise/grain levels.\n\nPhase B: Object Replacement\nRemoval: Remove the main product currently featured in [Input 1].\n\nInsertion: Insert the product isolated from [Input 2] into the exact focal point and scale defined by the original layout.\n\nPhase C: Text Modification (Content & Style)\nCondition Check: Analyze [Input 1] for existing Copy text elements (excluding text physically on the product).\n\nIf Copy Text Exists: Replace the existing copy with text relevant to the target product. You must replicate the exact font, weight, kerning, and drop-shadows of the original.\n\nIf No Copy Text Exists: Strictly do not generate any text. Preserve the negative space exactly as it appears in [Input 1].\n\nPhase D: Harmonize & Finish\nLighting: Adjust lighting, cast shadows, and reflections on the inserted product to match the environment.\n\nTexture: Apply the original image's texture (film grain, halftone, print artifacts) to the new elements to ensure a cohesive \"print ad\" look.\n\n3. Final Output\nAspect Ratio: Must match Input 1.\n\nQuality: A seamless, professional advertisement where the design layout is preserved, but the subject and color story are synthesized according to the user's preference."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Prompt Template"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "14",
+        "type": "comfy.RegexReplace",
+        "data": {
+          "regex_pattern": "{user_input}",
+          "case_insensitive": true,
+          "multiline": false,
+          "dotall": false,
+          "count": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Replace Text (Regex)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "15",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "A ComfyUI branded RTX PRO 6000. This ad is promoting Comfy Cloud. The header 1 says \"The Comfy Cloud\". The smaller copy should inform that Comfy Cloud switched to Blackwell RTX 6000 Pros, which are approimately twice as fast as A100s. They also have 96GB of VRAM and 180GB of RAM, which will unlock much heavier workflows such as video upscaling."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Describe the Product and Ad Copy"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "16",
+        "type": "comfy.ResizeAndPadImage",
+        "data": {
+          "padding_color": "white",
+          "interpolation": "area"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Resize And Pad Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "17",
+        "type": "comfy.GetImageSize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Get Image Size"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18",
+        "type": "comfy.ImageBatch",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Batch Images (DEPRECATED)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "14-0-3-prompt",
+        "source": "14",
+        "sourceHandle": "STRING",
+        "target": "3",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "18-0-3-images",
+        "source": "18",
+        "sourceHandle": "IMAGE",
+        "target": "3",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "3-0-9-images",
+        "source": "3",
+        "sourceHandle": "IMAGE",
+        "target": "9",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "11-0-14-string",
+        "source": "11",
+        "sourceHandle": "STRING",
+        "target": "14",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "15-0-14-replace",
+        "source": "15",
+        "sourceHandle": "STRING",
+        "target": "14",
+        "targetHandle": "replace",
+        "ui_properties": null
+      },
+      {
+        "id": "17-0-16-target_width",
+        "source": "17",
+        "sourceHandle": "width",
+        "target": "16",
+        "targetHandle": "target_width",
+        "ui_properties": null
+      },
+      {
+        "id": "17-1-16-target_height",
+        "source": "17",
+        "sourceHandle": "height",
+        "target": "16",
+        "targetHandle": "target_height",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-16-image",
+        "source": "2",
+        "sourceHandle": "IMAGE",
+        "target": "16",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "1-0-17-image",
+        "source": "1",
+        "sourceHandle": "IMAGE",
+        "target": "17",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "1-0-18-image1",
+        "source": "1",
+        "sourceHandle": "IMAGE",
+        "target": "18",
+        "targetHandle": "image1",
+        "ui_properties": null
+      },
+      {
+        "id": "16-0-18-image2",
+        "source": "16",
+        "sourceHandle": "IMAGE",
+        "target": "18",
+        "targetHandle": "image2",
+        "ui_properties": null
+      }
+    ]
+  }
+}

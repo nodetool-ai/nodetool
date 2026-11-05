@@ -1,0 +1,87 @@
+{
+  "id": "35d318f612f62dda611eaa3003325123",
+  "name": "Comfy Seedance 2.0- Text to Video",
+  "description": "Generate cinematic videos from text prompts with synchronized audio, controlled camera motion, and stable visuals. Input text descriptions to output high-quality video sequences. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Seedance 2.0- Text to Video\n\nGenerate cinematic videos from text prompts with synchronized audio, controlled camera motion, and stable visuals. Input text descriptions to output high-quality video sequences. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_seedance2_0_t2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "343",
+        "type": "comfy.ByteDance2TextToVideoNode",
+        "data": {
+          "model": "Seedance 2.0",
+          "model.prompt": "[Style] Magical dreamspace couture fantasy, 8K ultra-clear, Photorealistic, High-fashion Editorial, floating veil architecture, liquid nebula hall, unreal palace interior, soft starlight mist, Hollywood fantasy dissolve, Unreal Engine 5 atmospheric fluid.\n\nProtagonist note:\nA female fashion model, mid-20s, editorial silhouette: shoulder-length auburn hair in loose waves, tall lean build, calm confident posture.\n\n[Duration] 5 seconds.\n\n[Scene] A vast palace hall suspended inside a glowing nebula; translucent curtains hang without support; shallow mirror pools reflect a sky that belongs to no real world.\n\n[00:00-00:02] Shot 1: Veil drift.\nCamera: medium-wide glide through hanging translucent curtains and mirror pools.\nAction: She moves slowly through the hall; the hanging curtains and mirror pools react to her passing.\nEffect: Starlight begins collecting inside the air around her path, gathering into luminous dust between curtains rather than inside clothing.\n\n[00:02-00:04] Shot 2: Dust release.\nCamera: medium on upper body, surrounding curtains, and the mirror pool edge.\nAction: She turns and the nearby suspended curtain field swings outward in one elegant arc.\nEffect: The curtain light tears into streams of glowing dust and translucent vapor layers, visibly transforming from architecture-soft fabric into cosmic particulate.\n\n[00:04-00:05] Shot 3: Nebula fade.\nCamera: slow crane back to reveal the full impossible hall.\nAction: She stands at the center while the new dust-streams move upward through the curtains.\nEffect: Curtains, pools, columns, and nebula light all dissolve into a soft cosmic watercolor haze, as if the entire palace were evaporating into magical stardust.",
+          "model.resolution": "720p",
+          "model.ratio": "16:9",
+          "model.duration": 5,
+          "model.generate_audio": true,
+          "seed": 675586000,
+          "watermark": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ByteDance Seedance 2.5 Text to Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "344",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Seedance2.0_t2v",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "343-0-344-video",
+        "source": "343",
+        "sourceHandle": "VIDEO",
+        "target": "344",
+        "targetHandle": "video",
+        "ui_properties": null
+      }
+    ]
+  }
+}
