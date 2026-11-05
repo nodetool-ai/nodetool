@@ -87,10 +87,13 @@ private slots:
             QCOMPARE(exporter->lastFolder(), dir.path());
             FrameExporter other;
             QCOMPARE(other.lastFolder(), dir.path());
-            QImageReader reader(output.toLocalFile());
-            QCOMPARE(reader.size(), QSize(640, 360));
-            QCOMPARE(reader.format(), mode == "jpeg" ? QByteArray("jpeg") : QByteArray("png"));
-            if (mode == "png") QCOMPARE(reader.read(), exporter->image().convertToFormat(QImage::Format_RGB32));
+            // Release the reader before replacing the file on Windows.
+            {
+                QImageReader reader(output.toLocalFile());
+                QCOMPARE(reader.size(), QSize(640, 360));
+                QCOMPARE(reader.format(), mode == "jpeg" ? QByteArray("jpeg") : QByteArray("png"));
+                if (mode == "png") QCOMPARE(reader.read(), exporter->image().convertToFormat(QImage::Format_RGB32));
+            }
             exporter->saveToFile(output, mode == "jpeg" ? "jpeg" : "png");
             QTRY_COMPARE(saved.size(), 2);
         }
