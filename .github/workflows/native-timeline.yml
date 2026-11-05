@@ -316,6 +316,14 @@ jobs:
           cat "$RUNNER_TEMP/matte-gdb.log"
           exit "$diagnostic_status"
 
+      - name: Upload export golden failure frames
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: native-timeline-export-golden-${{ runner.os }}
+          path: native/timeline/build-ci/**/export-golden-failures/
+          if-no-files-found: ignore
+
       - name: Upload Linux matte diagnostics
         if: failure() && runner.os == 'Linux'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
