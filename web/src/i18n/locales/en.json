@@ -18192,7 +18192,7 @@
         "message": "Ask anything, or type @ to add an asset…"
       },
       "messagePrompt": "Message prompt",
-      "pickModel": "Pick a model to {{action}}.",
+      "pickModel": "Pick the {{kind}} model to {{action}} with.",
       "generate": "Generate",
       "send": "Send",
       "messageQueued": "Message queued - {{prompt}}",

@@ -9181,6 +9181,10 @@
           "button": "Obtenir la clé API Opper",
           "tooltip": "Accédez à la plateforme Opper pour obtenir votre clé API"
         },
+        "CHEAPER_INFERENCE_API_KEY": {
+          "button": "Obtenir la clé API Cheaper Inference",
+          "tooltip": "Accédez à la plateforme Cheaper Inference pour obtenir votre clé API"
+        },
         "API_ROUTE_API_KEY": {
           "button": "Obtenir la clé de route API",
           "tooltip": "Accédez à la page Clés API API Route"

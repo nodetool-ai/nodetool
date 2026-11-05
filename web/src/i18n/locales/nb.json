@@ -9037,6 +9037,10 @@
           "button": "Få Opper API-nøkkel",
           "tooltip": "Gå til Opper-plattformen for å få API-nøkkelen din"
         },
+        "CHEAPER_INFERENCE_API_KEY": {
+          "button": "Få Cheaper Inference API-nøkkel",
+          "tooltip": "Gå til Cheaper Inference-plattformen for å få API-nøkkelen din"
+        },
         "API_ROUTE_API_KEY": {
           "button": "Få API-rutenøkkel",
           "tooltip": "Gå til API Route API-nøkler-siden"
