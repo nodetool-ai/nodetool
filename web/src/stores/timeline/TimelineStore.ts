@@ -1,3 +1,4 @@
+import { assertTimelineColorSpaceSupported } from "@nodetool-ai/timeline";
 import { DEFAULT_TIMELINE_INSTRUMENT } from "./instrumentPresets";
 /**
  * TimelineStore
@@ -2255,6 +2256,7 @@ export const createTimelineStore = (
         // ── Init ────────────────────────────────────────────────────────────
 
         loadSequence: (loaded) => {
+          assertTimelineColorSpaceSupported(loaded);
           const seq = { ...loaded, clips: normalizeClipAssetRefs(loaded.clips) };
           const transcript = seq.transcript ?? [];
 

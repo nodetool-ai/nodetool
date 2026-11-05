@@ -5,6 +5,7 @@ import { defineModule } from "../../../../module.js";
 const Params = d.struct({a: d.f32, b: d.f32, x: d.f32, c: d.f32, e: d.f32, y: d.f32});
 const layout = tgpu.bindGroupLayout({source: {texture: "float"}, outputTexture: {storageTexture: "rgba8unorm"}, params: {uniform: Params}});
 export const transformStabilizeV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "transform.stabilize", version: 1, surface: "internal", category: "transform",
   linearity: "nonlinear-in-rgb", kind: "compute", params: Params,
   paramDefaults: {a: 1, b: 0, x: 0, c: 0, e: 1, y: 0}, layout, workgroupSize: [16, 16, 1],
@@ -29,6 +30,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let alpha=clamp(result.a,0.0,1.0);
   textureStore(layout.$.outputTexture,vec2i(gid.xy),vec4f(clamp(result.rgb,vec3f(0),vec3f(alpha)),alpha));
 }`,
-  io: {inputs: {source: {colorSpace: "srgb", alpha: "premultiplied", bindingKinds: ["texture_2d"]}},
-    output: {colorSpace: "srgb", alpha: "premultiplied", format: "rgba8unorm", dimensions: "same-as:source"}, rod: "same-as:source"}
+  io: {inputs: {source: {colorSpace: "encoded-sdr", alpha: "premultiplied", bindingKinds: ["texture_2d"]}},
+    output: {colorSpace: "encoded-sdr", alpha: "premultiplied", format: "rgba8unorm", dimensions: "same-as:source"}, rod: "same-as:source"}
 });

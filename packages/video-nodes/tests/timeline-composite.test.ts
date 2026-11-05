@@ -290,8 +290,10 @@ describe("RenderTimeline — fallback when no GPU is available", () => {
     const out = await render(sequence({ clips: [videoClip()] }));
 
     expect(concatCall()).toBeDefined();
-    expect(logs("warning")).toMatch(/rough cut/);
-    expect(logs("warning")).toMatch(/no adapter/);
+    expect(logs("warning")).toBe(
+      "The timeline compositor needs a WebGPU device and none is available: no adapter " +
+      "Falling back to a rough cut — clip transforms, effects, transitions, captions and overlay tracks are not applied."
+    );
     expect(out.output.metadata).toEqual({
       render_mode: "rough_cut",
       format: "mp4",

@@ -1,3 +1,4 @@
+import { assertTimelineColorSpaceSupported } from "@nodetool-ai/timeline";
 import type { FrameSourceWindow } from "@nodetool-ai/timeline/render";
 import { hasTemporalDenoise, denoiseSourceTimes } from "@nodetool-ai/timeline/scene";
 /**
@@ -129,6 +130,7 @@ export interface RenderSink {
 }
 
 interface RenderTimelineOptions {
+  workingColorSpaceVersion?: number;
   tracks: TimelineTrack[];
   clips: TimelineClip[];
   mediaTracks?: MediaTrack[];
@@ -323,6 +325,7 @@ function makeImageLoader(): (url: string) => Promise<HTMLImageElement | null> {
 export async function renderTimeline(
   opts: RenderTimelineOptions
 ): Promise<RenderResult> {
+  assertTimelineColorSpaceSupported(opts);
   const { tracks, clips, fps, durationMs, resolveUrl, signal, onProgress } =
     opts;
 

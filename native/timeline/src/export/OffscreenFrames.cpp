@@ -58,6 +58,8 @@ struct OffscreenFrames::Impl {
             throw std::runtime_error("QQuickRenderControl could not create a QRhi for export");
         }
         auto* rhi = control.rhi();
+        qInfo().noquote() << "native-render-backend" << rhi->backendName()
+                          << "adapter" << rhi->driverInfo().deviceName;
         texture.reset(rhi->newTexture(QRhiTexture::RGBA8, size, 1, QRhiTexture::RenderTarget));
         depth.reset(rhi->newRenderBuffer(QRhiRenderBuffer::DepthStencil, size));
         if (!texture->create() || !depth->create()) {

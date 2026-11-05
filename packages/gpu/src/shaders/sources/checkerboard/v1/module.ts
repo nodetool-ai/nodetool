@@ -21,6 +21,7 @@ const layout = tgpu.bindGroupLayout({
 });
 
 export const sourcesCheckerboardV1 = defineModule({
+  precision: { "output": "fixed" },
   id: "sources.checkerboard",
   version: 1,
   surface: "internal",
@@ -63,7 +64,7 @@ fn fs_main(in: Out) -> @location(0) vec4f {
   io: {
     inputs: {},
     output: {
-      colorSpace: "linear",
+      colorSpace: "srgb",
       alpha: "premultiplied",
       format: "rgba8unorm",
       dimensions: "host-specified"

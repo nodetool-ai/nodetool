@@ -5,6 +5,7 @@
 #include "preview/FfmpegSource.h"
 #include "preview/hw/HwWindow.h"
 #include <QDir>
+#include <QEvent>
 #include <QFile>
 #include <QGuiApplication>
 #include <QImageReader>
@@ -16,6 +17,7 @@
 #include <atomic>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <deque>
 #include <iostream>
 #include <list>
@@ -43,6 +45,7 @@ public:
         m_cancelled.insert(id);
     }
     void close() { m_eof = true; }
+    void releaseDocuments() { m_documents.clear(); }
 private:
     bool cancelled(int id) {
         std::scoped_lock lock(m_mutex);
@@ -63,7 +66,10 @@ private:
         doc->key = key;
         if (sequence) {
             auto parsed = nt::loadTimelineFile(path);
-            if (!parsed.timeline) throw std::runtime_error(parsed.error.toStdString());
+            if (!parsed.timeline) {
+                m_versionRejected = parsed.unsupportedColorSpaceVersion;
+                throw std::runtime_error(parsed.error.toStdString());
+            }
             doc->model.setTimeline(pictureTimeline(*parsed.timeline));
         } else {
             QImageReader reader(path);
@@ -113,6 +119,15 @@ private:
             if (id <= 0 || !std::isfinite(time) || time < 0 || (kind != "sequence" && kind != "source")) {
                 throw std::runtime_error("Invalid frame request.");
             }
+            // EOF cancels captures, but must not turn a rejected version into a
+            // successful exit when the client sends a request then closes stdin.
+            if (kind == "sequence" && m_eof) {
+                const auto parsed = nt::loadTimelineFile(request.value("snapshot").toString());
+                if (parsed.unsupportedColorSpaceVersion) {
+                    m_versionRejected = true;
+                    throw std::runtime_error(parsed.error.toStdString());
+                }
+            }
             if (!cancelled(id)) {
                 auto& doc = document(request);
                 if (kind == "source" && !doc.image) {
@@ -147,7 +162,7 @@ private:
             response.insert("error", "Unknown frame capture error.");
             m_documents.clear();
         }
-        if (cancelled(id)) {
+        if (!m_versionRejected && cancelled(id)) {
             if (!output.isEmpty()) QFile::remove(output);
             response = {{"id", id}, {"cancelled", true}};
         }
@@ -155,11 +170,15 @@ private:
             std::scoped_lock lock(m_mutex);
             m_cancelled.erase(id);
         }
-        if (m_eof) { m_busy = false; return; }
+        if (m_eof && !m_versionRejected) { m_busy = false; return; }
         const auto bytes = QJsonDocument(response).toJson(QJsonDocument::Compact);
         std::fwrite(bytes.constData(), 1, bytes.size(), stdout);
         std::fputc('\n', stdout);
         std::fflush(stdout);
+        // The reader may hold stdin's C++ stream lock while waiting for more
+        // input. Static stream cleanup would wait on that lock at std::exit.
+        // The error is flushed and cached documents released before terminating.
+        if (m_versionRejected) { std::_Exit(EXIT_FAILURE); }
         QTimer::singleShot(0, this, [this] { next(); });
     }
     std::deque<QJsonObject> m_requests;
@@ -168,6 +187,7 @@ private:
     std::set<int> m_cancelled;
     std::atomic<bool> m_eof = false;
     bool m_busy = false;
+    bool m_versionRejected = false;
 };
 int frameServerCli(int argc, char** argv) {
     qputenv("QT_MAC_DISABLE_FOREGROUND_APPLICATION_TRANSFORM", "1");
@@ -189,7 +209,12 @@ int frameServerCli(int argc, char** argv) {
         server.close();
         QMetaObject::invokeMethod(&app, &QCoreApplication::quit, Qt::QueuedConnection);
     });
-    return app.exec();
+    const int code = app.exec();
+    // Qt queues its atlas manager with deleteLater when a render control goes
+    // away, and no event loop runs after exec() to delete it.
+    server.releaseDocuments();
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    return code;
 }
 const bool registered = app::registerCliMode({QStringLiteral("--frame-server"), frameServerCli});
 }

@@ -160,3 +160,11 @@ describe("renderTimeline decoder release", () => {
   });
 
 });
+
+it.each([2, 3])("refuses working color space %s before rendering", async (workingColorSpaceVersion) => {
+  const options = { workingColorSpaceVersion, tracks: [], clips: [], width: 32, height: 32, fps: 30, durationMs: 1000, resolveUrl: jest.fn() };
+  const saved = JSON.stringify(options);
+  await expect(renderTimeline(options)).rejects.toThrow(`Document workingColorSpaceVersion is ${workingColorSpaceVersion}. This build supports versions up to 1. Open it with a build that supports this value.`);
+  expect(options.resolveUrl).not.toHaveBeenCalled();
+  expect(JSON.stringify(options)).toBe(saved);
+});

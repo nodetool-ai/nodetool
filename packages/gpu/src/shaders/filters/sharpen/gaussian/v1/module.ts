@@ -3,6 +3,7 @@ import { defineRecipe } from "../../../../../recipe.js";
 
 /** Radius-dependent Gaussian unsharp mask. The published unsharpMask keeps its box kernel. */
 export const sharpenGaussianV1 = defineRecipe({
+  precision: { "source": "working", "output": "working" },
   id: "filters.sharpen.gaussian", version: 1, surface: "internal", category: "filters",
   paramDefaults: {amount: 0, threshold: 0, radius: 8},
   paramUi: {
@@ -11,14 +12,14 @@ export const sharpenGaussianV1 = defineRecipe({
     radius: {min: 0, max: 256, step: 1, label: "Radius"}
   },
   io: {
-    inputs: {source: {colorSpace: "srgb", alpha: "premultiplied", bindingKinds: ["texture_2d"]}},
-    output: {colorSpace: "srgb", alpha: "premultiplied", format: "rgba8unorm", dimensions: "same-as:source"},
+    inputs: {source: {colorSpace: "encoded-sdr", alpha: "premultiplied", bindingKinds: ["texture_2d"]}},
+    output: {colorSpace: "encoded-sdr", alpha: "premultiplied", format: "rgba8unorm", dimensions: "same-as:source"},
     rod: "same-as:source"
   },
   recipe: {
     intermediates: {
-      horizontal: {format: "rgba8unorm", usage: 0x08 | 0x04 | 0x01},
-      blurred: {format: "rgba8unorm", usage: 0x08 | 0x04 | 0x01}
+      horizontal: {precision: "working", format: "rgba8unorm", usage: 0x08 | 0x04 | 0x01},
+      blurred: {precision: "working", format: "rgba8unorm", usage: 0x08 | 0x04 | 0x01}
     },
     passes: [
       {op: {id: "filters.blur.gaussian", version: 1}, in: {source: "source"},

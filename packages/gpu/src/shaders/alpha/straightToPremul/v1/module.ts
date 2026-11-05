@@ -1,3 +1,4 @@
+import { PREMULTIPLY_RGB_WGSL } from "../../../../colorHelpers.js";
 /**
  * `alpha.straightToPremul@1` — convert straight-alpha RGB to premultiplied.
  *
@@ -25,6 +26,7 @@ const layout = tgpu.bindGroupLayout({
 });
 
 export const alphaStraightToPremulV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "alpha.straightToPremul",
   version: 1,
   surface: "internal",
@@ -42,19 +44,19 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   if (gid.x >= dims.x || gid.y >= dims.y) { return; }
   let coords = vec2<i32>(i32(gid.x), i32(gid.y));
   let c = textureLoad(layout.$.source, coords, 0);
-  textureStore(layout.$.outputTexture, coords, vec4<f32>(c.rgb * c.a, c.a));
+  textureStore(layout.$.outputTexture, coords, vec4<f32>(${PREMULTIPLY_RGB_WGSL}, c.a));
 }
 `,
   io: {
     inputs: {
       source: {
-        colorSpace: "srgb",
+        colorSpace: "encoded-sdr",
         alpha: "straight",
         bindingKinds: ["texture_2d"]
       }
     },
     output: {
-      colorSpace: "srgb",
+      colorSpace: "encoded-sdr",
       alpha: "premultiplied",
       format: "rgba8unorm",
       dimensions: "same-as:source"

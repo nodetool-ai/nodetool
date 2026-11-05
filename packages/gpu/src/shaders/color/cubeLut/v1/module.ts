@@ -18,6 +18,7 @@ const layout = tgpu.bindGroupLayout({
 });
 
 export const colorCubeLutV1 = defineModule({
+  precision: { "source": "working", "lut": "fixed", "mask": "fixed", "output": "working" },
   id: "color.cubeLut",
   version: 1,
   surface: "internal",
@@ -70,11 +71,11 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
 `,
   io: {
     inputs: {
-      source: { colorSpace: "srgb", alpha: "premultiplied", bindingKinds: ["texture_2d"] },
-      lut: { colorSpace: "srgb", alpha: "premultiplied", bindingKinds: ["texture_2d"] },
-      mask: { colorSpace: "srgb", alpha: "premultiplied", bindingKinds: ["texture_2d"], optional: true }
+      source: { colorSpace: "encoded-sdr", alpha: "premultiplied", bindingKinds: ["texture_2d"] },
+      lut: { colorSpace: "data", alpha: "premultiplied", bindingKinds: ["texture_2d"] },
+      mask: { colorSpace: "data", alpha: "premultiplied", bindingKinds: ["texture_2d"], optional: true }
     },
-    output: { colorSpace: "srgb", alpha: "premultiplied", format: "rgba8unorm", dimensions: "same-as:source" },
+    output: { colorSpace: "encoded-sdr", alpha: "premultiplied", format: "rgba8unorm", dimensions: "same-as:source" },
     rod: "same-as:source"
   }
 });

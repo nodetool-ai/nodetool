@@ -68,6 +68,14 @@ function(nt_export_tests)
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::Test)
     nt_add_timeline_qml(tst_framecapture)
     nt_effects_shaders(tst_framecapture)
+    add_test(NAME native_backend_routes COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/src/export/check-backends.py
+        $<TARGET_FILE:nodetool-timeline>)
+    set_tests_properties(native_backend_routes PROPERTIES LABELS render RUN_SERIAL TRUE TIMEOUT 180)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        add_test(NAME tst_framecapture_opengl COMMAND tst_framecapture offscreenTypedCapture)
+        set_tests_properties(tst_framecapture_opengl PROPERTIES LABELS render
+            ENVIRONMENT "QSG_RHI_BACKEND=opengl" ENVIRONMENT_MODIFICATION "QT_QUICK_BACKEND=unset:")
+    endif()
     add_test(NAME tst_framecapture COMMAND tst_framecapture)
     add_test(NAME tst_colormatch_render COMMAND tst_framecapture colorMatchWorkingFormat offscreenTypedCapture)
     set_tests_properties(tst_colormatch_render PROPERTIES LABELS render

@@ -1,3 +1,4 @@
+import { validateRenderTexture } from "../resourceValidation.js";
 /**
  * WebGPULayerCompositor — the shared layer-compositing engine.
  *
@@ -405,20 +406,29 @@ export class WebGPULayerCompositor {
       GPUTextureUsage.TEXTURE_BINDING |
       GPUTextureUsage.COPY_SRC |
       GPUTextureUsage.COPY_DST;
-    this.pingPongA?.destroy();
-    this.pingPongB?.destroy();
-    this.pingPongA = this.device.createTexture({
+    validateRenderTexture(this.device, safeW, safeH, this.format, usage);
+    const nextA = this.device.createTexture({
       label: "layer-compositor-ping-A",
       size: { width: safeW, height: safeH },
       format: this.format,
       usage
     });
-    this.pingPongB = this.device.createTexture({
-      label: "layer-compositor-ping-B",
-      size: { width: safeW, height: safeH },
-      format: this.format,
-      usage
-    });
+    let nextB: GPUTexture;
+    try {
+      nextB = this.device.createTexture({
+        label: "layer-compositor-ping-B",
+        size: { width: safeW, height: safeH },
+        format: this.format,
+        usage
+      });
+    } catch (error) {
+      nextA.destroy();
+      throw error;
+    }
+    this.pingPongA?.destroy();
+    this.pingPongB?.destroy();
+    this.pingPongA = nextA;
+    this.pingPongB = nextB;
     this.widthPx = width;
     this.heightPx = height;
   }

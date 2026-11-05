@@ -6,6 +6,7 @@ const Params = d.struct({table: d.arrayOf(d.vec4f, 256)});
 const layout = tgpu.bindGroupLayout({source: {texture: "float"}, outputTexture: {storageTexture: "rgba8unorm"}, params: {uniform: Params}});
 
 export const colorCurveTransferV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "color.curveTransfer", version: 1, surface: "internal", category: "color",
   linearity: "nonlinear-in-rgb", kind: "compute", params: Params,
   paramDefaults: {table: Array.from({length: 256}, (_, i) => d.vec4f(i / 255, i / 255, i / 255, 1))},
@@ -26,8 +27,8 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   textureStore(layout.$.outputTexture, at, vec4<f32>(mapped * src.a, src.a));
 }`,
   io: {
-    inputs: {source: {colorSpace: "srgb", alpha: "premultiplied", bindingKinds: ["texture_2d"]}},
-    output: {colorSpace: "srgb", alpha: "premultiplied", format: "rgba8unorm", dimensions: "same-as:source"},
+    inputs: {source: {colorSpace: "encoded-sdr", alpha: "premultiplied", bindingKinds: ["texture_2d"]}},
+    output: {colorSpace: "encoded-sdr", alpha: "premultiplied", format: "rgba8unorm", dimensions: "same-as:source"},
     rod: "same-as:source"
   }
 });

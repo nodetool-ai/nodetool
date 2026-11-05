@@ -31,7 +31,8 @@ import {
 const noAdapterReason = await (async (): Promise<string | null> => {
   try {
     const { getNodeGPUDevice } = await import("@nodetool-ai/gpu/node");
-    await getNodeGPUDevice();
+    const device = await getNodeGPUDevice();
+    process.stderr.write(`grain adapter: ${JSON.stringify({ vendor: device.adapterInfo.vendor, architecture: device.adapterInfo.architecture, device: device.adapterInfo.device, description: device.adapterInfo.description })}\n`);
     return null;
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
@@ -85,7 +86,7 @@ async function renderFrame(
 ): Promise<Uint8Array> {
   const { getNodeGPUDevice } = await import("@nodetool-ai/gpu/node");
   const device = await getNodeGPUDevice();
-  const compositor = new HeadlessFrameCompositor(device, SIZE, SIZE);
+  const compositor = new HeadlessFrameCompositor(device, SIZE, SIZE, { workingFormat: "rgba8unorm" });
   try {
     return await compositor.renderFrame(layers, [], { alpha });
   } finally {
@@ -125,6 +126,7 @@ describe.runIf(noAdapterReason === null)("grain on the GPU path", () => {
       maximum = Math.max(maximum, difference);
       total += difference;
     }
+    process.stderr.write(`grain ${JSON.stringify({ alpha, ...params })}: max=${maximum} mean=${total / gpu.length}\n`);
     expect(maximum).toBeLessThanOrEqual(1);
     expect(total / gpu.length).toBeLessThan(0.02);
   });
