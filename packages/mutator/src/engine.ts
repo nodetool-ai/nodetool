@@ -235,10 +235,11 @@ async function runMutants(
       }
       writeFileSync(target, applySite(source, site));
       try {
+        ctx.observer?.started?.(site.mutationId, timeout);
         const result = await ctx.runner.run(command, cwd, timeout);
         const outcome = result.timedOut || result.code !== 0 ? "killed" : "survived";
         outcomes.set(site.mutationId, outcome);
-        ctx.observer?.completed(site.mutationId, outcome);
+        ctx.observer?.completed(site.mutationId, outcome, result.timedOut);
       } finally {
         writeFileSync(target, source);
       }

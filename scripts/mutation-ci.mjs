@@ -147,7 +147,11 @@ export async function executePartition(root, plan, id, output) {
         assert.equal(selectedFile, file.file, "Runtime selected an unexpected source file");
         observed.push(...ids);
       },
-      completed: (mutationId, outcome) => {
+      started: (mutationId, timeoutSeconds) => {
+        console.log(`Mutation started ${JSON.stringify({ id: mutationId, startedAt: new Date().toISOString(), timeoutSeconds })}`);
+      },
+      completed: (mutationId, outcome, timedOut) => {
+        if (timedOut) console.log(`Mutation timed out ${JSON.stringify({ id: mutationId })}`);
         completed.push({ id: mutationId, outcome });
         appendFileSync(journal, `${JSON.stringify({ id: mutationId, outcome })}\n`);
         console.log(`Partition ${id}/${plan.partitions.length} completed ${completed.length}/${assignedIds.length}`);
