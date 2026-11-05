@@ -11,7 +11,7 @@ import time
 
 report = Path(sys.argv[1])
 command = sys.argv[2:]
-while int(next(line.split()[1] for line in Path('/proc/meminfo').read_text().splitlines() if line.startswith('MemAvailable:'))) < 10 * 1024 * 1024:
+while int(next(line.split()[1] for line in Path('/proc/meminfo').read_text().splitlines() if line.startswith('MemAvailable:'))) < 8 * 1024 * 1024:
     time.sleep(10)
 log = report.with_suffix('.log').open('w')
 process = subprocess.Popen(command, stdout=log, stderr=log)

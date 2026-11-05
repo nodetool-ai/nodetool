@@ -94,7 +94,8 @@ try {
   output.elapsedMs = performance.now() - start;
   const usage = process.cpuUsage(cpuStart);
   output.cpuPercent = (usage.user + usage.system) / (output.elapsedMs * 10);
-  output.fps = cap * Math.ceil(durationMs * 30 / 1000) / (output.elapsedMs / 1000);
+  output.framesRendered = output.results.reduce((sum, result, i) => sum + (result.aborted ? progress[i] : result.totalFrames), 0);
+  output.fps = output.framesRendered / (output.elapsedMs / 1000);
   output.peakRssMiB = process.resourceUsage().maxRSS / 1024;
   output.eventLoop = snapshot();
   output.loadEnd = loadavg();
