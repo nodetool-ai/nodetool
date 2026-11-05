@@ -16,6 +16,7 @@
 #include <atomic>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <deque>
 #include <iostream>
 #include <list>
@@ -63,7 +64,10 @@ private:
         doc->key = key;
         if (sequence) {
             auto parsed = nt::loadTimelineFile(path);
-            if (!parsed.timeline) throw std::runtime_error(parsed.error.toStdString());
+            if (!parsed.timeline) {
+                m_versionRejected = parsed.unsupportedColorSpaceVersion;
+                throw std::runtime_error(parsed.error.toStdString());
+            }
             doc->model.setTimeline(pictureTimeline(*parsed.timeline));
         } else {
             QImageReader reader(path);
@@ -147,7 +151,7 @@ private:
             response.insert("error", "Unknown frame capture error.");
             m_documents.clear();
         }
-        if (cancelled(id)) {
+        if (!m_versionRejected && cancelled(id)) {
             if (!output.isEmpty()) QFile::remove(output);
             response = {{"id", id}, {"cancelled", true}};
         }
@@ -155,11 +159,14 @@ private:
             std::scoped_lock lock(m_mutex);
             m_cancelled.erase(id);
         }
-        if (m_eof) { m_busy = false; return; }
+        if (m_eof && !m_versionRejected) { m_busy = false; return; }
         const auto bytes = QJsonDocument(response).toJson(QJsonDocument::Compact);
         std::fwrite(bytes.constData(), 1, bytes.size(), stdout);
         std::fputc('\n', stdout);
         std::fflush(stdout);
+        // stdin may still be held open by the client. Terminate after reporting
+        // rather than waiting for the reader thread to reach EOF.
+        if (m_versionRejected) { std::exit(EXIT_FAILURE); }
         QTimer::singleShot(0, this, [this] { next(); });
     }
     std::deque<QJsonObject> m_requests;
@@ -168,6 +175,7 @@ private:
     std::set<int> m_cancelled;
     std::atomic<bool> m_eof = false;
     bool m_busy = false;
+    bool m_versionRejected = false;
 };
 int frameServerCli(int argc, char** argv) {
     qputenv("QT_MAC_DISABLE_FOREGROUND_APPLICATION_TRANSFORM", "1");

@@ -65,6 +65,16 @@ ParseResult parseTimelineJson(const QByteArray& json, const QString& baseDir) {
 
 ParseResult parseTimeline(const QJsonObject& root, const QString& baseDir) {
     ParseResult result;
+    // Check before constructing a renderable or editable model. Keep the original
+    // root untouched so an absent version stays absent on save.
+    const auto version = root.value(u"workingColorSpaceVersion");
+    if (!version.isUndefined() && (!version.isDouble() || version.toDouble() != 1.0)) {
+        const auto encoded = QJsonDocument(QJsonArray{version}).toJson(QJsonDocument::Compact);
+        result.error = QStringLiteral("Document workingColorSpaceVersion is %1. This build supports versions up to 1. Open it with a build that supports this value.")
+                           .arg(QString::fromUtf8(encoded.mid(1, encoded.size() - 2)));
+        result.unsupportedColorSpaceVersion = true;
+        return result;
+    }
     Timeline tl;
     tl.id = root.value(u"id").toString().toStdString();
     tl.name = root.value(u"name").toString().toStdString();
