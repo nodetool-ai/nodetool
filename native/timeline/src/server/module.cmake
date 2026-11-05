@@ -1,4 +1,5 @@
 nt_qml_files(qml/DocumentBar.qml)
+nt_qml_files(qml/UnsupportedColorVersion.qml)
 nt_qml_files(qml/SaveStatus.qml)
 nt_qml_files(qml/SaveBanners.qml)
 nt_sources(app

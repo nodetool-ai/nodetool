@@ -70,8 +70,9 @@ ParseResult parseTimeline(const QJsonObject& root, const QString& baseDir) {
     const auto version = root.value(u"workingColorSpaceVersion");
     if (!version.isUndefined() && (!version.isDouble() || version.toDouble() != 1.0)) {
         const auto encoded = QJsonDocument(QJsonArray{version}).toJson(QJsonDocument::Compact);
+        result.unsupportedColorSpaceVersionText = QString::fromUtf8(encoded.mid(1, encoded.size() - 2));
         result.error = QStringLiteral("Document workingColorSpaceVersion is %1. This build supports versions up to 1. Open it with a build that supports this value.")
-                           .arg(QString::fromUtf8(encoded.mid(1, encoded.size() - 2)));
+                           .arg(result.unsupportedColorSpaceVersionText);
         result.unsupportedColorSpaceVersion = true;
         return result;
     }

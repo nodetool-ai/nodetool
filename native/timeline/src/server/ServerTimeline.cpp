@@ -222,7 +222,11 @@ static ServerOpenResult openServerTimelineImpl(const ServerOpenOptions& options,
     report.insert(QStringLiteral("fields"), auditTimelineFields(raw));
 
     ParseResult parsed = parseTimelineJson(rawBytes);
-    if (!parsed.timeline) return fail(QStringLiteral("parse: %1").arg(parsed.error));
+    if (!parsed.timeline) {
+        out.unsupportedColorSpaceVersion = parsed.unsupportedColorSpaceVersion;
+        out.unsupportedColorSpaceVersionText = parsed.unsupportedColorSpaceVersionText;
+        return fail(QStringLiteral("parse: %1").arg(parsed.error));
+    }
     Timeline tl = std::move(*parsed.timeline);
 
     // Which clips need which asset.

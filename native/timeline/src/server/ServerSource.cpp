@@ -207,6 +207,8 @@ ParseResult loadTimelineSource(const QString& source) {
     ParseResult result;
     if (!opened.timeline) {
         result.error = opened.error;
+        result.unsupportedColorSpaceVersion = opened.unsupportedColorSpaceVersion;
+        result.unsupportedColorSpaceVersionText = opened.unsupportedColorSpaceVersionText;
         return result;
     }
     result.timeline = std::move(opened.timeline);
