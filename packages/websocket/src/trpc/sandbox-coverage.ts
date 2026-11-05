@@ -1264,6 +1264,11 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "a worker authenticates with. Host control, not the caller's " +
       "data."
   },
+  "worker.comfyPresets": {
+    withheld:
+      "Worker provisioning presets are host configuration for starting " +
+      "compute, not a sandbox capability."
+  },
   "worker.detach": {
     withheld:
       "Provisioning and terminating compute, and reading the API key " +
@@ -1317,6 +1322,11 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Provisioning and terminating compute, and reading the API key " +
       "a worker authenticates with. Host control, not the caller's " +
       "data."
+  },
+  "worker.startComfyPreset": {
+    withheld:
+      "Starting a preset provisions compute and is restricted to local " +
+      "host control."
   },
   "worker.stop": {
     withheld:
