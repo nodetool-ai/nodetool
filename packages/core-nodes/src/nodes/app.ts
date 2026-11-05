@@ -71,17 +71,12 @@ export class AppNode extends BaseNode {
       if (!OWN_PROPS.has(key)) params[key] = value;
     }
 
-    const stream = streamInnerGraph(context, graph, {
+    return yield* streamInnerGraph(context, graph, {
       params,
       jobPrefix: "app",
       workflowId: snapshot.workflow_id || undefined,
       failureLabel: `App "${snapshot.name || this.app_id}"`
     });
-    for (;;) {
-      const step = await stream.next();
-      if (step.done) return;
-      yield step.value;
-    }
   }
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
