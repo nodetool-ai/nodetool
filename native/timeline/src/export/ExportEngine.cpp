@@ -370,7 +370,9 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
                 if (captured.isNull()) throw std::runtime_error("Empty export frame");
                 QImage image;
                 if (fp16) {
-                    const auto resized = delivery::resample(delivery::straightFloat(captured),
+                    const auto straight = delivery::straightFloat(captured);
+                    if (options.floatCanvasForTest) { options.floatCanvasForTest(straight); }
+                    const auto resized = delivery::resample(straight,
                         QSize(result.width, result.height), options.scaleMode, explicitSize);
                     image = png ? delivery::rgba8(resized) : delivery::rgba64(resized);
                 } else {

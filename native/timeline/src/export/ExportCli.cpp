@@ -72,6 +72,21 @@ int exportCli(int argc, char** argv) {
     if (qEnvironmentVariable("NT_TEST_EXPORT_FP16") == u"1") {
         options.workingFormat = nt::WorkingFormat::Rgba16F;
     }
+    const auto testFloatPath = qEnvironmentVariable("NT_TEST_EXPORT_FLOAT");
+    if (!testFloatPath.isEmpty()) {
+        options.floatCanvasForTest = [testFloatPath](const QImage& image) {
+            QFile file(testFloatPath);
+            if (!file.open(QIODevice::WriteOnly)) {
+                throw std::runtime_error("Cannot save test float canvas");
+            }
+            for (int y = 0; y < image.height(); ++y) {
+                const auto bytes = image.width() * 4 * qsizetype(sizeof(float));
+                if (file.write(reinterpret_cast<const char*>(image.constScanLine(y)), bytes) != bytes) {
+                    throw std::runtime_error("Cannot save test float canvas row");
+                }
+            }
+        };
+    }
     const auto testYuvPath = qEnvironmentVariable("NT_TEST_EXPORT_YUV");
     if (!testYuvPath.isEmpty()) {
         options.videoFrameForTest = [testYuvPath](const QByteArray& bytes) {

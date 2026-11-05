@@ -1,10 +1,9 @@
 # N2 native capture and delivery
 
-A32 and A45.2 are implemented and qualified. They no longer hold N2 open.
-A84.2 remains partly met: its independent spatial oracle tests the resize
-helper, while the real decoded explicit-size exports check dimensions and
-constant interior patches rather than the full resampled frame. N2's exit
-gate therefore remains open for that comparison. FP16 remains off by default.
+A32, A45.2 and A84.2 are implemented and qualified on the tested routes.
+The decoded full-frame resize comparison closes A84.2's remaining clause on
+Vulkan/lavapipe. FP16 remains off by default. The new comparison has not yet
+run on Metal, D3D11/WARP or OpenGL.
 
 Combined CI passes on Metal, D3D11/WARP and Vulkan/lavapipe under sanitizers.
 The logs are `/home/mg/Projects/nodetool-film/tmp/x84m.log`, `x84w.log` and
@@ -20,7 +19,7 @@ physical Windows GPUs, hardware decode interop or release throughput.
 | Task | Status and evidence |
 |---|---|
 | A84.1 | Met. `typedWorkingCapture` and `offscreenTypedCapture` check typed, owned, undithered capture, layout, orientation and cancellation. |
-| A84.2 | Partly met. ExportEngine uses float resize and final quantization. `spatialFloatResampling` checks the helper independently. `export_precision` lacks a full-frame spatial reference for decoded explicit-size exports, including odd-canvas video. |
+| A84.2 | Met on Vulkan/lavapipe. `export_precision` compares every decoded PNG RGB and MP4 YUV sample against an independently resized float canvas for fit/fill up/down and odd-canvas video. Pre-encode resize and codec errors are measured separately. |
 | A32 | Met. `presentationQuantization` checks final dithering, paused stability and undithered capture. OpenGL scene and monitor checks qualify orientation independently. |
 | A84.3 | Met. `export_precision` covers PNG/ZIP and MP4, opaque/low-alpha edges, cancellation and cleanup. `alphaAndPng` separately checks straight/zero-alpha conversion. |
 | A41.3 | Met. `export_precision` inspects actual decoded pixels, YUV420P/range/BT.709 tags and codec loss separately from pre-encode identity. O1 retains the transfer-tag mismatch. |
@@ -36,14 +35,75 @@ maximum/0.1-mean comparison below was superseded. Decoded RGB uses the measured
 codec maxima as a separate sanity bound, not as a working-precision oracle.
 
 See the [clause audit](plan-status-audit.md) for source/test links and remaining
-work. No code, tests or hardware measurements changed in this documentation sync.
+work.
+
+## A84.2 decoded spatial acceptance
+
+The existing `export_precision` check now renders an asymmetric, three-color
+65x49 scene with inverse Levels in FP16. `NT_TEST_EXPORT_FLOAT` observes the
+straight FP32 canvas before resizing. Python computes the two-dimensional
+reference from that same canvas with cell-overlap area integration for shrinking
+and pixel-center bilinear interpolation for enlargement. Expected fit sizes,
+bar offsets and fill crops are explicit fixture values. The oracle calls no
+Qt scaling or delivery resize helper. It checks the complete frame, including
+edges, bars and crops. Existing helper tests retain their tighter float checks.
+
+PNG is compared in decoded RGB codes. For MP4, FFmpeg converts the independently
+resized reference to wide YUV at the same size, using the existing BT.709 matrix,
+range and chroma filter. It performs no spatial resize. The reference planes
+remain fractional 8-bit codes. Every unencoded YUV sample must be within one
+code of that reference. Every decoded YUV sample must be within one code plus
+the measured maximum codec loss. The one-code allowance comes from rounding
+by at most half a code plus centered dithering by less than half a code, not
+from fitting measured results. Codec loss retains its existing independent
+mean and regression gates. This qualifies resize/delivery, not renderer
+accuracy or an independent implementation of the YUV color conversion.
+
+All numbers below are code errors on Vulkan, adapter
+`llvmpipe (LLVM 23.1.3, 256 bits)`. PNG is lossless, so its resize and decoded
+errors are the same. MP4 used the system FFmpeg software H.264 encoder.
+
+| Format / geometry | Resize max / mean | Decoded max / mean | Codec max / mean |
+|---|---:|---:|---:|
+| PNG fit down | 0.967534 / 0.151773 | 0.967534 / 0.151773 | 0 / 0 |
+| PNG fill down | 0.960167 / 0.190124 | 0.960167 / 0.190124 | 0 / 0 |
+| PNG fit up | 0.991372 / 0.155106 | 0.991372 / 0.155106 | 0 / 0 |
+| PNG fill up | 0.981125 / 0.189099 | 0.981125 / 0.189099 | 0 / 0 |
+| MP4 fit down | 0.988281 / 0.165154 | 1.894531 / 0.210314 | 1 / 0.123698 |
+| MP4 fill down | 0.968750 / 0.203601 | 1.953125 / 0.257621 | 1 / 0.152778 |
+| MP4 fit up | 0.976563 / 0.160205 | 1.925781 / 0.171976 | 1 / 0.056076 |
+| MP4 fill up | 0.992188 / 0.192900 | 2.273438 / 0.214132 | 2 / 0.070747 |
+| MP4 odd canvas | 0.980469 / 0.184594 | 1.894531 / 0.217346 | 1 / 0.104601 |
+
+A deliberate mutation forced the FP16 export call to use fill for fit requests.
+The first full-frame PNG fit-down comparison failed with maximum error
+139.869793 codes and mean 12.947266, against the unchanged one-code bound.
+CTest reported one failed test and exited 8. Restoring the mode, rebuilding
+and rerunning passed. No resize defect was exposed. Production resizing,
+RGBA8 output calculations, FP16 defaults, BT.709 tags and pass-through remain
+unchanged. Only the opt-in float observation was added to export code.
+
+Verification used `ntbuild color-n2 nodetool-timeline tst_deliveryframe` and
+`citest color-n2 '^(export_precision|tst_deliveryframe)$' -V`. Both passed,
+including the preferences fixture, with zero failed or skipped tests.
+The default Qt-linked FFmpeg initially failed with an unavailable encoder.
+The local LGPL build uses libavcodec ABI 62, while this binary needs ABI 63.
+`CITEST_LD=/home/mg/Projects/nodetool-film/tmp/a842-system-ffmpeg` supplies
+symlinks to the system ABI-compatible FFmpeg libraries without replacing Qt.
+`TMPDIR` stayed under `/home/mg/Projects/nodetool-film/tmp`.
+
+Logs in that directory are `a842-build.log`, `a842-test.log`,
+`a842-system-test.log`, `a842-negative-build.log`, `a842-negative-test.log`,
+`a842-restored-build.log`, `a842-restored-test.log` and `a842-adapter.log`.
+No TypeScript tests, typecheck, lint, `harness gate`, `/verify`, full native
+suite, sanitizer build or additional adapter tests ran in this round.
 
 ## Historical checkpoints
 
 The sections below retain the implementation sequence and local evidence.
 Their status statements describe those checkpoints. The table above supersedes
 claims that A32, A45.2 or A109 are unimplemented or that Metal/D3D11 await CI.
-The resize-helper pass below does not supply the missing decoded spatial test.
+The resize-helper pass below is separate from the decoded spatial test added here.
 
 ## Capture boundary
 
