@@ -47,6 +47,13 @@ try {
   const value = psnr(...pictures);
   assert.throws(() => requireFrames([{ fixture: 'deliberately shifted red/blue cut', frame: 0, psnr: value }]), /PSNR .* < 40 dB/);
   console.log(`Planted shifted frame rejected: PSNR ${value} < 40 dB`);
+  assert.throws(() => requireFrames([
+    { fixture: 'first.json', frame: 150, psnr: 37.66 },
+    { fixture: 'second.json', frame: 0, psnr: 38.94 }
+  ]), error => error.message.includes('first.json frame 150')
+    && error.message.includes('second.json frame 0'));
+  assert.equal(psnrYuv(pictures[0], pictures[0], 0, 64, 64, true), Infinity);
+  assert.ok(psnrYuv(pictures[0], pictures[1], 0, 64, 64, true) < 40);
   assert.throws(() => requireFrames([]), /Compared no frames/);
   assert.throws(() => psnr(pictures[0], path.join(dir, 'missing.png')), /Missing frame/);
   requireFrames([{ fixture: 'identical', frame: 0, psnr: psnr(pictures[0], pictures[0]) }]);
