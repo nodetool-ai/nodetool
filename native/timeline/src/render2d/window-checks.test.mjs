@@ -5,6 +5,24 @@ import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 
+// The subject is a Bash script. Windows CI supplies Git Bash, whose paths
+// and PATH separator differ from the native Node process running this test.
+const windows = process.platform === "win32";
+function shellPath(value) {
+  return windows ? value.replaceAll("\\", "/").replace(/^([A-Za-z]):/, (_, drive) => `/${drive.toLowerCase()}`) : value;
+}
+function runBash(args, options) {
+  const bash = windows
+    ? [process.env.NT_TEST_BASH, path.join(process.env.ProgramFiles ?? "C:\\Program Files", "Git/bin/bash.exe"), path.join(process.env.LOCALAPPDATA ?? "", "Programs/Git/bin/bash.exe")].find(p => p && fs.existsSync(p))
+    : "/bin/bash";
+  assert.ok(bash, "Git Bash is required to test window-checks.sh on Windows");
+  const env = { ...process.env, ...options.env };
+  for (const key of ["CALLS", "NT_LOADAVG_PATH", "NT_TEST_PATH_PREFIX"]) {
+    if (env[key]) env[key] = shellPath(env[key]);
+  }
+  return spawnSync(bash, ["-c", 'if [[ -n "${NT_TEST_PATH_PREFIX:-}" ]]; then export PATH="$NT_TEST_PATH_PREFIX:$PATH"; fi; exec /bin/bash "$@"', "test", ...args.map(arg => path.isAbsolute(arg) ? shellPath(arg) : arg)], { ...options, env });
+}
+
 test("window checks dry run prints section 8 and executes no checks or idle wait", (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "serein-dry-run-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -18,8 +36,8 @@ test("window checks dry run prints section 8 and executes no checks or idle wait
   }
   fs.writeFileSync(path.join(root, "build/nodetool-timeline"), guard, { mode: 0o755 });
   const calls = path.join(root, "calls");
-  const run = spawnSync("/bin/bash", [path.join(root, "scripts/window-checks.sh"), "--dry-run"], {
-    encoding: "utf8", timeout: 3000, env: { ...process.env, PATH: `${root}/guards:${process.env.PATH}`, CALLS: calls }
+  const run = runBash([path.join(root, "scripts/window-checks.sh"), "--dry-run"], {
+    encoding: "utf8", timeout: 3000, env: { ...process.env, NT_TEST_PATH_PREFIX: path.join(root, "guards"), CALLS: calls }
   });
   assert.equal(run.error, undefined);
   assert.equal(run.status, 0, run.stderr);
@@ -37,7 +55,8 @@ for (const settles of [false, true]) {
   test(`section 8 ${settles ? "waits for acceptable load" : "refuses a persistently overloaded bench"}`, (t) => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "serein-load-"));
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-    const source = fs.readFileSync(new URL("../../scripts/window-checks.sh", import.meta.url), "utf8");
+    // Git checks out this shell source with CRLF on Windows.
+    const source = fs.readFileSync(new URL("../../scripts/window-checks.sh", import.meta.url), "utf8").replaceAll("\r\n", "\n");
     const body = source.slice(source.indexOf("serein_m0() {"), source.indexOf("\nif [[ $dry_run == 1 ]]; then\n    serein_m0"));
     const script = `set -uo pipefail
 out="$1"
@@ -50,7 +69,7 @@ bench() { echo ran > "$out/bench-called"; }
 ${body}
 serein_m0
 `;
-    const run = spawnSync("/bin/bash", ["-c", script, "test", root], { encoding: "utf8", timeout: 3000 });
+    const run = runBash(["-c", script, "test", root], { encoding: "utf8", timeout: 3000 });
     assert.equal(run.status, 0, run.stderr);
     assert.equal(fs.existsSync(path.join(root, "bench-called")), settles);
     assert.equal(fs.readFileSync(path.join(root, "m0-serein-native.exit"), "utf8").trim(), settles ? "0" : "not run");
@@ -68,7 +87,8 @@ for (const phase of ["before", "waiting", "after"]) {
   test(`section 8 records unreadable load ${phase} without an invalid measurement`, (t) => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "serein-unreadable-"));
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-    const source = fs.readFileSync(new URL("../../scripts/window-checks.sh", import.meta.url), "utf8");
+    // Git checks out this shell source with CRLF on Windows.
+    const source = fs.readFileSync(new URL("../../scripts/window-checks.sh", import.meta.url), "utf8").replaceAll("\r\n", "\n");
     const body = source.slice(source.indexOf("serein_m0() {"), source.indexOf("\nif [[ $dry_run == 1 ]]; then\n    serein_m0"));
     const script = `set -uo pipefail
 out="$1"
@@ -86,7 +106,7 @@ bench() { echo ran > "$out/bench-called"; }
 ${body}
 serein_m0
 `;
-    const run = spawnSync("/bin/bash", ["-c", script, "test", root], { encoding: "utf8", timeout: 3000 });
+    const run = runBash(["-c", script, "test", root], { encoding: "utf8", timeout: 3000 });
     assert.equal(run.status, 0, run.stderr);
     assert.equal(fs.existsSync(path.join(root, "bench-called")), phase === "after", "native bench must not run with unreadable starting load");
     assert.equal(fs.readFileSync(path.join(root, "m0-serein-native.exit"), "utf8").trim(), phase === "after" ? "0" : "not run");
@@ -111,11 +131,12 @@ for (const [name, proc, sysctl, expected] of [
     const procPath = path.join(root, "loadavg");
     if (proc !== null) fs.writeFileSync(procPath, proc);
     fs.writeFileSync(path.join(root, "sysctl"), '#!/bin/bash\n[[ -n "$TEST_SYSCTL_LOAD" ]] || exit 1\nprintf "%s\\n" "$TEST_SYSCTL_LOAD"\n', { mode: 0o755 });
-    const source = fs.readFileSync(new URL("../../scripts/window-checks.sh", import.meta.url), "utf8");
+    // Git checks out this shell source with CRLF on Windows.
+    const source = fs.readFileSync(new URL("../../scripts/window-checks.sh", import.meta.url), "utf8").replaceAll("\r\n", "\n");
     const body = source.slice(source.indexOf("load1() {"), source.indexOf("\nidle="));
-    const run = spawnSync("/bin/bash", ["-c", `set -uo pipefail\n${body}\nload1`], {
+    const run = runBash(["-c", `set -uo pipefail\n${body}\nload1`], {
       encoding: "utf8", timeout: 3000,
-      env: { ...process.env, PATH: `${root}:${process.env.PATH}`, NT_LOADAVG_PATH: procPath, TEST_SYSCTL_LOAD: sysctl ?? "" }
+      env: { ...process.env, NT_TEST_PATH_PREFIX: root, NT_LOADAVG_PATH: procPath, TEST_SYSCTL_LOAD: sysctl ?? "" }
     });
     assert.equal(run.error, undefined);
     if (expected === null) {
@@ -132,7 +153,8 @@ for (const phase of ["before", "waiting"]) {
   test(`section 0 marks unreadable load ${phase} as not idle and writes valid JSON`, (t) => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "seek-unreadable-"));
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-    const source = fs.readFileSync(new URL("../../scripts/window-checks.sh", import.meta.url), "utf8");
+    // Git checks out this shell source with CRLF on Windows.
+    const source = fs.readFileSync(new URL("../../scripts/window-checks.sh", import.meta.url), "utf8").replaceAll("\r\n", "\n");
     const body = source.slice(source.indexOf("\nidle="), source.indexOf("\n# Section 8"));
     const script = `set -uo pipefail
 out="$1"
@@ -146,7 +168,7 @@ sleep() { echo "$1" >> "$out/sleeps"; }
 node() { echo '{}'; }
 ${body}
 `;
-    const run = spawnSync("/bin/bash", ["-c", script, "test", root], { encoding: "utf8", timeout: 3000 });
+    const run = runBash(["-c", script, "test", root], { encoding: "utf8", timeout: 3000 });
     assert.equal(run.status, 0, run.stderr);
     const files = fs.readdirSync(root).filter(name => name.endsWith(".json"));
     assert.equal(files.length, 33, "inspect idle metadata and every seek report and metadata file");

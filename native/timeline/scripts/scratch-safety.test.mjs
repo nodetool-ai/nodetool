@@ -13,6 +13,7 @@ import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 
 import {
+  spawnOwned,
   assertInWork,
   groupAlive,
   groupOwnsPort,
@@ -64,7 +65,7 @@ test("safeRm unlinks a symlink and keeps what it points at", () => {
 
 function startDetachedServer(port) {
   const code = `require("http").createServer((q,s)=>s.end("ok")).listen(${port},"127.0.0.1")`;
-  return spawn(process.execPath, ["-e", code], { detached: true, stdio: "ignore" });
+  return spawnOwned(process.execPath, ["-e", code], { detached: true, stdio: "ignore" });
 }
 
 async function freePort() {
@@ -115,13 +116,18 @@ test("redirects are refused, also to 7777", async () => {
   }
 });
 
-test("stopGroups ends descendants that outlive the leader and ignore SIGTERM", async () => {
+test("stopGroups ends descendants that outlive the leader and ignore SIGTERM", { skip: process.platform === "win32" ? "Windows terminates jobs rather than delivering POSIX SIGTERM" : false }, async () => {
   // The leader exits at once; a grandchild that ignores SIGTERM stays in the group.
-  const child = spawn("/bin/sh", ["-c", "(trap '' TERM; sleep 60) & exit 0"], { detached: true, stdio: "ignore" });
-  await new Promise((r) => child.on("exit", r));
-  await sleep(200);
-  assert.equal(groupAlive(child.pid), true, "the grandchild keeps the group alive");
-  await stopGroups([child.pid], { termMs: 300, killMs: 2000 });
+  const marker = path.join(area, "leader-exited");
+  const descendant = `process.on("SIGTERM",()=>{}); require("fs").writeFileSync(${JSON.stringify(marker)},"ready"); setInterval(()=>{},1000)`;
+  const leader = `const child = require("child_process").spawn(process.execPath,["-e",${JSON.stringify(descendant)}],{stdio:"ignore"}); child.unref();`;
+  const child = spawnOwned(process.execPath, ["-e", leader], { detached: true, stdio: "ignore" });
+  try {
+    for (let i = 0; i < 100 && !fs.existsSync(marker); ++i) await sleep(20);
+    assert.ok(fs.existsSync(marker), "descendant must install its SIGTERM handler");
+    await sleep(200);
+    assert.equal(groupAlive(child.pid), true, "the grandchild keeps the group alive");
+  } finally { await stopGroups([child.pid], { termMs: 300, killMs: 2000 }); }
   assert.equal(groupAlive(child.pid), false);
 });
 
@@ -130,7 +136,7 @@ async function startWithPreload(code, instance) {
   const env = { ...process.env, NODE_OPTIONS: instancePreloadOption() };
   if (instance) env[INSTANCE_ENV] = instance;
   else delete env[INSTANCE_ENV];
-  const child = spawn(process.execPath, ["-e", code], { detached: true, stdio: ["ignore", "pipe", "inherit"], env });
+  const child = spawnOwned(process.execPath, ["-e", code], { detached: true, stdio: ["ignore", "pipe", "inherit"], env });
   const port = await new Promise((resolve, reject) => {
     let out = "";
     child.stdout.on("data", (d) => {
@@ -194,6 +200,7 @@ test("without a token the preload adds no instance header", async () => {
 async function identityListener(replay = "") {
   const code = `
     const net = require("node:net"), crypto = require("node:crypto");
+    const send = m => console.log(JSON.stringify(m));
     const sockets = new Set();
     let replacement = false;
     const replay = ${JSON.stringify(replay)};
@@ -202,7 +209,7 @@ async function identityListener(replay = "") {
       socket.on("error", () => {});
       socket.on("close", () => sockets.delete(socket));
       socket.on("data", bytes => {
-        process.send({ bytes: bytes.toString(), replacement });
+        send({ bytes: bytes.toString(), replacement });
         if (bytes.toString().startsWith("GET /ready ")) {
           const nonce = bytes.toString().match(/x-nodetool-instance-nonce: ([^\\r]+)/i)?.[1] ?? "";
           const proof = crypto.createHmac("sha256", "mine").update(nonce).digest("hex");
@@ -211,17 +218,26 @@ async function identityListener(replay = "") {
         } else socket.end('HTTP/1.1 200 OK\\r\\nx-nodetool-instance: mine\\r\\nContent-Length: 22\\r\\n\\r\\n{"result":{"data":{}}}');
       });
     });
-    server.listen(0, "127.0.0.1", () => process.send({ port: server.address().port }));
-    process.on("message", m => {
+    server.listen(0, "127.0.0.1", () => send({ port: server.address().port }));
+    require("readline").createInterface({input:process.stdin}).on("line", line => {
+      const m = JSON.parse(line);
       if (m !== "swap") return;
       const port = server.address().port;
       for (const s of sockets) s.destroy();
-      server.close(() => { replacement = true; server.listen(port, "127.0.0.1", () => process.send({ swapped: true })); });
+      server.close(() => { replacement = true; server.listen(port, "127.0.0.1", () => send({ swapped: true })); });
     });
   `;
-  const child = spawn(process.execPath, ["-e", code], { detached: true, stdio: ["ignore", "ignore", "inherit", "ipc"] });
+  const child = spawnOwned(process.execPath, ["-e", code], { detached: true, stdio: ["pipe", "pipe", "inherit"] });
   const messages = [];
-  child.on("message", (m) => messages.push(m));
+  let pending = "";
+  child.stdout.on("data", bytes => {
+    pending += bytes;
+    let newline;
+    while ((newline = pending.indexOf("\n")) >= 0) {
+      messages.push(JSON.parse(pending.slice(0, newline)));
+      pending = pending.slice(newline + 1);
+    }
+  });
   async function until(predicate) {
     for (let i = 0; i < 500; ++i) {
       if (predicate()) return;
@@ -230,7 +246,12 @@ async function identityListener(replay = "") {
     }
     throw new Error("identity listener timed out");
   }
-  await until(() => messages.some((m) => m.port));
+  try {
+    await until(() => messages.some((m) => m.port));
+  } catch (error) {
+    await stopGroups([child.pid], { termMs: 2000 });
+    throw error;
+  }
   const port = messages.find((m) => m.port).port;
   assert.notEqual(port, 7777);
   return { child, port, messages, until };
@@ -255,7 +276,7 @@ for (const operation of ["mutate", "upload"]) {
         beforeWrite: async () => {
           paused = true;
           if (attack === "replacement") {
-            fake.child.send("swap");
+            fake.child.stdin.write(JSON.stringify("swap") + "\n");
             await fake.until(() => fake.messages.some((m) => m.swapped));
           }
         } });
@@ -286,3 +307,36 @@ test("port 7777 is refused before preparing or contacting a server", async () =>
   await assert.rejects(session.mutate("http://127.0.0.1:7777", "timeline.delete", {}), /refusing a write/);
   await assert.rejects(session.upload({ base: "http://127.0.0.1:7777" }, "unused"), /refusing a write/);
 });
+
+// These exercise Windows kernel guarantees, in addition to the cross-platform
+// ownership, descendant cleanup, nonce and replacement-server tests above.
+if (process.platform === "win32") {
+  for (const victim of ["owner", "helper"]) {
+    test(`Windows job kills descendants when ${victim} crashes`, async () => {
+      const marker = path.join(area, `crash-${victim}.json`);
+      const descendant = `const s=require("http").createServer((q,r)=>r.end("ok")); s.listen(0,"127.0.0.1",()=>require("fs").writeFileSync(${JSON.stringify(marker)},JSON.stringify({pid:process.pid,port:s.address().port})));`;
+      // Detach from Node's launcher lifetime, but remain in the inherited scratch job.
+      const launcher = `const c=require("child_process").spawn(process.execPath,["-e",${JSON.stringify(descendant)}],{detached:true,stdio:["ignore","ignore","inherit"]}); c.unref();`;
+      const module = new URL("./scratch-safety.mjs", import.meta.url).href;
+      const ownerCode = `import {spawnOwned} from ${JSON.stringify(module)}; const c=spawnOwned(process.execPath,["-e",${JSON.stringify(launcher)}],{stdio:"ignore"}); console.log(c.pid); setInterval(()=>{},1000);`;
+      const owner = spawn(process.execPath, ["--input-type=module", "-e", ownerCode], { stdio: ["ignore", "pipe", "inherit"] });
+      let helper;
+      owner.stdout.on("data", bytes => { helper = Number(bytes.toString().trim()); });
+      let fixture;
+      try {
+        for (let i = 0; i < 200 && (!helper || !fs.existsSync(marker)); ++i) await sleep(25);
+        assert.ok(helper && fs.existsSync(marker), "descendant must start before crash");
+        fixture = JSON.parse(fs.readFileSync(marker, "utf8"));
+        process.kill(victim === "owner" ? owner.pid : helper, "SIGKILL");
+        const alive = () => { try { process.kill(fixture.pid, 0); return true; } catch { return false; } };
+        for (let i = 0; i < 200 && alive(); ++i) await sleep(25);
+        assert.equal(alive(), false, "kernel must remove the descendant after owner/helper death");
+      } finally {
+        owner.kill();
+        if (helper) { try { process.kill(helper, "SIGKILL"); } catch { /* gone */ } }
+        // If the guarantee regresses, do not leave the test listener running.
+        if (fixture) { try { process.kill(fixture.pid, "SIGKILL"); } catch { /* gone */ } }
+      }
+    });
+  }
+}
