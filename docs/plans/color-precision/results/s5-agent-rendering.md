@@ -1,10 +1,7 @@
 # S5 agent rendering qualification
 
-A91 implementation now uses one renderer child per parent and switches the
-agent callers to shared shaders. A91 remains unchecked because a fresh minimal
-installation cannot resolve a required dependency. The owner must
-provide or publish `@nodetool-ai/presets`, or accept the isolated missing-addon
-qualification in place of an install. A92 and FP16 remain excluded.
+A91 is met: one renderer child per parent, with the agent callers on shared
+shaders. CI has not yet run this branch. A92 and FP16 remain excluded.
 
 ## Current qualification: queued child and migrated callers
 
@@ -153,10 +150,19 @@ more of those modules before accepting requests.
 
 Packed the current agents workspace and attempted installation into a new
 directory with `npm install --omit=optional --ignore-scripts`. Installation
-failed with registry HTTP 404 for required `@nodetool-ai/presets@*`, before
-runtime qualification. The attempted install is not a passing minimal install.
-The `--ignore-scripts` approximation would also need native build setup if
-dependency resolution succeeded. No installed shared dependency was removed.
+failed with registry HTTP 404 for required `@nodetool-ai/presets@*`, because
+that package is not published yet. Published `@nodetool-ai/agents@0.8.10` does
+not depend on it, so this affects the next release only.
+
+Packing `agents`, `presets`, `timeline` and `gpu` from this branch and installing
+those tarballs with the rest from npm gives a clean install of 303 packages with
+no `webgpu` package. `better-sqlite3` then needs `npm rebuild` because of
+`--ignore-scripts`. In that install, `@nodetool-ai/agents` loads, and rendering
+through the real child reports:
+`The optional "webgpu" package (WebGPU (Dawn)) is not installed.` with
+`nodetool packs add webgpu --yes`, and the process exits 0. A render with the
+addon installed from a clean install was not tried. The other sibling packages
+came from npm at 0.8.10, so an install from a real release remains to be seen.
 
 The isolated missing-addon fixture still proves ordinary tool registration
 loads no Dawn and a child render returns `nodetool packs add webgpu --yes`.

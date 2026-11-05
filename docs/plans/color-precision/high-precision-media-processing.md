@@ -131,7 +131,7 @@ A95 can run before FP16 work and does not depend on S3 or A93. It establishes a 
 
 This track improves effect coverage and consistency, including ordinary 8-bit agent previews. It changes renderer prerequisites and is separate from the browser FP16 release.
 
-- [ ] **A91: Move agent timeline rendering to shared shaders.** Adapt preview/comparison callers to the existing headless compositor on hardware or Dawn/lavapipe. Preserve outputs, geometry/timing, source rasterization, diagnostics and cancellation. Load the native renderer lazily at render invocation. Document required addon/adapter setup and test a minimal install: ordinary agent tools still load, while rendering returns an actionable missing-runtime/adapter error. Qualify numerical coverage, startup cost, contention and clean one-shot CLI completion before switching. Do not wrap browser/video export to render a frame.
+- [x] **A91: Move agent timeline rendering to shared shaders.** Adapt preview/comparison callers to the existing headless compositor on hardware or Dawn/lavapipe. Preserve outputs, geometry/timing, source rasterization, diagnostics and cancellation. Load the native renderer lazily at render invocation. Document required addon/adapter setup and test a minimal install: ordinary agent tools still load, while rendering returns an actionable missing-runtime/adapter error. Qualify numerical coverage, startup cost, contention and clean one-shot CLI completion before switching. Do not wrap browser/video export to render a frame.
 
   The queued child and caller migration are implemented. Memory, queue latency,
   numerical comparisons, complete CLI exit and API contention are recorded in
