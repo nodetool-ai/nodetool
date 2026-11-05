@@ -116,7 +116,7 @@ test("redirects are refused, also to 7777", async () => {
   }
 });
 
-test("stopGroups ends descendants that outlive the leader and ignore SIGTERM", async () => {
+test("stopGroups ends descendants that outlive the leader and ignore SIGTERM", { skip: process.platform === "win32" ? "Windows terminates jobs rather than delivering POSIX SIGTERM" : false }, async () => {
   // The leader exits at once; a grandchild that ignores SIGTERM stays in the group.
   const marker = path.join(area, "leader-exited");
   const descendant = `process.on("SIGTERM",()=>{}); require("fs").writeFileSync(${JSON.stringify(marker)},"ready"); setInterval(()=>{},1000)`;
@@ -315,7 +315,8 @@ if (process.platform === "win32") {
     test(`Windows job kills descendants when ${victim} crashes`, async () => {
       const marker = path.join(area, `crash-${victim}.json`);
       const descendant = `const s=require("http").createServer((q,r)=>r.end("ok")); s.listen(0,"127.0.0.1",()=>require("fs").writeFileSync(${JSON.stringify(marker)},JSON.stringify({pid:process.pid,port:s.address().port})));`;
-      const launcher = `const c=require("child_process").spawn(process.execPath,["-e",${JSON.stringify(descendant)}],{stdio:"ignore"}); c.unref();`;
+      // Detach from Node's launcher lifetime, but remain in the inherited scratch job.
+      const launcher = `const c=require("child_process").spawn(process.execPath,["-e",${JSON.stringify(descendant)}],{detached:true,stdio:["ignore","ignore","inherit"]}); c.unref();`;
       const module = new URL("./scratch-safety.mjs", import.meta.url).href;
       const ownerCode = `import {spawnOwned} from ${JSON.stringify(module)}; const c=spawnOwned(process.execPath,["-e",${JSON.stringify(launcher)}],{stdio:"ignore"}); console.log(c.pid); setInterval(()=>{},1000);`;
       const owner = spawn(process.execPath, ["--input-type=module", "-e", ownerCode], { stdio: ["ignore", "pipe", "inherit"] });
