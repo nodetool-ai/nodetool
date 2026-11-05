@@ -864,20 +864,20 @@ Item {
                 }
                 tryVerify(() => findChild(panel, "effectControlsGraph_position") !== null)
                 waitForRendering(panel)
-                const seek = testHarness.medianFrameMs(panel, i => testClock.seek(i * 13), 41)
+                const seek = testHarness.meanFrameMs(panel, i => testClock.seek(i * 13), 41)
                 panel.selectedKeys = {}
                 for (const ms of times("position").slice(0, count / 2)) {
                     panel.toggleSelected("position", ms)
                 }
                 panel.beginRetime(times("position")[10])
                 let moved = 0
-                const retime = testHarness.medianFrameMs(panel, i => {
+                const retime = testHarness.meanFrameMs(panel, i => {
                     panel.updateRetime(panel.xOf(100 + i * 25))
                     moved = panel.retimeDeltaMs
                 }, 41)
                 verify(moved > 0)
                 panel.endGestures()
-                const zoom = testHarness.medianFrameMs(panel, i => panel.setView(1000 + (i % 10) * 100, 0), 21)
+                const zoom = testHarness.meanFrameMs(panel, i => panel.setView(1000 + (i % 10) * 100, 0), 21)
                 console.info(count, "keys frame CPU ms: seek", seek, "retime", retime, "zoom", zoom)
                 return {seek, retime, zoom}
             }
