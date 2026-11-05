@@ -1048,7 +1048,7 @@ export function createTimelineToolBridge(
       setup,
       transcript: seed?.transcript,
       scriptEnabled: seed?.scriptEnabled,
-      ...(seed?.workingColorSpaceVersion === undefined ? {} : { workingColorSpaceVersion: seed.workingColorSpaceVersion }),
+      workingColorSpaceVersion: seed?.workingColorSpaceVersion,
       templateId: seed?.templateId,
       trackFolders: structuredClone(seed?.trackFolders),
       storyboardMaterializations: structuredClone(

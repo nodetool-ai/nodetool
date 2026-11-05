@@ -403,7 +403,7 @@ export async function applyOps(
     sequenceName: sequence.name,
     projectId: sequence.project_id,
     sequence: {
-      ...(document.workingColorSpaceVersion === undefined ? {} : { workingColorSpaceVersion: document.workingColorSpaceVersion }),
+      workingColorSpaceVersion: document.workingColorSpaceVersion,
       fps: sequence.fps,
       width: sequence.width,
       height: sequence.height,
