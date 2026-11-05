@@ -57,6 +57,7 @@
 #include <QToolTip>
 #include <QUndoStack>
 #include <QVBoxLayout>
+#include <QNativeGestureEvent>
 #include <QWheelEvent>
 #include <QtNodes/ConnectionStyle>
 #include <algorithm>
@@ -449,12 +450,23 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(scene_, &QtNodes::BasicGraphicsScene::nodeDoubleClicked, this, [this](QtNodes::NodeId id) {
     if (node_editor::isChildNode(document_.node(model_.resourceId(id)))) { selected_ = model_.resourceId(id); openChild(); }
   });
-  connect(scene_, &QGraphicsScene::selectionChanged, this, [this] {
+  const auto selectionSettled = [this] {
     const auto ids = selectedIds();
     const auto next = ids.size() == 1 ? ids.first() : QString{};
     if (selected_ != next) { selected_ = next; inspectorDismissed_ = false; syncInspector(); }
     emit panelChanged();
     scheduleViewportSettle();
+  };
+  // A box selection changes the selection on many mouse moves. Panels follow
+  // it once, when the drag ends, because each panel refresh is expensive.
+  connect(scene_, &QGraphicsScene::selectionChanged, this, [this, selectionSettled] {
+    if (!view_->rubberBandRect().isNull()) { rubberBandSelectionPending_ = true; return; }
+    selectionSettled();
+  });
+  connect(view_, &QGraphicsView::rubberBandChanged, this, [this, selectionSettled](QRect rect) {
+    if (!rect.isNull() || !rubberBandSelectionPending_) { return; }
+    rubberBandSelectionPending_ = false;
+    selectionSettled();
   });
   connect(scene_, &QtNodes::BasicGraphicsScene::nodeClicked, this,
           [this](auto id) {
@@ -987,6 +999,27 @@ void EditorWindow::setDarkTheme(bool dark) {
     theme->setProperty("preference", dark ? 2 : 3);
   }
 }
+// macOS always uses gestures. Other platforms default to mouse and offer a setting.
+bool EditorWindow::mouseNavigation() {
+#ifdef Q_OS_MACOS
+  return false;
+#else
+  return QSettings().value("canvas/navigation", "mouse").toString() == "mouse";
+#endif
+}
+void EditorWindow::zoomUnderCursor(double factor) {
+  const auto scale = view_->transform().m11() * factor;
+  if (scale < 0.12 || scale > 4) { return; }
+  fitActive_ = false;
+  view_->setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
+  view_->scale(factor, factor);
+  emit zoomChanged();
+}
+void EditorWindow::panBy(QPoint delta) {
+  fitActive_ = false;
+  view_->horizontalScrollBar()->setValue(view_->horizontalScrollBar()->value() - delta.x());
+  view_->verticalScrollBar()->setValue(view_->verticalScrollBar()->value() - delta.y());
+}
 void EditorWindow::zoomBy(double factor) {
   const auto scale = view_->transform().m11() * factor;
   if (scale < 0.1 || scale > 5) { return; }
@@ -1445,7 +1478,15 @@ void EditorWindow::action(const QString &name) {
   if (!tabOwner_) { activeEditor_->action(name); return; }
   if (name == "Command menu" || name == "Keyboard shortcuts") { showActionMenu(name == "Command menu" ? "command" : "shortcuts", view_->viewport()->mapToGlobal(unobstructedViewport().center().toPoint())); return; }
   if (name == "Disable toggle") { action(selectionDisabled() ? "Enable selected" : "Disable selected"); return; }
-  if (name == "Select all") { for (auto id : model_.allNodeIds()) { if (auto *item = scene_->nodeGraphicsObject(id)) { item->setSelected(true); } } return; }
+  if (name == "Select all") {
+    // Each setSelected emits selectionChanged, and every listener does work
+    // that grows with the graph. Notify once for the whole selection.
+    QSignalBlocker blocker(scene_);
+    for (auto id : model_.allNodeIds()) { if (auto *item = scene_->nodeGraphicsObject(id)) { item->setSelected(true); } }
+    blocker.unblock();
+    emit scene_->selectionChanged();
+    return;
+  }
   if (name == "Cut") { if (menuActionEnabled(name)) { action("Copy"); action("Delete"); } return; }
   if (name == "Version history" || name == "Share workflow" || name == "Workflow metadata") {
     showWorkflowDetails(name == "Version history" ? "versions" : name == "Share workflow" ? "sharing" : "metadata"); return;
@@ -1660,6 +1701,10 @@ void EditorWindow::action(const QString &name) {
     emit panelChanged();
     return;
   }
+  if (name.startsWith("Canvas navigation:")) {
+    QSettings().setValue("canvas/navigation", mouseNavigation() ? "trackpad" : "mouse");
+    return;
+  }
   if (name.startsWith("Instant Update:")) {
       instantUpdate_ = !instantUpdate_;
       ++instantUpdateGeneration_;
@@ -1831,9 +1876,29 @@ void EditorWindow::action(const QString &name) {
     auto fragment =
         QJsonDocument::fromJson(QApplication::clipboard()->text().toUtf8());
     if (fragment.isObject()) {
+      // As on the web: the first top-level node lands at the pointer, or at the
+      // canvas centre when the pointer is elsewhere. Repeats at one spot step.
+      const auto viewport = view_->viewport();
+      auto screen = pasteMenuPosition_.isNull() ? viewport->mapFromGlobal(QCursor::pos()) : viewport->mapFromGlobal(pasteMenuPosition_);
+      pasteMenuPosition_ = {};
+      if (!viewport->rect().contains(screen)) { screen = viewport->rect().center(); }
+      auto at = view_->mapToScene(screen);
+      constexpr double step = 40;
+      if (lastPaste_ && std::abs(lastPaste_->x() - at.x()) < step && std::abs(lastPaste_->y() - at.y()) < step) {
+        at = *lastPaste_ + QPointF(step, step);
+      }
+      lastPaste_ = at;
+      QPointF anchor;
+      for (const auto &value : fragment.object().value("nodes").toArray()) {
+        const auto node = value.toObject();
+        if (!node.value("parent_id").toString().isEmpty()) { continue; }
+        const auto position = node.value("ui_properties").toObject().value("position").toObject();
+        anchor = QPointF(position.value("x").toDouble(), position.value("y").toDouble());
+        break;
+      }
       apply({{"op", "paste"},
              {"fragment", fragment.object()},
-             {"offset", QJsonObject{{"x", 24}, {"y", 24}}}});
+             {"offset", QJsonObject{{"x", at.x() - anchor.x()}, {"y", at.y() - anchor.y()}}}});
     }
   } else if (name == "Duplicate") {
     auto r = document_.duplicate(selectedIds());
@@ -1862,14 +1927,19 @@ bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
   }
   if (event->type() == QEvent::Wheel && object == view_->viewport()) {
     auto wheel = static_cast<QWheelEvent *>(event);
-    auto factor = wheel->angleDelta().y() > 0 ? 1.15 : 1.0 / 1.15;
-    auto scale = view_->transform().m11() * factor;
-    if (scale >= 0.12 && scale <= 4) {
-      fitActive_ = false;
-      view_->setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
-      view_->scale(factor, factor);
-      emit zoomChanged();
+    // A physical wheel reports no scroll phase and no pixel delta, so it still zooms.
+    const bool physicalWheel = wheel->phase() == Qt::NoScrollPhase && wheel->pixelDelta().isNull();
+    if (mouseNavigation() || physicalWheel || wheel->modifiers().testAnyFlags(Qt::ControlModifier | Qt::MetaModifier)) {
+      if (wheel->angleDelta().y() != 0) { zoomUnderCursor(wheel->angleDelta().y() > 0 ? 1.15 : 1.0 / 1.15); }
+    } else {
+      panBy(wheel->pixelDelta().isNull() ? wheel->angleDelta() / 2 : wheel->pixelDelta());
     }
+    return true;
+  }
+  if (event->type() == QEvent::NativeGesture && object == view_->viewport()) {
+    auto gesture = static_cast<QNativeGestureEvent *>(event);
+    if (gesture->gestureType() != Qt::ZoomNativeGesture) { return false; }
+    zoomUnderCursor(1.0 + gesture->value());
     return true;
   }
   if (event->type() == QEvent::MouseButtonPress &&
@@ -1878,6 +1948,9 @@ bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
     if (mouse->button() == Qt::LeftButton && !mouse->modifiers().testAnyFlags(Qt::ShiftModifier | Qt::ControlModifier | Qt::MetaModifier)) {
       lineage_->setSelectedLinkIds({});
     }
+    // Applied per press so that every open tab follows the one setting.
+    view_->setDragMode(mouseNavigation() ? QGraphicsView::ScrollHandDrag : QGraphicsView::RubberBandDrag);
+    if (mouseNavigation() && mouse->button() == Qt::LeftButton && !view_->itemAt(mouse->position().toPoint())) { fitActive_ = false; }
     if (mouse->button() == Qt::MiddleButton) {
       const auto hit = view_->itemAt(mouse->position().toPoint());
       if (hit && hit->toGraphicsObject() && hit->toGraphicsObject()->parent() == lineage_) { return false; }

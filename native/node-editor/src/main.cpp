@@ -17,15 +17,20 @@ int main(int argc, char **argv) {
     parser.addOption(QCommandLineOption(
         name, QString("%1 path or value").arg(name), "value"));
   }
+  parser.addOption(QCommandLineOption("offline", "Start without connecting to a server"));
   parser.process(app);
   nodetool::EditorWindow window;
   if (!parser.isSet("open") && !parser.isSet("workflow")) window.restoreTabs();
   if (parser.isSet("open") && !window.openFile(parser.value("open"))) {
     return 2;
   }
-  if (parser.isSet("server")) {
-    window.session()->connectToServer(QUrl(parser.value("server")),
-                                      qEnvironmentVariable("NODETOOL_TOKEN"));
+  // An interactive start connects to the local server, as the web app does.
+  // Headless export and replay runs stay offline unless --server is given.
+  const bool headless = parser.isSet("screenshot") || parser.isSet("dump") || parser.isSet("save") || parser.isSet("replay");
+  const auto server = parser.isSet("server") ? QUrl(parser.value("server"))
+      : (!headless && !parser.isSet("offline") && window.session()->serverUrl().isEmpty()) ? QUrl("http://localhost:7777") : QUrl();
+  if (!server.isEmpty()) {
+    window.session()->connectToServer(server, qEnvironmentVariable("NODETOOL_TOKEN"));
     window.session()->loadCatalog();
   }
   if (parser.isSet("workflow")) {

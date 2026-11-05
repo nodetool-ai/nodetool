@@ -1,4 +1,5 @@
 #pragma once
+#include <optional>
 #include "server/SetupController.h"
 #include "server/PackSetup.h"
 #include "document/WorkflowDocument.h"
@@ -217,6 +218,9 @@ private:
   Q_SLOT void layoutOverlays();
   void syncInspector();
   void zoomBy(double factor);
+  void zoomUnderCursor(double factor);
+  void panBy(QPoint delta);
+  static bool mouseNavigation();
   void applyFit();
   void revealSelection();
   void scheduleViewportSettle();
@@ -280,6 +284,9 @@ private:
   bool gesture_ = false;
   QHash<QString, QPointF> gesturePositions_;
   bool panning_ = false;
+  bool rubberBandSelectionPending_ = false;
+  std::optional<QPointF> lastPaste_;
+  QPoint pasteMenuPosition_;
   QPoint panPosition_;
   QJsonArray gestureCommands_;
 };

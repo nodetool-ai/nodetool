@@ -58,6 +58,10 @@ the server session. The bottom status bar's Connect action lets you enter a
 server URL (default `http://localhost:7777`) and an optional access token without
 restarting. Tokens stay in memory and are never saved in preferences. Remote
 authentication requires HTTPS. Connection errors appear in the status bar.
+An interactive start connects to `http://localhost:7777` with `NODETOOL_TOKEN`
+unless `--server` names another server or `--offline` is given. Screenshot, dump,
+save, and replay runs skip this default. Restored tabs that show a server workflow
+still reconnect to their own server.
 Use More → Reconnect to retry the current server, or Connect to change it.
 Connecting and failed connections preserve the current document. Open, the
 Workflows rail button, and More → Server Open show the workflow browser. Search
@@ -149,7 +153,10 @@ cleared after a gesture. The host does not install QtNodes' clipboard or undo
 actions. Undo and Redo always use the document stack. Delete includes selected
 connections. Copy, Paste, and Duplicate use document fragments and remap IDs.
 
-Wheel or the corner readout zooms and middle-button drag pans. Fit shows every
+On macOS a two-finger swipe pans, a pinch, Cmd scroll, or physical mouse wheel zooms, and
+a left drag box-selects, with no setting. On other platforms More → Canvas navigation selects
+Mouse, the default, where the wheel zooms and a left drag pans, or Trackpad, which follows
+the macOS scheme. A pinch, the corner readout, and a middle-button drag always work. Fit shows every
 node above the floating toolbar, up to 100%, and refits when panels open or close
 until you pan, zoom, or move a node. After that, selecting a node keeps the zoom
 and scrolls the node into the free canvas area. The toolbar's More menu holds server, clipboard, and fit

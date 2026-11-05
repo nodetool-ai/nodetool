@@ -6,6 +6,19 @@
 #include <QInputDialog>
 #include <QTimer>
 #include <QMenu>
+#include <QElapsedTimer>
+#include <QClipboard>
+#include <QCursor>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QSignalSpy>
+#include <memory>
+#include <vector>
+#include <QNativeGestureEvent>
+#include <QPointingDevice>
+#include <QScrollBar>
+#include <QSettings>
+#include <QWheelEvent>
 #include <QQuickWidget>
 #include <QQuickItem>
 #include <QtTest>
@@ -13,6 +26,168 @@ using namespace nodetool;
 class NavigationTest final : public QObject {
   Q_OBJECT
 private slots:
+  void canvasNavigationSchemes() {
+    const auto view = [](EditorWindow &window) { return window.findChild<QGraphicsView *>(); };
+    const auto wheel = [&](EditorWindow &window, QPoint pixels, QPoint angle) {
+      QWheelEvent event(QPointF(50, 50), QPointF(50, 50), pixels, angle, Qt::NoButton, Qt::NoModifier, Qt::ScrollUpdate, false);
+      QApplication::sendEvent(view(window)->viewport(), &event);
+    };
+    QSettings().setValue("canvas/navigation", "trackpad");
+    EditorWindow window;
+    window.show();
+    auto *canvas = view(window);
+    QVERIFY(canvas);
+    const auto zoom = canvas->transform().m11();
+    const auto x = canvas->horizontalScrollBar()->value();
+    const auto y = canvas->verticalScrollBar()->value();
+    wheel(window, QPoint(30, 40), QPoint(0, 120));
+    QCOMPARE(canvas->transform().m11(), zoom);
+    QCOMPARE(canvas->horizontalScrollBar()->value(), x - 30);
+    QCOMPARE(canvas->verticalScrollBar()->value(), y - 40);
+    QPointingDevice touchpad("touchpad", 1, QInputDevice::DeviceType::TouchPad, QPointingDevice::PointerType::Finger, QInputDevice::Capability::Position, 2, 0);
+    QNativeGestureEvent pinch(Qt::ZoomNativeGesture, &touchpad, 2, QPointF(50, 50), QPointF(50, 50), QPointF(50, 50), 0.5, {}, 0);
+    QApplication::sendEvent(canvas->viewport(), &pinch);
+    QCOMPARE(canvas->transform().m11(), zoom * 1.5);
+    QTest::mousePress(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(5, 5));
+    QTest::mouseRelease(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(5, 5));
+    QCOMPARE(canvas->dragMode(), QGraphicsView::RubberBandDrag);
+
+    QSettings().setValue("canvas/navigation", "mouse");
+    const auto pinched = canvas->transform().m11();
+#ifdef Q_OS_MACOS
+    // The stored setting has no effect on macOS: a swipe pans and a mouse wheel zooms.
+    wheel(window, QPoint(30, 40), QPoint(0, 120));
+    QCOMPARE(canvas->transform().m11(), pinched);
+    QWheelEvent mouseWheel(QPointF(50, 50), QPointF(50, 50), QPoint(), QPoint(0, 120), Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
+    QApplication::sendEvent(canvas->viewport(), &mouseWheel);
+    QCOMPARE(canvas->transform().m11(), pinched * 1.15);
+    QTest::mousePress(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(5, 5));
+    QTest::mouseRelease(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(5, 5));
+    QCOMPARE(canvas->dragMode(), QGraphicsView::RubberBandDrag);
+#else
+    wheel(window, QPoint(30, 40), QPoint(0, 120));
+    QCOMPARE(canvas->transform().m11(), pinched * 1.15);
+    QTest::mousePress(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(5, 5));
+    QTest::mouseRelease(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(5, 5));
+    QCOMPARE(canvas->dragMode(), QGraphicsView::ScrollHandDrag);
+#endif
+    QSettings().remove("canvas/navigation");
+  }
+  // Real gestures reach the window first, so this exercises the routing to the canvas.
+  void windowRoutedGestures() {
+    EditorWindow window;
+    QSettings().setValue("canvas/navigation", "trackpad");
+    window.resize(1200, 800);
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    auto *canvas = window.findChild<QGraphicsView *>();
+    const auto center = canvas->viewport()->rect().center();
+    const QPointF local = canvas->viewport()->mapTo(&window, center);
+    const QPointF global = canvas->viewport()->mapToGlobal(center);
+    const auto zoom = canvas->transform().m11();
+    const auto y = canvas->verticalScrollBar()->value();
+    QWheelEvent swipe(local, global, QPoint(0, 40), QPoint(0, 120), Qt::NoButton, Qt::NoModifier, Qt::ScrollUpdate, false);
+    QApplication::sendEvent(window.windowHandle(), &swipe);
+    QCOMPARE(canvas->transform().m11(), zoom);
+    QCOMPARE(canvas->verticalScrollBar()->value(), y - 40);
+    QPointingDevice touchpad("touchpad", 1, QInputDevice::DeviceType::TouchPad, QPointingDevice::PointerType::Finger, QInputDevice::Capability::Position, 2, 0);
+    QNativeGestureEvent pinch(Qt::ZoomNativeGesture, &touchpad, 2, local, local, global, 0.5, {}, 0);
+    QApplication::sendEvent(window.windowHandle(), &pinch);
+    QCOMPARE(canvas->transform().m11(), zoom * 1.5);
+    QSettings().remove("canvas/navigation");
+  }
+  // Panels follow a box selection once, when the drag ends, not on every move.
+  void boxSelectionRefreshesPanelsOnRelease() {
+    QSettings().setValue("canvas/navigation", "trackpad");
+    EditorWindow window;
+    window.resize(1400, 900);
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    QJsonArray commands;
+    for (int i = 0; i < 30; ++i) {
+      commands.append(QJsonObject{{"op", "addNode"}, {"node", QJsonObject{{"id", QString::number(i)}, {"type", "nodetool.workflows.base_node.Comment"}, {"data", QJsonObject{{"comment", "Text"}}}, {"ui_properties", QJsonObject{{"width", 80}, {"height", 40}, {"position", QJsonObject{{"x", (i % 6) * 100}, {"y", (i / 6) * 60}}}}}}}});
+    }
+    QVERIFY(window.document()->applyCommand({{"op", "batch"}, {"commands", commands}}));
+    QCoreApplication::processEvents();
+    auto *canvas = window.findChild<QGraphicsView *>();
+    auto *viewport = canvas->viewport();
+    canvas->centerOn(canvas->scene()->itemsBoundingRect().center());
+    const auto bounds = canvas->mapFromScene(canvas->scene()->itemsBoundingRect()).boundingRect();
+    QVERIFY2(viewport->rect().contains(bounds), qPrintable(QString("%1x%2").arg(viewport->width()).arg(viewport->height())));
+    std::vector<std::unique_ptr<QSignalSpy>> spies;
+    const auto editors = window.findChildren<EditorWindow *>();
+    spies.push_back(std::make_unique<QSignalSpy>(&window, &EditorWindow::panelChanged));
+    for (auto *editor : editors) { spies.push_back(std::make_unique<QSignalSpy>(editor, &EditorWindow::panelChanged)); }
+    const auto refreshes = [&] { qsizetype total = 0; for (const auto &spy : spies) { total += spy->count(); } return total; };
+    const auto start = bounds.topLeft() - QPoint(8, 8);
+    QTest::mousePress(viewport, Qt::LeftButton, Qt::NoModifier, start);
+    for (int i = 1; i <= 30; ++i) {
+      const auto point = start + QPoint((bounds.width() + 16) * i / 30, (bounds.height() + 16) * i / 30);
+      QMouseEvent move(QEvent::MouseMove, point, viewport->mapToGlobal(point), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+      QApplication::sendEvent(viewport, &move);
+    }
+    QCOMPARE(canvas->scene()->selectedItems().size(), 30);
+    QCOMPARE(refreshes(), 0);
+    QTest::mouseRelease(viewport, Qt::LeftButton, Qt::NoModifier, bounds.bottomRight() + QPoint(8, 8));
+    QVERIFY(refreshes() > 0);
+    QSettings().remove("canvas/navigation");
+  }
+  // As on the web, a paste puts the first top-level node at the pointer.
+  void pastePlacesNodesAtPointer() {
+    EditorWindow window;
+    window.resize(1200, 800);
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    QVERIFY(window.document()->applyCommand({{"op", "addNode"}, {"node", QJsonObject{{"id", "source"}, {"type", "nodetool.workflows.base_node.Comment"}, {"data", QJsonObject{{"comment", "Text"}}}, {"ui_properties", QJsonObject{{"width", 120}, {"height", 60}, {"position", QJsonObject{{"x", 0}, {"y", 0}}}}}}}}));
+    QApplication::clipboard()->setText(QString::fromUtf8(QJsonDocument(window.document()->copy({"source"})).toJson()));
+    auto *canvas = window.findChild<QGraphicsView *>();
+    auto *viewport = canvas->viewport();
+    const auto pasted = [&] {
+      QList<QPointF> positions;
+      for (const auto &value : window.document()->snapshot()["graph"].toObject()["nodes"].toArray()) {
+        const auto node = value.toObject();
+        if (node["id"] == "source") { continue; }
+        const auto position = node["ui_properties"].toObject()["position"].toObject();
+        positions.append(QPointF(position["x"].toDouble(), position["y"].toDouble()));
+      }
+      return positions;
+    };
+    const QPoint pointer(200, 150);
+    QCursor::setPos(viewport->mapToGlobal(pointer));
+    QTRY_COMPARE(viewport->mapFromGlobal(QCursor::pos()), pointer);
+    window.action("Paste");
+    const auto expected = canvas->mapToScene(pointer);
+    QTRY_COMPARE(pasted().size(), 1);
+    QCOMPARE(pasted().first(), expected);
+    window.action("Paste");
+    QTRY_COMPARE(pasted().size(), 2);
+    QVERIFY(pasted().contains(expected + QPointF(40, 40)));
+    QCursor::setPos(viewport->mapToGlobal(QPoint(-50, -50)));
+    window.action("Paste");
+    QTRY_COMPARE(pasted().size(), 3);
+    QVERIFY(pasted().contains(canvas->mapToScene(viewport->rect().center())));
+  }
+  // Select all changes the selection once, so panels refresh once.
+  void selectAllNotifiesOnce() {
+    EditorWindow window;
+    window.resize(1200, 800);
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    QJsonArray commands;
+    for (int i = 0; i < 300; ++i) {
+      commands.append(QJsonObject{{"op", "addNode"}, {"node", QJsonObject{{"id", QString::number(i)}, {"type", "nodetool.workflows.base_node.Comment"}, {"data", QJsonObject{{"comment", "Text"}}}, {"ui_properties", QJsonObject{{"width", 80}, {"height", 40}, {"position", QJsonObject{{"x", (i % 20) * 100}, {"y", (i / 20) * 60}}}}}}}});
+    }
+    QVERIFY(window.document()->applyCommand({{"op", "batch"}, {"commands", commands}}));
+    QCoreApplication::processEvents();
+    auto *scene = window.findChild<QGraphicsView *>()->scene();
+    QSignalSpy changes(scene, &QGraphicsScene::selectionChanged);
+    QElapsedTimer timer;
+    timer.start();
+    window.action("Select all");
+    qInfo() << "select all ms" << timer.elapsed();
+    QCOMPARE(scene->selectedItems().size(), 300);
+    QCOMPARE(changes.count(), 1);
+  }
   void arrangeSelectionMenuPreservesUndo() {
     EditorWindow window;
     window.show();

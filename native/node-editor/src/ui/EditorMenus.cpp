@@ -128,11 +128,16 @@ void EditorWindow::showActionMenu(const QString &kind, const QPoint &position) {
   if (kind == "pane") { names = {"Add node", "Add comment", "Paste", "Select all", "Fit", "Command menu", "Keyboard shortcuts"}; }
   else if (kind == "more") { names = {instantUpdate_ ? "Instant Update: On" : "Instant Update: Off", "Open child", "Linked workflows","Stop", "Run selected", "Disable selected", "Enable selected", "Find node", "Auto layout", "Layout selection", "Arrange selection", "Link selected", "Group selection", "Ungroup", "Remove from group", "Rename group", "Rename node", "Edit note", "Add comment", "Edit comment", "Open file", "Server Open", "Server Save", "Server sync", "Version history", "Share workflow", "Workflow metadata", "Reconnect", "Canvas uploads", "Command menu", "Keyboard shortcuts"}; }
   else { names = {"Copy", "Cut", "Duplicate", "Delete", "Run selected", "Disable selected", "Enable selected", "Group selection", "Remove from group", "Ungroup", "Rename group", "Edit note", "Rename node", "Edit comment", "Layout selection", "Align left", "Align center", "Align right", "Align top", "Align middle", "Align bottom", "Distribute horizontally", "Stack selection", "Arrange grid"}; }
+#ifndef Q_OS_MACOS
+  if (kind == "more") { names.insert(1, mouseNavigation() ? "Canvas navigation: Mouse" : "Canvas navigation: Trackpad"); }
+#endif
   for (const auto &name : names) {
    auto *item = menu->addAction(name);
    item->setEnabled(menuActionEnabled(name));
-   connect(item, &QAction::triggered, this, [this, name, epoch, credentials, selection] {
+   connect(item, &QAction::triggered, this, [this, name, epoch, credentials, selection, position, kind] {
     if (epoch != documentEpoch_ || credentials != credentialsEpoch_ || selection != selectedIds() || !menuActionEnabled(name)) { return; }
+    // A pane-menu paste goes where the menu opened, not where the pointer moved.
+    if (name == "Paste" && kind == "pane") { pasteMenuPosition_ = position; }
     action(name);
    });
   }
