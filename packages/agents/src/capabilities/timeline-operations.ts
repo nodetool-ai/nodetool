@@ -222,6 +222,9 @@ function writingHooks(
         clips: adapted.clips,
         markers: adapted.markers
       };
+      if (adapted.workingColorSpaceVersion !== undefined) {
+        derivedDocument.workingColorSpaceVersion = adapted.workingColorSpaceVersion;
+      }
       if (adapted.transcript !== undefined) {
         derivedDocument.transcript = adapted.transcript;
       }
@@ -400,6 +403,7 @@ export async function applyOps(
     sequenceName: sequence.name,
     projectId: sequence.project_id,
     sequence: {
+      workingColorSpaceVersion: document.workingColorSpaceVersion,
       fps: sequence.fps,
       width: sequence.width,
       height: sequence.height,
