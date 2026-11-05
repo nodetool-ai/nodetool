@@ -19,7 +19,7 @@ Until then, follow [First submission](#first-submission).
 | `url` | `Nodetool-<version>-<arch>.dmg` from the `v<version>` release | The [Release workflow](../../.github/workflows/release.yaml) builds, signs and notarizes one DMG and one zip per architecture from [electron-builder.json](../../electron/electron-builder.json). Homebrew only accepts apps that pass Gatekeeper. |
 | `auto_updates true` | | The app updates itself through electron-updater, which reads `latest-mac.yml` from the GitHub Release and installs the matching zip. `brew upgrade` leaves the cask to the app unless `--greedy` is passed. |
 | `livecheck` | GitHub releases whose tag is a plain `X.Y.Z` | The Release workflow marks release candidates as GitHub's latest release, so `:github_latest` would report them. homebrew-cask accepts stable versions only. |
-| `depends_on macos` | `>= :monterey` | The Electron version in [electron/package.json](../../electron/package.json) requires macOS 12. `brew audit --new` compares this with the app's `LSMinimumSystemVersion`. Raise it when an Electron upgrade raises that minimum. |
+| `depends_on macos` | `:monterey` (macOS 12 or later) | The Electron version in [electron/package.json](../../electron/package.json) requires macOS 12. `brew audit --new` compares this with the app's `LSMinimumSystemVersion`. Raise it when an Electron upgrade raises that minimum. |
 | `zap` | See below | Paths the app writes. |
 
 `brew uninstall --zap nodetool` removes:
