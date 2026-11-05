@@ -60,7 +60,7 @@ category = "chrome"
 controls = ["Ui.Text", "Ui.TextArea", "Ui.EditorButton", "Ui.ToolbarIconButton", "PagedText", "Ui.Surface", "Image", "Ui.TextField"]
 signals = []
 test_host = "node native/chat/scripts/check.mjs"
-test_scope = "build/import"
+test_scope = "interaction"
 qml_callers = ["native/chat/qml/ConversationView.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.TextArea, Ui.EditorButton, Ui.ToolbarIconButton, Ui.Surface, Ui.TextField"
 

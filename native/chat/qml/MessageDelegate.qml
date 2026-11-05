@@ -25,6 +25,8 @@ ColumnLayout {
         id: paged
         property string sourceText: ""
         property bool markdown: false
+        property bool monospaced: false
+        property string copyLabel: ""
         property bool userBubble: false
         property var chatSession
         property int page: 0
@@ -76,8 +78,8 @@ ColumnLayout {
                 readOnly: true
                 selectByMouse: true
                 wrapMode: TextEdit.Wrap
-                role: modelData.code ? Ui.Typography.MonoCode : Ui.Typography.SansBody
-                variant: paged.userBubble ? Ui.TextArea.Bubble : modelData.code ? Ui.TextArea.Code : Ui.TextArea.Plain
+                role: modelData.code || paged.monospaced ? Ui.Typography.MonoCode : Ui.Typography.SansBody
+                variant: paged.monospaced ? Ui.TextArea.Code : paged.userBubble ? Ui.TextArea.Bubble : modelData.code ? Ui.TextArea.Code : Ui.TextArea.Plain
                 accessibleName: modelData.text
                 onLinkActivated: link => {
                     if (paged.chatSession) {
@@ -85,6 +87,11 @@ ColumnLayout {
                     }
                 }
             }
+        }
+        Ui.EditorButton {
+            visible: paged.copyLabel.length > 0
+            text: paged.copyLabel
+            onClicked: if (paged.chatSession) paged.chatSession.copyText(paged.sourceText)
         }
         RowLayout {
             visible: paged.pages > 1
@@ -135,8 +142,10 @@ ColumnLayout {
         delegate: Ui.Surface {
             id: partFrame
             required property var modelData
+            required property int index
             readonly property var part: modelData
             readonly property string kind: part.type || "unknown"
+            readonly property bool detailsOpen: !!part.expanded
             Layout.fillWidth: true
             implicitHeight: partContent.implicitHeight + Ui.Metrics.md * 2
             ColumnLayout {
@@ -144,12 +153,67 @@ ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: Ui.Metrics.md
                 spacing: Ui.Metrics.md
-                Ui.Text {
-                    role: Ui.Typography.SansLabel
+                RowLayout {
                     Layout.fillWidth: true
-                    text: partFrame.part.tool_name || partFrame.part.name || partFrame.part.title || partFrame.kind
-                    tone: Ui.Text.Secondary
-                    wrapMode: Text.WordWrap
+                    Ui.Text {
+                        role: Ui.Typography.SansLabel
+                        Layout.fillWidth: true
+                        text: partFrame.part.label || partFrame.part.tool_name || partFrame.part.name || partFrame.part.title || partFrame.kind
+                        tone: Ui.Text.Secondary
+                        elide: Text.ElideRight
+                    }
+                    Ui.Text {
+                        visible: !!partFrame.part.tool
+                        text: partFrame.part.displayStatus || ""
+                        role: Ui.Typography.SansCaption
+                        tone: partFrame.part.displayStatus === "Failed" ? Ui.Text.Error : Ui.Text.Secondary
+                    }
+                    Ui.EditorButton {
+                        visible: !!partFrame.part.tool
+                        objectName: "toolDetails_" + (partFrame.part.tool_call_id || partFrame.index)
+                        text: partFrame.detailsOpen ? qsTr("Hide details") : qsTr("Show details")
+                        Accessible.expandable: true
+                        Accessible.expanded: partFrame.detailsOpen
+                        onClicked: root.parts.toggleExpanded(partFrame.index)
+                    }
+                }
+                Ui.Text {
+                    visible: partFrame.detailsOpen && !!partFrame.part.code
+                    text: qsTr("Code · %1").arg(partFrame.part.language || "")
+                    role: Ui.Typography.SansLabel
+                }
+                PagedText {
+                    Layout.fillWidth: true
+                    visible: partFrame.detailsOpen && !!partFrame.part.code
+                    sourceText: partFrame.detailsOpen ? (partFrame.part.code || "") : ""
+                    monospaced: true
+                    copyLabel: qsTr("Copy code")
+                    chatSession: root.session
+                }
+                Ui.Text {
+                    visible: partFrame.detailsOpen && !!partFrame.part.argumentsText
+                    text: qsTr("Arguments")
+                    role: Ui.Typography.SansLabel
+                }
+                PagedText {
+                    Layout.fillWidth: true
+                    visible: partFrame.detailsOpen && !!partFrame.part.argumentsText
+                    sourceText: partFrame.detailsOpen ? (partFrame.part.argumentsText || "") : ""
+                    monospaced: true
+                    chatSession: root.session
+                }
+                Ui.Text {
+                    visible: !!partFrame.part.resultText && partFrame.detailsOpen
+                    text: qsTr("Result")
+                    role: Ui.Typography.SansLabel
+                }
+                PagedText {
+                    Layout.fillWidth: true
+                    visible: !!partFrame.part.resultText && partFrame.detailsOpen
+                    sourceText: partFrame.detailsOpen ? (partFrame.part.resultText || "") : ""
+                    monospaced: true
+                    copyLabel: qsTr("Copy result")
+                    chatSession: root.session
                 }
                 PagedText {
                     Layout.fillWidth: true
@@ -159,7 +223,7 @@ ColumnLayout {
                 }
                 PagedText {
                     Layout.fillWidth: true
-                    visible: partFrame.kind !== "image" || !partFrame.part.mediaUrl
+                    visible: !partFrame.part.tool && (partFrame.kind !== "image" || !partFrame.part.mediaUrl)
                     sourceText: partFrame.part.text || partFrame.part.content || (typeof partFrame.part.result === "string" ? partFrame.part.result : "") || qsTr("This content is preserved by the server. Open the web app to use this content type.")
                     chatSession: root.session
                 }

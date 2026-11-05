@@ -1,3 +1,5 @@
+#include <QClipboard>
+#include <QGuiApplication>
 #include "ChatSession.h"
 #include <QClipboard>
 #include <QDateTime>
@@ -9,6 +11,8 @@
 #include <QTimer>
 #include <QUuid>
 namespace nt::chat {
+void ChatSession::copyText(const QString &text) { QGuiApplication::clipboard()->setText(text); }
+
 ChatSession::ChatSession(QObject *parent)
     : QObject(parent), m_threads(this), m_empty(this), m_client(this), m_catalog(this) {
   m_catalog.setMode("chat");
