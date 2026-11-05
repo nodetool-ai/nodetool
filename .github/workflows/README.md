@@ -18,7 +18,7 @@ describes the deployment gates.
   nightly against live APIs with a spend cap.
 
 Everything outside the three rings — scheduled autofix agents, docs and
-marketing site builds, packaging side-channels (AUR, Flatpak, EAS), and
+marketing site builds, packaging side-channels (AUR, Homebrew, Flatpak, EAS), and
 one-off maintenance triggers — is **none/maintenance**: useful, but not
 part of the release gate and not held to the Ring 0 flake budget.
 
@@ -81,6 +81,7 @@ below.
 | `flaky-test-fixer.yaml` | Weekly agent root-causes flakes from CI re-run history and randomized repeat runs | none/maintenance | Advisory (`continue-on-error`) |
 | `flatpak-ci.yml` | Build the Flatpak desktop package once a day and on dispatch | none/maintenance | Required for its own job |
 | `genspend-pricing.yml` | Nightly GenSpend price sync; opens a PR when a price moved | none/maintenance | Advisory |
+| `homebrew-cask.yml` | Audit, install, launch and zap-test the `nodetool` Homebrew cask on Apple silicon and Intel runners for packaging PRs and each stable release. Publishes nothing, since BrewTestBot bumps the cask in homebrew-cask | none/maintenance | Required for its own job |
 | `internal-only-shipper.yaml` | Scheduled agent ships or deletes features gated to dev/internal builds | none/maintenance | Advisory (`continue-on-error`) |
 | `issue-triage.yml` | Labels new issues, flags duplicates, requests repro details | none/maintenance | n/a (read-only) |
 | `jekyll.yml` | Build and deploy the docs site to GitHub Pages on pushes to `main` that change `docs/` | none/maintenance | Required for docs deploy |
