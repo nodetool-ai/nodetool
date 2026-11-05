@@ -111,6 +111,19 @@ describe("GeminiVertexProvider endpoint", () => {
     expect(fetchFn.mock.calls.filter(([url]) => url === TOKEN_URL)).toHaveLength(1);
   });
 
+  it("rejects forged credentials before sending another provider's cached token", async () => {
+    const fetchFn = fakeFetch();
+    await ask(provider(fetchFn));
+    await expect(ask(provider(fetchFn, {
+      GOOGLE_VERTEX_CREDENTIALS: JSON.stringify({
+        ...SERVICE_ACCOUNT,
+        private_key: "invalid"
+      })
+    }))).rejects.toThrow("private_key could not be read");
+    expect(apiCalls(fetchFn)).toHaveLength(1);
+    expect(fetchFn.mock.calls.filter(([url]) => url === TOKEN_URL)).toHaveLength(1);
+  });
+
   it("streams through streamGenerateContent with alt=sse", async () => {
     const fetchFn = fakeFetch(
       () =>

@@ -151,20 +151,27 @@ interface CachedToken {
 }
 
 /** Credential identity -> its current token. */
-const tokenCache = new Map<string, CachedToken>();
+let tokenCache = new Map<string, CachedToken>();
 /** One mint per credential at a time. */
-const inFlight = new Map<string, Promise<CachedToken>>();
+let inFlight = new Map<string, Promise<CachedToken>>();
 
 /** Forget every cached token. For tests. */
 export function clearGoogleTokenCache(): void {
-  tokenCache.clear();
-  inFlight.clear();
+  // Pending mints retain their old maps and cannot restore cleared entries.
+  tokenCache = new Map();
+  inFlight = new Map();
 }
 
-function cacheKey(credentials: GoogleCredentials): string {
-  return credentials.type === "service_account"
-    ? `sa:${credentials.client_email}:${credentials.private_key_id ?? ""}`
-    : `user:${credentials.client_id}:${credentials.refresh_token}`;
+async function cacheKey(credentials: GoogleCredentials): Promise<string> {
+  const identity = credentials.type === "service_account"
+    ? [credentials.type, credentials.client_email, credentials.private_key_id, credentials.private_key]
+    : [credentials.type, credentials.client_id, credentials.client_secret, credentials.refresh_token];
+  // Public account identifiers alone do not establish possession of a credential.
+  const digest = await globalThis.crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(JSON.stringify(identity))
+  );
+  return Buffer.from(digest).toString("hex");
 }
 
 export interface GoogleTokenOptions {
@@ -178,19 +185,24 @@ export async function getGoogleAccessToken(
   options: GoogleTokenOptions = {}
 ): Promise<string> {
   const now = options.now ?? Date.now;
-  const key = cacheKey(credentials);
-  const cached = tokenCache.get(key);
+  const cache = tokenCache;
+  const pendingTokens = inFlight;
+  const credentialSnapshot = { ...credentials };
+  const key = await cacheKey(credentialSnapshot);
+  const cached = cache.get(key);
   if (cached && cached.expiresAt - EXPIRY_SKEW_MS > now()) return cached.token;
 
-  let pending = inFlight.get(key);
+  let pending = pendingTokens.get(key);
   if (!pending) {
-    pending = mintToken(credentials, options.fetchFn ?? fetch, now).finally(
-      () => inFlight.delete(key)
-    );
-    inFlight.set(key, pending);
+    pending = mintToken(credentialSnapshot, options.fetchFn ?? fetch, now)
+      .then((minted) => {
+        cache.set(key, minted);
+        return minted;
+      })
+      .finally(() => pendingTokens.delete(key));
+    pendingTokens.set(key, pending);
   }
   const minted = await pending;
-  tokenCache.set(key, minted);
   return minted.token;
 }
 
