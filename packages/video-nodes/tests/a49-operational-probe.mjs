@@ -1,6 +1,6 @@
 // Standalone measurement, not a timing assertion. Run with node --import tsx.
 import assert from 'node:assert/strict';
-import { writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir, cpus, loadavg } from 'node:os';
 import { join } from 'node:path';
@@ -42,6 +42,13 @@ eventLoop.enable();
 const snapshot = () => ({ p50: eventLoop.percentile(50) / 1e6, p95: eventLoop.percentile(95) / 1e6, max: eventLoop.max / 1e6 });
 const output = { pid: process.pid, port: address.port, phase: 'baseline', size, workingFormat, cap,
   mode, durationMs, cores: cpus().length, cpu: cpus()[0].model, lpThreads: process.env.LP_NUM_THREADS ?? 'unset', loadStart: loadavg() };
+const cgroup = readFileSync('/proc/self/cgroup', 'utf8').trim().split('0::')[1];
+assert(cgroup);
+output.cgroupLimits = {
+  cpu: existsSync(`/sys/fs/cgroup${cgroup}/cpu.max`)
+    ? readFileSync(`/sys/fs/cgroup${cgroup}/cpu.max`, 'utf8').trim() : 'not configured at scope',
+  memory: readFileSync(`/sys/fs/cgroup${cgroup}/memory.max`, 'utf8').trim()
+};
 await writeFile(report, JSON.stringify(output));
 await new Promise(resolve => setTimeout(resolve, 5000));
 output.baselineEventLoop = snapshot();
