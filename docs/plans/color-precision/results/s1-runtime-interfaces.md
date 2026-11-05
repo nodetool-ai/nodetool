@@ -560,10 +560,13 @@ merge commit `66bf6ff83e`, starting at `e491a0ff0f`. No conflicts occurred.
 Upstream changes to `render.parity.gpu.test.ts` and `render.clipEffects.test.ts`
 were retained. No production code changed in this closeout after the merge.
 
-The BT.709 policy is open for S6/A101: pass-through with today's tag, or strict
-transfer conversion. The measured difference from the strict reference is
-16 to 17 codes. Neither option is chosen here. P3 PNG normalization, VP9 alpha
-and the HEVC override are deferred as B215–B217 in the
+The later [A101 owner decision](../high-precision-media-processing.md#s6-linear-light-sdr-after-fp16-delivery)
+chooses O1: pass-through with today's BT.709 tag. The inaccurate transfer tag
+is accepted to preserve source appearance. See the [Q27 evidence](q27-bt709-delivery.md).
+The three BT.709 tests now pin unconverted source values and stream tags.
+VP9 alpha delivery passes on lavapipe with the explicit libvpx decoder. The default decoder
+still drops alpha, tracked as B216. P3 PNG normalization and HEVC remain
+expected failures B215 and B217 in the
 [backlog](../../../../native/timeline/docs/gaps-backlog.md). B218–B221 record
 grain parity, Windows reconnect cadence, macOS frame hold pointer reachability
 and high-gain Color Match discrepancies. These entries do not claim fixes.
@@ -576,7 +579,8 @@ browser rollout. The A82 measured verdicts are unchanged.
 
 ### Known failures and focused verification
 
-Before adding `it.fails`, the unchanged boundary file exited 1 on lavapipe:
+Historical S1 verification, before the Q27 decision and decoder correction:
+before adding `it.fails`, the unchanged boundary file exited 1 on lavapipe:
 16 ordinary passes and exactly six failures. The failure sites were inspected
 individually, including setup and metadata checks before the final assertions.
 

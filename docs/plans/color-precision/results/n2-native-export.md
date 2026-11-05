@@ -155,8 +155,9 @@ The next implementation must preserve that sampling behavior from float data,
 then dither the final limited-range Y, U and V codes after subsampling.
 It must also qualify the odd-canvas resize against a float reference.
 Do not connect the PNG helper ahead of an unqualified video conversion and
-claim A84.2 complete. No transfer conversion was added. The BT.709 tags versus
-sRGB exposure/Color Match assumptions remain unresolved as previously recorded.
+claim A84.2 complete. No transfer conversion was added. The later
+[A101 owner decision](../high-precision-media-processing.md#s6-linear-light-sdr-after-fp16-delivery)
+accepts the BT.709 transfer-tag mismatch and keeps pass-through delivery (O1).
 
 ### Verification for this partial round
 
