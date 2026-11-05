@@ -1,12 +1,12 @@
 # A43.2: Undithered server/browser WebGPU parity
 
-A43.2 is partly met. Its browser/server working-frame comparison passes on
-SwiftShader through real Chromium WebGPU and Node/Dawn. A91 is now met, but
-this comparison still excludes migrated-agent output. The agent's decoded-PNG
-comparisons in [S5](s5-agent-rendering.md#current-qualification-queued-child-and-migrated-callers)
-do not establish undithered working-frame parity. This does not
-enable FP16 or qualify live editor presentation, WebCodecs, video decoding,
-native delivery or the browser's public exporter.
+A43.2 is met for the fixtures below. Browser/server undithered working-frame
+parity passes on same-adapter SwiftShader. The migrated agent comparison below
+passes on same-adapter lavapipe with RGBA8 working targets. It checks the real
+child response before PNG encoding and accounts for the delivery boundary
+against the server working frame. Agent previews remain 8-bit and FP16 stays
+off by default. These results do not qualify live editor presentation,
+WebCodecs, video decoding, native delivery or the browser's public exporter.
 
 The browser did not select lavapipe or the RTX 3060 in the attempts below.
 Their Node outputs were compared against browser SwiftShader as cross-adapter
@@ -176,9 +176,129 @@ are removed by Playwright. No ffmpeg or ffprobe binary ran.
 
 Not run: test:affected, root typecheck, root lint, harness gate, /verify, full
 suites, hosted CI, video decode parity, presentation checks, WebCodecs delivery,
-native output or agent output. A91 passed later, but no agent comparison was added here. No push, rebase, branch
-switch or PR was performed.
+native output or agent output in that earlier run. The agent follow-up is
+recorded below. No push, rebase, branch switch or PR was performed.
 
 Implementation commits: d22426a418 records the alpha diagnostic and
 27f21ffaf0 adds the browser/server working-frame comparison. The report and
 scoped plan checkbox are committed separately.
+
+
+## Migrated agent comparison after A91
+
+Test implementation: `723503180c`.
+
+[timeline-a432-parity.gpu.test.ts](../../../../packages/agents/tests/timeline-a432-parity.gpu.test.ts)
+uses the same `fixtureDocument`, original buffers, dimensions and 500 ms sample
+as the browser/server comparison. PNG originals are encoded losslessly for the
+agent's normal asset loader. The shared fixture now supplies `currentAssetId`:
+the initial run correctly reported missing assets without it. The older test
+provided pixels directly by clip ID, so it had not exercised asset selection.
+This was fixture metadata, not a renderer defect. No production code changed.
+
+The test lives in agents, where Canvas and GPU dependencies are allowed. No
+manifest, production import or dependency cut changed. It calls the default
+`renderTimelineFrames` shared-shader path through the real `createRenderChild`
+client. A test entry imports the production child unchanged and observes its
+cached GPU device. A wrapper records IPC inputs and responses without replacing
+rendering. Every child adapter must match the server's vendor, device and
+description. Original decoded source bytes, dimensions, resolved opacity and
+effects (including grain seed) are asserted against the independently resolved
+server layers. The full-resolution PNG must be complete with no omitted effects.
+Blur and grain must change the ramp control.
+
+### Comparison points and bounds
+
+Server: Node/Dawn `HeadlessFrameCompositor.renderWorkingFrame`, premultiplied
+`rgba8unorm`, before final alpha resolve, dither or encoding. A second render
+uses `renderFrame` to obtain the same delivery stage as the child.
+
+Agent: Node/Dawn `HeadlessFrameCompositor.renderFrame` in the production child,
+straight RGBA8 immediately after final resolve and before PNG encoding. The test
+also decodes the actual agent PNG through Skia and compares every channel.
+Both hosts use the agent's production opaque-black ground. These six fixtures
+retain alpha 255 throughout, asserted across the server working frame, so the
+straight-alpha divide is identity. The low-alpha fixture tests 1/16 layer
+opacity over black, rather than transparent PNG delivery. The existing browser
+comparison above independently retains transparent working-alpha coverage.
+
+The child defaults to `rgba8unorm`. Its delivery shader does not dither in this
+format. FP16 alone selects the dithered delivery shader. No FP16 option is
+passed to the agent or enabled in production. Server working versus server
+delivery is required to be exactly equal, as is child delivery versus decoded
+PNG. Thus the different observation points consume zero additional error
+budget for these opaque fixtures. The maximum server/agent allowance remains
+one RGBA8 code for adjacent UNORM rounding, matching the existing RGBA8 bound.
+The same bound limits the mean. This does not authorize a one-code PNG loss or
+cover straight-RGB amplification at transparent edges.
+
+Errors are absolute RGBA byte differences across all 768×432 pixels, including
+alpha, with no rounding of reported errors. The 240-second correctness timeout
+allows six cold children at their production 30-second deadline plus 60 seconds
+for parent rendering, asset/PNG work and teardown. It is not a latency budget.
+A temporary two-code server-delivery corruption made the new comparison fail
+at the one-code assertion. It was removed before the final passing run.
+
+### Agent measurements
+
+Adapter on server and every child: vendor `mesa`, device
+`llvmpipe-llvm-23-1-3-256-bits-`, description
+`llvmpipe: Mesa 26.2.5-arch1.1 (LLVM 23.1.3)`, Vulkan lavapipe.
+Renderers in every row: Node/Dawn server versus Node/Dawn agent child with
+Skia PNG encoding/decoding. Working format: `rgba8unorm`. Values are max / mean
+in code units. All comparisons use the same adapter within each pair.
+
+| Fixture | Working vs child before PNG | Working vs agent decoded PNG | Server delivery vs decoded PNG | Max bound |
+|---|---:|---:|---:|---:|
+| ramp | 0 / 0 | 0 / 0 | 0 / 0 | 1 |
+| low-alpha | 0 / 0 | 0 / 0 | 0 / 0 | 1 |
+| fade | 0 / 0 | 0 / 0 | 0 / 0 | 1 |
+| crossfade | 0 / 0 | 0 / 0 | 0 / 0 | 1 |
+| blur | 0 / 0 | 0 / 0 | 0 / 0 | 1 |
+| grain | 0 / 0 | 0 / 0 | 0 / 0 | 1 |
+
+Server resolve and PNG round-trip max/mean are also 0/0 for every fixture.
+No over-tolerance result or shared-renderer defect appeared. These are software
+adapter measurements, not hardware or arbitrary-media qualification. The
+browser/agent pair was not run together on lavapipe. The earlier browser/server
+SwiftShader results and this server/agent lavapipe result are separate
+same-adapter comparisons.
+
+### Follow-up verification
+
+Commands run from the worktree root, after sourcing
+`/home/mg/Projects/nodetool-film/bin/ntenv`, with `DISPLAY` unset,
+`TMPDIR=/home/mg/Projects/nodetool-film/tmp`,
+`TMPPREFIX=/home/mg/Projects/nodetool-film/tmp/a432-agent`,
+`LP_NUM_THREADS=2`, and both `VK_ICD_FILENAMES` and `VK_DRIVER_FILES` set to
+`/usr/share/vulkan/icd.d/lvp_icd.json`. `NODE_OPTIONS=--conditions=nodetool-dev`
+keeps parent and child on current workspace source rather than stale output.
+No ffmpeg or ffprobe binary is used by the image-only fixture.
+
+```bash
+A432_REPORT=/home/mg/Projects/nodetool-film/tmp/a432-agent-lvp.json \
+  npx vitest run packages/agents/tests/timeline-a432-parity.gpu.test.ts --maxWorkers=1
+node scripts/run-tsc.mjs -p packages/agents/tsconfig.json --noEmit
+node scripts/run-tsc.mjs -p packages/timeline/tsconfig.json --noEmit
+npx oxlint --config .oxlintrc.anti-slop-enforced.json \
+  packages/agents/tests/timeline-a432-parity.gpu.test.ts \
+  packages/agents/tests/fixtures/a432-render-child.ts \
+  packages/timeline/tests/a432Fixture.ts
+```
+
+The selected test, both package typechecks and selected-file oxlint passed.
+The first agents typecheck found stale model declarations and a missing
+pack-core declaration. Only those dependency outputs were refreshed with
+`build-typescript-workspace.mjs`. The models dependency build exited 2 on
+unrelated Rapier API errors in `game-runtime/src/spatial3d/world.ts`, while
+emitting the declarations needed here. The subsequent agents typecheck passed.
+No capability table generation ran. `git diff --check` and a control-byte scan
+passed. Logs are `a432-agent-lvp.log`, `a432-agent-negative.log`,
+`a432-{agents,timeline}-types.log` and `a432-{models,pack-core}-build.log`
+under the designated temporary directory. The JSON report records every
+fixture's child adapter and all five error comparisons.
+
+Not run in this follow-up: `test:affected`, root typecheck, root lint,
+`harness gate`, `/verify`, any full suite, unchanged dependency-cut tests,
+browser tests, hardware, hosted CI or packaging checks. No push, rebase, merge,
+branch switch or PR was performed.

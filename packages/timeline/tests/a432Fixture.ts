@@ -8,7 +8,7 @@ export const names = ["ramp", "low-alpha", "fade", "crossfade", "blur", "grain"]
 export const width = 768, height = 432;
 // These are the original full-resolution asset bytes. Neither host decodes a
 // proxy or rasterizes a replacement. Two assets differ in channel order.
-function original(second: boolean): Uint8Array {
+export function original(second: boolean): Uint8Array {
   const bytes = new Uint8Array(width * height * 4);
   for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
     const i = (y * width + x) * 4;
@@ -20,13 +20,13 @@ function original(second: boolean): Uint8Array {
 }
 export function fixtureDocument(name: typeof names[number]) {
   const track = makeTrack({ id: "v", type: "video", index: 0 });
-  const first = makeClip({ id: "original-a", status: "generated", versions: [makeClipVersion({ id: "a", assetId: "original-a" })], trackId: "v", name, startMs: 0,
+  const first = makeClip({ id: "original-a", currentAssetId: "original-a", status: "generated", versions: [makeClipVersion({ id: "a", assetId: "original-a" })], trackId: "v", name, startMs: 0,
     durationMs: 1000, mediaType: "image", opacity: name === "low-alpha" ? 1 / 16 : 1,
     fadeInMs: name === "fade" ? 1000 : 0,
     fadeOutMs: name === "crossfade" ? 1000 : 0,
     effects: name === "blur" ? [{ id: "blur", type: "blur", enabled: true, radius: 6 }]
       : name === "grain" ? [{ id: "grain", type: "grain", enabled: true, seed: 7, amount: 0.3, size: 1 }] : [] });
-  const second = makeClip({ ...first, id: "original-b", versions: [makeClipVersion({ id: "b", assetId: "original-b" })], fadeInMs: 1000, fadeOutMs: 0 });
+  const second = makeClip({ ...first, id: "original-b", currentAssetId: "original-b", versions: [makeClipVersion({ id: "b", assetId: "original-b" })], fadeInMs: 1000, fadeOutMs: 0 });
   return makeSequence({ width, height, fps: 30, durationMs: 1000, tracks: [track],
     clips: name === "crossfade" ? [first, second] : [first] });
 }
