@@ -21,11 +21,18 @@ export HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 HOMEBREW_NO_ENV_H
 log() { printf '\n==> %s\n' "$*"; }
 fail() { echo "test-cask.sh: $*" >&2; exit 1; }
 
+# Runner images ship different Homebrew versions. Test against the current
+# one, which is what homebrew-cask CI runs.
+log "brew update"
+brew update
+
 log "Adding the cask to the ${tap} tap"
 brew tap-new --no-git "${tap}"
 tap_dir="$(brew --repository "${tap}")"
 mkdir -p "${tap_dir}/Casks"
 cp "${cask_file}" "${tap_dir}/Casks/nodetool.rb"
+# Homebrew refuses to load casks from a tap nobody has trusted.
+brew trust "${tap}"
 
 log "brew style"
 brew style --cask "${cask}"
