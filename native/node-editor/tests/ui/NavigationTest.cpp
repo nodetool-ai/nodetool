@@ -129,7 +129,7 @@ private slots:
     QCOMPARE(canvas->scene()->selectedItems().size(), 30);
     QCOMPARE(refreshes(), 0);
     QTest::mouseRelease(viewport, Qt::LeftButton, Qt::NoModifier, bounds.bottomRight() + QPoint(8, 8));
-    QVERIFY(refreshes() > 0);
+    QTRY_VERIFY(refreshes() > 0);
     QSettings().remove("canvas/navigation");
   }
   // As on the web, a paste puts the first top-level node at the pointer.
@@ -206,7 +206,7 @@ private slots:
     QTRY_VERIFY(toolbar->isVisible());
     auto arrangeButton = toolbar->rootObject()->findChild<QQuickItem *>("selection-arrange-selection");
     QVERIFY(arrangeButton);
-    QVERIFY(arrangeButton->isEnabled());
+    QTRY_VERIFY(arrangeButton->isEnabled());
     QTest::mouseClick(toolbar->quickWindow(), Qt::LeftButton, Qt::NoModifier,
                      arrangeButton->mapToScene(QPointF(arrangeButton->width() / 2, arrangeButton->height() / 2)).toPoint());
     QAction *align = nullptr;

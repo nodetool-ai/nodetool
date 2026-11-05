@@ -69,10 +69,6 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
             spacing: 0
-            ColumnLayout {
-                Layout.preferredWidth: Ui.Metrics.xxxl * 4
-                Layout.fillHeight: true
-                spacing: Ui.Metrics.sm
             ListView {
                 id: namespaces
                 objectName: "catalog-namespaces"
@@ -104,11 +100,6 @@ Rectangle {
                         Ui.Text { Layout.fillWidth: true; text: namespaceRow.title; role: Ui.Typography.SansLabel; font.weight: Font.Normal; tone: namespaceRow.active ? Ui.Text.Primary : Ui.Text.Secondary; elide: Text.ElideRight; lineHeight: 1 }
                         Ui.Text { text: namespaceRow.modelData.count; role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary; lineHeight: 1 }
                     }
-                }
-            }
-                OptionalPacksSection {
-                    Layout.fillWidth: true
-                    Layout.margins: Ui.Metrics.sm
                 }
             }
             ListView {
@@ -168,6 +159,10 @@ Rectangle {
                     message: root.nodes.length === 0 ? "Connect to a server to load nodes." : "Try a different name or namespace."
                 }
             }
+        }
+        OptionalPacksSection {
+            Layout.fillWidth: true
+            Layout.margins: Ui.Metrics.sm
         }
         Rectangle { Layout.fillWidth: true; Layout.preferredHeight: Ui.Metrics.border; color: roles.divider }
         Ui.Text {

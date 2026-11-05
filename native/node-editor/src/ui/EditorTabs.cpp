@@ -26,6 +26,25 @@ int EditorWindow::activeTab() const {
   const auto owner = tabOwner_ ? tabOwner_ : this;
   return owner->tabs_.indexOf(owner->activeEditor_);
 }
+void EditorWindow::schedulePanelChanged() {
+  if (!panelChangePending_) {
+    panelChangePending_ = true;
+    QMetaObject::invokeMethod(this, &EditorWindow::flushPanelChanged, Qt::QueuedConnection);
+  }
+  // Panels bound to the owner window follow the active tab in the same pass.
+  if (tabOwner_ && tabOwner_->activeEditor_ == this) {
+    tabOwner_->setWindowTitle(windowTitle());
+    tabOwner_->setWindowModified(isWindowModified());
+    tabOwner_->schedulePanelChanged();
+  }
+}
+void EditorWindow::flushPanelChanged() {
+  if (!panelChangePending_) return;
+  // A queued projection runs first, so that its changes share this emit.
+  if (refreshPending_) { refresh(); }
+  panelChangePending_ = false;
+  emit panelChanged();
+}
 void EditorWindow::notifyTabs() {
   auto owner = tabOwner_ ? tabOwner_ : this;
   emit owner->tabsChanged();
@@ -49,9 +68,6 @@ void EditorWindow::newTab() {
   tab->setCatalog(metadata_);
   tab->setDarkTheme(tabsDark_);
   if (!tabsOrigin_.isEmpty()) tab->session_.connectToServer(tabsOrigin_, tabsToken_, tabsUser_);
-  connect(tab, &EditorWindow::panelChanged, this, [this, tab] {
-    if (activeEditor_ == tab) { setWindowTitle(tab->windowTitle()); setWindowModified(tab->isWindowModified()); emit panelChanged(); }
-  });
   connect(&tab->session_, &node_editor::WorkflowSession::saved, tab, [this, tab] {
     const bool close = tab->closeAfterServerSave_ && !tab->hasUnsavedChanges();
     tab->closeAfterServerSave_ = false;
@@ -88,7 +104,7 @@ void EditorWindow::activateTab(int index) {
   setWindowTitle(activeEditor_->windowTitle());
   setWindowModified(activeEditor_->isWindowModified());
   notifyTabs();
-  emit panelChanged(); emit mediaChanged(); emit zoomChanged();
+  schedulePanelChanged(); emit mediaChanged(); emit zoomChanged(); emit catalogChanged();
 }
 bool EditorWindow::confirmTabClose(bool closeAfterSave) {
   if (childParent_ && node_editor::childGraphKey(childParent_->document_.node(childNode_)) == "graph" && document_.graph() == node_editor::childGraph(childParent_->document_.node(childNode_))) return true;
@@ -180,7 +196,7 @@ void EditorWindow::openChild() {
   const auto node = document_.node(selected_);
   if (!node_editor::isChildNode(node)) {
     message_ = tr("Select a subgraph, workflow or app node.");
-    emit panelChanged();
+    schedulePanelChanged();
     return;
   }
   auto owner = tabOwner_;
@@ -216,7 +232,7 @@ void EditorWindow::openChild() {
                          "Bearer " + owner->tabsToken_.toUtf8());
     auto reply = network->get(request);
     message_ = tr("Loading app workflow…");
-    emit panelChanged();
+    schedulePanelChanged();
     connect(
         reply, &QNetworkReply::finished, this,
         [this, reply, network, epoch, credentials, nodeId] {
@@ -230,7 +246,7 @@ void EditorWindow::openChild() {
           if (error != QNetworkReply::NoError) {
             message_ = tr(
                 "App could not be loaded. Check the account and connection.");
-            emit panelChanged();
+            schedulePanelChanged();
             return;
           }
           const auto application = QJsonDocument::fromJson(bytes)
@@ -255,7 +271,7 @@ void EditorWindow::openChild() {
           }
           if (operation.isEmpty()) {
             message_ = tr("App has no workflow operation.");
-            emit panelChanged();
+            schedulePanelChanged();
             return;
           }
           auto snapshot = old;
@@ -275,7 +291,7 @@ void EditorWindow::openChild() {
                                      tr("Load app workflow"));
           if (!result) {
             message_ = result.error;
-            emit panelChanged();
+            schedulePanelChanged();
             return;
           }
           selected_ = nodeId;
@@ -286,7 +302,7 @@ void EditorWindow::openChild() {
   if (key != "graph" && graph.isEmpty() && id.isEmpty()) {
     message_ =
         tr("Child workflow is missing. Select a workflow in the web editor.");
-    emit panelChanged();
+    schedulePanelChanged();
     return;
   }
   owner->newTab();
@@ -325,7 +341,7 @@ void EditorWindow::syncChild() {
   if (node.isEmpty()) {
     message_ = tr(
         "The parent node was removed. Child edits are retained in this tab.");
-    emit panelChanged();
+    schedulePanelChanged();
     return;
   }
   const auto graph = document_.graph();
@@ -337,7 +353,7 @@ void EditorWindow::syncChild() {
       tr("Edit child graph and synchronize ports"));
   if (!result) {
     message_ = result.error;
-    emit panelChanged();
+    schedulePanelChanged();
     return;
   }
   syncedChildGraph_ = graph;
@@ -424,7 +440,7 @@ void EditorWindow::refreshChildReferences() {
             message_ = tr("Linked workflow %1 could not be loaded. The stored "
                           "child graph is retained.")
                            .arg(id);
-            emit panelChanged();
+            schedulePanelChanged();
             return;
           }
           auto snapshot = stored;
@@ -441,7 +457,7 @@ void EditorWindow::refreshChildReferences() {
                                      tr("Synchronize linked workflow ports"));
           if (!result) {
             message_ = result.error;
-            emit panelChanged();
+            schedulePanelChanged();
           }
         });
   }

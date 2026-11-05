@@ -209,7 +209,7 @@ private slots:
     QQuickItem *linkButton =
         find(toolbar->rootObject(), "selection-link-selected");
     if (linkButton && linkButton->isVisible()) {
-      QVERIFY(linkButton->isEnabled());
+      QTRY_VERIFY(linkButton->isEnabled());
       QSignalSpy clicked(linkButton, SIGNAL(clicked()));
       QTest::mouseClick(toolbar->quickWindow(), Qt::LeftButton, Qt::NoModifier,
                         linkButton

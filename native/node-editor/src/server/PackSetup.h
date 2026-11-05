@@ -38,6 +38,8 @@ private:
     QUrl origin_;
     QString token_, user_, error_;
     QJsonArray packs_, secrets_;
+    // Cached because QML asks for every catalog namespace on each refresh.
+    QStringList enabledCategories_;
     QStringList nodeTypes_;
     QSet<QString> pending_;
     quint64 epoch_ = 0;

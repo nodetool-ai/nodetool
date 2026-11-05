@@ -108,7 +108,7 @@ InlineTitlePresenter::InlineTitlePresenter(WorkflowGraphModel &model, EditorScen
     : QObject(parent), model_(model), scene_(scene), view_(view), engine_(engine) {
   connect(&scene_, &EditorScene::titleEditRequested, this, &InlineTitlePresenter::activate);
   connect(&model_, &WorkflowGraphModel::projectionAboutToChange, this, [this] { cancel(); clearNotes(); clearControls(); });
-  connect(&model_, &WorkflowGraphModel::modelReset, this, [this] { QTimer::singleShot(0, this, &InlineTitlePresenter::refresh); });
+  connect(&model_, &WorkflowGraphModel::projectionChanged, this, [this] { QTimer::singleShot(0, this, &InlineTitlePresenter::refresh); });
   connect(&model_, &WorkflowGraphModel::nodeUpdated, this, [this](QtNodes::NodeId id) {
     if (const auto note = notes_.value(id); note && model_.nodeExists(id))
       static_cast<NoteItem *>(note.data())->updateCardGeometry(model_.layout(id).size);

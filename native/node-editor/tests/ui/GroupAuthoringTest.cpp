@@ -72,8 +72,10 @@ private slots:
     QTRY_VERIFY(window.findChild<QQuickWidget *>("authored-controls-" + note));
     QVERIFY(window.document()->applyCommand({{"op", "addNode"}, {"node", QJsonObject{{"id", "legacy"}, {"type", "comment"}}}}));
     QTRY_VERIFY(window.readOnly());
+    // Panels follow in a later pass. The read-only projection replaces the controls and disables the old ones.
+    QTRY_VERIFY(static_cast<WorkflowGraphModel &>(window.scene()->graphModel()).readOnly());
     QQuickWidget *controls = nullptr;
-    QTRY_VERIFY((controls = window.findChild<QQuickWidget *>("authored-controls-" + note)));
+    QTRY_VERIFY((controls = window.findChild<QQuickWidget *>("authored-controls-" + note)) && controls->isEnabled());
     QVERIFY(window.selectNode(note)); window.fit();
     auto *trigger = controls->rootObject()->findChild<QQuickItem *>("comment-color");
     QVERIFY(trigger);

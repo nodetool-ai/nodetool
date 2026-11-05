@@ -60,6 +60,8 @@ struct Fixture {
     };
   }
   void open(const QString &name) {
+    // A click on the field selects only its node.
+    scene.clearSelection();
     scene.nodeGraphicsObject(id)->setSelected(true);
     presenter.activate(id,name);
     QApplication::processEvents();

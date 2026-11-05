@@ -33,6 +33,8 @@ class WorkflowTabsTest final : public QObject {
     return nullptr;
   }
   static bool click(EditorWindow &window, const QString &name) {
+    // Panels follow in the next pass, and their layout in the pass after.
+    QCoreApplication::processEvents();
     QCoreApplication::processEvents();
     for (auto panel : window.findChildren<QQuickWidget *>()) {
       if (!panel->isVisible() || !panel->rootObject()) continue;

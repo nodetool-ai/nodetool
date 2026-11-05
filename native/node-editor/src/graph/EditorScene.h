@@ -3,6 +3,7 @@
 #include <QPainterPath>
 #include <QString>
 #include <QTimer>
+#include <QElapsedTimer>
 #include <QHash>
 #include <QPointer>
 #include <QJsonObject>
@@ -31,6 +32,9 @@ struct CanvasTheme {
 
 // The curve of a wire. Painting, hit testing, and the bounds margin all use it.
 double groupLabelScale(double zoom);
+// The running ring's conic start angle in CSS degrees after elapsedMs: 90 to
+// 450 over MOTION.pulse (2s ease-in-out), as runningGradientAnimation.
+double runningRingAngle(qint64 elapsedMs);
 QPainterPath wireCurve(const QPointF &out, const QPointF &in);
 
 // Installs the web editor's node card, typed wires, and canvas grid through the
@@ -43,6 +47,8 @@ public:
   void setTheme(const CanvasTheme &theme);
   void setReducedMotion(bool reduced);
   double animationPhase() const { return phase_; }
+  // Reduced motion holds the ring at its first frame, as the web does.
+  double runningAngle() const { return animation_.isActive() ? runningRingAngle(clock_.elapsed()) : 90; }
   bool animationActive() const { return animation_.isActive(); }
   QRectF groupLabelRect(QtNodes::NodeId id, double zoom);
   QString reconnectingEdgeId() const { return reconnectEdge_.value("id").toString(); }
@@ -76,6 +82,7 @@ private:
   WorkflowGraphModel &model_;
   CanvasTheme theme_;
   QTimer animation_;
+  QElapsedTimer clock_;
   double phase_ = 0;
   bool reducedMotion_ = false;
   bool inlinePress_ = false;

@@ -77,6 +77,9 @@ struct NodeLayout {
   QString title;
   QString icon;
   QColor accent;
+  // The running ring's conic stops: output then property type colors, five
+  // entries, as getNodeColors in web/src/components/node/BaseNode.tsx.
+  QVector<QColor> runningColors;
   bool unknown = false;
   QVector<NodeRow> rows;
   QVector<double> inputY;

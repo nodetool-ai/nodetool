@@ -46,7 +46,7 @@ class EditorWindow final : public QMainWindow {
   Q_PROPERTY(quint64 credentialsEpoch READ credentialsEpoch NOTIFY credentialsEpochChanged)
   Q_PROPERTY(int selectedCount READ selectedCount NOTIFY panelChanged)
   Q_PROPERTY(bool selectionDisabled READ selectionDisabled NOTIFY panelChanged)
-  Q_PROPERTY(QVariantList catalog READ catalog NOTIFY panelChanged)
+  Q_PROPERTY(QVariantList catalog READ catalog NOTIFY catalogChanged)
   Q_PROPERTY(QVariantList properties READ properties NOTIFY panelChanged)
   Q_PROPERTY(bool readOnly READ readOnly NOTIFY panelChanged)
   Q_PROPERTY(QString readOnlyReason READ readOnlyReason NOTIFY panelChanged)
@@ -166,6 +166,9 @@ signals:
   void panelChanged();
   void mediaChanged();
   void zoomChanged();
+  void catalogChanged();
+  // Tests observe that one selection change syncs the inspector once.
+  void inspectorSynced();
 
 protected:
   bool eventFilter(QObject *, QEvent *) override;
@@ -217,6 +220,17 @@ private:
   QQuickWidget *panel(const QString &file);
   Q_SLOT void layoutOverlays();
   void syncInspector();
+  // Applies a node click or a programmatic selection to the inspector. It does
+  // nothing when the selection change already synced the inspector.
+  void inspectNode(const QString &resourceId);
+  // Each panelChanged() makes QML evaluate every panel binding again. All
+  // changes in one event-loop pass share one deferred emit.
+  void schedulePanelChanged();
+  void flushPanelChanged();
+  bool panelChangePending_ = false;
+  // GenerationHistory copies the full document. Selection changes reuse it.
+  bool historyWorkflowStale_ = true;
+  bool selectingNode_ = false;
   void zoomBy(double factor);
   void zoomUnderCursor(double factor);
   void panBy(QPoint delta);
@@ -285,6 +299,7 @@ private:
   QHash<QString, QPointF> gesturePositions_;
   bool panning_ = false;
   bool rubberBandSelectionPending_ = false;
+  QTimer *runPanelTimer_ = nullptr;
   std::optional<QPointF> lastPaste_;
   QPoint pasteMenuPosition_;
   QPoint panPosition_;
