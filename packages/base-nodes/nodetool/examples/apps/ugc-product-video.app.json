@@ -125,11 +125,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-copy",
-                        "binding": "op:copy/exec#progress",
-                        "label": "Writing three routes…"
+                        "operationId": "copy",
+                        "label": "Writing three routes…",
+                        "steps": []
                       }
                     },
                     {
@@ -299,11 +300,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-creator",
-                        "binding": "op:creator/exec#progress",
-                        "label": "Generating voice, lip-sync, and motion together…"
+                        "operationId": "creator",
+                        "label": "Generating voice, lip-sync, and motion together…",
+                        "steps": []
                       }
                     },
                     {
@@ -492,11 +494,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-brand",
-                        "binding": "op:brand/exec#progress",
-                        "label": "Transcribing the clip and rendering the finish…"
+                        "operationId": "brand",
+                        "label": "Transcribing the clip and rendering the finish…",
+                        "steps": []
                       }
                     },
                     {

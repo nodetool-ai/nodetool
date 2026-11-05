@@ -19628,5 +19628,39 @@
     "showAssistant": "番組アシスタント",
     "hideAssistant": "アシスタントを隠す",
     "resizeAssistant": "タイムラインのサイズ変更アシスタント"
+  },
+  "generationBatch": {
+    "summary": "{{total}} 件中 {{done}} 件完了",
+    "remaining": "残り約 {{time}}",
+    "finishing": "仕上げ中",
+    "failedCount": "失敗: {{count}}",
+    "status": {
+      "queued": "待機中",
+      "running": "実行中",
+      "completed": "完了",
+      "failed": "失敗"
+    },
+    "showRequests": "リクエストを表示",
+    "hideRequests": "リクエストを隠す",
+    "expected": "予想 {{time}}",
+    "took": "所要 {{time}}",
+    "progressLabel": "生成の進行状況"
+  },
+  "workflowSteps": {
+    "stepOf": "ステップ {{current}}/{{total}}",
+    "allDone": "全 {{total}} ステップ完了",
+    "waiting": "待機中",
+    "running": "実行中",
+    "done": "完了",
+    "failed": "失敗",
+    "progressLabel": "ワークフローの進行状況",
+    "steps": "ステップ",
+    "addStep": "ステップを追加",
+    "removeStep": "ステップを削除",
+    "node": "ノード",
+    "title": "タイトル",
+    "description": "説明",
+    "autoHint": "ステップが未設定です。ウィジェットはすべての生成ノードを表示します。",
+    "chooseNode": "ノードを選択"
   }
 }

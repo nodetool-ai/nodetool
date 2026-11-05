@@ -19628,5 +19628,39 @@
     "showAssistant": "Visa assistent",
     "hideAssistant": "Göm assistent",
     "resizeAssistant": "Ändra storlek på tidslinjeassistent"
+  },
+  "generationBatch": {
+    "summary": "{{done}} av {{total}} klara",
+    "remaining": "Cirka {{time}} kvar",
+    "finishing": "Slutför",
+    "failedCount": "Misslyckades: {{count}}",
+    "status": {
+      "queued": "I kö",
+      "running": "Körs",
+      "completed": "Klar",
+      "failed": "Misslyckades"
+    },
+    "showRequests": "Visa förfrågningar",
+    "hideRequests": "Dölj förfrågningar",
+    "expected": "Förväntat {{time}}",
+    "took": "Tog {{time}}",
+    "progressLabel": "Förlopp för generering"
+  },
+  "workflowSteps": {
+    "stepOf": "Steg {{current}} av {{total}}",
+    "allDone": "Alla {{total}} steg klara",
+    "waiting": "Väntar",
+    "running": "Körs",
+    "done": "Klar",
+    "failed": "Misslyckades",
+    "progressLabel": "Arbetsflödets förlopp",
+    "steps": "Steg",
+    "addStep": "Lägg till steg",
+    "removeStep": "Ta bort steg",
+    "node": "Nod",
+    "title": "Titel",
+    "description": "Beskrivning",
+    "autoHint": "Inga steg angivna. Widgeten visar varje generativ nod.",
+    "chooseNode": "Välj en nod"
   }
 }

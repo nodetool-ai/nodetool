@@ -154,6 +154,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   extract_pdf_text: "read",
   extract_script_from_storyboard: "write",
   find_model: "read",
+  generate_batch: "write",
   generate_image: "write",
   generate_text: "external",
   generate_speech: "write",

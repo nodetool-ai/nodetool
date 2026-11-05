@@ -19628,5 +19628,39 @@
     "showAssistant": "Assistent einblenden",
     "hideAssistant": "Assistent ausblenden",
     "resizeAssistant": "Größe des Timeline-Assistenten ändern"
+  },
+  "generationBatch": {
+    "summary": "{{done}} von {{total}} fertig",
+    "remaining": "Noch etwa {{time}}",
+    "finishing": "Wird abgeschlossen",
+    "failedCount": "Fehlgeschlagen: {{count}}",
+    "status": {
+      "queued": "Wartet",
+      "running": "Läuft",
+      "completed": "Fertig",
+      "failed": "Fehlgeschlagen"
+    },
+    "showRequests": "Anfragen anzeigen",
+    "hideRequests": "Anfragen ausblenden",
+    "expected": "Erwartet {{time}}",
+    "took": "Dauerte {{time}}",
+    "progressLabel": "Fortschritt der Generierung"
+  },
+  "workflowSteps": {
+    "stepOf": "Schritt {{current}} von {{total}}",
+    "allDone": "Alle {{total}} Schritte fertig",
+    "waiting": "Wartet",
+    "running": "Läuft",
+    "done": "Fertig",
+    "failed": "Fehlgeschlagen",
+    "progressLabel": "Fortschritt des Workflows",
+    "steps": "Schritte",
+    "addStep": "Schritt hinzufügen",
+    "removeStep": "Schritt entfernen",
+    "node": "Knoten",
+    "title": "Titel",
+    "description": "Beschreibung",
+    "autoHint": "Keine Schritte festgelegt. Das Widget zeigt jeden generativen Knoten.",
+    "chooseNode": "Knoten wählen"
   }
 }

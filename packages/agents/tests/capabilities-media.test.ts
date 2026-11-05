@@ -97,6 +97,7 @@ describe("the media capability module", () => {
       "generate_video_from_references",
       "generate_speech",
       "generate_music",
+      "generate_batch",
       "transcribe_audio",
       "embed_text",
       "read_media_bytes",

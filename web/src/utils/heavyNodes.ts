@@ -15,7 +15,7 @@ import { COMFY_NODE_PREFIX } from "@nodetool-ai/protocol";
  * these and are ignored, so the large-run warning only counts the nodes that
  * could actually overload a provider/API.
  */
-function isHeavyNode(metadata: NodeMetadata | undefined): boolean {
+export function isHeavyNode(metadata: NodeMetadata | undefined): boolean {
   if (!metadata) {
     return false;
   }

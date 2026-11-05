@@ -19628,5 +19628,39 @@
     "showAssistant": "显示助手",
     "hideAssistant": "隐藏助手",
     "resizeAssistant": "调整时间线助手大小"
+  },
+  "generationBatch": {
+    "summary": "已完成 {{done}}/{{total}}",
+    "remaining": "剩余约 {{time}}",
+    "finishing": "正在收尾",
+    "failedCount": "失败：{{count}}",
+    "status": {
+      "queued": "排队中",
+      "running": "运行中",
+      "completed": "完成",
+      "failed": "失败"
+    },
+    "showRequests": "显示请求",
+    "hideRequests": "隐藏请求",
+    "expected": "预计 {{time}}",
+    "took": "用时 {{time}}",
+    "progressLabel": "生成进度"
+  },
+  "workflowSteps": {
+    "stepOf": "第 {{current}} 步，共 {{total}} 步",
+    "allDone": "全部 {{total}} 步已完成",
+    "waiting": "等待中",
+    "running": "运行中",
+    "done": "完成",
+    "failed": "失败",
+    "progressLabel": "工作流进度",
+    "steps": "步骤",
+    "addStep": "添加步骤",
+    "removeStep": "移除步骤",
+    "node": "节点",
+    "title": "标题",
+    "description": "描述",
+    "autoHint": "未设置步骤。组件会显示每个生成节点。",
+    "chooseNode": "选择节点"
   }
 }

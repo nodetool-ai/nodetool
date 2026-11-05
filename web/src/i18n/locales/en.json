@@ -19628,5 +19628,39 @@
     "showAssistant": "Show assistant",
     "hideAssistant": "Hide assistant",
     "resizeAssistant": "Resize timeline assistant"
+  },
+  "generationBatch": {
+    "summary": "{{done}} of {{total}} done",
+    "remaining": "About {{time}} left",
+    "finishing": "Finishing",
+    "failedCount": "Failed: {{count}}",
+    "status": {
+      "queued": "Queued",
+      "running": "Running",
+      "completed": "Done",
+      "failed": "Failed"
+    },
+    "showRequests": "Show requests",
+    "hideRequests": "Hide requests",
+    "expected": "Expected {{time}}",
+    "took": "Took {{time}}",
+    "progressLabel": "Generation progress"
+  },
+  "workflowSteps": {
+    "stepOf": "Step {{current}} of {{total}}",
+    "allDone": "All {{total}} steps done",
+    "waiting": "Waiting",
+    "running": "Running",
+    "done": "Done",
+    "failed": "Failed",
+    "progressLabel": "Workflow progress",
+    "steps": "Steps",
+    "addStep": "Add step",
+    "removeStep": "Remove step",
+    "node": "Node",
+    "title": "Title",
+    "description": "Description",
+    "autoHint": "No steps set. The widget shows every generative node.",
+    "chooseNode": "Choose a node"
   }
 }

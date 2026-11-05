@@ -84,6 +84,7 @@ import type { HttpApiOptions } from "../http-api.js";
 import { getUserId } from "../lib/http-user-id.js";
 import { getExampleAppBundle } from "../lib/example-apps.js";
 import { getAssetAdapter } from "../lib/storage.js";
+import { resolveWorkflowWorkspace } from "../lib/workflow-workspace.js";
 import { isJsonContentType } from "../lib/json-body.js";
 
 interface RouteOptions {
@@ -114,7 +115,8 @@ const RELAYED_MESSAGES: ReadonlySet<string> = new Set([
   "tool_result_update",
   "planning_update",
   "task_update",
-  "node_progress"
+  "node_progress",
+  "generation_batch_update"
 ]);
 
 const wantsStream = (request: Request): boolean =>
@@ -319,6 +321,9 @@ async function executeScriptDocumentInner(
   const send = (line: ScriptStreamLine): void => {
     lines?.write(`${JSON.stringify(line)}\n`);
   };
+  // Host media tools (concat, mux, probe) run in a workspace directory. A
+  // script has no workflow, so it gets the user's default workspace.
+  const workspace = await resolveWorkflowWorkspace(null, userId);
   const context = new ProcessingContext({
     jobId: appRun?.run.id ?? `js-script-${id}-${Date.now()}`,
     ...(appRun && {
@@ -347,6 +352,7 @@ async function executeScriptDocumentInner(
     ...(projectId && { projectId }),
     secretResolver: getSecret,
     storage: opts.storage ?? getAssetAdapter(),
+    workspace,
     ...(lines && {
       onMessage: (message: ProcessingMessage) => {
         if (RELAYED_MESSAGES.has(message.type)) {

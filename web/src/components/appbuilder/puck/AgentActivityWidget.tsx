@@ -1,3 +1,4 @@
+/** @jsxImportSource @emotion/react */
 /**
  * Shows live agent work and replays the owned run's stored activity after reload.
  *
@@ -5,9 +6,10 @@
  * loop takes minutes. Without this widget the app shows a progress bar for all
  * of that time and then the result.
  */
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
+import { useTheme } from "@mui/material/styles";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
   isOperationRunning,
@@ -38,6 +40,9 @@ import {
   reducedMotion
 } from "../../ui_primitives";
 import { getToolIcon } from "../../chat/message/toolCallIcon";
+import { MessageView } from "../../chat/message/MessageView";
+import { createStyles as createChatStyles } from "../../chat/thread/ChatThreadView.styles";
+import { transcriptToMessages } from "./agentTranscriptMessages";
 import {
   useAppRuntimeContext,
   useRuntimeSelector
@@ -59,6 +64,8 @@ interface AgentActivityWidgetProps {
 }
 
 const NO_ENTRIES: ReadonlyArray<ActivityEntry> = [];
+const noThoughtState = (): undefined => undefined;
+const ignoreThoughtToggle = (): void => undefined;
 
 /** What the editor shows before any run, so the widget can be laid out. */
 const sampleActivity = (t: TFunction): ReadonlyArray<ActivityEntry> => [
@@ -289,6 +296,9 @@ export const AgentActivityWidget: React.FC<AgentActivityWidgetProps> = (
   props
 ) => {
   const { t } = useTranslation();
+  const theme = useTheme();
+  // MessageView has no styles of its own: the chat list scopes them to its descendants.
+  const chatStyles = useMemo(() => createChatStyles(theme).chatMessagesList, [theme]);
   const { designMode, instanceId } = useAppRuntimeContext();
   const ref = parseBinding(props.binding);
   const operationId = ref?.kind === "execution" ? ref.operationId : null;
@@ -309,6 +319,10 @@ export const AgentActivityWidget: React.FC<AgentActivityWidgetProps> = (
   const useLive = !expired && !excluded && !readError && running && (liveRunMatches || !instanceId);
   const shown = designMode ? entries.length ? entries : sampleActivity(t) : useLive ? entries : stored.map((item) => item.entry);
   const { openRunInspection } = useRunInspection();
+  const { messages, toolResultsByCallId } = useMemo(
+    () => transcriptToMessages(shown),
+    [shown]
+  );
 
   // Follow the newest entry while the agent works, the way a log does.
   const scroller = useRef<HTMLDivElement>(null);
@@ -342,7 +356,20 @@ export const AgentActivityWidget: React.FC<AgentActivityWidgetProps> = (
         ? <Caption>{props.placeholder ?? t("i18n-next69.appBuilder.agentActivity.noActivity")}</Caption> : null}
       <ScrollArea ref={scroller} thin maxHeight={props.height ?? 360}>
         <FlexColumn gap={SPACING.xs} fullWidth>
-          {shown.map((entry, index) =>
+          {useLive || designMode
+            ? <div css={[chatStyles, { maxWidth: "100%" }]} className="chat-messages-list">
+                {messages.map((message) => (
+                  <MessageView
+                    key={message.id}
+                    message={message}
+                    isThoughtExpanded={noThoughtState}
+                    onToggleThought={ignoreThoughtToggle}
+                    toolResultsByCallId={toolResultsByCallId}
+                    hideActions
+                  />
+                ))}
+              </div>
+            : shown.map((entry, index) =>
             entry.kind === "tool" ? (
               <ToolRow
                 key={entry.id}

@@ -229,11 +229,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-backdrop",
-                        "binding": "op:backdrop/exec#progress",
-                        "label": "Placing the product…"
+                        "operationId": "backdrop",
+                        "label": "Placing the product…",
+                        "steps": []
                       }
                     },
                     {
@@ -482,11 +483,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-turntable",
-                        "binding": "op:turntable/exec#progress",
-                        "label": "Spinning the packshot…"
+                        "operationId": "turntable",
+                        "label": "Spinning the packshot…",
+                        "steps": []
                       }
                     },
                     {
@@ -507,11 +509,12 @@
                       }
                     },
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-print",
-                        "binding": "op:print/exec#progress",
-                        "label": "Upscaling…"
+                        "operationId": "print",
+                        "label": "Upscaling…",
+                        "steps": []
                       }
                     },
                     {

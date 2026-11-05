@@ -6,6 +6,7 @@
  * string, and the context resolves it against the live graph. That indirection
  * is what makes renaming an input or output node harmless.
  */
+import type { Workflow } from "../../../stores/ApiTypes";
 import { createContext, useContext, useMemo } from "react";
 import { useStore } from "zustand";
 import {
@@ -81,6 +82,8 @@ export interface AppRuntimeContextValue {
     operationId?: string
   ) => unknown;
   /** Type of a graph node, so a widget bound to its property can match it. */
+  /** The graph an operation runs; undefined for a script operation. */
+  getOperationGraph: (operationId: string) => Workflow["graph"] | undefined;
   getNodeType: (nodeId: string, operationId?: string) => string | undefined;
 }
 

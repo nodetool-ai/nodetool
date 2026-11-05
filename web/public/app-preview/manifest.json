@@ -134,7 +134,7 @@
     "name": "Film Studio",
     "emoji": "🎬",
     "featured": true,
-    "workflows": 3
+    "workflows": 2
   },
   {
     "slug": "model-arena",
@@ -169,7 +169,7 @@
     "name": "Trailer Room",
     "emoji": "🎞️",
     "featured": false,
-    "workflows": 4
+    "workflows": 0
   },
   {
     "slug": "sku-factory",

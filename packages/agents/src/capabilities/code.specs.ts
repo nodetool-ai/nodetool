@@ -11,7 +11,7 @@
 import type { CapabilitySpec } from "./types.js";
 import type { JsonSchema } from "@nodetool-ai/runtime";
 
-export const MAX_TIMEOUT_SECONDS = 120;
+export const MAX_TIMEOUT_SECONDS = 1800;
 
 export const DEFAULT_TIMEOUT_SECONDS = 30;
 
