@@ -2916,7 +2916,11 @@ private slots:
                                                     {"status", "generated"}}});
         loadJson(json, {1, 0});
         QTRY_COMPARE(controller()->sourceCapMs("v"), 10000.0);
-        QVERIFY(QFile::remove(file));
+        // Retire the old name before deletion: Windows keeps a deleted file's
+        // name reserved until active thumbnail readers close their handles.
+        const QString retired = dir.filePath("retired.mp4");
+        QVERIFY(QFile::rename(file, retired));
+        QVERIFY(QFile::remove(retired));
         QVERIFY(QFile::copy(QStringLiteral(NT_FIXTURES_DIR "/media/numbered-a-1080p30.mp4"), file));  // 20 s
         model->setTimeline(parseTimeline(json));
         QTRY_COMPARE(controller()->sourceCapMs("v"), 20000.0);
