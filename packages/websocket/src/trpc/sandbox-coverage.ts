@@ -1281,12 +1281,7 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "a worker authenticates with. Host control, not the caller's " +
       "data."
   },
-  "worker.instances.list": {
-    withheld:
-      "Provisioning and terminating compute, and reading the API key " +
-      "a worker authenticates with. Host control, not the caller's " +
-      "data."
-  },
+  "worker.instances.list": { capability: "list_workers" },
   "worker.profiles.create": {
     withheld:
       "Provisioning and terminating compute, and reading the API key " +
@@ -1328,12 +1323,7 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Starting a preset provisions compute and is restricted to local " +
       "host control."
   },
-  "worker.stop": {
-    withheld:
-      "Provisioning and terminating compute, and reading the API key " +
-      "a worker authenticates with. Host control, not the caller's " +
-      "data."
-  },
+  "worker.stop": { capability: "stop_worker" },
   "worker.stopAll": {
     withheld:
       "Provisioning and terminating compute, and reading the API key " +
