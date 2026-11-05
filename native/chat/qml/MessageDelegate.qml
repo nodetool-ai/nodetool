@@ -133,6 +133,7 @@ ColumnLayout {
             }
         }
         Ui.EditorButton {
+            objectName: "copyTextButton"
             visible: paged.copyLabel.length > 0
             text: paged.copyLabel
             onClicked: if (paged.chatSession) paged.chatSession.copyText(paged.sourceText)
@@ -348,6 +349,7 @@ ColumnLayout {
                 }
                 PagedText {
                     Layout.fillWidth: true
+                    objectName: "toolCode_" + (partFrame.part.tool_call_id || partFrame.index)
                     visible: partFrame.detailsOpen && !!partFrame.part.code
                     sourceText: partFrame.detailsOpen ? (partFrame.part.code || "") : ""
                     monospaced: true
@@ -373,6 +375,7 @@ ColumnLayout {
                 }
                 PagedText {
                     Layout.fillWidth: true
+                    objectName: "toolResult_" + (partFrame.part.tool_call_id || partFrame.index)
                     visible: !!partFrame.part.resultText && partFrame.detailsOpen
                     sourceText: partFrame.detailsOpen ? (partFrame.part.resultText || "") : ""
                     monospaced: true

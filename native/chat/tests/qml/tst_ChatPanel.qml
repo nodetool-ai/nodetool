@@ -471,8 +471,31 @@ TestCase {
         mouseClick(code)
         tryVerify(function() { return findText(panel, "Code · javascript") !== null })
         wait(80)
-        mouseClick(findText(panel, "Copy code"))
+        const message = findVisible(panel, "message_00000000000000000000000000000067")
+        verify(message !== null)
+        const conversation = findChild(panel, "chatConversation")
+        conversation.followBottom = false
+        function copySection(name, label) {
+            const section = findVisible(message, name)
+            verify(section !== null)
+            const button = findChild(section, "copyTextButton")
+            verify(button !== null)
+            compare(button.text, label)
+            compare(button.Accessible.name, label)
+            list.forceLayout()
+            // visible does not imply that a ListView descendant is inside its viewport.
+            const point = button.mapToItem(list, 0, 0)
+            list.contentY = Math.max(list.originY, Math.min(list.originY + list.contentHeight - list.height,
+                list.contentY + point.y - (list.height - button.height) / 2))
+            verify(waitForRendering(button))
+            const position = button.mapToItem(list, 0, 0)
+            verify(position.y >= 0 && position.y + button.height <= list.height)
+            mouseClick(button, button.width / 2, button.height / 2, Qt.LeftButton, Qt.NoModifier, 0)
+        }
+        copySection("toolCode_00000000000000000000000000000003", "Copy code")
         compare(testDriver.clipboardText(), "console.log(2);")
+        copySection("toolResult_00000000000000000000000000000003", "Copy result")
+        compare(testDriver.clipboardText(), JSON.stringify({stdout: "2\n"}, null, 4) + "\n")
         wait(80)
         const directory = testDriver.screenshotDirectory()
         if (directory) grabImage(panel).save(directory + "/persisted-tools.png")
