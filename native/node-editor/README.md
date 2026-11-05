@@ -114,8 +114,9 @@ full asset IDs. Media lists append, remove, and reorder references while retaini
 unknown metadata. File-picker/drop batches append once after all uploads succeed.
 A failed batch leaves property references unchanged, and successful uploads remain
 in the library. Metadata-declared static append lists stay editable while
-connected. Other connected fields remain locked. Language-model properties offer configured-provider search,
-provider restrictions, and typed selection. Other model types remain preserved
+connected. Other connected fields remain locked. Model properties open the shared model picker with search, provider
+groups, favorites, recents, provider restrictions, and node task filters. Language, embedding, image, video,
+TTS, ASR, music, audio-to-audio, rerank, and `hf.*` fields are selectable. Other model types remain preserved
 without a selector. Workflow single/list fields offer authorized selection,
 loaded-page search, pagination, missing-target checks, and list ordering/removal.
 Collection fields select the caller's visible collection names. Existing wrapper
@@ -188,9 +189,9 @@ lists the differences that remain. This is an initial editor, not full web
 parity. Specialized subgraph editing, live execution and branch overlays,
 grouped history thumbnails and the single-view history pager remain deferred. Existing unsupported data is preserved by the document
 module. The inspector provides scalar and supported structured editors, image/audio/video
-asset pickers, and language-model selection. Media recording, crop/trim,
+asset pickers, and model selection. Media recording, crop/trim,
 internal library drag payloads, connected upstream-list previews, legacy nested-list
-flattening, other model families, provider setup,
+flattening, 3D, llama.cpp, and Transformers.js model fields, provider setup,
 and model download/install progress remain unavailable. In-card editing currently
 covers scalar properties. Model, media, workflow, collection, list, dictionary,
 record, and JSON controls remain in the inspector. See the [parity checklist](docs/parity.md) for supported authoring, browsing, runtime, and media behavior. There is no application menu yet.
@@ -269,8 +270,8 @@ panel state, shared theme changes, catalog filtering, and the narrow layout.
 search, pagination, streaming multipart upload, failure/cancellation,
 QML dispatch, connected/read-only controls, stale node/server isolation,
 canonical full-ID references, undo, and reopen.
-[ModelPickerTest](tests/models/ModelPickerTest.cpp) checks language-model provider
-queries, provider restrictions, typed selection, cancellation, undo, and reopen.
+[ModelPickerTest](tests/models/ModelPickerTest.cpp) checks authenticated catalog
+queries, provider and task filters, typed values per model family, cancellation, undo, and reopen.
 
 Run `ctest --test-dir <build> -R 'node_editor_(models|asset_picker)'
 --output-on-failure` after building the native host. The fixtures run without

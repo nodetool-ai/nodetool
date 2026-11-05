@@ -52,8 +52,10 @@ records implemented surfaces and remaining work without claiming full parity.
   canonical media references and supports one-step undo. Media lists append,
   remove, and reorder references while retaining unknown metadata. Multiple
   file uploads commit one ordered append after the complete batch succeeds.
-- Language-model search across configured providers, declared/default provider
-  restrictions, missing-model feedback, and typed selection with one-step undo.
+- The shared model picker for language, embedding, image, video, TTS, ASR, music,
+  audio-to-audio, rerank, and `hf.*` fields: search, provider groups, favorites, recents,
+  web-matching provider restrictions and node task filters, TTS voice selection,
+  missing-key and missing-model feedback, and typed selection with one-step undo.
 - Authorized workflow single/list selection and collection-name selection.
   Workflow lists preserve order and wrapper metadata through add/remove/reorder.
   Loaded-page search and pagination are explicit. Missing selected workflows are
@@ -83,8 +85,8 @@ records implemented surfaces and remaining work without claiming full parity.
   Their supported editors remain in the inspector.
 - Media recording, crop/trim, internal library drag payloads, connected upstream-list
   previews, and legacy nested media-list flattening.
-  Other model types, provider setup/key-specific warnings, recommendations,
-  recents/favorites, and model download/install progress.
+  3D, llama.cpp, and Transformers.js model fields, provider setup, recommendations,
+  model packs, and model download/install progress.
 - Modal asset-viewer behavior, copy, multiselect/compare, batch download and
   Save to assets actions. Mixed collections use native gallery tiles instead of
   every specialized web array renderer.
@@ -261,10 +263,10 @@ boundary. Recording, crop/trim, internal library drag payloads, connected upstre
 previews, and legacy nested-list flattening remain unimplemented.
 
 [ModelPickerTest](../tests/models/ModelPickerTest.cpp) exercises authenticated
-provider/model queries, language-model selection, provider restrictions, legacy
-string preservation, cancellation, read-only controls, undo, and reopen.
+catalog queries, typed selection per model family, provider and task filters,
+missing-key warnings, legacy string preservation, cancellation, read-only controls, undo, and reopen.
 Download-required models remain disabled until native installation controls
-exist. Other model families remain preserved without a selector.
+exist. 3D, llama.cpp, and Transformers.js fields remain preserved without a selector.
 
 Build the host and run `ctest --test-dir <build> -R
 'node_editor_(models|asset_picker)' --output-on-failure`, or configure

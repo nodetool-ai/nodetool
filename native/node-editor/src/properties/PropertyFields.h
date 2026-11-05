@@ -90,6 +90,33 @@ inline QString validateImageSizeValue(const QJsonValue& value) {
     }
     return {};
 }
+inline bool isModelType(const QString& type) {
+    static const QSet<QString> types{"language_model", "embedding_model", "image_model", "video_model", "tts_model", "asr_model", "music_model", "audio_to_audio_model", "rerank_model"};
+    return types.contains(type) || type.startsWith("hf.");
+}
+// Language and embedding fields also lock to a concrete default provider. Media
+// fields honor only a declared list because their defaults name a provider.
+inline QJsonArray modelAllowedProviders(const QJsonObject& p) {
+    auto allowed = p.value("json_schema_extra").toObject().value("allowed_providers").toArray();
+    const auto type = scalarPropertyType(p);
+    if (allowed.isEmpty() && (type == "language_model" || type == "embedding_model")) {
+        const auto provider = p.value("default").toObject().value("provider").toString();
+        if (!provider.isEmpty() && provider != "empty") { allowed.append(provider); }
+    }
+    return allowed;
+}
+// Matches IMAGE_TASK_BY_NODE_TYPE and VIDEO_TASK_BY_NODE_TYPE in the web editor.
+inline QStringList modelTasksForNodeType(const QString& nodeType) {
+    static const QHash<QString, QStringList> tasks{
+        {"nodetool.image.TextToImage", {"text_to_image"}}, {"nodetool.image.ImageToImage", {"image_to_image"}},
+        {"nodetool.image.Upscale", {"upscale"}}, {"nodetool.image.RemoveBackground", {"remove_background"}},
+        {"nodetool.image.EstimateDepth", {"estimate_depth"}}, {"nodetool.image.Segment", {"segment"}},
+        {"nodetool.image.Relight", {"image_to_image", "relight"}}, {"nodetool.image.Vectorize", {"vectorize"}},
+        {"nodetool.video.TextToVideo", {"text_to_video"}}, {"nodetool.video.ImageToVideo", {"image_to_video"}},
+        {"nodetool.video.ReferenceToVideo", {"reference_to_video"}}, {"nodetool.video.VideoToVideo", {"video_to_video"}},
+        {"nodetool.video.LipSync", {"lip_sync"}}};
+    return tasks.value(nodeType);
+}
 inline QString propertyKind(const QJsonObject& p) {
     if (!propertyOptions(p).isEmpty()) { return "choice"; }
     const auto type = scalarPropertyType(p);
@@ -115,7 +142,7 @@ inline QString propertyKind(const QJsonObject& p) {
     if (type == "workflow") { return "workflow"; }
     if (type == "collection") { return "collection"; }
     if (type == "color" || type == "image_size") { return type; }
-    if (type == "language_model") { return "model"; }
+    if (isModelType(type)) { return "model"; }
     if (type == "image" || type == "audio" || type == "video" || type == "asset") { return "media"; }
     if (type == "image_list" || type == "audio_list" || type == "video_list") { return "media_list"; }
     if (type == "int" || type == "integer") { return "integer"; }
@@ -247,12 +274,11 @@ inline QString validatePropertyValue(const QJsonObject& p, const QJsonValue& val
         // Old workflows stored a plain model id. Preserve it until selection.
         if (value.isString()) { return {}; }
         const auto model = value.toObject();
-        if (!value.isObject() || model.value("type") != "language_model" || !model.value("id").isString() || !model.value("provider").isString()) { return "Choose a language model"; }
-        auto allowed = p.value("json_schema_extra").toObject().value("allowed_providers").toArray();
-        if (allowed.isEmpty()) {
-            const auto provider = p.value("default").toObject().value("provider").toString();
-            if (!provider.isEmpty() && provider != "empty") { allowed.append(provider); }
-        }
+        const auto type = scalarPropertyType(p);
+        if (!value.isObject() || (model.contains("type") && model.value("type") != type)) { return "Choose a model"; }
+        if (type.startsWith("hf.")) { return model.value("repo_id").isString() || model.value("id").isString() ? QString{} : QStringLiteral("Choose a model"); }
+        if (!model.value("id").isString() || !model.value("provider").isString()) { return "Choose a model"; }
+        const auto allowed = modelAllowedProviders(p);
         if (!allowed.isEmpty() && !allowed.contains(model.value("provider"))) { return "Choose a model from an allowed provider"; }
         return {};
     }
@@ -307,12 +333,9 @@ inline QVariantList propertyFields(const QJsonObject& node, const QJsonObject& m
         }
         if (kind == "media" || kind == "media_list") { row.insert("mediaType", propertyMediaType(p)); }
         if (kind == "model") {
-            auto allowed = p.value("json_schema_extra").toObject().value("allowed_providers").toArray();
-            if (allowed.isEmpty()) {
-                const auto provider = p.value("default").toObject().value("provider").toString();
-                if (!provider.isEmpty() && provider != "empty") { allowed.append(provider); }
-            }
-            row.insert("allowedProviders", allowed.toVariantList());
+            row.insert("modelType", scalarPropertyType(p));
+            row.insert("allowedProviders", modelAllowedProviders(p).toVariantList());
+            row.insert("modelTasks", modelTasksForNodeType(metadata.value("node_type").toString()));
         }
         rows.append(row);
     };

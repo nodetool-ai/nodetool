@@ -8,6 +8,7 @@ find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Widgets QuickWidgets Qml Quic
 qt_standard_project_setup(REQUIRES 6.12)
 include(cmake/QtNodes.cmake)
 add_subdirectory(../ui_primitives ui_primitives)
+add_subdirectory(../model-picker model-picker)
 add_library(node_editor_core STATIC
  src/server/AccountJobs.cpp src/server/AccountJobs.h
  src/server/PackSetup.cpp src/server/PackSetup.h
@@ -48,7 +49,7 @@ add_library(node_editor_core STATIC
  src/media/VideoFrameView.cpp src/media/VideoFrameView.h
  src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/EditorWindow.h src/ui/EditorMenus.cpp)
 target_include_directories(node_editor_core PUBLIC src)
-target_link_libraries(node_editor_core PUBLIC QtNodes Qt6::Widgets Qt6::QuickWidgets Qt6::Svg Qt6::Network Qt6::WebSockets Qt6::Multimedia)
+target_link_libraries(node_editor_core PUBLIC nodetool_model_picker nodetool_model_pickerplugin QtNodes Qt6::Widgets Qt6::QuickWidgets Qt6::Svg Qt6::Network Qt6::WebSockets Qt6::Multimedia)
 qt_add_executable(nodetool-node-editor src/main.cpp)
 target_link_libraries(nodetool-node-editor PRIVATE node_editor_core)
 nodetool_use_ui_primitives(nodetool-node-editor)
