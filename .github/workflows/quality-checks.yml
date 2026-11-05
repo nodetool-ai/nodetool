@@ -698,9 +698,9 @@ jobs:
         uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
           path: .turbo/test-results
-          key: ${{ runner.os }}-test-results-${{ matrix.check }}-${{ github.sha }}
+          key: ${{ runner.os }}-test-results-v2-${{ matrix.check }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-test-results-${{ matrix.check }}-
+            ${{ runner.os }}-test-results-v2-${{ matrix.check }}-
 
       # `--update=none`: a hash already in the cache dir (a build entry) is never
       # overwritten. The marker's mtime is what "written during the run"
@@ -771,7 +771,7 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .turbo/test-results
-          key: ${{ runner.os }}-test-results-${{ matrix.check }}-${{ github.sha }}
+          key: ${{ runner.os }}-test-results-v2-${{ matrix.check }}-${{ github.sha }}
 
       - name: Save Jest transform cache
         if: matrix.jest-cache != '' && github.event_name != 'pull_request' && !cancelled()
