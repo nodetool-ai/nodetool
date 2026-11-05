@@ -14,14 +14,19 @@ public:
         QDesktopServices::setUrlHandler("https", this, "recordUrl");
     }
     ~ChatTestDriver() override { QDesktopServices::unsetUrlHandler("https"); }
+    Q_INVOKABLE QAbstractItemModel *currentParts() const {
+        auto *model = m_session->messages();
+        return model->data(model->index(0, 0), nt::chat::MessageModel::PartsRole).value<QAbstractItemModel *>();
+    }
     Q_INVOKABLE QString openedLink() const { return m_openedLink; }
-    Q_INVOKABLE void replay(const QString& name, int limit = 100000) {
+    Q_INVOKABLE void replay(const QString& name, int limit = 100000, int offset = 0) {
         QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/") + name + ".json");
         if (!file.open(QIODevice::ReadOnly)) { return; }
         const auto fixture = QJsonDocument::fromJson(file.readAll()).object();
         int count = 0;
         for (auto event : fixture["events"].toArray()) {
-            if (count++ >= limit) { break; }
+            if (count++ < offset) { continue; }
+            if (count > offset + limit) { break; }
             auto object = event.toObject(); object["thread_id"] = "a";
             m_session->applyEvent(object);
         }
@@ -80,7 +85,11 @@ public:
             {"approval_id", "qml-approval"}, {"tool_name", "test_write"},
             {"message", "Review the proposed edit"}, {"args", QJsonObject{{"value", 1}}}});
     }
-    Q_INVOKABLE void clearHistory(const QString& thread) { m_session->importHistory(thread, {}); }
+    Q_INVOKABLE void resetSession() {
+        m_session->upsertThread({{"id", "a"}, {"title", "First conversation"}});
+        m_session->upsertThread({{"id", "b"}, {"title", "Second conversation"}});
+        m_session->selectThread("a");
+    }
 public slots:
     void recordUrl(const QUrl &url) { m_openedLink = url.toString(); }
 private:

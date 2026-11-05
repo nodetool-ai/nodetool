@@ -1,6 +1,9 @@
 #include "runtime/ChatSession.h"
 #include "model/MessageModel.h"
 #include "model/Markdown.h"
+#include "model/PlanDocument.h"
+#include <QWebSocketServer>
+#include <QWebSocket>
 #include <QFile>
 #include <QTextBlock>
 #include <QJsonDocument>
@@ -47,6 +50,141 @@ QJsonObject message(int id) {
 class ChatModelTests : public QObject {
     Q_OBJECT
 private slots:
+    void planParserWebCases() {
+        QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/plans-approvals.json"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto fixture = QJsonDocument::fromJson(file.readAll()).object();
+        const auto cases = fixture["parseCases"].toArray();
+        QVERIFY(cases.size() >= 8);
+        for (const auto &value : cases) {
+            const auto item = value.toObject();
+            const auto parsed = parsePlanDocument(item["input"]);
+            QCOMPARE(parsed["title"].toString(), item["title"].toString());
+            if (!parsed.isEmpty()) { QCOMPARE(parsed["parallelizable"], item["parallelizable"]); }
+        }
+        const auto plan = parsePlanDocument(cases[0].toObject()["input"]);
+        QCOMPARE(plan["executed"], false);
+        QCOMPARE(plan["tasks"].toArray()[1].toObject()["dependsOn"].toArray(), QJsonArray{"inspect"});
+        auto expected = cases[0].toObject()["input"].toObject();
+        auto tasks = expected["tasks"].toArray();
+        for (int i = 0; i < tasks.size(); ++i) {
+            auto task = tasks[i].toObject();
+            task["dependsOn"] = task.take("depends_on");
+            tasks[i] = task;
+        }
+        expected["tasks"] = tasks;
+        QCOMPARE(plan, expected);
+        QCOMPARE(parsePlanDocument(cases[2].toObject()["input"])["executed"], QJsonValue(QJsonValue::Null));
+        const auto text = planDocumentText(plan);
+        QVERIFY(text.contains("2 tasks · 3 steps"));
+        QVERIFY(text.contains("after Inspect the cache layer"));
+        QVERIFY(text.contains("Nothing ran."));
+        MessageModel model;
+        model.upsert({{"id", "plan-message"}, {"role", "assistant"}, {"content", ""},
+            {"tool_calls", QJsonArray{QJsonObject{{"id", "plan-call"}, {"name", "create_plan"}}}}});
+        model.addPart({{"type", "tool_result_update"}, {"tool_call_id", "plan-call"}, {"result", cases[0].toObject()["input"]}});
+        QCOMPARE(partAt(partsFor(model), 0)["planText"].toString(), text);
+    }
+    void compactionProjection() {
+        MessageModel model;
+        const QJsonObject raw{{"id", "compact"}, {"role", "user"}, {"execution_event_type", "compaction"},
+            {"content", QJsonArray{QJsonObject{{"type", "text"}, {"text", " [Conversation so far]\nKeep "}},
+                QJsonObject{{"type", "image_url"}, {"unknown", 42}},
+                QJsonObject{{"type", "text"}, {"text", "asset://dddddddddddddddddddddddddddddddd"}}}}, {"unknown", 123}};
+        model.upsert(raw);
+        auto *parts = qobject_cast<PartModel *>(partsFor(model));
+        QCOMPARE(partAt(parts, 0)["text"].toString(), "Keep asset://dddddddddddddddddddddddddddddddd");
+        QVERIFY(model.data(model.index(0), MessageModel::DisplayTextRole).toString().isEmpty());
+        QVERIFY(!partAt(parts, 0)["expanded"].toBool());
+        QSignalSpy changes(parts, &QAbstractItemModel::dataChanged);
+        parts->toggleExpanded(0);
+        QCOMPARE(changes.size(), 1);
+        QVERIFY(partAt(parts, 0)["expanded"].toBool());
+        QCOMPARE(model.snapshot(), QJsonArray{raw});
+    }
+    void approvalSafety() {
+        QWebSocketServer server("approval-test", QWebSocketServer::NonSecureMode);
+        QVERIFY(server.listen(QHostAddress::LocalHost, 0));
+        QList<QJsonObject> responses;
+        connect(&server, &QWebSocketServer::newConnection, this, [&] {
+            auto *peer = server.nextPendingConnection();
+            peer->setParent(&server);
+            connect(peer, &QWebSocket::textMessageReceived, this, [&, peer](const QString &text) {
+                const auto frame = QJsonDocument::fromJson(text.toUtf8()).object();
+                if (frame["command"] == "set_mode") {
+                    peer->sendBinaryMessage(QByteArray::fromHex("81a76d657373616765b04d6f64652073657420746f2074657874"));
+                }
+                if (frame["type"].toString().endsWith("_response")) { responses.append(frame); }
+            });
+        });
+        ChatSession session;
+        session.connectToServer(QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort())));
+        QTRY_COMPARE(session.connectionStatus(), "connected");
+        session.selectThread("a");
+        const QString id = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        auto request = QJsonObject{{"type", "plan_approval_request"}, {"thread_id", "a"}, {"approval_id", id},
+            {"plan", QJsonObject{{"title", "Malformed plan"}}}, {"unknown", 42}};
+        session.applyEvent(request);
+        session.selectThread("a");
+        QTest::qWait(20);
+        QCOMPARE(responses.size(), 0);
+        session.respondToAction("invented", true);
+        QCOMPARE(responses.size(), 0);
+        session.applyEvent({{"type", "message"}, {"thread_id", "a"}, {"id", "later"}, {"role", "assistant"}, {"content", "Later message"}});
+        session.respondToAction(id, false, "  Fix the plan  ");
+        session.respondToAction(id, true);
+        QTRY_COMPARE(responses.size(), 1);
+        QCOMPARE(responses[0], (QJsonObject{{"type", "plan_approval_response"}, {"approval_id", id}, {"decision", "reject"}, {"feedback", "Fix the plan"}}));
+        session.applyEvent(request);
+        session.respondToAction(id, true);
+        QTest::qWait(20);
+        QCOMPARE(responses.size(), 1);
+        auto *model = qobject_cast<MessageModel *>(session.messages());
+        QVERIFY(!partAt(partsFor(*model), 0)["pending"].toBool());
+        request.remove("approval_id");
+        session.applyEvent(request);
+        auto last = partAt(partsFor(*model, model->rowCount() - 1), 1);
+        QVERIFY(last["status"].toString().contains("Cannot answer"));
+        for (const auto &kind : {"tool_approval_request", "secret_request"}) {
+            const QString actionId = QString(kind) + "-full-id";
+            session.applyEvent({{"type", kind}, {"thread_id", "a"}, {"approval_id", actionId}, {"args", 17}});
+            session.respondToAction(actionId, false);
+            session.respondToAction(actionId, false);
+        }
+        QTRY_COMPARE(responses.size(), 3);
+        QCOMPARE(responses[1]["decision"], "deny");
+        QCOMPARE(responses[2], (QJsonObject{{"type", "secret_request_response"}, {"approval_id", "secret_request-full-id"}, {"status", "declined"}}));
+        request["approval_id"] = "reconnect-pending";
+        session.applyEvent(request);
+        session.importHistory("a", {});
+        QVERIFY(partAt(partsFor(*model), 0)["pending"].toBool());
+        QCOMPARE(partAt(partsFor(*model), 0)["actionId"].toString(), "reconnect-pending");
+        session.suspendConnection();
+        QTRY_COMPARE(session.connectionStatus(), "disconnected");
+        session.respondToAction("reconnect-pending", true);
+        QCOMPARE(responses.size(), 3);
+        session.resumeConnection();
+        QTRY_COMPARE(session.connectionStatus(), "connected");
+        session.applyEvent({{"type", "chat_resumed"}, {"thread_id", "a"}, {"status", "running"}});
+        session.applyEvent(request);
+        session.respondToAction("reconnect-pending", true, "Do not send this feedback");
+        session.respondToAction("reconnect-pending", true);
+        QTRY_COMPARE(responses.size(), 4);
+        QCOMPARE(responses[3]["decision"], "approve");
+        QVERIFY(!responses[3].contains("feedback"));
+        session.applyEvent({{"type", "tool_approval_request"}, {"thread_id", "a"}, {"approval_id", "allow-one"},
+            {"args", QJsonObject{{"code", "return 1"}}}});
+        session.respondToAction("allow-one", true);
+        session.respondToAction("allow-one", false);
+        QTRY_COMPARE(responses.size(), 5);
+        QCOMPARE(responses[4]["decision"], "allow");
+        request["approval_id"] = "cancelled";
+        session.applyEvent(request);
+        session.stop();
+        session.respondToAction("cancelled", true);
+        QTest::qWait(20);
+        QCOMPARE(responses.size(), 5);
+    }
     void subAgentWebCases() {
         QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/sub-agents.json"));
         QVERIFY(file.open(QIODevice::ReadOnly));
@@ -624,7 +762,8 @@ private slots:
         QCOMPARE(parts->rowCount(), 2);
         QCOMPARE(inserted.count(), 1);
         QCOMPARE(partAt(parts, 0)["text"].toString(), "Review this action");
-        QCOMPARE(QJsonObject::fromVariantMap(partAt(parts, 1)), request);
+        QCOMPARE(QJsonObject::fromVariantMap(partAt(parts, 1)["args"].toMap()), request["args"].toObject());
+        QCOMPARE(model.snapshot()[0].toObject()["parts"].toArray()[0].toObject(), request);
         auto response = request;
         response["pending"] = false;
         model.addPart(response);
@@ -632,7 +771,7 @@ private slots:
         QCOMPARE(parts->rowCount(), 2);
         QVERIFY(changed.count() > 0);
         QCOMPARE(partAt(parts, 1)["pending"].toBool(), false);
-        QCOMPARE(QJsonObject::fromVariantMap(partAt(parts, 1)), response);
+        QCOMPARE(partAt(parts, 1)["actionId"].toString(), "approval-one");
         QCOMPARE(model.snapshot()[0].toObject()["parts"].toArray()[0].toObject(), response);
         QCOMPARE(resets.count(), 0);
         QCOMPARE(messageResets.count(), 0);

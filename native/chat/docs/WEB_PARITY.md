@@ -28,11 +28,11 @@ This is a source inventory, not a claim that every row has visual acceptance cov
 | Markdown fences / tables / math | Highlighted copyable code, GFM tables, KaTeX | Labelled copyable fences and header-preserving table pages | Syntax highlighting and math typesetting remain gaps |
 | Media output groups / prediction | Grouped media, progress and generation metadata | Individual fallback cards | Grouping and metadata missing |
 | Resource mentions | Typed chips, preview and navigation | Plain text | Native resource navigation integration missing |
-| tool_approval_request | Review arguments, allow/deny | Approve/decline with authoritative ID | Detailed matching layout missing |
-| plan_approval_request | Plan preview, feedback, approve/reject | Generic text and feedback actions | Structured plan preview missing |
-| create_plan / plan document | Structured plan document | Generic tool card | Plan renderer missing |
-| secret_request | Settings and decline | Decline | Provisioning stays in settings |
-| compaction | Collapsible summary card | User message | Dedicated summary card missing |
+| tool_approval_request | Review arguments, allow/deny | Folded code and arguments, description, allow/deny with authoritative ID | Separate web folds and chat-wide grants are not implemented |
+| plan_approval_request | Plan preview, feedback, approve/reject | Parsed preview, feedback, run/revise/reject | Native typography and single-line feedback differ |
+| create_plan / plan document | Structured plan document | C++ parser, task and step counts, dependencies, instructions and execution note | Native text document layout differs |
+| secret_request | Credential entry with separate settings write and decline | Settings and decline, without credential entry | Native intentionally does not save secrets from chat |
+| compaction | Collapsible summary card | Dedicated collapsed summary, header removed | Native expansion button differs |
 | Error / stopped / resumed | Turn status and errors | Status and replay reconciliation | Visual parity not measured |
 
 ## Event inventory
@@ -70,8 +70,8 @@ individual call details within groups. Output is paged JSON rather than the web'
 specialized search/media result renderers. Code has no syntax highlighting.
 
 Later checkpoints below supersede the thinking and Markdown baseline. Sub-agent
-reduction still needs dedicated state and fixtures. Agent trees, plan documents, compaction cards,
-resource navigation and media playback need native renderers. Full math needs a
+reduction still needs dedicated state and fixtures. Later checkpoints cover agent trees, plan documents and compaction cards.
+Resource navigation and media playback remain separate work. Full math needs a
 native typesetting capability. Approval actions remain explicit and retain the
 existing decline path. Malformed requests without an authoritative approval ID
 still cannot be answered safely.
@@ -143,7 +143,7 @@ The requested sequence remains open:
 | 4. Execution | No change | Execution ID/step tree and nested transcripts |
 | 5. Markdown | Labelled fences, tables, Harmony cleanup and mixed ordering | Syntax highlighting and math typesetting. Math remains readable source |
 | 6. Media/resources | No change | Grouping, progress, prediction metadata, playback/link metadata and typed resource navigation |
-| 7. Plans | No change | Structured documents, approval preview and compaction card |
+| 7. Plans | Structured documents, approval previews, explicit decisions and compaction cards | Visual differences documented in the plans checkpoint |
 | 8. Timeline host | No change | Narrow embedded rendering and screenshot |
 
 `ntbuild fix-win-4 nodetool-chat chat-model-tests chat-quick-tests` passed.
@@ -367,3 +367,60 @@ This checkpoint completes only the link colour correction. Structured plans,
 approval review and reconnect acceptance tests, compaction cards, grouped
 media and typed resources, embedded timeline screenshots and overflow tests,
 and a final row-by-row parity classification remain open. Parity is not closed.
+
+
+## Plans, approvals and compaction
+
+The C++ plan parser follows `parsePlanDocument`: object and JSON-string inputs,
+snake-case and camel-case dependencies, trimmed titles, default task and step
+IDs, invalid-entry filtering, nullable execution state and independent-task
+counts. `plans-approvals.json` ports the web parser cases. Plan documents show
+the title, task and step counts, numbered tasks, dependency titles, instructions,
+parallel-task count and the dry-run note. The same projection serves
+`create_plan` results, plan content and approval previews.
+
+Plan actions match run, revise with trimmed feedback, and reject without
+feedback. Tool requests show the description or status message, folded code and
+arguments, and explicit allow/deny actions. Malformed previews retain a decline
+path. Missing approval IDs produce a visible cannot-answer notice. Secret
+requests show the key, reason, description, an HTTPS-only help link, settings
+and decline. Native deliberately has no credential input or saved response.
+
+C++ owns reduction, expansion and feedback drafts. Updates notify affected rows.
+Raw payloads and complete resource IDs remain retained. Responses use only the
+server approval ID. Pending requests survive reconnect and history reload,
+as web's separate pending-approval store does. Stop cancels pending requests.
+Answered or cancelled IDs remain inactive during replay until account state is
+cleared. This is stricter than web's current pending-store insertion, which can
+reinsert an answered request if the server delivers it again. No action is
+automatically accepted or automatically resent.
+
+Compaction records retain their original user-role payload for history, but
+render as a dedicated closed card. Expansion reveals text blocks without the
+`[Conversation so far]` prefix. Empty summaries have an explicit fallback.
+Expansion does not modify saved history.
+
+Native uses paged selectable text and labelled expansion buttons. It does not
+match web's exact typography, separate code/argument folds, multiline feedback,
+or Allow for this chat action. The requested per-call allow/deny behavior is
+implemented. No running-web pixel comparison or timeline-host check was made.
+
+Verification uses the requested `ntbuild` targets and `citest` selection.
+CTest reports three passing tests including prerequisite setup. Qt reports
+35 model and 36 QML passes including initialization and cleanup, without skips.
+Existing 2,000-message coverage passes. Safety coverage exercises no automatic
+response, unknown and missing IDs, malformed previews and arguments, approve,
+reject, trimmed feedback, deny, secret decline without a value, duplicate
+responses, answered replay, reconnect, history replacement and stop cancellation.
+QML checks cover decision IDs, feedback, settings/decline and keyboard expansion.
+Both native design and dependency checks pass.
+
+Offscreen screenshots and logs are under
+`/home/mg/Projects/nodetool-film/tmp/chat-parity/`:
+`plan-approval.png`, `tool-approval.png`, `secret-request.png`,
+`compaction-collapsed.png`, `compaction-expanded.png`, `plans-build.log` and
+`plans-tests.log`.
+
+TypeScript tests, TypeScript fixture conformance, typecheck, lint, harness gate
+and `/verify` were not run, as requested. Platform accessibility and installed
+application checks were not run.

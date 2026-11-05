@@ -53,6 +53,87 @@ TestCase {
         }
         return null
     }
+    QtObject {
+        id: actionSession
+        property string connectionStatus: "connected"
+        property var responses: []
+        function markdownPages(text) { return testSession.markdownPages(text) }
+        function styleMarkdownLinks(document, colour) { testSession.styleMarkdownLinks(document, colour) }
+        function respondToAction(id, allow, feedback) { responses = responses.concat([{id: id, allow: allow, feedback: feedback}]) }
+        function openProviderSettings() { responses = responses.concat([{settings: true}]) }
+    }
+    Component { id: actionCard; MessageDelegate {} }
+    function test_approvalButtonsUseServerId() {
+        testDriver.replay("plans-approvals", 1)
+        actionSession.responses = []
+        const card = createTemporaryObject(actionCard, test, {
+            width: 700, messageId: "test", role: "assistant", text: "", status: "",
+            parts: testDriver.currentParts(), session: actionSession
+        })
+        verify(card !== null)
+        mouseClick(findText(card, "Run this plan"))
+        compare(actionSession.responses[0].id, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+        compare(actionSession.responses[0].allow, true)
+        verify(actionSession.responses[0].feedback === undefined)
+        const field = findChild(card, "planFeedback")
+        verify(field !== null)
+        field.forceActiveFocus()
+        typeLetters("revise")
+        tryVerify(() => findText(card, "Revise").enabled)
+        mouseClick(findText(card, "Revise"))
+        compare(actionSession.responses[1].allow, false)
+        compare(actionSession.responses[1].feedback, "revise")
+        mouseClick(findText(card, "Don’t run"))
+        verify(actionSession.responses[2].feedback === undefined)
+    }
+    function test_secretSettingsAndDecline() {
+        testDriver.replay("plans-approvals", 1, 2)
+        actionSession.responses = []
+        const card = createTemporaryObject(actionCard, test, {
+            width: 700, messageId: "test", role: "assistant", text: "", status: "",
+            parts: testDriver.currentParts(), session: actionSession
+        })
+        verify(card !== null)
+        verify(findText(card, "Allow") === null)
+        verify(findText(card, "Run this plan") === null)
+        mouseClick(findText(card, "Open settings"))
+        verify(actionSession.responses[0].settings)
+        mouseClick(findText(card, "Decline"))
+        compare(actionSession.responses[1].id, "cccccccccccccccccccccccccccccccc")
+        compare(actionSession.responses[1].allow, false)
+        verify(actionSession.responses[1].feedback === undefined)
+        const directory = testDriver.screenshotDirectory()
+        if (directory) grabImage(card).save(directory + "/secret-request.png")
+    }
+    function test_planPreviewAndApprovalDetails() {
+        testDriver.replay("plans-approvals", 1)
+        tryVerify(() => findText(panel, "Run this plan") !== null)
+        verify(findText(panel, "Revise") !== null)
+        verify(!findText(panel, "Revise").enabled)
+        const directory = testDriver.screenshotDirectory()
+        if (directory) grabImage(panel).save(directory + "/plan-approval.png")
+        testSession.disconnectFromServer()
+        wait(30)
+        testDriver.resetSession()
+        testDriver.replay("plans-approvals", 1, 1)
+        tryVerify(() => findText(panel, "Show details") !== null)
+        verify(findText(panel, "Arguments") === null)
+        mouseClick(findText(panel, "Show details"))
+        tryVerify(() => findText(panel, "Arguments") !== null)
+        if (directory) grabImage(panel).save(directory + "/tool-approval.png")
+    }
+    function test_compactionCard() {
+        testDriver.replay("compaction")
+        tryVerify(() => findText(panel, "Earlier conversation summarized") !== null)
+        verify(findText(panel, "Hide details") === null)
+        const directory = testDriver.screenshotDirectory()
+        if (directory) grabImage(panel).save(directory + "/compaction-collapsed.png")
+        const button = findText(panel, "Show details")
+        button.forceActiveFocus()
+        keyClick(Qt.Key_Space)
+        tryVerify(() => findText(panel, "Hide details") !== null)
+        if (directory) grabImage(panel).save(directory + "/compaction-expanded.png")
+    }
     function test_subAgentTranscript() {
         testDriver.replay("sub-agents")
         tryVerify(() => findText(panel, "Audit the config loader") !== null)
@@ -96,8 +177,15 @@ TestCase {
         test.width = 1100
         testSession.selectThread("a")
         testSession.draft = ""
-        testDriver.clearHistory("a")
-        testDriver.clearHistory("b")
+        const conversation = findChild(panel, "chatConversation")
+        conversation.scrollPositions = ({})
+        conversation.previousThread = ""
+        conversation.followBottom = true
+        conversation.anchorIndex = 0
+        conversation.anchorOffset = 0
+        testSession.disconnectFromServer()
+        wait(30)
+        testDriver.resetSession()
         wait(30)
     }
     function test_linkColours() {
@@ -203,6 +291,7 @@ TestCase {
         if (directory) grabImage(panel).save(directory + "/thinking.png")
     }
     function test_thoughtExpansionSurvivesScrolling() {
+        findChild(panel, "chatConversation").followBottom = false
         testDriver.thoughtHistory(2000)
         const list = findChild(panel, "chatMessages")
         tryCompare(list, "count", 2000)
@@ -279,6 +368,7 @@ TestCase {
         verify(findText(panel, "Read notes.txt") !== null)
     }
     function test_toolExpansionSurvivesRecycling() {
+        findChild(panel, "chatConversation").followBottom = false
         testDriver.toolHistory(2000)
         const list = findChild(panel, "chatMessages")
         tryCompare(list, "count", 2000)
@@ -417,9 +507,9 @@ TestCase {
     }
     function test_structuredPartsRenderThroughCppModel() {
         testDriver.approval("a")
-        tryVerify(function() { return findText(panel, "test_write") !== null }, 5000)
-        tryVerify(function() { return findText(panel, "Approve") !== null }, 5000)
-        tryVerify(function() { return findText(panel, "Decline") !== null }, 5000)
+        tryVerify(function() { return findText(panel, "Allow this action?") !== null }, 5000)
+        tryVerify(function() { return findText(panel, "Allow") !== null }, 5000)
+        tryVerify(function() { return findText(panel, "Deny") !== null }, 5000)
     }
     function test_scrollAnchorSurvivesThreadSwitch() {
         testDriver.history("a", 100)
