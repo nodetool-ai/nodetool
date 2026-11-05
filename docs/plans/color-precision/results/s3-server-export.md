@@ -25,7 +25,9 @@ second working-frame resolve.
 
 BT.709 tags and transfer behavior were not changed. This test does not resolve
 Q22 or certify those tags against sRGB transfer. The six `it.fails` cases in
-`render.colorBoundary.gpu.test.ts` remain untouched.
+`render.colorBoundary.gpu.test.ts` were untouched by this work. The later
+[A101 owner decision](../high-precision-media-processing.md#s6-linear-light-sdr-after-fp16-delivery)
+chooses pass-through with the inaccurate tag (O1).
 
 ## Test and measurements
 

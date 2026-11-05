@@ -152,8 +152,10 @@ ProRes uses the already offered codec, not a new high-bit-depth option.
 MP4 also reports `language=und`, `handler_name=VideoHandler`. MOV reports
 `handler_name=VideoHandler`, `vendor_id=FFMP`. WebM reports duration 0.4 s and
 its alpha case reports `alpha_mode=1`. PNG has no extra stream tags.
-The BT.709 tags are reported as found. This does not settle the known transfer
-question or change the six `it.fails` cases in the timeline boundary suite.
+The BT.709 tags are reported as found. This measurement did not settle the
+transfer question. The later [A101 owner decision](../high-precision-media-processing.md#s6-linear-light-sdr-after-fp16-delivery)
+keeps pass-through with those tags (O1). Q27 replaces the three transfer expected
+failures with O1 assertions and qualifies VP9 alpha with libvpx.
 
 ## Mesa llvmpipe, Mesa 26.2.5-arch1.1 / LLVM 23.1.3
 

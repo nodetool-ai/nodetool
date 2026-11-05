@@ -350,8 +350,8 @@ uniforms are numeric parameters, not additional texture slots.
 
 `frameCompositor.ts` uploads straight bytes, composites in the encoded domain
 and resolves alpha on readback. Browser upload/presentation and server/native
-export observations remain as recorded above. Decoder profile qualification
-and the BT.709 export-tag question remain A101/S6 work.
+export observations remain as recorded above. Decoder profile qualification remains open. The [A101 owner decision](../high-precision-media-processing.md#s6-linear-light-sdr-after-fp16-delivery)
+keeps pass-through delivery and accepts today's inaccurate BT.709 transfer tag (O1).
 
 ## Readers and behaviour
 
