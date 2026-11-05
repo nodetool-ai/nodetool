@@ -138,3 +138,9 @@ Qt runtime, and offscreen software renderer exactly match a reviewed manifest.
 The current macOS 15 runner does not match the macOS 27 reference, so its
 uploaded frames are bounds evidence, not a golden comparison. Linux and
 Windows also need reviewed references before CI can compare their pixels.
+
+`Ui.StatusDot.active` selects primary or neutral status ink. `Ui.CloseButton`
+is an icon-only close action with the standard button accessibility and tooltip
+properties. `Ui.Progress.indeterminate` runs only while visible and motion is
+allowed. Reduced motion keeps a static segment. `Ui.Surface.elevated` adds a
+transient overlay shadow.

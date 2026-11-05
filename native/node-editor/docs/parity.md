@@ -397,7 +397,7 @@ Run `ctest --test-dir <build> -R 'node_editor_compatible_picker(_host)?$'
 EditorWindow popup captures in both themes using a deterministic catalog and
 workflow fixture. These tests do not establish complete web menu or visual parity.
 
-Remaining connection flows include inferred Code ports, dedicated canvas add-variable drop targets, full Agent-control
+Remaining connection flows include dedicated canvas add-variable drop targets, full Agent-control
 presentation, and the input/output menus' value, code, preview and other
 convenience actions. [NodeCreation](../src/graph/NodeCreation.h) centralizes
 metadata defaults and overrides, unique input names, rich-preview and specialized
@@ -459,7 +459,7 @@ Run `ctest --test-dir <build> -R 'node_editor_body_(connection|drop_host)$'
 
 Body matching enumerates metadata and declared instance ports, including hidden
 conditional properties that become exposed when connected, as the web helper does.
-It does not infer undeclared Code ports from source text. There is no dedicated
+Code ports inferred from source participate in matching. There is no dedicated
 canvas add-variable button to force a fresh dynamic input when compatible inputs
 already exist. These limits and complete Agent-control presentation remain
 separate from the tested body-drop flows.
@@ -1005,3 +1005,286 @@ The native control has a status label instead of the web live visualizer and
 queue-position display. Devices that cannot play the source format show an
 unsupported-format state rather than resampling. Replay is limited to retained
 audio in the selected run, and simultaneous node streams share that run's player.
+
+
+### F37 workflow versions, sharing and metadata
+
+**Version history**, **Share workflow** and **Workflow metadata** are available
+from More and the command menu. [WorkflowVersions](../src/server/WorkflowVersions.cpp)
+uses the authenticated workflow tRPC endpoints. Local files without an explicit
+server binding show an unavailable state. Credential changes and document
+replacement invalidate pending requests and close the panels.
+
+[VersionHistoryPanel](../qml/VersionHistoryPanel.qml) opens in the bottom dock,
+where the web hosts history. Opening history hides the output dock so history
+can use the bottom area's width. Rows show a graph thumbnail, version number,
+save type, timestamp, serialized graph size and description. Selected rows expose
+restore and delete actions. Comparison targets have a separate selected state.
+Deletion asks for confirmation and uses the authenticated version endpoint.
+
+[VersionGraphPreview](../qml/VersionGraphPreview.qml) draws the inspected
+snapshot without loading it into the editable document. Inspection and comparison
+preserve the snapshot, undo index and dirty state. The controller compares the
+selected version against another saved version or the current document.
+Its cached, hash-indexed diff reports added and removed nodes and connections,
+changed node properties with before/after values, and changed connection fields.
+Selection and stacking order do not count as node edits. The unit test exercises
+large graphs as well as dynamic properties and connection handles.
+
+Version inspection shows a read-only graph without changing the document.
+Restoring requires explicit confirmation when work is dirty. It pauses autosave,
+blocks overlapping saves, calls the server restore endpoint, replaces the graph
+through an undo command and adopts the returned revision. Undo retains current
+server identity and metadata. Edits made during the request stay local and cause
+a server comparison instead of being overwritten. Saves or unresolved conflicts
+block restore. The session refreshes the server after completion before further
+autosave writes.
+
+Sharing lists owner-visible links and collaborators. The panel creates viewer,
+editor and public links, exposes copyable URLs, revokes links, changes roles and
+removes collaborators. Permission failures remain visible. The server enforces
+editor access for history and owner access for sharing in
+[the workflow router](../../../packages/websocket/src/trpc/routers/workflows.ts).
+
+Metadata edits merge into the current snapshot and use the existing full save,
+preserving graph edits and untouched metadata. Save responses retain locally
+held extension fields omitted by the server. Arbitrary root extension metadata
+cannot persist on the server: `workflowBody` and `updateInput` in
+[the workflow schemas](../../../packages/protocol/src/api-schemas/workflows.ts)
+strip unknown root fields. The `settings` object accepts unknown members.
+There is no endpoint for persisting arbitrary workflow root fields.
+
+[WorkflowVersionsTests](../tests/server/WorkflowVersionsTests.cpp) covers list,
+empty, invalid response, permission denial, local unavailability, delayed
+responses crossing document detachment and account changes, read-only inspection and graph undo.
+[WorkflowVersionsHostTest](../tests/ui/WorkflowVersionsHostTest.cpp) uses real
+pointer events through EditorWindow for version selection, saved-version comparison,
+dirty protection, restore, toolbar undo, canceled and confirmed deletion, sharing failure and link creation, and metadata rename persistence.
+`NODETOOL_VERSIONS_CAPTURE_DIR` enables dark and light captures without
+assuming an output directory. History captures include the actual EditorWindow,
+with the canvas, history list, preview, comparison and dirty-work warning.
+The history images were opened at full size for visual inspection. Sharing
+and metadata retain their separate dialog captures.
+
+Native metadata fields commit on editing completion rather than the web's
+text debounce. Workspace selection uses an ID field instead of a workspace
+picker, and tags use a comma-separated field instead of suggestions. Version
+checkpoint creation remains outside these native panels. The native preview uses
+simple labeled node rectangles and straight connections without the web's full
+node renderers, property widgets, group styling, pan or zoom. Rows show full
+timestamps rather than relative times and expose actions on selection rather than
+hover. Diff properties remain expanded rather than using web accordions.
+Comparison follows the explicitly labeled target-to-selection direction rather
+than sorting the versions chronologically. Sharing uses copyable text rather
+than a dedicated copy action and does not verify link redemption. Live server
+verification and browser redemption of share links remain unverified.
+
+Run the focused targets with the configured native build directory:
+
+```sh
+cmake --build "$NODE_EDITOR_BUILD_DIR" --target node_editor_versions_tests node_editor_versions_host_tests --parallel 3
+QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software "$NODE_EDITOR_BUILD_DIR/node_editor_versions_tests"
+QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software "$NODE_EDITOR_BUILD_DIR/node_editor_versions_host_tests"
+```
+
+
+## Code property editing and inferred ports
+
+[CodePropertyEditor](../qml/CodePropertyEditor.qml) serves the inspector and
+canvas property popover. It uses shared monospace typography and theme tokens,
+visible line numbers, and a block-based QSyntaxHighlighter. Tab inserts spaces.
+Focus loss commits the draft. Escape restores its stored value. Non-Code
+executors expose an expanded editor. Canvas shortcuts do not act while typing.
+Monaco completion and semantic diagnostics remain web-only.
+
+[CodeInference](../src/properties/CodeInference.cpp) runs the bundled Acorn
+parser without executing source. Its rules follow the web
+[code inference helper](../../../web/src/utils/codeOutputInference.ts): named
+input and stream reads accumulate inputs, explicit emissions take precedence
+over object returns, and the last object return determines output names.
+Bindings that shadow the input sources suppress inference from that source.
+Comments, strings, dynamic reads, and malformed source do not invent handles.
+Malformed source preserves existing ports. Connected outputs retain their types
+and edges when the source stops naming them. Property source and inferred port
+changes share the document command and undo transaction. Imported source also
+exposes inferred ports before an edit.
+
+[CodePropertyTest](../tests/ui/CodePropertyTest.cpp) exercises inference from
+web cases, real EditorWindow typing and pointer connection, retained edges,
+undo, Escape, file round trip, and typing into a large source draft. Run
+`ctest --test-dir <build> -R '^node_editor_code_property$' --output-on-failure`.
+Set `NODETOOL_CODE_CAPTURE_DIR` to capture dark and light EditorWindow images.
+
+
+## F35 workflow document tabs
+
+[EditorTabs](../src/ui/EditorTabs.cpp) retains an
+[EditorWindow](../src/ui/EditorWindow.cpp) for each workflow document inside a
+stacked host. Each retained editor owns its document, undo stack, graph model,
+scene, viewport, selection, session, autosave, media controllers and run output.
+Switching changes visibility and cancels unfinished editing gestures without
+projecting another graph or changing document history. Background sessions
+continue receiving their own run events. Closing destroys the originating
+controllers and invalidates their context-bound completions.
+
+[The tab strip](../qml/TabBar.qml) opens blank documents, switches documents,
+shows unsaved markers and closes documents. Dirty close offers Save, Discard and
+Cancel. A canceled chooser or failed save leaves the tab open. Server saves must
+acknowledge the current draft before a requested tab close can finish. Opening
+an already-open server workflow selects its tab, including during its initial
+fetch. The Open file action also selects already-open local paths.
+
+Accepted window closure stores open local paths, server workflow identities and
+the active tab in QSettings. Startup restores those references. Tokens and
+unsaved snapshots are not stored. Unnamed local tabs restart blank. Server
+restoration uses the configured environment token. Selection, viewport and undo
+history persist during tab switches, rather than across process restarts.
+
+[WorkflowTabsTest](../tests/ui/WorkflowTabsTest.cpp) drives actual tab buttons,
+canvas drags and close-dialog buttons through EditorWindow. It checks separate
+undo histories, cancel and local-save closure, background run output over
+MsgPack WebSocket, destroyed-session completion isolation, a delayed upload
+crossing tab closure, open-document restoration and duplicate server opens.
+The large-graph case checks graph and item identity, selection, viewport,
+document changes and model-reset signals while switching. Set
+`NODETOOL_TABS_CAPTURE_DIR` to capture dark and light editor images. Run:
+
+```sh
+QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software ctest --test-dir <build> --output-on-failure -R '^node_editor_(workflow_tabs|ui|canvas_authoring|autosave_host|server_sync_host|menus)$'
+```
+
+The web stores tab references as workspace state and offers discard confirmation
+when closing dirty documents. Native adds the explicit Save choice and creates
+a blank workflow after the last tab closes. Native does not implement tab
+reordering, project-grouped tab sessions, tab context menus or running badges.
+Child canvases and linked workflow navigation are described below.
+
+
+## First-use and dependency setup
+
+The guide waits for `workflows.list({ limit: 1 })` and appears only when the
+saved list is empty. Disconnected editors and unresolved lists hide it. Account
+changes invalidate pending responses. The guide offers the String Input → Output
+starter, choosing nodes, and server workflow templates. Starter creation is an explicit, atomic document edit. Starting or choosing nodes
+keeps the guide visible with the five readiness items. Closing dismisses it for
+the current document. Readiness follows
+`web/src/components/node/reactFlowGraphModel.ts:firstWorkflowReadiness`: exact
+starter node types, a directed edge between them, both nodes with a clean document,
+and any completed run.
+The catalog also opens the runtimes and packs dialog for existing workflows.
+Missing metadata remains visible on its card. Missing runtime warnings use the
+server's runtime status response. Catalog refresh changes presentation metadata,
+without rewriting stored nodes, edges, properties, positions or undo history.
+
+`tests/ui/SetupHostTest.cpp`, registered as `node_editor_setup_host`, sends real
+pointer events through EditorWindow and its nested tab hosts. Its local fake
+server exercises starter and template actions, unknown metadata, runtime warnings,
+pack progress, failure, retry, cancellation, account replacement and tab closure.
+It checks unchanged graph JSON and undo history after metadata disappears and
+returns. Capture output is enabled only by `NODETOOL_SETUP_CAPTURE_DIR`.
+The dark and light empty-canvas captures were opened at original resolution and
+inspected for readable text, visible actions and unclipped layout.
+
+Pack enabling calls `packs.setBuiltinEnabled` and reloads the node catalog on
+success. It requires an explicit click. Cancel invalidates the local response
+rather than claiming to stop work already accepted by the server. Account changes
+clear the dependency scope. Closed tabs destroy the request owner.
+
+Runtime installation remains unavailable in this native host. The server router
+at `packages/websocket/src/trpc/routers/packs.ts` exposes `runtimeStatuses`,
+`setBuiltinEnabled` and `reload`, but no runtime install or cancellation procedure.
+The web installer calls Electron's `window.api.packages.installRuntime`, handled
+in `electron/src/ipc.ts`. The native dialog explains installation on the server
+machine rather than issuing an invented install request.
+
+Pack enabling is explicit rather than
+the web hook's automatic enabling for configured keys or loaded builtin nodes.
+Template browsing uses `workflows.examples` inside the native dialog. Its list
+contains empty graph placeholders. Selection calls `workflows.create` with the
+example seed reference and package, then opens the created server workflow.
+External pack download/installation is not provided by the referenced server
+router. The tested pack operation enables a builtin already shipped on the server.
+
+
+### F24 run queue
+
+`WorkflowSession` exposes its own submitted jobs to `QueueOverlay.qml`. Jobs
+remain scoped to the tab that submitted them. Switching credentials clears the
+queue, and closing the tab destroys its session and pending callbacks. Unknown
+job events cannot create queue entries. Run remains available during execution
+and submits a distinct job. Stop and Remove use the existing `cancel_job`
+WebSocket command and wait for the server's terminal event. Disconnected buttons
+cannot submit or cancel. An uncertain run must be reconciled before resubmission.
+
+The queue starts collapsed with a status dot, one run name or a running count,
+an elapsed clock, an expand control and queued count. Expanded content groups
+Running, Enqueued and Cancelled cards. Completed and failed jobs stay in output
+history rather than the overlay. Cancelled jobs alone do not keep it visible.
+Running cards select the output lens only for the current workflow, using pointer,
+Enter or Space activation. The selected card shows On canvas. Pinned canvas
+focus remains different from the web store.
+
+The overlay is 304 logical pixels wide at the canvas leading margin, beyond the
+native rail and catalog. Its height stops above the floating toolbar. Narrow
+canvases constrain its width to keep controls inside the viewport. Enter and exit
+use the primitive normal motion duration with retained exit content. Reduced
+motion removes transitions and progress animation. Elapsed clocks use server
+`started_at` when available, otherwise the locally observed running time. The
+one-second timer stops when no live job runs.
+
+`QueueUiTest.cpp` uses pointer and keyboard events against QML and deterministic
+MsgPack events through EditorWindow. `NODETOOL_QUEUE_CAPTURE_DIR` enables dark
+and light captures at wide and narrow sizes, in both expansion states. F24 remains
+partial pending visual acceptance and pinned canvas focus parity.
+
+More includes Instant Update. Native property commits run the changed node and
+its downstream targets through the partial-run planner when connected and idle.
+The web also debounces preview changes in
+`web/src/hooks/nodes/useInputNodeAutoRun.ts`. Native drafts stay local until
+commit in `EditorWindow::commitProperty`. Job discovery and cancellation
+transport are tracked separately from overlay presentation.
+
+
+## F09 child graphs and derived ports
+
+[ChildPorts](../src/document/ChildPorts.cpp) reads inline subgraphs and stored
+workflow/app snapshots. It uses the web input/output type mappings, metadata
+input types, named custom inputs, nested ReactFlow properties, title fallbacks,
+app constants, variable defaults and streamed output correlation. Projection
+keeps unknown incident handles without rewriting imported JSON.
+
+[EditorTabs](../src/ui/EditorTabs.cpp) opens child canvases from the selection
+bar, double-click, More or the command menu. Tab labels show the parent and
+child. Each child has its own document and undo stack. Inline edits write back
+to the owning node. Returning after parent undo reloads the stored child graph
+and resets stale child history. Closing a parent closes its inline descendants.
+Inline Save uses the parent document. Unknown child graph fields and nested
+snapshots survive copy and local save/reopen.
+
+A child graph update and its derived ports form a parent undo entry. Subgraph
+and Workflow edges on removed dynamic ports are removed in that entry, following
+SubgraphSync and replaceDynamicSlots. Undo restores those edges. Edges on
+unchanged names retain their complete JSON. AppLoader uses updateNodeData in
+the web, so app edges remain and the projection exposes fallback incident ports.
+Missing workflow snapshots show a status error. Server load errors leave the
+parent unchanged. Credential epochs and destroyed sessions reject stale child
+responses. Linked workflows is available from More and the command menu.
+
+[SubgraphTest](../tests/ui/SubgraphTest.cpp), registered as
+`node_editor_subgraph`, drives actual EditorWindow pointer controls and text
+entry with a deterministic HTTP/WebSocket fixture. It covers child editing and
+return, retained edges, independent undo scope, parent reconciliation, nested
+copy, unknown-field round trips, app binding/stream derivation, missing children
+and delayed responses after tab closure or account replacement. Set
+`NODETOOL_SUBGRAPH_CAPTURE_DIR` for dark and light host captures. Run with:
+
+```sh
+QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software ctest --test-dir <build> --output-on-failure -R '^node_editor_(subgraph|workflow_tabs|ui|menus)$'
+```
+
+Native child canvases use the document strip with parent labels rather than the
+web's recursive strip within a workspace tab. Child writes are committed with
+each document command rather than a debounce. App and workflow choice currently
+uses the existing node properties and saved snapshots rather than the web's
+specialized selection controls. The linked-workflows menu lists workflow/app
+nodes in the current graph rather than a mini app document's operation bindings.

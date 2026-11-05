@@ -3,7 +3,9 @@ project(NodeEditorLayoutTests LANGUAGES CXX)
 enable_testing()
 set(CMAKE_AUTOMOC ON)
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Test)
+include(${CMAKE_CURRENT_LIST_DIR}/../../cmake/CodeInference.cmake)
 add_executable(node_editor_layout_tests AutoLayoutTest.cpp ../../src/layout/AutoLayout.cpp ../../src/layout/AutoLayout.h ../../src/document/WorkflowDocument.cpp ../../src/document/WorkflowDocument.h)
+node_editor_use_code_inference(node_editor_layout_tests)
 target_compile_features(node_editor_layout_tests PRIVATE cxx_std_20)
 target_include_directories(node_editor_layout_tests PRIVATE ../../src)
 target_link_libraries(node_editor_layout_tests PRIVATE Qt6::Core Qt6::Gui Qt6::Test)
@@ -12,6 +14,7 @@ set_tests_properties(node_editor_layout PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=
 add_executable(node_editor_selection_layout_tests SelectionLayoutTest.cpp
     ../../src/layout/SelectionLayout.cpp ../../src/layout/SelectionLayout.h
     ../../src/document/WorkflowDocument.cpp ../../src/document/WorkflowDocument.h)
+node_editor_use_code_inference(node_editor_selection_layout_tests)
 target_compile_features(node_editor_selection_layout_tests PRIVATE cxx_std_20)
 target_include_directories(node_editor_selection_layout_tests PRIVATE ../../src)
 target_link_libraries(node_editor_selection_layout_tests PRIVATE Qt6::Core Qt6::Gui Qt6::Test)

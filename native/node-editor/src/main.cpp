@@ -19,6 +19,7 @@ int main(int argc, char **argv) {
   }
   parser.process(app);
   nodetool::EditorWindow window;
+  if (!parser.isSet("open") && !parser.isSet("workflow")) window.restoreTabs();
   if (parser.isSet("open") && !window.openFile(parser.value("open"))) {
     return 2;
   }

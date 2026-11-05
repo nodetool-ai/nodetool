@@ -78,7 +78,8 @@ ColumnLayout {
         Layout.fillWidth: true
         // The web inspector shows a connected input as its dimmed label alone.
         visible: !root.descriptor.connected || root.descriptor.appendStatic === true
-        sourceComponent: root.descriptor.kind === "text" ? (root.multiline ? multilineField : textField)
+        sourceComponent: root.descriptor.name === "code" && ["text", "multiline"].includes(root.descriptor.kind) ? codeField
+            : root.descriptor.kind === "text" ? (root.multiline ? multilineField : textField)
             : root.descriptor.kind === "multiline" ? multilineField
             : ["number", "integer"].includes(root.descriptor.kind) ? numberField
             : root.descriptor.kind === "boolean" ? booleanField
@@ -91,6 +92,16 @@ ColumnLayout {
             : ["workflow", "workflow_list"].includes(root.descriptor.kind) ? workflowField
             : root.descriptor.kind === "collection" ? collectionField
             : ["list", "dict", "json", "record_type"].includes(root.descriptor.kind) ? structuredField : preservedField
+    }
+    Component {
+        id: codeField
+        CodePropertyEditor {
+            value: typeof root.effectiveValue === "string" ? root.effectiveValue : ""
+            writable: root.writable
+            nodeType: root.descriptor.nodeType || ""
+            onEditStarted: root.begin()
+            onValueCommitted: value => root.commit(value)
+        }
     }
     Component {
         id: textField

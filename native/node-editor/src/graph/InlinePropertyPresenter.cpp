@@ -154,6 +154,7 @@ void InlinePropertyPresenter::reposition() {
   if (!widget_ || !current()) { if (active()) { cancel(); } return; }
   auto local = model_.inlineFieldRect(node_, name_);
   const auto kind = descriptor_["kind"].toString();
+  if (name_ == "code") { local.setHeight(std::max(280.0, local.height())); }
   if (kind == "text" || kind == "multiline") {
     if (expanded_) { local.setHeight(std::max(180.0, local.height())); }
     // A narrow action strip expands multiline editing without discarding draft.

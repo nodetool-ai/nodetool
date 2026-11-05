@@ -1,3 +1,4 @@
+#include "properties/CodeInference.h"
 #include "BodyConnectionRules.h"
 #include "WorkflowGraphModel.h"
 #include "document/ConnectionTypes.h"
@@ -14,7 +15,8 @@ QJsonObject findType(const QVector<BodyPort> &ports,const QString &name) {
   return {};
 }
 }
-QVector<BodyPort> bodyPorts(const QJsonObject &node,const QJsonObject &metadata,bool output) {
+QVector<BodyPort> bodyPorts(const QJsonObject &rawNode,const QJsonObject &metadata,bool output) {
+  const auto node = node_editor::withVisibleCodePorts(rawNode);
   QVector<BodyPort> ports;
   QSet<QString> names;
   const auto append=[&](const QString &name,const QJsonObject &type) {
@@ -31,7 +33,7 @@ QVector<BodyPort> bodyPorts(const QJsonObject &node,const QJsonObject &metadata,
   if (!output) {
     const auto values=node["dynamic_properties"].toObject(),outputs=node["dynamic_outputs"].toObject();
     for (auto it=values.begin();it!=values.end();++it) {
-      if (!outputs.contains(it.key()) || declarations.contains(it.key())) { append(it.key(),QJsonObject{{"type","any"}}); }
+      if (node["type"] == "nodetool.code.Code" || !outputs.contains(it.key()) || declarations.contains(it.key())) { append(it.key(),QJsonObject{{"type","any"}}); }
     }
   }
   return ports;

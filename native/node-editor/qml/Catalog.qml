@@ -15,13 +15,18 @@ Rectangle {
     property var hovered: null
     readonly property var nodes: editor ? editor.catalog : []
     readonly property var categories: {
+        const optionalCategories = editor.packSetup.categories
         const counts = {}
-        for (const node of nodes) counts[node.category] = (counts[node.category] || 0) + 1
+        for (const node of nodes) {
+            if (editor.packSetup.namespaceVisible(node.namespace)) counts[node.category] = (counts[node.category] || 0) + 1
+        }
         return Object.keys(counts).sort().map(name => ({name: name, count: counts[name]}))
     }
     readonly property var visibleNodes: {
+        const optionalCategories = editor.packSetup.categories
         const needle = query.trim().toLowerCase()
-        return nodes.filter(node => (category === "" || node.category === category)
+        return nodes.filter(node => (needle !== "" || editor.packSetup.namespaceVisible(node.namespace))
+            && (category === "" || node.category === category)
             && (needle === "" || node.label.toLowerCase().includes(needle) || node.namespace.toLowerCase().includes(needle)))
     }
     ColumnLayout {
@@ -64,10 +69,15 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
             spacing: 0
+            ColumnLayout {
+                Layout.preferredWidth: Ui.Metrics.xxxl * 4
+                Layout.fillHeight: true
+                spacing: Ui.Metrics.sm
             ListView {
                 id: namespaces
                 objectName: "catalog-namespaces"
-                Layout.preferredWidth: 124
+                Layout.preferredWidth: root.nodes.length === 0 ? 0 : Math.min(124, root.width * 0.4)
+                visible: root.nodes.length > 0
                 Layout.fillHeight: true
                 Layout.topMargin: Ui.Metrics.xs
                 clip: true
@@ -94,6 +104,11 @@ Rectangle {
                         Ui.Text { Layout.fillWidth: true; text: namespaceRow.title; role: Ui.Typography.SansLabel; font.weight: Font.Normal; tone: namespaceRow.active ? Ui.Text.Primary : Ui.Text.Secondary; elide: Text.ElideRight; lineHeight: 1 }
                         Ui.Text { text: namespaceRow.modelData.count; role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary; lineHeight: 1 }
                     }
+                }
+            }
+                OptionalPacksSection {
+                    Layout.fillWidth: true
+                    Layout.margins: Ui.Metrics.sm
                 }
             }
             ListView {

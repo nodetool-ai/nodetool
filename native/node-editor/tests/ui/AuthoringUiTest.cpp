@@ -175,9 +175,12 @@ private slots:
     QTRY_VERIFY(item(window,"new-input-name")); type(inspector,item(window,"new-input-name"),"uncommitted");
     QCOMPARE(item(window,"new-input-name")->property("text").toString(),QString("uncommitted"));
     window.openWorkflow("remote"); QTRY_COMPARE(window.workflowName(),QString("Remote workflow"));
-    QTRY_VERIFY(item(window,"new-input-name"));
-    QCOMPARE(item(window,"new-input-name")->property("text").toString(),QString());
+    // The workflow opens in its own tab, so the draft cannot reach its document.
+    QCOMPARE(window.workflowTabs().size(),2);
+    auto &remoteTab = *window.activeEditor();
     QVERIFY(window.document()->node("b")["dynamic_properties"].toObject().isEmpty());
+    const auto *remoteField = item(remoteTab,"new-input-name");
+    QVERIFY(!remoteField || remoteField->property("text").toString().isEmpty());
   }
   void browserCreateAndRename() {
     BrowserFixture server;
@@ -271,17 +274,21 @@ private slots:
     QVERIFY(window.document()->loadJson(R"({"graph":{"nodes":[{"id":"local","type":"Node"}],"edges":[]}})"));
     QVERIFY(window.document()->applyCommand({{"op","setProperty"},{"id","local"},{"name","value"},{"value","unsaved"}}));
     const auto unsaved = window.document()->snapshot();
-    answer(QMessageBox::Cancel); click(browser,item(window,"open-workflow-remote"));
-    QCOMPARE(window.document()->snapshot(),unsaved); QCOMPARE(server.count("GET /api/workflows/remote"),0);
-    answer(QMessageBox::Discard); click(browser,item(window,"open-workflow-remote"));
+    // Opening leaves unsaved work in its own tab, as WorkspaceTabsStore.openTab does.
+    click(browser,item(window,"open-workflow-remote"));
     QTRY_COMPARE(server.count("GET /api/workflows/remote"),1);
     QTRY_COMPARE(window.workflowName(),QString("Remote workflow")); QVERIFY(!window.browserVisible());
-    window.action("Open"); QTRY_VERIFY(item(window,"delete-workflow-remote")); QTRY_VERIFY(!service->loading() && !service->projectsLoading());
+    QCOMPARE(window.workflowTabs().size(),2);
+    window.activateTab(0); QCOMPARE(window.document()->snapshot(),unsaved); window.activateTab(1);
+    auto &remoteTab = *window.activeEditor();
+    window.action("Open"); QTRY_VERIFY(item(remoteTab,"delete-workflow-remote"));
+    auto remoteBrowser = panel(remoteTab,"WorkflowBrowser"); QVERIFY(remoteBrowser);
+    auto remoteService = window.workflowBrowser(); QTRY_VERIFY(!remoteService->loading() && !remoteService->projectsLoading());
     const auto current = window.document()->snapshot();
-    answer(QMessageBox::Cancel); click(browser,item(window,"delete-workflow-remote")); QCOMPARE(server.count("DELETE /api/workflows/remote"),0);
-    answer(QMessageBox::Yes); click(browser,item(window,"delete-workflow-remote")); QTRY_COMPARE(server.count("DELETE /api/workflows/remote"),1);
+    answer(QMessageBox::Cancel); click(remoteBrowser,item(remoteTab,"delete-workflow-remote")); QCOMPARE(server.count("DELETE /api/workflows/remote"),0);
+    answer(QMessageBox::Yes); click(remoteBrowser,item(remoteTab,"delete-workflow-remote")); QTRY_COMPARE(server.count("DELETE /api/workflows/remote"),1);
     QCOMPARE(window.document()->snapshot(),current);
-    QTRY_VERIFY(!service->loading());
+    QTRY_VERIFY(!remoteService->loading());
     QTest::qWait(150);
     captureWindow(window,"workflow-browser");
   }

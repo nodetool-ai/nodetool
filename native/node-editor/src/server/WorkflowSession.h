@@ -1,6 +1,7 @@
 #pragma once
 #include "../run/PartialRunPlanner.h"
 #include "WorkflowAutosave.h"
+#include "AccountJobs.h"
 #include "../run/GenerationHistory.h"
 #include <QJsonObject>
 #include <QJsonArray>
@@ -25,6 +26,8 @@ class WorkflowSession final : public QObject {
   Q_PROPERTY(bool serverBound READ serverBound NOTIFY stateChanged)
   Q_PROPERTY(bool connected READ connected NOTIFY stateChanged)
 public:
+  Q_PROPERTY(QVariantList queue READ queue NOTIFY stateChanged)
+  QVariantList queue() const;
   explicit WorkflowSession(QObject *parent = nullptr);
   QJsonObject workflow() const { return m_workflow; }
   QJsonObject catalog() const { return m_catalog; }
@@ -37,6 +40,8 @@ public:
   bool conflictPending() const { return m_conflictPending; }
   QJsonObject conflictWorkflow() const { return m_remoteWorkflow; }
   bool serverBound() const { return !m_id.isEmpty() && !m_revision.isEmpty(); }
+  void setVersionRestoreBusy(bool busy) { m_saving = busy; emit stateChanged(); if (!busy) { refreshRemoteWorkflow(); } }
+  void acknowledgeRestoredVersion(const QJsonObject &response);
   Q_INVOKABLE void flushAutosave();
   Q_INVOKABLE void detachServerWorkflow();
   Q_INVOKABLE void refreshRemoteWorkflow();
@@ -78,6 +83,7 @@ signals:
   void runSubmitted(QString jobId);
 
 private:
+  QSharedPointer<AccountJobs> m_accountJobs;
   QString submitRun(const QJsonObject &snapshot, const QJsonObject &params,
                     const QJsonObject &fullSnapshot, const QJsonArray &metadata,
                     const QStringList &executed);
@@ -103,7 +109,9 @@ private:
   QString m_token, m_userId, m_id, m_revision;
   QJsonObject m_workflow, m_catalog, m_persistedWorkflow;
   QHash<QString, QJsonObject> m_runs;
+  quint64 m_queueOrder = 0;
   quint64 m_epoch = 0, m_documentEpoch = 0, m_loadEpoch = 0, m_edit = 0;
   bool m_connected = false, m_dirty = false, m_saving = false;
+  bool m_reconnecting = false;
 };
 } // namespace nodetool::node_editor

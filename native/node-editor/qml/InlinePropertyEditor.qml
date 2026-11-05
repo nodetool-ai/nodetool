@@ -14,7 +14,8 @@ Item {
     function finish() { if (loader.item && loader.item.finishEdit) loader.item.finishEdit() }
     function activate() {
         if (!loader.item) return
-        loader.item.forceActiveFocus(Qt.MouseFocusReason)
+        if (loader.item.focusEditor) loader.item.focusEditor()
+        else loader.item.forceActiveFocus(Qt.MouseFocusReason)
         if (kind === "boolean") commit(!value)
         if (kind === "choice") loader.item.popup.open()
     }
@@ -43,7 +44,7 @@ Item {
             id: loader
             width: parent.width
             height: parent.height - (root.kind === "text" || root.kind === "multiline" ? Ui.Metrics.small : 0)
-            sourceComponent: root.kind === "boolean" ? booleanEditor : root.kind === "choice" ? choiceEditor
+            sourceComponent: root.descriptor.name === "code" ? codeEditor : root.kind === "boolean" ? booleanEditor : root.kind === "choice" ? choiceEditor
                 : root.kind === "number" || root.kind === "integer" ? numberEditor
                 : multilineEditor
         }
@@ -65,6 +66,16 @@ Item {
         radius: Ui.Metrics.radiusControl
         border.width: Ui.Metrics.focus
         border.color: invalid ? Ui.Theme.borderError : Ui.Theme.borderFocus
+    }
+    Component {
+        id: codeEditor
+        CodePropertyEditor {
+            value: typeof root.value === "string" ? root.value : ""
+            nodeType: root.descriptor.nodeType || ""
+            writable: true
+            onValueCommitted: value => root.commit(value)
+            onEditCanceled: root.cancel()
+        }
     }
     Component {
         id: multilineEditor

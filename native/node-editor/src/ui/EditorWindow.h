@@ -1,4 +1,6 @@
 #pragma once
+#include "server/SetupController.h"
+#include "server/PackSetup.h"
 #include "document/WorkflowDocument.h"
 #include "graph/WorkflowGraphModel.h"
 #include "server/WorkflowSession.h"
@@ -10,6 +12,7 @@
 #include "properties/AssetPickerController.h"
 #include "properties/ResourcePickerController.h"
 #include "server/WorkflowBrowser.h"
+#include "server/WorkflowVersions.h"
 #include <QJsonArray>
 #include <QMainWindow>
 #include <QPointer>
@@ -18,6 +21,7 @@ class QQmlEngine;
 class QQuickWidget;
 class QDockWidget;
 class QGraphicsView;
+class QStackedWidget;
 namespace nodetool {
 namespace node_editor { class LineageLayer; }
 class EditorScene;
@@ -28,6 +32,14 @@ class CanvasDropController;
 class CompatibleNodePicker;
 class EditorWindow final : public QMainWindow {
   Q_OBJECT
+  Q_PROPERTY(bool guideStarted READ guideStarted NOTIFY panelChanged)
+  Q_PROPERTY(QVariantList guideReadiness READ guideReadiness NOTIFY panelChanged)
+  Q_PROPERTY(bool guideVisible READ guideVisible NOTIFY panelChanged)
+  Q_PROPERTY(bool emptyCanvas READ emptyCanvas NOTIFY panelChanged)
+  Q_PROPERTY(nodetool::node_editor::SetupController* setup READ setup CONSTANT)
+    Q_PROPERTY(nodetool::node_editor::PackSetup* packSetup READ packSetup CONSTANT)
+  Q_PROPERTY(QVariantList workflowTabs READ workflowTabs NOTIFY tabsChanged)
+  Q_PROPERTY(int activeTab READ activeTab NOTIFY tabsChanged)
   Q_PROPERTY(QString selection READ selection NOTIFY panelChanged)
   Q_PROPERTY(quint64 documentEpoch READ documentEpoch NOTIFY documentEpochChanged)
   Q_PROPERTY(quint64 credentialsEpoch READ credentialsEpoch NOTIFY credentialsEpochChanged)
@@ -61,23 +73,44 @@ class EditorWindow final : public QMainWindow {
 public:
   explicit EditorWindow(QWidget *parent = nullptr);
   ~EditorWindow() override;
-  node_editor::WorkflowDocument *document() { return &document_; }
-  quint64 documentEpoch() const { return documentEpoch_; }
-  quint64 credentialsEpoch() const { return credentialsEpoch_; }
-  node_editor::WorkflowSession *session() { return &session_; }
-  node_editor::RunOutputModel *runOutput() { return &runOutput_; }
-  node_editor::GenerationHistory *generationHistory() { return session_.generationHistory(); }
+  bool guideStarted() const { return guideStarted_; }
+  bool guideVisible() const { return session_.connected() && setup_.firstWorkflowEligible() && !guideDismissed_ && (emptyCanvas() || guideStarted_); }
+  QVariantList guideReadiness() const;
+  bool emptyCanvas() const { return document_.nodes().isEmpty(); }
+  node_editor::SetupController *setup() { return &setup_; }
+    node_editor::PackSetup *packSetup() { return tabOwner_ ? &tabOwner_->packSetup_ : &packSetup_; }
+    void syncPackSetup();
+  Q_INVOKABLE void setupAction(const QString &name);
+  QVariantList workflowTabs() const;
+  int activeTab() const;
+  Q_INVOKABLE void newTab();
+  Q_INVOKABLE void activateTab(int index);
+  Q_INVOKABLE bool closeTab(int index);
+  Q_INVOKABLE void openChild();
+  void showLinkedWorkflows();
+  void syncChild();
+  void refreshChildReferences();
+  void restoreTabs();
+  void persistTabs() const;
+  EditorWindow *activeEditor() const;
+
+  node_editor::WorkflowDocument *document() { return activeEditor() == this ? &document_ : activeEditor()->document(); }
+  quint64 documentEpoch() const { return activeEditor() == this ? documentEpoch_ : activeEditor()->documentEpoch(); }
+  quint64 credentialsEpoch() const { return activeEditor() == this ? credentialsEpoch_ : activeEditor()->credentialsEpoch(); }
+  node_editor::WorkflowSession *session() { return activeEditor() == this ? &session_ : activeEditor()->session(); }
+  node_editor::RunOutputModel *runOutput() { return activeEditor() == this ? &runOutput_ : activeEditor()->runOutput(); }
+  node_editor::GenerationHistory *generationHistory() { return session()->generationHistory(); }
   QString pinnedGeneration() const;
   QStringList replayGenerations() const;
   Q_INVOKABLE bool pinGeneration(const QString &id);
   Q_INVOKABLE bool toggleReplayGeneration(const QString &id);
   Q_INVOKABLE bool clearReplayGenerations();
-  node_editor::DynamicPortsController *dynamicPorts() { return &dynamicPorts_; }
-  node_editor::WorkflowBrowser *workflowBrowser() { return &browser_; }
+  node_editor::DynamicPortsController *dynamicPorts() { return activeEditor() == this ? &dynamicPorts_ : activeEditor()->dynamicPorts(); }
+  node_editor::WorkflowBrowser *workflowBrowser() { return activeEditor() == this ? &browser_ : activeEditor()->workflowBrowser(); }
   bool browserVisible() const;
   Q_INVOKABLE void openWorkflow(const QString &id);
   Q_INVOKABLE void deleteWorkflow(const QString &id, const QString &name);
-  QVariantList outputMedia() const { return outputMedia_; }
+  QVariantList outputMedia() const { return activeEditor() == this ? outputMedia_ : activeEditor()->outputMedia(); }
   bool runActive() const;
   bool outputVisible() const;
   bool catalogVisible() const;
@@ -86,7 +119,7 @@ public:
   QString graphSummary() const;
   QVariantMap selectionInfo() const;
   int zoomPercent() const;
-  EditorScene *scene() const { return scene_; }
+  EditorScene *scene() const { return activeEditor() == this ? scene_ : activeEditor()->scene(); }
   Q_INVOKABLE void authoredAction(const QString &id, const QString &command, quint64 epoch, quint64 credentials);
   Q_INVOKABLE void styleOutputMarkdown(QObject *document, const QColor &link, const QColor &codeSurface, const QFont &codeFont);
   Q_INVOKABLE QString iconPath(const QString &name) const;
@@ -95,19 +128,19 @@ public:
   QString readOnlyReason() const;
   Q_INVOKABLE void presentation(const QVariantMap &roles);
   bool confirmOpen();
-  QString selection() const { return selected_; }
-  int selectedCount() const { return selectedIds().size(); }
+  QString selection() const { return activeEditor() == this ? selected_ : activeEditor()->selection(); }
+  int selectedCount() const { return activeEditor() == this ? selectedIds().size() : activeEditor()->selectedCount(); }
   bool selectionDisabled() const;
   QVariantList catalog() const;
   QVariantList properties() const;
   QString saveState() const;
   QString serverSaveState() const;
-  bool serverSyncAvailable() const { return !session_.serverUrl().isEmpty() || serverSyncNeedsAttention(); }
-  bool serverSyncNeedsAttention() const { return session_.conflictPending() || session_.autosaveState() == "error"; }
-  bool hasUnsavedChanges() const { return !document_.undoStack()->isClean() || session_.conflictPending() || (session_.serverBound() && session_.dirty()); }
-  QString connectionState() const { return session_.connected() ? tr("Connected") : tr("Disconnected"); }
-  QString localFilePath() const { return file_; }
-  QString message() const { return message_; }
+  bool serverSyncAvailable() const { if (activeEditor() != this) return activeEditor()->serverSyncAvailable(); return !session_.serverUrl().isEmpty() || serverSyncNeedsAttention(); }
+  bool serverSyncNeedsAttention() const { if (activeEditor() != this) return activeEditor()->serverSyncNeedsAttention(); return session_.conflictPending() || session_.autosaveState() == "error"; }
+  bool hasUnsavedChanges() const { if (activeEditor() != this) return activeEditor()->hasUnsavedChanges(); return !document_.undoStack()->isClean() || session_.conflictPending() || (session_.serverBound() && session_.dirty()); }
+  QString connectionState() const { if (activeEditor() != this) return activeEditor()->connectionState(); return session_.connected() ? tr("Connected") : tr("Disconnected"); }
+  QString localFilePath() const { return activeEditor() == this ? file_ : activeEditor()->localFilePath(); }
+  QString message() const { return activeEditor() == this ? message_ : activeEditor()->message(); }
   bool openFile(const QString &path);
   bool saveFile(const QString &path);
   Q_INVOKABLE void addNode(const QString &type);
@@ -126,6 +159,7 @@ public:
   void setCatalog(const QJsonArray &metadata);
   QString shortcutCommand(int key, Qt::KeyboardModifiers modifiers) const;
 signals:
+  void tabsChanged();
   void documentEpochChanged();
   void credentialsEpochChanged();
   void panelChanged();
@@ -140,8 +174,26 @@ protected:
 private slots:
   void saveLocalCopyAs();
 private:
+  EditorWindow(QWidget *parent, EditorWindow *tabOwner);
+  EditorWindow *tabOwner_ = nullptr;
+  QList<EditorWindow *> tabs_;
+  EditorWindow *activeEditor_ = nullptr;
+  QStackedWidget *tabStack_ = nullptr;
+  QString requestedWorkflow_;
+  QPointer<EditorWindow> childParent_;
+  QString childNode_;
+  QJsonObject syncedChildGraph_;
+  quint64 childParentEpoch_ = 0;
+  bool childSyncing_ = false;
+  QUrl tabsOrigin_;
+  QString tabsToken_, tabsUser_;
+  bool tabsDark_ = true;
+  void notifyTabs();
+  bool confirmTabClose(bool closeAfterSave = false);
+  bool closeAfterServerSave_ = false;
   quint64 documentEpoch_ = 0;
   quint64 credentialsEpoch_ = 0;
+  void showWorkflowDetails(const QString &kind);
   void showServerSync();
   void showCanvasDrops();
   QPointer<QDialog> canvasDropDialog_;
@@ -162,7 +214,7 @@ private:
   void syncRuntimePreviews();
   QStringList selectedIds() const;
   QQuickWidget *panel(const QString &file);
-  void layoutOverlays();
+  Q_SLOT void layoutOverlays();
   void syncInspector();
   void zoomBy(double factor);
   void applyFit();
@@ -174,11 +226,21 @@ private:
   void showActionMenu(const QString &kind, const QPoint &position);
   bool menuActionEnabled(const QString &name) const;
 
+    node_editor::PackSetup packSetup_;
+    QUrl packOrigin_;
+    QString packToken_, packUser_;
+  node_editor::SetupController setup_;
+  QPointer<QDialog> setupDialog_;
+  bool guideStarted_ = false, guideDismissed_ = false;
+  QQuickWidget *setupGuide_ = nullptr;
   QQmlEngine *engine_ = nullptr;
   QMainWindow *dockHost_ = nullptr;
   QDockWidget *catalogDock_ = nullptr;
   QDockWidget *inspectorDock_ = nullptr;
   QQuickWidget *toolbarOverlay_ = nullptr;
+  QQuickWidget *queueOverlay_ = nullptr;
+  quint64 instantUpdateGeneration_ = 0;
+  bool instantUpdate_ = false;
   QQuickWidget *selectionOverlay_ = nullptr;
   InlinePropertyPresenter *inlinePresenter_ = nullptr;
   InlineTitlePresenter *inlineTitle_ = nullptr;
@@ -196,6 +258,7 @@ private:
   bool browserLoadingProjects_ = false;
   quint64 browserEpoch_ = 0;
   node_editor::WorkflowSession session_;
+  node_editor::WorkflowVersions versions_{&session_, &document_};
   node_editor::RunOutputModel runOutput_;
   node_editor::NodeRuntimeModel runtime_;
   node_editor::MediaResolver mediaResolver_;
@@ -204,8 +267,8 @@ private:
   node_editor::ResourcePickerController resourcePicker_;
   QDockWidget *outputDock_ = nullptr;
   WorkflowGraphModel model_;
-  EditorScene *scene_;
-  QGraphicsView *view_;
+  EditorScene *scene_ = nullptr;
+  QGraphicsView *view_ = nullptr;
   QJsonArray metadata_;
   QString selected_, message_, file_, run_;
   QVariantList outputMedia_;

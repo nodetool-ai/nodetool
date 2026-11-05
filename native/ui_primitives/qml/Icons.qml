@@ -92,6 +92,8 @@ QtObject {
     // AddOutlined
     readonly property string add: "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"
     // Remove
+    readonly property string expandMore: "M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z"
+    readonly property string schedule: "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20m0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16m1-13h-2v6l5 3 1-1.64-4-2.36z"
     readonly property string remove: "M19 13H5v-2h14z"
     // FitScreen
     readonly property string fitScreen: "M17 4h3c1.1 0 2 .9 2 2v2h-2V6h-3zM4 8V6h3V4H4c-1.1 0-2 .9-2 2v2zm16 8v2h-3v2h3c1.1 0 2-.9 2-2v-2zM7 18H4v-2H2v2c0 1.1.9 2 2 2h3zM18 8H6v8h12z"

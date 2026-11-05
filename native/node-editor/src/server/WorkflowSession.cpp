@@ -6,6 +6,7 @@
 #include <QNetworkCookieJar>
 #include <QNetworkReply>
 #include <QSet>
+#include <algorithm>
 #include <QUuid>
 namespace nodetool::node_editor {
 WorkflowSession::WorkflowSession(QObject *parent)
@@ -35,7 +36,52 @@ WorkflowSession::WorkflowSession(QObject *parent)
             emit errorOccurred(m_socket.errorString());
           });
 }
+QVariantList WorkflowSession::queue() const {
+    QVariantList result;
+    QSet<QString> seen;
+    auto append = [&](const QString &id, QJsonObject row) {
+        row["jobId"] = id;
+        row["editedSinceError"] = row.contains("edit") && row["edit"].toDouble() != static_cast<double>(m_edit);
+        row["terminal"] = QStringList{"cancelled", "completed", "failed"}.contains(row["status"].toString());
+        row["stopping"] = m_accountJobs && m_accountJobs->stopping(id);
+        if (row["name"].toString().isEmpty()) {
+            row["name"] = row["workflow_id"] == m_workflow["id"] ? m_workflow["name"].toString("Untitled") : "Untitled";
+        }
+        result.append(row.toVariantMap());
+        seen.insert(id);
+    };
+    if (m_accountJobs) {
+        for (const auto &value : m_accountJobs->rows()) {
+            auto row = value.toObject();
+            const auto id = row["id"].toString();
+            if (m_runs.contains(id)) {
+                const auto live = m_runs.value(id);
+                for (const auto &key : {"status", "queue_position", "error", "uncertain", "order", "edit", "started_at"}) {
+                    if (live.contains(key)) {
+                        row[key] = live[key];
+                    }
+                }
+            }
+            append(id, row);
+        }
+    }
+    QStringList local = m_runs.keys();
+    std::sort(local.begin(), local.end(), [this](const QString &a, const QString &b) {
+        return m_runs[a]["order"].toDouble() > m_runs[b]["order"].toDouble();
+    });
+    for (const auto &id : local) {
+        if (!seen.contains(id)) {
+            append(id, m_runs.value(id));
+        }
+    }
+    return result;
+}
+
 void WorkflowSession::disconnectFromServer() {
+    if (m_accountJobs) {
+        disconnect(m_accountJobs.data(), nullptr, this, nullptr);
+        m_accountJobs.clear();
+    }
   m_autosave.cancel();
   clearConflict();
   m_autosaveState = "saved";
@@ -62,7 +108,9 @@ void WorkflowSession::disconnectFromServer() {
   m_connected = false;
   m_dirty = false;
   m_saving = false;
-  emit credentialsChanged({}, {}, {});
+  if (!m_reconnecting) {
+    emit credentialsChanged({}, {}, {});
+  }
   emit workflowChanged();
   emit catalogChanged();
   emit stateChanged();
@@ -82,10 +130,35 @@ void WorkflowSession::connectToServer(const QUrl &base, const QString &token,
     emit errorOccurred("Authentication requires HTTPS for remote servers");
     return;
   }
+  // A reconnect reports one change. Tabs share credentials, so an intermediate
+  // empty report would disconnect the other tabs.
+  m_reconnecting = true;
   disconnectFromServer();
+  m_reconnecting = false;
   m_base = base;
   m_token = token;
   m_userId = userId;
+    m_accountJobs = AccountJobs::acquire(m_base, m_token, m_userId);
+    connect(m_accountJobs.data(), &AccountJobs::changed, this, [this] {
+        for (const auto &value : m_accountJobs->rows()) {
+            const auto row = value.toObject();
+            const auto id = row["id"].toString();
+            if (m_runs.contains(id) && row["status"] == "cancelled") {
+                m_runs[id]["status"] = "cancelled";
+                m_runs[id]["terminal"] = true;
+            }
+        }
+        emit stateChanged();
+    });
+    connect(m_accountJobs.data(), &AccountJobs::cancelled, this, [this](QString id, QString status) {
+        if (m_runs.contains(id)) {
+            m_runs[id]["status"] = status;
+            m_runs[id]["terminal"] = QStringList{"cancelled", "failed", "completed"}.contains(status);
+            emit stateChanged();
+        }
+    });
+    connect(m_accountJobs.data(), &AccountJobs::errorOccurred, this, &WorkflowSession::errorOccurred);
+    m_accountJobs->refresh(true);
   m_history.configure(m_base, m_token, m_userId);
   emit credentialsChanged(m_base, m_token, m_userId);
   auto ws = base;
@@ -196,6 +269,14 @@ void WorkflowSession::openWorkflow(const QString &id) {
         emit stateChanged();
       });
 }
+void WorkflowSession::acknowledgeRestoredVersion(const QJsonObject &response) {
+  if (response["id"].toString() != m_id || response["updated_at"].toString().isEmpty()) { return; }
+  m_revision = response["updated_at"].toString();
+  m_workflow.insert("updated_at", m_revision);
+  m_persistedWorkflow = response;
+  clearConflict();
+  emit workflowChanged(); emit stateChanged();
+}
 void WorkflowSession::setSnapshot(const QJsonObject &o) {
   if (o == m_workflow) {
     return;
@@ -283,7 +364,8 @@ void WorkflowSession::save() {
           m_id = o["id"].toString();
           m_revision = o["updated_at"].toString();
           if (edit == m_edit) {
-            m_workflow = o;
+            // Full-save responses may omit extension metadata retained locally.
+            for (auto it = o.begin(); it != o.end(); ++it) { m_workflow.insert(it.key(), it.value()); }
             m_dirty = false;
             emit workflowChanged();
           }
@@ -552,6 +634,13 @@ QString WorkflowSession::submitRun(const QJsonObject &snapshot, const QJsonObjec
       edges.append(e);
     }
   }
+  const auto retained = queue();
+  qsizetype finished = 0;
+  for (const auto &entry : retained) if (entry.toMap()["terminal"].toBool()) ++finished;
+  for (const auto &entry : retained) {
+    if (finished <= 20) break;
+    if (entry.toMap()["terminal"].toBool()) { m_runs.remove(entry.toMap()["jobId"].toString()); --finished; }
+  }
   const auto id = QUuid::createUuid().toString(QUuid::Id128);
   QJsonObject data{{"type", "run_job_request"},
                    {"job_id", id},
@@ -567,24 +656,28 @@ QString WorkflowSession::submitRun(const QJsonObject &snapshot, const QJsonObjec
                    {"concurrent", true},
                    {"settings", snapshot["settings"].toObject()},
                    {"graph", QJsonObject{{"nodes", nodes}, {"edges", edges}}}};
-  m_runs.insert(id, {{"workflow_id", snapshot["id"]}, {"last_seq", 0}});
+  m_runs.insert(id, {{"workflow_id", snapshot["id"]}, {"last_seq", 0}, {"status", "starting"}, {"name", snapshot["name"]}, {"edit", static_cast<double>(m_edit)}, {"started_at", QJsonValue::Null}, {"order", static_cast<double>(++m_queueOrder)}});
   m_generations.submitted(id, fullSnapshot, metadata, executed);
   if (!send("run_job", data)) {
     m_runs[id].insert("uncertain", true);
     emit errorOccurred(
         "Run submission uncertain. Reconnect using its job ID before retrying");
   }
+    if (m_accountJobs) {
+        m_accountJobs->refresh();
+    }
   emit runSubmitted(id);
+  emit stateChanged();
   return id;
 }
 void WorkflowSession::stop(const QString &id) {
-  if (!m_runs.contains(id)) {
-    emit errorOccurred("Unknown job ID");
-    return;
-  }
-  send("cancel_job",
-       {{"job_id", id}, {"workflow_id", m_runs[id]["workflow_id"]}});
+    if (!m_accountJobs || id.isEmpty()) {
+        emit errorOccurred("Connect before cancelling a job");
+        return;
+    }
+    m_accountJobs->cancel(id);
 }
+
 void WorkflowSession::reconnectTransport() {
   if (m_base.isEmpty()) {
     emit errorOccurred("Connect to a server first");
@@ -614,17 +707,28 @@ void WorkflowSession::receive(const QByteArray &bytes) {
     emit errorOccurred("Invalid MsgPack run event");
     return;
   }
-  const auto event = decoded->toObject();
+  auto event = decoded->toObject();
+  if (event["type"] == "error" && event["node_id"].toString().isEmpty() && !event["job_id"].toString().isEmpty()) {
+    event["type"] = "job_update";
+    event["status"] = "failed";
+    if (event["error"].toString().isEmpty()) event["error"] = event["message"];
+  }
   if (event["type"] == "ping") {
     m_socket.sendBinaryMessage(encodeMsgPack(QJsonObject{{"type", "pong"}}));
     return;
   }
   if (event["type"] == "resource_change") {
+    if (m_accountJobs && event["resource_type"] == "job") {
+        m_accountJobs->refresh();
+    }
     externalWorkflowChange(event);
     return;
   }
   const auto id = event["job_id"].toString();
   if (!m_runs.contains(id)) {
+    if (m_accountJobs && (event["type"] == "job_update" || event["type"] == "job_resumed")) {
+        m_accountJobs->refresh();
+    }
     return;
   }
   auto &run = m_runs[id];
@@ -652,6 +756,22 @@ void WorkflowSession::receive(const QByteArray &bytes) {
       return;
     }
     run.insert("last_seq", seq);
+  }
+  if (type == "job_update" || type == "job_resumed") {
+    auto status = event["status"].toString();
+    if (status == "finished") status = "completed";
+    if (status == "error") status = "failed";
+    if (event["started_at"].isString()) {
+        run.insert("started_at", event["started_at"]);
+    }
+    run.insert("status", status);
+    run.insert("queue_position", event["queue_position"]);
+    if (m_accountJobs) {
+        m_accountJobs->refresh();
+    }
+    run.insert("error", event["error"]);
+    if (status == "failed") run.insert("terminal", true);
+    emit stateChanged();
   }
   m_generations.ingest(id, event, QDateTime::currentMSecsSinceEpoch());
   if (type == "generation_complete") { m_history.liveChanged(); }

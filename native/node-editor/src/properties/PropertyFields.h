@@ -295,7 +295,7 @@ inline QVariantList propertyFields(const QJsonObject& node, const QJsonObject& m
         const bool appendStatic = kind == "media_list" && metadata.value("append_static_inputs").toArray().contains(name);
         QVariantList options;
         for (const auto& option : propertyOptions(p)) { options.append(QVariantMap{{"label", option.toVariant().toString()}, {"value", option.toVariant()}}); }
-        QVariantMap row{{"name", name}, {"label", p.value("title").toString(name)}, {"description", p.value("description").toString()},
+        QVariantMap row{{"nodeType", node.value("type").toString()}, {"name", name}, {"label", p.value("title").toString(name)}, {"description", p.value("description").toString()},
             {"dataType", propertyEditorType(p).toVariantMap()}, {"kind", kind}, {"value", value.toVariant()}, {"editable", conditionSatisfied && (!connected || appendStatic) && kind != "unsupported"}, {"conditionalUnavailable", !conditionSatisfied}, {"appendStatic", appendStatic}, {"connected", connected},
             {"required", p.value("required").toBool()}, {"nullable", propertyNullable(p)},
             {"hasValue", data.contains(name)}, {"hasDefault", p.contains("default")}, {"defaultValue", p.value("default").toVariant()},

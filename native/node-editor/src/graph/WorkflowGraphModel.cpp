@@ -1,4 +1,6 @@
+#include "properties/CodeInference.h"
 #include "WorkflowGraphModel.h"
+#include "document/ChildPorts.h"
 #include "document/ConnectionTypes.h"
 #include "properties/PropertyFields.h"
 #include <QJsonArray>
@@ -197,6 +199,11 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
   const auto inputs = ports(id, PortType::In);
   result.inputY.resize(inputs.size());
   double y = nm::contentTop;
+  const auto warning = result.unknown ? tr("Node metadata unavailable. Check runtimes and packs.") : meta["native_dependency_warning"].toString();
+  if (!warning.isEmpty()) {
+    NodeRow row; row.kind = NodeRowKind::Label; row.label = warning; row.y = y + nm::rowHeight / 2.0; row.height = nm::rowHeight;
+    result.rows.append(row); y += nm::rowHeight;
+  }
   const auto titleOf = [&](const QJsonObject &port) {
     return port["title"].toString(displayName(port["name"].toString()));
   };
@@ -308,7 +315,7 @@ QJsonArray WorkflowGraphModel::ports(NodeId id, PortType type) const {
   if (cache.contains(id)) {
     return cache.value(id);
   }
-  const auto n = nodes_.value(id);
+  const auto n = node_editor::withChildPorts(node_editor::withVisibleCodePorts(nodes_.value(id)), catalog_);
   QJsonArray result;
   QSet<QString> names;
   const auto append = [&result, &names](QJsonObject port) {
@@ -354,7 +361,7 @@ QJsonArray WorkflowGraphModel::ports(NodeId id, PortType type) const {
     const auto properties = n["dynamic_properties"].toObject();
     const auto outputDeclarations = n["dynamic_outputs"].toObject();
     for (auto it = properties.begin(); it != properties.end(); ++it) {
-      if (outputDeclarations.contains(it.key())) { continue; }
+      if (n["type"] != "nodetool.code.Code" && outputDeclarations.contains(it.key())) { continue; }
       append(QJsonObject{{"name", it.key()}, {"type", "any"}});
     }
   }

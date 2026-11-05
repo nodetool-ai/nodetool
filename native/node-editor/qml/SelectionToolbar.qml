@@ -21,6 +21,7 @@ Ui.Surface {
         Action { command: "Arrange selection"; iconName: "alignHorizontalLeft"; enabled: editor && !editor.readOnly && editor.selectedCount >= 2 }
         Ui.Separator { orientation: Qt.Vertical; Layout.preferredHeight: Ui.Metrics.lg }
         Action { command: "Run selected"; iconName: "playArrow"; enabled: editor && !editor.readOnly && !editor.runActive && !editor.selectionDisabled }
+        Action { command: "Open child"; iconName: "layers" }
         Action { command: "Duplicate"; iconName: "copy" }
         Action { command: "Group selection"; iconName: "layers"; enabled: editor && !editor.readOnly && editor.selectedCount >= 2 }
         Action { command: "Link selected"; iconName: "link"; enabled: editor && !editor.readOnly && editor.selectedCount === 2 }

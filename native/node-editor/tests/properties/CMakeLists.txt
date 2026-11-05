@@ -5,10 +5,12 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     enable_testing()
 endif()
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Test)
+include(${CMAKE_CURRENT_LIST_DIR}/../../cmake/CodeInference.cmake)
 set(CMAKE_AUTOMOC ON)
 add_library(node_editor_properties STATIC
     ../../src/document/WorkflowDocument.cpp
     ../../src/document/WorkflowDocument.h)
+node_editor_use_code_inference(node_editor_properties)
 target_compile_features(node_editor_properties PUBLIC cxx_std_20)
 target_include_directories(node_editor_properties PUBLIC ../../src)
 target_link_libraries(node_editor_properties PUBLIC Qt6::Core Qt6::Gui)

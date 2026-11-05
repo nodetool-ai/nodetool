@@ -9,13 +9,19 @@ qt_standard_project_setup(REQUIRES 6.12)
 include(cmake/QtNodes.cmake)
 add_subdirectory(../ui_primitives ui_primitives)
 add_library(node_editor_core STATIC
+ src/server/AccountJobs.cpp src/server/AccountJobs.h
+ src/server/PackSetup.cpp src/server/PackSetup.h
+ src/server/SetupController.cpp src/server/SetupController.h
  src/layout/AutoLayout.cpp src/layout/AutoLayout.h
  src/layout/SelectionLayout.cpp src/layout/SelectionLayout.h
  src/document/WorkflowDocument.cpp src/document/WorkflowDocument.h
+ src/server/WorkflowVersions.cpp src/server/WorkflowVersions.h
  src/server/WorkflowBrowser.cpp src/server/WorkflowBrowser.h
  src/properties/ResourcePickerController.cpp src/properties/ResourcePickerController.h
  src/properties/AssetPickerController.cpp src/properties/AssetPickerController.h
  src/properties/ModelPickerController.cpp src/properties/ModelPickerController.h
+ src/properties/CodeHighlighter.cpp src/properties/CodeHighlighter.h
+ src/properties/CodeInference.cpp src/properties/CodeInference.h src/document/ChildPorts.cpp src/document/ChildPorts.h
  src/properties/DynamicPortsController.cpp src/properties/DynamicPortsController.h
  src/server/MsgPack.cpp src/server/WorkflowSession.cpp src/server/WorkflowSession.h
  src/graph/WorkflowGraphModel.cpp src/graph/WorkflowGraphModel.h
@@ -40,15 +46,20 @@ add_library(node_editor_core STATIC
  src/media/AudioWaveform.cpp src/media/AudioWaveform.h
  src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h
  src/media/VideoFrameView.cpp src/media/VideoFrameView.h
- src/ui/EditorWindow.cpp src/ui/EditorWindow.h src/ui/EditorMenus.cpp)
+ src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/EditorWindow.h src/ui/EditorMenus.cpp)
 target_include_directories(node_editor_core PUBLIC src)
 target_link_libraries(node_editor_core PUBLIC QtNodes Qt6::Widgets Qt6::QuickWidgets Qt6::Svg Qt6::Network Qt6::WebSockets Qt6::Multimedia)
 qt_add_executable(nodetool-node-editor src/main.cpp)
 target_link_libraries(nodetool-node-editor PRIVATE node_editor_core)
 nodetool_use_ui_primitives(nodetool-node-editor)
-qt_add_resources(node_editor_core editor_qml PREFIX /editor BASE qml FILES qml/ActionPanel.qml qml/AuthoredControls.qml qml/EditorRoles.qml qml/PanelRow.qml qml/NodeButton.qml qml/TypeIcon.qml qml/TabBar.qml qml/Rail.qml qml/StatusBar.qml qml/ViewportIndicator.qml qml/Toolbar.qml qml/SelectionToolbar.qml qml/InlinePropertyEditor.qml qml/InlineTitleEditor.qml qml/Catalog.qml qml/Inspector.qml qml/GenerationHistory.qml qml/DynamicPorts.qml qml/WorkflowBrowser.qml qml/PropertyField.qml qml/ModelPropertyEditor.qml qml/AssetPropertyEditor.qml qml/MediaListPropertyEditor.qml qml/ColorPropertyEditor.qml qml/ImageSizePropertyEditor.qml qml/PropertyPresets.js qml/WorkflowPropertyEditor.qml qml/CollectionPropertyEditor.qml qml/StructuredPropertyEditor.qml qml/RunOutput.qml qml/RichOutput.qml qml/ObjectOutput.qml qml/TextOutput.qml qml/ImageComparisonOutput.qml qml/DataframeOutput.qml qml/MediaPreview.qml qml/CanvasMedia.qml qml/MediaGallery.qml qml/ServerSyncPanel.qml qml/CompatibleNodePicker.qml qml/CanvasDropPanel.qml)
+qt_add_resources(node_editor_core editor_qml PREFIX /editor BASE qml FILES qml/QueueOverlay.qml qml/SetupGuide.qml qml/SetupPanel.qml qml/CodeSyntax.qml qml/VersionHistoryPanel.qml qml/VersionGraphPreview.qml qml/WorkflowDetails.qml qml/ActionPanel.qml qml/AuthoredControls.qml qml/EditorRoles.qml qml/PanelRow.qml qml/NodeButton.qml qml/TypeIcon.qml qml/TabBar.qml qml/Rail.qml qml/StatusBar.qml qml/ViewportIndicator.qml qml/Toolbar.qml qml/SelectionToolbar.qml qml/InlinePropertyEditor.qml qml/InlineTitleEditor.qml qml/OptionalPacksSection.qml qml/Catalog.qml qml/Inspector.qml qml/GenerationHistory.qml qml/DynamicPorts.qml qml/WorkflowBrowser.qml qml/PropertyField.qml qml/CodePropertyEditor.qml qml/ModelPropertyEditor.qml qml/AssetPropertyEditor.qml qml/MediaListPropertyEditor.qml qml/ColorPropertyEditor.qml qml/ImageSizePropertyEditor.qml qml/PropertyPresets.js qml/WorkflowPropertyEditor.qml qml/CollectionPropertyEditor.qml qml/StructuredPropertyEditor.qml qml/RunOutput.qml qml/RichOutput.qml qml/ObjectOutput.qml qml/TextOutput.qml qml/ImageComparisonOutput.qml qml/DataframeOutput.qml qml/MediaPreview.qml qml/CanvasMedia.qml qml/MediaGallery.qml qml/ServerSyncPanel.qml qml/CompatibleNodePicker.qml qml/CanvasDropPanel.qml)
 qt_add_resources(node_editor_core editor_assets PREFIX /editor/resources BASE resources FILES resources/nodetool_48px.png)
 if(BUILD_TESTING)
+ qt_add_executable(node_editor_workflow_tabs_tests tests/ui/WorkflowTabsTest.cpp)
+ target_link_libraries(node_editor_workflow_tabs_tests PRIVATE node_editor_core Qt6::Test)
+ nodetool_use_ui_primitives(node_editor_workflow_tabs_tests)
+ add_test(NAME node_editor_workflow_tabs COMMAND node_editor_workflow_tabs_tests)
+ set_tests_properties(node_editor_workflow_tabs PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
  qt_add_executable(node_editor_viewport_navigator_tests tests/ui/ViewportNavigatorTest.cpp)
  target_link_libraries(node_editor_viewport_navigator_tests PRIVATE node_editor_core Qt6::Test)
  nodetool_use_ui_primitives(node_editor_viewport_navigator_tests)
@@ -270,4 +281,70 @@ if(BUILD_TESTING)
  qt_add_executable(node_editor_pcm_tests tests/media/PcmStreamTest.cpp)
  target_link_libraries(node_editor_pcm_tests PRIVATE node_editor_core Qt6::Test)
  add_test(NAME node_editor_pcm COMMAND node_editor_pcm_tests)
+endif()
+
+qt_add_resources(node_editor_core code_parser PREFIX /editor/code BASE resources/code FILES resources/code/acorn.js resources/code/inference.js)
+
+if(BUILD_TESTING)
+ qt_add_executable(node_editor_versions_tests tests/server/WorkflowVersionsTests.cpp)
+ target_link_libraries(node_editor_versions_tests PRIVATE node_editor_core Qt6::Test)
+ nodetool_use_ui_primitives(node_editor_versions_tests)
+ add_test(NAME node_editor_versions COMMAND node_editor_versions_tests)
+ set_tests_properties(node_editor_versions PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endif()
+
+if(BUILD_TESTING)
+ qt_add_executable(node_editor_code_property_tests tests/ui/CodePropertyTest.cpp)
+ target_link_libraries(node_editor_code_property_tests PRIVATE node_editor_core Qt6::Test)
+ nodetool_use_ui_primitives(node_editor_code_property_tests)
+ add_test(NAME node_editor_code_property COMMAND node_editor_code_property_tests)
+ set_tests_properties(node_editor_code_property PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endif()
+
+if(BUILD_TESTING)
+ qt_add_executable(node_editor_versions_host_tests tests/ui/WorkflowVersionsHostTest.cpp)
+ target_link_libraries(node_editor_versions_host_tests PRIVATE node_editor_core Qt6::Test)
+ nodetool_use_ui_primitives(node_editor_versions_host_tests)
+ add_test(NAME node_editor_versions_host COMMAND node_editor_versions_host_tests)
+ set_tests_properties(node_editor_versions_host PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endif()
+
+if(BUILD_TESTING)
+ qt_add_executable(node_editor_queue_ui_tests tests/ui/QueueUiTest.cpp)
+ target_link_libraries(node_editor_queue_ui_tests PRIVATE node_editor_core Qt6::Test)
+ nodetool_use_ui_primitives(node_editor_queue_ui_tests)
+ add_test(NAME node_editor_queue_ui COMMAND node_editor_queue_ui_tests)
+ set_tests_properties(node_editor_queue_ui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endif()
+
+if(BUILD_TESTING)
+ qt_add_executable(node_editor_setup_host_tests tests/ui/SetupHostTest.cpp)
+ target_link_libraries(node_editor_setup_host_tests PRIVATE node_editor_core Qt6::Test)
+ nodetool_use_ui_primitives(node_editor_setup_host_tests)
+ add_test(NAME node_editor_setup_host COMMAND node_editor_setup_host_tests)
+ set_tests_properties(node_editor_setup_host PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endif()
+
+if(BUILD_TESTING)
+ qt_add_executable(node_editor_subgraph_tests tests/ui/SubgraphTest.cpp)
+ target_link_libraries(node_editor_subgraph_tests PRIVATE node_editor_core Qt6::Test)
+ nodetool_use_ui_primitives(node_editor_subgraph_tests)
+ add_test(NAME node_editor_subgraph COMMAND node_editor_subgraph_tests)
+ set_tests_properties(node_editor_subgraph PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endif()
+
+if(BUILD_TESTING)
+    qt_add_executable(node_editor_pack_setup_host_tests tests/ui/PackSetupHostTest.cpp)
+    target_link_libraries(node_editor_pack_setup_host_tests PRIVATE node_editor_core Qt6::Test)
+    nodetool_use_ui_primitives(node_editor_pack_setup_host_tests)
+    add_test(NAME node_editor_pack_setup_host COMMAND node_editor_pack_setup_host_tests)
+    set_tests_properties(node_editor_pack_setup_host PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endif()
+
+if(BUILD_TESTING)
+    qt_add_executable(node_editor_queue_data_tests tests/ui/QueueDataTest.cpp)
+    target_link_libraries(node_editor_queue_data_tests PRIVATE node_editor_core Qt6::Test)
+    nodetool_use_ui_primitives(node_editor_queue_data_tests)
+    add_test(NAME node_editor_queue_data COMMAND node_editor_queue_data_tests)
+    set_tests_properties(node_editor_queue_data PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endif()

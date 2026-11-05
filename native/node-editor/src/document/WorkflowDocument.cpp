@@ -1,4 +1,6 @@
+#include "properties/CodeInference.h"
 #include "WorkflowDocument.h"
+#include "ChildPorts.h"
 #include "ConnectionTypes.h"
 #include "properties/PropertyFields.h"
 #include <QJsonDocument>
@@ -151,8 +153,11 @@ bool loopFeedback(const QJsonObject& node, const QString& handle) {
     return node.value("type") == "nodetool.control.Loop" && (handle == "next" || handle == "condition");
 }
 
-QJsonObject portType(const QJsonObject& node, const QString& handle, bool output,
+QJsonObject portType(const QJsonObject& rawNode, const QString& handle, bool output,
                      const QHash<QString, QJsonObject>& metadata) {
+    QJsonArray catalog;
+    for (const auto &entry : metadata) catalog.append(entry);
+    const auto node = withChildPorts(withVisibleCodePorts(rawNode), catalog);
     const auto type = node.value("type").toString();
     if (handle.isEmpty() || !metadata.contains(type)) { return {}; }
     for (const auto& value : metadata.value(type).value(output ? "outputs" : "properties").toArray()) {
@@ -165,7 +170,7 @@ QJsonObject portType(const QJsonObject& node, const QString& handle, bool output
         return normalizedDynamicPortType(inputs.value(handle));
     }
     if (node.value("dynamic_properties").toObject().contains(handle)
-        && !node.value("dynamic_outputs").toObject().contains(handle)) { return {{"type", "any"}}; }
+        && (node["type"] == "nodetool.code.Code" || !node.value("dynamic_outputs").toObject().contains(handle))) { return {{"type", "any"}}; }
     return {};
 }
 QJsonObject endpointDefinition(QJsonObject node) {
@@ -233,6 +238,14 @@ EditResult edit(QJsonObject& workflow, const QJsonObject& command, const QHash<Q
             for (auto it = applied.idMap.begin(); it != applied.idMap.end(); ++it) { result.idMap.insert(it.key(), it.value()); }
         }
         return result;
+    }
+    if (op == "replaceGraph") {
+        auto candidate = workflow;
+        candidate.insert("graph", command.value("graph"));
+        const auto error = validate(candidate);
+        if (!error.isEmpty()) { return failure(error); }
+        workflow = candidate;
+        return success();
     }
     auto graph = workflow.value("graph").toObject();
     auto nodes = graph.value("nodes").toArray();
@@ -715,6 +728,23 @@ EditResult edit(QJsonObject& workflow, const QJsonObject& command, const QHash<Q
             }
             edges = updated;
         }
+    } else if (op == "setChildGraph" || op == "setChildSnapshot") {
+        const auto index = indexOf(nodes, id);
+        if (index < 0) return failure("Child owner no longer exists");
+        const auto previous = withChildPorts(nodes[index].toObject());
+        auto n = nodes[index].toObject();
+        const auto key = childGraphKey(n);
+        if (key.isEmpty() || !command["graph"].isObject()) return failure("Unsupported child graph");
+        auto data = n["data"].toObject();
+        if (op == "setChildSnapshot") data[key] = command["snapshot"];
+        else if (key == "graph") data[key] = command["graph"];
+        else { auto snapshot = data[key].toObject(); snapshot["graph"] = command["graph"]; data[key] = snapshot; }
+        n["data"] = data;
+        QJsonArray catalog;
+        for (const auto &entry : metadata) catalog.append(entry);
+        n = withChildPorts(n, catalog);
+        removeStaleChildEdges(previous, n, edges);
+        nodes[index] = n;
     } else if (op == "setProperty" || op == "removeProperty" || op == "setNodeField") {
         const auto index = indexOf(nodes, id);
         if (index < 0) { return failure("Unknown node ID"); }
@@ -745,6 +775,7 @@ EditResult edit(QJsonObject& workflow, const QJsonObject& command, const QHash<Q
             auto data = n.value(storage).toObject();
             if (op == "removeProperty") { data.remove(name); } else { data.insert(name, command.value("value")); }
             n.insert(storage, data);
+            if (storage == "data" && name == "code") { n = withInferredCodePorts(n, edges); }
         } else {
             const auto field = command.value("field").toString();
             const QSet<QString> allowed{"dynamic_properties", "dynamic_inputs", "dynamic_outputs", "dynamic_output_correlation", "ui_properties", "parent_id"};

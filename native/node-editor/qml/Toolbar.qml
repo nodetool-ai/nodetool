@@ -16,6 +16,37 @@ Item {
     Connections { target: Ui.Theme; function onEffectiveSchemeChanged() { root.syncTheme() } function onReducedMotionChanged() { root.syncTheme() } }
     Connections { target: Ui.Typography; function onSansFamilyChanged() { root.syncTheme() } }
     readonly property bool runActive: editor && editor.runActive
+    readonly property var currentJob: {
+        const jobs = workflowSession.queue
+        let latest = null
+        for (const job of jobs) {
+            if (job.workflow_id === workflowSession.workflow.id && job.order !== undefined
+                && (!latest || job.order > latest.order)) latest = job
+        }
+        return latest
+    }
+    readonly property int pendingRunCount: workflowSession.queue.filter(job =>
+        job.workflow_id === workflowSession.workflow.id
+        && ["queued", "scheduled", "starting"].includes(job.status)).length
+    readonly property string runLabel: {
+        const job = currentJob
+        if (!job) return "Run entire workflow"
+        if (job.stopping && !job.terminal) return "Stopping"
+        if (job.queue_position != null && job.status === "queued") return "Queued (#" + job.queue_position + ")"
+        if (["starting", "queued", "scheduled"].includes(job.status)) return "Starting"
+        if (job.status === "running") return pendingRunCount > 0 ? "Running · " + pendingRunCount + " queued" : "Running"
+        if (job.status === "failed" && !job.editedSinceError) return "Error · Retry"
+        return "Run entire workflow"
+    }
+    readonly property string runTooltip: {
+        const job = currentJob
+        if (runLabel === "Stopping") return "Stopping workflow"
+        if (runLabel === "Error · Retry") return (job.error || "Workflow failed to start") + ". Click to retry the entire workflow."
+        if (job && job.queue_position != null && job.status === "queued") return "Queued (#" + job.queue_position + ")"
+        if (pendingRunCount > 0) return "Running — " + pendingRunCount + " queued (click to queue another)"
+        if (job && !job.terminal) return runLabel + " (click to queue another entire workflow run)"
+        return "Run workflow (" + (Qt.platform.os === "osx" ? "Cmd" : "Ctrl") + "+Enter)"
+    }
     implicitWidth: frame.implicitWidth
     implicitHeight: frame.implicitHeight
     component ActionButton: PanelRow {
@@ -45,21 +76,24 @@ Item {
             anchors.centerIn: parent
             spacing: Ui.Metrics.xs
             ActionButton { text: "Add node"; glyph: "addCircle" }
-            ActionButton { text: "Undo"; primitiveGlyph: "undo" }
-            ActionButton { text: "Redo"; primitiveGlyph: "redo" }
-            ActionButton { text: "Open"; glyph: "folderOpen" }
-            ActionButton { text: "Save"; glyph: "save" }
+            ActionButton { visible: !root.compact; text: "Undo"; primitiveGlyph: "undo" }
+            ActionButton { visible: !root.compact; text: "Redo"; primitiveGlyph: "redo" }
+            ActionButton { visible: !root.compact; text: "Open"; glyph: "folderOpen" }
+            ActionButton { visible: !root.compact; text: "Save"; glyph: "save" }
             Item { Layout.preferredWidth: Ui.Metrics.md }
             PanelRow {
                 id: runButton
                 objectName: "run-workflow"
-                readonly property string actionName: root.runActive ? "Stop" : "Run"
+                readonly property string actionName: "Run"
                 text: actionName
-                accessibleName: root.runActive ? "Stop workflow" : "Run entire workflow"
-                enabled: root.runActive || (editor && !editor.readOnly)
+                accessibleName: "Run entire workflow"
+                enabled: editor && !editor.readOnly && workflowSession.connected && root.runLabel !== "Stopping"
                 implicitHeight: Ui.Metrics.comfortable
                 implicitWidth: runRow.implicitWidth + Ui.Metrics.lg * 2
                 onClicked: editor.action(actionName)
+                HoverHandler {
+                    onHoveredChanged: if (editor) editor.showToolTip(hovered ? root.runTooltip : "")
+                }
                 background: Rectangle {
                     radius: height / 2
                     color: !runButton.enabled ? Ui.Theme.actionDisabled : runButton.hovered ? Ui.Theme.accentHover : Ui.Theme.accentPrimary
@@ -70,8 +104,8 @@ Item {
                     id: runRow
                     anchors.centerIn: parent
                     spacing: Ui.Metrics.xs
-                    Ui.Icon { anchors.verticalCenter: parent.verticalCenter; name: root.runActive ? "stop" : "playArrow"; size: Ui.Metrics.iconMd; tone: Ui.Text.OnAccent }
-                    Ui.Text { anchors.verticalCenter: parent.verticalCenter; visible: !root.compact; text: root.runActive ? "Stop workflow" : "Run entire workflow"; role: Ui.Typography.SansLabel; font.weight: Font.Normal; tone: Ui.Text.OnAccent; lineHeight: 1 }
+                    Ui.Icon { anchors.verticalCenter: parent.verticalCenter; name: "playArrow"; size: Ui.Metrics.iconMd; tone: Ui.Text.OnAccent }
+                    Ui.Text { anchors.verticalCenter: parent.verticalCenter; visible: !root.compact; text: root.runLabel; role: Ui.Typography.SansLabel; font.weight: Font.Normal; tone: Ui.Text.OnAccent; lineHeight: 1 }
                 }
             }
             ActionButton { text: "More"; primitiveGlyph: "moreVert" }
