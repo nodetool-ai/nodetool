@@ -2,12 +2,13 @@
  * Shared event plumbing for live devices that run in an AudioWorklet.
  *
  * Worklet protocol every FableSynth processor implements for the timeline:
- *   - `{ t: "evs", ev: Float64Array }` queues events. `ev` is flat
+ *   - `{ t: "evs", ev: Float64Array, tag?: string }` queues events. `ev` is flat
  *     `[frame, on, pitch, velocity]` quadruples: `frame` is an absolute
  *     context frame, `on` is 1 or 0, `velocity` is 0..1. The processor
  *     applies each event at its frame (or the start of the render quantum
  *     holding it) and drops events whose frame has passed.
- *   - `{ t: "evclear" }` drops every queued event and releases every note.
+ *   - `{ t: "evclear", tag }` removes a clip’s events and held notes.
+ *     Without a tag it drops every queued event and releases every note.
  *   - `processorOptions.events` carries the same Float64Array for an offline
  *     render, so the queue is full before the first quantum.
  */
@@ -98,7 +99,7 @@ export abstract class WorkletInstrumentDevice implements LiveInstrumentDevice {
   schedule(events: LiveNoteEvent[], tag: string): void {
     if (events.length === 0) return;
     this.queued.set(tag, [...(this.queued.get(tag) ?? []), ...events]);
-    this.post(events);
+    this.post(events, tag);
   }
 
   clear(tag?: string): void {
@@ -107,15 +108,7 @@ export abstract class WorkletInstrumentDevice implements LiveInstrumentDevice {
     } else if (!this.queued.delete(tag)) {
       return;
     }
-    this.node.port.postMessage({ t: "evclear" });
-    // The worklet's queue is one list, so the clips still playing are queued
-    // again from now on.
-    const now = this.ctx.currentTime;
-    for (const [key, events] of this.queued) {
-      const pending = events.filter((event) => event.timeSec > now);
-      this.queued.set(key, pending);
-      this.post(pending);
-    }
+    this.node.port.postMessage(tag === undefined ? { t: "evclear" } : { t: "evclear", tag });
   }
 
   setAutomation(lanes: readonly DeviceAutomationLane[]): void {
@@ -142,9 +135,9 @@ export abstract class WorkletInstrumentDevice implements LiveInstrumentDevice {
     this.output.disconnect();
   }
 
-  private post(events: readonly LiveNoteEvent[]): void {
+  private post(events: readonly LiveNoteEvent[], tag: string): void {
     if (events.length === 0) return;
     const ev = encodeLiveEvents(events, this.ctx.sampleRate);
-    this.node.port.postMessage({ t: "evs", ev }, [ev.buffer]);
+    this.node.port.postMessage({ t: "evs", ev, tag }, [ev.buffer]);
   }
 }
