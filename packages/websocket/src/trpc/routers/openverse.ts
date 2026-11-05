@@ -62,10 +62,13 @@ export const openverseRouter = router({
     .input(importInput)
     .output(importOutput)
     .mutation(async ({ ctx, input }) => {
-      if (input.project_id && input.project_id !== "default") {
-        if (!(await Project.findOwned(ctx.userId, input.project_id))) {
+      let projectId = input.project_id ?? "default";
+      if (projectId && projectId !== "default") {
+        const project = await Project.findOwned(ctx.userId, projectId);
+        if (!project) {
           throwApiError(ApiErrorCode.INVALID_INPUT, "Project not found");
         }
+        projectId = project.id;
       }
       let parentId = ctx.userId;
       if (input.parent_id && input.parent_id !== ctx.userId) {
@@ -104,7 +107,7 @@ export const openverseRouter = router({
             contentType,
             content: bytes,
             parentId,
-            projectId: input.project_id ?? "default",
+            projectId,
             metadata: { openverse: record }
           });
           assets.push(await toAssetResponse(asset));

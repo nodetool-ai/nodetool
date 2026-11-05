@@ -27,6 +27,14 @@ jest.mock("../PreviewCompositor", () => ({
   PreviewCompositor: () => React.createElement("div", { "data-testid": "preview-compositor" })
 }));
 
+const mockGetAsset = jest.fn();
+jest.mock("../../../../stores/AssetStore", () => ({
+  useAssetStore: Object.assign(
+    (selector: (state: { get: typeof mockGetAsset }) => unknown) => selector({ get: mockGetAsset }),
+    { getState: () => ({ queryClient: null }) }
+  )
+}));
+const mockPlayGrain = jest.fn().mockResolvedValue(undefined);
 const mockResume = jest.fn().mockResolvedValue(undefined);
 jest.setTimeout(30_000);
 // The clips were scheduled against context time 3.9; the context now reads 4.
@@ -41,7 +49,7 @@ jest.mock("../AudioGraph", () => ({
         context: null,
         scheduleClips: mockScheduleClips,
         addClips: jest.fn().mockResolvedValue(undefined),
-        playGrain: jest.fn().mockResolvedValue(undefined),
+        playGrain: mockPlayGrain,
         getMasterAnalyser: () => null,
         getContext: () => ({
           resume: mockResume,
@@ -147,5 +155,77 @@ describe("PreviewArea audio-only (DAW transport)", () => {
     await userEvent.clear(bpm);
     await userEvent.type(bpm, "90{Enter}");
     expect(instance.doc.getState().tempo?.bpm).toBe(90);
+  });
+});
+
+
+describe("paused scrub destination", () => {
+  function clips(): void {
+    instance.doc.setState({ clips: [
+      makeClip({ id: "a", currentAssetId: "a", status: "generated", trackId: "t1", mediaType: "audio", startMs: 0, durationMs: 2000 }),
+      makeClip({ id: "b", currentAssetId: "b", status: "generated", trackId: "t1", mediaType: "audio", startMs: 4000, durationMs: 2000 })
+    ] });
+  }
+
+  it("resolves B after the cursor leaves A during asset lookup", async () => {
+    clips();
+    let releaseA!: (asset: unknown) => void;
+    mockGetAsset.mockImplementation((id: string) => id === "a"
+      ? new Promise((resolve) => { releaseA = resolve; })
+      : Promise.resolve({ get_url: "https://example.test/b.wav" }));
+    const mounted = renderTransport();
+    act(() => instance.playback.setState({ currentTimeMs: 1000 }));
+    expect(mockGetAsset).toHaveBeenCalledWith("a");
+    act(() => instance.playback.setState({ currentTimeMs: 5000 }));
+    await act(async () => releaseA({ get_url: "https://example.test/a.wav" }));
+    expect(mockGetAsset).toHaveBeenCalledWith("b");
+    expect(mockPlayGrain).toHaveBeenCalledTimes(1);
+    expect(mockPlayGrain.mock.calls[0][0].map((c: { clip: { id: string } }) => c.clip.id)).toEqual(["b"]);
+    expect(mockPlayGrain.mock.calls[0][2]).toBe(5000);
+    mounted.unmount();
+  });
+
+  it("retries the destination when movement invalidates decoding", async () => {
+    clips();
+    mockGetAsset.mockImplementation((id: string) => Promise.resolve({ get_url: `https://example.test/${id}.wav` }));
+    let finishDecode!: () => void;
+    mockPlayGrain.mockImplementationOnce(() => new Promise<void>((resolve) => { finishDecode = resolve; }));
+    const mounted = renderTransport();
+    await act(async () => instance.playback.setState({ currentTimeMs: 1000 }));
+    expect(mockPlayGrain).toHaveBeenCalledTimes(1);
+    act(() => instance.playback.setState({ currentTimeMs: 5000 }));
+    expect(mockPlayGrain.mock.calls[0][3]()).toBe(true);
+    await act(async () => finishDecode());
+    expect(mockPlayGrain).toHaveBeenCalledTimes(2);
+    expect(mockPlayGrain.mock.calls[1][2]).toBe(5000);
+    expect(mockPlayGrain.mock.calls[1][0][0].clip.id).toBe("b");
+    mounted.unmount();
+  });
+
+  it("invalidates decoding when the preview is disposed", async () => {
+    clips();
+    mockGetAsset.mockResolvedValue({ get_url: "https://example.test/a.wav" });
+    let finishDecode!: () => void;
+    mockPlayGrain.mockImplementationOnce(() => new Promise<void>((resolve) => { finishDecode = resolve; }));
+    const mounted = renderTransport();
+    await act(async () => instance.playback.setState({ currentTimeMs: 1000 }));
+    const shouldCancel = mockPlayGrain.mock.calls[0][3];
+    mounted.unmount();
+    expect(shouldCancel()).toBe(true);
+    await act(async () => finishDecode());
+    expect(mockPlayGrain).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not play or retry after disposal during lookup", async () => {
+    clips();
+    let release!: (asset: unknown) => void;
+    mockGetAsset.mockImplementation(() => new Promise((resolve) => { release = resolve; }));
+    const mounted = renderTransport();
+    act(() => instance.playback.setState({ currentTimeMs: 1000 }));
+    act(() => instance.playback.setState({ currentTimeMs: 5000 }));
+    mounted.unmount();
+    await act(async () => release({ get_url: "https://example.test/a.wav" }));
+    expect(mockPlayGrain).not.toHaveBeenCalled();
+    expect(mockGetAsset).toHaveBeenCalledTimes(1);
   });
 });

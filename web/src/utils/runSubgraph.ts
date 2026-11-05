@@ -101,7 +101,8 @@ export const buildRunSubgraph = ({
     now
   });
 
-  const included = new Set<string>(targetIds);
+  const targets = new Set<string>(targetIds);
+  const included = new Set<string>(targets);
   const collector = new EdgeOverrideCollector();
   const blocked: BlockedUpstream[] = [];
   const blockedSeen = new Set<string>();
@@ -130,6 +131,10 @@ export const buildRunSubgraph = ({
             collector.add(currentId, edge.targetHandle, value);
           }
         }
+        continue;
+      }
+
+      if (targets.has(source)) {
         continue;
       }
 

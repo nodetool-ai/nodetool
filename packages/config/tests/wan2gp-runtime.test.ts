@@ -2,9 +2,10 @@ import { chmod, mkdtemp, mkdir, readFile, readdir, rm, stat, writeFile } from "n
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { deflateRawSync } from "node:zlib";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { readWan2GPCatalog } from "../src/wan2gp-helper.js";
+import * as nodeImport from "../src/node-import.js";
+import { setWan2GPCatalogStatus, readWan2GPCatalog } from "../src/wan2gp-helper.js";
 import {
   WAN2GP_COMMIT,
   WAN2GP_VERSION,
@@ -158,6 +159,89 @@ describe.skipIf(process.platform === "win32")("Wan2GP runtime", () => {
     expect(await wan2gpInstallStatus(installDir, "linux")).toMatchObject({ installed: true, version: WAN2GP_VERSION });
     await uninstallWan2GP(installDir);
     expect(await wan2gpInstallStatus(installDir, "linux")).toEqual({ installed: false });
+  });
+
+  it("makes a repair process wait until a pending catalog status write finishes", async () => {
+    const { spawn } = await import("node:child_process");
+    const { fileURLToPath } = await import("node:url");
+    const root = await tempDir();
+    const installDir = join(root, "wan2gp");
+    const { python } = await fakePython(root);
+    const options = { installDir, platform: "linux", python, uv: "uv", fetchImpl: serve(archive(WAN2GP_COMMIT)) };
+    const status = await installWan2GP(options);
+    const sourceDir = status.sourceDir!;
+    const catalog = join(sourceDir, "..", "catalog.json");
+    const pendingRename = Promise.withResolvers<void>();
+    const resumeRename = Promise.withResolvers<void>();
+    const originalImport = nodeImport.importNodeBuiltin;
+    const spy = vi.spyOn(nodeImport, "importNodeBuiltin").mockImplementation(async <T>(name: string): Promise<T | null> => {
+      const module = await originalImport<T>(name);
+      if (name !== "node:fs/promises") return module;
+      const fs = await originalImport<typeof import("node:fs/promises")>(name);
+      if (!fs) throw new Error("Missing test filesystem");
+      const filesystem = {
+        ...fs,
+        rename: async (...args: Parameters<typeof fs.rename>) => {
+          if (args[0] === `${catalog}.partial`) {
+            pendingRename.resolve();
+            await resumeRename.promise;
+          }
+          return fs.rename(...args);
+        }
+      };
+      // This test replaces only rename on the requested filesystem module.
+      return filesystem as unknown as T;
+    });
+    const writing = setWan2GPCatalogStatus(sourceDir, "flux", "available");
+    const written = writing.then(() => null, (error: unknown) => error);
+    await pendingRename.promise;
+    const archiveFile = join(root, "source.zip");
+    await writeFile(archiveFile, archive(WAN2GP_COMMIT));
+    const childScript = join(root, "repair.mjs");
+    const moduleUrl = new URL("../src/wan2gp-runtime.ts", import.meta.url).href;
+    const tsxApi = fileURLToPath(new URL("../../../node_modules/tsx/dist/esm/api/index.mjs", import.meta.url));
+    await writeFile(childScript, `
+      import { readFile } from "node:fs/promises";
+      import { tsImport } from ${JSON.stringify(tsxApi)};
+      const { installWan2GP } = await tsImport(${JSON.stringify(moduleUrl)}, import.meta.url);
+      const archive = await readFile(process.argv[4]);
+      await installWan2GP({
+        installDir: process.argv[2], platform: "linux", python: process.argv[3], uv: "uv",
+        fetchImpl: async () => new Response(new Uint8Array(archive)),
+        onEvent: (event) => {
+          if (event.type === "stage" && event.label === "Waiting for another Wan2GP operation") {
+            process.stdout.write("waiting\\n");
+          }
+        }
+      });
+      process.stdout.write("installed\\n");
+    `);
+    const child = spawn(process.execPath, [childScript, installDir, python, archiveFile], { stdio: ["ignore", "pipe", "pipe"] });
+    let output = "";
+    let errors = "";
+    const phase = Promise.withResolvers<string>();
+    child.stdout.on("data", (chunk: Buffer) => {
+      output += chunk.toString();
+      if (output.includes("waiting\n")) phase.resolve("waiting");
+      else if (output.includes("installed\n")) phase.resolve("installed");
+    });
+    child.stderr.on("data", (chunk: Buffer) => { errors += chunk.toString(); });
+    const finished = new Promise<number | null>((resolve, reject) => {
+      child.once("error", (error) => { phase.reject(error); reject(error); });
+      child.once("exit", (code) => { phase.resolve("exited"); resolve(code); });
+    });
+    try {
+      expect(await phase.promise, errors).toBe("waiting");
+      expect(child.exitCode).toBeNull();
+    } finally {
+      resumeRename.resolve();
+      await written;
+      spy.mockRestore();
+      expect(await finished, errors).toBe(0);
+      child.kill();
+    }
+    expect(await written).toBeNull();
+    expect((await readWan2GPCatalog(sourceDir))?.[0].status).toBe("missing");
   });
 
   it("passes an explicit hardware profile", async () => {

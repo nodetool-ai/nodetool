@@ -22,6 +22,7 @@
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@nodetool-ai/app-runtime": "*",
     "@nodetool-ai/browser": "*",
+    "@nodetool-ai/compute": "*",
     "@nodetool-ai/config": "*",
     "@nodetool-ai/execution": "*",
     "@nodetool-ai/game-runtime": "*",

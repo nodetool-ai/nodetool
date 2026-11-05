@@ -14,6 +14,7 @@
  *   headers, then the bytes written each second.
  */
 import { z } from "zod";
+import { wan2gpInstallDir, withWan2GPLock } from "./wan2gp-lock.js";
 import { importNodeBuiltin, safeProcessEnv } from "./node-import.js";
 
 /** The helper, written next to the release it runs in. Python 3.10+. */
@@ -375,7 +376,11 @@ export const Wan2GPCatalogRowSchema = z
   .passthrough();
 export type Wan2GPCatalogRow = z.infer<typeof Wan2GPCatalogRowSchema>;
 
-const CatalogSchema = z.object({ version: z.literal(1), models: z.array(Wan2GPCatalogRowSchema) });
+const CatalogSchema = z.object({
+  version: z.literal(1),
+  generation: z.string().optional(),
+  models: z.array(Wan2GPCatalogRowSchema)
+});
 
 /** The catalog sits beside the release's source, so an update writes a new one. */
 export async function wan2gpCatalogPath(sourceDir: string): Promise<string> {
@@ -384,8 +389,44 @@ export async function wan2gpCatalogPath(sourceDir: string): Promise<string> {
   return path.join(path.dirname(sourceDir), "catalog.json");
 }
 
+/** Source replacement marks a new install even at the same pinned commit. */
+export async function wan2gpSourceIdentity(sourceDir: string): Promise<string> {
+  const fs = await importNodeBuiltin<typeof import("node:fs/promises")>("node:fs/promises");
+  if (!fs) throw new Error("Wan2GP needs Node.js to read its installed models.");
+  const stat = await fs.stat(sourceDir, { bigint: true });
+  return `${stat.dev}:${stat.ino}:${stat.birthtimeNs}`;
+}
+
+/** Source and catalog revisions shared by cached reads and conditional writes. */
+export async function wan2gpCatalogKey(sourceDir: string, identity: string): Promise<string> {
+  const fs = await importNodeBuiltin<typeof import("node:fs/promises")>("node:fs/promises");
+  if (!fs) throw new Error("Wan2GP needs Node.js to read its installed models.");
+  try {
+    const file = await wan2gpCatalogPath(sourceDir);
+    const stat = await fs.stat(file, { bigint: true });
+    const fingerprint = `${stat.ino}:${stat.mtimeNs}:${stat.ctimeNs}:${stat.size}`;
+    const catalog = await readWan2GPCatalogDocument(sourceDir);
+    // A legacy catalog's first status update preserves its original revision
+    // as its generation, so another holder of that snapshot can still record.
+    return `${sourceDir}|${identity}|${catalog?.generation ?? fingerprint}|${fingerprint}`;
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") return `${sourceDir}|${identity}|missing`;
+    throw error;
+  }
+}
+
 /** Write the installed Wan2GP's catalog. Wan2GP starts its runtime for it but loads no model. */
 export async function writeWan2GPCatalog(target: Wan2GPHelperTarget, signal?: AbortSignal): Promise<number> {
+  if (!target.sourceDir) throw new Error("Wan2GP is not installed.");
+  return withWan2GPLock(
+    await wan2gpInstallDir(target.sourceDir),
+    () => writeWan2GPCatalogUnlocked(target, signal),
+    { signal }
+  );
+}
+
+/** The installer already holds the lifecycle lock when generating its catalog. */
+export async function writeWan2GPCatalogUnlocked(target: Wan2GPHelperTarget, signal?: AbortSignal): Promise<number> {
   if (!target.sourceDir) throw new Error("Wan2GP is not installed.");
   let count = -1;
   await runWan2GPHelper(
@@ -402,11 +443,15 @@ export async function writeWan2GPCatalog(target: Wan2GPHelperTarget, signal?: Ab
 
 /** The installed Wan2GP's catalog, or null when there is none or it does not parse. */
 export async function readWan2GPCatalog(sourceDir: string): Promise<Wan2GPCatalogRow[] | null> {
+  return (await readWan2GPCatalogDocument(sourceDir))?.models ?? null;
+}
+
+async function readWan2GPCatalogDocument(sourceDir: string): Promise<z.infer<typeof CatalogSchema> | null> {
   const fs = await importNodeBuiltin<typeof import("node:fs/promises")>("node:fs/promises");
   if (!fs) return null;
   try {
     const parsed = CatalogSchema.safeParse(JSON.parse(await fs.readFile(await wan2gpCatalogPath(sourceDir), "utf8")));
-    return parsed.success ? parsed.data.models : null;
+    return parsed.success ? parsed.data : null;
   } catch {
     return null;
   }
@@ -416,14 +461,25 @@ export async function readWan2GPCatalog(sourceDir: string): Promise<Wan2GPCatalo
 export async function setWan2GPCatalogStatus(
   sourceDir: string,
   modelType: string,
-  status: Wan2GPFileStatus
-): Promise<void> {
-  const fs = await importNodeBuiltin<typeof import("node:fs/promises")>("node:fs/promises");
-  const models = await readWan2GPCatalog(sourceDir);
-  const row = models?.find((model) => model.model_type === modelType);
-  if (!fs || !models || !row || row.status === status) return;
-  row.status = status;
-  const file = await wan2gpCatalogPath(sourceDir);
-  await fs.writeFile(`${file}.partial`, JSON.stringify({ version: 1, models }));
-  await fs.rename(`${file}.partial`, file);
+  status: Wan2GPFileStatus,
+  expectedKey?: string
+): Promise<string | null> {
+  return withWan2GPLock(await wan2gpInstallDir(sourceDir), async () => {
+    // Validate after acquiring the same lock that guards repair and uninstall.
+    const identity = await wan2gpSourceIdentity(sourceDir);
+    const key = await wan2gpCatalogKey(sourceDir, identity);
+    const generationKey = (value: string): string => value.slice(0, value.lastIndexOf("|"));
+    if (expectedKey !== undefined && generationKey(key) !== generationKey(expectedKey)) return null;
+    const fs = await importNodeBuiltin<typeof import("node:fs/promises")>("node:fs/promises");
+    const catalog = await readWan2GPCatalogDocument(sourceDir);
+    const row = catalog?.models.find((model) => model.model_type === modelType);
+    if (!fs || !catalog || !row) return null;
+    if (row.status === status) return key;
+    row.status = status;
+    catalog.generation ??= key.slice(key.lastIndexOf("|") + 1);
+    const file = await wan2gpCatalogPath(sourceDir);
+    await fs.writeFile(`${file}.partial`, JSON.stringify(catalog));
+    await fs.rename(`${file}.partial`, file);
+    return wan2gpCatalogKey(sourceDir, identity);
+  });
 }

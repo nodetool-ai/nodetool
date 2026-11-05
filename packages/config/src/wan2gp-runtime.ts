@@ -20,7 +20,8 @@
 import { z } from "zod";
 import { importNodeBuiltin, safeProcessEnv } from "./node-import.js";
 import { readZipEntries } from "./sd-cpp-runtime.js";
-import { writeWan2GPCatalog } from "./wan2gp-helper.js";
+import { writeWan2GPCatalogUnlocked } from "./wan2gp-helper.js";
+import { withWan2GPLock } from "./wan2gp-lock.js";
 
 /** Wan2GP v19.02, MCP API v2.1. */
 export const WAN2GP_COMMIT = "616e60506aff10086bbbde02a3bf4554c572adde";
@@ -185,109 +186,114 @@ export async function installWan2GP(options: Wan2GPInstallOptions): Promise<Wan2
   const release = commit.slice(0, 12);
   const releaseDir = path.join(installDir, release);
   const sourceDir = path.join(releaseDir, "Wan2GP");
-  onEvent?.({ type: "stage", label: "Unpacking Wan2GP" });
-  await fs.rm(releaseDir, { recursive: true, force: true });
-  await fs.mkdir(sourceDir, { recursive: true });
-  const root = path.resolve(sourceDir);
-  let unpacked = 0;
-  for (const entry of readZipEntries(archive, zlib)) {
-    // GitHub archives hold one top folder, Wan2GP-<commit>/.
-    const slash = entry.name.indexOf("/");
-    const relative = slash >= 0 ? entry.name.slice(slash + 1) : "";
-    if (!relative) continue;
-    const target = path.resolve(root, relative);
-    if (!target.startsWith(root + path.sep)) {
-      throw new Error(`The Wan2GP archive holds an entry outside its root: ${entry.name}`);
-    }
-    if (relative.endsWith("/")) {
-      await fs.mkdir(target, { recursive: true });
-      continue;
-    }
-    await fs.mkdir(path.dirname(target), { recursive: true });
-    await fs.writeFile(target, entry.data);
-    unpacked += 1;
-  }
-  await fs.access(path.join(sourceDir, "setup.py")).catch(() => {
-    throw new Error(`The Wan2GP archive has no setup.py (${unpacked} files unpacked)`);
-  });
-  // Wan2GP looks for weights in ./ckpts. Point every release at one folder.
-  const weights = path.join(installDir, "ckpts");
-  await fs.mkdir(weights, { recursive: true });
-  await fs.rm(path.join(sourceDir, "ckpts"), { recursive: true, force: true });
-  await fs.symlink(weights, path.join(sourceDir, "ckpts"), platform === "win32" ? "junction" : "dir");
-
-  onEvent?.({ type: "stage", label: "Installing Wan2GP's Python environment" });
-  const args = ["setup.py", "install", "--env", "uv", "--auto"];
-  if (options.profile) args.push("--profile", options.profile);
-  const env = installerEnv(path.dirname(options.uv), path.join(installDir, "python"), path.delimiter, safeProcessEnv());
-  await new Promise<void>((resolve, reject) => {
-    const child = childProcess.spawn(options.python, args, {
-      cwd: sourceDir,
-      env,
-      stdio: ["ignore", "pipe", "pipe"],
-      windowsHide: true
-    });
-    const tail: string[] = [];
-    const onData = (chunk: Buffer): void => {
-      for (const line of chunk.toString("utf8").split(/\r?\n/)) {
-        if (!line.trim()) continue;
-        tail.push(line);
-        if (tail.length > 30) tail.shift();
-        // setup.py announces each step as ">>> Running: <command>".
-        const step = /^>>> Running(?: \(Shell\))?: (.+)$/.exec(line.trim());
-        if (step) onEvent?.({ type: "stage", label: step[1].slice(0, 160) });
-        onEvent?.({ type: "log", line });
+  return withWan2GPLock(installDir, async () => {
+    onEvent?.({ type: "stage", label: "Unpacking Wan2GP" });
+    await fs.rm(releaseDir, { recursive: true, force: true });
+    await fs.mkdir(sourceDir, { recursive: true });
+    const root = path.resolve(sourceDir);
+    let unpacked = 0;
+    for (const entry of readZipEntries(archive, zlib)) {
+      // GitHub archives hold one top folder, Wan2GP-<commit>/.
+      const slash = entry.name.indexOf("/");
+      const relative = slash >= 0 ? entry.name.slice(slash + 1) : "";
+      if (!relative) continue;
+      const target = path.resolve(root, relative);
+      if (!target.startsWith(root + path.sep)) {
+        throw new Error(`The Wan2GP archive holds an entry outside its root: ${entry.name}`);
       }
-    };
-    child.stdout?.on("data", onData);
-    child.stderr?.on("data", onData);
-    const onAbort = (): void => {
-      child.kill();
-    };
-    signal?.addEventListener("abort", onAbort, { once: true });
-    child.once("error", (error) => {
-      signal?.removeEventListener("abort", onAbort);
-      reject(new Error(`Could not start Wan2GP's installer with ${options.python}: ${error.message}`));
-    });
-    child.once("close", (code, killSignal) => {
-      signal?.removeEventListener("abort", onAbort);
-      if (signal?.aborted) {
-        reject(signal.reason instanceof Error ? signal.reason : new Error("Wan2GP install cancelled"));
-      } else if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error(installerFailure(code ?? killSignal, tail)));
+      if (relative.endsWith("/")) {
+        await fs.mkdir(target, { recursive: true });
+        continue;
       }
-    });
-  });
-
-  await fs.access(venvPython(sourceDir, platform, path.join)).catch(() => {
-    throw new Error("Wan2GP's installer finished but created no env_uv environment");
-  });
-  onEvent?.({ type: "stage", label: "Reading Wan2GP's model list" });
-  try {
-    const count = await writeWan2GPCatalog({ sourceDir, python: venvPython(sourceDir, platform, path.join) }, signal);
-    onEvent?.({ type: "log", line: `Wan2GP offers ${count} models` });
-  } catch (error) {
-    signal?.throwIfAborted();
-    // The model menus write the catalog on first use instead.
-    onEvent?.({ type: "log", line: `Could not read Wan2GP's model list yet: ${String(error)}` });
-  }
-  await fs.writeFile(
-    path.join(installDir, MARKER_FILE),
-    `${JSON.stringify({ commit, version: WAN2GP_VERSION, release })}\n`
-  );
-  // The new release runs now. Remove the ones before it.
-  for (const name of await fs.readdir(installDir)) {
-    if (name !== release && !SHARED_ENTRIES.has(name)) {
-      await fs.rm(path.join(installDir, name), { recursive: true, force: true });
+      await fs.mkdir(path.dirname(target), { recursive: true });
+      await fs.writeFile(target, entry.data);
+      unpacked += 1;
     }
-  }
-  onEvent?.({ type: "percent", value: 100 });
-  return wan2gpInstallStatus(installDir, platform);
+    await fs.access(path.join(sourceDir, "setup.py")).catch(() => {
+      throw new Error(`The Wan2GP archive has no setup.py (${unpacked} files unpacked)`);
+    });
+    // Wan2GP looks for weights in ./ckpts. Point every release at one folder.
+    const weights = path.join(installDir, "ckpts");
+    await fs.mkdir(weights, { recursive: true });
+    await fs.rm(path.join(sourceDir, "ckpts"), { recursive: true, force: true });
+    await fs.symlink(weights, path.join(sourceDir, "ckpts"), platform === "win32" ? "junction" : "dir");
+
+    onEvent?.({ type: "stage", label: "Installing Wan2GP's Python environment" });
+    const args = ["setup.py", "install", "--env", "uv", "--auto"];
+    if (options.profile) args.push("--profile", options.profile);
+    const env = installerEnv(path.dirname(options.uv), path.join(installDir, "python"), path.delimiter, safeProcessEnv());
+    await new Promise<void>((resolve, reject) => {
+      const child = childProcess.spawn(options.python, args, {
+        cwd: sourceDir,
+        env,
+        stdio: ["ignore", "pipe", "pipe"],
+        windowsHide: true
+      });
+      const tail: string[] = [];
+      const onData = (chunk: Buffer): void => {
+        for (const line of chunk.toString("utf8").split(/\r?\n/)) {
+          if (!line.trim()) continue;
+          tail.push(line);
+          if (tail.length > 30) tail.shift();
+          // setup.py announces each step as ">>> Running: <command>".
+          const step = /^>>> Running(?: \(Shell\))?: (.+)$/.exec(line.trim());
+          if (step) onEvent?.({ type: "stage", label: step[1].slice(0, 160) });
+          onEvent?.({ type: "log", line });
+        }
+      };
+      child.stdout?.on("data", onData);
+      child.stderr?.on("data", onData);
+      const onAbort = (): void => {
+        child.kill();
+      };
+      signal?.addEventListener("abort", onAbort, { once: true });
+      child.once("error", (error) => {
+        signal?.removeEventListener("abort", onAbort);
+        reject(new Error(`Could not start Wan2GP's installer with ${options.python}: ${error.message}`));
+      });
+      child.once("close", (code, killSignal) => {
+        signal?.removeEventListener("abort", onAbort);
+        if (signal?.aborted) {
+          reject(signal.reason instanceof Error ? signal.reason : new Error("Wan2GP install cancelled"));
+        } else if (code === 0) {
+          resolve();
+        } else {
+          reject(new Error(installerFailure(code ?? killSignal, tail)));
+        }
+      });
+    });
+
+    await fs.access(venvPython(sourceDir, platform, path.join)).catch(() => {
+      throw new Error("Wan2GP's installer finished but created no env_uv environment");
+    });
+    onEvent?.({ type: "stage", label: "Reading Wan2GP's model list" });
+    try {
+      const count = await writeWan2GPCatalogUnlocked({ sourceDir, python: venvPython(sourceDir, platform, path.join) }, signal);
+      onEvent?.({ type: "log", line: `Wan2GP offers ${count} models` });
+    } catch (error) {
+      signal?.throwIfAborted();
+      // The model menus write the catalog on first use instead.
+      onEvent?.({ type: "log", line: `Could not read Wan2GP's model list yet: ${String(error)}` });
+    }
+    await fs.writeFile(
+      path.join(installDir, MARKER_FILE),
+      `${JSON.stringify({ commit, version: WAN2GP_VERSION, release })}\n`
+    );
+    // The new release runs now. Remove the ones before it.
+    for (const name of await fs.readdir(installDir)) {
+      if (name !== release && !SHARED_ENTRIES.has(name)) {
+        await fs.rm(path.join(installDir, name), { recursive: true, force: true });
+      }
+    }
+    onEvent?.({ type: "percent", value: 100 });
+    return wan2gpInstallStatus(installDir, platform);
+  }, {
+    signal,
+    onWait: () => onEvent?.({ type: "stage", label: "Waiting for another Wan2GP operation" })
+  });
 }
 
 export async function uninstallWan2GP(installDir: string): Promise<void> {
   const fs = await importNodeBuiltin<typeof import("node:fs/promises")>("node:fs/promises");
-  await fs?.rm(installDir, { recursive: true, force: true });
+  await withWan2GPLock(installDir, () => fs?.rm(installDir, { recursive: true, force: true }) ?? Promise.resolve());
 }
