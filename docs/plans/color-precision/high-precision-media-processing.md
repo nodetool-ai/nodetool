@@ -109,6 +109,8 @@ Qualify the existing shared server renderer first. Browser delivery and agent pa
   The server half is measured in the [operational report](results/s3-operational-budgets.md), including safety stops and deployment limits. The S3 server gate remains unmet. Browser interactive targets and real constrained hardware remain open.
 - [ ] **A50: Enable qualified server rendering.** Use existing internal configuration. Test unavailable adapters, allocation failure, device loss and repeated export. Preserve document access and diagnostics. No document copy flow or new precision UI.
 
+  Owner decision, 2026-11-05: FP16 stays off on the server. A49 measured a 4K FP16 render at 4,091 MiB against the 4 GiB replica limit, and FP16's benefit is only established for dark fades. Each deployed replica sets `NODETOOL_TIMELINE_RENDER_CONCURRENCY=1`. A50 stays open until a future measurement justifies enabling it. See [the budgets](results/s3-operational-budgets.md).
+
 **Exit gate:** shared server rendering meets image, resource, completion and API-contention budgets on its deployed adapter.
 
 ## S4: Deliver browser preview and export
