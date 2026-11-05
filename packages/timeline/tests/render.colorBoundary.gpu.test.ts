@@ -6,7 +6,7 @@ import { createCanvas } from "@napi-rs/canvas";
 import { expect, it } from "vitest";
 import { getNodeGPUDevice } from "@nodetool-ai/gpu/node";
 import { openRgbaFrameReader, openVideoFrameEncoder } from "@nodetool-ai/runtime/media";
-import { videoStreamFormat } from "@nodetool-ai/runtime/media/testing";
+import { readRgbaFramesWith, videoStreamFormat } from "@nodetool-ai/runtime/media/testing";
 // Exercise the server boundary itself rather than copying its format table.
 import { decodeStillRgba, encoderSpecFromArgs } from "../../video-nodes/src/nodes/timeline/rawFrames.js";
 import { resolveTimelineOutput } from "../../video-nodes/src/nodes/timeline/outputFormats.js";
@@ -231,15 +231,21 @@ async function encodeRoute(path: string, pixels: Uint8Array, format: string, alp
 
 for (const format of ["mp4", "webm", "mov"]) {
   for (const alpha of format === "mp4" ? [false] : [false, true]) {
-    // B216: VP9 advertises alpha_mode=1, but runtime RGBA decoding loses alpha.
-    const test = format === "webm" && alpha ? it.fails : it;
-    test(`preserves ${format} alpha=${alpha} decoded samples through the server codec boundary`, async () => {
+    it(`preserves ${format} alpha=${alpha} decoded samples through the server codec boundary`, async () => {
       const directory = await mkdtemp(join(tmpdir(), "timeline-video-boundary-"));
       try {
         const source = ramp(alpha);
         const input = join(directory, `input.${format}`);
         await encodeRoute(input, source, format, alpha);
-        const decoded = await decode(input);
+        // B216: native VP9 drops WebM BlockAdditions alpha. Qualify delivery with libvpx.
+        const decodeDelivery = format === "webm" && alpha
+          ? async (path: string): Promise<Uint8Array> => {
+            const frames = await readRgbaFramesWith(path, "libvpx-vp9", { width, height });
+            expect(frames).toHaveLength(1);
+            return frames[0]!;
+          }
+          : decode;
+        const decoded = await decodeDelivery(input);
         // Alpha must survive decoding, not just appear in the requested pixel format.
         const alphaError = Math.max(...Array.from({ length: width * height }, (_, p) =>
           Math.abs(decoded[p * 4 + 3]! - source[p * 4 + 3]!)));
@@ -255,7 +261,7 @@ for (const format of ["mp4", "webm", "mov"]) {
         const referencePath = join(directory, `reference.${format}`);
         await encodeRoute(actualPath, rendered, format, alpha);
         await encodeRoute(referencePath, expectedRender(decoded), format, alpha);
-        expect(maximumError(await decode(actualPath), await decode(referencePath))).toBeLessThanOrEqual(1);
+        expect(maximumError(await decodeDelivery(actualPath), await decodeDelivery(referencePath))).toBeLessThanOrEqual(1);
       } finally {
         await rm(directory, { recursive: true, force: true });
       }
@@ -270,8 +276,9 @@ function srgbToBt709(code: number): number {
 }
 
 for (const format of ["mp4", "webm", "mov"]) {
-  // S6/A101: retain today's export until the 16–17-code transfer policy is decided.
-  it.fails(`honors declared BT.709 transfer for sRGB PNG to ${format} delivery`, async () => {
+  // O1 accepts the inaccurate tag to preserve source appearance. See
+  // docs/plans/color-precision/high-precision-media-processing.md, A101 owner decision.
+  it(`preserves O1 pass-through samples and BT.709 tags for sRGB PNG to ${format} delivery`, async () => {
     const directory = await mkdtemp(join(tmpdir(), "timeline-transfer-declaration-"));
     try {
       const input = join(directory, "srgb.png");
@@ -282,21 +289,23 @@ for (const format of ["mp4", "webm", "mov"]) {
       const actualPath = join(directory, `actual.${format}`);
       const referencePath = join(directory, `reference.${format}`);
       await encodeRoute(actualPath, rendered, format, false);
-      const expected = new Uint8Array(decoded);
-      for (let i = 0; i < expected.length; i++) {
-        if (i % 4 !== 3) expected[i] = srgbToBt709(decoded[i]!);
-      }
-      // Identical codec settings on the oracle branch isolate the transfer error.
+      const expected = decoded;
+      // Encode unconverted source independently to measure this codec's loss.
       await encodeRoute(referencePath, expected, format, false);
       const actual = await decode(actualPath);
       const reference = await decode(referencePath);
       const stream = await videoStreamFormat(actualPath);
-      console.info("delivery metadata", stream, { codecLoss: maximumError(reference, expected), transferError: maximumError(actual, reference) });
+      const codecLoss = maximumError(reference, expected);
+      const deliveryError = maximumError(actual, expected);
+      console.info("O1 delivery metadata", stream, { codecLoss, deliveryError });
       expect(stream).toMatchObject({
         colorTransfer: "bt709", colorSpace: "bt709", colorPrimaries: "bt709", colorRange: "tv"
       });
-      expect(maximumError(reference, expected), "reference codec loss").toBeLessThanOrEqual(5);
-      expect(maximumError(actual, reference), "declared BT.709 transfer error, excluding codec loss").toBeLessThanOrEqual(5);
+      // A98's ramp round trips lose at most 2 codes for H.264/VP9 and 0 for
+      // opaque ProRes. Cap the oracle there so conversion cannot inflate the bound.
+      expect(codecLoss, "unconverted reference codec loss").toBeLessThanOrEqual(format === "mov" ? 0 : 2);
+      // Allow measured codec loss plus the renderer's one-code RGBA8 rounding.
+      expect(deliveryError, "O1 source sample error").toBeLessThanOrEqual(codecLoss + 1);
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
