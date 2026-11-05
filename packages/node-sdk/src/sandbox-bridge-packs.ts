@@ -93,7 +93,7 @@ export const BRIDGE_PACKS: readonly BridgePack[] = [
   {
     specifier: "@nodetool-ai/sandbox-expr",
     packName: "@nodetool-ai/sandbox-expr",
-    library: "expr-eval",
+    library: "expr-eval-fork",
     runs: "host"
   },
   {

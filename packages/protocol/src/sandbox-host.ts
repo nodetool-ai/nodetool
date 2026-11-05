@@ -218,7 +218,7 @@ export const SANDBOX_HOST_MODULES: Readonly<Record<string, SandboxHostModuleSpec
   expr: {
     id: "expr",
     packName: "@nodetool-ai/sandbox-expr",
-    library: "expr-eval",
+    library: "expr-eval-fork",
     description: "Evaluate a math formula without eval.",
     exports: ["evaluate"]
   },
