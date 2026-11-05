@@ -465,12 +465,25 @@ node scripts/comfy-templates/gpu-catalog.mjs --check
 
 ### Run Comfy workflows on your own server
 
-Set `COMFY_SERVER_URL` in Settings or in the server's environment, for example
-`http://127.0.0.1:8188`. Comfy workflows then run on that ComfyUI through its
-native API, the node menu shows that server's nodes, and no `COMFY_API_KEY` is
-needed. The server must have the models and custom nodes that the workflow uses.
-Clear the setting to run on Comfy Cloud again. Partner nodes need a Comfy account
-key, which this path does not send, so use Comfy Cloud for them.
+A global target decides where every Comfy workflow runs. The selector next to
+the Run button shows the target and changes it. It writes these settings:
+
+| `COMFY_TARGET` | Runs on | Also needs |
+|---|---|---|
+| `cloud` | Comfy Cloud | `COMFY_API_KEY` |
+| `server` | A ComfyUI through its native API | `COMFY_SERVER_URL` |
+| `worker` | A NodeTool worker that fronts ComfyUI | `COMFY_WORKER_URL`, and `COMFY_WORKER_TOKEN` if the worker requires one |
+
+A selected target that is not configured fails the run and never falls back to
+another target. When `COMFY_TARGET` is unset, a workflow runs on
+`COMFY_SERVER_URL` if it has a value, and otherwise on Comfy Cloud. The first
+run log line names the target, and the node menu shows that target's nodes.
+
+The target must have the models and custom nodes that the workflow uses. Partner
+nodes need a Comfy account key, which only the Cloud target sends. A worker
+without `comfy.api_v2` returns all files at the end of the run. The target does
+not affect the three `lib.comfy` runner nodes, because each of them names its
+own target, or the Comfy Cloud models in the model pickers.
 
 The `Comfy *` examples are compiled from UI-format templates by
 `scripts/comfy-templates/ui-examples.mjs`. `--refresh` keeps only the templates

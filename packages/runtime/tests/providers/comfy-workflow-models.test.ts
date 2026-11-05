@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
+import { COMFY_RUN_MODE, buildComfyPrompt, type ComfyGraph } from "@nodetool-ai/protocol";
 
 import {
   COMFY_LTX23_I2V_MODEL_ID,
@@ -21,16 +22,13 @@ import {
 } from "../../src/providers/comfy-workflow-models.js";
 import { ComfyCloudProvider } from "../../src/providers/comfy-cloud-provider.js";
 
-const example = (name: string): unknown => {
-  const path = fileURLToPath(
-    new URL(`../../../base-nodes/nodetool/examples/nodetool-base/${name}.json`, import.meta.url)
-  );
-  const workflow = JSON.parse(readFileSync(path, "utf8")) as {
-    graph: { nodes: Array<{ type: string; data: { workflow?: string } }> };
-  };
-  const node = workflow.graph.nodes.find((n) => n.type === "lib.comfy.RunWorkflowOnCloud");
-  return JSON.parse(node!.data.workflow!);
-};
+const fixture = (path: string): unknown =>
+  JSON.parse(readFileSync(fileURLToPath(new URL(path, import.meta.url)), "utf8"));
+
+const sockets = fixture("../fixtures/comfy-templates/shot-director-sockets.json") as Record<string, string[]>;
+
+const example = (name: string): { run_mode?: string; graph: ComfyGraph } =>
+  fixture(`../../../base-nodes/nodetool/examples/nodetool-base/${name}.json`) as { run_mode?: string; graph: ComfyGraph };
 
 const model = (id: string) => comfyWorkflowModel(id)!;
 
@@ -44,7 +42,10 @@ describe("pinned ComfyUI workflow models", () => {
     [COMFY_WAN22_I2V_A14B_MODEL_ID, "Shot Director (Wan 2.2 14B)"],
     [COMFY_LTX23_I2V_MODEL_ID, "Shot Director (LTX-2.3)"]
   ])("%s runs the graph its editable example ships", (id, name) => {
-    expect(example(name)).toEqual(model(id).graph);
+    const workflow = example(name);
+    expect(workflow.run_mode).toBe(COMFY_RUN_MODE);
+    expect(workflow.graph.nodes.filter((n) => !n.type.startsWith("comfy.")).map((n) => n.id)).toEqual(["intro"]);
+    expect(buildComfyPrompt(workflow.graph, (cls) => sockets[cls])).toEqual(model(id).graph);
   });
 
   it("uses core nodes only, never partner API nodes", () => {

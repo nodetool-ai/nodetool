@@ -29,7 +29,11 @@ function applyDefaults(inputs, entry, prefix = "") {
 
 const isWidgetSpec = (spec) =>
   Array.isArray(spec) &&
-  (Array.isArray(spec[0]) || WIDGET_KINDS.has(spec[0]) || spec[0] === "COMFY_DYNAMICCOMBO_V3");
+  (Array.isArray(spec[0]) ||
+    WIDGET_KINDS.has(spec[0]) ||
+    spec[0] === "COMFY_DYNAMICCOMBO_V3" ||
+    // A multi-type widget has a type such as "FLOAT,INT" and names its widget.
+    typeof spec[1]?.widgetType === "string");
 
 function orderedInputs(entry) {
   const out = [];

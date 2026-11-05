@@ -4,7 +4,7 @@
   "created_at": "2026-11-03T12:00:00.000000",
   "updated_at": "2026-11-03T12:00:00.000000",
   "name": "Shot Director (Wan 2.2 14B)",
-  "description": "Direct a cinematic take from one still and render it on Comfy Cloud with a pinned Wan 2.2 I2V A14B workflow (open weights, 4-step lightx2v). The same graph runs behind the Storyboard clip model \"Wan 2.2 I2V A14B (ComfyUI workflow)\".",
+  "description": "Direct a cinematic take from one still as a native ComfyUI graph on Comfy Cloud (Wan 2.2 I2V A14B with 4-step lightx2v, open weights). The same graph runs behind the Storyboard clip model \"Wan 2.2 I2V A14B (ComfyUI workflow, open weights)\".",
   "tags": [
     "video",
     "comfy",
@@ -20,299 +20,495 @@
         "id": "intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Shot Director\n\nTurn one still into a directed cinematic take on **Comfy Cloud**.\n\n1. **Source Image**, **Camera Move**, **Direction** and **Seed** feed **Compose Shot**, which looks up the open camera preset (`packages/presets/catalog/camera`) and writes the effective prompt plus a run-settings record.\n2. **Run on Comfy Cloud** submits a pinned ComfyUI API workflow (Wan 2.2 TI2V 5B, core ComfyUI nodes only) through the Comfy API v2 SDK. Needs `COMFY_API_KEY`.\n3. The take is saved as a video asset. **Comfy Job** carries the job id and output manifest.\n\nOpen weights: Wan 2.2 (Apache-2.0). No partner nodes."
-        },
-        "position": {
-          "x": 40,
-          "y": -260
-        }
-      },
-      {
-        "id": "source",
-        "type": "nodetool.input.ImageInput",
-        "data": {
-          "name": "source_image",
-          "value": {
-            "type": "image",
-            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          },
-          "description": "The still to direct. Landscape works best (rendered at 1280x704)."
-        },
-        "position": {
-          "x": 40,
-          "y": 40
-        }
-      },
-      {
-        "id": "camera_move",
-        "type": "nodetool.input.SelectInput",
-        "data": {
-          "name": "camera_move",
-          "value": "dolly in",
-          "options": [
-            "dolly in",
-            "orbit",
-            "crane up",
-            "pull back reveal",
-            "handheld",
-            "static"
-          ],
-          "enum_type_name": "shot_director_move",
-          "description": "The camera preset for this take."
-        },
-        "position": {
-          "x": 40,
-          "y": 300
-        }
-      },
-      {
-        "id": "direction",
-        "type": "nodetool.input.StringInput",
-        "data": {
-          "name": "direction",
-          "value": "Steam curls up from the espresso cup on the dark wooden table among scattered coffee beans, warm low light.",
-          "description": "What happens in the frame, the mood and the light.",
-          "line_mode": "multi_line"
-        },
-        "position": {
-          "x": 40,
-          "y": 460
-        }
-      },
-      {
-        "id": "seed",
-        "type": "nodetool.input.IntegerInput",
-        "data": {
-          "name": "seed",
-          "value": 42,
-          "min": 0,
-          "max": 2147483647,
-          "description": "Same seed and settings reproduce the same take."
-        },
-        "position": {
-          "x": 40,
-          "y": 640
-        }
-      },
-      {
-        "id": "compose",
-        "type": "nodetool.code.Code",
-        "data": {
-          "code": "const PRESETS = {\n  \"dolly in\": {\n    \"id\": \"camera.dolly-in\",\n    \"version\": 1,\n    \"prompt\": \"The camera glides forward toward the subject in one continuous movement. Nearby objects slide past faster than the distant background as the subject grows larger. One continuous shot.\"\n  },\n  \"orbit\": {\n    \"id\": \"camera.orbit\",\n    \"version\": 1,\n    \"prompt\": \"The camera circles all the way around the subject at a steady height and distance, revealing front, side, back and front again in a continuous shot. One continuous shot.\"\n  },\n  \"crane up\": {\n    \"id\": \"camera.crane-up\",\n    \"version\": 1,\n    \"prompt\": \"The camera lifts above the subject and gradually points downward. More of the surrounding ground becomes visible as the subject recedes below. One continuous shot.\"\n  },\n  \"pull back reveal\": {\n    \"id\": \"camera.pull-back-reveal\",\n    \"version\": 1,\n    \"prompt\": \"Beginning close to the subject, the camera retreats smoothly into a wide shot. Surrounding scenery progressively enters at the edges and reveals the larger setting. One continuous shot.\"\n  },\n  \"handheld\": {\n    \"id\": \"camera.handheld\",\n    \"version\": 1,\n    \"prompt\": \"Small irregular camera movements drift gently up, down and sideways, like a person holding a camera while standing still. The subject remains clearly visible. One continuous shot.\"\n  },\n  \"static\": {\n    \"id\": \"camera.static\",\n    \"version\": 1,\n    \"prompt\": \"The camera holds exactly the same viewpoint and framing throughout the shot. Motion belongs to the subject and the environment inside the stationary frame. One continuous shot.\"\n  }\n};\nconst move = String(inputs.camera_move ?? \"\").trim();\nconst preset = PRESETS[move];\nif (!preset) throw new Error(`Unknown camera move \"${move}\". Pick one of: ${Object.keys(PRESETS).join(\", \")}.`);\nconst direction = String(inputs.direction ?? \"\").trim();\nif (direction.length > 600) throw new Error(\"Direction must be 600 characters or fewer.\");\nconst seed = Number.isInteger(inputs.seed) ? inputs.seed : 42;\nconst prompt = [direction, preset.prompt].filter(Boolean).join(\" \");\nconst settings = {\n  schemaVersion: 1,\n  app: \"shot-director\",\n  preset: { id: preset.id, version: preset.version, name: move, family: \"local-wan\" },\n  direction,\n  effectivePrompt: prompt,\n  seed,\n  backend: \"comfy-cloud\",\n  model: \"wan2.2_ti2v_5B_fp16\",\n  resolution: \"1280x704\",\n  frames: 121,\n  fps: 24\n};\nawait output(\"prompt\", prompt);\nawait output(\"seed\", seed);\nawait output(\"run_settings\", JSON.stringify(settings, null, 2));\n"
-        },
-        "dynamic_properties": {
-          "camera_move": "",
-          "direction": "",
-          "seed": 0
-        },
-        "dynamic_inputs": {
-          "camera_move": {
-            "type": {
-              "type": "str"
-            }
-          },
-          "direction": {
-            "type": {
-              "type": "str"
-            }
-          },
-          "seed": {
-            "type": {
-              "type": "int"
-            }
-          }
-        },
-        "dynamic_outputs": {
-          "prompt": {
-            "type": "str",
-            "type_args": [],
-            "optional": false
-          },
-          "seed": {
-            "type": "int",
-            "type_args": [],
-            "optional": false
-          },
-          "run_settings": {
-            "type": "str",
-            "type_args": [],
-            "optional": false
-          }
-        },
-        "sync_mode": "on_all",
-        "ui_properties": {
-          "title": "Compose Shot"
-        },
-        "position": {
-          "x": 380,
-          "y": 300
-        }
-      },
-      {
-        "id": "comfy",
-        "type": "lib.comfy.RunWorkflowOnCloud",
-        "data": {
-          "workflow": "{\n  \"84\": {\n    \"class_type\": \"CLIPLoader\",\n    \"inputs\": {\n      \"clip_name\": \"umt5_xxl_fp8_e4m3fn_scaled.safetensors\",\n      \"type\": \"wan\",\n      \"device\": \"default\"\n    }\n  },\n  \"89\": {\n    \"class_type\": \"CLIPTextEncode\",\n    \"inputs\": {\n      \"text\": \"色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走\",\n      \"clip\": [\n        \"84\",\n        0\n      ]\n    }\n  },\n  \"93\": {\n    \"class_type\": \"CLIPTextEncode\",\n    \"inputs\": {\n      \"text\": \"A cinematic shot.\",\n      \"clip\": [\n        \"84\",\n        0\n      ]\n    }\n  },\n  \"90\": {\n    \"class_type\": \"VAELoader\",\n    \"inputs\": {\n      \"vae_name\": \"wan_2.1_vae.safetensors\"\n    }\n  },\n  \"95\": {\n    \"class_type\": \"UNETLoader\",\n    \"inputs\": {\n      \"unet_name\": \"wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors\",\n      \"weight_dtype\": \"default\"\n    }\n  },\n  \"96\": {\n    \"class_type\": \"UNETLoader\",\n    \"inputs\": {\n      \"unet_name\": \"wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors\",\n      \"weight_dtype\": \"default\"\n    }\n  },\n  \"101\": {\n    \"class_type\": \"LoraLoaderModelOnly\",\n    \"inputs\": {\n      \"model\": [\n        \"95\",\n        0\n      ],\n      \"lora_name\": \"wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors\",\n      \"strength_model\": 1.0\n    }\n  },\n  \"102\": {\n    \"class_type\": \"LoraLoaderModelOnly\",\n    \"inputs\": {\n      \"model\": [\n        \"96\",\n        0\n      ],\n      \"lora_name\": \"wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors\",\n      \"strength_model\": 1.0\n    }\n  },\n  \"104\": {\n    \"class_type\": \"ModelSamplingSD3\",\n    \"inputs\": {\n      \"model\": [\n        \"101\",\n        0\n      ],\n      \"shift\": 5.0\n    }\n  },\n  \"103\": {\n    \"class_type\": \"ModelSamplingSD3\",\n    \"inputs\": {\n      \"model\": [\n        \"102\",\n        0\n      ],\n      \"shift\": 5.0\n    }\n  },\n  \"56\": {\n    \"class_type\": \"LoadImage\",\n    \"inputs\": {\n      \"image\": \"input.png\"\n    }\n  },\n  \"98\": {\n    \"class_type\": \"WanImageToVideo\",\n    \"inputs\": {\n      \"positive\": [\n        \"93\",\n        0\n      ],\n      \"negative\": [\n        \"89\",\n        0\n      ],\n      \"vae\": [\n        \"90\",\n        0\n      ],\n      \"start_image\": [\n        \"56\",\n        0\n      ],\n      \"width\": 832,\n      \"height\": 480,\n      \"length\": 81,\n      \"batch_size\": 1\n    }\n  },\n  \"86\": {\n    \"class_type\": \"KSamplerAdvanced\",\n    \"inputs\": {\n      \"model\": [\n        \"104\",\n        0\n      ],\n      \"add_noise\": \"enable\",\n      \"noise_seed\": 42,\n      \"steps\": 4,\n      \"cfg\": 1,\n      \"sampler_name\": \"euler\",\n      \"scheduler\": \"simple\",\n      \"positive\": [\n        \"98\",\n        0\n      ],\n      \"negative\": [\n        \"98\",\n        1\n      ],\n      \"latent_image\": [\n        \"98\",\n        2\n      ],\n      \"start_at_step\": 0,\n      \"end_at_step\": 2,\n      \"return_with_leftover_noise\": \"enable\"\n    }\n  },\n  \"85\": {\n    \"class_type\": \"KSamplerAdvanced\",\n    \"inputs\": {\n      \"model\": [\n        \"103\",\n        0\n      ],\n      \"add_noise\": \"disable\",\n      \"noise_seed\": 0,\n      \"steps\": 4,\n      \"cfg\": 1,\n      \"sampler_name\": \"euler\",\n      \"scheduler\": \"simple\",\n      \"positive\": [\n        \"98\",\n        0\n      ],\n      \"negative\": [\n        \"98\",\n        1\n      ],\n      \"latent_image\": [\n        \"86\",\n        0\n      ],\n      \"start_at_step\": 2,\n      \"end_at_step\": 10000,\n      \"return_with_leftover_noise\": \"disable\"\n    }\n  },\n  \"87\": {\n    \"class_type\": \"VAEDecode\",\n    \"inputs\": {\n      \"samples\": [\n        \"85\",\n        0\n      ],\n      \"vae\": [\n        \"90\",\n        0\n      ]\n    }\n  },\n  \"57\": {\n    \"class_type\": \"CreateVideo\",\n    \"inputs\": {\n      \"fps\": 16,\n      \"images\": [\n        \"87\",\n        0\n      ]\n    }\n  },\n  \"58\": {\n    \"class_type\": \"SaveVideo\",\n    \"inputs\": {\n      \"filename_prefix\": \"video/nodetool-wan22-14b\",\n      \"format\": \"auto\",\n      \"codec\": \"auto\",\n      \"video\": [\n        \"57\",\n        0\n      ]\n    }\n  }\n}",
-          "timeout": 900,
-          "previews": false
-        },
-        "dynamic_properties": {
-          "56:image": null,
-          "93:text": "",
-          "89:text": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走",
-          "86:noise_seed": 42
-        },
-        "dynamic_inputs": {
-          "56:image": {
-            "type": {
-              "type": "image"
-            },
-            "description": "Load Image · image"
-          },
-          "93:text": {
-            "type": {
-              "type": "str"
-            },
-            "description": "Positive prompt · text"
-          },
-          "89:text": {
-            "type": {
-              "type": "str"
-            },
-            "description": "Negative prompt · text"
-          },
-          "86:noise_seed": {
-            "type": {
-              "type": "int"
-            },
-            "description": "KSamplerAdvanced · noise_seed"
-          }
-        },
-        "dynamic_outputs": {
-          "58:video": {
-            "type": "video",
-            "type_args": [],
-            "optional": false
-          }
+          "comment": "# Shot Director (Wan 2.2 14B)\n\nDirect a cinematic take from one still as a native ComfyUI graph on Comfy Cloud (Wan 2.2 I2V A14B with 4-step lightx2v, open weights). The same graph runs behind the Storyboard clip model \"Wan 2.2 I2V A14B (ComfyUI workflow, open weights)\".\n\n**How it works:** Run submits this graph to Comfy Cloud and saves the take. Set the still on the Load Image node and describe the shot in the prompt.\n\n**Camera moves:** Add one of these clauses to the end of the prompt.\n\n- **dolly in:** The camera glides forward toward the subject in one continuous movement. Nearby objects slide past faster than the distant background as the subject grows larger. One continuous shot.\n- **orbit:** The camera circles all the way around the subject at a steady height and distance, revealing front, side, back and front again in a continuous shot. One continuous shot.\n- **crane up:** The camera lifts above the subject and gradually points downward. More of the surrounding ground becomes visible as the subject recedes below. One continuous shot.\n- **pull back reveal:** Beginning close to the subject, the camera retreats smoothly into a wide shot. Surrounding scenery progressively enters at the edges and reveals the larger setting. One continuous shot.\n- **handheld:** Small irregular camera movements drift gently up, down and sideways, like a person holding a camera while standing still. The subject remains clearly visible. One continuous shot.\n- **static:** The camera holds exactly the same viewpoint and framing throughout the shot. Motion belongs to the subject and the environment inside the stationary frame. One continuous shot."
         },
         "ui_properties": {
-          "title": "Run on Comfy Cloud"
-        },
-        "position": {
-          "x": 720,
-          "y": 160
+          "position": {
+            "x": 0,
+            "y": -640
+          },
+          "width": 600
         }
       },
       {
-        "id": "take",
-        "type": "nodetool.output.Output",
+        "id": "56",
+        "type": "comfy.LoadImage",
         "data": {
-          "name": "take",
-          "description": "The rendered take (Wan 2.2 TI2V 5B, ~5 s, 1280x704, 24 fps)."
+          "image": "input.png"
         },
-        "position": {
-          "x": 1080,
-          "y": 120
-        }
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       },
       {
-        "id": "job",
-        "type": "nodetool.output.Output",
+        "id": "57",
+        "type": "comfy.CreateVideo",
         "data": {
-          "name": "comfy_job",
-          "description": "Comfy job id, status and output manifest."
+          "fps": 16
         },
-        "position": {
-          "x": 1080,
-          "y": 300
-        }
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       },
       {
-        "id": "settings",
-        "type": "nodetool.output.Output",
+        "id": "58",
+        "type": "comfy.SaveVideo",
         "data": {
-          "name": "run_settings",
-          "description": "Preset id and version, effective prompt, seed, model and backend for this take."
+          "filename_prefix": "video/nodetool-wan22-14b",
+          "format": "auto",
+          "codec": "auto"
         },
-        "position": {
-          "x": 720,
-          "y": 520
-        }
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "84",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+          "type": "wan",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "85",
+        "type": "comfy.KSamplerAdvanced",
+        "data": {
+          "add_noise": "disable",
+          "noise_seed": 0,
+          "steps": 4,
+          "cfg": 1,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "start_at_step": 2,
+          "end_at_step": 10000,
+          "return_with_leftover_noise": "disable"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "86",
+        "type": "comfy.KSamplerAdvanced",
+        "data": {
+          "add_noise": "enable",
+          "noise_seed": 42,
+          "steps": 4,
+          "cfg": 1,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "start_at_step": 0,
+          "end_at_step": 2,
+          "return_with_leftover_noise": "enable"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "87",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "89",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "90",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "wan_2.1_vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "A cinematic shot."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "95",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "96",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "98",
+        "type": "comfy.WanImageToVideo",
+        "data": {
+          "width": 832,
+          "height": 480,
+          "length": 81,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "101",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "102",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "103",
+        "type": "comfy.ModelSamplingSD3",
+        "data": {
+          "shift": 5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "104",
+        "type": "comfy.ModelSamplingSD3",
+        "data": {
+          "shift": 5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       }
     ],
     "edges": [
       {
-        "id": "e1",
-        "source": "source",
-        "sourceHandle": "output",
-        "target": "comfy",
-        "targetHandle": "56:image"
+        "id": "87-0-57-images",
+        "source": "87",
+        "sourceHandle": "IMAGE",
+        "target": "57",
+        "targetHandle": "images",
+        "ui_properties": null
       },
       {
-        "id": "e2",
-        "source": "camera_move",
-        "sourceHandle": "output",
-        "target": "compose",
-        "targetHandle": "camera_move"
+        "id": "57-0-58-video",
+        "source": "57",
+        "sourceHandle": "VIDEO",
+        "target": "58",
+        "targetHandle": "video",
+        "ui_properties": null
       },
       {
-        "id": "e3",
-        "source": "direction",
-        "sourceHandle": "output",
-        "target": "compose",
-        "targetHandle": "direction"
+        "id": "103-0-85-model",
+        "source": "103",
+        "sourceHandle": "MODEL",
+        "target": "85",
+        "targetHandle": "model",
+        "ui_properties": null
       },
       {
-        "id": "e4",
-        "source": "seed",
-        "sourceHandle": "output",
-        "target": "compose",
-        "targetHandle": "seed"
+        "id": "98-0-85-positive",
+        "source": "98",
+        "sourceHandle": "positive",
+        "target": "85",
+        "targetHandle": "positive",
+        "ui_properties": null
       },
       {
-        "id": "e5",
-        "source": "compose",
-        "sourceHandle": "prompt",
-        "target": "comfy",
-        "targetHandle": "93:text"
+        "id": "98-1-85-negative",
+        "source": "98",
+        "sourceHandle": "negative",
+        "target": "85",
+        "targetHandle": "negative",
+        "ui_properties": null
       },
       {
-        "id": "e6",
-        "source": "compose",
-        "sourceHandle": "seed",
-        "target": "comfy",
-        "targetHandle": "86:noise_seed"
+        "id": "86-0-85-latent_image",
+        "source": "86",
+        "sourceHandle": "LATENT",
+        "target": "85",
+        "targetHandle": "latent_image",
+        "ui_properties": null
       },
       {
-        "id": "e7",
-        "source": "compose",
-        "sourceHandle": "run_settings",
-        "target": "settings",
-        "targetHandle": "value"
+        "id": "104-0-86-model",
+        "source": "104",
+        "sourceHandle": "MODEL",
+        "target": "86",
+        "targetHandle": "model",
+        "ui_properties": null
       },
       {
-        "id": "e8",
-        "source": "comfy",
-        "sourceHandle": "58:video",
-        "target": "take",
-        "targetHandle": "value"
+        "id": "98-0-86-positive",
+        "source": "98",
+        "sourceHandle": "positive",
+        "target": "86",
+        "targetHandle": "positive",
+        "ui_properties": null
       },
       {
-        "id": "e9",
-        "source": "comfy",
-        "sourceHandle": "output",
-        "target": "job",
-        "targetHandle": "value"
+        "id": "98-1-86-negative",
+        "source": "98",
+        "sourceHandle": "negative",
+        "target": "86",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "98-2-86-latent_image",
+        "source": "98",
+        "sourceHandle": "latent",
+        "target": "86",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "85-0-87-samples",
+        "source": "85",
+        "sourceHandle": "LATENT",
+        "target": "87",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "90-0-87-vae",
+        "source": "90",
+        "sourceHandle": "VAE",
+        "target": "87",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "84-0-89-clip",
+        "source": "84",
+        "sourceHandle": "CLIP",
+        "target": "89",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "84-0-93-clip",
+        "source": "84",
+        "sourceHandle": "CLIP",
+        "target": "93",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "93-0-98-positive",
+        "source": "93",
+        "sourceHandle": "CONDITIONING",
+        "target": "98",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "89-0-98-negative",
+        "source": "89",
+        "sourceHandle": "CONDITIONING",
+        "target": "98",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "90-0-98-vae",
+        "source": "90",
+        "sourceHandle": "VAE",
+        "target": "98",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "56-0-98-start_image",
+        "source": "56",
+        "sourceHandle": "IMAGE",
+        "target": "98",
+        "targetHandle": "start_image",
+        "ui_properties": null
+      },
+      {
+        "id": "95-0-101-model",
+        "source": "95",
+        "sourceHandle": "MODEL",
+        "target": "101",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "96-0-102-model",
+        "source": "96",
+        "sourceHandle": "MODEL",
+        "target": "102",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "102-0-103-model",
+        "source": "102",
+        "sourceHandle": "MODEL",
+        "target": "103",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "101-0-104-model",
+        "source": "101",
+        "sourceHandle": "MODEL",
+        "target": "104",
+        "targetHandle": "model",
+        "ui_properties": null
       }
     ]
   },
-  "input_schema": null,
-  "output_schema": null,
   "settings": null,
   "package_name": "nodetool-base",
   "path": null,
-  "run_mode": null
+  "run_mode": "comfy"
 }

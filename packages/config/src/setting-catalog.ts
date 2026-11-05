@@ -224,7 +224,23 @@ s(
 s(
   "COMFY_SERVER_URL",
   "ComfyUI",
-  "Base URL of your own ComfyUI server, for example http://127.0.0.1:8188. When set, Comfy workflows run on this server instead of Comfy Cloud and need no COMFY_API_KEY."
+  "Base URL of your own ComfyUI server, for example http://127.0.0.1:8188. Comfy workflows use it when COMFY_TARGET is server."
+);
+s(
+  "COMFY_TARGET",
+  "ComfyUI",
+  "Where Comfy workflows run: cloud, server or worker. When unset, they run on COMFY_SERVER_URL if it has a value, and otherwise on Comfy Cloud.",
+  ["cloud", "server", "worker"]
+);
+s(
+  "COMFY_WORKER_URL",
+  "ComfyUI",
+  "WebSocket URL of the NodeTool ComfyUI worker, for example wss://host/ws. Comfy workflows use it when COMFY_TARGET is worker."
+);
+sec(
+  "COMFY_WORKER_TOKEN",
+  "ComfyUI",
+  "Bearer token of the worker in COMFY_WORKER_URL, if that worker requires one."
 );
 s(
   "OLLAMA_KEEP_ALIVE",

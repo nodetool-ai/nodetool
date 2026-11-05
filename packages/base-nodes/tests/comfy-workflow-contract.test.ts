@@ -49,7 +49,7 @@ describe("Comfy workflow contract", () => {
       skipErrors: false,
       allowUndefinedProperties: true
     });
-    const fake = createFakeContext({ jobId: "j", secretResolver: () => "ck" });
+    const fake = createFakeContext({ jobId: "j", secretResolver: (key) => (key === "COMFY_API_KEY" ? "ck" : null) });
     const runner = new WorkflowRunner("j", {
       resolveExecutor: (node) => registry.resolve(node),
       executionContext: fake.context

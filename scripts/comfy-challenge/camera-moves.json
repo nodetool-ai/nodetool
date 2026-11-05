@@ -1,0 +1,98 @@
+{
+  "Shot Director": {
+    "dolly in": {
+      "id": "camera.dolly-in",
+      "version": 1,
+      "prompt": "The camera glides forward toward the subject in one continuous movement. Nearby objects slide past faster than the distant background as the subject grows larger. One continuous shot."
+    },
+    "orbit": {
+      "id": "camera.orbit",
+      "version": 1,
+      "prompt": "The camera circles all the way around the subject at a steady height and distance, revealing front, side, back and front again in a continuous shot. One continuous shot."
+    },
+    "crane up": {
+      "id": "camera.crane-up",
+      "version": 1,
+      "prompt": "The camera lifts above the subject and gradually points downward. More of the surrounding ground becomes visible as the subject recedes below. One continuous shot."
+    },
+    "pull back reveal": {
+      "id": "camera.pull-back-reveal",
+      "version": 1,
+      "prompt": "Beginning close to the subject, the camera retreats smoothly into a wide shot. Surrounding scenery progressively enters at the edges and reveals the larger setting. One continuous shot."
+    },
+    "handheld": {
+      "id": "camera.handheld",
+      "version": 1,
+      "prompt": "Small irregular camera movements drift gently up, down and sideways, like a person holding a camera while standing still. The subject remains clearly visible. One continuous shot."
+    },
+    "static": {
+      "id": "camera.static",
+      "version": 1,
+      "prompt": "The camera holds exactly the same viewpoint and framing throughout the shot. Motion belongs to the subject and the environment inside the stationary frame. One continuous shot."
+    }
+  },
+  "Shot Director (Wan 2.2 14B)": {
+    "dolly in": {
+      "id": "camera.dolly-in",
+      "version": 1,
+      "prompt": "The camera glides forward toward the subject in one continuous movement. Nearby objects slide past faster than the distant background as the subject grows larger. One continuous shot."
+    },
+    "orbit": {
+      "id": "camera.orbit",
+      "version": 1,
+      "prompt": "The camera circles all the way around the subject at a steady height and distance, revealing front, side, back and front again in a continuous shot. One continuous shot."
+    },
+    "crane up": {
+      "id": "camera.crane-up",
+      "version": 1,
+      "prompt": "The camera lifts above the subject and gradually points downward. More of the surrounding ground becomes visible as the subject recedes below. One continuous shot."
+    },
+    "pull back reveal": {
+      "id": "camera.pull-back-reveal",
+      "version": 1,
+      "prompt": "Beginning close to the subject, the camera retreats smoothly into a wide shot. Surrounding scenery progressively enters at the edges and reveals the larger setting. One continuous shot."
+    },
+    "handheld": {
+      "id": "camera.handheld",
+      "version": 1,
+      "prompt": "Small irregular camera movements drift gently up, down and sideways, like a person holding a camera while standing still. The subject remains clearly visible. One continuous shot."
+    },
+    "static": {
+      "id": "camera.static",
+      "version": 1,
+      "prompt": "The camera holds exactly the same viewpoint and framing throughout the shot. Motion belongs to the subject and the environment inside the stationary frame. One continuous shot."
+    }
+  },
+  "Shot Director (LTX-2.3)": {
+    "dolly in": {
+      "id": "camera.dolly-in",
+      "version": 1,
+      "prompt": "The camera glides forward toward the subject in one continuous movement. Nearby objects slide past faster than the distant background as the subject grows larger. One continuous shot."
+    },
+    "orbit": {
+      "id": "camera.orbit",
+      "version": 1,
+      "prompt": "The camera circles all the way around the subject at a steady height and distance, revealing front, side, back and front again in a continuous shot. One continuous shot."
+    },
+    "crane up": {
+      "id": "camera.crane-up",
+      "version": 1,
+      "prompt": "The camera lifts above the subject and gradually points downward. More of the surrounding ground becomes visible as the subject recedes below. One continuous shot."
+    },
+    "pull back reveal": {
+      "id": "camera.pull-back-reveal",
+      "version": 1,
+      "prompt": "Beginning close to the subject, the camera retreats smoothly into a wide shot. Surrounding scenery progressively enters at the edges and reveals the larger setting. One continuous shot."
+    },
+    "handheld": {
+      "id": "camera.handheld",
+      "version": 1,
+      "prompt": "Small irregular camera movements drift gently up, down and sideways, like a person holding a camera while standing still. The subject remains clearly visible. One continuous shot."
+    },
+    "static": {
+      "id": "camera.static",
+      "version": 1,
+      "prompt": "The camera holds exactly the same viewpoint and framing throughout the shot. Motion belongs to the subject and the environment inside the stationary frame. One continuous shot."
+    }
+  }
+}
