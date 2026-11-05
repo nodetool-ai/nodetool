@@ -5,6 +5,7 @@
 #include "preview/FfmpegSource.h"
 #include "preview/hw/HwWindow.h"
 #include <QDir>
+#include <QEvent>
 #include <QFile>
 #include <QGuiApplication>
 #include <QImageReader>
@@ -44,6 +45,7 @@ public:
         m_cancelled.insert(id);
     }
     void close() { m_eof = true; }
+    void releaseDocuments() { m_documents.clear(); }
 private:
     bool cancelled(int id) {
         std::scoped_lock lock(m_mutex);
@@ -207,7 +209,12 @@ int frameServerCli(int argc, char** argv) {
         server.close();
         QMetaObject::invokeMethod(&app, &QCoreApplication::quit, Qt::QueuedConnection);
     });
-    return app.exec();
+    const int code = app.exec();
+    // Qt queues its atlas manager with deleteLater when a render control goes
+    // away, and no event loop runs after exec() to delete it.
+    server.releaseDocuments();
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    return code;
 }
 const bool registered = app::registerCliMode({QStringLiteral("--frame-server"), frameServerCli});
 }
