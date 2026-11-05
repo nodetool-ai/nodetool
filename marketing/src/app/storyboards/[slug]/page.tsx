@@ -13,6 +13,7 @@ import {
 } from "@/data/storyboards";
 import type { Storyboard } from "@/data/storyboards";
 import { storyboardUploadDate } from "@/data/contentDates";
+import { videoUploadDate } from "@/lib/jsonld";
 
 interface StoryboardPageProps {
   readonly params: Promise<{ slug: string }>;
@@ -133,7 +134,7 @@ export default async function StoryboardPage({ params }: StoryboardPageProps) {
           duration: `PT${Math.round(board.video.duration)}S`,
           width: board.video.width,
           height: board.video.height,
-          ...(uploadDate ? { uploadDate } : {})
+          ...(uploadDate ? { uploadDate: videoUploadDate(uploadDate) } : {})
         }}
       />
       <article className="mx-auto max-w-7xl px-6 pb-24 pt-10 lg:px-8">
