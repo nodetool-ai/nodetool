@@ -1,7 +1,107 @@
 # S5 agent rendering qualification
 
 A91 is met: one renderer child per parent, with the agent callers on shared
-shaders. CI has not yet run this branch. A92 and FP16 remain excluded.
+shaders. CI has not yet run this branch. A92 remains open after the caller audit below.
+FP16 remains off.
+
+## A92 caller audit and GPU assertion migration
+
+A92 remains unchecked. The requested assertions now run through the default
+RGBA8 shared GPU compositor, but the audit found no unused function in
+`cpuLegacyEffects.ts`, `cpuVisualEffects.ts` or `canvas2d.ts`. No production
+implementation was removed. Retiring their reachable browser callers would
+require A94, which is outside this task. The explicit agent CPU qualification
+argument also remains because retained regression callers use it. A decision
+to retire that qualification route needs a separate change to its callers.
+It is not an automatic missing-adapter fallback.
+
+### Caller inventory and retained routes
+
+The [function-by-function inventory](a92-cpu-callers.md) enumerates every
+named function in those three modules, with direct call locations including
+regression tests and internal helper calls. The inventory was captured before
+the two test migrations. Searches covered checked-in `web`, all `packages`
+(including agents, timeline, video-nodes, every cli-* package and image-editor),
+`native` and `scripts`. Generated dist and dependency trees were excluded.
+Text searches for symbols and module imports were followed by TypeScript AST
+call enumeration. Generic private names were scoped to their defining module.
+This is an in-repository caller audit, not a claim about downstream npm users.
+
+| Area inspected | Callers and reachability | Decision |
+|---|---|---|
+| Timeline CPU effects | `canvas2d.applyCpuEffectChain` calls `applyCpuLegacyEffects`, `applyCpuVisualEffects`, `applyCpuDropShadows`, `applyCpuColorGrade`, `applyCpuGaussianBlur`, both effect predicates and `alphaBounds`. `drawTimelineLayer` calls `applyCpuIris`. Internal sampling, grain, blur and alpha helpers remain reachable. | Keep every function. None is an FP16 oracle. |
+| Timeline CPU composition | `drawTimelineFrame` reaches stack, adjustment, group, layer, matte, crop, projective, transition, shadow and CSS-filter helpers. `layerCanvasAffine` also serves `ReframeFocusOverlay`. | Keep every function. Exact callers are in the inventory. |
+| Web | `preview/gpu/canvas2dCompositor.ts` calls `drawTimelineFrame` and `unsupportedEffectTypes`. `createCompositor.ts` selects Canvas2D when needed. `rasterClipFrames.ts` constructs it directly. Preview and browser export share selection. | Keep compatibility selection for A94 and source rasterization. |
+| Agents | `timeline-preview/frames.ts` retains `drawTimelineFrame` and `unsupportedEffectTypes` behind `sharedShaders=false`. `timeline-shared-preview.test.ts` and `timeline-preview-parity-regressions.test.ts` exercise that route. Production preview/comparison in `capabilities/timelines.ts`, storyboard reference/final renders in `agentic-storyboard-finish.ts`, `storyboard-layout-check.ts` and `timeline-clip-frames.ts` use the shared renderer default. | Keep the explicitly reached qualification branch. No default or error behavior changes. |
+| Video nodes | `timeline/compositeRender.ts` uses the shared compositor. `timeline/browserRender.ts` drives the browser exporter, whose Canvas2D selection remains reachable. No direct call to the two CPU effect modules was found. | Keep browser behavior and restricted rough-cut routes. |
+| CLI packages | No direct call to the three audited modules was found. Timeline rendering delegates to video-nodes. `cli-sketch/src/commands/sketch-render.ts` calls `agents/sketch-render`. | Keep delegates and sketch rendering. |
+| Image editor and sketch hosts | `image-editor/src/render/document.ts` uses `layerEffectsFilter` and host canvas composition. `agents/src/sketch-render/render.ts` calls `renderSketchDocument` and provides `blendModeToCanvasOp`. Web sketch `rendering/canvas2d/resolvedOutput.ts` also uses `layerEffectsFilter`. | Keep separate sketch composition, editing and source-raster helpers. They were inspected as live routes, not candidates for timeline deletion. |
+| Native tooling | No direct invocation/import of the audited TypeScript CPU modules was found. Native effect implementations and shader references are separate. | No native changes. B218 hardware differences were not qualified here. |
+
+`@nodetool-ai/timeline/render` publishes `canvas2d.ts` through `export *`.
+The individual CPU modules are not re-exported there and have no package
+subpath exports. `agents` does not publish `timeline-preview/frames` as a
+subpath, but does publish `sketch-render`. Image-editor's render surface stays
+intact. No public symbol, package export map or capability spec changed.
+No applicable Knip/unused-export script was found in the root or the inspected
+timeline, agents, video-nodes, image-editor and cli-* package manifests.
+
+### Assertions and default-output evidence
+
+The original five tests passed before migration. Their GPU versions then
+passed without changing any threshold:
+
+| Migrated file | Preserved assertions |
+|---|---|
+| `render.precision.gpu.test.ts` | Inverse Levels retain at least 192 distinct values, maximum error at most 11 and monotonicity. Hidden transparent red cannot change the blur result. Compositing the white blur over black and white retains the one-byte error limit. |
+| `render.curveFidelity.gpu.test.ts` | Red quarter tone remains 101–103 with exact unchanged green/blue/alpha. Lifted black and lowered white stay within one byte. Non-monotonic midpoint stays above 200. Master-before-channel ordering and endpoint holds retain the one-byte limits. |
+
+`renderEffectsGpu.ts` drives `HeadlessFrameCompositor` with the existing
+fixture pixels and default working format. It disposes each renderer in a
+finally block. It neither calls a CPU renderer nor uses CPU output as a
+reference. No `it.fails` was added or modified. The six color-boundary expected
+failures remain byte-for-byte unchanged. No test invokes ffmpeg or ffprobe.
+
+No production route was touched, so no new default-output hash baseline was
+substituted for the existing fixtures. `git diff 8cd02f97a5 -- web/src
+packages/*/src native` is empty. The following source tree hashes are unchanged
+from that starting commit, proving that the browser, server and agent rendering
+implementations and their FP16 defaults are identical:
+
+| Source tree | Git tree hash |
+|---|---|
+| `packages/timeline/src` | `ec766372425eac869674ebbc72d1b3af08e7b134` |
+| `packages/agents/src` | `b4166ac12098ce0bb9fbea9b88a21819b3a0142c` |
+| `web/src` | `9fbc07e19bfabd71f177dd7e6b693cfe75a2f9a7` |
+| `packages/video-nodes/src` | `fdc8f122980f4ea5e4790ca7ddf93ffb606ab865` |
+| `packages/image-editor/src` | `aa2bb84593b2c81482fde4e869e34cbeea60b93e` |
+
+A91's output fixtures and no-addon/no-adapter tests remain intact, including
+`timeline-preview-lifetime.test.ts`, `timeline-render-child.test.ts` and their
+probe fixtures. D7.1 still reports missing-addon installation guidance and
+missing-adapter Mesa/ICD guidance, with no automatic CPU retry. Those untouched
+agent tests were not rerun under the requested test-file restriction.
+
+### Verification
+
+Both migrated files passed, five tests, with one Vitest worker after rebuilding
+only `packages/gpu` to refresh stale `workingFormat` declarations. The initial
+run of both original and migrated files passed ten tests. Timeline-only
+`run-tsc --noEmit` passed after that dependency rebuild. Enforced and plain
+oxlint passed on the three new/changed test files. No production source
+directory changed. Whitespace and control-byte checks passed.
+
+GPU runs unset DISPLAY and set both Vulkan ICD variables to
+`/usr/share/vulkan/icd.d/lvp_icd.json`. The acquired device reports vendor
+`mesa`, architecture `software`, device `llvmpipe-llvm-23-1-3-256-bits-`,
+description `llvmpipe: Mesa 26.2.5-arch1.1 (LLVM 23.1.3)`. No NVIDIA result is
+claimed. TMPDIR and TMPPREFIX were under `/home/mg/Projects/nodetool-film/tmp`.
+No large render output was created.
+
+Not run: test:affected, root typecheck, root lint, harness gate, /verify, full
+suites, full dependency builds, browser/native hardware qualification or
+capabilities:sync. The capability spec did not change. No push, branch switch,
+rebase, merge or PR occurred.
 
 ## Current qualification: queued child and migrated callers
 
