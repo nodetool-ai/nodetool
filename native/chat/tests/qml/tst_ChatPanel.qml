@@ -33,6 +33,90 @@ TestCase {
         active: false
         sourceComponent: Component { ConversationView { session: loadingSession } }
     }
+
+    function overflow(item, boundary, failures) {
+        if (!item.visible || item.opacity === 0) return
+        const point = item.mapToItem(boundary, 0, 0)
+        if (item.width > 0 && item.height > 0 && (point.x < -1 || point.x + item.width > boundary.width + 1))
+            failures.push(item.objectName + ":" + item.toString() + " " + point.x + "+" + item.width)
+        // Horizontal scrolling is an explicit escape at the dock's 100 px minimum.
+        const childBoundary = item.objectName === "chatWidthViewport" ? item.contentItem : boundary
+        for (let i = 0; i < item.children.length; ++i) overflow(item.children[i], childBoundary, failures)
+    }
+
+    Component { id: oversized; Rectangle { width: 900; height: 20 } }
+    function test_overflowDetectorRejectsOversizedContent() {
+        const item = createTemporaryObject(oversized, panel)
+        verify(item !== null)
+        const failures = []
+        overflow(item, panel, failures)
+        // The test panel is 1100 px wide, so deliberately cross its edge.
+        item.width = panel.width + 50
+        overflow(item, panel, failures)
+        verify(failures.length > 0)
+        expectFailContinue("", "Deliberately oversized content must fail the width assertion")
+        compare(failures.join("\n"), "")
+    }
+    function test_codeAndStatusLabels() {
+        const card = createTemporaryObject(actionCard, test, {
+            width: 360, messageId: "labels", role: "assistant", text: "", status: "",
+            parts: [{type: "tool_call", tool: true, expanded: true, code: "print(1)", displayStatus: "completed"}],
+            session: actionSession
+        })
+        verify(card !== null)
+        tryVerify(() => findText(card, "Code") !== null)
+        compare(findText(card, "Code · "), null)
+        verify(findText(card, "Done") !== null)
+        for (const pair of [["running", "Running"], ["completed", "Done"], ["failed", "Failed"], ["waiting", "Waiting"]])
+            compare(card.statusLabel(pair[0]), pair[1])
+    }
+    function test_hostWidth_data() {
+        const rows = []
+        for (const width of [100, 320, 360, 520])
+            for (const fixture of ["tool-presentation", "execution-tree", "thinking", "markdown", "plans-approvals", "tool-approval", "secret-request", "media-resources", "sub-agents"])
+                rows.push({tag: fixture + "-" + width, fixture: fixture, panelWidth: width})
+        return rows
+    }
+    function test_hostWidth(data) {
+        test.width = data.panelWidth
+        Ui.Theme.preference = Ui.Theme.Dark
+        if (data.fixture === "tool-approval") testDriver.replay("plans-approvals", 1, 1)
+        else if (data.fixture === "secret-request") testDriver.replay("plans-approvals", 1, 2)
+        else testDriver.replay(data.fixture, data.fixture === "plans-approvals" ? 1 : 100000)
+        const list = findChild(panel, "chatMessages")
+        tryVerify(() => list.count > 0)
+        findChild(panel, "chatConversation").followBottom = false
+        wait(150)
+        list.positionViewAtBeginning()
+        wait(150)
+        const directory = testDriver.screenshotDirectory()
+        if (directory) grabImage(panel).save(directory + "/host-" + data.tag + ".png")
+        const viewport = findChild(panel, "chatWidthViewport")
+        compare(viewport.contentWidth, Math.max(data.panelWidth, ChatMetrics.minimumContentWidth))
+        const failures = []
+        overflow(panel, panel, failures)
+        compare(failures.join("\n"), "")
+        if (["tool-presentation", "thinking", "tool-approval", "sub-agents"].indexOf(data.fixture) >= 0) {
+            for (let i = 0; i < 12; ++i) {
+                const button = findText(panel, "Show details")
+                if (!button) break
+                button.clicked()
+                wait(30)
+            }
+            list.positionViewAtBeginning()
+            wait(100)
+            const expandedFailures = []
+            overflow(panel, panel, expandedFailures)
+            compare(expandedFailures.join("\n"), "")
+            if (directory) grabImage(panel).save(directory + "/host-" + data.tag + "-expanded.png")
+        }
+        if (data.panelWidth === 100) {
+            viewport.contentX = viewport.contentWidth - viewport.width
+            wait(30)
+            compare(viewport.contentX, viewport.contentWidth - viewport.width)
+            viewport.contentX = 0
+        }
+    }
     function test_mediaResources() {
         testDriver.replay("media-resources")
         tryVerify(() => findText(panel, "Production notes") !== null)

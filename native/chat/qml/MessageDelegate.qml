@@ -12,6 +12,16 @@ ColumnLayout {
     required property var parts
     required property string status
     required property var session
+    function statusLabel(status) {
+        switch (String(status).toLowerCase()) {
+        case "running": return qsTr("Running")
+        case "completed": case "done": return qsTr("Done")
+        case "failed": case "error": return qsTr("Failed")
+        case "waiting": case "pending": return qsTr("Waiting")
+        case "cancelled": case "canceled": return qsTr("Cancelled")
+        default: return status || ""
+        }
+    }
     readonly property bool userMessage: role === "user"
     spacing: Ui.Metrics.md
     objectName: "message_" + messageId
@@ -127,7 +137,8 @@ ColumnLayout {
             text: paged.copyLabel
             onClicked: if (paged.chatSession) paged.chatSession.copyText(paged.sourceText)
         }
-        RowLayout {
+        Flow {
+            spacing: Ui.Metrics.sm
             visible: paged.pages > 1
             Layout.fillWidth: true
             Ui.EditorButton {
@@ -188,7 +199,7 @@ ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: Ui.Metrics.md
                 spacing: Ui.Metrics.md
-                RowLayout {
+                ColumnLayout {
                     visible: partFrame.kind !== "prose"
                     Layout.fillWidth: true
                     Ui.Text {
@@ -196,27 +207,31 @@ ColumnLayout {
                         Layout.fillWidth: true
                         text: partFrame.part.label || partFrame.part.tool_name || partFrame.part.name || partFrame.part.title || partFrame.kind
                         tone: Ui.Text.Secondary
-                        elide: Text.ElideRight
+                        wrapMode: Text.Wrap
                     }
-                    Ui.Text {
-                        visible: !!partFrame.part.tool || !!partFrame.part.tree
-                        text: partFrame.part.displayStatus || ""
-                        role: Ui.Typography.SansCaption
-                        tone: partFrame.part.displayStatus === "Failed" ? Ui.Text.Error : Ui.Text.Secondary
-                    }
-                    Ui.Text {
-                        visible: !!partFrame.part.duration
-                        text: partFrame.part.duration || ""
-                        role: Ui.Typography.SansCaption
-                        tone: Ui.Text.Secondary
-                    }
-                    Ui.EditorButton {
-                        visible: (!!partFrame.part.tool && (!partFrame.part.subAgent || !!partFrame.part.objective || !!partFrame.part.argumentsText || !!partFrame.part.resultText || !!partFrame.part.childModel)) || !!partFrame.part.tree || !!partFrame.part.collapsible || partFrame.kind === "thought"
-                        objectName: "toolDetails_" + (partFrame.part.tool_call_id || partFrame.index)
-                        text: partFrame.detailsOpen ? qsTr("Hide details") : qsTr("Show details")
-                        Accessible.expandable: true
-                        Accessible.expanded: partFrame.detailsOpen
-                        onClicked: root.parts.toggleExpanded(partFrame.index)
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: Ui.Metrics.sm
+                        Ui.Text {
+                            visible: !!partFrame.part.tool || !!partFrame.part.tree
+                            text: root.statusLabel(partFrame.part.displayStatus)
+                            role: Ui.Typography.SansCaption
+                            tone: root.statusLabel(partFrame.part.displayStatus) === "Failed" ? Ui.Text.Error : Ui.Text.Secondary
+                        }
+                        Ui.Text {
+                            visible: !!partFrame.part.duration
+                            text: partFrame.part.duration || ""
+                            role: Ui.Typography.SansCaption
+                            tone: Ui.Text.Secondary
+                        }
+                        Ui.EditorButton {
+                            visible: (!!partFrame.part.tool && (!partFrame.part.subAgent || !!partFrame.part.objective || !!partFrame.part.argumentsText || !!partFrame.part.resultText || !!partFrame.part.childModel)) || !!partFrame.part.tree || !!partFrame.part.collapsible || partFrame.kind === "thought"
+                            objectName: "toolDetails_" + (partFrame.part.tool_call_id || partFrame.index)
+                            text: partFrame.detailsOpen ? qsTr("Hide details") : qsTr("Show details")
+                            Accessible.expandable: true
+                            Accessible.expanded: partFrame.detailsOpen
+                            onClicked: root.parts.toggleExpanded(partFrame.index)
+                        }
                     }
                 }
                 PagedText {
@@ -285,13 +300,13 @@ ColumnLayout {
                         id: groupedCall
                         required property var modelData
                         Layout.fillWidth: true
-                        RowLayout {
+                        ColumnLayout {
                             Layout.fillWidth: true
                             Ui.Text {
-                                text: groupedCall.modelData.label + " · " + groupedCall.modelData.displayStatus + (groupedCall.modelData.duration ? " · " + groupedCall.modelData.duration : "")
+                                text: groupedCall.modelData.label + " · " + root.statusLabel(groupedCall.modelData.displayStatus) + (groupedCall.modelData.duration ? " · " + groupedCall.modelData.duration : "")
                                 role: Ui.Typography.SansLabel
                                 Layout.fillWidth: true
-                                elide: Text.ElideRight
+                                wrapMode: Text.Wrap
                             }
                             Ui.EditorButton {
                                 objectName: "groupCall_" + groupedCall.modelData.tool_call_id
@@ -320,7 +335,7 @@ ColumnLayout {
                 }
                 Ui.Text {
                     visible: partFrame.detailsOpen && !!partFrame.part.code
-                    text: qsTr("Code · %1").arg(partFrame.part.language || "")
+                    text: partFrame.part.language ? qsTr("Code · %1").arg(partFrame.part.language) : qsTr("Code")
                     role: Ui.Typography.SansLabel
                 }
                 PagedText {
@@ -421,7 +436,7 @@ ColumnLayout {
                     Ui.TextField {
                         id: response
                         objectName: "planFeedback"
-                        Layout.fillWidth: true
+                        width: parent.width
                         visible: partFrame.kind === "plan_approval_request"
                         text: partFrame.part.feedback || ""
                         onTextEdited: root.parts.setFeedback(partFrame.index, text)
