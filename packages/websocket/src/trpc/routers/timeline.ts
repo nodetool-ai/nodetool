@@ -496,7 +496,11 @@ export const timelineRouter = router({
       // Lineage names one of the caller's own sequences, by its full id.
       if (input.templateId !== undefined) {
         const template = await loadOwned(ctx.userId, input.templateId);
+        const templateDocument = template.toDocument();
         fields.document = JSON.stringify({
+          ...(templateDocument.workingColorSpaceVersion === undefined
+            ? {}
+            : { workingColorSpaceVersion: templateDocument.workingColorSpaceVersion }),
           tracks: [],
           clips: [],
           markers: [],
@@ -542,6 +546,9 @@ export const timelineRouter = router({
       if (input.document !== undefined) {
         const current = seq.toDocument();
         const merged: TimelineDocument = {
+          ...((input.document.workingColorSpaceVersion ?? current.workingColorSpaceVersion) === undefined
+            ? {}
+            : { workingColorSpaceVersion: input.document.workingColorSpaceVersion ?? current.workingColorSpaceVersion }),
           dropFrame: input.document.dropFrame ?? current.dropFrame,
           tracks: input.document.tracks ?? current.tracks,
           trackFolders: input.document.trackFolders ?? current.trackFolders,
