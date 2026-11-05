@@ -10,8 +10,6 @@
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QTemporaryDir>
-#include <algorithm>
-#include <vector>
 #include <QtQuickTest/quicktest.h>
 
 class KeyframeUiSetup : public QObject {
