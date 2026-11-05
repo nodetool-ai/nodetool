@@ -19,13 +19,25 @@ on:
       - "native/chat/**"
       - "native/model-picker/**"
       - ".github/workflows/native-timeline.yml"
+  # A pull request can restore only its own caches and its base branch's. This
+  # run builds the base branch and saves its compiler caches, so the first run
+  # of each pull request does not compile from scratch.
+  push:
+    branches: [feat/native-timeline]
+    paths:
+      - "native/timeline/**"
+      - "native/ui_primitives/**"
+      - "native/chat/**"
+      - "native/model-picker/**"
+      - ".github/workflows/native-timeline.yml"
 
 permissions:
   contents: read
 
 concurrency:
   group: native-timeline-${{ github.ref }}
-  cancel-in-progress: true
+  # A cancelled base branch build saves no cache, so only pull requests cancel.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   QT_VERSION: "6.12.0"
@@ -140,6 +152,13 @@ jobs:
           fi
           # HarfBuzz and FreeType for the 2D rasterizer (src/render2d).
           vcpkg install harfbuzz freetype --triplet x64-windows
+          # ccache caches cl.exe compiles. Release builds pass no /Zi, which ccache cannot cache.
+          ccache=ccache-4.14.2-windows-x86_64
+          curl -fsSL --retry 5 -o "$RUNNER_TEMP/$ccache.zip" \
+            "https://github.com/ccache/ccache/releases/download/v4.14.2/$ccache.zip"
+          echo "6993ce645e53192cec592ee23186200b574ac4c59097ecde8d9cfd681b47ae84  $RUNNER_TEMP/$ccache.zip" | sha256sum -c -
+          7z x -y -o"$RUNNER_TEMP" "$RUNNER_TEMP/$ccache.zip" > /dev/null
+          echo "$RUNNER_TEMP/$ccache" >> "$GITHUB_PATH"
           vcpkg_root="$VCPKG_INSTALLATION_ROOT/installed/x64-windows"
           echo "CMAKE_PREFIX_PATH=$vcpkg_root" >> "$GITHUB_ENV"
           echo "$vcpkg_root/bin" >> "$GITHUB_PATH"
@@ -181,7 +200,6 @@ jobs:
 
       - name: Restore compiler cache
         id: compiler-cache
-        if: runner.os != 'Windows'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.CCACHE_DIR }}
@@ -190,8 +208,9 @@ jobs:
             native-ccache-${{ runner.os }}-qt${{ env.QT_VERSION }}-
 
       - name: Bound restored compiler cache
-        if: runner.os != 'Windows'
-        run: ccache --cleanup
+        run: |
+          ccache --cleanup
+          ccache --zero-stats
 
       - name: Verify prerequisites and prepare media
         run: |
@@ -216,9 +235,14 @@ jobs:
         # -k 0 reports every failing file in one run, not only the first.
         run: bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" cmake --build native/timeline/build-ci --parallel 3 -- -k 0
 
+      - name: Show compiler cache statistics
+        if: success() || failure()
+        continue-on-error: true
+        run: ccache --show-stats
+
       # Preserve successful compilation even when a later test fails.
       - name: Save compiler cache
-        if: runner.os != 'Windows' && steps.compiler-cache.outputs.cache-hit != 'true'
+        if: steps.compiler-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.CCACHE_DIR }}
@@ -235,7 +259,7 @@ jobs:
       # The render tests run apart, with the scene graph and QRhi logs on, and
       # the log must name the backend and the adapter.
       - name: Test (headless, macOS)
-        if: runner.os == 'macOS'
+        if: github.event_name != 'push' && runner.os == 'macOS'
         run: |
           ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -LE render
           QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" \
@@ -245,7 +269,7 @@ jobs:
             { echo "::error::the render tests did not run on Metal"; exit 1; }
 
       - name: Test (headless, Linux)
-        if: runner.os == 'Linux'
+        if: github.event_name != 'push' && runner.os == 'Linux'
         env:
           QT_QPA_PLATFORM: xcb
           QSG_RHI_BACKEND: vulkan
@@ -261,7 +285,7 @@ jobs:
             { echo "::error::the render tests did not run on lavapipe"; exit 1; }
 
       - name: Test (headless, Windows)
-        if: runner.os == 'Windows'
+        if: github.event_name != 'push' && runner.os == 'Windows'
         env:
           QSG_RHI_BACKEND: d3d11
           QSG_RHI_PREFER_SOFTWARE_RENDERER: "1"
@@ -279,7 +303,7 @@ jobs:
             { echo "::error::the render tests did not run on WARP"; exit 1; }
 
       - name: Diagnose macOS entity panel crash
-        if: failure() && runner.os == 'macOS'
+        if: github.event_name != 'push' && failure() && runner.os == 'macOS'
         continue-on-error: true
         timeout-minutes: 3
         env:
@@ -296,7 +320,7 @@ jobs:
             -- native/timeline/build-ci/tst_entitypanel
 
       - name: Diagnose Linux matte crash
-        if: failure() && runner.os == 'Linux'
+        if: github.event_name != 'push' && failure() && runner.os == 'Linux'
         continue-on-error: true
         timeout-minutes: 3
         env:
@@ -317,7 +341,7 @@ jobs:
           exit "$diagnostic_status"
 
       - name: Upload Linux matte diagnostics
-        if: failure() && runner.os == 'Linux'
+        if: github.event_name != 'push' && failure() && runner.os == 'Linux'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: native-timeline-matte-backtrace
@@ -325,7 +349,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Package (macOS, unsigned)
-        if: runner.os == 'macOS'
+        if: github.event_name != 'push' && runner.os == 'macOS'
         run: |
           native/timeline/scripts/package-macos.sh
           DEV_BIN=build-ci/nodetool-timeline native/timeline/scripts/check-package-macos.sh
@@ -338,7 +362,7 @@ jobs:
       # QML editor (--screenshot) and decode video through the packaged
       # FFmpeg (--stills).
       - name: Package (Windows, windeployqt, unverified)
-        if: runner.os == 'Windows'
+        if: github.event_name != 'push' && runner.os == 'Windows'
         run: |
           out=native/timeline/build-ci/package-windows
           rm -rf "$out" && mkdir -p "$out"
@@ -378,7 +402,7 @@ jobs:
 
       # Not verified: written for M6 (review F12); no run has checked it.
       - name: Package (Linux AppImage, unverified)
-        if: runner.os == 'Linux'
+        if: github.event_name != 'push' && runner.os == 'Linux'
         run: |
           dir=native/timeline/build-ci/AppDir
           rm -rf "$dir" && mkdir -p "$dir/usr/bin" "$dir/usr/share/licenses/nodetool-timeline"
@@ -403,6 +427,8 @@ jobs:
 
   sanitizers:
     name: Linux ${{ matrix.preset }}
+    # Base branch runs only seed the build job's compiler caches.
+    if: github.event_name != 'push'
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     strategy:
