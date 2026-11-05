@@ -140,7 +140,7 @@ jobs:
           df -h /
       - uses: ./.github/actions/setup-build
         with:
-          cache: read-only
+          cache: off
           extra-apt: libsecret-1-dev
       - name: Pin workspace versions in the test tarballs
         run: node scripts/prepare-publish.mjs
