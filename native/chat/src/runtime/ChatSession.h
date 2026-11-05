@@ -4,6 +4,8 @@
 #include "server/ChatClient.h"
 #include "ModelPickerCatalog.h"
 #include <QHash>
+#include <QQuickTextDocument>
+#include <QColor>
 #include <QSet>
 #include <map>
 #include <memory>
@@ -12,6 +14,7 @@ class ChatSession : public QObject {
   Q_OBJECT
 public:
   Q_INVOKABLE QVariantList markdownPages(const QString &text) const;
+  Q_INVOKABLE void styleMarkdownLinks(QQuickTextDocument *document, const QColor &colour);
   Q_INVOKABLE void copyText(const QString &text);
   Q_PROPERTY(QAbstractItemModel *threads READ threads CONSTANT)
   Q_PROPERTY(QAbstractItemModel *messages READ messages NOTIFY stateChanged)

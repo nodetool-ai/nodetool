@@ -2,6 +2,7 @@
 #include "model/MessageModel.h"
 #include "model/Markdown.h"
 #include <QFile>
+#include <QTextBlock>
 #include <QJsonDocument>
 #include <QSignalSpy>
 #include <QElapsedTimer>
@@ -128,6 +129,38 @@ private slots:
         qInfo() << "2000 steps and 2000 long logs reduced in" << timer.elapsed() << "ms";
         QVERIFY(timer.elapsed() < 10000);
         QCOMPARE(live.snapshot().first().toObject()["agent_execution_id"], execution);
+    }
+    void linkColoursPreserveMarkdown() {
+        QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/link-colours.json"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto event = QJsonDocument::fromJson(file.readAll()).object()["events"].toArray().first().toObject();
+        MessageModel model;
+        model.upsert(event);
+        QCOMPARE(model.snapshot().first().toObject()["content"], event["content"]);
+        const auto pages = markdownPages(event["content"].toString());
+        QCOMPARE(pages.size(), 1);
+        const auto sections = pages.first().toList();
+        QCOMPARE(sections.size(), 4);
+        QTextDocument document;
+        document.setMarkdown(event["content"].toString());
+        const auto plain = document.toPlainText();
+        for (const QColor colour : {QColor("#22d3ee"), QColor("#0e7490")}) {
+            styleMarkdownLinks(document, colour);
+            int links = 0;
+            for (auto block = document.begin(); block.isValid(); block = block.next()) {
+                for (auto it = block.begin(); !it.atEnd(); ++it) {
+                    const auto format = it.fragment().charFormat();
+                    if (!format.isAnchor()) { continue; }
+                    ++links;
+                    QCOMPARE(format.foreground().color(), colour);
+                    QCOMPARE(format.anchorHref(), "https://nodetool.ai");
+                }
+            }
+            QCOMPARE(links, 2);
+            QCOMPARE(document.toPlainText(), plain);
+        }
+        QVERIFY(sections.first().toMap()["text"].toString().contains("[NodeTool](https://nodetool.ai)"));
+        QVERIFY(sections.last().toMap()["text"].toString().contains("[NodeTool](https://nodetool.ai)"));
     }
     void markdownStructureAndOrdering() {
         QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/markdown.json"));

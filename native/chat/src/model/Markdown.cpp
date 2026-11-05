@@ -1,6 +1,23 @@
 #include "Markdown.h"
 #include <QRegularExpression>
+#include <QTextBlock>
+#include <QTextCursor>
 namespace nt::chat {
+void styleMarkdownLinks(QTextDocument &document, const QColor &colour) {
+  for (auto block = document.begin(); block.isValid(); block = block.next()) {
+    for (auto fragment = block.begin(); !fragment.atEnd(); ++fragment) {
+      const auto text = fragment.fragment();
+      const auto format = text.charFormat();
+      if (!format.isAnchor() || format.foreground().color() == colour) { continue; }
+      QTextCursor cursor(&document);
+      cursor.setPosition(text.position());
+      cursor.setPosition(text.position() + text.length(), QTextCursor::KeepAnchor);
+      QTextCharFormat link;
+      link.setForeground(colour);
+      cursor.mergeCharFormat(link);
+    }
+  }
+}
 QString cleanHarmony(const QString &source) {
   auto text = source;
   static const QRegularExpression header("<\\|start\\|>[^<]*(?:<\\|channel\\|>[^<]*)?(?:<\\|message\\|>|$)");

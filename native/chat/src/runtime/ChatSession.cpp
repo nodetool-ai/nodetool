@@ -13,6 +13,9 @@
 #include <QUuid>
 namespace nt::chat {
 QVariantList ChatSession::markdownPages(const QString &text) const { return nt::chat::markdownPages(text); }
+void ChatSession::styleMarkdownLinks(QQuickTextDocument *document, const QColor &colour) {
+  if (document && document->textDocument()) { nt::chat::styleMarkdownLinks(*document->textDocument(), colour); }
+}
 void ChatSession::copyText(const QString &text) { QGuiApplication::clipboard()->setText(text); }
 
 ChatSession::ChatSession(QObject *parent)

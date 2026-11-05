@@ -100,6 +100,40 @@ TestCase {
         testDriver.clearHistory("b")
         wait(30)
     }
+    function test_linkColours() {
+        testDriver.replay("link-colours")
+        const source = "## Markdown colours\n\n[NodeTool](https://nodetool.ai) with **bold**, *italic* and `inline code`.\n\n> Quoted text\n\n"
+        tryVerify(() => findText(panel, source) !== null)
+        const area = findText(panel, source)
+        const original = Ui.Theme.preference
+        try {
+            for (const scheme of [Ui.Theme.Dark, Ui.Theme.Light]) {
+                Ui.Theme.preference = scheme
+                compare(area.color, Ui.Theme.textPrimary)
+                function luminance(colour) {
+                    function linear(value) { return value <= 0.04045 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4) }
+                    return 0.2126 * linear(colour.r) + 0.7152 * linear(colour.g) + 0.0722 * linear(colour.b)
+                }
+                const foreground = luminance(area.linkColour)
+                const background = luminance(Ui.Theme.surfacePanel)
+                verify((Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05) >= 4.5)
+                wait(100)
+                const pixels = grabImage(panel)
+                let linkPixels = 0
+                for (let y = 0; y < pixels.height; ++y) {
+                    for (let x = 0; x < pixels.width; ++x) {
+                        if (Math.abs(pixels.red(x, y) / 255 - area.linkColour.r) + Math.abs(pixels.green(x, y) / 255 - area.linkColour.g) + Math.abs(pixels.blue(x, y) / 255 - area.linkColour.b) < 0.03) linkPixels++
+                    }
+                }
+
+                const directory = testDriver.screenshotDirectory()
+                if (directory) grabImage(panel).save(directory + (scheme === Ui.Theme.Dark ? "/link-colours-dark.png" : "/link-colours-light.png"))
+                verify(linkPixels > 10, "Rendered link must use the theme colour: " + scheme + ", " + pixels.width + "x" + pixels.height + ", pixels=" + linkPixels)
+            }
+        } finally {
+            Ui.Theme.preference = original
+        }
+    }
     function test_markdownAndScreenshot() {
         testDriver.replay("markdown")
         tryVerify(function() { return findText(panel, "cpp") !== null })

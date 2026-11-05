@@ -330,3 +330,40 @@ TypeScript tests, TypeScript fixture conformance, typecheck, lint, harness gate
 and `/verify` were not run, per the task's native-only verification scope.
 Platform accessibility, measured input-to-paint latency and a running web
 screenshot comparison were not performed.
+
+## Markdown link colour correction
+
+Markdown links now use `Theme.statusInfo` in light and dark themes. Qt's
+Markdown importer assigns an explicit blue foreground to anchors, so changing
+only the control palette does not change their rendered colour. C++ applies
+the theme colour to the displayed document's anchor spans after text or theme
+changes. It preserves link destinations and text. Server payloads and message
+models are unchanged. Body text, selection and code surfaces already use theme
+roles in `Ui.TextArea`. No other hardcoded text colours were found in the chat
+Markdown projection or delegate.
+
+The `link-colours.json` fixture covers prose and table links, emphasis, inline
+code, a quotation and a fenced block. Model tests check both colours, retained
+URLs and text, and the original payload. QML tests switch themes on the same
+rendered message, check 4.5:1 link contrast against the panel and sample rendered
+pixels. The original control-palette test failed with `#0000ff`. Screenshot
+inspection exposed that a palette-only fix was insufficient.
+
+The native build passed. CTest reported all three selected tests passing,
+including setup. Qt reported 32 model and 32 QML passes, with no failures or
+skips, including the existing 2,000-message coverage. Both strict design and
+dependency checks passed. No dependencies were added.
+
+Inspected offscreen screenshots:
+
+- `/home/mg/Projects/nodetool-film/tmp/chat-parity/link-colours-dark.png`
+- `/home/mg/Projects/nodetool-film/tmp/chat-parity/link-colours-light.png`
+
+Build and test logs are `link-build.log` and `link-tests.log` in the same
+directory. TypeScript tests, typecheck, lint, harness gate and `/verify` were
+not run under the requested native-only scope.
+
+This checkpoint completes only the link colour correction. Structured plans,
+approval review and reconnect acceptance tests, compaction cards, grouped
+media and typed resources, embedded timeline screenshots and overflow tests,
+and a final row-by-row parity classification remain open. Parity is not closed.

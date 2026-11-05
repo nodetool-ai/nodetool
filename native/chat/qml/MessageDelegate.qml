@@ -56,6 +56,16 @@ ColumnLayout {
                 }
                 Ui.TextArea {
                     Layout.fillWidth: true
+                    id: markdownText
+                    readonly property color linkColour: Ui.Theme.statusInfo
+                    function updateLinkColour() {
+                        if (paged.chatSession && textFormat === TextEdit.MarkdownText) {
+                            paged.chatSession.styleMarkdownLinks(textDocument, linkColour)
+                        }
+                    }
+                    onLinkColourChanged: Qt.callLater(updateLinkColour)
+                    onTextChanged: Qt.callLater(updateLinkColour)
+                    Component.onCompleted: updateLinkColour()
                     value: section.modelData.text
                     textFormat: !section.modelData.code && paged.markdown && !/!\[|<\/?[A-Za-z]|\$\$|\\[([]/.test(section.modelData.text) ? TextEdit.MarkdownText : TextEdit.PlainText
                     readOnly: true
