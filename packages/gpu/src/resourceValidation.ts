@@ -54,16 +54,18 @@ export async function checkRenderTexture(
   device.pushErrorScope("validation");
   device.pushErrorScope("out-of-memory");
   let texture: GPUTexture | undefined;
+  let allocationError: GPUError | null;
+  let validationError: GPUError | null;
   try {
     texture = device.createTexture({ size: { width, height }, format, usage });
     await device.queue.onSubmittedWorkDone();
   } finally {
     texture?.destroy();
-    const allocationError = await device.popErrorScope();
-    const validationError = await device.popErrorScope();
-    if (allocationError || validationError) {
-      throw new Error(`WebGPU render allocation failed: ${(allocationError ?? validationError)?.message}`);
-    }
+    allocationError = await device.popErrorScope();
+    validationError = await device.popErrorScope();
+  }
+  if (allocationError || validationError) {
+    throw new Error(`WebGPU render allocation failed: ${(allocationError ?? validationError)?.message}`);
   }
   // The loss promise can settle while waiting for the queue.
   validateRenderTexture(device, width, height, format, usage);

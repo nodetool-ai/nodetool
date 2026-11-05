@@ -20,11 +20,13 @@ export function frameBytesPerPixel(format: WorkingFormat): number {
   return format === "rgba16float" ? 8 : 4;
 }
 
-export function frameReadbackLayout(width: number, height: number, format: WorkingFormat): {
+export interface FrameReadbackLayout {
   readonly rowBytes: number;
   readonly bytesPerRow: number;
   readonly byteLength: number;
-} {
+}
+
+export function frameReadbackLayout(width: number, height: number, format: WorkingFormat): FrameReadbackLayout {
   if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width < 1 || height < 1) {
     throw new Error("Frame dimensions must be positive integers");
   }
