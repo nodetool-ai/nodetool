@@ -1,4 +1,5 @@
 #include "wiring/WiringFixture.h"
+#include <QQmlComponent>
 
 class TestWiringEdit : public WiringFixture {
     Q_OBJECT
@@ -180,12 +181,40 @@ private slots:
         }
         QCOMPARE(model.undoStack()->count(), 1); click("undoButton"); QCOMPARE(doc(), before);
     }
+    void pasteAttributes_data() {
+        QTest::addColumn<bool>("delayedOpen");
+        QTest::newRow("normal") << false;
+        QTest::newRow("delayed-open") << true;
+    }
     void pasteAttributes() {
+        QFETCH(bool, delayedOpen);
+        auto* dialog = view->rootObject()->findChild<QObject*>("pasteAttributesDialog");
+        QVERIFY(dialog);
+        if (delayedOpen) {
+            // Keep visible true before opened, as on a delayed first frame.
+            QQmlComponent component(view->engine());
+            component.setData(R"(import QtQuick
+                Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 200 } }
+            )", QUrl());
+            auto* transition = component.create();
+            QVERIFY2(transition, qPrintable(component.errorString()));
+            transition->setParent(dialog);
+            QVERIFY(dialog->setProperty("enter", QVariant::fromValue(transition)));
+        }
         click("clip-c"); QTest::keyClick(view.get(), Qt::Key_C, Qt::ControlModifier);
         click("clip-e"); const auto before = doc();
         QTest::keyClick(view.get(), Qt::Key_V, Qt::ControlModifier | Qt::AltModifier);
-        QTRY_VERIFY(item("pasteButton") && item("pasteButton")->isVisible());
+        // onOpened selects the attribute groups. Visibility alone can precede
+        // that signal, and the footer needs a rendered layout before clicking.
+        QTRY_VERIFY(dialog->property("opened").toBool());
+        QSignalSpy swapped(view.get(), &QQuickWindow::frameSwapped);
+        view->update();
+        QVERIFY(swapped.wait(2000));
+        auto* paste = item("pasteButton");
+        QVERIFY(paste && paste->isVisible() && paste->isEnabled());
+        QSignalSpy clicked(paste, SIGNAL(clicked()));
         QCOMPARE(model.undoStack()->count(), 0); click("pasteButton");
+        QCOMPARE(clicked.size(), 1);
         QCOMPARE(clip("e").value("opacity").toDouble(), 0.4); QCOMPARE(model.undoStack()->count(), 1);
         click("undoButton"); QCOMPARE(doc(), before);
     }

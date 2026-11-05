@@ -49,6 +49,7 @@ import type { TimelineClip } from "./types.js";
  * passes its own document type here; structural typing does the rest.
  */
 export interface TimelineDocumentLike {
+  workingColorSpaceVersion?: number;
   clips: TimelineClip[];
   storyboardMaterializations?: Array<{ boardId: string; elementKeys: string[]; stage?: "layout" | "finished" }>;
   [key: string]: unknown;
@@ -291,6 +292,11 @@ export function mergeTimelineSource(
   }
 
   const document: TimelineDocumentLike = { ...built, clips: resultClips };
+  if (current.workingColorSpaceVersion === undefined) {
+    delete document.workingColorSpaceVersion;
+  } else {
+    document.workingColorSpaceVersion = current.workingColorSpaceVersion;
+  }
   if (current.storyboardMaterializations) document.storyboardMaterializations = structuredClone(current.storyboardMaterializations);
   return { document, conflicts, scenes };
 }

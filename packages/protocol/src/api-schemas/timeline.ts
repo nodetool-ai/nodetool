@@ -2251,6 +2251,7 @@ export const timelineSource = z.object({
 export type TimelineSource = z.infer<typeof timelineSource>;
 
 export const timelineDocument = z.object({
+  workingColorSpaceVersion: z.number().int().positive().optional(),
   /** Show timecode as drop-frame at 29.97, 59.94 and 119.88 fps. Display only. */
   dropFrame: z.boolean().optional(),
   tracks: z.array(timelineTrack),
@@ -2320,6 +2321,7 @@ export const installExampleTimelineInput = z.object({
 // ── Sequence response ────────────────────────────────────────────────────────
 
 export const timelineSequenceResponse = z.object({
+  workingColorSpaceVersion: z.number().int().positive().optional(),
   dropFrame: z.boolean().optional(),
   id: z.string(),
   projectId: z.string(),

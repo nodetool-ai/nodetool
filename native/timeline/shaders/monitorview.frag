@@ -29,10 +29,26 @@ void main()
     vec4 color = texture(plane0, v_texcoord);
     if (border.x > 0.5) {
         fragColor = vec4(color.aaa, 1.0);
-    } else {
+    } else if (border.y > 0.5) {
         vec2 point = (gl_FragCoord.xy - borderBounds.xy) * vec2(1.0, borderBounds.z);
         vec2 cell = floor(point / border.z);
         float checker = mod(cell.x + cell.y, 2.0) < 1.0 ? 1.0 : 0.8;
         fragColor = vec4(color.rgb + vec3(checker) * (1.0 - color.a), 1.0);
+    } else {
+        fragColor = color;
+    }
+    // FP16 presentation only. Keep the existing encoded SDR values, with no
+    // transfer conversion. Stable screen-space 8x8 Bayer noise affects RGB,
+    // never working storage, alpha, or the alpha diagnostic display.
+    if (mode > 0.5 && border.x < 0.5) {
+        ivec2 pixel = ivec2(gl_FragCoord.xy);
+        int rank = 0;
+        for (int bit = 0; bit < 3; ++bit) {
+            int x = (pixel.x >> bit) & 1;
+            int y = (pixel.y >> bit) & 1;
+            rank |= ((x ^ y) * 2 + y) << (4 - bit * 2);
+        }
+        float noise = (float(rank) + 0.5) / 64.0 - 0.5;
+        fragColor.rgb = floor(clamp(fragColor.rgb, 0.0, 1.0) * 255.0 + 0.5 + noise) / 255.0;
     }
 }

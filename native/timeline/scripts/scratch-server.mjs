@@ -2,17 +2,18 @@
 // web-baseline.mjs): started from this checkout with their own HOME, data,
 // database, assets and SECRETS_MASTER_KEY, never on port 7777, written to
 // only after the ownership checks of scratch-safety.mjs: the child is alive
-// and every listener on the port is in its process group (lsof or ss), checked
+// and every listener belongs to its process group or Windows Job Object, checked
 // right before each write. Nonce HMAC proofs authenticate the connection
 // carrying each write. nativeEnv supplies the secret to native clients.
 
-import { spawn } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 
 import {
+  spawnOwned,
+  killGroup,
   groupAlive,
   groupOwnsPort,
   INSTANCE_ENV,
@@ -46,6 +47,7 @@ export function createScratchSession({ work, repo, assertInWork, log = () => {},
     return {
       ...env,
       HOME: home,
+      ...(process.platform === "win32" ? { USERPROFILE: home, APPDATA: path.join(home, "AppData", "Roaming"), LOCALAPPDATA: path.join(home, "AppData", "Local") } : {}),
       XDG_DATA_HOME: path.join(home, ".local", "share"),
       XDG_CONFIG_HOME: path.join(home, ".config"),
       XDG_CACHE_HOME: path.join(home, ".cache"),
@@ -62,7 +64,7 @@ export function createScratchSession({ work, repo, assertInWork, log = () => {},
       PORT: String(port),
       NODE_OPTIONS: `--conditions=nodetool-dev ${instancePreloadOption()}`,
       [INSTANCE_ENV]: instance,
-      PATH: `${path.join(work, "fake-bin")}:${env.PATH}`,
+      PATH: `${path.join(work, "fake-bin")}${path.delimiter}${env.PATH}`,
       ...extra
     };
   }
@@ -76,8 +78,6 @@ export function createScratchSession({ work, repo, assertInWork, log = () => {},
   
   async function startServer(name, port, extra = {}) {
     if (port === USER_PORT) throw new Error("refusing to start on 7777");
-    // Ownership checks need process groups and lsof or ss. Starting anyway would leave a server no one can stop.
-    if (process.platform === "win32") throw new Error(`${name}: scratch servers need POSIX process groups`);
     if (listenerPids(port).length > 0) throw new Error(`port ${port} is already in use; refusing to start ${name}`);
     const dir = assertInWork(path.join(work, name));
     if (fs.existsSync(dir)) throw new Error(`${dir} exists already`);
@@ -86,12 +86,13 @@ export function createScratchSession({ work, repo, assertInWork, log = () => {},
     const env = scratchEnv(dir, port, instance, extra);
     const logPath = path.join(dir, "server.log");
     const out = fs.openSync(logPath, "w");
-    const child = spawn(process.execPath, [path.join(repo, "node_modules", "tsx", "dist", "cli.mjs"), "packages/websocket/src/server.ts"], {
+    const child = spawnOwned(process.execPath, [path.join(repo, "node_modules", "tsx", "dist", "cli.mjs"), "packages/websocket/src/server.ts"], {
       cwd: repo,
       env,
       detached: true, // its own process group, so cleanup also ends ffmpeg children
       stdio: ["ignore", out, out]
     });
+    fs.closeSync(out);
     const server = { name, dir, port, base: `http://127.0.0.1:${port}`, child, logPath, env, instance, owned: false };
     child.on("exit", () => {
       server.owned = false;  // a later write can never reach a replacement on the port
@@ -138,7 +139,7 @@ export function createScratchSession({ work, repo, assertInWork, log = () => {},
   process.on("exit", () => {
     for (const s of servers) {
       try {
-        process.kill(-s.child.pid, "SIGKILL");
+        killGroup(s.child.pid);
       } catch {
         /* gone */
       }
@@ -233,7 +234,7 @@ export function createScratchSession({ work, repo, assertInWork, log = () => {},
 
   /** The environment for a native client that may write to `server`, and only to it. */
   function nativeEnv(server) {
-    return { ...process.env, [NATIVE_EXPECT_ENV]: server.instance };
+    return { ...process.env, XDG_CONFIG_HOME: server.env.XDG_CONFIG_HOME, [NATIVE_EXPECT_ENV]: server.instance };
   }
 
   async function mutate(base, proc, input) {

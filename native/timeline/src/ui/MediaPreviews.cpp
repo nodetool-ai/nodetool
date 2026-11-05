@@ -7,6 +7,7 @@
 #include <QDateTime>
 #include <QImageReader>
 #include <QFile>
+#include <QDir>
 #include <QUrl>
 #include <QMetaObject>
 #include <QPainter>
@@ -24,13 +25,17 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cerrno>
 #include <cmath>
 #include <optional>
 #include <utility>
 #include <limits>
 
+#ifdef Q_OS_WIN
+#include <qt_windows.h>
+#endif
+
 #ifdef Q_OS_UNIX
-#include <cerrno>
 #include <condition_variable>
 #include <fcntl.h>
 #include <mutex>
@@ -331,13 +336,14 @@ private:
     qint64 m_size = 0;
 };
 
+#endif
+
 struct AvioCloser {
     void operator()(AVIOContext* context) const {
         av_freep(&context->buffer);
         avio_context_free(&context);
     }
 };
-#endif
 
 // Declared before FormatPtr by callers: FFmpeg borrows pb and never frees it.
 struct InputIo {
@@ -370,6 +376,54 @@ struct InputIo {
         context->seekable = file->isSequential() ? 0 : AVIO_SEEKABLE_NORMAL;
         return true;
     }
+#elif defined(Q_OS_WIN)
+    struct FileCloser {
+        void operator()(void* handle) const { CloseHandle(handle); }
+    };
+    std::unique_ptr<void, FileCloser> file;
+    std::unique_ptr<AVIOContext, AvioCloser> context;
+
+    bool open(const QString& path, ReadGuard&) {
+        // Preview workers may still be decoding when a user replaces the file.
+        // Keep reading the old handle without preventing unlink or rename.
+        const HANDLE handle = CreateFileW(reinterpret_cast<LPCWSTR>(path.utf16()), GENERIC_READ,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (handle == INVALID_HANDLE_VALUE) return false;
+        file.reset(handle);
+        constexpr int bufferSize = 32768;
+        auto* buffer = static_cast<unsigned char*>(av_malloc(bufferSize));
+        if (!buffer) return false;
+        context.reset(avio_alloc_context(buffer, bufferSize, 0, file.get(),
+            [](void* handle, uint8_t* data, int size) -> int {
+                DWORD read = 0;
+                if (!ReadFile(handle, data, static_cast<DWORD>(size), &read, nullptr)) return AVERROR(EIO);
+                return read ? static_cast<int>(read) : AVERROR_EOF;
+            }, nullptr,
+            [](void* handle, int64_t offset, int whence) -> int64_t {
+                whence &= ~AVSEEK_FORCE;
+                LARGE_INTEGER result{};
+                if (whence == AVSEEK_SIZE) {
+                    return GetFileSizeEx(handle, &result) ? result.QuadPart : AVERROR(EIO);
+                }
+                DWORD method;
+                switch (whence) {
+                case SEEK_SET: method = FILE_BEGIN; break;
+                case SEEK_CUR: method = FILE_CURRENT; break;
+                case SEEK_END: method = FILE_END; break;
+                default: return AVERROR(EINVAL);
+                }
+                LARGE_INTEGER distance{};
+                distance.QuadPart = offset;
+                return SetFilePointerEx(handle, distance, &result, method) ? result.QuadPart : AVERROR(EIO);
+            }));
+        if (!context) {
+            av_free(buffer);
+            return false;
+        }
+        context->seekable = AVIO_SEEKABLE_NORMAL;
+        return true;
+    }
 #endif
 };
 
@@ -383,9 +437,9 @@ bool openStream(const QString& path, AVMediaType type, FormatPtr& format, CodecP
     if (!f) return false;
     f->interrupt_callback.callback = &ReadGuard::interrupted;
     f->interrupt_callback.opaque = &guard;
-#ifdef Q_OS_UNIX
+#if defined(Q_OS_UNIX) || defined(Q_OS_WIN)
     const QUrl url(path);
-    if (url.scheme().isEmpty() || url.isLocalFile()) {
+    if (url.scheme().isEmpty() || url.isLocalFile() || QDir::isAbsolutePath(path)) {
         if (!io.open(url.isLocalFile() ? url.toLocalFile() : path, guard)) {
             avformat_free_context(f);
             return false;

@@ -1,0 +1,6 @@
+[
+  { "name": "absent", "document": { "tracks": [], "clips": [], "markers": [] } },
+  { "name": "version 1", "document": { "workingColorSpaceVersion": 1, "tracks": [], "clips": [], "markers": [] } },
+  { "name": "version 2", "document": { "workingColorSpaceVersion": 2, "tracks": [], "clips": [], "markers": [] } },
+  { "name": "version 3", "document": { "workingColorSpaceVersion": 3, "tracks": [], "clips": [], "markers": [] } }
+]

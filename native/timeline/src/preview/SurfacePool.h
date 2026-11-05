@@ -6,8 +6,8 @@
 // frame. A target idle for kIdleFrames frames is freed, and so is a free
 // target whose size the last frame did not use (a canvas size change).
 //
-// Memory: the pool aims for `budgetBytes` of targets (RGBA8, 4 bytes a
-// pixel; a 4K surface is about 31.6 MiB). A new target first evicts free
+// Memory: the pool aims for `budgetBytes` of targets, counting four bytes
+// per RGBA8 pixel and eight per RGBA16F pixel. A new target first evicts free
 // targets, the least recently used first. When the targets one frame uses
 // already exceed the budget, the pool still creates them (the picture stays
 // right) and reports the frame as over budget.
@@ -25,6 +25,7 @@
 // here, so the policy is tested without a device.
 
 #include <QSize>
+#include "preview/WorkingFormat.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -39,36 +40,38 @@ class SurfacePool {
 public:
     static constexpr long long kIdleFrames = 300;
     static constexpr size_t kDefaultBudgetBytes = size_t(512) * 1024 * 1024;
-    using Factory = std::function<std::unique_ptr<Target>(QSize)>;
+    using Factory = std::function<std::unique_ptr<Target>(QSize, WorkingFormat)>;
 
     explicit SurfacePool(Factory factory, size_t budgetBytes = kDefaultBudgetBytes)
         : m_factory(std::move(factory)), m_budget(budgetBytes) {}
+    explicit SurfacePool(std::function<std::unique_ptr<Target>(QSize)> factory, size_t budgetBytes = kDefaultBudgetBytes)
+        : SurfacePool([factory = std::move(factory)](QSize size, WorkingFormat) { return factory(size); }, budgetBytes) {}
 
-    static size_t bytesFor(QSize size) {
-        return static_cast<size_t>(std::max(0, size.width())) * static_cast<size_t>(std::max(0, size.height())) * 4u;
+    static size_t bytesFor(QSize size, WorkingFormat format = WorkingFormat::Rgba8) {
+        return static_cast<size_t>(std::max(0, size.width())) * static_cast<size_t>(std::max(0, size.height())) * workingPixelBytes(format);
     }
     void setBudgetBytes(size_t budget) { m_budget = budget; }
     size_t budgetBytes() const { return m_budget; }
 
     // A target of `size` for this frame: a free one of that size, else a new
     // one. Null when the factory fails.
-    Target* acquire(QSize size, long long frame) {
+    Target* acquire(QSize size, long long frame, WorkingFormat format = WorkingFormat::Rgba8) {
         for (Slot& s : m_slots) {
-            if (!s.inUse && s.size == size) {
+            if (!s.inUse && s.size == size && s.format == format) {
                 s.inUse = true;
                 s.lastUsed = frame;
-                m_frameBytes += bytesFor(size);
+                m_frameBytes += bytesFor(size, format);
                 return s.target.get();
             }
         }
-        const size_t need = bytesFor(size);
+        const size_t need = bytesFor(size, format);
         evictFreeUntil(need, frame);
-        std::unique_ptr<Target> t = m_factory(size);
+        std::unique_ptr<Target> t = m_factory(size, format);
         if (!t) return nullptr;
         ++m_created;
         m_bytes += need;
         m_frameBytes += need;
-        m_slots.push_back({std::move(t), size, frame, true});
+        m_slots.push_back({std::move(t), size, format, frame, true});
         return m_slots.back().target.get();
     }
 
@@ -83,7 +86,7 @@ public:
             it->inUse = false;
             const bool usedThisFrame = it->lastUsed >= frame;
             if (!usedThisFrame && (frame - it->lastUsed > kIdleFrames || it->size != frameSize)) {
-                m_bytes -= bytesFor(it->size);
+                m_bytes -= bytesFor(it->size, it->format);
                 it = m_slots.erase(it);
                 ++m_freed;
             } else {
@@ -119,7 +122,7 @@ private:
                 if (victim == m_slots.end() || it->lastUsed < victim->lastUsed) victim = it;
             }
             if (victim == m_slots.end()) return;
-            m_bytes -= bytesFor(victim->size);
+            m_bytes -= bytesFor(victim->size, victim->format);
             m_slots.erase(victim);
             ++m_freed;
         }
@@ -128,6 +131,7 @@ private:
     struct Slot {
         std::unique_ptr<Target> target;
         QSize size;
+        WorkingFormat format;
         long long lastUsed = 0;
         bool inUse = false;
     };

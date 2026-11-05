@@ -3,6 +3,7 @@
 #include "color/ColorMatchMath.h"
 #include "preview/effects/ClipEffects.h"
 #include <QJsonObject>
+#include <qfloat16.h>
 #include <algorithm>
 #include <cmath>
 #include <memory>
@@ -29,7 +30,23 @@ struct Frame {
     int width = 0, height = 0;
     std::vector<Triple> rgb;
 };
+bool floatImage(const QImage &image) {
+    return image.format() == QImage::Format_RGBA16FPx4 ||
+           image.format() == QImage::Format_RGBA16FPx4_Premultiplied ||
+           image.format() == QImage::Format_RGBA32FPx4 ||
+           image.format() == QImage::Format_RGBA32FPx4_Premultiplied;
+}
 Frame pixels(const QImage &image) {
+    if (floatImage(image)) {
+        const auto rgba = image.convertToFormat(QImage::Format_RGBA32FPx4);
+        Frame out{image.width(),image.height(),{}};
+        out.rgb.reserve(size_t(out.width)*out.height);
+        for (int y = 0; y < out.height; ++y) {
+            const auto *row = reinterpret_cast<const float*>(rgba.constScanLine(y));
+            for (int x = 0; x < out.width; ++x) { out.rgb.push_back({row[x*4],row[x*4+1],row[x*4+2]}); }
+        }
+        return out;
+    }
     const auto rgba = image.convertToFormat(QImage::Format_RGBA8888);
     Frame out{image.width(),image.height(),{}};
     out.rgb.reserve(size_t(out.width)*out.height);
@@ -116,7 +133,7 @@ std::array<float,3> rotateHue(std::array<float,3> rgb, float degrees) {
     }
 }
 // (u, v) is the pixel center in 0..1 of the clip's surface and aspect its width over height. Only a vignette reads them.
-Triple evaluate(Triple input, const std::vector<ColourPass> &plan, double u, double v, double aspect) {
+Triple evaluate(Triple input, const std::vector<ColourPass> &plan, double u, double v, double aspect, nt::WorkingFormat format) {
     std::array<float,3> rgb{float(input[0]),float(input[1]),float(input[2])};
     bool applied = false;
     const auto sat = [](float v) { return std::clamp(v,0.0f,1.0f); };
@@ -180,17 +197,20 @@ Triple evaluate(Triple input, const std::vector<ColourPass> &plan, double u, dou
             break;
         default: break;
         }
-        // Renderer intermediates are RGBA8, including between Levels and CDL.
-        for (auto &value : rgb) { value = std::round(sat(value)*255)/255; }
+        // Each pass writes the route's storage, including between Levels and CDL.
+        for (auto &value : rgb) {
+            value = format == nt::WorkingFormat::Rgba8
+                ? std::round(sat(value)*255)/255 : float(qfloat16(sat(value)));
+        }
     }
     return applied ? Triple{rgb[0],rgb[1],rgb[2]} : input;
 }
-Frame graded(const Frame &source, const std::vector<ColourPass> &plan) {
+Frame graded(const Frame &source, const std::vector<ColourPass> &plan, nt::WorkingFormat format) {
     Frame out = source;
     for (int y = 0; y < out.height; ++y) {
         for (int x = 0; x < out.width; ++x) {
             auto &c = out.rgb[size_t(y)*out.width+x];
-            c = evaluate(c,plan,(x+.5)/out.width,(y+.5)/out.height,double(out.width)/out.height);
+            c = evaluate(c,plan,(x+.5)/out.width,(y+.5)/out.height,double(out.width)/out.height,format);
         }
     }
     return out;
@@ -351,13 +371,18 @@ Stats statistics(const QImage &image, bool protectSkin) { return stats(pixels(im
 }
 QImage trimBlackBars(const QImage &image) {
     if (image.isNull()) { return image; }
-    const auto rgba = image.convertToFormat(QImage::Format_RGBA8888);
+    const bool fp = floatImage(image);
+    const auto rgba = image.convertToFormat(fp ? QImage::Format_RGBA32FPx4 : QImage::Format_RGBA8888);
     int left = image.width(), right = -1, top = image.height(), bottom = -1;
     for (int y = 0; y < image.height(); ++y) {
         const auto *row = rgba.constScanLine(y);
         for (int x = 0; x < image.width(); ++x) {
             const auto *c = row+x*4;
-            if (c[0] > 2 || c[1] > 2 || c[2] > 2) {
+            const auto *f = fp ? reinterpret_cast<const float*>(row)+x*4 : nullptr;
+            // Same black-bar cutoff, without byte conversion of working samples.
+            const bool visible = fp ? (f[0] >= 2.5/255 || f[1] >= 2.5/255 || f[2] >= 2.5/255)
+                                    : (c[0] > 2 || c[1] > 2 || c[2] > 2);
+            if (visible) {
                 left = std::min(left,x); right = std::max(right,x); top = std::min(top,y); bottom = std::max(bottom,y);
             }
         }
@@ -365,15 +390,30 @@ QImage trimBlackBars(const QImage &image) {
     if (right < left || (left == 0 && right == image.width()-1 && top == 0 && bottom == image.height()-1)) { return image; }
     return image.copy(left,top,right-left+1,bottom-top+1);
 }
-QImage applyGrade(const QImage &frame, const QJsonArray &effects, const QJsonArray &trackEffects) {
+QImage applyGrade(const QImage &frame, const QJsonArray &effects, const QJsonArray &trackEffects, nt::WorkingFormat format) {
     if (frame.isNull()) { return {}; }
+    if (format == nt::WorkingFormat::Rgba16F) {
+        auto out = frame.convertToFormat(QImage::Format_RGBA32FPx4);
+        const auto plan = colourPlan(effects,trackEffects);
+        for (int y = 0; y < out.height(); ++y) {
+            auto *row = reinterpret_cast<float*>(out.scanLine(y));
+            for (int x = 0; x < out.width(); ++x) {
+                auto *p = row+x*4;
+                const auto c = evaluate({p[0],p[1],p[2]},plan,(x+.5)/out.width(),
+                    (y+.5)/out.height(),double(out.width())/out.height(),format);
+                for (int k = 0; k < 3; ++k) { p[k] = float(c[k]); }
+                p[3] = 1;
+            }
+        }
+        return out;
+    }
     auto out = frame.convertToFormat(QImage::Format_RGBA8888);
     const auto plan = colourPlan(effects,trackEffects);
     for (int y = 0; y < out.height(); ++y) {
         auto *row = out.scanLine(y);
         for (int x = 0; x < out.width(); ++x) {
             auto *p = row+x*4;
-            const auto c = evaluate({p[0]/255.0,p[1]/255.0,p[2]/255.0},plan,(x+.5)/out.width(),(y+.5)/out.height(),double(out.width())/out.height());
+            const auto c = evaluate({p[0]/255.0,p[1]/255.0,p[2]/255.0},plan,(x+.5)/out.width(),(y+.5)/out.height(),double(out.width())/out.height(),format);
             for (int k = 0; k < 3; ++k) { p[k] = std::uint8_t(std::lround(clamp(c[k])*255)); }
             p[3] = 255;
         }
@@ -443,14 +483,18 @@ MatchResult solveMatch(const MatchInput &input) {
     if (cancelled()) { return result; }
     if (input.current.isNull()) { result.error = "The current shot has no frame to match."; return result; }
     if (input.reference.isNull()) { result.error = "The reference has no frame to match."; return result; }
-    const auto [current,reference] = pairedFrames(trimBlackBars(input.current),trimBlackBars(input.reference));
+    const auto currentImage = input.workingFormat == nt::WorkingFormat::Rgba8
+        ? input.current.convertToFormat(QImage::Format_RGBA8888) : input.current;
+    const auto referenceImage = input.workingFormat == nt::WorkingFormat::Rgba8
+        ? input.reference.convertToFormat(QImage::Format_RGBA8888) : input.reference;
+    const auto [current,reference] = pairedFrames(trimBlackBars(currentImage),trimBlackBars(referenceImage));
     const auto referenceStats = stats(reference,input.protectSkin);
     auto plan = searchPlan(input.effects,input.trackEffects);
     Parameters x{};
     constexpr double regularisation = .02*.02;
     const auto cost = [&](const Parameters &p) {
         plan.set(p);
-        const auto r = residuals(stats(graded(current,plan.passes),input.protectSkin),referenceStats);
+        const auto r = residuals(stats(graded(current,plan.passes,input.workingFormat),input.protectSkin),referenceStats);
         return std::pair{r,squareNorm(r)+regularisation*squareNorm(p)};
     };
     auto [r,c] = cost(x);
@@ -499,7 +543,7 @@ MatchResult solveMatch(const MatchInput &input) {
             for (int attempt = 0; attempt < 24; ++attempt) {
                 if (cancelled()) { return result; }
                 plan.set(x);
-                const auto sk = stats(graded(current,plan.passes),true).skin;
+                const auto sk = stats(graded(current,plan.passes,input.workingFormat),true).skin;
                 const double shift = std::abs(std::remainder(std::atan2(sk[1],sk[0])-h0,2*std::numbers::pi))*180/std::numbers::pi;
                 if (sk[2] > .002 && shift <= 8) { break; }
                 const double scale = attempt == 23 ? 0 : std::pow(.7,attempt+1);
@@ -517,9 +561,9 @@ MatchResult solveMatch(const MatchInput &input) {
     result.ok = true; result.before = before; result.after = std::sqrt(c);
     // What the shot looks like now, not the probe with its grade switched off.
     // Trimmed first, because a vignette runs on the clip's own surface and not the bars around it.
-    const auto trimmed = trimBlackBars(input.current);
-    result.differenceBefore = meanColorDifference(applyGrade(trimmed,input.effects,input.trackEffects),input.reference);
-    result.differenceAfter = meanColorDifference(applyGrade(trimmed,applyMatchToEffects(input.effects,result,"match"),input.trackEffects),input.reference);
+    const auto trimmed = trimBlackBars(currentImage);
+    result.differenceBefore = meanColorDifference(applyGrade(trimmed,input.effects,input.trackEffects,input.workingFormat),referenceImage);
+    result.differenceAfter = meanColorDifference(applyGrade(trimmed,applyMatchToEffects(input.effects,result,"match"),input.trackEffects,input.workingFormat),referenceImage);
     return result;
 }
 }
