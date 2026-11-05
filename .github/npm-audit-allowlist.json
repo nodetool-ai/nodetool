@@ -79,7 +79,7 @@
       "severity": "high",
       "title": "Zod can exhaust memory while validating oversized constrained collections",
       "url": "https://github.com/advisories/GHSA-mrhx-c7xc-m3w5",
-      "reason": "The hoisted zod that our packages use is 4.6.7, which is fixed. The remaining copies are nested: zod 3.25 inside @llamaindex/liteparse, which validates only its own parser options, and zod 4.3 pinned by @remotion/studio, the demo video tooling. Neither validates request input. Fix needs liteparse 2 (major) and a Remotion release."
+      "reason": "Reachable in principle: API routes validate request bodies with zod, bounded only by Fastify's 100 MB bodyLimit. The fix is zod 4.6, but 4.6 changes z.toJSONSchema output: scalar unions become type arrays, which strict Ajv rejects without allowUnionTypes. That alters the published SDK v1 schemas and the game and preset schemas, so the upgrade needs its own change with a schema compatibility decision."
     },
     {
       "project": "mobile",

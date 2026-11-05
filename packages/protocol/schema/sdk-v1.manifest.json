@@ -16,19 +16,19 @@
       "media_type": "application/schema+json",
       "path": "sdk-v1.lifecycle.schema.json",
       "profile": "lifecycle-draft",
-      "sha256": "482bf81828b2cd63f7597a4f1bb5c95c543ac680dd3de63d1b1a767cf3ed1632"
+      "sha256": "a22c7eb9dfc193bcc123034f2006880e12960ef8fbe7c6e3c65578d12ae01672"
     },
     {
       "media_type": "application/schema+json",
       "path": "sdk-v1.execution.schema.json",
       "profile": "execution",
-      "sha256": "a8c954698989276fbd4551ac0a388d87b6e4ea68d91c88a04b068bea7a2b032c"
+      "sha256": "e5a3c20a92239fc43009a3fc667d5bedf42cb3e34e83d80577e516fd042f2c29"
     },
     {
       "media_type": "application/schema+json",
       "path": "sdk-v1.discovery.schema.json",
       "profile": "discovery",
-      "sha256": "2d3d9d07da62ded7a1833cf906e22b236fe418cdd95f46713683646a19bfeb9b"
+      "sha256": "733830147788535450dedd6acbd755ed74c761992350d8b062469db68de0fbaa"
     },
     {
       "media_type": "application/vnd.aai.asyncapi+json;version=3.0",

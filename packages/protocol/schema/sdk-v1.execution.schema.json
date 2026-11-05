@@ -15,9 +15,13 @@
               "type": "string"
             },
             "workflow_id": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             }
           },
@@ -27,9 +31,13 @@
           "type": "object"
         },
         "request_id": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "type": {
@@ -78,36 +86,56 @@
           "type": "boolean"
         },
         "job_id": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "node_id": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "parent_tool_call_id": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "subtask_depth": {
-          "type": [
-            "number",
-            "null"
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "thinking": {
           "type": "boolean"
         },
         "thread_id": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "type": {
@@ -115,9 +143,13 @@
           "type": "string"
         },
         "workflow_id": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         }
       },
@@ -138,9 +170,13 @@
           "additionalProperties": false,
           "properties": {
             "handle": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "input": {
@@ -152,9 +188,13 @@
               "type": "string"
             },
             "workflow_id": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             }
           },
@@ -165,9 +205,13 @@
           "type": "object"
         },
         "request_id": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "type": {
@@ -228,9 +272,13 @@
               "additionalProperties": false,
               "properties": {
                 "api_url": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "auth_token": {
@@ -297,9 +345,13 @@
                   "type": "string"
                 },
                 "explicit_types": {
-                  "type": [
-                    "boolean",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "graph": {
@@ -312,9 +364,13 @@
                             "additionalProperties": false,
                             "properties": {
                               "id": {
-                                "type": [
-                                  "string",
-                                  "null"
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
                                 ]
                               },
                               "source": {
@@ -366,9 +422,13 @@
                                 "type": "string"
                               },
                               "parent_id": {
-                                "type": [
-                                  "string",
-                                  "null"
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
                                 ]
                               },
                               "sync_mode": {
@@ -477,9 +537,13 @@
               "type": "object"
             },
             "request_id": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "type": {
@@ -509,9 +573,13 @@
                   "type": "string"
                 },
                 "workflow_id": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 }
               },
@@ -521,9 +589,13 @@
               "type": "object"
             },
             "request_id": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "type": {
@@ -553,9 +625,13 @@
                   "type": "string"
                 },
                 "workflow_id": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 }
               },
@@ -565,9 +641,13 @@
               "type": "object"
             },
             "request_id": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "type": {
@@ -593,9 +673,13 @@
               "additionalProperties": false,
               "properties": {
                 "handle": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "input": {
@@ -617,9 +701,13 @@
                   ]
                 },
                 "workflow_id": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 }
               },
@@ -630,9 +718,13 @@
               "type": "object"
             },
             "request_id": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "type": {
@@ -658,9 +750,13 @@
               "additionalProperties": false,
               "properties": {
                 "handle": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "input": {
@@ -672,9 +768,13 @@
                   "type": "string"
                 },
                 "workflow_id": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 }
               },
@@ -685,9 +785,13 @@
               "type": "object"
             },
             "request_id": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "type": {
@@ -730,9 +834,13 @@
                   "type": "object"
                 },
                 "workflow_id": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 }
               },
@@ -744,9 +852,13 @@
               "type": "object"
             },
             "request_id": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "type": {
@@ -811,9 +923,13 @@
               "type": "string"
             },
             "workflow_id": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             }
           },
@@ -831,33 +947,53 @@
           "additionalProperties": true,
           "properties": {
             "duration": {
-              "type": [
-                "number",
-                "null"
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "error": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "error_code": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "job_id": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "message": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "missing_pack": {
@@ -875,9 +1011,13 @@
                           "additionalProperties": true,
                           "properties": {
                             "command": {
-                              "type": [
-                                "string",
-                                "null"
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
                               ]
                             },
                             "reason": {
@@ -990,9 +1130,13 @@
               ]
             },
             "queue_position": {
-              "type": [
-                "number",
-                "null"
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "result": {
@@ -1013,9 +1157,13 @@
               "type": "string"
             },
             "traceback": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "type": {
@@ -1035,9 +1183,13 @@
                         "type": "string"
                       },
                       "node_type": {
-                        "type": [
-                          "string",
-                          "null"
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
                         ]
                       },
                       "property": {
@@ -1059,9 +1211,13 @@
               ]
             },
             "workflow_id": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             }
           },
@@ -1075,9 +1231,13 @@
           "additionalProperties": true,
           "properties": {
             "error": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "error_detail": {
@@ -1103,9 +1263,13 @@
                                   "additionalProperties": true,
                                   "properties": {
                                     "command": {
-                                      "type": [
-                                        "string",
-                                        "null"
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
                                       ]
                                     },
                                     "reason": {
@@ -1223,15 +1387,23 @@
                           "additionalProperties": true,
                           "properties": {
                             "bringYourOwn": {
-                              "type": [
-                                "string",
-                                "null"
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
                               ]
                             },
                             "managed": {
-                              "type": [
-                                "string",
-                                "null"
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
                               ]
                             },
                             "missing": {
@@ -1246,9 +1418,13 @@
                               "type": "string"
                             },
                             "restart": {
-                              "type": [
-                                "string",
-                                "null"
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
                               ]
                             },
                             "runtimePackage": {
@@ -1298,21 +1474,33 @@
                       ]
                     },
                     "provider": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "runtime_package": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "secret_key": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     }
                   },
@@ -1327,9 +1515,13 @@
               ]
             },
             "job_id": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "node_id": {
@@ -1364,63 +1556,99 @@
                       "type": "number"
                     },
                     "billing_unit": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "cached_tokens": {
-                      "type": [
-                        "number",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "currency": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "input_tokens": {
-                      "type": [
-                        "number",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "model": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "output_tokens": {
-                      "type": [
-                        "number",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "provider": {
                       "type": "string"
                     },
                     "provider_request_id": {
-                      "type": [
-                        "string",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "quantity": {
-                      "type": [
-                        "number",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
                     "unit": {
                       "type": "string"
                     },
                     "unit_price": {
-                      "type": [
-                        "number",
-                        "null"
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     }
                   },
@@ -1458,9 +1686,13 @@
               "type": "string"
             },
             "workflow_id": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             }
           },
@@ -1480,9 +1712,13 @@
               "type": "string"
             },
             "job_id": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "node_id": {
@@ -1499,9 +1735,13 @@
               "type": "string"
             },
             "workflow_id": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             }
           },
@@ -1527,9 +1767,13 @@
               "type": "boolean"
             },
             "job_id": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "metadata": {
@@ -1557,9 +1801,13 @@
             },
             "value": {},
             "workflow_id": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             }
           },
@@ -1608,36 +1856,56 @@
               "type": "boolean"
             },
             "job_id": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "node_id": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "parent_tool_call_id": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "subtask_depth": {
-              "type": [
-                "number",
-                "null"
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "thinking": {
               "type": "boolean"
             },
             "thread_id": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "type": {
@@ -1645,9 +1913,13 @@
               "type": "string"
             },
             "workflow_id": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             }
           },
@@ -1731,9 +2003,13 @@
           "type": "string"
         },
         "workflow_id": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         }
       },
@@ -1751,33 +2027,53 @@
       "additionalProperties": true,
       "properties": {
         "duration": {
-          "type": [
-            "number",
-            "null"
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "error": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "error_code": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "job_id": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "message": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "missing_pack": {
@@ -1795,9 +2091,13 @@
                       "additionalProperties": true,
                       "properties": {
                         "command": {
-                          "type": [
-                            "string",
-                            "null"
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
                           ]
                         },
                         "reason": {
@@ -1910,9 +2210,13 @@
           ]
         },
         "queue_position": {
-          "type": [
-            "number",
-            "null"
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "result": {
@@ -1933,9 +2237,13 @@
           "type": "string"
         },
         "traceback": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "type": {
@@ -1955,9 +2263,13 @@
                     "type": "string"
                   },
                   "node_type": {
-                    "type": [
-                      "string",
-                      "null"
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
                     ]
                   },
                   "property": {
@@ -1979,9 +2291,13 @@
           ]
         },
         "workflow_id": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         }
       },
@@ -1998,9 +2314,13 @@
           "type": "string"
         },
         "job_id": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "node_id": {
@@ -2017,9 +2337,13 @@
           "type": "string"
         },
         "workflow_id": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         }
       },
@@ -2035,9 +2359,13 @@
       "additionalProperties": true,
       "properties": {
         "error": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "error_detail": {
@@ -2063,9 +2391,13 @@
                               "additionalProperties": true,
                               "properties": {
                                 "command": {
-                                  "type": [
-                                    "string",
-                                    "null"
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
                                   ]
                                 },
                                 "reason": {
@@ -2183,15 +2515,23 @@
                       "additionalProperties": true,
                       "properties": {
                         "bringYourOwn": {
-                          "type": [
-                            "string",
-                            "null"
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
                           ]
                         },
                         "managed": {
-                          "type": [
-                            "string",
-                            "null"
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
                           ]
                         },
                         "missing": {
@@ -2206,9 +2546,13 @@
                           "type": "string"
                         },
                         "restart": {
-                          "type": [
-                            "string",
-                            "null"
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
                           ]
                         },
                         "runtimePackage": {
@@ -2258,21 +2602,33 @@
                   ]
                 },
                 "provider": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "runtime_package": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "secret_key": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 }
               },
@@ -2287,9 +2643,13 @@
           ]
         },
         "job_id": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "node_id": {
@@ -2324,63 +2684,99 @@
                   "type": "number"
                 },
                 "billing_unit": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "cached_tokens": {
-                  "type": [
-                    "number",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "currency": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "input_tokens": {
-                  "type": [
-                    "number",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "model": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "output_tokens": {
-                  "type": [
-                    "number",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "provider": {
                   "type": "string"
                 },
                 "provider_request_id": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "quantity": {
-                  "type": [
-                    "number",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "unit": {
                   "type": "string"
                 },
                 "unit_price": {
-                  "type": [
-                    "number",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 }
               },
@@ -2418,9 +2814,13 @@
           "type": "string"
         },
         "workflow_id": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         }
       },
@@ -2447,9 +2847,13 @@
           "type": "boolean"
         },
         "job_id": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "metadata": {
@@ -2477,9 +2881,13 @@
         },
         "value": {},
         "workflow_id": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         }
       },
@@ -2535,9 +2943,13 @@
               "type": "string"
             },
             "workflow_id": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             }
           },
@@ -2547,9 +2959,13 @@
           "type": "object"
         },
         "request_id": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "type": {
@@ -2608,9 +3024,13 @@
           "additionalProperties": false,
           "properties": {
             "api_url": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "auth_token": {
@@ -2677,9 +3097,13 @@
               "type": "string"
             },
             "explicit_types": {
-              "type": [
-                "boolean",
-                "null"
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "graph": {
@@ -2692,9 +3116,13 @@
                         "additionalProperties": false,
                         "properties": {
                           "id": {
-                            "type": [
-                              "string",
-                              "null"
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
                             ]
                           },
                           "source": {
@@ -2746,9 +3174,13 @@
                             "type": "string"
                           },
                           "parent_id": {
-                            "type": [
-                              "string",
-                              "null"
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
                             ]
                           },
                           "sync_mode": {
@@ -2857,9 +3289,13 @@
           "type": "object"
         },
         "request_id": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "type": {
@@ -2918,9 +3354,13 @@
           "additionalProperties": false,
           "properties": {
             "handle": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "input": {
@@ -2942,9 +3382,13 @@
               ]
             },
             "workflow_id": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             }
           },
@@ -2955,9 +3399,13 @@
           "type": "object"
         },
         "request_id": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "type": {
@@ -3033,9 +3481,13 @@
               "type": "object"
             },
             "workflow_id": {
-              "type": [
-                "string",
-                "null"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ]
             }
           },
@@ -3047,9 +3499,13 @@
           "type": "object"
         },
         "request_id": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "type": {
