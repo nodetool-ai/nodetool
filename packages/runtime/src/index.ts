@@ -348,6 +348,7 @@ export {
   MAX_CAPTURED_BYTES,
   MAX_ARTIFACT_BYTES,
   maxConcurrentHostBinaries,
+  withTimelineRenderSlot,
   mimeFromFilename,
   clampTimeoutSeconds,
   type HostBinaryResult,

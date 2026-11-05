@@ -578,3 +578,43 @@ describe("mimeFromFilename / clampTimeoutSeconds", () => {
     expect(clampTimeoutSeconds(raw, 180, 600)).toBe(expected);
   });
 });
+
+
+describe("timeline render admission", () => {
+  it("is unlimited by default", async () => {
+    const { withTimelineRenderSlot } = await import("../src/host-binaries.js");
+    vi.stubEnv("NODETOOL_TIMELINE_RENDER_CONCURRENCY", "");
+    let release!: () => void;
+    const held = new Promise<void>(resolve => { release = resolve; });
+    let entered = 0;
+    const jobs = Array.from({ length: 4 }, () => withTimelineRenderSlot(async () => {
+      entered++;
+      await held;
+    }));
+    await Promise.resolve();
+    expect(entered).toBe(4);
+    release();
+    await Promise.all(jobs);
+    vi.unstubAllEnvs();
+  });
+
+  it("releases on failure and rejects a queued abort before the holder finishes", async () => {
+    const { withTimelineRenderSlot } = await import("../src/host-binaries.js");
+    vi.stubEnv("NODETOOL_TIMELINE_RENDER_CONCURRENCY", "1");
+    let release!: () => void;
+    const held = new Promise<void>(resolve => { release = resolve; });
+    const first = withTimelineRenderSlot(() => held);
+    const controller = new AbortController();
+    const work = vi.fn(async () => undefined);
+    const waiting = withTimelineRenderSlot(work, controller.signal);
+    controller.abort();
+    await expect(waiting).rejects.toMatchObject({ name: "AbortError" });
+    expect(work).not.toHaveBeenCalled();
+    release();
+    await first;
+    await expect(withTimelineRenderSlot(async () => { throw new Error("failure"); })).rejects.toThrow("failure");
+    await withTimelineRenderSlot(work);
+    expect(work).toHaveBeenCalledOnce();
+    vi.unstubAllEnvs();
+  });
+});
