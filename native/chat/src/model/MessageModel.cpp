@@ -22,6 +22,24 @@ QString textOf(const QJsonValue &value) {
   }
   return text;
 }
+bool openThought(const QString &text) {
+  const auto start = text.lastIndexOf("<think>");
+  return start >= 0 && text.indexOf("</think>", start) < 0 &&
+         text.indexOf("</redacted_thinking>", start) < 0;
+}
+const QRegularExpression &thoughtPattern() {
+  static const QRegularExpression pattern("<think>([\\s\\S]*?)(</think>|</redacted_thinking>|$)");
+  return pattern;
+}
+QString thoughtsOnly(const QString &text) {
+  QString result;
+  auto matches = thoughtPattern().globalMatch(text);
+  while (matches.hasNext()) {
+    const auto match = matches.next();
+    result += "<think>" + match.captured(1) + "</think>";
+  }
+  return result;
+}
 QString displayJson(const QJsonValue &value) {
   if (value.isString()) {
     return value.toString();
@@ -183,6 +201,23 @@ QJsonObject presentPart(QJsonObject part) {
 }
 QJsonArray projectedParts(const QJsonObject &m, const QHash<QString, QJsonObject> &results) {
   auto parts = m["parts"].toArray();
+  const auto body = textOf(m["content"]);
+  auto thoughts = thoughtPattern().globalMatch(body);
+  int thoughtIndex = 0;
+  qsizetype cursor = 0;
+  while (thoughts.hasNext()) {
+    const auto match = thoughts.next();
+    if (match.capturedStart() > cursor) {
+      parts.append(QJsonObject{{"type", "prose"}, {"text", body.mid(cursor, match.capturedStart() - cursor)}});
+    }
+    const bool running = match.captured(2).isEmpty() && m["status"] == "streaming";
+    parts.append(QJsonObject{{"type", "thought"}, {"thoughtKey", QString::number(thoughtIndex++)},
+                            {"text", match.captured(1)}, {"running", running}});
+    cursor = match.capturedEnd();
+  }
+  if (thoughtIndex > 0 && cursor < body.size()) {
+    parts.append(QJsonObject{{"type", "prose"}, {"text", body.mid(cursor)}});
+  }
   bool hasToolCalls = false;
   for (const auto &value : m["tool_calls"].toArray()) {
     const auto call = value.toObject();
@@ -318,6 +353,14 @@ QVariant PartModel::data(const QModelIndex &index, int role) const {
   const auto part = m_parts[index.row()];
   if (part.isObject()) {
     auto data = part.toObject().toVariantMap();
+    if (data.value("type") == "thought") {
+      const auto key = data.value("thoughtKey").toString();
+      const bool running = data.value("running").toBool();
+      data["expanded"] = m_thoughtExpanded.value(key, running);
+      data["label"] = running ? QString("Thinking") : m_thoughtDurations.contains(key)
+          ? QString("Thought for %1s").arg(std::max<qint64>(1, qRound64(m_thoughtDurations[key] / 1000.0)))
+          : QString("Thought");
+    }
     if (data.value("tool").toBool()) {
       data["expanded"] = m_expanded.contains(expansionKey(index.row()));
       auto calls = data.value("calls").toList();
@@ -349,6 +392,13 @@ void PartModel::toggleExpanded(int row) {
   if (row < 0 || row >= m_parts.size()) {
     return;
   }
+  if (m_parts[row].toObject()["type"] == "thought") {
+    const auto part = m_parts[row].toObject();
+    const auto key = part["thoughtKey"].toString();
+    m_thoughtExpanded[key] = !m_thoughtExpanded.value(key, part["running"].toBool());
+    emit dataChanged(index(row), index(row), {ModelDataRole});
+    return;
+  }
   const auto key = expansionKey(row);
   if (!m_expanded.remove(key)) {
     m_expanded.insert(key);
@@ -362,6 +412,17 @@ void PartModel::toggleCall(int row, const QString &id) {
   emit dataChanged(index(row), index(row), {ModelDataRole});
 }
 void PartModel::setParts(const QJsonArray &parts) {
+  for (const auto &value : parts) {
+    const auto part = value.toObject();
+    if (part["type"] != "thought") { continue; }
+    const auto key = part["thoughtKey"].toString();
+    const auto now = QDateTime::currentMSecsSinceEpoch();
+    if (part["running"].toBool() && !m_thoughtStarts.contains(key)) {
+      m_thoughtStarts[key] = now;
+    } else if (!part["running"].toBool() && m_thoughtStarts.contains(key) && !m_thoughtDurations.contains(key)) {
+      m_thoughtDurations[key] = now - m_thoughtStarts[key];
+    }
+  }
   const auto shared = std::min(m_parts.size(), parts.size());
   for (qsizetype i = 0; i < shared; ++i) {
     if (m_parts[i] != parts[i]) {
@@ -414,7 +475,7 @@ QVariant MessageModel::data(const QModelIndex &i, int role) const {
   case RoleRole:
     return m["role"].toString();
   case TextRole:
-    return textOf(m["content"]);
+    return textOf(m["content"]).contains("<think>") ? QString() : textOf(m["content"]);
   case TimestampRole:
     return m["created_at"].toString();
   case PartsRole: {
@@ -514,6 +575,14 @@ QString MessageModel::upsert(const QJsonObject &message) {
     const auto oldKey = m_projectionKeys.last();
     m_indices.remove(oldKey);
     auto row = message;
+    const auto thoughts = thoughtsOnly(textOf(m_rows.last()["content"]));
+    if (!thoughts.isEmpty() && !textOf(row["content"]).contains("<think>")) {
+      if (row["content"].isArray()) {
+        auto content = row["content"].toArray();
+        content.prepend(QJsonObject{{"type", "text"}, {"text", thoughts}});
+        row["content"] = content;
+      } else if (row["content"].isString()) { row["content"] = thoughts + row["content"].toString(); }
+    }
     if (!row.contains("parts")) {
       row["parts"] = m_rows.last()["parts"];
     }
@@ -545,7 +614,7 @@ QString MessageModel::upsert(const QJsonObject &message) {
   endInsertRows();
   return key;
 }
-void MessageModel::appendChunk(const QString &text, bool done) {
+void MessageModel::appendChunk(const QString &input, bool done, bool thinking) {
   if (m_rows.isEmpty() || m_rows.last()["role"] != "assistant" ||
       m_rows.last()["status"] != "streaming") {
     upsert({{"id", QUuid::createUuid().toString(QUuid::Id128)},
@@ -558,6 +627,9 @@ void MessageModel::appendChunk(const QString &text, bool done) {
   }
   auto &row = m_rows.last();
   const auto old = textOf(row["content"]);
+  auto text = input;
+  if (thinking && !input.isEmpty() && !openThought(old)) { text.prepend("<think>"); }
+  else if (!thinking && openThought(old) && (!input.isEmpty() || done)) { text.prepend("</think>"); }
   if (old.size() + text.size() <= 4 * 1024 * 1024) {
     if (row["content"].isArray()) {
       auto content = row["content"].toArray();
@@ -576,6 +648,9 @@ void MessageModel::appendChunk(const QString &text, bool done) {
     }
   }
   row["status"] = done ? "complete" : "streaming";
+  if (thinking && !m_partModels.contains(m_projectionKeys.last())) {
+    data(index(rowCount() - 1), PartsRole);
+  }
   m_dirtyRow = rowCount() - 1;
   if (!m_frameTimer) {
     m_frameTimer = new QTimer(this);
@@ -583,20 +658,25 @@ void MessageModel::appendChunk(const QString &text, bool done) {
     m_frameTimer->setInterval(16);
     connect(m_frameTimer, &QTimer::timeout, this, [this] {
       if (m_dirtyRow >= 0 && m_dirtyRow < rowCount()) {
+        refreshParts(m_dirtyRow);
         emit dataChanged(index(m_dirtyRow), index(m_dirtyRow),
-                         {TextRole, StatusRole});
+                         {TextRole, PartsRole, StatusRole});
       }
       m_dirtyRow = -1;
     });
   }
   if (done) {
     m_frameTimer->stop();
+    refreshParts(m_dirtyRow);
     emit dataChanged(index(m_dirtyRow), index(m_dirtyRow),
-                     {TextRole, StatusRole});
+                     {TextRole, PartsRole, StatusRole});
     m_dirtyRow = -1;
   } else if (!m_frameTimer->isActive()) {
     m_frameTimer->start();
   }
+}
+void MessageModel::finishThinking() {
+  if (!m_rows.isEmpty() && m_rows.last()["status"] == "streaming") { appendChunk({}, true); }
 }
 bool MessageModel::addResolvedPart(const QString &id, const QJsonObject &part) {
   if (!m_indices.contains(id)) {

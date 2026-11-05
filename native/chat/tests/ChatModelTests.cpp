@@ -45,6 +45,40 @@ QJsonObject message(int id) {
 class ChatModelTests : public QObject {
     Q_OBJECT
 private slots:
+    void thinkingLifecycleAndHistory() {
+        QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/thinking.json"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto fixture = QJsonDocument::fromJson(file.readAll()).object();
+        MessageModel model;
+        const auto events = fixture["events"].toArray();
+        model.appendChunk(events[0].toObject()["content"].toString(), false, true);
+        auto *parts = qobject_cast<PartModel *>(partsFor(model));
+        QCOMPARE(partAt(parts, 0)["label"].toString(), "Thinking");
+        QVERIFY(partAt(parts, 0)["expanded"].toBool());
+        parts->toggleExpanded(0);
+        QSignalSpy changes(parts, &QAbstractItemModel::dataChanged);
+        QSignalSpy resets(parts, &QAbstractItemModel::modelReset);
+        model.appendChunk(events[1].toObject()["content"].toString(), false, true);
+        model.appendChunk(events[2].toObject()["content"].toString(), true);
+        QVERIFY(!partAt(parts, 0)["expanded"].toBool());
+        QCOMPARE(partAt(parts, 0)["label"].toString(), "Thought for 1s");
+        QVERIFY(changes.count() > 0);
+        QCOMPARE(resets.count(), 0);
+        parts->toggleExpanded(0);
+        model.upsert({{"id", "final"}, {"role", "assistant"}, {"content", "The answer is **42**."}});
+        QCOMPARE(partsFor(model), parts);
+        QVERIFY(partAt(parts, 0)["expanded"].toBool());
+        MessageModel loaded;
+        loaded.importHistory(fixture["messages"].toArray());
+        QCOMPARE(partAt(partsFor(loaded), 0)["text"], partAt(parts, 0)["text"]);
+        QCOMPARE(partAt(partsFor(loaded), 1)["text"], partAt(parts, 1)["text"]);
+        QCOMPARE(partAt(partsFor(loaded), 0)["label"].toString(), "Thought");
+        QVERIFY(!partAt(partsFor(loaded), 0)["expanded"].toBool());
+        MessageModel stopped;
+        stopped.appendChunk("unfinished", false, true);
+        stopped.finishThinking();
+        QVERIFY(!partAt(partsFor(stopped), 0)["running"].toBool());
+    }
     void webToolPresentationCases() {
         QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/tool-presentation.json"));
         QVERIFY(file.open(QIODevice::ReadOnly));

@@ -670,10 +670,10 @@ void ChatSession::applyEvent(const QJsonObject &event) {
       emit stateChanged();
       return;
     }
-    if (event["content"].isString() && !event["thinking"].toBool() &&
+    if ((event["content"].isString() || event["done"].toBool()) &&
         event["sub_agent_call_id"].toString().isEmpty()) {
       s.messages->appendChunk(event["content"].toString(),
-                              event["done"].toBool());
+                              event["done"].toBool(), event["thinking"].toBool());
     }
     s.status = event["done"].toBool() ? "idle" : "streaming";
   } else if (type == "message") {
@@ -687,10 +687,12 @@ void ChatSession::applyEvent(const QJsonObject &event) {
       s.status = "idle";
     }
   } else if (type == "error") {
+    s.messages->finishThinking();
     s.status = "error";
     s.error = event["message"].toString("Chat failed");
     s.messages->addPart({{"type", "error"}, {"text", s.error}});
   } else if (type == "generation_stopped") {
+    s.messages->finishThinking();
     s.status = "idle";
   } else if (type == "chat_resumed") {
     if (event["status"] == "unknown" || event["replay_incomplete"].toBool()) {

@@ -21,6 +21,14 @@ public:
             m_session->applyEvent(object);
         }
     }
+    Q_INVOKABLE void thoughtHistory(int count) {
+        QJsonArray rows;
+        for (int i = 0; i < count; ++i) {
+            rows.append(QJsonObject{{"id", QString::number(i)}, {"role", "assistant"},
+                {"content", "<think>Saved reasoning</think>Answer"}});
+        }
+        m_session->importHistory("a", rows);
+    }
     Q_INVOKABLE void persistedTools() {
         QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/persisted-tools.json"));
         if (!file.open(QIODevice::ReadOnly)) { return; }

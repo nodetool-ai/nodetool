@@ -202,3 +202,27 @@ CTest reports three passing tests including its prerequisite setup. The existing
 checks pass. TypeScript tests, typecheck, lint, harness gate and `/verify` were
 not run, as requested. No running-web pixel comparison, platform accessibility
 check or timeline-host screenshot was performed.
+
+## Thinking parity
+
+`thinking.json` covers streamed reasoning and the equivalent saved markup.
+C++ wraps thinking chunks in `<think>` blocks, closes them when an answer or
+completion arrives, and retains them when the final message replaces the
+placeholder. Saved `<think>` and `</redacted_thinking>` markup uses the same
+projection. Sections open while thinking and fold on completion unless the
+reader has overridden expansion. Timing and expansion live outside delegates.
+An interrupted thought stops reading “Thinking”.
+
+As on web, fresh history without timing reads “Thought”. Locally observed
+completion reads “Thought for Ns”, rounded to whole seconds with a minimum of
+one. The server does not persist reasoning chunks, so a fresh reload can only
+show reasoning that exists in history. Native does not write its projection
+back to the server. The web shimmer and timeline rail remain visual differences.
+
+The native build passed. CTest passed all three selected tests, including setup.
+Qt reported 27 model and 25 QML passes, with no failures or skips. Coverage
+includes expansion after scrolling through 2,000 thought messages. Both native
+design checks passed. The inspected offscreen screenshot is
+`/home/mg/Projects/nodetool-film/tmp/chat-parity/thinking.png`.
+TypeScript tests, typecheck, lint, harness gate and `/verify` were not run.
+No dependencies were added.

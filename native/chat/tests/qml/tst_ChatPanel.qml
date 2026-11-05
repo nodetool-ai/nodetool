@@ -63,6 +63,37 @@ TestCase {
         testDriver.clearHistory("b")
         wait(30)
     }
+    function test_thinkingAndScreenshot() {
+        testDriver.replay("thinking", 1)
+        tryVerify(function() { return findText(panel, "Thinking") !== null })
+        const toggle = findVisible(panel, "toolDetails_0")
+        verify(toggle.Accessible.expanded)
+        mouseClick(toggle)
+        compare(toggle.Accessible.expanded, false)
+        testDriver.stream("a", "Answer", true)
+        tryVerify(function() { return findText(panel, "Thought for 1s") !== null })
+        compare(toggle.Accessible.expanded, false)
+        mouseClick(toggle)
+        wait(80)
+        const directory = testDriver.screenshotDirectory()
+        if (directory) grabImage(panel).save(directory + "/thinking.png")
+    }
+    function test_thoughtExpansionSurvivesScrolling() {
+        testDriver.thoughtHistory(2000)
+        const list = findChild(panel, "chatMessages")
+        tryCompare(list, "count", 2000)
+        list.positionViewAtBeginning()
+        wait(100)
+        let first = findVisible(panel, "message_0")
+        verify(first !== null)
+        mouseClick(findVisible(first, "toolDetails_0"))
+        list.positionViewAtEnd()
+        wait(100)
+        list.positionViewAtBeginning()
+        wait(100)
+        first = findVisible(panel, "message_0")
+        verify(findVisible(first, "toolDetails_0").Accessible.expanded)
+    }
     function test_persistedToolsAndScreenshot() {
         testDriver.persistedTools()
         const list = findChild(panel, "chatMessages")

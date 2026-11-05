@@ -21,6 +21,9 @@ public:
 private:
   QJsonArray m_parts;
   QSet<QString> m_expanded;
+  QHash<QString, bool> m_thoughtExpanded;
+  QHash<QString, qint64> m_thoughtStarts;
+  QHash<QString, qint64> m_thoughtDurations;
   QString expansionKey(int row) const;
 };
 class MessageModel : public QAbstractListModel {
@@ -40,7 +43,8 @@ public:
   QVariant data(const QModelIndex &, int) const override;
   QHash<int, QByteArray> roleNames() const override;
   QString upsert(const QJsonObject &message);
-  void appendChunk(const QString &text, bool done);
+  void appendChunk(const QString &text, bool done, bool thinking = false);
+  void finishThinking();
   void addPart(const QJsonObject &part);
   bool addResolvedPart(const QString &messageId, const QJsonObject &part);
   void importHistory(const QJsonArray &, bool prepend = false);

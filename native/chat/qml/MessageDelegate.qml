@@ -154,6 +154,7 @@ ColumnLayout {
                 anchors.margins: Ui.Metrics.md
                 spacing: Ui.Metrics.md
                 RowLayout {
+                    visible: partFrame.kind !== "prose"
                     Layout.fillWidth: true
                     Ui.Text {
                         role: Ui.Typography.SansLabel
@@ -175,7 +176,7 @@ ColumnLayout {
                         tone: Ui.Text.Secondary
                     }
                     Ui.EditorButton {
-                        visible: !!partFrame.part.tool
+                        visible: !!partFrame.part.tool || partFrame.kind === "thought"
                         objectName: "toolDetails_" + (partFrame.part.tool_call_id || partFrame.index)
                         text: partFrame.detailsOpen ? qsTr("Hide details") : qsTr("Show details")
                         Accessible.expandable: true
@@ -281,8 +282,9 @@ ColumnLayout {
                 }
                 PagedText {
                     Layout.fillWidth: true
-                    visible: !partFrame.part.tool && (partFrame.kind !== "image" || !partFrame.part.mediaUrl)
-                    sourceText: partFrame.part.text || partFrame.part.content || (typeof partFrame.part.result === "string" ? partFrame.part.result : "") || qsTr("This content is preserved by the server. Open the web app to use this content type.")
+                    visible: !partFrame.part.tool && (partFrame.kind !== "thought" || partFrame.detailsOpen) && (partFrame.kind !== "image" || !partFrame.part.mediaUrl)
+                    markdown: partFrame.kind === "thought" || partFrame.kind === "prose"
+                    sourceText: partFrame.kind === "thought" && !partFrame.detailsOpen ? "" : partFrame.part.text || partFrame.part.content || (typeof partFrame.part.result === "string" ? partFrame.part.result : "") || qsTr("This content is preserved by the server. Open the web app to use this content type.")
                     chatSession: root.session
                 }
                 Image {
