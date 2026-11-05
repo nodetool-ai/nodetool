@@ -173,9 +173,10 @@ private:
         std::fwrite(bytes.constData(), 1, bytes.size(), stdout);
         std::fputc('\n', stdout);
         std::fflush(stdout);
-        // stdin may still be held open by the client. Terminate after reporting
-        // rather than waiting for the reader thread to reach EOF.
-        if (m_versionRejected) { std::exit(EXIT_FAILURE); }
+        // The reader may hold stdin's C++ stream lock while waiting for more
+        // input. Static stream cleanup would wait on that lock at std::exit.
+        // The error is flushed and cached documents released before terminating.
+        if (m_versionRejected) { std::_Exit(EXIT_FAILURE); }
         QTimer::singleShot(0, this, [this] { next(); });
     }
     std::deque<QJsonObject> m_requests;

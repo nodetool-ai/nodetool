@@ -6,6 +6,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QImage>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QProcess>
@@ -38,8 +39,16 @@ private slots:
         QFETCH(bool, supported);
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
+        QImage source(16, 16, QImage::Format_RGB32);
+        source.fill(Qt::red);
+        const auto media = dir.filePath("source.png");
+        QVERIFY(source.save(media));
+        const QJsonArray tracks{QJsonObject{{"id", "v"}, {"type", "video"}}};
+        const QJsonArray clips{QJsonObject{{"id", "c"}, {"trackId", "v"}, {"mediaType", "image"},
+                                           {"mediaPath", media}, {"startMs", 0}, {"durationMs", 34},
+                                           {"width", 16}, {"height", 16}}};
         QJsonObject raw{{"id", "seq"}, {"fps", 30}, {"width", 16}, {"height", 16},
-                        {"durationMs", 34}, {"tracks", QJsonArray{}}, {"clips", QJsonArray{}}};
+                        {"durationMs", 34}, {"tracks", tracks}, {"clips", clips}};
         if (!version.isUndefined()) { raw.insert("workingColorSpaceVersion", version); }
         const auto bytes = QJsonDocument(raw).toJson();
         const auto parsed = nt::parseTimelineJson(bytes);
@@ -78,7 +87,6 @@ private slots:
         const auto reparsed = nt::parseTimeline(roundTrip);
         QCOMPARE(reparsed.timeline.has_value(), supported);
 
-        if (supported) { return; }
         const auto path = dir.filePath("input.json");
         QFile file(path);
         QVERIFY(file.open(QIODevice::WriteOnly));
@@ -87,15 +95,17 @@ private slots:
         for (const QString& route : {QStringLiteral("editor"), QStringLiteral("export"),
                                      QStringLiteral("stills"), QStringLiteral("frame-server"),
                                      QStringLiteral("frame-server-eof")}) {
+            if (supported && (route == "frame-server-eof" || route == "editor")) { continue; }
             QProcess process;
             auto env = QProcessEnvironment::systemEnvironment();
             env.insert("XDG_CONFIG_HOME", dir.filePath("config"));
             process.setProcessEnvironment(env);
             QStringList args;
-            if (route == "export") { args = {"--export", dir.filePath("out.mp4"), path}; }
+            if (route == "export") { args = {"--export", dir.filePath("out.zip"), "--format", "png_sequence", path}; }
             else if (route == "stills") { args = {"--stills", dir.filePath("stills"), "--still-frames", "0", path}; }
             else if (route.startsWith("frame-server")) { args = {"--frame-server"}; }
             else { args = {path}; }
+            QByteArray response;
             process.start(QStringLiteral(NT_TIMELINE_BINARY), args);
             QVERIFY(process.waitForStarted());
             if (route.startsWith("frame-server")) {
@@ -103,16 +113,38 @@ private slots:
                                           {"timeMs", 0}, {"dir", dir.path()}};
                 process.write(QJsonDocument(request).toJson(QJsonDocument::Compact) + '\n');
                 // Exercise both a persistent client and immediate EOF.
-                if (route == "frame-server-eof") { process.closeWriteChannel(); }
+                if (supported) {
+                    while (!response.contains('\n')) {
+                        QVERIFY(process.waitForReadyRead(30000));
+                        response += process.readAllStandardOutput();
+                    }
+                    const auto reply = QJsonDocument::fromJson(response).object();
+                    QVERIFY2(reply.contains("file"), response.constData());
+                    QVERIFY(QFileInfo::exists(reply.value("file").toString()));
+                    process.closeWriteChannel();
+                } else if (route == "frame-server-eof") { process.closeWriteChannel(); }
             }
-            QVERIFY2(process.waitForFinished(30000), qPrintable(route));
+            const bool finished = process.waitForFinished(30000);
+            const auto diagnostics = process.readAllStandardError();
+            QVERIFY2(finished, qPrintable(route + ": " + QString::fromUtf8(diagnostics)));
             QCOMPARE(process.exitStatus(), QProcess::NormalExit);
-            QCOMPARE(process.exitCode(), 1);
-            const auto report = process.readAllStandardError() + process.readAllStandardOutput();
-            QVERIFY2(report.contains(parsed.error.toUtf8()), report.constData());
-            QVERIFY(!QFileInfo::exists(dir.filePath("out.mp4")));
-            QVERIFY(!QFileInfo::exists(dir.filePath("stills")));
-            QVERIFY(QDir(dir.path()).entryList({"*.rgba"}, QDir::Files).isEmpty());
+            QCOMPARE(process.exitCode(), supported ? 0 : 1);
+            const auto output = process.readAllStandardOutput();
+            const auto report = diagnostics + output;
+            if (supported) {
+                if (route == "export") { QVERIFY(QFileInfo::exists(dir.filePath("out.zip"))); }
+                if (route == "stills") { QVERIFY(QFileInfo::exists(dir.filePath("stills/frame_000000.png"))); }
+            } else {
+                if (route.startsWith("frame-server")) {
+                    QCOMPARE(QJsonDocument::fromJson(output).object().value("error").toString(), parsed.error);
+                } else {
+                    QVERIFY2(report.contains(parsed.error.toUtf8()), report.constData());
+                }
+                QVERIFY(!QFileInfo::exists(dir.filePath("out.zip")));
+                QVERIFY(!QFileInfo::exists(dir.filePath("stills")));
+                QVERIFY(!QFileInfo::exists(dir.filePath("editor.png")));
+                QVERIFY(QDir(dir.path()).entryList({"*.rgba"}, QDir::Files).isEmpty());
+            }
             QVERIFY(file.open(QIODevice::ReadOnly));
             QCOMPARE(file.readAll(), bytes);
             file.close();
