@@ -18,6 +18,13 @@ function(nt_effects_tests)
         NT_PRECISION_VECTORS="${CMAKE_CURRENT_SOURCE_DIR}/../../packages/gpu/tests/fixtures/inverse-levels.json")
     nt_effects_shaders(tst_workingprecision)
     add_test(NAME tst_workingprecision COMMAND tst_workingprecision)
+    set_tests_properties(tst_workingprecision PROPERTIES LABELS render)
+    # Linux CLI defaults to OpenGL, independently of the Vulkan CI route.
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        add_test(NAME tst_workingprecision_opengl COMMAND tst_workingprecision)
+        set_tests_properties(tst_workingprecision_opengl PROPERTIES LABELS render
+            ENVIRONMENT "QSG_RHI_BACKEND=opengl")
+    endif()
     qt_add_executable(tst_masks src/preview/effects/tst_masks.cpp)
     target_link_libraries(tst_masks PRIVATE timeline_decode Qt6::Test)
     add_test(NAME tst_masks COMMAND tst_masks)

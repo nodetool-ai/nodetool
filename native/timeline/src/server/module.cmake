@@ -21,6 +21,10 @@ nt_sources(server
 )
 
 function(nt_server_tests)
+    nt_qt_test(tst_colorspaceversion LIBS timeline_server Qt6::Test)
+    target_compile_definitions(tst_colorspaceversion PRIVATE NT_TIMELINE_BINARY="$<TARGET_FILE:nodetool-timeline>")
+    add_dependencies(tst_colorspaceversion nodetool-timeline)
+
     # Cache and client tests against an in-process HTTP server (no NodeTool server).
     foreach(test_name tst_assetcache tst_serverclient tst_autosave)
         nt_qt_test(${test_name} LIBS timeline_server Qt6::Test)

@@ -83,6 +83,7 @@ const Fields kVideoTrackEffects = {
 };
 
 const Fields kSequenceSupported = {
+    QStringLiteral("workingColorSpaceVersion"),
     QStringLiteral("id"), QStringLiteral("name"), QStringLiteral("fps"), QStringLiteral("width"),
     QStringLiteral("height"), QStringLiteral("durationMs"), QStringLiteral("tracks"), QStringLiteral("clips"),
 };
