@@ -5,9 +5,10 @@ description: "Why NodeTool exists, what makes it unique, and how it compares to 
 ---
 
 <p class="why-lead">
-  NodeTool is an open-source, agent-first creative workspace. Tell the agent
-  what to make. It builds the project with image, video, audio, and text models,
-  and you edit every part of the result.
+  NodeTool is an open-source agent-first creative workspace. Most AI video
+  apps charge you to roll the dice, then hand back a flat MP4 you can't edit.
+  In NodeTool the agent builds the project with image, video, audio, and text
+  models, and you edit every part of the result.
 </p>
 
 <div class="why-versus">
@@ -61,8 +62,8 @@ description: "Why NodeTool exists, what makes it unique, and how it compares to 
   </article>
   <article class="why-own">
     <span class="why-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg></span>
-    <h3>No markups</h3>
-    <p>If an image costs $0.03 at the provider, you pay $0.03 to the provider. No credit packs. NodeTool takes no cut.</p>
+    <h3>The provider's own price</h3>
+    <p>A Seedream 5 Lite still that costs $0.03 on Kie.ai costs $0.03 here, billed by Kie.ai to your account. On your own keys NodeTool takes no cut. You can also run the agent on a ChatGPT, Claude, or Gemini plan you already pay for.</p>
   </article>
   <article class="why-own">
     <span class="why-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></svg></span>

@@ -16,15 +16,31 @@ The homepage, README, and docs share the primary tagline and intro in
 The hero paragraph says what the slot machine is (a paid roll that returns a
 flat MP4), what the agent does, and what the reader keeps. Film production is a showcase of the broader workspace.
 
+## Shared copy
+
+These lines appear on more than one surface. Change them everywhere at once.
+
+| Line | Where it appears |
+|---|---|
+| "Open-source agent-first creative workspace" (tagline) | Homepage line above the `<h1>`, README title line, docs home `<h1>` |
+| The intro ("Create images, video, audio, and text with agents…") | README, docs home lead, `BRAND.md` |
+| "Stop prompting slot machines. Direct the agent." and its paragraph | Homepage `<h1>`, README under the intro |
+| "Give Claude Code a creative harness." | `/agents` `<h1>`, README § MCP, docs home agents block |
+| The plan table (ChatGPT, Claude, Gemini) | `SubscriptionSection`, README, docs home |
+| The category comparison rows | `ComparisonSection`, README § How NodeTool compares, docs `comparisons.md` |
+
+The homepage component is the source for each row it owns. The README and the
+docs copy it, shortened where a sentence depends on the page layout.
+
 ## The register
 
-The site is written in the register the category leaders use. Runway's product
-page is the reference: short declarative claims that end in a period, model
-breadth stated as abundance rather than as a list, capability named as volume
-("Dozens of tools. Endless ways to create."), industry pages that say what they
-are ("AI for Advertising") and nothing cleverer, an app grid where every tile is
-a verb, node graphs introduced last as the power-user layer, and one CTA verb
-repeated everywhere.
+The site is written in the register the category leaders use on their product
+pages: short declarative claims that end in a period, model breadth stated as
+abundance rather than as a list, capability named as volume ("Dozens of tools.
+Endless ways to create."), industry pages that say what they are ("AI for
+Advertising") and nothing cleverer, an app grid where every tile is a verb,
+node graphs introduced last as the power-user layer, and one CTA verb repeated
+everywhere.
 
 What that register does **not** contain, and neither does ours: a competitor's
 name, a paragraph explaining why the alternative is worse, or a table the reader
@@ -53,6 +69,21 @@ and Agents builds reusable automation around editable artifacts.
 Keep the trust line under the CTA: free, open source, AGPL-3.0, and the
 supported desktop platforms.
 
+### The harness line
+
+`/agents` speaks to people who already use a coding agent. Its eyebrow is
+"Open-source creative harness" and its `<h1>` is "Give Claude Code a creative
+harness." The page defines the word once: a harness is everything an agent
+works inside, which is tools, editors, models, keys, and a record of each step.
+NodeTool supplies all five, for the built-in agent or for Claude Code, Codex,
+or Cursor over MCP.
+
+Use "creative harness" on `/agents`, `/developers`, `/mcp`, and in the README
+and docs sections about MCP and external agents. Do not use it as the homepage
+category or in creator-facing copy, where "workspace" and "the agent" already
+say it. Never stack it with the tagline ("agent-first creative harness
+workspace").
+
 ## Message hierarchy
 
 Everything below the hero earns its place by advancing one of three claims, in
@@ -66,10 +97,14 @@ this order of importance:
    sketch, and 3D over the same files, so the answer to "what do I control once
    the agent has built something" arrives right after the agent does. The agent
    works those same surfaces when you send it back in with a note.
-3. **Every model, on your keys.** Abundance and ownership in one breath, with a
-   fact no hosted platform can match: you pay the provider directly. It sits
-   under the agent story rather than in front of it, because a reader who meets
-   the model wall before they have seen the product reads us as a router.
+3. **Your plan, your keys, every model.** The agent runs on the ChatGPT,
+   Claude, or Gemini plan the reader already pays for, and every other model
+   runs on their own provider key at the provider's price. Abundance and
+   ownership in one breath. It sits under the agent story rather than in front
+   of it, because a reader who meets the model wall before they have seen the
+   product reads us as a router. The plan section is the exception: it sits
+   directly under the hero because it answers "what will this cost me" before
+   the reader asks.
 
 Provider lists, node counts, tool counts, and architecture belong under those
 claims, not next to them. On the homepage they are one strip of links to
@@ -243,7 +278,13 @@ the `/node-based-workflows` paid-run line read their numbers from the
 calculator catalog through `src/data/stageCosts.ts`, so they move with it.
 
 - **Cost.** "Studio is free. You pay providers directly, at their published
-  prices." Never imply a NodeTool credit exists.
+  prices." On your own keys NodeTool adds nothing, in every edition.
+- **Hosted credits.** The code has a credit balance for Cloud: a curated
+  `nodetool` provider runs on NodeTool's platform keys and draws on monthly
+  grants ([Costs and credits](../docs/costs-and-credits.md)). Payment is not
+  implemented and no price is announced. Marketing copy does not sell credits,
+  show plan prices, or say "no credits" about Cloud. "NodeTool sells no
+  credits" and "NodeTool adds nothing on your keys" are both true today.
 - **Cloud.** Studio is the full product; Cloud is the zero-install preview and is
   in alpha. Say "alpha" wherever Cloud is offered as an entry point, the closing
   CTA included. A "start in seconds" claim that lands a reader in an alpha is a
@@ -258,9 +299,11 @@ calculator catalog through `src/data/stageCosts.ts`, so they move with it.
   in. The homepage
   says so right under the hero, and `/studio`, `/pricing`, `/agents`, and
   `/node-based-workflows` repeat the same section (`SubscriptionSection`).
-  State the limits with the claim: subscriptions run in Studio, and Gemini and
-  ChatGPT image generation also need the NodeTool Chrome extension. Claude
-  plans run chat and the agent only. Video comes from Gemini.
+  State the limits with the claim: subscriptions run in Studio, not Cloud.
+  Sign in with ChatGPT runs chat, the agent, and GPT Image with no extension.
+  Gemini needs the NodeTool Chrome extension in the browser where the reader
+  is signed in. Claude plans run chat and the agent only. Video comes from
+  Gemini.
 - **Local models.** True for language and image models, and for a filmmaker
   making video mostly not: open-weight video needs hardware they do not have. On
   the film page, ownership is keys, project file, and source. Local inference is
@@ -293,6 +336,27 @@ Recipe pages show the result and name the provider that made it. Keep detailed
 model substitutions and review evidence in the run records. When the guide
 shows a different production from the featured result, say so in the guide.
 
+## Claims need code
+
+Every capability claim points at code, a generated catalog, or a doc page that
+cites code. If none exists, the claim waits. Prices come from the calculator
+catalog through `src/data/stageCosts.ts`, never from memory.
+
+These claims were removed after a check found nothing behind them. Do not bring
+them back without new evidence:
+
+- A per-generation markup table, or a percentage markup for any platform.
+- "$0.00 per generation" on a subscription. Plan runs count against the plan's
+  own limits.
+- Inspecting tensors in the node editor.
+- A lens or depth pass in the 3D editor. The 3D editor captures a view as a
+  depth or composition reference.
+- One node for every model on Replicate, fal.ai, and Kie.ai. Generated nodes
+  cover the models listed in each codegen config. fal.ai alone also has a node
+  that calls any endpoint by id.
+- Seeing a generation's cost "across four providers" before running. The cost
+  estimate prices the provider and model each node has selected.
+
 ## Phrasing rules
 
 Beyond [docs/WRITING_STYLE.md](../docs/WRITING_STYLE.md) and
@@ -317,9 +381,11 @@ Beyond [docs/WRITING_STYLE.md](../docs/WRITING_STYLE.md) and
   an editable project, not a locked file.
 - "Filmmakers", "directors", "creators", "teams" — never "users" or "content
   creators".
-- Concrete over categorical: "a Seedance run that costs $0.18 on KIE costs $0.18
-  here" beats "no markup".
-- Never "credits", "gems", or "tokens" as billing units, and never "chatbot" for
-  the agent. See the avoid table in `BRAND.md`.
+- Concrete over categorical: "a Seedream 5 Lite still that costs $0.03 on
+  Kie.ai costs $0.03 here" beats "no markup". Read the number from
+  `stageCosts.ts`.
+- Never "credits", "gems", or "tokens" as billing units in Studio copy, and
+  never "chatbot" for the agent. See the avoid table in `BRAND.md` and
+  [Cost, once](#cost-once) for hosted credits.
 - No "magic", "revolutionary", "seamless", "powerful", "unlock", "empower". If a
   sentence survives its own deletion, delete it.
