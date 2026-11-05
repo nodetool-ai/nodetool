@@ -1,3 +1,4 @@
+import { useCallback, useState } from "react";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -27,7 +28,7 @@ jest.mock("../AppRunHistory", () => ({ __esModule: true, default: () => null }))
 const CASES: Array<[string, Data["content"][number], string]> = [
   ["TextInput", { type: "TextInput", props: { id: "field", label: "Name", binding: "name" } }, "Name"],
   ["WorkflowInput", { type: "WorkflowInput", props: { id: "field", label: "Name", binding: "prompt" } }, "Name"],
-  ["WorkflowForm", { type: "WorkflowForm", props: { id: "field" } }, "prompt"],
+  ["WorkflowForm", { type: "WorkflowForm", props: { id: "field" } }, "Prompt"],
   ...(
     [
       ["Container", "content"],
@@ -106,18 +107,28 @@ it.each([["pinned instance", "instance-1"], ["default instance", undefined]])("k
     .mockImplementation(async (_id, revision, variables) =>
       serverInstance(revision + 1, variables)
     );
+  const RuntimeView = () => {
+    const [selectedInstanceId, setSelectedInstanceId] = useState(instanceId);
+    const handleInstanceReady = useCallback((instance: ServerAppInstance) => {
+      setSelectedInstanceId(instance.id);
+    }, []);
+
+    return (
+      <AppRuntimeView
+        workflow={workflow}
+        data={ui}
+        document={document}
+        application={{ id: "app", version: 1 }}
+        instanceId={selectedInstanceId}
+        onInstanceReady={handleInstanceReady}
+        workflowOverrides={{ wf: workflow }}
+      />
+    );
+  };
   render(
     <QueryClientProvider client={new QueryClient()}>
       <ThemeProvider theme={mockTheme}>
-        <AppRuntimeView
-          workflow={workflow}
-          data={ui}
-          document={document}
-          application={{ id: "app", version: 1 }}
-          instanceId={instanceId}
-          onInstanceReady={() => undefined}
-          workflowOverrides={{ wf: workflow }}
-        />
+        <RuntimeView />
       </ThemeProvider>
     </QueryClientProvider>
   );
