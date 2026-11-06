@@ -120,4 +120,7 @@ jobs:
       - name: Audit, install, launch and zap
         env:
           VERSION: ${{ needs.resolve.outputs.version }}
+          # brew audit --online and livecheck call the GitHub API. Without a
+          # token they share the runner IP's unauthenticated rate limit.
+          HOMEBREW_GITHUB_API_TOKEN: ${{ github.token }}
         run: packaging/homebrew/test-cask.sh cask/nodetool.rb "${VERSION}"
