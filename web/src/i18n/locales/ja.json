@@ -9045,6 +9045,10 @@
           "button": "APIルートキーの取得",
           "tooltip": "API ルートの API キー ページに移動する"
         },
+        "RUNCRATE_API_KEY": {
+          "button": "Runcrate APIキーを取得",
+          "tooltip": "Runcrate の API キー ページに移動する"
+        },
         "HF_TOKEN": {
           "button": "ハグフェイストークンを入手",
           "tooltip": "ハグフェイストークンページに移動"

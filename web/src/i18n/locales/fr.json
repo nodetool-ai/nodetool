@@ -9189,6 +9189,10 @@
           "button": "Obtenir la clé de route API",
           "tooltip": "Accédez à la page Clés API API Route"
         },
+        "RUNCRATE_API_KEY": {
+          "button": "Obtenir une clé API Runcrate",
+          "tooltip": "Accéder à la page des clés API Runcrate"
+        },
         "HF_TOKEN": {
           "button": "Obtenez le jeton Hugging Face",
           "tooltip": "Accédez à la page des jetons Hugging Face"

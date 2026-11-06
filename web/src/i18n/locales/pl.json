@@ -9333,6 +9333,10 @@
           "button": "Uzyskaj klucz trasy API",
           "tooltip": "Przejdź do strony kluczy API Route API"
         },
+        "RUNCRATE_API_KEY": {
+          "button": "Uzyskaj klucz API Runcrate",
+          "tooltip": "Przejdź do strony kluczy API Runcrate"
+        },
         "HF_TOKEN": {
           "button": "Zdobądź token Przytulonej Twarzy",
           "tooltip": "Przejdź do strony z tokenami Przytulonej Twarzy"

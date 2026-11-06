@@ -9045,6 +9045,10 @@
           "button": "Hämta API-ruttnyckel",
           "tooltip": "Gå till sidan för API Route API-nycklar"
         },
+        "RUNCRATE_API_KEY": {
+          "button": "Hämta Runcrate API-nyckel",
+          "tooltip": "Gå till sidan för Runcrate API-nycklar"
+        },
         "HF_TOKEN": {
           "button": "Få Hugging Face-token",
           "tooltip": "Gå till sidan Hugging Face-tokens"

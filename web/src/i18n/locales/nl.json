@@ -9045,6 +9045,10 @@
           "button": "API-routesleutel ophalen",
           "tooltip": "Ga naar de pagina API Route API-sleutels"
         },
+        "RUNCRATE_API_KEY": {
+          "button": "Runcrate API-sleutel ophalen",
+          "tooltip": "Ga naar de pagina met Runcrate API-sleutels"
+        },
         "HF_TOKEN": {
           "button": "Ontvang een knuffelgezicht-token",
           "tooltip": "Ga naar de pagina Knuffelgezichttokens"

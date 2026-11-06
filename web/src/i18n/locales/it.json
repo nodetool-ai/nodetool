@@ -9189,6 +9189,10 @@
           "button": "Ottieni la chiave del percorso API",
           "tooltip": "Vai alla pagina delle chiavi API del percorso API"
         },
+        "RUNCRATE_API_KEY": {
+          "button": "Ottieni la chiave API di Runcrate",
+          "tooltip": "Vai alla pagina delle chiavi API di Runcrate"
+        },
         "HF_TOKEN": {
           "button": "Ottieni il gettone \"Faccina che abbraccia\".",
           "tooltip": "Vai alla pagina dei token Hugging Face"

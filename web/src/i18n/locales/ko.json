@@ -9045,6 +9045,10 @@
           "button": "API 경로 키 가져오기",
           "tooltip": "API Route API 키 페이지로 이동"
         },
+        "RUNCRATE_API_KEY": {
+          "button": "Runcrate API 키 가져오기",
+          "tooltip": "Runcrate API 키 페이지로 이동"
+        },
         "HF_TOKEN": {
           "button": "포옹하는 얼굴 토큰 받기",
           "tooltip": "허깅 페이스 토큰 페이지로 이동"

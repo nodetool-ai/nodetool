@@ -9189,6 +9189,10 @@
           "button": "Obtener clave de ruta API",
           "tooltip": "Ir a la página de claves API de ruta API"
         },
+        "RUNCRATE_API_KEY": {
+          "button": "Obtener clave API de Runcrate",
+          "tooltip": "Ir a la página de claves API de Runcrate"
+        },
         "HF_TOKEN": {
           "button": "Obtener ficha de cara de abrazo",
           "tooltip": "Ir a la página de fichas de Hugging Face"

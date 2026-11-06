@@ -9045,6 +9045,10 @@
           "button": "API रूट कुंजी प्राप्त करें",
           "tooltip": "API रूट API कुंजी पृष्ठ पर जाएं"
         },
+        "RUNCRATE_API_KEY": {
+          "button": "Runcrate API कुंजी प्राप्त करें",
+          "tooltip": "Runcrate API कुंजी पृष्ठ पर जाएं"
+        },
         "HF_TOKEN": {
           "button": "Hugging चेहरा टोकन",
           "tooltip": "Hugging फेस टोकन पेज पर जाएं"
