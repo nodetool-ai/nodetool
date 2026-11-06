@@ -98,6 +98,7 @@
     { "path": "packages/cli-workflow" },
     { "path": "packages/cli-harness" },
     { "path": "packages/cli-chat" },
+    { "path": "packages/runtime-install" },
     { "path": "packages/cli-models" },
     { "path": "packages/cli-admin" },
     { "path": "packages/cli-mcp" },

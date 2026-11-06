@@ -1,0 +1,59 @@
+{
+  "name": "@nodetool-ai/runtime-install",
+  "version": "0.8.11",
+  "description": "Installs NodeTool's optional runtimes (conda environment, Python and its node packs, uv tools, npm libraries) for the desktop app, the CLI and other Node hosts",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
+  },
+  "dependencies": {
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/pack-manager": "*",
+    "@nodetool-ai/protocol": "*",
+    "js-yaml": "^4.3.2",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "vitest": "^5.0.1"
+  },
+  "exports": {
+    ".": {
+      "nodetool-dev": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./node-host": {
+      "nodetool-dev": "./src/node-host.ts",
+      "types": "./dist/node-host.d.ts",
+      "import": "./dist/node-host.js",
+      "default": "./dist/node-host.js"
+    }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/runtime-install"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}

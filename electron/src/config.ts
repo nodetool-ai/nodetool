@@ -6,7 +6,7 @@ import { logMessage } from "./logger";
 import * as fs from "fs";
 import { readSettings, updateSetting } from "./settings";
 import { getSystemDataPath } from "./systemPaths";
-import { uvToolDirs } from "./runtime/packages/uvToolDirs";
+import { uvToolDirs } from "@nodetool-ai/runtime-install";
 import { isString } from "./typePredicates";
 import { applyRuntimeEnv, runtimeLocations } from "@nodetool-ai/config";
 
