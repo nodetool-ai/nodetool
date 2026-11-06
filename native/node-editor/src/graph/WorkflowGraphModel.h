@@ -16,13 +16,18 @@
 #include <functional>
 namespace nodetool {
 // Presentation only. The host commits through WorkflowDocument, then projects
-// its snapshot.
+// its snapshot. A projection of the same workflow, catalog and read-only state
+// diffs against the previous one and emits the fine-grained QtNodes signals,
+// so unchanged node items and their cached layouts survive. Other projections
+// emit modelReset().
 class WorkflowGraphModel final : public QtNodes::AbstractGraphModel {
   Q_OBJECT
 public:
   explicit WorkflowGraphModel(QObject *parent = nullptr);
   void project(const QJsonObject &snapshot, const QJsonArray &catalog = {},
                bool readOnly = false);
+  // The next projection resets the scene, as for a replaced document.
+  void resetOnNextProjection() { projected_ = false; }
   std::function<bool(const QJsonObject &)> commit;
   std::function<bool(const QJsonObject &)> validateConnection;
   void setRuntimeModel(node_editor::NodeRuntimeModel *runtime);
@@ -33,8 +38,12 @@ public:
   QImage runtimePreview(QtNodes::NodeId id) const;
   void setCanvasMediaNodes(const QSet<QString> &nodes);
   QRectF canvasPlaybackRect(QtNodes::NodeId id) const;
+  // Card layouts built since construction; unchanged cards reuse theirs.
+  quint64 layoutBuildCount() const { return layoutBuilds_; }
 signals:
   void projectionAboutToChange();
+  // Emitted after every projection, after modelReset() or the incremental signals.
+  void projectionChanged();
   void runtimeChanged();
 public:
   QString resourceId(QtNodes::NodeId id) const;
@@ -88,9 +97,16 @@ public:
   QJsonArray ports(QtNodes::NodeId, QtNodes::PortType) const;
 
 private:
+  void deriveProjection(const QJsonArray &nodes);
+  void invalidateNode(QtNodes::NodeId id);
   QHash<QtNodes::NodeId, QJsonObject> nodes_;
   QHash<QString, QtNodes::NodeId> ids_;
   QJsonArray edges_, catalog_;
+  // Edges that touch each resource id, which its ports and layout read.
+  QHash<QString, QJsonArray> incident_;
+  QString workflowId_;
+  bool projected_ = false;
+  mutable quint64 layoutBuilds_ = 0;
   mutable QHash<QtNodes::NodeId, QJsonArray> inputs_, outputs_;
   mutable QHash<QtNodes::NodeId, NodeLayout> layouts_;
   QHash<QtNodes::NodeId, std::unordered_set<QtNodes::ConnectionId>> adjacency_;

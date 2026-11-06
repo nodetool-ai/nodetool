@@ -83,7 +83,8 @@ private slots:
     }
    }
   }
-  QVERIFY(window.selectNode("color")); hex = findItem(panel->rootObject(), "color-hex-value"); QVERIFY(hex);
+  // The inspector follows the selection in the next pass.
+  QVERIFY(window.selectNode("color")); QTRY_VERIFY((hex = findItem(panel->rootObject(), "color-hex-value")));
   QVERIFY(QMetaObject::invokeMethod(hex, "textEdited")); hex->setProperty("text", "#ff0000");
   const QPointer<QQuickItem> staleHex = hex;
   QVERIFY(window.document()->load(snapshot)); if (staleHex) QVERIFY(QMetaObject::invokeMethod(staleHex, "valueCommitted", Q_ARG(QString, "#ff0000"))); QCoreApplication::processEvents();
@@ -91,7 +92,7 @@ private slots:
   auto graph = snapshot.value("graph").toObject(); auto nodes = graph.value("nodes").toArray(); nodes.append(QJsonObject{{"id", "source"}, {"type", "fixture.Source"}, {"data", QJsonObject{}}}); graph.insert("nodes", nodes);
   graph.insert("edges", QJsonArray{QJsonObject{{"source", "source"}, {"sourceHandle", "color"}, {"target", "color"}, {"targetHandle", "value"}}, QJsonObject{{"source", "source"}, {"sourceHandle", "size"}, {"target", "size"}, {"targetHandle", "value"}}});
   QVERIFY(window.document()->load({{"graph", graph}}));
-  for (const auto& family : {QString("color"), QString("size")}) { QVERIFY(window.selectNode(family)); const auto name = family == "color" ? "color-editor-value" : "image-size-editor-value"; QTRY_VERIFY(findItem(panel->rootObject(), name)); QVERIFY(!findItem(panel->rootObject(), name)->property("writable").toBool()); }
+  for (const auto& family : {QString("color"), QString("size")}) { QVERIFY(window.selectNode(family)); const auto name = family == "color" ? "color-editor-value" : "image-size-editor-value"; QTRY_VERIFY(findItem(panel->rootObject(), name) && !findItem(panel->rootObject(), name)->property("writable").toBool()); }
   graph = snapshot.value("graph").toObject(); graph.insert("edges", QJsonArray{QJsonObject{{"source", "missing"}, {"sourceHandle", "out"}, {"target", "color"}, {"targetHandle", "value"}}}); QVERIFY(window.document()->load({{"graph", graph}})); QVERIFY(window.readOnly());
   QVERIFY(window.selectNode("size")); QCoreApplication::processEvents(); QTRY_VERIFY(findItem(panel->rootObject(), "image-size-editor-value")); QVERIFY(!findItem(panel->rootObject(), "image-size-editor-value")->property("writable").toBool());
  }

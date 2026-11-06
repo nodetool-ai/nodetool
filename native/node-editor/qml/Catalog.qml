@@ -65,21 +65,22 @@ Rectangle {
             TypeIcon { x: Ui.Metrics.sm; anchors.verticalCenter: parent.verticalCenter; name: "search"; size: Ui.Metrics.iconSm }
         }
         Rectangle { Layout.fillWidth: true; Layout.preferredHeight: Ui.Metrics.border; color: roles.divider }
+        // A loaded catalog puts the namespaces beside the nodes and the optional
+        // packs below both lists. An empty catalog stacks the packs above the
+        // empty message, so a narrow panel keeps both readable.
         GridLayout {
-            columns: root.nodes.length === 0 ? 1 : 2
+            id: lists
+            readonly property bool empty: root.nodes.length === 0
+            columns: empty ? 1 : 2
             Layout.fillWidth: true
             Layout.fillHeight: true
             rowSpacing: Ui.Metrics.none
             columnSpacing: Ui.Metrics.none
-            ColumnLayout {
-                Layout.preferredWidth: root.nodes.length === 0 ? root.width : Ui.Metrics.xxxl * 5
-                Layout.minimumWidth: root.nodes.length === 0 ? root.width : Ui.Metrics.xxxl * 5
-                Layout.maximumWidth: root.nodes.length === 0 ? root.width : Ui.Metrics.xxxl * 5
-                Layout.fillHeight: root.nodes.length > 0
-                spacing: Ui.Metrics.sm
             ListView {
                 id: namespaces
                 objectName: "catalog-namespaces"
+                Layout.row: 0
+                Layout.column: 0
                 Layout.preferredWidth: root.nodes.length === 0 ? 0 : Math.min(124, root.width * 0.4)
                 visible: root.nodes.length > 0
                 Layout.fillHeight: true
@@ -110,14 +111,11 @@ Rectangle {
                     }
                 }
             }
-                OptionalPacksSection {
-                    Layout.fillWidth: true
-                    Layout.margins: Ui.Metrics.sm
-                }
-            }
             ListView {
                 id: rows
                 objectName: "catalog-rows"
+                Layout.row: lists.empty ? 1 : 0
+                Layout.column: lists.empty ? 0 : 1
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.topMargin: Ui.Metrics.xs
@@ -172,6 +170,14 @@ Rectangle {
                     title: root.nodes.length === 0 ? "No nodes loaded" : "No matching nodes"
                     message: root.nodes.length === 0 ? "Connect to a server to load nodes." : "Try a different name or namespace."
                 }
+            }
+            OptionalPacksSection {
+                Layout.row: lists.empty ? 0 : 1
+                Layout.column: 0
+                Layout.columnSpan: lists.columns
+                Layout.fillWidth: true
+                Layout.fillHeight: false
+                Layout.margins: Ui.Metrics.sm
             }
         }
         Rectangle { Layout.fillWidth: true; Layout.preferredHeight: Ui.Metrics.border; color: roles.divider }

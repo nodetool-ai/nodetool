@@ -16,27 +16,125 @@ NodeId WorkflowGraphModel::newNodeId() { return next_++; }
 QString WorkflowGraphModel::resourceId(NodeId id) const {
   return nodes_.value(id)["id"].toString();
 }
+namespace {
+// Position alone moves an item. Every other field can change the card.
+bool samePresentation(QJsonObject before, QJsonObject after) {
+  if (before == after) { return true; }
+  auto beforeUi = before.take("ui_properties").toObject();
+  auto afterUi = after.take("ui_properties").toObject();
+  beforeUi.remove("position");
+  afterUi.remove("position");
+  return before == after && beforeUi == afterUi;
+}
+QSet<QString> changedDisplayNodes(const QHash<QString, QString> &before, const QHash<QString, QString> &after, bool keyed) {
+  QSet<QString> result;
+  const auto node = [keyed](const QString &key) { return keyed ? key.section(QChar(0), 0, 0) : key; };
+  for (auto it = before.cbegin(); it != before.cend(); ++it) {
+    if (after.value(it.key()) != it.value()) { result.insert(node(it.key())); }
+  }
+  for (auto it = after.cbegin(); it != after.cend(); ++it) {
+    if (!before.contains(it.key())) { result.insert(node(it.key())); }
+  }
+  return result;
+}
+} // namespace
+void WorkflowGraphModel::invalidateNode(NodeId id) {
+  inputs_.remove(id);
+  outputs_.remove(id);
+  layouts_.remove(id);
+}
 void WorkflowGraphModel::project(const QJsonObject &snapshot,
                                  const QJsonArray &catalog, bool readOnly) {
   emit projectionAboutToChange();
+  const bool wrapped = snapshot.contains("graph");
+  const auto graph = wrapped ? snapshot["graph"].toObject() : snapshot;
+  const auto workflowId = wrapped ? snapshot["id"].toString() : QString{};
+  // Items cache read-only flags, and every card reads the catalog, so a change
+  // of either, another workflow, or the first projection rebuilds the scene.
+  const bool reset = !projected_ || readOnly != readOnly_ || workflowId != workflowId_ || catalog != catalog_;
+  projected_ = true;
+  workflowId_ = workflowId;
   readOnly_ = readOnly;
   catalog_ = catalog;
-  inputs_.clear();
-  outputs_.clear();
-  layouts_.clear();
+  const auto rawNodes = graph["nodes"].toArray();
+  QHash<NodeId, QJsonObject> nodes;
+  for (const auto &v : rawNodes) {
+    const auto n = v.toObject();
+    const auto id = n["id"].toString();
+    if (!ids_.contains(id)) { ids_[id] = newNodeId(); }
+    nodes[ids_[id]] = n;
+  }
+  const auto edges = graph["edges"].toArray();
+  QHash<QString, QJsonArray> incident;
+  for (const auto &v : edges) {
+    const auto e = v.toObject();
+    const auto source = e["source"].toString(), target = e["target"].toString();
+    incident[source].append(e);
+    if (target != source) { incident[target].append(e); }
+  }
+  if (reset) {
+    inputs_.clear();
+    outputs_.clear();
+    layouts_.clear();
+    nodes_ = nodes;
+    edges_ = edges;
+    incident_ = incident;
+    deriveProjection(rawNodes);
+    emit modelReset();
+    emit projectionChanged();
+    return;
+  }
+  QVector<NodeId> removed, created, updated;
+  for (auto it = nodes_.cbegin(); it != nodes_.cend(); ++it) {
+    if (!nodes.contains(it.key())) { removed.append(it.key()); }
+  }
+  for (auto it = nodes.cbegin(); it != nodes.cend(); ++it) {
+    const auto previous = nodes_.constFind(it.key());
+    if (previous == nodes_.cend()) { created.append(it.key()); continue; }
+    const auto resource = it.value()["id"].toString();
+    if (!samePresentation(*previous, it.value()) || incident_.value(resource) != incident.value(resource)) {
+      updated.append(it.key());
+    }
+  }
+  for (const auto id : removed) { invalidateNode(id); }
+  for (const auto id : created) { invalidateNode(id); }
+  for (const auto id : updated) { invalidateNode(id); }
+  const auto previousPositions = positions_;
+  const auto previousDisplay = displayTypes_;
+  std::unordered_set<ConnectionId> previousConnections;
+  for (const auto &entry : edgeByConnection_) { previousConnections.insert(entry.first); }
+  nodes_ = nodes;
+  edges_ = edges;
+  incident_ = incident;
+  deriveProjection(rawNodes);
+  // Reroute and forward wire colors follow types resolved across the graph.
+  auto repaint = changedDisplayNodes(previousDisplay.sources, displayTypes_.sources, true);
+  repaint.unite(changedDisplayNodes(previousDisplay.rerouteHandles, displayTypes_.rerouteHandles, false));
+  QSet<NodeId> changed(updated.cbegin(), updated.cend());
+  for (const auto &resource : repaint) {
+    const auto id = ids_.value(resource, InvalidNodeId);
+    if (nodes_.contains(id) && previousPositions.contains(id)) { changed.insert(id); }
+  }
+  // Removal runs before creation, so a wire never outlives an end node and a
+  // new wire always finds both items.
+  for (const auto &connection : previousConnections) {
+    if (!edgeByConnection_.contains(connection)) { emit connectionDeleted(connection); }
+  }
+  for (const auto id : removed) { emit nodeDeleted(id); }
+  for (const auto id : created) { emit nodeCreated(id); }
+  for (const auto id : changed) { emit nodeUpdated(id); }
+  for (auto it = previousPositions.cbegin(); it != previousPositions.cend(); ++it) {
+    const auto next = positions_.constFind(it.key());
+    if (next != positions_.cend() && *next != it.value()) { emit nodePositionUpdated(it.key()); }
+  }
+  for (const auto &entry : edgeByConnection_) {
+    if (!previousConnections.contains(entry.first)) { emit connectionCreated(entry.first); }
+  }
+  emit projectionChanged();
+}
+void WorkflowGraphModel::deriveProjection(const QJsonArray &rawNodes) {
   adjacency_.clear();
   edgeByConnection_.clear();
-  nodes_.clear();
-  auto graph =
-      snapshot.contains("graph") ? snapshot["graph"].toObject() : snapshot;
-  for (auto v : graph["nodes"].toArray()) {
-    auto n = v.toObject();
-    auto id = n["id"].toString();
-    if (!ids_.contains(id)) {
-      ids_[id] = newNodeId();
-    }
-    nodes_[ids_[id]] = n;
-  }
   positions_.clear();
   depths_.clear();
   children_.clear();
@@ -61,8 +159,7 @@ void WorkflowGraphModel::project(const QJsonObject &snapshot,
     const auto local = it.value()["ui_properties"].toObject()["position"].toObject();
     positions_[it.key()] = QPointF(local["x"].toDouble(), local["y"].toDouble());
   }
-  edges_ = graph["edges"].toArray();
-  displayTypes_=resolveForwardDisplayTypes(graph["nodes"].toArray(),edges_,catalog_);
+  displayTypes_=resolveForwardDisplayTypes(rawNodes,edges_,catalog_);
   for (auto v : edges_) {
     auto e = v.toObject();
     auto source = ids_.value(e["source"].toString(), InvalidNodeId),
@@ -83,7 +180,6 @@ void WorkflowGraphModel::project(const QJsonObject &snapshot,
       }
     }
   }
-  emit modelReset();
 }
 QJsonObject WorkflowGraphModel::metadata(NodeId id) const {
   const QJsonValue type = nodes_.value(id).value("type");
@@ -149,6 +245,7 @@ bool WorkflowGraphModel::runtimeConnected() const { return !runtime_ || runtime_
 const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
   namespace nm = node_metrics;
   if (const auto cached = layouts_.constFind(id); cached != layouts_.cend()) { return *cached; }
+  ++layoutBuilds_;
   const auto node = nodes_.value(id);
   const auto meta = metadata(id);
   const auto ui = node["ui_properties"].toObject();
@@ -192,6 +289,15 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
         const auto count = node_editor::childGraph(node)["nodes"].toArray().size();
         result.childCount = count == 0 ? tr("empty") : count == 1 ? tr("1 inner node") : tr("%1 inner nodes").arg(count);
     }
+  for (const auto *key : {"outputs", "properties"}) {
+    for (const auto &port : meta[key].toArray()) {
+      const auto color = typeColor(typeOf(port.toObject()));
+      if (!result.runningColors.contains(color)) { result.runningColors.append(color); }
+    }
+  }
+  if (result.runningColors.isEmpty()) { result.runningColors.append(typeColor("any")); }
+  while (result.runningColors.size() < 5) { result.runningColors.append(result.runningColors.last()); }
+  result.runningColors.resize(5);
   QHash<QString, QVariantMap> fields;
   for (const auto &row : node_editor::propertyFields(node, meta, edges_)) {
     const auto map = row.toMap();

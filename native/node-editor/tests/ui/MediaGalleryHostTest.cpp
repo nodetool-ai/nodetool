@@ -252,7 +252,8 @@ private slots:
     const auto wideColumns = control(panel(window), "gallery-grid-scroll")->property("columns").toInt();
     window.resize(900, 800); window.fit();
     QTRY_VERIFY(control(panel(window), "gallery-grid-scroll")->property("columns").toInt() < wideColumns);
-    QVERIFY(click(panel(window), "gallery-tile-0"));
+    // Panels follow the resize in a later pass, which can rebuild the tiles.
+    QTRY_VERIFY(click(panel(window), "gallery-tile-0"));
     QVERIFY(!gallery(panel(window))->property("singleView").toBool());
     QTest::keyClick(panel(window), Qt::Key_Return);
     QTRY_VERIFY(gallery(panel(window))->property("singleView").toBool());
@@ -267,6 +268,9 @@ private slots:
       QVERIFY(window.document()->applyCommand({{"op", "setNodeField"}, {"id", NodeId}, {"field", "ui_properties"}, {"value", ui}}));
       window.resize(width == 500 ? 1400 : 900, width == 500 ? 1000 : 800); window.fit();
       QTRY_VERIFY(canvas(window) && control(canvas(window), "gallery-grid-scroll"));
+      // An incremental projection keeps the canvas gallery and its open item.
+      if (gallery(canvas(window))->property("singleView").toBool()) { QVERIFY(click(canvas(window), "gallery-grid")); }
+      QTRY_VERIFY(!gallery(canvas(window))->property("singleView").toBool());
       QTRY_COMPARE(control(canvas(window), "gallery-grid-scroll")->property("columns").toInt(), width == 500 ? 4 : 1);
       for (const auto dark : {true, false}) {
         window.setDarkTheme(dark); QTest::qWait(50);

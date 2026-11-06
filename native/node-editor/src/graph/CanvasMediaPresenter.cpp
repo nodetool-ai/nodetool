@@ -12,6 +12,7 @@
 #include <QQmlEngine>
 #include <QRegion>
 #include <QScrollBar>
+#include <QSet>
 #include <QTimer>
 #include <QWheelEvent>
 #include <QtNodes/internal/NodeGraphicsObject.hpp>
@@ -40,6 +41,17 @@ CanvasMediaPresenter::CanvasMediaPresenter(WorkflowGraphModel &model, EditorScen
     QGraphicsView &view, QQmlEngine *engine, QObject *parent)
     : QObject(parent), model_(model), scene_(scene), view_(view), engine_(engine) {
   connect(&model_, &WorkflowGraphModel::modelReset, this, [this] { releaseWidgets(); schedule(); });
+  // An incremental projection keeps the players of surviving nodes.
+  connect(&model_, &WorkflowGraphModel::projectionChanged, this, [this] {
+    QSet<QString> present;
+    for (const auto id : model_.allNodeIds()) { present.insert(model_.resourceId(id)); }
+    bool retired = false;
+    for (const auto &id : active_.keys()) {
+      if (!present.contains(id)) { retire(id); retired = true; }
+    }
+    if (retired) { emit changed(); }
+    schedule();
+  });
   connect(&model_, &WorkflowGraphModel::nodeUpdated, this, [this](QtNodes::NodeId) { schedule(); });
   connect(&model_, &WorkflowGraphModel::nodePositionUpdated, this, [this](QtNodes::NodeId) { schedule(); });
   connect(&model_, &WorkflowGraphModel::runtimeChanged, this, &CanvasMediaPresenter::schedule);

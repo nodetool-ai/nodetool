@@ -19,6 +19,7 @@ QString keyFor(const QString &id) {
 }
 }
 PackSetup::PackSetup(QObject *parent) : QObject(parent) {
+    enabledCategories_ = QSettings().value("catalog/optionalCategories").toStringList();
     secretTimer_.setInterval(30000);
     connect(&secretTimer_, &QTimer::timeout, this, &PackSetup::refreshSecrets);
 }
@@ -171,7 +172,7 @@ namespace {
 const QJsonArray categoryCatalog = QJsonDocument::fromJson(R"categories([{"id": "documents", "label": "Documents", "description": "Rasterize a PDF.", "namespaces": ["lib.pdf"]}, {"id": "imaging", "label": "Image & graphics", "description": "Pixel-level image processing — filters, effects, masks, warps — plus SVG and charts.", "namespaces": ["lib.image", "lib.svg", "lib.charts"]}, {"id": "audio_dsp", "label": "Audio processing", "description": "Low-level audio analysis and signal-processing utilities.", "namespaces": ["lib.audio"]}, {"id": "web", "label": "Web & scraping", "description": "Headless browser and media download.", "namespaces": ["lib.browser", "lib.video.download"]}, {"id": "data_stores", "label": "Files, Cloud & Databases", "description": "Local filesystem and SQLite.", "namespaces": ["lib.os", "lib.sqlite"]}, {"id": "integrations", "label": "Integrations & messaging", "description": "Discord / Telegram message triggers.", "namespaces": ["messaging"]}, {"id": "text_data", "label": "Text & data utilities", "description": "Image grid slicing.", "namespaces": ["lib.grid"]}, {"id": "developer", "label": "Developer tools", "description": "Run code, ComfyUI, and internal test nodes.", "namespaces": ["nodetool.code", "lib.comfy", "nodetool.test"]}])categories").array();
 }
 QVariantList PackSetup::categories() const {
-    const auto enabled = QSettings().value("catalog/optionalCategories").toStringList();
+    const auto &enabled = enabledCategories_;
     QVariantList result;
     for (const auto &value : categoryCatalog) {
         auto row = value.toObject().toVariantMap();
@@ -181,11 +182,12 @@ QVariantList PackSetup::categories() const {
     return result;
 }
 void PackSetup::setCategory(const QString &id, bool enabled) {
-    auto ids = QSettings().value("catalog/optionalCategories").toStringList();
+    auto ids = enabledCategories_;
     ids.removeAll(id);
     if (enabled) {
         ids.append(id);
     }
+    enabledCategories_ = ids;
     QSettings().setValue("catalog/optionalCategories", ids);
     emit changed();
 }
@@ -196,15 +198,17 @@ void PackSetup::setAllCategories(bool enabled) {
             ids.append(value.toObject()["id"].toString());
         }
     }
+    enabledCategories_ = ids;
     QSettings().setValue("catalog/optionalCategories", ids);
     emit changed();
 }
 bool PackSetup::namespaceVisible(const QString &name) const {
-    for (const auto &value : categories()) {
-        const auto row = value.toMap();
-        for (const auto &prefix : row["namespaces"].toStringList()) {
+    for (const auto &value : categoryCatalog) {
+        const auto category = value.toObject();
+        for (const auto &entry : category["namespaces"].toArray()) {
+            const auto prefix = entry.toString();
             if (name == prefix || name.startsWith(prefix + '.')) {
-                return row["enabled"].toBool();
+                return enabledCategories_.contains(category["id"].toString());
             }
         }
     }

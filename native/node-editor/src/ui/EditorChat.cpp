@@ -67,8 +67,14 @@ void EditorWindow::syncChatContext() {
     const auto ids = selectedIds();
     const QJsonValue selection = ids.isEmpty() ? QJsonValue(QJsonValue::Null)
         : QJsonValue(QJsonObject{{"node_ids", QJsonArray::fromStringList(ids)}});
-    chat_.setProperty("hostContext", QJsonObject{{"workflow_id", workflow["id"]},
-        {"ui_context", QJsonObject{{"source", "workflow_canvas"}, {"focused", ref}, {"open", open}, {"selection", selection}}}}.toVariantMap());
+    QJsonObject ui{{"source", "workflow_canvas"}, {"focused", ref}, {"open", open}, {"selection", selection}};
+    // Panel changes arrive in a later pass than askRunAgent. The run it attached
+    // stays in the context while that run is still selected.
+    const auto run = chat_.property("hostContext").toMap()["ui_context"].toMap()["run"].toMap();
+    if (!run.isEmpty() && run["run_id"].toString() == runOutput_.selectedRunId()) {
+        ui["run"] = QJsonObject::fromVariantMap(run);
+    }
+    chat_.setProperty("hostContext", QJsonObject{{"workflow_id", workflow["id"]}, {"ui_context", ui}}.toVariantMap());
 }
 
 void EditorWindow::toggleChat() {

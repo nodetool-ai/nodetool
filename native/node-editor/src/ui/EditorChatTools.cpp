@@ -667,33 +667,6 @@ void EditorWindow::initializeChatTools() {
                     fail("Connect to a server to search models");
                     return;
                 }
-                if (kind == "text_generation" && !target->modelPicker_.loading() &&
-                    target->modelPicker_.error().isEmpty() && !target->modelPicker_.models().isEmpty()) {
-                    QJsonArray models;
-                    for (const auto &entry : target->modelPicker_.models()) {
-                        const auto raw = QJsonObject::fromVariantMap(entry.toMap());
-                        QJsonObject model{{"type", "language_model"},
-                                          {"provider", raw["provider"]},
-                                          {"id", raw["id"]},
-                                          {"name", raw["name"].toString(raw["id"].toString())}};
-                        for (const auto &key : {"repo_id", "path", "downloaded", "description"}) {
-                            model[key] = raw.contains(key) ? raw[key] : QJsonValue(QJsonValue::Null);
-                        }
-                        models.append(model);
-                        if (models.size() >= std::clamp(input["limit"].toInt(20), 1, 50)) {
-                            break;
-                        }
-                    }
-                    complete(
-                        {{"ok", true},
-                         {"kind", kind},
-                         {"count", models.size()},
-                         {"models", models},
-                         {"usage",
-                          "Pass the chosen entry directly as the node's `model` property: "
-                          "ui_update_node_data({ node_id, data: { properties: { model: <entry> } } })"}});
-                    return;
-                }
                 auto url = account->origin.resolved(QUrl("/trpc/models.availableForKind"));
                 QUrlQuery query;
                 query.addQueryItem(

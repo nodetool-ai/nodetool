@@ -9,6 +9,8 @@
 #include <QFocusEvent>
 #include <QJsonDocument>
 #include <QPainter>
+#include <QConicalGradient>
+#include <QEasingCurve>
 #include <QTextDocument>
 #include <QAbstractTextDocumentLayout>
 #include <QTextCursor>
@@ -28,6 +30,28 @@ using namespace QtNodes;
 namespace nodetool {
 namespace {
 namespace nm = node_metrics;
+
+// BaseNode's .loading::before: a 3px conic ring 4px outside the card with the
+// xl radius, its stops evenly spaced and closed on the first color.
+void paintRunningRing(QPainter *painter, const QRectF &box, const QVector<QColor> &colors, double cssAngle) {
+  if (colors.isEmpty()) { return; }
+  constexpr double offset = 4, ring = 3, outerRadius = 12;
+  const auto outer = box.adjusted(-offset, -offset, offset, offset);
+  QPainterPath path;
+  path.addRoundedRect(outer, outerRadius, outerRadius);
+  path.addRoundedRect(outer.adjusted(ring, ring, -ring, -ring), outerRadius - ring, outerRadius - ring);
+  path.setFillRule(Qt::OddEvenFill);
+  // CSS turns clockwise from 12 o'clock and Qt counterclockwise from 3 o'clock,
+  // so the start angle is mirrored and each stop sits at 1 - position.
+  QConicalGradient gradient(outer.center(), 90 - cssAngle);
+  const auto count = colors.size();
+  for (qsizetype i = 0; i <= count; ++i) { gradient.setColorAt(1 - double(i) / count, colors[i % count]); }
+  painter->save();
+  painter->setPen(Qt::NoPen);
+  painter->setBrush(gradient);
+  painter->drawPath(path);
+  painter->restore();
+}
 
 class NodeGeometry final : public AbstractNodeGeometry {
 public:
@@ -261,9 +285,7 @@ public:
       auto color = status == "error" || status == "failed" ? QColor("#ff5555") : theme.primary;
       if (running) {
         color.setAlphaF(0.6 + 0.4 * std::sin(scene_.animationPhase() * 6.283185));
-        painter->setBrush(Qt::NoBrush);
-        painter->setPen(QPen(color, 2));
-        painter->drawRoundedRect(box.adjusted(1, 1, -1, -1), nm::radius, nm::radius);
+        paintRunningRing(painter, box, layout.runningColors, scene_.runningAngle());
       }
       painter->setPen(color);
       painter->setFont(canvasFont(theme, nm::fontValue, QFont::Normal));
@@ -454,6 +476,16 @@ private:
 };
 } // namespace
 
+double runningRingAngle(qint64 elapsedMs) {
+  static const QEasingCurve ease = [] {
+    QEasingCurve curve(QEasingCurve::BezierSpline);
+    curve.addCubicBezierSegment(QPointF(0.42, 0), QPointF(0.58, 1), QPointF(1, 1));
+    return curve;
+  }();
+  constexpr qint64 period = 2000;
+  return 90 + 360 * ease.valueForProgress(double(elapsedMs % period) / period);
+}
+
 double groupLabelScale(double zoom) {
   const auto z = std::clamp(zoom, 0.08, 8.0);
   return z < 1 ? 1 / z : std::pow(1 / z, 0.8);
@@ -471,9 +503,10 @@ QPainterPath wireCurve(const QPointF &out, const QPointF &in) {
 
 EditorScene::EditorScene(WorkflowGraphModel &model, QObject *parent)
     : BasicGraphicsScene(model, parent), model_(model) {
-  animation_.setInterval(33);
+  animation_.setInterval(16);
+  clock_.start();
   connect(&animation_, &QTimer::timeout, this, [this] {
-    phase_ = std::fmod(phase_ + 0.033, 1.0);
+    phase_ = std::fmod(clock_.elapsed() / 1000.0, 1.0);
     for (auto id : model_.allNodeIds()) {
       const auto status = model_.runtimeState(id)["status"].toString();
       bool activeEdge = false;
@@ -490,7 +523,9 @@ EditorScene::EditorScene(WorkflowGraphModel &model, QObject *parent)
   });
   connect(&model_, &WorkflowGraphModel::runtimeChanged, this, &EditorScene::refreshRuntime);
   connect(&model_, &WorkflowGraphModel::projectionAboutToChange, this, &EditorScene::resetDraftConnection);
-  connect(&model_, &WorkflowGraphModel::modelReset, this, [this] {
+  // Runs after a reset rebuilds every item and after an incremental projection
+  // adds items, so new and reparented frames get their hierarchy order.
+  connect(&model_, &WorkflowGraphModel::projectionChanged, this, [this] {
     gesture_ = Gesture::None;
     gesturePositions_.clear();
     for (const auto view : views()) { view->viewport()->unsetCursor(); }

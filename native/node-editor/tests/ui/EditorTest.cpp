@@ -20,6 +20,10 @@
 #include <QtNodes/internal/ConnectionGraphicsObject.hpp>
 #include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
+#include "run/GenerationHistory.h"
+#include "run/RunOutputModel.h"
+#include <memory>
+#include <vector>
 #include "graph/EditorScene.h"
 using namespace nodetool;
 class EditorTest final : public QObject {
@@ -87,6 +91,8 @@ private:
     for (auto id : model->allNodeIds()) {
       if (model->resourceId(id) == resourceId) {
         scene->nodeClicked(id);
+        // Panels follow in the next pass, and their layout in the pass after.
+        QCoreApplication::processEvents();
         QCoreApplication::processEvents();
         return;
       }
@@ -512,6 +518,108 @@ private slots:
     QCOMPARE(w.document()->undoStack()->count(), count);
   }
 
+  // A running job sends many messages. They must not rebuild the node catalog,
+  // and panels follow them at a bounded rate rather than once per message.
+  void jobMessagesThrottlePanels() {
+    nodetool::EditorWindow window;
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    QSignalSpy catalog(&window, &nodetool::EditorWindow::catalogChanged);
+    std::vector<std::unique_ptr<QSignalSpy>> panels;
+    panels.push_back(std::make_unique<QSignalSpy>(&window, &nodetool::EditorWindow::panelChanged));
+    for (auto *editor : window.findChildren<nodetool::EditorWindow *>()) { panels.push_back(std::make_unique<QSignalSpy>(editor, &nodetool::EditorWindow::panelChanged)); }
+    const auto refreshes = [&] { qsizetype total = 0; for (const auto &spy : panels) { total += spy->count(); } return total; };
+    auto *output = window.runOutput();
+    output->beginRun("job");
+    QCoreApplication::processEvents();
+    QTest::qWait(150);
+    for (const auto &spy : panels) { spy->clear(); }
+    QSignalSpy outputs(output, &nodetool::node_editor::RunOutputModel::changed);
+    for (int i = 0; i < 200; ++i) {
+      output->ingest("job", {{"type", "output_update"}, {"job_id", "job"}, {"node_id", "n"}, {"output_name", "text"}, {"value", QString("chunk %1").arg(i)}});
+    }
+    QVERIFY(outputs.count() >= 100);
+    QCOMPARE(catalog.count(), 0);
+    QCOMPARE(refreshes(), 0);
+    QTRY_VERIFY(refreshes() > 0);
+    QVERIFY2(refreshes() <= 4, qPrintable(QString::number(refreshes())));
+  }
+  // Two fixture nodes side by side, so that a click hits exactly one node.
+  static void loadPanelFixture(EditorWindow &window) {
+    window.setCatalog(property_fixture::catalog());
+    auto workflow = property_fixture::workflow();
+    auto graph = workflow["graph"].toObject();
+    QJsonArray nodes;
+    for (const auto &[id, x] : {std::pair{QString("a"), 0}, std::pair{QString("b"), 600}}) {
+      auto node = property_fixture::node(id);
+      node["ui_properties"] = QJsonObject{{"position", QJsonObject{{"x", x}, {"y", 0}}}};
+      nodes.append(node);
+    }
+    graph["nodes"] = nodes;
+    workflow["graph"] = graph;
+    QVERIFY(window.document()->load(workflow));
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    window.fit();
+    QTest::qWait(200);
+  }
+  // Panels evaluate their bindings once for all changes in one event-loop pass.
+  void panelChangesCoalesceInOnePass() {
+    EditorWindow window;
+    loadPanelFixture(window);
+    auto *tab = window.activeEditor();
+    QSignalSpy owner(&window, &EditorWindow::panelChanged), panels(tab, &EditorWindow::panelChanged);
+    QVERIFY(window.selectNode("a"));
+    QVERIFY(window.commitProperty("a", "Text", "changed"));
+    window.action("Toggle inspector");
+    QCOMPARE(panels.count(), 0);
+    QTest::qWait(150);
+    QCOMPARE(window.document()->node("a")["data"].toObject()["Text"].toString(), QString("changed"));
+    QCOMPARE(panels.count(), 1);
+    QCOMPARE(owner.count(), 1);
+  }
+  // A click selection syncs the inspector once, although the press selects and the release clicks.
+  void clickSelectionSyncsInspectorOnce() {
+    EditorWindow window;
+    loadPanelFixture(window);
+    auto *tab = window.activeEditor();
+    auto *view = tab->findChild<QGraphicsView *>();
+    auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
+    QtNodes::NodeId target = QtNodes::InvalidNodeId;
+    for (const auto id : model.allNodeIds()) { if (model.resourceId(id) == "b") { target = id; } }
+    auto *item = window.scene()->nodeGraphicsObject(target);
+    QVERIFY(item);
+    const auto point = view->mapFromScene(item->sceneBoundingRect().center());
+    QVERIFY(view->viewport()->rect().contains(point));
+    QSignalSpy synced(tab, &EditorWindow::inspectorSynced);
+    QSignalSpy owner(&window, &EditorWindow::panelChanged), panels(tab, &EditorWindow::panelChanged);
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, point);
+    QTest::qWait(150);
+    QCOMPARE(window.selection(), QString("b"));
+    QCOMPARE(synced.count(), 1);
+    QCOMPARE(panels.count(), 1);
+    QCOMPARE(owner.count(), 1);
+    synced.clear();
+    QVERIFY(window.selectNode("a"));
+    QTest::qWait(150);
+    QCOMPARE(window.selection(), QString("a"));
+    QCOMPARE(synced.count(), 1);
+  }
+  // GenerationHistory copies the full document. A selection change reuses the copy.
+  void selectionKeepsHistoryWorkflow() {
+    EditorWindow window;
+    loadPanelFixture(window);
+    QVERIFY(window.selectNode("a"));
+    QTest::qWait(150);
+    QSignalSpy history(window.generationHistory(), &node_editor::GenerationHistory::changed);
+    QVERIFY(window.selectNode("b"));
+    QTest::qWait(150);
+    // GenerationHistory::selectNode emits once. A setWorkflow call would emit again.
+    QCOMPARE(history.count(), 1);
+    history.clear();
+    QVERIFY(window.commitProperty("b", "Text", "changed"));
+    QTRY_VERIFY(history.count() > 0);
+  }
   void panelsLoad() {
     EditorWindow w;
     w.show();
@@ -775,6 +883,12 @@ private slots:
     QVERIFY(root);
     auto rows = root->findChild<QQuickItem *>("catalog-rows");
     QTRY_COMPARE(rows->property("count").toInt(), 2);
+    // The node rows take the width the namespace column leaves.
+    auto namespaces = root->findChild<QQuickItem *>("catalog-namespaces");
+    QVERIFY(namespaces);
+    QTRY_VERIFY2(rows->width() >= root->width() - namespaces->width() - 1,
+                 qPrintable(QString("rows %1, namespaces %2, panel %3").arg(rows->width()).arg(namespaces->width()).arg(root->width())));
+    QVERIFY(namespaces->width() <= 124);
     root->setProperty("query", "sec");
     QTRY_COMPARE(rows->property("count").toInt(), 1);
     root->setProperty("query", "");
