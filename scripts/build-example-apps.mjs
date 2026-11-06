@@ -360,6 +360,22 @@ function buildControl(control, ctx) {
     };
   }
 
+  if (control.document !== undefined) {
+    const { binding, idParts } =
+      typeof control.document === "string"
+        ? variableTarget(control.document)
+        : inputTarget("document", control.document.input);
+    return {
+      type: "DocumentInput",
+      props: {
+        id: nextId(idParts),
+        binding,
+        label: control.label,
+        events: []
+      }
+    };
+  }
+
   if (control.switch !== undefined) {
     ctx.useVariable(control.switch);
     return {
@@ -433,14 +449,24 @@ function buildControl(control, ctx) {
   }
 
   if (control.number !== undefined) {
-    const { operation, node } = opInput(control.op, control.number);
-    ctx.seedInputValue(control.op, node);
-    const portId = operation.kind === "script" ? node.name : node.id;
+    let target;
+    if (typeof control.number === "object" && control.number.variable) {
+      // One field for an app variable that several operations read.
+      target = variableTarget(control.number.variable);
+    } else {
+      const { operation, node } = opInput(control.op, control.number);
+      ctx.seedInputValue(control.op, node);
+      const portId = operation.kind === "script" ? node.name : node.id;
+      target = {
+        binding: inputBinding(control.op, portId),
+        idParts: ["in", control.op, control.number]
+      };
+    }
     return {
       type: "NumberInput",
       props: {
-        id: nextId(["in", control.op, control.number]),
-        binding: inputBinding(control.op, portId),
+        id: nextId(target.idParts),
+        binding: target.binding,
         label: control.label,
         min: control.min,
         max: control.max,
@@ -453,7 +479,9 @@ function buildControl(control, ctx) {
     const { binding, idParts } =
       typeof control.select === "string"
         ? inputTarget("select", control.select)
-        : propTarget("select", control.select);
+        : control.select.variable !== undefined
+          ? variableTarget(control.select.variable)
+          : propTarget("select", control.select);
     return {
       type: "Select",
       props: {
