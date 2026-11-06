@@ -77,6 +77,7 @@ describe("WebGPU layer effects", () => {
     });
     const submit = jest.fn();
     const device = {
+      limits: { maxTextureDimension2D: 8192 },
       lost: new Promise(() => {}),
       createShaderModule: jest.fn(),
       createBindGroupLayout: jest.fn(),
