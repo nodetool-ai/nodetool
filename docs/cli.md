@@ -3033,7 +3033,7 @@ error: `npm-module-builtin-import` (the dependency needs `node:*`),
 
 Install the optional software that features load by id. The `cli-admin`
 command feature provides it. The installer is
-[`@nodetool-ai/runtime-install`](../packages/runtime-install/README.md), the
+[`@nodetool-ai/runtime-install`](https://github.com/nodetool-ai/nodetool/blob/main/packages/runtime-install/README.md), the
 one the desktop Package Manager uses, so both hosts apply the same pins and
 install policy.
 

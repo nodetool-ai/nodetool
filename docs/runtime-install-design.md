@@ -4,7 +4,7 @@ Status: revision 2. Migration steps 1, 2 and 4 are implemented. Step 4
 lives in `@nodetool-ai/runtime-install`. Step 3 is open. Scope: how NodeTool installs and finds optional
 software on every host: npm runtime libraries, the conda environment, Python
 packages and uv tools. It extends the
-[Runtime Package Interface](runtime-package-interface.md), which the
+[Runtime Package Interface](https://github.com/nodetool-ai/nodetool/blob/main/docs/runtime-package-interface.md), which the
 desktop app and the CLI share. TypeScript node packs stay under the
 [CLI Pack System](cli-pack-system-design.md). This design does not change its
 D2.
