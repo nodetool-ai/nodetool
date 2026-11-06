@@ -1243,6 +1243,29 @@ scripts/check-portable.sh         # the non-Apple code, as far as macOS can buil
 scripts/build-ffmpeg-lgpl.sh      # FFmpeg 8.0 as LGPL shared libraries
 ```
 
+### Standalone unsigned releases
+
+The [release workflow](../../.github/workflows/native-timeline-release.yml)
+creates a draft prerelease, separate from Electron. Set `PROJECT_VERSION` in
+`CMakeLists.txt`, commit the workflow and app changes, then push an existing
+commit as `timeline-vX.Y.Z` (or `timeline-vX.Y.Z-test.1`). The numeric tag
+version must match CMake. `--version` reports that numeric version. The full
+tag version, including its suffix, names the downloads. Manual dispatch takes
+an existing tag and builds that tagged commit.
+
+Downloads are `nodetool-timeline-<version>-macos-arm64.zip`,
+`nodetool-timeline-<version>-windows-x64.zip`, and
+`nodetool-timeline-<version>-linux-x64.AppImage`, plus `SHA256SUMS.txt`.
+All builds are unsigned. macOS has only an ad-hoc signature and no
+notarization. The draft notes explain Gatekeeper, SmartScreen and Linux
+executable permissions. Review the package smoke logs and checksums before
+publishing the draft manually.
+
+The workflow builds only the app, checks the extracted packages with
+[scripts/smoke-package.py](scripts/smoke-package.py), and retains the existing
+macOS bundle audit. Windows and Linux release packaging still need a tagged
+CI run to establish platform verification.
+
 Hardware decode sits behind one compile-time seam,
 `src/preview/hw/HwInterop.h`: VideoToolbox on macOS, D3D11VA on Windows
 (`D3D11Interop`: a GPU copy of each slice of the decoder's texture array

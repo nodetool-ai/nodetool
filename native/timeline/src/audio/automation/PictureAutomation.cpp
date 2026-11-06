@@ -1,5 +1,6 @@
 #include "audio/automation/Automation.h"
 #include "preview/layers/SceneHooks.h"
+#include <algorithm>
 
 namespace nt::automation {
 namespace {
@@ -17,24 +18,23 @@ std::optional<QJsonObject> clipAutomationAnimation(const Track& track, const Cli
         if (target.value(u"kind").toString() != u"clip" || lane.value(u"enabled") == false || points.empty()) {
             continue;
         }
-        QJsonArray keyframes{QJsonObject{{"t", 0}, {"value", automationValueAt(points, clip.startMs)}}};
-        for (const auto& pointValue : points) {
-            const auto point = pointValue.toObject();
+        const auto lowerBound = [&](double timeMs) {
+            return std::lower_bound(points.begin(), points.end(), timeMs,
+                [](const QJsonValue& point, double time) {
+                    return point.toObject().value(u"timeMs").toDouble() < time;
+                }) - points.begin();
+        };
+        const auto first = std::max(qsizetype{0}, lowerBound(clip.startMs) - 1);
+        const auto last = std::min(points.size() - 1, lowerBound(clip.endMs()));
+        // Keep crossing segments intact so easing uses the original document-time span.
+        QJsonArray keyframes;
+        for (auto i = first; i <= last; ++i) {
+            const auto point = points[i].toObject();
             const double time = point.value(u"timeMs").toDouble();
-            if (time <= clip.startMs || time >= clip.endMs()) { continue; }
             QJsonObject keyframe{{"t", (time - clip.startMs) / clip.durationMs}, {"value", point.value(u"value")}};
             if (point.contains(u"easing")) { keyframe.insert(QStringLiteral("easing"), point.value(u"easing")); }
             keyframes.append(keyframe);
         }
-        QJsonObject tail{{"t", 1}, {"value", automationValueAt(points, clip.endMs())}};
-        for (const auto& pointValue : points) {
-            const auto point = pointValue.toObject();
-            if (point.value(u"timeMs").toDouble() >= clip.endMs()) {
-                if (point.contains(u"easing")) { tail.insert(QStringLiteral("easing"), point.value(u"easing")); }
-                break;
-            }
-        }
-        keyframes.append(tail);
         curves.append(QJsonObject{{"property", target.value(u"property")}, {"keyframes", keyframes}});
     }
     if (curves.empty()) { return {}; }

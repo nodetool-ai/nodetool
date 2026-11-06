@@ -2,6 +2,7 @@
 #include "audio/Mixer.h"
 #include "audio/automation/Meters.h"
 #include "model/TimelineJson.h"
+#include "preview/SceneEval.h"
 #include <QCoreApplication>
 #include <QFile>
 #include <QJsonDocument>
@@ -20,6 +21,21 @@ QJsonObject lane(QString kind, QString param, QJsonArray points) {
 class TestAutomation : public QObject {
     Q_OBJECT
 private slots:
+    void pictureSegmentCrossesClipEdges() {
+        registerPictureAutomation();
+        const auto doc = QJsonDocument::fromJson(R"({"fps":30,"durationMs":1000,
+            "tracks":[{"id":"v","type":"video","index":0,"automation":[{
+                "id":"opacity","target":{"kind":"clip","property":"opacity"},
+                "points":[{"timeMs":0,"value":1},{"timeMs":1000,"value":0,"easing":"easeInOut"}]}]}],
+            "clips":[{"id":"c","trackId":"v","mediaType":"video","status":"generated",
+                "currentAssetId":"opaque-source","startMs":200,"durationMs":600,"opacity":1}]})").object();
+        const auto parsed = nt::parseTimelineJson(QJsonDocument(doc).toJson());
+        QVERIFY(parsed.timeline);
+        const auto scene = nt::evaluateScene(*parsed.timeline, 250);
+        QCOMPARE(scene.layers.size(), std::size_t(1));
+        // Full segment easeInOut(0.25) = 0.0625, even though both keys lie outside the clip.
+        QCOMPARE(scene.layers[0].opacity, 0.9375);
+    }
     void valuesAndBreakpoints() {
         const QJsonArray points{QJsonObject{{"timeMs",0},{"value",-20}},QJsonObject{{"timeMs",100},{"value",0},{"easing","hold"}}};
         QCOMPARE(automationValueAt(points, 50), -20.);

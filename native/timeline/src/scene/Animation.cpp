@@ -296,7 +296,7 @@ struct CustomCurves {
     std::vector<PropertyCurve> curves;
 };
 
-CustomCurves normalizeCustomCurves(const QJsonValue& raw, const QJsonValue& timeBase) {
+CustomCurves normalizeCustomCurves(const QJsonValue& raw, const QJsonValue& timeBase, bool preserveSegmentTimes) {
     CustomCurves out;
     bool sourceBased = false;
     if (!(timeBase.isUndefined() || timeBase.isNull())) {
@@ -342,6 +342,9 @@ CustomCurves normalizeCustomCurves(const QJsonValue& raw, const QJsonValue& time
             const double span = *parsed.back().sourceMs - firstMs;
             for (Keyframe& kf : parsed) kf.t = span > 0 ? (*kf.sourceMs - firstMs) / span : 0;
             curve.keyframes = parsed;
+        } else if (preserveSegmentTimes) {
+            std::stable_sort(parsed.begin(), parsed.end(), [](const Keyframe& a, const Keyframe& b) { return a.t < b.t; });
+            curve.keyframes = std::move(parsed);
         } else {
             std::vector<Keyframe> sorted;
             for (const Keyframe& kf : parsed) {
@@ -897,7 +900,8 @@ std::vector<CompiledAnimation> compileAnimations(const std::vector<AnimationDef>
         bool sourceTime = false;
         if (a.preset == "custom") {
             if (!a.styleOnly) {
-                const CustomCurves baked = normalizeCustomCurves(a.custom.value(u"curves"), a.custom.value(u"timeBase"));
+                const CustomCurves baked = normalizeCustomCurves(a.custom.value(u"curves"), a.custom.value(u"timeBase"),
+                    a.params.value(u"trackAutomation") == QJsonValue(true));
                 if (!baked.ok) continue;
                 curves = baked.curves;
                 sourceTime = baked.sourceTime;
