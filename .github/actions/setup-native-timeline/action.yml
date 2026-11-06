@@ -2,11 +2,15 @@ name: Set up native timeline
 description: Install the shared Qt, codec and compiler dependencies
 runs:
   using: composite
+  # The github-env ignores below: native-timeline.yml (pull_request, push) and
+  # native-timeline-release.yml (tag pushes) call this action, never an untrusted
+  # trigger such as pull_request_target, and every value written is a runner or
+  # tool path, not input from a pull request.
   steps:
     - name: Install dependencies (macOS)
       if: runner.os == 'macOS'
       shell: bash
-      run: |
+      run: | # zizmor: ignore[github-env]
         brew install ninja pkgconf ffmpeg ffmpeg-full harfbuzz freetype lame openh264 opus libvpx ccache
         # The regular formula omits drawtext, which the numbered fixtures need.
         echo "$(brew --prefix ffmpeg-full)/bin" >> "$GITHUB_PATH"
@@ -27,7 +31,7 @@ runs:
     - name: Install dependencies (Linux)
       if: runner.os == 'Linux'
       shell: bash
-      run: |
+      run: | # zizmor: ignore[github-env]
         sudo apt-get update
         sudo apt-get install -y gdb ccache ninja-build pkg-config nasm ffmpeg libmp3lame-dev libopenh264-dev libopus-dev libvpx-dev libva-dev libvulkan-dev \
           mesa-vulkan-drivers vulkan-tools libgl1-mesa-dev libxkbcommon-dev libfontconfig1-dev libegl1 \
@@ -55,7 +59,7 @@ runs:
     - name: Install dependencies (Windows)
       if: runner.os == 'Windows'
       shell: bash
-      run: |
+      run: | # zizmor: ignore[github-env]
         # The Chocolatey feed times out at times, and then choco reports nothing fatal.
         for attempt in 1 2 3 4 5; do
           choco install -y ninja pkgconfiglite || true

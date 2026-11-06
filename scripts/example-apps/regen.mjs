@@ -78,8 +78,24 @@ export function bindingToSpec(binding, index) {
   return name ? `op:${operationId}/${kind}:${name}` : binding;
 }
 
-/** Input/output declarations of an operation, read off its carried graph. */
+/** Input/output declarations from the carried script or workflow graph. */
 function operationIO(bundle, operation) {
+  if (operation.target?.kind === "script") {
+    const script = bundle.scripts?.find(
+      (script) => script.key === operation.target.scriptId
+    );
+    return {
+      inputs: (script?.document.inputs ?? []).map((port) => ({
+        name: port.name,
+        type: port.type,
+        example: ""
+      })),
+      outputs: (script?.document.outputs ?? []).map((port) => ({
+        name: port.name,
+        type: port.type
+      }))
+    };
+  }
   const graph = bundle.workflows.find((w) => w.key === operation.workflowId)?.graph;
   const inputs = [];
   const outputs = [];

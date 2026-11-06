@@ -10,4 +10,4 @@ Game replay answers a different question: whether recorded inputs reproduce simu
 
 **Next check:** deliberately fail one generated-item operation and trace it from the document to the failed run. Repeat after reopening the document. Cross-feature coverage remains unverified in this reading.
 
-Evidence: [web readers](../../../packages/websocket/src/trpc/routers/runs.ts), [agent readers](../../../packages/agents/src/capabilities/runs.ts), [inspection harnesses](../../harnesses.md), [game replay](../../game-engine/saves-replay.md).
+Evidence: [web readers](https://github.com/nodetool-ai/nodetool/blob/main/packages/websocket/src/trpc/routers/runs.ts), [agent readers](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/src/capabilities/runs.ts), [inspection harnesses](../../harnesses.md), [game replay](../../game-engine/saves-replay.md).

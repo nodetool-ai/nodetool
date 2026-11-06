@@ -36,6 +36,8 @@ import {
   encodeBinding,
   formatDuration,
   isOperationRunning,
+  operationNodeRuns,
+  operationProgress,
   messagesFrom,
   messageText,
   readSketchBinding,
@@ -631,6 +633,56 @@ const ProgressWidget: React.FC<WidgetProps> = (widget) => {
           />
         </View>
       )}
+    </View>
+  );
+};
+
+const WorkflowStepsWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const { scope } = useAppRuntimeContext();
+  const target = str(widget.props.operationId) || scope.defaultOperationId;
+  const runs = useRuntimeSelector((state) => operationNodeRuns(state, target));
+  const running = useRuntimeSelector((state) => isOperationRunning(state, target));
+  const progress = useRuntimeSelector((state) => operationProgress(state, target));
+  const steps = Array.isArray(widget.props.steps)
+    ? widget.props.steps.filter(isRecord).filter((step) => typeof step.nodeId === "string" && step.nodeId.trim())
+    : [];
+  const progressBar = (label: string, ratio?: number) => (
+    <View accessibilityRole="progressbar" accessibilityLabel={label}
+      accessibilityValue={ratio === undefined ? undefined : { min: 0, max: 100, now: Math.round(Math.min(Math.max(ratio, 0), 1) * 100) }}>
+      {ratio === undefined ? <ActivityIndicator color={colors.primary} /> : (
+        <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
+          <View style={[styles.progressFill, {
+            width: `${Math.round(Math.min(Math.max(ratio, 0), 1) * 100)}%`,
+            backgroundColor: colors.primary,
+          }]} />
+        </View>
+      )}
+    </View>
+  );
+  if (steps.length === 0 && !running) {return null;}
+  return (
+    <View style={styles.stack}>
+      <FieldLabel text={str(widget.props.label)} colors={colors} />
+      {steps.length === 0 ? progressBar("Workflow progress", progress) : steps.map((step, index) => {
+        const nodeId = str(step.nodeId);
+        const title = str(step.title).trim() || nodeId;
+        const run = runs[nodeId];
+        const status = !run ? "Waiting"
+          : run.error || run.status === "error" || run.status === "failed" ? "Failed"
+          : run.status === "completed" ? "Done" : "Running";
+        return (
+          <View key={`${nodeId}-${index}`} style={styles.stack}>
+            <View style={styles.row}>
+              <Text style={[styles.body, styles.rowLabel, { color: colors.text }]}>{title}</Text>
+              <Text style={[styles.hint, { color: colors.textSecondary }]}>{status}</Text>
+            </View>
+            {step.description ? <Text style={[styles.hint, { color: colors.textSecondary }]}>{str(step.description)}</Text> : null}
+            {status === "Running" ? progressBar(`${title} progress`, run?.progress) : null}
+            {run?.error ? <Text accessibilityRole="alert" style={[styles.hint, { color: colors.error }]}>{run.error}</Text> : null}
+          </View>
+        );
+      })}
     </View>
   );
 };
@@ -2962,6 +3014,7 @@ export const RENDERERS: Record<string, React.FC<WidgetProps>> = {
   StoryboardPreview: StoryboardWidget,
   Table: TableWidget,
   Progress: ProgressWidget,
+  WorkflowSteps: WorkflowStepsWidget,
   AgentActivity: AgentActivityWidget,
   Alert: AlertWidget,
   CodeBlock: CodeBlockWidget,

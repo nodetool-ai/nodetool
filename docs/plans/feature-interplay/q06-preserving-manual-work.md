@@ -10,4 +10,4 @@ Timeline shot refill offers narrower preservation: it retains placement, trims a
 
 **Next check:** generate a candidate, manually edit the same object, then apply the old candidate. It should require reconciliation rather than silently replace the newer edit. Repeat with a deleted or detached generated object.
 
-Evidence: [construction behavior](../../game-engine/construction.md), [reconciliation](../../../packages/game-runtime/src/authoring-reconcile.ts), [checked game persistence](../../../packages/models/src/game.ts), [timeline preservation](../../../packages/timeline/src/reassemble.ts).
+Evidence: [construction behavior](../../game-engine/construction.md), [reconciliation](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-runtime/src/authoring-reconcile.ts), [checked game persistence](https://github.com/nodetool-ai/nodetool/blob/main/packages/models/src/game.ts), [timeline preservation](https://github.com/nodetool-ai/nodetool/blob/main/packages/timeline/src/reassemble.ts).
