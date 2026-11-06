@@ -45,6 +45,7 @@ import type {
 } from "@nodetool-ai/timeline";
 
 import type { CompositeLayer } from "../preview/gpu/types";
+import { sourceDimensions } from "../preview/gpu/source";
 import type { CompositorBackend } from "../preview/gpu/createCompositor";
 import {
   accumulateBlurSample,
@@ -694,9 +695,7 @@ export async function renderTimeline(
               layer.bakeSourceTimeSec ?? clipSourceTimeSec(layer.clip, layerTimeMs),
               signal
             );
-            const width = decoded instanceof HTMLVideoElement
-              ? decoded.videoWidth
-              : decoded.width;
+            const { width } = sourceDimensions(decoded);
             if (width === 0) return null;
             if (layer.clip.mediaType !== "video" || !hasTemporalDenoise(anim.effects ?? layer.effects)) return {source: decoded};
             const times = denoiseSourceTimes(layer.clip, clipSourceTimeSec(layer.clip, layerTimeMs) * 1000);

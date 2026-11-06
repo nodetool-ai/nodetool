@@ -231,14 +231,14 @@ describe("OffscreenVideoPool", () => {
     expect(describeMediaError(el)).toBe("MEDIA_ERR_NETWORK (2)");
   });
 
-  it("reuses a sequential decoded source and releases its bitmap owner", async () => {
+  it("reuses a sequential decoded source and releases its frame owner", async () => {
     const previous = Object.getOwnPropertyDescriptor(globalThis, "VideoDecoder");
     Object.defineProperty(globalThis, "VideoDecoder", {
       value: {}, configurable: true
     });
-    const bitmap = { width: 640, height: 360 } as ImageBitmap;
+    const frame = { displayWidth: 640, displayHeight: 360 } as VideoFrame;
     const source = {
-      frameAt: jest.fn().mockResolvedValue(bitmap),
+      frameAt: jest.fn().mockResolvedValue(frame),
       dispose: jest.fn()
     };
     const open = jest.spyOn(SequentialVideoSource, "open").mockResolvedValue(
@@ -250,9 +250,9 @@ describe("OffscreenVideoPool", () => {
         pool.seek("clip", "http://x/a.mp4", 0),
         pool.seek("clip", "http://x/a.mp4", 0)
       ]);
-      expect(picture).toBe(bitmap);
-      expect(reused).toBe(bitmap);
-      await expect(pool.seek("clip", "http://x/a.mp4", 1 / 24)).resolves.toBe(bitmap);
+      expect(picture).toBe(frame);
+      expect(reused).toBe(frame);
+      await expect(pool.seek("clip", "http://x/a.mp4", 1 / 24)).resolves.toBe(frame);
       expect(open).toHaveBeenCalledTimes(1);
       expect(source.frameAt).toHaveBeenCalledTimes(2);
       expect(videos()).toHaveLength(0);
@@ -348,7 +348,7 @@ describe("OffscreenVideoPool", () => {
     }
   });
 
-  it("keeps WebCodecs picture and matte bitmaps separate for the same clip", async () => {
+  it("keeps WebCodecs picture and matte frames separate for the same clip", async () => {
     const previous = Object.getOwnPropertyDescriptor(globalThis, "VideoDecoder");
     Object.defineProperty(globalThis, "VideoDecoder", {
       value: {}, configurable: true
@@ -385,10 +385,10 @@ describe("OffscreenVideoPool", () => {
     Object.defineProperty(globalThis, "VideoDecoder", {
       value: {}, configurable: true
     });
-    const bitmap = { width: 640, height: 360 } as ImageBitmap;
+    const frame = { displayWidth: 640, displayHeight: 360 } as VideoFrame;
     const source = {
       frameAt: jest.fn()
-        .mockResolvedValueOnce(bitmap)
+        .mockResolvedValueOnce(frame)
         .mockRejectedValueOnce(new Error("Video timestamp moved backward")),
       dispose: jest.fn()
     };
@@ -397,7 +397,7 @@ describe("OffscreenVideoPool", () => {
     );
     const pool = new OffscreenVideoPool();
     try {
-      await expect(pool.seek("clip", "http://x/a.mp4", 2)).resolves.toBe(bitmap);
+      await expect(pool.seek("clip", "http://x/a.mp4", 2)).resolves.toBe(frame);
       const pending = pool.seek("clip", "http://x/a.mp4", 1);
       await flush();
       const [el] = videos();
