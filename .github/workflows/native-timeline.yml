@@ -20,6 +20,10 @@ on:
       - "native/model-picker/**"
       - ".github/workflows/native-timeline.yml"
       - ".github/actions/setup-native-timeline/**"
+      # The web references the oracles and export_golden compare against.
+      - "packages/timeline/**"
+      - "packages/gpu/**"
+      - "packages/cli-timeline/**"
   # A pull request can restore only its own caches and its base branch's. This
   # run builds the base branch and saves its compiler caches, so the first run
   # of each pull request does not compile from scratch.
@@ -32,6 +36,10 @@ on:
       - "native/model-picker/**"
       - ".github/workflows/native-timeline.yml"
       - ".github/actions/setup-native-timeline/**"
+      # The web references the oracles and export_golden compare against.
+      - "packages/timeline/**"
+      - "packages/gpu/**"
+      - "packages/cli-timeline/**"
 
 permissions:
   contents: read
