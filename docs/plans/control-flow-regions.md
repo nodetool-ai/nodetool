@@ -1,5 +1,35 @@
 # Control-flow regions
 
+A region is a container on the canvas whose contents run under a rule. The first
+release adds two kinds, plus a way to test and inspect them. The main decisions:
+
+- **If Region (D1).** Only the chosen area, Then or Else, runs. Nodes in the
+  other area never start, even ones with no inputs. Both areas must produce
+  every output, so an empty Else connects its input through.
+- **For Each Region (D3, D18, D19, D26).** One list in, one item at a time. The
+  next item starts only after the current one finishes. Results come back in
+  list order. Keep, Stop after iteration, and State for next item are optional.
+  A list longer than the maximum fails before any work starts.
+- **Failure (D22, D25).** A failed item stops the region, and no partial Results
+  reach downstream nodes. Existing recovery that produces a value, such as
+  retries, still applies. Recovery that would drop an item counts as a failure.
+- **Execution (D24).** Each region invocation and each item runs as an isolated
+  inner run on the executor the Subgraph and Workflow nodes already use. A
+  spike (A53) must confirm the cost per item before this is final.
+- **Membership (D5, D28).** Membership is stored explicitly in `parent_id` and
+  never inferred from position. A region is a new node type, so builds that
+  predate regions refuse to run these workflows. No format version field is
+  added.
+- **Spending (D27).** Every workflow run gets one optional setting, Spending
+  limit per run. Before a paid node starts, its estimate is reserved. Once the
+  limit is reached, no new paid step starts. With no limit set, runs behave as
+  they do today.
+- **Test one item and Inspect item (D15 to D17, D12 to D14).** Test one item runs
+  one item with supplied inputs, separate from normal runs. Inspect item only
+  reads what an earlier run recorded and never executes anything.
+- **Compatibility (D29).** Existing If, For Each, and Loop nodes keep their
+  names and behavior. Nothing is converted automatically.
+
 ## First release
 
 Ship If Region and sequential For Each Region, followed by Test one item and read-only

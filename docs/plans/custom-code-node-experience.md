@@ -1,5 +1,14 @@
 # Custom Code node experience
 
+- **One entry point.** **Create a custom node** replaces **Write Code with AI** and the two handle menu items. Starters come from the existing snippet catalog and appear only inside the editor.
+- **One editor.** The Code assistant dialog becomes the editor: code, assistant, preview, and tests together. The small canvas editor stays for quick edits.
+- **Nothing changes until Apply.** The editor works on a draft. Apply shows which connections a port change affects and undoes in one step.
+- **Preview without side effects.** Preview runs the draft on the server with the last run's upstream values or typed samples. It never runs other nodes, and code that fetches, writes, or reads secrets runs only on a click.
+- **No new node properties.** Description, explanation, author, and tests live in the node's `ui_properties` beside the title, and are copied into the script on **Save to My Nodes**.
+- **No unrequested model calls.** Explanations are generated on **Explain** and marked **Out of date** when the code changes.
+- **Reuse stays pinned.** A saved node keeps its version in each workflow until the creator updates it there.
+- **Fix existing defects first.** Milestone 0 corrects the assistant's outdated output contract, broken connections after port changes, data lost on save, and undo after cancel.
+
 ## Goal
 
 Make it easier to create, understand, test, and reuse a custom node. Keep the

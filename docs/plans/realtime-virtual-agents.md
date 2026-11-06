@@ -1,5 +1,14 @@
 # Agent features and app agents: implementation plan
 
+- **An app agent is a Mini App with an Agent widget.** There is no new product noun. Creators publish the app through the existing deployment flow, not the agent itself.
+- **A turn is an existing chat-app run.** The chat widgets keep the conversation in an instance-scoped app variable, and each message runs an app operation whose workflow contains an Agent node (D1).
+- **Two authorities, both existing.** An owner session acts as the signed-in user. A visitor session is the existing deployed-app session, pinned to the release and bounded by a finite budget (D2).
+- **One new security boundary.** A visitor tool policy on the run's permission gate denies owner memory, files, library, connected services, and thread persistence. Visitor turns add no command to the session allowlist.
+- **Settings live in existing places.** The agent's workflow holds model, instructions, and tools. The app document holds layout and conversation policy. The settings editor is a form over both, and a release freezes both.
+- **Features are optional modules.** Voice, guided paths, presentation, perception, and scene control each depend on the agent binding or the Agent node. With all of them off, an app agent is an ordinary chat app.
+- **Guided paths are app-side policy.** A pure reducer in `app-runtime` tracks mode and step. Each mode runs its own operation, so its tool scope is pinned in the release (D18).
+- **Delivery starts small.** A1 proves reuse with existing fixtures, A2 ships a text agent for its owner, and A5 publishes text agents to visitors before the voice and guided kiosk pilot.
+
 ## Recommendation
 
 Let creators place a configured agent inside a Mini App and give it optional features: voice, guided conversations, presentation, perception, and scene control. A creator who wants others to talk to an agent publishes the app that contains it, through the existing app deployment flow. Personal assistants and museum guides are two configurations of the same implementation.
@@ -444,7 +453,7 @@ For an open workflow run, the [execution runner](../../packages/execution-core/s
 
 | Related proposal | Reuse for app agents | Boundary to keep explicit |
 | --- | --- | --- |
-| [Shared variables and direct input bindings](shared-variables-input-bindings.md) | Typed bindings for language, selected exhibit, audience, and tool parameters. Capture values/revisions when an action starts. Use checked writes for returned artifacts and progress | Editing configuration must not start paid work. Run snapshots stay fixed. Conversation events and mode changes need explicit events, not Watch subscriptions |
+| [Shared variables and direct input bindings](shared-variables-input-bindings.md) | Typed bindings for language, selected exhibit, audience, and tool parameters. Capture values/revisions when an action starts. Use checked writes for returned artifacts when an operation ends. Conversation state uses that plan's app-instance owner | Editing configuration must not start paid work. Run snapshots stay fixed. Progress stays on job messages, and live writes within a run are deferred there (A6). Conversation events and mode changes need explicit events, not Watch subscriptions |
 | [Control-flow regions](control-flow-regions.md) | Execute only the chosen action branch, await sequential tool work, collect results, and share budgets through nested actions | A region controls execution within one invocation. A conversation state waits for future events across invocations |
 
 Profile draft edits apply to a fresh preview session or a newly published release. Explicit live session inputs, such as selected exhibit, affect the next admitted action. Neither starts paid work.
