@@ -12760,7 +12760,7 @@
       "disableAll": "Deaktiver alle noder",
       "color": "Gruppefarge",
       "removeNodesHeading": "FJERN NODER FRA GRUPPEN",
-      "dragOutModifier": "Dra ut mens du holder CTRL | ⌘-tasten",
+      "dragOutModifier": "Dra ut mens du holder Alt (Tilvalg ⌥ på Mac)",
       "shakeToRemove": "Rist raskt, og dra deretter ut"
     }
   },

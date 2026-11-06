@@ -12760,7 +12760,7 @@
       "disableAll": "सभी नोड्स को निष्क्रिय करें",
       "color": "समूह रंग",
       "removeNodesHeading": "ग्रुप से कोड प्राप्त करें",
-      "dragOutModifier": "CTRL chlor chlor chlor chlor chlor chlor ch ",
+      "dragOutModifier": "Alt (Mac पर Option ⌥) दबाकर बाहर खींचें",
       "shakeToRemove": "तेज़ी से हिलाना, फिर खींचें"
     }
   },

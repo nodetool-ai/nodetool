@@ -12760,7 +12760,7 @@
       "disableAll": "Disable all nodes",
       "color": "Group color",
       "removeNodesHeading": "REMOVE NODES FROM GROUP",
-      "dragOutModifier": "Drag out while holding CTRL | ⌘ key",
+      "dragOutModifier": "Drag out while holding Alt (Option ⌥ on Mac)",
       "shakeToRemove": "Shake rapidly, then drag out"
     }
   },

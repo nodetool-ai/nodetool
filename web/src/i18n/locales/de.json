@@ -12760,7 +12760,7 @@
       "disableAll": "Alle Knoten deaktivieren",
       "color": "Gruppenfarbe",
       "removeNodesHeading": "KNOTEN AUS GRUPPE ENTFERNEN",
-      "dragOutModifier": "Mit gedrückter STRG- | ⌘-Taste herausziehen",
+      "dragOutModifier": "Zum Herausziehen Alt gedrückt halten (Option ⌥ auf dem Mac)",
       "shakeToRemove": "Schnell schütteln und dann herausziehen"
     }
   },

@@ -12760,7 +12760,7 @@
       "disableAll": "모든 노드 비활성화",
       "color": "그룹 색상",
       "removeNodesHeading": "그룹에서 노드 제거",
-      "dragOutModifier": "CTRL을 누른 상태에서 드래그 | ⌘ 키",
+      "dragOutModifier": "Alt(Mac에서는 Option ⌥)를 누른 채 밖으로 드래그하세요",
       "shakeToRemove": "빠르게 흔든 후 드래그하세요."
     }
   },

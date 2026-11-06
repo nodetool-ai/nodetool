@@ -13158,7 +13158,7 @@
       "disableAll": "Отключить все узлы",
       "color": "Цвет группы",
       "removeNodesHeading": "УДАЛЕНИЕ УЗЛОВ ИЗ ГРУППЫ",
-      "dragOutModifier": "Вытащите, удерживая клавишу CTRL | ⌘",
+      "dragOutModifier": "Перетащите наружу, удерживая Alt (Option ⌥ на Mac)",
       "shakeToRemove": "Быстро встряхните, затем вытащите"
     }
   },

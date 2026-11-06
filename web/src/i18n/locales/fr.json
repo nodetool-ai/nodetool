@@ -12959,7 +12959,7 @@
       "disableAll": "Désactiver tous les nœuds",
       "color": "Couleur du groupe",
       "removeNodesHeading": "SUPPRIMER LES NŒUDS DU GROUPE",
-      "dragOutModifier": "Faites glisser tout en maintenant CTRL | ⌘ clé",
+      "dragOutModifier": "Faites glisser hors du groupe en maintenant Alt (Option ⌥ sur Mac)",
       "shakeToRemove": "Secouez rapidement, puis faites glisser"
     }
   },

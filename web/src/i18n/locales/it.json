@@ -12959,7 +12959,7 @@
       "disableAll": "Disabilita tutti i nodi",
       "color": "Colore del gruppo",
       "removeNodesHeading": "RIMUOVERE I NODI DAL GRUPPO",
-      "dragOutModifier": "Trascina verso l'esterno tenendo premuto CTRL | ⌘ chiave",
+      "dragOutModifier": "Trascina fuori tenendo premuto Alt (Opzione ⌥ su Mac)",
       "shakeToRemove": "Agitare rapidamente, quindi trascinare"
     }
   },

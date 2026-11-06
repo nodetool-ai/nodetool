@@ -12959,7 +12959,7 @@
       "disableAll": "Deshabilitar todos los nodos",
       "color": "Color del grupo",
       "removeNodesHeading": "QUITAR NODOS DEL GRUPO",
-      "dragOutModifier": "Arrastre mientras mantiene presionada CTRL | ⌘ clave",
+      "dragOutModifier": "Arrastra hacia fuera manteniendo Alt (Opción ⌥ en Mac)",
       "shakeToRemove": "Agite rápidamente y luego arrastre"
     }
   },

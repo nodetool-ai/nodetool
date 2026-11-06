@@ -13158,7 +13158,7 @@
       "disableAll": "Wyłącz wszystkie węzły",
       "color": "Kolor grupowy",
       "removeNodesHeading": "USUŃ WĘZŁY Z GRUPY",
-      "dragOutModifier": "Przeciągnij, przytrzymując klawisz CTRL | ⌘ klucz",
+      "dragOutModifier": "Przeciągnij poza grupę, przytrzymując Alt (Option ⌥ na Macu)",
       "shakeToRemove": "Szybko wstrząśnij, a następnie przeciągnij"
     }
   },
