@@ -143,6 +143,8 @@
     "test:packages": "npm run test:oxlint-rules && npm run test:scripts && node scripts/run-turbo.mjs run test --filter=\"./packages/*\" --filter=\"./reliability/*\"",
     "test:oxlint-rules": "node scripts/run-vitest.mjs run --config vitest.config.ts tools/oxlint",
     "measure:cli-closure": "node scripts/measure-cli-closure.mjs",
+    "generate:comfy-manifest": "node scripts/generate-comfy-router-manifest.mjs",
+    "generate:comfy-manifest:check": "node scripts/generate-comfy-router-manifest.mjs --check",
     "test:scripts": "node scripts/run-vitest.mjs run --config vitest.config.ts scripts/__tests__",
     "turbo": "turbo",
     "turbo:build": "node scripts/run-turbo.mjs run build",

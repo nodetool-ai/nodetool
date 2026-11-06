@@ -388,6 +388,20 @@ describe("ComfyCloudProvider — real Router schemas", () => {
     expect(tooSmall.parameters).toMatchObject({ size: "512*512" });
   });
 
+  it("FLUX 3 image: sends the resolution spelling the schema documents", async () => {
+    const body = await submittedBody("bfl/flux-3-image", (p, model) =>
+      p.textToImage({ model, prompt: "a leaf", resolution: "2K", aspectRatio: "16:9" })
+    );
+    expect(body).toMatchObject({ prompt: "a leaf", resolution: "2k", aspect_ratio: "16:9" });
+  });
+
+  it("drops a resolution the model does not accept instead of failing the job", async () => {
+    const body = await submittedBody("bfl/flux-3-image", (p, model) =>
+      p.textToImage({ model, prompt: "a leaf", resolution: "8K" })
+    );
+    expect(body).not.toHaveProperty("resolution");
+  });
+
   it("Wan 2.7: the start frame as a typed media item, with a billing resolution", async () => {
     const body = await submittedBody("wan/wan2.7-i2v", (p, model) =>
       p.imageToVideo(PNG, { model, prompt: "waves", durationSeconds: 5 })
