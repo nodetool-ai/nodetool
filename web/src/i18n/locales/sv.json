@@ -9041,6 +9041,10 @@
           "button": "Hämta Cheaper Inference API-nyckel",
           "tooltip": "Gå till Cheaper Inference-plattformen för att få din API-nyckel"
         },
+        "RUNCRATE_API_KEY": {
+          "button": "Hämta Runcrate API-nyckel",
+          "tooltip": "Gå till Runcrate-plattformen för att få din API-nyckel"
+        },
         "API_ROUTE_API_KEY": {
           "button": "Hämta API-ruttnyckel",
           "tooltip": "Gå till sidan för API Route API-nycklar"
