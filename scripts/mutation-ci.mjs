@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { totalmem } from "node:os";
@@ -84,6 +84,23 @@ function selectionContext(root, base) {
     root, store: new SnapshotStore(root, empty), coveredLines: null, mutateAll: false, lines: null,
     changedForms: (path, source) => formsChangedSince(root, base, path, relativeKey(root, path), source)
   };
+}
+
+/**
+ * The scheduled run mutates what reached main since the last successful
+ * scheduled run. A previous head that is no longer an ancestor of HEAD (or
+ * no previous run at all) falls back to the last first-parent commit made
+ * before `since`, so a run covers at least that window.
+ */
+export function resolveBase(root, previous, since = "24 hours ago") {
+  if (previous) {
+    const ancestor = spawnSync("git", ["-C", root, "merge-base", "--is-ancestor", previous, "HEAD"]);
+    if (ancestor.status === 0) {
+      return git(root, "rev-parse", "--verify", `${previous}^{commit}`);
+    }
+  }
+  const before = git(root, "rev-list", "-1", "--first-parent", `--before=${since}`, "HEAD");
+  return before || git(root, "rev-list", "--max-parents=0", "--first-parent", "HEAD");
 }
 
 /** Freeze the actual canonical selection, not an independently approximated list. */
@@ -233,13 +250,20 @@ export function aggregate(root, plan, outputs) {
 async function main(args) {
   const [command, ...rest] = args;
   const root = process.cwd();
-  if (command === "plan") {
+  if (command === "base") {
+    assert(rest.length <= 1, "Usage: mutation-ci.mjs base [PREVIOUS_HEAD]");
+    const base = resolveBase(root, rest[0] ?? "");
+    if (process.env.GITHUB_OUTPUT) {
+      writeFileSync(process.env.GITHUB_OUTPUT, `base=${base}\n`, { flag: "a" });
+    }
+    console.log(`Mutating changes since ${base}`);
+  } else if (command === "plan") {
     assert.equal(rest.length, 2, "Usage: mutation-ci.mjs plan BASE OUTPUT");
     const plan = createPlan(root, rest[0]);
     writeJson(resolve(rest[1]), plan);
     if (process.env.GITHUB_OUTPUT) {
       const matrix = { partition: plan.partitions.map((item) => item.id) };
-      writeFileSync(process.env.GITHUB_OUTPUT, `head=${plan.head}\nmatrix=${JSON.stringify(matrix)}\n`, { flag: "a" });
+      writeFileSync(process.env.GITHUB_OUTPUT, `head=${plan.head}\nmutants=${plan.selectedIds.length}\nmatrix=${JSON.stringify(matrix)}\n`, { flag: "a" });
     }
     console.log(`Planned ${plan.selectedIds.length} mutants at ${plan.head}, base ${plan.base}`);
   } else if (command === "run") {
@@ -266,7 +290,7 @@ async function main(args) {
       console.log("::warning::Mutants survived in changed functions. See the job summary.");
     }
   } else {
-    throw new Error("Expected plan, run, or aggregate");
+    throw new Error("Expected base, plan, run, or aggregate");
   }
 }
 
