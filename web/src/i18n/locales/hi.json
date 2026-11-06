@@ -9041,6 +9041,10 @@
           "button": "Cheaper Inference API कुंजी प्राप्त करें",
           "tooltip": "अपने एपीआई कुंजी प्राप्त करने के लिए Cheaper Inference प्लेटफॉर्म पर जाएं"
         },
+        "RUNCRATE_API_KEY": {
+          "button": "Runcrate API कुंजी प्राप्त करें",
+          "tooltip": "अपने एपीआई कुंजी प्राप्त करने के लिए Runcrate प्लेटफॉर्म पर जाएं"
+        },
         "API_ROUTE_API_KEY": {
           "button": "API रूट कुंजी प्राप्त करें",
           "tooltip": "API रूट API कुंजी पृष्ठ पर जाएं"
