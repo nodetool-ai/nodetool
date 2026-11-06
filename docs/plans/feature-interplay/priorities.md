@@ -83,9 +83,9 @@ New work is a host-level request/result adapter. It needs request identity, scen
 
 **First proof:** select an object, execute one existing retrieval workflow, accept its result into a bounded scene action, and replay the accepted response without another model call. Leave the scene before completion and confirm the old result is ignored.
 
-## O5. Coordinate speech, tools and presentation in an assistant session
+## O5. Coordinate speech, tools and presentation in an agent session
 
-The map's Assistant runtime proposal builds on the same asynchronous boundary concerns as O4. Its [existing plan](../realtime-virtual-agents.md) already calls for reuse of workflows, capabilities, jobs and collections.
+The map's Assistant runtime proposal builds on the same asynchronous boundary concerns as O4. Its [app agents plan](../realtime-virtual-agents.md) already calls for reuse of workflows, capabilities, jobs and collections.
 
 Reuse:
 
@@ -95,7 +95,7 @@ Reuse:
 
 The missing piece is coordinated session behavior: turns, interruption, ordering and eligibility of tool results, plus media presentation. A tool may finish successfully after its speech response becomes obsolete. Cancellation of execution and cancellation of presentation therefore need separate decisions.
 
-**First proof:** interrupt a spoken answer while a retrieval/tool call is running. Stop stale playback, retain valid completed work, and prevent the obsolete response from speaking later. Follow the assistant plan's text-first execution-reuse sequence before adding voice or a live scene.
+**First proof:** interrupt a spoken answer while a retrieval/tool call is running. Stop stale playback, retain valid completed work, and prevent the obsolete response from speaking later. Follow the app agents plan's text-first execution-reuse sequence before adding voice or a live scene.
 
 ## Recommended sequence
 

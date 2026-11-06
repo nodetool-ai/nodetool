@@ -2,25 +2,58 @@
 
 ## First release
 
-Ship If / Else and sequential For Each, followed by Test one item and read-only
+Ship If Region and sequential For Each Region, followed by Test one item and read-only
 inspection of recorded iterations. Keep defaults simple: one collection, ordered
 results, no carried state unless added, and stop on failure.
 
 Build only the shared ownership, ports, completion, and budget behavior these
 features need. Reuse existing execution and provider infrastructure. Preserve
-stable identities and versioned workflow data without building a general
+stable identities and keep saved workflows loading without building a general
 control-flow framework.
 
 Delivery order is milestones 1, 2, 3, 4, 4a, 4b, then 7. Existing identifiers are
 retained so earlier discussions remain traceable. Milestones 5 and 6 are deferred.
+D27 and D28 answer the two former [open questions](#resolved-questions).
+
+## Terms authors see
+
+The editor, messages, docs, and every decision in this plan use the terms below.
+Region is the generic word for both containers. Do not substitute block, zone,
+or group: groups are the existing visual frames, which do not change execution.
+
+| Term | Meaning |
+|---|---|
+| Region | A container on the canvas whose contents run under a rule. Nodes inside it are its members. |
+| If Region | A region with a Then area and an Else area. Only one area runs. |
+| For Each Region | A region that runs its contents once per item of a list, one item at a time. |
+| Item, Index | The current list element and its position inside a For Each Region. |
+| Results | The For Each Region output: one value per kept item, in list order. |
+| State for next item | An optional value carried from one item to the next. It needs a starting value. |
+| Keep | An optional true/false input inside a For Each Region. False leaves this item out of Results. It is true when not connected. |
+| Stop after iteration | An optional true/false input inside a For Each Region. True finishes this item and starts no more. It is false when not connected. |
+| Test one item | Opens test controls for one item. Run test starts it. |
+| Inspect item | Shows what an earlier run recorded for one item. It never runs anything. |
+| Spending limit per run | The one spending setting for workflow runs (D27). |
+
+**D29. Region names leave existing nodes unchanged.** The word Region tells the
+new containers apart from the existing If and For Each nodes, so those nodes keep
+their types, titles, and behavior. A search for "if" or "for each" lists the
+region first and the node second. Each region's menu description says it is a
+container and points to the node for simple routing or streaming.
+[Loop guidance](../workflow-loops.md) says when to use a For Each Region (a
+list) and when to use Loop (repeat until a condition).
 
 ## Existing behavior and compatibility
 
 The [control nodes](../../packages/core-nodes/src/nodes/control.ts) already
-provide conditional routing and item emission. Sequential emission alone does
-not mean the downstream body finishes before the next item starts. The existing
-[feedback loop](../workflow-loops.md) can terminate without a `done` value when
-feedback is missing.
+provide conditional routing and item emission. `If` and `Switch` emit only the
+taken output. `ForEach` yields every item at once, and the correlation scheduler
+runs body invocations for different items concurrently, so emission order does
+not mean the body finishes before the next item starts. The only bound on
+in-flight items is the inbox limit of 10,000 pending keys, which fails the run
+when exceeded ([correlation design](../correlation-design.md#6-done-dropped-key-and-scope-close-propagation)).
+The [feedback loop](../workflow-loops.md) caps iterations at 1,000 and can
+terminate without a `done` value when feedback is missing.
 
 New regions need explicit completion. Existing If, Switch, ForEach, and Loop
 workflows keep their behavior. Automatic conversion is outside this release.
@@ -35,11 +68,14 @@ Existing grouping does not establish region execution semantics.
 ## Audit findings
 
 This audit inspected current grouping hooks, drag handlers, GroupNode, graph
-serialization, subgraph extraction, selected-node execution, frontend graph
-tools, their shared schemas, and the headless workflow-document adapter. Historical
-sources were the region commit linked below and `LoopNode.tsx` at
-`1edf9aadb9^`. This was a source and focused-test audit, not a browser usability
-test or an end-to-end demonstration of historical region execution.
+serialization, subgraph extraction, selected-run execution, frontend graph
+tools, their shared schemas, and the headless workflow-document adapter. A
+second pass inspected the actor scheduler, control nodes, inner-graph runner,
+supervisor, content-filter handling, graph migration, run budgets, the
+generation seam, and the credit gate. Historical sources were the region commit
+linked below and `LoopNode.tsx` at `1edf9aadb9^`. Both passes read source and
+focused tests. Neither was a browser usability test or an end-to-end
+demonstration of historical region execution.
 
 ### Reuse
 
@@ -60,6 +96,16 @@ test or an end-to-end demonstration of historical region execution.
   crossing edges into named inputs/outputs. Reuse its planning and undo approach.
   Its generated input nodes use StringInput, so do not assume its current port
   construction supplies the typed branch/state boundaries needed here.
+- **F18. An isolated inner-run executor already exists.**
+  [`runInnerGraph`](../../packages/core-nodes/src/nodes/run-inner-graph.ts) backs
+  the Subgraph, Workflow, and App nodes. It runs a graph on a child
+  `WorkflowRunner` with a copied context, passes named params to inner Input
+  nodes, and collects named outputs. A parent cancel aborts the child. Inner
+  messages are forwarded to the parent except the child's `job_update`. Assets
+  and generations keep the parent job id. `MAX_INNER_GRAPH_DEPTH` (8) and a
+  self-call check bound nesting. The child's cost is added to the parent total
+  only after the child finishes, so this path records spend but does not admit
+  it. D24 proposes this executor for region bodies.
 
 ### Change before reuse
 
@@ -96,6 +142,71 @@ test or an end-to-end demonstration of historical region execution.
   renders NodeInputs/NodeOutputs and refers to GroupInput/GroupOutput, but also
   carries raw styles and a MutationObserver panning workaround. Borrow boundary
   presentation ideas, not these execution paths or obsolete editor workarounds.
+- **F19. The untaken-branch skip does not satisfy D1.** The actor skips a node
+  only when every wired data input closed without a value
+  (`receivedNothing` in [the actor](../../packages/execution-core/src/actor.ts)).
+  A node with no wired inputs is never skipped. A node that receives a value on
+  one handle and nothing on another fires with defaults for the missing handle,
+  which the DSL test "partial branches use defaults while wholly untaken branches
+  skip" in `packages/dsl/tests/script-export.test.ts` pins. So a branch node
+  that also takes an input from outside the branch runs on the untaken side.
+  Region execution must not rely on this cascade.
+- **F20. ForEach has no completion gate.** `ForEachNode.genProcess` yields all
+  items without waiting, and `outputCorrelation` gives each item its own key.
+  Making the next item wait for the body needs either a new scheduler gate (the
+  correlation design lists backpressure as an open decision) or a per-item
+  isolated run (D24).
+- **F21. Two existing failure policies drop items instead of failing.** The
+  [supervisor](../workflow-supervisor-design.md) can answer a failed invocation
+  with `skip` or `end_stream`, and with `substitute` for a repaired value. It
+  offers `retry` only when the invocation spent nothing and created no asset,
+  capped at 2 retries per invocation key
+  ([supervisor.ts](../../packages/execution-core/src/supervisor.ts)). A
+  content-filter refusal is retried twice and then drops the item when the
+  invocation is one item of a fan-out
+  ([content-filter.ts](../../packages/execution-core/src/content-filter.ts)).
+  Inside a For Each Region body both would publish a collection with a missing item,
+  which D22 and R5 forbid. D25 resolves this.
+- **F22. Visual groups are transparent to execution, and graphs have no format
+  version.** `Graph.topologicalSort` in
+  [graph.ts](../../packages/execution-core/src/graph.ts) treats children of a
+  `GroupNode` as root-scope nodes. Region children must not inherit that rule.
+  Graph documents carry no version field.
+  [`migrateGraphNodeTypes`](../../packages/protocol/src/graph.ts) only rewrites
+  removed node types and renamed properties on load. An older build reading a
+  region graph would see unknown node types, which `nodetool validate` rejects.
+  D28 relies on that rejection.
+
+### Spending controls
+
+- **F23. Run budgets cover agent runs only.** `RunBudget` and
+  `CompositeTurnBudget` in
+  [turn-budget.ts](../../packages/runtime/src/turn-budget.ts) reserve a worst
+  case before each model turn and commit actuals after it. The reservation
+  handle is per turn, so concurrent loops cannot release each other's headroom.
+  Admission runs in `BaseProvider`'s loop for chat turns, agent nodes, and
+  sub-agents ([costs and credits](../costs-and-credits.md#agent-runs)). No
+  workflow runner creates one, so an ordinary workflow run on the user's own
+  keys has no per-run cost cap, deadline, or concurrency limit. "Reuse the run's
+  spending policy" in D10 has nothing to reuse on that surface. D27 adds one.
+- **F24. The generation seam records spend but does not admit it.**
+  `ProcessingContext.runGeneration` in
+  [context.ts](../../packages/runtime/src/context.ts) opens a generation row
+  before the provider call and closes it with status, cost, and assets. It
+  distinguishes `submission_unknown` and supports reconciliation
+  ([generation tracking](../media-generation-tracking-design.md#current-implementation-boundary)).
+  It does not reserve or refuse. Provider node packages that drive an SDK
+  themselves (`fal-nodes`, `kie-nodes`, `replicate-nodes`, and the rest of
+  surface S7 in [§8 of that design](../media-generation-tracking-design.md#8-surfaces-that-must-go-through-the-seam))
+  bypass the seam, so no limit can stop them before they call a provider today.
+- **F25. Run-level gates price one pass.** The
+  [credit gate](../../packages/websocket/src/credit-gate.ts) reserves a run's
+  estimate before it starts, counts in-flight reservations, keeps them
+  process-local, and fails open. Mini-app budgets also check before a run. The
+  editor estimate in
+  [useGraphCostEstimate](../../web/src/hooks/useGraphCostEstimate.ts) counts each
+  node once, times its own fan-out properties, and does not multiply by a
+  ForEach item count. A For Each Region would be priced as one item.
 
 ### Still missing
 
@@ -121,8 +232,8 @@ test or an end-to-end demonstration of historical region execution.
   Preserve revision checks and ID handling. A canvas move must never substitute
   for a semantic membership operation.
 
-The focused grouping and selected-run suites passed during the audit. Reproduce
-that check with:
+The focused grouping and selected-run suites passed during the first pass.
+Reproduce that check with:
 
 ```bash
 npm run test --workspace=web -- --runInBand --runTestsByPath src/hooks/nodes/__tests__/useAddToGroup.test.ts src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts src/hooks/nodes/__tests__/useSurroundWithGroup.test.tsx src/hooks/nodes/__tests__/useRunSelectedNodes.test.ts
@@ -130,25 +241,62 @@ npm run test --workspace=web -- --runInBand --runTestsByPath src/hooks/nodes/__t
 
 These tests support reuse of existing behavior. They do not verify nested
 execution regions, branch ports, agent region edits, or the historical UI.
+F18 to F25 come from reading source. No test was run for them. F19 and F21
+need reproduction tests in A1 before runtime work depends on them.
 
 ## Execution contract
 
+### Execution strategy
+
+**D24 (proposed, confirmed by A53).** Run each region invocation as an isolated
+inner run through the F18 executor. The editor document keeps one graph with
+explicit membership (D5). The region node declares its boundary ports as dynamic
+inputs and outputs, the mechanism the Subgraph node already uses. At load, each
+region's members compile to an inner graph, with generated Input and Output
+nodes standing for those ports. Authors never see the generated nodes.
+
+- An If Region evaluates its condition, then runs only the selected branch's inner
+  graph. Nodes in the other branch are never scheduled, so F19 does not apply.
+- A For Each Region runs the body's inner graph once per item and starts item N+1 only
+  after item N's run finishes. Boundary inputs are passed as constant params.
+  State fields are passed in and read back between runs.
+- Test one item is one inner run with supplied inputs (D15 to D17).
+- A region invoked per key of an outer legacy ForEach gets one inner run per
+  key, so concurrent parent invocations stay isolated.
+
+The alternative keeps region members in the outer graph and adds a per-key gate
+to the correlation scheduler. That needs new kernel backpressure and a fix for
+partial-input firing (F19, F20), and it leaves Test one item without an entry
+point. A53 must measure the inner-run cost per iteration before this is
+accepted. If the cost is too high for the expected item counts, choose the
+in-graph alternative and record why.
+
+The inner-run strategy must also close three gaps in the current executor.
+Inner runs must share the owning run's limits instead of adding cost
+afterward (D7). Forwarded messages must carry region invocation and iteration
+identity for progress and inspection (D12). Region depth must count toward the
+existing inner-graph depth limit (D6, A35).
+
 ### Branches and membership
 
-**D1.** If / Else has a fixed Then / Else layout and shared named outputs.
-Only the selected branch executes, including nodes without wired inputs. Both
-branches must supply compatible values for every declared output. For a no-op
-Else, wire through the input explicitly. An absent required output is an error,
-not an implicit null. Separate optional-output and fallback modes are deferred.
+**D1.** An If Region has a fixed Then / Else layout and shared named outputs.
+Only the selected branch executes, including nodes without wired inputs and
+nodes that also take inputs from outside the region. Both branches must supply
+compatible values for every declared output. For a no-op Else, wire through the
+input explicitly. An absent required output is an error, not an implicit null.
+The validation message names the branch and the output, for example "Else has
+no value for Result", and offers to connect the matching input through.
+Separate optional-output and fallback modes are deferred.
 
 **D5, D21.** Store membership and ports explicitly, independent of canvas
 position. Preview boundary-crossing moves, validate affected connections, and
 support one-step undo. Resizing a region never captures or releases nodes.
 Editor, imported, API, and agent-authored graphs use the same validation.
 Completion is delivered separately from values so untaken branches cannot leave
-joins waiting indefinitely.
+joins waiting indefinitely. Region children are never treated as root-scope
+nodes the way visual-group children are (F22).
 
-### For Each defaults
+### For Each Region defaults
 
 **D3, D4, D18, D19.** Accept one finite collection. Other boundary inputs are
 resolved once and remain constant for that invocation. Combining collections is
@@ -157,8 +305,13 @@ Collect kept results in input order. Label outputs Results and optional feedback
 ports State for next item. State fields require initial values and explicit next
 values. Commit state only after successful body completion.
 
-Keep defaults to true. Stop after iteration defaults to false. Neither requires
-a visible control until the author adds it. Their interaction is defined here:
+**D26 (proposed).** Each For Each Region has a maximum item count. A collection longer
+than the maximum fails the region before the first item starts, naming both
+numbers. Never truncate silently. A36 sets the default and the upper bound.
+Show the item count beside Run workflow's estimate when it is known.
+
+Keep is true and Stop after iteration is false when not connected. Neither
+appears on the region until the author adds it. Their interaction is defined here:
 
 | Outcome | Results and state | Completion |
 |---|---|---|
@@ -167,12 +320,20 @@ a visible control until the author adds it. Their interaction is defined here:
 | Last item succeeds | Apply Keep and commit final state. | Return collected results and final state once. |
 | Stop after iteration=true | Apply Keep and commit state for this completed iteration. | Return collected results and final state once. Start no later item. |
 | Empty collection | Empty results and unchanged initial state. | Success, with No items to process. |
+| Collection exceeds maximum | No records. | Failure before the first item (D26). |
 | Failure, cancellation, or exhausted budget | Retain available completed records for inspection. | No successful region output to downstream nodes. Report the reason. |
 
 **D22.** Stop on item failure after existing permitted node retries are exhausted.
 Do not introduce a region-level retry or skip-error policy. Identify the failed
 item. Cancellation cannot undo completed side effects or accepted provider work.
 Successful early stopping is distinct from failure or budget exhaustion.
+
+**D25 (proposed).** Inside a region body, existing recovery that produces a
+value for the item stays allowed: supervisor `retry` under its existing rules,
+supervisor `substitute` after validation, and the bounded content-filter
+retries. Recovery that removes an item is an item failure: supervisor `skip`
+and `end_stream`, and the content-filter drop after its retries are exhausted.
+Outside regions, both policies keep their current behavior.
 
 ### Nesting and presentation
 
@@ -181,7 +342,9 @@ expanded levels. Give nonblocking guidance when adding a third level and a
 stronger collapse recommendation at four, without persistent warnings. The
 outermost region is level one. Reuse subworkflow extraction only where it already
 exists. Independently enforce a structural depth cap chosen through stress tests.
-Collapsed regions still count toward that cap.
+Collapsed regions still count toward that cap. Under D24, region nesting and
+Subgraph, Workflow, and App nesting share one runtime call-depth count, so the
+structural cap must leave room below `MAX_INNER_GRAPH_DEPTH`.
 
 **D11.** Keep default layouts focused on condition and branch outputs, or item
 and results. Reveal state and advanced controls on demand. Collapsing affects
@@ -191,21 +354,58 @@ presentation only. Follow the [design system](../DESIGN.md),
 
 ### Spending and execution limits
 
-**D7, D9.** Nested regions, subworkflow calls, and retries share the owning run's
-execution, time, concurrency, and spending limits. No nested invocation resets
-these counters. At the shared billable-request boundary, authorize and reserve
-before submission, then reconcile known charges. Reservations must be atomic
-across concurrent callers and reduce available funds. Retain unresolved
-reservations when submission or charging is uncertain. Stop new submissions
-when a limit is reached.
+**D7, D9.** Nested regions, subworkflow calls, and retries share whatever limits
+the owning run has. No nested invocation resets them. Reserve before paid work
+starts, then reconcile known charges. Reservations must be atomic across
+concurrent callers and reduce available funds. Keep the reservation when the
+charge is uncertain. Stop starting paid work when a limit is reached. The first
+release adds no new time or concurrency limits for workflow runs.
 
-**D10.** Distinguish estimates from enforceable ceilings. Reuse the run's spending
-policy, rather than adding region-specific budget modes. Under a strict ceiling,
-reject requests whose charges cannot be bounded by enforced request parameters.
-An estimated-budget policy must be explicit and show possible overruns or unknown
-costs. Cancellation does not guarantee a refund. The implementation audit must
-identify gaps in existing controls before paid region execution ships. This
-release does not require a new pricing engine or account-wide billing system.
+Model turns in `BaseProvider` already admit against a `RunBudget`. Media
+generations in `runGeneration` record but do not admit, and provider node
+packages outside the generation seam have no boundary at all (F23, F24). D27
+puts workflow admission at node invocation, which covers every node package
+without moving any of them behind the generation seam first.
+
+**D10.** Regions add no budget modes of their own. They run under the existing
+limits plus D27. Estimates are never presented as guaranteed maximums, and
+unknown costs stay visible. Cancellation does not guarantee a refund. Pre-run
+estimates and gates multiply a For Each Region body's estimate by the collection size
+when it is known and mark it per item when it is not (F25). This release does
+not require a new pricing engine or account-wide billing system.
+
+**D27. One spending limit per workflow run.** Every workflow run gets a
+`RunBudget`, created by the job runner, so regions, loops and fan-outs outside
+regions follow the same rule. Authors see one control and one message.
+
+- **The setting.** Settings has one field, Spending limit per run, in USD. The
+  CLI takes `--cost-cap <usd>` as agent runs do. Empty means no limit, so
+  existing workflows run as before. Agent-started runs, mini-app budgets and
+  hosted credits keep their own limits, and a run started under one of them
+  uses the stricter of the two.
+- **Admission.** Before a paid node invocation starts, the actor reserves that
+  node's estimate from `estimateWorkflowCost`, the lookup the editor estimate
+  already uses. After the invocation, it commits the actual cost from the
+  invocation account and releases the difference. An unknown actual keeps the
+  reserved amount. Agent nodes reserve per model turn through the existing
+  `BaseProvider` admission instead, so nothing is reserved twice.
+- **Stopping.** When a reservation would exceed the limit, the node does not
+  start and the run fails with "Spending limit reached: $X of $Y used", naming
+  the node. A For Each Region stops at that item with the exhausted-budget outcome.
+- **Unknown prices.** With a limit set, a node whose model has no catalog price
+  does not start. The message names the node and says to choose a priced model
+  or clear the limit. Local providers count as free, not unknown.
+- **Label.** Estimates marked `≥` can be exceeded by work already running, so
+  the setting's help text reads "NodeTool stops starting paid steps once this
+  amount is reached. A step already running can finish above it."
+
+**D28. No format version field.** A region is a container node of a new type,
+and members point to it through `parent_id` (D24 describes its ports). Builds that predate regions reject
+the unknown type before running, which is the correct outcome. A version field
+would not help those builds because they ignore fields they do not know. Make
+the unknown-type error name the type and say that the workflow may need a newer
+NodeTool version. Saving a graph that contains an unknown node type must keep
+that node, its data, and its members' `parent_id` unchanged.
 
 ### Test one item
 
@@ -219,13 +419,12 @@ its historical iteration. First-release tests do not restore recorded state.
 **D17.** Execute one outer iteration with its normal branches and nested work.
 Nested loops may execute multiple items. Keep test state and results separate
 from the live run and execute no downstream nodes outside the selected region.
-Use the same spending controls described above, with one test-run budget shared
-by nested work and retries, plus existing account-level limits where applicable.
-Testing may incur charges and body side effects.
+A test is its own run under the same Spending limit per run (D27), shared by its
+nested work and retries. Testing may incur charges and body side effects.
 
-Show item, state source, nested scope, and budget beside Run test. Distinguish
-remaining budget from estimated or unknown cost. Run test starts execution
-directly under that displayed policy, without a confirmation dialog.
+Beside Run test, show the item, where its state comes from, the item's estimate,
+and the spending limit. Mark an unknown estimate as unknown. Run test starts
+directly, without a confirmation dialog.
 
 ### Recorded inspection
 
@@ -243,45 +442,75 @@ latest values. Label live, recorded, and test data distinctly. Mark older workfl
 revisions after edits, and show unavailable where a node cannot be matched.
 Inspection makes no provider calls and does not regenerate missing data.
 
+## Resolved questions
+
+Both are decided. Revisit them only with evidence from A42 usability checks or
+from A53.
+
+- **Q1. Spending policy for ordinary workflow runs.** Decided by D27. Every
+  workflow run gets the same optional limit. The rejected option allowed paid
+  regions only on surfaces that already have a budget. It was less work, but it
+  meant authors had to know which surface they were on.
+- **Q2. Workflow format marker.** Decided by D28. Rely on unknown-node rejection
+  and improve its message. A version field cannot protect builds that already
+  shipped.
+
 ## Risks and mitigations
 
 | Risk | Required evidence |
 |---|---|
 | **R1. Ambiguous execution order** | Stop after iteration finishes the body and starts no next item. Immediate exits remain deferred. |
 | **R2. Accidental overspend** | Competing requests, nested work, and retries cannot bypass shared reservation checks. |
-| **R3. Uncertain estimates** | Unknown charges remain visible and strict ceilings reject unbounded requests. Estimates are never labeled guaranteed maxima. |
+| **R3. Uncertain estimates** | Unknown charges remain visible, and under a spending limit an unpriced cloud model does not start. Estimates are never labeled guaranteed maximums. |
 | **R4. Editor complexity** | Authors can tell what runs, what comes out, and whether an action executes anything from the canvas and adjacent controls. |
-| **R5. Stalled joins or misleading partial success** | Untaken branches, empty collections, and every exit path resolve explicitly. Failures do not emit successful partial collections. |
+| **R5. Stalled joins or misleading partial success** | Untaken branches, empty collections, and every exit path resolve explicitly. Failures, supervisor skips, and content-filter drops do not emit successful partial collections. |
 | **R6. Scope and compatibility** | Old fixtures retain behavior. Deferred features are not first-release dependencies. |
 | **R7. Misleading tests** | Later-item tests clearly use initial state and cannot mutate live results or state. |
 | **R8. Unsafe inspection** | Record selection executes nothing. Retention, redaction, access checks, and missing-data behavior are tested. |
+| **R9. Slow sequential loops** | A53 measures inner-run cost per iteration against the D26 maximum. Long loops report progress per item. |
+| **R10. Work leaking from an untaken branch** | A branch node with an input from outside the region, and a branch node with no inputs, make zero provider calls when its branch is not taken. |
 
 ## Milestone 1: Contract and implementation audit
 
 - [ ] **A1.** Enumerate existing branch, join, loop, correlation, and grouping
-  implementations and tests. Use F10-F17 as the completed grouping, historical-UI,
-  and graph-tool audit. Complete the execution/correlation and budget audit
-  before choosing runtime changes. Verify reuse through behavior, not comments.
+  implementations and tests. F10 to F25 record the grouping, historical-UI,
+  graph-tool, execution, and spending audit. Add reproduction tests for F19
+  (a branch node with an outside input runs on the untaken side) and F21 (a
+  supervisor skip or content-filter drop removes one item from a collected
+  list). Verify reuse through behavior, not comments.
 - [ ] **A2.** Define the schema for ownership, nesting, stable ports, and legal
-  crossing edges. Distinguish visual groups from execution regions.
+  crossing edges. Distinguish visual groups from execution regions, including
+  the root-scope rule in F22.
 - [ ] **A52.** Before production UI implementation, prototype conditional repair
-  and a For Each containing an If using current group interactions. Resolve the
+  and a For Each Region containing an If Region using current group interactions. Resolve the
   missing behaviors in F12, F13, and F16. Exercise equivalent semantic edits
   through the proposed agent contract, without requiring coordinate placement to
   express membership. Verify the resulting graph is readable and editable by a
   person. Use sample data and stub execution for this authoring check.
+- [ ] **A53.** Spike D24 headlessly. Compile a branch and a body to inner graphs,
+  run them through `runInnerGraph`, and measure overhead per iteration at 1, 100,
+  and 1,000 items. A36 uses these numbers to set the D26 maximum. Verify parent
+  cancellation, cost roll-up, generation origin, and message forwarding. Accept
+  D24 or record why the in-graph alternative was chosen.
 - [ ] **A3.** Specify branch completion and type validation using D1 and D5.
-- [ ] **A4.** Specify iteration completion and state commits using the outcome table.
+- [ ] **A4.** Specify iteration completion and state commits using the outcome
+  table, D25, and D26.
 - [ ] **A5.** Map errors, cancellation, exhaustion, and late messages to the
   existing run lifecycle without treating them as successful completion.
-- [ ] **A6.** Define workflow format versioning and legacy compatibility tests.
-- [ ] **A35.** Define structural-depth and subworkflow call-depth accounting.
-- [ ] **A39.** Audit provider submission and budget paths against D7-D10. Identify
-  required changes, including ambiguous submissions and delayed charges. Reuse
-  existing controls and record any unsupported paid execution paths.
+- [ ] **A6.** Define legacy compatibility tests under D28: old fixtures keep
+  their behavior, an unknown region type fails with the improved message, and
+  saving preserves unknown nodes and their members' `parent_id`.
+- [ ] **A35.** Define structural-depth and subworkflow call-depth accounting,
+  including how regions count toward `MAX_INNER_GRAPH_DEPTH`.
+- [ ] **A39.** Complete the budget audit started in F23 to F25. List every paid
+  call path that bypasses the generation seam and `BaseProvider` admission,
+  including ambiguous submissions and delayed charges. Confirm that every paid
+  node type has an invocation-level estimate for D27, and list the ones that
+  would be refused as unpriced under a limit.
 
-Acceptance: the contract has no unresolved output or exit semantics. Required
-changes and existing implementation support are identified before scheduler work.
+Acceptance: the contract has no unresolved output or exit semantics, and D24 is
+confirmed or replaced. Required changes and existing implementation support are
+identified before scheduler work.
 
 ## Milestone 2: Format and execution foundation
 
@@ -292,25 +521,33 @@ Depends on milestone 1.
 - [ ] **A8.** Validate ownership, nesting, types, cycles, and crossing edges.
   Reject unsupported new region kinds without rejecting valid legacy nodes.
 - [ ] **A9.** Implement scoped entry, completion, and cancellation. Inactive
-  branches must not start, including disconnected nodes inside the branch.
-- [ ] **A10.** Integrate correlation scopes and reject late outputs from finished
-  invocations. Include concurrent parent invocations in the isolation tests.
+  branches must not start, including disconnected nodes inside the branch and
+  nodes that also receive inputs from outside it.
+- [ ] **A10.** Give each region invocation and each item its own inner run (D24),
+  and drop messages from a run that has finished. Include concurrent parent
+  invocations from an outer legacy ForEach in the isolation tests.
 - [ ] **A11.** Add headless fixtures for branches, joins, nested scopes, and
   malformed graphs. Prove new checks reject invalid inputs and inspect data.
-- [ ] **A36.** Stress-test deep and wide graphs, choose the structural cap, and
-  test at and beyond it through the shared validator used by graph entry points.
-- [ ] **A37.** Integrate shared execution limits and verify nested invocations
-  cannot reset them.
-- [ ] **A40.** Implement missing reservation and reconciliation behavior from A39
-  at the shared request boundary, not separately in each region.
+- [ ] **A36.** Stress-test deep and wide graphs, choose the structural cap and the
+  D26 item maximum, and test at and beyond each through the shared validator
+  used by graph entry points.
+- [ ] **A37.** Pass the owning run's `RunBudget` to every inner run, so nested
+  regions, Subgraph, Workflow, and App nodes reserve against the same limit.
+  Verify none of them can reset it.
+- [ ] **A40.** Implement D27: the workflow `RunBudget`, node-invocation
+  reservation and commit, the setting, the `--cost-cap` flag, and the stop and
+  unpriced-node messages. Do this at the shared boundary, not separately in each
+  region.
 - [ ] **A41.** Test competing reservations, retries, nested work, unknown costs,
   cancellation after acceptance, and ambiguous failures. A rejected submission
-  must never reach a provider.
+  must never reach a provider. A run with no limit behaves as it does today, a
+  local model runs under a limit, and an unpriced cloud model is refused under
+  one.
 
 Acceptance: headless region execution is isolated, invalid structure fails before
 work starts, and every billable request passes the owning run's spending policy.
 
-## Milestone 3: If / Else
+## Milestone 3: If Region
 
 Depends on milestone 2.
 
@@ -328,25 +565,27 @@ Depends on milestone 2.
   labels when collapsed.
 - [ ] **A16.** Test both branches, nesting, explicit pass-through Else, missing
   required outputs, null where allowed by type, and downstream joins. Assert zero
-  provider calls and side effects in the unselected branch.
+  provider calls and side effects in the unselected branch, including the R10
+  cases.
 - [ ] **A38.** Add nesting guidance from D6 and verify small-window readability.
-
 Acceptance: conditional image repair produces one result and saves once, with
 no work performed in the unselected branch.
 
-## Milestone 4: Sequential For Each
+## Milestone 4: Sequential For Each Region
 
 Depends on milestone 3.
 
 - [ ] **A17.** Implement one collection, constant boundary inputs, item/index,
-  and sequential body completion.
+  sequential body completion, and the D26 maximum.
 - [ ] **A18.** Add ordered Results and optional named state with initial values.
 - [ ] **A19.** Add Keep and Stop after iteration using the outcome table.
 - [ ] **A20.** Show progress and completion reason. Reveal state and optional
   controls on demand, without logging sensitive payloads.
-- [ ] **A21.** Test the outcome table, nested loops, concurrent parent inputs,
-  constant inputs, and result ordering. Failure must stop subsequent items and
-  must not publish a successful partial collection.
+- [ ] **A54.** Price a For Each Region body per item in the editor estimate and the
+  pre-run gates, multiplied by the collection size when known (D10, F25).- [ ] **A21.** Test the outcome table, nested loops, concurrent parent inputs,
+  constant inputs, result ordering, and D25. Failure, a supervisor skip, and a
+  content-filter drop must stop subsequent items and must not publish a
+  successful partial collection.
 - [ ] **A42.** Validate conditional repair and filtered collection with creators.
   Check understanding of execution, outputs, Keep, stopping, and spending before
   adding controls. Repeat this usability check for milestones 4a and 4b.
@@ -364,7 +603,8 @@ Depends on milestone 4. Deliver before recorded inspection.
 - [ ] **A44.** Isolate test identity, initial state, outputs, and provenance.
   Return the body's result, next state, Keep, and stop decision for inspection.
 - [ ] **A45.** Add the test controls and direct Run test action described in D17.
-  Keep state and budget visible beside the button, including in small windows.
+  Keep the state source, estimate, and spending limit visible beside the button,
+  including in small windows.
 - [ ] **A46.** Test samples, later-item indices, missing inputs, nested execution,
   state isolation, and budget exhaustion. Assert no upstream execution, external
   downstream execution, or second outer item. A subsequent full run must remain
@@ -378,8 +618,9 @@ policy and separate results, without running the surrounding workflow.
 Depends on milestone 4a. This is read-only inspection, not replay.
 
 - [ ] **A47.** Add bounded records for available node summaries, branch choices,
-  statuses, and errors using existing trace policies. Specify iteration and byte
-  limits and expose truncation. Do not require full snapshots.
+  statuses, and errors using existing trace policies. Carry region invocation
+  and iteration identity on forwarded inner-run messages. Specify iteration and
+  byte limits and expose truncation. Do not require full snapshots.
 - [ ] **A48.** Add item selection, previous/next, and a failed-item shortcut to
   existing inspectors. Apply one selected historical context consistently.
 - [ ] **A50.** Test nested identity, graph edits, missing records, expiry,
@@ -401,8 +642,10 @@ Depends on milestones 1-4, 4a, and 4b. Complete relevant checks in each delivery
 - [ ] **A31.** Verify examples covering conditional repair, filtered collection,
   stopping, single-item testing, and inspection. Include a stateful example that
   makes a later-item test's initial-state assumption visible.
-- [ ] **A32.** Update [loop guidance](../workflow-loops.md), affected shipped
-  authoring skills, and area instructions when behavior changes.
+- [ ] **A32.** Update [loop guidance](../workflow-loops.md), the
+  [correlation design](../correlation-design.md) where regions change scheduling,
+  [costs and credits](../costs-and-credits.md) for new spending behavior,
+  affected shipped authoring skills, and area instructions when behavior changes.
 - [ ] **A33.** Register applicable selfchecks and verify gate selection using
   [Harness-First Engineering](../HARNESS_FIRST.md) and the
   [harness reference](../harnesses.md).
@@ -428,7 +671,8 @@ Revisit them only after the first release supplies evidence of a need.
 Also deferred: If without Else and optional-output modes, multiple collection
 inputs, parallel loops, labeled outer exits, configurable error policies,
 exception regions, automatic upstream execution for tests, replay, full-state
-archival, and new subworkflow extraction tooling.
+archival, new subworkflow extraction tooling, and moving the S7 provider
+packages behind the generation seam.
 
 ## Reference lessons
 
@@ -438,6 +682,7 @@ archival, and new subworkflow extraction tooling.
 |---|---|---|
 | [ForEach and If region commit](https://github.com/nodetool-ai/nodetool/commit/0f1a56a392bc1e7ced1d4cd065eaa8cfa1e32af3), on `copilot/add-foreach-and-if-regions` | `ForEachRegion.tsx`, `IfRegion.tsx`, shared `RegionNode.tsx`, badges, resizing, and graph serialization changes. | This commit is not an ancestor of the checkout examined for this plan. Its changes are frontend-only and do not prove backend execution. The If component describes position-based branch assignment, which conflicts with explicit membership in D5. |
 | Removed `web/src/components/node/LoopNode.tsx`, accessible through `git log --all -- web/src/components/node/LoopNode.tsx` | History of boundary input/output styling, resizing, child selection, and experimental collapse. | Historical behavior may be incomplete or incompatible with current stores, primitives, and execution. Check the relevant revisions and tests before porting anything. |
+| [Subgraph](../../packages/core-nodes/src/nodes/subgraph.ts) and [Workflow](../../packages/core-nodes/src/nodes/workflow.ts) nodes | Current, tested isolated execution with named inputs and outputs, cancellation, cost roll-up, and a depth limit (F18). | They run once per invocation and admit no spend. Region bodies need per-iteration runs, shared limits, and iteration identity on messages. |
 
 These are design references, not approved implementations or instructions to
 restore a branch. Verify actual behavior and compatibility before reuse. Keep
