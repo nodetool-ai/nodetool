@@ -241,19 +241,47 @@ export const messageToEvents = (
     case "node_progress": {
       const { progress, total } = message;
       const hasRatio = isNumber(progress) && isNumber(total) && total > 0;
+      const ratio = hasRatio ? progress / total : undefined;
+      const nodeId = str(message.node_id);
       return [
         {
           type: "invocationProgress",
           invocationId: invocation.id,
-          progress: hasRatio ? progress / total : undefined
-        }
+          progress: ratio
+        },
+        ...(nodeId && ratio !== undefined
+          ? [
+              {
+                type: "invocationNode" as const,
+                invocationId: invocation.id,
+                nodeId,
+                progress: ratio
+              }
+            ]
+          : [])
       ];
     }
 
     case "node_update": {
       const error = errorText(message.error);
-      if (!error) return [];
-      return [{ type: "invocationError", invocationId: invocation.id, error }];
+      const nodeId = str(message.node_id);
+      const status = str(message.status);
+      return [
+        ...(nodeId
+          ? [
+              {
+                type: "invocationNode" as const,
+                invocationId: invocation.id,
+                nodeId,
+                ...(status && { status }),
+                ...(error && { error })
+              }
+            ]
+          : []),
+        ...(error
+          ? [{ type: "invocationError" as const, invocationId: invocation.id, error }]
+          : [])
+      ];
     }
 
     case "error": {

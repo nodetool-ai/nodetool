@@ -132,6 +132,24 @@ describe("streaming fold", () => {
     expect(isOperationRunning(state, "main")).toBe(false);
   });
 
+  it("records each node's status and progress for its own invocation", () => {
+    const state = fold(started("job-1"), [
+      { type: "node_update", job_id: "job-1", node_id: "a", status: "running" },
+      { type: "node_progress", job_id: "job-1", node_id: "a", progress: 1, total: 4 },
+      { type: "node_update", job_id: "job-1", node_id: "b", status: "completed" },
+      { type: "node_update", job_id: "job-1", node_id: "a", status: "completed" }
+    ]);
+    expect(state.nodeRuns["job-1"]).toEqual({
+      a: { status: "completed" },
+      b: { status: "completed" }
+    });
+    const running = fold(started("job-2"), [
+      { type: "node_update", job_id: "job-2", node_id: "a", status: "running" },
+      { type: "node_progress", job_id: "job-2", node_id: "a", progress: 1, total: 4 }
+    ]);
+    expect(running.nodeRuns["job-2"].a).toEqual({ status: "running", progress: 0.25 });
+  });
+
   it("records node and job errors against the invocation", () => {
     let state = fold(started("job-1"), [
       { type: "node_update", job_id: "job-1", node_id: "n9", error: { message: "boom" } }

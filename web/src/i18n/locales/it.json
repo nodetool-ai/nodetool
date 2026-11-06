@@ -19939,5 +19939,39 @@
     "showAssistant": "Mostra assistente",
     "hideAssistant": "Nascondi assistente",
     "resizeAssistant": "Assistente per ridimensionare la timeline"
+  },
+  "generationBatch": {
+    "summary": "{{done}} di {{total}} completate",
+    "remaining": "Circa {{time}} rimanenti",
+    "finishing": "Completamento",
+    "failedCount": "Non riuscite: {{count}}",
+    "status": {
+      "queued": "In coda",
+      "running": "In corso",
+      "completed": "Completata",
+      "failed": "Non riuscita"
+    },
+    "showRequests": "Mostra richieste",
+    "hideRequests": "Nascondi richieste",
+    "expected": "Previsto {{time}}",
+    "took": "Durata {{time}}",
+    "progressLabel": "Avanzamento della generazione"
+  },
+  "workflowSteps": {
+    "stepOf": "Passo {{current}} di {{total}}",
+    "allDone": "Tutti i {{total}} passi completati",
+    "waiting": "In attesa",
+    "running": "In corso",
+    "done": "Fatto",
+    "failed": "Non riuscito",
+    "progressLabel": "Avanzamento del workflow",
+    "steps": "Passi",
+    "addStep": "Aggiungi passo",
+    "removeStep": "Rimuovi passo",
+    "node": "Nodo",
+    "title": "Titolo",
+    "description": "Descrizione",
+    "autoHint": "Nessun passo impostato. Il widget mostra ogni nodo generativo.",
+    "chooseNode": "Scegli un nodo"
   }
 }

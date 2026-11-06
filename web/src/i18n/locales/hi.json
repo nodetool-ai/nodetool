@@ -19628,5 +19628,39 @@
     "showAssistant": "सहायक",
     "hideAssistant": "सहायक",
     "resizeAssistant": "समयरेखा सहायक का आकार बदलें"
+  },
+  "generationBatch": {
+    "summary": "{{total}} में से {{done}} पूरे",
+    "remaining": "लगभग {{time}} बाकी",
+    "finishing": "पूरा हो रहा है",
+    "failedCount": "विफल: {{count}}",
+    "status": {
+      "queued": "कतार में",
+      "running": "चल रहा है",
+      "completed": "पूरा",
+      "failed": "विफल"
+    },
+    "showRequests": "अनुरोध दिखाएँ",
+    "hideRequests": "अनुरोध छिपाएँ",
+    "expected": "अनुमानित {{time}}",
+    "took": "{{time}} लगे",
+    "progressLabel": "जनरेशन की प्रगति"
+  },
+  "workflowSteps": {
+    "stepOf": "चरण {{current}} / {{total}}",
+    "allDone": "सभी {{total}} चरण पूरे",
+    "waiting": "प्रतीक्षा में",
+    "running": "चल रहा है",
+    "done": "पूरा",
+    "failed": "विफल",
+    "progressLabel": "वर्कफ़्लो प्रगति",
+    "steps": "चरण",
+    "addStep": "चरण जोड़ें",
+    "removeStep": "चरण हटाएँ",
+    "node": "नोड",
+    "title": "शीर्षक",
+    "description": "विवरण",
+    "autoHint": "कोई चरण तय नहीं। विजेट हर जनरेटिव नोड दिखाता है।",
+    "chooseNode": "नोड चुनें"
   }
 }

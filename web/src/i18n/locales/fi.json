@@ -19628,5 +19628,39 @@
     "showAssistant": "Näytä avustaja",
     "hideAssistant": "Piilota avustaja",
     "resizeAssistant": "Muuta aikajanan avustajan kokoa"
+  },
+  "generationBatch": {
+    "summary": "{{done}}/{{total}} valmiina",
+    "remaining": "Noin {{time}} jäljellä",
+    "finishing": "Viimeistellään",
+    "failedCount": "Epäonnistui: {{count}}",
+    "status": {
+      "queued": "Jonossa",
+      "running": "Käynnissä",
+      "completed": "Valmis",
+      "failed": "Epäonnistui"
+    },
+    "showRequests": "Näytä pyynnöt",
+    "hideRequests": "Piilota pyynnöt",
+    "expected": "Arvio {{time}}",
+    "took": "Kesti {{time}}",
+    "progressLabel": "Generoinnin edistyminen"
+  },
+  "workflowSteps": {
+    "stepOf": "Vaihe {{current}}/{{total}}",
+    "allDone": "Kaikki {{total}} vaihetta valmiina",
+    "waiting": "Odottaa",
+    "running": "Käynnissä",
+    "done": "Valmis",
+    "failed": "Epäonnistui",
+    "progressLabel": "Työnkulun edistyminen",
+    "steps": "Vaiheet",
+    "addStep": "Lisää vaihe",
+    "removeStep": "Poista vaihe",
+    "node": "Solmu",
+    "title": "Otsikko",
+    "description": "Kuvaus",
+    "autoHint": "Vaiheita ei ole asetettu. Widget näyttää jokaisen generatiivisen solmun.",
+    "chooseNode": "Valitse solmu"
   }
 }

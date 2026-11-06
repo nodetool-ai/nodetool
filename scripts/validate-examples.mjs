@@ -450,7 +450,8 @@ function checkRecipe(file, exampleNames, appWorkflows) {
     }
     // The first app is the one built for this chain, so it has to bind all of
     // it; the rest are companions that cover part of it on purpose.
-    if (index === 0) {
+    // An app that runs the chain as one agent script binds no step workflows.
+    if (index === 0 && entry.runsAgent !== true) {
       const missing = named.filter((name) => !bound.has(name));
       if (missing.length > 0) {
         problems.push(

@@ -19628,5 +19628,39 @@
     "showAssistant": "Vis assistent",
     "hideAssistant": "Skjul assistent",
     "resizeAssistant": "Endre størrelse på tidslinjeassistent"
+  },
+  "generationBatch": {
+    "summary": "{{done}} av {{total}} ferdige",
+    "remaining": "Omtrent {{time}} igjen",
+    "finishing": "Fullfører",
+    "failedCount": "Mislyktes: {{count}}",
+    "status": {
+      "queued": "I kø",
+      "running": "Kjører",
+      "completed": "Ferdig",
+      "failed": "Mislyktes"
+    },
+    "showRequests": "Vis forespørsler",
+    "hideRequests": "Skjul forespørsler",
+    "expected": "Forventet {{time}}",
+    "took": "Tok {{time}}",
+    "progressLabel": "Fremdrift for generering"
+  },
+  "workflowSteps": {
+    "stepOf": "Steg {{current}} av {{total}}",
+    "allDone": "Alle {{total}} steg ferdige",
+    "waiting": "Venter",
+    "running": "Kjører",
+    "done": "Ferdig",
+    "failed": "Mislyktes",
+    "progressLabel": "Fremdrift for arbeidsflyten",
+    "steps": "Steg",
+    "addStep": "Legg til steg",
+    "removeStep": "Fjern steg",
+    "node": "Node",
+    "title": "Tittel",
+    "description": "Beskrivelse",
+    "autoHint": "Ingen steg er satt. Widgeten viser hver generative node.",
+    "chooseNode": "Velg en node"
   }
 }

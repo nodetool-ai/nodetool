@@ -20250,5 +20250,39 @@
     "showAssistant": "Pokaż asystenta",
     "hideAssistant": "Ukryj asystenta",
     "resizeAssistant": "Zmień rozmiar asystenta osi czasu"
+  },
+  "generationBatch": {
+    "summary": "Gotowe {{done}} z {{total}}",
+    "remaining": "Zostało około {{time}}",
+    "finishing": "Kończenie",
+    "failedCount": "Nieudane: {{count}}",
+    "status": {
+      "queued": "W kolejce",
+      "running": "W toku",
+      "completed": "Gotowe",
+      "failed": "Nieudane"
+    },
+    "showRequests": "Pokaż żądania",
+    "hideRequests": "Ukryj żądania",
+    "expected": "Szacunkowo {{time}}",
+    "took": "Trwało {{time}}",
+    "progressLabel": "Postęp generowania"
+  },
+  "workflowSteps": {
+    "stepOf": "Krok {{current}} z {{total}}",
+    "allDone": "Wszystkie kroki ({{total}}) gotowe",
+    "waiting": "Oczekuje",
+    "running": "Trwa",
+    "done": "Gotowe",
+    "failed": "Błąd",
+    "progressLabel": "Postęp przepływu",
+    "steps": "Kroki",
+    "addStep": "Dodaj krok",
+    "removeStep": "Usuń krok",
+    "node": "Węzeł",
+    "title": "Tytuł",
+    "description": "Opis",
+    "autoHint": "Brak kroków. Widżet pokazuje każdy węzeł generatywny.",
+    "chooseNode": "Wybierz węzeł"
   }
 }

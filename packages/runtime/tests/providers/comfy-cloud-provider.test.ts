@@ -377,6 +377,17 @@ describe("ComfyCloudProvider — real Router schemas", () => {
     expect(fromAspect.parameters).toMatchObject({ size: "1536*864" });
   });
 
+  it("Qwen image: fits a size into the pixel area the schema documents", async () => {
+    const tooLarge = await submittedBody("qwen/qwen-image-3.0", (p, model) =>
+      p.textToImage({ model, prompt: "a leaf", width: 3641, height: 2048 })
+    );
+    expect(tooLarge.parameters).toMatchObject({ size: "3413*1919" });
+    const tooSmall = await submittedBody("qwen/qwen-image-3.0", (p, model) =>
+      p.textToImage({ model, prompt: "a leaf", width: 256, height: 256 })
+    );
+    expect(tooSmall.parameters).toMatchObject({ size: "512*512" });
+  });
+
   it("Wan 2.7: the start frame as a typed media item, with a billing resolution", async () => {
     const body = await submittedBody("wan/wan2.7-i2v", (p, model) =>
       p.imageToVideo(PNG, { model, prompt: "waves", durationSeconds: 5 })

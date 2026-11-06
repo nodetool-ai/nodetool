@@ -19628,5 +19628,39 @@
     "showAssistant": "Toon assistent",
     "hideAssistant": "Assistent verbergen",
     "resizeAssistant": "Assistent voor het wijzigen van het formaat van de tijdlijn"
+  },
+  "generationBatch": {
+    "summary": "{{done}} van {{total}} klaar",
+    "remaining": "Nog ongeveer {{time}}",
+    "finishing": "Bezig met afronden",
+    "failedCount": "Mislukt: {{count}}",
+    "status": {
+      "queued": "In wachtrij",
+      "running": "Bezig",
+      "completed": "Klaar",
+      "failed": "Mislukt"
+    },
+    "showRequests": "Verzoeken tonen",
+    "hideRequests": "Verzoeken verbergen",
+    "expected": "Verwacht {{time}}",
+    "took": "Duurde {{time}}",
+    "progressLabel": "Voortgang van het genereren"
+  },
+  "workflowSteps": {
+    "stepOf": "Stap {{current}} van {{total}}",
+    "allDone": "Alle {{total}} stappen klaar",
+    "waiting": "Wacht",
+    "running": "Bezig",
+    "done": "Klaar",
+    "failed": "Mislukt",
+    "progressLabel": "Voortgang van de workflow",
+    "steps": "Stappen",
+    "addStep": "Stap toevoegen",
+    "removeStep": "Stap verwijderen",
+    "node": "Node",
+    "title": "Titel",
+    "description": "Beschrijving",
+    "autoHint": "Geen stappen ingesteld. De widget toont elke generatieve node.",
+    "chooseNode": "Kies een node"
   }
 }
