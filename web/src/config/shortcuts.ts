@@ -391,7 +391,7 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     keyCombo: ["C"],
     category: "editor",
     description:
-      "Toggle collapsed (header-only) view on selected nodes. Double-click the header icon or title when no icon is shown.",
+      "Toggle collapsed (header-only) view on selected nodes.",
     registerCombo: true
   },
   {

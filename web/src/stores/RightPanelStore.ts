@@ -18,6 +18,8 @@ interface RightPanelExtraState {
 
 interface RightPanelExtraActions {
   closeInspector: () => void;
+  /** Explicit request to show the panel. Overrides a hidden toggle state. */
+  openInspector: () => void;
   revealForSelection: () => void;
   toggleInspector: () => void;
 }
@@ -46,6 +48,13 @@ export const useRightPanelStore = createResizablePanelStore<
   extraActions: (patch) => ({
     closeInspector: () =>
       patch(() => ({ isVisible: false })),
+    openInspector: () =>
+      patch((panel) => ({
+        activeView: "inspector",
+        isVisible: true,
+        autoReveal: true,
+        panelSize: Math.max(130, panel.panelSize)
+      })),
     revealForSelection: () =>
       patch((panel) =>
         panel.autoReveal
