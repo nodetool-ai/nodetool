@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { useTheme } from "@mui/material/styles";
+import { useColorScheme, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
   memo,
@@ -211,6 +211,10 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
 const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { t } = useTranslation();
   const theme = useTheme();
+  const { mode, systemMode } = useColorScheme();
+  const activeMode = (mode === "system" ? systemMode : mode) ?? "dark";
+  const palette = theme.colorSchemes?.[activeMode]?.palette ?? theme.palette;
+  const groupFallbackColor = palette.grey[400];
   const cssStyles = useMemo(() => styles(theme, MIN_WIDTH, MIN_HEIGHT), [theme]);
   const altKeyPressed = useKeyPressed((state) => state.isKeyPressed("alt"));
 
@@ -484,7 +488,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const labelMaxCssWidth = Math.max(SPACING_PX.xxl, availableLabelWorldWidth / labelScale);
 
   const colorTokens = useMemo(() => {
-    const effectiveColor = resolveGroupHex(color, theme.palette.grey[400]);
+    const effectiveColor = resolveGroupHex(color, groupFallbackColor);
     const bodyTintHex = toHex(darken(desaturate(parse(effectiveColor), 1.4), 0.3));
     const bodyBg = hexToRgba(bodyTintHex, GROUP_BG_OPACITY);
     const labelBg = toHex(brighten(desaturate(parse(bodyTintHex), 0.4), 0.25));
@@ -492,7 +496,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     // from the canvas when the fill is only a few pixels of color.
     const subtleOutline = hexToRgba(labelBg, GROUP_BORDER_OPACITY);
     return { bodyBg, subtleOutline, labelBg };
-  }, [color, theme.palette.grey]);
+  }, [color, groupFallbackColor]);
   const { bodyBg, subtleOutline, labelBg } = colorTokens;
 
   // One 1px screen-space edge in every state, as on nodes; selection and
