@@ -472,6 +472,18 @@ export class WebGPULayerCompositor {
     params: BlendPassParams,
     rect: PixelRect
   ): void {
+    // D3D12/WARP loses the first row/column of an odd-origin scissored
+    // blend even though the scratch copy is intact. Cover complete 2x2 pixel
+    // quads in both operations. The shader preserves the destination outside
+    // the layer, and clamping keeps odd-sized render targets valid.
+    const x = Math.floor(rect.x / 2) * 2;
+    const y = Math.floor(rect.y / 2) * 2;
+    rect = {
+      x,
+      y,
+      width: Math.min(accumTex.width, Math.ceil((rect.x + rect.width) / 2) * 2) - x,
+      height: Math.min(accumTex.height, Math.ceil((rect.y + rect.height) / 2) * 2) - y
+    };
     encoder.copyTextureToTexture(
       { texture: accumTex, origin: { x: rect.x, y: rect.y } },
       { texture: scratchTex, origin: { x: rect.x, y: rect.y } },
