@@ -6,8 +6,8 @@ Game scripts execute synchronously with bounded state and commands. They cannot 
 
 Game event schemas already describe payloads and targeting. That is useful infrastructure, but does not prove an external job-to-game event adapter exists.
 
-**Proposed connection:** let a host submit a bounded request, run it through existing execution, and deliver a validated completion event at a tick boundary. Define timeout, cancellation, ordering and handling of responses for an obsolete scene or request.
+**Proposed connection:** use the [RS finite-operation adapter](../reactive-sessions-events.md#smallest-first-implementation). That plan owns request/result identity, cancellation, and observer cleanup. [AA-A10](../realtime-virtual-agents.md#delivery-plan-and-gates) adds scene-specific commands and result application at the game's update point.
 
-**Next check:** request an AI action, leave the scene before completion, and confirm the late response cannot mutate the replacement scene. Measure tick progress while the request is pending.
+**Tracked check: RS-A3/RS-A4.** The reactive-plan implementation owns a delayed deterministic operation in a fixed-tick fixture. Expected result: ticks continue during execution, reset rejects old results, and repeated resets cannot bypass the outstanding-request limit. Paid inference and live scene commands are unnecessary for this proof.
 
 Evidence: [game script contract](../../game-engine/scripts.md), [game event schema](../../../packages/protocol/src/game-script-events.ts), [audio processing](../../../packages/audio-nodes/src/nodes/realtime-audio.ts), [execution lifecycle](../../execution-lifecycle.md).

@@ -37,6 +37,19 @@ output { min-width: 50px; text-align: center; font-variant-numeric: tabular-nums
 input[type=checkbox] { accent-color: var(--focus); }
 .legend { display: flex; flex-wrap: wrap; gap: var(--s3); align-items: center; padding: var(--s2) var(--s6) var(--s3); font-size: var(--small); }
 .legend span { display: inline-flex; align-items: center; gap: var(--s2); }
+.legend[hidden] { display: none; }
+.toolbar label[hidden] { display: none; }
+select:disabled { opacity: .55; }
+[data-kind=contains] { --relation: var(--area0); }
+[data-kind=uses] { --relation: var(--area1); }
+[data-kind=produces] { --relation: var(--area4); }
+[data-kind=reads] { --relation: var(--area2); }
+[data-kind=writes] { --relation: var(--area3); }
+[data-kind=kind] { --relation: var(--area5); }
+[data-kind=constraint] { --relation: var(--muted); }
+.relation-sample { width: calc(var(--s6) * 2); height: var(--s4); overflow: visible; }
+.relation-sample path { stroke: var(--relation); stroke-width: 2; fill: none; }
+body[data-line-colors=relationship] .edge-line { stroke: var(--relation); opacity: .75; }
 [data-status=S] { --line: var(--source); }
 [data-status=D] { --line: var(--documented); }
 [data-status=L] { --line: var(--limit); }
