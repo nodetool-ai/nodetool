@@ -10,6 +10,8 @@ A reactive session names the caller's interaction lifetime. It is not a new work
 
 This plan owns the shared finite-operation request/result adapter. App agents and running games are initial consumers. Common code must not depend on conversation models or rendering clocks. The [app agents plan](realtime-virtual-agents.md) owns agent integration, conversation behavior, and scene commands. The [shared variables plan](shared-variables-input-bindings.md#delivery-plan) owns typed bindings and revision-checked publication, including app-variable revisions in SV-A5. The [control-flow regions plan](control-flow-regions.md) owns branching and iteration within a workflow.
 
+Keep operation coordination separate from conversation coordination. This adapter handles captured inputs, request/run correlation, observation, and explicit cancellation through existing owners. Agent sessions add history, conversation policy, response interruption, and result presentation above it. Mini Apps and external agent clients share that agent module. Neither speech dependencies nor conversation policy belong in generic `app-runtime`, and an agent-free caller must remain usable without them.
+
 Source notes below came from code and test inspection, not execution or realtime measurements. Recheck claims needed for delivery under the [evidence rules](feature-interplay/README.md#evidence-and-interpretation).
 
 ## What already exists
