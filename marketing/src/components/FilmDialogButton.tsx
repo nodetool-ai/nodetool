@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Play, X } from "lucide-react";
 
 type FilmDialogButtonProps = {
@@ -24,9 +24,13 @@ export default function FilmDialogButton({
 }: FilmDialogButtonProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  // The poster waits for the first open: a closed dialog's video still
+  // downloads its poster, and a page of storyboards fetched one per film.
+  const [opened, setOpened] = useState(false);
   const vertical = height > width;
 
   const open = () => {
+    setOpened(true);
     dialogRef.current?.showModal();
     void videoRef.current?.play().catch(() => {});
   };
@@ -69,7 +73,7 @@ export default function FilmDialogButton({
           <video
             ref={videoRef}
             src={src}
-            poster={poster}
+            poster={opened ? poster : undefined}
             controls
             playsInline
             preload="none"

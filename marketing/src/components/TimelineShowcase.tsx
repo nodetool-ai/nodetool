@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Download, Play, ArrowUpRight } from "lucide-react";
 import { timelineExamples } from "../data/timelineExamples";
 import { useAutoplayInView } from "../lib/useAutoplayInView";
+import { useNearViewport } from "../lib/useNearViewport";
 import { SmartDownloadButton } from "../app/SmartDownloadButton";
 
 export default function TimelineShowcase() {
@@ -12,6 +13,7 @@ export default function TimelineShowcase() {
   const [started, setStarted] = useState(false);
   const [playbackError, setPlaybackError] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const filmNear = useNearViewport(videoRef);
   useAutoplayInView(videoRef, selectedSlug);
   const selected = timelineExamples.find((example) => example.slug === selectedSlug);
   if (!selected) {
@@ -86,7 +88,7 @@ export default function TimelineShowcase() {
               key={selected.slug}
               ref={videoRef}
               src={`${mediaRoot}/film.mp4`}
-              poster={`${mediaRoot}/poster.webp`}
+              poster={filmNear ? `${mediaRoot}/poster.webp` : undefined}
               controls
               muted
               loop
