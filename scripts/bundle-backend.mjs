@@ -221,7 +221,7 @@ const DESKTOP_ONLY_EXTERNAL_PACKAGES = [
   "keytar",
 ];
 
-// Optional runtime packages (electron/src/runtime/packages/definitions.ts).
+// Optional runtime packages (packages/runtime-install/src/packages/definitions.ts).
 // The backend loads each through `importOptionalModule`, which esbuild cannot
 // see, and the desktop app installs it from the Package Manager the first time
 // a run needs it, so the desktop profile ships none of them. The Docker image

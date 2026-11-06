@@ -42,6 +42,7 @@
     "@nodetool-ai/pack-manager": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/runtime-install": "*",
     "@nodetool-ai/sandbox-compiler": "*",
     "@nodetool-ai/security": "*",
     "@nodetool-ai/storage": "*",

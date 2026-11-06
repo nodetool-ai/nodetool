@@ -15,7 +15,7 @@ inspection). The authoring guide for agents is the shipped
 - **Binary discovery order**: the user's `MANIMGX_PATH` setting, process
   `MANIMGX_PATH`, `manimgx` on PATH, then `~/.local/bin/manimgx`.
 - **The desktop Package Manager installs ManimGX** as the `manimgx` runtime
-  package (`UvToolRuntimePackage` in `electron/src/runtime/packages/`). It
+  package (`UvToolRuntimePackage` in `packages/runtime-install/src/packages/`). It
   runs `uv tool install` into the app's `uv-tools/bin`, which the server's
   PATH holds. A missing binary throws `MissingRuntimePackageError` for
   `manimgx`, and the nodes declare `requiredRuntimes = ["manimgx"]`, so the

@@ -26,6 +26,7 @@ The `packages/` directory contains the TypeScript backend — a set of npm works
 | `@nodetool-ai/kernel` | Full-host compatibility exports of the shared actor implementation |
 | `@nodetool-ai/server-core`, `@nodetool-ai/server-minimal` | Authenticated execution routes and the standalone SQLite composition |
 | `@nodetool-ai/pack-core`, `@nodetool-ai/pack-manager` | Pack metadata and admitted resolution, then authorized installation and removal |
+| [`@nodetool-ai/runtime-install`](runtime-install/README.md) | Runtime package installs (micromamba, conda, uv, Python packs, npm runtime libraries) for the desktop app, the CLI and other Node.js hosts |
 | `@nodetool-ai/sandbox-runtime` | Shared QuickJS interpreter and worker isolation for explicitly selected sandbox hosts |
 | `@nodetool-ai/agents` | Planning agent system — TaskPlanner, TaskExecutor, CodeActExecutor, Tool registry |
 | `@nodetool-ai/chat` | Chat message processing and token counting |
