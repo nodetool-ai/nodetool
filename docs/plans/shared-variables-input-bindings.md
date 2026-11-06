@@ -37,22 +37,22 @@ field takes its value from a variable instead of a typed value or a wire.
 
 | Finding | Inspected behavior | Consequence |
 |---|---|---|
-| F1. [Workflow variable nodes](../../packages/core-nodes/src/nodes/variable.ts) | Set Variable publishes by name. Get Variable streams published values with `iteration` correlation on its output. | Existing graphs can depend on repeated emissions without wires. |
-| F2. [VariableChannel](../../packages/runtime/src/variable-channel.ts) | `first()` returns the first publication. `stream()` replays the full history and then follows new publications. The runner closes a channel when its last writer finishes. | This is not a latest-value variable. Changing it in place would change existing workflows. |
-| F3. [Prompt substitution](../../packages/text-nodes/src/nodes/text-extra.ts) | `{{ name }}` awaits `first()` only when the name has a registered Set Variable writer. The node's own dynamic inputs win on conflict. Unmatched names stay as literal text. | A new variable whose display name matches a legacy channel must not change what a Prompt renders. Name resolution needs a defined precedence (A7). |
-| F4. [Workflow Input nodes](../../packages/core-nodes/src/nodes/input.ts) | The `nodetool.input.*` nodes are the external run interface. The [runner](../../packages/execution-core/src/runner.ts) checks required inputs, then dispatches `params[name]` or the node's `value` property through each node's `process()`. | Workflows already have typed parameters. New parameter definitions must coexist with this contract, not fork it (D14). |
-| F5. [App node-property bindings](../../packages/app-runtime/src/bindings.ts) | `op:<opId>/prop:<nodeId>#<prop>` lets a widget drive any node property. The [web host](../../web/src/components/appbuilder/nodeBinding.ts) and the [server](../../packages/websocket/src/session/job-execution.ts) overlay those values onto the node properties of the run's frozen graph before execution. | Snapshot resolution into node properties already exists for apps. Direct bindings should reuse that path (D15), not add a second one. |
-| F6. [App variable declarations](../../packages/app-runtime/src/document.ts) | Scope is `instance` or `user`, and only `user` variables persist. [`mergeVariables`](../../packages/app-runtime/src/operations.ts) adds every Set Variable channel name as an `instance` variable whose ID is the name. | The ownership table must map the existing `user` scope. Name-derived IDs violate the stable-ID rule and need a migration (A7). |
-| F7. [App state](../../packages/app-runtime/src/state.ts) | Variables hold current values without revisions. Input slots carry a `revision`. Invocation ownership, ordered by `startedAt`, prevents superseded runs from updating owned slots. | Reuse the ownership protections. Revision-checked publication (D12) requires adding variable revisions to the reducer (A5). |
-| F8. [Node result cache](../../packages/runtime/src/context.ts) | `getCachedResult` and `cacheResult` key on node type and node properties. | Values materialized into properties before execution are part of the key without cache changes. Values injected later would not be. |
-| F9. [Item correlation](../correlation-design.md) | Item sources establish identity, downstream nodes execute for matching items, and parent values can be reused. Independent item sources require explicit joins. | Shared scalar parameters must not introduce another item stream. |
-| F10. [Feedback loops](../workflow-loops.md) | Loop owns initial state, feedback, iteration matching, limits, and completion. | Variable binding must not bypass the existing cycle rules. |
+| F1. [Workflow variable nodes](https://github.com/nodetool-ai/nodetool/blob/main/packages/core-nodes/src/nodes/variable.ts) | Set Variable publishes by name. Get Variable streams published values with `iteration` correlation on its output. | Existing graphs can depend on repeated emissions without wires. |
+| F2. [VariableChannel](https://github.com/nodetool-ai/nodetool/blob/main/packages/runtime/src/variable-channel.ts) | `first()` returns the first publication. `stream()` replays the full history and then follows new publications. The runner closes a channel when its last writer finishes. | This is not a latest-value variable. Changing it in place would change existing workflows. |
+| F3. [Prompt substitution](https://github.com/nodetool-ai/nodetool/blob/main/packages/text-nodes/src/nodes/text-extra.ts) | `{{ name }}` awaits `first()` only when the name has a registered Set Variable writer. The node's own dynamic inputs win on conflict. Unmatched names stay as literal text. | A new variable whose display name matches a legacy channel must not change what a Prompt renders. Name resolution needs a defined precedence (A7). |
+| F4. [Workflow Input nodes](https://github.com/nodetool-ai/nodetool/blob/main/packages/core-nodes/src/nodes/input.ts) | The `nodetool.input.*` nodes are the external run interface. The [runner](https://github.com/nodetool-ai/nodetool/blob/main/packages/execution-core/src/runner.ts) checks required inputs, then dispatches `params[name]` or the node's `value` property through each node's `process()`. | Workflows already have typed parameters. New parameter definitions must coexist with this contract, not fork it (D14). |
+| F5. [App node-property bindings](https://github.com/nodetool-ai/nodetool/blob/main/packages/app-runtime/src/bindings.ts) | `op:<opId>/prop:<nodeId>#<prop>` lets a widget drive any node property. The [web host](https://github.com/nodetool-ai/nodetool/blob/main/web/src/components/appbuilder/nodeBinding.ts) and the [server](https://github.com/nodetool-ai/nodetool/blob/main/packages/websocket/src/session/job-execution.ts) overlay those values onto the node properties of the run's frozen graph before execution. | Snapshot resolution into node properties already exists for apps. Direct bindings should reuse that path (D15), not add a second one. |
+| F6. [App variable declarations](https://github.com/nodetool-ai/nodetool/blob/main/packages/app-runtime/src/document.ts) | Scope is `instance` or `user`, and only `user` variables persist. [`mergeVariables`](https://github.com/nodetool-ai/nodetool/blob/main/packages/app-runtime/src/operations.ts) adds every Set Variable channel name as an `instance` variable whose ID is the name. | The ownership table must map the existing `user` scope. Name-derived IDs violate the stable-ID rule and need a migration (A7). |
+| F7. [App state](https://github.com/nodetool-ai/nodetool/blob/main/packages/app-runtime/src/state.ts) | Variables hold current values without revisions. Input slots carry a `revision`. Invocation ownership, ordered by `startedAt`, prevents superseded runs from updating owned slots. | Reuse the ownership protections. Revision-checked publication (D12) requires adding variable revisions to the reducer (A5). |
+| F8. [Node result cache](https://github.com/nodetool-ai/nodetool/blob/main/packages/runtime/src/context.ts) | `getCachedResult` and `cacheResult` key on node type and node properties. | Values materialized into properties before execution are part of the key without cache changes. Values injected later would not be. |
+| F9. [Item correlation](https://github.com/nodetool-ai/nodetool/blob/main/docs/correlation-design.md) | Item sources establish identity, downstream nodes execute for matching items, and parent values can be reused. Independent item sources require explicit joins. | Shared scalar parameters must not introduce another item stream. |
+| F10. [Feedback loops](https://github.com/nodetool-ai/nodetool/blob/main/docs/workflow-loops.md) | Loop owns initial state, feedback, iteration matching, limits, and completion. | Variable binding must not bypass the existing cycle rules. |
 
 The distinction between a collection and an item stream already exists.
 [Text List](../nodes/nodetool/constant/textlist.md) outputs a list value.
 [List Generator](../nodes/nodetool/generators/listgenerator.md) exposes individual
 `item` values and a complete `output` list. The
-[ForEach implementation](../../packages/core-nodes/src/nodes/control.ts)
+[ForEach implementation](https://github.com/nodetool-ai/nodetool/blob/main/packages/core-nodes/src/nodes/control.ts)
 turns a collection into item emissions. Emitting items does not guarantee that
 each downstream branch finishes before the next item starts.
 
@@ -101,7 +101,7 @@ Editing either Style control commits one update to the same variable. Both
 controls and the variables panel show that committed value. Draft text stays
 local until a valid edit commits. Read-only controls show the value without
 offering an editor and use the `inert` treatment that wire-driven properties
-already use (see [node editor pitfalls](../../web/src/components/AGENTS.md#node-editor-pitfalls)),
+already use (see [node editor pitfalls](https://github.com/nodetool-ai/nodetool/blob/main/web/src/components/AGENTS.md#node-editor-pitfalls)),
 so they also leave the tab order. Binding direction is available as text and an accessible
 label, not only an icon or color.
 
@@ -140,8 +140,8 @@ brings copies of the bound variables with new IDs, named as in the source, with
 a numeric suffix where a name is taken. A pasted binding never attaches to an
 existing variable by name. The creator can rebind afterwards.
 
-Follow the [design system](../DESIGN.md), [UX guidelines](../UX_GUIDELINES.md),
-and [primitives strategy](../../web/src/components/ui_primitives/STRATEGY.md).
+Follow the [design system](https://github.com/nodetool-ai/nodetool/blob/main/docs/DESIGN.md), [UX guidelines](https://github.com/nodetool-ai/nodetool/blob/main/docs/UX_GUIDELINES.md),
+and [primitives strategy](https://github.com/nodetool-ai/nodetool/blob/main/web/src/components/ui_primitives/STRATEGY.md).
 Keep binding actions keyboard accessible and usable in narrow node inspectors.
 
 ## Ownership and document contract
@@ -246,7 +246,7 @@ The resolver is a pure function over the graph, the parameter values and the
 overrides. Put it beside the graph helpers in `@nodetool-ai/protocol`, which
 the server, `execution-core` and the web app already depend on. Every host
 that executes a graph calls it: the server job path, the CLI, and the
-browser runner that [`runInlineGraphJob`](../../web/src/lib/workflow/runInlineGraphJob.ts)
+browser runner that [`runInlineGraphJob`](https://github.com/nodetool-ai/nodetool/blob/main/web/src/lib/workflow/runInlineGraphJob.ts)
 uses for pure-browser graphs. Project and app-user values are read from their
 owner on the server, never taken from a request body. A browser run that needs
 them fetches them first, or the graph runs on the server.
@@ -480,7 +480,7 @@ editor. No surface gets a private binding format.
   not match its variable.
 - The workflow DSL gains a way to declare a parameter and bind a property to
   it. Regenerate the DSL and sandbox copies as the
-  [node change checklist](../../packages/AGENTS.md#adding-or-changing-a-node)
+  [node change checklist](https://github.com/nodetool-ai/nodetool/blob/main/packages/AGENTS.md#adding-or-changing-a-node)
   requires.
 - `nodetool run`, `run_workflow` and the REST run routes keep passing values
   through `params` by external name. `debug_workflow` output lists the
@@ -488,7 +488,7 @@ editor. No surface gets a private binding format.
 - Agent-visible variable IDs follow the short-ID rules, with one ID form per
   tool result.
 
-Update the [workflow builder skill](../../packages/system-skills/nodetool-workflow-builder/SKILL.md)
+Update the [workflow builder skill](https://github.com/nodetool-ai/nodetool/blob/main/packages/system-skills/nodetool-workflow-builder/SKILL.md)
 and node help in the same change that ships each authoring surface (A7).
 
 ## Open questions and recommendations
@@ -529,12 +529,12 @@ make the edit an ordinary document edit.
   One edit then changes one field, makes one undo step and one revision, however
   many nodes are bound.
 - Workflow versions already distinguish `manual` from `autosave`, and the
-  [workflow version model](../../packages/models/src/workflow-version.ts) prunes
+  [workflow version model](https://github.com/nodetool-ai/nodetool/blob/main/packages/models/src/workflow-version.ts) prunes
   old autosaves per workflow. Parameter edits go through that path unchanged, so
   frequent edits cannot flood the manual history.
 - Commit continuous controls on release, not on every drag frame, and text on
   blur or Enter. This keeps undo steps and autosaves to one per deliberate edit.
-- [`workflowDocumentRevision`](../../packages/protocol/src/workflow-document-revision.ts)
+- [`workflowDocumentRevision`](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/workflow-document-revision.ts)
   hashes nodes, edges and links, with an explicit list of node `data` fields.
   A2 must add `bindings` to that list and pass `parameters` and `loopbacks`
   as new inputs.
@@ -549,13 +549,13 @@ through `project-services`, with compare-and-set on a revision column.
 - Columns: `id` (32-hex), `project_id`, `user_id`, `name`, `type` and `value`
   as `jsonText`, `revision` integer, `updated_at`, and `updated_by_job_id`
   (nullable, for provenance). Follow the
-  [add-a-model steps](../../packages/models/AGENTS.md#adding-a-new-model) for
+  [add-a-model steps](https://github.com/nodetool-ai/nodetool/blob/main/packages/models/AGENTS.md#adding-a-new-model) for
   both dialects.
 - Publish with the
-  [returning pattern for CAS](../../packages/models/AGENTS.md#returning-pattern-for-cas):
+  [returning pattern for CAS](https://github.com/nodetool-ai/nodetool/blob/main/packages/models/AGENTS.md#returning-pattern-for-cas):
   `UPDATE … WHERE id = ? AND revision = ?`, with zero rows meaning conflict. App
   instances already use this shape and raise `AppInstanceConflictError`
-  ([app instance model](../../packages/models/src/app-instance.ts)). Use the
+  ([app instance model](https://github.com/nodetool-ai/nodetool/blob/main/packages/models/src/app-instance.ts)). Use the
   same error contract, not a new one.
 - Store mappings in a second table keyed by `(workflow_id, parameter_id)`
   pointing at `project_variable_id`, with `project_id` copied in. This keeps
@@ -563,7 +563,7 @@ through `project-services`, with compare-and-set on a revision column.
   belongs to one project through its existing `project_id` column. A mapping
   whose `project_id` no longer matches the workflow's, after a move, is
   inactive and reported in preflight instead of resolving.
-- [Projects](../../packages/models/src/project.ts) have a single owner
+- [Projects](https://github.com/nodetool-ai/nodetool/blob/main/packages/models/src/project.ts) have a single owner
   (`user_id`) and no member table. Authorization for A9 is therefore an owner
   check on both the project and the workflow. Multi-member projects would
   extend that check and are not a prerequisite.
@@ -597,7 +597,7 @@ Reject untyped dynamic slots and anything below the top level.
 
 - Dynamic inputs already separate a typed declaration (`dynamic_inputs`) from
   the current value (`dynamic_properties`), as
-  [`graph.ts`](../../packages/protocol/src/graph.ts) documents. A declared slot
+  [`graph.ts`](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/graph.ts) documents. A declared slot
   has a type to check against, so it can be bound like a static property.
 - An undeclared slot behaves as `any`. Binding it would bypass D1's type checks.
   Offer `Set type` first, then allow binding.
@@ -717,7 +717,7 @@ invalid fixtures and inspect nonempty input. Exercise large binding graphs to
 detect quadratic reference lookup or update behavior.
 
 Implementation must run the build prerequisites and mandatory checks from
-[repository verification rules](../../AGENTS.md#mandatory-post-change-verification).
+[repository verification rules](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md#mandatory-post-change-verification).
 This documentation-only plan requires link and diff checks, not runtime tests.
 
 ## vvvv reference and deliberate adaptation
