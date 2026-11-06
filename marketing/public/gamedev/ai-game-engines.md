@@ -52,6 +52,10 @@ It depends on what you ship. Godot is the most complete open-source engine and w
 
 Among the engines on this page: NodeTool ships its own MCP server, Unity has an MCP server in open beta, Roblox Studio has one built in, Godot has community MCP servers, and Summer Engine documents MCP setup for Claude Code, Codex, and Cursor.
 
+### Which game engines have official AI agent tooling?
+
+Unity and Roblox Studio ship it from the vendor: Unity AI with an MCP server in open beta since May 2026, and an MCP server built into Roblox Studio. NodeTool and Summer Engine come with their own agent and an MCP server for Claude Code, Codex, and Cursor. Godot's agent tooling comes from community MCP servers such as godot-mcp.
+
 ### Can an AI agent build a game I can keep editing?
 
 Yes, in every engine here except a pure browser generator, provided the agent works inside the engine's own project format. In NodeTool the agent and the Game Editor change the same game document, so nothing has to be imported or converted.
