@@ -195,13 +195,14 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     expect(res.ok).toBe(true);
   });
 
-  it("checks a line that repeats the sample call name in linear time", () => {
-    // 240,000 characters took about 3 s with the earlier single pattern.
+  it("checks long declaration and call lines in linear time", () => {
+    // Each line took seconds with the earlier patterns.
     const wgsl = `
 @fragment
 fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let src = textureSample(source, samp, uv);
   let pad = ${"textureLoad ".repeat(20000)};
+  let typed:${" ".repeat(100000)}
   return src;
 }
 `;
