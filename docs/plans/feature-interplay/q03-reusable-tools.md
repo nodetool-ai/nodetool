@@ -10,4 +10,4 @@ Saved JavaScript scripts use an explicit copied version with an update-to-latest
 
 **Next check:** change a reusable workflow after embedding it, then compare editor and headless execution. The code establishes snapshot execution, but does not alone establish every host's refresh behavior.
 
-Evidence: [Workflow node](../../../packages/core-nodes/src/nodes/workflow.ts), [editor loader](../../../web/src/components/node/WorkflowNode/WorkflowLoader.tsx), [saved scripts](../../js-scripts.md), [mini-apps](../../mini-apps.md).
+Evidence: [Workflow node](https://github.com/nodetool-ai/nodetool/blob/main/packages/core-nodes/src/nodes/workflow.ts), [editor loader](https://github.com/nodetool-ai/nodetool/blob/main/web/src/components/node/WorkflowNode/WorkflowLoader.tsx), [saved scripts](../../js-scripts.md), [mini-apps](../../mini-apps.md).

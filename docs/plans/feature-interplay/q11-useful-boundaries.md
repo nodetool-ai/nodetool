@@ -13,4 +13,4 @@ Game scripts intentionally exclude asynchronous and unrestricted host behavior. 
 
 **Next check:** evaluate a proposed edge by asking what crosses it, who authorizes it, when it takes effect and whether it can be reversed. Reject a generic connection that cannot answer those questions. More edges alone would not demonstrate a better system.
 
-Evidence: [game script boundaries](../../game-engine/scripts.md), [audio adapters](../../../packages/audio-nodes/src/nodes/realtime-audio.ts), [take selection](../../../packages/timeline/src/takes.ts), [document synchronization](../../document-sync.md).
+Evidence: [game script boundaries](../../game-engine/scripts.md), [audio adapters](https://github.com/nodetool-ai/nodetool/blob/main/packages/audio-nodes/src/nodes/realtime-audio.ts), [take selection](https://github.com/nodetool-ai/nodetool/blob/main/packages/timeline/src/takes.ts), [document synchronization](../../document-sync.md).

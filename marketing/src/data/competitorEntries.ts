@@ -1652,6 +1652,7 @@ export const competitors: Competitor[] = [
     footerName: "Weavy (Figma Weave)",
     theme: "blue",
     category: "Creative canvas",
+    related: ["flora", "krea", "comfyui"],
     og: {
       image: "screen_canvas.png",
       accent: "violet",
@@ -1730,6 +1731,7 @@ export const competitors: Competitor[] = [
     },
     theme: "violet",
     category: "Creative canvas",
+    related: ["flora", "krea", "comfyui"],
     og: {
       image: "screen_canvas.png",
       accent: "violet",
@@ -2167,6 +2169,7 @@ export const competitors: Competitor[] = [
     name: "Flora",
     theme: "rose",
     category: "Creative canvas",
+    related: ["figma-weave", "krea", "comfyui"],
     isNew: true,
     seo: {
       title: "Flora Alternative: Open-Source AI Canvas on Your Own Keys | NodeTool",
@@ -2234,6 +2237,7 @@ export const competitors: Competitor[] = [
     name: "Krea",
     theme: "cyan",
     category: "Creative canvas",
+    related: ["leonardo-ai", "flora", "figma-weave"],
     isNew: true,
     seo: {
       title: "Krea Alternative: Open-Source AI Image and Video Canvas | NodeTool",
@@ -2623,9 +2627,17 @@ export function alternativesFor(slug: string): {
       : "An open-source canvas for image, video, audio, and text that runs on your own keys.",
     isNodetool: true,
   };
+  // Hand-picked `related` tools lead, in the order given, so a large category
+  // (the creative canvases include image generators) cannot push the closest
+  // rivals off the list. Same-category tools fill the remaining places.
   const related = current?.related ?? [];
-  const rivals = siblings(slug)
-    .filter((c) => c.category === current?.category || related.includes(c.slug))
+  const relatedRivals = related
+    .map((relatedSlug) => getCompetitor(relatedSlug))
+    .filter((c): c is Competitor => c !== undefined && c.slug !== slug);
+  const sameCategory = siblings(slug).filter(
+    (c) => c.category === current?.category && !related.includes(c.slug)
+  );
+  const rivals = [...relatedRivals, ...sameCategory]
     .slice(0, 5)
     .map((c) => ({
       name: c.name,

@@ -195,9 +195,10 @@ test("ad library links to every recipe, and each recipe loads its rendered ad", 
     await expect(link).toHaveCount(1);
     const card = link.locator("video");
     await expect(card).toHaveAttribute("src", recipe.video.src);
-    await expect(card).toHaveAttribute("poster", recipe.video.poster);
-    // In view, the card plays its ad muted.
+    // The poster loads once the card nears the screen, and in view the card
+    // plays its ad muted.
     await card.scrollIntoViewIfNeeded();
+    await expect(card).toHaveAttribute("poster", recipe.video.poster);
     await expect
       .poll(() =>
         card.evaluate((element: HTMLVideoElement) => element.currentTime)

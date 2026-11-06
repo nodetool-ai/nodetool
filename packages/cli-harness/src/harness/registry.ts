@@ -301,6 +301,15 @@ export const HARNESSES: HarnessEntry[] = [
     selfcheck: { command: `npm run test --workspace=packages/${name} -- --passWithNoTests=false`, cost: "cheap", suiteOnly: true }
   })),
   {
+    id: "runtime-install",
+    title: "Runtime installer shared by the desktop app and the CLI",
+    command: "npm run test --workspace=packages/runtime-install",
+    kind: "execution",
+    capabilities: [],
+    docs: "packages/runtime-install/README.md",
+    selfcheck: { command: "npm run test --workspace=packages/runtime-install", cost: "cheap", suiteOnly: true }
+  },
+  {
     id: "cli-harness-commands",
     title: "Harness and evaluation command module",
     command: "npm run test --workspace=packages/cli-harness",
@@ -1358,6 +1367,12 @@ export const SURFACES: SurfaceEntry[] = [
     harnesses: [`${name}-module`],
     paths: [`packages/${name}/`]
   })),
+  {
+    id: "runtime-install",
+    title: "Runtime installs: micromamba, conda, uv, Python packs, npm runtime libraries",
+    harnesses: ["runtime-install"],
+    paths: ["packages/runtime-install/"]
+  },
   {
     id: "cli-harness-commands",
     title: "Harness, affected-workspace, evaluation and reliability commands",

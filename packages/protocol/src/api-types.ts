@@ -1191,6 +1191,7 @@ export const PROVIDER_IDS = {
   OPPER: "opper",
   CHEAPER_INFERENCE: "cheaperinference",
   API_ROUTE: "api_route",
+  RUNCRATE: "runcrate",
   TOGETHER: "together",
   ALIBABA: "alibaba",
   CEREBRAS: "cerebras",

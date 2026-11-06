@@ -399,6 +399,11 @@ sec(
   "API Route key for hosted OpenAI-compatible chat models. Get yours at https://www.api-route.com/api-keys"
 );
 sec(
+  "RUNCRATE_API_KEY",
+  "Runcrate",
+  "Runcrate API key for open-weight chat models through an OpenAI-compatible API. Get yours at https://runcrate.ai/dashboard/api-keys"
+);
+sec(
   "ANTHROPIC_API_KEY",
   "Anthropic",
   "Anthropic API key for accessing Claude models and other Anthropic services. Get yours at https://console.anthropic.com/settings/keys"

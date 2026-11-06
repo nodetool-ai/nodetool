@@ -10,6 +10,7 @@ import RecipeGuide from "@/components/RecipeGuide";
 import RecipeCard from "@/components/RecipeCard";
 import { recipeEntries } from "@/data/recipes";
 import { runDate } from "@/data/contentDates";
+import { videoUploadDate } from "@/lib/jsonld";
 
 const BASE_URL = "https://nodetool.ai";
 
@@ -86,7 +87,7 @@ export default async function RecipePage({ params }: RecipePageProps) {
           description: runVideo.caption ?? entry.outcome,
           thumbnailUrl: `${BASE_URL}${runVideo.poster}`,
           contentUrl: `${BASE_URL}${runVideo.mp4}`,
-          uploadDate: runUploadDate
+          uploadDate: videoUploadDate(runUploadDate)
         }
       : null;
   const related = [

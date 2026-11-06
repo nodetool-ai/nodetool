@@ -26,13 +26,13 @@ Example: a storyboard shot is regenerated after its image was used in a workflow
 
 Reuse:
 
-- [Sketch binding construction](../../../packages/websocket/src/trpc/routers/sketch.ts) and [timeline binding construction](../../../packages/websocket/src/trpc/routers/timeline.ts): source workflow, chosen output, local parameters and generated versions.
-- [Shot reconciliation](../../../packages/timeline/src/reassemble.ts): semantic ownership and preservation of existing shot placement and trims.
-- [Game authoring reconciliation](../../../packages/game-runtime/src/authoring-reconcile.ts) and [checked draft application](../../../packages/models/src/game.ts): baseline, overrides, conflicts and stale-candidate rejection.
+- [Sketch binding construction](https://github.com/nodetool-ai/nodetool/blob/main/packages/websocket/src/trpc/routers/sketch.ts) and [timeline binding construction](https://github.com/nodetool-ai/nodetool/blob/main/packages/websocket/src/trpc/routers/timeline.ts): source workflow, chosen output, local parameters and generated versions.
+- [Shot reconciliation](https://github.com/nodetool-ai/nodetool/blob/main/packages/timeline/src/reassemble.ts): semantic ownership and preservation of existing shot placement and trims.
+- [Game authoring reconciliation](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-runtime/src/authoring-reconcile.ts) and [checked draft application](https://github.com/nodetool-ai/nodetool/blob/main/packages/models/src/game.ts): baseline, overrides, conflicts and stale-candidate rejection.
 
 New work is an explicit source-selection and revision-policy contract, source resolvers for the supported document kinds, and consistent controls. The game reconciliation implementation is a domain-specific precedent, not a function to apply unchanged to arbitrary documents.
 
-The inspected [Send to workflow](../../../web/src/hooks/useSendMediaToWorkflow.ts) path transfers media constants. That is valid for “use this result,” but the payload does not retain “follow this shot's selected take.” Start with that concrete boundary, rather than migrating every reference type.
+The inspected [Send to workflow](https://github.com/nodetool-ai/nodetool/blob/main/web/src/hooks/useSendMediaToWorkflow.ts) path transfers media constants. That is valid for “use this result,” but the payload does not retain “follow this shot's selected take.” Start with that concrete boundary, rather than migrating every reference type.
 
 **First proof:** change one shot's selected take, refresh a bound workflow input and an assembled timeline, preserve trims, and verify that a pinned consumer remains unchanged. Following a source should mark work stale. Paid regeneration remains an explicit action unless a separate trigger policy authorizes it.
 
@@ -42,10 +42,10 @@ The inspected [Send to workflow](../../../web/src/hooks/useSendMediaToWorkflow.t
 
 Reuse:
 
-- [Timeline hashes](../../../packages/timeline/src/dependencyHash.ts) and [sketch hashes](../../../packages/image-editor/src/dependencyHash.ts): operation inputs, output selection and source timestamps contribute to freshness checks.
-- [Stale-layer regeneration](../../../web/src/hooks/sketch/useRegenerateStaleLayers.ts): preflight, cancellation, job settlement and failure handling already exist within sketches.
-- [Timeline bundle reference collectors](../../../packages/project-services/src/timeline-bundle.ts): enumerate certain asset, workflow, storyboard, script and job references.
-- [Asset provenance](../../../packages/models-core/src/schema/assets.ts): existing links back to producing work.
+- [Timeline hashes](https://github.com/nodetool-ai/nodetool/blob/main/packages/timeline/src/dependencyHash.ts) and [sketch hashes](https://github.com/nodetool-ai/nodetool/blob/main/packages/image-editor/src/dependencyHash.ts): operation inputs, output selection and source timestamps contribute to freshness checks.
+- [Stale-layer regeneration](https://github.com/nodetool-ai/nodetool/blob/main/web/src/hooks/sketch/useRegenerateStaleLayers.ts): preflight, cancellation, job settlement and failure handling already exist within sketches.
+- [Timeline bundle reference collectors](https://github.com/nodetool-ai/nodetool/blob/main/packages/project-services/src/timeline-bundle.ts): enumerate certain asset, workflow, storyboard, script and job references.
+- [Asset provenance](https://github.com/nodetool-ai/nodetool/blob/main/packages/models-core/src/schema/assets.ts): existing links back to producing work.
 
 These are partial inputs, not an existing project-wide dependency index. Archive reference collection also does not determine update policy or content freshness. Audit each consumer's hash inputs before treating a hash as proof that a dependency is current.
 
@@ -59,11 +59,11 @@ Example: a Mini App control changes the language or seed used by several workflo
 
 Reuse:
 
-- [App runtime state](../../../packages/app-runtime/src/state.ts): current variables, invocation ownership and rejection of superseded output updates.
-- [Workflow input definitions](../../../packages/core-nodes/src/nodes/input.ts): existing input types and external parameters.
+- [App runtime state](https://github.com/nodetool-ai/nodetool/blob/main/packages/app-runtime/src/state.ts): current variables, invocation ownership and rejection of superseded output updates.
+- [Workflow input definitions](https://github.com/nodetool-ai/nodetool/blob/main/packages/core-nodes/src/nodes/input.ts): existing input types and external parameters.
 - Existing workflow inputs/outputs and local clip/layer overrides as the initial binding targets.
 
-Preserve the existing [VariableChannel](../../../packages/runtime/src/variable-channel.ts). Its `first()` returns the first publication and `stream()` replays history before following new values. It cannot become a latest-value store without changing existing behavior.
+Preserve the existing [VariableChannel](https://github.com/nodetool-ai/nodetool/blob/main/packages/runtime/src/variable-channel.ts). Its `first()` returns the first publication and `stream()` replays history before following new values. It cannot become a latest-value store without changing existing behavior.
 
 **First proof, owned by [SV-A5](../shared-variables-input-bindings.md#delivery-plan):** one app control edits two workflow inputs through a typed binding. Run captures their values once. A later edit affects the next run, and an older result cannot overwrite a newer edit. SV-A5 follows local bindings and precedes loopback and Run N times. General cross-document and realtime binding remain later work.
 
@@ -73,8 +73,8 @@ This is the largest change in which kinds of experiences the parts can build tog
 
 Reuse:
 
-- [Game lifecycle and state](../../../packages/game-runtime/README.md), [script event payloads and targets](../../../packages/protocol/src/game-script-events.ts), and existing scene actions.
-- [Capability contracts](../../../packages/agents/src/capabilities/types.ts), existing workflow execution, jobs and cancellation.
+- [Game lifecycle and state](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-runtime/README.md), [script event payloads and targets](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/game-script-events.ts), and existing scene actions.
+- [Capability contracts](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/src/capabilities/types.ts), existing workflow execution, jobs and cancellation.
 - Existing game asset staging for generated media accepted into a scene.
 
 The [reactive plan owns the request/result adapter (RS-A1–RS-A4)](../reactive-sessions-events.md#smallest-first-implementation). Reuse its identity, cancellation, and observer-lifetime contract. [AA-A10](../realtime-virtual-agents.md#delivery-plan-and-gates) owns scene commands and their acceptance at a game update point. Replay is a later scene-specific proof, not an extra requirement for the first adapter.
@@ -89,7 +89,7 @@ The map's Assistant runtime proposal builds on the same asynchronous boundary co
 
 Reuse:
 
-- [Microphone capture](../../../web/src/hooks/useRealtimeAudioStream.ts), [chunk processing and output](../../../packages/audio-nodes/src/nodes/realtime-audio.ts), and [streaming TTS](../../../packages/elevenlabs-nodes/src/nodes/realtime-tts.ts).
+- [Microphone capture](https://github.com/nodetool-ai/nodetool/blob/main/web/src/hooks/useRealtimeAudioStream.ts), [chunk processing and output](https://github.com/nodetool-ai/nodetool/blob/main/packages/audio-nodes/src/nodes/realtime-audio.ts), and [streaming TTS](https://github.com/nodetool-ai/nodetool/blob/main/packages/elevenlabs-nodes/src/nodes/realtime-tts.ts).
 - Agent tools, retrieval collections and existing run records.
 - The app runtime's invocation-ownership behavior as a precedent for rejecting obsolete output, without assuming it handles speech playback interruption.
 

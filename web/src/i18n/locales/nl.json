@@ -9041,6 +9041,10 @@
           "button": "Verkrijg de Cheaper Inference API-sleutel",
           "tooltip": "Ga naar het Cheaper Inference-platform om uw API-sleutel op te halen"
         },
+        "RUNCRATE_API_KEY": {
+          "button": "Verkrijg de Runcrate API-sleutel",
+          "tooltip": "Ga naar het Runcrate-platform om uw API-sleutel op te halen"
+        },
         "API_ROUTE_API_KEY": {
           "button": "API-routesleutel ophalen",
           "tooltip": "Ga naar de pagina API Route API-sleutels"

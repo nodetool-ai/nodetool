@@ -10,4 +10,4 @@ The first consumer should only explain dependencies and stale reasons. Later con
 
 **Next check:** change one bound input and verify the description identifies the affected item and reason. Hash helpers are reusable, but their existence does not prove every caller supplies complete input dependencies. This is a design candidate, not a measured implementation estimate.
 
-Evidence: [timeline hashes](../../../packages/timeline/src/dependencyHash.ts), [sketch hashes](../../../packages/image-editor/src/dependencyHash.ts), [timeline binding](../../../packages/websocket/src/trpc/routers/timeline.ts), [export collectors](../../../packages/project-services/src/timeline-bundle.ts).
+Evidence: [timeline hashes](https://github.com/nodetool-ai/nodetool/blob/main/packages/timeline/src/dependencyHash.ts), [sketch hashes](https://github.com/nodetool-ai/nodetool/blob/main/packages/image-editor/src/dependencyHash.ts), [timeline binding](https://github.com/nodetool-ai/nodetool/blob/main/packages/websocket/src/trpc/routers/timeline.ts), [export collectors](https://github.com/nodetool-ai/nodetool/blob/main/packages/project-services/src/timeline-bundle.ts).

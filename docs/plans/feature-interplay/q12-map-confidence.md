@@ -10,4 +10,4 @@
 
 **Next check:** audit high-impact edges before expanding the map. For each, record producer, consumer, payload, update behavior, supported host and a reproducible check. Downgrade broad claims when evidence only covers one route. Apply the [evidence rules](README.md#evidence-and-interpretation) when a delivery depends on a finding.
 
-Evidence: [older guide](../../video-editor.md), [current binding](../../../packages/websocket/src/trpc/routers/timeline.ts), [type registry](../../../web/src/config/data_types.ts), [map interpretation rules](README.md).
+Evidence: [older guide](../../video-editor.md), [current binding](https://github.com/nodetool-ai/nodetool/blob/main/packages/websocket/src/trpc/routers/timeline.ts), [type registry](https://github.com/nodetool-ai/nodetool/blob/main/web/src/config/data_types.ts), [map interpretation rules](README.md).

@@ -569,6 +569,14 @@ export const PROVIDER_META: ProviderMeta[] = [
     docsUrl: "https://www.api-route.com/docs/quickstart"
   },
   {
+    key: "RUNCRATE_API_KEY",
+    providerId: PROVIDER_IDS.RUNCRATE,
+    name: "Runcrate",
+    description: "Use open-weight chat models through an OpenAI-compatible API.",
+    section: "gateways",
+    docsUrl: "https://runcrate.ai/docs/models/overview"
+  },
+  {
     key: "SERPAPI_API_KEY",
     name: "SerpAPI",
     description: "Web search via SerpAPI.",

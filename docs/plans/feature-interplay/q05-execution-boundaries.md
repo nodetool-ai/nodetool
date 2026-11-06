@@ -10,4 +10,4 @@ Game event schemas already describe payloads and targeting. That is useful infra
 
 **Tracked check: RS-A3/RS-A4.** The reactive-plan implementation owns a delayed deterministic operation in a fixed-tick fixture. Expected result: ticks continue during execution, reset rejects old results, and repeated resets cannot bypass the outstanding-request limit. Paid inference and live scene commands are unnecessary for this proof.
 
-Evidence: [game script contract](../../game-engine/scripts.md), [game event schema](../../../packages/protocol/src/game-script-events.ts), [audio processing](../../../packages/audio-nodes/src/nodes/realtime-audio.ts), [execution lifecycle](../../execution-lifecycle.md).
+Evidence: [game script contract](../../game-engine/scripts.md), [game event schema](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/game-script-events.ts), [audio processing](https://github.com/nodetool-ai/nodetool/blob/main/packages/audio-nodes/src/nodes/realtime-audio.ts), [execution lifecycle](../../execution-lifecycle.md).

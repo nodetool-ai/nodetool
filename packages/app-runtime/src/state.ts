@@ -577,20 +577,17 @@ export const applyEvent = (
         (event.status && event.status !== previous?.status
           ? undefined
           : previous?.progress);
+      const run: NodeRunState = {
+        status: event.status ?? previous?.status ?? "running"
+      };
+      const error = event.error ?? previous?.error;
+      if (error) run.error = error;
+      if (progress !== undefined) run.progress = progress;
       return {
         ...state,
         nodeRuns: {
           ...state.nodeRuns,
-          [canonicalId]: {
-            ...nodes,
-            [event.nodeId]: {
-              status: event.status ?? previous?.status ?? "running",
-              ...(event.error ?? previous?.error
-                ? { error: event.error ?? previous?.error }
-                : {}),
-              ...(progress !== undefined ? { progress } : {})
-            }
-          }
+          [canonicalId]: { ...nodes, [event.nodeId]: run }
         }
       };
     }

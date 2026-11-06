@@ -10,4 +10,4 @@ Data types also need behavioral explanations. A compatible socket does not estab
 
 **Tracked check: [SV-A5](../shared-variables-input-bindings.md#delivery-plan).** The shared-variables implementation owns the finite app/workflow proof: one control feeds two inputs, a run captures both once, and a late result cannot overwrite a newer edit. Realtime subscribers remain a research question for a later adapter.
 
-Evidence: [variable channel](../../../packages/runtime/src/variable-channel.ts), [app state](../../../packages/app-runtime/src/state.ts), [data types](../../data-types.md), [shared-input proposal](../shared-variables-input-bindings.md).
+Evidence: [variable channel](https://github.com/nodetool-ai/nodetool/blob/main/packages/runtime/src/variable-channel.ts), [app state](https://github.com/nodetool-ai/nodetool/blob/main/packages/app-runtime/src/state.ts), [data types](../../data-types.md), [shared-input proposal](../shared-variables-input-bindings.md).

@@ -99,6 +99,7 @@
     "packages/sandbox-runtime",
     "packages/server-feature-packs",
     "packages/pack-manager",
+    "packages/runtime-install",
     "packages/cli-common",
     "packages/cli-providers",
     "packages/cli-workflow",
