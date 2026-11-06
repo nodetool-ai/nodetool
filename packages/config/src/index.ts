@@ -57,6 +57,7 @@ export {
   runtimeBinPath,
   applyRuntimeEnv,
   isNodetoolHost,
+  nodetoolSettingsFile,
   type NodetoolHost,
   type RuntimeLocations,
   type RuntimeLocationOptions

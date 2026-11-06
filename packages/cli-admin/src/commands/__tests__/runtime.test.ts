@@ -16,7 +16,19 @@ import {
   applyOptionalNodeModules
 } from "@nodetool-ai/cli-common/optional-node-root";
 import { registerRuntimeCommands } from "../runtime.js";
+import { cliRuntimeRegistry, managedRuntimeIds } from "../runtime-managed.js";
+import { pythonPackRepoId } from "../runtime-python-packs.js";
 import * as npmRunner from "@nodetool-ai/pack-manager/npm-runner";
+
+type PackResult = { success: boolean; message: string };
+const installPythonPack = vi.fn<(host: unknown, repoId: string) => Promise<PackResult>>();
+const uninstallPythonPack = vi.fn<(host: unknown, repoId: string) => Promise<PackResult>>();
+const pythonPacks = {
+  list: vi.fn(async () => []),
+  install: installPythonPack,
+  update: installPythonPack,
+  remove: uninstallPythonPack
+};
 
 const ENV_KEYS = ["XDG_DATA_HOME", "APPDATA", "HOME", "USERPROFILE", "NODETOOL_OPTIONAL_NODE_MODULES", "NODETOOL_HOST", "PATH", "UV_TOOL_DIR", "UV_TOOL_BIN_DIR", "UV_PYTHON_INSTALL_DIR"];
 let saved: Record<string, string | undefined>;
@@ -55,7 +67,7 @@ async function fakeInstall(name: string, version: string): Promise<void> {
 
 async function run(args: string[]): Promise<string> {
   const program = new Command().exitOverride();
-  registerRuntimeCommands(program);
+  registerRuntimeCommands(program, { pythonPacks });
   const lines: string[] = [];
   vi.spyOn(console, "log").mockImplementation((line: unknown) => {
     lines.push(String(line));
@@ -98,16 +110,67 @@ describe("nodetool runtime", () => {
       packages: Array<{ id: string; installed: boolean; version: string }>;
     };
 
-    // The npm packages plus sd-cpp, the one binary package, and Wan2GP,
-    // which its own installer sets up.
+    // The conda and uv tool packages, the npm packages, sd-cpp, the one
+    // binary package, and Wan2GP, which its own installer sets up.
     expect(listed.packages.map((row) => row.id).sort()).toEqual(
-      [...Object.keys(RUNTIME_NPM_PACKAGES), "sd-cpp", "wan2gp"].sort()
+      [...managedRuntimeIds(), ...Object.keys(RUNTIME_NPM_PACKAGES), "sd-cpp", "wan2gp"].sort()
     );
+    expect(managedRuntimeIds()).toEqual(expect.arrayContaining(["python", "yt-dlp", "manimgx"]));
     const byId = new Map(listed.packages.map((row) => [row.id, row]));
     expect(byId.get("tokenizer")).toMatchObject({ installed: true, version: "1.0.21" });
     expect(byId.get("email-imap")).toMatchObject({ installed: false });
     expect(byId.get("fabric")).toMatchObject({ installed: false });
     expect(byId.get("wan2gp")).toMatchObject({ installed: false });
+    expect(byId.get("python")).toMatchObject({ installed: false });
+  });
+
+  it("installs a conda package through the shared runtime registry", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const registry = cliRuntimeRegistry();
+    vi.spyOn(registry, "status").mockResolvedValue({ id: "python", installed: false });
+    const install = vi.spyOn(registry, "runToCompletion").mockResolvedValue({ success: true, message: "done" });
+    const npm = vi.spyOn(npmRunner, "runNpm");
+
+    await run(["runtime", "add", "python"]);
+
+    expect(install).toHaveBeenCalledWith("python", "install", expect.any(Function));
+    expect(npm).not.toHaveBeenCalled();
+  });
+
+  it("installs the dependencies of a package first", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const registry = cliRuntimeRegistry();
+    const get = registry.get.bind(registry);
+    vi.spyOn(registry, "get").mockImplementation((id) => {
+      const pkg = get(id);
+      return id === "yt-dlp" && pkg ? Object.assign(Object.create(pkg) as typeof pkg, { dependsOn: ["python"] }) : pkg;
+    });
+    vi.spyOn(registry, "status").mockImplementation(async (id) => ({ id, installed: false }));
+    const install = vi.spyOn(registry, "runToCompletion").mockResolvedValue({ success: true, message: "done" });
+
+    await run(["runtime", "add", "yt-dlp"]);
+
+    expect(install.mock.calls.map((call) => call[0])).toEqual(["python", "yt-dlp"]);
+  });
+
+  it("repairs an installed package only with --reinstall and fails on an install error", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const registry = cliRuntimeRegistry();
+    vi.spyOn(registry, "status").mockResolvedValue({ id: "yt-dlp", installed: true });
+    const install = vi.spyOn(registry, "runToCompletion").mockResolvedValue({ success: false, message: "micromamba failed" });
+
+    await run(["runtime", "add", "yt-dlp"]);
+    expect(install).not.toHaveBeenCalled();
+
+    await expect(run(["runtime", "add", "yt-dlp", "--reinstall"])).rejects.toThrow(/micromamba failed/);
+    expect(install).toHaveBeenCalledWith("yt-dlp", "repair", expect.any(Function));
+  });
+
+  it("removes a conda package through the shared runtime registry", async () => {
+    const registry = cliRuntimeRegistry();
+    const uninstall = vi.spyOn(registry, "uninstall").mockResolvedValue(undefined);
+    await run(["runtime", "remove", "yt-dlp"]);
+    expect(uninstall).toHaveBeenCalledWith("yt-dlp");
   });
 
   it("refuses an unknown id before it runs npm", async () => {
@@ -147,6 +210,35 @@ describe("nodetool runtime", () => {
 
   it("prints the root it installs into", async () => {
     expect(await run(["runtime", "path"])).toBe(join(dataHome, "nodetool", "optional-node"));
+  });
+});
+
+describe("nodetool runtime python-packs", () => {
+  it("names a pack by its distribution name or repo id", () => {
+    expect(pythonPackRepoId("nodetool-huggingface")).toBe("nodetool-ai/nodetool-huggingface");
+    expect(pythonPackRepoId("nodetool-ai/nodetool-mlx")).toBe("nodetool-ai/nodetool-mlx");
+  });
+
+  it("installs each pack and fails when one install fails", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    installPythonPack
+      .mockResolvedValueOnce({ success: true, message: "Installed nodetool-huggingface" })
+      .mockResolvedValueOnce({ success: false, message: "No solution found" });
+
+    await expect(run(["runtime", "python-packs", "add", "nodetool-huggingface", "nodetool-ai/nodetool-mlx"])).rejects.toThrow(
+      "Failed: nodetool-ai/nodetool-mlx"
+    );
+    expect(installPythonPack.mock.calls.map((call) => call[1])).toEqual([
+      "nodetool-ai/nodetool-huggingface",
+      "nodetool-ai/nodetool-mlx"
+    ]);
+  });
+
+  it("removes a pack", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    uninstallPythonPack.mockResolvedValueOnce({ success: true, message: "Uninstalled" });
+    await run(["runtime", "python-packs", "remove", "nodetool-huggingface"]);
+    expect(uninstallPythonPack).toHaveBeenCalledWith(expect.anything(), "nodetool-ai/nodetool-huggingface");
   });
 });
 

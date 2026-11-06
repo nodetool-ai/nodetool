@@ -105,7 +105,7 @@ isolation boundary exists.
 - The Fly image (`Dockerfile`, `node:22-slim`) installs ffmpeg, chromium
   and a Python venv. Blender is not there.
 - Electron installs tools on demand through `CondaRuntimePackage`
-  (`electron/src/runtime/packages/definitions.ts`). conda-forge has no
+  (`packages/runtime-install/src/packages/definitions.ts`). conda-forge has no
   `blender` package, so that path is closed for the executable. PyPI ships
   `bpy` wheels pinned to one Python minor per release.
 - Package runtime files are declared in `PACKAGE_RUNTIME_ASSETS` and

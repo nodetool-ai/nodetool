@@ -42,6 +42,7 @@
     "@jest/globals": "^29.7.0",
     "@nodetool-ai/config": "*",
     "@nodetool-ai/node-sdk": "*",
+    "@nodetool-ai/runtime-install": "*",
     "@nodetool-ai/websocket": "*",
     "@trpc/client": "^11.17.0",
     "@types/jest": "^29.5.14",

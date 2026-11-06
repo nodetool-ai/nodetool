@@ -2984,8 +2984,8 @@ install the recorded pack and runtime set for the new version.
 `run`, `debug`, `node run` and `workflows run` accept `--install-missing`.
 `NODETOOL_AUTO_INSTALL=1` also authorizes those commands. They install missing
 npm requirements and re-execute once, forwarding the child exit code. Serve,
-MCP and agent tools do not install packages automatically. External runtimes
-such as yt-dlp and Python require their own setup.
+MCP and agent tools do not install packages automatically. Install external
+runtimes such as yt-dlp and Python with [`nodetool runtime add`](#nodetool-runtime).
 
 See the [pack-system design](cli-pack-system-design.md#15-command-surface)
 for installation boundaries and the platform matrix.
@@ -3028,6 +3028,31 @@ Everything that stops a module short of admission is a named skip, not an
 error: `npm-module-builtin-import` (the dependency needs `node:*`),
 `npm-module-unresolved`, `npm-module-too-large` (1 MB cap),
 `npm-module-forbidden-global`, and `npm-module-probe-failed`.
+
+### `nodetool runtime`
+
+Install the optional software that features load by id. The `cli-admin`
+command feature provides it. The installer is
+[`@nodetool-ai/runtime-install`](https://github.com/nodetool-ai/nodetool/blob/main/packages/runtime-install/README.md), the
+one the desktop Package Manager uses, so both hosts apply the same pins and
+install policy.
+
+| Command | Behavior |
+|---|---|
+| `runtime list [--json]` | Show every runtime package, whether it is installed, and the conda environment path. |
+| `runtime add <ids...> [--reinstall]` | Install npm runtime libraries, `sd-cpp`, `wan2gp`, and the conda and uv packages (`python`, `yt-dlp`, `rust`, `manimgx`). Dependencies install first. `--reinstall` installs an installed conda or uv package again. |
+| `runtime remove <ids...>` | Uninstall the packages. |
+| `runtime path` | Print the npm root runtime libraries install into. |
+| `runtime python-packs list [--json]` | Show the Python node packs in the Python runtime. |
+| `runtime python-packs add <packs...>` | Install the newest release of each pack, such as `nodetool-huggingface`. Installs Python first when it is missing. |
+| `runtime python-packs update <packs...>` | Reinstall each pack at its newest release. |
+| `runtime python-packs remove <packs...>` | Uninstall each pack. |
+
+`python`, `yt-dlp` and `rust` install into the conda environment that
+`settings.yaml` records as `CONDA_ENV`, which the desktop app shares. The CLI
+downloads micromamba into its data directory to create it. Python pack
+installs keep every installed pack in each resolve and take torch from the
+detected PyTorch index, with a CPU fallback.
 
 ### `nodetool reliability`
 

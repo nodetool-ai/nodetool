@@ -12,6 +12,10 @@
  * `wan2gp` is the Wan2GP source and the Python environment its own installer
  * builds in `runtimeLocations().wan2gp`, with a Python 3.10+ and uv from the
  * NodeTool conda environment or PATH.
+ *
+ * The conda packages (`python`, `yt-dlp`, `rust`), the uv tools (`manimgx`)
+ * and `runtime python-packs` go through `@nodetool-ai/runtime-install`, the
+ * installer the desktop app uses, into the shared conda environment.
  */
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -39,6 +43,16 @@ import { optionalNodeModulesDir, optionalNodeRoot } from "@nodetool-ai/cli-commo
 import { asJson, printTable } from "@nodetool-ai/cli-common/commands/output";
 import { runNpm } from "@nodetool-ai/pack-manager/npm-runner";
 import { withInstallLock } from "@nodetool-ai/pack-manager/install-lock";
+import type { RuntimePackageId } from "@nodetool-ai/protocol/missing-runtime-package";
+
+import {
+  addManagedRuntimes,
+  cliRuntimeRegistry,
+  isManagedRuntimeId,
+  managedRuntimeIds,
+  removeManagedRuntimes
+} from "./runtime-managed.js";
+import { registerPythonPackCommands, type PythonPackOperations } from "./runtime-python-packs.js";
 
 const installedManifestSchema = z.object({ version: z.string() });
 
@@ -46,7 +60,7 @@ const SD_CPP_ID = "sd-cpp";
 const WAN2GP_ID = "wan2gp";
 
 interface RuntimeRow {
-  id: RuntimeNpmPackageId | typeof SD_CPP_ID | typeof WAN2GP_ID;
+  id: RuntimePackageId;
   name: string;
   installed: boolean;
   version: string;
@@ -167,22 +181,48 @@ async function runtimeRows(): Promise<RuntimeRow[]> {
       };
     })
   );
-  const rows: RuntimeRow[] = [...npmRows];
+  const registry = cliRuntimeRegistry();
+  const managedRows = await Promise.all(
+    managedRuntimeIds().map(async (id) => {
+      const status = await registry.status(id);
+      const pkg = registry.get(id);
+      return {
+        id,
+        name: pkg?.name ?? id,
+        installed: status.installed,
+        version: status.installedVersion ?? "",
+        description: pkg?.description ?? ""
+      };
+    })
+  );
+  const rows: RuntimeRow[] = [...managedRows, ...npmRows];
   if (runtimeLocations().sdCpp) rows.push(await sdCppRow());
   if (runtimeLocations().wan2gp) rows.push(await wan2gpRow());
   return rows;
 }
 
 /** Parse the ids a user typed, failing on any id the catalog lacks. */
-function parseIds(ids: readonly string[]): { npm: RuntimeNpmPackageId[]; sdCpp: boolean; wan2gp: boolean } {
-  const unknown = ids.filter((id) => id !== SD_CPP_ID && id !== WAN2GP_ID && !isRuntimeNpmPackageId(id));
+function parseIds(ids: readonly string[]): {
+  managed: RuntimePackageId[];
+  npm: RuntimeNpmPackageId[];
+  sdCpp: boolean;
+  wan2gp: boolean;
+} {
+  const unknown = ids.filter(
+    (id) => id !== SD_CPP_ID && id !== WAN2GP_ID && !isRuntimeNpmPackageId(id) && !isManagedRuntimeId(id)
+  );
   if (unknown.length > 0) {
-    const known = [...Object.keys(RUNTIME_NPM_PACKAGES), SD_CPP_ID, WAN2GP_ID].join(", ");
+    const known = [...managedRuntimeIds(), ...Object.keys(RUNTIME_NPM_PACKAGES), SD_CPP_ID, WAN2GP_ID].join(", ");
     throw new Error(
       `Unknown runtime package: ${unknown.join(", ")}. Known: ${known}.`
     );
   }
-  return { npm: ids.filter(isRuntimeNpmPackageId), sdCpp: ids.includes(SD_CPP_ID), wan2gp: ids.includes(WAN2GP_ID) };
+  return {
+    managed: ids.filter(isManagedRuntimeId),
+    npm: ids.filter(isRuntimeNpmPackageId),
+    sdCpp: ids.includes(SD_CPP_ID),
+    wan2gp: ids.includes(WAN2GP_ID)
+  };
 }
 
 /** Create the root with a private manifest, so npm installs into it. */
@@ -199,7 +239,10 @@ async function ensureRoot(): Promise<string> {
   return root;
 }
 
-export function registerRuntimeCommands(program: Command): void {
+export function registerRuntimeCommands(
+  program: Command,
+  options: { pythonPacks?: PythonPackOperations } = {}
+): void {
   const runtime = program
     .command("runtime")
     .description(
@@ -213,7 +256,7 @@ export function registerRuntimeCommands(program: Command): void {
     .action(async (options: { json?: boolean }) => {
       const rows = await runtimeRows();
       if (options.json) {
-        asJson({ root: optionalNodeRoot(), packages: rows });
+        asJson({ root: optionalNodeRoot(), condaEnv: runtimeLocations().condaEnv, packages: rows });
         return;
       }
       printTable(
@@ -229,8 +272,12 @@ export function registerRuntimeCommands(program: Command): void {
     .option("--python <path>", "wan2gp: the Python 3.10+ that runs Wan2GP's installer")
     .option("--uv <path>", "wan2gp: the uv executable Wan2GP's installer uses")
     .option("--profile <name>", "wan2gp: a Wan2GP hardware profile, such as RTX_40, instead of the detected one")
-    .action(async (ids: string[], options: { python?: string; uv?: string; profile?: string }) => {
-      const { npm: parsed, sdCpp, wan2gp } = parseIds(ids);
+    .option("--reinstall", "python, yt-dlp, rust, manimgx: install again when already installed")
+    .action(async (ids: string[], options: { python?: string; uv?: string; profile?: string; reinstall?: boolean }) => {
+      const { managed, npm: parsed, sdCpp, wan2gp } = parseIds(ids);
+      if (managed.length > 0) {
+        await addManagedRuntimes(managed, options.reinstall === true);
+      }
       if (wan2gp) {
         await addWan2GP(options);
       }
@@ -269,7 +316,10 @@ export function registerRuntimeCommands(program: Command): void {
     .description("Uninstall one or more runtime packages by id")
     .argument("<ids...>", "Runtime package ids")
     .action(async (ids: string[]) => {
-      const { npm: parsed, sdCpp, wan2gp } = parseIds(ids);
+      const { managed, npm: parsed, sdCpp, wan2gp } = parseIds(ids);
+      if (managed.length > 0) {
+        await removeManagedRuntimes(managed);
+      }
       if (sdCpp) {
         await uninstallSdCpp(sdCppDir());
       }
@@ -290,6 +340,8 @@ export function registerRuntimeCommands(program: Command): void {
         { onWait: (path) => console.error(`Waiting for the install lock at ${path}`) }
       );
     });
+
+  registerPythonPackCommands(runtime, options.pythonPacks);
 
   runtime
     .command("path")

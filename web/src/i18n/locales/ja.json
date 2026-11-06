@@ -9041,6 +9041,10 @@
           "button": "Cheaper Inference API キーを取得する",
           "tooltip": "Cheaper Inference プラットフォームに移動して API キーを取得します"
         },
+        "RUNCRATE_API_KEY": {
+          "button": "Runcrate API キーを取得する",
+          "tooltip": "Runcrate プラットフォームに移動して API キーを取得します"
+        },
         "API_ROUTE_API_KEY": {
           "button": "APIルートキーの取得",
           "tooltip": "API ルートの API キー ページに移動する"
