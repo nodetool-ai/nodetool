@@ -10,4 +10,4 @@ The next useful loop is: change a source, identify affected outputs, regenerate 
 
 **Next check:** regenerate a shot with shorter footage after trimming its clip. Verify preserved edits remain valid, since preserving a trim does not guarantee it fits the replacement media.
 
-Evidence: [shot refill](../../../packages/timeline/src/reassemble.ts), [takes](../../../packages/timeline/src/takes.ts), [dependency hash](../../../packages/timeline/src/dependencyHash.ts), [stale-layer regeneration](../../../web/src/hooks/sketch/useRegenerateStaleLayers.ts).
+Evidence: [shot refill](https://github.com/nodetool-ai/nodetool/blob/main/packages/timeline/src/reassemble.ts), [takes](https://github.com/nodetool-ai/nodetool/blob/main/packages/timeline/src/takes.ts), [dependency hash](https://github.com/nodetool-ai/nodetool/blob/main/packages/timeline/src/dependencyHash.ts), [stale-layer regeneration](https://github.com/nodetool-ai/nodetool/blob/main/web/src/hooks/sketch/useRegenerateStaleLayers.ts).

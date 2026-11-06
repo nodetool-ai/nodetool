@@ -40,28 +40,28 @@ new containers apart from the existing If and For Each nodes, so those nodes kee
 their types, titles, and behavior. A search for "if" or "for each" lists the
 region first and the node second. Each region's menu description says it is a
 container and points to the node for simple routing or streaming.
-[Loop guidance](../workflow-loops.md) says when to use a For Each Region (a
+[Loop guidance](https://github.com/nodetool-ai/nodetool/blob/main/docs/workflow-loops.md) says when to use a For Each Region (a
 list) and when to use Loop (repeat until a condition).
 
 ## Existing behavior and compatibility
 
-The [control nodes](../../packages/core-nodes/src/nodes/control.ts) already
+The [control nodes](https://github.com/nodetool-ai/nodetool/blob/main/packages/core-nodes/src/nodes/control.ts) already
 provide conditional routing and item emission. `If` and `Switch` emit only the
 taken output. `ForEach` yields every item at once, and the correlation scheduler
 runs body invocations for different items concurrently, so emission order does
 not mean the body finishes before the next item starts. The only bound on
 in-flight items is the inbox limit of 10,000 pending keys, which fails the run
-when exceeded ([correlation design](../correlation-design.md#6-done-dropped-key-and-scope-close-propagation)).
-The [feedback loop](../workflow-loops.md) caps iterations at 1,000 and can
+when exceeded ([correlation design](https://github.com/nodetool-ai/nodetool/blob/main/docs/correlation-design.md#6-done-dropped-key-and-scope-close-propagation)).
+The [feedback loop](https://github.com/nodetool-ai/nodetool/blob/main/docs/workflow-loops.md) caps iterations at 1,000 and can
 terminate without a `done` value when feedback is missing.
 
 New regions need explicit completion. Existing If, Switch, ForEach, and Loop
 workflows keep their behavior. Automatic conversion is outside this release.
 
-Use the existing [GroupNode](../../web/src/components/node/GroupNode.tsx) and
-[grouping hooks](../../web/src/hooks/nodes/useSurroundWithGroup.ts) as the starting
+Use the existing [GroupNode](https://github.com/nodetool-ai/nodetool/blob/main/web/src/components/node/GroupNode.tsx) and
+[grouping hooks](https://github.com/nodetool-ai/nodetool/blob/main/web/src/hooks/nodes/useSurroundWithGroup.ts) as the starting
 point for canvas interactions. The current
-[groupability rules](../../web/src/hooks/nodes/useIsGroupable.ts) prohibit nested
+[groupability rules](https://github.com/nodetool-ai/nodetool/blob/main/web/src/hooks/nodes/useIsGroupable.ts) prohibit nested
 groups, so nested execution regions require an explicit design and tests.
 Existing grouping does not establish region execution semantics.
 
@@ -80,24 +80,24 @@ demonstration of historical region execution.
 ### Reuse
 
 - **F10. Existing group interactions are the baseline.**
-  [Surround](../../web/src/hooks/nodes/useSurroundWithGroup.ts) creates the
+  [Surround](https://github.com/nodetool-ai/nodetool/blob/main/web/src/hooks/nodes/useSurroundWithGroup.ts) creates the
   container and reparents children in one store write.
-  [Add](../../web/src/hooks/nodes/useAddToGroup.ts) converts positions and grows
+  [Add](https://github.com/nodetool-ai/nodetool/blob/main/web/src/hooks/nodes/useAddToGroup.ts) converts positions and grows
   the frame without a separate resize undo step.
-  [Remove](../../web/src/hooks/nodes/useRemoveFromGroup.ts) restores positions.
-  [GroupNode](../../web/src/components/node/GroupNode.tsx) already supplies
+  [Remove](https://github.com/nodetool-ai/nodetool/blob/main/web/src/hooks/nodes/useRemoveFromGroup.ts) restores positions.
+  [GroupNode](https://github.com/nodetool-ai/nodetool/blob/main/web/src/components/node/GroupNode.tsx) already supplies
   resizing, title/color editing, selection behavior, and child status. Reuse
   these interaction patterns and existing undo helpers, adapting touched UI to
   current primitives and tokens rather than copying styles wholesale.
 - **F11. Persistence and boundary-rewrite foundations exist.**
-  [Serialization](../../web/src/stores/reactFlowNodeToGraphNode.ts) already
+  [Serialization](https://github.com/nodetool-ai/nodetool/blob/main/web/src/stores/reactFlowNodeToGraphNode.ts) already
   saves `parent_id` and dimensions, and the reverse adapter restores membership.
-  [Group into Subgraph](../../web/src/hooks/nodes/useGroupIntoSubgraph.ts) rewrites
+  [Group into Subgraph](https://github.com/nodetool-ai/nodetool/blob/main/web/src/hooks/nodes/useGroupIntoSubgraph.ts) rewrites
   crossing edges into named inputs/outputs. Reuse its planning and undo approach.
   Its generated input nodes use StringInput, so do not assume its current port
   construction supplies the typed branch/state boundaries needed here.
 - **F18. An isolated inner-run executor already exists.**
-  [`runInnerGraph`](../../packages/core-nodes/src/nodes/run-inner-graph.ts) backs
+  [`runInnerGraph`](https://github.com/nodetool-ai/nodetool/blob/main/packages/core-nodes/src/nodes/run-inner-graph.ts) backs
   the Subgraph, Workflow, and App nodes. It runs a graph on a child
   `WorkflowRunner` with a copied context, passes named params to inner Input
   nodes, and collects named outputs. A parent cancel aborts the child. Inner
@@ -110,23 +110,23 @@ demonstration of historical region execution.
 ### Change before reuse
 
 - **F12. Nesting requires more than allowing a container type.**
-  [Groupability](../../web/src/hooks/nodes/useIsGroupable.ts) prohibits grouped
+  [Groupability](https://github.com/nodetool-ai/nodetool/blob/main/web/src/hooks/nodes/useIsGroupable.ts) prohibits grouped
   groups. Add ignores already-parented nodes, Remove adds only the immediate
   parent's position, and GroupNode run/bypass/status operations select direct
-  children. Reuse [absolute positions](../../web/src/utils/absoluteNodePosition.ts)
-  and [descendant traversal](../../web/src/utils/withGroupContents.ts) where
+  children. Reuse [absolute positions](https://github.com/nodetool-ai/nodetool/blob/main/web/src/utils/absoluteNodePosition.ts)
+  and [descendant traversal](https://github.com/nodetool-ai/nodetool/blob/main/web/src/utils/withGroupContents.ts) where
   appropriate, but define each operation's scope explicitly. Keep visual-group
   behavior unchanged while adding region ancestry, cycle checks, nested moves,
   and atomic validation of crossing edges.
 - **F13. Existing drag gestures need execution-aware rules.**
-  [Drag handlers](../../web/src/hooks/handlers/useDragHandlers.ts) remove nodes
+  [Drag handlers](https://github.com/nodetool-ai/nodetool/blob/main/web/src/hooks/handlers/useDragHandlers.ts) remove nodes
   during modifier-key or wiggle gestures, and choose an intersecting group as
   the drop target. Execution regions need a clear prospective branch/body target
   and validation before membership changes. Do not let a wiggle silently move a
   paid operation outside its condition. Preserve ordinary group gestures and
   prototype the region-specific preview and commit behavior without new dialogs.
 - **F14. Run Group is not Test one item.** GroupNode runs its direct children
-  through [Run selected](../../web/src/hooks/nodes/useRunSelectedNodes.ts).
+  through [Run selected](https://github.com/nodetool-ai/nodetool/blob/main/web/src/hooks/nodes/useRunSelectedNodes.ts).
   That path uses cached inputs, can add deterministic upstream work, blocks
   uncached generative upstreams, and stamps outputs for reuse by later runs.
   Reuse execution infrastructure, but add a strict supplied/resolved-input path
@@ -144,7 +144,7 @@ demonstration of historical region execution.
   presentation ideas, not these execution paths or obsolete editor workarounds.
 - **F19. The untaken-branch skip does not satisfy D1.** The actor skips a node
   only when every wired data input closed without a value
-  (`receivedNothing` in [the actor](../../packages/execution-core/src/actor.ts)).
+  (`receivedNothing` in [the actor](https://github.com/nodetool-ai/nodetool/blob/main/packages/execution-core/src/actor.ts)).
   A node with no wired inputs is never skipped. A node that receives a value on
   one handle and nothing on another fires with defaults for the missing handle,
   which the DSL test "partial branches use defaults while wholly untaken branches
@@ -161,18 +161,18 @@ demonstration of historical region execution.
   with `skip` or `end_stream`, and with `substitute` for a repaired value. It
   offers `retry` only when the invocation spent nothing and created no asset,
   capped at 2 retries per invocation key
-  ([supervisor.ts](../../packages/execution-core/src/supervisor.ts)). A
+  ([supervisor.ts](https://github.com/nodetool-ai/nodetool/blob/main/packages/execution-core/src/supervisor.ts)). A
   content-filter refusal is retried twice and then drops the item when the
   invocation is one item of a fan-out
-  ([content-filter.ts](../../packages/execution-core/src/content-filter.ts)).
+  ([content-filter.ts](https://github.com/nodetool-ai/nodetool/blob/main/packages/execution-core/src/content-filter.ts)).
   Inside a For Each Region body both would publish a collection with a missing item,
   which D22 and R5 forbid. D25 resolves this.
 - **F22. Visual groups are transparent to execution, and graphs have no format
   version.** `Graph.topologicalSort` in
-  [graph.ts](../../packages/execution-core/src/graph.ts) treats children of a
+  [graph.ts](https://github.com/nodetool-ai/nodetool/blob/main/packages/execution-core/src/graph.ts) treats children of a
   `GroupNode` as root-scope nodes. Region children must not inherit that rule.
   Graph documents carry no version field.
-  [`migrateGraphNodeTypes`](../../packages/protocol/src/graph.ts) only rewrites
+  [`migrateGraphNodeTypes`](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/graph.ts) only rewrites
   removed node types and renamed properties on load. An older build reading a
   region graph would see unknown node types, which `nodetool validate` rejects.
   D28 relies on that rejection.
@@ -181,7 +181,7 @@ demonstration of historical region execution.
 
 - **F23. Run budgets cover agent runs only.** `RunBudget` and
   `CompositeTurnBudget` in
-  [turn-budget.ts](../../packages/runtime/src/turn-budget.ts) reserve a worst
+  [turn-budget.ts](https://github.com/nodetool-ai/nodetool/blob/main/packages/runtime/src/turn-budget.ts) reserve a worst
   case before each model turn and commit actuals after it. The reservation
   handle is per turn, so concurrent loops cannot release each other's headroom.
   Admission runs in `BaseProvider`'s loop for chat turns, agent nodes, and
@@ -191,7 +191,7 @@ demonstration of historical region execution.
   spending policy" in D10 has nothing to reuse on that surface. D27 adds one.
 - **F24. The generation seam records spend but does not admit it.**
   `ProcessingContext.runGeneration` in
-  [context.ts](../../packages/runtime/src/context.ts) opens a generation row
+  [context.ts](https://github.com/nodetool-ai/nodetool/blob/main/packages/runtime/src/context.ts) opens a generation row
   before the provider call and closes it with status, cost, and assets. It
   distinguishes `submission_unknown` and supports reconciliation
   ([generation tracking](../media-generation-tracking-design.md#current-implementation-boundary)).
@@ -200,11 +200,11 @@ demonstration of historical region execution.
   surface S7 in [§8 of that design](../media-generation-tracking-design.md#8-surfaces-that-must-go-through-the-seam))
   bypass the seam, so no limit can stop them before they call a provider today.
 - **F25. Run-level gates price one pass.** The
-  [credit gate](../../packages/websocket/src/credit-gate.ts) reserves a run's
+  [credit gate](https://github.com/nodetool-ai/nodetool/blob/main/packages/websocket/src/credit-gate.ts) reserves a run's
   estimate before it starts, counts in-flight reservations, keeps them
   process-local, and fails open. Mini-app budgets also check before a run. The
   editor estimate in
-  [useGraphCostEstimate](../../web/src/hooks/useGraphCostEstimate.ts) counts each
+  [useGraphCostEstimate](https://github.com/nodetool-ai/nodetool/blob/main/web/src/hooks/useGraphCostEstimate.ts) counts each
   node once, times its own fan-out properties, and does not multiply by a
   ForEach item count. A For Each Region would be priced as one item.
 
@@ -219,12 +219,12 @@ demonstration of historical region execution.
   Test one item, and consistent recorded previews. Do not present these as
   already supported by the old region badges.
 - **F17. Agents can read membership but lack the required region edits.**
-  [Get graph](../../web/src/lib/tools/builtin/getGraph.ts) and the
-  [headless adapter](../../packages/node-sdk/src/workflow-document-tools.ts)
-  expose parent IDs. The inspected [tool schemas](../../packages/protocol/src/toolSchemas.ts)
+  [Get graph](https://github.com/nodetool-ai/nodetool/blob/main/web/src/lib/tools/builtin/getGraph.ts) and the
+  [headless adapter](https://github.com/nodetool-ai/nodetool/blob/main/packages/node-sdk/src/workflow-document-tools.ts)
+  expose parent IDs. The inspected [tool schemas](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/toolSchemas.ts)
   offer no parent/branch parameter on node creation, and
-  [Add node](../../web/src/lib/tools/builtin/addNode.ts) creates a root node.
-  [Update node data](../../web/src/lib/tools/builtin/updateNodeData.ts) changes
+  [Add node](https://github.com/nodetool-ai/nodetool/blob/main/web/src/lib/tools/builtin/addNode.ts) creates a root node.
+  [Update node data](https://github.com/nodetool-ai/nodetool/blob/main/web/src/lib/tools/builtin/updateNodeData.ts) changes
   data, not structural parent membership. Extend the shared graph-tool contract
   for region creation, membership/branch edits, and named ports in both browser
   and headless adapters. Agents also need scoped testing, read-only iteration
@@ -348,9 +348,9 @@ structural cap must leave room below `MAX_INNER_GRAPH_DEPTH`.
 
 **D11.** Keep default layouts focused on condition and branch outputs, or item
 and results. Reveal state and advanced controls on demand. Collapsing affects
-presentation only. Follow the [design system](../DESIGN.md),
-[UX guidelines](../UX_GUIDELINES.md), and
-[primitives strategy](../../web/src/components/ui_primitives/STRATEGY.md).
+presentation only. Follow the [design system](https://github.com/nodetool-ai/nodetool/blob/main/docs/DESIGN.md),
+[UX guidelines](https://github.com/nodetool-ai/nodetool/blob/main/docs/UX_GUIDELINES.md), and
+[primitives strategy](https://github.com/nodetool-ai/nodetool/blob/main/web/src/components/ui_primitives/STRATEGY.md).
 
 ### Spending and execution limits
 
@@ -642,8 +642,8 @@ Depends on milestones 1-4, 4a, and 4b. Complete relevant checks in each delivery
 - [ ] **A31.** Verify examples covering conditional repair, filtered collection,
   stopping, single-item testing, and inspection. Include a stateful example that
   makes a later-item test's initial-state assumption visible.
-- [ ] **A32.** Update [loop guidance](../workflow-loops.md), the
-  [correlation design](../correlation-design.md) where regions change scheduling,
+- [ ] **A32.** Update [loop guidance](https://github.com/nodetool-ai/nodetool/blob/main/docs/workflow-loops.md), the
+  [correlation design](https://github.com/nodetool-ai/nodetool/blob/main/docs/correlation-design.md) where regions change scheduling,
   [costs and credits](../costs-and-credits.md) for new spending behavior,
   affected shipped authoring skills, and area instructions when behavior changes.
 - [ ] **A33.** Register applicable selfchecks and verify gate selection using
@@ -682,7 +682,7 @@ packages behind the generation seam.
 |---|---|---|
 | [ForEach and If region commit](https://github.com/nodetool-ai/nodetool/commit/0f1a56a392bc1e7ced1d4cd065eaa8cfa1e32af3), on `copilot/add-foreach-and-if-regions` | `ForEachRegion.tsx`, `IfRegion.tsx`, shared `RegionNode.tsx`, badges, resizing, and graph serialization changes. | This commit is not an ancestor of the checkout examined for this plan. Its changes are frontend-only and do not prove backend execution. The If component describes position-based branch assignment, which conflicts with explicit membership in D5. |
 | Removed `web/src/components/node/LoopNode.tsx`, accessible through `git log --all -- web/src/components/node/LoopNode.tsx` | History of boundary input/output styling, resizing, child selection, and experimental collapse. | Historical behavior may be incomplete or incompatible with current stores, primitives, and execution. Check the relevant revisions and tests before porting anything. |
-| [Subgraph](../../packages/core-nodes/src/nodes/subgraph.ts) and [Workflow](../../packages/core-nodes/src/nodes/workflow.ts) nodes | Current, tested isolated execution with named inputs and outputs, cancellation, cost roll-up, and a depth limit (F18). | They run once per invocation and admit no spend. Region bodies need per-iteration runs, shared limits, and iteration identity on messages. |
+| [Subgraph](https://github.com/nodetool-ai/nodetool/blob/main/packages/core-nodes/src/nodes/subgraph.ts) and [Workflow](https://github.com/nodetool-ai/nodetool/blob/main/packages/core-nodes/src/nodes/workflow.ts) nodes | Current, tested isolated execution with named inputs and outputs, cancellation, cost roll-up, and a depth limit (F18). | They run once per invocation and admit no spend. Region bodies need per-iteration runs, shared limits, and iteration identity on messages. |
 
 These are design references, not approved implementations or instructions to
 restore a branch. Verify actual behavior and compatibility before reuse. Keep

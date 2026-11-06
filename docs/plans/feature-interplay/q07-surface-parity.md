@@ -10,4 +10,4 @@ Run inspection provides a positive example: the web router and agent capabilitie
 
 **Next check:** compare one save/load journey across editor, export and CLI. Then check whether failures are visible on each surface. This reading identifies differences, not an exhaustive list of exclusive capabilities.
 
-Evidence: [editor saves](../../../web/src/components/game/gameEditorSaves.ts), [player storage](../../../packages/game-renderer/src/save-storage.ts), [save guarantees](../../game-engine/saves-replay.md), [web run readers](../../../packages/websocket/src/trpc/routers/runs.ts), [agent run readers](../../../packages/agents/src/capabilities/runs.ts).
+Evidence: [editor saves](https://github.com/nodetool-ai/nodetool/blob/main/web/src/components/game/gameEditorSaves.ts), [player storage](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-renderer/src/save-storage.ts), [save guarantees](../../game-engine/saves-replay.md), [web run readers](https://github.com/nodetool-ai/nodetool/blob/main/packages/websocket/src/trpc/routers/runs.ts), [agent run readers](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/src/capabilities/runs.ts).
