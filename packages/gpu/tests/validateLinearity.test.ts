@@ -194,6 +194,27 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     });
     expect(res.ok).toBe(true);
   });
+
+  it("checks a line that repeats the sample call name in linear time", () => {
+    // 240,000 characters took about 3 s with the earlier single pattern.
+    const wgsl = `
+@fragment
+fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+  let src = textureSample(source, samp, uv);
+  let pad = ${"textureLoad ".repeat(20000)};
+  return src;
+}
+`;
+    const started = performance.now();
+    const res = validateWgslLinearity({
+      id: "test.redos",
+      linearity: "nonlinear-in-rgb",
+      wgsl,
+      inputs: { source: PREMUL }
+    });
+    expect(res.ok).toBe(true);
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
 });
 
 describe("defineModule throws on linearity violation", () => {

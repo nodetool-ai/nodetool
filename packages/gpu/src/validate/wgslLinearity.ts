@@ -159,7 +159,10 @@ function findSampleVariables(wgsl: string): Set<string> {
  */
 function lineReadsSampleRgb(line: string, samples: Set<string>): boolean {
   // Direct textureSample(...).rgb / textureLoad(...).rgb.
-  if (/\btexture(?:Sample|Load)\b[\s\S]*\)\s*\.rgb\b/.test(line)) {
+  // Two linear scans: one pattern spanning both took quadratic time on a line
+  // that repeats the call name.
+  const call = /\btexture(?:Sample|Load)\b/.exec(line);
+  if (call && /\)\s*\.rgb\b/.test(line.slice(call.index))) {
     return true;
   }
   for (const name of samples) {
