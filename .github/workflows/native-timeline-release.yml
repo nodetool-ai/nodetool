@@ -64,6 +64,8 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version-file: .nvmrc
+          # A release must not restore a cache another run could have written.
+          package-manager-cache: false
       - name: Set temporary paths
         run: |
           echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
